@@ -1,0 +1,23 @@
+{
+    "groups": {
+        "Administrators": {
+            "permissions": [
+                "/admin/settings.edit",
+                "/admin/users.edit",
+                "/admin/modules.edit",
+                "/admin/settings.view",
+                "/admin/mainpage.view",
+                "/admin/modules.view"
+            ]
+        }
+    },
+    "users": {
+        "admin": {
+            "groups": [
+                "Administrators"
+            ],
+            "password": "password",
+            "username": "admin"
+        }
+    }
+}

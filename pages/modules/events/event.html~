@@ -1,0 +1,29 @@
+<%!
+from util import url
+%>
+<%include file="/pageheader.html"/>
+<title>Kaithem Event</title>
+<h2>Event "${name|h}" of module "${module|h}"</h2>
+
+<div class="sectionbox">
+
+
+<form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
+<h3>Trigger</h3>
+<p class="help">Enter a python statement here. The event will occur when the expression goes from false to true.
+</p>
+<input class="pythoncode" type="text" name="trigger" value="${event['trigger']|h}"></input>
+<h3>Action</h3>
+<p class="help">
+This code will be executed when the expression in trigger goes from false to true
+</p>
+<textarea name="action" rows=45 class="pythoncode">${event["action"]}</textarea>
+<br><br>
+<p class="help">
+Saving this module will case it to completely reload, including its local scope. Other resorces will not be affected.
+</p>
+<input type="submit" value="Save Changes"></input>
+</form>
+</div>
+
+<%include file="/pagefooter.html"/>

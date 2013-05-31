@@ -1,0 +1,16 @@
+<%!
+from util import url
+%>
+<%include file="/pageheader.html"/>
+<h2>Add Page</h2>
+<title>Add Page</title>
+<div class="sectionbox">
+<p class ="help">The new page will be empty.</p>
+<hr>
+<form action="/modules/module/${url(module)}/addresourcetarget/page" method="POST" name="new">
+<h3>Name</h3><input required="required" name="name" class="name" type="text"></input><br>
+<br><input value="Create Page" type="submit">
+</form>
+</div>
+
+<%include file="/pagefooter.html"/>

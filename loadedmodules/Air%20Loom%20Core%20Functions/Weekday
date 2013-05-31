@@ -1,0 +1,4 @@
+{
+    "body": "Today is ${kaithem.dayofweek()}!",
+    "resource-type": "page"
+}

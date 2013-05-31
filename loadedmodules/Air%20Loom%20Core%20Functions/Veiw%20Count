@@ -1,0 +1,4 @@
+{
+    "body": "The page that increments the count has been acessed ${kaithem.globals.count} times.",
+    "resource-type": "page"
+}

@@ -1,0 +1,4 @@
+{
+    "body": "<%kaithem.globals.count+=1%>\r\nCount Incremented by One!",
+    "resource-type": "page"
+}

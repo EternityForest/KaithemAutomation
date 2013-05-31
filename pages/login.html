@@ -1,0 +1,13 @@
+<%include file="/pageheader.html"/>
+    <h2 style="text-align: center;">Please Log In</h2>
+    <div style="text-align: center;">
+	<div class="sectionbox">
+      <form method="POST" action="/login/login/" name="login"><span style="font-weight: bold;">Username:</span>
+        <input required="required" name="username" type="text"><br>
+        <span style="font-weight: bold;">Password:</span>&nbsp; 
+		<input name="pwd" type="password"> <br>
+        <input value="Login"type="submit"></form>
+	</div>
+    </div>
+
+<%include file="/pagefooter.html"/>

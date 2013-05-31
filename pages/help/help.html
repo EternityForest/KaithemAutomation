@@ -1,0 +1,95 @@
+<%include file="/pageheader.html"/>
+	<title>Kaithem Help</title>
+    <h1>Kaithem Help</h1>
+	
+	<div class="sectionbox">
+	<h2><a id="intro" name="intro"></a>Introduction</h2>
+	<p>Kaithem is an automation solution based on the concept of events,triggers, and actions.
+	An event is a statement that when the trigger occurs, the action should be executed.</p>
+	
+	<p> In addition, Kaithem provides TLS/SSL encryption, user management, and serves as a basic IDE to create web pages that can interact with your process data. Kaithem was not designed for mission-critical control purposes, but aims to be fully reliable enough for basic home and commercial automation tasks.</p>
+		
+	<p>An important idea in kaithem is that resources, such as events, data, and web pages, all exist within <em>modules</em>. This allows for a very simple plugin based architecture wherein device plugins can be bundled with the web pages to manage them. Modules can be downloades or uploaded to and from the server as zip files, or can be created and modified straight from the web interface.</p>
+	
+	<P> One very important note about Kaithem is that it does not save anything to the disk except when told to. To do this, go to the settings page and follow the instructions.</P>
+	
+		<h2><a id="modules" name="modules"></a>Modules:</h2>
+    <p>Kaithem is based on the idea that <em>everything is a module</em>. This makes it very easy to write new device drivers, as they can simply be modules. Code and management pages are just resources within modules.
+    A module is just a loose collection of resources all with a unique name. Resources can be anything from events and actions to user defined pages to custom permissions.
+    </p>
+	
+	<p>You can name modules as you like, but anything beginning with a double-underscore("__") is reserved.</p>
+	
+	<h2><a id="pages" name="pages"></a>Pages:</h2>
+	<p>Kaithem allows users with the appropriate permissions to create user-defined pages. User defined pages are written in HTML and may contain embedded mako template code.
+	Mako is a simple templating language allowing you to embed server-side python in HTML code. Python code in user defined pages has access to the kaithem object(see below) and
+	and if desired the python cod may have side effects, allowing a wide variety of web servicies, information displays, and control panels to be created using only kaithem's page system.</p>
+	
+	<p>Acess to pages is controlled through kaithem's permission system, and any page may require one or more permissions to acess. New Permissions can be defined as module resources.</p>
+	<p>User pages should follow the <a href="/docs#theming">Theming Guidelines</a>.</p>
+
+	
+	    <h2><a id="auth" name="auth"></a>Users and access control:</h2>
+    <p>Access control is based on <em>users</em>, <em>groups</em>, and <em>permissions</em>.</p>
+    <p>A user may belong to any number of groups.<span style="font-style: italic;">
+      </span>A user has access to all permissions of the groups he or she is a
+      member of.</p>
+    <p>To create new users or groups, change group memberships or permissions,
+      or delete users, you must have the<span style="font-style: italic;">
+        /admin/users.edit </span>permission. Keep in mind a user with this
+      permission can give himself any other permission and so has full access.
+      Do not give this permission to an untrusted user.</p>
+    <p>Permissions are generally of the form&nbsp;
+      "/&lt;path&gt;/&lt;item&gt;.&lt;action&gt;" without quotes. The path describes
+      the general catergory, the item specifies a resource, and the action
+      specifies an action that may be performed on the resource. Modules may
+      define their own permissions, and user-defined pages may be configured to
+      require one or more permissions to access. For consistancy, You should
+      always use the above permission format.</p>
+	  
+	  <p> Upon creating a new permission, you will immediately be able to assign it to groups by selecting
+	  the checkbox in the group page.</p>
+
+	  
+	<h2><a id="scope" name="scope"></a>Scoping</h2>
+	<p>Almost all programming languages have some concept of scope and Python is no different. Every "resource" has its own scope, similar to a function. if you set a variable in one event, it will be there next time the event runs, but will not be directl visible in other resources. This does not apply to Mako code inside page html. Mako code will act like function local variables and onl persist for the life of the call</p>
+	
+	<p>Every resource scope however will contain an object called Kaithem, which is global, and an 
+	object called Module, which is shared between all module resources. The Module object has the 
+	attribute Module.resources, which is a dict indexed by resource name. It contains instances of 
+	Resource or a subclass, and each resource has a property called type. if the resource is an event
+	, Resource.type will equal "event", and there will be a dict at Resource.scope, representing the 
+	local scope of that resource.</p>
+		
+	<p>The other way to share data is through the Kaithem.globals and Module.globals objects,and the 
+	Kaithem.dev dict. The former two are general-purpose objects of class object, intended to have attributes assigned to them, while the latter is a dict intended to index objects representing devices.</p>
+	
+	
+
+	
+	
+	
+
+    <h2><a id="kaithemobject" name="kaithemobject"></a>The Kaithem Object:</h2>
+    <p>The Kaithem object is one object availible in almost all user defined code. It has the following properties:</p>
+	
+    <h3>kaithem.lorem()</h3>
+    <p>Returns about a sentence to a paragraph of placeholder text that may change between calls and may not actually be classic Lorem Ipsum text.</p>
+    
+    <h3>kaithem.globals</h3>
+    <p>An instance of object() whos only purpose is so that the user can asign it attributes.
+       Be careful, as the kaithem namespace is truly global.
+    </p>
+    
+    <h2><a id="theming" name="theming"></a>Theming</h2>
+    <p>The following conventions are used for consistancy in kaithem CSS. If you want your custom pages to be consistant with the rest of Kaithem's theming, 
+    you can use the following CSS classes in your user-created pages. </p>
+    <h3>Action Links</h3>
+    <p>Any link having the primary purpose of performing an action as opposed to navigation should have the class "button". If the action is delete, it should also have the class "deletebutton", likewise for "createbutton" and "savebutton"</p>
+    
+    <h3>Short help strings</h3>
+    <p>Short help texts in the gui should be wrapped in a p element with class ="help"</p>
+    
+</div>
+	
+<%include file="/pagefooter.html"/>
