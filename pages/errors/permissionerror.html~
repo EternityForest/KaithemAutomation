@@ -1,8 +1,0 @@
-<%include file="/pageheader.html"/>
-	<title>Acess Denied</title>
-    <div class="sectionbox">
-<h2>Permission Error</h2>
-<p>You do not have permission to acess this resource. If you need access, please contact the administrator.</p>
-</div>
-	
-<%include file="/pagefooter.html"/>
