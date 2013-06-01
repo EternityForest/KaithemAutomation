@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #This file handles the display of user-created pages
-import kaithem, modules, mako, cherrypy
+import kaithem, modules, mako, cherrypy,util
 class KaithemPage():
     @cherrypy.expose
    
@@ -28,7 +28,14 @@ class KaithemPage():
                         #Raise a redirect the the wrongmethod error page
                         raise cherrypy.HTTPRedirect('/errors/wrongmethod')
                         
-               return mako.template.Template(modules.ActiveModules[module][page]['body']).render(
+               #This is pretty much the worst perfoming piece of code in the system.
+               #Every single request it compiles a new template and renders that, but not before loading two files from
+               #Disk. But I don't feel like writing another ten pages of bookkeeping code today. []TODO       
+               return mako.template.Template(
+               util.readfile('pages/pageheader.html')+
+               modules.ActiveModules[module][page]['body']+
+                util.readfile('pages/pagefooter.html')
+               ).render(
                kaithem = kaithem.kaithem,
                request = cherrypy.request,
                )

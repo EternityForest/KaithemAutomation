@@ -136,6 +136,10 @@ class WebInterface():
         pages.require("/admin/modules.edit")
         with modulesLock:
            ActiveModules.pop(kwargs['name'])
+        #Get rid of any lingering cached events
+        newevt.removeModuleEvents(kwargs['name'])
+        #Get rid of any permissions defined in the modules.
+        auth.importPermissionsFromModules()
         raise cherrypy.HTTPRedirect("/modules")
         
     @cherrypy.expose
@@ -191,8 +195,15 @@ class WebInterface():
             if path[0] == 'deleteresourcetarget':
                 pages.require("/admin/modules.edit")
                 with modulesLock:
-                   ActiveModules[module].pop(kwargs['name'])
-                newevt.getEventsFromModules()
+                   r = ActiveModules[module].pop(kwargs['name'])
+                   
+                #Annoying bookkeeping crap to get rid of the cached crap
+                if r['resource-type'] == 'event':
+                    newevt.removeOneEvent(kwargs['name'])
+                    
+                if r['resource-type'] == 'permission':
+                    auth.importPermissionsFromModules() #sync auth's list of permissions
+                    
                 raise cherrypy.HTTPRedirect('/modules')
 
             #This is the target used to change the name and description(basic info) of a module  
@@ -227,13 +238,13 @@ def addResourceTarget(module,type,name,kwargs):
     #Create a permission
     if type == 'permission':
         with modulesLock:
-            if kwargs['name'] not in ActiveModules[module]:
-                ActiveModules[module] [kwargs['name']]= {"resource-type":"permission","description":kwargs['description']}
-                raise cherrypy.HTTPRedirect("/modules/module/" +util.url(module)+ '/resource/' + util.url(name) )
-            else:
+            if kwargs['name'] in ActiveModules[module]:
                 raise cherrypy.HTTPRedirect("/errors/alreadyexists")
-        #has its own lock
-        auth.importPermissionsFromModules() #sync auth's list of permissions 
+            else:   
+                ActiveModules[module] [kwargs['name']]= {"resource-type":"permission","description":kwargs['description']}
+                #has its own lock
+                auth.importPermissionsFromModules() #sync auth's list of permissions 
+                raise cherrypy.HTTPRedirect("/modules/module/" +util.url(module)+ '/resource/' + util.url(name) )
         
     if type == 'event':
         with modulesLock:

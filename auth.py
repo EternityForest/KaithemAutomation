@@ -162,11 +162,14 @@ def checkTokenPermission(token,permission):
             return False
 			
 #Remove references to deleted permissions
+#NO-OP, Lets just let user manually uncheck them.
 def destroyUnusedPermissions():
-    for i in Groups:
-        for j in Groups[i]['permissions']:
-            if j not in Permissions:
-                Groups[i]['permissions'].pop(j)
+   pass
+   # for i in Groups:
+    #    for j in Groups[i]['permissions']:
+     #       if j not in Permissions:
+      #          Groups[i]['permissions'].pop(j)
+
 
 #Save the state of the entire users/groups/permissions system
 def dumpDatabase():
