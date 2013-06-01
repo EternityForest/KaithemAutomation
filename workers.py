@@ -33,7 +33,7 @@ __queue = queue.Queue(120)
 run = True
 
 #one worker that just pulls tasks from the queue and does them. Errors are caught and
-#We assume the yasks have their own error stuff
+#We assume the tasks have their own error stuff
 def __workerloop():
     while(run):
         try:

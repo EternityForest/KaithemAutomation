@@ -21,13 +21,15 @@ import kaithem
 event_list_lock = threading.Lock()
 events = []
 
-#Let us now have a way to get at actie event objects by means o their origin resource and module.
+#Let us now have a way to get at active event objects by means of their origin resource and module.
 EventReferences = {}
 
 
 #In a background thread, we use the worker pool to check all threads
 
 run = True
+#Acquire a lock on the list of events(Because we can't really iterate safely without it)
+#And put the check() fuction of each event object into the thread pool
 def __manager():
     while run:
         event_list_lock.acquire()
@@ -44,23 +46,35 @@ t = threading.Thread(target = __manager)
 t.daemon = True
 t.start()
 
+
+#Every event has it's own local scope that it uses, this creates the dict to represent it
 def makeEventScope(module):
     with modules.modulesLock:
        return {'module':modules.scopes[module],'kaithem':kaithem.kaithem}
 
+#This piece of code will update the actual event object based on the event resource definition in the module
+#Also can add a new event
 def updateOneEvent(resource,module):
     with modules.modulesLock:
+        #Get the event resource in question
         j = modules.ActiveModules[module][resource]
+        #Make an event object
         x = Event(j['trigger'],j['action'],makeEventScope(module))
+        #Make sure nobody is iterating the eventlist
         event_list_lock.acquire()
         
+        #Somehow seems brittle to me.
+        #What it does is to use the EventReferences index to get at the old event object, 
+        #remove it, add the new event, and update the index
         try:
             if module in EventReferences:
                 if resource in EventReferences[module]:
                     if EventReferences[module][resource] in events:
+                        #Remove old reference if there was one
                         events.remove(EventReferences[module][resource])
-                      
+            #Add new event    
             events.append(x)
+            #Update index
             EventReferences[module][resource] = x
              
         finally:
@@ -70,17 +84,22 @@ def updateOneEvent(resource,module):
 def getEventsFromModules():
     with modules.modulesLock:
         event_list_lock.acquire()
+        
         global events
+        #Set events to an empty list we can build on
         events = []
         try:
             for i in modules.ActiveModules.copy():
+                #For each loaded and active module, we make a subdict in EventReferences
                 EventReferences[i] = {} # make an empty place or events in this module
+                #now we loop over all the resources o the module to see which ones are events 
                 for m in modules.ActiveModules[i].copy():
                     j=modules.ActiveModules[i][m]
                     if j['resource-type']=='event':
+                        #For every resource that is an event, we make an event object based o
                         x = Event(j['trigger'],j['action'],makeEventScope(i))
                         events.append(x)
-                        #Same event object, different set of references
+                        #Now we update the references
                         EventReferences[i][m] = x
         finally:
             event_list_lock.release()
@@ -96,27 +115,38 @@ class Event():
     
     """
     def __init__(self,when,do,scope,continual=False,ratelimit=0,):
+    
+        #Copy in the data from args
         self.scope = scope
         self._prevstate = False
+        self.ratelimit = ratelimit
+        self.continual = continual
+        
         #Precompile
         self.trigger = compile(when,"<str>","eval")
         self.action = compile(do,"<str>","exec")
-        self.continual = continual
-        #This lock makes sure that only one copy executes at once
+        
+        #This lock makes sure that only one copy of the event executes at once.
         self.lock = threading.Lock()
+        
+        #This keeps track of the last time the event was triggered  so we ca rate limit
         self.lastexecuted = 0
-        self.ratelimit = ratelimit
+        
         
     def check(self):
         """Check if the trigger is true and if so do the action."""
         try:
             self.lock.acquire()
+            #Eval the condition in the local event scope
             if eval(self.trigger,self.scope,self.scope):
                 #Only execute once on false to true change unless continual was set
                 if (self.continual or self._prevstate == False):
+                    #Check the curret time minus the last time against the rate limit
+                    #Don't execute more often than ratelimit
                     if (time.time()-self.lastexecuted >self.ratelimit):
                         exec(self.action,self.scope,self.scope)
                         self.lastexecuted = time.time()
+                #Set the flag saying that the last time it was checked, the condition evaled to True
                 self._prevstate = True
             else:
                 self._prevstate = False

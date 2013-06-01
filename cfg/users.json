@@ -9,6 +9,13 @@
                 "/admin/mainpage.view",
                 "/admin/modules.view"
             ]
+        },
+        "Guests": {
+            "permissions": [
+                "/admin/settings.view",
+                "/admin/modules.view",
+                "/admin/mainpage.view"
+            ]
         }
     },
     "users": {
@@ -18,6 +25,13 @@
             ],
             "password": "password",
             "username": "admin"
+        },
+        "guest": {
+            "groups": [
+                "Guests"
+            ],
+            "password": "none",
+            "username": "guest"
         }
     }
 }

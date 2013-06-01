@@ -28,8 +28,7 @@ else:
 modulesLock = threading.RLock()
 
 #Lets just store the entire list of modules as a huge dict for now at least
-#the SafeDict should handle most of the thread safety for the whole system.
-ActiveModules = util.SafeDict()
+ActiveModules = {}
 
 #Define a place to keep the module private scope obects.
 #Every module has a object of class object that is used so user code can share state between resources in
@@ -54,8 +53,11 @@ def saveModules(where):
             #under the URL quoted module name for the filename.
             for resource in ActiveModules[i]:
                 try:
+                    #Make sure there is a directory at where/module/
                     util.ensure_dir(os.path.join(where,quote(i,""),quote(resource,"")))
+                    #Open a file at /where/module/resource
                     f = open(os.path.join(where,quote(i,""),quote(resource,"")),"w")
+                    #Make a json file there and prettyprint it
                     json.dump(ActiveModules[i][resource],f,sort_keys=True,indent=4, separators=(',', ': '))
                 finally:
                     f.close()
@@ -113,6 +115,7 @@ def loadModule(moduledir,path_to_module_folder):
 class WebInterface():
     @cherrypy.expose
     def index(self):
+        #Require permissions and render page. A lotta that in this file.
         pages.require("/admin/modules.view")
         return pages.get_template("modules/index.html").render(ActiveModules = ActiveModules)
 
@@ -120,6 +123,7 @@ class WebInterface():
     def newmodule(self):
         pages.require("/admin/modules.edit")
         return pages.get_template("modules/new.html").render()
+        
     #CRUD screen to delete a module
     @cherrypy.expose
     def deletemodule(self):
@@ -138,17 +142,18 @@ class WebInterface():
     def newmoduletarget(self,**kwargs):
         global scopes
         pages.require("/admin/modules.edit")
-        
-        if kwargs['name'] not in ActiveModules:
-            with modulesLock:
+        #If there is no module by that name, create a blank template and the scope obj
+        with modulesLock:
+            if kwargs['name'] not in ActiveModules:
                 ActiveModules[kwargs['name']] = {"__description":
                 {"resource-type":"module-description",
                 "text":"Module info here"}}
                 #Create the scope that code in the module will run in
                 scopes[kwargs['name']] = {}
-            raise cherrypy.HTTPRedirect("/modules")
-        else:
-            return pages.get_template("error.html").render(info = " A module already exists by that name,")
+                #Go directly to the newly created module
+                raise cherrypy.HTTPRedirect("/modules/module/"+util.url(kwargs['name']))
+            else:
+                return pages.get_template("error.html").render(info = " A module already exists by that name,")
             
     @cherrypy.expose
     #This function handles HTTP requests of or relating to one specific already existing module.
@@ -195,8 +200,8 @@ class WebInterface():
                 pages.require("/admin/modules.edit")
                 with modulesLock:
                     ActiveModules[kwargs['name']] = ActiveModules.pop(module)
-                    ActiveModules[kwargs['name']]['__description']['text'] = kwargs['description']
-                raise cherrypy.HTTPRedirect('/modules')
+                    ActiveModules[module]['__description']['text'] = kwargs['description']
+                raise cherrypy.HTTPRedirect('/modules/module/'+util.url(kwargs['name']))
 
 #Return a CRUD screen to create a new resource taking into the type of resource the user wants to create               
 def addResourceDispatcher(module,type):
@@ -214,19 +219,22 @@ def addResourceDispatcher(module,type):
     if type == 'page':
         return pages.get_template("modules/pages/new.html").render(module=module)
 
-#The target for the POST from the CRUD to actually create the new resource 
+#The target for the POST from the CRUD to actually create the new resource
+#Basically it takes a module, a new resourc name, and a type, and creates a template resource
 def addResourceTarget(module,type,name,kwargs):
     pages.require("/admin/modules.edit")
     
+    #Create a permission
     if type == 'permission':
         with modulesLock:
             if kwargs['name'] not in ActiveModules[module]:
                 ActiveModules[module] [kwargs['name']]= {"resource-type":"permission","description":kwargs['description']}
-                raise cherrypy.HTTPRedirect("/modules")
+                raise cherrypy.HTTPRedirect("/modules/module/" +util.url(module)+ '/resource/' + util.url(name) )
             else:
                 raise cherrypy.HTTPRedirect("/errors/alreadyexists")
         #has its own lock
         auth.importPermissionsFromModules() #sync auth's list of permissions 
+        
     if type == 'event':
         with modulesLock:
            if kwargs['name'] not in ActiveModules[module]:
@@ -235,7 +243,7 @@ def addResourceTarget(module,type,name,kwargs):
                 #newevt maintains a cache of precompiled events that must be kept in sync with
                 #the modules
                 newevt.updateOneEvent(kwargs['name'],module)
-                raise cherrypy.HTTPRedirect("/modules")
+                raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+util.url(name))
            else:
                 raise cherrypy.HTTPRedirect("/errors/alreadyexists")
 
@@ -245,10 +253,11 @@ def addResourceTarget(module,type,name,kwargs):
                 ActiveModules[module][kwargs['name']]= {"resource-type":"page","body":"Content here"}
                 #newevt maintains a cache of precompiled events that must be kept in sync with
                 #the modules
-                raise cherrypy.HTTPRedirect("/modules")
+                raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+util.url(name))
             else:
-                raise cherrypy.HTTPRedirect("/errors/alreadyexists")        
-    
+                raise cherrypy.HTTPRedirect("/errors/alreadyexists")  
+                      
+#show a edit page for a resource. No side effect here so it only requires the view permission
 def resourceEditPage(module,resource):
     pages.require("/admin/modules.view")
     with modulesLock:
@@ -256,19 +265,23 @@ def resourceEditPage(module,resource):
             return permissionEditPage(module, resource)
 
         if ActiveModules[module][resource]['resource-type'] == 'event':
-            return pages.get_template("/modules/events/event.html").render(module =module,name =resource,event =ActiveModules[module][resource])
+            return pages.get_template("/modules/events/event.html").render(module =module,name =resource,event 
+            =ActiveModules[module][resource])
 
         if ActiveModules[module][resource]['resource-type'] == 'page':
-            return pages.get_template("/modules/pages/page.html").render(module=module,name=resource,page=ActiveModules[module][resource])
+            return pages.get_template("/modules/pages/page.html").render(module=module,name=resource,
+            page=ActiveModules[module][resource])
 
 def permissionEditPage(module,resource):
     pages.require("/admin/modules.view")
     return pages.get_template("modules/permissions/permission.html").render(module = module, 
     permission = resource, description = ActiveModules[module][resource]['description'])
 
+#The actual POST target to modify a resource. Context dependant based on resource type.
 def resourceUpdateTarget(module,resource,kwargs):
     pages.require("/admin/modules.edit")
     t = ActiveModules[module][resource]['resource-type']
+    
     if t == 'permission': 
         with modulesLock:
             ActiveModules[module][resource]['description'] = kwargs['description']
@@ -287,7 +300,7 @@ def resourceUpdateTarget(module,resource,kwargs):
     if t == 'page':
         with modulesLock:
             ActiveModules[module][resource]['body'] = kwargs['body']
-    raise cherrypy.HTTPRedirect('/modules')
+    raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+util.url(resource))
     
 
         

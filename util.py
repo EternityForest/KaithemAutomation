@@ -33,22 +33,14 @@ def ensure_dir(f):
     d = os.path.dirname(f)
     if not os.path.exists(d):
         os.makedirs(d)
-
-#This is a threadsafe dictionary.
-#It should be resistant to modification while iteration
-class SafeDict(dict):
-    def __init__(self,*args,**kwargs):
-        #Some locked functions call other locked functions so we must use a reentrant lock
-        self.mylock=threading.RLock(); 
-        super(SafeDict, self).__init__(*args, **kwargs)
-
-    def __setitem__(self,*args,**kwargs):
-        with self.mylock:
-            super(SafeDict,self).__setitem__(*args,**kwargs)
-
-    def copy(self):
-        with self.mylock:
-            return copy.copy(self)
+        
+def readfile(f):
+    try:
+        fh = open(f)
+        r = fh.read()
+    finally:
+        fh.close()
+    return r
 
 
 
