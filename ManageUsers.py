@@ -106,6 +106,7 @@ class ManageAuthorization():
         auth.Groups[group]['permissions'] = []
         #Handle all the group permission checkboxes
         for i in kwargs:
+            #Since HTTP args don't have namespaces we prefix all the permission checkboxes with permission
             if i[:10] == 'Permission':
                 if kwargs[i] == 'true':
                     auth.addGroupPermission(group,i[10:])

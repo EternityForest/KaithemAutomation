@@ -1,4 +1,4 @@
 {
-    "body": "The page that increments the count has been acessed ${kaithem.globals.count} times.",
+    "body": "<h2>View Count</h2>\r\n<div class=\"sectionbox\">The page that increments the count has been acessed ${kaithem.globals.count} times.</div>",
     "resource-type": "page"
 }

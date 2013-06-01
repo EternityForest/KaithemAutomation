@@ -272,16 +272,23 @@ def addResourceTarget(module,type,name,kwargs):
 def resourceEditPage(module,resource):
     pages.require("/admin/modules.view")
     with modulesLock:
-        if ActiveModules[module][resource]['resource-type'] == 'permission':
+        resourceinquestion = ActiveModules[module][resource]
+        
+        if resourceinquestion['resource-type'] == 'permission':
             return permissionEditPage(module, resource)
 
-        if ActiveModules[module][resource]['resource-type'] == 'event':
+        if resourceinquestion['resource-type'] == 'event':
             return pages.get_template("/modules/events/event.html").render(module =module,name =resource,event 
             =ActiveModules[module][resource])
 
-        if ActiveModules[module][resource]['resource-type'] == 'page':
+        if resourceinquestion['resource-type'] == 'page':
+            if 'require-permissions' in resourceinquestion:
+                requiredpermissions = resourceinquestion['require-permissions']
+            else:
+                requiredpermissions = []
+                
             return pages.get_template("/modules/pages/page.html").render(module=module,name=resource,
-            page=ActiveModules[module][resource])
+            page=ActiveModules[module][resource],requiredpermissions = requiredpermissions)
 
 def permissionEditPage(module,resource):
     pages.require("/admin/modules.view")
@@ -310,7 +317,16 @@ def resourceUpdateTarget(module,resource,kwargs):
 
     if t == 'page':
         with modulesLock:
-            ActiveModules[module][resource]['body'] = kwargs['body']
+            pageinquestion = ActiveModules[module][resource]
+            pageinquestion['body'] = kwargs['body']
+            #permission checkboxes
+            pageinquestion['require-permissions'] = []
+            for i in kwargs:
+                #Since HTTP args don't have namespaces we prefix all the permission checkboxes with permission
+                if i[:10] == 'Permission':
+                    if kwargs[i] == 'true':
+                        pageinquestion['require-permissions'].append(i[10:])
+                        
     raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+util.url(resource))
     
 

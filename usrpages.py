@@ -14,11 +14,16 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #This file handles the display of user-created pages
-import kaithem, modules, mako, cherrypy,util
+import kaithem, modules, mako, cherrypy,util,pages
 class KaithemPage():
     @cherrypy.expose
    
     def page(self,module,dummy2,page,*args,**kwargs):
+        #Permission handling for pages
+        if 'require-permissions' in modules.ActiveModules[module][page]:
+            for i in modules.ActiveModules[module][page]['require-permissions']:
+                pages.require(i)
+         
         with modules.modulesLock:  #need to find an alternaive to this lock
             if modules.ActiveModules[module][page]['resource-type'] == 'page':
                
