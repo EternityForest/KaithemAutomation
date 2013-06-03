@@ -15,7 +15,7 @@
 
 #File for keeping track of and editing kaithem modules(not python modules)
 
-import auth,cherrypy,pages,urllib,directories,os,json,util,newevt,shutil,sys
+import auth,cherrypy,pages,urllib,directories,os,json,util,newevt,shutil,sys,time
 import kaithem
 import threading
 
@@ -38,13 +38,30 @@ scopes ={}
 
 
 
-#saveall and loadall are the oes outside code shold use to save and load the state of what modules are loaded
+#saveall and loadall are the ones outside code shold use to save and load the state of what modules are loaded
 def saveAll():
-    saveModules(directories.moduledir)
+    #This dumps the contents of the active modules in ram to a subfolder of the moduledir named after the current unix time"""
+    saveModules(os.path.join(directories.moduledir,str(time.time()) ))
+    #We only want 1 backup(for now at least) so clean up old ones.  
+    util.deleteAllButHighestNumberedNDirectories(directories.moduledir,2)
     
 def loadAll():
-    loadModules(directories.moduledir)
-    auth.importPermissionsFromModules()
+    for i in range(0,15):
+        #Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
+        name = util.getHighestNumberedTimeDirectory(directories.moduledir)
+        possibledir = os.path.join(directories.moduledir,name)
+        
+        #__COMPLETE__ is a special file we write to the dump directory to show it as valid
+        if '''__COMPLETE__''' in util.get_files(possibledir):
+            loadModules(possibledir)
+            auth.importPermissionsFromModules()
+            break #We sucessfully found the latest good ActiveModules dump! so we break the loop
+        else:
+            #If there was no flag indicating that this was an actual complete dump as opposed
+            #To an interruption, rename it and try again
+            shutil.copytree(possibledir,os.path.join(directories.moduledir,name+"INCOMPLETE"))
+            shutil.rmtree(possibledir)
+        
     
 def saveModules(where):
     with modulesLock:
@@ -64,30 +81,23 @@ def saveModules(where):
 
             #Now we iterate over the existing resource files in the filesystem and delete those that correspond to
             #modules that have been deleted in the ActiveModules workspace thing.
-            for i in get_immediate_subdirectories(os.path.join(where,quote(i,""))):
-                if urllib.unquote(i) not in ActiveModules:  
+            for i in util.get_immediate_subdirectories(os.path.join(where,quote(i,""))):
+                if unquote(i) not in ActiveModules:  
                     os.remove(os.path.join(where,quote(i,""),i))
 
-        for i in get_immediate_subdirectories(where):
+        for i in util.get_immediate_subdirectories(where):
             #Look in the modules directory, and if the module folder is not in ActiveModules\
             #We assume the user deleted the module so we should delete the save file for it.
             #Note that we URL quote file names for the module filenames and foldernames.
-            if urllib.unquote(i) not in ActiveModules:
+            if unquote(i) not in ActiveModules:
                 shutil.rmtree(os.path.join(where,i))
+        with open(os.path.join(where,'__COMPLETE__'),'w') as f:
+            f.write("By this string of contents quite arbitrary, I hereby mark this dump as consistant!!!")
 
-#Get the names of all subdirectories in a folder but not full paths
-def get_immediate_subdirectories(folder):
-    return [name for name in os.listdir(folder)
-            if os.path.isdir(os.path.join(folder, name))]
-
-#Get a list of all filenames but not the full paths
-def get_files(folder):
-    return [name for name in os.listdir(folder)
-            if not os.path.isdir(os.path.join(folder, name))]
 
 #Load all modules in the given folder to RAM
 def loadModules(modulesdir):
-    for i in get_immediate_subdirectories(modulesdir):
+    for i in util.get_immediate_subdirectories(modulesdir):
         loadModule(i,modulesdir)
     newevt.getEventsFromModules()
 
@@ -97,7 +107,7 @@ def loadModule(moduledir,path_to_module_folder):
         #Make an empty dict to hold the module resources
         module = {} 
         #Iterate over all resource files and load them
-        for i in get_files(os.path.join(path_to_module_folder,moduledir)):
+        for i in util.get_files(os.path.join(path_to_module_folder,moduledir)):
             try:
                 f = open(os.path.join(path_to_module_folder,moduledir,i))
                 #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
@@ -326,8 +336,8 @@ def resourceUpdateTarget(module,resource,kwargs):
                 if i[:10] == 'Permission':
                     if kwargs[i] == 'true':
                         pageinquestion['require-permissions'].append(i[10:])
-                        
-    raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+util.url(resource))
+    #Return user to the module page       
+    raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module))#+'/resource/'+util.url(resource))
     
 
         

@@ -21,5 +21,5 @@
 #[]Put these in approprite places when running on linux
 statedir = 'state'
 logdir = 'log'
-cfgdir = 'cfg'
+usersdir = 'cfg'
 moduledir = 'loadedmodules'

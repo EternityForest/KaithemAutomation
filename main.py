@@ -13,6 +13,9 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
+
+#This file is the main entry point of the app
+
 import pages
 import weblogin
 import auth
@@ -27,25 +30,31 @@ import usrpages
 
 #2 and 3 have basically the same module with diferent names
 if sys.version_info < (3,0):
-    import urllib2
-    #Yes, This really is the only way i know of to get your public IP.
-    try:
-        u= urllib2.urlopen("http://ipecho.net/plain")
-        MyExternalIPAdress = u.read()
-    except:
-        MyExternalIPAdress = "unknown"
-    finally:
-        u.close()
+    from urllib2 import urlopen
 else:
+    from urllib.request import urlopen
+    
+#Yes, This really is the only way i know of to get your public IP.
+try:
+    u= urlopen("http://ipecho.net/plain")
+    MyExternalIPAdress = u.read()
+except:
     MyExternalIPAdress = "unknown"
+finally:
+    u.close()
+
     
 
+#Initialize the autorization module
+auth.initializeAuthentication()
 
-auth.initializeAuthentication(os.path.join(directories.cfgdir,'users.json'))
+#Load all modules from the active modules directory
 modules.loadAll()
 
+#This class represents the "/" root o the web app
 class webapproot():
-
+    
+   #"/" is mapped to this 
     @cherrypy.expose 
     def index(self,*path,**data):
         #Was there a reason not to use pages.require
@@ -56,7 +65,8 @@ class webapproot():
                 myip = MyExternalIPAdress
                                 )
         return self.login.index()
-
+    
+    #docs,about,helpmenu, and license are just static pages
     @cherrypy.expose 
     def docs(self,*path,**data):
         return pages.get_template('help/help.html').render()
@@ -74,7 +84,8 @@ class Errors():
     @cherrypy.expose 
     def permissionerror(self,):
         return pages.get_template('errors/permissionerror.html').render()
-        
+
+#There are lots of other objects ad classes represeting subfolders of the website so we attatch them        
 root = webapproot()
 root.login = weblogin.LoginScreen()
 root.auth = ManageUsers.ManageAuthorization()
@@ -84,7 +95,7 @@ root.errors = Errors()
 root.pages = usrpages.KaithemPage()
 
 
-
+#Start cherrrypy
 dn = os.path.dirname(os.path.realpath(__file__))
 if __name__ == '__main__':
     server_config={
@@ -101,7 +112,9 @@ conf = {
         'tools.staticdir.dir':os.path.join(dn,'static'),
         'tools.expires.on' : True,
         'tools.expires.secs' : 1000,
-        "tools.sessions.on": False
+        "tools.sessions.on": False,
+        'tools.caching.on' : True,
+        'tools.caching.delay' : 3600
         }
         }
 cherrypy.config.update(server_config)

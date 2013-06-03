@@ -171,10 +171,11 @@ class Event():
             if eval(self.trigger,self.scope,self.scope):
                 #Only execute once on false to true change unless continual was set
                 if (self.continual or self._prevstate == False):
-                    #Check the curret time minus the last time against the rate limit
+                    #Check the current time minus the last time against the rate limit
                     #Don't execute more often than ratelimit
                     if (time.time()-self.lastexecuted >self.ratelimit):
                         exec(self.action,self.scope,self.scope)
+                        #Set the varible so we know when the last time the body actually ran
                         self.lastexecuted = time.time()
                 #Set the flag saying that the last time it was checked, the condition evaled to True
                 self._prevstate = True

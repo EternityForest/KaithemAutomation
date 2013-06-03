@@ -31,7 +31,9 @@ import base64
 import os
 import modules
 import util
-
+import directories
+import time
+import shutil
 #These are the "built in" permissions required to control basic functions
 #User code can add to these
 BasePermissions = {
@@ -104,30 +106,41 @@ def removeUserFromGroup(username,group):
      Users[username]['groups'].remove(group)
      generateUserPermissions(username) #Regenerate the per-user permissions cache for that user
 
-def initializeAuthentication(fn):
+def initializeAuthentication():
     #If no file use default but set filename anyway so the dump function will work
-    try:
-            f = open(fn)
-            temp = json.load(f)
-            f.close()
-    except:
-            temp = {'users':{},'groups':{}}
-            
-    global _filename
-    _filename = fn
-    global Users
-    Users = temp['users']
-    global Groups
-    Groups = temp['groups']
-    global Tokens
-    Tokens = {}
-    for user in Users:
-        #What an unreadable line! It turs all the dicts in Users into User() instances
-        Users[user] = User(Users[user])
-        assignNewToken(user)
+    for i in range(0,15):
+        #Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
+        name = util.getHighestNumberedTimeDirectory(directories.usersdir)
+        possibledir = os.path.join(directories.usersdir,name)
         
-    generateUserPermissions()
-    importPermissionsFromModules()
+        #__COMPLETE__ is a special file we write to the dump directory to show it as valid
+        if '''__COMPLETE__''' in util.get_files(possibledir):
+            try:
+               f = open(os.path.join(possibledir,'users.json'))
+               temp = json.load(f)
+               f.close()
+            except:
+               temp = {'users':{},'groups':{}}
+               
+            global Users
+            Users = temp['users']
+            global Groups
+            Groups = temp['groups']
+            global Tokens
+            Tokens = {}
+            for user in Users:
+                #What an unreadable line! It turs all the dicts in Users into User() instances
+                Users[user] = User(Users[user])
+                assignNewToken(user)
+                
+            generateUserPermissions()
+            break #We sucessfully found the latest good users.json dump! so we break the loop
+        else:
+            #If there was no flag indicating that this was an actual complete dump as opposed
+            #To an interruption, rename it and try again
+            shutil.copytree(possibledir,os.path.join(directories.usersdir,name+"INCOMPLETE"))
+            shutil.rmtree(possibledir)
+    
                 
 def generateUserPermissions(username = None):
     #TODO let you do one user at a time
@@ -172,14 +185,21 @@ def destroyUnusedPermissions():
 
 
 #Save the state of the entire users/groups/permissions system
+
 def dumpDatabase():
     #Assemble the users and groups data and save it back where we found it
     temp = {"users":Users,"groups":Groups}
-    f = open(_filename,"w")
+    p = os.path.join(directories.usersdir,str(time.time()))
+    os.mkdir(p)
+    f = open(os.path.join(p,"users.json"),"w")
     #prettyprint
     json.dump(temp,f,sort_keys=True, indent=4, separators=(',', ': '))
     f.close()
-
+    f = open(os.path.join(p,"__COMPLETE__"),"w")
+    f.write("completely arbitrary text")
+    f.close()
+    util.deleteAllButHighestNumberedNDirectories(directories.usersdir,2)
+    
 def addGroupPermission(group,permission):
         if permission not in Groups[group]['permissions']:
             Groups[group]['permissions'].append(permission)

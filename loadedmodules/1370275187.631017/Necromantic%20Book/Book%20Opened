@@ -1,0 +1,6 @@
+{
+    "action": "pass",
+    "once": true,
+    "resource-type": "event",
+    "trigger": "False"
+}

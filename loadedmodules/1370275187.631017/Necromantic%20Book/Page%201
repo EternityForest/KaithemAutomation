@@ -1,0 +1,7 @@
+{
+    "body": "Don't say it. Don't write it. Don't hear it.",
+    "require-permissions": [
+        "/evilbook/book.open"
+    ],
+    "resource-type": "page"
+}

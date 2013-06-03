@@ -11,23 +11,48 @@
 		
 	<p>An important idea in kaithem is that resources, such as events, data, and web pages, all exist within <em>modules</em>. This allows for a very simple plugin based architecture wherein device plugins can be bundled with the web pages to manage them. Modules can be downloades or uploaded to and from the server as zip files, or can be created and modified straight from the web interface.</p>
 	
-	<P> One very important note about Kaithem is that it does not save anything to the disk except when told to. To do this, go to the settings page and follow the instructions.</P>
+	<P> One <b>very important note</b> about Kaithem is that it does not save anything to the disk except when told to. To do this, go to the settings page and follow the instructions. In the event that the software crashes while saving data will not be corrupted and the old version will be used. Manual recovery of the new version will likely be possible for at least some files.</P>
 	
 		<h2><a id="modules" name="modules"></a>Modules:</h2>
     <p>Kaithem is based on the idea that <em>everything is a module</em>. This makes it very easy to write new device drivers, as they can simply be modules. Code and management pages are just resources within modules.
-    A module is just a loose collection of resources all with a unique name. Resources can be anything from events and actions to user defined pages to custom permissions.
+    A module is just a loose collection of resources all with a unique name. Note that two resources with different types still must have unique names. Resources can be anything from events and actions to user defined pages to custom permissions.
     </p>
+    	<p>You can name modules as you like, but anything beginning with a double-underscore("__") is reserved.</p>
+    	
+    	
+	<h2><a id="events" name="events">Events</a></h2>
+	<p>One of the main automation constructs is the <em>event</em>. Events are mappings between a <em>trigger</em> and an 
+	<em>action</em>. A trigger is simply a python expression that is evaluated repeatedly. 
+	When the return value goes from False to True(edge triggered), the <em>Action</em>, which is simply a python script, executes.
+	</p>
 	
-	<p>You can name modules as you like, but anything beginning with a double-underscore("__") is reserved.</p>
-	
+    <p>Events have their own special scope similar to a local scope that is pre-populated when the event loads with several useful
+       things, among these the kaithem object(see below)</p>
+	<h2>
 	<h2><a id="pages" name="pages"></a>Pages:</h2>
-	<p>Kaithem allows users with the appropriate permissions to create user-defined pages. User defined pages are written in HTML and may contain embedded mako template code.
+	<p>Kaithem allows users with the appropriate permissions to create user-defined pages. User defined pages are written in HTML and may contain embedded mako template code. Every page is a resource of a module.
 	Mako is a simple templating language allowing you to embed server-side python in HTML code. Python code in user defined pages has access to the kaithem object(see below) and
 	and if desired the python cod may have side effects, allowing a wide variety of web servicies, information displays, and control panels to be created using only kaithem's page system.</p>
 	
 	<p>Acess to pages is controlled through kaithem's permission system, and any page may require one or more permissions to acess. New Permissions can be defined as module resources.</p>
+	
+	<p>Unlike events, the page-local scope does not persist between calls</p>
+	
 	<p>User pages should follow the <a href="/docs#theming">Theming Guidelines</a>.</p>
 
+	<h2><a id="scope" name="scope"></a>Scoping</h2>
+	<p>Almost all programming languages have some concept of scope and Python is no different. Every event has its own scope, similar to a function. if you set a variable in one event, it will be there next time the event runs, but will not be directly visible in other resources. This does not apply to Mako code inside page html. Mako code will act like function local variables and only persist for the life of the call</p>
+	
+	<p>Every resource scope however will contain an object called Kaithem, which is global, and an 
+	object called Module, which is shared between all module resources. The Module object has the 
+	attribute Module.resources, which is a dict indexed by resource name. It contains instances of 
+	Resource or a subclass, and each resource has a property called type. if the resource is an event
+	, Resource.type will equal "event", and there will be a dict at Resource.scope, representing the 
+	local scope of that resource.</p>
+		
+	<p>The other way to share data is through the Kaithem.globals and Module.globals objects,and the 
+	Kaithem.dev dict. The former two are general-purpose objects of class object, intended to have attributes assigned to them, while the latter is a dict intended to index objects representing devices.</p>
+	
 	
 	    <h2><a id="auth" name="auth"></a>Users and access control:</h2>
     <p>Access control is based on <em>users</em>, <em>groups</em>, and <em>permissions</em>.</p>
@@ -49,20 +74,7 @@
 	  
 	  <p> Upon creating a new permission, you will immediately be able to assign it to groups by selecting
 	  the checkbox in the group page.</p>
-
-	  
-	<h2><a id="scope" name="scope"></a>Scoping</h2>
-	<p>Almost all programming languages have some concept of scope and Python is no different. Every "resource" has its own scope, similar to a function. if you set a variable in one event, it will be there next time the event runs, but will not be directl visible in other resources. This does not apply to Mako code inside page html. Mako code will act like function local variables and onl persist for the life of the call</p>
 	
-	<p>Every resource scope however will contain an object called Kaithem, which is global, and an 
-	object called Module, which is shared between all module resources. The Module object has the 
-	attribute Module.resources, which is a dict indexed by resource name. It contains instances of 
-	Resource or a subclass, and each resource has a property called type. if the resource is an event
-	, Resource.type will equal "event", and there will be a dict at Resource.scope, representing the 
-	local scope of that resource.</p>
-		
-	<p>The other way to share data is through the Kaithem.globals and Module.globals objects,and the 
-	Kaithem.dev dict. The former two are general-purpose objects of class object, intended to have attributes assigned to them, while the latter is a dict intended to index objects representing devices.</p>
 	
 	
 
@@ -73,17 +85,38 @@
     <h2><a id="kaithemobject" name="kaithemobject"></a>The Kaithem Object:</h2>
     <p>The Kaithem object is one object availible in almost all user defined code. It has the following properties:</p>
 	
-    <h3>kaithem.lorem()</h3>
-    <p>Returns about a sentence to a paragraph of placeholder text that may change between calls and may not actually be classic Lorem Ipsum text.</p>
+	<h3>General Utilities</h3>
+    <h4>kaithem.lorem()</h4>
+    <p>Returns about a sentence to a paragraph of placeholder text that may change between calls and may not actually be classic
+     Lorem Ipsum text.</p>
     
-    <h3>kaithem.globals</h3>
+    <h4>kaithem.globals</h4>
     <p>An instance of object() whos only purpose is so that the user can asign it attributes.
        Be careful, as the kaithem namespace is truly global.
     </p>
     
+    <h4>kaithem.do(function):</h4>
+    <p>Executes a function of no arguments in the background using kaithem's thread pool. Any uncaught errors are simply ignored</p>
+    <h3>Time Handling</h3>
+    <h4>kaithem.dayofweek()</h4>
+    <p>Returns a day-of-week object that inherits from string and prints as an uppercase full name(like 'Tuesday'), but can be 
+       intelligently compared(DoW=='tue','Tue,'Tuesday','tu',1,'1',etc). When usig numbers, monday is 0.</p>
+       
+    <h4>kaithem.[minute|second|hour]()</h4>
+    <p>All of these functions perform as expected(e.g. minute() returns a number between 0 and 59). hour() uses 24 hour local time</p>
+    
+    <h4>kaithem.day()</h4>
+    <p>returns the day of the month.</p>
+    
     <h2><a id="theming" name="theming"></a>Theming</h2>
     <p>The following conventions are used for consistancy in kaithem CSS. If you want your custom pages to be consistant with the rest of Kaithem's theming, 
     you can use the following CSS classes in your user-created pages. </p>
+    
+     <h3>Section Boxes</h3>
+    <p>Almost everything that is not a large heading should be in a div with class="sectionbox" or a child therof. 
+    Kaithem backgrounds may not have enough contrast with text to be easily readable outside of sectionboxes.</p>
+    
+    
     <h3>Action Links</h3>
     <p>Any link having the primary purpose of performing an action as opposed to navigation should have the class "button". If the action is delete, it should also have the class "deletebutton", likewise for "createbutton" and "savebutton"</p>
     

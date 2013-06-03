@@ -13,14 +13,12 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import auth
 import cherrypy
 import pages
-
-auth.initializeAuthentication('auth.txt')
-
+import auth
 
 class LoginScreen():
+
     @cherrypy.expose
     def index(self,**kwargs):
         return pages.get_template("login.html").render()
