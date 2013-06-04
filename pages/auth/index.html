@@ -11,7 +11,7 @@ from util import url
 <p class="menubar">
 <a class="button createbutton" href="/auth/newuser">Add New User</a>  <a class="button deletebutton" href="/auth/deleteuser">Delete User</a></p>
 <p class="help">
-The following users are registered with the server.</p>
+The following users are registered with the server. <br>To create a log in as guest button, create a user named '__guest__' with password '__none__'<br>All usernames surrounded by double underscores are reserved.</p>
 <hr>
 <ul>
 %for i in sorted(auth.Users.keys()):
@@ -32,9 +32,5 @@ The following groups are registered with the server.</p>
    <li> <a href="/auth/group/${url(i)}">${i}</a></li>
 %endfor
 </ul>
-</div>
-
-<div class="sectionbox">
-<p>Commit Users and Groups database to memory[fix]</p>
 </div>
 <%include file="/pagefooter.html"/>

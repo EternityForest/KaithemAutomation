@@ -10,13 +10,47 @@ import auth
 
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
 <h3>Page Body</h3>
+
 <a href="/pages/page/${url(module)}/page/${url(name)}" class="button">Go to Page</a><br>
 <p class="help">
 This page body will be interpreted as Mako template code. The <a href="/docs#kaithemobject">kaithem object</a> is availible as "kaithem" to python code embedded in markup. Information about the actual HTTP request is availble by acessing the cherrypy.request object which is aliased to "request" in user page code. Please see cherrypy's documentation for more info.
 </p>
-
+ 
+         
 <textarea name="body" rows=25 class="htmlcode">${page["body"]}</textarea>
-<br><br>
+<p class="help">
+These extra settings let you control the display or permissions of the page
+</p>
+<div class="scrollbox">
+
+<input type="checkbox"  name="no-navheader" value="true"
+         %if 'no-navheader' in page:
+            %if page['no-navheader'] == True:
+            checked="yes"
+            %endif
+         %endif
+       ></input>Don't show the navigation header on this page<br>
+       
+<input type="checkbox"  name="allow-GET" value="true"
+         %if 'require-method' in page:
+            %if 'GET' in page['require-method']:
+            checked="yes"
+            %endif
+         %else:
+            checked="yes"
+         %endif
+       ></input>Make this page acessable by GET requests<br>
+       
+<input type="checkbox"  name="allow-POST" value="true"
+         %if 'require-method' in page:
+            %if 'POST' in page['require-method']:
+            checked="yes"
+            %endif
+         %else:
+            checked="yes"
+         %endif
+       ></input>Make this page acessable by POST requests<br> 
+ </div>
 <p class="help">Require the following permissions to acess this page</p>
 <div class="scrollbox">
 <ul>

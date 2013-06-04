@@ -1,12 +1,23 @@
-<%include file="/pageheader.html"/>
+
+<%include file="/pageheader_nonav.html"/>
+<%!
+import auth
+%>
     <h2 style="text-align: center;">Please Log In</h2>
+    <div class="sectionbox">
     <div style="text-align: center;">
-	<div class="sectionbox">
-      <form method="POST" action="/login/login/" name="login"><span style="font-weight: bold;">Username:</span>
+      <form method="POST" action="/login/login/" name="login">
+        <span style="font-weight: bold;">Username:</span>
         <input required="required" name="username" type="text"><br>
         <span style="font-weight: bold;">Password:</span>&nbsp; 
-		<input name="pwd" type="password"> <br>
-        <input value="Login"type="submit"></form>
+		<input name="pwd" type="password">
+		 <br><br>
+        <input value="Login"type="submit">
+      </form>
+      %if '__guest__' in auth.Users:
+          <br><br>
+          <a href="/login/login?username=__guest__&pwd=__none__" class="button">Log In As Guest</a>
+      %endif
 	</div>
     </div>
 

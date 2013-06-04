@@ -35,9 +35,17 @@ class KaithemPage():
                         
                #This is pretty much the worst perfoming piece of code in the system.
                #Every single request it compiles a new template and renders that, but not before loading two files from
-               #Disk. But I don't feel like writing another ten pages of bookkeeping code today. []TODO       
+               #Disk. But I don't feel like writing another ten pages of bookkeeping code today. []TODO
+               if  'no-navheader' in modules.ActiveModules[module][page]:
+                   if modules.ActiveModules[module][page]['no-navheader']:
+                       header = util.readfile('pages/pageheader_nonav.html')
+                   else:
+                       header = util.readfile('pages/pageheader.html')
+               else:
+                    header = util.readfile('pages/pageheader.html')
+                    
                return mako.template.Template(
-               util.readfile('pages/pageheader.html')+
+               header+
                modules.ActiveModules[module][page]['body']+
                 util.readfile('pages/pagefooter.html')
                ).render(

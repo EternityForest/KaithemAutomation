@@ -34,7 +34,7 @@ class LoginScreen():
             cherrypy.response.cookie['user']['path'] = '/'
             raise cherrypy.HTTPRedirect("/")
         else:
-            return "fail"
+            raise cherrypy.HTTPRedirect("/errors/loginerror")
             
     @cherrypy.expose
     def logout(self,**kwargs):

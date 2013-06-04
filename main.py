@@ -62,17 +62,23 @@ class webapproot():
             if auth.checkTokenPermission(cherrypy.request.cookie['auth'].value,"/admin/mainpage.view"):
                 return pages.get_template('index.html').render(
                 user = cherrypy.request.cookie['user'].value,
-                myip = MyExternalIPAdress
                                 )
         return self.login.index()
-    
+
+    @cherrypy.expose 
+    def save(self,*path,**data):
+        pages.require('/admin/settings.edit')
+        return pages.get_template('save.html').render()
+        
+        
     #docs,about,helpmenu, and license are just static pages
     @cherrypy.expose 
     def docs(self,*path,**data):
         return pages.get_template('help/help.html').render()
+        
     @cherrypy.expose 
     def about(self,*path,**data):
-        return pages.get_template('help/about.html').render()
+        return pages.get_template('help/about.html').render(myip = MyExternalIPAdress)
     @cherrypy.expose 
     def helpmenu(self,*path,**data):
         return pages.get_template('help/index.html').render()
@@ -84,7 +90,16 @@ class Errors():
     @cherrypy.expose 
     def permissionerror(self,):
         return pages.get_template('errors/permissionerror.html').render()
-
+    @cherrypy.expose 
+    def alreadyexists(self,):
+        return pages.get_template('errors/alreadyexists.html').render()
+    @cherrypy.expose 
+    def loginerror(self,):
+        return pages.get_template('errors/loginerror.html').render()
+    @cherrypy.expose 
+    def wrongmethod(self,):
+        return pages.get_template('errors/wrongmethod.html').render()
+       
 #There are lots of other objects ad classes represeting subfolders of the website so we attatch them        
 root = webapproot()
 root.login = weblogin.LoginScreen()

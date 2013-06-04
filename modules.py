@@ -267,7 +267,7 @@ def addResourceTarget(module,type,name,kwargs):
     if type == 'page':
         with modulesLock:
             if kwargs['name'] not in ActiveModules[module]:
-                ActiveModules[module][kwargs['name']]= {"resource-type":"page","body":"Content here"}
+                ActiveModules[module][kwargs['name']]= {"resource-type":"page","body":"Content here",'no-navheader':True}
                 #newevt maintains a cache of precompiled events that must be kept in sync with
                 #the modules
                 raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+util.url(name))
@@ -325,6 +325,13 @@ def resourceUpdateTarget(module,resource,kwargs):
         with modulesLock:
             pageinquestion = ActiveModules[module][resource]
             pageinquestion['body'] = kwargs['body']
+            pageinquestion['no-navheader'] = 'no-navheader' in kwargs
+            #Method checkboxes
+            pageinquestion['require-method'] = []
+            if 'allow-GET' in kwargs:
+                pageinquestion['require-method'].append('GET')
+            if 'allow-POST' in kwargs:
+                pageinquestion['require-method'].append('POST')                
             #permission checkboxes
             pageinquestion['require-permissions'] = []
             for i in kwargs:

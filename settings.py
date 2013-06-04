@@ -30,4 +30,4 @@ class Settings():
     def savetarget(self):
         pages.require("/admin/settings.edit")
         util.SaveAllState()
-        raise cherrypy.HTTPRedirect('/settings')
+        raise cherrypy.HTTPRedirect('/')

@@ -1,3 +1,41 @@
+<%!
+    import socket
+    import time
+    import os
+
+    if os.name != "nt":
+        import fcntl
+        import struct
+
+        def get_interface_ip(ifname):
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s',
+                                    ifname[:15].encode('utf-8') ))[20:24])
+
+    def get_lan_ip():
+        ip = socket.gethostbyname(socket.gethostname())
+        if ip.startswith("127.") and os.name != "nt":
+            interfaces = [
+                "eth0",
+                "eth1",
+                "eth2",
+                "wlan0",
+                "wlan1",
+                "wifi0",
+                "ath0",
+                "ath1",
+                "ppp0",
+                ]
+            for ifname in interfaces:
+                try:
+                    ip = get_interface_ip(ifname)
+                    break
+                except IOError:
+                    pass
+        return ip
+        
+%>
+
 <%include file="/pageheader.html"/>
 	<title>About Kaithem </title>
     <h1>About</h1>
@@ -9,4 +47,19 @@
     <div class="sectionbox">
     Version: 0 Unstable Branch
     </div>
+    
+    <div class="sectionbox">
+<p>
+<b>IP Data</b>
+<table border=1>
+<tr>
+<td>LAN IP Adress</td>
+<td>${get_lan_ip()}</td>
+</tr><tr>
+<td>WAN(Public) IP</td>
+<td>${myip.decode()}</td>
+</tr>
+</table>
+</p>
+</div>
 <%include file="/pagefooter.html"/>

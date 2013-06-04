@@ -13,13 +13,21 @@
         },
         "Guests": {
             "permissions": [
+                "/admin/mainpage.view",
                 "/admin/settings.view",
                 "/admin/modules.view",
-                "/admin/mainpage.view"
+                "/evilbook/book.open"
             ]
         }
     },
     "users": {
+        "__guest__": {
+            "groups": [
+                "Guests"
+            ],
+            "password": "__none__",
+            "username": "__guest__"
+        },
         "admin": {
             "groups": [
                 "Administrators"
