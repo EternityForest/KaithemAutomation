@@ -7,11 +7,14 @@
 	<p>Kaithem is an automation solution based on the concept of events,triggers, and actions.
 	An event is a statement that when the trigger occurs, the action should be executed.</p>
 	
+	<p>Kaithem is written in pure python and will run in either 2.6+ or 3.xx without modification, the difference being that unicode resource and user names are not allowed in Kaithem on 2.xx</p>
+	
 	<p> In addition, Kaithem provides TLS/SSL encryption, user management, and serves as a basic IDE to create web pages that can interact with your process data. Kaithem was not designed for mission-critical control purposes, but aims to be fully reliable enough for basic home and commercial automation tasks.</p>
 		
 	<p>An important idea in kaithem is that resources, such as events, data, and web pages, all exist within <em>modules</em>. This allows for a very simple plugin based architecture wherein device plugins can be bundled with the web pages to manage them. Modules can be downloades or uploaded to and from the server as zip files, or can be created and modified straight from the web interface.</p>
 	
 	<P> One <b>very important note</b> about Kaithem is that it does not save anything to the disk except when told to. To do this, go to the settings page and follow the instructions. In the event that the software crashes while saving data will not be corrupted and the old version will be used. Manual recovery of the new version will likely be possible for at least some files.</P>
+	
 	
 		<h2><a id="modules" name="modules"></a>Modules:</h2>
     <p>Kaithem is based on the idea that <em>everything is a module</em>. This makes it very easy to write new device drivers, as they can simply be modules. Code and management pages are just resources within modules.

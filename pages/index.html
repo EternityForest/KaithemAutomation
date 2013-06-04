@@ -10,7 +10,7 @@
         def get_interface_ip(ifname):
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s',
-                                    bytes(ifname[:15],'utf8')))[20:24])
+                                    ifname[:15].encode('utf-8') ))[20:24])
 
     def get_lan_ip():
         ip = socket.gethostbyname(socket.gethostname())
@@ -45,6 +45,8 @@
 <p><b>Kaithem is free software licensed under the GPLv3.<br>
 Kaithem was not designed for mission critical or safety of life systems and no warranty is expressed or implied.<br>
 Use entirely at your own risk.</b></p>
+
+<p>Do NOT create any resources or users with unicode names on python 2</p>
 </div class="sectionbox">
 
 <div class="sectionbox">
@@ -52,6 +54,7 @@ Use entirely at your own risk.</b></p>
 </div>
 
 <div class="sectionbox">
+<p>
 <b>IP Data</b>
 <table border=1>
 <tr>
@@ -62,5 +65,6 @@ Use entirely at your own risk.</b></p>
 <td>${myip.decode()}</td>
 </tr>
 </table>
+</p>
 </div>
 <%include file="/pagefooter.html"/>

@@ -19,10 +19,9 @@ import auth,cherrypy,pages,urllib,directories,os,json,util,newevt,shutil,sys,tim
 import kaithem
 import threading
 
-if sys.version_info < (3,0):
-    from urllib import quote,unquote
-else:
-    from urllib.parse import quote,unquote
+
+from util import url,unurl
+
 
 #this lock protects the activemodules thing
 modulesLock = threading.RLock()
@@ -67,29 +66,26 @@ def saveModules(where):
     with modulesLock:
         for i in ActiveModules:
             #Iterate over all of the resources in a module and save them as json files
-            #under the URL quoted module name for the filename.
+            #under the URL urld module name for the filename.
             for resource in ActiveModules[i]:
-                try:
-                    #Make sure there is a directory at where/module/
-                    util.ensure_dir(os.path.join(where,quote(i,""),quote(resource,"")))
-                    #Open a file at /where/module/resource
-                    f = open(os.path.join(where,quote(i,""),quote(resource,"")),"w")
+                #Make sure there is a directory at where/module/
+                util.ensure_dir(os.path.join(where,url(i),url(resource))  )
+                #Open a file at /where/module/resource
+                with  open(os.path.join(where,url(i),url(resource)),"w") as f:
                     #Make a json file there and prettyprint it
                     json.dump(ActiveModules[i][resource],f,sort_keys=True,indent=4, separators=(',', ': '))
-                finally:
-                    f.close()
 
             #Now we iterate over the existing resource files in the filesystem and delete those that correspond to
             #modules that have been deleted in the ActiveModules workspace thing.
-            for i in util.get_immediate_subdirectories(os.path.join(where,quote(i,""))):
-                if unquote(i) not in ActiveModules:  
-                    os.remove(os.path.join(where,quote(i,""),i))
+            for i in util.get_immediate_subdirectories(os.path.join(where,url(i))):
+                if unurl(i) not in ActiveModules:  
+                    os.remove(os.path.join(where,url(i),i))
 
         for i in util.get_immediate_subdirectories(where):
             #Look in the modules directory, and if the module folder is not in ActiveModules\
             #We assume the user deleted the module so we should delete the save file for it.
-            #Note that we URL quote file names for the module filenames and foldernames.
-            if unquote(i) not in ActiveModules:
+            #Note that we URL url file names for the module filenames and foldernames.
+            if unurl(i) not in ActiveModules:
                 shutil.rmtree(os.path.join(where,i))
         with open(os.path.join(where,'__COMPLETE__'),'w') as f:
             f.write("By this string of contents quite arbitrary, I hereby mark this dump as consistant!!!")
@@ -111,11 +107,11 @@ def loadModule(moduledir,path_to_module_folder):
             try:
                 f = open(os.path.join(path_to_module_folder,moduledir,i))
                 #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
-                module[unquote(i)] = json.load(f)
+                module[unurl(i)] = json.load(f)
             finally:
                 f.close()
         
-        name = unquote(moduledir)
+        name = unurl(moduledir)
         ActiveModules[name] = module
         #Create the scopes dict thing for that module
         scopes[name] = {}

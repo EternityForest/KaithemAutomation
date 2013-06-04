@@ -106,9 +106,15 @@ if __name__ == '__main__':
         'server.ssl_private_key':os.path.join(dn,'ssl/certificate.key'),
 
     }
+    
+cherrypy.config["tools.encode.on"] = True
+cherrypy.config["tools.encode.encoding"] = "utf-8"
+cherrypy.config["tools.decode.on"] = True
+cherrypy.config["tools.decode.encoding"] = "utf-8"
 
 conf = {
-        '/static':{'tools.staticdir.on': True,
+        '/static':
+        {'tools.staticdir.on': True,
         'tools.staticdir.dir':os.path.join(dn,'static'),
         'tools.expires.on' : True,
         'tools.expires.secs' : 1000,

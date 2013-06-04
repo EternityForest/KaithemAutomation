@@ -14,6 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 import cherrypy, auth ,pages
+from util import quote
 
 class ManageAuthorization():
     @cherrypy.expose
@@ -62,8 +63,12 @@ class ManageAuthorization():
     @cherrypy.expose
     #handler for the POST request to change user settings
     def newusertarget(self,**kwargs):
+        #THIS IS A HACK TO PREVENT UNICODE STRINGS IN PY2.XX FROM GETTING THROUGH
+        #BECAUSE QUOTE() IS USUALLY WHERE THEY CRASH. #AWFULHACK
+        quote(kwargs['username'])
         pages.require("/admin/users.edit")
         #create the new user
+        
         auth.addUser(kwargs['username'],kwargs['password'])
         #Take the user back to the users page
         raise cherrypy.HTTPRedirect("/auth/")
@@ -72,6 +77,9 @@ class ManageAuthorization():
     @cherrypy.expose
     #handler for the POST request to change user settings
     def newgrouptarget(self,**kwargs):
+        #THIS IS A HACK TO PREVENT UNICODE STRINGS IN PY2.XX FROM GETTING THROUGH
+        #BECAUSE QUOTE() IS USUALLY WHERE THEY CRASH. #AWFULHACK
+        quote(kwargs['groupname'])
         pages.require("/admin/users.edit")
         #create the new user
         auth.addGroup(kwargs['groupname'])
@@ -81,7 +89,10 @@ class ManageAuthorization():
     @cherrypy.expose
     #handler for the POST request to change user settings
     def updateuser(self,user,**kwargs):
-        pages.require("/admin/users.edit")
+    
+        #THIS IS A HACK TO PREVENT UNICODE STRINGS IN PY2.XX FROM GETTING THROUGH
+        #BECAUSE QUOTE() IS USUALLY WHERE THEY CRASH. #AWFULHACK
+        quote(kwargs['username'])
         
 		#Remove the user from all groups that the checkbox was not checked for
         for i in auth.Users[user]['groups']:

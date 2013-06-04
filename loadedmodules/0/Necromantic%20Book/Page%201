@@ -1,0 +1,7 @@
+{
+    "body": "<div class=\"sectionbox\"><p>Don't say it. Don't write it. Don't hear it.</div></p>",
+    "require-permissions": [
+        "/evilbook/book.open"
+    ],
+    "resource-type": "page"
+}

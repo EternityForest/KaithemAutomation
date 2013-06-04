@@ -18,8 +18,10 @@ import auth,modules,os,threading,copy,sys,shutil
 #2 and 3 have basically the same module with diferent names
 if sys.version_info < (3,0):
     from urllib import quote
+    from urllib import unquote as unurl
 else:
     from urllib.parse import quote
+    from urllib.parse import unquote as unurl
 
 	
 def url(string):

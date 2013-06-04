@@ -1,6 +1,0 @@
-{
-    "action": "print (kaithem.lorem())",
-    "once": true,
-    "resource-type": "event",
-    "trigger": "True"
-}

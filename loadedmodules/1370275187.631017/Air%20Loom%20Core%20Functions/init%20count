@@ -1,6 +1,0 @@
-{
-    "action": "kaithem.globals.count = 0\r\nprint(kaithem.lorem())",
-    "once": true,
-    "resource-type": "event",
-    "trigger": "True"
-}
