@@ -201,8 +201,8 @@ class Event():
         except Exception as e:
             #When an error happens, log it and save the time
             #Note that we are logging to the compiled event object
-            self.errors.append([time.strftime('%A, %B %d, %Y at %H:%M:S'),e])
+            self.errors.append([time.strftime('%A, %B %d, %Y at %H:%M:%S'),e])
             #Keep oly the most recent 25 errors
-            self.errors = self.errors[:]
+            self.errors = self.errors[-25:]
         finally:
             self.lock.release()

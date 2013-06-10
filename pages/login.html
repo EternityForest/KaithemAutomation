@@ -6,18 +6,17 @@ import auth
     <h2 style="text-align: center;">Please Log In</h2>
     <div class="sectionbox">
     <div style="text-align: center;">
-      <form method="POST" action="/login/login/" name="login">
+      <form method="POST" action="/login/login/" name="login"> <p>
         <span style="font-weight: bold;">Username:</span>
         <input required="required" name="username" type="text"><br>
         <span style="font-weight: bold;">Password:</span>&nbsp; 
-		<input name="pwd" type="password">
-		 <br><br>
-        <input value="Login"type="submit">
-      </form>
+		<input name="pwd" type="password"></p>
+        <input value="Login as Registered User"type="submit">
       %if '__guest__' in auth.Users:
-          <br><br>
-          <a href="/login/login?username=__guest__&pwd=__none__" class="button">Log In As Guest</a>
+          <a href="/login/login?username=__guest__&pwd=__none__" class="button">Login as Guest</a>
       %endif
+
+      </form>
 	</div>
     </div>
 

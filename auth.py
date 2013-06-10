@@ -40,7 +40,7 @@ BasePermissions = {
 "/admin/users.edit":"Edit users, groups, and permissions, View and change usernames and passwords. Implies full access so watch out who you give this to.",
 "/admin/mainpage.view": "View the main page of the application.",
 "/admin/modules.view":  "View and download all module contents but not make any changes.",
-"/admin/modules.edit":  "Create, Edit, Import, Upload, and Download modules and module contents.Gives root access essentiall so watch out.",
+"/admin/modules.edit":  "Create, Edit, Import, Upload, and Download modules and module contents. Gives root access essentially so watch out.",
 "/admin/settings.view": "View but not change settings.",
 "/admin/settings.edit": "Change core settings."
 }
@@ -157,10 +157,13 @@ def generateUserPermissions(username = None):
             Tokens[Users[i].token] = Users[i]
                 
 def userLogin(username,password):
-    """return a base64 authentication token on sucess or return False on failure"""
-    assignNewToken(username)
+    """return a base64 authentication token on sucess or return False on failure"""  
     if  username in Users:
         if Users[username]['password'] == password:
+            #We can't just always assign a new token because that would break multiple
+            #Logins as same user
+            if not hasattr(Users[username],'token'):
+                assignNewToken(username)
             return (Users[username].token)
     return "failure"
 
@@ -221,18 +224,3 @@ def assignNewToken(user):
         del Tokens[oldtoken]
     Users[user].token = x
     Tokens[x] = Users[user]
-
-#Wut tha???
-def _PerformUnitTesting():
-    x = base64.b64encode(os.urandom(8))+"test"
-    t = {"users":{"user1":{"password":"test","groups":["test"]}},"groups":{"test":{"permissions":"test"}}}
-    json.dump(t,x)
-    InitializeAuthentication(x)
-    os.remove(x)
-    token = userLogin('user1','test')
-    if checkIfTokenHasPermission(token,'test'):
-        if checkIfTokenHasPermission('fart','test'):
-            if checkIfTokenHasPermission(token,'fart'):
-                return True
-
-    return False
