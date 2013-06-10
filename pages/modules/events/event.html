@@ -17,7 +17,7 @@ from util import url
 <p class="help">
 This code will be executed when the expression in trigger goes from false to true
 </p>
-<textarea name="action" rows=25 class="pythoncode">${event["action"]}</textarea>
+<textarea name="action" rows=25 class="pythoncode">${event["action"]|h}</textarea>
 <br><br>
 <p class="help">
 Saving this module will case it to completely reload, including its local scope. Other resorces will not be affected.

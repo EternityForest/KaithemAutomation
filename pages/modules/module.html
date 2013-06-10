@@ -3,9 +3,9 @@ from util import url
 %>
 
 <%include file="/pageheader.html"/>
-<h2>Module ${name}</h2>
+<h2>Module ${name|h}</h2>
 This Page allows you to view and edit information and resources associated with this module.<br><br>
-<title>Module: ${name}</title>
+<title>Module: ${name|h}</title>
 <form action="/modules/module/${url(name)}/update" method="POST" name="user">
 
 <h3>Basic Information</h3>
@@ -36,7 +36,7 @@ An event is a statement that something should happen when a condition is met.</p
 <ul>
 %for i in module:
 	%if module[i]['resource-type'] == 'event':
-		<li><a href="/modules/module/${url(name)}/resource/${url(i)}">${i}</a></li>
+		<li><a href="/modules/module/${url(name)}/resource/${url(i)}">${i|h}</a></li>
 	%endif
 %endfor
 </ul>
@@ -57,7 +57,7 @@ Pages are rendered using the Mako templating engine.
 %for i in module:
 	%if module[i]['resource-type'] == 'page':
 		<li>
-            <h4>${i}</h4>
+            <h4>${i|h}</h4>
             <p>
                  <a href="/pages/page/${url(name)}/page/${url(i)}">Go to page</a>|
                  <a href="/modules/module/${url(name)}/resource/${url(i)}">Edit Page</a>
