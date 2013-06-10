@@ -1,5 +1,7 @@
 <%!
 from util import url
+import newevt
+import traceback
 %>
 <%include file="/pageheader.html"/>
 <title>Kaithem Event</title>
@@ -18,7 +20,15 @@ from util import url
 This code will be executed when the expression in trigger goes from false to true
 </p>
 <textarea name="action" rows=25 class="pythoncode">${event["action"]|h}</textarea>
-<br><br>
+%if newevt.getEventErrors(module,name):
+<h3>Errors</h3>
+<div class="scrollbox">
+%for i in newevt.getEventErrors(module,name):
+    <h4>${i[0]|h}</h4>
+    <p>${repr(i[1])|h}</p>
+%endfor
+</div>
+%endif
 <p class="help">
 Saving this module will case it to completely reload, including its local scope. Other resorces will not be affected.
 </p>

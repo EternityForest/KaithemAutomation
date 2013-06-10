@@ -33,6 +33,10 @@ __events = []
 #Let us now have a way to get at active event objects by means of their origin resource and module.
 __EventReferences = {}
 
+def getEventErrors(module,event):
+    with __event_list_lock:
+            return __EventReferences[module][event].errors
+            
 
 #In a background thread, we use the worker pool to check all threads
 
@@ -145,7 +149,6 @@ class Event():
     
     """
     def __init__(self,when,do,scope,continual=False,ratelimit=0,):
-    
         #Copy in the data from args
         self.scope = scope
         self._prevstate = False
@@ -162,6 +165,9 @@ class Event():
         #This keeps track of the last time the event was triggered  so we ca rate limit
         self.lastexecuted = 0
         
+        #A place to put errors
+        self.errors = []
+        
         
     def check(self):
         """Check if the trigger is true and if so do the action."""
@@ -169,17 +175,26 @@ class Event():
             self.lock.acquire()
             #Eval the condition in the local event scope
             if eval(self.trigger,self.scope,self.scope):
+                
                 #Only execute once on false to true change unless continual was set
                 if (self.continual or self._prevstate == False):
+                
+                    #Set the flag saying that the last time it was checked, the condition evaled to True
+                    self._prevstate = True
+                    
                     #Check the current time minus the last time against the rate limit
                     #Don't execute more often than ratelimit
                     if (time.time()-self.lastexecuted >self.ratelimit):
                         exec(self.action,self.scope,self.scope)
                         #Set the varible so we know when the last time the body actually ran
                         self.lastexecuted = time.time()
-                #Set the flag saying that the last time it was checked, the condition evaled to True
-                self._prevstate = True
             else:
                 self._prevstate = False
+        except Exception as e:
+            #When an error happens, log it and save the time
+            #Note that we are logging to the compiled event object
+            self.errors.append([time.strftime('%A, %B %d, %Y at %H:%M:S'),e])
+            #Keep oly the most recent 25 errors
+            self.errors = self.errors[:]
         finally:
             self.lock.release()
