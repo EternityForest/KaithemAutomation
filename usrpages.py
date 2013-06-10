@@ -15,15 +15,22 @@
 
 #This file handles the display of user-created pages
 import kaithem, modules, mako, cherrypy,util,pages
+errors = {}
+
 class KaithemPage():
+    
+    #Method encapsulating one request to a user-defined page
     @cherrypy.expose
-   
     def page(self,module,dummy2,page,*args,**kwargs):
+    
         #Permission handling for pages
+        #Iterate over all o the required permissions and require() each one
         if 'require-permissions' in modules.ActiveModules[module][page]:
             for i in modules.ActiveModules[module][page]['require-permissions']:
                 pages.require(i)
-         
+        
+        #acquire the modules lock so that nobody can modify the state of the modules
+        #While we are generating the page
         with modules.modulesLock:  #need to find an alternaive to this lock
             if modules.ActiveModules[module][page]['resource-type'] == 'page':
                
@@ -33,9 +40,8 @@ class KaithemPage():
                         #Raise a redirect the the wrongmethod error page
                         raise cherrypy.HTTPRedirect('/errors/wrongmethod')
                         
-               #This is pretty much the worst perfoming piece of code in the system.
-               #Every single request it compiles a new template and renders that, but not before loading two files from
-               #Disk. But I don't feel like writing another ten pages of bookkeeping code today. []TODO
+               #Check if the page settings specify no navigation bar
+               #And choose the appropriate page header boilerplate
                if  'no-navheader' in modules.ActiveModules[module][page]:
                    if modules.ActiveModules[module][page]['no-navheader']:
                        header = util.readfile('pages/pageheader_nonav.html')
@@ -44,12 +50,16 @@ class KaithemPage():
                else:
                     header = util.readfile('pages/pageheader.html')
                     
+               #This is pretty much the worst perfoming piece of code in the system.
+               #Every single request it compiles a new template and renders that, but not before loading two files from
+               #Disk. But I don't feel like writing another ten pages of bookkeeping code today. []TODO     
                return mako.template.Template(
                header+
                modules.ActiveModules[module][page]['body']+
                 util.readfile('pages/pagefooter.html')
                ).render(
                kaithem = kaithem.kaithem,
-               request = cherrypy.request,
+               request = cherrypy.request
                )
-
+                
+                    

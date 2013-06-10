@@ -205,7 +205,7 @@ class WebInterface():
                    
                 #Annoying bookkeeping crap to get rid of the cached crap
                 if r['resource-type'] == 'event':
-                    newevt.removeOneEvent(kwargs['name'])
+                    newevt.removeOneEvent(module,kwargs['name'])
                     
                 if r['resource-type'] == 'permission':
                     auth.importPermissionsFromModules() #sync auth's list of permissions

@@ -54,7 +54,9 @@ def __manager():
         finally:
             __event_list_lock.release()
             time.sleep(0.025)
-
+            
+#Start the manager thread as a daemon
+#Kaithem has a system wide worker pool so we don't need to reinvent that
 t = threading.Thread(target = __manager)
 t.daemon = True
 t.start()
@@ -62,6 +64,7 @@ t.start()
 
 #Delete a event from the cache by module and resource
 def removeOneEvent(module,resource):
+    #Look up the eb
     with __event_list_lock:
         if module in __EventReferences:
             if resource in __EventReferences[module]:
@@ -73,6 +76,7 @@ def removeOneEvent(module,resource):
 #Delete all __events in a module from the cache
 def removeModuleEvents(module):
     with __event_list_lock:
+        #Iterate over the event refereces for each module, look them up in the list, and get rid of them
         for i in __EventReferences[module]:
             if __EventReferences[module][i] in __events:
                 #Remove old reference if there was one
@@ -102,10 +106,14 @@ def updateOneEvent(resource,module):
         
         #Here is the other lock
         with __event_list_lock: #Make sure nobody is iterating the eventlist
+        
+            #If there is already a dict at __eventreferences[module]
             if module in __EventReferences:
+                #And if that dict contains the event we want to update
                 if resource in __EventReferences[module]:
+                    #And if there actually is an event in the events list that matches
                     if __EventReferences[module][resource] in __events:
-                        #Remove old reference if there was one
+                        #Than Remove old reference if there was one
                         __events.remove(__EventReferences[module][resource])
                         
             else:
