@@ -18,6 +18,9 @@ import time
 import modules
 import weekday
 import workers
+import subprocess
+import threading
+import random
 
 class Kaithem():
     def lorem(self):
@@ -45,10 +48,19 @@ class Kaithem():
 
     def dayofweek(self):
         return (weekday.DayOfWeek())
+
+    def shellex(self,cmd):
+        return (subprocess.check_call(cmd,shell=True))
     
+    def shellexbg(self,cmd):
+        subprocess.Popen(cmd,shell=True)
+
 class obj():
     pass
-        
+
+
 kaithem = Kaithem()
 kaithem.do = workers.do
 kaithem.globals = obj() #this is just a place to stash stuff.
+
+

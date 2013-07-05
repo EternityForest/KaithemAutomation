@@ -326,6 +326,7 @@ def resourceUpdateTarget(module,resource,kwargs):
             pageinquestion = ActiveModules[module][resource]
             pageinquestion['body'] = kwargs['body']
             pageinquestion['no-navheader'] = 'no-navheader' in kwargs
+            pageinquestion['no-header'] = 'no-header' in kwargs       
             #Method checkboxes
             pageinquestion['require-method'] = []
             if 'allow-GET' in kwargs:

@@ -2,6 +2,8 @@
     import socket
     import time
     import os
+    import platform
+    import sys
 
     if os.name != "nt":
         import fcntl
@@ -40,7 +42,7 @@
 	<title>About Kaithem </title>
     <h1>About</h1>
 	<div class="sectionbox">
-    Copyright 2013 Daniel Black. Availibe under the terms of the GNU general public license.
+    Copyright 2013 Daniel Black. Availible under the terms of the <a href="/license">GNU general public license</a>.
     the mako and cherrypy folders were copied unmodified and remain under their respective licenses.
     </div>
     
@@ -51,15 +53,35 @@
     <div class="sectionbox">
 <p>
 <b>IP Data</b>
-<table border=1>
-<tr>
-<td>LAN IP Adress</td>
-<td>${get_lan_ip()}</td>
-</tr><tr>
-<td>WAN(Public) IP</td>
-<td>${myip.decode()}</td>
-</tr>
-</table>
+    <table border=1>
+        <tr>
+            <td>LAN IP Adress</td>
+            <td>${get_lan_ip()}</td>
+        </tr><tr>
+            <td>WAN(Public) IP</td>
+            <td>${myip.decode()}</td>
+        </tr>
+    </table>
 </p>
+<p>
+<b>System Info</b>
+<table border=1>
+    <tr>
+        <td>CPU Type</td>
+        <td>${platform.machine()}
+    </tr>
+    <tr>
+        <td>CPU</td>
+        <td>${platform.processor()}</td>
+    </tr>
+    <tr>
+        <td>OS Type</td>
+        <td>${platform.system()}</td>
+    </tr>
+    <tr>
+        <td>Python Version</td>
+        <td>${str(sys.version_info[0])+'.'+str(sys.version_info[1])}</td>
+    </tr>
+
 </div>
 <%include file="/pagefooter.html"/>

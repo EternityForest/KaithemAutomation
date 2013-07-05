@@ -164,8 +164,8 @@ class Event():
         self.continual = continual
         
         #Precompile
-        self.trigger = compile(when,"<str>","eval")
-        self.action = compile(do,"<str>","exec")
+        self.trigger = compile(when,"<trigger>","eval")
+        self.action = compile(do,"<action>","exec")
         
         #This lock makes sure that only one copy of the event executes at once.
         self.lock = threading.Lock()

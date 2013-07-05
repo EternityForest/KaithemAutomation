@@ -39,16 +39,24 @@ class KaithemPage():
                     if cherrypy.request.method not in modules.ActiveModules[module][page]['require-method']:
                         #Raise a redirect the the wrongmethod error page
                         raise cherrypy.HTTPRedirect('/errors/wrongmethod')
-                        
-               #Check if the page settings specify no navigation bar
-               #And choose the appropriate page header boilerplate
-               if  'no-navheader' in modules.ActiveModules[module][page]:
-                   if modules.ActiveModules[module][page]['no-navheader']:
-                       header = util.readfile('pages/pageheader_nonav.html')
-                   else:
-                       header = util.readfile('pages/pageheader.html')
+
+               skipallheaders=False
+               if 'no-header' in modules.ActiveModules[module][page]: 
+                   if modules.ActiveModules[module][page]['no-header']:
+                       skipallheaders=True
+
+               if  skipallheaders:
+                   header = ""
                else:
-                    header = util.readfile('pages/pageheader.html')
+                   #Check if the page settings specify no navigation bar
+                   #And choose the appropriate page header boilerplate
+                   if  'no-navheader' in modules.ActiveModules[module][page]:
+                       if modules.ActiveModules[module][page]['no-navheader']:
+                           header = util.readfile('pages/pageheader_nonav.html')
+                       else:
+                           header = util.readfile('pages/pageheader.html')
+                   else:
+                        header = util.readfile('pages/pageheader.html')
                     
                #This is pretty much the worst perfoming piece of code in the system.
                #Every single request it compiles a new template and renders that, but not before loading two files from
