@@ -45,6 +45,9 @@ def __workerloop():
 def do(func):
     __queue.put(func)
 
+def waitingtasks():
+    return __queue.qsize()
+
 #Start 8 threads. Can we make this user settable?
 for i in range(0,8):
     t = threading.Thread(target = __workerloop)

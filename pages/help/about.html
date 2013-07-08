@@ -4,7 +4,7 @@
     import os
     import platform
     import sys
-
+    import newevt
     if os.name != "nt":
         import fcntl
         import struct
@@ -60,6 +60,15 @@
         </tr><tr>
             <td>WAN(Public) IP</td>
             <td>${myip.decode()}</td>
+        </tr>
+    </table>
+</p>
+<p>
+<b>Current Statistics</b>
+    <table border=1>
+        <tr>
+            <td>Approximate frames per second</td>
+            <td>${str(newevt.averageFramesPerSecond)[:6]}</td>
         </tr>
     </table>
 </p>

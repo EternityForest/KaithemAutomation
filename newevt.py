@@ -44,16 +44,25 @@ run = True
 #Acquire a lock on the list of __events(Because we can't really iterate safely without it)
 #And put the check() fuction of each event object into the thread pool
 def __manager():
+    temp = 0;
+    global averageFramesPerSecond
+    averageFramesPerSecond = 0
     while run:
-        __event_list_lock.acquire()
-        try:
-            for i in __events:
-                workers.do(i.check)
-        except:
-            print("e")
-        finally:
-            __event_list_lock.release()
+        temp = time.time()
+        #If by the time we get here the queue is still half full we have a problem so slow down and let other stuff work.
+        if workers.waitingtasks() < 60:
+            __event_list_lock.acquire()
+            try:
+                for i in __events:
+                    workers.do(i.check)
+            except:
+                print("e")
+            finally:
+                __event_list_lock.release()
+            #This should be user configurable
             time.sleep(0.025)
+        #smoothing filter
+        averageFramesPerSecond = (averageFramesPerSecond *0.98) +   ((1/(time.time()-temp))*0.02) 
             
 #Start the manager thread as a daemon
 #Kaithem has a system wide worker pool so we don't need to reinvent that
