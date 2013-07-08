@@ -3,6 +3,7 @@ from util import url
 import newevt
 import traceback
 %>
+
 <%include file="/pageheader.html"/>
 <title>Kaithem Event</title>
 <h2>Event "${name|h}" of module "${module|h}"</h2>
@@ -11,6 +12,18 @@ import traceback
 
 
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
+<h3>Setup Code</h3>
+<p class="help">Enter python code. It will execute in the event scope when it loads.
+</p>
+<textarea rows=3 class="pythoncode" name="setup">
+%if 'setup' in event:
+${event['setup']|h}
+%else:
+${"pass"}
+%endif
+</textarea>
+
+
 <h3>Trigger</h3>
 <p class="help">Enter a python statement here. The event will occur when the expression goes from false to true.
 </p>

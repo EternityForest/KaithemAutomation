@@ -60,9 +60,9 @@ def __manager():
             finally:
                 __event_list_lock.release()
             #This should be user configurable
-            time.sleep(0.025)
+           # time.sleep(0.00001)
         #smoothing filter
-        averageFramesPerSecond = (averageFramesPerSecond *0.98) +   ((1/(time.time()-temp))*0.02) 
+        averageFramesPerSecond = (averageFramesPerSecond *0.98) +   ((1/(time.time()-temp)) *0.02) 
             
 #Start the manager thread as a daemon
 #Kaithem has a system wide worker pool so we don't need to reinvent that
@@ -107,8 +107,14 @@ def updateOneEvent(resource,module):
     with modules.modulesLock:
         #Get the event resource in question
         j = modules.ActiveModules[module][resource]
+
+        if 'setup' in j:
+            setupcode = j['setup']
+        else:
+           setupcode = "pass"
+
         #Make an event object
-        x = Event(j['trigger'],j['action'],make__eventscope(module))
+        x = Event(j['trigger'],j['action'],make__eventscope(module),setup = setupcode)
         #Somehow seems brittle to me.
         #What it does is to use the __EventReferences index to get at the old event object, 
         #remove it, add the new event, and update the index
@@ -148,8 +154,13 @@ def getEventsFromModules():
                 for m in modules.ActiveModules[i].copy():
                     j=modules.ActiveModules[i][m]
                     if j['resource-type']=='event':
+                        if 'setup' in j:
+                            setupcode = j['setup']
+                        else:
+                            setupcode = "pass"
+
                         #For every resource that is an event, we make an event object based o
-                        x = Event(j['trigger'],j['action'],make__eventscope(i))
+                        x = Event(j['trigger'],j['action'],make__eventscope(i),setup = setupcode)
                         __events.append(x)
                         #Now we update the references
                         __EventReferences[i][m] = x
@@ -165,7 +176,7 @@ class Event():
     continual: Execute as often as possible while condition remains true
     
     """
-    def __init__(self,when,do,scope,continual=False,ratelimit=0,):
+    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass"):
         #Copy in the data from args
         self.scope = scope
         self._prevstate = False
@@ -175,7 +186,9 @@ class Event():
         #Precompile
         self.trigger = compile(when,"<trigger>","eval")
         self.action = compile(do,"<action>","exec")
-        
+        initializer = compile(setup,"<setup>","exec")
+        exec(initializer,self.scope)
+
         #This lock makes sure that only one copy of the event executes at once.
         self.lock = threading.Lock()
         

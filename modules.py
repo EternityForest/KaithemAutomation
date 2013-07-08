@@ -284,7 +284,7 @@ def resourceEditPage(module,resource):
             return permissionEditPage(module, resource)
 
         if resourceinquestion['resource-type'] == 'event':
-            return pages.get_template("/modules/events/event.html").render(module =module,name =resource,event 
+            return pages.get_template("modules/events/event.html").render(module =module,name =resource,event 
             =ActiveModules[module][resource])
 
         if resourceinquestion['resource-type'] == 'page':
@@ -293,7 +293,7 @@ def resourceEditPage(module,resource):
             else:
                 requiredpermissions = []
                 
-            return pages.get_template("/modules/pages/page.html").render(module=module,name=resource,
+            return pages.get_template("modules/pages/page.html").render(module=module,name=resource,
             page=ActiveModules[module][resource],requiredpermissions = requiredpermissions)
 
 def permissionEditPage(module,resource):
@@ -317,6 +317,7 @@ def resourceUpdateTarget(module,resource,kwargs):
             e = newevt.Event(kwargs['trigger'],kwargs['action'],{})#Test compile, throw error on fail.
             ActiveModules[module][resource]['trigger'] = kwargs['trigger']
             ActiveModules[module][resource]['action'] = kwargs['action']
+            ActiveModules[module][resource]['setup'] = kwargs['setup']
             #I really need to do something about this possibly brittle bookkeeping system
             #But anyway, when the active modules thing changes we must update the newevt cache thing.
             newevt.updateOneEvent(resource,module)
