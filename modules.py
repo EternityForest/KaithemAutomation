@@ -18,7 +18,7 @@
 import auth,cherrypy,pages,urllib,directories,os,json,util,newevt,shutil,sys,time
 import kaithem
 import threading
-
+import usrpages
 
 from util import url,unurl
 
@@ -96,6 +96,7 @@ def loadModules(modulesdir):
     for i in util.get_immediate_subdirectories(modulesdir):
         loadModule(i,modulesdir)
     newevt.getEventsFromModules()
+    usrpages.getPagesFromModules()
 
 #Load a single module. Used by loadModules
 def loadModule(moduledir,path_to_module_folder):
@@ -146,6 +147,7 @@ class WebInterface():
         newevt.removeModuleEvents(kwargs['name'])
         #Get rid of any permissions defined in the modules.
         auth.importPermissionsFromModules()
+        usrpages.removeModulePages(kwargs['name'])
         raise cherrypy.HTTPRedirect("/modules")
         
     @cherrypy.expose
@@ -203,6 +205,8 @@ class WebInterface():
                 with modulesLock:
                    r = ActiveModules[module].pop(kwargs['name'])
                    
+                if r['resource-type'] == 'page':
+                     usrpages.removeOnePage(module,kwargs['name'])
                 #Annoying bookkeeping crap to get rid of the cached crap
                 if r['resource-type'] == 'event':
                     newevt.removeOneEvent(module,kwargs['name'])
@@ -268,6 +272,7 @@ def addResourceTarget(module,type,name,kwargs):
         with modulesLock:
             if kwargs['name'] not in ActiveModules[module]:
                 ActiveModules[module][kwargs['name']]= {"resource-type":"page","body":"Content here",'no-navheader':True}
+                usrpages.updateOnePage(kwargs['name'],module)
                 #newevt maintains a cache of precompiled events that must be kept in sync with
                 #the modules
                 raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+util.url(name))
@@ -341,6 +346,7 @@ def resourceUpdateTarget(module,resource,kwargs):
                 if i[:10] == 'Permission':
                     if kwargs[i] == 'true':
                         pageinquestion['require-permissions'].append(i[10:])
+            usrpages.updateOnePage(resource,module)
     #Return user to the module page       
     raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module))#+'/resource/'+util.url(resource))
     

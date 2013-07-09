@@ -32,7 +32,7 @@ These extra settings let you control the display or permissions of the page
        ></input>Don't show the navigation header on this page<br>
 
 <input type="checkbox"  name="no-header" value="true"
-         %if 'no-navheader' in page:
+         %if 'no-header' in page:
             %if page['no-header'] == True:
             checked="yes"
             %endif
