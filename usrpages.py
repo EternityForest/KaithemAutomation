@@ -88,7 +88,9 @@ def removeOnePage(module,resource):
                     
 #Delete all __events in a module from the cache
 def removeModulePages(module):
-    del _Pages[module]
+    #There might not be any pages, so we use the if
+    if module in _Pages:
+        del _Pages[module]
 
 #This piece of code will update the actual event object based on the event resource definition in the module
 #Also can add a new event

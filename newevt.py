@@ -87,13 +87,15 @@ def removeOneEvent(module,resource):
 #Delete all __events in a module from the cache
 def removeModuleEvents(module):
     with __event_list_lock:
-        #Iterate over the event refereces for each module, look them up in the list, and get rid of them
-        for i in __EventReferences[module]:
-            if __EventReferences[module][i] in __events:
-                #Remove old reference if there was one
-                __events.remove(__EventReferences[module][i])
-                
-        del __EventReferences[module]        
+        #Handle the case in which the module has no events
+        if module in __EventReferences:
+            #Iterate over the event refereces for each module, look them up in the list, and get rid of them
+            for i in __EventReferences[module]:
+                if __EventReferences[module][i] in __events:
+                    #Remove old reference if there was one
+                    __events.remove(__EventReferences[module][i])
+                    
+            del __EventReferences[module]        
                 
                 
 #Every event has it's own local scope that it uses, this creates the dict to represent it
