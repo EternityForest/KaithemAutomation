@@ -6,6 +6,7 @@ from util import url
 <h2>Module ${name|h}</h2>
 This Page allows you to view and edit information and resources associated with this module.<br><br>
 <title>Module: ${name|h}</title>
+<a href="/modules/downloads/${url(name)}">Download this module as a zip file</a>
 <form action="/modules/module/${url(name)}/update" method="POST" name="user">
 
 <h3>Basic Information</h3>

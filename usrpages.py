@@ -15,6 +15,7 @@
 
 #This file handles the display of user-created pages
 import kaithem, modules, mako, cherrypy,util,pages,threading
+import time
 errors = {}
 #Copyright Daniel Black 2013
 #This file is part of Kaithem Automation.
@@ -38,7 +39,7 @@ class CompiledPage():
     def __init__(self, resource):
         
         template = resource['body']
-        
+        self.errors = []
         #For compatibility with older versions, we provide defaults
         #In case some attributes are missing
         if 'require-permissions' in resource:
@@ -70,6 +71,8 @@ class CompiledPage():
         self.template = mako.template.Template(templatesource)
             
             
+def getPageErrors(module,resource):
+    return _Pages[module][resource].errors
 
 
 _Pages = {}
@@ -134,9 +137,16 @@ class KaithemPage():
             if cherrypy.request.method not in page.methods:
                 #Raise a redirect the the wrongmethod error page
                 raise cherrypy.HTTPRedirect('/errors/wrongmethod')
-            
-            return page.template.render(
-               kaithem = kaithem.kaithem,
-               request = cherrypy.request
-               )
-            
+            try:
+        
+                return page.template.render(
+                   kaithem = kaithem.kaithem,
+                   request = cherrypy.request
+                   )
+            except Exception as e:
+                #When an error happens, log it and save the time
+                #Note that we are logging to the compiled event object
+                page.errors.append([time.strftime('%A, %B %d, %Y at %H:%M:%S'),e])
+                #Keep oly the most recent 25 errors
+                page.errors = page.errors[-25:]
+                raise (e)

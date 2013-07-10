@@ -20,6 +20,13 @@ import kaithem
 import threading
 import usrpages
 
+if sys.version_info < (3,0):
+   from StringIO import StringIO
+else:
+    from io import BytesIO as StringIO
+    
+import zipfile
+
 from util import url,unurl
 
 
@@ -117,9 +124,66 @@ def loadModule(moduledir,path_to_module_folder):
         #Create the scopes dict thing for that module
         scopes[name] = {}
 
+def getModuleAsZip(module):
+    with modulesLock:
+        #We use a stringIO so we can avoid using a real file.
+        ram_file = StringIO()
+        z = zipfile.ZipFile(ram_file,'w')
+        #Dump each resource to JSON in the ZIP
+        for resource in ActiveModules[module]:
+            #AFAIK Zip files fake the directories with naming conventions
+            s = json.dumps(ActiveModules[module][resource],sort_keys=True,indent=4, separators=(',', ': '))
+            z.writestr(url(module)+'/'+url(resource)+".json",s)
+        z.close()
+        s = ram_file.getvalue()
+        ram_file.close()
+        return s    
+
 
 #The clas defining the interface to allow the user to perform generic create/delete/upload functionality.
 class WebInterface():
+    
+    #This lets the user download a module as a zip file
+    @cherrypy.expose
+    def downloads(self,module):
+        pages.require('/admin/modules.view')
+        cherrypy.response.headers['Content-Type']= 'application/zip'
+        return getModuleAsZip(module)
+    
+    #This lets the user upload modules
+    @cherrypy.expose
+    def upload(self):
+        pages.require('/admin/modules.edit')
+        return pages.get_template("modules/upload.html").render()
+        #This lets the user upload modules
+        
+    @cherrypy.expose
+    def uploadtarget(self,modules):
+        pages.require('/admin/modules.edit')
+        new_modules = {}
+        z = zipfile.ZipFile(modules.file)
+        
+        for i in z.namelist():
+            p = unurl(i.split('/')[0])
+            #Remove the.json by getting rid of last 5 chars
+            n = unurl((i.split('/'))[1][:-5])
+            if p not in new_modules:
+                new_modules[p] = {}
+            f = z.open(i)
+            new_modules[p][n] = json.loads(f.read().decode())
+            f.close()
+        
+        with modulesLock:
+            for i in new_modules:
+                if i in ActiveModules:
+                    raise cherrypy.HTTPRedirect("/errors/alreadyexists")
+            for i in new_modules:
+                ActiveModules[i] = new_modules[i]
+        z.close()
+        raise cherrypy.HTTPRedirect("/modules/") 
+            
+        
+    
     @cherrypy.expose
     def index(self):
         #Require permissions and render page. A lotta that in this file.

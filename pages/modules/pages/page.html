@@ -1,6 +1,7 @@
 <%!
 from util import url
 import auth
+import usrpages
 %>
 <%include file="/pageheader.html"/>
 <title>Kaithem Page</title>
@@ -71,6 +72,18 @@ These extra settings let you control the display or permissions of the page
 %endfor
 </ul>
 </div>
+%if usrpages.getPageErrors(module,name):
+<h3>Errors</h3>
+<p class ="help">
+This section shows up to the most recent 25 errors that occured while rendering the page.
+</p>
+<div class="scrollbox">
+%for i in usrpages.getPageErrors(module,name):
+    <h4>${i[0]|h}</h4>
+    <p>${repr(i[1])|h}</p>
+%endfor
+</div>
+%endif
 <p class="help">
 Saving this module will cause it to be immediately acessable from the web.
 </p>
