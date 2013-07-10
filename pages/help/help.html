@@ -8,6 +8,8 @@
 	An event is a statement that when the trigger occurs, the action should be executed.</p>
 	
 	<p>Kaithem is written in pure python and will run in either 2.6+ or 3.xx without modification, the difference being that unicode resource and user names are not allowed in Kaithem on 2.xx</p>
+    
+    <p>Kaithem includes all dependancies except your python of choice and a copy of mpg123 if you want sound.</p>
 	
 	<p> In addition, Kaithem provides TLS/SSL encryption, user management, and serves as a basic IDE to create web pages that can interact with your process data. Kaithem was not designed for mission-critical control purposes, but aims to be fully reliable enough for basic home and commercial automation tasks.</p>
 		
@@ -111,11 +113,19 @@
     <h4>kaithem.day()</h4>
     <p>returns the day of the month.</p>
 
-    <h4>kaithem.sys.shellex(cmd)</h4>
+    <h4>kaithem.shellex(cmd)</h4>
     <p>Run a command in the system's native shell and return the output.</p>
 
-    <h4>kaithem.sys.shellexbg(cmd)</h4>
+    <h4>kaithem.shellexbg(cmd)</h4>
     <p>Run a command in the system's native shell in the background and ignore the output and return codes.</p>
+    
+    <h4>kaithem.playSound(filename,handle)</h4>
+    <p>If you have the free mpg123 sound player installed, play the file, otherwise do nothing.
+    The handle parameter lets you name the new sound instance to stop it later. If you try to play a sound under
+    the same handle as a stil-playing sound, the old one will be stopped. Defaults to PRIMARY.</p>
+    
+    <h4>kaithem.stopSound(handle)</h4>
+    <p>Stop a sound by handle. Defaults to PRIMARY.</p>
     
     <h2><a id="theming" name="theming"></a>Theming</h2>
     <p>The following conventions are used for consistancy in kaithem CSS. If you want your custom pages to be consistant with the rest of Kaithem's theming, 

@@ -97,7 +97,7 @@ def updateOnePage(resource,module):
     #This is one of those places that uses two different locks
     with modules.modulesLock:
         if module not in _Pages:
-            pages[module]={}
+            _Pages[module]={}
             
         #Get the event resource in question
         j = modules.ActiveModules[module][resource]

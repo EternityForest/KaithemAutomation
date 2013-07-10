@@ -21,6 +21,7 @@ import workers
 import subprocess
 import threading
 import random
+import sound
 
 class Kaithem():
     def lorem(self):
@@ -50,16 +51,20 @@ class Kaithem():
         return (weekday.DayOfWeek())
 
     def shellex(self,cmd):
-        return (subprocess.check_call(cmd,shell=True))
+        return (subprocess.check_output(cmd,shell=True))
     
     def shellexbg(self,cmd):
         subprocess.Popen(cmd,shell=True)
+        
 
 class obj():
     pass
 
 
 kaithem = Kaithem()
+kaithem.playSound = sound.playSound
+kaithem.stopSound = sound.stopSound
+
 kaithem.do = workers.do
 kaithem.globals = obj() #this is just a place to stash stuff.
 

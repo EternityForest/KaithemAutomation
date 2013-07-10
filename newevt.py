@@ -47,7 +47,9 @@ def __manager():
     temp = 0;
     global averageFramesPerSecond
     averageFramesPerSecond = 0
+    #Basically loops for the lief of the app
     while run:
+        #Get the time at the start of the loop
         temp = time.time()
         #If by the time we get here the queue is still half full we have a problem so slow down and let other stuff work.
         if workers.waitingtasks() < 60:
@@ -60,7 +62,8 @@ def __manager():
             finally:
                 __event_list_lock.release()
             #This should be user configurable
-           # time.sleep(0.00001)
+        #Limit the polling cycles per second to avoid CPU hogging
+        time.sleep(0.01)
         #smoothing filter
         averageFramesPerSecond = (averageFramesPerSecond *0.98) +   ((1/(time.time()-temp)) *0.02) 
             
@@ -73,7 +76,6 @@ t.start()
 
 #Delete a event from the cache by module and resource
 def removeOneEvent(module,resource):
-    #Look up the eb
     with __event_list_lock:
         if module in __EventReferences:
             if resource in __EventReferences[module]:
@@ -102,8 +104,7 @@ def make__eventscope(module):
 #This piece of code will update the actual event object based on the event resource definition in the module
 #Also can add a new event
 def updateOneEvent(resource,module):
-
-    #This is one of those places that uses two different locks
+    #This is one of those places that uses two different locks(!)
     with modules.modulesLock:
         #Get the event resource in question
         j = modules.ActiveModules[module][resource]
@@ -119,7 +120,7 @@ def updateOneEvent(resource,module):
         #What it does is to use the __EventReferences index to get at the old event object, 
         #remove it, add the new event, and update the index
         
-        #Here is the other lock
+        #Here is the other lock(!)
         with __event_list_lock: #Make sure nobody is iterating the eventlist
         
             #If there is already a dict at __eventreferences[module]

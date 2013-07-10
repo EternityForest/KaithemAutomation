@@ -5,6 +5,7 @@
     import platform
     import sys
     import newevt
+    import sound
     if os.name != "nt":
         import fcntl
         import struct
@@ -90,6 +91,10 @@
     <tr>
         <td>Python Version</td>
         <td>${str(sys.version_info[0])+'.'+str(sys.version_info[1])}</td>
+    </tr>
+        <tr>
+        <td>Audio Backend</td>
+        <td>${sound.backend.backendname}</td>
     </tr>
 
 </div>

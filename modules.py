@@ -20,6 +20,7 @@ import kaithem
 import threading
 import usrpages
 
+#2.x vs 3.x once again have renamed stuff
 if sys.version_info < (3,0):
    from StringIO import StringIO
 else:
@@ -102,6 +103,7 @@ def saveModules(where):
 def loadModules(modulesdir):
     for i in util.get_immediate_subdirectories(modulesdir):
         loadModule(i,modulesdir)
+    #keep the events and pages in sync
     newevt.getEventsFromModules()
     usrpages.getPagesFromModules()
 
@@ -284,8 +286,8 @@ class WebInterface():
             if path[0] == 'update':
                 pages.require("/admin/modules.edit")
                 with modulesLock:
-                    ActiveModules[kwargs['name']] = ActiveModules.pop(module)
                     ActiveModules[module]['__description']['text'] = kwargs['description']
+                    ActiveModules[kwargs['name']] = ActiveModules.pop(module)
                 raise cherrypy.HTTPRedirect('/modules/module/'+util.url(kwargs['name']))
 
 #Return a CRUD screen to create a new resource taking into the type of resource the user wants to create               

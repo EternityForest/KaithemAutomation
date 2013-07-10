@@ -29,31 +29,31 @@ class ManageAuthorization():
         auth.removeUser(kwargs['user'])
         raise cherrypy.HTTPRedirect("/auth")
     
-	#POST target for deleting a group
+    #POST target for deleting a group
     @cherrypy.expose
     def delgroup(self,**kwargs):
         pages.require("/admin/users.edit")
         auth.removeGroup(kwargs['group'])
         raise cherrypy.HTTPRedirect("/auth")
     
-	#INterface to select a user to delete
+    #INterface to select a user to delete
     @cherrypy.expose
     def deleteuser(self,**kwargs):
         pages.require("/admin/users.edit")
         return pages.get_template("auth/deleteuser.html").render()
     
-	#Interface to select a group to delete
+    #Interface to select a group to delete
     @cherrypy.expose
     def deletegroup(self,**kwargs):
         pages.require("/admin/users.edit")
         return pages.get_template("auth/deletegroup.html").render()
-		
+        
     #Add user interface
     @cherrypy.expose
     def newuser(self):
         pages.require("/admin/users.edit")
         return pages.get_template("auth/adduser.html").render()
-		
+        
     #add group interface       
     @cherrypy.expose
     def newgroup(self):
@@ -94,7 +94,7 @@ class ManageAuthorization():
         #BECAUSE QUOTE() IS USUALLY WHERE THEY CRASH. #AWFULHACK
         quote(kwargs['username'])
         
-		#Remove the user from all groups that the checkbox was not checked for
+        #Remove the user from all groups that the checkbox was not checked for
         for i in auth.Users[user]['groups']:
             if not ('Group'+i) in kwargs:
                 auth.removeUserFromGroup(user,i)
