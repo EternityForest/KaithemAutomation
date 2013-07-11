@@ -1,4 +1,4 @@
-import weakref,threading,time,os,random
+import weakref,threading,time,os,random,workers
 from collections import defaultdict
 
 tester = {}
@@ -77,7 +77,9 @@ class MessageBus(object):
         self.subscribers = defaultdict(list)
         
     def subscribe(self,topic,callback):
-        
+        if topic.startswith('/'):
+            if not len(topic)==1:
+                topic = topic[1:]
         #Allright, here is how this works.
         #We have to deal with the possibility that, at any time,
         #The callback will cease to exist. That, in fact, is how one unsubscribes.
@@ -98,10 +100,12 @@ class MessageBus(object):
 
     def postMessage(self, topic, message):
         
+        if topic.startswith('/'):
+            topic = topic[1:]
         #A topic foo/bar/baz would go to
         #foo, foo/bar, and /foo/bar/baz
         #So we need to make a list like that
-        matchingtopics = set()
+        matchingtopics = set(['/'])
         parts = topic.split("/")
         last = ""
         matchingtopics.add(topic)
@@ -119,7 +123,7 @@ class MessageBus(object):
                     #we call the ref to get its refferent
                     ref()(topic,message)
 
-__bus = MessageBus()      
+__bus = MessageBus(workers.do)      
 subscribe = __bus.subscribe
 postMessage = __bus.postMessage
         

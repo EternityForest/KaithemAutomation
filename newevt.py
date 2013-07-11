@@ -21,7 +21,7 @@
 import threading
 import workers
 import modules,threading,time
-import kaithem
+import kaithem,messagebus,util
 
 #Use this lock whenever you acess __events or __EventReferences in any way.
 #Most of the time it should be held by the event manager that continually iterates it.
@@ -138,8 +138,10 @@ def updateOneEvent(resource,module):
                 #If this is the first event in the module we need to make the module representation
                 __EventReferences[module] = {}
                      
-            #Add new event    
+            #Add new event
+            x.module = module;x.resource =resource
             __events.append(x)
+            
             #Update index
             __EventReferences[module][resource] = x
 
@@ -164,6 +166,7 @@ def getEventsFromModules():
 
                         #For every resource that is an event, we make an event object based o
                         x = Event(j['trigger'],j['action'],make__eventscope(i),setup = setupcode)
+                        x.module = i;x.resource =m
                         __events.append(x)
                         #Now we update the references
                         __EventReferences[i][m] = x
@@ -229,5 +232,12 @@ class Event():
             self.errors.append([time.strftime('%A, %B %d, %Y at %H:%M:%S'),e])
             #Keep oly the most recent 25 errors
             self.errors = self.errors[-25:]
+            
+            #The mesagebus is largely untested and we don't want to kill the thread.
+            try:
+                messagebus.postMessage('system/errors/events/'+util.url(self.module)+'/'+util.url(self.resource),str(e))
+            except Exception as e:
+                print (e)
+            
         finally:
             self.lock.release()

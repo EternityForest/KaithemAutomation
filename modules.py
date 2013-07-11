@@ -106,6 +106,9 @@ def loadModules(modulesdir):
     #keep the events and pages in sync
     newevt.getEventsFromModules()
     usrpages.getPagesFromModules()
+    
+class obj(object):
+    pass
 
 #Load a single module. Used by loadModules
 def loadModule(moduledir,path_to_module_folder):
@@ -123,8 +126,8 @@ def loadModule(moduledir,path_to_module_folder):
         
         name = unurl(moduledir)
         ActiveModules[name] = module
-        #Create the scopes dict thing for that module
-        scopes[name] = {}
+        #Create the scopes object thing
+        scopes[name] = obj()
 
 def getModuleAsZip(module):
     with modulesLock:
@@ -227,7 +230,7 @@ class WebInterface():
                 {"resource-type":"module-description",
                 "text":"Module info here"}}
                 #Create the scope that code in the module will run in
-                scopes[kwargs['name']] = {}
+                scopes[kwargs['name']] = obj()
                 #Go directly to the newly created module
                 raise cherrypy.HTTPRedirect("/modules/module/"+util.url(kwargs['name']))
             else:

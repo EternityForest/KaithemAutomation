@@ -143,7 +143,8 @@ class KaithemPage():
         
                 return page.template.render(
                    kaithem = kaithem.kaithem,
-                   request = cherrypy.request
+                   request = cherrypy.request,
+                   module = modules.scopes[module]
                    )
             except Exception as e:
                 #When an error happens, log it and save the time

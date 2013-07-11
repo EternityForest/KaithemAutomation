@@ -131,7 +131,8 @@
     <h4>kaithem.message.postMessage(topic,message)</h4>
     <p>Post a message to the internal system-wide message bus. Message MUST be a JSON serializable object.
     i.e True/false, numbers, strings, lists, and dictionaries only. Message topics are hierarchial, delimited by forward
-    slashes, and never start with a slash. Topics ending in a slash are "directories" and should not be posted directly to.</p>
+    slashes, and the root directory is /. However /foo is equivalent to foo.<br>
+    Topics ending in a slash are "directories" and should not be posted directly to.</p>
     
     <h4>kaithem.message.subscribe(topic,callback)</h4>
     <p>Request that function <i>callback</i> which must take two arguments(topic,message)
