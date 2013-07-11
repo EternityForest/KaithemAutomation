@@ -4,6 +4,7 @@
             "permissions": [
                 "/admin/settings.edit",
                 "/admin/users.edit",
+                "/admin/console.acess",
                 "/admin/modules.edit",
                 "/admin/settings.view",
                 "/admin/mainpage.view",
