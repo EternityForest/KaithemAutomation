@@ -42,7 +42,8 @@ BasePermissions = {
 "/admin/modules.view":  "View and download all module contents but not make any changes.",
 "/admin/modules.edit":  "Create, Edit, Import, Upload, and Download modules and module contents. Gives root access essentially so watch out.",
 "/admin/settings.view": "View but not change settings.",
-"/admin/settings.edit": "Change core settings."
+"/admin/settings.edit": "Change core settings.",
+"/admin/console.acess": "Use the remote python shell"
 }
 
 Permissions=BasePermissions
