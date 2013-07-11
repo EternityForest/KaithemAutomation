@@ -12,16 +12,6 @@
 <tr><td rowspan="1" colspan="3">user page permissions</td></tr>
 </thead><tbody>
 <tr>
-	<td>open</td>
-	<td>/</td>
-	<td></td>
-</tr>
-<tr>
-	<td>clickAndWait</td>
-	<td>css=input[type=&quot;submit&quot;]</td>
-	<td></td>
-</tr>
-<tr>
 	<td>clickAndWait</td>
 	<td>link=Modules</td>
 	<td></td>
@@ -91,7 +81,6 @@
 	<td>Let's Increment the count!!!</td>
 	<td></td>
 </tr>
-
 </tbody></table>
 </body>
 </html>

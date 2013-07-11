@@ -57,11 +57,50 @@
 	<td></td>
 </tr>
 <tr>
+	<td>type</td>
+	<td>name=name</td>
+	<td>testmodule2</td>
+</tr>
+<tr>
+	<td>type</td>
+	<td>name=description</td>
+	<td>Module info here2</td>
+</tr>
+<tr>
+	<td>clickAndWait</td>
+	<td>css=input[type=&quot;submit&quot;]</td>
+	<td></td>
+</tr>
+<tr>
+	<td>verifyTextPresent</td>
+	<td>testmodule2</td>
+	<td></td>
+</tr>
+<tr>
+	<td>clickAndWait</td>
+	<td>link=Modules</td>
+	<td></td>
+</tr>
+<tr>
+	<td>verifyTextPresent</td>
+	<td>testmodule2</td>
+	<td></td>
+</tr>
+<tr>
+	<td>clickAndWait</td>
+	<td>link=testmodule2</td>
+	<td></td>
+</tr>
+<tr>
+	<td>verifyTextPresent</td>
+	<td>testmodule2</td>
+	<td></td>
+</tr>
+<tr>
 	<td>verifyTextPresent</td>
 	<td>Module testmodule</td>
 	<td></td>
 </tr>
-
 </tbody></table>
 </body>
 </html>

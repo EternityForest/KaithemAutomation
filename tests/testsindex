@@ -8,14 +8,21 @@
 <body>
 <table id="suiteTable" cellpadding="1" cellspacing="1" border="1" class="selenium"><tbody>
 <tr><td><b>Test Suite</b></td></tr>
-<tr><td><a href="directories.py">Login as admin</a></td></tr>
+<tr><td><a href="login">login</a></td></tr>
 <tr><td><a href="1">Login with wrong username</a></td></tr>
 <tr><td><a href="2">Login with wrong password</a></td></tr>
 <tr><td><a href="3">Login as admin and view users</a></td></tr>
 <tr><td><a href="4">login as guest and attempt to view users</a></td></tr>
 <tr><td><a href="5">Add a new user</a></td></tr>
+<tr><td><a href="tusrf">tusrf</a></td></tr>
 <tr><td><a href="6">delete user</a></td></tr>
-<tr><td><a href="7">7</a></td></tr>
+<tr><td><a href="7">add module</a></td></tr>
+<tr><td><a href="badguest">badguest</a></td></tr>
+<tr><td><a href="beadmin">beadmin</a></td></tr>
+<tr><td><a href="truevt">truevt</a></td></tr>
+<tr><td><a href="delevtpg">delevtpg</a></td></tr>
+<tr><td><a href="delmod">delmod</a></td></tr>
+<tr><td><a href="usrpp">usrpp</a></td></tr>
 </tbody></table>
 </body>
 </html>
