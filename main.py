@@ -26,7 +26,6 @@ import os,sys
 import modules
 import settings
 import usrpages
-import console
 
 #2 and 3 have basically the same module with diferent names
 if sys.version_info < (3,0):
@@ -102,7 +101,6 @@ class Errors():
        
 #There are lots of other objects ad classes represeting subfolders of the website so we attatch them        
 root = webapproot()
-root.console = console.Console()
 root.login = weblogin.LoginScreen()
 root.auth = ManageUsers.ManageAuthorization()
 root.modules = modules.WebInterface()

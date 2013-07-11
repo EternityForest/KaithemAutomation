@@ -118,7 +118,7 @@
 
     <h4>kaithem.shellexbg(cmd)</h4>
     <p>Run a command in the system's native shell in the background and ignore the output and return codes.</p>
-    
+    <h3>Sound Playing</h3>
     <h4>kaithem.playSound(filename,handle)</h4>
     <p>If you have the free mpg123 sound player installed, play the file, otherwise do nothing.
     The handle parameter lets you name the new sound instance to stop it later. If you try to play a sound under
@@ -127,8 +127,25 @@
     <h4>kaithem.stopSound(handle)</h4>
     <p>Stop a sound by handle. Defaults to PRIMARY.</p>
     
+    <h3>Message Bus</h3>
+    <h4>kaithem.message.postMessage(topic,message)</h4>
+    <p>Post a message to the internal system-wide message bus. Message MUST be a JSON serializable object.
+    i.e True/false, numbers, strings, lists, and dictionaries only. Message topics are hierarchial, delimited by forward
+    slashes, and never start with a slash. Topics ending in a slash are "directories" and should not be posted directly to.</p>
+    
+    <h4>kaithem.message.subscribe(topic,callback)</h4>
+    <p>Request that function <i>callback</i> which must take two arguments(topic,message)
+    be called whenever a message matching the topic is posted. Should the topic end with a slash, it will also match
+    all subtopics(e.g. "foo/" will match "foo/bar" and "foo/anything")
+    <br>
+    You must always maintain a reference to the callback, otherwise,
+    the callback will be garbage collected and auto-unsubscribed.
+    This is also how you unsubscribe.
+    </p>
+    
     <h2><a id="theming" name="theming"></a>Theming</h2>
-    <p>The following conventions are used for consistancy in kaithem CSS. If you want your custom pages to be consistant with the rest of Kaithem's theming, 
+    <p>The following conventions are used for consistancy in kaithem CSS.
+    If you want your custom pages to be consistant with the rest of Kaithem's theming, 
     you can use the following CSS classes in your user-created pages. </p>
     
      <h3>Section Boxes</h3>

@@ -22,6 +22,7 @@ import subprocess
 import threading
 import random
 import sound
+import messagebus
 
 class Kaithem():
     def lorem(self):
@@ -64,6 +65,10 @@ class obj():
 kaithem = Kaithem()
 kaithem.playSound = sound.playSound
 kaithem.stopSound = sound.stopSound
+
+kaithem.message = obj()
+kaithem.message.postMessage = messagebus.postMessage
+kaithem.message.subscribe = messagebus.subscribe
 
 kaithem.do = workers.do
 kaithem.globals = obj() #this is just a place to stash stuff.
