@@ -80,12 +80,6 @@
 	  <p> Upon creating a new permission, you will immediately be able to assign it to groups by selecting
 	  the checkbox in the group page.</p>
 	
-	
-	
-
-	
-	
-	
 
     <h2><a id="kaithemobject" name="kaithemobject"></a>The Kaithem Object:</h2>
     <p>The Kaithem object is one object availible in almost all user defined code. It has the following properties:</p>
@@ -137,12 +131,16 @@
     <h4>kaithem.message.subscribe(topic,callback)</h4>
     <p>Request that function <i>callback</i> which must take two arguments(topic,message)
     be called whenever a message matching the topic is posted. Should the topic end with a slash, it will also match
-    all subtopics(e.g. "foo/" will match "foo/bar" and "foo/anything")
+    all subtopics(e.g. "foo/" will match "foo/bar" and "foo/anything"). Uncaaught errors in the callback are ignored.
     <br>
     You must always maintain a reference to the callback, otherwise,
     the callback will be garbage collected and auto-unsubscribed.
     This is also how you unsubscribe.
     </p>
+    
+    <h3>Web</h3>
+    <h4>kaithem.web.urlForPage(module,page)</h4>
+    <p>Given a page's resource name and containing module, return its URL.</p>
     
     <h2><a id="theming" name="theming"></a>Theming</h2>
     <p>The following conventions are used for consistancy in kaithem CSS.
@@ -161,6 +159,16 @@
     
     <h3>Short help strings</h3>
     <p>Short help texts in the gui should be wrapped in a p element with class ="help"</p>
+    
+    <h2>The Internal Message Bus</h2>
+    <p>Kaithem includes a custom internal messaging system that is accessable from user code through kaithem.message.
+    However, the system also makes use of the bus in the following ways:
+    
+    <h3>Error occurs in an Event</h3>
+    <p>A message will be broadcast on /system/errors/events/*module*/*event* ,where module and event are both url-encoded.
+    </p>
+    
+    </p>
     
 </div>
 	

@@ -61,6 +61,10 @@ class Kaithem():
 class obj():
     pass
 
+class Web(object):
+    def urlForPage(module,page):
+        return "/pages/page/"+url(i)+'/page/'+url(j)
+
 
 kaithem = Kaithem()
 kaithem.playSound = sound.playSound
@@ -70,6 +74,7 @@ kaithem.message = obj()
 kaithem.message.postMessage = messagebus.postMessage
 kaithem.message.subscribe = messagebus.subscribe
 
+kaithem.web = Web()
 kaithem.do = workers.do
 kaithem.globals = obj() #this is just a place to stash stuff.
 

@@ -69,6 +69,10 @@ class webapproot():
         pages.require('/admin/settings.edit')
         return pages.get_template('save.html').render()
         
+    @cherrypy.expose 
+    def pagelisting(self,*path,**data):
+        pages.require('/users/pagelisting.view')
+        return pages.get_template('pagelisting.html').render(modules = modules.ActiveModules)
         
     #docs,about,helpmenu, and license are just static pages
     @cherrypy.expose 

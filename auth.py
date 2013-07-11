@@ -43,7 +43,7 @@ BasePermissions = {
 "/admin/modules.edit":  "Create, Edit, Import, Upload, and Download modules and module contents. Gives root access essentially so watch out.",
 "/admin/settings.view": "View but not change settings.",
 "/admin/settings.edit": "Change core settings.",
-"/admin/console.acess": "Use the remote python shell"
+"/users/pagelisting.view": "View the list of all user created pages."
 }
 
 Permissions=BasePermissions
@@ -53,10 +53,10 @@ def importPermissionsFromModules():
     Permissions=BasePermissions
     with modules.modulesLock:
         for module in modules.ActiveModules.copy():#Iterate over all modules
-		    #for every resource of type permission
+            #for every resource of type permission
             for resource in modules.ActiveModules[module].copy():
                 if modules.ActiveModules[module][resource]['resource-type']=='permission':
-				    #add it to the permissions list
+                    #add it to the permissions list
                     Permissions[resource] = modules.ActiveModules[module][resource]['description']
                     
 
@@ -80,14 +80,14 @@ def addUser(username,password):
         
 def removeUser(user):
     x =Users.pop(user)
-	#If the user has a token, delete that too
+    #If the user has a token, delete that too
     if hasattr(x,'token'):
         if x.token in Tokens:
             Tokens.pop(x.token)
             
 def removeGroup(group):
     x =Groups.pop(group)
-	#Remove all references to that group from all users
+    #Remove all references to that group from all users
     for i in Users:
         if group in Users[i]['groups']:
             Users[i]['groups'].remove(group)
@@ -177,7 +177,7 @@ def checkTokenPermission(token,permission):
             return False
     else:
             return False
-			
+            
 #Remove references to deleted permissions
 #NO-OP, Lets just let user manually uncheck them.
 def destroyUnusedPermissions():
