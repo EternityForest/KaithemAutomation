@@ -1,6 +1,7 @@
 {
-    "action": "print (kaithem.lorem())",
+    "action": "print (kaithem.misc.lorem())",
     "once": true,
     "resource-type": "event",
+    "setup": "pass\r\n",
     "trigger": "True"
 }

@@ -18,7 +18,7 @@
 
 
 
-import threading
+import threading,traceback,sys
 import workers
 import modules,threading,time
 import kaithem,messagebus,util
@@ -224,15 +224,16 @@ class Event():
                     #Check the current time minus the last time against the rate limit
                     #Don't execute more often than ratelimit
                     if (time.time()-self.lastexecuted >self.ratelimit):
-                        exec(self.action,self.scope,self.scope)
                         #Set the varible so we know when the last time the body actually ran
                         self.lastexecuted = time.time()
+                        exec(self.action,self.scope,self.scope)
+
             else:
                 self._prevstate = False
         except Exception as e:
             #When an error happens, log it and save the time
             #Note that we are logging to the compiled event object
-            self.errors.append([time.strftime('%A, %B %d, %Y at %H:%M:%S'),e])
+            self.errors.append([time.strftime('%A, %B %d, %Y at %H:%M:%S Server Local Time'),e])
             #Keep oly the most recent 25 errors
             self.errors = self.errors[-25:]
             

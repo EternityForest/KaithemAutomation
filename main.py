@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 #Copyright Daniel Black 2013
 #This file is part of Kaithem Automation.
 
@@ -42,7 +43,14 @@ except:
 finally:
     u.close()
 
-    
+if len(sys.argv) > 1:
+    if "python" in sys.argv[0]:
+        port = int(sys.argv[2])
+    else:
+        port = int(sys.argv[1])
+else:
+    if 'python' in sys.argv[0]:
+        port = 8001
 
 #Initialize the autorization module
 auth.initializeAuthentication()
@@ -121,7 +129,7 @@ dn = os.path.dirname(os.path.realpath(__file__))
 if __name__ == '__main__':
     server_config={
         'server.socket_host': '0.0.0.0',
-        'server.socket_port':8002,
+        'server.socket_port':port,
         'server.ssl_module':'builtin',
         'server.ssl_certificate':os.path.join(dn,'ssl/certificate.cert'),
         'server.ssl_private_key':os.path.join(dn,'ssl/certificate.key'),

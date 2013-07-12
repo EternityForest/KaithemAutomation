@@ -85,34 +85,45 @@
     <p>The Kaithem object is one object availible in almost all user defined code. It has the following properties:</p>
 	
 	<h3>General Utilities</h3>
-    <h4>kaithem.lorem()</h4>
-    <p>Returns about a sentence to a paragraph of placeholder text that may change between calls and may not actually be classic
-     Lorem Ipsum text.</p>
+
     
     <h4>kaithem.globals</h4>
     <p>An instance of object() whos only purpose is so that the user can asign it attributes.
        Be careful, as the kaithem namespace is truly global.
     </p>
     
-    <h4>kaithem.do(function):</h4>
+    <h3>kaithem.misc</h3>
+    
+    <h4>kaithem.misc.lorem()</h4>
+    <p>Returns about a sentence to a paragraph of placeholder text that may change between calls and may not actually be classic
+     Lorem Ipsum text.</p>
+    
+    <h4>kaithem.misc.do(function):</h4>
     <p>Executes a function of no arguments in the background using kaithem's thread pool. Any uncaught errors are simply ignored</p>
-    <h3>Time Handling</h3>
-    <h4>kaithem.dayofweek()</h4>
+   
+   
+    <h3>kaithem.time</h3>
+    
+    <h4>kaithem.time.dayofweek()</h4>
     <p>Returns a day-of-week object that inherits from string and prints as an uppercase full name(like 'Tuesday'), but can be 
        intelligently compared(DoW=='tue','Tue,'Tuesday','tu',1,'1',etc). When usig numbers, monday is 0.</p>
        
-    <h4>kaithem.[minute|second|hour]()</h4>
+    <h4>kaithem.time.[minute|second|hour]()</h4>
     <p>All of these functions perform as expected(e.g. minute() returns a number between 0 and 59). hour() uses 24 hour local time</p>
     
-    <h4>kaithem.day()</h4>
+    <h4>kaithem.time.day()</h4>
     <p>returns the day of the month.</p>
-
-    <h4>kaithem.shellex(cmd)</h4>
+    
+    
+    <h3>kaithem.sys</h3>
+    <h4>kaithem.sys.shellex(cmd)</h4>
     <p>Run a command in the system's native shell and return the output.</p>
 
-    <h4>kaithem.shellexbg(cmd)</h4>
+    <h4>kaithem.sys.shellexbg(cmd)</h4>
     <p>Run a command in the system's native shell in the background and ignore the output and return codes.</p>
-    <h3>Sound Playing</h3>
+    
+    
+    <h3>kaithem.sound</h3>
     <h4>kaithem.playSound(filename,handle)</h4>
     <p>If you have the free mpg123 sound player installed, play the file, otherwise do nothing.
     The handle parameter lets you name the new sound instance to stop it later. If you try to play a sound under
@@ -121,7 +132,10 @@
     <h4>kaithem.stopSound(handle)</h4>
     <p>Stop a sound by handle. Defaults to PRIMARY.</p>
     
-    <h3>Message Bus</h3>
+    <h4>kaithem.stopAllSounds(handle)</h4>
+    <p>Stop all currently playing sounds.</p>
+    
+    <h3>kaithem.message</h3>
     <h4>kaithem.message.postMessage(topic,message)</h4>
     <p>Post a message to the internal system-wide message bus. Message MUST be a JSON serializable object.
     i.e True/false, numbers, strings, lists, and dictionaries only. Message topics are hierarchial, delimited by forward
@@ -138,7 +152,7 @@
     This is also how you unsubscribe.
     </p>
     
-    <h3>Web</h3>
+    <h3>kaithem.web</h3>
     <h4>kaithem.web.urlForPage(module,page)</h4>
     <p>Given a page's resource name and containing module, return its URL.</p>
     

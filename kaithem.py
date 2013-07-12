@@ -25,57 +25,79 @@ import sound
 import messagebus
 
 class Kaithem():
-    def lorem(self):
-        return ("""lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin vitae laoreet eros. Integer nunc nisl, ultrices et commodo sit amet, dapibus vitae sem. Nam vel odio metus, ac cursus nulla. Pellentesque scelerisque consequat massa, non mollis dolor commodo ultrices. Vivamus sit amet sapien non metus fringilla pretium ut vitae lorem. Donec eu purus nulla, quis venenatis ipsum. Proin rhoncus laoreet ullamcorper. Etiam fringilla ligula ut erat feugiat et pulvinar velit fringilla.""")
-    def month(self):
-        return(time.localtime().tm_mon)
+    class misc(object):
+        def lorem():
+            return ("""lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin vitae laoreet eros. Integer nunc nisl, ultrices et commodo sit amet, dapibus vitae sem. Nam vel odio metus, ac cursus nulla. Pellentesque scelerisque consequat massa, non mollis dolor commodo ultrices. Vivamus sit amet sapien non metus fringilla pretium ut vitae lorem. Donec eu purus nulla, quis venenatis ipsum. Proin rhoncus laoreet ullamcorper. Etiam fringilla ligula ut erat feugiat et pulvinar velit fringilla.""")
         
-    def day(self):
-        return(time.localtime().tm_mday)
+        def do(f):
+            workers.do(f)
         
-    def year(self):
-        return(time.localtime().tm_year)
         
-    def hour(self):
-        return(time.localtime().tm_hour)
-        
-    def hour(self):
-        return(time.localtime().tm_hour)
-
-    def minute(self):
-        return(time.localtime().tm_min)
-        
-    def second(self):
-        return(time.localtime().tm_sec)
-
-    def dayofweek(self):
-        return (weekday.DayOfWeek())
-
-    def shellex(self,cmd):
-        return (subprocess.check_output(cmd,shell=True))
+    class time(object):
+        def month():
+            return(time.localtime().tm_mon)
+            
+        def day():
+            return(time.localtime().tm_mday)
+            
+        def year():
+            return(time.localtime().tm_year)
+            
+        def hour():
+            return(time.localtime().tm_hour)
+            
+        def hour():
+            return(time.localtime().tm_hour)
     
-    def shellexbg(self,cmd):
-        subprocess.Popen(cmd,shell=True)
+        def minute():
+            return(time.localtime().tm_min)
+            
+        def second():
+            return(time.localtime().tm_sec)
+
+        def dayofweek():
+            return (weekday.DayOfWeek())
+    
+    class sys(object):
+        def shellex(cmd):
+            return (subprocess.check_output(cmd,shell=True))
         
+        def shellexbg(cmd):
+            subprocess.Popen(cmd,shell=True)
+            
+    class Web(object):
+        def urlForPage(module,page):
+            return "/pages/page/"+url(i)+'/page/'+url(j)
+    
+    class sound(object):
+        def playSound(soundfile, soundhandle='PRIMARY'):
+            sound.playSound(soundfile,soundhandle)
+            
+        def stopSound(handle ):
+            sound.stopSound(handle)
+        
+        def stopAllSounds():
+            sound.stopAllSounds()
+        
+        
+    class message(object):
+        def postMessage(topic,message):
+            messagebus.postMessage(topic,message)
+            
+        def subscribe(topic,callback ):
+            messagebus.subscribe(topic,callback)
+        
+        
+    
+    
 
 class obj():
     pass
 
-class Web(object):
-    def urlForPage(module,page):
-        return "/pages/page/"+url(i)+'/page/'+url(j)
+
 
 
 kaithem = Kaithem()
-kaithem.playSound = sound.playSound
-kaithem.stopSound = sound.stopSound
-
-kaithem.message = obj()
-kaithem.message.postMessage = messagebus.postMessage
-kaithem.message.subscribe = messagebus.subscribe
-
-kaithem.web = Web()
-kaithem.do = workers.do
 kaithem.globals = obj() #this is just a place to stash stuff.
 
 

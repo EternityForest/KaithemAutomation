@@ -2,5 +2,6 @@
     "action": "print(\"tick\")",
     "once": true,
     "resource-type": "event",
-    "trigger": "(kaithem.second() % 5 ) == 0"
+    "setup": "pass\r\n",
+    "trigger": "(kaithem.time.second() % 5 ) == 0"
 }

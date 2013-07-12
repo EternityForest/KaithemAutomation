@@ -4,7 +4,7 @@
             "permissions": [
                 "/admin/settings.edit",
                 "/admin/users.edit",
-                "/admin/console.acess",
+                "/users/pagelisting.view",
                 "/admin/modules.edit",
                 "/admin/settings.view",
                 "/admin/mainpage.view",
@@ -14,10 +14,11 @@
         },
         "Guests": {
             "permissions": [
-                "/admin/mainpage.view",
+                "/users/pagelisting.view",
                 "/admin/settings.view",
-                "/admin/modules.view",
-                "/evilbook/book.open"
+                "/admin/mainpage.view",
+                "/evilbook/book.open",
+                "/admin/modules.view"
             ]
         }
     },

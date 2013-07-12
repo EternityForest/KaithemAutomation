@@ -130,7 +130,7 @@ class KaithemPage():
         global _page_list_lock
         with _page_list_lock:
             page = _Pages[module][page]
-            
+            page.lastaccessed = time.time()
             #Check user permissions
             for i in page.permissions:
                 pages.require(i)
@@ -140,7 +140,6 @@ class KaithemPage():
                 #Raise a redirect the the wrongmethod error page
                 raise cherrypy.HTTPRedirect('/errors/wrongmethod')
             try:
-        
                 return page.template.render(
                    kaithem = kaithem.kaithem,
                    request = cherrypy.request,

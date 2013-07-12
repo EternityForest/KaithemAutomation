@@ -1,6 +1,4 @@
-import subprocess,os, threading
-
-soundsLock = threading.Lock()
+import subprocess,os
 
 #This class provides some infrastructure to play sounds but if you use it directly it is a dummy.
 class SoundWrapper(object):
@@ -11,8 +9,18 @@ class SoundWrapper(object):
     #mini garbage collectors and bookkeeping code...
     def deleteStoppedSounds(self):
         for i in self.runningSounds.keys():
-            if not self.runningSounds[i].playing():
+            try:
+                if not self.runningSounds[i].playing():
+                    self.runningSounds.pop(i)
+            except KeyError:
+                pass
+    
+    def stopAllSounds(self):
+        for i in self.runningSounds.keys():
+            try:
                 self.runningSounds.pop(i)
+            except KeyError:
+                pass
     
     def playSound(self,filename,handle="PRIMARY"):
         pass
@@ -37,21 +45,24 @@ class Mpg123Wrapper(SoundWrapper):
           return self.process.poll()
         
     def playSound(self,filename,handle="PRIMARY"):
-        with soundsLock:
-            #Those old sound handles won't garbage collect themselves
-            self.deleteStoppedSounds()
-            #Raise an error if the file doesn't exist
-            if not os.path.isfile(filename):
-                raise ValueError("Specified audio file'"+filename+"' does not exist")
-            
-            #Play the sound with a background process and keep a reference to it
-            self.runningSounds[handle] = self.Mpg123SoundContainer(filename)
+        #Those old sound handles won't garbage collect themselves
+        self.deleteStoppedSounds()
+        #Raise an error if the file doesn't exist
+        if not os.path.isfile(filename):
+            raise ValueError("Specified audio file'"+filename+"' does not exist")
+        
+        #Play the sound with a background process and keep a reference to it
+        self.runningSounds[handle] = self.Mpg123SoundContainer(filename)
     
     def stopSound(self, handle ="PRIMARY"):
         #Delete the sound player reference object and its destructor will stop the sound
-        with soundsLock:
             if handle in self.runningsounds:
-                del self.runningSounds[handle]
+                #Instead of using a lock lets just catch the error is someone else got there first.
+                try:
+                    del self.runningSounds[handle]
+                except KeyError:
+                    pass
+    
             
 #See if we have mpg123 installed at all and if not use the dummy driver.
 if subprocess.check_output("which mpg123",shell = True):
@@ -62,7 +73,7 @@ else:
 #Make fake module functions mapping to the bound methods.
 playSound = backend.playSound
 stopSound = backend.stopSound
-    
+stopAllSounds = backend.stopAllSounds
 
 
     
