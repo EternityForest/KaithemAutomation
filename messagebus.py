@@ -1,6 +1,9 @@
 import weakref,threading,time,os,random,workers
 from collections import defaultdict
 
+
+_subscribers_list_modify_lock = threading.Lock()
+
 tester = {}
 def test():
     FAIL = False
@@ -92,8 +95,13 @@ class MessageBus(object):
                 self.subscribers[topic].remove(weakrefobject)
             except:
                 pass
-            if not self.subscribers[topic]:
-                self.subscribers.pop(topic)
+            #There is a very slight chance someone will
+            #Add something to topic before we delete it but after the test.
+            #That would result in a canceled subscription
+            #So we use this lock.
+            with _subscribers_list_modify_lock:
+                if not self.subscribers[topic]:
+                    self.subscribers.pop(topic)
         
         self.subscribers[topic].append(weakref.ref(callback,delsubscription))
     
@@ -119,7 +127,14 @@ class MessageBus(object):
                 #And iterate the copy
                 for ref in x:
                     #we call the ref to get its refferent
-                    f =ref()(topic,message)
+                    #An error could happen in the subscriber
+                    #Or a typeerror could because the weakref has been collected
+                    #We ignore both of these errors and move on
+                    try:
+                        f =ref()(topic,message)
+                    except:
+                        pass
+                    
     
     def postMessage(self, topic, message):
         #Use the executor to run the post message job
