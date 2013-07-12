@@ -17,6 +17,16 @@
 	<td></td>
 </tr>
 <tr>
+	<td>type</td>
+	<td>name=pwd</td>
+	<td>password</td>
+</tr>
+<tr>
+	<td>type</td>
+	<td>name=username</td>
+	<td>admin</td>
+</tr>
+<tr>
 	<td>clickAndWait</td>
 	<td>css=input[type=&quot;submit&quot;]</td>
 	<td></td>
@@ -36,7 +46,6 @@
 	<td>link=Logout</td>
 	<td></td>
 </tr>
-
 </tbody></table>
 </body>
 </html>

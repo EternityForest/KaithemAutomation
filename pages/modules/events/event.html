@@ -25,13 +25,14 @@ ${"pass"}
 
 
 <h3>Trigger</h3>
-<p class="help">Enter a python statement here. The event will occur when the expression goes from false to true.
+<p class="help">Enter the trigger here. The trigger may either be a python expression
+(event runs when trigger goes from false to true), or a <a href="/docs#trigger">special trigger expression</a>
 </p>
 <input class="pythoncode" type="text" name="trigger" value="${event['trigger']|h}"></input>
 
 <h3>Action</h3>
 <p class="help">
-This code will be executed when the expression in trigger goes from false to true
+This code will be executed when the trigger condition is met.
 </p>
 <textarea name="action" rows=25 class="pythoncode">${event["action"]|h}</textarea>
 %if newevt.getEventErrors(module,name):

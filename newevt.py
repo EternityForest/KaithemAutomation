@@ -210,9 +210,41 @@ class Event():
             #Handle whatever stupid whitespace someone puts in
             #What this does is to eliminate leading whitespace, split on first space,
             #Then get rid of any extra spaces in between the command and argument.
-            t = when.strip().split(' ', maxsplit=1)[1].strip()
+            t = when.strip().split(' ',1)[1].strip()
             #Subscribe our new function to the topic we want
             messagebus.subscribe(t,action_wrapper)
+        
+        #If the user tries to use the !onchanged trigger expression,
+        #what we do is to make a function that does the actual checking and always returns false
+        #This means it will be called every frame but the usual trigger method(which is edge triggered)
+        #Is bypassed. Instead, we directly call self._on_trigger and return false
+        elif when.strip().startswith('!onchange '):
+            #Handle whatever stupid whitespace someone puts in
+            #What this does is to eliminate leading whitespace, split on first space,
+            #Then get rid of any extra spaces in between the command and argument.
+            f = when.strip().split(' ',1)[1].strip()
+            self.f= compile(f,"<trigger>","eval")
+            self.at_least_one_reading = False
+            def change_func():           
+                self.latest = eval(self.f,self.scope,self.scope)
+            
+                if not self.at_least_one_reading:
+                    self.old = self.latest
+                    self.at_least_one_reading = True
+                
+                if self.old==self.latest:
+                    
+                    return False
+                else:
+                    self.old = self.latest
+                    self.scope['__value'] = self.latest
+                    self._on_trigger()
+                    return False
+            
+            self.scope['__SYSTEM_CHANGE_CHECK'] = change_func
+            #Make the custom trigger
+            self.trigger = compile('__SYSTEM_CHANGE_CHECK()',"<trigger>","eval")
+            
         else:
         #BACK TO HANDLING NORMAL EXPRESSIONS
             #Precompile non trigger expression code
