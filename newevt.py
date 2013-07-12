@@ -174,7 +174,6 @@ def getEventsFromModules():
                         #Now we update the references
                         __EventReferences[i][m] = x
 
-
 class Event():
     """Class represeting one checkable event. when and do must be python code strings,
     scope must be a dict representing the scope in which both the trigger and action will be executed.
@@ -192,28 +191,33 @@ class Event():
         self.ratelimit = ratelimit
         self.continual = continual
         
-        #This truly horrid code handles the case wherin the user makes a trigger expresion
+        #BEGIN SOMEWHAT HACKISH CODE TO HANDLE TRIGGER EXPRESSIONS
+        #This code handles the case wherin the user makes a trigger expresion
         #Basically, we set trigger to "False", making check() a no-op, and we create a function
         #and subscribe it to the message.
-        
-        #Since I'm not sure what other trigger expressions will be needed, I'm not exactly sure
-        #How to do this properly, so I'm just going to pretend I'm doing extreme programming.
         if when.strip().startswith('!onmsg '):
             def action_wrapper(topic,message):
+                #setup environment
                 self.scope['__topic'] = topic
                 self.scope['__message'] = message
-                exec(self.action,self.scope,self.scope)
+                #We delegate the actual execution ofthe body to the on_trigger
+                self._on_trigger()
                 
             #When the object is deleted so will this reference and the message bus's auto unsubscribe will handle it
             self.action_wrapper_because_we_need_to_keep_a_reference = action_wrapper
+            #Make the no-op trigger
             self.trigger = compile('False',"<trigger>","eval")
-            t = when.strip().split(' ')[1]
+            #Handle whatever stupid whitespace someone puts in
+            #What this does is to eliminate leading whitespace, split on first space,
+            #Then get rid of any extra spaces in between the command and argument.
+            t = when.strip().split(' ', maxsplit=1)[1].strip()
+            #Subscribe our new function to the topic we want
             messagebus.subscribe(t,action_wrapper)
         else:
+        #BACK TO HANDLING NORMAL EXPRESSIONS
             #Precompile non trigger expression code
             self.trigger = compile(when,"<trigger>","eval")
-        
-        #back to normalcy here
+        #Compile the action and run the initializer
         self.action = compile(do,"<action>","exec")
         initializer = compile(setup,"<setup>","exec")
         exec(initializer,self.scope,self.scope)
@@ -221,7 +225,7 @@ class Event():
         #This lock makes sure that only one copy of the event executes at once.
         self.lock = threading.Lock()
         
-        #This keeps track of the last time the event was triggered  so we ca rate limit
+        #This keeps track of the last time the event was triggered  so we can rate limit
         self.lastexecuted = 0
         
         #A place to put errors
@@ -230,26 +234,40 @@ class Event():
     def check(self):
         """Check if the trigger is true and if so do the action."""
         try:
+            #We need to make sure the thread pool doesn't run two copies of an event
             self.lock.acquire()
             #Eval the condition in the local event scope
             if eval(self.trigger,self.scope,self.scope):
-                
                 #Only execute once on false to true change unless continual was set
                 if (self.continual or self._prevstate == False):
-                
                     #Set the flag saying that the last time it was checked, the condition evaled to True
                     self._prevstate = True
-                    
-                    #Check the current time minus the last time against the rate limit
-                    #Don't execute more often than ratelimit
-                    if (time.time()-self.lastexecuted >self.ratelimit):
-                        #Set the varible so we know when the last time the body actually ran
-                        self.lastexecuted = time.time()
-                        exec(self.action,self.scope,self.scope)
-
+                    #The trigger went from false to true and therefore met the trigger condition
+                    #So call the function
+                    self._on_trigger()
             else:
+                #The eval was false, so the previous state was False
                 self._prevstate = False
         except Exception as e:
+            self._handle_exception(e)
+        finally:
+            self.lock.release()
+            
+    def _on_trigger(self):
+        #This function gets called when whatever the event's trigger condition is.
+        #it provides common stuff to all trigger types like logging and rate limiting
+        
+        #Check the current time minus the last time against the rate limit
+        #Don't execute more often than ratelimit
+        if (time.time()-self.lastexecuted >self.ratelimit):
+            #Set the varible so we know when the last time the body actually ran
+            self.lastexecuted = time.time()
+            try:
+                exec(self.action,self.scope,self.scope)
+            except Exception as e:
+                self._handle_exception(e)
+
+    def _handle_exception(self, e):
             #When an error happens, log it and save the time
             #Note that we are logging to the compiled event object
             self.errors.append([time.strftime('%A, %B %d, %Y at %H:%M:%S Server Local Time'),e])
@@ -261,6 +279,4 @@ class Event():
                 messagebus.postMessage('system/errors/events/'+util.url(self.module)+'/'+util.url(self.resource),str(e))
             except Exception as e:
                 print (e)
-            
-        finally:
-            self.lock.release()
+    
