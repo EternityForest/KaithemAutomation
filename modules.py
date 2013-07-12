@@ -103,9 +103,6 @@ def saveModules(where):
 def loadModules(modulesdir):
     for i in util.get_immediate_subdirectories(modulesdir):
         loadModule(i,modulesdir)
-    #keep the events and pages in sync
-    newevt.getEventsFromModules()
-    usrpages.getPagesFromModules()
     
 class obj(object):
     pass
@@ -126,8 +123,7 @@ def loadModule(moduledir,path_to_module_folder):
         
         name = unurl(moduledir)
         ActiveModules[name] = module
-        #Create the scopes object thing
-        scopes[name] = obj()
+        bookkeeponemodule(name)
 
 def getModuleAsZip(module):
     with modulesLock:
@@ -166,11 +162,14 @@ def load_modules_from_zip(f):
                 raise cherrypy.HTTPRedirect("/errors/alreadyexists")
         for i in new_modules:
             ActiveModules[i] = new_modules[i]
-            scopes[i] = obj()
+
             bookkeeponemodule(i)
     z.close()
 
 def bookkeeponemodule(module):
+    """Given the name of one module that has been copied to activemodules but nothing else,
+    let the rest of the system know the module is there."""
+    scopes[module] = obj()
     for i in ActiveModules[module]:
         if ActiveModules[module][i]['resource-type'] == 'page':
             usrpages.updateOnePage(i,module)
@@ -306,6 +305,15 @@ class WebInterface():
                 with modulesLock:
                     ActiveModules[module]['__description']['text'] = kwargs['description']
                     ActiveModules[kwargs['name']] = ActiveModules.pop(module)
+                    
+                    #UHHG. So very much code tht just syncs data structures.
+                    #This gets rid of the cache under the old name
+                    newevt.removeModuleEvents(module)
+                    usrpages.removeModulePages(module)
+                    #And calls this function the generate the new cache
+                    bookkeeponemodule(kwargs['name'])
+                    #Just for fun, we should probably also sync the permissions
+                    auth.importPermissionsFromModules()
                 raise cherrypy.HTTPRedirect('/modules/module/'+util.url(kwargs['name']))
 
 #Return a CRUD screen to create a new resource taking into the type of resource the user wants to create               
