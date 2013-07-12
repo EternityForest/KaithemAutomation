@@ -4,13 +4,15 @@ from util import url
 
 <%include file="/pageheader.html"/>
 <h2>Module ${name|h}</h2>
+
 This Page allows you to view and edit information and resources associated with this module.<br><br>
 <title>Module: ${name|h}</title>
-<a href="/modules/downloads/${url(name)}">Download this module as a zip file</a>
-<form action="/modules/module/${url(name)}/update" method="POST" name="user">
 
+<form action="/modules/module/${url(name)}/update" method="POST" name="user">
+<a href="/modules/downloads/${url(name)}">Download this module as a zip file</a>
 <h3>Basic Information</h3>
 <div class="sectionbox">
+
 <p class="help">Changing the name of a module will invalidate all external references to the module by its old name. Also, if the name is in use it will be overwritten. Be Careful.</p><hr>
 <h4>Name:</h4> 
 <input required="required" class="modulename" name="name" type="text" value="${name|h}">  
@@ -49,7 +51,7 @@ An event is a statement that something should happen when a condition is met.</p
 <a class="button createbutton" href="/modules/module/${url(name)}/addresource/page">Add Page</a>
 <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource">Delete Page</a>
 </p>
-<p class="help">This module defines the following page.
+<p class="help">This module defines the following pages.
 A page is a dynamic HTML page which can be used to display and edit information and settings.
 Pages are rendered using the Mako templating engine.
 </p>

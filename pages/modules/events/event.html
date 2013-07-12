@@ -1,7 +1,7 @@
 <%!
 from util import url
 import newevt
-import traceback
+import traceback,time
 %>
 
 <%include file="/pageheader.html"/>
@@ -28,6 +28,7 @@ ${"pass"}
 <p class="help">Enter a python statement here. The event will occur when the expression goes from false to true.
 </p>
 <input class="pythoncode" type="text" name="trigger" value="${event['trigger']|h}"></input>
+
 <h3>Action</h3>
 <p class="help">
 This code will be executed when the expression in trigger goes from false to true
@@ -45,6 +46,10 @@ This section shows up to the most recent 25 errors that occured while executing 
 %endfor
 </div>
 %endif
+<hr>
+<h3>Info</h3>
+
+<p>This event last ran: <b>${time.strftime('%A, %B %d, %Y at %H:%M:%S',time.localtime(newevt.getEventLastRan(module,name)))|h}</b></p>
 <hr>
 <p class="help">
 Saving this module will case it to completely reload, including its local scope. Other resorces will not be affected.

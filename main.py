@@ -62,7 +62,10 @@ class webapproot():
                 return pages.get_template('index.html').render(
                 user = cherrypy.request.cookie['user'].value,
                                 )
-        return self.login.index()
+            else:
+                return self.pagelisting()
+        else:
+            return self.login.index()
 
     @cherrypy.expose 
     def save(self,*path,**data):

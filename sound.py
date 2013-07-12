@@ -50,7 +50,8 @@ class Mpg123Wrapper(SoundWrapper):
     def stopSound(self, handle ="PRIMARY"):
         #Delete the sound player reference object and its destructor will stop the sound
         with soundsLock:
-            del self.runningSounds[handle]
+            if handle in self.runningsounds:
+                del self.runningSounds[handle]
             
 #See if we have mpg123 installed at all and if not use the dummy driver.
 if subprocess.check_output("which mpg123",shell = True):

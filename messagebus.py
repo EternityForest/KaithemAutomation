@@ -97,9 +97,7 @@ class MessageBus(object):
         
         self.subscribers[topic].append(weakref.ref(callback,delsubscription))
     
-
-    def postMessage(self, topic, message):
-        
+    def _post(self, topic,message):
         if topic.startswith('/'):
             topic = topic[1:]
         #A topic foo/bar/baz would go to
@@ -121,7 +119,17 @@ class MessageBus(object):
                 #And iterate the copy
                 for ref in x:
                     #we call the ref to get its refferent
-                    ref()(topic,message)
+                    f =ref()(topic,message)
+    
+    def postMessage(self, topic, message):
+        #Use the executor to run the post message job
+        #To allow for the possibility of it running in the background as a thread
+        def f():
+            self._post(topic,message)
+        self.executor(f)
+        
+        
+        
 
 __bus = MessageBus(workers.do)      
 subscribe = __bus.subscribe

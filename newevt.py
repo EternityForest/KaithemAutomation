@@ -36,7 +36,10 @@ __EventReferences = {}
 def getEventErrors(module,event):
     with __event_list_lock:
             return __EventReferences[module][event].errors
-            
+
+def getEventLastRan(module,event):
+    with __event_list_lock:
+            return __EventReferences[module][event].lastexecuted
 
 #In a background thread, we use the worker pool to check all threads
 
