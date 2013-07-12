@@ -27,13 +27,22 @@
     	
 	<h2><a id="events" name="events">Events</a></h2>
 	<p>One of the main automation constructs is the <em>event</em>. Events are mappings between a <em>trigger</em> and an 
-	<em>action</em>. A trigger is simply a python expression that is evaluated repeatedly. 
-	When the return value goes from False to True(edge triggered), the <em>Action</em>, which is simply a python script, executes.
+	<em>action</em>.A trigger can be a python expression that when the return value goes from False to True(edge triggered), the <em>Action</em>, which is simply a python script, executes.
 	</p>
 	
+    <p>A trigger can also be a <a id="trigger" name="trigger"></a><b>Special Trigger Expression</b></a>.
+    
+    Trigger expressions begin with an exclamation point and provide functionality that would be cumbersome with a python statement.</p>
+    
+    
     <p>Events have their own special scope similar to a local scope that is pre-populated when the event loads with several useful
        things, among these the kaithem object(see below)</p>
-	<h2>
+    <h3>Availible Trigger Expressions</h3>
+    <h4>!onmsg [topic]</h4>
+    <p>This trigger expression causes the event to occur when a message is posted to the internal message bus matching [topic]. The actual topic
+    and message are then availible as __topic and __message respectively.
+    </p>
+        
 	<h2><a id="pages" name="pages"></a>Pages:</h2>
 	<p>Kaithem allows users with the appropriate permissions to create user-defined pages. User defined pages are written in HTML and may contain embedded mako template code. Every page is a resource of a module.
 	Mako is a simple templating language allowing you to embed server-side python in HTML code. Python code in user defined pages has access to the kaithem object(see below) and

@@ -174,7 +174,7 @@ def getEventsFromModules():
                         #Now we update the references
                         __EventReferences[i][m] = x
 
-        
+
 class Event():
     """Class represeting one checkable event. when and do must be python code strings,
     scope must be a dict representing the scope in which both the trigger and action will be executed.
@@ -192,11 +192,31 @@ class Event():
         self.ratelimit = ratelimit
         self.continual = continual
         
-        #Precompile
-        self.trigger = compile(when,"<trigger>","eval")
+        #This truly horrid code handles the case wherin the user makes a trigger expresion
+        #Basically, we set trigger to "False", making check() a no-op, and we create a function
+        #and subscribe it to the message.
+        
+        #Since I'm not sure what other trigger expressions will be needed, I'm not exactly sure
+        #How to do this properly, so I'm just going to pretend I'm doing extreme programming.
+        if when.strip().startswith('!onmsg '):
+            def action_wrapper(topic,message):
+                self.scope['__topic'] = topic
+                self.scope['__message'] = message
+                exec(self.action,self.scope,self.scope)
+                
+            #When the object is deleted so will this reference and the message bus's auto unsubscribe will handle it
+            self.action_wrapper_because_we_need_to_keep_a_reference = action_wrapper
+            self.trigger = compile('False',"<trigger>","eval")
+            t = when.strip().split(' ')[1]
+            messagebus.subscribe(t,action_wrapper)
+        else:
+            #Precompile non trigger expression code
+            self.trigger = compile(when,"<trigger>","eval")
+        
+        #back to normalcy here
         self.action = compile(do,"<action>","exec")
         initializer = compile(setup,"<setup>","exec")
-        exec(initializer,self.scope)
+        exec(initializer,self.scope,self.scope)
 
         #This lock makes sure that only one copy of the event executes at once.
         self.lock = threading.Lock()
@@ -206,7 +226,6 @@ class Event():
         
         #A place to put errors
         self.errors = []
-        
         
     def check(self):
         """Check if the trigger is true and if so do the action."""
