@@ -35,11 +35,11 @@ __EventReferences = {}
 
 def getEventErrors(module,event):
     with __event_list_lock:
-            return __EventReferences[module][event].errors
+            return __EventReferences[module,event].errors
 
 def getEventLastRan(module,event):
     with __event_list_lock:
-            return __EventReferences[module][event].lastexecuted
+            return __EventReferences[module,event].lastexecuted
 
 #In a background thread, we use the worker pool to check all threads
 
@@ -80,27 +80,19 @@ t.start()
 #Delete a event from the cache by module and resource
 def removeOneEvent(module,resource):
     with __event_list_lock:
-        if module in __EventReferences:
-            if resource in __EventReferences[module]:
-                if __EventReferences[module][resource] in __events:
-                    #Remove old reference if there was one
-                    __events.remove(__EventReferences[module][resource])
-                    del __EventReferences[module][resource]
+        if (module,resource) in __EventReferences:
+            __events.remove(__EventReferences[module,resource])
+            del __EventReferences[module,resource]
                     
 #Delete all __events in a module from the cache
 def removeModuleEvents(module):
     with __event_list_lock:
-        #Handle the case in which the module has no events
-        if module in __EventReferences:
-            #Iterate over the event refereces for each module, look them up in the list, and get rid of them
-            for i in __EventReferences[module]:
-                if __EventReferences[module][i] in __events:
-                    #Remove old reference if there was one
-                    __events.remove(__EventReferences[module][i])
-                    
-            del __EventReferences[module]        
-                
-                
+        for i in __EventReferences.copy():
+            if i[0] == module:
+                #delete both the event and the reference to it
+                __events.remove(__EventReferences[i])
+                del __EventReferences[i]
+        
 #Every event has it's own local scope that it uses, this creates the dict to represent it
 def make__eventscope(module):
     with modules.modulesLock:
@@ -127,26 +119,20 @@ def updateOneEvent(resource,module):
         
         #Here is the other lock(!)
         with __event_list_lock: #Make sure nobody is iterating the eventlist
-        
-            #If there is already a dict at __eventreferences[module]
-            if module in __EventReferences:
-                #And if that dict contains the event we want to update
-                if resource in __EventReferences[module]:
-                    #And if there actually is an event in the events list that matches
-                    if __EventReferences[module][resource] in __events:
-                        #Than Remove old reference if there was one
-                        __events.remove(__EventReferences[module][resource])
+            if (module,resource) in __EventReferences:
+                #And if there actually is an event in the events list that matches
+                if __EventReferences[module,resource] in __events:
+                    #Than Remove old event if there was one
+                    __events.remove(__EventReferences[module,resource]) 
                         
-            else:
-                #If this is the first event in the module we need to make the module representation
-                __EventReferences[module] = {}
                      
             #Add new event
-            x.module = module;x.resource =resource
+            x.module = module
+            x.resource =resource
             __events.append(x)
             
             #Update index
-            __EventReferences[module][resource] = x
+            __EventReferences[module,resource] = x
 
 #look in the modules and compile all the event code
 def getEventsFromModules():
@@ -156,8 +142,6 @@ def getEventsFromModules():
             #Set __events to an empty list we can build on
             __events = []
             for i in modules.ActiveModules.copy():
-                #For each loaded and active module, we make a subdict in __EventReferences
-                __EventReferences[i] = {} # make an empty place or __events in this module
                 #now we loop over all the resources o the module to see which ones are __events 
                 for m in modules.ActiveModules[i].copy():
                     j=modules.ActiveModules[i][m]
@@ -172,7 +156,7 @@ def getEventsFromModules():
                         x.module = i;x.resource =m
                         __events.append(x)
                         #Now we update the references
-                        __EventReferences[i][m] = x
+                        __EventReferences[i,m] = x
 
 class Event():
     """Class represeting one checkable event. when and do must be python code strings,
