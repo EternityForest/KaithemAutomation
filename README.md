@@ -10,7 +10,14 @@ A SECURITY SYSTEM FOR A BAG OF FUNYUNS(tm) AT THIS POINT!
 
 Installation
 ============
-clone somewhere and run python main.py
+git clone or download somewhere and run python main.py <yourportnumber>
+Then point your browser to https://localhost:<yourport>
+It will give you a security warning, that the SSL certificate name is wrong,
+ignore if you are just playing around, use real SSL keys otherwise.
+
+Look at the help section and the examples module, there is a lot more documentation built into the system.
+
+
 If you are really going to use this you must change the ssl keys in /ssl to something actually secret.
 Don't use any important passwords because they are stil stored in plaintext(working on it!)
 
