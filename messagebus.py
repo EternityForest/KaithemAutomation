@@ -1,4 +1,4 @@
-import weakref,threading,time,os,random,workers
+import weakref,threading,time,os,random,workers,json
 from collections import defaultdict
 
 
@@ -21,7 +21,7 @@ def test():
             tester[x] = y
         
         subscribe(i,recive)
-        x =os.urandom(100)
+        x =str(os.urandom(100))
         postMessage(i,x)
         time.sleep((random.random()/100)+0.05)
         if not tester[i] == x:
@@ -36,7 +36,7 @@ def test():
             tester[x] = y
         
         subscribe('potty/',recive)
-        x =os.urandom(100)
+        x =str(os.urandom(100))
         postMessage(i,x)
         time.sleep((random.random()/100)+0.05)
         if not tester[i] == x:
@@ -139,6 +139,21 @@ class MessageBus(object):
     def postMessage(self, topic, message):
         #Use the executor to run the post message job
         #To allow for the possibility of it running in the background as a thread
+        
+        #A little more checking than usual here because the message bus is so central.
+        #Also, if anyone implements logging they will appreciate no crap on the bus.
+        
+        try:
+            topic = str(topic)
+        except Exception:
+            raise TypeError("Topic must be a string or castable to a string.")
+        
+        #Ugly way to find if json serializable. Just try it
+        try:
+            json.dumps(message)
+        except Exception:
+            raise ValueError("Message must be serializable as JSON")
+        
         def f():
             self._post(topic,message)
         self.executor(f)
