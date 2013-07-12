@@ -142,7 +142,41 @@ def getModuleAsZip(module):
         z.close()
         s = ram_file.getvalue()
         ram_file.close()
-        return s    
+        return s
+    
+def load_modules_from_zip(f):
+    "Given a zip file, import all modules found therin."
+    new_modules = {}
+    z = zipfile.ZipFile(f)
+
+    for i in z.namelist():
+        #get just the folder, ie the module
+        p = unurl(i.split('/')[0])
+        #Remove the.json by getting rid of last 5 chars
+        n = unurl((i.split('/'))[1][:-5])
+        if p not in new_modules:
+            new_modules[p] = {}
+        f = z.open(i)
+        new_modules[p][n] = json.loads(f.read().decode())
+        f.close()
+    
+    with modulesLock:
+        for i in new_modules:
+            if i in ActiveModules:
+                raise cherrypy.HTTPRedirect("/errors/alreadyexists")
+        for i in new_modules:
+            ActiveModules[i] = new_modules[i]
+            scopes[i] = obj()
+            bookkeeponemodule(i)
+    z.close()
+
+def bookkeeponemodule(module):
+    for i in ActiveModules[module]:
+        if ActiveModules[module][i]['resource-type'] == 'page':
+            usrpages.updateOnePage(i,module)
+        if ActiveModules[module][i]['resource-type'] == 'event':
+           newevt.updateOneEvent(i,module)
+    
 
 
 #The clas defining the interface to allow the user to perform generic create/delete/upload functionality.
@@ -165,26 +199,7 @@ class WebInterface():
     @cherrypy.expose
     def uploadtarget(self,modules):
         pages.require('/admin/modules.edit')
-        new_modules = {}
-        z = zipfile.ZipFile(modules.file)
-        
-        for i in z.namelist():
-            p = unurl(i.split('/')[0])
-            #Remove the.json by getting rid of last 5 chars
-            n = unurl((i.split('/'))[1][:-5])
-            if p not in new_modules:
-                new_modules[p] = {}
-            f = z.open(i)
-            new_modules[p][n] = json.loads(f.read().decode())
-            f.close()
-        
-        with modulesLock:
-            for i in new_modules:
-                if i in ActiveModules:
-                    raise cherrypy.HTTPRedirect("/errors/alreadyexists")
-            for i in new_modules:
-                ActiveModules[i] = new_modules[i]
-        z.close()
+        load_modules_from_zip(modules.file)
         raise cherrypy.HTTPRedirect("/modules/") 
             
         
