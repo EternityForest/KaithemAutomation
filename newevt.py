@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-#NOTICE: A LOT OF LOCKS ARE USED IN THIS FILE. WHEN TWO LOCKS ARE USED, ALWAYS GET __event_list_lock LAST
+#NOTICE: A LOT OF LOCKS ARE USED IN THIS FILE. WHEN TWO LOCKS ARE USED, ALWAYS GET _event_list_lock LAST
 #IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
 
@@ -23,28 +23,28 @@ import workers
 import modules,threading,time
 import kaithem,messagebus,util
 
-#Use this lock whenever you acess __events or __EventReferences in any way.
+#Use this lock whenever you acess _events or __EventReferences in any way.
 #Most of the time it should be held by the event manager that continually iterates it.
-#To update the __events, event execution must temporarily pause
-__event_list_lock = threading.Lock() 
+#To update the _events, event execution must temporarily pause
+_event_list_lock = threading.Lock() 
 
-__events = []
+_events = []
 
 #Let us now have a way to get at active event objects by means of their origin resource and module.
 __EventReferences = {}
 
 def getEventErrors(module,event):
-    with __event_list_lock:
+    with _event_list_lock:
             return __EventReferences[module,event].errors
 
 def getEventLastRan(module,event):
-    with __event_list_lock:
+    with _event_list_lock:
             return __EventReferences[module,event].lastexecuted
 
 #In a background thread, we use the worker pool to check all threads
 
 run = True
-#Acquire a lock on the list of __events(Because we can't really iterate safely without it)
+#Acquire a lock on the list of _events(Because we can't really iterate safely without it)
 #And put the check() fuction of each event object into the thread pool
 def __manager():
     temp = 0;
@@ -56,14 +56,14 @@ def __manager():
         temp = time.time()
         #If by the time we get here the queue is still half full we have a problem so slow down and let other stuff work.
         if workers.waitingtasks() < 60:
-            __event_list_lock.acquire()
+            _event_list_lock.acquire()
             try:
-                for i in __events:
+                for i in _events:
                     workers.do(i.check)
             except:
                 print("e")
             finally:
-                __event_list_lock.release()
+                _event_list_lock.release()
             #This should be user configurable
         #Limit the polling cycles per second to avoid CPU hogging
         time.sleep(0.01)
@@ -79,22 +79,22 @@ t.start()
 
 #Delete a event from the cache by module and resource
 def removeOneEvent(module,resource):
-    with __event_list_lock:
+    with _event_list_lock:
         if (module,resource) in __EventReferences:
-            __events.remove(__EventReferences[module,resource])
+            __EventReferences[module,resource].unregister()
             del __EventReferences[module,resource]
                     
-#Delete all __events in a module from the cache
+#Delete all _events in a module from the cache
 def removeModuleEvents(module):
-    with __event_list_lock:
+    with _event_list_lock:
         for i in __EventReferences.copy():
             if i[0] == module:
                 #delete both the event and the reference to it
-                __events.remove(__EventReferences[i])
+                __EventReferences[i].unregister()
                 del __EventReferences[i]
         
 #Every event has it's own local scope that it uses, this creates the dict to represent it
-def make__eventscope(module):
+def make_eventscope(module):
     with modules.modulesLock:
        return {'module':modules.scopes[module],'kaithem':kaithem.kaithem}
 
@@ -103,60 +103,51 @@ def make__eventscope(module):
 def updateOneEvent(resource,module):
     #This is one of those places that uses two different locks(!)
     with modules.modulesLock:
-        #Get the event resource in question
-        j = modules.ActiveModules[module][resource]
-
-        if 'setup' in j:
-            setupcode = j['setup']
-        else:
-           setupcode = "pass"
-
-        #Make an event object
-        x = Event(j['trigger'],j['action'],make__eventscope(module),setup = setupcode)
-        #Somehow seems brittle to me.
-        #What it does is to use the __EventReferences index to get at the old event object, 
-        #remove it, add the new event, and update the index
         
+        x = make_event_from_resource(module,resource)
         #Here is the other lock(!)
-        with __event_list_lock: #Make sure nobody is iterating the eventlist
+        with _event_list_lock: #Make sure nobody is iterating the eventlist
             if (module,resource) in __EventReferences:
-                #And if there actually is an event in the events list that matches
-                if __EventReferences[module,resource] in __events:
-                    #Than Remove old event if there was one
-                    __events.remove(__EventReferences[module,resource]) 
-                        
-                     
+                __EventReferences[module,resource].unregister()
+                
             #Add new event
-            x.module = module
-            x.resource =resource
-            __events.append(x)
-            
+            x.register()
             #Update index
             __EventReferences[module,resource] = x
 
 #look in the modules and compile all the event code
 def getEventsFromModules():
-    global __events
+    global _events
     with modules.modulesLock:
-        with __event_list_lock:
-            #Set __events to an empty list we can build on
-            __events = []
-            for i in modules.ActiveModules.copy():
-                #now we loop over all the resources o the module to see which ones are __events 
-                for m in modules.ActiveModules[i].copy():
+        with _event_list_lock:
+            #Set _events to an empty list we can build on
+            _events = []
+            for i in modules.ActiveModules:
+                #now we loop over all the resources of the module to see which ones are _events 
+                for m in modules.ActiveModules[i]:
                     j=modules.ActiveModules[i][m]
                     if j['resource-type']=='event':
-                        if 'setup' in j:
-                            setupcode = j['setup']
-                        else:
-                            setupcode = "pass"
-
                         #For every resource that is an event, we make an event object based o
-                        x = Event(j['trigger'],j['action'],make__eventscope(i),setup = setupcode)
-                        x.module = i;x.resource =m
-                        __events.append(x)
+                        x = make_event_from_resource(i,m)
+                        x.register()
+                        _events.append(x)
                         #Now we update the references
                         __EventReferences[i,m] = x
+
+def make_event_from_resource(module,resource):
+    "Returns an event object when given a module and resource name pointing to an event resource."
+    r = modules.ActiveModules[module][resource]
+    if 'setup' in r:
+        setupcode = r['setup']
+    else:
+        setupcode = "pass"
+        
+    x = Event(r['trigger'],r['action'],make_eventscope(module),setup = setupcode)
+    x.module = module
+    x.resource =resource
+    return x
+
+
 
 class Event():
     """Class represeting one checkable event. when and do must be python code strings,
@@ -197,6 +188,7 @@ class Event():
             t = when.strip().split(' ',1)[1].strip()
             #Subscribe our new function to the topic we want
             messagebus.subscribe(t,action_wrapper)
+            self.polled = False
         
         #If the user tries to use the !onchanged trigger expression,
         #what we do is to make a function that does the actual checking and always returns false
@@ -224,6 +216,7 @@ class Event():
                     self.scope['__value'] = self.latest
                     self._on_trigger()
                     return False
+            self.polled = True
             
             self.scope['__SYSTEM_CHANGE_CHECK'] = change_func
             #Make the custom trigger
@@ -232,6 +225,7 @@ class Event():
         else:
         #BACK TO HANDLING NORMAL EXPRESSIONS
             #Precompile non trigger expression code
+            self.polled = True
             self.trigger = compile(when,"<trigger>","eval")
         #Compile the action and run the initializer
         self.action = compile(do,"<action>","exec")
@@ -295,4 +289,15 @@ class Event():
                 messagebus.postMessage('system/errors/events/'+util.url(self.module)+'/'+util.url(self.resource),str(e))
             except Exception as e:
                 print (e)
+    
+    def register(self):
+        if self.polled:
+            if self not in _events:
+                _events.append(self)    
+            
+    def unregister(self, ):
+        if self in _events:
+            _events.remove(self)
+    
+    
     

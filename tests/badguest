@@ -113,7 +113,7 @@
 </tr>
 <tr>
 	<td>clickAndWait</td>
-	<td>link=Air Loom Core Functions</td>
+	<td>link=Examples</td>
 	<td></td>
 </tr>
 <tr>
@@ -133,7 +133,7 @@
 </tr>
 <tr>
 	<td>clickAndWait</td>
-	<td>link=Air Loom Core Functions</td>
+	<td>link=Examples</td>
 	<td></td>
 </tr>
 <tr>
@@ -153,12 +153,12 @@
 </tr>
 <tr>
 	<td>clickAndWait</td>
-	<td>link=Air Loom Core Functions</td>
+	<td>link=Examples</td>
 	<td></td>
 </tr>
 <tr>
 	<td>clickAndWait</td>
-	<td>link=init count</td>
+	<td>link=init</td>
 	<td></td>
 </tr>
 <tr>
@@ -178,7 +178,7 @@
 </tr>
 <tr>
 	<td>clickAndWait</td>
-	<td>link=Air Loom Core Functions</td>
+	<td>link=Examples</td>
 	<td></td>
 </tr>
 <tr>
@@ -228,7 +228,7 @@
 </tr>
 <tr>
 	<td>clickAndWait</td>
-	<td>link=Necromantic Book</td>
+	<td>link=Examples</td>
 	<td></td>
 </tr>
 <tr>
@@ -248,7 +248,7 @@
 </tr>
 <tr>
 	<td>clickAndWait</td>
-	<td>link=Necromantic Book</td>
+	<td>link=Examples</td>
 	<td></td>
 </tr>
 <tr>
@@ -268,7 +268,7 @@
 </tr>
 <tr>
 	<td>clickAndWait</td>
-	<td>link=Air Loom Core Functions</td>
+	<td>link=Examples</td>
 	<td></td>
 </tr>
 <tr>
@@ -288,22 +288,7 @@
 </tr>
 <tr>
 	<td>clickAndWait</td>
-	<td>link=Necromantic Book</td>
-	<td></td>
-</tr>
-<tr>
-	<td>clickAndWait</td>
-	<td>link=/evilbook/book.open</td>
-	<td></td>
-</tr>
-<tr>
-	<td>clickAndWait</td>
-	<td>css=input[type=&quot;submit&quot;]</td>
-	<td></td>
-</tr>
-<tr>
-	<td>verifyTextPresent</td>
-	<td>Permission Error</td>
+	<td>link=Examples</td>
 	<td></td>
 </tr>
 <tr>

@@ -187,11 +187,6 @@
 	<td></td>
 </tr>
 <tr>
-	<td>verifyTextPresent</td>
-	<td>Error</td>
-	<td></td>
-</tr>
-<tr>
 	<td>open</td>
 	<td>/</td>
 	<td></td>

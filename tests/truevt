@@ -13,7 +13,7 @@
 </thead><tbody>
 <tr>
 	<td>open</td>
-	<td>/pages/page/Air%20Loom%20Core%20Functions/page/Increment%20Count</td>
+	<td>/</td>
 	<td></td>
 </tr>
 <tr>
@@ -23,7 +23,7 @@
 </tr>
 <tr>
 	<td>clickAndWait</td>
-	<td>link=Air Loom Core Functions</td>
+	<td>link=Examples</td>
 	<td></td>
 </tr>
 <tr>
@@ -73,7 +73,7 @@
 </tr>
 <tr>
 	<td>clickAndWait</td>
-	<td>link=Air Loom Core Functions</td>
+	<td>link=Examples</td>
 	<td></td>
 </tr>
 <tr>
