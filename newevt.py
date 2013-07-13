@@ -56,14 +56,10 @@ def __manager():
         temp = time.time()
         #If by the time we get here the queue is still half full we have a problem so slow down and let other stuff work.
         if workers.waitingtasks() < 60:
-            _event_list_lock.acquire()
-            try:
+            with _event_list_lock:
                 for i in _events:
                     workers.do(i.check)
-            except:
-                print("e")
-            finally:
-                _event_list_lock.release()
+                    
             #This should be user configurable
         #Limit the polling cycles per second to avoid CPU hogging
         time.sleep(0.01)
@@ -75,6 +71,205 @@ def __manager():
 t = threading.Thread(target = __manager)
 t.daemon = True
 t.start()
+
+
+
+
+def make_event_from_resource(module,resource):
+    "Returns an event object when given a module and resource name pointing to an event resource."
+    r = modules.ActiveModules[module][resource]
+    if 'setup' in r:
+        setupcode = r['setup']
+    else:
+        setupcode = "pass"
+        
+    x = Event(r['trigger'],r['action'],make_eventscope(module),setup = setupcode)
+    x.module = module
+    x.resource =resource
+    return x
+
+
+#Factory function that examines the type of trigger and chooses a class to handle it.
+def Event(when,do,scope,continual=False,ratelimit=0,setup = "pass"):
+    if when.strip().startswith('!onmsg '):
+        return MessageEvent(when,do,scope,continual,ratelimit,setup)
+    if when.strip().startswith('!onchange '):
+        return ChangeEvent(when,do,scope,continual,ratelimit,setup)
+    else:
+        return PolledEvent(when,do,scope,continual,ratelimit,setup)
+
+
+#A brief rundown on how these classes work. You have the BaseEvent, which handles registering and unregistering
+#From polling lists, exeptions, actions, and locking.
+
+#Derived classes must do three things:
+#Set self.polled to True if this event needs polling, or False if it is not(interrups, callbacks,etc)
+#Define a _check() function that does polling and calls _on_trigger() if the event condition is true
+#call the init of the base class properly.
+
+#The BaseEvent wraps the _check function in such a way that only one event will be polled at a time
+#And errors in _check will be logged.
+
+class BaseEvent():
+    """Class represeting one checkable event. when and do must be python code strings,
+    scope must be a dict representing the scope in which both the trigger and action will be executed.
+    When the trigger goes from fase to true, the action will occur.
+    
+    optional params:
+    ratelimit: Do not do the action more often than every X seconds
+    continual: Execute as often as possible while condition remains true
+    
+    """
+    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass"):
+        #Copy in the data from args
+        self.scope = scope
+        self._prevstate = False
+        self.ratelimit = ratelimit
+        self.continual = continual
+
+        #Compile the action and run the initializer
+        self.action = compile(do,"<action>","exec")
+        initializer = compile(setup,"<setup>","exec")
+        exec(initializer,self.scope,self.scope)
+
+        #This lock makes sure that only one copy of the event executes at once.
+        self.lock = threading.Lock()
+        
+        #This keeps track of the last time the event was triggered  so we can rate limit
+        self.lastexecuted = 0
+        
+        #A place to put errors
+        self.errors = []
+        
+            
+    def _on_trigger(self):
+        #This function gets called when whatever the event's trigger condition is.
+        #it provides common stuff to all trigger types like logging and rate limiting
+        
+        #Check the current time minus the last time against the rate limit
+        #Don't execute more often than ratelimit
+        if (time.time()-self.lastexecuted >self.ratelimit):
+            #Set the varible so we know when the last time the body actually ran
+            self.lastexecuted = time.time()
+            try:
+                exec(self.action,self.scope,self.scope)
+            except Exception as e:
+                self._handle_exception(e)
+
+    def _handle_exception(self, e):
+            #When an error happens, log it and save the time
+            #Note that we are logging to the compiled event object
+            self.errors.append([time.strftime('%A, %B %d, %Y at %H:%M:%S Server Local Time'),e])
+            #Keep oly the most recent 25 errors
+            self.errors = self.errors[-25:]
+            
+            #The mesagebus is largely untested and we don't want to kill the thread.
+            try:
+                messagebus.postMessage('system/errors/events/'+util.url(self.module)+'/'+util.url(self.resource),str(e))
+            except Exception as e:
+                print (e)
+    
+    def register(self):
+        if self.polled:
+            if self not in _events:
+                _events.append(self)    
+            
+    def unregister(self, ):
+        if self in _events:
+            _events.remove(self)
+    
+    def check(self):
+        try:
+            self._check()
+        except Exception as e:
+            self._handle_exception(e)
+    
+class MessageEvent(BaseEvent):
+    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass"):
+        
+        #This event type is not polled. Note that it doesn't even have a check() method.
+        self.polled = False
+        def action_wrapper(topic,message):
+            #setup environment
+            self.scope['__topic'] = topic
+            self.scope['__message'] = message
+            #We delegate the actual execution ofthe body to the on_trigger
+            self._on_trigger()
+            
+        #When the object is deleted so will this reference and the message bus's auto unsubscribe will handle it
+        self.action_wrapper_because_we_need_to_keep_a_reference = action_wrapper
+        
+        #Handle whatever stupid whitespace someone puts in
+        #What this does is to eliminate leading whitespace, split on first space,
+        #Then get rid of any extra spaces in between the command and argument.
+        t = when.strip().split(' ',1)[1].strip()
+        #Subscribe our new function to the topic we want
+        messagebus.subscribe(t,action_wrapper)
+        #Set the flag to say that register() should not register this for polling
+      
+        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup)
+
+class ChangeEvent(BaseEvent):      
+    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass"):
+                #If the user tries to use the !onchanged trigger expression,
+        #what we do is to make a function that does the actual checking and always returns false
+        #This means it will be called every frame but the usual trigger method(which is edge triggered)
+        #Is bypassed. Instead, we directly call self._on_trigger and return false
+        
+        #Handle whatever stupid whitespace someone puts in
+        #What this does is to eliminate leading whitespace, split on first space,
+        #Then get rid of any extra spaces in between the command and argument.
+        f = when.strip().split(' ',1)[1].strip()
+        
+        #Compile the expression that will be checked for changes
+        self.f= compile(f,"<inputvalue>","eval")
+        
+        #This flag indicates that we have never had a reading
+        self.at_least_one_reading = False
+        self.polled = True
+        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup)
+        
+    def _check(self):
+        #Evaluate the function that gives us the values we are looking for changes in
+        self.latest = eval(self.f,self.scope,self.scope)
+        #If this is the very first reading,
+        if not self.at_least_one_reading:
+            #make a fake previous reading the same as the last one
+            self.old = self.latest
+            self.at_least_one_reading = True
+        
+        #If the most recent reading differs from the last one
+        if not self.old==self.latest:
+            #Update the value of the last reading for next time
+            self.old = self.latest
+            #Set it up so user code will have access to the value
+            self.scope['__value'] = self.latest
+            self._on_trigger()
+
+class PolledEvent(BaseEvent):
+    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass"):
+        self.polled = True
+        #Compile the trigger
+        self.trigger = compile(when,"<trigger>","eval")
+
+        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup)
+        
+    def _check(self):
+        """Check if the trigger is true and if so do the action."""            
+        #Eval the condition in the local event scope
+        if eval(self.trigger,self.scope,self.scope):
+            #Only execute once on false to true change unless continual was set
+            if (self.continual or self._prevstate == False):
+                self._prevstate = True
+                self._on_trigger()
+        else:
+            #The eval was false, so the previous state was False
+            self._prevstate = False
+
+
+
+
+#BORING BOOKEEPING BELOW
 
 
 #Delete a event from the cache by module and resource
@@ -133,171 +328,3 @@ def getEventsFromModules():
                         _events.append(x)
                         #Now we update the references
                         __EventReferences[i,m] = x
-
-def make_event_from_resource(module,resource):
-    "Returns an event object when given a module and resource name pointing to an event resource."
-    r = modules.ActiveModules[module][resource]
-    if 'setup' in r:
-        setupcode = r['setup']
-    else:
-        setupcode = "pass"
-        
-    x = Event(r['trigger'],r['action'],make_eventscope(module),setup = setupcode)
-    x.module = module
-    x.resource =resource
-    return x
-
-
-
-class Event():
-    """Class represeting one checkable event. when and do must be python code strings,
-    scope must be a dict representing the scope in which both the trigger and action will be executed.
-    When the trigger goes from fase to true, the action will occur.
-    
-    optional params:
-    ratelimit: Do not do the action more often than every X seconds
-    continual: Execute as often as possible while condition remains true
-    
-    """
-    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass"):
-        #Copy in the data from args
-        self.scope = scope
-        self._prevstate = False
-        self.ratelimit = ratelimit
-        self.continual = continual
-        
-        #BEGIN SOMEWHAT HACKISH CODE TO HANDLE TRIGGER EXPRESSIONS
-        #This code handles the case wherin the user makes a trigger expresion
-        #Basically, we set trigger to "False", making check() a no-op, and we create a function
-        #and subscribe it to the message.
-        if when.strip().startswith('!onmsg '):
-            def action_wrapper(topic,message):
-                #setup environment
-                self.scope['__topic'] = topic
-                self.scope['__message'] = message
-                #We delegate the actual execution ofthe body to the on_trigger
-                self._on_trigger()
-                
-            #When the object is deleted so will this reference and the message bus's auto unsubscribe will handle it
-            self.action_wrapper_because_we_need_to_keep_a_reference = action_wrapper
-            #Make the no-op trigger
-            self.trigger = compile('False',"<trigger>","eval")
-            #Handle whatever stupid whitespace someone puts in
-            #What this does is to eliminate leading whitespace, split on first space,
-            #Then get rid of any extra spaces in between the command and argument.
-            t = when.strip().split(' ',1)[1].strip()
-            #Subscribe our new function to the topic we want
-            messagebus.subscribe(t,action_wrapper)
-            self.polled = False
-        
-        #If the user tries to use the !onchanged trigger expression,
-        #what we do is to make a function that does the actual checking and always returns false
-        #This means it will be called every frame but the usual trigger method(which is edge triggered)
-        #Is bypassed. Instead, we directly call self._on_trigger and return false
-        elif when.strip().startswith('!onchange '):
-            #Handle whatever stupid whitespace someone puts in
-            #What this does is to eliminate leading whitespace, split on first space,
-            #Then get rid of any extra spaces in between the command and argument.
-            f = when.strip().split(' ',1)[1].strip()
-            self.f= compile(f,"<trigger>","eval")
-            self.at_least_one_reading = False
-            def change_func():           
-                self.latest = eval(self.f,self.scope,self.scope)
-            
-                if not self.at_least_one_reading:
-                    self.old = self.latest
-                    self.at_least_one_reading = True
-                
-                if self.old==self.latest:
-                    
-                    return False
-                else:
-                    self.old = self.latest
-                    self.scope['__value'] = self.latest
-                    self._on_trigger()
-                    return False
-            self.polled = True
-            
-            self.scope['__SYSTEM_CHANGE_CHECK'] = change_func
-            #Make the custom trigger
-            self.trigger = compile('__SYSTEM_CHANGE_CHECK()',"<trigger>","eval")
-            
-        else:
-        #BACK TO HANDLING NORMAL EXPRESSIONS
-            #Precompile non trigger expression code
-            self.polled = True
-            self.trigger = compile(when,"<trigger>","eval")
-        #Compile the action and run the initializer
-        self.action = compile(do,"<action>","exec")
-        initializer = compile(setup,"<setup>","exec")
-        exec(initializer,self.scope,self.scope)
-
-        #This lock makes sure that only one copy of the event executes at once.
-        self.lock = threading.Lock()
-        
-        #This keeps track of the last time the event was triggered  so we can rate limit
-        self.lastexecuted = 0
-        
-        #A place to put errors
-        self.errors = []
-        
-    def check(self):
-        """Check if the trigger is true and if so do the action."""
-        try:
-            #We need to make sure the thread pool doesn't run two copies of an event
-            self.lock.acquire()
-            #Eval the condition in the local event scope
-            if eval(self.trigger,self.scope,self.scope):
-                #Only execute once on false to true change unless continual was set
-                if (self.continual or self._prevstate == False):
-                    #Set the flag saying that the last time it was checked, the condition evaled to True
-                    self._prevstate = True
-                    #The trigger went from false to true and therefore met the trigger condition
-                    #So call the function
-                    self._on_trigger()
-            else:
-                #The eval was false, so the previous state was False
-                self._prevstate = False
-        except Exception as e:
-            self._handle_exception(e)
-        finally:
-            self.lock.release()
-            
-    def _on_trigger(self):
-        #This function gets called when whatever the event's trigger condition is.
-        #it provides common stuff to all trigger types like logging and rate limiting
-        
-        #Check the current time minus the last time against the rate limit
-        #Don't execute more often than ratelimit
-        if (time.time()-self.lastexecuted >self.ratelimit):
-            #Set the varible so we know when the last time the body actually ran
-            self.lastexecuted = time.time()
-            try:
-                exec(self.action,self.scope,self.scope)
-            except Exception as e:
-                self._handle_exception(e)
-
-    def _handle_exception(self, e):
-            #When an error happens, log it and save the time
-            #Note that we are logging to the compiled event object
-            self.errors.append([time.strftime('%A, %B %d, %Y at %H:%M:%S Server Local Time'),e])
-            #Keep oly the most recent 25 errors
-            self.errors = self.errors[-25:]
-            
-            #The mesagebus is largely untested and we don't want to kill the thread.
-            try:
-                messagebus.postMessage('system/errors/events/'+util.url(self.module)+'/'+util.url(self.resource),str(e))
-            except Exception as e:
-                print (e)
-    
-    def register(self):
-        if self.polled:
-            if self not in _events:
-                _events.append(self)    
-            
-    def unregister(self, ):
-        if self in _events:
-            _events.remove(self)
-    
-    
-    
