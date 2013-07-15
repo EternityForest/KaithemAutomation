@@ -15,3 +15,8 @@ errors-to-keep: 50
 
 #How many tasks can be queued up in the thread pool before inserts start to block
 task-queue-size: 200
+
+#The URL from which to retrieve the CSS theme file
+theme-url: /static/scrapbook.css
+
+max-frame-rate: 240
