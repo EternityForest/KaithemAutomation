@@ -18,7 +18,7 @@
 
 
 
-import threading,traceback,sys,config
+import threading,traceback,sys
 import workers
 import modules,threading,time
 import kaithemobj,messagebus,util
@@ -28,7 +28,6 @@ from config import config
 #Most of the time it should be held by the event manager that continually iterates it.
 #To update the _events, event execution must temporarily pause
 _event_list_lock = threading.Lock() 
-
 _events = []
 
 #Let us now have a way to get at active event objects by means of their origin resource and module.
@@ -41,6 +40,11 @@ def getEventErrors(module,event):
 def getEventLastRan(module,event):
     with _event_list_lock:
             return __EventReferences[module,event].lastexecuted
+        
+def countEvents():
+    #Why bother with the lock. The event count is not critical at all.
+    return len(_events)
+
 
 #In a background thread, we use the worker pool to check all threads
 
@@ -49,6 +53,7 @@ run = True
 #And put the check() fuction of each event object into the thread pool
 def __manager():
     temp = 0;
+    framedelay = 1/config['max-frame-rate']
     global averageFramesPerSecond
     averageFramesPerSecond = 0
     #Basically loops for the lief of the app
@@ -61,11 +66,10 @@ def __manager():
                 for i in _events:
                     workers.do(i.check)
                     
-            #This should be user configurable
         #Limit the polling cycles per second to avoid CPU hogging
-        time.sleep(0.01)
+        time.sleep(framedelay)
         #smoothing filter
-        averageFramesPerSecond = (averageFramesPerSecond *0.98) +   ((1/(time.time()-temp)) *0.02) 
+        averageFramesPerSecond = (averageFramesPerSecond *0.98) +   ((1/(time.time()-temp)) *0.02)
             
 #Start the manager thread as a daemon
 #Kaithem has a system wide worker pool so we don't need to reinvent that
@@ -160,10 +164,9 @@ class BaseEvent():
     def _handle_exception(self, e):
             #When an error happens, log it and save the time
             #Note that we are logging to the compiled event object
-            self.errors.append(time.strftime(config['time-format'],e))
-            #Keep oly the most recent 25 errors
-            self.errors = self.errors[config['errors-to-keep']:]
-            
+            self.errors.append([time.strftime(config['time-format']),e]) 
+            #Keep only the most recent errors
+            self.errors = self.errors[-(config['errors-to-keep']):]       
             #The mesagebus is largely untested and we don't want to kill the thread.
             try:
                 messagebus.postMessage('system/errors/events/'+util.url(self.module)+'/'+util.url(self.resource),str(e))

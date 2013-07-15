@@ -151,5 +151,5 @@ class KaithemPage():
                 #Note that we are logging to the compiled event object
                 page.errors.append([time.strftime(config['time-format']),e])
                 #Keep oly the most recent 25 errors
-                page.errors = page.errors[config['errors-to-keep']:]
+                page.errors = page.errors[-(config['errors-to-keep']):]
                 raise (e)

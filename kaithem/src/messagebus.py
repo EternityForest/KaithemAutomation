@@ -105,7 +105,9 @@ class MessageBus(object):
         
         self.subscribers[topic].append(weakref.ref(callback,delsubscription))
     
-    def _post(self, topic,message):
+    
+    def parseTopic(self,topic ):
+        "Parse the topic string into a list of all subscriptions that could possibly match."
         if topic.startswith('/'):
             topic = topic[1:]
         #A topic foo/bar/baz would go to
@@ -118,6 +120,11 @@ class MessageBus(object):
         for i in parts:
             last += (i+'/')
             matchingtopics.add(last)
+        return matchingtopics
+    
+    def _post(self, topic,message):
+        matchingtopics = self.parseTopic(topic)
+        
         #We can't iterate on anything that could possibly change so we make copies
         d = self.subscribers.copy()
         for i in matchingtopics:

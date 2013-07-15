@@ -71,7 +71,12 @@
             <td>Approximate frames per second</td>
             <td>${str(newevt.averageFramesPerSecond)[:6]}</td>
         </tr>
+        <tr>
+            <td>Total polled events(Exclude non-polled)</td>
+            <td>${str(newevt.countEvents())}</td>
+        </tr>
     </table>
+    
 </p>
 <p>
 <b>System Info</b>

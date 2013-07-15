@@ -37,6 +37,4 @@ for i in usr_config:
     
 if argcmd.p:
     config['port'] = int(argcmd.p)
-    
-    
 
