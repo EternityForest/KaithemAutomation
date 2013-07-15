@@ -16,7 +16,7 @@
 #File for keeping track of and editing kaithem modules(not python modules)
 
 import auth,cherrypy,pages,urllib,directories,os,json,util,newevt,shutil,sys,time
-import kaithem
+import kaithemobj
 import threading
 import usrpages
 

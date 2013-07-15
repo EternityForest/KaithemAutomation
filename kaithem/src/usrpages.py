@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #This file handles the display of user-created pages
-import kaithem, modules, mako, cherrypy,util,pages,threading,directories,os
+import kaithemobj, modules, mako, cherrypy,util,pages,threading,directories,os
 import time
 from config import config
 
@@ -35,7 +35,6 @@ errors = {}
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #This file handles the display of user-created pages
-import kaithem, modules, mako, cherrypy,util,pages
 
 class CompiledPage():
     def __init__(self, resource):
@@ -143,7 +142,7 @@ class KaithemPage():
                 raise cherrypy.HTTPRedirect('/errors/wrongmethod')
             try:
                 return page.template.render(
-                   kaithem = kaithem.kaithem,
+                   kaithem = kaithemobj.kaithem,
                    request = cherrypy.request,
                    module = modules.scopes[module]
                    )

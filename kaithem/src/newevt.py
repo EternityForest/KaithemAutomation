@@ -21,7 +21,7 @@
 import threading,traceback,sys,config
 import workers
 import modules,threading,time
-import kaithem,messagebus,util
+import kaithemobj,messagebus,util
 from config import config
 
 #Use this lock whenever you acess _events or __EventReferences in any way.
@@ -292,7 +292,7 @@ def removeModuleEvents(module):
 #Every event has it's own local scope that it uses, this creates the dict to represent it
 def make_eventscope(module):
     with modules.modulesLock:
-       return {'module':modules.scopes[module],'kaithem':kaithem.kaithem}
+       return {'module':modules.scopes[module],'kaithem':kaithemobj.kaithem}
 
 #This piece of code will update the actual event object based on the event resource definition in the module
 #Also can add a new event

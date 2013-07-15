@@ -19,7 +19,7 @@ if argcmd.c:
     with open(argcmd.c) as f:
         usr_config = yaml.load(f)
         
-elif os.path.isfile("/etc/kaithem/kaithem.cfg"):
+elif os.path.isfile("/etc/kaithem/kaithemconfig.txt"):
     with open("/etc/kaithem/kaithem.cfg") as f:
         usr_config = yaml.load(f)
         print("Loaded CFG from /etc")
