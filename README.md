@@ -10,8 +10,20 @@ A SECURITY SYSTEM FOR A BAG OF FUNYUNS(tm) AT THIS POINT!
 
 Installation
 ============
-git clone or download somewhere and run python main.py <yourportnumber>
-Then point your browser to https://localhost:<yourport>
+Self-Contained(portable)
+git clone or download somewhere and run kaithem.py
+Command line options:
+    -c
+        Supply a specific configuration file. Otherwise looks for /etc/kaithem/kaithemconfig.txt
+        And falls back to the default if that is not found. Anything not specified in the config
+        Reverts to default. The files are YAML, see kaithem/data/default_configuration.txt for info
+    -p
+        Specify a port. Overrides all config stuff.
+
+
+Then point your browser to https://localhost:<yourport> (default port is 8001)
+
+
 It will give you a security warning, that the SSL certificate name is wrong,
 ignore if you are just playing around, use real SSL keys otherwise.
 
