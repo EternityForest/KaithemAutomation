@@ -37,7 +37,7 @@ This Page allows you to view and edit information and resources associated with 
 An event is a statement that something should happen when a condition is met.</p>
 
 <ul>
-%for i in module:
+%for i in sorted(module.keys()):
 	%if module[i]['resource-type'] == 'event':
 		<li><a href="/modules/module/${url(name)}/resource/${url(i)}">${i|h}</a></li>
 	%endif
@@ -57,7 +57,7 @@ Pages are rendered using the Mako templating engine.
 </p>
 
 <ul>
-%for i in module:
+%for i in sorted(module.keys()):
 	%if module[i]['resource-type'] == 'page':
 		<li>
             <h4>${i|h}</h4>
@@ -84,7 +84,7 @@ Pages are rendered using the Mako templating engine.
 To assign permissions to groups, see the Authenticaton page.</p>
 
 <ul>
-%for i in module:
+%for i in sorted(module.keys()):
 	%if module[i]['resource-type'] == 'permission':
 		<li><a href="/modules/module/${url(name)}/resource/${url(i)}">${i}</a></li>
 	%endif

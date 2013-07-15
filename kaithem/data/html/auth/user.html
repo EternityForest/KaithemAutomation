@@ -18,7 +18,7 @@ Password:<input required="required" name="password" type="text" value="${passwor
 <p class="help">
 User ${username} is a member of the following groups:<br>
 (Check or uncheck to set membership)</p>
-%for i in groups:
+%for i in sorted(groups):
 	<br> <input type="checkbox" name="Group${i}" value="true"
 	%if i in usergroups:
 		checked="yes"
