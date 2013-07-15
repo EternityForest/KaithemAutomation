@@ -10,8 +10,10 @@ A SECURITY SYSTEM FOR A BAG OF FUNYUNS(tm) AT THIS POINT!
 
 Installation
 ============
+Install the prerequisite pyyaml, cherrypy, and mako (You probably want to use easy_install3 for this)
+
 Self-Contained(portable)
-git clone or download somewhere and run kaithem.py
+git clone or download somewhere and run python3 kaithem.py
 Command line options:
     -c
         Supply a specific configuration file. Otherwise looks for /etc/kaithem/kaithemconfig.txt
