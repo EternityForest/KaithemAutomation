@@ -23,7 +23,7 @@
 </tr>
 <tr>
 	<td>clickAndWait</td>
-	<td>link=Examples</td>
+	<td>link=testmodule2</td>
 	<td></td>
 </tr>
 <tr>
@@ -73,7 +73,7 @@
 </tr>
 <tr>
 	<td>clickAndWait</td>
-	<td>link=Examples</td>
+	<td>link=testmodule2</td>
 	<td></td>
 </tr>
 <tr>
@@ -103,7 +103,7 @@
 </tr>
 <tr>
 	<td>clickAndWait</td>
-	<td>xpath=(//a[contains(text(),'Go to page')])[2]</td>
+	<td>xpath=(//a[contains(text(),'Go to page')])[1]</td>
 	<td></td>
 </tr>
 <tr>
