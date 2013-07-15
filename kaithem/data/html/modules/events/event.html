@@ -1,0 +1,62 @@
+<%!
+from util import url
+import newevt
+import traceback,time
+%>
+
+<%include file="/pageheader.html"/>
+<title>Kaithem Event</title>
+<h2>Event "${name|h}" of module "${module|h}"</h2>
+
+<div class="sectionbox">
+
+
+<form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
+<h3>Setup Code</h3>
+<p class="help">Enter python code. It will execute in the event scope when it loads.
+</p>
+<textarea rows=3 class="pythoncode" name="setup">
+%if 'setup' in event:
+${event['setup']|h}
+%else:
+${"pass"}
+%endif
+</textarea>
+
+
+<h3>Trigger</h3>
+<p class="help">Enter the trigger here. The trigger may either be a python expression
+(event runs when trigger goes from false to true), or a <a href="/docs#trigger">special trigger expression</a>
+</p>
+<input class="pythoncode" type="text" name="trigger" value="${event['trigger']|h}"></input>
+
+<h3>Action</h3>
+<p class="help">
+This code will be executed when the trigger condition is met.
+</p>
+<textarea name="action" rows=25 class="pythoncode">${event["action"]|h}</textarea>
+%if newevt.getEventErrors(module,name):
+<h3>Errors</h3>
+<p class ="help">
+This section shows up to the most recent 25 errors that occured while executing the event or trigger.
+</p>
+<div class="scrollbox">
+%for i in newevt.getEventErrors(module,name):
+    <h4>${i[0]|h}</h4>
+    <p>${repr(i[1])|h}</p>
+%endfor
+</div>
+%endif
+<hr>
+<h3>Info</h3>
+
+<p>This event last ran: <b>${time.strftime('%A, %B %d, %Y at %H:%M:%S',time.localtime(newevt.getEventLastRan(module,name)))|h}</b></p>
+<hr>
+<p class="help">
+Saving this module will case it to completely reload, including its local scope. Other resorces will not be affected.
+</p>
+<input type="submit" value="Save Changes"></input>
+</form>
+</div>
+
+<%include file="/pagefooter.html"/>

@@ -1,0 +1,17 @@
+#The port on which web pages will be served
+port : 8001
+
+#The directory in which certificate.cert and certificate.key, used for the SSL, are to be found.
+ssl-dir : ssl
+
+#How many threads to allocate for the worker thread pool
+worker-threads: 24
+
+#How to format times and dates
+time-format: "%A, %B %d, %Y at %H:%M:%S"
+
+#How many errors in modules and events to log before deleting old ones
+errors-to-keep: 50
+
+#How many tasks can be queued up in the thread pool before inserts start to block
+task-queue-size: 200

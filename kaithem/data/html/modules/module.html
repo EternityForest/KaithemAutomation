@@ -1,0 +1,95 @@
+<%!
+from util import url
+%>
+
+<%include file="/pageheader.html"/>
+<h2>Module ${name|h}</h2>
+
+This Page allows you to view and edit information and resources associated with this module.<br><br>
+<title>Module: ${name|h}</title>
+
+<form action="/modules/module/${url(name)}/update" method="POST" name="user">
+<a href="/modules/downloads/${url(name)}">Download this module as a zip file</a>
+<h3>Basic Information</h3>
+<div class="sectionbox">
+
+<p class="help">Changing the name of a module will invalidate all external references to the module by its old name. Also, if the name is in use it will be overwritten. Be Careful.</p><hr>
+<h4>Name:</h4> 
+<input required="required" class="modulename" name="name" type="text" value="${name|h}">  
+<h4>Info:</h4>
+<textarea name="description" class="description" rows=5>${module['__description']['text']|h}</textarea>
+<hr>
+<input value="Save Changes" type="submit"></input>
+</form>
+</div>
+
+
+
+<br>
+
+<h3>Events</h3>
+<div class="sectionbox">
+<p class="menubar">
+<a class="button createbutton" href="/modules/module/${url(name)}/addresource/event">Add Event</a>
+<a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource">Delete Event</a>
+</p>
+<p class="help">This module defines the following events.
+An event is a statement that something should happen when a condition is met.</p>
+
+<ul>
+%for i in module:
+	%if module[i]['resource-type'] == 'event':
+		<li><a href="/modules/module/${url(name)}/resource/${url(i)}">${i|h}</a></li>
+	%endif
+%endfor
+</ul>
+</div>
+
+<h3>Pages</h3>
+<div class="sectionbox">
+<p class="menubar">
+<a class="button createbutton" href="/modules/module/${url(name)}/addresource/page">Add Page</a>
+<a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource">Delete Page</a>
+</p>
+<p class="help">This module defines the following pages.
+A page is a dynamic HTML page which can be used to display and edit information and settings.
+Pages are rendered using the Mako templating engine.
+</p>
+
+<ul>
+%for i in module:
+	%if module[i]['resource-type'] == 'page':
+		<li>
+            <h4>${i|h}</h4>
+            <p>
+                 <a href="/pages/page/${url(name)}/page/${url(i)}">Go to page</a>|
+                 <a href="/modules/module/${url(name)}/resource/${url(i)}">Edit Page</a>
+            </p>
+        </li>
+	%endif
+%endfor
+</ul>
+</div>
+
+<br> 
+
+<h3>Permissions</h3>
+<div class="sectionbox">
+<p class="menubar">
+<a class="button createbutton" href="/modules/module/${url(name)}/addresource/permission">Add Permission</a>
+<a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource">Delete Permission</a>
+</p>
+
+<p class="help">This module defines the following permissions.
+To assign permissions to groups, see the Authenticaton page.</p>
+
+<ul>
+%for i in module:
+	%if module[i]['resource-type'] == 'permission':
+		<li><a href="/modules/module/${url(name)}/resource/${url(i)}">${i}</a></li>
+	%endif
+%endfor
+</ul>
+</div>
+
+<%include file="/pagefooter.html"/>

@@ -1,0 +1,7 @@
+{
+    "action": "#This is an example of how to use a special trigger expression to recieve messages from the internal message bus\r\n#Every time someone writes to the topic /test,  this event fires.\r\n\r\n#__message contains the actual message while __topic has the topic\r\n#the variable module, like kaithem, is availible almost everywhere but each module has its own instance\r\nmodule.last_msg = __message",
+    "once": true,
+    "resource-type": "event",
+    "setup": "pass\r\n\r\n",
+    "trigger": "!onmsg /test"
+}

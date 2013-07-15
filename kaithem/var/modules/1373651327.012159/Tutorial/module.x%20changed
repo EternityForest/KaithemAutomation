@@ -1,0 +1,7 @@
+{
+    "action": "#This is like a useless machine. Whenever x changes, it sets it back to 0!\r\nmodule.x = 0",
+    "once": true,
+    "resource-type": "event",
+    "setup": "module.x = 0\r\n",
+    "trigger": "!onchange module.x"
+}

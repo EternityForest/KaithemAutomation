@@ -1,0 +1,26 @@
+<%!
+from util import url
+%>
+<%include file="/pageheader.html"/>
+<h2> Modules <sup><a href="/docs#modules">[help]</a></sup></h2>
+<title>Kaithem Modules</title>
+
+
+<h3>Modules</h3>
+<div class="sectionbox">
+<p class="menubar">
+<a class="button" href="/modules/newmodule">Add New Module</a>
+<a class="button" href="/modules/deletemodule">Delete Module</a>
+<a class="button" href="/modules/upload">Upload Modules as ZIP file</a>
+<br>
+</p>
+<p class="help">
+The following modules are currently loaded and active on the server.
+</p>
+<hr>
+<ul>
+%for i in sorted(ActiveModules.keys()):
+   <li> <a href="/modules/module/${url(i)}">${i}</a></li>
+%endfor
+</ul>
+</div>

@@ -1,0 +1,36 @@
+<%!
+from util import url
+%>
+
+<%include file="/pageheader.html"/>
+<h2> Users and Groups <sup><a href="/docs#auth">[help]</a></sup></h2>
+<title>Manage Authorization</title>
+<h3>Users</h3>
+
+<div class="sectionbox">
+<p class="menubar">
+<a class="button createbutton" href="/auth/newuser">Add New User</a>  <a class="button deletebutton" href="/auth/deleteuser">Delete User</a></p>
+<p class="help">
+The following users are registered with the server. <br>To create a log in as guest button, create a user named '__guest__' with password '__none__'<br>All usernames surrounded by double underscores are reserved.</p>
+<hr>
+<ul>
+%for i in sorted(auth.Users.keys()):
+   <li> <a href="/auth/user/${url(i)}">${i}</a></li>
+%endfor
+</ul>
+</div>
+
+<h3>Groups</h3>
+<div class="sectionbox">
+<p class="menubar">
+<a class="button createbutton" href="/auth/newgroup">Add New Group</a>  <a class="button deletebutton" href="/auth/deletegroup">Delete Group</a></p>
+<p class="help">
+The following groups are registered with the server.</p>
+<hr>
+<ul>
+%for i in sorted(auth.Groups.keys()):
+   <li> <a href="/auth/group/${url(i)}">${i}</a></li>
+%endfor
+</ul>
+</div>
+<%include file="/pagefooter.html"/>
