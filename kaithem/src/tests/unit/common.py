@@ -10,4 +10,5 @@ class UtterFailure(Exception):
 def fail(x):
     raise UtterFailure(x)
     
-    
+def suceed(x):
+    print(x)
