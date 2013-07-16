@@ -1,6 +1,7 @@
 import common
 import modules
 import pages
+import auth
 import cherrypy,time
 from kaithemobj import kaithem
 
@@ -20,7 +21,7 @@ cherrypy.HTTPRedirect = BSException
 from modules import ActiveModules
 wb = modules.WebInterface()
 
-
+######################################################################################
 #Add a new module
 try:
    wb.newmoduletarget(name='TEST')
@@ -31,7 +32,7 @@ except BSException:
 #Make sure the module shows up in the index
 if not 'TEST' in wb.index():
     common.fail("Added new module, but it did not show up in the index")
-    
+######################################################################################
 #Create a page called testpage
 try:
     wb.module('TEST','addresourcetarget','page',name="testpage")
@@ -41,7 +42,7 @@ except BSException:
 #View the module's main page and make sure our new page shows up.
 if not 'testpage' in wb.module('TEST'):
     common.fail("Made a new module but it didn't show up in the module's index")
-    
+###################################################################################### 
 #Create a new event
 try:
     wb.module('TEST','addresourcetarget','event',name="testevent")
@@ -84,7 +85,16 @@ kaithem.globals.x = 17
 time.sleep(0.25)
 if not kaithem.globals.x == 17:
     common.fail("Deleting event did not remove it's effects")
-    
+######################################################################################
+#Create a new permission
+try:
+    wb.module('TEST','addresourcetarget','permission',name="TestPermission",description="some BS")
+except BSException:
+    pass
+
+if not 'TestPermission' in auth.Permissions:
+    common.failure("Created a new permission but it did not appear in the auth list.")
+######################################################################################   
 #Create a new event
 try:
     wb.module('TEST','addresourcetarget','event',name="testevent")
@@ -95,7 +105,6 @@ except BSException:
 try:
     wb.module('TEST','updateresource','testevent',
         trigger='kaithem.globals.x == 17',
-        
         action='kaithem.globals.x = 0',
         setup='kaithem.globals.x = 0'
         )
@@ -115,5 +124,9 @@ kaithem.globals.x = 17
 time.sleep(0.25)
 if not kaithem.globals.x == 17:
     common.fail("Deleting event did not remove it's effects")
-    
+######################################################################################
+
+
+
+
 common.suceed("Sucess in testing modules system")
