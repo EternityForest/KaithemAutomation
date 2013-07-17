@@ -134,7 +134,7 @@ if __name__ == '__main__':
         'server.ssl_module':'builtin',
         'server.ssl_certificate':os.path.join(directories.ssldir,'certificate.cert'),
         'server.ssl_private_key':os.path.join(directories.ssldir,'certificate.key'),
-
+        'server.thread_pool':config['cherrypy-thread-pool']
     }
     
 cherrypy.config["tools.encode.on"] = True

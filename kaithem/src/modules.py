@@ -42,6 +42,9 @@ ActiveModules = {}
 #a module
 scopes ={}
 
+class obj(object):
+    pass
+
 
 
 
@@ -103,9 +106,6 @@ def saveModules(where):
 def loadModules(modulesdir):
     for i in util.get_immediate_subdirectories(modulesdir):
         loadModule(i,modulesdir)
-    
-class obj(object):
-    pass
 
 #Load a single module. Used by loadModules
 def loadModule(moduledir,path_to_module_folder):
@@ -289,7 +289,7 @@ class WebInterface():
                    r = ActiveModules[module].pop(kwargs['name'])
                    
                 if r['resource-type'] == 'page':
-                     usrpages.removeOnePage(module,kwargs['name'])
+                    usrpages.removeOnePage(module,kwargs['name'])
                 #Annoying bookkeeping crap to get rid of the cached crap
                 if r['resource-type'] == 'event':
                     newevt.removeOneEvent(module,kwargs['name'])
@@ -336,40 +336,44 @@ def addResourceDispatcher(module,type):
 #Basically it takes a module, a new resourc name, and a type, and creates a template resource
 def addResourceTarget(module,type,name,kwargs):
     pages.require("/admin/modules.edit")
+    def insertResource(r):
+        ActiveModules[module][kwargs['name']] = r
     
-    #Create a permission
-    if type == 'permission':
-        with modulesLock:
-            if kwargs['name'] in ActiveModules[module]:
-                raise cherrypy.HTTPRedirect("/errors/alreadyexists")
-            else:   
-                ActiveModules[module] [kwargs['name']]= {"resource-type":"permission","description":kwargs['description']}
-                #has its own lock
-                auth.importPermissionsFromModules() #sync auth's list of permissions 
-                raise cherrypy.HTTPRedirect("/modules/module/" +util.url(module)+ '/resource/' + util.url(name) )
+    with modulesLock:
+        #Check if a resource by that name is already there
+        if kwargs['name'] in ActiveModules[module]:
+            raise cherrypy.HTTPRedirect("/errors/alreadyexists")
         
-    if type == 'event':
-        with modulesLock:
-           if kwargs['name'] not in ActiveModules[module]:
-                ActiveModules[module] [kwargs['name']]= {"resource-type":"event","trigger":"False","action":"pass",
-                "once":True}
-                #newevt maintains a cache of precompiled events that must be kept in sync with
-                #the modules
-                newevt.updateOneEvent(kwargs['name'],module)
-                raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+util.url(name))
-           else:
-                raise cherrypy.HTTPRedirect("/errors/alreadyexists")
-
-    if type == 'page':
-        with modulesLock:
-            if kwargs['name'] not in ActiveModules[module]:
-                ActiveModules[module][kwargs['name']]= {"resource-type":"page","body":"Content here",'no-navheader':True}
+        #Create a permission
+        if type == 'permission':
+            insertResource({
+                "resource-type":"permission",
+                "description":kwargs['description']})
+            #has its own lock
+            auth.importPermissionsFromModules() #sync auth's list of permissions 
+            
+        if type == 'event':
+            insertResource({
+                "resource-type":"event",
+                "trigger":"False",
+                "action":"pass",
+                "once":True})
+            #newevt maintains a cache of precompiled events that must be kept in sync with
+            #the modules
+            newevt.updateOneEvent(kwargs['name'],module)
+        
+        if type == 'page':
+                insertResource({
+                    "resource-type":"page",
+                    "body":"Content here",
+                    'no-navheader':True})
                 usrpages.updateOnePage(kwargs['name'],module)
                 #newevt maintains a cache of precompiled events that must be kept in sync with
                 #the modules
-                raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+util.url(name))
-            else:
-                raise cherrypy.HTTPRedirect("/errors/alreadyexists")  
+                
+        #Take the user straight to the resource page
+        raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+util.url(name))
+                
                       
 #show a edit page for a resource. No side effect here so it only requires the view permission
 def resourceEditPage(module,resource):
@@ -381,8 +385,10 @@ def resourceEditPage(module,resource):
             return permissionEditPage(module, resource)
 
         if resourceinquestion['resource-type'] == 'event':
-            return pages.get_template("modules/events/event.html").render(module =module,name =resource,event 
-            =ActiveModules[module][resource])
+            return pages.get_template("modules/events/event.html").render(
+                module =module,
+                name =resource,
+                event =ActiveModules[module][resource])
 
         if resourceinquestion['resource-type'] == 'page':
             if 'require-permissions' in resourceinquestion:
@@ -401,44 +407,44 @@ def permissionEditPage(module,resource):
 #The actual POST target to modify a resource. Context dependant based on resource type.
 def resourceUpdateTarget(module,resource,kwargs):
     pages.require("/admin/modules.edit")
-    t = ActiveModules[module][resource]['resource-type']
-    
-    if t == 'permission': 
-        with modulesLock:
-            ActiveModules[module][resource]['description'] = kwargs['description']
-        #has its own lock
-        auth.importPermissionsFromModules() #sync auth's list of permissions 
 
-    if t == 'event':
-        with modulesLock:
+    with modulesLock:
+        t = ActiveModules[module][resource]['resource-type']
+        resourceobj = ActiveModules[module][resource]
+        
+        if t == 'permission': 
+            resourceobj['description'] = kwargs['description']
+            #has its own lock
+            auth.importPermissionsFromModules() #sync auth's list of permissions 
+    
+        if t == 'event':
             e = newevt.Event(kwargs['trigger'],kwargs['action'],{})#Test compile, throw error on fail.
-            ActiveModules[module][resource]['trigger'] = kwargs['trigger']
-            ActiveModules[module][resource]['action'] = kwargs['action']
-            ActiveModules[module][resource]['setup'] = kwargs['setup']
+            resourceobj['trigger'] = kwargs['trigger']
+            resourceobj['action'] = kwargs['action']
+            resourceobj['setup'] = kwargs['setup']
             #I really need to do something about this possibly brittle bookkeeping system
             #But anyway, when the active modules thing changes we must update the newevt cache thing.
             newevt.updateOneEvent(resource,module)
-
-    if t == 'page':
-        with modulesLock:
-            pageinquestion = ActiveModules[module][resource]
-            pageinquestion['body'] = kwargs['body']
-            pageinquestion['no-navheader'] = 'no-navheader' in kwargs
-            pageinquestion['no-header'] = 'no-header' in kwargs       
+    
+        if t == 'page':
+            resourceobj['body'] = kwargs['body']
+            resourceobj['no-navheader'] = 'no-navheader' in kwargs
+            resourceobj['no-header'] = 'no-header' in kwargs       
             #Method checkboxes
-            pageinquestion['require-method'] = []
+            resourceobj['require-method'] = []
             if 'allow-GET' in kwargs:
-                pageinquestion['require-method'].append('GET')
+                resourceobj['require-method'].append('GET')
             if 'allow-POST' in kwargs:
-                pageinquestion['require-method'].append('POST')                
+                resourceobj['require-method'].append('POST')                
             #permission checkboxes
-            pageinquestion['require-permissions'] = []
+            resourceobj['require-permissions'] = []
             for i in kwargs:
                 #Since HTTP args don't have namespaces we prefix all the permission checkboxes with permission
                 if i[:10] == 'Permission':
                     if kwargs[i] == 'true':
-                        pageinquestion['require-permissions'].append(i[10:])
+                        resourceobj['require-permissions'].append(i[10:])
             usrpages.updateOnePage(resource,module)
+            
     #Return user to the module page       
     raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module))#+'/resource/'+util.url(resource))
     

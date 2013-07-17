@@ -94,13 +94,36 @@ def make_event_from_resource(module,resource):
     return x
 
 
+def parseTrigger(when):
+    """
+    Parse a trigger expression into a tokeized form
+    """
+    output = []
+    
+    #Split on spaces, but take into account multipla spaces by ignoring empty strings.
+    for i in when.strip().split(' '):
+        if not i == '':
+            output.append(i)
+            
+    #Take into account normal python expression triggers and return a similar format
+    if output[0].startswith('!'):
+        return output
+    else:
+        return(['!edgetrigger',when])
+    
+        
+
 #Factory function that examines the type of trigger and chooses a class to handle it.
 def Event(when,do,scope,continual=False,ratelimit=0,setup = "pass"):
-    if when.strip().startswith('!onmsg '):
+    trigger = parseTrigger(when)
+    
+    if trigger[0] == '!onmsg':
         return MessageEvent(when,do,scope,continual,ratelimit,setup)
-    if when.strip().startswith('!onchange '):
+    
+    elif trigger[0] == '!onchange':
         return ChangeEvent(when,do,scope,continual,ratelimit,setup)
-    else:
+    
+    elif trigger[0] == '!edgetrigger':
         return PolledEvent(when,do,scope,continual,ratelimit,setup)
 
 

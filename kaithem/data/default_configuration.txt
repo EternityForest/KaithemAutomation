@@ -7,6 +7,9 @@ ssl-dir : ssl
 #How many threads to allocate for the worker thread pool
 worker-threads: 24
 
+#How many threads cherrypy should use for the web server
+cherrypy-thread-pool: 24
+
 #How to format times and dates
 time-format: "%A, %B %d, %Y at %H:%M:%S"
 
@@ -19,4 +22,5 @@ task-queue-size: 200
 #The URL from which to retrieve the CSS theme file
 theme-url: /static/scrapbook.css
 
+#The maximum polling cycles per second to run at
 max-frame-rate: 240
