@@ -127,9 +127,9 @@ class MessageBus(object):
         
         
 
-__bus = MessageBus(workers.do)      
-subscribe = __bus.subscribe
-postMessage = __bus.postMessage
+_bus = MessageBus(workers.do)      
+subscribe = _bus.subscribe
+postMessage = _bus.postMessage
         
     
         
