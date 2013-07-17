@@ -1,64 +1,23 @@
+#Copyright Daniel Black 2013
+#This file is part of Kaithem Automation.
+
+#Kaithem Automation is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, version 3.
+
+#Kaithem Automation is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+
 import weakref,threading,time,os,random,workers,json
 from collections import defaultdict
 
 
 _subscribers_list_modify_lock = threading.Lock()
-
-tester = {}
-def test():
-    FAIL = False
-    def dostuff():
-        def dummy(a,b):
-            pass
-        time.sleep(random.random()/100)
-        subscribe('a',dummy)
-        postMessage('a','poopoo')
-        del dummy
-    
-    def datatest():
-        i = str(os.urandom(10)).replace('/','|')
-        def recive(x,y):
-            tester[x] = y
-        
-        subscribe(i,recive)
-        x =str(os.urandom(100))
-        postMessage(i,x)
-        time.sleep((random.random()/100)+0.05)
-        if not tester[i] == x:
-            FAIL = True
-        else:
-            #print("hooray")
-            pass
-            
-    def datatest2():
-        i = 'potty/'+str(os.urandom(10)).replace('/','|')
-        def recive(x,y):
-            tester[x] = y
-        
-        subscribe('potty/',recive)
-        x =str(os.urandom(100))
-        postMessage(i,x)
-        time.sleep((random.random()/100)+0.05)
-        if not tester[i] == x:
-            FAIL = True
-        else:
-            #print("hooray")
-            pass
-    
-    for i in range(0,1):
-        for i in range(0,100):
-            t = threading.Thread(target=dostuff)
-            t.start()
-            t = threading.Thread(target=datatest)
-            t.start()
-            t = threading.Thread(target=datatest2)
-            t.start()
-            time.sleep(0.05)    
-    return (not FAIL) and (len(__bus.subscribers.keys())<5)
-    
-        
-    
-    
 
 
 class MessageBus(object):
