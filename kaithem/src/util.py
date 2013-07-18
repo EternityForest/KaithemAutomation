@@ -80,3 +80,14 @@ def deleteAllButHighestNumberedNDirectories(where,N):
     for i in sorted(asnumbers.keys())[0:-N]:
         shutil.rmtree(os.path.join(where,asnumbers[i]))
 
+class LowPassFiter(object):
+    "Speed should be 0 to 1 and express by what percentage to approach the new value per sample"
+    def __init__(self,speed,startval=0 ):
+        self.val = startval
+        self.speed = speed
+    
+    def sample(self, x):
+        (averageFramesPerSecond *(1-self.speed)) +   ((1/(time.time()-temp)) *self.speed)
+    
+    
+

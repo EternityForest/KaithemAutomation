@@ -83,12 +83,27 @@ t.start()
 def make_event_from_resource(module,resource):
     "Returns an event object when given a module and resource name pointing to an event resource."
     r = modules.ActiveModules[module][resource]
+    
     if 'setup' in r:
         setupcode = r['setup']
     else:
         setupcode = "pass"
         
-    x = Event(r['trigger'],r['action'],make_eventscope(module),setup = setupcode)
+    if 'rate-limit' in r:
+        ratelimit = r['rate-limit']
+    else:
+        ratelimit = 0
+        
+    if 'continual' in r:
+        continual = r['continual']
+    else:
+        continual = False
+        
+    x = Event(r['trigger'],r['action'],make_eventscope(module),
+              setup = setupcode,
+              continual = continual,
+              ratelimit=ratelimit)
+    
     x.module = module
     x.resource =resource
     return x
@@ -154,7 +169,9 @@ class BaseEvent():
         self._prevstate = False
         self.ratelimit = ratelimit
         self.continual = continual
-
+        
+        self.runTimes = []
+        
         #Compile the action and run the initializer
         self.action = compile(do,"<action>","exec")
         initializer = compile(setup,"<setup>","exec")
@@ -168,7 +185,7 @@ class BaseEvent():
         
         #A place to put errors
         self.errors = []
-        
+    
             
     def _on_trigger(self):
         #This function gets called when whatever the event's trigger condition is.
@@ -176,7 +193,8 @@ class BaseEvent():
         
         #Check the current time minus the last time against the rate limit
         #Don't execute more often than ratelimit
-        if (time.time()-self.lastexecuted >self.ratelimit):
+
+        if (time.time() -self.lastexecuted >self.ratelimit):
             #Set the varible so we know when the last time the body actually ran
             self.lastexecuted = time.time()
             try:
@@ -189,19 +207,21 @@ class BaseEvent():
             #Note that we are logging to the compiled event object
             self.errors.append([time.strftime(config['time-format']),e]) 
             #Keep only the most recent errors
-            self.errors = self.errors[-(config['errors-to-keep']):]       
+            self.errors = self.errors[-(config['errors-to-keep']):] 
             #The mesagebus is largely untested and we don't want to kill the thread.
             try:
-                messagebus.postMessage('system/errors/events/'+util.url(self.module)+'/'+util.url(self.resource),str(e))
+                messagebus.postMessage('system/errors/events/'+
+                                       self.module+'/'+
+                                       self.resource,str(e))
             except Exception as e:
                 print (e)
     
     def register(self):
         if self.polled:
             if self not in _events:
-                _events.append(self)    
-            
-    def unregister(self, ):
+                _events.append(self)
+                
+    def unregister(self):
         if self in _events:
             _events.remove(self)
     

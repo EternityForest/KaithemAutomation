@@ -32,6 +32,9 @@ import directories
 import modules
 import settings
 import usrpages
+import messagebus
+import notifications
+import time
 from config import config
 
 
@@ -154,4 +157,8 @@ conf = {
         }
         }
 cherrypy.config.update(server_config)
+
+messagebus.postMessage('/system/startup','System Initialized')
+messagebus.postMessage('/system/notifications','System Initialized at ' + time.strftime(config['time-format']))
+
 cherrypy.quickstart(root,'/',config=conf)

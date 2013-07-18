@@ -1,7 +1,8 @@
-
-
-
-
+<%!
+import notifications
+import time
+from config import config
+%>
 <%include file="/pageheader.html"/>
 <title>Kaithem Automation</title>
 
@@ -15,5 +16,18 @@ Use entirely at your own risk.</b></p>
 <p>Logged into Kaithem Automation as user: <b>${user}</b></p>
 </div>
 
+<div class="sectionbox">
+   <h2> System Notifications</h2>
+    <div class="scrollbox">
+        
+        %for i in notifications.notificationslog:
+        <b>${time.strftime(config['time-format'],time.localtime(i[0]))} server time:</b>
+        %if isinstance(i[2],str):
+        <p>${i[2]|h}</p>
+        %endif
+        <hr>
+        %endfor
+    </div>
+</div>
 
 <%include file="/pagefooter.html"/>

@@ -26,10 +26,26 @@ ${"pass"}
 
 <h3>Trigger</h3>
 <p class="help">Enter the trigger here. The trigger may either be a python expression
-(event runs when trigger goes from false to true), or a <a href="/docs#trigger">special trigger expression</a>
+(by default, event runs when trigger goes from false to true), or a <a href="/docs#trigger">special trigger expression</a>
 </p>
 <input class="pythoncode" type="text" name="trigger" value="${event['trigger']|h}"></input>
-
+<h3>Additional Trigger Options</h3>
+<div class="scrollbox">
+    <input type="checkbox"  name="continual" value="false"
+         %if 'continual' in event:
+            %if event['continual'] == True:
+            checked="yes"
+            %endif
+         %endif
+       ></input>Do the action repeatedly while the trigger is true<br>
+       Do the action at most every:
+           <input type="number"  name="ratelimit" step=0.01
+         %if 'ratelimit' in event:
+            value="${event['ratelimit']}"
+         %else:
+            value="0"
+         %endif
+       ></input>seconds. Does not affect poll rate.<br></div>
 <h3>Action</h3>
 <p class="help">
 This code will be executed when the trigger condition is met.

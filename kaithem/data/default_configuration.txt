@@ -10,14 +10,17 @@ worker-threads: 24
 #How many threads cherrypy should use for the web server
 cherrypy-thread-pool: 24
 
+#How many tasks can be queued up in the thread pool before inserts start to block
+task-queue-size: 200
+
 #How to format times and dates
 time-format: "%A, %B %d, %Y at %H:%M:%S"
 
 #How many errors in modules and events to log before deleting old ones
 errors-to-keep: 50
 
-#How many tasks can be queued up in the thread pool before inserts start to block
-task-queue-size: 200
+#How many olf system notifications on the front page to keep before getting rid of the oldest
+keep-notifications: 10
 
 #The URL from which to retrieve the CSS theme file
 theme-url: /static/scrapbook.css
