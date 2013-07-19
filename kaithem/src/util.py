@@ -80,3 +80,33 @@ def deleteAllButHighestNumberedNDirectories(where,N):
     for i in sorted(asnumbers.keys())[0:-N]:
         shutil.rmtree(os.path.join(where,asnumbers[i]))
 
+class LowPassFiter(object):
+    "Speed should be 0 to 1 and express by what percentage to approach the new value per sample"
+    def __init__(self,speed,startval=0 ):
+        self.val = startval
+        self.speed = speed
+    
+    def sample(self, x):
+        (averageFramesPerSecond *(1-self.speed)) +   ((1/(time.time()-temp)) *self.speed)
+        
+#Credit to Jay of stack overflow for this function
+def which(program):
+    "Check if a program is installed like you would do with UNIX's which command."
+    import os
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    return None
+
+

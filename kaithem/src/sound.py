@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import subprocess,os
+import subprocess,os,util
 
 #This class provides some infrastructure to play sounds but if you use it directly it is a dummy.
 class SoundWrapper(object):
@@ -80,7 +80,7 @@ class Mpg123Wrapper(SoundWrapper):
     
             
 #See if we have mpg123 installed at all and if not use the dummy driver.
-if subprocess.check_output("which mpg123",shell = True):
+if util.which('mpg123'):
     backend = Mpg123Wrapper()
 else:
     backend = SoundWrapper()
