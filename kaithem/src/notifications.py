@@ -16,13 +16,14 @@
 import messagebus,time
 from config import config
 
-keep_notifications = config['keep-notifications']
+keep_notifications = config['notifications-to-keep']
 notificationslog =   []
 
 def subscriber(topic,message):
     global notificationslog
     print(message)
     notificationslog.append((time.time(),topic,message))
+    #Delete all but the most recent N notifications, where N is from the config file.
     notificationslog = notificationslog[-keep_notifications:] 
     
 messagebus.subscribe('/system/notifications',subscriber)

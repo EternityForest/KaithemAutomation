@@ -88,6 +88,4 @@ class LowPassFiter(object):
     
     def sample(self, x):
         (averageFramesPerSecond *(1-self.speed)) +   ((1/(time.time()-temp)) *self.speed)
-    
-    
 

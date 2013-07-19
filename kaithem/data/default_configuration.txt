@@ -20,7 +20,7 @@ time-format: "%A, %B %d, %Y at %H:%M:%S"
 errors-to-keep: 50
 
 #How many olf system notifications on the front page to keep before getting rid of the oldest
-keep-notifications: 10
+notifications-to-keep: 10
 
 #The URL from which to retrieve the CSS theme file
 theme-url: /static/scrapbook.css

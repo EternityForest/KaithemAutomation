@@ -217,6 +217,7 @@ class BaseEvent():
                 print (e)
     
     def register(self):
+        #Some events are really just containers for a callback, so there is no need to poll them
         if self.polled:
             if self not in _events:
                 _events.append(self)
@@ -226,6 +227,8 @@ class BaseEvent():
             _events.remove(self)
     
     def check(self):
+        #This is the function that the polling system calls to poll the event.
+        #It calls a _check() function which must be defined by a subclass.
         try:
             self._check()
         except Exception as e:
