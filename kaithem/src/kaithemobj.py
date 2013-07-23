@@ -65,7 +65,7 @@ class Kaithem():
         def shellexbg(cmd):
             subprocess.Popen(cmd,shell=True)
             
-    class Web(object):
+    class web(object):
         def urlForPage(module,page):
             return "/pages/page/"+url(i)+'/page/'+url(j)
     
@@ -87,10 +87,6 @@ class Kaithem():
         def subscribe(topic,callback ):
             messagebus.subscribe(topic,callback)
         
-        
-    
-    
-
 class obj():
     pass
 

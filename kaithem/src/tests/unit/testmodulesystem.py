@@ -123,7 +123,11 @@ except BSException:
 kaithem.globals.x = 17
 time.sleep(0.25)
 if not kaithem.globals.x == 17:
-    common.fail("Deleting event did not remove it's effects")
+    common.fail("Deleting event did not remove its effects.")
+
+#Make sure the module is really gone from the index
+if 'TEST' in wb.index():
+    common.fail("Deleted module, but it was still in the index.")
 ######################################################################################
 
 
