@@ -23,21 +23,23 @@ class DayOfWeek(str):
     """
     def __init__(self,day=""):
     
+        #If no day supplied, default to today
         if day == "":
             day = time.localtime().tm_wday
             
-        self.namestonumbers= {'Mon':0,'Monday':0,'M':2,0:0,
-               'Tue':1,'Tuesday':1, 'Tues':1,'Tu':1,1:1,
-               'Wed':2,'Wednesday':'2', 'W':2,2:2,
-               'Thu':3,"Thursday":3, 'Th':3,'Thurs':3,'Thur':3, 3:3,
-               "Fri":4,'Friday':4,4:4,
-               'Sat':5,'Saturday':5,5:5,
-               'Sun':6,'Sunday':6,
-               6:6,
-              
+        self.namestonumbers= {
+                'Mon':0,'Monday':0,'M':0, 0:0,
+                'Tue':1,'Tuesday':1, 'Tues':1,'Tu':1, 1:1,
+                'Wed':2,'Wednesday':'2', 'W':2, 2:2,
+                'Thu':3,"Thursday":3, 'Th':3,'Thurs':3,'Thur':3, 3:3,
+                "Fri":4,'Friday':4, 4:4,
+                'Sat':5,'Saturday':5, 5:5,
+                'Sun':6,'Sunday':6,
+                6:6,
                }
                
-        self.numberstonames=[ ['Monday','Mon'],
+        self.numberstonames=[
+                        ['Monday','Mon'],
                         ['Tuesday','Tue','Tu','Tues'],
                         ['Wednesday','Wed'],
                         ['Thursday','Thu','Th','Thurs','Thur'],
