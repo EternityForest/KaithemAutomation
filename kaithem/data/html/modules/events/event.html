@@ -50,7 +50,20 @@ ${"pass"}
 <p class="help">
 This code will be executed when the trigger condition is met.
 </p>
-<textarea name="action" rows=25 class="pythoncode">${event["action"]|h}</textarea>
+
+<textarea id="actionbox" name="action" rows=25 class="pythoncode">${event["action"]|h}</textarea>
+
+<script>document.getElementById('actionbox').style.display='none';</script>
+<script>document.getElementById('actioneditor').style.display='block';</script>
+
+<div id="actioneditor" display="none" style="height: 275px;border: 1px solid #DDD;">${event["action"]|h}</div>
+
+<script>
+actioneditor.getSession().on('change', function(e) {
+    document.getElementById('actionbox').value = actioneditor.getValue();
+});
+</script>
+
 %if newevt.getEventErrors(module,name):
 <h3>Errors</h3>
 <p class ="help">
@@ -74,5 +87,16 @@ Saving this module will case it to completely reload, including its local scope.
 <input type="submit" value="Save Changes"></input>
 </form>
 </div>
+
+
+
+
+
+<script src="/static/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+<script>
+    var actioneditor = ace.edit("actioneditor");
+    actioneditor.setTheme("ace/theme/dawn");
+    actioneditor.getSession().setMode("ace/mode/python");
+</script>
 
 <%include file="/pagefooter.html"/>
