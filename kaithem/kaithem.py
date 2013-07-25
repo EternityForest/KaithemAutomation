@@ -15,14 +15,34 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 
+
 #This file is the main entry point of the app
-import os,sys,cherrypy
 
-
-#For some REALLY REALLY WEIRD reason, python doesn't search "Same directory as this file"
+import sys,os
+#For some odd reason, python doesn't search "Same directory as this file"
 #Only "Same directory as the file that started the program.
 #I don't want to hand modify 15 files. #afwulhack
 sys.path.append(os.path.join(sys.path[0],'src'))
+
+sys.path.append(os.path.join(sys.path[0],'src','thirdparty'))
+
+
+#There are some libraries that are actually different for 3 and 2, so we use the apporpriate one
+#By changing the pathe to include the proper ones.
+if sys.version_info < (3,0):
+    sys.path.append(os.path.join(sys.path[0],'src','thirdparty','python2'))
+else:
+    sys.path.append(os.path.join(sys.path[0],'src','thirdparty','python3'))
+
+
+import cherrypy
+
+
+
+
+
+
+
 
 import pages
 import weblogin
