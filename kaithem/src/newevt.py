@@ -53,7 +53,7 @@ run = True
 #And put the check() fuction of each event object into the thread pool
 def __manager():
     temp = 0;
-    framedelay = 1/config['max-frame-rate']
+    framedelay = 1.0/config['max-frame-rate']
     global averageFramesPerSecond
     averageFramesPerSecond = 0
     #Basically loops for the lief of the app
