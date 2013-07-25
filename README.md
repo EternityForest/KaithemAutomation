@@ -10,16 +10,20 @@ A SECURITY SYSTEM FOR A BAG OF FUNYUNS(tm) AT THIS POINT!
 
 Installation
 ============
-Install the prerequisite pyyaml, cherrypy, and mako (You probably want to use easy_install3 for this)
 
+All dependancies should already be included. Huge thanks to the developers of Mako, cherrypy, ace code editor, and pyYAML
 Self-Contained(portable)
-git clone or download somewhere and run python3 kaithem.py
+
+git clone or download somewhere and run python3 kaithem/kaithem.py
+You can also use python2 if you really want.
+
 Command line options:
-    -c
+    "-c"
         Supply a specific configuration file. Otherwise looks for /etc/kaithem/kaithemconfig.txt
         And falls back to the default if that is not found. Anything not specified in the config
         Reverts to default. The files are YAML, see kaithem/data/default_configuration.txt for info
-    -p
+        
+    "-p"
         Specify a port. Overrides all config stuff.
 
 
