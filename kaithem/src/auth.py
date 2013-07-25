@@ -43,7 +43,9 @@ BasePermissions = {
 "/admin/modules.edit":  "Create, Edit, Import, Upload, and Download modules and module contents. Gives root access essentially so watch out.",
 "/admin/settings.view": "View but not change settings.",
 "/admin/settings.edit": "Change core settings.",
-"/users/pagelisting.view": "View the list of all user created pages."
+"/admin/logging.edit": "Modify settings in the logging subsystem",
+"/users/pagelisting.view": "View the list of all user created pages.",
+"/users/logs.view": "View the message logs."
 }
 
 Permissions=BasePermissions

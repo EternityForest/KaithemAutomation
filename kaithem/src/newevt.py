@@ -77,9 +77,6 @@ t = threading.Thread(target = __manager)
 t.daemon = True
 t.start()
 
-
-
-
 def make_event_from_resource(module,resource):
     "Returns an event object when given a module and resource name pointing to an event resource."
     r = modules.ActiveModules[module][resource]

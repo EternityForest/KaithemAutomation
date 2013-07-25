@@ -8,7 +8,7 @@
                 "/admin/modules.edit",
                 "/admin/settings.view",
                 "/admin/mainpage.view",
-                "/evilbook/book.open",
+                "/users/logs.view",
                 "/admin/modules.view"
             ]
         },

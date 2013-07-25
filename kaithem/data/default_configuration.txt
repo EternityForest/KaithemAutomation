@@ -28,4 +28,8 @@ theme-url: /static/scrapbook.css
 #The maximum polling cycles per second to run at
 max-frame-rate: 240
 
+#Enable optional javascript effects
 enable-js: yes
+
+#How many entires to log before flushing to disk or deleting
+log-dump-size: 10000

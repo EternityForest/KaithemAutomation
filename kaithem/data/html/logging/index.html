@@ -1,0 +1,57 @@
+<%include file="/pageheader.html"/>
+<%!
+import messagelogging
+import time
+from util import url
+from config import config
+def formattime(x):
+    return time.strftime(config['time-format'],time.localtime(x))
+%>
+
+<h2>Recently active topics</h2>
+<div class="sectionbox">
+    <p class="help">Topics that have been posted to recently are shown here.
+    Only topics marked with (logging) will be saved when data is dumped.
+    To log a topic, edit the text list at the bottom or click start logging
+    </p>
+    %if messagelogging.log:
+        %for i in messagelogging.log:
+            %if i in messagelogging.toSave:
+                <h3>${i}</h3>
+                (logging<a href="/logs/stoplogging/${url(i)}">[stop]</a>)
+            %else:
+                <h3>${i}</h3>
+                (will not be saved to log file <a href="/logs/startlogging/${url(i)}">[start logging]</a>)
+            %endif
+        
+        <p>
+            <table border=1>
+            <tr>
+            <td>Latest Value</td><td>${messagelogging.log[i][-1][1]|h}</td>
+            </tr>
+            <tr>
+            <td>Most Recent Message Posted at:</td> <td>${formattime(messagelogging.log[i][-1][0])}</td>
+            </tr>
+            <tr>
+            <td>Total Messages Availible: </td><td>${len(messagelogging.log[i])}<a href="/logs/viewall/${url(i)}">View History</a></td>
+            </tr>
+            </table>
+        </p>
+        %endfor
+    %endif
+</div>
+
+<h2>Topics to log</h2>
+<div class="sectionbox">
+    <p class="help">All topics listed here will be saves to the log dumps if log dumps are enabled.</p>
+
+    <form action='/logs/setlogging' method="post">
+    <textarea name = "txt" class="code">\
+%for i in messagelogging.toSave:
+${i+'\n'}\
+%endfor
+</textarea>
+    <input type="submit">Save Logging List</input>
+    </form>
+</div>
+<%include file="/pagefooter.html"/>

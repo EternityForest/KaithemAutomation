@@ -19,6 +19,7 @@ import auth,cherrypy,pages,urllib,directories,os,json,util,newevt,shutil,sys,tim
 import kaithemobj
 import threading
 import usrpages
+import messagebus
 
 #2.x vs 3.x once again have renamed stuff
 if sys.version_info < (3,0):
@@ -162,8 +163,9 @@ def load_modules_from_zip(f):
                 raise cherrypy.HTTPRedirect("/errors/alreadyexists")
         for i in new_modules:
             ActiveModules[i] = new_modules[i]
-
+            messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " uploaded module" + i + " from a zip file")    
             bookkeeponemodule(i)
+            
     z.close()
 
 def bookkeeponemodule(module):
@@ -231,6 +233,7 @@ class WebInterface():
         #Get rid of any permissions defined in the modules.
         auth.importPermissionsFromModules()
         usrpages.removeModulePages(kwargs['name'])
+        messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Deleted module " + kwargs['name'])    
         raise cherrypy.HTTPRedirect("/modules")
         
     @cherrypy.expose
@@ -246,6 +249,7 @@ class WebInterface():
                 #Create the scope that code in the module will run in
                 scopes[kwargs['name']] = obj()
                 #Go directly to the newly created module
+                messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Created Module " + kwargs['name'])    
                 raise cherrypy.HTTPRedirect("/modules/module/"+util.url(kwargs['name']))
             else:
                 return pages.get_template("error.html").render(info = " A module already exists by that name,")
@@ -297,6 +301,8 @@ class WebInterface():
                 if r['resource-type'] == 'permission':
                     auth.importPermissionsFromModules() #sync auth's list of permissions
                     
+                messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " deleted resource " +
+                           kwargs['name'] + " from module " + module)    
                 raise cherrypy.HTTPRedirect('/modules')
 
             #This is the target used to change the name and description(basic info) of a module  
@@ -368,9 +374,10 @@ def addResourceTarget(module,type,name,kwargs):
                     "body":"Content here",
                     'no-navheader':True})
                 usrpages.updateOnePage(kwargs['name'],module)
-                #newevt maintains a cache of precompiled events that must be kept in sync with
-                #the modules
-                
+
+        messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + " added resource " +
+                           kwargs['name'] + " of type " + type+" to module " + module)
+        
         #Take the user straight to the resource page
         raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+util.url(name))
                 
@@ -447,6 +454,8 @@ def resourceUpdateTarget(module,resource,kwargs):
                         resourceobj['require-permissions'].append(i[10:])
             usrpages.updateOnePage(resource,module)
             
+    messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + " modified resource " +
+                           resource + " of module " + module)
     #Return user to the module page       
     raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module))#+'/resource/'+util.url(resource))
     

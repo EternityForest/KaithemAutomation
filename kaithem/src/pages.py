@@ -28,3 +28,8 @@ def require(permission):
        raise cherrypy.HTTPRedirect("/login/")
     if not auth.checkTokenPermission(cherrypy.request.cookie['auth'].value,permission):
         raise cherrypy.HTTPRedirect("/errors/permissionerror")
+    
+def getAcessingUser():
+    if (not 'auth' in cherrypy.request.cookie) or cherrypy.request.cookie['auth'].value not in auth.Tokens:
+       return "<unknown>"
+    return auth.whoHasToken(cherrypy.request.cookie['auth'].value)

@@ -48,6 +48,8 @@ import usrpages
 import messagebus
 import notifications
 import time
+import messagelogging
+
 from config import config
 
 
@@ -60,12 +62,16 @@ else:
     
 #Yes, This really is the only way i know of to get your public IP.
 try:
-    u= urlopen("http://ipecho.net/plain")
+   # u= urlopen("http://ipecho.net/plain")
     MyExternalIPAdress = u.read()
 except:
     MyExternalIPAdress = "unknown"
 finally:
-    u.close()
+    try:
+        u.close()
+    except Exception:
+        pass
+     
 
 port = config['port']
 
@@ -139,7 +145,7 @@ root.modules = modules.WebInterface()
 root.settings = settings.Settings()
 root.errors = Errors()
 root.pages = usrpages.KaithemPage()
-
+root.logs = messagelogging.WebInterface()
 
 #Start cherrrypy
 dn = os.path.dirname(os.path.realpath(__file__))
