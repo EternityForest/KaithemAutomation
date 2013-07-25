@@ -27,3 +27,5 @@ theme-url: /static/scrapbook.css
 
 #The maximum polling cycles per second to run at
 max-frame-rate: 240
+
+enable-js: yes

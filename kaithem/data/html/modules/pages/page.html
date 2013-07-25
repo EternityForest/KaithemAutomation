@@ -2,6 +2,7 @@
 from util import url
 import auth
 import usrpages
+from config import config
 %>
 <%include file="/pageheader.html"/>
 <title>Kaithem Page</title>
@@ -18,7 +19,12 @@ This page body will be interpreted as Mako template code. The <a href="/docs#kai
 </p>
  
          
-<textarea name="body" rows=25 class="htmlcode">${page["body"]|h}</textarea>
+<textarea id="box" name="body" rows=25 class="htmlcode">${page["body"]|h}</textarea>
+
+%if config['enable-js']:
+<div id="pageeditor" style="height: 75ex;border: 1px solid #DDD;">${page["body"]|h}</div>
+%endif
+
 <p class="help">
 These extra settings let you control the display or permissions of the page
 </p>
@@ -91,4 +97,19 @@ Saving this module will cause it to be immediately acessable from the web.
 </form>
 </div>
 
+%if config['enable-js']:
+<script src="/static/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+<script>
+var pageeditor = ace.edit("pageeditor");
+pageeditor.setTheme("ace/theme/dawn");
+pageeditor.getSession().setMode("ace/mode/html");
+
+pageeditor.getSession().on('change', function(e) {
+    document.getElementById('box').value = pageeditor.getValue();
+});
+
+document.getElementById('box').style.display='none';
+document.getElementById('pageeditor').style.display='block';
+</script>
+%endif
 <%include file="/pagefooter.html"/>

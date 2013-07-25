@@ -2,6 +2,7 @@
 from util import url
 import newevt
 import traceback,time
+from config import config
 %>
 
 <%include file="/pageheader.html"/>
@@ -15,7 +16,8 @@ import traceback,time
 <h3>Setup Code</h3>
 <p class="help">Enter python code. It will execute in the event scope when it loads.
 </p>
-<textarea rows=3 class="pythoncode" name="setup">
+
+<textarea rows=3 class="pythoncode" name="setup" id="setupbox">
 %if 'setup' in event:
 ${event['setup']|h}
 %else:
@@ -24,11 +26,34 @@ ${"pass"}
 </textarea>
 
 
+%if config['enable-js']:
+
+
+<div id="setupeditor"  style="height:10ex ;border: 1px solid #DDD;">
+%if 'setup' in event:
+${event['setup']|h}
+%else:
+${"pass"}
+%endif
+</div>
+
+
+%endif
+
+
 <h3>Trigger</h3>
 <p class="help">Enter the trigger here. The trigger may either be a python expression
 (by default, event runs when trigger goes from false to true), or a <a href="/docs#trigger">special trigger expression</a>
 </p>
-<input class="pythoncode" type="text" name="trigger" value="${event['trigger']|h}"></input>
+
+
+<input class="pythoncode" id="triggerbox" type="text" name="trigger" value="${event['trigger']|h}"></input>
+
+%if config['enable-js']:
+<div id="triggereditor"  style="height:2ex ;border: 1px solid #DDD;">${event["trigger"]|h}</div>
+%endif
+
+
 <h3>Additional Trigger Options</h3>
 <div class="scrollbox">
     <input type="checkbox"  name="continual" value="false"
@@ -53,16 +78,10 @@ This code will be executed when the trigger condition is met.
 
 <textarea id="actionbox" name="action" rows=25 class="pythoncode">${event["action"]|h}</textarea>
 
-<script>document.getElementById('actionbox').style.display='none';</script>
-<script>document.getElementById('actioneditor').style.display='block';</script>
+%if config['enable-js']:
+<div id="actioneditor" style="height: 25ex;border: 1px solid #DDD;">${event["action"]|h}</div>
+%endif
 
-<div id="actioneditor" display="none" style="height: 275px;border: 1px solid #DDD;">${event["action"]|h}</div>
-
-<script>
-actioneditor.getSession().on('change', function(e) {
-    document.getElementById('actionbox').value = actioneditor.getValue();
-});
-</script>
 
 %if newevt.getEventErrors(module,name):
 <h3>Errors</h3>
@@ -91,12 +110,47 @@ Saving this module will case it to completely reload, including its local scope.
 
 
 
-
+%if config['enable-js']:
 <script src="/static/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
 <script>
     var actioneditor = ace.edit("actioneditor");
     actioneditor.setTheme("ace/theme/dawn");
     actioneditor.getSession().setMode("ace/mode/python");
+    
+    var triggereditor = ace.edit("triggereditor");
+    triggereditor.setTheme("ace/theme/dawn");
+    triggereditor.getSession().setMode("ace/mode/python");
+    
+    var setupeditor = ace.edit("setupeditor");
+    setupeditor.setTheme("ace/theme/dawn");
+    setupeditor.getSession().setMode("ace/mode/python");
 </script>
 
+<script>
+triggereditor.getSession().on('change', function(e) {
+    document.getElementById('triggerbox').value = triggereditor.getValue();
+});
+</script>
+
+<script>
+actioneditor.getSession().on('change', function(e) {
+    document.getElementById('actionbox').value = actioneditor.getValue();
+});
+</script>
+
+<script>
+setupeditor.getSession().on('change', function(e) {
+    document.getElementById('setupbox').value = setupeditor.getValue();
+});
+</script>
+
+<script>document.getElementById('triggerbox').style.display='none';</script>
+<script>document.getElementById('triggereditor').style.display='block';</script>
+
+<script>document.getElementById('actionbox').style.display='none';</script>
+<script>document.getElementById('actioneditor').style.display='block';</script>
+
+<script>document.getElementById('setupbox').style.display='none';</script>
+<script>document.getElementById('setupeditor').style.display='block';</script>
+%endif
 <%include file="/pagefooter.html"/>
