@@ -3,9 +3,9 @@
 <h2>Page Index</h2>
 
 <div class="sectionbox">
-%for i in modules:
+%for i in sorted(modules.keys()):
     <h3>${i}</h3>
-    %for j in modules[i]:
+    %for j in sorted(modules[i].keys()):
         %if modules[i][j]['resource-type'] =='page':
             <a href="/pages/page/${url(i)}/page/${url(j)}">${j|h}</a></br>
         %endif
