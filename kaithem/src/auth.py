@@ -24,8 +24,6 @@
 #Users and groups are saved in RAM and synched with the filesystem due to the goal
 #of not using the filesystem much to save any SD cards.
 
-
-
 import json
 import base64
 import os

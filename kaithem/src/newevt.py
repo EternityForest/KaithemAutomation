@@ -16,6 +16,7 @@
 #NOTICE: A LOT OF LOCKS ARE USED IN THIS FILE. WHEN TWO LOCKS ARE USED, ALWAYS GET _event_list_lock LAST
 #IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
+from __future__ import with_statement
 
 
 import threading,traceback,sys
