@@ -3,6 +3,7 @@
         "Administrators": {
             "permissions": [
                 "/admin/settings.edit",
+                "/admin/logging.edit",
                 "/admin/users.edit",
                 "/users/pagelisting.view",
                 "/admin/modules.edit",

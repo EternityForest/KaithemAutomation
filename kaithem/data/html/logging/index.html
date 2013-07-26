@@ -12,7 +12,8 @@ def formattime(x):
 <div class="sectionbox">
     <p class="help">Topics that have been posted to recently are shown here.
     Only topics marked with (logging) will be saved when data is dumped.
-    To log a topic, edit the text list at the bottom or click start logging
+    To log a topic, edit the text list at the bottom or click start logging.
+    Log files will be dumped after a certain number of messages, or when the server state is explicitly saved.
     </p>
     %if messagelogging.log:
         %for i in messagelogging.log:

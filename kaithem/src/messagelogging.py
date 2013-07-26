@@ -3,16 +3,66 @@ import cherrypy
 import pages
 import time
 import threading
+import directories
+import json
+import os
+import util
+
 from config import config
 from collections import defaultdict
 
 approxtotalloggenentries = 0
 
-toSave = set()
-toSave_lock = threading.Lock()
 
+
+
+toSave = set()
+with open(os.path.join(directories.logdir,"whattosave.txt"),'r') as f:
+    x = f.read()
+    
+for line in x.split('\n'):
+    toSave.add(line.strip())
+
+del x
 log = defaultdict(list)
 
+def dumpLogFile():
+    global log
+    temp = log
+    log = defaultdict(list)
+    #Get rid of anything that is not in the list of things to dump to the log
+    temp2 = {}
+    for i in toSave:
+        if i in temp:
+            temp2[i] = temp[i]
+    temp = temp2
+    
+            
+    #Save the list of things to dump
+    with open(os.path.join(directories.logdir,"whattosave.txt"),'w') as f:
+        for i in toSave:
+            f.write(i+'\n')
+            
+            
+    where =os.path.join(directories.logdir,'dumps')
+    #Actually dump the log.
+    with open(os.path.join(where,str(time.time())+'.json'),'w') as f:
+        json.dump(temp,f,sort_keys=True)
+    
+    
+    asnumbers = {}
+    for i in util.get_files(where):
+            try:
+                asnumbers[float(i[:-5])] = i
+            except ValueError:
+                pass
+    
+    for i in sorted(asnumbers.keys())[0:-config['keep-log-dumps']]:
+        os.remove(os.path.join(where,asnumbers[i]))
+
+    
+        
+   
 
 def messagelistener(topic,message):
     global log
@@ -23,7 +73,8 @@ def messagelistener(topic,message):
     #This is not threadsafe. Hence the approx.
     approxtotalloggenentries +=1
     if approxtotalloggenentries>config['log-dump-size']:
-        log = defaultdict(list)
+        workers.do(dumpLogFile())
+
 
 messagebus.subscribe('/',messagelistener)
 

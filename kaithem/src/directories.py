@@ -25,6 +25,7 @@ from config import config
 dn = os.path.dirname(os.path.realpath(__file__))
 
 usersdir = os.path.join(dn,'../var/users')
+logdir = os.path.join(dn,'../var/logs')
 moduledir = os.path.join(dn,'../var/modules')
 htmldir = os.path.join(dn, '../data/html')
 datadir = os.path.join(dn, '../data')

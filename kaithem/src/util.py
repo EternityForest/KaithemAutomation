@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import auth,modules,os,threading,copy,sys,shutil
+import auth,modules,os,threading,copy,sys,shutil,messagelogging
 
 #2 and 3 have basically the same module with diferent names
 if sys.version_info < (3,0):
@@ -24,14 +24,15 @@ else:
     from urllib.parse import quote
     from urllib.parse import unquote as unurl
 
-	
+    
 def url(string):
     return quote(string,'')
 
 def SaveAllState():
-	auth.dumpDatabase()
-	modules.saveAll()
-	
+    auth.dumpDatabase()
+    messagelogging.dumpLogFile()
+    modules.saveAll()
+    
 def ensure_dir(f):
     d = os.path.dirname(f)
     if not os.path.exists(d):

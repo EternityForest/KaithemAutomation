@@ -33,3 +33,6 @@ enable-js: yes
 
 #How many entires to log before flushing to disk or deleting
 log-dump-size: 10000
+
+#How many old log dumps to keep before deleting the oldest
+keep-log-dumps: 15
