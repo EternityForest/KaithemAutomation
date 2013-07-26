@@ -47,6 +47,10 @@ def countEvents():
     return len(_events)
 
 
+def addHiddenSystemEvent(event):
+    -events.append(event)
+
+
 #In a background thread, we use the worker pool to check all threads
 
 run = True
@@ -201,6 +205,8 @@ class BaseEvent():
                 self._handle_exception(e)
 
     def _handle_exception(self, e):
+            
+
             #When an error happens, log it and save the time
             #Note that we are logging to the compiled event object
             self.errors.append([time.strftime(config['time-format']),e]) 
@@ -213,6 +219,10 @@ class BaseEvent():
                                        self.resource,str(e))
             except Exception as e:
                 print (e)
+            
+            #If this is the first error since th module was last saved raise a notification
+            if len(self.errors)==1:
+                messagebus.postMessage('/system/notifications',"Event "+self.resource+" of module "+self.module+                " may need attention")
     
     def register(self):
         #Some events are really just containers for a callback, so there is no need to poll them

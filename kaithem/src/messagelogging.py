@@ -109,5 +109,11 @@ class WebInterface(object):
         pages.require('/users/logs.view')
         return pages.get_template('logging/topic.html').render(topicname=topic)
     
+    @cherrypy.expose
+    def clearall(self,topic):
+        pages.require('/admin/logging.edit')
+        log.pop(topic)
+        return pages.get_template('logging/index.html').render()  
+    
             
     

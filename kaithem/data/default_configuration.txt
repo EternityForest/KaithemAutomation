@@ -14,7 +14,7 @@ cherrypy-thread-pool: 24
 task-queue-size: 200
 
 #How to format times and dates
-time-format: "%A, %B %d, %Y at %H:%M:%S"
+time-format: "%A, %B %d, %Y at %l:%M:%S %p"
 
 #How many errors in modules and events to log before deleting old ones
 errors-to-keep: 50
@@ -26,7 +26,7 @@ notifications-to-keep: 10
 theme-url: /static/scrapbook.css
 
 #The maximum polling cycles per second to run at
-max-frame-rate: 240
+max-frame-rate: 24
 
 #Enable optional javascript effects
 enable-js: yes

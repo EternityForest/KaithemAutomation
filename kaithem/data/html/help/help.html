@@ -15,7 +15,9 @@
 		
 	<p>An important idea in kaithem is that resources, such as events, data, and web pages, all exist within <em>modules</em>. This allows for a very simple plugin based architecture wherein device plugins can be bundled with the web pages to manage them. Modules can be downloades or uploaded to and from the server as zip files, or can be created and modified straight from the web interface.</p>
 	
-	<P> One <b>very important note</b> about Kaithem is that it does not save anything to the disk except when told to. To do this, go to the settings page and follow the instructions. In the event that the software crashes while saving data will not be corrupted and the old version will be used. Manual recovery of the new version will likely be possible for at least some files.</P>
+	<P> One <b>very important note</b> about Kaithem is that it does not save anything to the disk except when told to. To do this, go to the Save State page and follow the instructions. In the event that the software crashes while saving, old data will not be corrupted and the old version will be used. Manual recovery of the new version will likely be possible for at least some files.</P>
+    
+    <p>The exception to this rule is log files. Logs are maintained in ram till they reach a certain size(default 10,000 entries) then saved to disk. They are also saved when you explicitly save the entire state.</p>
 	
 	
 		<h2><a id="modules" name="modules"></a>Modules:</h2>
@@ -64,15 +66,10 @@
 	<h2><a id="scope" name="scope"></a>Scoping</h2>
 	<p>Almost all programming languages have some concept of scope and Python is no different. Every event has its own scope, similar to a function. if you set a variable in one event, it will be there next time the event runs, but will not be directly visible in other resources. This does not apply to Mako code inside page html. Mako code will act like function local variables and only persist for the life of the call</p>
 	
-	<p>Every resource scope however will contain an object called Kaithem, which is global, and an 
-	object called Module, which is shared between all module resources. The Module object has the 
-	attribute Module.resources, which is a dict indexed by resource name. It contains instances of 
-	Resource or a subclass, and each resource has a property called type. if the resource is an event
-	, Resource.type will equal "event", and there will be a dict at Resource.scope, representing the 
-	local scope of that resource.</p>
-		
-	<p>The other way to share data is through the Kaithem.globals and Module.globals objects,and the 
-	Kaithem.dev dict. The former two are general-purpose objects of class object, intended to have attributes assigned to them, while the latter is a dict intended to index objects representing devices.</p>
+	<p>Every resource scope however will contain an object called kaithem,
+    which is a global object witho some useful utilities, and an object called module, which is shared between all
+    resources within one module.
+    The module objects have no special propereties beyond the ability to assign objects to them.</p>
 	
 	
 	    <h2><a id="auth" name="auth"></a>Users and access control:</h2>
@@ -156,7 +153,7 @@
     <p>Post a message to the internal system-wide message bus. Message MUST be a JSON serializable object.
     i.e True/false, numbers, strings, lists, and dictionaries only. Message topics are hierarchial, delimited by forward
     slashes, and the root directory is /. However /foo is equivalent to foo.<br>
-    Topics ending in a slash are "directories" and should not be posted directly to.</p>
+    </p>
     
     <h4>kaithem.message.subscribe(topic,callback)</h4>
     <p>Request that function <i>callback</i> which must take two arguments(topic,message)
@@ -191,14 +188,32 @@
     <p>Short help texts in the gui should be wrapped in a p element with class ="help"</p>
     
     <h2>The Internal Message Bus</h2>
-    <p>Kaithem includes a custom internal messaging system that is accessable from user code through kaithem.message.
+    <p>Kaithem includes a custom internal messaging system that is accessable from user code through kaithem.message
+       The following topics are of note:
     However, the system also makes use of the bus in the following ways:
     
-    <h3>Error occurs in an Event</h3>
-    <p>A message will be broadcast on /system/errors/events/*module*/*event* ,where module and event are both url-encoded.
+    <h3>/system/errors/events/*module*/*event*</h3>
+    <p>Mhen an error occurs in a module,
+    A message will be broadcast on  this topic,where module and event are the relevant module and event.
     </p>
     
-    </p>
+    <h3>/system/notifications</h3>
+    <p>All messages broadcasted to this topic will appear on the front page. They should be normal text strings, and
+    should not contain any time information as they will be listed by time on the front page anyway. Care must be taken
+    not to flood the front page and thereby hide important messages. Only system-wide or major events should be logged
+    here.</p>
+    
+    
+    <h2><a id="logging" name="logging"></a>logging</h2>
+    <p>Kaithem's native logging support is based on the message bus. Anytime a message is posted to the message bus, it
+    gets stored in a "staging area". Once the number of messages in the staging area exceeds a threshold,
+    The messages in the staging area will be filtered by topic then dumped to a file. What specific topics will make it to
+    the file is configurable from the logs page, which also allows you to see the messages in the staging area. Log dumps
+    are in JSON format as one big dict of lists of messages indexed by topic, where each message is an array of
+    (timestamp,message) </p>
+    
+    <p>Log dumps will be found in kaithem/var/logs/dumps while the list of topics to save will be in kaithem/var/logs</p>
+    
     
 </div>
 	

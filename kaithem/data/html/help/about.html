@@ -60,7 +60,7 @@
             <td>${get_lan_ip()}</td>
         </tr><tr>
             <td>WAN(Public) IP</td>
-            <td>${myip.decode()}</td>
+            <td>${str(myip)}</td>
         </tr>
     </table>
 </p>
@@ -72,7 +72,7 @@
             <td>${str(newevt.averageFramesPerSecond)[:6]}</td>
         </tr>
         <tr>
-            <td>Total polled events(Exclude non-polled)</td>
+            <td>Total polled events(Exclude non-polled but include hidden system events)</td>
             <td>${str(newevt.countEvents())}</td>
         </tr>
     </table>
