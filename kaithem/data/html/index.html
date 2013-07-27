@@ -22,9 +22,7 @@ Use entirely at your own risk.</b></p>
         
         %for i in reversed(notifications.notificationslog):
         <b>${time.strftime(config['time-format'],time.localtime(i[0]))} server time:</b>
-        %if isinstance(i[2],str):
         <p>${i[2]|h}</p>
-        %endif
         <hr>
         %endfor
     </div>

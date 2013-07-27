@@ -108,7 +108,6 @@ class MessageBus(object):
         
         #A little more checking than usual here because the message bus is so central.
         #Also, if anyone implements logging they will appreciate no crap on the bus.
-        
         try:
             topic = str(topic)
         except Exception:
