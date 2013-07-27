@@ -1,0 +1,37 @@
+
+<h2> Persistance Files</h2>
+<p>Persistance files provide a way for you to store data that must be saved to disk.
+They provide an simple key value database like interface based on the idea that everything is a list.</p>
+
+<p>You acess a persistance file with the kaithem.persistance.open command.
+This command  returns a persistance file object.</p>
+
+<p>The data model of persistance files is a heirarchial key-value store where every value is a list.
+"paths" to travrse the heirarchy can either be expressed as lists of path components or as strings separated by slashes.
+paths can represent a list or a directory but not both. Lists may only contain numbers, bools, and strings.
+</p>
+
+<h3>Methods</h3>
+
+<h4>PersistanceFile.get(path, index =0, default = None</h4>
+
+<p>To read from a key, you call the get method of the object. The get method takes a path, an optional index,
+and an optional default. If the path does not exist, the default is returned if one was supplied, otherwise RuntimeError is rasied.
+If no index is supplied, the first item is returned(allowing you to use the lists like normal variables)
+</p>
+
+<h4>PersistanceFile.write(path,value)</h4>
+<p>Write a value to a list at path, replacing anything that might be there. Create a list if not present</p>
+
+<h4>PersistanceFile.append(path,value)</h4>
+<p>path must represent a list. value will be appended to the end.</p>
+
+<h4>PersistanceFile.remove(path)</h4>
+<p>Is path is a dir or list, delete it and all its contents. If it does not exist, do nothing.</p>
+
+<h4>PersistanceFile.ls(path)</h4>
+<p>Return a list of all subpaths in path, raise error if path not a directory.
+Note that another thread could modify the directory at any time.</p>
+
+<h3>Other Info</h3>
+<p>Persistance files do not need to be closed. All of their public methods are threadsafe.<
