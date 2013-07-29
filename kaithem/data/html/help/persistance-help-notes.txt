@@ -7,9 +7,11 @@ They provide an simple key value database like interface based on the idea that 
 The advantage of persistance files is that they are manageble through the web interface,
 They remain in ram until explicitly saved(Through the central save system), and can be centraly configured.</p>
 
+
 <p>If you need to store more than a Mb or so of data, you should just use a file.
 If your data is very important, and you want to avoid saving the entire server state workspace frequently,
-just use a file</p>
+just use a file. Persistance files follow the "everything in RAM" model,
+and any unsaved changes could be lost in the event of a crash or a power outage.</p>
 
 <p>You acess a persistance file with the kaithem.persistance.open command.
 This command  returns a persistance file object.</p>

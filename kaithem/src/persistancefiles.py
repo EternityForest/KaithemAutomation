@@ -1,4 +1,4 @@
-import util,json,threading,directories,os,shutil,time,pages
+import util,json,threading,directories,os,shutil,time,pages,cherrypy
 from util import url, unurl
 persistancedicts = {}
 
@@ -7,15 +7,29 @@ persistance_dict_connection_lock = threading.RLock()
 
 class WebInterface(object):
     
+    @cherrypy.expose
     def index(self):
         pages.require("/admin/persistancefiles.view")
         return pages.get_template("persistfiles/index.html").render()
     
-    def delete(self,name ):
+    @cherrypy.expose
+    def index(self):
+        pages.require("/admin/persistancefiles.view")
+        return pages.get_template("persistfiles/delete.html").render()
+    
+    
+    @cherrypy.expose
+    def deletetarget(self,**kwargs):
         pages.require("/admin/persistancefiles.edit")
+        with persistance_dict_connection_lock:
+            #If there are only two references(the one passed to getrefcount and the dit entry)
+            #That means that no user code is keeping a reference and it is not in use.
+            if sys.getrefcount(persistancedicts[kwargs['name']]) == 2:
+                del persistancedicts[kwargs['name']]
+            else:
+                raise cherrypy.HTTPRedirect("/errors/inuse")
+        
     
-    
-
 
 def loadAll():
     for i in range(0,15):
