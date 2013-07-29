@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import pages, cherrypy, util
+import pages, cherrypy, util,messagebus,config
 
 class Settings():
     @cherrypy.expose 
@@ -30,4 +30,5 @@ class Settings():
     def savetarget(self):
         pages.require("/admin/settings.edit")
         util.SaveAllState()
+        messagebus.postMessage("/system/notifications","Global server state was saved to disk")
         raise cherrypy.HTTPRedirect('/')

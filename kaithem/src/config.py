@@ -15,41 +15,43 @@
 
 import yaml,argparse,sys,os
 
-
-_argp = argparse.ArgumentParser()
-
-#Manually specify a confifuration file, or else there must be one in /etc/kaithem
-_argp.add_argument("-c")
-_argp.add_argument("-p")
-argcmd = _argp.parse_args(sys.argv[1:])
-
-_dn = os.path.dirname(os.path.realpath(__file__))
-
-#This can't bw gotten from directories or wed get a circular import
-with open(os.path.join(_dn,"../data/default_configuration.txt")) as f:
-    _defconfig = yaml.load(f)
-
-#Attempt to open any manually specified config file
-if argcmd.c:
-    with open(argcmd.c) as f:
-        _usr_config = yaml.load(f)
-        
-elif os.path.isfile("/etc/kaithem/kaithemconfig.txt"):
-    with open("/etc/kaithem/kaithem.cfg") as f:
-        _usr_config = yaml.load(f)
-        print("Loaded CFG from /etc")
-else:
-    _usr_config ={}
-    print ("No CFG File Found. Using Defaults.")
-        
-
-#Config starts out as the default but individual options
-#Can be added or overridden by the user's settings.
-config = _defconfig.copy()
-
-for i in _usr_config:
-    config[i] = _usr_cfg[i]
+def load():
+    _argp = argparse.ArgumentParser()
     
-if argcmd.p:
-    config['port'] = int(argcmd.p)
-
+    #Manually specify a confifuration file, or else there must be one in /etc/kaithem
+    _argp.add_argument("-c")
+    _argp.add_argument("-p")
+    argcmd = _argp.parse_args(sys.argv[1:])
+    
+    _dn = os.path.dirname(os.path.realpath(__file__))
+    
+    #This can't bw gotten from directories or wed get a circular import
+    with open(os.path.join(_dn,"../data/default_configuration.txt")) as f:
+        _defconfig = yaml.load(f)
+    
+    #Attempt to open any manually specified config file
+    if argcmd.c:
+        with open(argcmd.c) as f:
+            _usr_config = yaml.load(f)
+            
+    elif os.path.isfile("/etc/kaithem/kaithemconfig.txt"):
+        with open("/etc/kaithem/kaithem.cfg") as f:
+            _usr_config = yaml.load(f)
+            print("Loaded CFG from /etc")
+    else:
+        _usr_config ={}
+        print ("No CFG File Found. Using Defaults.")
+            
+    
+    #Config starts out as the default but individual options
+    #Can be added or overridden by the user's settings.
+    config = _defconfig.copy()
+    
+    for i in _usr_config:
+        config[i] = _usr_cfg[i]
+        
+    if argcmd.p:
+        config['port'] = int(argcmd.p)
+    return config
+        
+config = load()

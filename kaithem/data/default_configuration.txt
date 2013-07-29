@@ -19,8 +19,8 @@ time-format: "%A, %B %d, %Y at %l:%M:%S %p"
 #How many errors in modules and events to log before deleting old ones
 errors-to-keep: 50
 
-#How many olf system notifications on the front page to keep before getting rid of the oldest
-notifications-to-keep: 10
+#How many old system notifications on the front page to keep before getting rid of the oldest
+notifications-to-keep: 25
 
 #The URL from which to retrieve the CSS theme file
 theme-url: /static/scrapbook.css
@@ -36,3 +36,17 @@ log-dump-size: 10000
 
 #How many old log dumps to keep before deleting the oldest
 keep-log-dumps: 15
+
+#This HTML Goes into the top box on the main page. It is configurable in case a deployment wants to add branding.
+front-page-banner: |
+    <b>Kaithem is free software licensed under the GPLv3.<br>
+    Kaithem was not designed for mission critical or safety of life systems and no warranty is expressed or implied.<br>
+    Use entirely at your own risk.</b>
+
+#This HTML is used as the top banner for deployment branding 
+top-banner-html: <div id="topbanner"><h1 align="center">Kaithem Automation Server</h1></div>
+
+    
+    
+    
+    

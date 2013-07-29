@@ -3,6 +3,14 @@
 <p>Persistance files provide a way for you to store data that must be saved to disk.
 They provide an simple key value database like interface based on the idea that everything is a list.</p>
 
+<p>The intended use case for persistance files is anywhere you would ordinarily write to a file.
+The advantage of persistance files is that they are manageble through the web interface,
+They remain in ram until explicitly saved(Through the central save system), and can be centraly configured.</p>
+
+<p>If you need to store more than a Mb or so of data, you should just use a file.
+If your data is very important, and you want to avoid saving the entire server state workspace frequently,
+just use a file</p>
+
 <p>You acess a persistance file with the kaithem.persistance.open command.
 This command  returns a persistance file object.</p>
 
@@ -13,25 +21,47 @@ paths can represent a list or a directory but not both. Lists may only contain n
 
 <h3>Methods</h3>
 
-<h4>PersistanceFile.get(path, index =0, default = None</h4>
+<h4>PersistanceFile.get(path, index =0, default = None)</h4>
 
 <p>To read from a key, you call the get method of the object. The get method takes a path, an optional index,
 and an optional default. If the path does not exist, the default is returned if one was supplied, otherwise RuntimeError is rasied.
 If no index is supplied, the first item is returned(allowing you to use the lists like normal variables)
 </p>
 
+<h4>PersistanceFile.get_list(path)</h4>
+<p>
+If path points to a list, then return a copy of the entire list. Otherwise throw a fit.
+</p>
+
 <h4>PersistanceFile.write(path,value)</h4>
-<p>Write a value to a list at path, replacing anything that might be there. Create a list if not present</p>
+<p>Write a value to a list at path, replacing anything that might be there.
+If value is a atomic type(str,num,bool), path will be set to a list with value as the only element.
+If value is a list containing only atomic types, path will be set to that list.
+If value isa list with invalid types, a TypeError is raised.
+Create a list if not present.</p>
+
+<h4>PersistanceFile.write_if_missing(path,value)</h4>
+<p>Same as write(), but only writes if the path does not already exist.
+Return True if path did not exist and was written to, else return False.</p>
+
 
 <h4>PersistanceFile.append(path,value)</h4>
 <p>path must represent a list. value will be appended to the end.</p>
 
 <h4>PersistanceFile.remove(path)</h4>
-<p>Is path is a dir or list, delete it and all its contents. If it does not exist, do nothing.</p>
+<p>Is path is a dir or list, delete it and all its contents. If it does not exist, do nothing.
+Return True if path existed and was deleted, or False otherwise.</p>
+
+<h4>PersistanceFile.remove_first_match(path,value)</h4>
+<p>Remove the first item in a list that matches value and return True.
+If no match, return False and do nothing.</p>
+
+<h4>PersistanceFile.len(path)</h4>
+<p>Path must refer to a list. Returns the number of elements in the list.</p>
 
 <h4>PersistanceFile.ls(path)</h4>
 <p>Return a list of all subpaths in path, raise error if path not a directory.
 Note that another thread could modify the directory at any time.</p>
 
 <h3>Other Info</h3>
-<p>Persistance files do not need to be closed. All of their public methods are threadsafe.<
+<p>Persistance files do not need to be closed. All of their public methods are threadsafe.</p>

@@ -14,8 +14,6 @@ from collections import defaultdict
 approxtotalloggenentries = 0
 
 
-
-
 toSave = set()
 with open(os.path.join(directories.logdir,"whattosave.txt"),'r') as f:
     x = f.read()

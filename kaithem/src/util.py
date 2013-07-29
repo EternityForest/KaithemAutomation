@@ -14,7 +14,9 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import auth,modules,os,threading,copy,sys,shutil,messagelogging
+#Fix a circular import
+import  os,threading,copy,sys,shutil
+
 
 #2 and 3 have basically the same module with diferent names
 if sys.version_info < (3,0):
@@ -24,14 +26,16 @@ else:
     from urllib.parse import quote
     from urllib.parse import unquote as unurl
 
-    
+savelock = threading.RLock()
+
 def url(string):
     return quote(string,'')
 
 def SaveAllState():
-    auth.dumpDatabase()
-    messagelogging.dumpLogFile()
-    modules.saveAll()
+    with savelock:
+        auth.dumpDatabase()
+        messagelogging.dumpLogFile()
+        modules.saveAll()
     
 def ensure_dir(f):
     d = os.path.dirname(f)
@@ -120,4 +124,4 @@ def which(program):
     #If we got this far in execution, we assume the file is not there and return None
     return None
 
-
+import  auth,modules,messagelogging

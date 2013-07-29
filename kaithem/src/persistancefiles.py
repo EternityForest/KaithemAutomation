@@ -1,9 +1,20 @@
-import util,json,threading,directories,os,shutil,time
+import util,json,threading,directories,os,shutil,time,pages
 from util import url, unurl
 persistancedicts = {}
 
 #This is only used for checking if a dict already exists and creating it with defaults if not.
 persistance_dict_connection_lock = threading.RLock()
+
+class WebInterface(object):
+    
+    def index(self):
+        pages.require("/admin/persistancefiles.view")
+        return pages.get_template("persistfiles/index.html").render()
+    
+    def delete(self,name ):
+        pages.require("/admin/persistancefiles.edit")
+    
+    
 
 
 def loadAll():
@@ -59,8 +70,10 @@ def PersistanceFile(fn):
             return persistancedicts[fn]
 
 class _PersistanceFile(object):
+    "This class represents on persistance file using the pathlist API"
     def __init__(self,d):
         self.d = d
+        #This MUST be a reentrant lock because functions call other functions that also need the lock.
         self.lock = threading.RLock()
 
     def __split_path(self,path ):
@@ -99,21 +112,32 @@ class _PersistanceFile(object):
     
     def write(self,path,value):
         "Write a value to a list at path, replacing anything that might be there"
-        if not isinstance(value,(str,bool,int,float)):
-            raise TypeError("Value must be string, boolean, integer, or floating point")
+        if not isinstance(value,(str,bool,int,float,list)):
+            raise TypeError("Value must be string, boolean, integer, or floating point, or list containing only those.")
         
         with self.lock:
             path = self.__split_path(path)
             #Make all the dirs
             x = self.__make_path(path[:-1])
             #The last element of the path is the list name
-            
-            x[path[-1]] = [value] #Values are special cases of lists with one element.
+            if not isinstance(value,(list)):
+                x[path[-1]] = [value] #Values are special cases of lists with one element.
+            else:
+                for i in value:
+                    if not isinstance(i,(str,bool,int,float,list)):
+                        raise TypeError("Lists may only contain strings, bools, and floats.")
+                
+                x[path[-1]] = value
+                
     
     def write_if_missing(self, key,value):
+        #This is implemented as a guard wrapper around write
         with self.lock:
             if self.whatis(key) == None:
-                self.overwrite(key,value)
+                self.write(key,value)
+                return True
+            else:
+                return False
     
 
     def append(self,path,value):
@@ -132,7 +156,7 @@ class _PersistanceFile(object):
             else:
                 raise RuntimeError("Path must represent a list, but given path is a dir.")
             
-    def remove_by_value(self,path,value):
+    def remove_first_match(self,path,value):
         "Given a path that represents a list, remove one item by value"
         if not isinstance(value,(str,bool,int,float)):
             raise TypeError("Value must be string, boolean, integer, or floating point")
@@ -141,9 +165,14 @@ class _PersistanceFile(object):
             x = self.__resolve_path(path)
             
             if isinstance(x,list):
-                x.remove(value)
+                if value in x:
+                    x.remove(value)
+                    return True
+                else:
+                    return False
             else:
                 raise RuntimeError("path is a directory and not a list. Use rmtree to remove directories")
+            
     
     def whatis(self, path):
         "Given a path, returns none, dict, or list depending on what the path is."
@@ -174,22 +203,39 @@ class _PersistanceFile(object):
             
             else:
                 raise RuntimeError("Path refers to a directory, not a value")
+            
+    def get_list(self, path):
+        with self.lock:
+            if self.whatis(path) == list:
+                return self.__resolve_path(path)
+            else:
+                raise RuntimeError("Path must be a list")  
     
     def remove(self,path):
         with self.lock:
             try:
                 x = self.__split_path(path)
                 container = self.__resolve_path(x[:-1])
-                del container[x[-1]]        
+                del container[x[-1]]
+                return True
             except KeyError:
-                pass
+                return False
+      
+    def len(self, path):
+        with self.lock:
+            if self.whatis(path) == list:
+                return len(self.__resolve_path(path))
+            else:
+                raise RuntimeError("Path must be a list")
             
     def ls(self, path):
         with self.lock:
             if self.whatis(path) == dict:
                 return list(self.__resolve_path(path).keys())
             else:
-                raise RuntimeError("Path mumst be a directory")
+                raise RuntimeError("Path must be a directory")
+            
+
     
 class TestHook(_PersistanceFile):
        "Same, but no file connection, so it is totally testable"

@@ -15,7 +15,7 @@
 
 
 #This file handles the display of user-created pages
-import kaithemobj, modules, mako, cherrypy,util,pages,threading,directories,os
+import kaithemobj, modules, mako, cherrypy,util,pages,threading,directories,os,messagebus
 import time
 from config import config
 
@@ -128,10 +128,10 @@ class KaithemPage():
     
     #Method encapsulating one request to a user-defined page
     @cherrypy.expose
-    def page(self,module,dummy2,page,*args,**kwargs):
+    def page(self,module,dummy2,pagename,*args,**kwargs):
         global _page_list_lock
         with _page_list_lock:
-            page = _Pages[module][page]
+            page = _Pages[module][pagename]
             page.lastaccessed = time.time()
             #Check user permissions
             for i in page.permissions:
@@ -152,5 +152,11 @@ class KaithemPage():
                 #Note that we are logging to the compiled event object
                 page.errors.append([time.strftime(config['time-format']),e])
                 #Keep oly the most recent 25 errors
-                page.errors = page.errors[-(config['errors-to-keep']):]
-                raise (e)
+                
+                #If this is the first error(high level: transition from ok to not ok)
+                #send a global system messsage that will go to the front page.
+                if len(page.errors)==1:
+                    messagebus.postMessage('/system/notifications',
+                                           "Page "+pagename+" of module "+module+
+                                           " may need attention")
+                    raise (e)

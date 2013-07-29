@@ -89,8 +89,8 @@ class Kaithem():
             sound.playSound(soundfile,soundhandle)
 
         @staticmethod 
-        def stopSound(handle ):
-            sound.stopSound(handle)
+        def stopSound(soundhandle='PRIMARY'):
+            sound.stopSound(soundhandle)
 
         @staticmethod
         def stopAllSounds():
