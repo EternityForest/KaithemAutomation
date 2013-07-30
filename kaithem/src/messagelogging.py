@@ -78,12 +78,7 @@ def dumpLogFile():
         openlog = open
         messagebus.postMessage("system/notifications","Invalid config option for 'log-compress' so defaulting to no compression")
         
-    
-        
-    
-        
-    
-    
+     
     global log
     with savelock:
         temp = log
@@ -125,9 +120,6 @@ def dumpLogFile():
         
         for i in sorted(asnumbers.keys())[0:-config['keep-log-dumps']]:
             os.remove(os.path.join(where,asnumbers[i]))
-
-    
-        
    
 
 def messagelistener(topic,message):

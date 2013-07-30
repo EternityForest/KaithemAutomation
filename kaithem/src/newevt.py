@@ -59,6 +59,7 @@ run = True
 def __manager():
     temp = 0;
     framedelay = 1.0/config['max-frame-rate']
+    mindelay = config['delay-between-frames']
     global averageFramesPerSecond
     averageFramesPerSecond = 0
     #Basically loops for the lief of the app
@@ -72,7 +73,9 @@ def __manager():
                     workers.do(i.check)
                     
         #Limit the polling cycles per second to avoid CPU hogging
-        time.sleep(framedelay)
+        #Subtract the time the loop took from the delay
+        #Allow config to impose a minimum delay
+        time.sleep(max(framedelay-(time.time()-temp),mindelay))
         #smoothing filter
         averageFramesPerSecond = (averageFramesPerSecond *0.98) +   ((1/(time.time()-temp)) *0.02)
             
