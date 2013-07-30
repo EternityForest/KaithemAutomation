@@ -66,12 +66,20 @@ def __manager():
     while run:
         #Get the time at the start of the loop
         temp = time.time()
-        #If by the time we get here the queue is still half full we have a problem so slow down and let other stuff work.
-        if workers.waitingtasks() < config['task-queue-size']/2:
-            with _event_list_lock:
-                for i in _events:
-                    workers.do(i.check)
-                    
+        
+        
+        with _event_list_lock:
+            for i in _events:
+                workers.do(i.check)
+                
+            #Don't spew another round of events until the last one finishes so we don't fill up the queue
+            e = threading.Event()
+            def f():
+                e.set()
+            workers.do(f)
+            #On the of chance something odd happens, let's not wait forever.
+            e.wait(15)
+            
         #Limit the polling cycles per second to avoid CPU hogging
         #Subtract the time the loop took from the delay
         #Allow config to impose a minimum delay
