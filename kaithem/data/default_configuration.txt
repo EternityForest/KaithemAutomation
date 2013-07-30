@@ -1,7 +1,5 @@
 #Don't edit this file, it is just the system defaults. User config files can overrride any setting.
 
-
-
 ######################CORE#####################################################
 #The port on which web pages will be served
 port : 8001

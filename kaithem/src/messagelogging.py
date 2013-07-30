@@ -1,3 +1,18 @@
+#Copyright Daniel Black 2013
+#This file is part of Kaithem Automation.
+
+#Kaithem Automation is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, version 3.
+
+#Kaithem Automation is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+
 import messagebus
 import cherrypy
 import pages
@@ -9,6 +24,8 @@ import os
 import util
 import bz2
 import gzip
+import re
+from cherrypy.lib.static import serve_file
 
 from config import config
 from collections import defaultdict
@@ -127,6 +144,18 @@ def messagelistener(topic,message):
 
 messagebus.subscribe('/',messagelistener)
 
+def listlogdumps():
+    where =os.path.join(directories.logdir,'dumps')
+    logz = []
+    r = re.compile(r'^([0-9]*\.[0-9]*)\.json(\.gz|\.bz2)?$')
+    for i in util.get_files(where):
+        m = r.match(i)
+        if not m == None:
+            #Make time,fn,ext,size tuple
+            logz.append((float(m.groups('')[0]), os.path.join(where,i),m.groups('Uncompressed')[1],os.path.getsize(os.path.join(where,i))))
+    return logz
+
+
 class WebInterface(object):
     @cherrypy.expose
     def index(self, ):
@@ -154,6 +183,11 @@ class WebInterface(object):
             toSave.add(line.strip())
             
     @cherrypy.expose
+    def archive(self):
+        pages.require('/users/logs.view')
+        return pages.get_template('logging/archive.html').render(files = listlogdumps())
+            
+    @cherrypy.expose
     def viewall(self, topic):
         pages.require('/users/logs.view')
         return pages.get_template('logging/topic.html').render(topicname=topic)
@@ -162,7 +196,14 @@ class WebInterface(object):
     def clearall(self,topic):
         pages.require('/admin/logging.edit')
         log.pop(topic)
-        return pages.get_template('logging/index.html').render()  
+        return pages.get_template('logging/index.html').render()
     
-            
+    @cherrypy.expose
+    def servelog(self,filename):
+        pages.require('/users/logs.view')
+        #Make sure the user can't acess any file on the server like this
+        print(filename)
+        if not filename.startswith(os.path.join(directories.logdir,'dumps')):
+            raise RuntimeError("Security Violation")
+        return serve_file(filename, "application/x-download",os.path.split(filename)[1])
     

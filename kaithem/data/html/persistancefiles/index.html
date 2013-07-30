@@ -1,0 +1,35 @@
+<%include file="/pageheader.html"/>
+<%!
+import persistancefiles
+import time
+from util import url
+from config import config
+def formattime(x):
+    return time.strftime(config['time-format'],time.localtime(x))
+%>
+
+<h2>Recently active topics</h2>
+<div class="sectionbox">
+    <p class="menubar"><a class="button" href="/peristanefiles/delete">Delete</a></p>
+    <p class="help">This is a list of all persistance files on the server.
+    If they are no longer used you can delete them.
+    </p>
+    %for i in persistancefiles.persistancedicts:
+        ${i|h}<br>
+    %endfor
+</div>
+
+<h2>Topics to log</h2>
+<div class="sectionbox">
+    <p class="help">All topics listed here will be saves to the log dumps if log dumps are enabled.</p>
+
+    <form action='/logs/setlogging' method="post">
+    <textarea name = "txt" class="code">\
+%for i in messagelogging.toSave:
+${i+'\n'}\
+%endfor
+</textarea>
+    <input type="submit">Save Logging List</input>
+    </form>
+</div>
+<%include file="/pagefooter.html"/>

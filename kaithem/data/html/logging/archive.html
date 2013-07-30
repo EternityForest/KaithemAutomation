@@ -1,0 +1,37 @@
+<%include file="/pageheader.html"/>
+<%!
+import messagelogging
+import time
+from util import url
+from config import config
+def formattime(x):
+    return time.strftime(config['time-format'],time.localtime(x))
+%>
+
+<h2>Old log dumps</h2>
+<div class="sectionbox">
+<p class="help">
+These are old log dump files you can download. The oldest are automatically deleted once there are too many.
+</p>
+<table border=1>
+<tr><td>Time</td><td>Compression Type</td><td>File Size</td><td>Download</td></tr>
+%for i in reversed(files):
+<tr>
+<td>
+${formattime(i[0])}
+</td>
+<td>
+${i[2]|h} 
+</td>
+<td>
+${i[3]/1000|h}KB
+</td>
+<td>
+<a href="/logs/servelog/${url(i[1])}">Dowload</a>
+</td>
+</tr>
+%endfor>
+</table>
+</div>
+
+<%include file="/pagefooter.html"/>
