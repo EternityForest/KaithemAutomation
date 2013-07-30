@@ -104,10 +104,16 @@ def make_event_from_resource(module,resource):
     else:
         continual = False
         
+    if 'priority' in r:
+        priority = r['priority']
+    else:
+        priority = 1
+        
     x = Event(r['trigger'],r['action'],make_eventscope(module),
               setup = setupcode,
               continual = continual,
-              ratelimit=ratelimit)
+              ratelimit=ratelimit,
+              priority=priority)
     
     x.module = module
     x.resource =resource
@@ -134,17 +140,17 @@ def parseTrigger(when):
         
 
 #Factory function that examines the type of trigger and chooses a class to handle it.
-def Event(when,do,scope,continual=False,ratelimit=0,setup = "pass"):
+def Event(when,do,scope,continual=False,ratelimit=0,setup = "pass",priority=2):
     trigger = parseTrigger(when)
     
     if trigger[0] == '!onmsg':
-        return MessageEvent(when,do,scope,continual,ratelimit,setup)
+        return MessageEvent(when,do,scope,continual,ratelimit,setup,priority)
     
     elif trigger[0] == '!onchange':
-        return ChangeEvent(when,do,scope,continual,ratelimit,setup)
+        return ChangeEvent(when,do,scope,continual,ratelimit,setup,priority)
     
     elif trigger[0] == '!edgetrigger':
-        return PolledEvent(when,do,scope,continual,ratelimit,setup)
+        return PolledEvent(when,do,scope,continual,ratelimit,setup,priority)
 
 
 #A brief rundown on how these classes work. You have the BaseEvent, which handles registering and unregistering
@@ -168,13 +174,14 @@ class BaseEvent():
     continual: Execute as often as possible while condition remains true
     
     """
-    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass"):
+    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",priority = 2):
         #Copy in the data from args
         self.scope = scope
         self._prevstate = False
         self.ratelimit = ratelimit
         self.continual = continual
-        
+        self.countdown = 0
+        self.priority = priority
         self.runTimes = []
         
         #Compile the action and run the initializer
@@ -240,13 +247,23 @@ class BaseEvent():
     def check(self):
         #This is the function that the polling system calls to poll the event.
         #It calls a _check() function which must be defined by a subclass.
+        
+        #This is how we handle priority for now. The passing things between threads
+        #Is what really takes time polling so the few instructions extra should be well worth it
+        #Basically a countdon timer in frames that polls at zero and resets (P0 is as fast as possible)
+        if self.countdown == 0:
+            self.countdown = self.priority
+        else:
+            self.countdown -= 1
+            return
+        
         try:
             self._check()
         except Exception as e:
             self._handle_exception(e)
     
 class MessageEvent(BaseEvent):
-    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass"):
+    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
         
         #This event type is not polled. Note that it doesn't even have a check() method.
         self.polled = False
@@ -268,10 +285,10 @@ class MessageEvent(BaseEvent):
         messagebus.subscribe(t,action_wrapper)
         #Set the flag to say that register() should not register this for polling
       
-        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup)
+        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
 
 class ChangeEvent(BaseEvent):      
-    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass"):
+    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
                 #If the user tries to use the !onchanged trigger expression,
         #what we do is to make a function that does the actual checking and always returns false
         #This means it will be called every frame but the usual trigger method(which is edge triggered)
@@ -288,7 +305,7 @@ class ChangeEvent(BaseEvent):
         #This flag indicates that we have never had a reading
         self.at_least_one_reading = False
         self.polled = True
-        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup)
+        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
         
     def _check(self):
         #Evaluate the function that gives us the values we are looking for changes in
@@ -308,12 +325,12 @@ class ChangeEvent(BaseEvent):
             self._on_trigger()
 
 class PolledEvent(BaseEvent):
-    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass"):
+    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
         self.polled = True
         #Compile the trigger
         self.trigger = compile(when,"<trigger>","eval")
 
-        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup)
+        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
         
     def _check(self):
         """Check if the trigger is true and if so do the action."""            

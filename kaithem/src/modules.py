@@ -429,6 +429,7 @@ def resourceUpdateTarget(module,resource,kwargs):
             resourceobj['trigger'] = kwargs['trigger']
             resourceobj['action'] = kwargs['action']
             resourceobj['setup'] = kwargs['setup']
+            resourceobj['priority'] = max([int(kwargs['priority']),0])
             resourceobj['continual'] = 'continual' in kwargs
             resourceobj['rate-limit'] = float(kwargs['ratelimit'])
             #I really need to do something about this possibly brittle bookkeeping system

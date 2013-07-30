@@ -25,12 +25,13 @@ import util
 import bz2
 import gzip
 import re
+import workers
 from cherrypy.lib.static import serve_file
 
 from config import config
 from collections import defaultdict
 
-approxtotalloggenentries = 0
+approxtotallogentries = 0
 
 savelock = threading.RLock()
 
@@ -80,9 +81,12 @@ def dumpLogFile():
         
      
     global log
+    global approxtotallogentries
+    
     with savelock:
         temp = log
         log = defaultdict(list)
+        approxtotallogentries = 0
         #Get rid of anything that is not in the list of things to dump to the log
         temp2 = {}
         for i in toSave:
@@ -124,14 +128,16 @@ def dumpLogFile():
 
 def messagelistener(topic,message):
     global log
+    global approxtotallogentries
     if topic not in log:
         log[topic] = []
     
     log[topic].append((time.time(),message))
     #This is not threadsafe. Hence the approx.
-    approxtotalloggenentries +=1
-    if approxtotalloggenentries>config['log-dump-size']:
-        workers.do(dumpLogFile())
+    approxtotallogentries +=1
+    if approxtotallogentries > config['log-dump-size']:
+        print('dumped')
+        workers.do(dumpLogFile)
 
 
 messagebus.subscribe('/',messagelistener)
@@ -173,7 +179,19 @@ class WebInterface(object):
         for line in txt.split('\n'):
             toSave = set()
             toSave.add(line.strip())
-            
+        return pages.get_template('logging/index.html').render()
+    
+    @cherrypy.expose
+    def flushlogs(self):
+        pages.require('/admin/logging.edit')
+        return pages.get_template('logging/dump.html').render()
+    
+    @cherrypy.expose
+    def dumpfiletarget(self):
+        pages.require('/admin/logging.edit')
+        dumpLogFile()
+        return pages.get_template('logging/index.html').render()
+        
     @cherrypy.expose
     def archive(self):
         pages.require('/users/logs.view')

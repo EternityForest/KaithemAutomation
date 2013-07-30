@@ -15,7 +15,7 @@ def formattime(x):
     To log a topic, edit the text list at the bottom or click start logging.
     Log files will be dumped after a certain number of messages, or when the server state is explicitly saved.
     </p>
-    <p class="menubar"><a href="/logs/archive">Archives</a></p>
+    <p class="menubar"><a href="/logs/archive" class="button">Archives</a> | <a href="/logs/flushlogs" class="button">Flush Logs to File</a></p>
     %if messagelogging.log:
         %for i in messagelogging.log:
             %if i in messagelogging.toSave:

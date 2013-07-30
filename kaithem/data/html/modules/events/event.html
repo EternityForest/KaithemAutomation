@@ -1,6 +1,7 @@
 <%!
 from util import url
 import newevt
+from collections import defaultdict
 import traceback,time
 from config import config
 %>
@@ -70,7 +71,23 @@ ${"pass"}
          %else:
             value="0"
          %endif
-       ></input>seconds. Does not affect poll rate.<br></div>
+       ></input>seconds. Does not affect poll rate.<br>
+        <%
+        priority = defaultdict(str)
+        if 'priority' in event:
+            priority[event['priority']] = 'selected="selected"'
+        else:
+            priority[2] = 'selected="selected"'
+        %>
+       Polling Priority(to reduce CPU usage, use the lowest possible rate):<select name="priority">
+        <option value=0 ${priority[0]}>Realtime(as fast as possible)</option>
+        <option value=2 ${priority[2]}>Interactive(no noticable delay in response)</option>
+        <option value=15 ${priority[15]}>High(response within a second)</option>
+        <option value=150 ${priority[150]}>Low(response within a minute)</option>
+        </select>
+
+</div>
+
 <h3>Action</h3>
 <p class="help">
 This code will be executed when the trigger condition is met.
