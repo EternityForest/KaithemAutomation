@@ -5,7 +5,12 @@
 port : 8001
 
 #The directory in which certificate.cert and certificate.key, used for the SSL, are to be found.
+#Relative to the site-data-dir(or use an absolute path)
 ssl-dir : ssl
+
+#The directory in which to store persistant state such as users,groups,modules,settings,etc
+#Relative to kaithem/ or use an absolute path
+site-data-dir: var
 
 #How many threads to allocate for the worker thread pool
 worker-threads: 30
@@ -23,7 +28,6 @@ max-frame-rate: 24
 
 #A minimum delay between frames even if less would be required to maintain the frame rate.
 delay-between-frames : 0.012
-
 
 ##################LOGGING######################################################
 #Notice: to actually control what topics are logged, use the kaithem/var/whattosave.txt or edit

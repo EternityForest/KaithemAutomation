@@ -19,16 +19,15 @@ You can also use python2 if you really want.
 
 Command line options:
     "-c"
-        Supply a specific configuration file. Otherwise looks for /etc/kaithem/kaithemconfig.txt
-        And falls back to the default if that is not found. Anything not specified in the config
-        Reverts to default. The files are YAML, see kaithem/data/default_configuration.txt for info
+        Supply a specific configuration file. Otherwise uses default. Any option not found in supplied file
+        Reverts to default the files are YAML, see kaithem/data/default_configuration.txt for info on options.
         
     "-p"
         Specify a port. Overrides all config stuff.
 
 
 Then point your browser to https://localhost:<yourport> (default port is 8001)
-
+and log in with Username:admin Password:password
 
 It will give you a security warning, that the SSL certificate name is wrong,
 ignore if you are just playing around, use real SSL keys otherwise.
