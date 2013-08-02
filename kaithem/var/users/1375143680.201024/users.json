@@ -30,20 +30,15 @@
             ],
             "password": "__none__",
             "username": "__guest__"
+
         },
         "admin": {
             "groups": [
                 "Administrators"
             ],
-            "password": "password",
-            "username": "admin"
-        },
-        "guest": {
-            "groups": [
-                "Guests"
-            ],
-            "password": "none",
-            "username": "guest"
+            "password": "XohImNooBHFR0OVvjcYpJ3NgPQ1qq73WKhHvch0VQtg=",
+            "username": "admin",
+            "salt": ""
         }
     }
 }

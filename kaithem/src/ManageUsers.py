@@ -67,8 +67,7 @@ class ManageAuthorization():
         #BECAUSE QUOTE() IS USUALLY WHERE THEY CRASH. #AWFULHACK
         quote(kwargs['username'])
         pages.require("/admin/users.edit")
-        #create the new user
-        
+        #create the new user     
         auth.addUser(kwargs['username'],kwargs['password'])
         #Take the user back to the users page
         raise cherrypy.HTTPRedirect("/auth/")
@@ -89,7 +88,9 @@ class ManageAuthorization():
     @cherrypy.expose
     #handler for the POST request to change user settings
     def updateuser(self,user,**kwargs):
-    
+        
+        if not kwargs['password'] == kwargs['password2']:
+            raise RuntimeError('passwords must match')
         #THIS IS A HACK TO PREVENT UNICODE STRINGS IN PY2.XX FROM GETTING THROUGH
         #BECAUSE QUOTE() IS USUALLY WHERE THEY CRASH. #AWFULHACK
         quote(kwargs['username'])
@@ -104,8 +105,9 @@ class ManageAuthorization():
             if i[:5] == 'Group':
                 if kwargs[i] == 'true':
                     auth.addUserToGroup(user,i[5:])
-                    
-        auth.changePassword(user,kwargs['password'])
+        if not kwargs['password'] =='':
+            auth.changePassword(user,kwargs['password'])
+            
         auth.changeUsername(user,kwargs['username'])
         #Take the user back to the users page
         raise cherrypy.HTTPRedirect("/auth")
@@ -133,7 +135,6 @@ class ManageAuthorization():
         return pages.get_template("auth/user.html").render(
         usergroups=auth.Users[username]['groups'],
         groups= sorted(auth.Groups.keys()),
-        password = auth.Users[username]['password'],
         username = username)
             
     #Settings page for one individual group    

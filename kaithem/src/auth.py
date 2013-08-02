@@ -32,6 +32,9 @@ import util
 import directories
 import time
 import shutil
+import hashlib
+import base64
+import sys
 #These are the "built in" permissions required to control basic functions
 #User code can add to these
 BasePermissions = {
@@ -72,11 +75,28 @@ def changeUsername(old,new):
     Users[new]['username'] = new
     
 def changePassword(user,newpassword):
-    Users[user]['password'] = newpassword
+    salt = os.urandom(16)
+    salt64 = base64.b64encode(salt)
+    #Python is a great language. But sometimes I'm like WTF???
+    #Base64 should never return a byte string. The point of base64 is to store binary data
+    #as normal strings. So why would I ever want a base64 value stores as bytes()?
+    #Anyway, python2 doesn't do that, so we just decode it if its new python.
+    if sys.version_info > (3,0):
+        salt64 = salt64.decode("utf8")
+    Users[user]['salt'] = salt64
+    m = hashlib.sha256()
+    m.update(bytes(newpassword,'utf8'))
+    m.update(salt)
+    p = base64.b64encode(m.digest())
+    if sys.version_info > (3,0):
+        p = p.decode("utf8")
+    Users[user]['password'] = p
+    
     
 def addUser(username,password):
     if not username in Users: #stop overwriting attempts
-        Users[username] = User({'password':password,'username':username,'groups':[]})
+        Users[username] = User({'username':username,'groups':[]})
+        changePassword(username,password)
         
 def removeUser(user):
     x =Users.pop(user)
@@ -117,11 +137,54 @@ def initializeAuthentication():
         #__COMPLETE__ is a special file we write to the dump directory to show it as valid
         if '''__COMPLETE__''' in util.get_files(possibledir):
             try:
-               f = open(os.path.join(possibledir,'users.json'))
-               temp = json.load(f)
-               f.close()
+                f = open(os.path.join(possibledir,'users.json'))
+                temp = json.load(f)
+                f.close()
             except:
-               temp = {'users':{},'groups':{}}
+                p = "same"
+                p2 = "different"
+                while not p == p2:
+                    p = "same"
+                    p2 = "different"
+                    p = input("No users list found. Account 'admin' created. Choose password:")
+                    p2 = input("Reenter Password:")
+                    if not p==p2:
+                        print("password mismatch")
+                        
+                m = hashlib.sha256()
+                r = os.urandom(16)
+                r64 = base64.b64encode(r)
+                m.update(p)
+                m.update(r)
+                pwd = base64.b64encode(m)
+                
+                temp = {
+                        "groups": {
+                            "Administrators": {
+                                "permissions": [
+                                    "/admin/settings.edit",
+                                    "/admin/logging.edit",
+                                    "/admin/users.edit",
+                                    "/users/pagelisting.view",
+                                    "/admin/modules.edit",
+                                    "/admin/settings.view",
+                                    "/admin/mainpage.view",
+                                    "/users/logs.view",
+                                    "/admin/modules.view"
+                                ]
+                            }
+                        },
+                        "users": {
+                            "admin": {
+                                "groups": [
+                                    "Administrators"
+                                ],
+                                "password": pwd,
+                                "username": "admin",
+                                "salt": r64
+                            }
+                        }
+                    }
                
             global Users
             Users = temp['users']
@@ -141,7 +204,6 @@ def initializeAuthentication():
             #To an interruption, rename it and try again
             shutil.copytree(possibledir,os.path.join(directories.usersdir,name+"INCOMPLETE"))
             shutil.rmtree(possibledir)
-    
                 
 def generateUserPermissions(username = None):
     #TODO let you do one user at a time
@@ -158,16 +220,20 @@ def generateUserPermissions(username = None):
             Tokens[Users[i].token] = Users[i]
                 
 def userLogin(username,password):
-    """return a base64 authentication token on sucess or return False on failure"""  
+    """return a base64 authentication token on sucess or return False on failure"""
     if  username in Users:
-        if Users[username]['password'] == password:
+        m = hashlib.sha256()
+        m.update(bytes(password,'utf8'))
+        print(Users[username]['salt'])
+        m.update(base64.b64decode(Users[username]['salt'].encode('utf8')  ))
+        m = m.digest()
+        if base64.b64decode(Users[username]['password'].encode('utf8')) == m:
             #We can't just always assign a new token because that would break multiple
             #Logins as same user
             if not hasattr(Users[username],'token'):
                 assignNewToken(username)
             return (Users[username].token)
     return "failure"
-
 def checkTokenPermission(token,permission):
     """return true if the user associated with token has the permission"""
     if token in Tokens:

@@ -35,9 +35,8 @@ ignore if you are just playing around, use real SSL keys otherwise.
 
 Look at the help section and the examples module, there is a lot more documentation built into the system.
 
-
 If you are really going to use this you must change the ssl keys in /ssl to something actually secret.
-Don't use any important passwords because they are stil stored in plaintext(working on it!)
+
 
 License Terms
 =============
