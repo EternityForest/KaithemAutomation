@@ -12,7 +12,6 @@ Installation
 ============
 
 All dependancies should already be included. Huge thanks to the developers of Mako, cherrypy, ace code editor, and pyYAML
-Self-Contained(portable)
 
 git clone or download somewhere and run python3 kaithem/kaithem.py
 You can also use python2 if you really want.

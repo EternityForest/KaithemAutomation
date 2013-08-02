@@ -128,7 +128,7 @@ class KaithemPage():
     
     #Method encapsulating one request to a user-defined page
     @cherrypy.expose
-    def page(self,module,dummy2,pagename,*args,**kwargs):
+    def default(self,module,pagename,*args,**kwargs):
         global _page_list_lock
         with _page_list_lock:
             page = _Pages[module][pagename]
@@ -145,7 +145,9 @@ class KaithemPage():
                 return page.template.render(
                    kaithem = kaithemobj.kaithem,
                    request = cherrypy.request,
-                   module = modules.scopes[module]
+                   module = modules.scopes[module],
+                   path = args,
+                   kwargs = kwargs
                    )
             except Exception as e:
                 #When an error happens, log it and save the time

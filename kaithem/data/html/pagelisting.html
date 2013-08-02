@@ -7,7 +7,7 @@
     <h3>${i}</h3>
     %for j in sorted(modules[i].keys()):
         %if modules[i][j]['resource-type'] =='page':
-            <a href="/pages/page/${url(i)}/page/${url(j)}">${j|h}</a></br>
+            <a href="/pages/${url(i)}/${url(j)}">${j|h}</a></br>
         %endif
     %endfor
 %endfor

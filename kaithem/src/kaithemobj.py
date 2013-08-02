@@ -23,6 +23,8 @@ import threading
 import random
 import sound
 import messagebus
+import util
+import cherrypy
 
 class Kaithem():
     @staticmethod
@@ -77,23 +79,43 @@ class Kaithem():
         def shellexbg(cmd):
             subprocess.Popen(cmd,shell=True)
             
+        @staticmethod
+        def lsdirs(path):
+            return util.get_immediate_subdirectories(path)
+            
+        @staticmethod  
+        def lsfiles(path):
+            return util.get_files(path)
+        
+        
+            
     class web(object):
         @staticmethod
-        def urlForPage(module,page):
-            return "/pages/page/"+url(i)+'/page/'+url(j)
+        def unurl(s):
+            return util.unurl(s)
+        
+        def url(s):
+            return util.url(s)
+        
+        
+        @staticmethod
+        def goBack():
+            raise cherrypy.HTTPRedirect(cherrypy.request.header['referer'])
+        
+        
     
     class sound(object):
 
         @staticmethod
-        def playSound(soundfile, soundhandle='PRIMARY'):
+        def play(soundfile, soundhandle='PRIMARY'):
             sound.playSound(soundfile,soundhandle)
 
         @staticmethod 
-        def stopSound(soundhandle='PRIMARY'):
+        def stop(soundhandle='PRIMARY'):
             sound.stopSound(soundhandle)
 
         @staticmethod
-        def stopAllSounds():
+        def stopAll():
             sound.stopAllSounds()
         
         

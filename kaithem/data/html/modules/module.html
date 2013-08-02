@@ -62,7 +62,7 @@ Pages are rendered using the Mako templating engine.
 		<li>
             <h4>${i|h}</h4>
             <p>
-                 <a href="/pages/page/${url(name)}/page/${url(i)}">Go to page</a>|
+                 <a href="/pages/${url(name)}/${url(i)}">Go to page</a>|
                  <a href="/modules/module/${url(name)}/resource/${url(i)}">Edit Page</a>
             </p>
         </li>

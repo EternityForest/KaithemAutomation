@@ -58,6 +58,8 @@
 	and if desired the python cod may have side effects, allowing a wide variety of web servicies, information displays, and control panels to be created using only kaithem's page system.</p>
 	
 	<p>Acess to pages is controlled through kaithem's permission system, and any page may require one or more permissions to acess. New Permissions can be defined as module resources.</p>
+    
+    <p>Every user-created page has an URL of the form /pages/MODULENAME/PAGENAME</p>
 	
 	<p>Unlike events, the page-local scope does not persist between calls</p>
 	
@@ -137,15 +139,15 @@
     
     
     <h3>kaithem.sound</h3>
-    <h4>kaithem.playSound(filename,handle)</h4>
+    <h4>kaithem.play(filename,handle)</h4>
     <p>If you have the free mpg123 sound player installed, play the file, otherwise do nothing.
     The handle parameter lets you name the new sound instance to stop it later. If you try to play a sound under
     the same handle as a stil-playing sound, the old one will be stopped. Defaults to PRIMARY.</p>
     
-    <h4>kaithem.stopSound(handle)</h4>
+    <h4>kaithem.stop(handle)</h4>
     <p>Stop a sound by handle. Defaults to PRIMARY.</p>
     
-    <h4>kaithem.stopAllSounds(handle)</h4>
+    <h4>kaithem.stopAll(handle)</h4>
     <p>Stop all currently playing sounds.</p>
     
     <h3>kaithem.message</h3>
@@ -166,8 +168,15 @@
     </p>
     
     <h3>kaithem.web</h3>
-    <h4>kaithem.web.urlForPage(module,page)</h4>
-    <p>Given a page's resource name and containing module, return its URL.</p>
+    
+    <h4>kaithem.web.unurl(url)</h4>
+    <p>Decode an URL enoded string.</p>
+    
+    <h4>kaithem.web.goBack()</h4>
+    <p>When called from code embedded in an HTML page,
+    raises an interrupt causing an HTTP redirect to the previous page to be sent.
+    Useful for when you have a page that is only used for it's side effects.
+    </p>
     
     <h2><a id="theming" name="theming"></a>Theming</h2>
     <p>The following conventions are used for consistancy in kaithem CSS.
