@@ -50,7 +50,15 @@ These extra settings let you control the display or permissions of the page
             %endif
          %endif
        ></input>Don't add any additional content(raw plaintext/webservice mode)<br>
-  
+       
+<input type="checkbox"  name="dont-show-in-index" value="true"
+         %if 'dont-show-in-index' in page:
+            %if page['dont-show-in-index'] == True:
+            checked="yes"
+            %endif
+         %endif
+       ></input>Don't show this page in the page index<br>
+       
 <input type="checkbox"  name="allow-GET" value="true"
          %if 'require-method' in page:
             %if 'GET' in page['require-method']:

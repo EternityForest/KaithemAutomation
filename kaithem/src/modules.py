@@ -439,7 +439,8 @@ def resourceUpdateTarget(module,resource,kwargs):
         if t == 'page':
             resourceobj['body'] = kwargs['body']
             resourceobj['no-navheader'] = 'no-navheader' in kwargs
-            resourceobj['no-header'] = 'no-header' in kwargs       
+            resourceobj['no-header'] = 'no-header' in kwargs
+            resourceobj['dont-show-in-index'] = 'dont-show-in-index' in kwargs
             #Method checkboxes
             resourceobj['require-method'] = []
             if 'allow-GET' in kwargs:

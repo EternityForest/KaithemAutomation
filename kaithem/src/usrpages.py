@@ -150,6 +150,10 @@ class KaithemPage():
                    kwargs = kwargs
                    )
             except Exception as e:
+                #The HTTPRedirect is NOT an error, and should not be handled like one.
+                #So we just reraise it unchanged
+                if isinstance(e,cherrypy.HTTPRedirect):
+                    raise e
                 #When an error happens, log it and save the time
                 #Note that we are logging to the compiled event object
                 page.errors.append([time.strftime(config['time-format']),e])

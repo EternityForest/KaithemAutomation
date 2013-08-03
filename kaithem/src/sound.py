@@ -24,7 +24,8 @@ class SoundWrapper(object):
     #little known fact: Kaithem is actually a large collection of
     #mini garbage collectors and bookkeeping code...
     def deleteStoppedSounds(self):
-        for i in list(self.runningSounds.keys()):
+        x = list(self.runningSounds.keys())
+        for i in x:
             try:
                 if not self.runningSounds[i].playing():
                     self.runningSounds.pop(i)

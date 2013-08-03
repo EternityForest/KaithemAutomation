@@ -100,7 +100,7 @@ class Kaithem():
         
         @staticmethod
         def goBack():
-            raise cherrypy.HTTPRedirect(cherrypy.request.header['referer'])
+            raise cherrypy.HTTPRedirect(cherrypy.request.headers['Referer'])
         
         
     
