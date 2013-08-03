@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import cherrypy, auth ,pages
+import cherrypy, auth ,pages,messagebus
 from util import quote
 
 class ManageAuthorization():
@@ -70,6 +70,7 @@ class ManageAuthorization():
         #create the new user     
         auth.addUser(kwargs['username'],kwargs['password'])
         #Take the user back to the users page
+        messagebus.postMessage('/system/notifications','New user "'+kwargs['username']+'" added')
         raise cherrypy.HTTPRedirect("/auth/")
             
         

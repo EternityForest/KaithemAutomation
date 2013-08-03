@@ -8,11 +8,13 @@ import auth
 
 <%!
 def canIGoToThisPage(page):
-    if not 'require-permissions' in page:
-        return True
     if 'dont-show-in-index' in page:
         if page['dont-show-in-index'] == True:
             return False
+            
+    if not 'require-permissions' in page:
+        return True
+
     else:
         if (not 'auth' in cherrypy.request.cookie) or cherrypy.request.cookie['auth'].value not in auth.Tokens:
             return False

@@ -43,7 +43,7 @@ def load():
     config = _defconfig.copy()
     
     for i in _usr_config:
-        config[i] = _usr_cfg[i]
+        config[i] = _usr_config[i]
         
     if argcmd.p:
         config['port'] = int(argcmd.p)

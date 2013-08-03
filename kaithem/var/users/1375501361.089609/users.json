@@ -1,0 +1,44 @@
+{
+    "groups": {
+        "Administrators": {
+            "permissions": [
+                "/admin/settings.edit",
+                "/admin/logging.edit",
+                "/admin/users.edit",
+                "/users/pagelisting.view",
+                "/admin/modules.edit",
+                "/admin/settings.view",
+                "/admin/mainpage.view",
+                "/users/logs.view",
+                "/admin/modules.view"
+            ]
+        },
+        "Guests": {
+            "permissions": [
+                "/users/pagelisting.view",
+                "/admin/settings.view",
+                "/admin/mainpage.view",
+                "/evilbook/book.open",
+                "/admin/modules.view"
+            ]
+        }
+    },
+    "users": {
+        "__guest__": {
+            "groups": [
+                "Guests"
+            ],
+            "password": "V+hZrbd22NjvNwvQAfwOAzLrudfX/+SMuddMmetm0Vk=",
+            "salt": "AtTjOSUQyNFoklVv+i8Lbw==",
+            "username": "__guest__"
+        },
+        "admin": {
+            "groups": [
+                "Administrators"
+            ],
+            "password": "XohImNooBHFR0OVvjcYpJ3NgPQ1qq73WKhHvch0VQtg=",
+            "salt": "",
+            "username": "admin"
+        }
+    }
+}

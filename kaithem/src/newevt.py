@@ -192,6 +192,10 @@ class BaseEvent():
         self.priority = priority
         self.runTimes = []
         
+        #Tese are only used for debug messages, but still someone should set them after they make the object
+        self.module = "UNKNOWN"
+        self.resource = "UNKNOWN"
+        
         #Compile the action and run the initializer
         self.action = compile(do,"<action>","exec")
         initializer = compile(setup,"<setup>","exec")
