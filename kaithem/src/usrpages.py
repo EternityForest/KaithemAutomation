@@ -154,6 +154,12 @@ class KaithemPage():
                 #So we just reraise it unchanged
                 if isinstance(e,cherrypy.HTTPRedirect):
                     raise e
+                
+                #The way we let users securely serve static files is to simply
+                #Give them a function that raises this special exception
+                if isinstance(e,kaithemobj.ServeFileInsteadOfRenderingPageException):
+                    return cherrypy.lib.static.serve_file(e.f_filepath,e.f_MIME,e.f_name)
+                    
                 #When an error happens, log it and save the time
                 #Note that we are logging to the compiled event object
                 page.errors.append([time.strftime(config['time-format']),e])

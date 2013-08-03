@@ -112,7 +112,11 @@ class webapproot():
     @cherrypy.expose 
     def docs(self,*path,**data):
         return pages.get_template('help/help.html').render()
-        
+    
+    @cherrypy.expose 
+    def makohelp(self,*path,**data):
+        return pages.get_template('help/makoreference.html').render()
+    
     @cherrypy.expose 
     def about(self,*path,**data):
         return pages.get_template('help/about.html').render(myip = MyExternalIPAdress)
@@ -164,6 +168,9 @@ cherrypy.config["tools.encode.encoding"] = "utf-8"
 cherrypy.config["tools.decode.on"] = True
 cherrypy.config["tools.decode.encoding"] = "utf-8"
 
+
+    
+
 conf = {
         '/static':
         {'tools.staticdir.on': True,
@@ -175,6 +182,18 @@ conf = {
         'tools.caching.delay' : 3600
         }
         }
+#Let the user create additional static directories
+for i in config['serve-static']:
+    if i not in conf:
+        conf["/usr/static/"+i]= {'tools.staticdir.on': True,
+        'tools.staticdir.dir': config['serve-static'][i],
+        'tools.expires.on' : True,
+        'tools.expires.secs' : 1000,
+        "tools.sessions.on": False,
+        'tools.caching.on' : True,
+        'tools.caching.delay' : 3600
+        }
+
 cherrypy.config.update(server_config)
 
 messagebus.postMessage('/system/startup','System Initialized')

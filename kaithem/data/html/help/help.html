@@ -1,3 +1,8 @@
+<style type="text/css">
+h2{background-color: rgba(200,255,220,0.4);}
+h3{margin-top:1em !important;margin-bottom: 1em !important; background-color: rgba(255,255,255,0.3);}
+h4{margin-top:0.5em !important; margin-bottom: 0.5em !important;background-color: rgba(220,220,220,0.25);}
+</style>
 <%include file="/pageheader.html"/>
 	<title>Kaithem Help</title>
     <h1>Kaithem Help</h1>
@@ -33,7 +38,7 @@
 	<em>action</em>.A trigger can be a python expression that when the return value goes from False to True(edge triggered), the <em>Action</em>, which is simply a python script, executes.
 	</p>
 	
-    <p>A trigger can also be a </a><b>Special Trigger Expression</b></a>.
+    <p>A trigger can also be a<b>Special Trigger Expression</b>.
     
     Trigger expressions begin with an exclamation point and provide functionality that would be cumbersome with a python statement.</p>
     
@@ -55,7 +60,7 @@
 	<h2><a id="pages" name="pages"></a>Pages:</h2>
 	<p>Kaithem allows users with the appropriate permissions to create user-defined pages. User defined pages are written in HTML and may contain embedded mako template code. Every page is a resource of a module.
 	Mako is a simple templating language allowing you to embed server-side python in HTML code. Python code in user defined pages has access to the kaithem object(see below) and
-	and if desired the python cod may have side effects, allowing a wide variety of web servicies, information displays, and control panels to be created using only kaithem's page system.</p>
+	and if desired the python code may have side effects, allowing a wide variety of web servicies, information displays, and control panels to be created using only kaithem's page system.</p>
 	
 	<p>Acess to pages is controlled through kaithem's permission system, and any page may require one or more permissions to acess. New Permissions can be defined as module resources.</p>
     
@@ -107,6 +112,7 @@
        Be careful, as the kaithem namespace is truly global.
     </p>
     
+
     <h3>kaithem.misc</h3>
     
     <h4>kaithem.misc.lorem()</h4>
@@ -115,7 +121,7 @@
     
     <h4>kaithem.misc.do(function):</h4>
     <p>Executes a function of no arguments in the background using kaithem's thread pool. Any uncaught errors are simply ignored</p>
-   
+  
    
     <h3>kaithem.time</h3>
     
@@ -129,7 +135,6 @@
     <h4>kaithem.time.day()</h4>
     <p>returns the day of the month.</p>
     
-    
     <h3>kaithem.sys</h3>
     <h4>kaithem.sys.shellex(cmd)</h4>
     <p>Run a command in the system's native shell and return the output.</p>
@@ -137,24 +142,33 @@
     <h4>kaithem.sys.shellexbg(cmd)</h4>
     <p>Run a command in the system's native shell in the background and ignore the output and return codes.</p>
     
+    <h4>kaithem.sys.lsfiles(path)</h4>
+    <p>List all files under path on the server.</p>
     
+    <h4>kaithem.sys.lsdirs(path)</h4>
+    <p>List all directories under path on the server.</p>
+    
+    <h4>kaithem.sys.which(exe)</h4>
+    <p>Similar to the unix which command. Returns the path to the program that will be called for a given
+    command in the comand line, or None if there is no such program</p>
+
     <h3>kaithem.sound</h3>
     <h4>kaithem.play(filename,handle)</h4>
     <p>If you have the free mpg123 sound player installed, play the file, otherwise do nothing.
     The handle parameter lets you name the new sound instance to stop it later. If you try to play a sound under
     the same handle as a stil-playing sound, the old one will be stopped. Defaults to PRIMARY.</p>
     
-    <h4>kaithem.stop(handle)</h4>
+    <h4>kaithem.sound.stop(handle)</h4>
     <p>Stop a sound by handle. Defaults to PRIMARY.</p>
     
-    <h4>kaithem.stopAll(handle)</h4>
+    <h4>kaithem.sound.stopAll(handle)</h4>
     <p>Stop all currently playing sounds.</p>
-    
+ 
     <h3>kaithem.message</h3>
     <h4>kaithem.message.postMessage(topic,message)</h4>
     <p>Post a message to the internal system-wide message bus. Message MUST be a JSON serializable object.
-    i.e True/false, numbers, strings, lists, and dictionaries only. Message topics are hierarchial, delimited by forward
-    slashes, and the root directory is /. However /foo is equivalent to foo.<br>
+    i.e True/false, numbers, strings, lists, and dictionaries only. Message topics are hierarchial, delimited
+    by forward slashes, and the root directory is /. However /foo is equivalent to foo.<br>
     </p>
     
     <h4>kaithem.message.subscribe(topic,callback)</h4>
@@ -166,8 +180,10 @@
     the callback will be garbage collected and auto-unsubscribed.
     This is also how you unsubscribe.
     </p>
-    
     <h3>kaithem.web</h3>
+    
+    <h4>kaithem.web.url(url)</h4>
+    <p>URL enode a string.</p>
     
     <h4>kaithem.web.unurl(url)</h4>
     <p>Decode an URL enoded string.</p>
@@ -176,6 +192,12 @@
     <p>When called from code embedded in an HTML page,
     raises an interrupt causing an HTTP redirect to the previous page to be sent.
     Useful for when you have a page that is only used for it's side effects.
+    </p>
+    
+    <h4><a id="servefile" name="servefile"></a>kaithem.web.serveFile(path,contenttype,name = path)</h4>
+    <p>When called from code embedded in an HTML page,raises an interrupt causing the server to skip rendering
+    the current page and instead serve a static file.
+    Useful when you need to serve a static file and also need to restrict acess to it with permissions.
     </p>
     
     <h2><a id="theming" name="theming"></a>Theming</h2>
@@ -213,7 +235,7 @@
     here.</p>
     
     
-    <h2><a id="logging" name="logging"></a>logging</h2>
+    <h2><a id="logging" name="logging"></a>Logging</h2>
     <p>Kaithem's native logging support is based on the message bus. Anytime a message is posted to the message bus, it
     gets stored in a "staging area". Once the number of messages in the staging area exceeds a threshold,
     The messages in the staging area will be filtered by topic then dumped to a file. What specific topics will make it to
@@ -223,6 +245,61 @@
     
     <p>Log dumps will be found in kaithem/var/logs/dumps while the list of topics to save will be in kaithem/var/logs</p>
     
+    <h2>FAQ</h2>
+    
+    <h3>My data is not being saved to the log files! Help!</h3>
+    <p>Kaithem only saves topics to the hard drive if they are in the list of things to save. Go to the     logging page and select the channels you are interested in.</p>
+    
+    <h3>How do I make an event that triggers at a certain time?</h3>
+    <p>To make an event that goes off at Noon, simply create a normal event and set the trigger to
+    "kaithem.time.hour() == 12"</p>
+    
+    
+    <h3><a id="static" name="static"></a>How do I tell Kaithem to serve a static file?</h3>
+    <p> Add something like this to your configuration file
+
+<pre>
+serve-static:
+    images: /home/piper/My Pictures
+</pre>
+    Now the url /usr/static/images/page.jpg will point to the file /home/piper/My Pictures/page.jpg<br>
+    All user-created static directories are mounted under /usr/static.
+    Be VERY careful what you choose to serve statically, because anyone will be able to access them.
+    If you need a secure way to serve a file, you are better off creating a page with the appropriate permissions, and using <a href="#servefile">kaithem.web.serveFile()</a>
+    </p>
+    
+    <h3>I am getting "permission denied" errors</h3>
+    <p>You don't have permission to access that page. 
+    If you are admin, go to the authorization page and give yourself that permission.</p>
+    
+    <h3>Can I customize Kaithem's appearance for my specific deployment?</h3>
+    <p>Certainly! Kaithem was designed with theming and customization in mind from the start.
+        You will probably want to do some or all of the following.
+        
+        <h4>Change the Top Banner</h4>
+        <p>Changing the top banner is pretty simple. All you need to do is add a line in your configuration file like:
+<pre>
+top-banner-html: |
+    &ltdiv id="topbanner"&gt&lth1 align="center"&gtYOUR TEXT HERE&lt/h1&gt&lt/div&gt    
+</pre>
+Of course, you can add whatever HTML you like, this is just an example. You can even add images(see "<a href="#static">How do I tell Kaithem to serve a static file?</a>")
+    </p>
+        
+        <h4>Changing the front page text</h4>
+        <p>This is equally easy. The top box on the front page is fully customizable. the front-page-banner attribute in your config file can contain any HTML. The default is:
+        
+<pre>
+    front-page-banner: |
+    &ltb&gtKaithem is free software licensed under the GPLv3.&ltbr&gt
+    Kaithem was not designed for mission critical or safety of life systems and no warranty is expressed
+    or implied.&ltbr&gt Use entirely at your own risk.&lt/b&gt
+</pre>
+        </p>    
+    
+    <h4>Change the actual CSS theme</h4>
+    <p>This is a bit harder. The default CSS file is called scrapbook.css, found in /kaithem/data/static.
+    What you will need to do is to create a new theme file, serve it as a static file, and then use the     "theme-url" option in your config file to point to the new theme. You will likely just want to modify the existing scrapbook.css because it is a 100+ line file and there are some things that don't quite look right with the browser defaults.
+    </p>
     
 </div>
 	

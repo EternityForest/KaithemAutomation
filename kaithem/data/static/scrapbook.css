@@ -85,9 +85,10 @@ background-color: #ddd; color: #ddd;
 height: 1px;
 }
 
-h3{margin:3px;}
-h4{margin:3px;}
-h5{margin:3px;}
+
+h3{margin-top:0.3em;margin-bottom: 0.3em}
+h4{margin-top:0.3em; margin-bottom: 0.3em}
+h5{margin:8px;}
 
 a{
 background-color:rgba(255,255,255,0.2); 
@@ -145,7 +146,15 @@ input:hover{
 background-color:#E6F6B8;
 }
 
+span.pre
+{
+    background-color: rgba(255,255,255,0.3);
+}
 
+pre
+{
+    background-color: rgba(255,255,255,0.3);
+}
 /*
 h1{
 color:#170E00;

@@ -29,6 +29,11 @@ max-frame-rate: 24
 #A minimum delay between frames even if less would be required to maintain the frame rate.
 delay-between-frames : 0.012
 
+#Serve additional directories of static files
+#Must be a dict mapping names to directories on the server's disk.
+#The directory will be mounted under /site/static/NAME on the URL path
+serve-static: {}
+
 ##################LOGGING######################################################
 #Notice: to actually control what topics are logged, use the kaithem/var/whattosave.txt or edit
 #through th web interface

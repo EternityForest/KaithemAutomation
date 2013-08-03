@@ -26,6 +26,11 @@ import messagebus
 import util
 import cherrypy
 
+#This exception is what we raise rom within the page handler to serve a static file
+class ServeFileInsteadOfRenderingPageException(Exception):
+    pass
+
+
 class Kaithem():
     @staticmethod
     class misc(object):
@@ -87,22 +92,35 @@ class Kaithem():
         def lsfiles(path):
             return util.get_files(path)
         
+        @staticmethod
+        def which(exe):
+            return util.which(exe)
         
+    
             
     class web(object):
         @staticmethod
         def unurl(s):
             return util.unurl(s)
         
+        @staticmethod
         def url(s):
             return util.url(s)
-        
         
         @staticmethod
         def goBack():
             raise cherrypy.HTTPRedirect(cherrypy.request.headers['Referer'])
         
-        
+        @staticmethod
+        def serveFile(path, contenttype = "",name = None):
+            "Skip the rendering of the current page and Serve a static file instead."
+            if name == None:
+                name = path
+            e = ServeFileInsteadOfRenderingPageException()
+            e.f_filepath = path
+            e.f_MIME = contenttype
+            e.f_name = name
+            raise e
     
     class sound(object):
 
