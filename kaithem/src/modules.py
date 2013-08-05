@@ -43,6 +43,9 @@ ActiveModules = {}
 #a module
 scopes ={}
 
+#Thismust be set to true by anything that changesthe modules list
+moduleschanged = False
+
 class obj(object):
     pass
 
@@ -51,6 +54,10 @@ class obj(object):
 
 #saveall and loadall are the ones outside code shold use to save and load the state of what modules are loaded
 def saveAll():
+    global moduleschanged
+    if not moduleschanged:
+        return
+    moduleschanged = False
     #This dumps the contents of the active modules in ram to a subfolder of the moduledir named after the current unix time"""
     saveModules(os.path.join(directories.moduledir,str(time.time()) ))
     #We only want 1 backup(for now at least) so clean up old ones.  
@@ -200,6 +207,8 @@ class WebInterface():
     @cherrypy.expose
     def uploadtarget(self,modules):
         pages.require('/admin/modules.edit')
+        global moduleschanged
+        moduleschanged = True
         load_modules_from_zip(modules.file)
         raise cherrypy.HTTPRedirect("/modules/") 
             
@@ -226,6 +235,8 @@ class WebInterface():
     @cherrypy.expose
     def deletemoduletarget(self,**kwargs):
         pages.require("/admin/modules.edit")
+        global moduleschanged
+        moduleschanged = True
         with modulesLock:
            ActiveModules.pop(kwargs['name'])
         #Get rid of any lingering cached events
@@ -240,6 +251,8 @@ class WebInterface():
     def newmoduletarget(self,**kwargs):
         global scopes
         pages.require("/admin/modules.edit")
+        global moduleschanged
+        moduleschanged = True
         #If there is no module by that name, create a blank template and the scope obj
         with modulesLock:
             if kwargs['name'] not in ActiveModules:
@@ -258,6 +271,8 @@ class WebInterface():
     #This function handles HTTP requests of or relating to one specific already existing module.
     #The URLs that this function handles are of the form /modules/module/<modulename>[something?]     
     def module(self,module,*path,**kwargs):
+        global moduleschanged
+
         #If we are not performing an action on a module just going to its page
         if not path:
             pages.require("/admin/modules.view")
@@ -289,6 +304,7 @@ class WebInterface():
             #This handles the POST request to actually do the deletion
             if path[0] == 'deleteresourcetarget':
                 pages.require("/admin/modules.edit")
+                moduleschanged = True
                 with modulesLock:
                    r = ActiveModules[module].pop(kwargs['name'])
                    
@@ -308,6 +324,7 @@ class WebInterface():
             #This is the target used to change the name and description(basic info) of a module  
             if path[0] == 'update':
                 pages.require("/admin/modules.edit")
+                moduleschanged = True
                 with modulesLock:
                     ActiveModules[module]['__description']['text'] = kwargs['description']
                     ActiveModules[kwargs['name']] = ActiveModules.pop(module)
@@ -342,6 +359,8 @@ def addResourceDispatcher(module,type):
 #Basically it takes a module, a new resourc name, and a type, and creates a template resource
 def addResourceTarget(module,type,name,kwargs):
     pages.require("/admin/modules.edit")
+    global moduleschanged
+    moduleschanged = True
     def insertResource(r):
         ActiveModules[module][kwargs['name']] = r
     
@@ -414,7 +433,8 @@ def permissionEditPage(module,resource):
 #The actual POST target to modify a resource. Context dependant based on resource type.
 def resourceUpdateTarget(module,resource,kwargs):
     pages.require("/admin/modules.edit")
-
+    global moduleschanged
+    moduleschanged = True
     with modulesLock:
         t = ActiveModules[module][resource]['resource-type']
         resourceobj = ActiveModules[module][resource]

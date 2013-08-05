@@ -14,6 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 import messagebus
+import unitsofmeasure
 import cherrypy
 import pages
 import time
@@ -30,6 +31,8 @@ from cherrypy.lib.static import serve_file
 
 from config import config
 from collections import defaultdict
+#this flag tells if we need to save the list of what to log
+loglistchanged = False
 
 approxtotallogentries = 0
 
@@ -80,7 +83,7 @@ def dumpLogFile():
         messagebus.postMessage("system/notifications","Invalid config option for 'log-compress' so defaulting to no compression")
         
      
-    global log
+    global log,loglistchanged
     global approxtotallogentries
     
     with savelock:
@@ -88,6 +91,13 @@ def dumpLogFile():
         log = defaultdict(list)
         approxtotallogentries = 0
         
+        if loglistchanged:
+            #Save the list of things to dump
+            with open(os.path.join(directories.logdir,"whattosave.txt"),'w') as f:
+                for i in toSave:
+                    f.write(i+'\n')
+            loglistchanged = False
+                
         #Get rid of anything that is not in the list of things to dump to the log
         temp2 = {}
         saveset = set(toSave)
@@ -97,11 +107,11 @@ def dumpLogFile():
                 temp2[i] = temp[i]
         temp = temp2
         
+        #If there is no log entries to save, don't dump an empty file.
+        if not temp:
+            return
                 
-        #Save the list of things to dump
-        with open(os.path.join(directories.logdir,"whattosave.txt"),'w') as f:
-            for i in toSave:
-                f.write(i+'\n')
+
                 
                 
         where =os.path.join(directories.logdir,'dumps')
@@ -125,9 +135,19 @@ def dumpLogFile():
                 except ValueError:
                     pass
         
-        for i in sorted(asnumbers.keys())[0:-config['keep-log-dumps']]:
+        maxsize = unitsofmeasure.strToIntWithSIMultipliers(config['keep-log-files'])
+        size = 0
+        #Loop over all the old log dumps and add up the sizes
+        for i in util.get_files(where):
+            size = size + os.path.getsize(os.path.join(where,i))
+        
+        #Get rid of oldest log dumps until the total size is within the limit
+        for i in sorted(asnumbers.keys()):
+            if size <= maxsize:
+                break
+            size = size - os.path.getsize(os.path.join(where,i))
             os.remove(os.path.join(where,asnumbers[i]))
-   
+
 
 def messagelistener(topic,message):
     global log
@@ -166,18 +186,24 @@ class WebInterface(object):
     @cherrypy.expose
     def startlogging(self,topic):
         pages.require('/admin/logging.edit')
+        global loglistchanged
+        loglistchanged = True
         toSave.add(topic)
         return pages.get_template('logging/index.html').render()
     
     @cherrypy.expose
     def stoplogging(self,topic):
         pages.require('/admin/logging.edit')
+        global loglistchanged
+        loglistchanged = True
         toSave.discard(topic)
         return pages.get_template('logging/index.html').render()
     
     @cherrypy.expose
     def setlogging(self, txt):
         pages.require('/admin/logging.edit')
+        global loglistchanged
+        loglistchanged = True
         global toSave
         toSave = set()
         for line in txt.split("\n"):

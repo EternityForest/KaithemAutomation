@@ -33,6 +33,11 @@ delay-between-frames : 0.012
 #The directory will be mounted under /site/static/NAME on the URL path
 serve-static: {}
 
+#How often to automatically save the entire server state.
+#must be [number] [unit] like 2 hours. units: second,minute,hour,day,week,year
+#can also be "never"
+autosave-all: never
+
 ##################LOGGING######################################################
 #Notice: to actually control what topics are logged, use the kaithem/var/whattosave.txt or edit
 #through th web interface
@@ -40,8 +45,10 @@ serve-static: {}
 #How many entires to log before flushing to disk or deleting
 log-dump-size: 10000
 
-#How many old log dumps to keep before deleting the oldest
-keep-log-dumps: 15
+
+#How many bytes of log files to keep before deleting the oldest until the total filesize is under the limit
+#Size is in bytes but you can use k,m,g for thousand million and billion
+keep-log-files: 256m
 
 #Level of prettyprinting vs filsize for logs. Can be: tiny, normal, pretty
 log-format: normal
@@ -54,6 +61,10 @@ errors-to-keep: 50
 
 #How many old system notifications to show on front page(does not affect logging)
 notifications-to-keep: 25
+
+#How often to automatically dump the log file. must be [number] [unit] like 2 hours. units: second,minute,hour,day,week,year
+#can also be "never"
+autosave-logs: never
 
 #####################THEMING AND BRANDING#######################################
 #This HTML Goes into the top box on the main page. It is configurable in case a deployment wants to add branding.

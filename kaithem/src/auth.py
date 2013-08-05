@@ -51,6 +51,9 @@ BasePermissions = {
 
 Permissions=BasePermissions
 
+#True only if auth module stuff changed since last save
+#YOU MUST SET THIS EVERY TIME YOU CHANGE THE STATE AND WANT IT TO BE PERSISTANT
+authchanged = False
 
 def importPermissionsFromModules():
     Permissions=BasePermissions
@@ -69,12 +72,16 @@ class User(dict):
     pass
 
 def changeUsername(old,new):
+    global authchanged
+    authchanged = True
     #this should work because tokens stores object references ad we are not deleting
     #the actual user object
     Users[new] = Users.pop(old)
     Users[new]['username'] = new
     
 def changePassword(user,newpassword):
+    global authchanged
+    authchanged = True
     salt = os.urandom(16)
     salt64 = base64.b64encode(salt)
     #Python is a great language. But sometimes I'm like WTF???
@@ -94,11 +101,15 @@ def changePassword(user,newpassword):
     
     
 def addUser(username,password):
+    global authchanged
+    authchanged = True
     if not username in Users: #stop overwriting attempts
         Users[username] = User({'username':username,'groups':[]})
         changePassword(username,password)
         
 def removeUser(user):
+    global authchanged
+    authchanged = True
     x =Users.pop(user)
     #If the user has a token, delete that too
     if hasattr(x,'token'):
@@ -106,6 +117,8 @@ def removeUser(user):
             Tokens.pop(x.token)
             
 def removeGroup(group):
+    global authchanged
+    authchanged = True
     x =Groups.pop(group)
     #Remove all references to that group from all users
     for i in Users:
@@ -115,17 +128,23 @@ def removeGroup(group):
             
             
 def addGroup(groupname):
-        if not groupname in Groups: #stop from overwriting
-                Groups[groupname] = {'permissions':[]}
+    global authchanged
+    authchanged = True
+    if not groupname in Groups: #stop from overwriting
+            Groups[groupname] = {'permissions':[]}
         
 def addUserToGroup(username,group):
+    global authchanged
+    authchanged = True
     if group not in Users[username]['groups']: #Don't add multiple copies of a group
         Users[username]['groups'].append(group)
     generateUserPermissions(username)  #Regenerate the per-user permissions cache for that user
 
 def removeUserFromGroup(username,group):
-     Users[username]['groups'].remove(group)
-     generateUserPermissions(username) #Regenerate the per-user permissions cache for that user
+    global authchanged
+    authchanged = True
+    Users[username]['groups'].remove(group)
+    generateUserPermissions(username) #Regenerate the per-user permissions cache for that user
 
 def initializeAuthentication():
     #If no file use default but set filename anyway so the dump function will work
@@ -257,6 +276,11 @@ def destroyUnusedPermissions():
 #Save the state of the entire users/groups/permissions system
 
 def dumpDatabase():
+    global authchanged
+    if not authchanged:
+        return
+    authchanged = True
+    
     #Assemble the users and groups data and save it back where we found it
     temp = {"users":Users,"groups":Groups}
     p = os.path.join(directories.usersdir,str(time.time()))
@@ -271,11 +295,15 @@ def dumpDatabase():
     util.deleteAllButHighestNumberedNDirectories(directories.usersdir,2)
     
 def addGroupPermission(group,permission):
-        if permission not in Groups[group]['permissions']:
-            Groups[group]['permissions'].append(permission)
-        
+    global authchanged
+    authchanged = True
+    if permission not in Groups[group]['permissions']:
+        Groups[group]['permissions'].append(permission)
+    
 def removeGroupPermission(group,permission):
-        Groups[group]['permissions'].remove(permission)
+    global authchanged
+    authchanged = True
+    Groups[group]['permissions'].remove(permission)
         
 def whoHasToken(token):
     return Tokens[token]['username']

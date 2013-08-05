@@ -16,7 +16,7 @@
 #This is the global general purpose utility thing
 import time
 import modules
-import weekday
+import unitsofmeasure
 import workers
 import subprocess
 import threading
@@ -73,7 +73,7 @@ class Kaithem():
 
         @staticmethod
         def dayofweek():
-            return (weekday.DayOfWeek())
+            return (unitsofmeasure.DayOfWeek())
     
     class sys(object):
         @staticmethod
