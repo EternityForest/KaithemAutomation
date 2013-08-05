@@ -45,7 +45,8 @@ def formattime(x):
 
 <h2>Topics to log</h2>
 <div class="sectionbox">
-    <p class="help">All topics listed here will be saves to the log dumps if log dumps are enabled.</p>
+    <p class="help">All topics listed here(one per line) will be saved to the log dumps if log dumps are enabled.
+    You can use topic names ending in a "/" to match entire trees of topics.</p>
 
     <form action='/logs/setlogging' method="post">
     <textarea name = "txt" class="code">\

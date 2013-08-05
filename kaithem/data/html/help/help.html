@@ -210,14 +210,21 @@ h4{margin-top:0.5em !important; margin-bottom: 0.5em !important;background-color
     Kaithem backgrounds may not have enough contrast with text to be easily readable outside of sectionboxes.</p>
     
     <h3>Scrolling Boxes</h3>
-    <p>a div with class="scrollbox" will look like a secionbox but scroll on overflow. May be nested in sectionboxes.</p>
+    <p>a div with class="scrollbox" will look like a secionbox but scroll on overflow.
+    May be nested in sectionboxes.</p>
     
     <h3>Action Links</h3>
-    <p>Any link having the primary purpose of performing an action as opposed to navigation should have the class "button". If the action is delete, it should also have the class "deletebutton", likewise for "createbutton" and "savebutton"</p>
+    <p>Any link having the primary purpose of performing an action as opposed to navigation should have the class
+    "button". If the action is delete, it should also have the class "deletebutton", likewise for "createbutton" and
+    "savebutton"</p>
     
     <h3>Short help strings</h3>
     <p>Short help texts in the gui should be wrapped in a p element with class ="help"</p>
     
+    <h3>Menu Bars</h3>
+    <p>Oftentimes you want to have something like the menu bars at the top of windows in desktop apps.
+    An easy way to do this is to put your controls in a p element of class = "menubar"
+    </p>
     <h2>The Internal Message Bus</h2>
     <p>Kaithem includes a custom internal messaging system that is accessable from user code through kaithem.message
        The following topics are of note:
@@ -247,6 +254,45 @@ h4{margin-top:0.5em !important; margin-bottom: 0.5em !important;background-color
     
     <h2>FAQ</h2>
     
+    <h3>Where does Kaithem store data?</h3>
+    <p>
+        By default, kaithem stores all variable data in kaithem/var(inside it's directory)
+        It does not use the windows registry, APPDATA, a database, or any other central means of storage.
+        However, keeping your data in kaithems "unzip and run" folder has a few problems.
+        First and most important, it makes it hard to update,
+        since if you download a new version it will not have your data.
+    </p>
+    <p>
+        To avoid this, we recommend that you copy kaithem/var someplace else, and
+        use the site-data-dir config option to point to the new location. If you copy var to /home/juan/
+        then site-data-dir should equal /home/juan/var
+    </p>
+    
+    <h3>How do I use custom configuration files?</h3>
+    <p>Create your file, then, when you start Kaithem, use the -c  command line argument to point to it.
+    Example:
+    <pre>python3 kaithem.py -c myconfigfile</pre>
+    Kaithem uses the YAML format for configuration files, which is a very simple and easy to read format.
+    YAML example:
+    <pre>
+#this is a comment
+option-name: this is the option value
+
+another-option: 42
+
+a-long-string-as-an-option: |
+    That pipe symbol after the colon lets us start
+    a big multiline string on the next line
+
+
+an-option-with-a-list-as-a-value:
+    -uno
+    -dos
+    -tres</pre>
+    
+    
+    </p>
+    
     <h3>My data is not being saved to the log files! Help!</h3>
     <p>Kaithem only saves topics to the hard drive if they are in the list of things to save. Go to the     logging page and select the channels you are interested in.</p>
     
@@ -261,6 +307,7 @@ h4{margin-top:0.5em !important; margin-bottom: 0.5em !important;background-color
 <pre>
 serve-static:
     images: /home/piper/My Pictures
+    images2: /home/piper/My Other Pictures
 </pre>
     Now the url /usr/static/images/page.jpg will point to the file /home/piper/My Pictures/page.jpg<br>
     All user-created static directories are mounted under /usr/static.
@@ -290,9 +337,9 @@ Of course, you can add whatever HTML you like, this is just an example. You can 
         
 <pre>
     front-page-banner: |
-    &ltb&gtKaithem is free software licensed under the GPLv3.&ltbr&gt
-    Kaithem was not designed for mission critical or safety of life systems and no warranty is expressed
-    or implied.&ltbr&gt Use entirely at your own risk.&lt/b&gt
+        &ltb&gtKaithem is free software licensed under the GPLv3.&ltbr&gt
+        Kaithem was not designed for mission critical or safety of life systems and no warranty is expressed
+        or implied.&ltbr&gt Use entirely at your own risk.&lt/b&gt
 </pre>
         </p>    
     

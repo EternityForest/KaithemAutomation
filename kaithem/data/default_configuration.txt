@@ -1,5 +1,4 @@
 #Don't edit this file, it is just the system defaults. User config files can overrride any setting.
-
 ######################CORE#####################################################
 #The port on which web pages will be served
 port : 8001
@@ -66,6 +65,9 @@ front-page-banner: |
 #This HTML is used as the top banner for deployment branding 
 top-banner-html: |
     <div id="topbanner"><h1 align="center">Kaithem Automation Server</h1></div>
+
+#This text shows up in the about box. Good for misc info like copyrights of site specific data, lega stuff, etc
+about-box-banner: "This space can be customized with site specific data in the config file."
 
 #The URL from which to retrieve the CSS theme file
 theme-url: /static/scrapbook.css

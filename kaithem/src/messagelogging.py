@@ -87,10 +87,13 @@ def dumpLogFile():
         temp = log
         log = defaultdict(list)
         approxtotallogentries = 0
+        
         #Get rid of anything that is not in the list of things to dump to the log
         temp2 = {}
-        for i in toSave:
-            if i in temp:
+        saveset = set(toSave)
+        for i in temp:
+            #Parsetopic is a function that returns all subscriptions that would match a topic
+            if not set(messagebus.MessageBus.parseTopic(i)).isdisjoint(saveset):
                 temp2[i] = temp[i]
         temp = temp2
         
@@ -176,9 +179,12 @@ class WebInterface(object):
     def setlogging(self, txt):
         pages.require('/admin/logging.edit')
         global toSave
-        for line in txt.split('\n'):
-            toSave = set()
-            toSave.add(line.strip())
+        toSave = set()
+        for line in txt.split("\n"):
+            line = line.strip()
+            if line.startswith("/"):
+                line = line[1:]
+            toSave.add(line)
         return pages.get_template('logging/index.html').render()
     
     @cherrypy.expose

@@ -18,7 +18,7 @@
 
 from __future__ import with_statement
 
-
+import traceback
 import threading,traceback,sys
 import workers
 import modules,threading,time
@@ -148,41 +148,44 @@ def parseTrigger(when):
         
 
 #Factory function that examines the type of trigger and chooses a class to handle it.
-def Event(when,do,scope,continual=False,ratelimit=0,setup = "pass",priority=2):
+def Event(when,do,scope,continual=False,ratelimit=0,setup = None,priority=2):
     trigger = parseTrigger(when)
     
     if trigger[0] == '!onmsg':
         return MessageEvent(when,do,scope,continual,ratelimit,setup,priority)
     
     elif trigger[0] == '!onchange':
-        return ChangeEvent(when,do,scope,continual,ratelimit,setup,priority)
+        return ChangedEvalEvent(when,do,scope,continual,ratelimit,setup,priority)
     
     elif trigger[0] == '!edgetrigger':
-        return PolledEvent(when,do,scope,continual,ratelimit,setup,priority)
+        return PolledEvalEvent(when,do,scope,continual,ratelimit,setup,priority)
 
 
 #A brief rundown on how these classes work. You have the BaseEvent, which handles registering and unregistering
-#From polling lists, exeptions, actions, and locking.
+#From polling lists, exeptions, and locking.
 
 #Derived classes must do three things:
 #Set self.polled to True if this event needs polling, or False if it is not(interrups, callbacks,etc)
 #Define a _check() function that does polling and calls _on_trigger() if the event condition is true
+#Do something with the setup variable if applicable
+#define a _do_action() method that actually carries out the appropriate action
 #call the init of the base class properly.
 
 #The BaseEvent wraps the _check function in such a way that only one event will be polled at a time
 #And errors in _check will be logged.
 
 class BaseEvent():
-    """Class represeting one checkable event. when and do must be python code strings,
+    """Base Class represeting one event.
     scope must be a dict representing the scope in which both the trigger and action will be executed.
     When the trigger goes from fase to true, the action will occur.
     
+    setupr,when and do are some representation of an action, the specifics of which are defined by derived classes.
     optional params:
     ratelimit: Do not do the action more often than every X seconds
     continual: Execute as often as possible while condition remains true
     
     """
-    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",priority = 2):
+    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = None,priority = 2):
         #Copy in the data from args
         self.scope = scope
         self._prevstate = False
@@ -195,11 +198,6 @@ class BaseEvent():
         #Tese are only used for debug messages, but still someone should set them after they make the object
         self.module = "UNKNOWN"
         self.resource = "UNKNOWN"
-        
-        #Compile the action and run the initializer
-        self.action = compile(do,"<action>","exec")
-        initializer = compile(setup,"<setup>","exec")
-        exec(initializer,self.scope,self.scope)
 
         #This lock makes sure that only one copy of the event executes at once.
         self.lock = threading.Lock()
@@ -209,7 +207,6 @@ class BaseEvent():
         
         #A place to put errors
         self.errors = []
-    
             
     def _on_trigger(self):
         #This function gets called when whatever the event's trigger condition is.
@@ -222,23 +219,25 @@ class BaseEvent():
             #Set the varible so we know when the last time the body actually ran
             self.lastexecuted = time.time()
             try:
-                exec(self.action,self.scope,self.scope)
+                #Action could be any number of things, so this method mut be implemented by
+                #A derived class or inherited from a mixin.
+                self._do_action()
             except Exception as e:
                 self._handle_exception(e)
 
     def _handle_exception(self, e):
             
-
+            tb = traceback.format_exc()
             #When an error happens, log it and save the time
             #Note that we are logging to the compiled event object
-            self.errors.append([time.strftime(config['time-format']),e]) 
+            self.errors.append([time.strftime(config['time-format']),tb]) 
             #Keep only the most recent errors
             self.errors = self.errors[-(config['errors-to-keep']):] 
             #The mesagebus is largely untested and we don't want to kill the thread.
             try:
                 messagebus.postMessage('system/errors/events/'+
                                        self.module+'/'+
-                                       self.resource,str(e))
+                                       self.resource,str(tb))
             except Exception as e:
                 print (e)
             
@@ -273,8 +272,25 @@ class BaseEvent():
             self._check()
         except Exception as e:
             self._handle_exception(e)
+
+class CompileCodeStringsMixin():
+    "This mixin lets a class take strings of code for its setup and action"
+    def _init_setup_and_action(self,setup,action):
+        #Compile the action and run the initializer
+        self.action = compile(action,"<action>","exec")
+        if setup == None:
+            setup = "pass"
+        initializer = compile(setup,"<setup>","exec")
+        exec(initializer,self.scope,self.scope)
     
-class MessageEvent(BaseEvent):
+    def _do_action(self):
+        exec(self.action,self.scope,self.scope)
+
+class DirectFunctionsMixin():
+        def _init_setup_and_action(self,setup,action):
+            self._do_action = action
+
+class MessageEvent(BaseEvent,CompileCodeStringsMixin):
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
         
         #This event type is not polled. Note that it doesn't even have a check() method.
@@ -295,11 +311,10 @@ class MessageEvent(BaseEvent):
         t = when.strip().split(' ',1)[1].strip()
         #Subscribe our new function to the topic we want
         messagebus.subscribe(t,action_wrapper)
-        #Set the flag to say that register() should not register this for polling
-      
         BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
-
-class ChangeEvent(BaseEvent):      
+        self._init_setup_and_action(setup,do)
+        
+class ChangedEvalEvent(BaseEvent,CompileCodeStringsMixin):      
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
                 #If the user tries to use the !onchanged trigger expression,
         #what we do is to make a function that does the actual checking and always returns false
@@ -318,6 +333,7 @@ class ChangeEvent(BaseEvent):
         self.at_least_one_reading = False
         self.polled = True
         BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
+        self._init_setup_and_action(setup,do)
         
     def _check(self):
         #Evaluate the function that gives us the values we are looking for changes in
@@ -336,14 +352,13 @@ class ChangeEvent(BaseEvent):
             self.scope['__value'] = self.latest
             self._on_trigger()
 
-class PolledEvent(BaseEvent):
+class PolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
         self.polled = True
         #Compile the trigger
         self.trigger = compile(when,"<trigger>","eval")
-
         BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
-        
+        self._init_setup_and_action(setup,do)
     def _check(self):
         """Check if the trigger is true and if so do the action."""            
         #Eval the condition in the local event scope
@@ -356,8 +371,25 @@ class PolledEvent(BaseEvent):
             #The eval was false, so the previous state was False
             self._prevstate = False
 
-
-
+class PolledInternalSystemEvent(BaseEvent,DirectFunctionsMixin):
+    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
+        self.polled = True
+        #Compile the trigger
+        self.trigger = when
+        self._init_setup_and_action(setup,do)
+        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
+        
+    def _check(self):
+        """Check if the trigger is true and if so do the action."""            
+        #Eval the condition in the local event scope
+        if self.trigger():
+            #Only execute once on false to true change unless continual was set
+            if (self.continual or self._prevstate == False):
+                self._prevstate = True
+                self._on_trigger()
+        else:
+            #The eval was false, so the previous state was False
+            self._prevstate = False
 
 #BORING BOOKEEPING BELOW
 

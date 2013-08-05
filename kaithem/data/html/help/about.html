@@ -6,6 +6,7 @@
     import sys
     import newevt
     import sound
+    from config import config
     if os.name != "nt":
         import fcntl
         import struct
@@ -46,7 +47,7 @@
     Copyright 2013 Daniel Black. Availible under the terms of the <a href="/license">GNU general public license</a>.
     the mako and cherrypy folders were copied unmodified and remain under their respective licenses.
     </div>
-    
+    <div class="sectionbox">${config['about-box-banner']}</div>
     <div class="sectionbox">
     Version: 0 Unstable Branch
     </div>

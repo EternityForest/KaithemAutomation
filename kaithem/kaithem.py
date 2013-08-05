@@ -49,6 +49,7 @@ import messagebus
 import notifications
 import time
 import messagelogging
+import sysperiodictasks
 
 from config import config
 

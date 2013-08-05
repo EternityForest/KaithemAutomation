@@ -55,7 +55,9 @@ try:
         trigger='kaithem.globals.x == 17',
         
         action='kaithem.globals.x = 0',
-        setup='kaithem.globals.x = 0'
+        setup='kaithem.globals.x = 0',
+        priority = 1,
+        ratelimit = 0
         )
     
 except BSException:
@@ -106,7 +108,9 @@ try:
     wb.module('TEST','updateresource','testevent',
         trigger='kaithem.globals.x == 17',
         action='kaithem.globals.x = 0',
-        setup='kaithem.globals.x = 0'
+        setup='kaithem.globals.x = 0',
+        priority = 1,
+        ratelimit = 0
         )
     
 except BSException:

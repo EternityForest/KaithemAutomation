@@ -64,8 +64,8 @@ class MessageBus(object):
         
         self.subscribers[topic].append(weakref.ref(callback,delsubscription))
     
-    
-    def parseTopic(self,topic ):
+    @staticmethod
+    def parseTopic(topic):
         "Parse the topic string into a list of all subscriptions that could possibly match."
         if topic.startswith('/'):
             topic = topic[1:]
