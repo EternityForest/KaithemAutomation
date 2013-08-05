@@ -20,7 +20,7 @@ h4{margin-top:0.5em !important; margin-bottom: 0.5em !important;background-color
 		
 	<p>An important idea in kaithem is that resources, such as events, data, and web pages, all exist within <em>modules</em>. This allows for a very simple plugin based architecture wherein device plugins can be bundled with the web pages to manage them. Modules can be downloades or uploaded to and from the server as zip files, or can be created and modified straight from the web interface.</p>
 	
-	<P> One <b>very important note</b> about Kaithem is that it does not save anything to the disk except when told to. To do this, go to the Save State page and follow the instructions. In the event that the software crashes while saving, old data will not be corrupted and the old version will be used. Manual recovery of the new version will likely be possible for at least some files.</P>
+	<P> One <b>very important note</b> about Kaithem is that it does not save anything to the disk except when told to or if autosave was explicilty configured. To do this, go to the Save State page and follow the instructions. In the event that the software crashes while saving, old data will not be corrupted and the old version will be used. Manual recovery of the new version will likely be possible for at least some files.</P>
     
     <p>The exception to this rule is log files. Logs are maintained in ram till they reach a certain size(default 10,000 entries) then saved to disk. They are also saved when you explicitly save the entire state.</p>
 	
@@ -292,9 +292,17 @@ an-option-with-a-list-as-a-value:
     
     
     </p>
-    
+    <p>NOTE: Kaithem will <b>only</b> load the configuration file on startup and you must reload kaithem for the changes to take effect.</p>
     <h3>My data is not being saved to the log files! Help!</h3>
-    <p>Kaithem only saves topics to the hard drive if they are in the list of things to save. Go to the     logging page and select the channels you are interested in.</p>
+    <p>Kaithem only saves topics to the hard drive if they are in the list of things to save. Go to the logging page
+    and select the channels you are interested in.</p>
+    
+    <h3>What is with these security certificate errors?</h3>
+    <p>Kaithem comes with a default security certificate in the kaithem/var/ssl directory. Becuase it is publicly
+    known, it provides <b>ABSOLUTELY NO SECURITY</b>. The intent is to let you test out Kaithem easily, but if you want
+    to actually deploy an instance, you <b>MUST</b> replace thesecurity key with a real one and keep it secret. There
+    are plenty ofTLS/SSL Certificate tutorials.
+    </p>
     
     <h3>How do I make an event that triggers at a certain time?</h3>
     <p>To make an event that goes off at Noon, simply create a normal event and set the trigger to
@@ -315,9 +323,41 @@ serve-static:
     If you need a secure way to serve a file, you are better off creating a page with the appropriate permissions, and using <a href="#servefile">kaithem.web.serveFile()</a>
     </p>
     
-    <h3>I am getting "permission denied" errors</h3>
+    <h3>I am getting "permission denied" errors on the web interface</h3>
     <p>You don't have permission to access that page. 
     If you are admin, go to the authorization page and give yourself that permission.</p>
+    
+    <h3>I am not using flash memory, and would like to set up autosave</h3>
+    <p>By default, Kaithem tries to avoid automatic disk writes. This is to avoid wearing out low-cost flash storage on devices such as the RasPi. However, if you would like to configure the server to save the state on an interval, you can set the <pre>autosave-all</pre> option in the configuration to an interval specified like "1 hour" or "1 day".
+    </p>
+    
+    <p>Valid units are second,minute,hour,day,week,year. Autosaving will not happen more than onceper minute no matter the setting and if data is unchanged disk will be untouched.</p>
+    
+    <p>In addition to periodic saves, you might want to consider setting <pre>save-before-shutdown</pre> to
+    <pre>yes</pre>This will tell the server to save everything including log dumps before shutting down.</p>
+    
+    <h3>I would like to back up the code that I wrote in Kaithem</h3>
+    <p>At the moment, the easiest way to do this is just to make a copy of the folder where your variable data is kept.</p>
+    
+    <h3>How exactly does logging work?</h3>
+    <p>the <pre>keep-log-files</pre> configuration option deterimines how much space log files
+    will consume before the oldest are deleted. The default is <pre>256m</pre> or 256 Megabytes. You can use the suffixes k,m,and g, and if you don't supply a suffix, the number will be interpreted as bytes(!)</p>
+    
+    <p>Log files are kept in ram until the total number of log entries across all topics
+    (even if the topics are not set up to be flushed to file) exceeds <pre>log-dump-size</pre></p>
+    
+    <p>Logs are stored in JSON files, and the level of formatting is determined by <pre>log-format</pre>
+    Log format can be any of:
+    <ul><li>normal</li><li>tiny</li><li>pretty</li></ul>
+    Normal is the defaut, tiny is the smallest JSON possible, and pretty indents with 4 spaces among other things.
+    All are equivalent valid JSON.
+    </p>
+    
+    <p>To save space, logs can also be compressed with the option <pre>log-compress</pre>
+    This option can take any of:
+    <ul><li>none</li><li>gzip</li><li>bz2</li></ul>
+    Compressed files will have the extension <pre>.json.gz or .json.bz2</pre>
+    </p>
     
     <h3>Can I customize Kaithem's appearance for my specific deployment?</h3>
     <p>Certainly! Kaithem was designed with theming and customization in mind from the start.

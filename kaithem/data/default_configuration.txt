@@ -38,6 +38,15 @@ serve-static: {}
 #can also be "never"
 autosave-all: never
 
+#When the system shuts down, this is how many seconds to wait for the worker threads to finish before
+#Just quitting anyway. This will let any tasks that were semi-atomic finish so you don't have
+#Sprinklers that never shut down or something.
+wait-for-workers : 60
+
+#If this is yes, the server will try to save all persistant state before it shuts down.
+#This includes dumping logs to file.
+save-before-shutdown: yes
+
 ##################LOGGING######################################################
 #Notice: to actually control what topics are logged, use the kaithem/var/whattosave.txt or edit
 #through th web interface

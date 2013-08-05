@@ -21,7 +21,7 @@ from __future__ import with_statement
 import traceback
 import threading,traceback,sys
 import workers
-import modules,threading,time
+import modules,threading,time,atexit
 import kaithemobj,messagebus,util
 from config import config
 
@@ -46,9 +46,10 @@ def countEvents():
     #Why bother with the lock. The event count is not critical at all.
     return len(_events)
 
-
-def addHiddenSystemEvent(event):
-    -events.append(event)
+def STOP():
+    global run
+    run = False
+    
 
 
 #In a background thread, we use the worker pool to check all threads
@@ -66,8 +67,6 @@ def __manager():
     while run:
         #Get the time at the start of the loop
         temp = time.time()
-        
-        
         with _event_list_lock:
             for i in _events:
                 workers.do(i.check)
@@ -89,7 +88,9 @@ def __manager():
             
 #Start the manager thread as a daemon
 #Kaithem has a system wide worker pool so we don't need to reinvent that
-t = threading.Thread(target = __manager)
+t = threading.Thread(target = __manager, name="EventPollingManager")
+#This thread never really does anything, it just delegates to the worker threads, so I'm
+#fine with leaving it as a daemon.
 t.daemon = True
 t.start()
 

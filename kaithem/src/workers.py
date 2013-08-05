@@ -19,7 +19,8 @@
 
 #This file manages a work queue that feeds a threadpool
 #Tasks will be performed on a best effort basis and errors will be caught and ignored.
-import threading,sys
+import threading,sys,cherrypy
+import atexit,time
 from config import config
 
 #2 and 3 have basically the same module with diferent names
@@ -32,12 +33,31 @@ else:
 __queue = queue.Queue(config['task-queue-size'])
 run = True
 
+def EXIT():
+    #Tell all worker threads to stop and wait for them all to finish.
+    #If they aren't finished within the time limit, just exit.
+    global run
+    run = False
+    t = time.time()
+    for i in workers:
+        try:
+            #All threads total must be finished within the time limit
+            i.join(config['wait-for-workers'] - (time.time()-t) )
+            #If we try to exit befoe the thread even has time to start or something
+        except RuntimeError:
+            pass
+
+atexit.register(EXIT)
+cherrypy.engine.subscribe("exit",EXIT)
+
 #one worker that just pulls tasks from the queue and does them. Errors are caught and
 #We assume the tasks have their own error stuff
 def __workerloop():
     while(run):
         try:
-            __queue.get()()
+            #We need the timeout othewise it could block forever
+            #and thus not notice if run was False
+            __queue.get(timeout = 5)()
         except:
             pass
 
@@ -48,8 +68,9 @@ def do(func):
 def waitingtasks():
     return __queue.qsize()
 
+workers = []
 #Start a number of threads as determined by the config file
 for i in range(0,config['worker-threads']):
-    t = threading.Thread(target = __workerloop)
-    t.daemon = True
+    t = threading.Thread(target = __workerloop, name = "ThreadPoolWorker-"+str(i))
+    workers.append(t)
     t.start()
