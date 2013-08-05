@@ -97,3 +97,9 @@ enable-js: yes
 
 #How to format times and dates
 time-format: "%A, %B %d, %Y at %l:%M:%S %p"
+
+
+#####################MISC#######################################################
+#This really isn't used for anything except showing on the about box
+#Plus it involves a call to an external server. It will add extra time to startup.
+get-public-ip: no

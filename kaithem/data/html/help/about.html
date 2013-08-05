@@ -4,7 +4,9 @@
     import os
     import platform
     import sys
+    import unitsofmeasure
     import newevt
+    import systasks
     import sound
     from config import config
     if os.name != "nt":
@@ -60,8 +62,8 @@
             <td>LAN IP Adress</td>
             <td>${get_lan_ip()}</td>
         </tr><tr>
-            <td>WAN(Public) IP</td>
-            <td>${str(myip)}</td>
+            <td>WAN(Public) IP when sys loaded</td>
+            <td>${myip}</td>
         </tr>
     </table>
 </p>
@@ -73,8 +75,20 @@
             <td>${str(newevt.averageFramesPerSecond)[:6]}</td>
         </tr>
         <tr>
-            <td>Total polled events(Exclude non-polled but include hidden system events)</td>
+            <td>Total polled events</td>
             <td>${str(newevt.countEvents())}</td>
+        </tr>
+        <tr>
+            <td>Process Started</td>
+            <td>${time.strftime(config['time-format'],time.localtime(systasks.systemStarted))}</td>
+        </tr>
+        <tr>
+            <td>
+                Uptime
+            </td>
+            <td>
+                ${unitsofmeasure.formatTimeInterval(time.time()-systasks.systemStarted,4)}
+            </td>
         </tr>
     </table>
     
