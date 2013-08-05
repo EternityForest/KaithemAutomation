@@ -33,10 +33,10 @@ delay-between-frames : 0.012
 #The directory will be mounted under /site/static/NAME on the URL path
 serve-static: {}
 
-#How often to automatically save the entire server state.
+#How often to automatically save the entire server state. Does not dump log files to avoid tons of short files
 #must be [number] [unit] like 2 hours. units: second,minute,hour,day,week,year
 #can also be "never"
-autosave-all: never
+autosave-state: never
 
 #When the system shuts down, this is how many seconds to wait for the worker threads to finish before
 #Just quitting anyway. This will let any tasks that were semi-atomic finish so you don't have
@@ -102,4 +102,5 @@ time-format: "%A, %B %d, %Y at %l:%M:%S %p"
 #####################MISC#######################################################
 #This really isn't used for anything except showing on the about box
 #Plus it involves a call to an external server. It will add extra time to startup.
+#Why did I even add this feature?
 get-public-ip: no

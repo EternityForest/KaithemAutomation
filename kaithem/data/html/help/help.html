@@ -328,10 +328,12 @@ serve-static:
     If you are admin, go to the authorization page and give yourself that permission.</p>
     
     <h3>I am not using flash memory, and would like to set up autosave</h3>
-    <p>By default, Kaithem tries to avoid automatic disk writes. This is to avoid wearing out low-cost flash storage on devices such as the RasPi. However, if you would like to configure the server to save the state on an interval, you can set the <pre>autosave-all</pre> option in the configuration to an interval specified like "1 hour" or "1 day".
+    <p>By default, Kaithem tries to avoid automatic disk writes. This is to avoid wearing out low-cost flash storage on devices such as the RasPi. However, if you would like to configure the server to save the state on an interval, you can set the <pre>autosave-state</pre> option in the configuration to an interval specified like "1 hour" or "1 day".
     </p>
     
     <p>Valid units are second,minute,hour,day,week,year. Autosaving will not happen more than onceper minute no matter the setting and if data is unchanged disk will be untouched.</p>
+    
+    <p>autosave-state does not touch log files. Use autosave-log for that. It's semantics are the same.</p>
     
     <p>In addition to periodic saves, you might want to consider setting <pre>save-before-shutdown</pre> to
     <pre>yes</pre>This will tell the server to save everything including log dumps before shutting down.</p>

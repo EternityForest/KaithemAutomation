@@ -36,6 +36,12 @@ def SaveAllState():
         auth.dumpDatabase()
         messagelogging.dumpLogFile()
         modules.saveAll()
+
+def SaveAllStateExceptLogs():
+    with savelock:
+        auth.dumpDatabase()
+        modules.saveAll()
+
     
 def ensure_dir(f):
     d = os.path.dirname(f)

@@ -22,8 +22,8 @@ systemStarted = time.time()
 
 
 lastsaved = time.time()
-if not config['autosave-all'] == 'never':
-    saveinterval = unitsofmeasure.timeIntervalFromString(config['autosave-all'])
+if not config['autosave-state'] == 'never':
+    saveinterval = unitsofmeasure.timeIntervalFromString(config['autosave-state'])
 
 lastdumpedlogs = time.time()
 if not config['autosave-logs'] == 'never':
@@ -33,7 +33,7 @@ lastgotip = time.time()
 
 def everyminute():
     global lastsaved, lastdumpedlogs
-    if not config['autosave-all'] == 'never':
+    if not config['autosave-state'] == 'never':
         if (time.time() -lastsaved) > saveinterval:
             lastsaved = time.time()
             util.SaveAllState()
