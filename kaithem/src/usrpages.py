@@ -16,7 +16,7 @@
 
 #This file handles the display of user-created pages
 import kaithemobj, modules, mako, cherrypy,util,pages,threading,directories,os,messagebus
-import time
+import time,systasks
 from config import config
 
 errors = {}

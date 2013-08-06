@@ -165,6 +165,13 @@ h4{margin-top:0.5em !important; margin-bottom: 0.5em !important;background-color
     <h4>kaithem.sound.stopAll(handle)</h4>
     <p>Stop all currently playing sounds.</p>
  
+    <h4>kaithem.sound.isPlaying(handle="PRIMARY")</h4>
+    <p>Return true if a sound with handle handle is playing.
+    Note that the sound might finish before you actually get around to doing anything with the value.
+    If using the dummy backend because mpg123 is not installed,
+    result is undefined, but will not be an error, and will be a boolean value. 
+    </p>
+    
     <h3>kaithem.message</h3>
     <h4>kaithem.message.postMessage(topic,message)</h4>
     <p>Post a message to the internal system-wide message bus. Message MUST be a JSON serializable object.

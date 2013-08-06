@@ -95,11 +95,11 @@ def deleteAllButHighestNumberedNDirectories(where,N):
 class LowPassFiter(object):
     "Speed should be 0 to 1 and express by what percentage to approach the new value per sample"
     def __init__(self,speed,startval=0 ):
-        self.val = startval
+        self.value = startval
         self.speed = speed
     
     def sample(self, x):
-        (averageFramesPerSecond *(1-self.speed)) +   ((1/(time.time()-temp)) *self.speed)
+        self.value = (self.value *(1-self.speed)) +   ((x) *self.speed)
 
 #Credit to Jay of stack overflow for this function
 def which(program):

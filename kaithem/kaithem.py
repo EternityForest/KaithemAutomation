@@ -178,15 +178,26 @@ cherrypy.config["tools.decode.encoding"] = "utf-8"
 
     
 
+def addheader(*args,**kwargs):
+    cherrypy.response.headers['Cache-Control'] = "max-age=3600"
+    #del cherrypy.response.headers['Expires']
+    
+def pageloadnotify(*args,**kwargs):
+    systasks.aPageJustLoaded()
+    
+cherrypy.tools.pageloadnotify = cherrypy.Tool('on_start_resource', pageloadnotify)
+cherrypy.config['tools.pageloadnotify.on'] = True
+cherrypy.tools.addheader = cherrypy.Tool('before_finalize', addheader)
+
 conf = {
         '/static':
         {'tools.staticdir.on': True,
         'tools.staticdir.dir':os.path.join(dn,'data/static'),
-        'tools.expires.on' : True,
-        'tools.expires.secs' : 1000,
         "tools.sessions.on": False,
         'tools.caching.on' : True,
-        'tools.caching.delay' : 3600
+        'tools.caching.delay' : 3600,
+        "tools.caching.expires": 3600,
+        "tools.addheader.on": True
         }
         }
 #Let the user create additional static directories
@@ -194,11 +205,13 @@ for i in config['serve-static']:
     if i not in conf:
         conf["/usr/static/"+i]= {'tools.staticdir.on': True,
         'tools.staticdir.dir': config['serve-static'][i],
-        'tools.expires.on' : True,
-        'tools.expires.secs' : 1000,
+       'tools.expires.on' : True,
+       'tools.expires.secs' : 1000,
         "tools.sessions.on": False,
         'tools.caching.on' : True,
-        'tools.caching.delay' : 3600
+        'tools.caching.delay' : 3600,
+        "tools.caching.expires": 3600,
+        "tools.addheader.on": True
         }
 
 cherrypy.config.update(server_config)

@@ -27,7 +27,7 @@ class SoundWrapper(object):
         x = list(self.runningSounds.keys())
         for i in x:
             try:
-                if not self.runningSounds[i].playing():
+                if not self.runningSounds[i].isPlaying():
                     self.runningSounds.pop(i)
             except KeyError:
                 pass
@@ -42,8 +42,13 @@ class SoundWrapper(object):
     
     def playSound(self,filename,handle="PRIMARY"):
         pass
+    
     def stopSound(self, handle ="PRIMARY"):
         pass
+    
+    def isPlaying(self):
+        return False
+    
     
 
 class Mpg123Wrapper(SoundWrapper):
@@ -59,8 +64,10 @@ class Mpg123Wrapper(SoundWrapper):
         def __del__(self):
             self.process.terminate()
         
-        def playing(self):
-          return self.process.poll()
+        def isPlaying(self):
+            self.process.poll()
+            return self.process.returncode == None
+        
         
     def playSound(self,filename,handle="PRIMARY"):
         #Those old sound handles won't garbage collect themselves
@@ -74,13 +81,20 @@ class Mpg123Wrapper(SoundWrapper):
     
     def stopSound(self, handle ="PRIMARY"):
         #Delete the sound player reference object and its destructor will stop the sound
-            if handle in self.runningsounds:
+            if handle in self.runningSounds:
                 #Instead of using a lock lets just catch the error is someone else got there first.
                 try:
                     del self.runningSounds[handle]
                 except KeyError:
                     pass
     
+    def isPlaying(self,channel = "PRIMARY"):
+        "Return true if a sound is playing on channel"
+        try:
+            return self.runningSounds[channel].isPlaying()
+        except KeyError:
+            return False
+        
             
 #See if we have mpg123 installed at all and if not use the dummy driver.
 if util.which('mpg123'):
@@ -91,6 +105,7 @@ else:
 #Make fake module functions mapping to the bound methods.
 playSound = backend.playSound
 stopSound = backend.stopSound
+isPlaying = backend.isPlaying
 stopAllSounds = backend.stopAllSounds
 
 

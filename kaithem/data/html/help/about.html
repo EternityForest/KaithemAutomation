@@ -8,6 +8,7 @@
     import newevt
     import systasks
     import sound
+    import usrpages
     from config import config
     if os.name != "nt":
         import fcntl
@@ -81,6 +82,10 @@
         <tr>
             <td>Process Started</td>
             <td>${time.strftime(config['time-format'],time.localtime(systasks.systemStarted))}</td>
+        </tr>
+        <tr>
+            <td>HTTP Requests per minute(~5min avg)</td>
+            <td>${round(systasks.pageviewcountsmoother.value,3)}</td>
         </tr>
         <tr>
             <td>

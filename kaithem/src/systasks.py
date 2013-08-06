@@ -31,11 +31,23 @@ if not config['autosave-logs'] == 'never':
 
 lastgotip = time.time()
 
+pageviewsthisminute = 0
+
+def aPageJustLoaded():
+    global pageviewsthisminute
+    pageviewsthisminute = pageviewsthisminute +1
+
+pageviewcountsmoother = util.LowPassFiter(0.3)
+
 def everyminute():
+    global pageviewsthisminute
     global lastsaved, lastdumpedlogs
     if not config['autosave-state'] == 'never':
         if (time.time() -lastsaved) > saveinterval:
             lastsaved = time.time()
+            #This does not dump the log files. The log files change often.
+            #It would suck to have tons of tiny log files so we let the user configure
+            #Them separately
             util.SaveAllStateExceptLogs()
             
     if not config['autosave-logs'] == 'never':
@@ -44,6 +56,9 @@ def everyminute():
             messagelogging.dumpLogFile()
         
     messagebus.postMessage("/system/perf/FPS" , round(newevt.averageFramesPerSecond,2))
+    pageviewcountsmoother.sample(pageviewsthisminute)
+    pageviewsthisminute = 0
+    
     
 def onminute():
     

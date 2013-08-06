@@ -135,6 +135,10 @@ class Kaithem():
         @staticmethod
         def stopAll():
             sound.stopAllSounds()
+            
+        @staticmethod
+        def isPlaying(handle="PRIMARY"):
+            return sound.isPlaying(handle)
         
         
     class message():
