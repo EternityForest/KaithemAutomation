@@ -263,16 +263,17 @@ class BaseEvent():
         #This is how we handle priority for now. The passing things between threads
         #Is what really takes time polling so the few instructions extra should be well worth it
         #Basically a countdon timer in frames that polls at zero and resets (P0 is as fast as possible)
-        if self.countdown == 0:
-            self.countdown = self.priority
-        else:
-            self.countdown -= 1
-            return
-        
-        try:
-            self._check()
-        except Exception as e:
-            self._handle_exception(e)
+        with self.lock:
+            if self.countdown == 0:
+                self.countdown = self.priority
+            else:
+                self.countdown -= 1
+                return
+            
+            try:
+                self._check()
+            except Exception as e:
+                self._handle_exception(e)
 
 class CompileCodeStringsMixin():
     "This mixin lets a class take strings of code for its setup and action"
@@ -297,11 +298,13 @@ class MessageEvent(BaseEvent,CompileCodeStringsMixin):
         #This event type is not polled. Note that it doesn't even have a check() method.
         self.polled = False
         def action_wrapper(topic,message):
-            #setup environment
-            self.scope['__topic'] = topic
-            self.scope['__message'] = message
-            #We delegate the actual execution ofthe body to the on_trigger
-            self._on_trigger()
+            #Since we aren't under the BaseEvent.check() lock, we need to get it ourselves.
+            with self.lock:
+                #setup environment
+                self.scope['__topic'] = topic
+                self.scope['__message'] = message
+                #We delegate the actual execution ofthe body to the on_trigger
+                self._on_trigger()
             
         #When the object is deleted so will this reference and the message bus's auto unsubscribe will handle it
         self.action_wrapper_because_we_need_to_keep_a_reference = action_wrapper

@@ -15,7 +15,7 @@ These are old log dump files you can download. The oldest are automatically dele
 </p>
 <table border=1>
 <tr><td>Time</td><td>Compression Type</td><td>File Size</td><td>Download</td></tr>
-%for i in reversed(files):
+%for i in reversed(sorted(files,key = lambda x: x[0])):
 <tr>
 <td>
 ${formattime(i[0])}

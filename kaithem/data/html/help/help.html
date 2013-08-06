@@ -49,7 +49,8 @@ h4{margin-top:0.5em !important; margin-bottom: 0.5em !important;background-color
     <h3>Availible Trigger Expressions</h3>
     <h4>!onmsg [topic]</h4>
     <p>This trigger expression causes the event to occur when a message is posted to the internal message bus matching [topic]. The actual topic
-    and message are then availible as __topic and __message respectively.
+    and message are then availible as __topic and __message respectively. If another message occurs while the event is
+    running, it will be handled after the first event is done.
     </p>
     
      <h4>!onchange [expression]</h4>
@@ -390,6 +391,14 @@ Of course, you can add whatever HTML you like, this is just an example. You can 
     What you will need to do is to create a new theme file, serve it as a static file, and then use the     "theme-url" option in your config file to point to the new theme. You will likely just want to modify the existing scrapbook.css because it is a 100+ line file and there are some things that don't quite look right with the browser defaults.
     </p>
     
+    <h3>What can I do to make Kaithem more reliable?</h3>
+    <p>Watch out for things that have to be turned on,left on for a while, and then turned off.
+    Don't depend on high frame rates. Keep in mind that the server may need to restart at some time for updates.
+    Everything should start with sane defaults immediately on loading.
+    Keep in mind that the order in which events and modules load is not currently defined(this should be adressed soon),
+    however an event will never run before it's setup section.
+    
+    </p>
 </div>
 	
 <%include file="/pagefooter.html"/>

@@ -205,5 +205,4 @@ cherrypy.config.update(server_config)
 
 messagebus.postMessage('/system/startup','System Initialized')
 messagebus.postMessage('/system/notifications','System Initialized at ' + time.strftime(config['time-format']))
-
 cherrypy.quickstart(root,'/',config=conf)

@@ -43,7 +43,7 @@ ${"pass"}
 
 
 <h3>Trigger</h3>
-<p class="help">Enter the trigger here. The trigger may either be a python expression
+<p class="help">Enter the trigger here. The trigger may either be a python expression. Only one copy of each event will poll at a time.
 (by default, event runs when trigger goes from false to true), or a <a href="/docs#trigger">special trigger expression</a>
 </p>
 
@@ -92,7 +92,7 @@ ${"pass"}
 
 <h3>Action</h3>
 <p class="help">
-This code will be executed when the trigger condition is met.
+This code will be executed when the trigger condition is met. Polling will be suspended until the action completes.
 </p>
 
 <textarea id="actionbox" name="action" rows=25 class="pythoncode">${event["action"]|h}</textarea>

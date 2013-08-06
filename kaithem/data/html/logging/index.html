@@ -21,7 +21,7 @@ def formattime(x):
         %for i in messagelogging.log:
             %if not set(messagebus.MessageBus.parseTopic(i)).isdisjoint(set(messagelogging.toSave)):
                 <h3>${i}</h3>
-                (logging
+                (logging)
                 %if i[1:] in messagelogging.toSave:
                     <a href="/logs/stoplogging/${url(i)}">[stop]</a>)
                 %else:

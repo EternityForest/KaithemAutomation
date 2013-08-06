@@ -13,7 +13,7 @@ from config import config
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
 <h3>Page Body</h3>
 
-<a href="/pages/page/${url(module)}/page/${url(name)}" class="button">Go to Page</a><br>
+<a href="/pages/${url(module)}/${url(name)}" class="button">Go to Page</a><br>
 <p class="help">
 This page body will be interpreted as <a href="/makohelp">Mako template code</a>.
 The <a href="/docs#kaithemobject">kaithem object</a> is availible as "kaithem" to python code embedded in markup.

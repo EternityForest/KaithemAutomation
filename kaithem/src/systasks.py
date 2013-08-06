@@ -36,7 +36,7 @@ def everyminute():
     if not config['autosave-state'] == 'never':
         if (time.time() -lastsaved) > saveinterval:
             lastsaved = time.time()
-            util.SaveAllState()
+            util.SaveAllStateExceptLogs()
             
     if not config['autosave-logs'] == 'never':
         if (time.time() -lastdumpedlogs) > dumplogsinterval:
