@@ -24,6 +24,8 @@
 #Users and groups are saved in RAM and synched with the filesystem due to the goal
 #of not using the filesystem much to save any SD cards.
 
+
+    
 import json
 import base64
 import os
@@ -35,6 +37,17 @@ import shutil
 import hashlib
 import base64
 import sys
+
+if sys.version_info < (3,0):
+    #In python 2 bytes is an alias for str
+    #So we need to make a version bytes take a dummy arg to match 3.xx interface
+    #It's ok if it doesn't actually do anything because of the fact that hash.update is fine with str in 2.xx
+    def usr_bytes(s,x):
+        return(str(s))
+    
+else:
+    usr_bytes = bytes
+    
 #These are the "built in" permissions required to control basic functions
 #User code can add to these
 BasePermissions = {
@@ -92,7 +105,7 @@ def changePassword(user,newpassword):
         salt64 = salt64.decode("utf8")
     Users[user]['salt'] = salt64
     m = hashlib.sha256()
-    m.update(bytes(newpassword,'utf8'))
+    m.update(usr_bytes(newpassword,'utf8'))
     m.update(salt)
     p = base64.b64encode(m.digest())
     if sys.version_info > (3,0):
@@ -242,7 +255,7 @@ def userLogin(username,password):
     """return a base64 authentication token on sucess or return False on failure"""
     if  username in Users:
         m = hashlib.sha256()
-        m.update(bytes(password,'utf8'))
+        m.update(usr_bytes(password,'utf8'))
         print(Users[username]['salt'])
         m.update(base64.b64decode(Users[username]['salt'].encode('utf8')  ))
         m = m.digest()

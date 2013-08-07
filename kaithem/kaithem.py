@@ -203,14 +203,12 @@ conf = {
 #Let the user create additional static directories
 for i in config['serve-static']:
     if i not in conf:
-        conf["/usr/static/"+i]= {'tools.staticdir.on': True,
+        conf["/usr/static/"+i]= {
+        'tools.staticdir.on': True,
         'tools.staticdir.dir': config['serve-static'][i],
-       'tools.expires.on' : True,
-       'tools.expires.secs' : 1000,
         "tools.sessions.on": False,
         'tools.caching.on' : True,
         'tools.caching.delay' : 3600,
-        "tools.caching.expires": 3600,
         "tools.addheader.on": True
         }
 
