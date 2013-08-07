@@ -24,12 +24,17 @@ get_template = _Lookup.get_template
 
 #Redirect user to an error message if he does not have the proper permission.
 def require(permission):
+    """Get the user that is making the request bound to this thread, 
+        and then raise an interrupt if he does not have the permission specified"""
     if (not 'auth' in cherrypy.request.cookie) or cherrypy.request.cookie['auth'].value not in auth.Tokens:
        raise cherrypy.HTTPRedirect("/login/")
     if not auth.checkTokenPermission(cherrypy.request.cookie['auth'].value,permission):
         raise cherrypy.HTTPRedirect("/errors/permissionerror")
     
 def getAcessingUser():
+    """Return the username of the user making the request bound to this thread or <UNKNOWN> if not logged in.
+       The result of this function can be trusted because it uses the authentication token.
+    """
     if (not 'auth' in cherrypy.request.cookie) or cherrypy.request.cookie['auth'].value not in auth.Tokens:
        return "<unknown>"
     return auth.whoHasToken(cherrypy.request.cookie['auth'].value)

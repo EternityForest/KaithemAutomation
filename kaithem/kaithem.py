@@ -36,7 +36,6 @@ else:
 
 
 import cherrypy
-
 import pages
 import weblogin
 import auth
@@ -82,7 +81,7 @@ updateIP()
 
 port = config['port']
 
-#Initialize the autorization module
+#Initialize the authorization module
 auth.initializeAuthentication()
 
 #Load all modules from the active modules directory
@@ -179,6 +178,7 @@ cherrypy.config["tools.decode.encoding"] = "utf-8"
     
 
 def addheader(*args,**kwargs):
+    "This function's only purpose is to tell the browser to cache requests for an hour"
     cherrypy.response.headers['Cache-Control'] = "max-age=3600"
     #del cherrypy.response.headers['Expires']
     
@@ -187,6 +187,7 @@ def pageloadnotify(*args,**kwargs):
     
 cherrypy.tools.pageloadnotify = cherrypy.Tool('on_start_resource', pageloadnotify)
 cherrypy.config['tools.pageloadnotify.on'] = True
+
 cherrypy.tools.addheader = cherrypy.Tool('before_finalize', addheader)
 
 conf = {

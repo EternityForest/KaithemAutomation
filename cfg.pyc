@@ -1,0 +1,3 @@
+site-data-dir: /home/daniel/var
+log-compress: bz2
+log-format: normal

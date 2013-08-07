@@ -283,7 +283,7 @@ class WebInterface():
             if path[0] == 'addresource':
                 #path[1] tells what type of resource is being created and addResourceDispatcher returns the appropriate crud screen
                 return addResourceDispatcher(module,path[1])
-
+            
             #This case handles the POST request from the new resource target
             if path[0] == 'addresourcetarget':
                 return addResourceTarget(module,path[1],kwargs['name'],kwargs)

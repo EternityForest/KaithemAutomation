@@ -5,6 +5,8 @@ persistancedicts = {}
 #This is only used for checking if a dict already exists and creating it with defaults if not.
 persistance_dict_connection_lock = threading.RLock()
 
+persistancefileschanged = False
+
 class WebInterface(object):
     
     @cherrypy.expose
@@ -29,8 +31,6 @@ class WebInterface(object):
             else:
                 raise cherrypy.HTTPRedirect("/errors/inuse")
         
-    
-
 def loadAll():
     for i in range(0,15):
         #Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
@@ -130,6 +130,8 @@ class _PersistanceFile(object):
             raise TypeError("Value must be string, boolean, integer, or floating point, or list containing only those.")
         
         with self.lock:
+            global persistancefileschanged
+            persistancefileschanged = True
             path = self.__split_path(path)
             #Make all the dirs
             x = self.__make_path(path[:-1])
@@ -148,6 +150,8 @@ class _PersistanceFile(object):
         #This is implemented as a guard wrapper around write
         with self.lock:
             if self.whatis(key) == None:
+                global persistancefileschanged
+                persistancefileschanged = True
                 self.write(key,value)
                 return True
             else:
@@ -160,13 +164,17 @@ class _PersistanceFile(object):
             raise TypeError("Value must be string, boolean, integer, or floating point")
         
         with self.lock:
+            global persistancefileschanged
             try:
                 x = self.__resolve_path(path)
             except KeyError:
                 self.overwrite(path,value)
+                persistancefileschanged = True
+                
         
             if isinstance(x,list):
                 x.append(value)
+                persistancefileschanged = True
             else:
                 raise RuntimeError("Path must represent a list, but given path is a dir.")
             
@@ -176,11 +184,13 @@ class _PersistanceFile(object):
             raise TypeError("Value must be string, boolean, integer, or floating point")
         
         with self.lock:
+            global persistancefileschanged
             x = self.__resolve_path(path)
             
             if isinstance(x,list):
                 if value in x:
                     x.remove(value)
+                    persistancefileschanged =True
                     return True
                 else:
                     return False
@@ -227,10 +237,12 @@ class _PersistanceFile(object):
     
     def remove(self,path):
         with self.lock:
+            global persistancefileschanged
             try:
                 x = self.__split_path(path)
                 container = self.__resolve_path(x[:-1])
                 del container[x[-1]]
+                persistancefileschanged = True
                 return True
             except KeyError:
                 return False

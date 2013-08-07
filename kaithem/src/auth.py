@@ -77,7 +77,7 @@ def importPermissionsFromModules():
                 if modules.ActiveModules[module][resource]['resource-type']=='permission':
                     #add it to the permissions list
                     Permissions[resource] = modules.ActiveModules[module][resource]['description']
-                    
+ 
 
 #Python doesn't let us make custom attributes on normal dicts
 class User(dict):
@@ -299,7 +299,7 @@ def dumpDatabase():
     p = os.path.join(directories.usersdir,str(time.time()))
     os.mkdir(p)
     f = open(os.path.join(p,"users.json"),"w")
-    #prettyprint
+    #pretty print
     json.dump(temp,f,sort_keys=True, indent=4, separators=(',', ': '))
     f.close()
     f = open(os.path.join(p,"__COMPLETE__"),"w")

@@ -49,7 +49,7 @@ del x
 log = defaultdict(list)
 
 def dumpLogFile():
-    
+    """Flush all log entires that belong to topics that are in the list of things to save, and clear the staging area"""
     if config['log-format'] == 'normal':
         def dump(j,f):
             f.write(json.dumps(j,sort_keys=True,indent=1).encode())

@@ -45,7 +45,7 @@ wait-for-workers : 60
 
 #If this is yes, the server will try to save all persistant state before it shuts down.
 #This includes dumping logs to file.
-save-before-shutdown: yes
+save-before-shutdown: no
 
 ##################LOGGING######################################################
 #Notice: to actually control what topics are logged, use the kaithem/var/whattosave.txt or edit

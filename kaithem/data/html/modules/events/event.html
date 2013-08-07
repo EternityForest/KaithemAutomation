@@ -71,7 +71,7 @@ ${"pass"}
          %else:
             value="0"
          %endif
-       ></input>seconds. Does not affect poll rate.<br>
+       ></input>seconds. Does not affect poll rate(To avoid missing short events). <br>
         <%
         priority = defaultdict(str)
         if 'priority' in event:
@@ -117,7 +117,16 @@ This section shows up to the most recent 25 errors that occured while executing 
 <hr>
 <h3>Info</h3>
 
-<p>This event last ran: <b>${time.strftime('%A, %B %d, %Y at %H:%M:%S',time.localtime(newevt.getEventLastRan(module,name)))|h}</b></p>
+<p>
+This event last ran:
+%if newevt.getEventLastRan(module,name):
+<b>${time.strftime('%A, %B %d, %Y at %H:%M:%S',time.localtime(newevt.getEventLastRan(module,name)))|h}</b>
+%else:
+<b>This event has not ran since it loaded.</b>
+%endif
+
+
+</p>
 <hr>
 <p class="help">
 Saving this module will case it to completely reload, including its local scope. Other resorces will not be affected.
