@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 import time,re
-from config import config
+from .config import config
 
 class DayOfWeek(str):
     """This class it a value object that will appear like a string but supports intelligent comparisions like Dow=='Thu' etc.

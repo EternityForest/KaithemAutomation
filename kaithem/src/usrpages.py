@@ -15,12 +15,13 @@
 
 
 #This file handles the display of user-created pages
-import kaithemobj, modules, mako, cherrypy,util,pages,threading,directories,os,messagebus
-import time,systasks
-from config import config
+import time,os,threading
+from .import kaithemobj,util,pages,directories,messagebus,systasks,modules_state
+import mako, cherrypy
+
+from .config import config
 
 errors = {}
-
 
 class CompiledPage():
     def __init__(self, resource):
@@ -82,30 +83,29 @@ def removeModulePages(module):
 #This piece of code will update the actual event object based on the event resource definition in the module
 #Also can add a new event
 def updateOnePage(resource,module):
-
     #This is one of those places that uses two different locks
-    with modules.modulesLock:
+    with modules_state.modulesLock:
         if module not in _Pages:
             _Pages[module]={}
             
         #Get the event resource in question
-        j = modules.ActiveModules[module][resource]
+        j = modules_state.ActiveModules[module][resource]
         _Pages[module][resource] = CompiledPage(j)
         
 
 #look in the modules and compile all the event code
 def getPagesFromModules():
     global _Pages
-    with modules.modulesLock:
+    with modules_state.modulesLock:
         with _page_list_lock:
             #Set __events to an empty list we can build on
             _Pages = {}
-            for i in modules.ActiveModules.copy():
+            for i in modules_state.ActiveModules.copy():
                 #For each loaded and active module, we make a subdict in _Pages
                 _Pages[i] = {} # make an empty place or __events in this module
                 #now we loop over all the resources o the module to see which ones are __events 
-                for m in modules.ActiveModules[i].copy():
-                    j=modules.ActiveModules[i][m]
+                for m in modules_state.ActiveModules[i].copy():
+                    j=modules_state.ActiveModules[i][m]
                     if j['resource-type']=='page':
                         _Pages[i][m] = CompiledPage(j)
 
@@ -130,7 +130,7 @@ class KaithemPage():
                 return page.template.render(
                    kaithem = kaithemobj.kaithem,
                    request = cherrypy.request,
-                   module = modules.scopes[module],
+                   module = modules_state.scopes[module],
                    path = args,
                    kwargs = kwargs
                    )

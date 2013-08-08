@@ -1,5 +1,7 @@
-import util,json,threading,directories,os,shutil,time,pages,cherrypy
-from util import url, unurl
+import threading,os,shutil,time
+import cherrypy
+from . import util,json,directories,pages
+from .util import url, unurl
 persistancedicts = {}
 
 #This is only used for checking if a dict already exists and creating it with defaults if not.

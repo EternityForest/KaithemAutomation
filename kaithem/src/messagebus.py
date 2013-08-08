@@ -13,7 +13,8 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import weakref,threading,time,os,random,workers,json
+import weakref,threading,time,os,random,json
+from . import workers
 from collections import defaultdict
 
 

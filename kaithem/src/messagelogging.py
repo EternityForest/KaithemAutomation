@@ -12,24 +12,13 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-
-import messagebus
-import unitsofmeasure
+import time, threading,json, os,bz2, gzip, re
 import cherrypy
-import pages
-import time
-import threading
-import directories
-import json
-import os
-import util
-import bz2
-import gzip
-import re
-import workers
+from . import unitsofmeasure,messagebus,directories,workers,util,pages
+
 from cherrypy.lib.static import serve_file
 
-from config import config
+from .config import config
 from collections import defaultdict
 #this flag tells if we need to save the list of what to log
 loglistchanged = False

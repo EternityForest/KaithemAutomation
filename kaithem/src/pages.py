@@ -15,9 +15,9 @@
 
 from mako.template import Template
 from mako.lookup import TemplateLookup
-import auth
 import cherrypy
-import directories
+
+from . import directories,auth
 
 _Lookup = TemplateLookup(directories=[directories.htmldir])
 get_template = _Lookup.get_template

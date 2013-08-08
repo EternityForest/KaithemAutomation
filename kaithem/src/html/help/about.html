@@ -1,0 +1,131 @@
+<%!
+    import socket
+    import time
+    import os
+    import platform
+    import sys
+    from src import unitsofmeasure
+    from src import newevt
+    from src import systasks
+    from src import sound
+    from src import usrpages
+    from src.config import config
+    if os.name != "nt":
+        import fcntl
+        import struct
+
+        def get_interface_ip(ifname):
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s',
+                                    ifname[:15].encode('utf-8') ))[20:24])
+
+    def get_lan_ip():
+        ip = socket.gethostbyname(socket.gethostname())
+        if ip.startswith("127.") and os.name != "nt":
+            interfaces = [
+                "eth0",
+                "eth1",
+                "eth2",
+                "wlan0",
+                "wlan1",
+                "wifi0",
+                "ath0",
+                "ath1",
+                "ppp0",
+                ]
+            for ifname in interfaces:
+                try:
+                    ip = get_interface_ip(ifname)
+                    break
+                except IOError:
+                    pass
+        return ip
+        
+%>
+
+<%include file="/pageheader.html"/>
+	<title>About Kaithem </title>
+    <h1>About Kaithem Automation</h1>
+	<div class="sectionbox">
+    Copyright 2013 Daniel Black. Availible under the terms of the <a href="/license">GNU general public license</a>.
+    the mako and cherrypy folders were copied unmodified and remain under their respective licenses.
+    </div>
+    <div class="sectionbox">${config['about-box-banner']}</div>
+    <div class="sectionbox">
+    Version: 0 Unstable Branch
+    </div>
+    
+    <div class="sectionbox">
+<p>
+<b>IP Data</b>
+    <table border=1>
+        <tr>
+            <td>LAN IP Adress</td>
+            <td>${get_lan_ip()}</td>
+        </tr><tr>
+            <td>WAN(Public) IP when sys loaded</td>
+            <td>${myip}</td>
+        </tr>
+    </table>
+</p>
+<p>
+<b>Current Statistics</b>
+    <table border=1>
+        <tr>
+            <td>Approximate frames per second</td>
+            <td>${str(newevt.averageFramesPerSecond)[:6]}</td>
+        </tr>
+        <tr>
+            <td>Total polled events</td>
+            <td>${str(newevt.countEvents())}</td>
+        </tr>
+        <tr>
+            <td>Process Started</td>
+            <td>${time.strftime(config['time-format'],time.localtime(systasks.systemStarted))}</td>
+        </tr>
+        <tr>
+            <td>HTTP Requests per minute(~5min avg)</td>
+            <td>${round(systasks.pageviewcountsmoother.value,3)}</td>
+        </tr>
+        <tr>
+            <td>
+                Uptime
+            </td>
+            <td>
+                ${unitsofmeasure.formatTimeInterval(time.time()-systasks.systemStarted,4)}
+            </td>
+        </tr>
+    </table>
+    
+</p>
+<p>
+<b>System Info</b>
+<table border=1>
+    <tr>
+        <td>CPU Type</td>
+        <td>${platform.machine()}
+    </tr>
+    <tr>
+        <td>CPU</td>
+        <td>${platform.processor()}</td>
+    </tr>
+    <tr>
+        <td>OS Type</td>
+        <td>${platform.system()}</td>
+    </tr>
+    
+    <tr>
+        <td>OS Version</td>
+        <td>${platform.release()}</td>
+    </tr>
+    <tr>
+        <td>Python Version</td>
+        <td>${platform.python_version()}</td>
+    </tr>
+    <tr>
+        <td>Audio Backend</td>
+        <td>${sound.backend.backendname}</td>
+    </tr>
+
+</div>
+<%include file="/pagefooter.html"/>

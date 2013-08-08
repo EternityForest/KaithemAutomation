@@ -1,0 +1,16 @@
+<%!
+    from src.util import url
+%>
+
+<%include file="/pageheader.html"/>
+<h2>Add Module</h2>
+<title>Add New Module</title>
+    <div class="sectionbox">
+    <form action="/modules/newmoduletarget" method="POST" name="new">
+        New Module Name:<input required="required" name="name" type="text"></input>
+        <br>
+        
+        <br><input value="Create Module" type="submit">
+    </form>
+</div>
+<%include file="/pagefooter.html"/>

@@ -21,7 +21,7 @@
 #Tasks will be performed on a best effort basis and errors will be caught and ignored.
 import threading,sys,cherrypy
 import atexit,time
-from config import config
+from .config import config
 
 #2 and 3 have basically the same module with diferent names
 if sys.version_info < (3,0):

@@ -1,0 +1,21 @@
+
+<%include file="/pageheader_nonav.html"/>
+<%!
+from src import auth
+%>
+    <h2 style="text-align: center;">Please Log In</h2>
+    <div class="sectionbox">
+    <div style="text-align: center;">
+      <form method="POST" action="/login/login/" name="login"> <p>
+        <span style="font-weight: bold;">Username:</span>
+        <input required="required" name="username" type="text"><br>
+        <span style="font-weight: bold;">Password:</span>&nbsp; 
+		<input name="pwd" type="password"></p>
+        <input value="Login as Registered User"type="submit">
+      %if '__guest__' in auth.Users:
+          <a href="/login/login?username=__guest__&pwd=__none__" class="button">Login as Guest</a>
+      %endif
+      </form>
+	</div>
+    </div>
+<%include file="/pagefooter.html"/>

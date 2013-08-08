@@ -13,8 +13,9 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import cherrypy, auth ,pages,messagebus
-from util import quote
+import cherrypy
+from . import auth ,pages,messagebus
+from .util import quote
 
 class ManageAuthorization():
     @cherrypy.expose

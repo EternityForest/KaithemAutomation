@@ -1,0 +1,10 @@
+<%!
+    from src.util import url
+%>
+<%include file="/pageheader.html"/>
+<title>Delete Resource</title>
+<form action="/modules/module/${url(module)}/deleteresourcetarget" method="POST" name="new">
+Enter Name of Resource To Delete: <input required="required" name="name" type="text"></input><br>
+<br><input value="Delete(cannot be undone)" type="submit">
+</form>
+<%include file="/pagefooter.html"/>

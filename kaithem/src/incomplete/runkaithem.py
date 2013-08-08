@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 #Copyright Daniel Black 2013
 #This file is part of Kaithem Automation.
 
@@ -13,18 +14,18 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import time
-from . import messagebus
-from .config import config
+#For reliability, this file manages the lifetime of the Kaithem server.
+#If the Kaithem program returns with returncode 0, the program will simply exit.
+#Any other code will cause it to restart the program.
+#The reason for this is the very slight possibility of some kind of memory leak, deadlock, lockup, etc.
+#This gives us the ability to restart the interpreter.
 
-keep_notifications = config['notifications-to-keep']
-notificationslog =   []
+import subprocess,sys
 
-def subscriber(topic,message):
-    global notificationslog
-    print(message)
-    notificationslog.append((time.time(),topic,message))
-    #Delete all but the most recent N notifications, where N is from the config file.
-    notificationslog = notificationslog[-keep_notifications:] 
-    
-messagebus.subscribe('/system/notifications',subscriber)
+kaithemfile = os.path.join(os.path.dirname(os.path.realpath(__file__)),'src','kaithem.py')
+
+#Just run the executable in a big old loop
+while 1:
+    x = subprocess.call([sys.executable,kaithemfile]+sys.argv)
+    if x == 0:
+        break

@@ -1,0 +1,31 @@
+<%!from src.config import config%>
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">
+    <link rel="stylesheet" type="text/css" href="${config['theme-url']}">
+    </head>
+    
+  <body id="page"> 
+
+    <div style="width: 100%">
+    ${config['top-banner-html']}
+    <table  border="" id="nav" style="width: 100%">
+      <tbody>
+        <tr>
+            <td><a href="/">Main</a></td>
+            <td ><a href="/auth/">Authorization</a></td>
+            <td><a href="/modules/">Modules</a></td>
+            <td><a href="/settings">Settings</a></td>
+            <td><a href="/pagelisting">Pages</a></td>
+            <td><a href="/logs">Logs</a></td>
+            <td><a href="/save">Save State</a></td>
+            <td><a href="/login/logout">Logout</a></td>
+            <td><a href="/helpmenu">Help</a></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <br>
+

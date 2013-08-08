@@ -14,12 +14,11 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #File for keeping track of and editing kaithem modules(not python modules)
+import threading,urllib,shutil,sys,time,os,json
+import cherrypy
+from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus
+from .modules_state import ActiveModules,modulesLock,scopes
 
-import auth,cherrypy,pages,urllib,directories,os,json,util,newevt,shutil,sys,time
-import kaithemobj
-import threading
-import usrpages
-import messagebus
 
 #2.x vs 3.x once again have renamed stuff
 if sys.version_info < (3,0):
@@ -29,28 +28,16 @@ else:
     
 import zipfile
 
-from util import url,unurl
+from .util import url,unurl
 
 
-#this lock protects the activemodules thing
-modulesLock = threading.RLock()
 
-#Lets just store the entire list of modules as a huge dict for now at least
-ActiveModules = {}
-
-#Define a place to keep the module private scope obects.
-#Every module has a object of class object that is used so user code can share state between resources in
-#a module
-scopes ={}
 
 #Thismust be set to true by anything that changesthe modules list
 moduleschanged = False
 
 class obj(object):
     pass
-
-
-
 
 #saveall and loadall are the ones outside code shold use to save and load the state of what modules are loaded
 def saveAll():

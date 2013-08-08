@@ -19,38 +19,37 @@
 #This file is the main entry point of the app
 
 import sys,os
-#For some odd reason, python doesn't search "Same directory as this file"
-#Only "Same directory as the file that started the program.
-#I don't want to hand modify 15 files. #afwulhack
-sys.path.append(os.path.join(sys.path[0],'src'))
 
+#There is actually a very good reason to change the import path here.
+#It means we can refer to an installed copy of a library by the same name
+#We use for the copy we include. If the user has an installed version, his will be used.
+#If not, it will fall back to ours.
 sys.path.append(os.path.join(sys.path[0],'src','thirdparty'))
 
-
-#There are some libraries that are actually different for 3 and 2, so we use the apporpriate one
+#There are some libraries that are actually different for 3 and 2, so we use the apprpriate one
 #By changing the pathe to include the proper ones.
 if sys.version_info < (3,0):
     sys.path.append(os.path.join(sys.path[0],'src','thirdparty','python2'))
 else:
     sys.path.append(os.path.join(sys.path[0],'src','thirdparty','python3'))
 
-
-import cherrypy
-import pages
-import weblogin
-import auth
-import ManageUsers
-import directories
-import modules
-import settings
-import usrpages
-import messagebus
-import notifications
 import time
-import messagelogging
-import systasks
+import cherrypy
+from src import util
+from src import pages
+from src import weblogin
+from src import auth
+from src import ManageUsers
+from src import directories
+from src import modules
+from src import settings
+from src import usrpages
+from src import messagebus
+from src import notifications
+from src import messagelogging
+from src import systasks
 
-from config import config
+from src.config import config
 
 def updateIP():
     global MyExternalIPAdress

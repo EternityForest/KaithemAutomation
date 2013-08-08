@@ -13,9 +13,11 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import newevt,messagebus,time,unitsofmeasure,util,messagelogging,atexit,cherrypy
-from kaithemobj import kaithem
-from config import config
+import time,atexit
+import cherrypy
+from . import newevt,messagebus,unitsofmeasure,util,messagelogging
+from .kaithemobj import kaithem
+from .config import config
 
 #Can't think of anywhere else to put this thing.
 systemStarted = time.time()

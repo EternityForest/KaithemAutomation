@@ -20,7 +20,7 @@
 
 #[]Put these in approprite places when running on linux
 import os
-from config import config
+from .config import config
 
 dn = os.path.dirname(os.path.realpath(__file__))
 vardir =os.path.join(dn,'..')
@@ -31,5 +31,5 @@ logdir = os.path.join(vardir,'logs')
 persistdir = os.path.join(vardir,'persist')
 moduledir = os.path.join(vardir,'modules')
 datadir = os.path.join(dn,'../data')
-htmldir = os.path.join(datadir,'html')
+htmldir = os.path.join(dn,'html')
 ssldir =  os.path.join(vardir,config['ssl-dir'])

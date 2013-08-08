@@ -14,17 +14,11 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #This is the global general purpose utility thing
-import time
-import modules
-import unitsofmeasure
-import workers
-import subprocess
-import threading
-import random
-import sound
-import messagebus
-import util
+
+import time,random,subprocess,threading
 import cherrypy
+from . import unitsofmeasure,workers,sound,messagebus,util
+
 
 #This exception is what we raise rom within the page handler to serve a static file
 class ServeFileInsteadOfRenderingPageException(Exception):

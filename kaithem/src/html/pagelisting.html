@@ -1,0 +1,41 @@
+<%include file="/pageheader.html"/>
+<%!
+from src.util import url
+import cherrypy
+from src import auth
+%>
+<title>Page Index</title>
+<h2>Page Index</h2>
+
+<%!
+def canIGoToThisPage(page):
+    if 'dont-show-in-index' in page:
+        if page['dont-show-in-index'] == True:
+            return False
+            
+    if not 'require-permissions' in page:
+        return True
+
+    else:
+        if (not 'auth' in cherrypy.request.cookie) or cherrypy.request.cookie['auth'].value not in auth.Tokens:
+            return False
+        for i in page['require-permissions']:
+            if not auth.checkTokenPermission(cherrypy.request.cookie['auth'].value,i):
+                return False
+    return True
+%>
+
+<div class="sectionbox">
+<p class="help">This is a listing of all pages on the server that you have acess to.</p>
+%for i in sorted(modules.keys()):
+    <h3>${i}</h3>
+    %for j in sorted(modules[i].keys()):
+        %if modules[i][j]['resource-type'] =='page':
+            %if canIGoToThisPage(modules[i][j]):
+            <a href="/pages/${url(i)}/${url(j)}">${j|h}</a></br>
+            %endif
+        %endif
+    %endfor
+%endfor
+</div>
+<%include file="/pagefooter.html"/>

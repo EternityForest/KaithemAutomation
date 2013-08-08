@@ -1,0 +1,184 @@
+<%!
+from src.util import url
+from src import newevt
+from collections import defaultdict
+import traceback,time
+from src.config import config
+%>
+
+<%include file="/pageheader.html"/>
+<title>Kaithem Event</title>
+<h2>Event "${name|h}" of module "${module|h}"</h2>
+
+<div class="sectionbox">
+
+
+<form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
+<h3>Setup Code</h3>
+<p class="help">Enter python code. It will execute in the event scope when it loads.
+</p>
+
+<textarea rows=3 class="pythoncode" name="setup" id="setupbox">
+%if 'setup' in event:
+${event['setup']|h}
+%else:
+${"pass"}
+%endif
+</textarea>
+
+
+%if config['enable-js']:
+
+
+<div id="setupeditor"  style="height:10ex ;border: 1px solid #DDD;">
+%if 'setup' in event:
+${event['setup']|h}
+%else:
+${"pass"}
+%endif
+</div>
+
+
+%endif
+
+
+<h3>Trigger</h3>
+<p class="help">Enter the trigger here. The trigger may either be a python expression. Only one copy of each event will poll at a time.
+(by default, event runs when trigger goes from false to true), or a <a href="/docs#trigger">special trigger expression</a>
+</p>
+
+
+<input class="pythoncode" id="triggerbox" type="text" name="trigger" value="${event['trigger']|h}"></input>
+
+%if config['enable-js']:
+<div id="triggereditor"  style="height:2ex ;border: 1px solid #DDD;">${event["trigger"]|h}</div>
+%endif
+
+
+<h3>Additional Trigger Options</h3>
+<div class="scrollbox">
+    <input type="checkbox"  name="continual" value="false"
+         %if 'continual' in event:
+            %if event['continual'] == True:
+            checked="yes"
+            %endif
+         %endif
+       ></input>Do the action repeatedly while the trigger is true<br>
+       Do the action at most every:
+           <input type="number"  name="ratelimit" step=0.01
+         %if 'ratelimit' in event:
+            value="${event['ratelimit']}"
+         %else:
+            value="0"
+         %endif
+       ></input>seconds. Does not affect poll rate(To avoid missing short events). <br>
+        <%
+        priority = defaultdict(str)
+        if 'priority' in event:
+            priority[event['priority']] = 'selected="selected"'
+        else:
+            priority[2] = 'selected="selected"'
+        %>
+       Polling Priority(to reduce CPU usage, use the lowest possible rate):<select name="priority">
+        <option value=0 ${priority[0]}>Realtime(as fast as possible)</option>
+        <option value=2 ${priority[2]}>Interactive(no noticable delay in response)</option>
+        <option value=15 ${priority[15]}>High(response within a second)</option>
+        <option value=60 ${priority[15]}>Medium(response within a few seconds)</option>
+        <option value=150 ${priority[150]}>Low(response within a minute)</option>
+        <option value=2400 ${priority[2400]}>Very Low(response within a few minutes)</option>
+        </select>
+
+</div>
+
+<h3>Action</h3>
+<p class="help">
+This code will be executed when the trigger condition is met. Polling will be suspended until the action completes.
+</p>
+
+<textarea id="actionbox" name="action" rows=25 class="pythoncode">${event["action"]|h}</textarea>
+
+%if config['enable-js']:
+<div id="actioneditor" style="height: 25ex;border: 1px solid #DDD;">${event["action"]|h}</div>
+%endif
+
+
+%if newevt.getEventErrors(module,name):
+<h3>Errors</h3>
+<p class ="help">
+This section shows up to the most recent 25 errors that occured while executing the event or trigger.
+</p>
+<div class="scrollbox">
+%for i in newevt.getEventErrors(module,name):
+    <h4>${i[0]|h}</h4>
+    <p>${i[1]|h}</p>
+%endfor
+</div>
+%endif
+<hr>
+<h3>Info</h3>
+
+<p>
+This event last ran:
+%if newevt.getEventLastRan(module,name):
+<b>${time.strftime('%A, %B %d, %Y at %H:%M:%S',time.localtime(newevt.getEventLastRan(module,name)))|h}</b>
+%else:
+<b>This event has not ran since it loaded.</b>
+%endif
+
+
+</p>
+<hr>
+<p class="help">
+Saving this module will case it to completely reload, including its local scope. Other resorces will not be affected.
+</p>
+<input type="submit" value="Save Changes"></input>
+</form>
+</div>
+
+
+
+
+%if config['enable-js']:
+<script src="/static/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+<script>
+    var actioneditor = ace.edit("actioneditor");
+    actioneditor.setTheme("ace/theme/dawn");
+    actioneditor.getSession().setMode("ace/mode/python");
+    
+    var triggereditor = ace.edit("triggereditor");
+    triggereditor.setTheme("ace/theme/dawn");
+    triggereditor.getSession().setMode("ace/mode/python");
+    
+    var setupeditor = ace.edit("setupeditor");
+    setupeditor.setTheme("ace/theme/dawn");
+    setupeditor.getSession().setMode("ace/mode/python");
+</script>
+
+<script>
+triggereditor.getSession().on('change', function(e) {
+    document.getElementById('triggerbox').value = triggereditor.getValue();
+});
+</script>
+
+<script>
+actioneditor.getSession().on('change', function(e) {
+    document.getElementById('actionbox').value = actioneditor.getValue();
+});
+</script>
+
+<script>
+setupeditor.getSession().on('change', function(e) {
+    document.getElementById('setupbox').value = setupeditor.getValue();
+});
+</script>
+
+<script>document.getElementById('triggerbox').style.display='none';</script>
+<script>document.getElementById('triggereditor').style.display='block';</script>
+
+<script>document.getElementById('actionbox').style.display='none';</script>
+<script>document.getElementById('actioneditor').style.display='block';</script>
+
+<script>document.getElementById('setupbox').style.display='none';</script>
+<script>document.getElementById('setupeditor').style.display='block';</script>
+%endif
+<%include file="/pagefooter.html"/>

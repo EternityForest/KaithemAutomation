@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#Fix a circular import
+
 import  os,threading,copy,sys,shutil
 
 
@@ -32,12 +32,16 @@ def url(string):
     return quote(string,'')
 
 def SaveAllState():
+    #fix circular import by putting it here
+    from . import  auth,modules,messagelogging
     with savelock:
         auth.dumpDatabase()
         messagelogging.dumpLogFile()
         modules.saveAll()
 
 def SaveAllStateExceptLogs():
+    #fix circular import
+    from . import  auth,modules,messagelogging
     with savelock:
         auth.dumpDatabase()
         modules.saveAll()
@@ -130,4 +134,3 @@ def which(program):
     #If we got this far in execution, we assume the file is not there and return None
     return None
 
-import  auth,modules,messagelogging

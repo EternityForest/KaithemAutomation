@@ -24,19 +24,9 @@
 #Users and groups are saved in RAM and synched with the filesystem due to the goal
 #of not using the filesystem much to save any SD cards.
 
-
-    
-import json
-import base64
-import os
-import modules
-import util
-import directories
-import time
-import shutil
-import hashlib
-import base64
-import sys
+print (__name__)
+from . import util,directories,modules_state
+import json,base64,os,time,shutil,hashlib,base64,sys
 
 if sys.version_info < (3,0):
     #In python 2 bytes is an alias for str
@@ -70,13 +60,13 @@ authchanged = False
 
 def importPermissionsFromModules():
     Permissions=BasePermissions
-    with modules.modulesLock:
-        for module in modules.ActiveModules.copy():#Iterate over all modules
+    with modules_state.modulesLock:
+        for module in modules_state.ActiveModules.copy():#Iterate over all modules
             #for every resource of type permission
-            for resource in modules.ActiveModules[module].copy():
-                if modules.ActiveModules[module][resource]['resource-type']=='permission':
+            for resource in modules_state.ActiveModules[module].copy():
+                if modules_state.ActiveModules[module][resource]['resource-type']=='permission':
                     #add it to the permissions list
-                    Permissions[resource] = modules.ActiveModules[module][resource]['description']
+                    Permissions[resource] = modules_state.ActiveModules[module][resource]['description']
  
 
 #Python doesn't let us make custom attributes on normal dicts

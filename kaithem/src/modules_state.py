@@ -13,18 +13,16 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import time
-from . import messagebus
-from .config import config
+#This file is just for keeping track of state info that would otherwise cause circular issues.
 
-keep_notifications = config['notifications-to-keep']
-notificationslog =   []
+from threading import RLock
+#Lets just store the entire list of modules as a huge dict for now at least
+ActiveModules = {}
 
-def subscriber(topic,message):
-    global notificationslog
-    print(message)
-    notificationslog.append((time.time(),topic,message))
-    #Delete all but the most recent N notifications, where N is from the config file.
-    notificationslog = notificationslog[-keep_notifications:] 
-    
-messagebus.subscribe('/system/notifications',subscriber)
+#this lock protects the activemodules thing
+modulesLock = RLock()
+
+#Define a place to keep the module private scope obects.
+#Every module has a object of class object that is used so user code can share state between resources in
+#a module
+scopes ={}

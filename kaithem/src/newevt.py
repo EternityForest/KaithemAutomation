@@ -16,14 +16,10 @@
 #NOTICE: A LOT OF LOCKS ARE USED IN THIS FILE. WHEN TWO LOCKS ARE USED, ALWAYS GET _event_list_lock LAST
 #IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
-from __future__ import with_statement
+import traceback,threading,sys,time,atexit
+from . import workers, kaithemobj,messagebus,util,modules_state
 
-import traceback
-import threading,traceback,sys
-import workers
-import modules,threading,time,atexit
-import kaithemobj,messagebus,util
-from config import config
+from .config import config
 
 #Use this lock whenever you acess _events or __EventReferences in any way.
 #Most of the time it should be held by the event manager that continually iterates it.
@@ -96,7 +92,7 @@ t.start()
 
 def make_event_from_resource(module,resource):
     "Returns an event object when given a module and resource name pointing to an event resource."
-    r = modules.ActiveModules[module][resource]
+    r = modules_state.ActiveModules[module][resource]
     
     if 'setup' in r:
         setupcode = r['setup']
@@ -416,14 +412,14 @@ def removeModuleEvents(module):
         
 #Every event has it's own local scope that it uses, this creates the dict to represent it
 def make_eventscope(module):
-    with modules.modulesLock:
-       return {'module':modules.scopes[module],'kaithem':kaithemobj.kaithem}
+    with modules_state.modulesLock:
+       return {'module':modules_state.scopes[module],'kaithem':kaithemobj.kaithem}
 
 #This piece of code will update the actual event object based on the event resource definition in the module
 #Also can add a new event
 def updateOneEvent(resource,module):
     #This is one of those places that uses two different locks(!)
-    with modules.modulesLock:
+    with modules_state.modulesLock:
         
         x = make_event_from_resource(module,resource)
         #Here is the other lock(!)
@@ -439,14 +435,14 @@ def updateOneEvent(resource,module):
 #look in the modules and compile all the event code
 def getEventsFromModules():
     global _events
-    with modules.modulesLock:
+    with modules_state.modulesLock:
         with _event_list_lock:
             #Set _events to an empty list we can build on
             _events = []
-            for i in modules.ActiveModules:
+            for i in modules_state.ActiveModules:
                 #now we loop over all the resources of the module to see which ones are _events 
-                for m in modules.ActiveModules[i]:
-                    j=modules.ActiveModules[i][m]
+                for m in modules_state.ActiveModules[i]:
+                    j=modules_state.ActiveModules[i][m]
                     if j['resource-type']=='event':
                         #For every resource that is an event, we make an event object based o
                         x = make_event_from_resource(i,m)
