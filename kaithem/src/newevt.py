@@ -253,13 +253,21 @@ class BaseEvent():
             _events.remove(self)
     
     def check(self):
-        #This is the function that the polling system calls to poll the event.
-        #It calls a _check() function which must be defined by a subclass.
+        """This is the function that the polling system calls to poll the event.
+        It calls a _check() function which must be defined by a subclass."""
         
-        #This is how we handle priority for now. The passing things between threads
-        #Is what really takes time polling so the few instructions extra should be well worth it
-        #Basically a countdon timer in frames that polls at zero and resets (P0 is as fast as possible)
-        with self.lock:
+        
+        #Should another thread already be polling this, We actually don't want to
+        #just sit around and wait. That would mean one slow event could queue up many
+        #copies of itself and cause odd performance issues.
+        #so, if another thread is already handling this, just return and move on.
+        if not self.lock.acquire(False):
+            return
+        
+        try:
+            #This is how we handle priority for now. The passing things between threads
+            #Is what really takes time polling so the few instructions extra should be well worth it
+            #Basically a countdon timer in frames that polls at zero and resets (P0 is as fast as possible)
             if self.countdown == 0:
                 self.countdown = self.priority
             else:
@@ -270,6 +278,8 @@ class BaseEvent():
                 self._check()
             except Exception as e:
                 self._handle_exception(e)
+        finally:
+            self.lock.release()
 
 class CompileCodeStringsMixin():
     "This mixin lets a class take strings of code for its setup and action"

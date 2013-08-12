@@ -1,7 +1,7 @@
 import os,sys
 dn = os.path.dirname(os.path.realpath(__file__))
 
-sys.path.append(os.path.join(dn,"../.."))
+sys.path.append(os.path.join(dn,"../../.."))
 
 class UtterFailure(Exception):
     pass

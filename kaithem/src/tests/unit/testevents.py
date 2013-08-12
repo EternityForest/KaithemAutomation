@@ -1,7 +1,6 @@
 import common
-import newevt
+from src import newevt,messagebus
 import time
-import messagebus
 
 #Create an event that sets y to 0 if it is 1
 x = newevt.Event("y==1","y=0",locals())

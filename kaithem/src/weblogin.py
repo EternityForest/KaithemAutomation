@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 import cherrypy
-from . import pages, auth
+from . import pages, auth,util
 
 class LoginScreen():
 

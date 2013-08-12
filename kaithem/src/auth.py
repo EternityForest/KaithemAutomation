@@ -24,7 +24,6 @@
 #Users and groups are saved in RAM and synched with the filesystem due to the goal
 #of not using the filesystem much to save any SD cards.
 
-print (__name__)
 from . import util,directories,modules_state
 import json,base64,os,time,shutil,hashlib,base64,sys
 

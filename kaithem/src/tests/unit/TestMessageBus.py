@@ -1,6 +1,6 @@
 from common import fail,suceed
-from messagebus import *
-import  messagebus
+from src.messagebus import *
+from src import messagebus
 
 tester = {}
 

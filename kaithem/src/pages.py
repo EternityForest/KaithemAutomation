@@ -17,7 +17,7 @@ from mako.template import Template
 from mako.lookup import TemplateLookup
 import cherrypy
 
-from . import directories,auth
+from . import directories,auth,util
 
 _Lookup = TemplateLookup(directories=[directories.htmldir])
 get_template = _Lookup.get_template
@@ -27,7 +27,7 @@ def require(permission):
     """Get the user that is making the request bound to this thread, 
         and then raise an interrupt if he does not have the permission specified"""
     if (not 'auth' in cherrypy.request.cookie) or cherrypy.request.cookie['auth'].value not in auth.Tokens:
-       raise cherrypy.HTTPRedirect("/login/")
+       raise cherrypy.HTTPRedirect("/login")
     if not auth.checkTokenPermission(cherrypy.request.cookie['auth'].value,permission):
         raise cherrypy.HTTPRedirect("/errors/permissionerror")
     
