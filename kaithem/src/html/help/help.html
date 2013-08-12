@@ -294,6 +294,7 @@ h4 {
         <p>Kaithem includes a custom internal messaging system that is accessable from user code through
             kaithem.message The following topics are of note: However, the system also makes use of the bus in the
             following ways:
+            
         <h3>/system/errors/events/*module*/*event*</h3>
         <p>Mhen an error occurs in a module, A message will be broadcast on this topic,where module and event are
             the relevant module and event.</p>
@@ -303,6 +304,14 @@ h4 {
             and should not contain any time information as they will be listed by time on the front page anyway. Care
             must be taken not to flood the front page and thereby hide important messages. Only system-wide or major
             events should be logged here.</p>
+        
+        <h3>/sytem/perf/FPS</h3>
+        <p>Every minute, a message will be posted to this topic containing only the current frame rate that
+         the event polling runs at.</p>
+        
+        <h3>/sytem/perf/requestsperminute</h3>
+        <p>Every minute, a message will be posted to this topic containing the number of HTTP requests made to
+        the server in the last minute.</p>
 
 
         <h2>
@@ -479,6 +488,13 @@ top-banner-html: |
             should start with sane defaults immediately on loading. Keep in mind that the order in which events and
             modules load is not currently defined(this should be adressed soon), however an event will never run before
             it's setup section.</p>
+            
+         <p>Also, keep in mind what happens when Kaithem shuts down or restarts:
+         any events currently executing finish up, but no new events are run.</p>
+         
+         <h3>Can I run multiple instances of Kaithem?</h3>
+         <p>Quite possibly. It has not been tested though.
+         If you do, they should probably have different directories for variable data</p>
 </div>
 
 <%include file="/pagefooter.html"/>

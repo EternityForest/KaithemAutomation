@@ -1,3 +1,2 @@
-
-system/
-/system/perf/FPS
+system/notifications
+system/perf/

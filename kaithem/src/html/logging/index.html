@@ -9,6 +9,29 @@ def formattime(x):
     return time.strftime(config['time-format'],time.localtime(x))
 %>
 
+%if config['enable-js']:
+    <script type="text/javascript">
+    function f(element)
+        {
+            if (element.id.indexOf(document.getElementById("filter").value) == -1)
+                {
+                    element.hidden = true;
+                }
+            else
+                {
+                    element.hidden = false;
+                }         
+        }
+        
+     function hideshow()
+     {
+        for (var i=0; i<document.getElementById('ListOfTopics').children.length; i++) {
+            f(document.getElementById('ListOfTopics').children[i]);
+        }
+     }
+    </script>
+%endif
+
 <h2>Recently active topics</h2>
 <div class="sectionbox">
     <p class="help">Topics that have been posted to recently are shown here.
@@ -16,36 +39,48 @@ def formattime(x):
     To log a topic, edit the text list at the bottom or click start logging.
     Log files will be dumped after a certain number of messages, or when the server state is explicitly saved.
     </p>
-    <p class="menubar"><a href="/logs/archive" class="button">Archives</a> | <a href="/logs/flushlogs" class="button">Flush Logs to File</a></p>
+    <p class="menubar"><a href="/logs/archive" class="button">Archives</a> | <a href="/logs/flushlogs" class="button">Flush Logs to File</a>
+    %if config['enable-js']:
+        Show only topics containing:<input type="text" id="filter"
+        onchange="hideshow()" onkeyup="hideshow()"/>
+    %endif
+    
+    
+    </p>
+    
+    <div id="ListOfTopics">
     %if messagelogging.log:
-        %for i in messagelogging.log:
-            %if not set(messagebus.MessageBus.parseTopic(i)).isdisjoint(set(messagelogging.toSave)):
-                <h3>${i}</h3>
-                (logging)
-                %if i[1:] in messagelogging.toSave:
-                    <a href="/logs/stoplogging/${url(i)}">[stop]</a>)
+        %for i in sorted(messagelogging.log.keys()):
+            <div id="f_${i}">
+                %if not set(messagebus.MessageBus.parseTopic(i)).isdisjoint(set(messagelogging.toSave)):
+                    <h3>${i}</h3>
+                    (logging)
+                    %if i[1:] in messagelogging.toSave:
+                        <a href="/logs/stoplogging/${url(i)}">[stop]</a>)
+                    %else:
+                        [logged because it is part of a subtree that is being logged]
+                    %endif
                 %else:
-                    [logged because it is part of a subtree that is being logged]
+                    <h3>${i}</h3>
+                    (will not be saved to log file <a href="/logs/startlogging/${url(i)}">[start logging]</a>)
                 %endif
-            %else:
-                <h3>${i}</h3>
-                (will not be saved to log file <a href="/logs/startlogging/${url(i)}">[start logging]</a>)
-            %endif
-            
-        <p>
-            <table border=1>
-            <tr>
-            <td>Latest Value</td><td>${messagelogging.log[i][-1][1]|h}</td>
-            </tr>
-            <tr>
-            <td>Most Recent Message Posted at:</td> <td>${formattime(messagelogging.log[i][-1][0])}</td>
-            </tr>
-            <tr>
-            <td>Total Messages Availible: </td><td>${len(messagelogging.log[i])}<a href="/logs/viewall/${url(i)}">View History</a></td>
-            </tr>
-            </table>
-        </p>
+                
+                <p>
+                    <table border=1>
+                    <tr>
+                    <td>Latest Value</td><td>${messagelogging.log[i][-1][1]|h}</td>
+                    </tr>
+                    <tr>
+                    <td>Most Recent Message Posted at:</td> <td>${formattime(messagelogging.log[i][-1][0])}</td>
+                    </tr>
+                    <tr>
+                    <td>Total Messages Availible: </td><td>${len(messagelogging.log[i])}<a href="/logs/viewall/${url(i)}">View History</a></td>
+                    </tr>
+                    </table>
+                </p>
+            </div>
         %endfor
+    </div>
     %endif
 </div>
 

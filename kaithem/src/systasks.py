@@ -34,7 +34,9 @@ if not config['autosave-logs'] == 'never':
 lastgotip = time.time()
 
 pageviewsthisminute = 0
+pageviewpublishcountdown = 1
 
+#This gets called when an HTML request is made.
 def aPageJustLoaded():
     global pageviewsthisminute
     pageviewsthisminute = pageviewsthisminute +1
@@ -43,6 +45,7 @@ pageviewcountsmoother = util.LowPassFiter(0.3)
 
 def everyminute():
     global pageviewsthisminute
+    global pageviewpublishcountdown
     global lastsaved, lastdumpedlogs
     if not config['autosave-state'] == 'never':
         if (time.time() -lastsaved) > saveinterval:
@@ -59,13 +62,18 @@ def everyminute():
         
     messagebus.postMessage("/system/perf/FPS" , round(newevt.averageFramesPerSecond,2))
     pageviewcountsmoother.sample(pageviewsthisminute)
+    messagebus.postMessage("/system/perf/requestsperminute" , pageviewsthisminute)
+
     pageviewsthisminute = 0
     
+
+
     
-def onminute():
-    
+#This is a polled trigger returning true at the top of every minute.
+def onminute():  
     return kaithem.time.second() == 0
 
+#newevt provides a special type of trigger just for system internal events
 e = newevt.PolledInternalSystemEvent(onminute,everyminute,{},priority=20)
 e.register()
 
