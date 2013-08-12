@@ -2,6 +2,7 @@
 from src import notifications
 import time
 from src.config import config
+from src.unitsofmeasure import formatTimeInterval
 %>
 <%include file="/pageheader.html"/>
 <title>Kaithem Automation</title>
@@ -19,7 +20,7 @@ from src.config import config
     <div class="scrollbox">
         
         %for i in reversed(notifications.notificationslog):
-        <b>${time.strftime(config['time-format'],time.localtime(i[0]))} server time:</b>
+        <b>${time.strftime(config['time-format'],time.localtime(i[0]))} server time(about ${formatTimeInterval(time.time()-i[0],2)} ago)</b>
         <p>${i[2]|h}</p>
         <hr>
         %endfor

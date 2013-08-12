@@ -155,13 +155,10 @@ pre
 {
     background-color: rgba(255,255,255,0.3);
 }
-/*
-h1{
-color:#170E00;
+
+table tr:nth-child(odd) td{
+		background-color: rgba(255,255,255,0.1);
 }
-h2{
-color:#170E00;
+table tr:nth-child(even) td{
+	background-color: rgba(0,0,0,0.1);
 }
-h3{
-color:#170E00;
-}*/

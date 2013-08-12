@@ -1,6 +1,6 @@
 <%!
 from src.util import url
-from src import newevt
+from src import newevt,unitsofmeasure
 from collections import defaultdict
 import traceback,time
 from src.config import config
@@ -120,7 +120,9 @@ This section shows up to the most recent 25 errors that occured while executing 
 <p>
 This event last ran:
 %if newevt.getEventLastRan(module,name):
-<b>${time.strftime('%A, %B %d, %Y at %H:%M:%S',time.localtime(newevt.getEventLastRan(module,name)))|h}</b>
+<b>${unitsofmeasure.strftime(time.localtime(newevt.getEventLastRan(module,name)))|h}
+(about ${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(module,name),2)} ago)
+</b>
 %else:
 <b>This event has not ran since it loaded.</b>
 %endif

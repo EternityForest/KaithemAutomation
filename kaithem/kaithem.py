@@ -158,9 +158,15 @@ root.logs = messagelogging.WebInterface()
 
 #Start cherrrypy
 dn = os.path.dirname(os.path.realpath(__file__))
+
+if config['local-access-only']:
+    bindto = '127.0.0.1'
+else:
+    bindto = '0.0.0.0'
+    
 if __name__ == '__main__':
     server_config={
-        'server.socket_host': '0.0.0.0',
+        'server.socket_host': bindto,
         'server.socket_port':port,
         'server.ssl_module':'builtin',
         'server.ssl_certificate':os.path.join(directories.ssldir,'certificate.cert'),

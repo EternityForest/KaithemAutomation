@@ -2,6 +2,7 @@
 <%!
 from src import messagelogging
 from src import messagebus
+from src.unitsofmeasure import formatTimeInterval
 import time
 from src.util import url
 from src.config import config
@@ -71,7 +72,8 @@ def formattime(x):
                     <td>Latest Value</td><td>${messagelogging.log[i][-1][1]|h}</td>
                     </tr>
                     <tr>
-                    <td>Most Recent Message Posted at:</td> <td>${formattime(messagelogging.log[i][-1][0])}</td>
+                    <td>Most Recent Message Posted at:</td> <td>${formattime(messagelogging.log[i][-1][0])}
+                    (${formatTimeInterval(time.time()-messagelogging.log[i][-1][0],1)} ago)</td>
                     </tr>
                     <tr>
                     <td>Total Messages Availible: </td><td>${len(messagelogging.log[i])}<a href="/logs/viewall/${url(i)}">View History</a></td>

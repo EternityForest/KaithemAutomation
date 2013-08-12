@@ -33,6 +33,9 @@ delay-between-frames : 0.012
 #The directory will be mounted under /site/static/NAME on the URL path
 serve-static: {}
 
+#If yes, don't allow acess from any computer except this one.
+local-access-only: no
+
 #How often to automatically save the entire server state. Does not dump log files to avoid tons of short files
 #must be [number] [unit] like 2 hours. units: second,minute,hour,day,week,year
 #can also be "never"

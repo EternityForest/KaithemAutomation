@@ -74,7 +74,7 @@ class DayOfWeek(str):
 
 time_as_seconds ={
 'year' : 60*60*24*365,
-#A "month" as commonly used is a vauge unit? is it 28 days? 30? 31?
+#A "month" as commonly used is a vauge unit. is it 28 days? 30? 31?
 #To solve that, I define it as 1/12th of a solar year.
 'month' : 60*60*24*30.4368333333, 
 'week' : 60*60*24*7,
@@ -82,7 +82,11 @@ time_as_seconds ={
 "hour" : 60*60,
 "minute" : 60,
 "second" : 1,
-"millisecond" : 0.001
+"millisecond" : 0.001,
+"microsecond" : 0.000001,
+"nanosecond"  : 0.000000001,
+"picosecond"  : 0.000000000001,
+"femtosecond"  :0.000000000000001,
 }
 
 def timeIntervalFromString(s):
