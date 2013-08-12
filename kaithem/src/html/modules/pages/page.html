@@ -77,7 +77,24 @@ These extra settings let you control the display or permissions of the page
          %else:
             checked="yes"
          %endif
-       ></input>Make this page acessable by POST requests<br> 
+       ></input>Make this page acessable by POST requests<br>
+
+<input type="checkbox"  name="autoreload" value="true"
+         %if 'auto-reload' in page:
+            %if page['auto-reload']:
+                checked="yes"
+            %endif
+         %endif
+       ></input>This page should auto-refresh every
+
+<input type="number" step=0.1 name="autoreloadinterval" size=6em
+        %if 'auto-reload-interval' in page:
+                value= ${page['auto-reload-interval']}
+        %else:
+                value= 5.0
+        %endif
+       ></input> seconds. (this could create a lot of server traffic. don't DDoS yourself!)
+       
  </div>
 <p class="help">Require the following permissions to acess this page</p>
 <div class="scrollbox">

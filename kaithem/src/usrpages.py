@@ -53,6 +53,9 @@ class CompiledPage():
             if resource['no-header']:
                 header = ""
         
+        if 'auto-reload' in resource:
+             header += '<meta http-equiv="refresh" content="%d">' % resource['auto-reload-interval']
+        
         footer = util.readfile(os.path.join(directories.htmldir,'pagefooter.html'))
         
         templatesource = header + template + footer

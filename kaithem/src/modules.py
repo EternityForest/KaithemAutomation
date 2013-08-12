@@ -448,6 +448,8 @@ def resourceUpdateTarget(module,resource,kwargs):
             resourceobj['no-navheader'] = 'no-navheader' in kwargs
             resourceobj['no-header'] = 'no-header' in kwargs
             resourceobj['dont-show-in-index'] = 'dont-show-in-index' in kwargs
+            resourceobj['auto-reload'] = 'autoreload' in kwargs
+            resourceobj['auto-reload-interval'] = float(kwargs['autoreloadinterval'])
             #Method checkboxes
             resourceobj['require-method'] = []
             if 'allow-GET' in kwargs:
