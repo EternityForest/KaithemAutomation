@@ -1,6 +1,6 @@
 import common
-import src.unitsofmeasure
-import src.random
+import src.unitsofmeasure as unitsofmeasure
+import random
 
 x = unitsofmeasure.timeIntervalFromString("1 minute")
 if not x == 60:

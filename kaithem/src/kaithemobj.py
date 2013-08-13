@@ -20,7 +20,7 @@ import cherrypy
 from . import unitsofmeasure,workers,sound,messagebus,util
 
 
-#This exception is what we raise rom within the page handler to serve a static file
+#This exception is what we raise from within the page handler to serve a static file
 class ServeFileInsteadOfRenderingPageException(Exception):
     pass
 
@@ -110,7 +110,8 @@ class Kaithem():
             "Skip the rendering of the current page and Serve a static file instead."
             if name == None:
                 name = path
-            e = ServeFileInsteadOfRenderingPageException()
+            #Give it some text for when someone decides to call it from the wrong place
+            e = ServeFileInsteadOfRenderingPageException("If you see this exception, it means someone tried to serve a file from somewhere that was not a page.")
             e.f_filepath = path
             e.f_MIME = contenttype
             e.f_name = name
@@ -137,7 +138,7 @@ class Kaithem():
         
     class message():
         @staticmethod
-        def postMessage(topic,message):
+        def post(topic,message):
             print(message)
             messagebus.postMessage(topic,message)
 

@@ -229,7 +229,7 @@ h4 {
             installed, result is undefined, but will not be an error, and will be a boolean value.</p>
 
         <h3>kaithem.message</h3>
-        <h4>kaithem.message.postMessage(topic,message)</h4>
+        <h4>kaithem.message.post(topic,message)</h4>
         <p>
             Post a message to the internal system-wide message bus. Message MUST be a JSON serializable object. i.e
             True/false, numbers, strings, lists, and dictionaries only. Message topics are hierarchial, delimited by
@@ -240,7 +240,7 @@ h4 {
         <p>
             Request that function <i>callback</i> which must take two arguments(topic,message) be called whenever a
             message matching the topic is posted. Should the topic end with a slash, it will also match all
-            subtopics(e.g. "foo/" will match "foo/bar" and "foo/anything"). Uncaaught errors in the callback are
+            subtopics(e.g. "/foo/" will match "/foo", "/foo/bar" and "/foo/anything"). Uncaaught errors in the callback are
             ignored. <br> You must always maintain a reference to the callback, otherwise, the callback will be
             garbage collected and auto-unsubscribed. This is also how you unsubscribe.
         </p>

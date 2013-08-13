@@ -33,6 +33,7 @@ def load():
     if argcmd.c:
         with open(argcmd.c) as f:
             _usr_config = yaml.load(f)
+            print ("Loaded configuration from "+ argcmd.c)
     else:
         _usr_config ={}
         print ("No CFG File Found. Using Defaults.")
