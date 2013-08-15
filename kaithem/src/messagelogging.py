@@ -37,7 +37,7 @@ for line in x.split('\n'):
 del x
 log = defaultdict(list)
 
-def dumpLogFile():
+def dumpLogFile():    
     """Flush all log entires that belong to topics that are in the list of things to save, and clear the staging area"""
     if config['log-format'] == 'normal':
         def dump(j,f):
@@ -168,7 +168,7 @@ def listlogdumps():
 
 class WebInterface(object):
     @cherrypy.expose
-    def index(self, ):
+    def index(self,*args,**kwargs ):
         pages.require('/users/logs.view')
         return pages.get_template('logging/index.html').render()
     

@@ -52,7 +52,7 @@ save-before-shutdown: no
 
 ##################LOGGING######################################################
 #Notice: to actually control what topics are logged, use the kaithem/var/whattosave.txt or edit
-#through th web interface
+#through the web interface
 
 #How many entires to log before flushing to disk or deleting
 log-dump-size: 10000

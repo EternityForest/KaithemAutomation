@@ -4,6 +4,7 @@ from src import messagelogging
 from src import messagebus
 from src.unitsofmeasure import formatTimeInterval
 import time
+import cherrypy
 from src.util import url
 from src.config import config
 def formattime(x):
@@ -50,9 +51,24 @@ def formattime(x):
     </p>
     
     <div id="ListOfTopics">
-    There are ${len(messagelogging.log)|h} recent topics.<br>
+    <%
+        rev = False
+        if 'sort' in cherrypy.request.params:
+            if cherrypy.request.params['sort'] == 'time':
+                sortkey = lambda x: messagelogging.log[x][-1][0]
+                rev = True
+            else:
+                sortkey = lambda x: x
+        else:
+            sortkey = lambda x: x
+     %>
+                
+             
+    There are ${len(messagelogging.log)|h} recent topics. Sorting:[
+    <a href="/logs?sort=topic">Alphabetical</a>|
+    <a href="/logs?sort=time">Most Recently Active</a>]<br>
     %if messagelogging.log:
-        %for i in sorted(messagelogging.log.keys()):
+        %for i in sorted(messagelogging.log.keys(),key=sortkey,reverse = rev):
             <div id="f_${i}">
                 %if not set(messagebus.MessageBus.parseTopic(i)).isdisjoint(set(messagelogging.toSave)):
                     <h3>${i|h}</h3>

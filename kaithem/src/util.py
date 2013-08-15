@@ -34,8 +34,11 @@ def url(string):
 def SaveAllState():
     #fix circular import by putting it here
     from . import  auth,modules,messagelogging
+    errors = []
+    
     with savelock:
         auth.dumpDatabase()
+        errors.append(e)
         messagelogging.dumpLogFile()
         modules.saveAll()
 

@@ -4,6 +4,7 @@
     import os
     import platform
     import sys
+    import multiprocessing
     from src import unitsofmeasure
     from src import newevt
     from src import systasks
@@ -95,6 +96,19 @@
                 ${unitsofmeasure.formatTimeInterval(time.time()-systasks.systemStarted,4)}
             </td>
         </tr>
+        <% 
+            try:
+                load = os.getloadavg()
+                load = (round(load[0],2), round(load[1],2),round(load[2],2))
+            except OSError:
+                load = "Load average not availible on non UNIX-like systems."
+        %>
+        
+        <tr>
+            <td>System Load Average(UNIX only)</td>
+            <td>1 min: <b>${load[0]}</b> 5 min: <b>${load[1]}</b> 15 min: <b>${load[2]}</b></td>
+        </tr>
+        
     </table>
     
 </p>
@@ -104,6 +118,11 @@
     <tr>
         <td>CPU Type</td>
         <td>${platform.machine()}
+    </tr>
+    
+    <tr>
+        <td>CPU Count</td>
+        <td>${multiprocessing.cpu_count()}
     </tr>
     <tr>
         <td>CPU</td>
