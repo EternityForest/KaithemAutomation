@@ -84,3 +84,11 @@ if config['save-before-shutdown']:
     atexit.register(save)
     cherrypy.engine.subscribe("exit",save)
     
+    
+def sd():
+    messagebus.postMessage('/system/shutdown',"System about to shut down or restart")
+    
+sd.priority = 25
+atexit.register(sd)
+cherrypy.engine.subscribe("exit",sd)   
+    

@@ -294,7 +294,13 @@ h4 {
         <p>Kaithem includes a custom internal messaging system that is accessable from user code through
             kaithem.message The following topics are of note: However, the system also makes use of the bus in the
             following ways:
-            
+         <h3>/system/startup</h3>
+         <p>A message is posted here after the system has fully initialized</p>
+         
+         <h3>/system/shutdown</h3>
+         <p>A message will be posted here just before the system shuts down or restarts unless it shuts down
+         due to SIGKILL or a bad error or some other non-graceful cause</p>
+         
         <h3>/system/errors/events/*module*/*event*</h3>
         <p>Mhen an error occurs in a module, A message will be broadcast on this topic,where module and event are
             the relevant module and event.</p>
@@ -489,8 +495,16 @@ top-banner-html: |
             modules load is not currently defined(this should be adressed soon), however an event will never run before
             it's setup section.</p>
             
+         <p>Another very important note is that the setup section of a module should only be used for simple things
+         like imports, and initializing variables. When kaithem starts up, an uncaught error in a setup section will cause Kaithem to crash and exit.
+         this behavior may change.</p>
+         
+         <p>On a related note, watch out for dependancies between events and modules.
+         The order in which modules or events load is currently not defined. In most cases this is not a major issue but this may be addressed later</p> 
+         
          <p>Also, keep in mind what happens when Kaithem shuts down or restarts:
-         any events currently executing finish up, but no new events are run.</p>
+         any events currently executing finish up, but no new events are run.
+         (except events triggered by the /system/shutdown message)</p>
          
          <h3>Can I run multiple instances of Kaithem?</h3>
          <p>Quite possibly. It has not been tested though.
