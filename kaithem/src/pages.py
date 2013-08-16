@@ -27,7 +27,7 @@ def require(permission):
     """Get the user that is making the request bound to this thread, 
         and then raise an interrupt if he does not have the permission specified"""
     if (not 'auth' in cherrypy.request.cookie) or cherrypy.request.cookie['auth'].value not in auth.Tokens:
-       raise cherrypy.HTTPRedirect("/login")
+       raise cherrypy.HTTPRedirect("/login?"+util.url(cherrypy.url()))
     if not auth.checkTokenPermission(cherrypy.request.cookie['auth'].value,permission):
         raise cherrypy.HTTPRedirect("/errors/permissionerror")
     

@@ -31,7 +31,7 @@ class LoginScreen():
             cherrypy.response.cookie['auth']['path'] = '/'
             cherrypy.response.cookie['user'] = kwargs['username']
             cherrypy.response.cookie['user']['path'] = '/'
-            raise cherrypy.HTTPRedirect("/")
+            raise cherrypy.HTTPRedirect(util.unurl(kwargs['go']))
         else:
             raise cherrypy.HTTPRedirect("/errors/loginerror")
             
