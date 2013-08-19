@@ -51,27 +51,83 @@ class DayOfWeek(str):
         try:
             if isinstance(day,str):
                 day=day.capitalize()
-            self.__day = self.namestonumbers[day]
+            self.__value = self.namestonumbers[day]
         except Exception as e:
             raise e#ValueError('Does not appear to be any valid day of the week')
      
     def __str__(self):
-        return(self.numberstonames[self.__day][0])
+        return(self.numberstonames[self.__value][0])
      
     def __repr__(self):
-         return(self.numberstonames[self.__day][0])
+         return(self.numberstonames[self.__value][0])
      
     def __eq__(self,other):
          try:
              if isinstance(other,str):
                  other=other.capitalize()
-             if self.namestonumbers[other] == self.__day:
+             if self.namestonumbers[other] == self.__value:
+                 return True
+             else:
+                 return False
+         except KeyError:
+             return False
+         
+class Month(str):
+    """This class it a value object that will appear like a string but supports intelligent comparisions like Dow=='Thu' etc.
+        supports upper ad lower case and abbreviations and numbers(monday=0).
+        If you don't pass it a weekday day when initializing it it will default to today in local time
+    
+    """
+    def __init__(self,day=""):
+    
+        #If no day supplied, default to today
+        if value == "":
+            value = time.localtime().tm_mon
+            
+        self.namestonumbers= {
+                "Jan":1, "January":1,
+                "Feb":2, "February":2,
+                "Mar":3, "March":3,
+                "Apr":4, "April":4,
+                "May":5,
+                "Jun":6, "June":6,
+                "Jul":7, "July":7,
+                "Aug":8, "August":8,
+                "Sep":9, "September":9,
+                "Oct":10, "October":10,
+                "Nov":11,"November":11,
+                "Dec":12,"December":12
+               }
+               
+        self.numberstonames=[
+                             ["January"],["February"],["March"],["April"],["May"],["June"],["July"],["August"]
+                             ["September"],['October'],['November'],['December']
+                      ]
+        try:
+            if isinstance(day,str):
+                value=value.capitalize()
+            self.__value = self.namestonumbers[value]
+        except Exception as e:
+            raise e#ValueError('Does not appear to be any valid day of the week')
+     
+    def __str__(self):
+        return(self.numberstonames[self.__value][0])
+     
+    def __repr__(self):
+         return(self.numberstonames[self.__value][0])
+     
+    def __eq__(self,other):
+         try:
+             if isinstance(other,str):
+                 other=other.capitalize()
+             if self.namestonumbers[other] == self.__value:
                  return True
              else:
                  return False
          except KeyError:
              return False
 
+        
 time_as_seconds ={
 'year' : 60*60*24*365,
 #A "month" as commonly used is a vauge unit. is it 28 days? 30? 31?
@@ -130,7 +186,7 @@ def formatTimeInterval(t,maxunits):
 def strToIntWithSIMultipliers(s):
     """Take a string of the form number[k|m|g] or just number and convert to an actual number
     '0'-> 0, '5k'->5000 etc"""
-    r = re.compile
+    s = s.lower()
     #This piece of code interprets a string like 89m or 50k as a number like 89 millon or 50,000
     if s.endswith('k'):
         return int(s[:-1])*1000

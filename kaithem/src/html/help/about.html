@@ -4,12 +4,15 @@
     import os
     import platform
     import sys
+    import gc
     import multiprocessing
+    import re
     from src import unitsofmeasure
     from src import newevt
     from src import systasks
     from src import sound
     from src import usrpages
+    from src import util
     from src.config import config
     if os.name != "nt":
         import fcntl
@@ -89,6 +92,10 @@
             <td>${round(systasks.pageviewcountsmoother.value,3)}</td>
         </tr>
         <tr>
+            <td>Uncollectable garbage cycles</td>
+            <td>${len(gc.garbage)}</td>
+        </tr>
+        <tr>
             <td>
                 Uptime
             </td>
@@ -102,6 +109,18 @@
                 load = (round(load[0],2), round(load[1],2),round(load[2],2))
             except OSError:
                 load = "Load average not availible on non UNIX-like systems."
+                
+            try:
+                f = util.readfile("/proc/meminfo")
+                total = int(re.search("MemTotal.*?([0-9]+)",f).group(1))
+                free = int(re.search("MemFree.*?([0-9]+)",f).group(1))
+                cache = int(re.search("Cached.*?([0-9]+)",f).group(1))
+                
+                used = round(((total - (free+cache))/1000),2)
+                usedp = round((1-(free+cache)/total)*100,2)
+                total = total/1024
+            except Exception as e:
+                total=used=e#"Unavailable"
         %>
         
         <tr>
@@ -109,6 +128,10 @@
             <td>1 min: <b>${load[0]}</b> 5 min: <b>${load[1]}</b> 15 min: <b>${load[2]}</b></td>
         </tr>
         
+        <tr>
+            <td>Memory Used By All Processes(UNIX only)</td>
+            <td>${used}MB (${usedp}%)</td>
+        </tr>
     </table>
     
 </p>
@@ -127,6 +150,11 @@
     <tr>
         <td>CPU</td>
         <td>${platform.processor()}</td>
+    </tr>
+    
+    <tr>
+        <td>Total Availible RAM(UNIX Only)</td>
+        <td>${total} MB</td>
     </tr>
     <tr>
         <td>OS Type</td>
