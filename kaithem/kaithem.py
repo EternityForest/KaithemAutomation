@@ -144,6 +144,11 @@ class Errors():
         return pages.get_template('errors/loginerror.html').render()
     @cherrypy.expose 
     def wrongmethod(self,):
+        cherrypy.response.status = 405
+        return pages.get_template('errors/wrongmethod.html').render()
+    @cherrypy.expose 
+    def error(self,):
+        cherrypy.response.status = 500
         return pages.get_template('errors/wrongmethod.html').render()
        
 #There are lots of other objects ad classes represeting subfolders of the website so we attatch them        
@@ -178,7 +183,6 @@ cherrypy.config["tools.encode.on"] = True
 cherrypy.config["tools.encode.encoding"] = "utf-8"
 cherrypy.config["tools.decode.on"] = True
 cherrypy.config["tools.decode.encoding"] = "utf-8"
-
 
     
 
