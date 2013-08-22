@@ -1,4 +1,8 @@
-<%!from src.config import config%>
+<%!
+from src.config import config
+from src import auth,util
+import cherrypy
+%>
 
 <!DOCTYPE html>
 <html>
@@ -21,7 +25,11 @@
             <td><a href="/pagelisting">Pages</a></td>
             <td><a href="/logs">Logs</a></td>
             <td><a href="/save">Save State</a></td>
-            <td><a href="/login/logout">Logout</a></td>
+            %if cherrypy.request.cookie['auth'].value in auth.Tokens:
+                <td><a href="/login/logout">Logout</a></td>
+            %else:
+                <td><a href="/login?go=${util.url(cherrypy.url())}">Login</a></td>
+            %endif
             <td><a href="/helpmenu">Help</a></td>
         </tr>
       </tbody>

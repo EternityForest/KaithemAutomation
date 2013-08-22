@@ -20,17 +20,19 @@ class LoginScreen():
 
     @cherrypy.expose
     def index(self,**kwargs):
+        if not cherrypy.request.scheme == 'https':
+            raise cherrypy.HTTPRedirect("/errors/gosecure")
         return pages.get_template("login.html").render()
         
     @cherrypy.expose
     def login(self,**kwargs):
+        if not cherrypy.request.scheme == 'https':
+            raise cherrypy.HTTPRedirect("/errors/gosecure")
         x = auth.userLogin(kwargs['username'],kwargs['pwd'])
         if not x=='failure':
             #Give the user the security token
             cherrypy.response.cookie['auth'] = x
             cherrypy.response.cookie['auth']['path'] = '/'
-            cherrypy.response.cookie['user'] = kwargs['username']
-            cherrypy.response.cookie['user']['path'] = '/'
             raise cherrypy.HTTPRedirect(util.unurl(kwargs['go']))
         else:
             raise cherrypy.HTTPRedirect("/errors/loginerror")
@@ -40,6 +42,4 @@ class LoginScreen():
         #Change the securit token to make the old one invalid and thus log user out.
         if cherrypy.request.cookie['auth'].value in auth.Tokens:
             auth.assignNewToken(auth.whoHasToken(cherrypy.request.cookie['auth'].value))
-            cherrypy.response.cookie['auth'] = 'loggedout'
-            cherrypy.response.cookie['auth']['path'] = '/'
         raise cherrypy.HTTPRedirect("/")

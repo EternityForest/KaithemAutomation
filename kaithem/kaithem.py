@@ -48,6 +48,7 @@ from src import messagebus
 from src import notifications
 from src import messagelogging
 from src import systasks
+from src import persistancefiles
 
 from src.config import config
 
@@ -92,9 +93,7 @@ class webapproot():
     @cherrypy.expose 
     def index(self,*path,**data):
         pages.require("/admin/mainpage.view")
-        return pages.get_template('index.html').render(
-        user = cherrypy.request.cookie['user'].value,
-                        )
+        return pages.get_template('index.html').render()
 
 
     @cherrypy.expose 
@@ -156,7 +155,7 @@ root.settings = settings.Settings()
 root.errors = Errors()
 root.pages = usrpages.KaithemPage()
 root.logs = messagelogging.WebInterface()
-
+root.persistance = persistancefiles.WebInterface()
 #Start cherrrypy
 dn = os.path.dirname(os.path.realpath(__file__))
 

@@ -1,6 +1,7 @@
 <%!
-from src import notifications
+from src import notifications,auth
 import time
+import cherrypy
 from src.config import config
 from src.unitsofmeasure import formatTimeInterval
 %>
@@ -10,10 +11,13 @@ from src.unitsofmeasure import formatTimeInterval
 <div class="sectionbox">
 <p>${config['front-page-banner']}</p>
 </div class="sectionbox">
-
-<div class="sectionbox">
-<p>Logged into Kaithem Automation as user: <b>${user}</b></p>
-</div>
+%if 'auth' in cherrypy.request.cookie:
+%if cherrypy.request.cookie['auth'].value in auth.Tokens:
+    <div class="sectionbox">
+        <p>Logged into Kaithem Automation as user: <b>${auth.whoHasToken(cherrypy.request.cookie['auth'].value)}</b></p>
+    </div>
+%endif
+%endif
 
 <div class="sectionbox">
    <h2> System Notifications</h2>

@@ -13,9 +13,6 @@ import cherrypy
         <span style="font-weight: bold;">Password:</span>&nbsp; 
 		<input name="pwd" type="password"></p>
         <input value="Login as Registered User"type="submit">
-      %if '__guest__' in auth.Users:
-          <a href="/login/login?username=__guest__&pwd=__none__&go=${cherrypy.request.query_string}" class="button">Login as Guest</a>
-      %endif
       </form>
 	</div>
     </div>

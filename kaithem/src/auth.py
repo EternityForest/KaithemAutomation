@@ -47,7 +47,8 @@ BasePermissions = {
 "/admin/settings.view": "View but not change settings.",
 "/admin/settings.edit": "Change core settings.",
 "/admin/logging.edit": "Modify settings in the logging subsystem",
-"/users/logs.view": "View the message logs."
+"/users/logs.view": "View the message logs.",
+"/admin/persistancefiles.view": "View the data stored in persistance files/"
 }
 
 Permissions=BasePermissions

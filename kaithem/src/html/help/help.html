@@ -518,7 +518,8 @@ top-banner-html: |
          <h3>How do unencrypted pages work?</h3>
          <p>
          Kaithem will allow unencrypted acess to any page that does not require any permissions.
-         If a page requires any permissions to acess, the user may only access it over HTTPS.
+         Kaithem will also allow unencrypted acess to any page that the special user "__guest__" could access, if such a user exists.
+         All other pages may only be acessed over HTTPS.
          use the 'http-port' and 'http-thread-pool' options to change the number of threads assigned and the port used
          for unsecure access.
          </p>

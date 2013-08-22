@@ -16,7 +16,7 @@
 from mako.template import Template
 from mako.lookup import TemplateLookup
 import cherrypy
-
+from . import auth
 from . import directories,auth,util
 
 _Lookup = TemplateLookup(directories=[directories.htmldir])
@@ -26,7 +26,12 @@ get_template = _Lookup.get_template
 def require(permission):
     """Get the user that is making the request bound to this thread, 
         and then raise an interrupt if he does not have the permission specified"""
-        
+    
+    #If the special __guest__ user can do it, anybody can.
+    if '__guest__' in auth.Users:
+        if permission in auth.Users['__guest__'].permissions:
+            return
+    
     if not cherrypy.request.scheme == 'https':
         raise cherrypy.HTTPRedirect("/errors/gosecure")
     if (not 'auth' in cherrypy.request.cookie) or cherrypy.request.cookie['auth'].value not in auth.Tokens:

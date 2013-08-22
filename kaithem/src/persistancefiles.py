@@ -1,6 +1,6 @@
-import threading,os,shutil,time
+import threading,os,shutil,time,json
 import cherrypy
-from . import util,json,directories,pages
+from . import util,directories,pages
 from .util import url, unurl
 persistancedicts = {}
 
@@ -17,7 +17,7 @@ class WebInterface(object):
         return pages.get_template("persistfiles/index.html").render()
     
     @cherrypy.expose
-    def index(self):
+    def delete(self):
         pages.require("/admin/persistancefiles.view")
         return pages.get_template("persistfiles/delete.html").render()
     
@@ -53,7 +53,7 @@ def loadAll():
             shutil.copytree(possibledir,os.path.join(directories.persistdir,name+"INCOMPLETE"))
             shutil.rmtree(possibledir)
             
-#saveall and loadall are the ones outside code shold use to save and load the state of what modules are loaded
+#saveall and loadall are the ones outside code should use to save and load the state of what modules are loaded
 def saveAll():
     #This dumps the contents of the active modules in ram to a subfolder of the moduledir named after the current unix time"""
     dn = os.path.join(directories.persistdir,str(time.time()) )
