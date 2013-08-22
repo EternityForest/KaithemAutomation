@@ -47,7 +47,7 @@ def load():
         config[i] = _usr_config[i]
         
     if argcmd.p:
-        config['port'] = int(argcmd.p)
+        config['https-port'] = int(argcmd.p)
     return config
             
 config = load()

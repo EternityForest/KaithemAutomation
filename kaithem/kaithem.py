@@ -78,7 +78,6 @@ def updateIP():
 updateIP()
         
 
-port = config['port']
 
 #Initialize the authorization module
 auth.initializeAuthentication()
@@ -92,16 +91,11 @@ class webapproot():
    #"/" is mapped to this 
     @cherrypy.expose 
     def index(self,*path,**data):
-        #Was there a reason not to use pages.require
-        if 'auth' in cherrypy.request.cookie.keys():
-            if auth.checkTokenPermission(cherrypy.request.cookie['auth'].value,"/admin/mainpage.view"):
-                return pages.get_template('index.html').render(
-                user = cherrypy.request.cookie['user'].value,
-                                )
-            else:
-                return self.pagelisting()
-        else:
-            return self.login.index()
+        pages.require("/admin/mainpage.view")
+        return pages.get_template('index.html').render(
+        user = cherrypy.request.cookie['user'].value,
+                        )
+
 
     @cherrypy.expose 
     def save(self,*path,**data):
@@ -110,7 +104,6 @@ class webapproot():
         
     @cherrypy.expose 
     def pagelisting(self,*path,**data):
-        pages.require('/users/pagelisting.view')
         return pages.get_template('pagelisting.html').render(modules = modules.ActiveModules)
         
     #docs,about,helpmenu, and license are just static pages
@@ -140,6 +133,9 @@ class Errors():
     def alreadyexists(self,):
         return pages.get_template('errors/alreadyexists.html').render()
     @cherrypy.expose 
+    def gosecure(self,):
+        return pages.get_template('errors/gosecure.html').render()
+    @cherrypy.expose 
     def loginerror(self,):
         return pages.get_template('errors/loginerror.html').render()
     @cherrypy.expose 
@@ -168,23 +164,44 @@ if config['local-access-only']:
     bindto = '127.0.0.1'
 else:
     bindto = '0.0.0.0'
-    
-if __name__ == '__main__':
-    server_config={
+
+
+site_config={
+        "tools.encode.on" :True,
+        "tools.encode.encoding":'utf-8',
+        "tools.decode.on": True,
+        "tools.decode.encoding": 'utf-8',
+        
         'server.socket_host': bindto,
-        'server.socket_port':port,
+        'server.socket_port': config['https-port'],
         'server.ssl_module':'builtin',
         'server.ssl_certificate':os.path.join(directories.ssldir,'certificate.cert'),
         'server.ssl_private_key':os.path.join(directories.ssldir,'certificate.key'),
-        'server.thread_pool':config['cherrypy-thread-pool']
-    }
-    
-cherrypy.config["tools.encode.on"] = True
-cherrypy.config["tools.encode.encoding"] = "utf-8"
-cherrypy.config["tools.decode.on"] = True
-cherrypy.config["tools.decode.encoding"] = "utf-8"
+        'server.thread_pool':config['https-thread-pool']
+}
 
-    
+cnf={
+    '/static':
+        {'tools.staticdir.on': True,
+        'tools.staticdir.dir':os.path.join(dn,'data/static'),
+        "tools.sessions.on": False,
+        'tools.caching.on' : True,
+        'tools.caching.delay' : 3600,
+        "tools.caching.expires": 3600,
+        "tools.addheader.on": True
+        }
+}
+#Let the user create additional static directories
+for i in config['serve-static']:
+    if i not in cnf:
+        cnf["/usr/static/"+i]= {
+        'tools.staticdir.on': True,
+        'tools.staticdir.dir': config['serve-static'][i],
+        "tools.sessions.on": False,
+        'tools.caching.on' : True,
+        'tools.caching.delay' : 3600,
+        "tools.addheader.on": True
+        }    
 
 def addheader(*args,**kwargs):
     "This function's only purpose is to tell the browser to cache requests for an hour"
@@ -199,31 +216,22 @@ cherrypy.config['tools.pageloadnotify.on'] = True
 
 cherrypy.tools.addheader = cherrypy.Tool('before_finalize', addheader)
 
-conf = {
-        '/static':
-        {'tools.staticdir.on': True,
-        'tools.staticdir.dir':os.path.join(dn,'data/static'),
-        "tools.sessions.on": False,
-        'tools.caching.on' : True,
-        'tools.caching.delay' : 3600,
-        "tools.caching.expires": 3600,
-        "tools.addheader.on": True
-        }
-        }
-#Let the user create additional static directories
-for i in config['serve-static']:
-    if i not in conf:
-        conf["/usr/static/"+i]= {
-        'tools.staticdir.on': True,
-        'tools.staticdir.dir': config['serve-static'][i],
-        "tools.sessions.on": False,
-        'tools.caching.on' : True,
-        'tools.caching.delay' : 3600,
-        "tools.addheader.on": True
-        }
 
-cherrypy.config.update(server_config)
 
+cherrypy.tree.mount(root,config=cnf)
+
+
+#As far as I can tell, this second server inherits everythoing from the "implicit" server
+#except what we override.
+server2 = cherrypy._cpserver.Server()
+server2.socket_port= config['http-port']
+server2._socket_host= bindto
+server2.thread_pool=config['http-thread-pool']
+server2.subscribe()
+
+cherrypy.config.update(site_config)
 messagebus.postMessage('/system/startup','System Initialized')
 messagebus.postMessage('/system/notifications','System Initialized at ' + time.strftime(config['time-format']))
-cherrypy.quickstart(root,'/',config=conf)
+
+cherrypy.engine.start()
+cherrypy.engine.block()

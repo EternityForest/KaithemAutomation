@@ -15,7 +15,8 @@ def canIGoToThisPage(page):
             
     if not 'require-permissions' in page:
         return True
-
+    if not page['require-permissions']:
+        return True
     else:
         if (not 'auth' in cherrypy.request.cookie) or cherrypy.request.cookie['auth'].value not in auth.Tokens:
             return False

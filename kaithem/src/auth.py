@@ -47,7 +47,6 @@ BasePermissions = {
 "/admin/settings.view": "View but not change settings.",
 "/admin/settings.edit": "Change core settings.",
 "/admin/logging.edit": "Modify settings in the logging subsystem",
-"/users/pagelisting.view": "View the list of all user created pages.",
 "/users/logs.view": "View the message logs."
 }
 

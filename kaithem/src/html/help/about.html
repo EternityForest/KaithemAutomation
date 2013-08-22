@@ -118,19 +118,29 @@
                 
                 used = round(((total - (free+cache))/1000),2)
                 usedp = round((1-(free+cache)/total)*100,2)
-                total = total/1024
+                total = round(total/1024,2)
             except Exception as e:
                 total=used=e#"Unavailable"
+                
+            def makecpuspan(num):
+                if num> multiprocessing.cpu_count():
+                    return 'style="color:red;"'
+                else:
+                    return ""
         %>
         
         <tr>
             <td>System Load Average(UNIX only)</td>
-            <td>1 min: <b>${load[0]}</b> 5 min: <b>${load[1]}</b> 15 min: <b>${load[2]}</b></td>
+            <td>
+            1 min: <span ${makecpuspan(load[0])}><b>${load[0]}</b></span>
+            5 min: <span ${makecpuspan(load[1])}><b>${load[1]}</b></span> 
+            15 min: <span ${makecpuspan(load[2])}><b>${load[2]}</b></span>
+            </td>
         </tr>
         
         <tr>
             <td>Memory Used By All Processes(UNIX only)</td>
-            <td>${used}MB (${usedp}%)</td>
+            <td>${used} MB (${usedp}%)</td>
         </tr>
     </table>
     

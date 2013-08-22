@@ -40,4 +40,6 @@ class LoginScreen():
         #Change the securit token to make the old one invalid and thus log user out.
         if cherrypy.request.cookie['auth'].value in auth.Tokens:
             auth.assignNewToken(auth.whoHasToken(cherrypy.request.cookie['auth'].value))
+            cherrypy.response.cookie['auth'] = 'loggedout'
+            cherrypy.response.cookie['auth']['path'] = '/'
         raise cherrypy.HTTPRedirect("/")

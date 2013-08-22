@@ -1,7 +1,10 @@
 #Don't edit this file, it is just the system defaults. User config files can overrride any setting.
 ######################CORE#####################################################
 #The port on which web pages will be served
-port : 8001
+https-port : 8001
+
+#The port on which unencrypted web pages will be served
+http-port : 8002
 
 #The directory in which certificate.cert and certificate.key, used for the SSL, are to be found.
 #Relative to the site-data-dir(or use an absolute path)
@@ -14,8 +17,11 @@ site-data-dir: var
 #How many threads to allocate for the worker thread pool
 worker-threads: 30
 
-#How many threads cherrypy should use for the web server
-cherrypy-thread-pool: 15
+#How many threads cherrypy should use for the web server to serve unencrypted pages
+http-thread-pool: 5
+
+#How many threads cherrypy should use for the web server to serve encrypted pages
+https-thread-pool: 15
 
 #How many tasks can be queued up in the thread pool before inserts start to block until old tasks finish
 #should not really affect much as the task queue should not get even close to full unless you have
