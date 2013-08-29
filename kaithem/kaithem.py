@@ -48,7 +48,6 @@ from src import messagebus
 from src import notifications
 from src import messagelogging
 from src import systasks
-from src import persistancefiles
 
 from src.config import config
 
@@ -155,7 +154,6 @@ root.settings = settings.Settings()
 root.errors = Errors()
 root.pages = usrpages.KaithemPage()
 root.logs = messagelogging.WebInterface()
-root.persistance = persistancefiles.WebInterface()
 #Start cherrrypy
 dn = os.path.dirname(os.path.realpath(__file__))
 
@@ -220,7 +218,7 @@ cherrypy.tools.addheader = cherrypy.Tool('before_finalize', addheader)
 cherrypy.tree.mount(root,config=cnf)
 
 
-#As far as I can tell, this second server inherits everythoing from the "implicit" server
+#As far as I can tell, this second server inherits everything from the "implicit" server
 #except what we override.
 server2 = cherrypy._cpserver.Server()
 server2.socket_port= config['http-port']
@@ -230,7 +228,7 @@ server2.subscribe()
 
 cherrypy.config.update(site_config)
 messagebus.postMessage('/system/startup','System Initialized')
-messagebus.postMessage('/system/notifications','System Initialized at ' + time.strftime(config['time-format']))
+messagebus.postMessage('/system/notifications','System Initialized')
 
 cherrypy.engine.start()
 cherrypy.engine.block()
