@@ -1,5 +1,6 @@
 <%!
 from src.util import url
+from src import pages
 %>
 <%include file="/pageheader.html"/>
 <h2>Permission Resource "${permission | h}" of Module "${module | h}"</h2>
@@ -10,7 +11,11 @@ from src.util import url
 <div class="sectionbox">
 <textarea name="description" class="description" cols = 5 >${description|h}</textarea><br>
 </div>
-<input value="Save Changes" type="submit">
+%if pages.canUserDoThis("/admin/modules.edit"):
+<input type="submit" value="Save Changes"></input>
+%else:
+<p>You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
+%endif">
 
 </form>
 <%include file="/pagefooter.html"/>

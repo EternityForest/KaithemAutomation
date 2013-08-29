@@ -1,7 +1,7 @@
 <%!
 from src.util import url
 from src import auth
-from src import usrpages
+from src import usrpages,pages
 from src.config import config
 %>
 <%include file="/pageheader.html"/>
@@ -123,7 +123,11 @@ This section shows up to the most recent 25 errors that occured while rendering 
 <p class="help">
 Saving this module will cause it to be immediately acessable from the web.
 </p>
+%if pages.canUserDoThis("/admin/modules.edit"):
 <input type="submit" value="Save Changes"></input>
+%else:
+<p>You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
+%endif
 </form>
 </div>
 

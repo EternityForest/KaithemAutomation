@@ -25,7 +25,7 @@ import cherrypy
             <td><a href="/pagelisting">Pages</a></td>
             <td><a href="/logs">Logs</a></td>
             <td><a href="/save">Save State</a></td>
-            %if auth in cherrypy.request.cookie:
+            %if "auth" in cherrypy.request.cookie:
             
                 %if cherrypy.request.cookie['auth'].value in auth.Tokens:
                     <td><a href="/login/logout">Logout</a></td>

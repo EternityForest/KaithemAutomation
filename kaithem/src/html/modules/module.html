@@ -1,5 +1,6 @@
 <%!
 from src.util import url
+from src import pages
 %>
 
 <%include file="/pageheader.html"/>
@@ -19,7 +20,11 @@ This Page allows you to view and edit information and resources associated with 
 <h4>Info:</h4>
 <textarea name="description" class="description" rows=5>${module['__description']['text']|h}</textarea>
 <hr>
-<input value="Save Changes" type="submit"></input>
+%if pages.canUserDoThis("/admin/modules.edit"):
+<input type="submit" value="Save Changes"></input>
+%else:
+<p>You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
+%endif>
 </form>
 </div>
 

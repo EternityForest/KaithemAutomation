@@ -40,7 +40,24 @@ def require(permission):
         raise cherrypy.HTTPRedirect("/login?"+util.url(cherrypy.url()))
     if not auth.checkTokenPermission(cherrypy.request.cookie['auth'].value,permission):
         raise cherrypy.HTTPRedirect("/errors/permissionerror")
+
+def canUserDoThis(permission):
+        #If the special __guest__ user can do it, anybody can.
+    if '__guest__' in auth.Users:
+        if permission in auth.Users['__guest__'].permissions:
+            return True
+        
+    if not 'auth' in cherrypy.request.cookie:
+        return False
     
+    if cherrypy.request.cookie['auth'].value not in auth.Tokens:
+        return False
+    
+    if not auth.checkTokenPermission(cherrypy.request.cookie['auth'].value,permission):
+        return False
+    
+    return True
+
 def getAcessingUser():
     """Return the username of the user making the request bound to this thread or <UNKNOWN> if not logged in.
        The result of this function can be trusted because it uses the authentication token.

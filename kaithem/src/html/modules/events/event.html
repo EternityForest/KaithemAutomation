@@ -1,6 +1,6 @@
 <%!
 from src.util import url
-from src import newevt,unitsofmeasure
+from src import newevt,unitsofmeasure,pages
 from collections import defaultdict
 import traceback,time
 from src.config import config
@@ -133,7 +133,11 @@ This event last ran:
 <p class="help">
 Saving this module will case it to completely reload, including its local scope. Other resorces will not be affected.
 </p>
+%if pages.canUserDoThis("/admin/modules.edit"):
 <input type="submit" value="Save Changes"></input>
+%else:
+<p>You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
+%endif
 </form>
 </div>
 
