@@ -449,6 +449,8 @@ def resourceUpdateTarget(module,resource,kwargs):
             resourceobj['no-header'] = 'no-header' in kwargs
             resourceobj['dont-show-in-index'] = 'dont-show-in-index' in kwargs
             resourceobj['auto-reload'] = 'autoreload' in kwargs
+            resourceobj['allow-xss'] = 'allow-xss' in kwargs
+            resourceobj['allow-origins'] = [i.strip() for i in kwargs['allow-origins'].split(',')]
             resourceobj['auto-reload-interval'] = float(kwargs['autoreloadinterval'])
             #Method checkboxes
             resourceobj['require-method'] = []

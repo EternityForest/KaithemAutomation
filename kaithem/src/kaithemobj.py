@@ -64,7 +64,12 @@ class Kaithem():
         @staticmethod   
         def second():
             return(time.localtime().tm_sec)
-
+        
+        @staticmethod
+        def isdst(self):
+            #It returns 1 or 0, cast to bool because that's just weird.
+            return(bool(time.localtime().tm_isdst))
+                   
         @staticmethod
         def dayofweek():
             return (unitsofmeasure.DayOfWeek())

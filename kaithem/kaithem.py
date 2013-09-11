@@ -186,7 +186,12 @@ cnf={
         'tools.caching.delay' : 3600,
         "tools.caching.expires": 3600,
         "tools.addheader.on": True
+        },
+     '/pages':
+        {
+         'request.dispatch': cherrypy.dispatch.MethodDispatcher()
         }
+     
 }
 #Let the user create additional static directories
 for i in config['serve-static']:

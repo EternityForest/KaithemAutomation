@@ -34,6 +34,16 @@ class CompiledPage():
              self.permissions = resource["require-permissions"]
         else:
             self.permissions = []
+        
+        if 'allow-xss' in resource:
+             self.xss = resource["allow-xss"]
+        else:
+            self.xss = False
+            
+        if 'allow-origins' in resource:
+            self.origins = resource["allow-origins"]
+        else:
+            self.origins = []
             
         if 'require-method' in resource:
             self.methods = resource['require-method']
@@ -113,11 +123,36 @@ def getPagesFromModules():
                     if j['resource-type']=='page':
                         _Pages[i][m] = CompiledPage(j)
 
+#kaithem.py has come config option that cause this file to use the method dispatcher.
 class KaithemPage():
     
     #Method encapsulating one request to a user-defined page
-    @cherrypy.expose
-    def default(self,module,pagename,*args,**kwargs):
+    exposed = True;
+    
+    def GET(self,*args,**kwargs):
+        return self._serve(*args, **kwargs)
+    
+    def POST(self,*args,**kwargs):
+        return self._serve(*args, **kwargs)
+    
+    def OPTIONS(self,module,pagename): 
+        self._headers(Pages[module][pagename])
+        return ""
+                
+    def _headers(self,page):
+        x = ""
+        for i in page.methods:
+            x+= i + ", "
+        x=x[:-2]
+        
+        cherrypy.response.headers['Allow'] = x + ", HEAD, OPTIONS"
+        if page.xss:
+            if 'Origin' in cherrypy.request.headers:
+                if cherrypy.request.headers['Origin'] in page.origins or '*' in page.origins:
+                    cherrypy.response.headers['Access-Control-Allow-Origin'] = cherrypy.request.headers['Origin']
+                cherrypy.response.headers['Access-Control-Allow-Methods'] = x 
+                
+    def _serve(self,module,pagename,*args,**kwargs):
         global _page_list_lock
         with _page_list_lock:
             page = _Pages[module][pagename]
@@ -126,6 +161,7 @@ class KaithemPage():
             for i in page.permissions:
                 pages.require(i)
             
+            self._headers(page)
             #Check HTTP Method
             if cherrypy.request.method not in page.methods:
                 #Raise a redirect the the wrongmethod error page

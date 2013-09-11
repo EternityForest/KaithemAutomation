@@ -93,7 +93,27 @@ These extra settings let you control the display or permissions of the page
         %else:
                 value= 5.0
         %endif
-       ></input> seconds. (this could create a lot of server traffic. don't DDoS yourself!)
+       ></input> seconds. (this could create a lot of server traffic. don't DDoS yourself!)<br>
+       
+<input type="checkbox" name="allow-xss"
+         %if 'allow-xss' in page:
+            %if page['allow-xss']:
+                checked="yes"
+            %endif
+         %endif
+       ></input>Allow cross-origin requests from(comma separated, * means any) 
+<%
+origins = ""
+if 'allow-origins' in page:
+    for i in page['allow-origins']:
+        origins = origins+i+", "
+    origins = origins[:-1]
+else:
+    origins = "*"
+%>
+<input type="text"  name="allow-origins"
+        value= "${origins|h}"
+       ></input>
        
  </div>
 <p class="help">Require the following permissions to acess this page</p>
