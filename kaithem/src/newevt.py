@@ -47,7 +47,6 @@ def STOP():
     run = False
     
 
-
 #In a background thread, we use the worker pool to check all threads
 
 run = True
@@ -375,6 +374,12 @@ class ChangedEvalEvent(BaseEvent,CompileCodeStringsMixin):
 class PolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
         self.polled = True
+        
+        #Sometimes an event is used for its setup action and never runs.
+        #If the trigger is False, it will never trigger, so we don't poll it.
+        if when == 'False':
+            self.polled = False
+            
         #Compile the trigger
         self.trigger = compile(when,"<trigger>","eval")
         BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)

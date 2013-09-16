@@ -26,7 +26,7 @@ h4 {
     <p>Kaithem is an automation solution based on the concept of events,triggers, and actions. An event is a
         statement that when the trigger occurs, the action should be executed.</p>
 
-    <p>Kaithem is written in pure python and will run in either 2.6+ or 3.xx without modification, the difference
+    <p>Kaithem is written in pure Python and will run in either 2.6+ or 3.xx without modification, the difference
         being that unicode resource and user names are not allowed in Kaithem on 2.xx</p>
 
     <p>Kaithem includes all dependancies(except the optional mpg123 for sound support)</p>
@@ -36,7 +36,7 @@ h4 {
         but aims to be fully reliable enough for basic home and commercial automation tasks.</p>
 
     <p>
-        An important idea in kaithem is that resources, such as events, data, and web pages, all exist within <em>modules</em>.
+        An important idea in Kaithem is that resources, such as events, data, and web pages, all exist within <em>modules</em>.
         This allows for a very simple plugin based architecture wherein device plugins can be bundled with the web pages
         to manage them. Modules can be downloades or uploaded to and from the server as zip files, or can be created and
         modified straight from the web interface.
@@ -51,7 +51,6 @@ h4 {
 
     <p>The exception to this rule is log files. Logs are maintained in ram till they reach a certain size(default
         10,000 entries) then saved to disk. They are also saved when you explicitly save the entire state.</p>
-
 
     <h2>
         <a id="modules"></a>Modules:
@@ -528,6 +527,26 @@ top-banner-html: |
          use the 'http-port' and 'http-thread-pool' options to change the number of threads assigned and the port used
          for unsecure access.
          </p>
+         
+         <h3>How can I change the port in which kaithem serves?</h3>
+         <p>
+         Kaithem normally serves on two different ports, one for HTTP(plaintext) and one for HTTPS(Secure) connections.
+         use the http-port and https-port configuration options to set each respectively. Use an integer value.</p>
+         </p>
+         
+         <h3>How should I deploy Kaithem in a real application?</h3>
+         <p>First, keep in mind that while Kaithem is fairly reliable, it was not designed for 
+         anything like medical equipment or nuclear plants. With that in mind, deploying Kaithem is pretty easy.
+        You will most likely want an always-on server, probably running linux(The Raspberry Pi is a great server),
+        and you will probably want to set up a static IP.
+         </p>
+         
+         <p>Since, at the moment, Kaithem lacks an installer,
+         the recommended installation procedure is to install git, create a new linux user just for the server,
+         and clone into the new user's home directory. Give the user any permisions needed to acess your automation hardware.
+         </p>
+                  
+         <p>Be sure to use real SSL keys, and to change the default passwords.</p>
 </div>
 
 <%include file="/pagefooter.html"/>

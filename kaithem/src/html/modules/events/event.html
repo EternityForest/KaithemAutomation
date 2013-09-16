@@ -28,7 +28,7 @@ ${"pass"}
 
 
 %if config['enable-js']:
-<div id="setupeditor"  style="height:10ex ;border: 1px solid #DDD;">
+<div id="setupeditor"  style="height:35ex ;border: 1px solid #DDD;">
 %if 'setup' in event:
 ${event['setup']|h}\
 %else:
@@ -92,10 +92,10 @@ ${"pass"}\
 This code will be executed when the trigger condition is met. Polling will be suspended until the action completes.
 </p>
 
-<textarea id="actionbox" name="action" rows=25 class="pythoncode">${event["action"]|h}</textarea>
+<textarea id="actionbox" name="action" rows=50 class="pythoncode">${event["action"]|h}</textarea>
 
 %if config['enable-js']:
-<div id="actioneditor" style="height: 25ex;border: 1px solid #DDD;">${event["action"]|h}</div>
+<div id="actioneditor" style="height: 60ex;border: 1px solid #DDD;">${event["action"]|h}</div>
 %endif
 
 

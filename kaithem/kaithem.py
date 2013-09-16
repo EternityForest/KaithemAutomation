@@ -218,7 +218,8 @@ cherrypy.config['tools.pageloadnotify.on'] = True
 
 cherrypy.tools.addheader = cherrypy.Tool('before_finalize', addheader)
 
-
+if hasattr(cherrypy.engine, 'signal_handler'):
+    cherrypy.engine.signal_handler.subscribe()
 
 cherrypy.tree.mount(root,config=cnf)
 

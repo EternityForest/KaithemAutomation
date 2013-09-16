@@ -135,3 +135,9 @@ def which(program):
             
     #If we got this far in execution, we assume the file is not there and return None
     return None
+
+def restart():
+    cherrypy.engine.restart()
+
+def exit():
+    cherrypy.engine.exit()
