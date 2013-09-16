@@ -145,9 +145,12 @@ def parseTrigger(when):
         
 
 #Factory function that examines the type of trigger and chooses a class to handle it.
-def Event(when,do,scope,continual=False,ratelimit=0,setup = None,priority=2):
+def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setup = None,priority=2):
     trigger = parseTrigger(when)
     
+    if scope == None:
+        scope = make_eventscope()
+        
     if trigger[0] == '!onmsg':
         return MessageEvent(when,do,scope,continual,ratelimit,setup,priority)
     
@@ -189,9 +192,16 @@ class BaseEvent():
         self.ratelimit = ratelimit
         self.continual = continual
         self.countdown = 0
-        self.priority = priority
+        fps= config['max-frame-rate']
+        try:
+            self.priority = int(fps*config['priority-response'][priority])
+        except KeyError:
+            try:
+                self.priority = int(priority)
+            except ValueError:
+                self.priority = config['priority-response']['interactive']
+                
         self.runTimes = []
-        
         #Tese are only used for debug messages, but still someone should set them after they make the object
         self.module = "UNKNOWN"
         self.resource = "UNKNOWN"
@@ -421,9 +431,12 @@ def removeModuleEvents(module):
                 del __EventReferences[i]
         
 #Every event has it's own local scope that it uses, this creates the dict to represent it
-def make_eventscope(module):
-    with modules_state.modulesLock:
-       return {'module':modules_state.scopes[module],'kaithem':kaithemobj.kaithem}
+def make_eventscope(module = None):
+    if module:
+        with modules_state.modulesLock:
+           return {'module':modules_state.scopes[module],'kaithem':kaithemobj.kaithem}
+    else:
+           return {'module':None, 'kaithem':kaithemobj.kaithem}
 
 #This piece of code will update the actual event object based on the event resource definition in the module
 #Also can add a new event
@@ -432,6 +445,22 @@ def updateOneEvent(resource,module):
     with modules_state.modulesLock:
         
         x = make_event_from_resource(module,resource)
+        #Here is the other lock(!)
+        with _event_list_lock: #Make sure nobody is iterating the eventlist
+            if (module,resource) in __EventReferences:
+                __EventReferences[module,resource].unregister()
+                
+            #Add new event
+            x.register()
+            #Update index
+            __EventReferences[module,resource] = x
+
+#makes a dummy event for when there is an error loading. The dummy does nothing but is in the right plae
+def makeDummyEvent(resource,module):
+    #This is one of those places that uses two different locks(!)
+    with modules_state.modulesLock:
+        
+        x = Event()
         #Here is the other lock(!)
         with _event_list_lock: #Make sure nobody is iterating the eventlist
             if (module,resource) in __EventReferences:

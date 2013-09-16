@@ -168,9 +168,19 @@ def bookkeeponemodule(module):
     scopes[module] = obj()
     for i in ActiveModules[module]:
         if ActiveModules[module][i]['resource-type'] == 'page':
-            usrpages.updateOnePage(i,module)
+            try:
+                usrpages.updateOnePage(i,module)
+                usrpages.makeDummyPage(i,module)
+            except Exception as e:
+                messagebus.postMessage("/system/notifications","Failed to load page resource: " + i +"module: " + module + "\n" +str(e)+"\n"+"please edit and reload.")
+
         if ActiveModules[module][i]['resource-type'] == 'event':
-           newevt.updateOneEvent(i,module)
+            try:
+                newevt.updateOneEvent(i,module)
+            except Exception as e:
+                newevt.makeDummyEvent(i,module)
+                messagebus.postMessage("/system/notifications","Failed to load event resource: " + i +"module: " + module + "\n" +str(e)+"\n"+"please edit and reload.")
+
     
 
 
@@ -436,7 +446,7 @@ def resourceUpdateTarget(module,resource,kwargs):
             resourceobj['trigger'] = kwargs['trigger']
             resourceobj['action'] = kwargs['action']
             resourceobj['setup'] = kwargs['setup']
-            resourceobj['priority'] = max([int(kwargs['priority']),0])
+            resourceobj['priority'] = kwargs['priority']
             resourceobj['continual'] = 'continual' in kwargs
             resourceobj['rate-limit'] = float(kwargs['ratelimit'])
             #I really need to do something about this possibly brittle bookkeeping system

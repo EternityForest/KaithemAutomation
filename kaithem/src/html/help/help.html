@@ -495,9 +495,10 @@ top-banner-html: |
             modules load is not currently defined(this should be adressed soon), however an event will never run before
             it's setup section.</p>
             
-         <p>Another very important note is that the setup section of a module should only be used for simple things
-         like imports, and initializing variables. When kaithem starts up, an uncaught error in a setup section will cause Kaithem to crash and exit.
-         this behavior may change.</p>
+         <p>Another very important note is that the setup section of an event should only be used for simple things
+         like imports, and initializing variables. An error in setup will cause Kaithem to ignore that event, and not retry or reload.
+         You would need to manually fix the error and resave.
+         </p>
          
          <p>On a related note, watch out for dependancies between events and modules.
          The order in which modules or events load is currently not defined. In most cases this is not a major issue but this may be addressed later</p> 
@@ -505,6 +506,10 @@ top-banner-html: |
          <p>Also, keep in mind what happens when Kaithem shuts down or restarts:
          any events currently executing finish up, but no new events are run.
          (except events triggered by the /system/shutdown message)</p>
+         
+         <p>Put an emphasis on automatic management, detection, and recovery, and keep in mind external services may undergo downtime.
+         Example: If you need a serial port, don't just set it up when kaithem loads. Create a manager event that periodically checks to make
+         sure all is well and if not tries to reopen the port. Remember you may want to run Kaithem for months without a reboot.</p> 
          
          <h3>Can I run multiple instances of Kaithem?</h3>
          <p>Quite possibly. It has not been tested though.

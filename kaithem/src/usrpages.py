@@ -106,6 +106,27 @@ def updateOnePage(resource,module):
         j = modules_state.ActiveModules[module][resource]
         _Pages[module][resource] = CompiledPage(j)
         
+def updateOnePage(resource,module):
+    #This is one of those places that uses two different locks
+    with modules_state.modulesLock:
+        if module not in _Pages:
+            _Pages[module]={}
+            
+        #Get the page resource in question
+        j = modules_state.ActiveModules[module][resource]
+        _Pages[module][resource] = CompiledPage(j)
+
+def makeDummyPage(resource,module):
+        if module not in _Pages:
+            _Pages[module]={}
+    
+        #Get the page resource in question
+        j = {
+                    "resource-type":"page",
+                    "body":"Content here",
+                    'no-navheader':True}
+        _Pages[module][resource] = CompiledPage(j)
+        
 
 #look in the modules and compile all the event code
 def getPagesFromModules():

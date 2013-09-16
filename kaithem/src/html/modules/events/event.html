@@ -28,17 +28,13 @@ ${"pass"}
 
 
 %if config['enable-js']:
-
-
 <div id="setupeditor"  style="height:10ex ;border: 1px solid #DDD;">
 %if 'setup' in event:
-${event['setup']|h}
+${event['setup']|h}\
 %else:
-${"pass"}
+${"pass"}\
 %endif
 </div>
-
-
 %endif
 
 
@@ -75,17 +71,18 @@ ${"pass"}
         <%
         priority = defaultdict(str)
         if 'priority' in event:
-            priority[event['priority']] = 'selected="selected"'
+            if event['priority'] in ['realtimr','interactive','high','medium','low','verylow']:
+                priority[event['priority']] = 'selected="selected"'
         else:
-            priority[2] = 'selected="selected"'
+            priority["interactive"] = 'selected="selected"'
         %>
        Polling Priority(to reduce CPU usage, use the lowest possible rate):<select name="priority">
-        <option value=0 ${priority[0]}>Realtime(as fast as possible)</option>
-        <option value=2 ${priority[2]}>Interactive(no noticable delay in response)</option>
-        <option value=15 ${priority[15]}>High(response within a second)</option>
-        <option value=60 ${priority[15]}>Medium(response within a few seconds)</option>
-        <option value=150 ${priority[150]}>Low(response within a minute)</option>
-        <option value=2400 ${priority[2400]}>Very Low(response within a few minutes)</option>
+        <option value="realtime" ${priority['realtime']}>Realtime(as fast as possible)</option>
+        <option value="interactive" ${priority['interactive']}>Interactive(no noticable delay in response)</option>
+        <option value="high" ${priority["high"]}>High(response within a second)</option>
+        <option value="medium" ${priority["medium"]}>Medium(response within a few seconds)</option>
+        <option value="low" ${priority["low"]}>Low(response within a minute)</option>
+        <option value="verylow" ${priority["verylow"]}>Very Low(response within a few minutes)</option>
         </select>
 
 </div>
