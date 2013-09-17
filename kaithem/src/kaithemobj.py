@@ -18,6 +18,7 @@
 import time,random,subprocess,threading
 import cherrypy
 from . import unitsofmeasure,workers,sound,messagebus,util
+from . import astrallibwrapper as sky
 
 
 #This exception is what we raise from within the page handler to serve a static file
@@ -73,6 +74,32 @@ class Kaithem():
         @staticmethod
         def dayofweek():
             return (unitsofmeasure.DayOfWeek())
+        
+        @staticmethod
+        def isDark(lat,lon):
+            return (sky.isDark(lat,lon))
+        
+        @staticmethod
+        def isRahu(lat,lon):
+            return (sky.isRahu(lat,lon))
+        
+        @staticmethod
+        def isDay(lat,lon):
+            return (sky.isDay(lat,lon))
+        
+        @staticmethod
+        def isNight(lat,lon):
+            return (sky.isNight(lat,lon))
+        
+        @staticmethod
+        def isLight(lat,lon):
+            return (sky.isLight(lat,lon))
+        
+        @staticmethod
+        def isDark(lat,lon):
+            return (sky.isDark(lat,lon))
+        
+        
     
     class sys(object):
         @staticmethod
