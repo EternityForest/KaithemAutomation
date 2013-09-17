@@ -86,11 +86,11 @@ class Month(str):
         If you don't pass it a weekday day when initializing it it will default to today in local time
     
     """
-    def __init__(self,day=""):
+    def __init__(self,day=None):
     
         #If no day supplied, default to today
-        if value == "":
-            value = time.localtime().tm_mon
+        if day ==None:
+            self.value = time.localtime().tm_mon
             
         self.namestonumbers= {
                 "Jan":1, "January":1,
@@ -104,17 +104,19 @@ class Month(str):
                 "Sep":9, "September":9,
                 "Oct":10, "October":10,
                 "Nov":11,"November":11,
-                "Dec":12,"December":12
+                "Dec":12,"December":12,
+                1:1,2:2,3:3,4:4,5:5,6:6,7:7,8:8,9:9,10:10,11:11,12:12
                }
                
         self.numberstonames=[
-                             ["January"],["February"],["March"],["April"],["May"],["June"],["July"],["August"]
+                             ["January"],["February"],["March"],["April"],["May"],["June"],["July"],["August"],
                              ["September"],['October'],['November'],['December']
                       ]
         try:
             if isinstance(day,str):
-                value=value.capitalize()
-            self.value = self.namestonumbers[value]
+                self.value=day.capitalize()
+                
+            self.value = self.namestonumbers[self.value]
         except Exception as e:
             raise e#ValueError('Does not appear to be any valid day of the week')
      

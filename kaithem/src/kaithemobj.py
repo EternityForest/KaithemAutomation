@@ -39,7 +39,7 @@ class Kaithem():
 
         @staticmethod
         def month():
-            return(unitsofmeaure.Month())
+            return(unitsofmeasure.Month())
 
         @staticmethod
         def day():
