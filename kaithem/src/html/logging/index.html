@@ -64,9 +64,7 @@ def formattime(x):
      %>
                 
              
-    There are ${len(messagelogging.log)|h} recent topics. Sorting:[
-    <a href="/logs?sort=topic">Alphabetical</a>|
-    <a href="/logs?sort=time">Most Recently Active</a>]<br>
+    There are ${len(messagelogging.log)|h} recent topics. Sorting:[<a href="/logs?sort=topic">Alphabetical</a>|<a href="/logs?sort=time">Most Recently Active</a>]<br>
     %if messagelogging.log:
         %for i in sorted(messagelogging.log.keys(),key=sortkey,reverse = rev):
             <div id="f_${i}">

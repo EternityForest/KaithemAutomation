@@ -26,7 +26,9 @@ from src.unitsofmeasure import formatTimeInterval
         %for i in reversed(notifications.notificationslog):
         <b>${time.strftime(config['time-format'],time.localtime(i[0]))} server time(about ${formatTimeInterval(time.time()-i[0],2)} ago)</b>
         <p>${i[2]|h}</p>
+        %if len(notifications.notificationslog)>1:
         <hr>
+        %endif
         %endfor
     </div>
 </div>
