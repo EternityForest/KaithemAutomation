@@ -170,8 +170,8 @@ def bookkeeponemodule(module):
         if ActiveModules[module][i]['resource-type'] == 'page':
             try:
                 usrpages.updateOnePage(i,module)
-                usrpages.makeDummyPage(i,module)
             except Exception as e:
+                usrpages.makeDummyPage(i,module)
                 messagebus.postMessage("/system/notifications","Failed to load page resource: " + i +"module: " + module + "\n" +str(e)+"\n"+"please edit and reload.")
 
         if ActiveModules[module][i]['resource-type'] == 'event':
