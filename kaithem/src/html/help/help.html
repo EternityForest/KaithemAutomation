@@ -157,14 +157,14 @@ h4 {
         <h2>
             <a id="kaithemobject" name="kaithemobject"></a>The Kaithem Object:
         </h2>
-        <p>The Kaithem object is one object availible in almost all user defined code. It has the following
+        <p>The Kaithem object is one object available in almost all user defined code. It has the following
             properties:</p>
 
         <h3>General Utilities</h3>
 
 
         <h4>kaithem.globals</h4>
-        <p>An instance of object() whos only purpose is so that the user can asign it attributes. Be careful, as the
+        <p>An instance of object() who's only purpose is so that the user can asign it attributes. Be careful, as the
             kaithem namespace is truly global.</p>
 
 
@@ -180,18 +180,31 @@ h4 {
 
 
         <h3>kaithem.time</h3>
+        
+        <h4>kaithem.time.year()</h4>
+        <p>Return current year in server's time zone as an integer .</p>
+        
+        <h4>kaithem.time.month()</h4>
+        <p>Return current month in the server's time zone. s month object, which can be printed like a string,
+        but can be intelligently compared(January="Jan"=="January"==0)
+        Month objects do not support comparisions besides equality, however they can be cast to integers.
+        Jan=0
+        </p>
 
         <h4>kaithem.time.dayofweek()</h4>
-        <p>Returns a day-of-week object that inherits from string and prints as an uppercase full name(like
+        <p>Returns a day-of-week object in the server's time zone.that inherits from string and prints as an uppercase full name(like
             'Tuesday'), but can be intelligently compared(DoW=='tue','Tue,'Tuesday','tu',1,'1',etc). When usig numbers,
-            monday is 0.</p>
+            monday is 0. Again, only equality comparisions, but you can cast to int.</p>
 
         <h4>kaithem.time.[minute|second|hour]()</h4>
         <p>All of these functions perform as expected(e.g. minute() returns a number between 0 and 59). hour() uses
-            24 hour local time</p>
-
+            24 hour server local time</p>
+            
+        <h4>kaithem.time.isdst()</h4>
+        <p>Return true is daylight savings time is in effect where the server is.</p>
+        
         <h4>kaithem.time.day()</h4>
-        <p>returns the day of the month.</p>
+        <p>Returns the day of the month in the server's time zone.</p>
 
         <h3>kaithem.sys</h3>
         <h4>kaithem.sys.shellex(cmd)</h4>
@@ -208,7 +221,7 @@ h4 {
 
         <h4>kaithem.sys.which(exe)</h4>
         <p>Similar to the unix which command. Returns the path to the program that will be called for a given
-            command in the comand line, or None if there is no such program</p>
+            command in the command line, or None if there is no such program</p>
 
         <h3>kaithem.sound</h3>
         <h4>kaithem.play(filename,handle)</h4>
@@ -258,6 +271,7 @@ h4 {
         <h4>
             <a id="servefile" name="servefile"></a>kaithem.web.serveFile(path,contenttype,name = path)
         </h4>
+        
         <p>When called from code embedded in an HTML page,raises an interrupt causing the server to skip rendering
             the current page and instead serve a static file. Useful when you need to serve a static file and also need
             to restrict acess to it with permissions.</p>
@@ -414,7 +428,7 @@ serve-static:
         <p>Valid units are second,minute,hour,day,week,month,year. Autosaving will not happen more than onceper minute no
             matter the setting and if data is unchanged disk will be untouched. A "month" when used as a length of time, is a year/12.</p>
 
-        <p>autosave-state does not touch log files. Use autosave-log for that. It's semantics are the same.</p>
+        <p><b>autosave-state does not touch log files. Use autosave-log for that. It's semantics are the same.</b></p>
 
         <p>In addition to periodic saves, you might want to consider setting
         <pre>save-before-shutdown</pre> to <pre>yes</pre>This will tell the server to save everything including log

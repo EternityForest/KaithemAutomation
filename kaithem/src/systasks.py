@@ -41,6 +41,7 @@ def aPageJustLoaded():
     global pageviewsthisminute
     pageviewsthisminute = pageviewsthisminute +1
 
+#Acessed by stuff outide this file
 pageviewcountsmoother = util.LowPassFiter(0.3)
 
 def everyminute():

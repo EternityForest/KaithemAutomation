@@ -56,21 +56,29 @@ class DayOfWeek(str):
             raise e#ValueError('Does not appear to be any valid day of the week')
      
     def __str__(self):
-        return(self.numberstonames[self.__value][0])
+        return(self.numberstonames[self.value][0])
+    
+    def __int__(self):
+        return self.__value
      
     def __repr__(self):
-         return(self.numberstonames[self.__value][0])
+         return(self.numberstonames[self.value][0])
      
     def __eq__(self,other):
          try:
              if isinstance(other,str):
                  other=other.capitalize()
-             if self.namestonumbers[other] == self.__value:
+                 
+             if isinstance(other,DayOfWeek):
+                 other = int(other)
+                 
+             if self.namestonumbers[other] == self.value:
                  return True
              else:
                  return False
+             
          except KeyError:
-             return False
+             raise RuntimeError("Invalid to compare day of week to " + repr(other))
          
 class Month(str):
     """This class it a value object that will appear like a string but supports intelligent comparisions like Dow=='Thu' etc.
@@ -112,20 +120,27 @@ class Month(str):
      
     def __str__(self):
         return(self.numberstonames[self.__value][0])
-     
+    
+    def __int__(self):
+        return(self.__value)
+    
     def __repr__(self):
          return(self.numberstonames[self.__value][0])
      
     def __eq__(self,other):
          try:
-             if isinstance(other,str):
-                 other=other.capitalize()
-             if self.namestonumbers[other] == self.__value:
+            if isinstance(other,str):
+                other=other.capitalize()
+                 
+            if isinstance(other,DayOfWeek):
+                other = int(other)
+                 
+            if self.namestonumbers[other] == self.__value:
                  return True
-             else:
+            else:
                  return False
          except KeyError:
-             return False
+            raise RuntimeError("Invalid to compare a month to " + repr(other))
 
         
 time_as_seconds ={
