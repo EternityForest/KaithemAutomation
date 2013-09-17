@@ -87,7 +87,7 @@ log-compress: none
 errors-to-keep: 50
 
 #How many old system notifications to show on front page(does not affect logging)
-notifications-to-keep: 25
+notifications-to-keep: 100
 
 #How often to automatically dump the log file. must be [number] [unit] like 2 hours. units: second,minute,hour,day,week,year
 #can also be "never"

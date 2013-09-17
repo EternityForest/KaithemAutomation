@@ -206,6 +206,39 @@ h4 {
         <h4>kaithem.time.day()</h4>
         <p>Returns the day of the month in the server's time zone.</p>
 
+        <h4>kaithem.time.moon()</h4>
+        <p>Returns the current moon phase as a number:
+        <pre>0  = New moon
+             7  = First quarter
+             14 = Full moon
+             21 = Last quarter</pre>
+        
+        <h4>kaithem.time.isDay(lat,lon)</h4>
+        <p>Return true if it is before sunset in the given lat-lon location.
+        </p>
+        
+        <h4>kaithem.time.isNight(lat,lon)</h4>
+        <p>Return true if it is after sunset in the given lat-lon location.
+        Kaithem handles coordinates as floating point values.
+        </p>
+        
+        <h4>kaithem.time.isDark(lat,lon)</h4>
+        <p>Return true if it is currently past civil twilight in the given lat-lon location.
+        Civil twilight is defined when the sun is 6 degrees below the horizon.
+        In some countries, drivers must turn on headlights past civil twilight.
+        Civil twilight is commonly used as the time to start using artificial light sources.
+        </p>
+        
+        <h4>kaithem.time.isLight(lat,lon)</h4>
+        <p>Return true if it is not past civil twilight given lat-lon location.
+        </p>
+        
+        <h4>kaithem.time.isRahu(lat,lon)</h4>
+        <p>Return true if it is currently Rahukalaam
+        (A period during each day that is considered inauspicious for new ventures in Indian astrology)
+        in the given lat-lon location.
+        </p>
+       
         <h3>kaithem.sys</h3>
         <h4>kaithem.sys.shellex(cmd)</h4>
         <p>Run a command in the system's native shell and return the output.</p>
@@ -549,6 +582,7 @@ top-banner-html: |
          </p>
          
          <h3>How should I deploy Kaithem in a real application?</h3>
+         
          <p>First, keep in mind that while Kaithem is fairly reliable, it was not designed for 
          anything like medical equipment or nuclear plants. With that in mind, deploying Kaithem is pretty easy.
         You will most likely want an always-on server, probably running linux(The Raspberry Pi is a great server),
@@ -561,6 +595,15 @@ top-banner-html: |
          </p>
                   
          <p>Be sure to use real SSL keys, and to change the default passwords.</p>
+         
+         <p>You will almost certainly want to automatically start on boot, and the easiest way to do this is to 
+         make an entry in the Kaithem user's crontab.</p>
+         
+         <p>To update Kaithem, simply go into the Kaithem install folder in the user's home dir, and do a git pull.</p>
+         
+         <p>Be careful updating, 100% backwards compatibility is not guaranteed at this stage of the project,
+          and some config options might gte deprecated and your settings may be ignored.</p>
+         
 </div>
 
 <%include file="/pagefooter.html"/>
