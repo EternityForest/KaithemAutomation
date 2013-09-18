@@ -10,7 +10,9 @@ from src.unitsofmeasure import formatTimeInterval
 
 <div class="sectionbox">
 <p>${config['front-page-banner']}</p>
-</div class="sectionbox">
+</div>
+
+
 %if 'auth' in cherrypy.request.cookie:
 %if cherrypy.request.cookie['auth'].value in auth.Tokens:
     <div class="sectionbox">
@@ -24,11 +26,17 @@ from src.unitsofmeasure import formatTimeInterval
     <div class="scrollbox">
         
         %for i in reversed(notifications.notificationslog):
-        <b>${time.strftime(config['time-format'],time.localtime(i[0]))} server time(about ${formatTimeInterval(time.time()-i[0],2)} ago)</b>
-        <p>${i[2]|h}</p>
-        %if len(notifications.notificationslog)>1:
-        <hr>
-        %endif
+            %if 'errors' in i[1]:
+            <div style="color: 	#900000 ;"'>
+            %else:
+            <div>
+            %endif
+            <b>${time.strftime(config['time-format'],time.localtime(i[0]))} server time(about ${formatTimeInterval(time.time()-i[0],2)} ago)</b>
+            <p>${i[2]|h}</p>
+            </div>
+            %if len(notifications.notificationslog)>1:
+                <hr>
+            %endif
         %endfor
     </div>
 </div>

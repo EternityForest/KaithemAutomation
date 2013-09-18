@@ -356,6 +356,12 @@ h4 {
             and should not contain any time information as they will be listed by time on the front page anyway. Care
             must be taken not to flood the front page and thereby hide important messages. Only system-wide or major
             events should be logged here.</p>
+            
+        <h3>/system/notifications/errors</h3>
+        <p>Messages here are like normal system/notifications/ messages, but are semantically errors, and
+           can show in red in the logs, or trigger sounds, or similar. Again, only fairly important things should
+           go here, as they will be listed on the front page.
+        </p>
         
         <h3>/sytem/perf/FPS</h3>
         <p>Every minute, a message will be posted to this topic containing only the current frame rate that
