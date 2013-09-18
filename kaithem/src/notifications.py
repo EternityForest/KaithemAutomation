@@ -23,9 +23,14 @@ notificationslog =   []
 
 def subscriber(topic,message):
     global notificationslog
-    print("\n"+ strftime() + ":\n" + message)
     notificationslog.append((time.time(),topic,message))
     #Delete all but the most recent N notifications, where N is from the config file.
     notificationslog = notificationslog[-keep_notifications:] 
     
 messagebus.subscribe('/system/notifications/',subscriber)
+
+def printer(t,m):
+        print("\n"+ strftime() + ":\n" +"On Topic: "+t+"\n"+ m+"\n")
+
+for i in config['print-topics']:
+    messagebus.subscribe(i,printer)

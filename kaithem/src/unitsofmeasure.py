@@ -131,6 +131,25 @@ class Month(str):
     def __repr__(self):
          return(self.numberstonames[self.value][0])
      
+#     def __cmp__(self,other):
+#          try:
+#             if isinstance(other,Month):
+#                 otherval = other.value
+#             elif isinstance(other,str):
+#                 other=other.capitalize()     
+#                 otherval = self.namestonumbers[other]
+#             else:
+#                 otherval = other
+#                 
+#                 if self.value == otherval:
+#                     return 0
+#                 if self.value > otherval:
+#                     return 1
+#                 return -1
+#             
+#          except KeyError:
+#             return -1
+     
     def __eq__(self,other):
          try:
             if isinstance(other,Month):

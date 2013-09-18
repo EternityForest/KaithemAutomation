@@ -168,7 +168,7 @@ site_config={
         "tools.encode.encoding":'utf-8',
         "tools.decode.on": True,
         "tools.decode.encoding": 'utf-8',
-        
+        'log.screen': config['cherrypy-log-stdout'],
         'server.socket_host': bindto,
         'server.socket_port': config['https-port'],
         'server.ssl_module':'builtin',
@@ -223,7 +223,7 @@ if hasattr(cherrypy.engine, 'signal_handler'):
 
 cherrypy.tree.mount(root,config=cnf)
 
-
+cherrypy.config.update(site_config)
 #As far as I can tell, this second server inherits everything from the "implicit" server
 #except what we override.
 server2 = cherrypy._cpserver.Server()
@@ -232,7 +232,7 @@ server2._socket_host= bindto
 server2.thread_pool=config['http-thread-pool']
 server2.subscribe()
 
-cherrypy.config.update(site_config)
+
 messagebus.postMessage('/system/startup','System Initialized')
 messagebus.postMessage('/system/notifications','System Initialized')
 

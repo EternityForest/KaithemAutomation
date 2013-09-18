@@ -387,7 +387,7 @@ def addResourceTarget(module,type,name,kwargs):
         if type == 'page':
                 insertResource({
                     "resource-type":"page",
-                    "body":"Content here",
+                    "body":'<div class="sectionbox">Content here</div>',
                     'no-navheader':True})
                 usrpages.updateOnePage(kwargs['name'],module)
 

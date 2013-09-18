@@ -37,6 +37,10 @@ class Kaithem():
         
         
     class time(object):
+        
+        @staticmethod
+        def time():
+            return time.time()
 
         @staticmethod
         def month():
@@ -99,6 +103,9 @@ class Kaithem():
         def isDark(lat,lon):
             return (sky.isDark(lat,lon))
         
+        @staticmethod
+        def moon():
+            return sky.moon()
         
     
     class sys(object):

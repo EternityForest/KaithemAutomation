@@ -93,6 +93,14 @@ notifications-to-keep: 100
 #can also be "never"
 autosave-logs: never
 
+#Set to no to turn off most of cherrypy's access logging.
+#It normally prints a line to stdout for every single page access.
+cherrypy-log-stdout: yes
+
+#List of topic that will be printed to stdout if anything is published to them
+print-topics:
+    - /system/notifications/
+
 #####################THEMING AND BRANDING#######################################
 #This HTML Goes into the top box on the main page. It is configurable in case a deployment wants to add branding.
 front-page-banner: |
