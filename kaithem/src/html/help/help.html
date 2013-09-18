@@ -213,6 +213,8 @@ h4 {
              14 = Full moon
              21 = Last quarter</pre>
         
+        <b>NOTE: isDay,isNight,isDark, and isLight may raise an exception 
+        if there is no sunrise or sunset in the current day(as in some regions in the arctic circle during some seasons).</b>
         <h4>kaithem.time.isDay(lat,lon)</h4>
         <p>Return true if it is before sunset in the given lat-lon location.
         </p>

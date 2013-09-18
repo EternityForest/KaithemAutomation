@@ -66,11 +66,12 @@ class DayOfWeek(str):
      
     def __eq__(self,other):
          try:
+             if isinstance(other,DayOfWeek):
+                 if self.value == other.value:
+                     return True
+             
              if isinstance(other,str):
                  other=other.capitalize()
-                 
-             if isinstance(other,DayOfWeek):
-                 other = int(other)
                  
              if self.namestonumbers[other] == self.value:
                  return True
@@ -86,10 +87,10 @@ class Month(str):
         If you don't pass it a weekday day when initializing it it will default to today in local time
     
     """
-    def __init__(self,day=None):
+    def __init__(self,month=None):
     
         #If no day supplied, default to today
-        if day ==None:
+        if month ==None:
             self.value = time.localtime().tm_mon
             
         self.namestonumbers= {
@@ -105,7 +106,7 @@ class Month(str):
                 "Oct":10, "October":10,
                 "Nov":11,"November":11,
                 "Dec":12,"December":12,
-                1:1,2:2,3:3,4:4,5:5,6:6,7:7,8:8,9:9,10:10,11:11,12:12
+                1:1,2:2,3:3,4:4, 5:5, 6:6,7:7,8:8,9:9,10:10,11:11,12:12
                }
                
         self.numberstonames=[
@@ -113,12 +114,13 @@ class Month(str):
                              ["September"],['October'],['November'],['December']
                       ]
         try:
-            if isinstance(day,str):
-                self.value=day.capitalize()
-                
+            if isinstance(month,str):
+                self.value=month.capitalize()
+            elif isinstance(month,int):
+                self.value = month
             self.value = self.namestonumbers[self.value]
-        except Exception as e:
-            raise e#ValueError('Does not appear to be any valid day of the week')
+        except KeyError as e:
+            raise ValueError('Does not appear to be any valid Month')
      
     def __str__(self):
         return(self.numberstonames[self.value][0])
@@ -131,19 +133,19 @@ class Month(str):
      
     def __eq__(self,other):
          try:
+            if isinstance(other,Month):
+                if self.value == other.value:
+                    return True
+                
             if isinstance(other,str):
                 other=other.capitalize()
-                 
-            if isinstance(other,DayOfWeek):
-                other = int(other)
                  
             if self.namestonumbers[other] == self.value:
                  return True
             else:
                  return False
          except KeyError:
-            raise RuntimeError("Invalid to compare a month to " + repr(other))
-
+             return False
         
 time_as_seconds ={
 'year' : 60*60*24*365,

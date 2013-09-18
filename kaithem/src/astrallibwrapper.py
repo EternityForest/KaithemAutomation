@@ -1,4 +1,4 @@
-import astral,pytz,datetime,time,calendar
+import astral, pytz,datetime,time,calendar
 a = astral.Astral()
 
 def dawn(lat,lon,date=None):

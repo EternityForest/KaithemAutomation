@@ -107,7 +107,7 @@ origins = ""
 if 'allow-origins' in page:
     for i in page['allow-origins']:
         origins = origins+i+", "
-    origins = origins[:-1]
+    origins = origins[:-2]
 else:
     origins = "*"
 %>

@@ -37,6 +37,10 @@ if sys.version_info < (3,0):
 else:
     usr_bytes = bytes
     
+#If nobody loadsusers from the file make sure nothing breaks(mostly for tests)
+Users = {}
+Groups = {}
+
 #These are the "built in" permissions required to control basic functions
 #User code can add to these
 BasePermissions = {
