@@ -152,20 +152,20 @@ class Kaithem():
     class sound(object):
 
         @staticmethod
-        def play(soundfile, soundhandle='PRIMARY'):
-            sound.playSound(soundfile,soundhandle)
+        def play(*args,**kwargs):
+            sound.playSound(*args,**kwargs)
 
         @staticmethod 
-        def stop(soundhandle='PRIMARY'):
-            sound.stopSound(soundhandle)
+        def stop(*args,**kwargs):
+            sound.stopSound(*args,**kwargs)
 
         @staticmethod
         def stopAll():
             sound.stopAllSounds()
             
         @staticmethod
-        def isPlaying(handle="PRIMARY"):
-            return sound.isPlaying(handle)
+        def isPlaying(*args,**kwargs):
+            return sound.isPlaying(*args,**kwargs)
         
         
     class message():

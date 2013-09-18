@@ -15,6 +15,7 @@
 
 import subprocess,os
 from . import util
+from .config import config
 
 
 #This class provides some infrastructure to play sounds but if you use it directly it is a dummy.
@@ -41,7 +42,7 @@ class SoundWrapper(object):
             except KeyError:
                 pass
     
-    def playSound(self,filename,handle="PRIMARY"):
+    def playSound(self,filename,handle="PRIMARY",**kwargs):
         pass
     
     def stopSound(self, handle ="PRIMARY"):
@@ -60,7 +61,9 @@ class Mpg123Wrapper(SoundWrapper):
     #It also abstracts checking if its playing or not.
     class Mpg123SoundContainer(object):
         def __init__(self,filename):
-            self.process = subprocess.Popen(["mpg123",filename])
+            f = open(os.devnull,"w")
+            g = open(os.devnull,"w")
+            self.process = subprocess.Popen(["mpg123",filename], stdout = f, stderr = g)
             
         def __del__(self):
             self.process.terminate()
@@ -70,7 +73,7 @@ class Mpg123Wrapper(SoundWrapper):
             return self.process.returncode == None
         
         
-    def playSound(self,filename,handle="PRIMARY"):
+    def playSound(self,filename,handle="PRIMARY",**kwargs):
         #Those old sound handles won't garbage collect themselves
         self.deleteStoppedSounds()
         #Raise an error if the file doesn't exist
@@ -95,13 +98,68 @@ class Mpg123Wrapper(SoundWrapper):
             return self.runningSounds[channel].isPlaying()
         except KeyError:
             return False
-        
+
+class SOXWrapper(SoundWrapper):
+    backendname = "SOund eXchange"
+    
+    #What this does is it keeps a reference to the sound player process and
+    #If the object is destroyed it destroys the process stopping the sound
+    #It also abstracts checking if its playing or not.
+    class SOXSoundContainer(object):
+        def __init__(self,filename,vol):
+            f = open(os.devnull,"w")
+            g = open(os.devnull,"w")
+            self.process = subprocess.Popen(["play",filename,"vol",str(vol)], stdout = f, stderr = g)
             
-#See if we have mpg123 installed at all and if not use the dummy driver.
-if util.which('mpg123'):
-    backend = Mpg123Wrapper()
-else:
-    backend = SoundWrapper()
+        def __del__(self):
+            self.process.terminate()
+        
+        def isPlaying(self):
+            self.process.poll()
+            return self.process.returncode == None
+        
+        
+    def playSound(self,filename,handle="PRIMARY",**kwargs):
+        
+        if 'volume' in kwargs:
+            #odd way of throwing errors on non-numbers
+            v  = float(kwargs['volume'])
+
+        #Those old sound handles won't garbage collect themselves
+        self.deleteStoppedSounds()
+        #Raise an error if the file doesn't exist
+        if not os.path.isfile(filename):
+            raise ValueError("Specified audio file'"+filename+"' does not exist")
+        
+        #Play the sound with a background process and keep a reference to it
+        self.runningSounds[handle] = self.SOXSoundContainer(filename,v)
+    
+    def stopSound(self, handle ="PRIMARY"):
+        #Delete the sound player reference object and its destructor will stop the sound
+            if handle in self.runningSounds:
+                #Instead of using a lock lets just catch the error is someone else got there first.
+                try:
+                    del self.runningSounds[handle]
+                except KeyError:
+                    pass
+    
+    def isPlaying(self,channel = "PRIMARY"):
+        "Return true if a sound is playing on channel"
+        try:
+            return self.runningSounds[channel].isPlaying()
+        except KeyError:
+            return False        
+
+l = {'sox':SOXWrapper, 'mpg123':Mpg123Wrapper}
+
+
+backend = SoundWrapper()
+
+for i in config['audio-backends']:
+    if util.which(i):
+        backend = l[i]()
+    
+
 
 #Make fake module functions mapping to the bound methods.
 playSound = backend.playSound
