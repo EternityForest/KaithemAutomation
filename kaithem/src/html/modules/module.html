@@ -1,6 +1,6 @@
 <%!
 from src.util import url
-from src import pages
+from src import pages,newevt,usrpages
 %>
 
 <%include file="/pageheader.html"/>
@@ -44,7 +44,11 @@ An event is a statement that something should happen when a condition is met.</p
 <ul>
 %for i in sorted(module.keys()):
 	%if module[i]['resource-type'] == 'event':
-		<li><a href="/modules/module/${url(name)}/resource/${url(i)}">${i|h}</a></li>
+		<li><a href="/modules/module/${url(name)}/resource/${url(i)}">${i|h}</a>
+        %if newevt.fastGetEventErrors(name,i):
+        <span class="error">[${len(newevt.fastGetEventErrors(name,i))} Errors]</span>
+        %endif
+        </li>
 	%endif
 %endfor
 </ul>
@@ -65,11 +69,16 @@ Pages are rendered using the Mako templating engine.
 %for i in sorted(module.keys()):
 	%if module[i]['resource-type'] == 'page':
 		<li>
-            <h4>${i|h}</h4>
+            <h4>${i|h}
+        %if usrpages.getPageErrors(name,i):
+        <span class="error">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
+        %endif
+        </h4>
             <p>
                  <a href="/pages/${url(name)}/${url(i)}">Go to page</a>|
                  <a href="/modules/module/${url(name)}/resource/${url(i)}">Edit Page</a>
             </p>
+
         </li>
 	%endif
 %endfor

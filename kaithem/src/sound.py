@@ -22,7 +22,7 @@ from .config import config
 class SoundWrapper(object):
  
     runningSounds = {}
-    backendname = "Dummy Sound Driver(MPG123 not found)"
+    backendname = "Dummy Sound Driver(No real sound player found)"
     #little known fact: Kaithem is actually a large collection of
     #mini garbage collectors and bookkeeping code...
     def deleteStoppedSounds(self):
@@ -124,7 +124,9 @@ class SOXWrapper(SoundWrapper):
         if 'volume' in kwargs:
             #odd way of throwing errors on non-numbers
             v  = float(kwargs['volume'])
-
+        else:
+            v =1;
+            
         #Those old sound handles won't garbage collect themselves
         self.deleteStoppedSounds()
         #Raise an error if the file doesn't exist

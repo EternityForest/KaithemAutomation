@@ -15,7 +15,7 @@
 
 
 #This file handles the display of user-created pages
-import time,os,threading
+import time,os,threading,traceback
 from .import kaithemobj,util,pages,directories,messagebus,systasks,modules_state
 import mako, cherrypy
 
@@ -205,11 +205,18 @@ class KaithemPage():
                 #Give them a function that raises this special exception
                 if isinstance(e,kaithemobj.ServeFileInsteadOfRenderingPageException):
                     return cherrypy.lib.static.serve_file(e.f_filepath,e.f_MIME,e.f_name)
-                    
+                
+                tb = traceback.format_exc()
                 #When an error happens, log it and save the time
                 #Note that we are logging to the compiled event object
-                page.errors.append([time.strftime(config['time-format']),e])
-                #Keep oly the most recent 25 errors
+                page.errors.append([time.strftime(config['time-format']),tb])
+                try:
+                    messagebus.postMessage('system/errors/pages/'+
+                                       module+'/'+
+                                       pagename,str(tb))
+                except Exception as e:
+                    print (e)
+                #Keep only the most recent 25 errors
                 
                 #If this is the first error(high level: transition from ok to not ok)
                 #send a global system messsage that will go to the front page.
@@ -217,4 +224,4 @@ class KaithemPage():
                     messagebus.postMessage('/system/notifications/errors',
                                            "Page "+pagename+" of module "+module+
                                            " may need attention")
-                    raise (e)
+                raise (e)

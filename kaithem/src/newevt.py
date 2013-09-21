@@ -34,6 +34,15 @@ def getEventErrors(module,event):
     with _event_list_lock:
             return __EventReferences[module,event].errors
 
+def fastGetEventErrors(module,event):
+    "This version might not always be accurate, but will never modify anything or return an error"
+    try:
+        return __EventReferences[module,event].errors
+    except:
+        return[]
+        
+
+
 def getEventLastRan(module,event):
     with _event_list_lock:
             return __EventReferences[module,event].lastexecuted

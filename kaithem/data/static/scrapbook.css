@@ -55,12 +55,13 @@ margin:0.5%;
 border-style:solid; 
 background: rgba(255, 255, 230, 0.25);
 border-width: 2px;
-border-radius:7px;
+margin-top: 1px;
+width:100%;
+
 }
 
 #nav tr{
 border-style:solid;
-
 }
 
 
@@ -70,6 +71,13 @@ text-align: center;
 border-color: grey;
 font-size:125%;
 }
+
+#nav td a
+{
+	text-decoration:none;
+	color: #7A5C99;
+}
+
 
 input {background-color: #E6E6B8;border-radius:7px;}
 input.modulename {width:70%}
@@ -161,4 +169,14 @@ table tr:nth-child(odd) td{
 }
 table tr:nth-child(even) td{
 	background-color: rgba(0,0,0,0.1);
+}
+
+.error
+{
+	color: 	#900000;
+}
+
+.warning
+{
+	color: 	#806600;
 }

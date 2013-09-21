@@ -120,7 +120,7 @@
                 usedp = round((1-(free+cache)/total)*100,2)
                 total = round(total/1024,2)
             except Exception as e:
-                total=used=e#"Unavailable"
+                total=used=usedp = "Unavailable"
                 
             def makecpuspan(num):
                 if num> multiprocessing.cpu_count():

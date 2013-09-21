@@ -13,7 +13,13 @@ from src.config import config
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
 <h3>Page Body</h3>
 
-<a href="/pages/${url(module)}/${url(name)}" class="button">Go to Page</a><br>
+%if pages.canUserDoThis("/admin/modules.edit"):
+<input type="submit" name="GoNow" value="Save Changes and go to page">
+</input>
+%else:
+<p>You will not be able to save any change made as you are either not logged in or do not have permissions.</p>
+%endif
+<br>
 <p class="help">
 This page body will be interpreted as <a href="/makohelp">Mako template code</a>.
 The <a href="/docs#kaithemobject">kaithem object</a> is availible as "kaithem" to python code embedded in markup.
@@ -136,7 +142,7 @@ This section shows up to the most recent 25 errors that occured while rendering 
 <div class="scrollbox">
 %for i in usrpages.getPageErrors(module,name):
     <h4>${i[0]|h}</h4>
-    <p>${repr(i[1])|h}</p>
+    <pre>${str(i[1])|h}</pre>
 %endfor
 </div>
 %endif
@@ -144,7 +150,8 @@ This section shows up to the most recent 25 errors that occured while rendering 
 Saving this module will cause it to be immediately acessable from the web.
 </p>
 %if pages.canUserDoThis("/admin/modules.edit"):
-<input type="submit" value="Save Changes"></input>
+<input type="submit" value="Save Changes and go back">
+</input>
 %else:
 <p>You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
 %endif

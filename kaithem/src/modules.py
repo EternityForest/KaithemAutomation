@@ -479,6 +479,9 @@ def resourceUpdateTarget(module,resource,kwargs):
             
     messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + " modified resource " +
                            resource + " of module " + module)
+    
+    if 'GoNow' in kwargs:
+        raise cherrypy.HTTPRedirect("/pages/"+util.url(module)+"/"+util.url(resource))
     #Return user to the module page       
     raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module))#+'/resource/'+util.url(resource))
     

@@ -27,21 +27,23 @@ margin:5px;
 }
 
 #nav {
-border-style:solid; 
+border-style:none; 
 background: rgba(255, 255, 230, 0.25);
 border-width: 2px;
-border-radius:7px;
+border-radius:99px;
+border-spacing: 0;
 }
 
 #nav tr{
 border-style:solid;
-
+border-radius:7px;
 }
 
 #nav td{
 border-style:none solid none solid; 
 text-align: center;
 border-color: grey;
+border-radius:7px;
 }
 
 input {background-color: #E6E6B8;}

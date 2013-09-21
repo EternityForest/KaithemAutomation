@@ -27,7 +27,9 @@ from src.unitsofmeasure import formatTimeInterval
         
         %for i in reversed(notifications.notificationslog):
             %if 'errors' in i[1]:
-            <div style="color: 	#900000 ;"'>
+            <div class="error">
+            %elif 'warnings' in i[1]:
+            <div class="warning">
             %else:
             <div>
             %endif

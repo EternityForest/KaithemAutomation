@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import time,atexit
+import time,atexit,sys,platform,re
 import cherrypy
 from . import newevt,messagebus,unitsofmeasure,util,messagelogging
 from .kaithemobj import kaithem
@@ -44,10 +44,14 @@ def aPageJustLoaded():
 #Acessed by stuff outide this file
 pageviewcountsmoother = util.LowPassFiter(0.3)
 
+frameRateWasTooLowLastMinute = False
+MemUseWasTooHigh = False
 def everyminute():
     global pageviewsthisminute
     global pageviewpublishcountdown
     global lastsaved, lastdumpedlogs
+    global frameRateWasTooLowLastMinute
+    global MemUseWasTooHigh
     if not config['autosave-state'] == 'never':
         if (time.time() -lastsaved) > saveinterval:
             lastsaved = time.time()
@@ -67,8 +71,37 @@ def everyminute():
 
     pageviewsthisminute = 0
     
-
-
+    #Hysteresis to avoid flooding
+    if newevt.averageFramesPerSecond < config['max-frame-rate']*0.50:
+        if not frameRateWasTooLowLastMinute:
+            messagebus.postMessage("/system/notifications/warnings" , "Warning: Frame rate below 50% of maximum")
+            frameRateWasTooLowLastMinute = True
+    
+    if newevt.averageFramesPerSecond < config['max-frame-rate']*0.8:
+        frameRateWasTooLowLastMinute = False
+    
+    if platform.system()=="Linux":
+            try:
+                f = util.readfile("/proc/meminfo")
+                total = int(re.search("MemTotal.*?([0-9]+)",f).group(1))
+                free = int(re.search("MemFree.*?([0-9]+)",f).group(1))
+                cache = int(re.search("Cached.*?([0-9]+)",f).group(1))
+                
+                used = round(((total - (free+cache))/1000),2)
+                usedp = round((1-(free+cache)/total),3)
+                total = round(total/1024,2)
+                
+                messagebus.postMessage("/system/perf/memuse",usedp)
+                #No hysteresis here, mem use should change slower and is more important IMHO than cpu
+                if usedp > 0.8:
+                    if not MemUseWasTooHigh:
+                        MemUseWasTooHigh = True
+                        messagebus.postMessage("/system/notifications/warnings" , "Total System Memory Use rose above 80%")
+                else:
+                    MemUseWasTooHigh = False
+            except Exception as e:
+                raise e
+            
     
 #This is a polled trigger returning true at the top of every minute.
 def onminute():  
@@ -76,6 +109,8 @@ def onminute():
 
 #newevt provides a special type of trigger just for system internal events
 e = newevt.PolledInternalSystemEvent(onminute,everyminute,{},priority=20)
+e.module = "<Internal System Polling>"
+e.resource = "EveryMinute"
 e.register()
 
 #let the user choose to have the server save everything before a shutdown
