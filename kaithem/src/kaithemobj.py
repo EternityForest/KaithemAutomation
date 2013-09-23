@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-#This is the global general purpose utility thing
+"""This is the global general purpose utility thing that is accesable from almost anywhere in user code."""
 
 import time,random,subprocess,threading
 import cherrypy

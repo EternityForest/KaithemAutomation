@@ -16,6 +16,10 @@ from src.config import config
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
 <h3>Setup Code</h3>
 <p class="help">Enter python code. It will execute in the event scope when it loads.
+%if not pages.canUserDoThis("/admin/modules.edit"):
+<br>
+<span class="warning">You will not be able to save any change made as you are either not logged in or do not have permissions.</span>
+%endif
 </p>
 
 <textarea rows=3 class="pythoncode" name="setup" id="setupbox">
@@ -100,9 +104,9 @@ This code will be executed when the trigger condition is met. Polling will be su
 
 
 %if newevt.getEventErrors(module,name):
-<h3>Errors</h3>
+<h3 class="error">Errors[${len(newevt.getEventErrors(module,name))}]</h3>
 <p class ="help">
-This section shows up to the most recent 25 errors that occured while executing the event or trigger.
+This section the most recent errors that occured while executing the event or trigger.
 </p>
 <div class="scrollbox">
 %for i in newevt.getEventErrors(module,name):

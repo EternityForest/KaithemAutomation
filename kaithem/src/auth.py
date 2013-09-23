@@ -13,13 +13,13 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-#This file manages the concept of Users, Groups, and Permissions.
-#A "User" is a user of the system who can belong to zero or more "Groups" each of which can have
-#"Permissions". "Permissions" are strings like "WriteDisk". A user must be in at least one group
-#With a given permission to do that thing.
-#Users log in by means of a username and password and are given a token.
-#The token lets them do things. A user is considered "Logged in" if he is in possession
-#of a valid token
+"""This file manages the concept of Users, Groups, and Permissions.
+A "User" is a user of the system who can belong to zero or more "Groups" each of which can have
+"Permissions". "Permissions" are strings like "WriteDisk". A user must be in at least one group
+With a given permission to do that thing.
+Users log in by means of a username and password and are given a token.
+The token lets them do things. A user is considered "Logged in" if he is in possession
+of a valid token"""
 
 #Users and groups are saved in RAM and synched with the filesystem due to the goal
 #of not using the filesystem much to save any SD cards.

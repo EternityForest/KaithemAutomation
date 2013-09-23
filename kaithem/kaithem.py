@@ -212,7 +212,7 @@ def addheader(*args,**kwargs):
     
 def pageloadnotify(*args,**kwargs):
     systasks.aPageJustLoaded()
-    
+cherrypy.config.update(site_config)    
 cherrypy.tools.pageloadnotify = cherrypy.Tool('on_start_resource', pageloadnotify)
 cherrypy.config['tools.pageloadnotify.on'] = True
 
@@ -223,7 +223,7 @@ if hasattr(cherrypy.engine, 'signal_handler'):
 
 cherrypy.tree.mount(root,config=cnf)
 
-cherrypy.config.update(site_config)
+
 #As far as I can tell, this second server inherits everything from the "implicit" server
 #except what we override.
 server2 = cherrypy._cpserver.Server()

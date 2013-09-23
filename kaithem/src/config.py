@@ -13,6 +13,8 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
+"""This file handles the big configuration file, provides access to it, and handles default settings"""
+
 import yaml,argparse,sys,os
 
 def load():
@@ -36,7 +38,7 @@ def load():
             print ("Loaded configuration from "+ argcmd.c)
     else:
         _usr_config ={}
-        print ("No CFG File Found. Using Defaults.")
+        print ("No CFG File Specified. Using Defaults.")
             
     
     #Config starts out as the default but individual options

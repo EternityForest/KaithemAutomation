@@ -65,6 +65,17 @@ priority-response:
     low: 45
     very low: 120
     
+#should an error occur while polling or running an event, 
+#how long to wait before polling that event again in seconds
+error-backoff:
+    realtime: 0.05 #Assume realtime really does need to be fast
+    interactive: 5
+    high: 7
+    medium: 9
+    #Those last two are already really slow.
+    low: 45
+    very low: 120
+    
 #List of possible audio backend players in order of preference. Support sox and mpg123.
 audio-backends:
     - sox
@@ -100,11 +111,14 @@ autosave-logs: never
 
 #Set to no to turn off most of cherrypy's access logging.
 #It normally prints a line to stdout for every single page access.
-cherrypy-log-stdout: yes
+cherrypy-log-stdout: no
 
 #List of topic that will be printed to stdout if anything is published to them
 print-topics:
     - /system/notifications/
+
+#Fraction of memory that can be used by all processes o unix before kaithem makes a warning in the log.
+mem-use-warn: 0.85
 
 #####################THEMING AND BRANDING#######################################
 #This HTML Goes into the top box on the main page. It is configurable in case a deployment wants to add branding.

@@ -201,6 +201,12 @@ class BaseEvent():
         self.continual = continual
         self.countdown = 0
         fps= config['max-frame-rate']
+        
+        self.symbolicpriority = priority
+        
+        if self.symbolicpriority == '1':
+            self.symbolicpriority == 'realtime'
+            
         try:
             self.priority = int(fps*config['priority-response'][priority])
         except KeyError:
@@ -256,6 +262,23 @@ class BaseEvent():
             except Exception as e:
                 print (e)
             
+            #Catch legacy number based priorities that are realtime
+            if self.symbolicpriority == 1:
+                backoff = config['error-backoff']['realtime']
+            else:
+                try:
+                    backoff = config['error-backoff'][self.symbolicpriority]
+                except KeyError:
+                    backoff = config['error-backoff']['interactive']
+                    
+            #Make sure backoff slows, not speeds
+            #Figure out the normal poll time,backoff not less than that
+            backoff = max(1/(config['max-frame-rate']/self.priority), backoff)
+            
+            #Calculate backoff time in terms of frames
+            backoff = (averageFramesPerSecond*backoff)
+            
+            self.countdown = int(backoff)
             #If this is the first error since th module was last saved raise a notification
             if len(self.errors)==1:
                 messagebus.postMessage('/system/notifications/errors',"Event "+self.resource+" of module "+self.module+                " may need attention")
@@ -285,7 +308,7 @@ class BaseEvent():
         try:
             #This is how we handle priority for now. The passing things between threads
             #Is what really takes time polling so the few instructions extra should be well worth it
-            #Basically a countdon timer in frames that polls at zero and resets (P0 is as fast as possible)
+            #Basically a countdown timer in frames that polls at zero and resets (P0 is as fast as possible)
             if self.countdown == 0:
                 self.countdown = self.priority
             else:

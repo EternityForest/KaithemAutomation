@@ -13,6 +13,8 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
+"""Provides a web interface over the authorization system"""
+
 import cherrypy
 from . import auth ,pages,messagebus
 from .util import quote

@@ -46,8 +46,9 @@ pageviewcountsmoother = util.LowPassFiter(0.3)
 
 frameRateWasTooLowLastMinute = False
 MemUseWasTooHigh = False
+
 def everyminute():
-    global pageviewsthisminute
+    global pageviewsthisminute,firstrun
     global pageviewpublishcountdown
     global lastsaved, lastdumpedlogs
     global frameRateWasTooLowLastMinute
@@ -93,10 +94,10 @@ def everyminute():
                 
                 messagebus.postMessage("/system/perf/memuse",usedp)
                 #No hysteresis here, mem use should change slower and is more important IMHO than cpu
-                if usedp > 0.8:
+                if usedp > config['mem-use-warn']:
                     if not MemUseWasTooHigh:
                         MemUseWasTooHigh = True
-                        messagebus.postMessage("/system/notifications/warnings" , "Total System Memory Use rose above 80%")
+                        messagebus.postMessage("/system/notifications/warnings" , "Total System Memory Use rose above"+str(int(config['mem-warn-threshold']*100))+"%")
                 else:
                     MemUseWasTooHigh = False
             except Exception as e:

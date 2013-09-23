@@ -106,10 +106,10 @@ class SOXWrapper(SoundWrapper):
     #If the object is destroyed it destroys the process stopping the sound
     #It also abstracts checking if its playing or not.
     class SOXSoundContainer(object):
-        def __init__(self,filename,vol):
+        def __init__(self,filename,vol,start,end):
             f = open(os.devnull,"w")
             g = open(os.devnull,"w")
-            self.process = subprocess.Popen(["play",filename,"vol",str(vol)], stdout = f, stderr = g)
+            self.process = subprocess.Popen(["play",filename,"vol",str(vol),"trim",str(start),str(end)], stdout = f, stderr = g)
             
         def __del__(self):
             self.process.terminate()
@@ -126,6 +126,19 @@ class SOXWrapper(SoundWrapper):
             v  = float(kwargs['volume'])
         else:
             v =1;
+        
+        if 'start' in kwargs:
+            #odd way of throwing errors on non-numbers
+            start  = float(kwargs['start'])
+        else:
+            start =0
+            
+        if 'end' in kwargs:
+            #odd way of throwing errors on non-numbers
+            end  = float(kwargs['end'])
+        else:
+            end ="-0"
+            
             
         #Those old sound handles won't garbage collect themselves
         self.deleteStoppedSounds()
@@ -134,7 +147,7 @@ class SOXWrapper(SoundWrapper):
             raise ValueError("Specified audio file'"+filename+"' does not exist")
         
         #Play the sound with a background process and keep a reference to it
-        self.runningSounds[handle] = self.SOXSoundContainer(filename,v)
+        self.runningSounds[handle] = self.SOXSoundContainer(filename,v,start,end)
     
     def stopSound(self, handle ="PRIMARY"):
         #Delete the sound player reference object and its destructor will stop the sound
