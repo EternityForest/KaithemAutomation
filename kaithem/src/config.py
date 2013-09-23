@@ -15,7 +15,7 @@
 
 """This file handles the big configuration file, provides access to it, and handles default settings"""
 
-import yaml,argparse,sys,os
+import yaml,argparse,sys,os, validictory
 
 def load():
     _argp = argparse.ArgumentParser()
@@ -52,4 +52,12 @@ def load():
         config['https-port'] = int(argcmd.p)
     return config
             
-config = load()
+c = load()
+#This only tells us if it matches the general format, NOT if it
+#is valid data. A filename can be a valid string but not refer to any valid file
+#Even so, it is much better than nothing.
+_dn = os.path.dirname(os.path.realpath(__file__))
+with open(os.path.join(_dn,"../data/config-schema.yaml")) as f:
+    validictory.validate(c,yaml.load(f))
+config = c
+del c

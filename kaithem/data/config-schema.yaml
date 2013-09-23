@@ -1,0 +1,172 @@
+type:  object
+
+properties:
+    http-port:
+        type: integer
+        maximum: 65536
+        
+    https-port:
+        type: integer
+        maximum: 65536
+    
+    ssl-dir:
+        type: string
+    
+    site-data-dir:
+        type: string
+    
+    worker-threads:
+        type: integer
+        maximum: 800
+        minumum: 1
+    
+    http-thread-pool:
+        type: integer
+        minimum: 1
+        maximum: 500
+    
+    https-thread-pool:
+        type: integer
+        minimum: 1
+        maximum: 500
+        
+    task-queue-size:
+        type: integer
+        minimum: 1
+    
+    max-frame-rate:
+        type: integer
+        minumum: 1
+    
+    delay-between-frames:
+        type: number
+        minimim: 0.001
+        
+    serve-static:
+        type: object
+        additionalProperties:
+            type: string
+    
+    local-access-only:
+        type: boolean
+    
+    autosave-state:
+        type: string
+        pattern: ((.*(([0-9]*)\D*?(year|month|week|day|hour|minute|second|millisecond)s?).*)+)|never
+        
+    wait-for-workers:
+        type: number
+        minimum: 0.2
+        
+    save-before-shutdown:
+        type: boolean
+        
+    priority-response:
+        type: object
+        items:
+            interactive:
+                type: number
+            high:
+                type: number
+            medium:
+                type:number
+            low:
+                type:number
+            verylow:
+                type:number
+                    
+    error-backoff:
+        type: object
+        items:
+            realtime:
+                type:number
+            interactive:
+                type: number
+            high:
+                type: number
+            medium:
+                type:number
+            low:
+                type:number
+            verylow:
+                type:number
+                    
+    audio-backends:
+        type: array
+        uniqueItems: yes
+        items:
+            enum:
+                -mpg123
+                -sox
+ 
+  
+    
+    log-dump-size:
+        type: integer
+        minimum: 1
+    
+    keep-log-files:
+        type: string
+        pattern: "[0-9]*(k|m|g|K|M|G)"
+    
+    log-format:
+        type: string
+        enum:
+            -tiny
+            -normal
+            -pretty
+            
+    log-compress:
+        type: string
+        enum:
+            -none
+            -gzip
+            -bz2
+            
+    errors-to-keep:
+        type: integer
+    
+    notifications-to-keep:
+        type: integer
+    
+    autosave-logs:
+        type: string
+        pattern: ((.*(([0-9]*)\D*?(year|month|week|day|hour|minute|second|millisecond)s?).*)+)|never
+        
+    cherrypy-log-stdout:
+        type: boolean
+    
+    print-topics:
+        type: array
+        items:
+            type: string
+    
+    mem-use-warn:
+        type: number
+        minimum : 0
+        maximum : 1
+        
+    front-page-banner:
+        type: string
+    
+    top-banner-html:
+        type: string
+    
+    about-box-banner:
+        type: string
+    
+    theme-url:
+        type: string
+    
+    enable-js:
+        type: boolean
+        
+    time-format:
+        type: string
+    
+    get-public-ip:
+        type: boolean
+
+additionalProperties: no
+    
+        

@@ -79,7 +79,7 @@ error-backoff:
 #List of possible audio backend players in order of preference. Support sox and mpg123.
 audio-backends:
     - sox
-    - yaml
+    - mpg123
 
 ##################LOGGING######################################################
 #Notice: to actually control what topics are logged, use the kaithem/var/whattosave.txt or edit
@@ -142,7 +142,6 @@ enable-js: yes
 
 #How to format times and dates
 time-format: "%A, %B %d, %Y at %l:%M:%S %p"
-
 
 #####################MISC#######################################################
 #This really isn't used for anything except showing on the about box

@@ -34,7 +34,7 @@ else:
     sys.path.append(os.path.join(sys.path[0],'src','thirdparty','python3'))
 
 import time
-import cherrypy
+import cherrypy,validictory
 from src import util
 from src import pages
 from src import weblogin
