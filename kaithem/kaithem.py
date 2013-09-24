@@ -26,7 +26,7 @@ import sys,os
 #If not, it will fall back to ours.
 sys.path.append(os.path.join(sys.path[0],'src','thirdparty'))
 
-#There are some libraries that are actually different for 3 and 2, so we use the apprpriate one
+#There are some libraries that are actually different for 3 and 2, so we use the appropriate one
 #By changing the pathe to include the proper ones.
 if sys.version_info < (3,0):
     sys.path.append(os.path.join(sys.path[0],'src','thirdparty','python2'))

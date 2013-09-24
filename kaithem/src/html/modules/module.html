@@ -23,7 +23,7 @@ This Page allows you to view and edit information and resources associated with 
 %if pages.canUserDoThis("/admin/modules.edit"):
 <input type="submit" value="Save Changes"></input>
 %else:
-<p>You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
+<p class="warning">You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
 %endif>
 </form>
 </div>

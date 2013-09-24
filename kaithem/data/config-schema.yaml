@@ -63,33 +63,46 @@ properties:
         
     priority-response:
         type: object
-        items:
+        properties:
             interactive:
                 type: number
+                required: yes
             high:
                 type: number
+                required: yes
             medium:
-                type:number
+                type: number
+                required: yes
             low:
-                type:number
+                type: number
+                required: yes
             verylow:
-                type:number
-                    
+                type: number
+                required: yes
+        additionalProperties: no
+        
     error-backoff:
         type: object
-        items:
+        properties:
             realtime:
-                type:number
+                type: number
+                required: yes
             interactive:
                 type: number
+                required: yes
             high:
                 type: number
+                required: yes
             medium:
-                type:number
+                type: number
+                required: yes
             low:
-                type:number
+                type: number
+                required: yes
             verylow:
-                type:number
+                type: number
+                required: yes
+        additionalProperties: no
                     
     audio-backends:
         type: array
@@ -99,8 +112,6 @@ properties:
                 -mpg123
                 -sox
  
-  
-    
     log-dump-size:
         type: integer
         minimum: 1

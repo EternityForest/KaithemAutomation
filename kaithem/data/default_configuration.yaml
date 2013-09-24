@@ -63,7 +63,7 @@ priority-response:
     high: 0.8
     medium: 2.5
     low: 45
-    very low: 120
+    verylow: 120
     
 #should an error occur while polling or running an event, 
 #how long to wait before polling that event again in seconds
@@ -74,7 +74,7 @@ error-backoff:
     medium: 9
     #Those last two are already really slow.
     low: 45
-    very low: 120
+    verylow: 120
     
 #List of possible audio backend players in order of preference. Support sox and mpg123.
 audio-backends:

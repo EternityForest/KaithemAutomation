@@ -28,7 +28,7 @@ def load():
     _dn = os.path.dirname(os.path.realpath(__file__))
     
     #This can't bw gotten from directories or wed get a circular import
-    with open(os.path.join(_dn,"../data/default_configuration.txt")) as f:
+    with open(os.path.join(_dn,"../data/default_configuration.yaml")) as f:
         _defconfig = yaml.load(f)
     
     #Attempt to open any manually specified config file

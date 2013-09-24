@@ -173,6 +173,7 @@ backend = SoundWrapper()
 for i in config['audio-backends']:
     if util.which(i):
         backend = l[i]()
+        break
     
 
 
