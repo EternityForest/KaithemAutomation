@@ -3,10 +3,12 @@ type:  object
 properties:
     http-port:
         type: integer
+        minimum: 0
         maximum: 65536
         
     https-port:
         type: integer
+        minimum: 0
         maximum: 65536
     
     ssl-dir:

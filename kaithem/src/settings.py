@@ -32,3 +32,27 @@ class Settings():
         util.SaveAllState()
         messagebus.postMessage("/system/notifications","Global server state was saved to disk")
         raise cherrypy.HTTPRedirect('/')
+    
+    @cherrypy.expose    
+    def restart(self):
+        pages.require("/admin/settings.edit")
+        return pages.get_template("settings/restart.html").render()
+        
+    @cherrypy.expose    
+    def restarttarget(self):
+        pages.require("/admin/settings.edit")
+        #This log won't be seen by anyone unless they set up autosaving before resets
+        messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + ' reset the system.')
+        cherrypy.engine.restart()#(!)
+        #It might come online fast enough for this to work, otherwise they see an error.
+        return  """
+                <HTML>
+                <HEAD>
+                …
+                <META HTTP-EQUIV="refresh" CONTENT="30;URL=/">
+                </HEAD>
+                <BODY>
+                <p>Reloading. If you get an error, try again.</p>
+                </BODY>
+                </HTML> """
+                

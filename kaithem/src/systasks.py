@@ -46,6 +46,7 @@ pageviewcountsmoother = util.LowPassFiter(0.3)
 
 frameRateWasTooLowLastMinute = False
 MemUseWasTooHigh = False
+firstrun = True
 
 def everyminute():
     global pageviewsthisminute,firstrun
@@ -72,15 +73,18 @@ def everyminute():
 
     pageviewsthisminute = 0
     
-    #Hysteresis to avoid flooding
-    if newevt.averageFramesPerSecond < config['max-frame-rate']*0.50:
-        if not frameRateWasTooLowLastMinute:
-            messagebus.postMessage("/system/notifications/warnings" , "Warning: Frame rate below 50% of maximum")
-            frameRateWasTooLowLastMinute = True
-    
-    if newevt.averageFramesPerSecond < config['max-frame-rate']*0.8:
-        frameRateWasTooLowLastMinute = False
-    
+    #The frame rate is not valid for the first few seconds because of the average
+    if not firstrun:
+        #Hysteresis to avoid flooding
+        if newevt.averageFramesPerSecond < config['max-frame-rate']*0.50:
+            if not frameRateWasTooLowLastMinute:
+                messagebus.postMessage("/system/notifications/warnings" , "Warning: Frame rate below 50% of maximum")
+                frameRateWasTooLowLastMinute = True
+
+        if newevt.averageFramesPerSecond < config['max-frame-rate']*0.8:
+            frameRateWasTooLowLastMinute = False
+            
+    firstrun == False   
     if platform.system()=="Linux":
             try:
                 f = util.readfile("/proc/meminfo")
@@ -97,7 +101,7 @@ def everyminute():
                 if usedp > config['mem-use-warn']:
                     if not MemUseWasTooHigh:
                         MemUseWasTooHigh = True
-                        messagebus.postMessage("/system/notifications/warnings" , "Total System Memory Use rose above"+str(int(config['mem-warn-threshold']*100))+"%")
+                        messagebus.postMessage("/system/notifications/warnings" , "Total System Memory Use rose above"+str(int(config['mem-use-warn']*100))+"%")
                 else:
                     MemUseWasTooHigh = False
             except Exception as e:
