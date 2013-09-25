@@ -92,6 +92,7 @@ class webapproot():
     @cherrypy.expose 
     def index(self,*path,**data):
         pages.require("/admin/mainpage.view")
+        cherrypy.response.cookie['LastSawMainPage'] = time.time()
         return pages.get_template('index.html').render()
 
 
@@ -154,6 +155,8 @@ root.settings = settings.Settings()
 root.errors = Errors()
 root.pages = usrpages.KaithemPage()
 root.logs = messagelogging.WebInterface()
+root.notifications = notifications.WI()
+
 #Start cherrrypy
 dn = os.path.dirname(os.path.realpath(__file__))
 

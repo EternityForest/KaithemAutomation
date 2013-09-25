@@ -13,14 +13,38 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import time
-from . import messagebus
+import time,json
+import cherrypy
+from . import messagebus,pages
 from .unitsofmeasure import strftime
 from .config import config
 
 keep_notifications = config['notifications-to-keep']
 notificationslog =   []
 
+class WI():
+    @cherrypy.expose
+    def countnew(self,**kwargs):
+        pages.require('/admin/mainpage.view')
+        normal = 0
+        errors = 0
+        warnings = 0
+        total = 0
+        x = list(notificationslog)
+        x.reverse()
+        for i in x:
+            if not i[0] > float(kwargs['since']):
+                break
+            else:
+                if 'warning' in i[1]:
+                    warnings +=1
+                elif 'error' in i[1]:
+                    errors += 1
+                else:
+                    normal += 1
+                total +=1
+        return json.dumps([total,normal,warnings,errors])
+    
 def subscriber(topic,message):
     global notificationslog
     notificationslog.append((time.time(),topic,message))
