@@ -30,9 +30,16 @@ class LoginScreen():
             raise cherrypy.HTTPRedirect("/errors/gosecure")
         x = auth.userLogin(kwargs['username'],kwargs['pwd'])
         if not x=='failure':
-            #Give the user the security token
+            #Give the user the security token.
+            #AFAIK this is and should at least for now be the
+            #ONLY place in which the auth cookie is set.
             cherrypy.response.cookie['auth'] = x
             cherrypy.response.cookie['auth']['path'] = '/'
+            #This auth cookie REALLY does not belong anywhere near an unsecured connection.
+            #For some reason, empty strings seem to mean "Don't put this attribute in.
+            #Always test, folks!
+            cherrypy.response.cookie['auth']['secure'] = ' '
+            cherrypy.response.cookie['auth']['httponly'] = ' '
             raise cherrypy.HTTPRedirect(util.unurl(kwargs['go']))
         else:
             raise cherrypy.HTTPRedirect("/errors/loginerror")
