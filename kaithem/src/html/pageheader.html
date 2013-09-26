@@ -1,6 +1,6 @@
 <%!
 from src.config import config
-from src import auth,util
+from src import auth,util,notifications,pages
 import cherrypy
 %>
 
@@ -19,7 +19,7 @@ import cherrypy
       <tbody>
         <tr>
             <td><a href="/">Main</a>
-            %if config['enable-js']:
+            %if config['enable-js'] and pages.canUserDoThis("/admin/mainpage.view"):
             <span id = "notifications">
                 <script type="text/javascript">
                      function getCookie(c_name)
@@ -82,7 +82,11 @@ import cherrypy
                     }
                     f();
                     setInterval(f,10000);
-                    %endif
+                    
+            %elif pages.canUserDoThis("/admin/mainpage.view"):
+
+            ${notifications.makenotifier()}
+            %endif
                     
                 
                 </script>

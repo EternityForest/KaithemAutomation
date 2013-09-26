@@ -22,10 +22,28 @@ from .config import config
 keep_notifications = config['notifications-to-keep']
 notificationslog =   []
 
-class WI():
-    @cherrypy.expose
-    def countnew(self,**kwargs):
-        pages.require('/admin/mainpage.view')
+def makenotifier():
+    if not 'LastSawMainPage' in cherrypy.response.cookie:
+        t = float(cherrypy.request.cookie["LastSawMainPage"].value)
+    else:
+        t = float(cherrypy.response.cookie["LastSawMainPage"].value)
+        
+    b = countnew(t)
+    if b[2]:
+        c = 'warning'
+    if b[3]:
+        c = 'error'
+    else:
+         c = ""
+         
+    if b[0]:
+        s = "<span class='%s'>(%d)</span>" %(c,b[0])
+    else:
+        s = ''
+    return s
+
+
+def countnew(since):
         normal = 0
         errors = 0
         warnings = 0
@@ -33,7 +51,7 @@ class WI():
         x = list(notificationslog)
         x.reverse()
         for i in x:
-            if not i[0] > float(kwargs['since']):
+            if not i[0] > since:
                 break
             else:
                 if 'warning' in i[1]:
@@ -43,7 +61,19 @@ class WI():
                 else:
                     normal += 1
                 total +=1
-        return json.dumps([total,normal,warnings,errors])
+        return [total,normal,warnings,errors]
+    
+class WI():
+    @cherrypy.expose
+    def countnew(self,**kwargs):
+        pages.require('/admin/mainpage.view')
+        return json.dumps(countnew(float(kwargs['since'])))
+    
+    @cherrypy.expose
+    def mostrecent(self,**kwargs):
+        pages.require('/admin/mainpage.view')
+        return json.dumps(notificationslog[-int(kwargs['count']):])
+
     
 def subscriber(topic,message):
     global notificationslog
