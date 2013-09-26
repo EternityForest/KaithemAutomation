@@ -101,7 +101,7 @@ def everyminute():
                 if usedp > config['mem-use-warn']:
                     if not MemUseWasTooHigh:
                         MemUseWasTooHigh = True
-                        messagebus.postMessage("/system/notifications/warnings" , "Total System Memory Use rose above"+str(int(config['mem-use-warn']*100))+"%")
+                        messagebus.postMessage("/system/notifications/warnings" , "Total System Memory Use rose above "+str(int(config['mem-use-warn']*100))+"%")
                 else:
                     MemUseWasTooHigh = False
             except Exception as e:
