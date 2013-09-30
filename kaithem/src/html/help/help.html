@@ -622,8 +622,9 @@ top-banner-html: |
          <p>You should make a copy of kaithem/var,  put it somewhere else, and change the
          <pre>site-data-dir</pre>
          
-         In your config file to point to it. Also change ssl-dir to point to YOUR_NEW_VAR_PLACE/ssl and put your keys there.
-         If you don't do this, it will write your data(modules,pages,events,settings) directly into the cloned repo, which may cause an error when you try to update.
+         In your config file to point to it. Also change ssl-dir to point to whereever you put the certificate.cert and certificate.key files of your private key.
+         If you don't do this, it will write your data(modules,pages,events,settings) directly into the cloned repo, which may cause an error when you try to update via git.
+         
          <h3>Audio is not working on the RasPi<h3>
          
          <p>At least on the version of Raspbian used for testing, SoX will not work unless you set the following environment variables
