@@ -3,12 +3,14 @@
 from src import messagelogging
 from src import messagebus
 from src.unitsofmeasure import formatTimeInterval
-import time
+import time,json
 import cherrypy
 from src.util import url
 from src.config import config
 def formattime(x):
     return time.strftime(config['time-format'],time.localtime(x))
+def dump(j):
+    return json.dumps(j,sort_keys=True,indent=4, separators=(',', ': '))
 %>
 
 %if config['enable-js']:
@@ -84,7 +86,7 @@ def formattime(x):
                 <p>
                     <table border=1>
                     <tr>
-                    <td>Latest Value</td><td><pre style="margin:2px;">${messagelogging.log[i][-1][1]|h}</pre></td>
+                    <td>Latest Value</td><td><pre style="margin:2px;">${dump(messagelogging.log[i][-1][1])|h}</pre></td>
                     </tr>
                     <tr>
                     <td>Most Recent Message Posted at:</td> <td>${formattime(messagelogging.log[i][-1][0])}

@@ -1,12 +1,14 @@
 <%include file="/pageheader.html"/>
 <%!
 from src import messagelogging
-import time
+import time,json
 from src.unitsofmeasure import formatTimeInterval
 from src.util import url
 from src.config import config
 def formattime(x):
     return time.strftime(config['time-format'],time.localtime(x))
+def dump(j):
+    return json.dumps(j,sort_keys=True,indent=4, separators=(',', ': '))
 %>
 
 <h2>Recent messages on topic ${topicname}</h2>
@@ -16,7 +18,7 @@ Only messages posted since the most recent periodic dump are shown
 </p>
 %for i in reversed(messagelogging.log[topicname]):
     <h3>${formattime(i[0])}(about ${formatTimeInterval(time.time()-i[0],2)} ago)</h3>
-    <p><pre>${i[1]|h}</pre></p>
+    <p><pre>${dump(i[1])|h}</pre></p>
 %endfor
 </div>
 

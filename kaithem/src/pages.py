@@ -46,7 +46,7 @@ def canUserDoThis(permission):
     if '__guest__' in auth.Users:
         if permission in auth.Users['__guest__'].permissions:
             return True
-        
+    #if we are using http, this should catch it beause the ookie is https only
     if not 'auth' in cherrypy.request.cookie:
         return False
     

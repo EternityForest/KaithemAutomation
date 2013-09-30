@@ -1,13 +1,13 @@
 <%!
 from src.util import url
 from src import auth
-from src import usrpages,pages
+from src import usrpages,pages,util
 from src.config import config
 %>
 <%include file="/pageheader.html"/>
 <title>Kaithem Page</title>
 <h2>Page "${name|h}" of module "${module|h}"</h2>
-
+Page URL: <a href="/pages/${util.url(module)}/${util.url(name)}">/pages/${util.url(module)}/${util.url(name)}</a>
 <div class="sectionbox">
 
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
@@ -153,7 +153,7 @@ Saving this module will cause it to be immediately acessable from the web.
 <input type="submit" value="Save Changes and go back">
 </input>
 %else:
-<p>You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
+<p class="warning">You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
 %endif
 </form>
 </div>

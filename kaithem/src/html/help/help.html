@@ -618,7 +618,28 @@ top-banner-html: |
          
          <p>Be careful updating, 100% backwards compatibility is not guaranteed at this stage of the project,
           and some config options might gte deprecated and your settings may be ignored.</p>
+          
+         <p>You should make a copy of kaithem/var,  put it somewhere else, and change the
+         <pre>site-data-dir</pre>
          
+         In your config file to point to it. Also change ssl-dir to point to YOUR_NEW_VAR_PLACE/ssl and put your keys there.
+         If you don't do this, it will write your data(modules,pages,events,settings) directly into the cloned repo, which may cause an error when you try to update.
+         <h3>Audio is not working on the RasPi<h3>
+         
+         <p>At least on the version of Raspbian used for testing, SoX will not work unless you set the following environment variables
+         <pre>
+         AUDIODEV=hw:0
+         AUDIODRIVER=alsa
+         </pre>
+         
+         
+         </pre>
+         <p>Also,the user that kaithem is running under must be in the audio group, use
+         <pre>sudo usermod -a -G audio USERS_NAME</pre>
+         to fix that. The default user had this enables already but if you made a new user you may need to use the command.
+         <p>
+         
+         <h3></h3>
 </div>
 
 <%include file="/pagefooter.html"/>

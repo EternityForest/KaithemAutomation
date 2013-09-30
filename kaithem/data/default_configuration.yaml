@@ -80,7 +80,7 @@ error-backoff:
 audio-backends:
     - sox
     - mpg123
-
+    
 ##################LOGGING######################################################
 #Notice: to actually control what topics are logged, use the kaithem/var/whattosave.txt or edit
 #through the web interface

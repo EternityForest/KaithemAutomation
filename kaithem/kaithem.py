@@ -16,7 +16,8 @@
 
 
 
-#This file is the main entry point of the app
+#This file is the main entry point of the app. It imports everything, loads configuration,
+#sets up and starts the server, and contains page handlers for the main page.
 
 import sys,os
 
@@ -87,7 +88,7 @@ auth.initializeAuthentication()
 #Load all modules from the active modules directory
 modules.loadAll()
 
-#This class represents the "/" root o the web app
+#This class represents the "/" root of the web app
 class webapproot():
     
    #"/" is mapped to this 
@@ -97,7 +98,7 @@ class webapproot():
         cherrypy.response.cookie['LastSawMainPage'] = time.time()
         return pages.get_template('index.html').render()
 
-
+    
     @cherrypy.expose 
     def save(self,*path,**data):
         pages.require('/admin/settings.edit')
