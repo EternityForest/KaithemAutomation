@@ -281,7 +281,7 @@ class BaseEvent():
             self.countdown = int(backoff)
             #If this is the first error since th module was last saved raise a notification
             if len(self.errors)==1:
-                messagebus.postMessage('/system/notifications/errors',"Event "+self.resource+" of module "+self.module+                " may need attention")
+                messagebus.postMessage('/system/notifications/errors',"Event \""+self.resource+"\" of module \""+self.module+ "\" may need attention")
     
     def register(self):
         #Some events are really just containers for a callback, so there is no need to poll them

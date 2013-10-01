@@ -222,6 +222,6 @@ class KaithemPage():
                 #send a global system messsage that will go to the front page.
                 if len(page.errors)==1:
                     messagebus.postMessage('/system/notifications/errors',
-                                           "Page "+pagename+" of module "+module+
-                                           " may need attention")
+                                           "Page \""+pagename+"\" of module \""+module+
+                                           "\" may need attention")
                 raise (e)

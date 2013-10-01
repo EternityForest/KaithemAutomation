@@ -37,7 +37,13 @@ for line in x.split('\n'):
 del x
 log = defaultdict(list)
 
-def dumpLogFile():    
+def dumpLogFile():
+    try:
+        _dumpLogFile()
+    except Exeption as e:
+        messagebus.postMessage("/system/errors/saving-logs/",repr(e))
+
+def _dumpLogFile():    
     """Flush all log entires that belong to topics that are in the list of things to save, and clear the staging area"""
     if config['log-format'] == 'normal':
         def dump(j,f):
@@ -63,6 +69,7 @@ def dumpLogFile():
     elif config['log-compress'] == 'gzip':
         openlog = gzip.GzipFile
         ext = '.json.gz'
+
     elif config['log-compress'] == 'none':
         openlog = open
         ext = '.json'
@@ -146,9 +153,9 @@ def messagelistener(topic,message):
     
     log[topic].append((time.time(),message))
     #This is not threadsafe. Hence the approx.
+    #I'm assuming i had a good reason to set this back to 0 in dumpLogFile() not right here.
     approxtotallogentries +=1
     if approxtotallogentries > config['log-dump-size']:
-        print('dumped')
         workers.do(dumpLogFile)
 
 

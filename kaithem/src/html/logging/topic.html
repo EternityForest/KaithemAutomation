@@ -8,6 +8,8 @@ from src.config import config
 def formattime(x):
     return time.strftime(config['time-format'],time.localtime(x))
 def dump(j):
+    if isinstance(j,str):
+        return j
     return json.dumps(j,sort_keys=True,indent=4, separators=(',', ': '))
 %>
 

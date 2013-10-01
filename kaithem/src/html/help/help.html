@@ -345,6 +345,8 @@ h4 {
         <h3>Menu Bars</h3>
         <p>Oftentimes you want to have something like the menu bars at the top of windows in desktop apps. An easy
             way to do this is to put your controls in a p element of class = "menubar"</p>
+            
+            
         <h2>The Internal Message Bus</h2>
         <p>Kaithem includes a custom internal messaging system that is accessable from user code through
             kaithem.message The following topics are of note: However, the system also makes use of the bus in the
@@ -376,10 +378,18 @@ h4 {
         <p>Every minute, a message will be posted to this topic containing only the current frame rate that
          the event polling runs at.</p>
         
+        <h3>/sytem/perf/FPS</h3>
+        <p>Every minute, a message will be posted to this topic containing the current total memory usage of the system (0= none, 1=all available memory)</p>
+        
         <h3>/sytem/perf/requestsperminute</h3>
         <p>Every minute, a message will be posted to this topic containing the number of HTTP requests made to
         the server in the last minute.</p>
-
+        
+        <p>NOTE: the message logging system means that anyone with the /users/logs.view permission
+        can see all traffic on the message bus, because even topics not set up to be logged are kept in ram and shown on
+        the logs page for a short time. Be careful to either not send any private data on the message bus,
+        or be very careful who you give permission to see the logs.
+        </p>
 
         <h2>
             <a id="logging" name="logging"></a>Logging
@@ -625,14 +635,13 @@ top-banner-html: |
          In your config file to point to it. Also change ssl-dir to point to whereever you put the certificate.cert and certificate.key files of your private key.
          If you don't do this, it will write your data(modules,pages,events,settings) directly into the cloned repo, which may cause an error when you try to update via git.
          
-         <h3>Audio is not working on the RasPi<h3>
+         <h3>Audio is not working on the RasPi</h3>
          
          <p>At least on the version of Raspbian used for testing, SoX will not work unless you set the following environment variables
          <pre>
          AUDIODEV=hw:0
          AUDIODRIVER=alsa
          </pre>
-         
          
          </pre>
          <p>Also,the user that kaithem is running under must be in the audio group, use
