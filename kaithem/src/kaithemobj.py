@@ -178,7 +178,6 @@ class Kaithem():
     class message():
         @staticmethod
         def post(topic,message):
-            print(message)
             messagebus.postMessage(topic,message)
 
         @staticmethod   

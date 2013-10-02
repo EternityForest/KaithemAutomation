@@ -545,10 +545,10 @@ top-banner-html: |
         <p>This is equally easy. The top box on the front page is fully customizable. the front-page-banner
             attribute in your config file can contain any HTML. The default is:
         <pre>
-    front-page-banner: |
-        &ltb&gtKaithem is free software licensed under the GPLv3.&ltbr&gt
-        Kaithem was not designed for mission critical or safety of life systems and no warranty is expressed
-        or implied.&ltbr&gt Use entirely at your own risk.&lt/b&gt
+front-page-banner: |
+    &ltb&gtKaithem is free software licensed under the GPLv3.&ltbr&gt
+    Kaithem was not designed for mission critical or safety of life systems and no warranty is expressed
+    or implied.&ltbr&gt Use entirely at your own risk.&lt/b&gt
 </pre>
         </p>
 
@@ -634,17 +634,15 @@ top-banner-html: |
          
          In your config file to point to it. Also change ssl-dir to point to whereever you put the certificate.cert and certificate.key files of your private key.
          If you don't do this, it will write your data(modules,pages,events,settings) directly into the cloned repo, which may cause an error when you try to update via git.
-         
+         </p>
          <h3>Audio is not working on the RasPi</h3>
          
          <p>At least on the version of Raspbian used for testing, SoX will not work unless you set the following environment variables
-         <pre>
-         AUDIODEV=hw:0
-         AUDIODRIVER=alsa
-         </pre>
-         
-         </pre>
-         <p>Also,the user that kaithem is running under must be in the audio group, use
+         <pre>AUDIODEV=hw:0
+AUDIODRIVER=alsa</pre>
+         </p>
+         <p>
+         Also,the user that kaithem is running under must be in the audio group, use
          <pre>sudo usermod -a -G audio USERS_NAME</pre>
          to fix that. The default user had this enables already but if you made a new user you may need to use the command.
          <p>
