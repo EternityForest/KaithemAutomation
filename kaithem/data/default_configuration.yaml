@@ -80,6 +80,9 @@ error-backoff:
 audio-backends:
     - sox
     - mpg123
+
+#How many times to retry loading an event before marking it as a failure and moving on
+max-load-attempts: 25
     
 ##################LOGGING######################################################
 #Notice: to actually control what topics are logged, use the kaithem/var/whattosave.txt or edit

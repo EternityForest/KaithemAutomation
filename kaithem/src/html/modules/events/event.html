@@ -15,7 +15,8 @@ from src.config import config
 
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
 <h3>Setup Code</h3>
-<p class="help">Enter python code. It will execute in the event scope when it loads.
+<p class="help">Enter python code. It will execute in the event scope when it loads. If there is any problem,
+the other events will load then this will be retried. This is also how <a href="/docs#dependancies">dependancies</a> are reoslved.
 %if not pages.canUserDoThis("/admin/modules.edit"):
 <br>
 <span class="warning">You will not be able to save any change made as you are either not logged in or do not have permissions.</span>

@@ -563,15 +563,15 @@ front-page-banner: |
             high frame rates. Keep in mind that the server may need to restart at some time for updates. Everything
             should start with sane defaults immediately on loading. Keep in mind that the order in which events and
             modules load is not currently defined(this should be adressed soon), however an event will never run before
-            it's setup section.</p>
+            it's setup section, and almost all dependancy issues should be handled by the automatic retry.</p>
             
-         <p>Another very important note is that the setup section of an event should only be used for simple things
-         like imports, and initializing variables. An error in setup will cause Kaithem to ignore that event, and not retry or reload.
-         You would need to manually fix the error and resave.
+         <p>An error in a setup section will cause that event to be skipped,
+         the rest of the events to be loaded, then the failed ones will be retried up to the max attempts(default 25)
          </p>
          
          <p>On a related note, watch out for dependancies between events and modules.
-         The order in which modules or events load is currently not defined. In most cases this is not a major issue but this may be addressed later</p> 
+         The order in which modules or events load is currently not defined.
+         Dependancies are handled automatically in most cases.</p> 
          
          <p>Also, keep in mind what happens when Kaithem shuts down or restarts:
          any events currently executing finish up, but no new events are run.
@@ -676,6 +676,37 @@ AUDIODRIVER=alsa
         <p>The one known case in which slow tasks can bog down the system is if there are more slow tasks than there are threads in the pool.
         In this case the system may be unresponsive for a time until the tasks finish. This is unlikely as the odds of having dozens of tasks at the same time
         that are very slow is low in most systems.
+        
+        </p>
+        
+        <a id="dependancies" name="dependancies"></a><h3>How does Kaithem handle dependancies between resources?</h3>
+        <p>With pages, it's not much of an issue.
+        Pages are compiled the first time they get accessed, and if that fails due to a dependancy,
+        the compiling will be retried next time someone tries to access it.
+        It is hard to imagine pages depending on each other in any major way anyway, because pages are usually not the place to write libraries.
+        </p>
+        
+        <p>Events are another story. Since kaithem implements "running some code at startup", including user created
+        functions, as an event, events may have any amount of dependancy on each other.</p>
+        
+        <p>The way that kaithem handles this, is that when an exception occurs in an event's setup code(while loading the event),
+        kaithem simply stops, moves on with the rest of the list of events that need loading, and then comes back to the event that failed, up to
+        a number of times set in the config.</p>
+        
+        <p>This means that you should almost never need to deal with dependancy resolution issues yourself,
+        they are handled as a consequence of kaithem's auto-retry mechanism. However, to imporove load time, you may want
+        to make dependancies more explicit by adding something like this:
+<pre>
+depends = kaithem.globals.ThingThisEventExpectsToBePresent
+depends = FunctionCallThatWillFailIfDependacyNotMet()
+</pre>
+
+        to the beginning of the setup function. These lines will raise errors if there are unmet dependancies.
+        causeing kaithem to exit immediatly, instead of after having wasted more time. It's also valuable documentation.
+        
+        But in general, don't worry about dependancies. Just keep in mind that your setup functions might get retried.
+        
+        </p>
         
 </div>
 

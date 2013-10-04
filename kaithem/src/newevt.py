@@ -498,6 +498,19 @@ def makeDummyEvent(resource,module):
 #look in the modules and compile all the event code
 def getEventsFromModules():
     global _events
+    toLoad = set()
+    
+    #Closures were acting weird. This class is to be like a non wierd closure.
+    class needstobeloaded():
+        def __init__(self,i,m):
+            self.i =i
+            self.m = m
+        def f(self):
+            x = make_event_from_resource(self.i,self.m)
+            x.register()
+            #Now we update the references
+            globals()['__EventReferences'][self.i,self.m] = x
+            
     with modules_state.modulesLock:
         with _event_list_lock:
             #Set _events to an empty list we can build on
@@ -507,17 +520,45 @@ def getEventsFromModules():
                 for m in modules_state.ActiveModules[i]:
                     j=modules_state.ActiveModules[i][m]
                     if j['resource-type']=='event':
-                        #For every resource that is an event, we make an event object based o
-                        x = make_event_from_resource(i,m)
-                        x.register()
-                        _events.append(x)
-                        #Now we update the references
-                        __EventReferences[i,m] = x
+                        #For every resource that is an event, we make an event object based on it
+                        #And put it in the event referenced thing.
+                        #However, we do this indirectly, for each event we create a function representing
+                        #the actions to set it up
 
+                        f = needstobeloaded(i,m)
+                        toLoad.add(f)
+           
+            #for each allowed loading attempt, we loop over
+            #the events and try to set them up. If this fails,
+            #add to the retry list and retry next round. This means they will be attempted again
+            #up to the maximum number of tries. The important part is that we don't
+            #retry immediately, but only after trying the remaining list of events.
+            #This is because inter-event dependancies are the most common reason for failure.
+            
+            #Wanna have some fun??
+            #Just try using i instead of baz. It seems like the name i will leak into
+            #the function's scope
+            for baz in range(0,max(1,config['max-load-attempts'])):
+                nextRound = set()
+                for p in toLoad:
+                    try:
+                        p.f()
+                    except Exception as e:
+                        print(e)
+                        p.error = e
+                        nextRound.add(p)
+                        pass
+                toLoad = nextRound
+                   
+            #Iterate over the failures after trying the max number of times to fix them
+            #and make the dummy events and notifications
+            for i in toLoad:
+                makeDummyEvent(i.i,i.m)
+                messagebus.postMessage("/system/notifications/errors","Failed to load event resource: " + i.m +" module: " + i.i + "\n" +str(i.error)+"\n"+"please edit and reload.")
+                    
 def make_event_from_resource(module,resource):
     "Returns an event object when given a module and resource name pointing to an event resource."
     r = modules_state.ActiveModules[module][resource]
-    
     #Add defaults for legacy events that do not have setup, rate limit, etc.
     if 'setup' in r:
         setupcode = r['setup']

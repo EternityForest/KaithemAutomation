@@ -174,13 +174,7 @@ def bookkeeponemodule(module):
                 usrpages.makeDummyPage(i,module)
                 messagebus.postMessage("/system/notifications/errors","Failed to load page resource: " + i +" module: " + module + "\n" +str(e)+"\n"+"please edit and reload.")
 
-        if ActiveModules[module][i]['resource-type'] == 'event':
-            try:
-                newevt.updateOneEvent(i,module)
-            except Exception as e:
-                newevt.makeDummyEvent(i,module)
-                messagebus.postMessage("/system/notifications/errors","Failed to load event resource: " + i +" module: " + module + "\n" +str(e)+"\n"+"please edit and reload.")
-
+    newevt.getEventsFromModules()
     
 
 

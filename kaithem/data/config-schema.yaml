@@ -114,6 +114,11 @@ properties:
                 -mpg123
                 -sox
  
+    max-load-attempts:
+        type: integer
+        minimum: 1
+        maximum: 5000
+        
     log-dump-size:
         type: integer
         minimum: 1
