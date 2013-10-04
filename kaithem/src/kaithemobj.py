@@ -104,7 +104,7 @@ class Kaithem():
             return (sky.isDark(lat,lon))
         
         @staticmethod
-        def moon():
+        def moonAge():
             return sky.moon()
         
     

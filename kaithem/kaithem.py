@@ -36,7 +36,7 @@ else:
     from gzip import GzipFile as opengzip
     sys.path.append(os.path.join(sys.path[0],'src','thirdparty','python3'))
 
-import time
+import time,signal
 import cherrypy,validictory
 from src import util
 from src import pages
@@ -53,6 +53,7 @@ from src import messagelogging
 from src import systasks
 
 from src.config import config
+
 
 def updateIP():
     global MyExternalIPAdress

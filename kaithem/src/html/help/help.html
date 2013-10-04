@@ -206,7 +206,7 @@ h4 {
         <h4>kaithem.time.day()</h4>
         <p>Returns the day of the month in the server's time zone.</p>
 
-        <h4>kaithem.time.moon()</h4>
+        <h4>kaithem.time.moonAge()</h4>
         <p>Returns the current moon phase as a number:
         <pre>0  = New moon
              7  = First quarter
@@ -238,8 +238,7 @@ h4 {
         <h4>kaithem.time.isRahu(lat,lon)</h4>
         <p>Return true if it is currently Rahukalaam
         (A period during each day that is considered inauspicious for new ventures in Indian astrology)
-        in the given lat-lon location.
-        </p>
+        in the given lat-lon location. For more info see the <a href= "http://en.wikipedia.org/wiki/Rahukaalam">wiki article.</a>
        
         <h3>kaithem.sys</h3>
         <h4>kaithem.sys.shellex(cmd)</h4>
@@ -378,7 +377,7 @@ h4 {
         <p>Every minute, a message will be posted to this topic containing only the current frame rate that
          the event polling runs at.</p>
         
-        <h3>/sytem/perf/FPS</h3>
+        <h3>/sytem/perf/memuse</h3>
         <p>Every minute, a message will be posted to this topic containing the current total memory usage of the system (0= none, 1=all available memory)</p>
         
         <h3>/sytem/perf/requestsperminute</h3>
@@ -638,8 +637,10 @@ front-page-banner: |
          <h3>Audio is not working on the RasPi</h3>
          
          <p>At least on the version of Raspbian used for testing, SoX will not work unless you set the following environment variables
-         <pre>AUDIODEV=hw:0
-AUDIODRIVER=alsa</pre>
+<pre>
+AUDIODEV=hw:0
+AUDIODRIVER=alsa
+</pre>
          </p>
          <p>
          Also,the user that kaithem is running under must be in the audio group, use
@@ -648,6 +649,34 @@ AUDIODRIVER=alsa</pre>
          <p>
          
          <h3></h3>
+         
+         
+        <h3>How does the polling mechanism manage CPU time and prevent "hogging"?</h3>
+        
+        <p>The short answer is that Kaithem attempts to distribute CPU time fairly, and make sure all
+        events continue to run even when some are vastly slower than others. In general, the
+        programmer should be able to imagine that each event has its on thread even though the thread pool model is used.
+         The long answer in more technical.</p>
+        
+        <p>The current poll management system is based on the kaithem thread pool. The thread pool
+        is a set of threads fed by a threadsafe queue. Function objects are placed in the queue and
+        threads take them out and execute them.
+        </p>
+        
+        <p> In kaithem, a polling cycle is called a frame. Every frame,
+        kaithem puts the poll function of every event that needs to be polled into the queue. Should a thread get a
+        poll function and find out that another thread is already polling it, that event is simply skipped to prevent a slow event clogging
+        the pool by causing many threads to wait on the last thread to be done ith it so they can poll it.</p>
+        
+        <p>After the manager thread has inserted all the poll functions into the queue, it inserts a special sentinel.
+        The manager thread will not start the next frame until this sentinel has run. The sentinel running lets us know that
+        everything we put in the queue has been taken out. If a slow event is still running at this point, it will continue to run,
+        and another copy of it should never be queued up in any way until the current one finished.</p>
+        
+        <p>The one known case in which slow tasks can bog down the system is if there are more slow tasks than there are threads in the pool.
+        In this case the system may be unresponsive for a time until the tasks finish. This is unlikely as the odds of having dozens of tasks at the same time
+        that are very slow is low in most systems.
+        
 </div>
 
 <%include file="/pagefooter.html"/>

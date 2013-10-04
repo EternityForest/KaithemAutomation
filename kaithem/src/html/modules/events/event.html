@@ -22,23 +22,17 @@ from src.config import config
 %endif
 </p>
 
-<textarea rows=3 class="pythoncode" name="setup" id="setupbox">
-%if 'setup' in event:
-${event['setup']|h}
-%else:
-${"pass"}
-%endif
-</textarea>
+<%
+if 'setup' in event:
+    xyz = event['setup']
+else:
+    xyz = "pass"
+%>
+<textarea rows=3 class="pythoncode" name="setup" id="setupbox">${xyz}</textarea>
 
 
 %if config['enable-js']:
-<div id="setupeditor"  style="height:35ex ;border: 1px solid #DDD;">
-%if 'setup' in event:
-${event['setup']|h}\
-%else:
-${"pass"}\
-%endif
-</div>
+<div id="setupeditor"  style="height:35ex ;border: 1px solid #DDD;">${xyz}</div>
 %endif
 
 

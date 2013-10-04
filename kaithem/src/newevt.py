@@ -16,7 +16,7 @@
 #NOTICE: A LOT OF LOCKS ARE USED IN THIS FILE. WHEN TWO LOCKS ARE USED, ALWAYS GET _event_list_lock LAST
 #IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
-import traceback,threading,sys,time,atexit
+import traceback,threading,sys,time,atexit,collections
 from . import workers, kaithemobj,messagebus,util,modules_state
 
 from .config import config
@@ -75,8 +75,17 @@ def __manager():
             for i in _events:
                 workers.do(i.check)
                 
-            #Don't spew another round of events until the last one finishes so we don't fill up the queue
+            #Don't spew another round of events until the last one finishes so we don't
+            #fill up the queue. The way we do this, is that after we have finished queueing
+            #up all the events to be polled, we insert a sentry.
+            #Because this sentry comes after the queued up events, when the sentry runs,
+            #We know that all of the events were taked out of the queue.
+            #We do not know that they have all finished running, nor do we want to.
+            #If one event takes several seconds to poll, it will not prevent the next round of
+            #events. We depend on the event objects themselves to enforce the guarantee that only
+            #one copy of the event can run at once.
             e = threading.Event()
+            
             def f():
                 e.set()
             workers.do(f)
@@ -98,39 +107,7 @@ t = threading.Thread(target = __manager, name="EventPollingManager")
 t.daemon = True
 t.start()
 
-def make_event_from_resource(module,resource):
-    "Returns an event object when given a module and resource name pointing to an event resource."
-    r = modules_state.ActiveModules[module][resource]
-    
-    if 'setup' in r:
-        setupcode = r['setup']
-    else:
-        setupcode = "pass"
-        
-    if 'rate-limit' in r:
-        ratelimit = r['rate-limit']
-    else:
-        ratelimit = 0
-        
-    if 'continual' in r:
-        continual = r['continual']
-    else:
-        continual = False
-        
-    if 'priority' in r:
-        priority = r['priority']
-    else:
-        priority = 1
-        
-    x = Event(r['trigger'],r['action'],make_eventscope(module),
-              setup = setupcode,
-              continual = continual,
-              ratelimit=ratelimit,
-              priority=priority)
-    
-    x.module = module
-    x.resource =resource
-    return x
+
 
 
 def parseTrigger(when):
@@ -167,6 +144,9 @@ def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setu
     
     elif trigger[0] == '!edgetrigger':
         return PolledEvalEvent(when,do,scope,continual,ratelimit,setup,priority)
+    
+    #Defensive programming, raise error on nonsense event type
+    raise RuntimeError("Invalid trigger expression that begins with" + str(trigger[0]))
 
 
 #A brief rundown on how these classes work. You have the BaseEvent, which handles registering and unregistering
@@ -202,16 +182,23 @@ class BaseEvent():
         self.countdown = 0
         fps= config['max-frame-rate']
         
+        #symbolic prioity os a rd like high,realtime, etc
+        #Actual priority is a number that causes polling to occur every nth frame
+        #Legacy events have numeric priorities
         self.symbolicpriority = priority
         
+        #realtime is always every frame even for legacy
         if self.symbolicpriority == '1':
             self.symbolicpriority == 'realtime'
-            
+        
+        #try to look up the numeric priority from the symbolic
         try:
             self.priority = int(fps*config['priority-response'][priority])
         except KeyError:
+            #Should that fail, attempt to use the priority directly
             try:
-                self.priority = int(priority)
+                self.priority = max(1,int(priority))
+            #If even that fails, use interactive priority.
             except ValueError:
                 self.priority = config['priority-response']['interactive']
                 
@@ -350,7 +337,7 @@ class MessageEvent(BaseEvent,CompileCodeStringsMixin):
                 #setup environment
                 self.scope['__topic'] = topic
                 self.scope['__message'] = message
-                #We delegate the actual execution ofthe body to the on_trigger
+                #We delegate the actual execution of the body to the on_trigger
                 self._on_trigger()
             
         #When the object is deleted so will this reference and the message bus's auto unsubscribe will handle it
@@ -526,3 +513,38 @@ def getEventsFromModules():
                         _events.append(x)
                         #Now we update the references
                         __EventReferences[i,m] = x
+
+def make_event_from_resource(module,resource):
+    "Returns an event object when given a module and resource name pointing to an event resource."
+    r = modules_state.ActiveModules[module][resource]
+    
+    #Add defaults for legacy events that do not have setup, rate limit, etc.
+    if 'setup' in r:
+        setupcode = r['setup']
+    else:
+        setupcode = "pass"
+        
+    if 'rate-limit' in r:
+        ratelimit = r['rate-limit']
+    else:
+        ratelimit = 0
+        
+    if 'continual' in r:
+        continual = r['continual']
+    else:
+        continual = False
+        
+    if 'priority' in r:
+        priority = r['priority']
+    else:
+        priority = 1
+        
+    x = Event(r['trigger'],r['action'],make_eventscope(module),
+              setup = setupcode,
+              continual = continual,
+              ratelimit=ratelimit,
+              priority=priority)
+    
+    x.module = module
+    x.resource =resource
+    return x
