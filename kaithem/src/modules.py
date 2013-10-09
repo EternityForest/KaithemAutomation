@@ -174,7 +174,7 @@ def bookkeeponemodule(module):
                 usrpages.makeDummyPage(i,module)
                 messagebus.postMessage("/system/notifications/errors","Failed to load page resource: " + i +" module: " + module + "\n" +str(e)+"\n"+"please edit and reload.")
 
-    newevt.getEventsFromModules()
+    newevt.getEventsFromModules([module])
     
 
 

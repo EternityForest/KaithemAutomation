@@ -181,14 +181,12 @@ class BaseEvent():
         self.continual = continual
         self.countdown = 0
         fps= config['max-frame-rate']
-        
         #symbolic prioity os a rd like high,realtime, etc
         #Actual priority is a number that causes polling to occur every nth frame
         #Legacy events have numeric priorities
         self.symbolicpriority = priority
-        
         #realtime is always every frame even for legacy
-        if self.symbolicpriority == '1':
+        if self.symbolicpriority == 1:
             self.symbolicpriority == 'realtime'
         
         #try to look up the numeric priority from the symbolic
@@ -215,7 +213,7 @@ class BaseEvent():
         
         #A place to put errors
         self.errors = []
-            
+
     def _on_trigger(self):
         #This function gets called when whatever the event's trigger condition is.
         #it provides common stuff to all trigger types like logging and rate limiting
@@ -283,8 +281,6 @@ class BaseEvent():
     def check(self):
         """This is the function that the polling system calls to poll the event.
         It calls a _check() function which must be defined by a subclass."""
-        
-        
         #Should another thread already be polling this, We actually don't want to
         #just sit around and wait. That would mean one slow event could queue up many
         #copies of itself and cause odd performance issues.
@@ -296,7 +292,7 @@ class BaseEvent():
             #This is how we handle priority for now. The passing things between threads
             #Is what really takes time polling so the few instructions extra should be well worth it
             #Basically a countdown timer in frames that polls at zero and resets (P0 is as fast as possible)
-            if self.countdown == 0:
+            if self.countdown <= 0:
                 self.countdown = self.priority
             else:
                 self.countdown -= 1
@@ -403,6 +399,7 @@ class PolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
         self.trigger = compile(when,"<trigger>","eval")
         BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
         self._init_setup_and_action(setup,do)
+        
     def _check(self):
         """Check if the trigger is true and if so do the action."""            
         #Eval the condition in the local event scope
@@ -424,7 +421,7 @@ class PolledInternalSystemEvent(BaseEvent,DirectFunctionsMixin):
         BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
         
     def _check(self):
-        """Check if the trigger is true and if so do the action."""            
+        """Check if the trigger is true and if so do the action."""     
         #Eval the condition in the local event scope
         if self.trigger():
             #Only execute once on false to true change unless continual was set
@@ -496,7 +493,8 @@ def makeDummyEvent(resource,module):
             __EventReferences[module,resource] = x
 
 #look in the modules and compile all the event code
-def getEventsFromModules():
+#if only is supplied, must be a set and will only look in those modules
+def getEventsFromModules(only = None):
     global _events
     toLoad = set()
     
@@ -514,19 +512,18 @@ def getEventsFromModules():
     with modules_state.modulesLock:
         with _event_list_lock:
             #Set _events to an empty list we can build on
-            _events = []
             for i in modules_state.ActiveModules:
                 #now we loop over all the resources of the module to see which ones are _events 
-                for m in modules_state.ActiveModules[i]:
-                    j=modules_state.ActiveModules[i][m]
-                    if j['resource-type']=='event':
-                        #For every resource that is an event, we make an event object based on it
-                        #And put it in the event referenced thing.
-                        #However, we do this indirectly, for each event we create a function representing
-                        #the actions to set it up
-
-                        f = needstobeloaded(i,m)
-                        toLoad.add(f)
+                if (i in only) or only == None:
+                    for m in modules_state.ActiveModules[i]:
+                        j = modules_state.ActiveModules[i][m]
+                        if j['resource-type']=='event':
+                            #For every resource that is an event, we make an event object based on it
+                            #And put it in the event referenced thing.
+                            #However, we do this indirectly, for each event we create a function representing
+                            #the actions to set it up
+                            f = needstobeloaded(i,m)
+                            toLoad.add(f)
            
             #for each allowed loading attempt, we loop over
             #the events and try to set them up. If this fails,
