@@ -476,7 +476,8 @@ def updateOneEvent(resource,module):
             #Update index
             __EventReferences[module,resource] = x
 
-#makes a dummy event for when there is an error loading. The dummy does nothing but is in the right plae
+#makes a dummy event for when there is an error loading and puts it in the right place
+#The dummy does nothing but is in the right plae
 def makeDummyEvent(resource,module):
     #This is one of those places that uses two different locks(!)
     with modules_state.modulesLock:

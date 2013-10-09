@@ -164,6 +164,10 @@ properties:
         minimum : 0
         maximum : 1
         
+    non-logged-topic-limit:
+        type: integer
+        minimum: 0
+        
     front-page-banner:
         type: string
     

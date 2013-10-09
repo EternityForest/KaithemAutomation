@@ -19,7 +19,7 @@ from . import unitsofmeasure,messagebus,directories,workers,util,pages
 from cherrypy.lib.static import serve_file
 
 from .config import config
-from collections import defaultdict
+from collections import defaultdict,deque
 #this flag tells if we need to save the list of what to log
 loglistchanged = False
 
@@ -35,12 +35,14 @@ for line in x.split('\n'):
     toSave.add(line.strip())
 
 del x
-log = defaultdict(list)
+log = defaultdict(deque)
 
+
+    
 def dumpLogFile():
     try:
         _dumpLogFile()
-    except Exeption as e:
+    except Exception as e:
         messagebus.postMessage("/system/errors/saving-logs/",repr(e))
 
 def _dumpLogFile():    
@@ -83,8 +85,8 @@ def _dumpLogFile():
     global approxtotallogentries
     
     with savelock:
-        temp = log
-        log = defaultdict(list)
+        temp = dict(log)
+        log = defaultdict(deque)
         approxtotallogentries = 0
         
         if loglistchanged:
@@ -96,11 +98,10 @@ def _dumpLogFile():
                 
         #Get rid of anything that is not in the list of things to dump to the log
         temp2 = {}
-        saveset = set(toSave)
         for i in temp:
             #Parsetopic is a function that returns all subscriptions that would match a topic
-            if not set(messagebus.MessageBus.parseTopic(i)).isdisjoint(saveset):
-                temp2[i] = temp[i]
+            if not set(messagebus.MessageBus.parseTopic(i)).isdisjoint(toSave):
+                temp2[i] = list(temp[i])
         temp = temp2
         
         #If there is no log entries to save, don't dump an empty file.
@@ -148,10 +149,21 @@ def _dumpLogFile():
 def messagelistener(topic,message):
     global log
     global approxtotallogentries
-    if topic not in log:
-        log[topic] = []
     
+    #Default dicts are good.
     log[topic].append((time.time(),message))
+    
+    #Unless a topic is in our list of things that we are saving,
+    #We only want to keep around the most recent couple of messages.
+    #So, if we have too many messages in one topic, than we must discard one
+    try:
+        if messagebus.MessageBus.parseTopic(topic).isdisjoint(toSave):
+            if len(log[topic]) > config['non-logged-topic-limit']:
+                log[topic].popleft()
+    except Exception as e:
+        print (e)
+
+            
     #This is not threadsafe. Hence the approx.
     #I'm assuming i had a good reason to set this back to 0 in dumpLogFile() not right here.
     approxtotallogentries +=1
@@ -244,4 +256,6 @@ class WebInterface(object):
         if not filename.startswith(os.path.join(directories.logdir,'dumps')):
             raise RuntimeError("Security Violation")
         return serve_file(filename, "application/x-download",os.path.split(filename)[1])
-    
+
+            
+        

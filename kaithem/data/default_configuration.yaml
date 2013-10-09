@@ -89,8 +89,7 @@ max-load-attempts: 25
 #through the web interface
 
 #How many entires to log before flushing to disk or deleting
-log-dump-size: 10000
-
+log-dump-size: 33000
 
 #How many bytes of log files to keep before deleting the oldest until the total filesize is under the limit
 #Size is in bytes but you can use k,m,g for thousand million and billion
@@ -122,6 +121,9 @@ print-topics:
 
 #Fraction of memory that can be used by all processes o unix before kaithem makes a warning in the log.
 mem-use-warn: 0.85
+
+#How many messages to keep on topics that are not being logged
+non-logged-topic-limit: 100
 
 #####################THEMING AND BRANDING#######################################
 #This HTML Goes into the top box on the main page. It is configurable in case a deployment wants to add branding.

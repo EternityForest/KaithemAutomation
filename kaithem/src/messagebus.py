@@ -15,11 +15,11 @@
 
 import weakref,threading,time,os,random,json
 from . import workers
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 
 _subscribers_list_modify_lock = threading.Lock()
-
+parsecache = OrderedDict()
 
 class MessageBus(object):
     
@@ -67,6 +67,9 @@ class MessageBus(object):
     
     @staticmethod
     def parseTopic(topic):
+        #Since this is a pure function(except the caching itself) we can cache it
+        if topic in parsecache:
+            return parsecache[topic]
         "Parse the topic string into a list of all subscriptions that could possibly match."
         if topic.startswith('/'):
             topic = topic[1:]
@@ -80,6 +83,11 @@ class MessageBus(object):
         for i in parts:
             last += (i+'/')
             matchingtopics.add(last)
+        parsecache[topic] = matchingtopics
+        #Don't let the cache get too big.
+        #Getting rid of the oldest should hopefully converge to the most used topics being cached
+        if len(parsecache) > 1200:
+            parsecache.popitem(last=False) 
         return matchingtopics
     
     def _post(self, topic,message):

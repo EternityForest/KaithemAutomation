@@ -121,6 +121,7 @@ e.register()
 #let the user choose to have the server save everything before a shutdown
 if config['save-before-shutdown']:
     def save():
+        print("saving before shutting down")
         util.SaveAllState()
     atexit.register(save)
     cherrypy.engine.subscribe("exit",save)

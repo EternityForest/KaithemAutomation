@@ -42,11 +42,11 @@ def saveAll():
     global moduleschanged
     if not moduleschanged:
         return
-    moduleschanged = False
     #This dumps the contents of the active modules in ram to a subfolder of the moduledir named after the current unix time"""
     saveModules(os.path.join(directories.moduledir,str(time.time()) ))
     #We only want 1 backup(for now at least) so clean up old ones.  
     util.deleteAllButHighestNumberedNDirectories(directories.moduledir,2)
+    moduleschanged = False
     
 def loadAll():
     for i in range(0,15):
@@ -371,7 +371,11 @@ def addResourceTarget(module,type,name,kwargs):
                 "resource-type":"event",
                 "trigger":"False",
                 "action":"pass",
-                "once":True})
+                "once":True,
+                "disabled":False
+                }
+                           
+                           )
             #newevt maintains a cache of precompiled events that must be kept in sync with
             #the modules
             newevt.updateOneEvent(kwargs['name'],module)
