@@ -541,7 +541,6 @@ def getEventsFromModules(only = None):
                     try:
                         p.f()
                     except Exception as e:
-                        print(e)
                         p.error = e
                         nextRound.add(p)
                         pass
