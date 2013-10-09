@@ -532,16 +532,15 @@ def getEventsFromModules(only = None):
             #retry immediately, but only after trying the remaining list of events.
             #This is because inter-event dependancies are the most common reason for failure.
             
-            #Wanna have some fun??
-            #Just try using i instead of baz. It seems like the name i will leak into
-            #the function's scope
             for baz in range(0,max(1,config['max-load-attempts'])):
+                
                 nextRound = set()
                 for p in toLoad:
                     try:
                         p.f()
+                        
+                    #If there is an error, add it t the list of things to be retried.
                     except Exception as e:
-                        print(e)
                         p.error = e
                         nextRound.add(p)
                         pass

@@ -30,10 +30,8 @@ import zipfile
 
 from .util import url,unurl
 
-
-
-
-#Thismust be set to true by anything that changesthe modules list
+#This must be set to true by anything that changes the modules
+#it's o the code knows to save everything is it has been changed.
 moduleschanged = False
 
 class obj(object):
