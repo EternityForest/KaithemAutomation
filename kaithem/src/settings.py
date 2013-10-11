@@ -55,4 +55,15 @@ class Settings():
                 <p>Reloading. If you get an error, try again.</p>
                 </BODY>
                 </HTML> """
-                
+    
+    @cherrypy.expose    
+    def clearerrors(self):
+        pages.require("/admin/settings.edit")
+        return pages.get_template("settings/clearerrors.html").render()
+    
+    @cherrypy.expose    
+    def clearerrorstarget(self):
+        pages.require("/admin/settings.edit")
+        util.clearErrors()
+        messagebus.postMessage("/system/notifications","All errors were cleared by" + pages.getAcessingUser())
+        raise cherrypy.HTTPRedirect('/')

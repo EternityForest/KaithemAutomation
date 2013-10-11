@@ -176,7 +176,11 @@ class KaithemPage():
     def _serve(self,module,pagename,*args,**kwargs):
         global _page_list_lock
         with _page_list_lock:
-            page = _Pages[module][pagename]
+            try:
+                page = _Pages[module][pagename]
+            except KeyError as e:
+                messagebus.postMessage("/system/errors/http/nonexistant", "Someone tried to acess a page that did not exist at page %s of module %s"%(module,pagename))
+                raise e
             page.lastaccessed = time.time()
             #Check user permissions
             for i in page.permissions:

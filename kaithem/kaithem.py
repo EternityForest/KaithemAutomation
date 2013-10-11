@@ -98,12 +98,6 @@ class webapproot():
         pages.require("/admin/mainpage.view")
         cherrypy.response.cookie['LastSawMainPage'] = time.time()
         return pages.get_template('index.html').render()
-
-    
-    @cherrypy.expose 
-    def save(self,*path,**data):
-        pages.require('/admin/settings.edit')
-        return pages.get_template('save.html').render()
         
     @cherrypy.expose 
     def pagelisting(self,*path,**data):
