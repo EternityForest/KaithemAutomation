@@ -436,7 +436,7 @@ def resourceUpdateTarget(module,resource,kwargs):
             auth.importPermissionsFromModules() #sync auth's list of permissions 
     
         if t == 'event':
-            e = newevt.Event(kwargs['trigger'],kwargs['action'],{})#Test compile, throw error on fail.
+            e = newevt.Event(kwargs['trigger'],kwargs['action'],newevt.make_eventscope(module),setup=kwargs['setup'])#Test compile, throw error on fail.
             resourceobj['trigger'] = kwargs['trigger']
             resourceobj['action'] = kwargs['action']
             resourceobj['setup'] = kwargs['setup']
