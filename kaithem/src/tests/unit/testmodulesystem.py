@@ -49,6 +49,27 @@ try:
 except BSException:
     pass
 
+#If this load of syntax errors gets through we have a problem
+try:
+    wb.module('TEST','updateresource','testevent',
+        trigger='potty)(',
+        
+        action='=====',
+        setup='(==)',
+        priority = 1,
+        ratelimit = 0
+        )
+    
+    common.fail()
+
+except BSException:
+    common.fail()
+    pass
+except:
+    pass
+
+
+
 #Cause that event to respond to kaithem.globals.x being 17 by setting it to 0
 try:
     wb.module('TEST','updateresource','testevent',
