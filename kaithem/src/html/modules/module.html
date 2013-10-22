@@ -100,7 +100,7 @@ To assign permissions to groups, see the Authenticaton page.</p>
 <ul>
 %for i in sorted(module.keys()):
 	%if module[i]['resource-type'] == 'permission':
-		<li><a href="/modules/module/${url(name)}/resource/${url(i)}">${i}</a></li>
+		<li><a href="/modules/module/${url(name)}/resource/${url(i)}">${i|h}</a></li>
 	%endif
 %endfor
 </ul>
