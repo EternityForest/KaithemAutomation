@@ -228,6 +228,7 @@ class BaseEvent():
                 #Action could be any number of things, so this method mut be implemented by
                 #A derived class or inherited from a mixin.
                 self._do_action()
+                messagebus.postMessage('system/events/ran/'+self.module, self.resource)
             except Exception as e:
                 self._handle_exception(e)
 

@@ -18,7 +18,7 @@ def dump(j):
 <p class="help">
 Only messages posted since the most recent periodic dump are shown
 </p>
-%for i in reversed(messagelogging.log[topicname]):
+%for i in reversed(list(messagelogging.log[topicname])):
     <h3>${formattime(i[0])}(about ${formatTimeInterval(time.time()-i[0],2)} ago)</h3>
     <p><pre>${dump(i[1])|h}</pre></p>
 %endfor
