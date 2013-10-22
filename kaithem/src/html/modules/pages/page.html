@@ -122,7 +122,7 @@ else:
        ></input>
        
  </div>
-<p class="help">Require the following permissions to acess this page</p>
+<p class="help">Require the following permissions to access this page</p>
 <div class="scrollbox">
 <ul>
 %for i in sorted(auth.Permissions.keys()):
@@ -130,7 +130,7 @@ else:
          %if i in requiredpermissions:
             checked="yes"
          %endif
-       ></input>${i}</li>
+       ></input>${i|h}</li>
 %endfor
 </ul>
 </div>

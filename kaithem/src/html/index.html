@@ -16,7 +16,7 @@ from src.unitsofmeasure import formatTimeInterval
 %if 'auth' in cherrypy.request.cookie:
 %if cherrypy.request.cookie['auth'].value in auth.Tokens:
     <div class="sectionbox">
-        <p>Logged into Kaithem Automation as user: <b>${auth.whoHasToken(cherrypy.request.cookie['auth'].value)}</b></p>
+        <p>Logged into Kaithem Automation as user: <b>${auth.whoHasToken(cherrypy.request.cookie['auth'].value)|h}</b></p>
     </div>
 %endif
 %endif

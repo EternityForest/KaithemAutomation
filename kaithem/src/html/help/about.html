@@ -150,38 +150,38 @@
 <table border=1>
     <tr>
         <td>CPU Type</td>
-        <td>${platform.machine()}
+        <td>${platform.machine()|h}
     </tr>
     
     <tr>
         <td>CPU Count</td>
-        <td>${multiprocessing.cpu_count()}
+        <td>${multiprocessing.cpu_count()|h}
     </tr>
     <tr>
         <td>CPU</td>
-        <td>${platform.processor()}</td>
+        <td>${platform.processor()|h}</td>
     </tr>
     
     <tr>
         <td>Total Availible RAM(UNIX Only)</td>
-        <td>${total} MB</td>
+        <td>${total|h} MB</td>
     </tr>
     <tr>
         <td>OS Type</td>
-        <td>${platform.system()}</td>
+        <td>${platform.system()|h}</td>
     </tr>
     
     <tr>
         <td>OS Version</td>
-        <td>${platform.release()}</td>
+        <td>${platform.release()|h}</td>
     </tr>
     <tr>
         <td>Python Version</td>
-        <td>${platform.python_version()}</td>
+        <td>${platform.python_version()|h}</td>
     </tr>
     <tr>
         <td>Audio Backend</td>
-        <td>${sound.backend.backendname}</td>
+        <td>${sound.backend.backendname|h}</td>
     </tr>
 
 </div>

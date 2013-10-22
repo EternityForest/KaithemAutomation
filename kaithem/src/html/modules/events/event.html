@@ -62,7 +62,7 @@ else:
        Do the action at most every:
            <input type="number"  name="ratelimit" step=0.01
          %if 'ratelimit' in event:
-            value="${event['ratelimit']}"
+            value="${event['ratelimit']|h}"
          %else:
             value="0"
          %endif

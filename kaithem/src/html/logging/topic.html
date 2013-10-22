@@ -13,7 +13,7 @@ def dump(j):
     return json.dumps(j,sort_keys=True,indent=4, separators=(',', ': '))
 %>
 
-<h2>Recent messages on topic ${topicname}</h2>
+<h2>Recent messages on topic ${topicname|h}</h2>
 <div class="sectionbox">
 <p class="help">
 Only messages posted since the most recent periodic dump are shown
