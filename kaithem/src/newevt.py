@@ -16,7 +16,7 @@
 #NOTICE: A LOT OF LOCKS ARE USED IN THIS FILE. WHEN TWO LOCKS ARE USED, ALWAYS GET _event_list_lock LAST
 #IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
-import traceback,threading,sys,time,atexit,collections
+import traceback,threading,sys,time,atexit,collections,os,base64
 from . import workers, kaithemobj,messagebus,util,modules_state
 
 from .config import config
@@ -29,7 +29,13 @@ _events = []
 
 #Let us now have a way to get at active event objects by means of their origin resource and module.
 __EventReferences = {}
-
+def renameEvent(oldModule,oldResource,module,resource):
+    with _event_list_lock:
+        __EventReferences[module,resource] = __EventReferences[oldModule,oldResource]
+        del  __EventReferences[oldModule,oldResource]
+        __EventReferences[module,resource].resource = resource
+        __EventReferences[module,resource].module = module
+        
 def getEventErrors(module,event):
     with _event_list_lock:
             return __EventReferences[module,event].errors
@@ -41,8 +47,17 @@ def fastGetEventErrors(module,event):
     except:
         return[]
         
-
-
+#Given two functions, execute the action when the trigger is true.
+#Trigger takes no arguments and returns a boolean
+def when(trigger,action,priority="interactive"):
+    module = '<OneTimeEvents>'
+    resource = trigger.__name__ + '>' + action.__name__ + ' ' + 'set at' + str(time.time()) + 'id='+str(base64.b64encode(os.urandom(16)))
+    def f():
+        action()
+        removeOneEvent(module,resource)
+    e = PolledInternalSystemEvent(when,f,priority=priority)
+    e.register()
+        
 def getEventLastRan(module,event):
     with _event_list_lock:
             return __EventReferences[module,event].lastexecuted
@@ -414,7 +429,7 @@ class PolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
             self._prevstate = False
 
 class PolledInternalSystemEvent(BaseEvent,DirectFunctionsMixin):
-    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
+    def __init__(self,when,do,scope = None ,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
         self.polled = True
         #Compile the trigger
         self.trigger = when

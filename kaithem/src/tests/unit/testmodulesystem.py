@@ -94,10 +94,27 @@ kaithem.globals.x = 17
 time.sleep(0.25)
 if not kaithem.globals.x == 0:
     common.fail("Event did not set kaithem.globals.x to 0 when it was manually set to 17")
+
+#rename that event
+try:
+    wb.module('TEST','updateresource','testevent',
+        trigger='kaithem.globals.x == 17',
+        
+        action='kaithem.globals.x = 0',
+        setup='kaithem.globals.x = 0',
+        priority = 1,
+        ratelimit = 0,
+        name='testevent2'
+        
+        )
     
+except BSException:
+    pass
+
+
 #Now let's delete that event
 try:
-    wb.module('TEST','deleteresourcetarget',name='testevent')
+    wb.module('TEST','deleteresourcetarget',name='testevent2')
 except BSException:
     pass
 

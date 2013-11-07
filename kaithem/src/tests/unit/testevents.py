@@ -21,7 +21,24 @@ y =1
 if not y == 1:
         common.fail("Edge-Triggered Event did not go away when unregistered")
         
-        
+##Testing one time events
+y = False
+def f():
+    return y
+def g():
+    global y
+    y = False
+    print('turdy')
+    
+newevt.when(f,g)
+y = True
+time.sleep(0.35)
+if y:
+    common.fail("One time event did not trigger")
+y = True
+time.sleep(0.5)
+if not y:
+    common.fail("One time event did not delete itself properly")
         
         
 #Same exact thing exept we use the onchange

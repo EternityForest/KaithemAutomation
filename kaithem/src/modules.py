@@ -473,6 +473,10 @@ def resourceUpdateTarget(module,resource,kwargs):
                         resourceobj['require-permissions'].append(i[10:])
             usrpages.updateOnePage(resource,module)
             
+        if 'name' in kwargs:
+            if not kwargs['name'] == resource:
+                mvResource(module,resource,module,kwargs['name'])
+                
     messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + " modified resource " +
                            resource + " of module " + module)
     
@@ -480,9 +484,26 @@ def resourceUpdateTarget(module,resource,kwargs):
         raise cherrypy.HTTPRedirect("/pages/"+util.url(module)+"/"+util.url(resource))
     #Return user to the module page       
     raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module))#+'/resource/'+util.url(resource))
-    
 
-        
+def mvResource(module,resource,toModule,toResource):
+    
+    try:
+        if ActiveModules[module][resource]['resource-type'] == 'event':
+            ActiveModules[toModule][toResource] = ActiveModules[module][resource]
+            del ActiveModules[module][resource]
+            newevt.renameEvent(module,resource,toModule,toResource)
+    except KeyError as e :
+        pass
+    
+    try:
+        if ActiveModules[module][resource]['resource-type'] == 'page':
+            ActiveModules[toModule][toResource] = ActiveModules[module][resource]
+            del ActiveModules[module][resource]      
+            usrpages.removeOnePage(module,resource)
+            usrpages.updateOnePage(toModule,toResource)
+    except KeyError:
+        pass
+         
 class KaithemEvent(dict):
     pass
 

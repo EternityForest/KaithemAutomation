@@ -11,6 +11,8 @@ Page URL: <a href="/pages/${util.url(module)}/${util.url(name)}">/pages/${util.u
 <div class="sectionbox">
 
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
+<h3>Name</h3>
+<input name="name" value="${name|h}"></input>
 <h3>Page Body</h3>
 
 %if pages.canUserDoThis("/admin/modules.edit"):

@@ -95,7 +95,7 @@ def removeModulePages(module):
         del _Pages[module]
 
 #This piece of code will update the actual event object based on the event resource definition in the module
-#Also can add a new event
+#Also can add a new page
 def updateOnePage(resource,module):
     #This is one of those places that uses two different locks
     with modules_state.modulesLock:
