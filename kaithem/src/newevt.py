@@ -46,18 +46,45 @@ def fastGetEventErrors(module,event):
         return __EventReferences[module,event].errors
     except:
         return[]
-        
+
 #Given two functions, execute the action when the trigger is true.
 #Trigger takes no arguments and returns a boolean
 def when(trigger,action,priority="interactive"):
     module = '<OneTimeEvents>'
-    resource = trigger.__name__ + '>' + action.__name__ + ' ' + 'set at' + str(time.time()) + 'id='+str(base64.b64encode(os.urandom(16)))
+    resource = trigger.__name__ + '>' + action.__name__ + ' ' + 'set at ' + str(time.time()) + ' id='+str(base64.b64encode(os.urandom(16)))
     def f():
         action()
         removeOneEvent(module,resource)
-    e = PolledInternalSystemEvent(when,f,priority=priority)
+      
+    e = PolledInternalSystemEvent(trigger,f,priority=priority)
+    e.module = module
+    e.resource = resource
+    __EventReferences[module,resource] = e
     e.register()
-        
+    
+#Given two functions, execute the action when the trigger is true.
+#Trigger takes no arguments and returns a boolean
+def after(delay,action,priority="interactive"):
+    module = '<OneTimeEvents>'
+    resource = "after(" +str(delay) +")"+ '>' + action.__name__ + ' ' + 'set at ' + str(time.time()) + ' id='+str(base64.b64encode(os.urandom(16)))
+    start = time.time()
+    def f():
+        if time.time() > start+delay:
+            return True
+        return False
+    
+    def g():
+        action()
+        removeOneEvent(module,resource)
+    e = PolledInternalSystemEvent(f,g,priority=priority)
+    e.module = module
+    e.resource = resource
+    __EventReferences[module,resource] = e
+    e.register()
+    
+kaithemobj.kaithem.events.when = when
+kaithemobj.kaithem.events.after = after
+
 def getEventLastRan(module,event):
     with _event_list_lock:
             return __EventReferences[module,event].lastexecuted

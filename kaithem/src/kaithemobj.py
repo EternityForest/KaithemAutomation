@@ -183,14 +183,16 @@ class Kaithem():
         @staticmethod   
         def subscribe(topic,callback ):
             messagebus.subscribe(topic,callback)
+    
+    class events():
+        pass
+        #Stuff gets inserted here externally
         
 class obj():
     pass
 
-
-
-
 kaithem = Kaithem()
 kaithem.globals = obj() #this is just a place to stash stuff.
+
 
 

@@ -316,7 +316,24 @@ h4 {
         <p>When called from code embedded in an HTML page,raises an interrupt causing the server to skip rendering
             the current page and instead serve a static file. Useful when you need to serve a static file and also need
             to restrict acess to it with permissions.</p>
-
+        
+        <h3>kaithem.events</h3>
+        <p>The kaithem.events namespace provides facilities for programmatically creating events.
+        Temporary events created in this manner are handled by the same code as other events.</p>
+        
+        <h4>kaithem.events.when(trigger,action,priority="interactive")</h4>
+        <p>This lets you create an event that will fire exactly once and then dissapear.
+        Trigger must be a function that returns true when you want it to fire, and action must be a function</p>
+        
+        <h4>kaithem.events.after(delay,action,priority)</h4>
+        <p>Same as when(), but creates an event that will fire after <i>delay</i> seconds.
+        Usful for things like turning lights on for set lengths of time.
+        This will only be accurate to within a tenth of a second normally, or within one frame if you set priority to 'realtime'</p>
+        
+        <p>Note that as both these functions create real(through temporary) events, 
+        they have the capability to outlast the creating code. If one set up a event that creates temporary events, then
+        deletes the event, the temporary events will remain until triggered or until the server is restarted.</p>
+        
         <h2>
             <a id="theming" name="theming"></a>Theming
         </h2>
@@ -720,6 +737,10 @@ depends = FunctionCallThatWillFailIfDependacyNotMet()
         
         </p>
         
+<h3>Help! My setup code executes twice!</h3>
+        <p>Internally, the setup code is run once during the 'test compile', then once when actually creating the event.
+        The objet created in the test compile is deteted, so all deleters are honored.
+        Your setup setions should be retry tolerant anyway, but this issue may be fixed later</p>
 </div>
 
 <%include file="/pagefooter.html"/>

@@ -25,21 +25,33 @@ if not y == 1:
 y = False
 def f():
     return y
+
 def g():
     global y
     y = False
-    print('turdy')
+    print('anus')
     
 newevt.when(f,g)
+time.sleep(0.1)
 y = True
-time.sleep(0.35)
+time.sleep(0.5)
 if y:
     common.fail("One time event did not trigger")
 y = True
 time.sleep(0.5)
 if not y:
     common.fail("One time event did not delete itself properly")
-        
+
+newevt.after(1,g)
+y = True
+time.sleep(1.2)
+if y:
+    common.fail("Time delay event did not trigger")
+    
+y = True
+time.sleep(1.2)
+if not y:
+    common.fail("Time delay event did not delete itself properly")
         
 #Same exact thing exept we use the onchange
 x = newevt.Event("!onchange y","y=5",locals())
