@@ -401,6 +401,8 @@ h4 {
         <p>Every minute, a message will be posted to this topic containing the number of HTTP requests made to
         the server in the last minute.</p>
         
+        <h3>system/events/ran</h3>
+        <p>When any event runs, a message will be posted here, the message being a list with two items, the first being the module name and the second being the event name</p>
         <p>NOTE: the message logging system means that anyone with the /users/logs.view permission
         can see all traffic on the message bus, because even topics not set up to be logged are kept in ram and shown on
         the logs page for a short time. Be careful to either not send any private data on the message bus,
