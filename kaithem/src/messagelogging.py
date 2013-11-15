@@ -160,6 +160,7 @@ def messagelistener(topic,message):
         if messagebus.MessageBus.parseTopic(topic).isdisjoint(toSave):
             if len(log[topic]) > config['non-logged-topic-limit']:
                 log[topic].popleft()
+                approxtotallogentries -=1
     except Exception as e:
         print (e)
 
