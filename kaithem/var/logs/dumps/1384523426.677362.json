@@ -1,0 +1,38 @@
+{
+ "/system/notifications": [
+  [
+   1384523301.607519, 
+   "User admin modified resource send of module Examples"
+  ]
+ ], 
+ "/system/perf/FPS": [
+  [
+   1384523340.034041, 
+   23.89
+  ], 
+  [
+   1384523400.86383, 
+   23.87
+  ]
+ ], 
+ "/system/perf/memuse": [
+  [
+   1384523340.035442, 
+   0.665
+  ], 
+  [
+   1384523400.865152, 
+   0.665
+  ]
+ ], 
+ "/system/perf/requestsperminute": [
+  [
+   1384523340.034163, 
+   39
+  ], 
+  [
+   1384523400.863945, 
+   23
+  ]
+ ]
+}

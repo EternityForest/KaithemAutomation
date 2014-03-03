@@ -1,0 +1,13 @@
+<%include file="/pageheader.html"/>
+<h1>My Account</h1>
+<div class="sectionbox">
+<h2>Security</h2>
+<h3>Change Password</h3>
+<form action='/settings/changepwd' method='post'>
+Current Password:<input name="old" type ="password"></input><br>
+New Password:<input name="new" type ="password"></input><br>
+Retype New Password:<input name="new2" type ="password"></input><br>
+<input type ="submit" value="Change Password"></input>
+</form>
+</div>
+<%include file="/pagefooter.html"/>

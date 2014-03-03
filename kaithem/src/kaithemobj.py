@@ -20,7 +20,6 @@ import cherrypy
 from . import unitsofmeasure,workers,sound,messagebus,util
 from . import astrallibwrapper as sky
 
-
 #This exception is what we raise from within the page handler to serve a static file
 class ServeFileInsteadOfRenderingPageException(Exception):
     pass
@@ -155,6 +154,7 @@ class Kaithem():
             e.f_MIME = contenttype
             e.f_name = name
             raise e
+        
     
     class sound(object):
 

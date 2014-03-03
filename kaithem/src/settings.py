@@ -13,13 +13,39 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 import cherrypy
-from . import pages, util,messagebus,config
+from . import pages, util,messagebus,config,auth
 
 class Settings():
     @cherrypy.expose 
     def index(self):
-        pages.require("/admin/settings.view")
         return pages.get_template("settings/index.html").render()
+    
+    @cherrypy.expose 
+    def account(self):
+        pages.require("/users/accountsettings.edit")
+        return pages.get_template("settings/user_settings.html").render()
+    
+    @cherrypy.expose 
+    def changepwd(self,**kwargs):
+        t = cherrypy.request.cookie['auth'].value
+        u = auth.whoHasToken(t)
+        if not auth.userLogin(u,kwargs['old']) == "failure":
+            if kwargs['new']==kwargs['new2']:
+                auth.changePassword(u,kwargs['new'])
+            else:
+                raise cherrypy.HTTPRedirect("/errors/mismatch")
+        else:
+            raise cherrypy.HTTPRedirect("/errors/loginerror")
+        
+        raise cherrypy.HTTPRedirect("/")
+
+                
+                
+    
+    @cherrypy.expose 
+    def system(self):
+        pages.require("/admin/settings.view")
+        return pages.get_template("settings/global_settings.html").render()
         
     @cherrypy.expose    
     def save(self):
@@ -48,7 +74,6 @@ class Settings():
         return  """
                 <HTML>
                 <HEAD>
-                …
                 <META HTTP-EQUIV="refresh" CONTENT="30;URL=/">
                 </HEAD>
                 <BODY>

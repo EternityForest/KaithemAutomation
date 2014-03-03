@@ -1,0 +1,46 @@
+{
+ "/system/notifications": [
+  [
+   1384523104.578498, 
+   "System Initialized"
+  ], 
+  [
+   1384523168.849349, 
+   "User admin added resource send of type event to module Examples"
+  ], 
+  [
+   1384523210.532333, 
+   "User admin modified resource send of module Examples"
+  ]
+ ], 
+ "/system/perf/FPS": [
+  [
+   1384523160.19488, 
+   23.91
+  ], 
+  [
+   1384523220.073019, 
+   23.89
+  ]
+ ], 
+ "/system/perf/memuse": [
+  [
+   1384523160.205912, 
+   0.681
+  ], 
+  [
+   1384523220.073624, 
+   0.67
+  ]
+ ], 
+ "/system/perf/requestsperminute": [
+  [
+   1384523160.195293, 
+   10
+  ], 
+  [
+   1384523220.07309, 
+   21
+  ]
+ ]
+}

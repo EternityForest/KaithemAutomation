@@ -51,7 +51,8 @@ BasePermissions = {
 "/admin/settings.view": "View but not change settings.",
 "/admin/settings.edit": "Change core settings.",
 "/admin/logging.edit": "Modify settings in the logging subsystem",
-"/users/logs.view": "View the message logs."
+"/users/logs.view": "View the message logs.",
+"/users/accountsettings.edit" : "Edit ones own account preferences"
 }
 
 Permissions=BasePermissions
@@ -258,6 +259,7 @@ def userLogin(username,password):
                 assignNewToken(username)
             return (Users[username].token)
     return "failure"
+
 def checkTokenPermission(token,permission):
     """return true if the user associated with token has the permission"""
     if token in Tokens:

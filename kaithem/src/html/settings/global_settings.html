@@ -1,0 +1,30 @@
+<%include file="/pageheader.html"/>
+<%!
+from src import config
+import yaml
+%>
+<h2>Options</h2>
+
+<title>Options</title>
+<div class="sectionbox">
+<p class="help">
+You need the <i>/admin/settings.edit</i> permission to perform these actions</p>
+<a href="/settings/restart">Completely restart the whole server(!)</a><br>
+<a href="/settings/save">Save server state to disk</a><br>
+<a href="/settings/clearerrors">Clear all errors from pages and events</a>
+</div>
+<%include file="/pagefooter.html"/>
+
+<h2>Current Configuration Settings</h2>
+<div class="sectionbox">
+<p class="help">
+Because some of these settings could cause instabity if set incorrectly, they can currently only be
+changed by actually changing the configuration file and resetting the server.</p>
+
+<pre>
+${yaml.dump(config.config,width=120,indent=4,default_flow_style=False)|h}
+</pre>
+
+</div>
+<%include file="/pagefooter.html"/>
+
