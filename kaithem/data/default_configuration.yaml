@@ -146,7 +146,7 @@ theme-url: /static/scrapbook.css
 enable-js: yes
 
 #How to format times and dates
-time-format: "%A, %B %d, %Y at %l:%M:%S %p"
+time-format: "%A, %B %d, %Y at %l:%M:%S %p Server Time"
 
 #####################MISC#######################################################
 #This really isn't used for anything except showing on the about box

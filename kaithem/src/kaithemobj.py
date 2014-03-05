@@ -26,16 +26,18 @@ class ServeFileInsteadOfRenderingPageException(Exception):
 
 
 class Kaithem():
-    @staticmethod
     class misc(object):
+        @staticmethod
         def lorem():
             return ("""lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin vitae laoreet eros. Integer nunc nisl, ultrices et commodo sit amet, dapibus vitae sem. Nam vel odio metus, ac cursus nulla. Pellentesque scelerisque consequat massa, non mollis dolor commodo ultrices. Vivamus sit amet sapien non metus fringilla pretium ut vitae lorem. Donec eu purus nulla, quis venenatis ipsum. Proin rhoncus laoreet ullamcorper. Etiam fringilla ligula ut erat feugiat et pulvinar velit fringilla.""")
         @staticmethod    
         def do(f):
             workers.do(f)
         
-        
     class time(object):
+        @staticmethod
+        def strftime(*args):
+            return unitsofmeasure.strftime(*args)
         
         @staticmethod
         def time():

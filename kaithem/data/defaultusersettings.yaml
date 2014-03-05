@@ -1,0 +1,2 @@
+timezone: Etc/UTC
+strftime: "%A, %B %d, %Y at %l:%M:%S %p %Z"

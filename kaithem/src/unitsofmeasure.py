@@ -13,8 +13,9 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import time,re
+import time,pytz,datetime,re
 from .config import config
+from . import auth,pages
 
 class DayOfWeek(str):
     """This class it a value object that will appear like a string but supports intelligent comparisions like Dow=='Thu' etc.
@@ -236,5 +237,14 @@ def strToIntWithSIMultipliers(s):
         return int(s[:-1])
 
 def strftime(*arg):
+    tz = pytz.timezone(auth.getUserSetting(pages.getAcessingUser(),'timezone'))
+    if arg:
+        d = datetime.datetime.utcfromtimestamp(*arg).replace(tzinfo=pytz.utc)
+    else:
+        d = datetime.datetime.utcnow()
+        
+    return tz.normalize(d.astimezone(tz)).strftime(auth.getUserSetting(pages.getAcessingUser(),'strftime'))
+
+    
     "Format a time according to the time-format option in the configuration file"
-    return time.strftime(config['time-format'],*arg)
+    return time.strftime(config['time-format'], *arg)

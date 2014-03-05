@@ -2,11 +2,10 @@
 <%!
 from src import messagelogging
 import time,json
-from src.unitsofmeasure import formatTimeInterval
+from src.unitsofmeasure import formatTimeInterval,strftime
 from src.util import url
 from src.config import config
-def formattime(x):
-    return time.strftime(config['time-format'],time.localtime(x))
+
 def dump(j):
     if isinstance(j,str):
         return j
@@ -19,7 +18,7 @@ def dump(j):
 Only messages posted since the most recent periodic dump are shown
 </p>
 %for i in reversed(list(messagelogging.log[topicname])):
-    <h3>${formattime(i[0])}(about ${formatTimeInterval(time.time()-i[0],2)} ago)</h3>
+    <h3>${strftime(i[0])}(about ${formatTimeInterval(time.time()-i[0],2)} ago)</h3>
     <p><pre>${dump(i[1])|h}</pre></p>
 %endfor
 </div>

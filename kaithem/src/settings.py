@@ -26,7 +26,17 @@ class Settings():
         return pages.get_template("settings/user_settings.html").render()
     
     @cherrypy.expose 
+    def changeprefs(self,**kwargs):
+        pages.require("/users/accountsettings.edit")
+        for i in kwargs:
+            if i.startswith("pref_"):
+                auth.setUserSetting(pages.getAcessingUser(),i[5:],kwargs[i])
+        
+        raise cherrypy.HTTPRedirect("/settings/account")
+
+    @cherrypy.expose 
     def changepwd(self,**kwargs):
+        pages.require("/users/accountsettings.edit")
         t = cherrypy.request.cookie['auth'].value
         u = auth.whoHasToken(t)
         if not auth.userLogin(u,kwargs['old']) == "failure":

@@ -16,8 +16,6 @@
 
 
 import  os,threading,copy,sys,shutil
-
-
 #2 and 3 have basically the same module with diferent names
 if sys.version_info < (3,0):
     from urllib import quote
@@ -33,20 +31,26 @@ def url(string):
 
 def SaveAllState():
     #fix circular import by putting it here
-    from . import  auth,modules,messagelogging
+    from . import  auth,modules,messagelogging,messagebus
     
     with savelock:
-        modules.saveAll()
-        auth.dumpDatabase()
-        messagelogging.dumpLogFile()
+        try:
+            modules.saveAll()
+            auth.dumpDatabase()
+            messagelogging.dumpLogFile()
+        except Exception as e:
+            messagebus.postMessage("/system/notifications/errors",'Failed to save state:' + repr(e))
 
 
 def SaveAllStateExceptLogs():
     #fix circular import
-    from . import  auth,modules,messagelogging
+    from . import  auth,modules,messagelogging,messagebus
     with savelock:
-        auth.dumpDatabase()
-        modules.saveAll()
+        try:
+            auth.dumpDatabase()
+            modules.saveAll()
+        except Exception as e:
+            messagebus.postMessage("/system/notifications/errors",'Failed to save state:' + repr(e))
 
     
 def ensure_dir(f):

@@ -1,13 +1,43 @@
+<%!
+from src import auth, pages
+import pytz
+%>
 <%include file="/pageheader.html"/>
 <h1>My Account</h1>
 <div class="sectionbox">
 <h2>Security</h2>
 <h3>Change Password</h3>
 <form action='/settings/changepwd' method='post'>
-Current Password:<input name="old" type ="password"></input><br>
-New Password:<input name="new" type ="password"></input><br>
-Retype New Password:<input name="new2" type ="password"></input><br>
+<table border=1>
+<tr><td>Current Password</td><td><input name="old" type ="password"></input></td></tr>
+<tr><td>New Password</td><td><input name="new" type ="password"></input></td></tr>
+<tr><td>Retype New Password</td><td><input name="new2" type ="password"></input></td></tr>
+</table>
 <input type ="submit" value="Change Password"></input>
+</form>
+
+<h2>Time Formatting</h2>
+<form action='/settings/changeprefs' method='post'>
+<table border=1>
+<%tz = auth.getUserSetting(pages.getAcessingUser(),'timezone')%>
+<tr>
+<td>Time Zone</td><td><select name="pref_timezone">
+%for i in pytz.common_timezones:
+    <option value="${i}"
+    %if i==tz:
+    selected\
+    %endif
+    >
+    ${i}
+    </option>
+%endfor
+</select></td>
+</tr>
+
+<td>strftime String</td><td><input name="pref_strftime" value="${auth.getUserSetting(pages.getAcessingUser(),'strftime')|h}"></input>(Default: %A, %B %d, %Y at %l:%M:%S %p %Z)</td>
+</table>
+
+<input type ="submit" value="Save"></input>
 </form>
 </div>
 <%include file="/pagefooter.html"/>

@@ -25,7 +25,11 @@ of a valid token"""
 #of not using the filesystem much to save any SD cards.
 
 from . import util,directories,modules_state
-import json,base64,os,time,shutil,hashlib,base64,sys
+import json,base64,os,time,shutil,hashlib,base64,sys,yaml
+
+
+with open(os.path.join(directories.datadir,"defaultusersettings.yaml")) as f:
+    defaultusersettings = yaml.load(f)
 
 if sys.version_info < (3,0):
     #In python 2 bytes is an alias for str
@@ -326,3 +330,30 @@ def assignNewToken(user):
         del Tokens[oldtoken]
     Users[user].token = x
     Tokens[x] = Users[user]
+    
+class UnsetSettingException:
+    pass
+
+def setUserSetting(user,setting,value):
+    if user == "<unknown>":
+        return
+    user = Users[user]
+    #This line is just there to raise an error on bad data.
+    json.dumps(value)
+    if not 'settings' in user:
+        user['settings'] = {}
+        
+    user['settings'][setting]= value
+    
+def getUserSetting(user,setting):
+        if user == '<unknown>':
+            return defaultusersettings[setting]
+        user = Users[user]
+        if not 'settings' in user:
+            user['settings'] = {}
+        
+        if setting in user['settings']:
+            return user['settings'][setting]
+        else:
+            return defaultusersettings[setting]
+        
