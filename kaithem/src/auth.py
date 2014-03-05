@@ -335,6 +335,9 @@ class UnsetSettingException:
     pass
 
 def setUserSetting(user,setting,value):
+    global authchanged
+    authchanged = True
+    un=user
     if user == "<unknown>":
         return
     user = Users[user]
@@ -343,14 +346,15 @@ def setUserSetting(user,setting,value):
     if not 'settings' in user:
         user['settings'] = {}
         
-    user['settings'][setting]= value
+    Users[un]['settings'][setting]= value
     
 def getUserSetting(user,setting):
         if user == '<unknown>':
             return defaultusersettings[setting]
         user = Users[user]
         if not 'settings' in user:
-            user['settings'] = {}
+            return defaultusersettings[setting]
+
         
         if setting in user['settings']:
             return user['settings'][setting]
