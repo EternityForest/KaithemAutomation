@@ -19,7 +19,7 @@
 #This file is the main entry point of the app. It imports everything, loads configuration,
 #sets up and starts the server, and contains page handlers for the main page.
 
-import sys,os
+import sys,os,threading
 
 #There is actually a very good reason to change the import path here.
 #It means we can refer to an installed copy of a library by the same name
@@ -36,6 +36,7 @@ else:
     from gzip import GzipFile as opengzip
     sys.path.append(os.path.join(sys.path[0],'src','thirdparty','python3'))
 
+    
 import time,signal
 import cherrypy,validictory
 from src import util

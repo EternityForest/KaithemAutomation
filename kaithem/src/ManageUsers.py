@@ -95,6 +95,8 @@ class ManageAuthorization():
         
         if not kwargs['password'] == kwargs['password2']:
             raise RuntimeError('passwords must match')
+        
+        user=user.encode("latin-1").decode("utf-8")
         #THIS IS A HACK TO PREVENT UNICODE STRINGS IN PY2.XX FROM GETTING THROUGH
         #BECAUSE QUOTE() IS USUALLY WHERE THEY CRASH. #AWFULHACK
         quote(kwargs['username'])
@@ -120,6 +122,8 @@ class ManageAuthorization():
     #handler for the POST request to change user settings
     def updategroup(self,group,**kwargs):
         pages.require("/admin/users.edit")
+        group=group.encode("latin-1").decode("utf-8")
+
         auth.Groups[group]['permissions'] = []
         #Handle all the group permission checkboxes
         for i in kwargs:
@@ -135,6 +139,7 @@ class ManageAuthorization():
     #Settings page for one individual user    
     @cherrypy.expose
     def user(self,username):
+        username=username.encode("latin-1").decode("utf-8")
         pages.require("/admin/users.edit")
         return pages.get_template("auth/user.html").render(
         usergroups=auth.Users[username]['groups'],
@@ -144,6 +149,7 @@ class ManageAuthorization():
     #Settings page for one individual group    
     @cherrypy.expose
     def group(self,group):
+        group=group.encode("latin-1").decode("utf-8")
         pages.require("/admin/users.edit")
         return pages.get_template("auth/group.html").render(
         auth = auth, name = group)

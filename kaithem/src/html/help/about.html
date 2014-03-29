@@ -3,6 +3,7 @@
     import time
     import os
     import platform
+    import cherrypy
     import sys
     import gc
     import multiprocessing
@@ -179,6 +180,12 @@
         <td>Python Version</td>
         <td>${platform.python_version()|h}</td>
     </tr>
+    
+     <tr>
+        <td>CherryPy Version</td>
+        <td>${cherrypy.__version__|h}</td>
+    </tr>
+    
     <tr>
         <td>Audio Backend</td>
         <td>${sound.backend.backendname|h}</td>
