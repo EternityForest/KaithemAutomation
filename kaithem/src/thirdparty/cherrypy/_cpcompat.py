@@ -18,6 +18,7 @@ output.
 import os
 import re
 import sys
+import threading
 
 if sys.version_info >= (3, 0):
     py3k = True
@@ -27,10 +28,12 @@ if sys.version_info >= (3, 0):
     basestring = (bytes, str)
     def ntob(n, encoding='ISO-8859-1'):
         """Return the given native string as a byte string in the given encoding."""
+        assert_native(n)
         # In Python 3, the native string type is unicode
         return n.encode(encoding)
     def ntou(n, encoding='ISO-8859-1'):
         """Return the given native string as a unicode string with the given encoding."""
+        assert_native(n)
         # In Python 3, the native string type is unicode
         return n
     def tonative(n, encoding='ISO-8859-1'):
@@ -52,12 +55,14 @@ else:
     basestring = basestring
     def ntob(n, encoding='ISO-8859-1'):
         """Return the given native string as a byte string in the given encoding."""
+        assert_native(n)
         # In Python 2, the native string type is bytes. Assume it's already
         # in the given encoding, which for ISO-8859-1 is almost always what
         # was intended.
         return n
     def ntou(n, encoding='ISO-8859-1'):
         """Return the given native string as a unicode string with the given encoding."""
+        assert_native(n)
         # In Python 2, the native string type is bytes.
         # First, check for the special encoding 'escape'. The test suite uses this
         # to signal that it wants to pass a string with embedded \uXXXX escapes,
@@ -85,6 +90,10 @@ else:
         from StringIO import StringIO
     # bytes:
     BytesIO = StringIO
+
+def assert_native(n):
+    if not isinstance(n, nativestr):
+        raise TypeError("n must be a native str (got %s)" % type(n).__name__)
 
 try:
     set = set
@@ -198,27 +207,28 @@ except ImportError:
     import __builtin__ as builtins
 
 try:
-    # Python 2. We have to do it in this order so Python 2 builds
+    # Python 2. We try Python 2 first clients on Python 2
     # don't try to import the 'http' module from cherrypy.lib
     from Cookie import SimpleCookie, CookieError
-    from httplib import BadStatusLine, HTTPConnection, HTTPSConnection, IncompleteRead, NotConnected
+    from httplib import BadStatusLine, HTTPConnection, IncompleteRead, NotConnected
     from BaseHTTPServer import BaseHTTPRequestHandler
 except ImportError:
     # Python 3
     from http.cookies import SimpleCookie, CookieError
-    from http.client import BadStatusLine, HTTPConnection, HTTPSConnection, IncompleteRead, NotConnected
+    from http.client import BadStatusLine, HTTPConnection, IncompleteRead, NotConnected
     from http.server import BaseHTTPRequestHandler
 
-try:
-    # Python 2. We have to do it in this order so Python 2 builds
-    # don't try to import the 'http' module from cherrypy.lib
-    from httplib import HTTPSConnection
-except ImportError:
+# Some platforms don't expose HTTPSConnection, so handle it separately
+if py3k:
     try:
-        # Python 3
         from http.client import HTTPSConnection
     except ImportError:
         # Some platforms which don't have SSL don't expose HTTPSConnection
+        HTTPSConnection = None
+else:
+    try:
+        from httplib import HTTPSConnection
+    except ImportError:
         HTTPSConnection = None
 
 try:
@@ -316,3 +326,32 @@ except NameError:
     # Python 2
     def next(i):
         return i.next()
+
+if sys.version_info >= (3,3):
+    Timer = threading.Timer
+    Event = threading.Event
+else:
+    # Python 3.2 and earlier
+    Timer = threading._Timer
+    Event = threading._Event
+
+# Prior to Python 2.6, the Thread class did not have a .daemon property.
+# This mix-in adds that property.
+class SetDaemonProperty:
+    def __get_daemon(self):
+        return self.isDaemon()
+    def __set_daemon(self, daemon):
+        self.setDaemon(daemon)
+
+    if sys.version_info < (2,6):
+        daemon = property(__get_daemon, __set_daemon)
+
+# Use subprocess module from Python 2.7 on Python 2.3-2.6
+if sys.version_info < (2,7):
+    try:
+        import cherrypy._cpcompat_subprocess as subprocess
+    except ImportError:
+        # Some implementations (Jython) don't have fcntl, so fallback
+        import subprocess
+else:
+    import subprocess

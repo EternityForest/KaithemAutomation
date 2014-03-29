@@ -6,7 +6,7 @@ from src.config import config
 %>
 <%include file="/pageheader.html"/>
 <title>Kaithem Page</title>
-<h2>Page "${name|h}" of module "${module|h}"</h2>
+<h2>Page "${name|h}" of module <a href="/modules/module/${url(module)}">${module|h}</a></h2>
 Page URL: <a href="/pages/${util.url(module)}/${util.url(name)}">/pages/${util.url(module)}/${util.url(name)}</a>
 <div class="sectionbox">
 

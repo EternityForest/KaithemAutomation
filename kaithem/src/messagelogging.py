@@ -194,6 +194,8 @@ class WebInterface(object):
     
     @cherrypy.expose
     def startlogging(self,topic):
+        topic=topic.encode("latin-1").decode("utf-8")
+        topic = topic[1:]
         pages.require('/admin/logging.edit')
         global loglistchanged
         loglistchanged = True
@@ -202,6 +204,8 @@ class WebInterface(object):
     
     @cherrypy.expose
     def stoplogging(self,topic):
+        topic=topic.encode("latin-1").decode("utf-8")
+        topic = topic[1:]
         pages.require('/admin/logging.edit')
         global loglistchanged
         loglistchanged = True
@@ -245,6 +249,7 @@ class WebInterface(object):
     
     @cherrypy.expose
     def clearall(self,topic):
+        topic=topic.encode("latin-1").decode("utf-8")
         pages.require('/admin/logging.edit')
         log.pop(topic)
         return pages.get_template('logging/index.html').render()

@@ -395,8 +395,14 @@ def addResourceTarget(module,type,name,kwargs):
                 
                       
 #show a edit page for a resource. No side effect here so it only requires the view permission
-def resourceEditPage(module,resource):
+def resourceEditPage(module,resource,*args,**kwargs):
     pages.require("/admin/modules.view")
+    
+    #Workaround for cherrypy decoding unicode as if it is latin 1
+    #Because of some bizzare wsgi thing i think.
+    module=module.encode("latin-1").decode("utf-8")
+    resource=resource.encode("latin-1").decode("utf-8")
+    
     with modulesLock:
         resourceinquestion = ActiveModules[module][resource]
         

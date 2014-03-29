@@ -150,14 +150,26 @@ class KaithemPage():
     #Method encapsulating one request to a user-defined page
     exposed = True;
     
-    def GET(self,*args,**kwargs):
-        return self._serve(*args, **kwargs)
+    def GET(self,module,resource,*args,**kwargs):
+        #Workaround for cherrypy decoding unicode as if it is latin 1
+        #Because of some bizzare wsgi thing i think.
+        module=module.encode("latin-1").decode("utf-8")
+        resource=resource.encode("latin-1").decode("utf-8")
+        return self._serve(module,resource,*args, **kwargs)
     
-    def POST(self,*args,**kwargs):
-        return self._serve(*args, **kwargs)
+    def POST(self,module,resource,*args,**kwargs):
+        #Workaround for cherrypy decoding unicode as if it is latin 1
+        #Because of some bizzare wsgi thing i think.
+        module=module.encode("latin-1").decode("utf-8")
+        resource=resource.encode("latin-1").decode("utf-8")
+        return self._serve(module,resource,*args, **kwargs)
     
-    def OPTIONS(self,module,pagename): 
-        self._headers(Pages[module][pagename])
+    def OPTION(self,module,resource,*args,**kwargs):
+        #Workaround for cherrypy decoding unicode as if it is latin 1
+        #Because of some bizzare wsgi thing i think.
+        module=module.encode("latin-1").decode("utf-8")
+        resource=resource.encode("latin-1").decode("utf-8") 
+        self._headers(Pages[module][resource])
         return ""
                 
     def _headers(self,page):
