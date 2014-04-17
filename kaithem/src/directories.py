@@ -28,7 +28,7 @@ vardir = os.path.join(vardir,config['site-data-dir'])
 
 usersdir = os.path.join(vardir,'users')
 logdir = os.path.join(vardir,'logs')
-persistdir = os.path.join(vardir,'persist')
+regdir = os.path.join(vardir,'registry')
 moduledir = os.path.join(vardir,'modules')
 datadir = os.path.join(dn,'../data')
 htmldir = os.path.join(dn,'html')

@@ -52,6 +52,7 @@ from src import messagebus
 from src import notifications
 from src import messagelogging
 from src import systasks
+from src import registry
 
 from src.config import config
 

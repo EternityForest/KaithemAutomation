@@ -14,6 +14,7 @@
     from src import sound
     from src import usrpages
     from src import util
+    from src import kaithemobj
     from src.config import config
     if os.name != "nt":
         import fcntl
@@ -190,6 +191,12 @@
         <td>Audio Backend</td>
         <td>${sound.backend.backendname|h}</td>
     </tr>
+</table>
 
+<b>lm_sensors output(Requires lm_sensors to be installed)</b>
+<pre>
+${kaithemobj.kaithem.sys.sensors()|h}
+</pre>
 </div>
+
 <%include file="/pagefooter.html"/>

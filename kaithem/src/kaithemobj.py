@@ -34,6 +34,7 @@ class Kaithem():
         def do(f):
             workers.do(f)
         
+        
     class time(object):
         @staticmethod
         def strftime(*args):
@@ -129,6 +130,24 @@ class Kaithem():
         @staticmethod
         def which(exe):
             return util.which(exe)
+        @staticmethod
+        def sensors():
+            try:
+                if util.which('sensors'):
+                     return (subprocess.check_output('sensors').decode('utf8'))
+                else:
+                     return('"sensors" command failed(lm_sensors not available)')
+            except:
+                return('sensors call failed')
+    
+    class registry(object):
+        @staticmethod
+        def set(key,value):
+            registry.set(key,value)
+            
+        @staticmethod
+        def get(key):
+            return registry.get(key)
         
     
             
