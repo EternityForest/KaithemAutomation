@@ -31,13 +31,14 @@ def url(string):
 
 def SaveAllState():
     #fix circular import by putting it here
-    from . import  auth,modules,messagelogging,messagebus
+    from . import  auth,modules,messagelogging,messagebus,registry
     
     with savelock:
         try:
             modules.saveAll()
             auth.dumpDatabase()
             messagelogging.dumpLogFile()
+            registry.sync()
         except Exception as e:
             messagebus.postMessage("/system/notifications/errors",'Failed to save state:' + repr(e))
 
@@ -152,5 +153,4 @@ def clearErrors():
         i.errors = []
     for i in usrpages._Pages.items():
         for j in i[1].items():
-            j[1].errors = []
-        
+            j[1].errors = []        

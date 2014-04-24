@@ -87,12 +87,28 @@ class PersistanceArea():
 registry = PersistanceArea(directories.regdir)
 reglock = threading.Lock()
 
-def get(key):
+def get(key,default=None):
+    if not exists(key):
+        return default
     prefix = key.split("/")[0]
+
     with reglock:
         f = registry.open(prefix)
         return f['keys'][key]['data']
 
+
+def exists(key):
+    prefix = key.split("/")[0]
+    with reglock:
+        f = registry.open(prefix)
+        if not 'keys' in f:
+            return False
+        k= f['keys']
+        if key in k:
+            return True
+        else:
+            return False
+    
 def set(key,value):
     try:
         json.dumps({key:value})
@@ -101,7 +117,7 @@ def set(key,value):
     with reglock:
         prefix = key.split("/")[0]
         f = registry.open(prefix)
-        if not 'data' in f:
+        if not 'keys' in f:
             f['keys']={}
         if not key in f['keys']:
             f['keys'][key]={}
@@ -110,8 +126,4 @@ def set(key,value):
 def sync():
     with reglock:
         registry.save()
-        
-set("turd","botdom")
-print(get("turd"))
-sync()
 

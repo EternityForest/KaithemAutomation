@@ -1,6 +1,6 @@
 <%include file="/pageheader.html"/>
 <%!
-from src import config
+from src import config,registry
 import yaml
 %>
 <h2>Options</h2>
@@ -14,7 +14,44 @@ You need the <i>/admin/settings.edit</i> permission to perform these actions</p>
 <a href="/settings/clearerrors">Clear all errors from pages and events</a>
 </div>
 <%include file="/pagefooter.html"/>
+<h2>Mailing Lists</h2>
 
+<h3>Login/Password</h3>
+<form action="/settings/savemail" method="POST">
+SMTP Server: <input name="smtpserver" value="${registry.get("system/mail/server")}"></input><br>
+Port: <input name="smtpport" value="${registry.get("system/mail/port")}"></input><br>
+Login/email address: <input name="smtpaddress" value="${registry.get("system/mail/address")}"></input><br>
+New Password(blank for no change):<input type="password" name="smtpassword1"}"></input><br>
+Confirm: New Password: <input type="password" name="smtpassword2"}"></input>
+
+<%mail= registry.get("/system/mail/lists",{})%>
+
+<h3>Lists</h3>
+<table border=1>
+<tr><td>Name</td><td></td></tr>
+%for i in mail:
+<tr>
+<td>
+<input name="mlist_name${i|h}" value="${mail[i]['name']}">
+</td>
+<td>
+<input name="mlist_name${i|h}" value="${mail[i]['name']}">
+</td>
+<td>
+<input type="submit" name="del_${i}" value="Delete"></input>
+</td>
+</tr>
+%endfor
+</table>
+<input type="submit" value="save mail settings"></input>
+
+<input type="submit" name="newlist" value="New list"></input>
+
+</form>
+
+<form action="/settings/testmail">
+Email:<input name="to"></input><input type="submit" value="Test Email"></input>
+</form>
 <h2>Current Configuration Settings</h2>
 <div class="sectionbox">
 <p class="help">

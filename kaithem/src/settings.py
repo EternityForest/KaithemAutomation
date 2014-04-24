@@ -12,8 +12,8 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import cherrypy
-from . import pages, util,messagebus,config,auth
+import cherrypy,base64,os
+from . import pages, util,messagebus,config,auth,registry,mail
 
 class Settings():
     @cherrypy.expose 
@@ -48,8 +48,43 @@ class Settings():
             raise cherrypy.HTTPRedirect("/errors/loginerror")
         
         raise cherrypy.HTTPRedirect("/")
+    
+    @cherrypy.expose
+    def testmail(self,*a,**k):
+        mail.raw_send("testing",k['to'],'test mail')
+        raise cherrypy.HTTPRedirect("/")
 
+        
+    @cherrypy.expose
+    def savemail(self,*a,**k):
+        pages.require("/admin/settings.edit")
+        registry.set("system/mail/server",  k['smtpserver'])
+        registry.set("system/mail/port",  k['smtpport'])
+        registry.set("system/mail/address" ,k['smtpaddress'])
+        
+        if not k['smtpassword1'] == '':
+            if k['smtpassword1'] == k['smtpassword2'] :
+                registry.set("system/mail/password" ,k['smtpassword1'])
+            else:
+                raise exception("Passwords must match")
+        mail = registry.get("system/mail/lists",{})
+        
+        for i in k:
+            if i.startswith('mlist_name'):
+                uuid = i[:10]
+                newname = k[i]
+                mail[uuid]['name'] = newname
+                    
+            if i.startswith("mlist_desc"):
+                list = i[:10]
+                mail[list]['description'] = k[i]
                 
+        if 'newlist' in k:
+            mail[base64.b64encode(os.urandom(16)).decode()] = {'name':'Untitled', 'description': "Insert Description"}
+        
+        registry.set("system/mail/lists",mail)
+        raise cherrypy.HTTPRedirect("/settings/system")
+
                 
     
     @cherrypy.expose 
