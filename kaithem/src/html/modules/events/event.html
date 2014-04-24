@@ -72,7 +72,7 @@ else:
         <%
         priority = defaultdict(str)
         if 'priority' in event:
-            if event['priority'] in ['realtimr','interactive','high','medium','low','verylow']:
+            if event['priority'] in ['realtime','interactive','high','medium','low','verylow']:
                 priority[event['priority']] = 'selected="selected"'
         else:
             priority["interactive"] = 'selected="selected"'
@@ -118,7 +118,7 @@ This section the most recent errors that occured while executing the event or tr
 <p>
 This event last ran:
 %if newevt.getEventLastRan(module,name):
-<b>${unitsofmeasure.strftime(time.localtime(newevt.getEventLastRan(module,name)))|h}
+<b>${unitsofmeasure.strftime(newevt.getEventLastRan(module,name))|h}
 (about ${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(module,name),2)} ago)
 </b>
 %else:
