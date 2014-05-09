@@ -1,11 +1,11 @@
 <%!
-from src import auth, pages
+from src import auth, pages,registry
 import pytz
 %>
 <%include file="/pageheader.html"/>
 <h1>My Account</h1>
-<div class="sectionbox">
 <h2>Security</h2>
+<div class="sectionbox">
 <h3>Change Password</h3>
 <form action='/settings/changepwd' method='post'>
 <table border=1>
@@ -15,9 +15,45 @@ import pytz
 </table>
 <input type ="submit" value="Change Password"></input>
 </form>
+</div>
 
-<h2>Time Formatting</h2>
+<h2>Basic Info</h2>
+<div class="sectionbox">
+<form action='/settings/changeinfo'>
+<h3>Contact Info</h3>
+<table border=1>
+<tr>
+<td>Email Address</td><td><input type="email" name="email" value="${auth.getUserSetting(pages.getAcessingUser(),'email')}"
+</tr>
+</table>
+<input type="submit" value="Save">
+</form>
+</div>
 <form action='/settings/changeprefs' method='post'>
+
+<h2>Mailing Lists</h2>
+<div class="sectionbox">
+<p class="help">Check the box to subscribe to a mailing list. Uncheck to unsubscribe</p>
+<%x = registry.get('system/mail/lists',{})%>
+
+%for i in x:
+    %if pages.canUserDoThis("/users/mail/lists/"+i+"/subscribe"):
+    <div>
+    <input type="checkbox" name="list_${i|h}" value="subscribe"
+    
+    %if i in auth.getUserSetting(pages.getAcessingUser(),'mailinglists'):
+    checked="on"
+    %endif
+    
+    ></input> ${x[i]['name']|h}(UUID: ${i})<p>${x[i]['description']}</p>
+    </div>
+    %endif
+ %endfor
+ <input type="submit" value="Save"></input>
+
+</div>
+<h2>Time Formatting</h2>
+<div class="sectionbox">
 <table border=1>
 <%tz = auth.getUserSetting(pages.getAcessingUser(),'timezone')%>
 <tr>
@@ -38,6 +74,26 @@ import pytz
 </table>
 
 <input type ="submit" value="Save"></input>
-</form>
 </div>
+
+<h2>General Options</h2>
+<div class="sectionbox">
+<table border=1>
+<tr>
+<td>Enable Ace Code Editor</td>
+<td>
+<input type="checkbox" name="useace" value="true"
+    
+    %if auth.getUserSetting(pages.getAcessingUser(),'useace'):
+    checked="on"
+    %endif
+    
+></input> 
+</table>
+<input type ="submit" value="Save"></input>
+
+</div>
+
+</form>
+
 <%include file="/pagefooter.html"/>

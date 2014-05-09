@@ -1,2 +1,5 @@
 timezone: UTC
 strftime: "%A, %B %d, %Y at %l:%M:%S %p %Z"
+email: fail@example.com
+mailinglists: []
+useace: True

@@ -1,6 +1,6 @@
 <%!
 from src.util import url
-from src import auth
+from src import auth,pages
 from src import usrpages,pages,util
 from src.config import config
 %>
@@ -34,8 +34,8 @@ Please see cherrypy's documentation for more info.
          
 <textarea id="box" name="body" rows=25 class="htmlcode">${page["body"]|h}</textarea>
 
-%if config['enable-js']:
-<div id="pageeditor" style="height: 75ex;border: 1px solid #DDD;">${page["body"]|h}</div>
+%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
+<div id="pageeditor" class="acediv" style="height: 75ex;border: 1px solid #DDD;">${page["body"]|h}</div>
 %endif
 
 <p class="help">
@@ -160,7 +160,7 @@ Saving this module will cause it to be immediately acessable from the web.
 </form>
 </div>
 
-%if config['enable-js']:
+%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
 <script src="/static/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
 <script>
 var pageeditor = ace.edit("pageeditor");

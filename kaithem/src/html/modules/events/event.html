@@ -1,6 +1,6 @@
 <%!
 from src.util import url
-from src import newevt,unitsofmeasure,pages
+from src import newevt,unitsofmeasure,pages,auth
 from collections import defaultdict
 import traceback,time
 from src.config import config
@@ -34,8 +34,8 @@ else:
 <textarea rows=3 class="pythoncode" name="setup" id="setupbox">${xyz}</textarea>
 
 
-%if config['enable-js']:
-<div id="setupeditor"  style="height:35ex ;border: 1px solid #DDD;">${xyz}</div>
+%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
+<div class="acediv" id="setupeditor"  style="height:35ex ;border: 1px solid #DDD;">${xyz}</div>
 %endif
 
 
@@ -47,8 +47,8 @@ else:
 
 <input class="pythoncode" id="triggerbox" type="text" name="trigger" value="${event['trigger']|h}"></input>
 
-%if config['enable-js']:
-<div id="triggereditor"  style="height:2ex ;border: 1px solid #DDD;">${event["trigger"]|h}</div>
+%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
+<div id="triggereditor" class="acediv" style="height:2ex ;border: 1px solid #DDD;">${event["trigger"]|h}</div>
 %endif
 
 
@@ -95,8 +95,8 @@ This code will be executed when the trigger condition is met. Polling will be su
 
 <textarea id="actionbox" name="action" rows=50 class="pythoncode">${event["action"]|h}</textarea>
 
-%if config['enable-js']:
-<div id="actioneditor" style="height: 60ex;border: 1px solid #DDD;">${event["action"]|h}</div>
+%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
+<div class="acediv" id="actioneditor" style="height: 60ex;border: 1px solid #DDD;">${event["action"]|h}</div>
 %endif
 
 
@@ -142,7 +142,7 @@ Saving this module will case it to completely reload, including its local scope.
 
 
 
-%if config['enable-js']:
+%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
 <script src="/static/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
 <script>
     var actioneditor = ace.edit("actioneditor");

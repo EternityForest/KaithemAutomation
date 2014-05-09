@@ -1,4 +1,4 @@
-from . import registry,workers
+from . import registry,workers,auth,pages
 import smtplib,email
 
 from collections import deque
@@ -15,8 +15,16 @@ def send(*x):
         raw_send(*x)
     workers.do(f)
     
-
-def raw_send(msg,to,subject):
+def rawlistsend(subject,message,list):
+    l = []
+    for i in auth.Users:
+        x = auth.getUserSetting(i,'mailinglists')
+        if list in x:
+            if auth.canUserDoThis(i,"/users/mail/lists/"+list+"/subscribe"):
+                l.append(auth.getUserSetting(i,'email'))
+    raw_send(message,l,subject,registry.get('system/mail/lists')[list]['name'])
+    
+def raw_send(msg,to,subject,recipientName=None):
     smtp_host = registry.get("system/mail/server")
     smtp_port = registry.get("system/mail/port")
     fromaddr = registry.get("system/mail/address")
@@ -25,7 +33,10 @@ def raw_send(msg,to,subject):
     server.ehlo()
     server.starttls()
     server.login(fromaddr,registry.get("system/mail/password"))
-    tolist = [to]
+    if isinstance(to,str):
+        tolist = [to]
+    else:
+        tolist = to
     sub = subject
    
     msg = MIMEText(msg)
@@ -34,4 +45,6 @@ def raw_send(msg,to,subject):
     msg['Subject'] = sub
     msg['From'] = fromaddr
     msg['To'] = ', '.join(msg)
+    if recipientName:
+        msg['to'] = recipientName
     server.sendmail(fromaddr,tolist,msg.as_string())

@@ -24,7 +24,7 @@ of a valid token"""
 #Users and groups are saved in RAM and synched with the filesystem due to the goal
 #of not using the filesystem much to save any SD cards.
 
-from . import util,directories,modules_state
+from . import util,directories,modules_state,registry
 import json,base64,os,time,shutil,hashlib,base64,sys,yaml
 
 
@@ -75,6 +75,9 @@ def importPermissionsFromModules():
                     #add it to the permissions list
                     Permissions[resource] = modules_state.ActiveModules[module][resource]['description']
  
+def getPermissionsFromMail():
+    for i in registry.get('system/mail/lists',{}):
+        Permissions["/users/mail/lists/"+i+"/subscribe"] = "Subscribe to mailing list with given UUID"
 
 #Python doesn't let us make custom attributes on normal dicts
 class User(dict):
@@ -233,7 +236,8 @@ def initializeAuthentication():
             #To an interruption, rename it and try again
             shutil.copytree(possibledir,os.path.join(directories.usersdir,name+"INCOMPLETE"))
             shutil.rmtree(possibledir)
-                
+    getPermissionsFromMail()
+    
 def generateUserPermissions(username = None):
     #TODO let you do one user at a time
     """Generate the list of permissions for each user from their groups"""
@@ -360,4 +364,15 @@ def getUserSetting(user,setting):
             return user['settings'][setting]
         else:
             return defaultusersettings[setting]
+
+def canUserDoThis(user,permission):
+        #If the special __guest__ user can do it, anybody can.
+    if '__guest__' in Users:
+        if permission in Users['__guest__'].permissions:
+            return True
+         
+    if permission in Users[user].permissions:
+        return True
+    return False
+
         

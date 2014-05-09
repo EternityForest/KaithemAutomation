@@ -13,29 +13,45 @@ You need the <i>/admin/settings.edit</i> permission to perform these actions</p>
 <a href="/settings/save">Save server state to disk</a><br>
 <a href="/settings/clearerrors">Clear all errors from pages and events</a>
 </div>
-<%include file="/pagefooter.html"/>
-<h2>Mailing Lists</h2>
+<h2>Mailroom</h2>
+<div class="sectionbox">
 
-<h3>Login/Password</h3>
+<h3>Email Account</h3>
+<p class="help">You must configure an email account for kaithem to use. Most free email services
+allow SMTP access. Gmail and Yahoo both work. You can also run your own SMTP server
+Unencrypted connections are not supported. Please note: the email password must be stored in plaintext in a kaithem registry file.</p>
 <form action="/settings/savemail" method="POST">
-SMTP Server: <input name="smtpserver" value="${registry.get("system/mail/server")}"></input><br>
-Port: <input name="smtpport" value="${registry.get("system/mail/port")}"></input><br>
-Login/email address: <input name="smtpaddress" value="${registry.get("system/mail/address")}"></input><br>
-New Password(blank for no change):<input type="password" name="smtpassword1"}"></input><br>
-Confirm: New Password: <input type="password" name="smtpassword2"}"></input>
+<table border=1> 
+<tr>
+<td>SMTP Server</td><td><input name="smtpserver" value="${registry.get("system/mail/server")}"></input></td>
+</tr>
+<tr>
+<td>Port</td><td><input name="smtpport" value="${registry.get("system/mail/port")}"></input></td>
+</tr><tr>
+<td>Login/email address</td><td><input name="smtpaddress" value="${registry.get("system/mail/address")}"></input></td>
+</tr><tr>
+<td>New Password(blank for no change)</td><td><input type="password" name="smtpassword1"}"></input></td>
+</tr><tr>
+<td>Confirm: New Password</td><td><input type="password" name="smtpassword2"}"></input></td>
+</tr>
+</table>
 
-<%mail= registry.get("/system/mail/lists",{})%>
+<%mail= registry.get("system/mail/lists",{})%>
 
-<h3>Lists</h3>
+<h3>Mailing Lists</h3>
+<p class="help">Mailing lists are identified by UUID.</p>
 <table border=1>
-<tr><td>Name</td><td></td></tr>
+<tr><td>Name</td><td>Info</td><td>UUID</td><td>Delete</td></tr>
 %for i in mail:
 <tr>
 <td>
 <input name="mlist_name${i|h}" value="${mail[i]['name']}">
 </td>
 <td>
-<input name="mlist_name${i|h}" value="${mail[i]['name']}">
+<input name="mlist_desc${i|h}" value="${mail[i]['description']}">
+</td>
+<td>
+${i|h}
 </td>
 <td>
 <input type="submit" name="del_${i}" value="Delete"></input>
@@ -43,19 +59,32 @@ Confirm: New Password: <input type="password" name="smtpassword2"}"></input>
 </tr>
 %endfor
 </table>
-<input type="submit" value="save mail settings"></input>
 
 <input type="submit" name="newlist" value="New list"></input>
+<input type="submit" value="save mail settings"></input>
 
 </form>
-
+<h3>Send Test Email</h3>
 <form action="/settings/testmail">
-Email:<input name="to"></input><input type="submit" value="Test Email"></input>
+
+<input name="to" placeholder="Destination Address"></input><input type="submit" value="Test Email"></input>
 </form>
+
+<h3>Send Message To List</h3>
+<form action="/settings/listmail">
+<input name="list" placeholder="List UUID"></input>
+<input name="subj" placeholder="Subject"></input><br>
+<textarea name="msg" class="code" placeholder="Message Here"></textarea>
+<input type="submit" value="Send(To entire list) Email">
+
+
+</form>
+</div>
+
 <h2>Current Configuration Settings</h2>
 <div class="sectionbox">
 <p class="help">
-Because some of these settings could cause instabity if set incorrectly, they can currently only be
+Because some of these settings could cause instabilty if set incorrectly, they can currently only be
 changed by actually changing the configuration file and resetting the server.</p>
 
 <pre>

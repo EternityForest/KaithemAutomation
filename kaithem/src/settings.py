@@ -28,12 +28,27 @@ class Settings():
     @cherrypy.expose 
     def changeprefs(self,**kwargs):
         pages.require("/users/accountsettings.edit")
+        lists = []
         for i in kwargs:
             if i.startswith("pref_"):
                 auth.setUserSetting(pages.getAcessingUser(),i[5:],kwargs[i])
+            if i.startswith("list_"):
+                if kwargs[i] == "subscribe":
+                    lists.append(i[5:])
+        auth.setUserSetting(pages.getAcessingUser(),'mailinglists',lists)
+        
+        auth.setUserSetting(pages.getAcessingUser(),'useace','useace' in kwargs)
+
+        raise cherrypy.HTTPRedirect("/settings/account")
+    
+    @cherrypy.expose 
+    def changeinfo(self,**kwargs):
+        pages.require("/users/accountsettings.edit")
+        auth.setUserSetting(pages.getAcessingUser(),'email',kwargs['email'])
         
         raise cherrypy.HTTPRedirect("/settings/account")
 
+ 
     @cherrypy.expose 
     def changepwd(self,**kwargs):
         pages.require("/users/accountsettings.edit")
@@ -51,9 +66,16 @@ class Settings():
     
     @cherrypy.expose
     def testmail(self,*a,**k):
+        pages.require("/users/accountsettings.edit")
         mail.raw_send("testing",k['to'],'test mail')
         raise cherrypy.HTTPRedirect("/")
-
+    
+    @cherrypy.expose
+    def listmail(self,*a,**k):
+        pages.require("/admin/settings.edit")
+        mail.rawlistsend(k['subj'],k['msg'],k['list'])
+        raise cherrypy.HTTPRedirect("/")
+        
         
     @cherrypy.expose
     def savemail(self,*a,**k):
@@ -71,18 +93,23 @@ class Settings():
         
         for i in k:
             if i.startswith('mlist_name'):
-                uuid = i[:10]
+                uuid = i[10:]
                 newname = k[i]
                 mail[uuid]['name'] = newname
                     
             if i.startswith("mlist_desc"):
-                list = i[:10]
+                list = i[10:]
                 mail[list]['description'] = k[i]
+        for i in k:
+            if i.startswith("del_"):
+                list = i[4:]
+                del mail[list]
                 
         if 'newlist' in k:
-            mail[base64.b64encode(os.urandom(16)).decode()] = {'name':'Untitled', 'description': "Insert Description"}
+            mail[base64.b64encode(os.urandom(16)).decode()[:-2]] = {'name':'Untitled', 'description': "Insert Description"}
         
         registry.set("system/mail/lists",mail)
+        auth.getPermissionsFromMail()
         raise cherrypy.HTTPRedirect("/settings/system")
 
                 

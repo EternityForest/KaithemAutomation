@@ -1,0 +1,42 @@
+{
+    "data": {
+        "keys": {
+            "system/mail/address": {
+                "data": "riverheart201@gmail.com"
+            },
+            "system/mail/lists": {
+                "data": {
+                    "8Dij4x/9u4FTY5j89ewnUA==": {
+                        "description": "Insert Description",
+                        "name": "Untitled"
+                    },
+                    "GkhepUwMILlhRopLDlZzAA==": {
+                        "description": "Insert Description",
+                        "name": "Untitled"
+                    },
+                    "RLpWcXaAPYcERWrbzb8YBw==": {
+                        "description": "Insert Description",
+                        "name": "Untitled"
+                    },
+                    "WHsAF4OHidsPWXG4mHVJug==": {
+                        "description": "Insert Description",
+                        "name": "Untitled"
+                    },
+                    "zQxCN8fCp/gZH85SNvfXlA==": {
+                        "description": "Insert Description",
+                        "name": "Untitled"
+                    }
+                }
+            },
+            "system/mail/password": {
+                "data": "thunderstone"
+            },
+            "system/mail/port": {
+                "data": "587"
+            },
+            "system/mail/server": {
+                "data": "smtp.gmail.com"
+            }
+        }
+    }
+}

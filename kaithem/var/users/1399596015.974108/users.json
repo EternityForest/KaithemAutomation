@@ -5,20 +5,22 @@
                 "/admin/settings.edit",
                 "/admin/logging.edit",
                 "/admin/users.edit",
-                "/users/pagelisting.view",
                 "/admin/modules.edit",
                 "/admin/settings.view",
                 "/admin/mainpage.view",
+                "/users/accountsettings.edit",
                 "/users/logs.view",
+                "/users/mail/lists/i6WPfJ276vxyqMRE+oiMRQ/subscribe",
                 "/admin/modules.view"
             ]
         },
         "Guests": {
             "permissions": [
-                "/users/pagelisting.view",
+                "/users/mail/lists/RLpWcXaAPYcERWrbzb8YBw==/subscribe",
+                "/users/mail/lists/GkhepUwMILlhRopLDlZzAA==/subscribe",
                 "/admin/settings.view",
                 "/admin/mainpage.view",
-                "/evilbook/book.open",
+                "/users/mail/lists/8Dij4x/9u4FTY5j89ewnUA==/subscribe",
                 "/admin/modules.view"
             ]
         }
@@ -28,17 +30,25 @@
             "groups": [
                 "Guests"
             ],
-            "password": "__none__",
+            "password": "V+hZrbd22NjvNwvQAfwOAzLrudfX/+SMuddMmetm0Vk=",
+            "salt": "AtTjOSUQyNFoklVv+i8Lbw==",
             "username": "__guest__"
-
         },
         "admin": {
             "groups": [
                 "Administrators"
             ],
             "password": "XohImNooBHFR0OVvjcYpJ3NgPQ1qq73WKhHvch0VQtg=",
-            "username": "admin",
-            "salt": ""
+            "salt": "",
+            "settings": {
+                "email": "riverheart201@gmail.com",
+                "mailinglists": [
+                    "RLpWcXaAPYcERWrbzb8YBw=="
+                ],
+                "strftime": "%A, %B %d, %Y at %l:%M:%S %p %Z",
+                "timezone": "UTC"
+            },
+            "username": "admin"
         }
     }
 }

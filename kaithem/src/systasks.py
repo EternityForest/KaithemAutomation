@@ -32,9 +32,12 @@ if not config['autosave-logs'] == 'never':
     dumplogsinterval = unitsofmeasure.timeIntervalFromString(config['autosave-logs'])
 
 lastgotip = time.time()
-
+lastfpd=0
+lastram=0
+lastpageviews =0
 pageviewsthisminute = 0
 pageviewpublishcountdown = 1
+tenminutepagecount = 0
 
 #This gets called when an HTML request is made.
 def aPageJustLoaded():
@@ -50,8 +53,8 @@ firstrun = True
 
 def everyminute():
     global pageviewsthisminute,firstrun
-    global pageviewpublishcountdown
-    global lastsaved, lastdumpedlogs
+    global pageviewpublishcountdown,lastpageviews
+    global lastsaved, lastdumpedlogs,lastfpd,lastram,tenminutepagecount
     global frameRateWasTooLowLastMinute
     global MemUseWasTooHigh
     if not config['autosave-state'] == 'never':
@@ -66,12 +69,21 @@ def everyminute():
         if (time.time() -lastdumpedlogs) > dumplogsinterval:
             lastdumpedlogs = time.time()
             messagelogging.dumpLogFile()
-        
-    messagebus.postMessage("/system/perf/FPS" , round(newevt.averageFramesPerSecond,2))
+    
+    if (newevt.averageFramesPerSecond < config['max-frame-rate']*0.95) or time.time()>lastfpd+(60*10):    
+        messagebus.postMessage("/system/perf/FPS" , round(newevt.averageFramesPerSecond,2))
+        lastfpd = time.time()
+            
+    tenminutepagecount += pageviewsthisminute
+            
     pageviewcountsmoother.sample(pageviewsthisminute)
-    messagebus.postMessage("/system/perf/requestsperminute" , pageviewsthisminute)
-
     pageviewsthisminute = 0
+    
+    if (time.time()>lastpageviews+600) and tenminutepagecount>0:
+        messagebus.postMessage("/system/perf/requestsperminute" , tenminutepagecount/10)
+        lastpageviews = time.time()
+        tenminutepagecount = 0
+
     
     #The frame rate is not valid for the first few seconds because of the average
     if not firstrun:
@@ -95,8 +107,9 @@ def everyminute():
                 used = round(((total - (free+cache))/1000),2)
                 usedp = round((1-(free+cache)/total),3)
                 total = round(total/1024,2)
-                
-                messagebus.postMessage("/system/perf/memuse",usedp)
+                if (time.time()-lastram>600) or usedp>0.8:
+                    messagebus.postMessage("/system/perf/memuse",usedp)
+                    lastram=time.time()
                 #No hysteresis here, mem use should change slower and is more important IMHO than cpu
                 if usedp > config['mem-use-warn']:
                     if not MemUseWasTooHigh:

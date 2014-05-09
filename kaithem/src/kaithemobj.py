@@ -150,6 +150,14 @@ class Kaithem():
             return registry.get(key)
         
     
+    class mail(object):
+        @staticmethod
+        def send(recipient,subject,message):
+            mail.raw_send(subject,message,list)
+            
+        @staticmethod
+        def listSend(list,subject,message):
+            mail.rawlistsend(subject,message,list)
             
     class web(object):
         @staticmethod

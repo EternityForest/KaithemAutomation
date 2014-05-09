@@ -6,14 +6,18 @@
             },
             "system/mail/lists": {
                 "data": {
-                    "WHsAF4OHidsPWXG4mHVJug==": {
+                    "RLpWcXaAPYcERWrbzb8YBw==": {
                         "description": "Insert Description",
                         "name": "Untitled"
+                    },
+                    "i6WPfJ276vxyqMRE+oiMRQ": {
+                        "description": "Insert Description",
+                        "name": "827 News"
                     }
                 }
             },
             "system/mail/password": {
-                "data": "thunderstone"
+                "data": "a"
             },
             "system/mail/port": {
                 "data": "587"

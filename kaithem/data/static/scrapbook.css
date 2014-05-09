@@ -33,6 +33,10 @@ padding-left:0.5%;
 margin:3px;
 }
 
+.ace_editor div {
+    font: inherit!important
+}
+
 div.scrollbox {
 border-style:solid; 
 

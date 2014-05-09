@@ -320,6 +320,18 @@ h4 {
             the current page and instead serve a static file. Useful when you need to serve a static file and also need
             to restrict acess to it with permissions.</p>
         
+        <h3><a id="kdotmail"></a>kaithem.mail</h3>
+        <p>These functions allow sending email messages through the <a href="#email">SMTP Server</a> configured in the
+        settings page</p>
+        
+        <h4>kaithem.mail.send(recipient,subject,message)</h4>
+        <p>Send a message to an email address, where recipient is an address or list therof, and subject and message are strings.</p>
+        
+        <h4>kaithem.mail.listSend(list,subject,message)</h4>
+        <p>Send a message to an email address, where list is the UUID of a mailing list, and subject and message are strings.
+           The message will be sent to all subscribed users.
+        </p>
+        
         <h3>kaithem.events</h3>
         <p>The kaithem.events namespace provides facilities for programmatically creating events.
         Temporary events created in this manner are handled by the same code as other events.</p>
@@ -394,11 +406,12 @@ h4 {
         </p>
         
         <h3>/sytem/perf/FPS</h3>
-        <p>Every minute, a message will be posted to this topic containing only the current frame rate that
-         the event polling runs at.</p>
+        <p>Every ten minutes, a message will be posted to this topic containing only the current frame rate that
+         the event polling runs at. Messages are posted every minute if the frame rate is below 95% of full.</p>
         
         <h3>/sytem/perf/memuse</h3>
-        <p>Every minute, a message will be posted to this topic containing the current total memory usage of the system (0= none, 1=all available memory)</p>
+        <p>Every ten minutes, a message will be posted to this topic containing the current total memory usage of the system (0= none, 1=all available memory).
+        Messages are posted every minute if the ram use is greater than 0.8</p>
         
         <h3>/sytem/perf/requestsperminute</h3>
         <p>Every minute, a message will be posted to this topic containing the number of HTTP requests made to
@@ -436,6 +449,21 @@ h4 {
 
         <p>Log dumps will be found in kaithem/var/logs/dumps while the list of topics to save will be in
             kaithem/var/logs</p>
+            
+<h2><a id="email"></a>Email Alerts</h2>
+<p>
+Kaithem can be configured to <a href="#kdotmail">send email</a> through an SMTP server. Go to the settings page to configure this.
+You can also create mailing lists, to make mail alerting easier to manage. You create these on the settings page.
+Mailing lists are uniquely identified by a base64 string called a UUID that ends in two equals signs.
+
+For every list you create, a corresponding permission will be created containing the UUID. 
+You must have that permission to subscribe to a list.
+
+Every user can enter an email address and recieve alerts from any list he has the correct permissions to subscribe to.
+</p>
+
+
+
 
         <h2>FAQ</h2>
 
