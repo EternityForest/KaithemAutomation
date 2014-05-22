@@ -29,7 +29,7 @@
                 }
             },
             "system/mail/password": {
-                "data": "thunderstone"
+                "data": "a"
             },
             "system/mail/port": {
                 "data": "587"

@@ -17,7 +17,7 @@
 
 import time,random,subprocess,threading
 import cherrypy
-from . import unitsofmeasure,workers,sound,messagebus,util
+from . import unitsofmeasure,workers,sound,messagebus,util,mail
 from . import astrallibwrapper as sky
 
 #This exception is what we raise from within the page handler to serve a static file
@@ -153,7 +153,7 @@ class Kaithem():
     class mail(object):
         @staticmethod
         def send(recipient,subject,message):
-            mail.raw_send(subject,message,list)
+            mail.raw_send(message,recipient,subject)
             
         @staticmethod
         def listSend(list,subject,message):
