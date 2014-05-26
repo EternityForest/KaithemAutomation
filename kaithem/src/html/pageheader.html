@@ -48,7 +48,7 @@ import cherrypy
                             }
                     function f()
                     {    
-                    x = XMLHttpRequest();
+                    x = new XMLHttpRequest();
                     if (!getCookie("LastSawMainPage"))
                     {
                      y= 0
@@ -82,6 +82,8 @@ import cherrypy
                     }
                     f();
                     setInterval(f,10000);
+                    setTimeout(f,1500);
+                    
                     
             %elif pages.canUserDoThis("/admin/mainpage.view"):
 
