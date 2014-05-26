@@ -53,6 +53,7 @@ from src import notifications
 from src import messagelogging
 from src import systasks
 from src import registry
+from src import widgets
 
 from src.config import config
 
@@ -156,6 +157,7 @@ root.errors = Errors()
 root.pages = usrpages.KaithemPage()
 root.logs = messagelogging.WebInterface()
 root.notifications = notifications.WI()
+root.widgets = widgets.WebInterface()
 
 #Start cherrrypy
 dn = os.path.dirname(os.path.realpath(__file__))

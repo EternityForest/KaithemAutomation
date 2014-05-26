@@ -1,0 +1,18 @@
+{
+    "allow-origins": [
+        "*"
+    ],
+    "allow-xss": false,
+    "auto-reload": false,
+    "auto-reload-interval": 5.0,
+    "body": "<script type=\"text/javascript\">\r\ntoSet = {};\r\ntoPoll= {};\r\n\r\nfunction KWidget_register(key,callback)\r\n{\r\n\ttoPoll[key] = callback;\r\n}\r\n\r\n\r\nfunction setValue(key,value)\r\n{\r\n\ttoSet[key]=value;\r\n}\r\n\r\nfunction pollLoop()\r\n{\r\n\tpoll();\r\n\twindow.setTimeout(pollLoop, 350);\r\n}\r\n\r\nfunction poll()\r\n{\r\n    var fd = new FormData();\r\n   // fd.append(\"json\",JSON.stringify(toSend = {'upd':toSet,'req':toPoll}));\r\n\tvar toSend = {'upd':toSet,'req':toPoll};\r\n\txmlhttp=new XMLHttpRequest();\r\n\txmlhttp.open(\"GET\",\"/widgets?json=\"+escape(JSON.stringify(toSend),false));\r\n    xmlhttp.setRequestHeader(\"Content-type\",\"application/x-www-form-urlencoded\");\r\n\txmlhttp.send(fd);\r\n\txmlDoc=xmlhttp.responseText;\r\n\tresp = JSON.parse(xmlDoc);\r\n\t\r\n\tfor (var i in resp)\r\n\t{\r\n\t\ttoPoll[i](resp[i]);\r\n\t}\r\n\r\n}\r\n\r\npollLoop();\r\n</script>\r\n\r\n<div class=\"sectionbox\"><span id=\"iii\">\r\n            <script type=\"text/javascript\">\r\n            function upd(val)\r\n            {\r\n                document.getElementById(\"iii\").innerHTML=val;\r\n            }\r\n            KWidget_register('iii',upd);\r\n            </script>\r\n            </span>)</div></body>\r\n</html>",
+    "dont-show-in-index": false,
+    "no-header": false,
+    "no-navheader": true,
+    "require-method": [
+        "GET",
+        "POST"
+    ],
+    "require-permissions": [],
+    "resource-type": "page"
+}
