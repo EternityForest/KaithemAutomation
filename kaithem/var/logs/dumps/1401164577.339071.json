@@ -1,0 +1,78 @@
+{
+ "/system/notifications": [
+  [
+   1401163147.122943, 
+   "System Initialized"
+  ], 
+  [
+   1401163554.249005, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401163634.528254, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401163777.052085, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401164222.346473, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401164268.233186, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401164497.401861, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401164550.184081, 
+   "User admin modified resource Time Widget of module Widgets"
+  ]
+ ], 
+ "/system/perf/FPS": [
+  [
+   1401163200.682427, 
+   23.86
+  ], 
+  [
+   1401163860.778496, 
+   23.87
+  ], 
+  [
+   1401164520.390816, 
+   23.89
+  ]
+ ], 
+ "/system/perf/memuse": [
+  [
+   1401163200.689699, 
+   0.537
+  ], 
+  [
+   1401163860.779561, 
+   0.612
+  ], 
+  [
+   1401164520.391907, 
+   0.634
+  ]
+ ], 
+ "/system/perf/requestsperminute": [
+  [
+   1401163200.682703, 
+   1.8
+  ], 
+  [
+   1401163860.778743, 
+   3.6
+  ], 
+  [
+   1401164520.39093, 
+   2.8
+  ]
+ ]
+}

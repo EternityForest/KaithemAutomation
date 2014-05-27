@@ -26,7 +26,7 @@ class Widget():
         self._value = None
         self._read_perms = []
         self._write_perms=[]
-        self.uuid = base64.b64encode(os.urandom(16)).decode()
+        self.uuid = base64.b64encode(os.urandom(16)).decode().replace("/",'').replace("-",'').replace('+','')
         widgets[self.uuid] = self
     
     def onRequest(self,user):
@@ -48,6 +48,12 @@ class Widget():
             if not auth.canUserDoThis(user,i):
                 return
         self._value = value
+    
+    def read(self):
+        return self._value
+    
+    def write(self,value):
+        self._value = str(value)
         
 class TimeWidget(Widget):
         def onRequest(self,user):
@@ -59,8 +65,24 @@ class TimeWidget(Widget):
             {
                 document.getElementById("%s").innerHTML=val;
             }
-            KWidget_register(%s,upd);
+            KWidget_register('%s',upd);
             </script>
-            </span>)"""%(self.uuid,self.uuid,self.uuid))
+            </span>"""%(self.uuid,self.uuid,self.uuid))
+            
+class DynamicSpan(Widget):
+    
+        def onRequest(self,user):
+            return self._value
+        
+        def render(self):
+            return("""<span id="%s">
+            <script type="text/javascript">
+            function upd(val)
+            {
+                document.getElementById("%s").innerHTML=val;
+            }
+            KWidget_register('%s',upd);
+            </script>
+            </span>"""%(self.uuid,self.uuid,self.uuid))
 
     

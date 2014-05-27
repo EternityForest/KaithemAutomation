@@ -1,0 +1,11 @@
+{
+    "action": "module.s.write(kaithem.sys.shellex('fortune'))",
+    "continual": true,
+    "disabled": false,
+    "once": true,
+    "priority": "interactive",
+    "rate-limit": 5.0,
+    "resource-type": "event",
+    "setup": "from src import widgets\r\nmodule.s = widgets.DynamicSpan()\r\n",
+    "trigger": "True"
+}
