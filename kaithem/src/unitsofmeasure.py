@@ -241,7 +241,7 @@ def strftime(*arg):
     if arg:
         d = datetime.datetime.utcfromtimestamp(*arg).replace(tzinfo=pytz.utc)
     else:
-        d = datetime.datetime.utcnow()
+        d = datetime.datetime.utcfromtimestamp(time.time()).replace(tzinfo=pytz.utc)
         
     return tz.normalize(d.astimezone(tz)).strftime(auth.getUserSetting(pages.getAcessingUser(),'strftime'))
 

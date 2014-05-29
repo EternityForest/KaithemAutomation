@@ -7,9 +7,21 @@ function KWidget_register(key,callback)
 }
 
 
-function setValue(key,value)
+function KWidget_setValue(key,value)
 {
 	toSet[key]=value;
+}
+
+function KWidget_sendValue(key,value)
+{
+	if(key in toSet)
+	{
+		toSet[key].push(value);
+	}
+	else
+	{
+		toSet[key]=[value];
+	}
 }
 
 function pollLoop()
@@ -17,7 +29,7 @@ function pollLoop()
     var t;
     t = Date.now();
 	poll();
-	window.setTimeout(pollLoop, 250-Math.max((Date.now()-t),0) );
+	window.setTimeout(pollLoop, 100-Math.max((Date.now()-t),0) );
 }
 
 function poll()
@@ -35,6 +47,7 @@ function poll()
 	{
 		toPoll[i](resp[i]);
 	}
+	toSet={};
 
 }
 

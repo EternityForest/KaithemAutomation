@@ -17,7 +17,7 @@
 
 import time,random,subprocess,threading
 import cherrypy
-from . import unitsofmeasure,workers,sound,messagebus,util,mail
+from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets
 from . import astrallibwrapper as sky
 
 #This exception is what we raise from within the page handler to serve a static file
@@ -221,6 +221,7 @@ class obj():
     pass
 
 kaithem = Kaithem()
+kaithem.widget = widgets
 kaithem.globals = obj() #this is just a place to stash stuff.
 
 
