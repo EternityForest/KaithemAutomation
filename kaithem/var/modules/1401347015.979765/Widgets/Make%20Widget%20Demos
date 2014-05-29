@@ -1,0 +1,11 @@
+{
+    "action": "pass",
+    "continual": false,
+    "disabled": false,
+    "once": true,
+    "priority": "interactive",
+    "rate-limit": 0.0,
+    "resource-type": "event",
+    "setup": "import time\r\nmodule.span = kaithem.widget.DynamicSpan()\r\nmodule.button = kaithem.widget.Button()\r\n\r\ndef f(user,value):\r\n    if 'pushed' in value:\r\n        module.span.write(\"Button Last Pushed at Timestamp: \"+str(time.time()))\r\n        \r\nmodule.button.attach(f)\r\nmodule.span.write(\"Button not pressed\")\r\n\r\nmodule.timewidget = kaithem.widget.TimeWidget()",
+    "trigger": "False"
+}

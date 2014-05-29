@@ -1,0 +1,46 @@
+{
+ "/system/notifications": [
+  [
+   1401168498.601669, 
+   "System Initialized"
+  ], 
+  [
+   1401168510.884124, 
+   "User admin added resource Button of type page to module Widgets"
+  ], 
+  [
+   1401168591.059367, 
+   "User admin modified resource Button of module Widgets"
+  ], 
+  [
+   1401168601.086939, 
+   "User admin added resource button of type event to module Widgets"
+  ], 
+  [
+   1401168728.100485, 
+   "User admin modified resource button of module Widgets"
+  ], 
+  [
+   1401168748.731746, 
+   "User admin modified resource Button of module Widgets"
+  ]
+ ], 
+ "/system/perf/FPS": [
+  [
+   1401168540.767419, 
+   23.87
+  ]
+ ], 
+ "/system/perf/memuse": [
+  [
+   1401168540.774638, 
+   0.798
+  ]
+ ], 
+ "/system/perf/requestsperminute": [
+  [
+   1401168540.767753, 
+   1.2
+  ]
+ ]
+}

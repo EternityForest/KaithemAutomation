@@ -1,0 +1,206 @@
+{
+ "/system/notifications": [
+  [
+   1401083398.203643, 
+   "System Initialized"
+  ], 
+  [
+   1401083418.886757, 
+   "User admin Created Module Widgets"
+  ], 
+  [
+   1401083431.791408, 
+   "User admin added resource widget of type event to module Widgets"
+  ], 
+  [
+   1401083478.253888, 
+   "User admin modified resource widget of module Widgets"
+  ], 
+  [
+   1401083487.222537, 
+   "User admin added resource Time Widget of type page to module Widgets"
+  ], 
+  [
+   1401083530.878423, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401083560.000153, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401083620.814762, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401083661.990612, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401083812.574119, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401083922.043015, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401084043.063491, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401084123.71427, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401084299.385566, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401084498.453275, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401084713.993809, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401084783.526993, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401084909.189042, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401084923.189686, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401084942.429124, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401085003.710328, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401085065.029554, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401085086.192674, 
+   "User admin modified resource Time Widget of module Widgets"
+  ], 
+  [
+   1401085224.957143, 
+   "User admin modified resource Time Widget of module Widgets"
+  ]
+ ], 
+ "/system/perf/FPS": [
+  [
+   1401083400.745348, 
+   17.32
+  ], 
+  [
+   1401084060.219434, 
+   23.89
+  ], 
+  [
+   1401084660.679755, 
+   23.9
+  ], 
+  [
+   1401085320.078861, 
+   23.9
+  ]
+ ], 
+ "/system/perf/memuse": [
+  [
+   1401083400.756244, 
+   0.855
+  ], 
+  [
+   1401083460.525633, 
+   0.867
+  ], 
+  [
+   1401083520.406051, 
+   0.857
+  ], 
+  [
+   1401083580.23913, 
+   0.854
+  ], 
+  [
+   1401083640.037785, 
+   0.871
+  ], 
+  [
+   1401083700.737517, 
+   0.883
+  ], 
+  [
+   1401083760.500429, 
+   0.877
+  ], 
+  [
+   1401083820.25968, 
+   0.884
+  ], 
+  [
+   1401083880.067938, 
+   0.888
+  ], 
+  [
+   1401083940.698736, 
+   0.88
+  ], 
+  [
+   1401084000.445019, 
+   0.877
+  ], 
+  [
+   1401084060.220479, 
+   0.888
+  ], 
+  [
+   1401084120.842558, 
+   0.897
+  ], 
+  [
+   1401084180.637894, 
+   0.883
+  ], 
+  [
+   1401084240.48019, 
+   0.895
+  ], 
+  [
+   1401084300.258852, 
+   0.894
+  ], 
+  [
+   1401084360.011888, 
+   0.917
+  ], 
+  [
+   1401084960.440338, 
+   0.696
+  ]
+ ], 
+ "/system/perf/requestsperminute": [
+  [
+   1401083460.525336, 
+   1.3
+  ], 
+  [
+   1401084120.841626, 
+   5.0
+  ], 
+  [
+   1401084780.242973, 
+   4.3
+  ]
+ ]
+}
