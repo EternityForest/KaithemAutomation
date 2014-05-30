@@ -2,6 +2,13 @@ import weakref,time,json,base64,cherrypy,os
 from . import auth,pages,unitsofmeasure
 
 widgets = weakref.WeakValueDictionary()
+n = 0
+
+def mkid():
+    global n
+    n=(n+1)%10000
+    return('id'+str(n))
+
 
 class WebInterface():
     @cherrypy.expose
@@ -11,18 +18,18 @@ class WebInterface():
         user = pages.getAcessingUser()
         req = j['req']
         upd = j['upd']
+        
+        for i in j['upd']:
+            widgets[i]._onUpdate(user,upd[i])
 
         for i in req:
             resp[i] = widgets[i]._onRequest(user)
-            
-        for i in j['upd']:
-            widgets[i]._onUpdate(user,upd[i])
         
         return json.dumps(resp)
              
 
 class Widget():
-    def __init__(self,id=None):
+    def __init__(self,*args,**kwargs):
         self._value = None
         self._read_perms = []
         self._write_perms=[]
@@ -32,10 +39,13 @@ class Widget():
         
         self._callback = f
         
-        self.uuid = "id"+base64.b64encode(os.urandom(16)).decode().replace("/",'').replace("-",'').replace('+','')[:-2]
+        if not 'id' in kwargs:
+            self.uuid = "id"+base64.b64encode(os.urandom(16)).decode().replace("/",'').replace("-",'').replace('+','')[:-2]
+        else:
+            self.uuid = kwargs['id']
+            
         widgets[self.uuid] = self
 
-    
     def _onRequest(self,user):
         """Widgets on the client side send AJAX requests for the new value. This function must
         return the value for the widget. For example a slider might request the newest value
@@ -97,8 +107,69 @@ class DynamicSpan(Widget):
             document.getElementById("%s").innerHTML=val;
         }
         KWidget_register('%s',upd);
-        </script>
-        </span>"""%(self.uuid,self.uuid,self.uuid))
+        </script>%s
+        </span>"""%(self.uuid,self.uuid,self.uuid,self._value))
+
+class Meter(Widget):
+    def __init__(self,*args,**kwargs):
+        self.k = kwargs
+        if not 'high' in self.k:
+            self.k['high'] = 10000
+        if not 'high_warn' in self.k:
+            self.k['high_warn'] = self.k['high']
+        if not 'low' in self.k:
+            self.k['low'] = -10000
+        if not 'low_warn' in self.k:
+            self.k['low_warn'] = self.k['low']
+        if not 'min' in self.k:
+            self.k['min'] = 0
+        if not 'max' in self.k:
+            self.k['max'] = 100
+            
+        self._value = [0,'normal']
+        Widget.__init__(self,*args,**kwargs)
+    
+    def write(self,value):
+        self.c = "normal"
+        if 'high_warn' in self.k:
+            if value >= self.k['high_warn']:
+                self.c = 'warning'
+                
+        if 'low_warn' in self.k:
+            if value <= self.k['low_warn']:
+                self.c = 'warning'
+                
+        if 'high' in self.k:
+            if value >= self.k['high']:
+                self.c = 'error'
+        
+        if 'low' in self.k:
+            if value <= self.k['low']:
+                self.c = 'error'
+                
+        self._value=[round(value,3),self.c]
+        
+    def render(self,unit=''):
+        return("""
+        <div class="widgetcontainer">
+        <span id="%s" style="font-size:small; padding:0px;">
+        <script type="text/javascript">
+        var upd = function(val)
+        {
+            document.getElementById("%s").innerHTML=val[0]+"%s";
+            document.getElementById("%s_m").value=val[0];
+            document.getElementById("%s").className=val[1];
+        }
+        KWidget_register('%s',upd);
+        </script>%s
+        </span></br>
+        <meter id="%s_m" value="%d" min="%d" max="%d" high="%d" low="%d"></meter>
+
+        </div>"""%(self.uuid,
+                          self.uuid,unit,self.uuid,self.uuid,self.uuid,self._value[0],
+                          self.uuid,self._value[0], self.k['min'],self.k['max'],self.k['high_warn'],self.k['low_warn']
+                          
+                          ))
 
 class Button(Widget):
 
@@ -107,7 +178,105 @@ class Button(Widget):
             return("""
             <button type="button" id="%s" onmousedown="KWidget_sendValue('%s','pushed')" onmouseleave="KWidget_sendValue('%s','released')" onmouseup="KWidget_sendValue('%s','released')">%s</button>
              """%(self.uuid,self.uuid,self.uuid,self.uuid,content))
+        
+        if type=="trigger":
+            return("""
+            <div class="widgetcontainer">
+            <script type="text/javascript">
+            function %s_toggle()
+            {
+                if(!document.getElementById("%s_2").disabled)
+                {
+                    isarmed_%s = false;
+                    document.getElementById("%s_1").innerHTML="ARM";
+                    document.getElementById("%s_2").disabled=true;
+                    document.getElementById("%s_3").style='';
+
+                }
+                else
+                {
+                    document.getElementById("%s_1").innerHTML="DISARM";
+                    document.getElementById("%s_2").disabled=false;
+                    document.getElementById("%s_3").style='background-color:red;';
+                }
+            }
+            
+            
+
+            </script>
+            <button type="button" id="%s_1" onmousedown="%s_toggle()">ARM</button><br/>
+            <button type="button" style="min-height:6em;;" disabled=true id="%s_2" onmousedown="KWidget_sendValue('%s','pushed')" onmouseleave="KWidget_sendValue('%s','released')" onmouseup="KWidget_sendValue('%s','released')">
+            <span id="%s_3">%s</span>
+            </button>
+            </div>
+             """%(self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,content))
             
         raise RuntimeError("Invalid Button Type")
 
+
+class Slider(Widget):
+    def __init__(self,min=0,max=100,step=0.1,*args,**kwargs):
+        self.min = min
+        self.max = max
+        self.step = step
+        Widget.__init__(self,*args,**kwargs)
+        self._value = 0
+
+    
+    def render(self,type="realtime", orient='vertical',unit=''):
+        if type=='debug':
+            return {'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
+        if type=='realtime':
+            return """<div class="widgetcontainer" style="min-width:3em; text-align:center;">
+            <input type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
+            style=
+            "-webkit-appearance: slider-vertical; 
+            writing-mode: bt-lr;
+            height:6em;
+            width:1em;
+            margin: auto 0;"
+            onchange="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s';"
+            ><br>
+            <span id="%(htmlid)s_l">%(value)f%(unit)s</span>
+            <script type="text/javascript">
+            var upd=function(val){
+                document.getElementById('%(htmlid)s').value= val;
+                document.getElementById('%(htmlid)s_l').innerHTML= val+"%(unit)s";
+            }
+            KWidget_register("%(id)s",upd);
+            </script>
+            </div>"""%{'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
+        
+        if type=='onrelease':
+            return """<div class="widgetcontainer" style="min-width:3em; text-align:center;">
+            <input type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
+            style=
+            "-webkit-appearance: slider-vertical; 
+            writing-mode: bt-lr;
+            height:6em;
+            width:1em;
+            "
+            onchange="document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s'; document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();"
+            onmouseup="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
+            onmousedown="document.getElementById('%(htmlid)s').jsmodifiable = false;"
+            onkeyup="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
+
+            ><br>
+            <span id="%(htmlid)s_l">%(value)f%(unit)s</span>
+            <script type="text/javascript">
+            var upd=function(val){
+            
+                if(document.getElementById('%(htmlid)s').jsmodifiable & ((new Date).getTime()-document.getElementById('%(htmlid)s').lastmoved > 300))
+                {
+                document.getElementById('%(htmlid)s').value= val;
+                document.getElementById('%(htmlid)s_l').innerHTML= val+"%(unit)s";
+                }
+                
+                
+            }
+            document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();
+            document.getElementById('%(htmlid)s').jsmodifiable = true;
+            KWidget_register("%(id)s",upd);
+            </script>
+            </div>"""%{'htmlid':mkid(), 'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
     

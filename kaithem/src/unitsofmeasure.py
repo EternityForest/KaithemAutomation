@@ -236,6 +236,23 @@ def strToIntWithSIMultipliers(s):
     else:
         return int(s[:-1])
 
+def siFormatNumber(number,digits=2):
+    if number > 1000000000:
+        return(str(round(number/1000,digits))+' G')
+    if number > 1000000:
+        return(str(round(number/1000,digits))+' M')
+    if number > 1000:
+        return(str(round(number/1000,digits))+' K')
+    
+    if number < 0.00001:
+        return(str(round(number*1000000000,digits))+' n')
+    if number < 0.001:
+        return(str(round(number*1000000,digits))+' u')
+    if number < 0.01:
+        return(str(round(number*1000,digits))+' m')
+
+
+
 def strftime(*arg):
     tz = pytz.timezone(auth.getUserSetting(pages.getAcessingUser(),'timezone'))
     if arg:

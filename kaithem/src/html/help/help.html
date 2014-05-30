@@ -377,7 +377,7 @@ h4 {
             garbage collected and auto-unsubscribed. This is also how you unsubscribe.
         </p>
         <h3>kaithem.widget</h3>
-        <p><b>See Widgets for info on how to use these.</b></p>
+        <p><b>See Widgets for info on how to use these. Unless otherwise mentioned, their API is defined by the Widget base class.</b></p>
         
         <h4>kaithem.widget.DynamicSpan()</h4>
         <p>Creates a dynamic span widget. When rendered, A dynamic span widget looks like a normal HTML span.
@@ -398,6 +398,20 @@ h4 {
         </p>
         
         <p>Mobile devices may not be able to register press-and-hold, but should handle normall presses correctly.</p>
+        
+        <p>render() takes the optional keyword element type. If type is "trigger", it will render as a larger button that is disabled by default, with a smaller arm/disarm button above it,
+        that one must use in order to enable the button. However, as far as the server knows, it acts as a normal button. Good for things you don't want to press accidentally.
+        </p>
+        
+        <h4>kaithem.widgets.Meter(**kwargs)</h4>
+        <p>Used for display a changing numeric value. By default, renders to a simple HTML span that changes color on extreme values if limits are defined.
+        </p>
+        
+        <p>The constructor for meter can take a upper critical value called high, a lower crtitcal value called low, an upper warning threshold called high_warn, and a lower warning threshold called low_warn.
+        These are all passes as keyword arguments.</p>
+        
+        <p>Render takes one optional parameter called unit, that specifies a unit to associate, like "Volts" or "Hz" or such.</p>
+        
         
         
         

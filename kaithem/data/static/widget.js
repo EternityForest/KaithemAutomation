@@ -3,7 +3,14 @@ toPoll= {};
 
 function KWidget_register(key,callback)
 {
-	toPoll[key] = callback;
+	if (key in toPoll)
+	{
+		toPoll[key].push(callback);
+	}
+	else
+	{
+		toPoll[key] = [callback];
+	}
 }
 
 
@@ -45,7 +52,10 @@ function poll()
 	
 	for (var i in resp)
 	{
-		toPoll[i](resp[i]);
+		for(var j in toPoll[i])
+		{
+			toPoll[i][j](resp[i]);
+		}
 	}
 	toSet={};
 

@@ -61,11 +61,13 @@ background: rgba(255, 255, 230, 0.25);
 border-width: 2px;
 margin-top: 1px;
 width:100%;
+border-radius:9px
 
 }
 
 #nav tr{
 border-style:solid;
+border-radius:9px
 }
 
 
@@ -82,7 +84,7 @@ font-size:125%;
 	color: #800080;
 }
 
-
+button {background-color: #E6E6B8;border-radius:7px;}
 input {background-color: #E6E6B8;border-radius:7px;}
 input.modulename {width:70%}
 input.pythoncode {width:100%}
@@ -155,6 +157,11 @@ a.button:hover
 background-color:#E6F6B8;
 }
 
+button:hover
+{
+background-color:#E6F6B8;
+}
+
 input:hover{
 background-color:#E6F6B8;
 }
@@ -176,6 +183,8 @@ table tr:nth-child(even) td{
 	background-color: rgba(0,0,0,0.1);
 }
 
+
+
 .error
 {
 	color: 	#900000;
@@ -184,4 +193,15 @@ table tr:nth-child(even) td{
 .warning
 {
 	color: 	#806600;
+}
+
+
+
+/*Widget Styles*/
+
+div.widgetcontainer
+{
+display:inline-block;
+background-color: rgba(0,0,0,0.1);
+padding-top: 0px;
 }

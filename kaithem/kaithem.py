@@ -192,6 +192,7 @@ cnf={
         "tools.caching.expires": 3600,
         "tools.addheader.on": True
         },
+     
      '/pages':
         {
          'request.dispatch': cherrypy.dispatch.MethodDispatcher()
