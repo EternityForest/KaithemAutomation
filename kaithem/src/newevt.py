@@ -521,7 +521,7 @@ def updateOneEvent(resource,module):
 
 #makes a dummy event for when there is an error loading and puts it in the right place
 #The dummy does nothing but is in the right place
-def makeDummyEvent(resource,module):
+def makeDummyEvent(module,resource):
     #This is one of those places that uses two different locks(!)
     with modules_state.modulesLock:
         
@@ -535,6 +535,7 @@ def makeDummyEvent(resource,module):
             x.register()
             #Update index
             __EventReferences[module,resource] = x
+        messagebus.postMessage("debug",str(__EventReferences))
 
 #look in the modules and compile all the event code
 #if only is supplied, must be a set and will only look in those modules
