@@ -24,7 +24,7 @@ from .config import config
 #Use this lock whenever you acess _events or __EventReferences in any way.
 #Most of the time it should be held by the event manager that continually iterates it.
 #To update the _events, event execution must temporarily pause
-_event_list_lock = threading.Lock() 
+_event_list_lock = threading.RLock() 
 _events = []
 
 #Let us now have a way to get at active event objects by means of their origin resource and module.
@@ -520,7 +520,7 @@ def updateOneEvent(resource,module):
             __EventReferences[module,resource] = x
 
 #makes a dummy event for when there is an error loading and puts it in the right place
-#The dummy does nothing but is in the right plae
+#The dummy does nothing but is in the right place
 def makeDummyEvent(resource,module):
     #This is one of those places that uses two different locks(!)
     with modules_state.modulesLock:
@@ -558,7 +558,7 @@ def getEventsFromModules(only = None):
             #Set _events to an empty list we can build on
             for i in modules_state.ActiveModules:
                 #now we loop over all the resources of the module to see which ones are _events 
-                if (i in only) or only == None:
+                if only == None or (i in only)  :
                     for m in modules_state.ActiveModules[i]:
                         j = modules_state.ActiveModules[i][m]
                         if j['resource-type']=='event':

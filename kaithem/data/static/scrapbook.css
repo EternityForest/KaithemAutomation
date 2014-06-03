@@ -1,3 +1,10 @@
+::selection {
+background: rgba(140, 180, 140, 0.5);
+color:rgb(70, 45, 19);
+}
+::-moz-selection {background: rgba(0, 0, 250, 0.25);}
+
+
 table{
 border-style: solid;
 border-width:3px;
@@ -123,7 +130,7 @@ border-style:solid;
 border-width:1px;
 border-radius: 7px;
 padding:3px;
-
+cursor:help;
 }
 
 p.menubar{
@@ -196,12 +203,69 @@ table tr:nth-child(even) td{
 }
 
 
+tr:hover
+{
+/*background-color: rgba(70,170,70,0.35);*/
+background-color: rgba(120,190,120,0.45);
+}
 
 /*Widget Styles*/
 
 div.widgetcontainer
 {
 display:inline-block;
-background-color: rgba(0,0,0,0.1);
+background-color: rgba(70,90,70,0.25);
 padding-top: 0px;
+border-radius:5px;
+border-style:inset;
+border-width:2px;
+color: rgb(0,0,0);
+padding: 0px;
+vertical-align:text-top;
 }
+
+div.widgetcontainer:hover
+{
+/*background-color: rgba(70,170,70,0.35);*/
+background-color: rgba(120,190,120,0.45);
+}
+
+span.numericpv
+{
+background-color: rgba(255,255,200,0.30);
+cursor:crosshair;
+}
+
+span.numericpv:hover
+{
+background-color: rgba(230,255,200,0.50);
+cursor:crosshair;
+}
+
+div.sliderwidget
+{
+min-width:3.5em;
+text-align:center;
+font-size:90%;
+}
+
+div.meterwidget
+{
+text-align:center;
+}
+
+button.triggerbuttonwidget
+{
+	min-height:6em;
+}
+
+input.verticalslider
+{
+	-webkit-appearance: slider-vertical; 
+     writing-mode: bt-lr;
+     height:9.2em;
+     width:1em;
+     margin: auto 0;
+}
+
+

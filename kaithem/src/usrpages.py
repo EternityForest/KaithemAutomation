@@ -127,8 +127,8 @@ def getPagesFromModules():
             _Pages = {}
             for i in modules_state.ActiveModules.copy():
                 #For each loaded and active module, we make a subdict in _Pages
-                _Pages[i] = {} # make an empty place or __events in this module
-                #now we loop over all the resources o the module to see which ones are __events 
+                _Pages[i] = {} # make an empty place for pages in this module
+                #now we loop over all the resources o the module to see which ones are pages 
                 for m in modules_state.ActiveModules[i].copy():
                     j=modules_state.ActiveModules[i][m]
                     if j['resource-type']=='page':

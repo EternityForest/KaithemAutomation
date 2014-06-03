@@ -48,7 +48,7 @@ def saveAll():
     util.deleteAllButHighestNumberedNDirectories(directories.moduledir,2)
     moduleschanged = False
     
-def loadAll():
+def initModules():
     for i in range(0,15):
         #Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
         name = util.getHighestNumberedTimeDirectory(directories.moduledir)
@@ -58,6 +58,8 @@ def loadAll():
         if '''__COMPLETE__''' in util.get_files(possibledir):
             loadModules(possibledir)
             auth.importPermissionsFromModules()
+            newevt.getEventsFromModules()
+            usrpages.getPagesFromModules()
             break #We sucessfully found the latest good ActiveModules dump! so we break the loop
         else:
             #If there was no flag indicating that this was an actual complete dump as opposed
@@ -100,7 +102,8 @@ def loadModules(modulesdir):
     for i in util.get_immediate_subdirectories(modulesdir):
         loadModule(i,modulesdir)
 
-#Load a single module. Used by loadModules
+
+#Load a single module but don't bookkeep it . Used by loadModules
 def loadModule(moduledir,path_to_module_folder):
     with modulesLock:
         #Make an empty dict to hold the module resources
@@ -115,8 +118,9 @@ def loadModule(moduledir,path_to_module_folder):
                 f.close()
         
         name = unurl(moduledir)
+        scopes[name] = obj()
         ActiveModules[name] = module
-        bookkeeponemodule(name)
+        #bookkeeponemodule(name)
 
 def getModuleAsZip(module):
     with modulesLock:

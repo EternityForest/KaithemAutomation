@@ -90,7 +90,7 @@ updateIP()
 auth.initializeAuthentication()
 
 #Load all modules from the active modules directory
-modules.loadAll()
+modules.initModules()
 
 #This class represents the "/" root of the web app
 class webapproot():

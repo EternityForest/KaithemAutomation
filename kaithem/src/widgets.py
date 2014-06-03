@@ -126,8 +126,9 @@ class Meter(Widget):
         if not 'max' in self.k:
             self.k['max'] = 100
             
-        self._value = [0,'normal']
+        
         Widget.__init__(self,*args,**kwargs)
+        self._value = [0,'normal']
     
     def write(self,value):
         self.c = "normal"
@@ -151,14 +152,14 @@ class Meter(Widget):
         
     def render(self,unit=''):
         return("""
-        <div class="widgetcontainer">
-        <span id="%s" style="font-size:small; padding:0px;">
+        <div class="widgetcontainer meterwidget">
+        <span class="numericpv" id="%s" style=" margin:0px;">
         <script type="text/javascript">
         var upd = function(val)
         {
             document.getElementById("%s").innerHTML=val[0]+"%s";
             document.getElementById("%s_m").value=val[0];
-            document.getElementById("%s").className=val[1];
+            document.getElementById("%s").className=val[1]+" numericpv";
         }
         KWidget_register('%s',upd);
         </script>%s
@@ -205,7 +206,7 @@ class Button(Widget):
 
             </script>
             <button type="button" id="%s_1" onmousedown="%s_toggle()">ARM</button><br/>
-            <button type="button" style="min-height:6em;;" disabled=true id="%s_2" onmousedown="KWidget_sendValue('%s','pushed')" onmouseleave="KWidget_sendValue('%s','released')" onmouseup="KWidget_sendValue('%s','released')">
+            <button type="button" class="triggerbuttonwidget" disabled=true id="%s_2" onmousedown="KWidget_sendValue('%s','pushed')" onmouseleave="KWidget_sendValue('%s','released')" onmouseup="KWidget_sendValue('%s','released')">
             <span id="%s_3">%s</span>
             </button>
             </div>
@@ -227,17 +228,16 @@ class Slider(Widget):
         if type=='debug':
             return {'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
         if type=='realtime':
-            return """<div class="widgetcontainer" style="min-width:3em; text-align:center;">
+            return """<div class="widgetcontainer sliderwidget">
             <input type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
-            style=
-            "-webkit-appearance: slider-vertical; 
-            writing-mode: bt-lr;
-            height:6em;
-            width:1em;
-            margin: auto 0;"
-            onchange="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s';"
+            class="verticalslider" orient="vertical"
+            onchange="            
+            KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
+            document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s';"
             ><br>
-            <span id="%(htmlid)s_l">%(value)f%(unit)s</span>
+            <span
+            class="numericpv"
+            id="%(htmlid)s_l">%(value)f%(unit)s</span>
             <script type="text/javascript">
             var upd=function(val){
                 document.getElementById('%(htmlid)s').value= val;
@@ -248,21 +248,20 @@ class Slider(Widget):
             </div>"""%{'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
         
         if type=='onrelease':
-            return """<div class="widgetcontainer" style="min-width:3em; text-align:center;">
+            return """<div class="widgetcontainer sliderwidget">
             <input type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
-            style=
-            "-webkit-appearance: slider-vertical; 
-            writing-mode: bt-lr;
-            height:6em;
-            width:1em;
-            "
+            class="verticalslider" orient="vertical"
             onchange="document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s'; document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();"
             onmouseup="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
             onmousedown="document.getElementById('%(htmlid)s').jsmodifiable = false;"
             onkeyup="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
+            ontouchend="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
+            ontouchstart="document.getElementById('%(htmlid)s').jsmodifiable = false;"
+            ontouchleave="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
+
 
             ><br>
-            <span id="%(htmlid)s_l">%(value)f%(unit)s</span>
+            <span class="numericpv" id="%(htmlid)s_l">%(value)f%(unit)s</span>
             <script type="text/javascript">
             var upd=function(val){
             
