@@ -1,0 +1,42 @@
+{
+ "/system/notifications": [
+  [
+   1401359067.3325467, 
+   "System Initialized"
+  ], 
+  [
+   1401359089.9010108, 
+   "User admin modified resource Button Demo of module Widgets"
+  ]
+ ], 
+ "/system/perf/FPS": [
+  [
+   1401359100.757558, 
+   23.79
+  ], 
+  [
+   1401359760.2358687, 
+   23.81
+  ]
+ ], 
+ "/system/perf/memuse": [
+  [
+   1401359100.77428, 
+   0.552
+  ], 
+  [
+   1401359760.2359626, 
+   0.392
+  ]
+ ], 
+ "/system/perf/requestsperminute": [
+  [
+   1401359100.7576716, 
+   29.2
+  ], 
+  [
+   1401359760.2359145, 
+   2153.7
+  ]
+ ]
+}

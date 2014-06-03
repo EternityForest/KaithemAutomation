@@ -1,0 +1,82 @@
+{
+ "/system/notifications": [
+  [
+   1401430919.127937, 
+   "System Initialized"
+  ], 
+  [
+   1401432218.187986, 
+   "User admin modified resource Make Widget Demos of module Widgets"
+  ], 
+  [
+   1401432396.401122, 
+   "User admin modified resource Make Widget Demos of module Widgets"
+  ], 
+  [
+   1401432407.233987, 
+   "User admin added resource Many Sliders of type page to module Widgets"
+  ], 
+  [
+   1401432458.330507, 
+   "User admin modified resource Many Sliders of module Widgets"
+  ], 
+  [
+   1401432492.20952, 
+   "User admin modified resource Many Sliders of module Widgets"
+  ]
+ ], 
+ "/system/perf/FPS": [
+  [
+   1401430920.738851, 
+   13.8
+  ], 
+  [
+   1401431580.590063, 
+   23.83
+  ], 
+  [
+   1401432240.494099, 
+   23.75
+  ], 
+  [
+   1401432900.255236, 
+   23.8
+  ]
+ ], 
+ "/system/perf/memuse": [
+  [
+   1401430920.749963, 
+   0.703
+  ], 
+  [
+   1401431580.591671, 
+   0.706
+  ], 
+  [
+   1401432240.495276, 
+   0.627
+  ], 
+  [
+   1401432900.256009, 
+   0.643
+  ]
+ ], 
+ "/system/perf/requestsperminute": [
+  [
+   1401430920.739119, 
+   0.8
+  ], 
+  [
+   1401431580.590185, 
+   1859.2
+  ], 
+  [
+   1401432240.494315, 
+   1197.5
+  ], 
+  [
+   1401432900.255464, 
+   1448.5
+  ]
+ ]
+}

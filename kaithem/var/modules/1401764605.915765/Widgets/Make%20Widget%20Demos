@@ -1,0 +1,11 @@
+{
+    "action": "module.meter.write(random.random()*100)",
+    "continual": true,
+    "disabled": false,
+    "once": true,
+    "priority": "interactive",
+    "rate-limit": 2.5,
+    "resource-type": "event",
+    "setup": "import time, random\r\nmodule.span = kaithem.widget.DynamicSpan()\r\nmodule.button = kaithem.widget.Button()\r\n\r\ndef f(user,value):\r\n    if 'pushed' in value:\r\n        module.span.write(\"Button Last Pushed at Timestamp: \"+str(time.time()))\r\n        \r\nmodule.button.attach(f)\r\nmodule.span.write(\"Button not pressed\")\r\n\r\nmodule.timewidget = kaithem.widget.TimeWidget()\r\n\r\nmodule.meter = kaithem.widget.Meter(high_warn=70,high=80)\r\nmodule.slider = kaithem.widget.Slider(min=0,max=255,step=1)\r\n\r\nmodule.mass= []\r\nfor i in range(0,24):\r\n    module.mass.append(kaithem.widget.Slider(min=0,max=255,step=1))\r\n",
+    "trigger": "True"
+}
