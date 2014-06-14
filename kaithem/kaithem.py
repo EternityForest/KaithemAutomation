@@ -119,6 +119,9 @@ class webapproot():
     def about(self,*path,**data):
         return pages.get_template('help/about.html').render(myip = MyExternalIPAdress)
     @cherrypy.expose 
+    def changelog(self,*path,**data):
+        return pages.get_template('help/changes.html').render(myip = MyExternalIPAdress)
+    @cherrypy.expose 
     def helpmenu(self,*path,**data):
         return pages.get_template('help/index.html').render()
     @cherrypy.expose 

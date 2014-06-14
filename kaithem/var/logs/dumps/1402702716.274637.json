@@ -1,0 +1,58 @@
+{
+ "/system/notifications": [
+  [
+   1402702335.812786, 
+   "System Initialized"
+  ], 
+  [
+   1402702483.950443, 
+   "User admin modified resource Make Widget Demos of module Widgets"
+  ], 
+  [
+   1402702535.342904, 
+   "User admin modified resource Make Widget Demos of module Widgets"
+  ], 
+  [
+   1402702654.709313, 
+   "User admin modified resource Make Widget Demos of module Widgets"
+  ]
+ ], 
+ "/system/perf/FPS": [
+  [
+   1402702380.542897, 
+   23.85
+  ]
+ ], 
+ "/system/perf/memuse": [
+  [
+   1402702380.647949, 
+   0.821
+  ], 
+  [
+   1402702440.509074, 
+   0.801
+  ], 
+  [
+   1402702500.3441, 
+   0.818
+  ], 
+  [
+   1402702560.219431, 
+   0.84
+  ], 
+  [
+   1402702620.100193, 
+   0.843
+  ], 
+  [
+   1402702680.858531, 
+   0.839
+  ]
+ ], 
+ "/system/perf/requestsperminute": [
+  [
+   1402702380.543747, 
+   65.4
+  ]
+ ]
+}

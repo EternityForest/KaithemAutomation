@@ -1,0 +1,42 @@
+{
+ "/system/notifications": [
+  [
+   1402701325.165306, 
+   "System Initialized"
+  ], 
+  [
+   1402701375.792702, 
+   "User admin modified resource Make Widget Demos of module Widgets"
+  ], 
+  [
+   1402701383.93812, 
+   "User admin added resource Switch of type page to module Widgets"
+  ], 
+  [
+   1402701403.414708, 
+   "User admin modified resource Switch of module Widgets"
+  ], 
+  [
+   1402701428.373148, 
+   "User admin modified resource Switch of module Widgets"
+  ]
+ ], 
+ "/system/perf/FPS": [
+  [
+   1402701360.225539, 
+   23.87
+  ]
+ ], 
+ "/system/perf/memuse": [
+  [
+   1402701360.232751, 
+   0.719
+  ]
+ ], 
+ "/system/perf/requestsperminute": [
+  [
+   1402701360.226744, 
+   17.3
+  ]
+ ]
+}

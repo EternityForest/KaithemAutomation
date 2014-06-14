@@ -35,7 +35,10 @@ function pollLoop()
 {
     var t;
     t = Date.now();
+    if((Object.keys(toSet).length+Object.keys(toPoll).length)>0)
+    { 
 	poll();
+    }	
 	window.setTimeout(pollLoop, 100-Math.max((Date.now()-t),0) );
 }
 

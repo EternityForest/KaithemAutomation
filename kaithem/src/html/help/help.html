@@ -287,10 +287,10 @@ h4 {
 
         <h4>kaithem.time.moonAge()</h4>
         <p>Returns the current moon phase as a number:
-        <pre>0  = New moon
-             7  = First quarter
-             14 = Full moon
-             21 = Last quarter</pre>
+<pre>0  = New moon
+7  = First quarter
+14 = Full moon
+21 = Last quarter</pre>
         
         <b>NOTE: isDay,isNight,isDark, and isLight may raise an exception 
         if there is no sunrise or sunset in the current day(as in some regions in the arctic circle during some seasons).</b>
@@ -385,8 +385,12 @@ h4 {
         </p>
         
         <h4>kaithem.widgets.TimeWidget()</h4>
-        <p>All this does is display the current time in his or her prefered format. use like an HTML span.
+        <p>All this does is display the current time in his or her prefered format. use like an HTML span or an image. Render takes a parameter type which defaults to widget.
+        If type is 'inline', will render as simple text without special styling.
         </p>
+        
+        <p>Unlike other widgets, the TimeWidget is purely client side and uses the system clock of the client, and as such will even work if /static/widget.js is not included.</p>
+        
         
         <h4>kaithem.widgets.Button()</h4>
         <p>This is a button. Data points from it are in the form of lists of states. Normally the value will be ['pushed'], or
@@ -412,6 +416,18 @@ h4 {
         
         <p>Render takes one optional parameter called unit, that specifies a unit to associate, like "Volts" or "Hz" or such.</p>
         
+        <h4>kaithem.widgets.Slider(**kwargs)</h4>
+        <p>A slider widget, that currently may only be vertical. Optional parameters: min, max, and step, must be numbers and control the range and step size of the slider.</p>
+        
+        <p>Slider.render() takes an optional parameter <i>unit</i> which specifies a unit of measurement to associate. It also takes a parameter type,  which by default is 'realtime',
+        which causes the value to be sent to the server whenever the slider is moved. If this value is "onrelease", data will only be sent to the server when you release your mouse or take your finger off the touchscreen.</p>
+        
+        <h4>kaithem.widgets.Switch(**kwargs)</h4>
+        <p>An on-off toggle widget.</p>
+        
+        <p>Switch.render() takes an optional parameter label, which provides a clickable label</p>
+        
+        <p>Switch.read() and Switch.write() return and accept boolean values.</p>
         
         
         

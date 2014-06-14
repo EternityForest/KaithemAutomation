@@ -83,20 +83,42 @@ class Widget():
     def write(self,value):
         self._value = str(value)
         
+
 class TimeWidget(Widget):
     def onRequest(self,user):
         return str(unitsofmeasure.strftime())
     
-    def render(self):
-        return("""<span id="%s">
-        <script type="text/javascript">
-        var upd = function(val)
-        {
-            document.getElementById("%s").innerHTML=val;
-        }
-        KWidget_register('%s',upd);
-        </script>
-        </span>"""%(self.uuid,self.uuid,self.uuid))
+    def render(self,type='widget'):
+        if type=='widget':
+            return("""<div id="%s" class="widgetcontainer">
+            <script type="text/javascript" src="/static/strftime-min.js">
+            </script>
+            <script type="text/javascript">
+            var f = function(val)
+            {
+               var d = new Date();
+    
+                document.getElementById("%s").innerHTML=d.strftime("%s");
+            }
+            setInterval(f,70);
+            </script>
+            </div>"""%(self.uuid,self.uuid,auth.getUserSetting(pages.getAcessingUser(),'strftime').replace('%l','%I')))
+        
+        if type=='inline':
+            return("""<span id="%s">
+            <script type="text/javascript" src="/static/strftime-min.js">
+            </script>
+            <script type="text/javascript">
+            var f = function(val)
+            {
+               var d = new Date();
+    
+                document.getElementById("%s").innerHTML=d.strftime("%s");
+            }
+            setInterval(f,70);
+            </script>
+            </span>"""%(self.uuid,self.uuid,auth.getUserSetting(pages.getAcessingUser(),'strftime').replace('%l','%I')))
+
             
 class DynamicSpan(Widget):
     def render(self):
@@ -109,6 +131,19 @@ class DynamicSpan(Widget):
         KWidget_register('%s',upd);
         </script>%s
         </span>"""%(self.uuid,self.uuid,self.uuid,self._value))
+
+class TextDisplay(Widget):
+    def render(self,height='4em',width='24em'):
+        return("""<div style="height:%s; width:%s; overflow-x:auto; overflow-y:scroll;" class="widgetcontainer" id="%s">
+        <script type="text/javascript">
+        var upd = function(val)
+        {
+            document.getElementById("%s").innerHTML=val;
+        }
+        KWidget_register('%s',upd);
+        </script>%s
+        </span>"""%(height,width, self.uuid,self.uuid,self.uuid,self._value))
+
 
 class Meter(Widget):
     def __init__(self,*args,**kwargs):
@@ -278,4 +313,29 @@ class Slider(Widget):
             KWidget_register("%(id)s",upd);
             </script>
             </div>"""%{'htmlid':mkid(), 'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
+            raise ValueError("Invalid slider type:"%str(type))
+        
+class Switch(Widget):
+    def __init__(self,min=0,max=100,step=0.1,*args,**kwargs):
+        Widget.__init__(self,*args,**kwargs)
+        self._value = False
+
+    
+    def render(self,label):
+        if self._value:
+            x = "checked=1"
+        else:
+            x =''
+            
+        return """<div class="widgetcontainer">
+        <label><input id="%(htmlid)s" type="checkbox" onchange="KWidget_setValue('%(id)s',document.getElementById('%(htmlid)s').checked)" %(x)s>%(label)s</label>
+        <script type="text/javascript">
+        var upd=function(val){
+            document.getElementById('%(htmlid)s').checked= val;
+        }
+        KWidget_register("%(id)s",upd);
+        </script>
+        </div>"""%{'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self._value, 'label':label}
+        
+    
     
