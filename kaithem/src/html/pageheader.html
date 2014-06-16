@@ -96,11 +96,14 @@ import cherrypy
             
             
             </li>
-            <li ><a href="/auth/">Authorization</a></li>
             <li><a href="/modules/">Modules</a></li>
-
             <li><a href="/pagelisting">Pages</a></li>
-            <li><a href="/logs">Logs</a></li>
+
+            <li><a href="/helpmenu">Help</a></li>
+            <li><a href="/auth/">Users</a></li>
+<li><a href="/logs">Logs</a></li>
+            
+            <li><a href="/settings">Settings</a></li>
             %if "auth" in cherrypy.request.cookie:
             
                 %if cherrypy.request.cookie['auth'].value in auth.Tokens:
@@ -113,8 +116,6 @@ import cherrypy
             %else:
                 <li><a href="/login?go=${util.url(cherrypy.url())}">Login</a></li>
             %endif
-            <li><a href="/helpmenu">Help</a></li>
-            <li><a href="/settings">Settings</a></li>
 
     </ul>
     </div>

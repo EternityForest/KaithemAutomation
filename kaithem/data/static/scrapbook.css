@@ -4,6 +4,11 @@ color:rgb(70, 45, 19);
 }
 ::-moz-selection {background: rgba(0, 0, 250, 0.25);}
 
+dl
+{
+	padding:2px;
+	margin:2px;
+}
 
 table{
 border-style: solid;
@@ -34,11 +39,11 @@ div.sectionbox {border-style:solid;
 background: rgba(240, 230, 200, 0.5);
 border-width:2px;
 border-radius: 7px;
-padding-top:0.5%;
+padding-top:0.2%;
 padding-bottom:0.5%;
 padding-right:1%;
 padding-left:0.5%;
-margin:3px;
+margin:2px;
 }
 
 .ace_editor div {
@@ -68,11 +73,13 @@ border-style:solid;
 background: rgba(255, 255, 230, 0.25);
 border-width: 2px;
 margin-top: 1px;
-width:96%;
+width:100%;
 border-radius:9px;
 list-style-type:none;
 display: table;
 border-color:grey;
+padding:2px;
+
 }
 
 #nav li
