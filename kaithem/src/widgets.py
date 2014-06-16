@@ -64,12 +64,19 @@ class Widget():
             if not auth.canUserDoThis(user,i):
                 return
             
-        for i in self._read_perms:
+        for i in self._write_perms:
             if not auth.canUserDoThis(user,i):
                 return
             
         self.onUpdate(user,value)
         self._callback(user,value)
+    
+    def isWritable(self):
+        for i in self._write_perms:
+            if not auth.canUserDoThis(pages.getAcessingUser(),i):
+                return "disabled"
+        return ""
+        
     
     def attach(self,f):
         self._callback = f
@@ -82,6 +89,12 @@ class Widget():
     
     def write(self,value):
         self._value = str(value)
+    
+    def require(self,permission):
+        self._read_perms.append(permission)
+        
+    def requireToWrite(self,permission):
+        self._write_perms.append(permission)
         
 
 class TimeWidget(Widget):
@@ -212,8 +225,8 @@ class Button(Widget):
     def render(self,content,type="default"):
         if type=="default":
             return("""
-            <button type="button" id="%s" onmousedown="KWidget_sendValue('%s','pushed')" onmouseleave="KWidget_sendValue('%s','released')" onmouseup="KWidget_sendValue('%s','released')">%s</button>
-             """%(self.uuid,self.uuid,self.uuid,self.uuid,content))
+            <button %s type="button" id="%s" onmousedown="KWidget_sendValue('%s','pushed')" onmouseleave="KWidget_sendValue('%s','released')" onmouseup="KWidget_sendValue('%s','released')">%s</button>
+             """%(self.isWritable(),self.uuid,self.uuid,self.uuid,self.uuid,content))
         
         if type=="trigger":
             return("""
@@ -241,11 +254,11 @@ class Button(Widget):
 
             </script>
             <button type="button" id="%s_1" onmousedown="%s_toggle()">ARM</button><br/>
-            <button type="button" class="triggerbuttonwidget" disabled=true id="%s_2" onmousedown="KWidget_sendValue('%s','pushed')" onmouseleave="KWidget_sendValue('%s','released')" onmouseup="KWidget_sendValue('%s','released')">
+            <button type="button" class="triggerbuttonwidget" disabled=true id="%s_2" onmousedown="KWidget_sendValue('%s','pushed')" onmouseleave="KWidget_sendValue('%s','released')" onmouseup="KWidget_sendValue('%s','released')" %s>
             <span id="%s_3">%s</span>
             </button>
             </div>
-             """%(self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,content))
+             """%(self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.isWritable(),self.uuid,content))
             
         raise RuntimeError("Invalid Button Type")
 
@@ -264,7 +277,7 @@ class Slider(Widget):
             return {'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
         if type=='realtime':
             return """<div class="widgetcontainer sliderwidget">
-            <input type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
+            <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
             class="verticalslider" orient="vertical"
             onchange="            
             KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
@@ -280,11 +293,11 @@ class Slider(Widget):
             }
             KWidget_register("%(id)s",upd);
             </script>
-            </div>"""%{'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
+            </div>"""%{'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
         
         if type=='onrelease':
             return """<div class="widgetcontainer sliderwidget">
-            <input type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
+            <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
             class="verticalslider" orient="vertical"
             onchange="document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s'; document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();"
             onmouseup="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
@@ -312,7 +325,7 @@ class Slider(Widget):
             document.getElementById('%(htmlid)s').jsmodifiable = true;
             KWidget_register("%(id)s",upd);
             </script>
-            </div>"""%{'htmlid':mkid(), 'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
+            </div>"""%{'en':self.isWritable(),'htmlid':mkid(), 'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
             raise ValueError("Invalid slider type:"%str(type))
         
 class Switch(Widget):
@@ -328,14 +341,14 @@ class Switch(Widget):
             x =''
             
         return """<div class="widgetcontainer">
-        <label><input id="%(htmlid)s" type="checkbox" onchange="KWidget_setValue('%(id)s',document.getElementById('%(htmlid)s').checked)" %(x)s>%(label)s</label>
+        <label><input %(en)s id="%(htmlid)s" type="checkbox" onchange="KWidget_setValue('%(id)s',document.getElementById('%(htmlid)s').checked)" %(x)s>%(label)s</label>
         <script type="text/javascript">
         var upd=function(val){
             document.getElementById('%(htmlid)s').checked= val;
         }
         KWidget_register("%(id)s",upd);
         </script>
-        </div>"""%{'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self._value, 'label':label}
+        </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self._value, 'label':label}
         
     
     
