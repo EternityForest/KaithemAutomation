@@ -118,6 +118,8 @@ class TimeWidget(Widget):
             setInterval(f,70);
             </script>
             </span>"""%(self.uuid,self.uuid,auth.getUserSetting(pages.getAcessingUser(),'strftime').replace('%l','%I')))
+        
+time_widget = TimeWidget(Widget)
 
             
 class DynamicSpan(Widget):

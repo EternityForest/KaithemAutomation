@@ -1,7 +1,7 @@
 
 <%include file="/pageheader_nonav.html"/>
 <%!
-from src import auth
+from src import auth,kaithemobj
 import cherrypy
 %>
     <h2 style="text-align: center;">Please Log In</h2>
@@ -16,4 +16,5 @@ import cherrypy
       </form>
 	</div>
     </div>
+<div class="sectionbox kflavortext"><i>"${kaithemobj.kaithem.misc.lorem()}"</i></div>
 <%include file="/pagefooter.html"/>
