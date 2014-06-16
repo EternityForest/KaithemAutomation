@@ -1,8 +1,3 @@
-::selection {
-background: rgba(140, 180, 140, 0.5);
-color:rgb(70, 45, 19);
-}
-::-moz-selection {background: rgba(0, 0, 250, 0.25);}
 
 body
 {
@@ -102,40 +97,42 @@ margin:0.5%;
 
 #nav {
 border-style:solid; 
-background: rgba(255, 255, 230, 0.25);
 border-width: 2px;
 margin-top: 1px;
-width:100%;
-border-radius:9px
+list-style-type:none;
+display: block;
+border-radius:9px;
+float:left;
+padding:1px;
 
 }
 
-#nav tr{
-border-style:solid;
-border-radius:9px
-}
-
-
-#nav td{
-border-style:none solid none solid; 
-text-align: center;
-border-color: grey;
-font-size:125%;
-}
-
-#nav td a
+#nav li
 {
-	text-decoration:none;
+	border-width:1px;
+	 font-size:125%;
+    
 }
 
-button {background-color: #E6E6B8;border-radius:7px;}
-input {background-color: #E6E6B8;border-radius:7px;}
+#nav li:last-child
+{
+	display:inline;
+	border-style: none ; 
+    display: table-cell;
+	
+}
+div.kpagebody
+{
+	float:left;
+}
+button {ackground-color: #222222;color:rgb(100, 255, 255)border-radius:7px;}
+input {background-color: #222222;color:rgb(100, 255, 255); border-radius:7px;}
 input.modulename {width:70%}
 input.pythoncode {width:100%}
-textarea.description {background-color: #E6E6B8;width:70%;}
-textarea.pythoncode {background-color: #E6E6B8; width:100%; overflow:"scroll";font-size:125%;}
-textarea.htmlcode {background-color: #E6E6B8; width:100%; overflow:"scroll";font-size:125%;}
-textarea.code {background-color: #E6E6B8; width:100%; overflow:"scroll";font-size:125%;}
+textarea.description {background-color: #222222; color:rgb(100, 255, 255);width:70%;}
+textarea.pythoncode {background-color: #222222;color:rgb(100, 255, 255); overflow:"scroll";font-size:125%;}
+textarea.htmlcode {background-color: #222222; color:rgb(100, 255, 255); overflow:"scroll";font-size:125%;}
+textarea.code {background-color: #222222;color:color:rgb(100, 255, 255); width:100%; overflow:"scroll";font-size:125%;}
 hr {
 border: none;
 border-top: 1px solid #bbb;
@@ -154,7 +151,7 @@ border-radius:5px;
 padding: 1px 3px 1px 3px;
 }
 /*background-color:rgba(255,150,150,0.33);*/
-a:hover{background-color:#E6F6B8;}
+a:hover{background-color: color:rgba(100, 255, 255,0.2);}
 ul{line-height:128%;}
 
 p.help{
@@ -180,13 +177,12 @@ padding:4px;
 }
 
 a.button{
-background-color: #E6E6B8;
-border-color:#E6E6B8;
+background-color:#222222;
+color:rgb(100, 255, 255);
 border-width:2px;
 text-decoration: none;
 border-radius:5px;
 border-style:outset;
-color:#000000;
 padding:0em 0.2em 0em 0.2em;
 }
 
@@ -195,10 +191,6 @@ a.button:active
 border-style:inset;
 }
 
-
-input:hover{
-background-color:#E6F6B8;
-}
 
 span.pre
 {
@@ -233,7 +225,7 @@ table tr:nth-child(even) td{
 tr:hover
 {
 /*background-color: rgba(70,170,70,0.35);*/
-background-color: rgba(120,190,120,0.45);
+background-color: color:rgba(100, 255, 255,0.15);
 }
 
 /*Widget Styles*/
@@ -254,7 +246,7 @@ vertical-align:text-top;
 div.widgetcontainer:hover
 {
 /*background-color: rgba(70,170,70,0.35);*/
-background-color: rgba(120,190,120,0.45);
+background-color: color:rgba(100, 255, 255,0.15);
 }
 
 span.numericpv
@@ -265,7 +257,7 @@ cursor:crosshair;
 
 span.numericpv:hover
 {
-background-color: rgba(230,255,200,0.50);
+background-color: color:rgba(100, 255, 255,0.2);
 cursor:crosshair;
 }
 

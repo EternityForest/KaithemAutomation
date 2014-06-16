@@ -15,10 +15,8 @@ import cherrypy
 
     <div style="width: 100%">
     ${config['top-banner-html']}
-    <table  border="" id="nav">
-      <tbody>
-        <tr>
-            <td><a href="/">Main</a>
+    <ul  border="" id="nav">
+<li><a href="/">Main</a>
             %if config['enable-js'] and pages.canUserDoThis("/admin/mainpage.view"):
             <span id = "notifications">
                 <script type="text/javascript">
@@ -97,28 +95,28 @@ import cherrypy
             </span>
             
             
-            </td>
-            <td ><a href="/auth/">Authorization</a></td>
-            <td><a href="/modules/">Modules</a></td>
+            </li>
+            <li ><a href="/auth/">Authorization</a></li>
+            <li><a href="/modules/">Modules</a></li>
 
-            <td><a href="/pagelisting">Pages</a></td>
-            <td><a href="/logs">Logs</a></td>
+            <li><a href="/pagelisting">Pages</a></li>
+            <li><a href="/logs">Logs</a></li>
             %if "auth" in cherrypy.request.cookie:
             
                 %if cherrypy.request.cookie['auth'].value in auth.Tokens:
-                    <td><a href="/login/logout">Logout</a></td>
+                    <li><a href="/login/logout">Logout</a></li>
                     
                 %else:
-                    <td><a href="/login?go=${util.url(cherrypy.url())}">Login</a></td>
+                    <li><a href="/login?go=${util.url(cherrypy.url())}">Login</a></li>
                 %endif
                 
             %else:
-                <td><a href="/login?go=${util.url(cherrypy.url())}">Login</a></td>
+                <li><a href="/login?go=${util.url(cherrypy.url())}">Login</a></li>
             %endif
-            <td><a href="/helpmenu">Help</a></td>
-            <td><a href="/settings">Settings</a></td>
-        </tr>
-      </tbody>
-    </table>
+            <li><a href="/helpmenu">Help</a></li>
+            <li><a href="/settings">Settings</a></li>
+
+    </ul>
     </div>
+    <div class="kpagebody">
 

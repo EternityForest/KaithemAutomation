@@ -10,7 +10,9 @@ border-style: solid;
 border-width:3px;
 border-collapse:collapse;
 }
-
+div.kmainpagebody
+{
+}
 #topbanner {  
   width: 100%;
   background: rgba(255, 255, 230, 0.25);
@@ -32,7 +34,6 @@ div.sectionbox {border-style:solid;
 background: rgba(240, 230, 200, 0.5);
 border-width:2px;
 border-radius: 7px;
-
 padding-top:0.5%;
 padding-bottom:0.5%;
 padding-right:1%;
@@ -67,28 +68,36 @@ border-style:solid;
 background: rgba(255, 255, 230, 0.25);
 border-width: 2px;
 margin-top: 1px;
-width:100%;
-border-radius:9px
-
+width:96%;
+border-radius:9px;
+list-style-type:none;
+display: table;
+border-color:grey;
 }
 
-#nav tr{
-border-style:solid;
-border-radius:9px
-}
-
-
-#nav td{
-border-style:none solid none solid; 
-text-align: center;
-border-color: grey;
-font-size:125%;
-}
-
-#nav td a
+#nav li
 {
-	text-decoration:none;
-	color: #800080;
+	display:inline;
+	border-width:1px;
+	border-style: none solid none none; 
+    display: table-cell;
+    text-align:center;
+    border-color: grey;
+    font-size:125%;
+    
+}
+
+#nav li:last-child
+{
+	display:inline;
+	border-style: none ; 
+    display: table-cell;
+	
+}
+
+nav.li:hover
+{
+background-color:#E6F6B8;
 }
 
 button {background-color: #E6E6B8;border-radius:7px;}
