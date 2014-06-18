@@ -29,6 +29,7 @@ _events = []
 
 #Let us now have a way to get at active event objects by means of their origin resource and module.
 __EventReferences = {}
+EventReferences = __EventReferences
 def renameEvent(oldModule,oldResource,module,resource):
     with _event_list_lock:
         __EventReferences[module,resource] = __EventReferences[oldModule,oldResource]

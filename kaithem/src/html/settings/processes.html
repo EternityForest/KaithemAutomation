@@ -1,0 +1,13 @@
+<%include file="/pageheader.html"/>
+<%from src import kaithemobj,util%>
+<h1>Running Proceses</h1>
+%if util.which("top"):
+<div class="sectionbox">
+<pre>
+${kaithemobj.kaithem.sys.shellex("top -b -n 1").decode()}
+</pre>
+%else:
+<p class="error">Program "top" not installed.</p>
+%endif
+</div>
+<%include file="/pagefooter.html"/>

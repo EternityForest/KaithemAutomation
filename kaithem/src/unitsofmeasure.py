@@ -248,8 +248,10 @@ def siFormatNumber(number,digits=2):
         return(str(round(number*1000000000,digits))+' n')
     if number < 0.001:
         return(str(round(number*1000000,digits))+' u')
-    if number < 0.01:
+    if number < 0.1:
         return(str(round(number*1000,digits))+' m')
+    
+    return(str(round(number,digits)))
 
 
 

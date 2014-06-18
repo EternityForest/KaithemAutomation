@@ -1,0 +1,62 @@
+<%include file="/pageheader.html"/>
+<%from src import unitsofmeasure%>
+<h1>All Settings</h1>
+<div class="sectionbox">
+<dl>
+<%
+try:
+    import yappi
+    _yappi = True
+except:
+    _yappi = False
+%>
+
+%if _yappi:
+    <dl>
+    %if not yappi.is_running():
+        <dt><a href="/settings/profiler/start">Start Profiler</a></dt>
+        <dd>Start the profiling engine
+    %else:
+        <dt><a href="/settings/profiler/stop">Stop</a></dt>
+        <dd>Stop the profiler</dd>
+    %endif
+        <dt><a href="/settings/profiler/clear">Clear</a></dt>
+        <dd>Clear Profile Data</dd>
+    </dl>
+    
+     %if  yappi.is_running():
+    <%
+    if sort == 'total':
+        sorter = lambda x: x.ttot
+    else:
+        sorter = lambda x: x.tsub
+    %>
+        
+    <table border=1 style="font-size:85%;">
+    <tr>
+    <td>Function Name</td>
+    <td>Call Count</td>
+    <td><a href="/settings/profiler">Total Subtime</a></td>
+    <td>Average Time</td>
+    <td><a href="/settings/profiler/bytotal">Total Time</a></td>
+    %for i in sorted(yappi.get_stats().func_stats, key=sorter, reverse=True):
+    <tr><td>${i.name}</td>
+    <td>${unitsofmeasure.siFormatNumber(i.ncall)}</td>
+    <td>${unitsofmeasure.siFormatNumber(i.tsub)}s</td>
+    <td>${unitsofmeasure.siFormatNumber(i.tavg)}s</td>
+    <td>${unitsofmeasure.siFormatNumber(i.ttot)}s</td>
+    
+    </tr>
+    %endfor
+    </table>
+    %endif
+
+
+
+%else:
+<p class="error">Profiler disabled. Is the python package "yappi" missing?</p>
+%endif
+
+
+</div>
+<%include file="/pagefooter.html"/>

@@ -100,10 +100,8 @@ import cherrypy
             <li><a href="/pagelisting">Pages</a></li>
 
             <li><a href="/helpmenu">Help</a></li>
-            <li><a href="/auth/">Users</a></li>
-<li><a href="/logs">Logs</a></li>
             
-            <li><a href="/settings">Settings</a></li>
+            <li><a href="/settings">Settings and Tools</a></li>
             %if "auth" in cherrypy.request.cookie:
             
                 %if cherrypy.request.cookie['auth'].value in auth.Tokens:

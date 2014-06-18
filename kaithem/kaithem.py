@@ -190,9 +190,6 @@ cnf={
         {'tools.staticdir.on': True,
         'tools.staticdir.dir':os.path.join(dn,'data/static'),
         "tools.sessions.on": False,
-        'tools.caching.on' : True,
-        'tools.caching.delay' : 3600,
-        "tools.caching.expires": 3600,
         "tools.addheader.on": True
         },
      
@@ -209,8 +206,6 @@ for i in config['serve-static']:
         'tools.staticdir.on': True,
         'tools.staticdir.dir': config['serve-static'][i],
         "tools.sessions.on": False,
-        'tools.caching.on' : True,
-        'tools.caching.delay' : 3600,
         "tools.addheader.on": True
         }    
 
