@@ -251,7 +251,9 @@ def siFormatNumber(number,digits=2):
     if number < 0.01:
         return(str(round(number*1000,digits))+' m')
     
-    return number
+    if number-int(number)==0:
+        return str(int(number))
+    return str(number)
 
 
 
