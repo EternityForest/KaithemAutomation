@@ -12,7 +12,8 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import cherrypy,base64,os,time,subprocess,time
+import cherrypy,base64,os,time,subprocess,time,shutil
+from cherrypy.lib.static import serve_file
 from . import pages, util,messagebus,config,auth,registry,mail
 
 class Settings():
@@ -21,8 +22,43 @@ class Settings():
         return pages.get_template("settings/index.html").render()
     
     @cherrypy.expose 
+    def files(self,*args,**kwargs):
+        pages.require("/admin/settings.edit")
+        dir=os.path.join('/',*args)
+        
+        if 'del' in kwargs:
+            node = os.path.join(dir,kwargs['del'])
+            if os.path.isfile(node):
+                os.remove(node)
+            else:
+                shutil.rmtree(node)
+            cherrypy.HTTPRedirect(cherrypy.request.path_info.split('?')[0])
+                
+        if 'file' in kwargs:
+            if os.path.exists(os.path.join(dir,kwargs['file'].filename)):
+                raise RuntimeError("Node with that name already exists")
+            with open(os.path.join(dir,kwargs['file'].filename),'wb') as f:
+                while True:
+                    data = kwargs['file'].file.read(8192)
+                    if not data:
+                        break
+                    f.write(data)
+                    
+        if os.path.isdir(dir):
+            return pages.get_template("settings/files.html").render(dir=dir)
+        else:
+            return serve_file(dir)
+        
+    
+    @cherrypy.expose 
+    def cnfdel(self,*args,**kwargs):
+        pages.require("/admin/settings.edit")
+        path=os.path.join('/',*args)
+        return pages.get_template("settings/cnfdel.html").render(path=path)
+        
+    @cherrypy.expose 
     def console(self,**kwargs):
-        pages.require("/users/accountsettings.edit")
+        pages.require("/admin/settings.edit")
         if 'script' in kwargs:
             x = ''
             p = subprocess.Popen("bash -i",universal_newlines=True, shell=True,stdout=subprocess.PIPE,stdin=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -86,7 +122,7 @@ class Settings():
     
     @cherrypy.expose
     def testmail(self,*a,**k):
-        pages.require("/users/accountsettings.edit")
+        pages.require("/admin/settings.edit")
         mail.raw_send("testing",k['to'],'test mail')
         raise cherrypy.HTTPRedirect("/")
     

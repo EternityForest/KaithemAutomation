@@ -1,0 +1,12 @@
+<%include file="/pageheader.html"/>
+<%
+from src import unitsofmeasure
+import os,urllib
+
+%>
+<h1>Confirm Delete(Back to cancel)</h1>
+<div class="sectionbox">
+Confirm deleting ${path|h}?<br>
+<a href="/settings/files/${os.path.split(path)[0]|u}?del=${os.path.split(path)[1]|u}">Confirm(Cannot be undone)</a>
+</div>
+<%include file="/pagefooter.html"/>

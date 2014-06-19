@@ -1,0 +1,35 @@
+<%include file="/pageheader.html"/>
+<%
+from src import unitsofmeasure
+import os,urllib
+
+%>
+<h1>File Manager</h1>
+<div class="sectionbox">
+<p class="help">Blah
+</p>
+<a href="/settings/files/${os.path.split(dir)[0]|u}">Up One Level</a><br>
+
+<pre>${dir}</pre>
+<form enctype="multipart/form-data" action="/settings/files/${dir|u}" method="POST">
+<p class="menubar">
+Upload File:
+<input type="file" name="file">
+<input type="submit">
+</p>
+</form>
+
+<table border=1>
+<tr><th>Path</th><th>Size</th><th>Delete?</th></tr>
+%for i in os.listdir(dir):
+
+<tr><td><a href="/settings/files/${os.path.join(dir,i)|u}">${i}</a></td>
+<td>${unitsofmeasure.siFormatNumber(os.path.getsize(os.path.join(dir,i)),0)}</td>
+<td><a href="/settings/cnfdel/${os.path.join(dir,i)|u}">Delete</a></td>
+</tr>
+%endfor
+</table>
+
+
+</div>
+<%include file="/pagefooter.html"/>

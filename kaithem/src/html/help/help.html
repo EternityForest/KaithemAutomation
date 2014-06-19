@@ -481,6 +481,55 @@ h4 {
         they have the capability to outlast the creating code. If one set up a event that creates temporary events, then
         deletes the event, the temporary events will remain until triggered or until the server is restarted.</p>
         
+        <h3>kaithem.persist</h3>
+        <p>Provides easy-to-use functionality for traditional file based persistance.</p>
+        
+         <h4>kaithem.persist.load(filename)</h4>
+        <p>
+        Load data from a file named filname in a format dictated by the file extension. 
+        Data will be converted to a python appropriate representation and returned.
+        </p>
+        
+        <h4>Supported File Types</h4>
+        <dl>
+        <dt>.json</dt>
+        <dd>Values may be list, dict, string, int, bool, or None</dd>
+        <dt>.yaml</dt>
+        <dd>Values may be list, dict, string, int, bool, or None</dd>
+        <dt>.txt</dt>
+        <dd>Values may be anything. str() will be used on it prior to saving.</dd>
+        <dt>.bin</dt>
+        <dd>Bytes and bytearrays.</dl>
+        <dt>*.gz</dt>
+        <dd>Any other type may be compressed with gzip compresssion(e.g. "foo.txt.gz")</dd>
+        <dt>*.bz2</dt>
+        <dd>Any other type may be compressed with bz2 compression(e.g. "bar.json.bz2")</dd>
+        </dl>
+        
+        
+        <h4>kaithem.persist.save(data,filename,mode=default)</h4>
+        <p>
+        Saves data to a file named fn in a format dictated by the file extension. 
+        If the file does it exist, it will be created. If it does, it will be overwritten.
+        If mode=='backup', a tilde will be apended to the existig file's name,
+        the new file written, and then the backup will be deleted. Compressed filetypes are also supported.
+        </p>
+        
+        <h4>Supported File Types</h4>
+        <dl>
+        <dt>.json</dt>
+        <dd>Values may be list, dict, string, int, bool, or None</dd>
+        <dt>.yaml</dt>
+        <dd>Values may be list, dict, string, int, bool, or None</dd>
+        <dt>.txt</dt>
+        <dd>Values may be anything. str() will be used on it prior to saving.</dd>
+        <dt>.bin</dt>
+        <dd>Bytes and bytearrays.</dl>
+        <dt>*.gz</dt>
+        <dd>Any other type may be compressed with gzip compresssion(e.g. "foo.txt.gz")</dd>
+        <dt>*.bz2</dt>
+        <dd>Any other type may be compressed with bz2 compression(e.g. "bar.json.bz2")</dd>
+        </dl>
         <h2>
             <a id="theming" name="theming"></a>Theming
         </h2>
