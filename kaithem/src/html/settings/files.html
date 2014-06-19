@@ -1,6 +1,6 @@
 <%include file="/pageheader.html"/>
 <%
-from src import unitsofmeasure
+from src import unitsofmeasure,util
 import os,urllib
 
 %>
@@ -8,10 +8,10 @@ import os,urllib
 <div class="sectionbox">
 <p class="help">Blah
 </p>
-<a href="/settings/files/${os.path.split(dir)[0]|u}">Up One Level</a><br>
+<a href="/settings/files/${util.url(os.path.split(dir)[0])}">Up One Level</a><br>
 
 <pre>${dir}</pre>
-<form enctype="multipart/form-data" action="/settings/files/${dir|u}" method="POST">
+<form enctype="multipart/form-data" action="/settings/files/${util.url(dir)}" method="POST">
 <p class="menubar">
 Upload File:
 <input type="file" name="file">
@@ -20,12 +20,12 @@ Upload File:
 </form>
 
 <table border=1>
-<tr><th>Path</th><th>Size</th><th>Delete?</th></tr>
+<tr><th>Path</th><th>Size</th><th>Delete</th></tr>
 %for i in os.listdir(dir):
 
-<tr><td><a href="/settings/files/${os.path.join(dir,i)|u}">${i}</a></td>
-<td>${unitsofmeasure.siFormatNumber(os.path.getsize(os.path.join(dir,i)),0)}</td>
-<td><a href="/settings/cnfdel/${os.path.join(dir,i)|u}">Delete</a></td>
+<tr><td><a href="/settings/files/${util.url(os.path.join(dir,i))}">${i}</a></td>
+<td>${unitsofmeasure.siFormatNumber(os.path.getsize(os.path.join(dir,i)),1)}B</td>
+<td><a href="/settings/cnfdel/${util.url(os.path.join(dir,i))}">Delete</a></td>
 </tr>
 %endfor
 </table>

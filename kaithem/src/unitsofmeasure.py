@@ -236,26 +236,33 @@ def strToIntWithSIMultipliers(s):
     else:
         return int(s[:-1])
 
+def iround(number,digits):
+    if (number-int(number)==0) or (digits==0):
+        return int(number)
+    else:
+        return round(number,digits)
+
 def siFormatNumber(number,digits=2):
+    if number == 0:
+        return "0 "
+    
     if number > 1000000000:
-        return(str(round(number/1000000000,digits))+' G')
+        return(str(iround(number/1000000000,digits))+' G')
     if number > 1000000:
-        return(str(round(number/1000000,digits))+' M')
+        return(str(iround(number/1000000,digits))+' M')
     if number > 1000:
-        return(str(round(number/1000,digits))+' K')
+        return(str(iround(number/1000,digits))+' K')
     
     if number < 0.00000001:
         return(str(round(number*1000000000000,digits))+' p')
     if number < 0.00001:
-        return(str(round(number*1000000000,digits))+' n')
+        return(str(iround(number*1000000000,digits))+' n')
     if number < 0.001:
-        return(str(round(number*1000000,digits))+' u')
-    if number < 0.1:
-        return(str(round(number*1000,digits))+' m')
+        return(str(iround(number*1000000,digits))+' u')
+    if number < 0.01:
+        return(str(iround(number*1000,digits))+' m')
     
-    if number-int(number)==0:
-        return str(int(number))
-    return str(number)
+    return str(iround(number,digits))+' '
 
 
 
