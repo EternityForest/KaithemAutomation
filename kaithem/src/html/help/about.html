@@ -118,8 +118,8 @@
                 free = int(re.search("MemFree.*?([0-9]+)",f).group(1))
                 cache = int(re.search("Cached.*?([0-9]+)",f).group(1))
                 
-                used = round(((total - (free+cache))/1000),2)
-                usedp = round((1-(free+cache)/total)*100,2)
+                used = round(((total - (free+cache))/1000.0),2)
+                usedp = round((1-(free+cache)/float(total))*100,2)
                 total = round(total/1024,2)
             except Exception as e:
                 total=used=usedp = "Unavailable"
