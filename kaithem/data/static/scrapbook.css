@@ -15,6 +15,11 @@ border-style: solid;
 border-width:3px;
 border-collapse:collapse;
 }
+
+tr.header
+{
+	font-weight:bold;
+}
 div.kmainpagebody
 {
 }

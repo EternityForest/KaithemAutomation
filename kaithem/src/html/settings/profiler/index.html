@@ -41,17 +41,17 @@ except:
         gn = lambda x: x.full_name
         stats= yappi.get_func_stats()       
     %>
-        
+    <h2>Statistics</h2>
     <table border=1 style="font-size:85%;">
     <tr>
-    <td>Module</td>
-    <td>Name</td>
+    <th>Module</th>
+    <th>Name</th>
     
-    <td>Line</td>
-    <td>Call Count</td>
-    <td><a href="/settings/profiler">Total Subtime</a></td>
-    <td>Average Time</td>
-    <td><a href="/settings/profiler/bytotal">Total Time</a></td>
+    <th>Line</th>
+    <th>Call Count</th>
+    <th><a href="/settings/profiler">Total Subtime</a></th>
+    <th>Average Time</th>
+    <th><a href="/settings/profiler/bytotal">Total Time</a></th>
     %for i in sorted(stats, key=sorter, reverse=True):
     <tr>
     %if sys.version_info < (3,3):
