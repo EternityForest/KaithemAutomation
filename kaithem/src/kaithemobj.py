@@ -15,9 +15,9 @@
 
 """This is the global general purpose utility thing that is accesable from almost anywhere in user code."""
 
-import time,random,subprocess,threading,random,registry
+import time,random,subprocess,threading,random
 import cherrypy
-from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets
+from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry
 from . import astrallibwrapper as sky
 
 #This exception is what we raise from within the page handler to serve a static file
