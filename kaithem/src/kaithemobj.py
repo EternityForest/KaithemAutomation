@@ -15,7 +15,7 @@
 
 """This is the global general purpose utility thing that is accesable from almost anywhere in user code."""
 
-import time,random,subprocess,threading,random
+import time,random,subprocess,threading,random,registry
 import cherrypy
 from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets
 from . import astrallibwrapper as sky
