@@ -238,9 +238,9 @@ def strToIntWithSIMultipliers(s):
 
 def siFormatNumber(number,digits=2):
     if number > 1000000000:
-        return(str(round(number/1000,digits))+' G')
+        return(str(round(number/1000000000,digits))+' G')
     if number > 1000000:
-        return(str(round(number/1000,digits))+' M')
+        return(str(round(number/1000000,digits))+' M')
     if number > 1000:
         return(str(round(number/1000,digits))+' K')
     
@@ -253,7 +253,9 @@ def siFormatNumber(number,digits=2):
     if number < 0.1:
         return(str(round(number*1000,digits))+' m')
     
-    return(str(round(number,digits)))
+    if number-int(number)==0:
+        return str(int(number))
+    return str(number)
 
 
 
