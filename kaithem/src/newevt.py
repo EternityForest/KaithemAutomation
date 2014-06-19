@@ -16,7 +16,7 @@
 #NOTICE: A LOT OF LOCKS ARE USED IN THIS FILE. WHEN TWO LOCKS ARE USED, ALWAYS GET _event_list_lock LAST
 #IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
-import traceback,threading,sys,time,atexit,collections,os,base64
+import traceback,threading,sys,time,atexit,collections,os,base64,imp,types
 from . import workers, kaithemobj,messagebus,util,modules_state
 
 from .config import config
@@ -173,20 +173,20 @@ def parseTrigger(when):
         
 
 #Factory function that examines the type of trigger and chooses a class to handle it.
-def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setup = None,priority=2):
+def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setup = None,priority=2,**kwargs):
     trigger = parseTrigger(when)
     
     if scope == None:
         scope = make_eventscope()
         
     if trigger[0] == '!onmsg':
-        return MessageEvent(when,do,scope,continual,ratelimit,setup,priority)
+        return MessageEvent(when,do,scope,continual,ratelimit,setup,priority,**kwargs)
     
     elif trigger[0] == '!onchange':
-        return ChangedEvalEvent(when,do,scope,continual,ratelimit,setup,priority)
+        return ChangedEvalEvent(when,do,scope,continual,ratelimit,setup,priority,**kwargs)
     
     elif trigger[0] == '!edgetrigger':
-        return PolledEvalEvent(when,do,scope,continual,ratelimit,setup,priority)
+        return PolledEvalEvent(when,do,scope,continual,ratelimit,setup,priority,**kwargs)
     
     #Defensive programming, raise error on nonsense event type
     raise RuntimeError("Invalid trigger expression that begins with" + str(trigger[0]))
@@ -216,7 +216,7 @@ class BaseEvent():
     continual: Execute as often as possible while condition remains true
     
     """
-    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = None,priority = 2):
+    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = None,priority = 2,m='x',r='x'):
         #Copy in the data from args
         self.scope = scope
         self._prevstate = False
@@ -245,9 +245,10 @@ class BaseEvent():
                 
         self.runTimes = []
         #Tese are only used for debug messages, but still someone should set them after they make the object
-        self.module = "UNKNOWN"
-        self.resource = "UNKNOWN"
-
+        self.module = m
+        self.resource = r
+        self.pymodule = types.ModuleType("Event_"+m+"_"+r)
+        self.pymodule.__file__ = "Event_"+m+"_"+r
         #This lock makes sure that only one copy of the event executes at once.
         self.lock = threading.Lock()
         
@@ -353,14 +354,29 @@ class CompileCodeStringsMixin():
     "This mixin lets a class take strings of code for its setup and action"
     def _init_setup_and_action(self,setup,action):
         #Compile the action and run the initializer
-        self.action = compile(action,"<action>","exec")
         if setup == None:
             setup = "pass"
-        initializer = compile(setup,"<setup>","exec")
-        exec(initializer,self.scope,self.scope)
+        initializer = compile(setup,"Event_"+self.module+'_'+self.resource,"exec")
+        
+        try:
+            self.pymodule.__dict__['kaithem']=kaithemobj.kaithem
+            self.pymodule.__dict__['module']=modules_state.scopes[self.module]
+        except KeyError as e:
+            pass
+        
+        
+        
+        exec(initializer,self.pymodule.__dict__)
+        body = "def action():\n"
+        for line in action.split('\n'):
+            body+=("    "+line+'\n')
+        body+=("    for i in locals(): globals()[i]=locals()[i]")
+        body = compile(body,"Event_"+self.module+'_'+self.resource,'exec')
+        exec(body,self.pymodule.__dict__)
+
     
     def _do_action(self):
-        exec(self.action,self.scope,self.scope)
+        self.pymodule.action()
 
 class DirectFunctionsMixin():
         def _init_setup_and_action(self,setup,action):
@@ -371,12 +387,14 @@ class MessageEvent(BaseEvent,CompileCodeStringsMixin):
         
         #This event type is not polled. Note that it doesn't even have a check() method.
         self.polled = False
+        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
+
         def action_wrapper(topic,message):
             #Since we aren't under the BaseEvent.check() lock, we need to get it ourselves.
             with self.lock:
                 #setup environment
-                self.scope['__topic'] = topic
-                self.scope['__message'] = message
+                self.pymodule.__topic = topic
+                self.pymodule.__message = message
                 #We delegate the actual execution of the body to the on_trigger
                 self._on_trigger()
             
@@ -389,7 +407,6 @@ class MessageEvent(BaseEvent,CompileCodeStringsMixin):
         t = when.strip().split(' ',1)[1].strip()
         #Subscribe our new function to the topic we want
         messagebus.subscribe(t,action_wrapper)
-        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
         self._init_setup_and_action(setup,do)
         
 class ChangedEvalEvent(BaseEvent,CompileCodeStringsMixin):      
@@ -403,19 +420,19 @@ class ChangedEvalEvent(BaseEvent,CompileCodeStringsMixin):
         #What this does is to eliminate leading whitespace, split on first space,
         #Then get rid of any extra spaces in between the command and argument.
         f = when.strip().split(' ',1)[1].strip()
-        
-        #Compile the expression that will be checked for changes
-        self.f= compile(f,"<inputvalue>","eval")
+        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
+        self._init_setup_and_action(setup,do)
+
+        x = compile("def trigger():\n    return "+f,"Event_"+self.module+'_'+self.resource,'exec')
+        exec(x,self.pymodule.__dict__)
         
         #This flag indicates that we have never had a reading
         self.at_least_one_reading = False
         self.polled = True
-        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
-        self._init_setup_and_action(setup,do)
         
     def _check(self):
         #Evaluate the function that gives us the values we are looking for changes in
-        self.latest = eval(self.f,self.scope,self.scope)
+        self.latest = self.pymodule.trigger()
         #If this is the very first reading,
         if not self.at_least_one_reading:
             #make a fake previous reading the same as the last one
@@ -438,16 +455,18 @@ class PolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
         #If the trigger is False, it will never trigger, so we don't poll it.
         if when == 'False':
             self.polled = False
-            
-        #Compile the trigger
-        self.trigger = compile(when,"<trigger>","eval")
         BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
+
+        #Compile the trigger
+        x = compile("def trigger():\n    return "+when,"Event_"+self.module+'_'+self.resource,'exec')
+        exec(x,self.pymodule.__dict__)
+
         self._init_setup_and_action(setup,do)
         
     def _check(self):
         """Check if the trigger is true and if so do the action."""            
         #Eval the condition in the local event scope
-        if eval(self.trigger,self.scope,self.scope):
+        if self.pymodule.trigger():
             #Only execute once on false to true change unless continual was set
             if (self.continual or self._prevstate == False):
                 self._prevstate = True
@@ -461,8 +480,9 @@ class PolledInternalSystemEvent(BaseEvent,DirectFunctionsMixin):
         self.polled = True
         #Compile the trigger
         self.trigger = when
-        self._init_setup_and_action(setup,do)
         BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
+        self._init_setup_and_action(setup,do)
+
         
     def _check(self):
         """Check if the trigger is true and if so do the action."""     
@@ -626,7 +646,9 @@ def make_event_from_resource(module,resource):
               setup = setupcode,
               continual = continual,
               ratelimit=ratelimit,
-              priority=priority)
+              priority=priority,
+              m=module,
+              r=resource)
     
     x.module = module
     x.resource =resource

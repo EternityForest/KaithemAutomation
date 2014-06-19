@@ -244,6 +244,8 @@ def siFormatNumber(number,digits=2):
     if number > 1000:
         return(str(round(number/1000,digits))+' K')
     
+    if number < 0.00000001:
+        return(str(round(number*1000000000000,digits))+' p')
     if number < 0.00001:
         return(str(round(number*1000000000,digits))+' n')
     if number < 0.001:

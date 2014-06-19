@@ -1,3 +1,5 @@
+import sys
+
 from cherrypy._cpcompat import ntob
 from cherrypy.test import helper
 
@@ -19,15 +21,16 @@ class WSGIGraftTests(helper.CPWebCase):
             keys = list(environ.keys())
             keys.sort()
             for k in keys:
-                output.append('%s: %s\n' % (k,environ[k]))
+                output.append('%s: %s\n' % (k, environ[k]))
             return [ntob(x, 'utf-8') for x in output]
 
         def test_empty_string_app(environ, start_response):
             status = '200 OK'
             response_headers = [('Content-type', 'text/plain')]
             start_response(status, response_headers)
-            return [ntob('Hello'), ntob(''), ntob(' '), ntob(''), ntob('world')]
-
+            return [
+                ntob('Hello'), ntob(''), ntob(' '), ntob(''), ntob('world')
+            ]
 
         class WSGIResponse(object):
 
@@ -38,15 +41,16 @@ class WSGIGraftTests(helper.CPWebCase):
             def __iter__(self):
                 return self
 
-            def next(self):
-                return self.iter.next()
-            def __next__(self):
-                return next(self.iter)
+            if sys.version_info >= (3, 0):
+                def __next__(self):
+                    return next(self.iter)
+            else:
+                def next(self):
+                    return self.iter.next()
 
             def close(self):
                 if hasattr(self.appresults, "close"):
                     self.appresults.close()
-
 
         class ReversingMiddleware(object):
 
@@ -55,22 +59,27 @@ class WSGIGraftTests(helper.CPWebCase):
 
             def __call__(self, environ, start_response):
                 results = app(environ, start_response)
+
                 class Reverser(WSGIResponse):
-                    def next(this):
-                        line = list(this.iter.next())
-                        line.reverse()
-                        return "".join(line)
-                    def __next__(this):
-                        line = list(next(this.iter))
-                        line.reverse()
-                        return bytes(line)
+
+                    if sys.version_info >= (3, 0):
+                        def __next__(this):
+                            line = list(next(this.iter))
+                            line.reverse()
+                            return bytes(line)
+                    else:
+                        def next(this):
+                            line = list(this.iter.next())
+                            line.reverse()
+                            return "".join(line)
+
                 return Reverser(results)
 
         class Root:
+
             def index(self):
                 return ntob("I'm a regular CherryPy page handler!")
             index.exposed = True
-
 
         cherrypy.tree.mount(Root())
 
@@ -115,4 +124,3 @@ This is a wsgi app running within CherryPy!'''
         self.getPage("/hosted/app3")
         self.assertHeader("Content-Type", "text/plain")
         self.assertInBody('Hello world')
-

@@ -1,7 +1,9 @@
+import os
+import sys
+
 from cherrypy._cpcompat import HTTPConnection, HTTPSConnection, ntob
 from cherrypy._cpcompat import BytesIO
 
-import os
 curdir = os.path.join(os.getcwd(), os.path.dirname(__file__))
 has_space_filepath = os.path.join(curdir, 'static', 'has space.html')
 bigfile_filepath = os.path.join(curdir, "static", "bigfile.log")
@@ -55,7 +57,6 @@ class StaticTest(helper.CPWebCase):
                 return "This is a DYNAMIC page"
             dynamic.exposed = True
 
-
         root = Root()
         root.static = Static()
 
@@ -79,7 +80,13 @@ class StaticTest(helper.CPWebCase):
                 'tools.staticdir.on': True,
                 'request.show_tracebacks': True,
             },
+            '/404test': {
+                'tools.staticdir.on': True,
+                'tools.staticdir.root': curdir,
+                'tools.staticdir.dir': 'static',
+                'error_page.404': error_page_404,
             }
+        }
         rootApp = cherrypy.Application(root)
         rootApp.merge(rootconf)
 
@@ -89,15 +96,14 @@ class StaticTest(helper.CPWebCase):
                 'tools.staticdir.on': True,
                 'tools.staticdir.root': curdir,
                 'tools.staticdir.dir': 'static',
-                },
-            }
+            },
+        }
         testApp = cherrypy.Application(Static())
         testApp.merge(test_app_conf)
 
         vhost = cherrypy._cpwsgi.VirtualHost(rootApp, {'virt.net': testApp})
         cherrypy.tree.graft(vhost)
     setup_server = staticmethod(setup_server)
-
 
     def teardown_server():
         for f in (has_space_filepath, bigfile_filepath):
@@ -107,7 +113,6 @@ class StaticTest(helper.CPWebCase):
                 except:
                     pass
     teardown_server = staticmethod(teardown_server)
-
 
     def testStatic(self):
         self.getPage("/static/index.html")
@@ -157,15 +162,20 @@ class StaticTest(helper.CPWebCase):
         self.getPage("/docroot")
         self.assertStatus(301)
         self.assertHeader('Location', '%s/docroot/' % self.base())
-        self.assertMatchesBody("This resource .* <a href='%s/docroot/'>"
+        self.assertMatchesBody("This resource .* <a href=(['\"])%s/docroot/\\1>"
                                "%s/docroot/</a>." % (self.base(), self.base()))
 
     def test_config_errors(self):
         # Check that we get an error if no .file or .dir
         self.getPage("/error/thing.html")
         self.assertErrorPage(500)
-        self.assertMatchesBody(ntob("TypeError: staticdir\(\) takes at least 2 "
-                                    "(positional )?arguments \(0 given\)"))
+        if sys.version_info >= (3, 3):
+            errmsg = ntob("TypeError: staticdir\(\) missing 2 "
+                          "required positional arguments")
+        else:
+            errmsg = ntob("TypeError: staticdir\(\) takes at least 2 "
+                          "(positional )?arguments \(0 given\)")
+        self.assertMatchesBody(errmsg)
 
     def test_security(self):
         # Test up-level security
@@ -248,14 +258,15 @@ class StaticTest(helper.CPWebCase):
 
             expected = len(body)
             if tell_position >= BIGFILE_SIZE:
-                # We can't exactly control how much content the server asks for.
+                # We can't exactly control how much content the server asks
+                # for.
                 # Fudge it by only checking the first half of the reads.
                 if expected < (BIGFILE_SIZE / 2):
                     self.fail(
-                        "The file should have advanced to position %r, but has "
-                        "already advanced to the end of the file. It may not be "
-                        "streamed as intended, or at the wrong chunk size (64k)" %
-                        expected)
+                        "The file should have advanced to position %r, but "
+                        "has already advanced to the end of the file. It "
+                        "may not be streamed as intended, or at the wrong "
+                        "chunk size (64k)" % expected)
             elif tell_position < expected:
                 self.fail(
                     "The file should have advanced to position %r, but has "
@@ -296,3 +307,13 @@ class StaticTest(helper.CPWebCase):
         if self.body != ntob("x" * BIGFILE_SIZE):
             self.fail("Body != 'x' * %d. Got %r instead (%d bytes)." %
                       (BIGFILE_SIZE, self.body[:50], len(body)))
+                      
+    def test_error_page_with_serve_file(self):
+        self.getPage("/404test/yunyeen")
+        self.assertStatus(404)
+        self.assertInBody("I couldn't find that thing")
+
+def error_page_404(status, message, traceback, version):
+    import os.path
+    return static.serve_file(os.path.join(curdir, 'static', '404.html'),
+        content_type='text/html')

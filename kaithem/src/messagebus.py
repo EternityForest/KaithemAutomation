@@ -130,6 +130,7 @@ class MessageBus(object):
         
         def f():
             self._post(topic,message)
+        f.__name__ = 'Publish_'+topic
         self.executor(f)
         
         

@@ -24,7 +24,7 @@ from .config import config
 errors = {}
 
 class CompiledPage():
-    def __init__(self, resource):
+    def __init__(self, resource,m='unknown',r='unknown'):
         
         template = resource['body']
         self.errors = []
@@ -70,7 +70,7 @@ class CompiledPage():
         footer = util.readfile(os.path.join(directories.htmldir,'pagefooter.html'))
         
         templatesource = header + template + footer
-        self.template = mako.template.Template(templatesource)
+        self.template = mako.template.Template(templatesource,uri="Template"+m+'_'+r)
             
             
 def getPageErrors(module,resource):
@@ -132,7 +132,7 @@ def getPagesFromModules():
                 for m in modules_state.ActiveModules[i].copy():
                     j=modules_state.ActiveModules[i][m]
                     if j['resource-type']=='page':
-                        _Pages[i][m] = CompiledPage(j)
+                        _Pages[i][m] = CompiledPage(j,i,m)
 
 #kaithem.py has come config option that cause this file to use the method dispatcher.
 class KaithemPage():

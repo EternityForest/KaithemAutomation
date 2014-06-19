@@ -1,5 +1,8 @@
 <%include file="/pageheader.html"/>
-<%from src import unitsofmeasure%>
+<%
+import sys
+from src import unitsofmeasure
+%>
 <h1>All Settings</h1>
 <div class="sectionbox">
 <dl>
@@ -30,21 +33,46 @@ except:
         sorter = lambda x: x.ttot
     else:
         sorter = lambda x: x.tsub
+    
+    if sys.version_info < (3,3):
+        stats = yappi.get_stats().func_stats
+        gn = lambda x: x.name
+    else:
+        gn = lambda x: x.full_name
+        stats= yappi.get_func_stats()       
     %>
         
     <table border=1 style="font-size:85%;">
     <tr>
-    <td>Function Name</td>
+    <td>Module</td>
+    <td>Name</td>
+    
+    <td>Line</td>
     <td>Call Count</td>
     <td><a href="/settings/profiler">Total Subtime</a></td>
     <td>Average Time</td>
     <td><a href="/settings/profiler/bytotal">Total Time</a></td>
-    %for i in sorted(yappi.get_stats().func_stats, key=sorter, reverse=True):
-    <tr><td>${i.name}</td>
+    %for i in sorted(stats, key=sorter, reverse=True):
+    <tr>
+    %if sys.version_info < (3,3):
+    <td>${0}</td>
+    <td>${i.name}</td>
+    <td>${0}</td>
+    
     <td>${unitsofmeasure.siFormatNumber(i.ncall)}</td>
     <td>${unitsofmeasure.siFormatNumber(i.tsub)}s</td>
     <td>${unitsofmeasure.siFormatNumber(i.tavg)}s</td>
     <td>${unitsofmeasure.siFormatNumber(i.ttot)}s</td>
+    %else:
+    <td>${i.module}</td>
+    <td>${i.name}</td>
+    <td>${i.lineno}</td>
+    
+    <td>${unitsofmeasure.siFormatNumber(i.ncall)}</td>
+    <td>${unitsofmeasure.siFormatNumber(i.tsub)}s</td>
+    <td>${unitsofmeasure.siFormatNumber(i.tavg)}s</td>
+    <td>${unitsofmeasure.siFormatNumber(i.ttot)}s</td>
+    %endif
     
     </tr>
     %endfor

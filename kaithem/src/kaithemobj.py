@@ -15,9 +15,9 @@
 
 """This is the global general purpose utility thing that is accesable from almost anywhere in user code."""
 
-import time,random,subprocess,threading,random
+import time,random,subprocess,threading,random,gzip,json,yaml,os
 import cherrypy
-from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets
+from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry
 from . import astrallibwrapper as sky
 
 #This exception is what we raise from within the page handler to serve a static file
@@ -214,6 +214,71 @@ class Kaithem():
         def subscribe(topic,callback ):
             messagebus.subscribe(topic,callback)
     
+    class persist():
+        @staticmethod
+        def save(data,fn,mode="default"):
+            if os.path.isdir(fn):
+                raise RuntimeError("Filename is already present, refusing to overwrite directory")
+            
+            if mode=="backup":
+                if os.path.isfile(fn):
+                    os.rename(fn, fn+'~')
+            try:
+                if fn.endswith(".gz"):
+                    f = gzip.GzipFile(fn,mode='wb')
+                    x = fn[:-3]
+                elif fn.endswith(".bz2"):
+                    f = bz2.BZ2File(fn,mode='wb')
+                    x = fn[:-4]
+                else:
+                    f = open(fn,'wb')
+                    x=fn
+                
+                if x.endswith(".json"):
+                    f.write(json.dumps(data).encode('utf8'))
+                elif x.endswith(".yaml"):
+                    f.write(yaml.dump(data).encode('utf8'))
+                elif x.endswith(".txt"):
+                    f.write(str(data).encode())
+                elif x.endswith(".bin"):
+                    f.write(str(data).encode())
+                else:
+                    raise ValueError('Unsupported File Extension')
+            finally:
+                f.close()
+                
+            if mode=="backup":
+                if os.path.isfile(fn+'~'):
+                    os.remove(fn+'~')
+
+            
+        def load(filename):
+            try:
+                if filename.endswith(".gz"):
+                    f = gzip.GzipFile(filename,mode='rb')
+                    filename = filename[:-3]
+                elif filename.endswith(".bz2"):
+                    filename = filename[:-4]
+                    f = bz2.BZ2File(filename,mode='rb')
+                else:
+                    f = open(filename,'rb')
+                
+                if filename.endswith(".json"):
+                    r=json.loads(f.read().decode('utf8'))
+                elif filename.endswith(".yaml"):
+                    r=yaml.load(f.read().decode('utf8'))
+                elif filename.endswith(".txt"):
+                    r=f.read().decode('utf8')
+                elif filename.endswith(".bin"):
+                    r=f.read()
+                else:
+                    raise ValueError('Unsupported File Extension')
+            finally:
+                f.close()
+                
+            return r
+            
+            
     class events():
         pass
         #Stuff gets inserted here externally

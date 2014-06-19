@@ -31,14 +31,20 @@ def encode_multipart_formdata(files):
     return content_type, body
 
 
-
-
 from cherrypy.test import helper
 
+
 class HTTPTests(helper.CPWebCase):
+    
+    def make_connection(self):
+        if self.scheme == "https":
+            return HTTPSConnection('%s:%s' % (self.interface(), self.PORT))
+        else:
+            return HTTPConnection('%s:%s' % (self.interface(), self.PORT))      
 
     def setup_server():
         class Root:
+
             def index(self, *args, **kwargs):
                 return "Hello world!"
             index.exposed = True
@@ -49,7 +55,9 @@ class HTTPTests(helper.CPWebCase):
             no_body._cp_config = {'request.process_request_body': False}
 
             def post_multipart(self, file):
-                """Return a summary ("a * 65536\nb * 65536") of the uploaded file."""
+                """Return a summary ("a * 65536\nb * 65536") of the uploaded
+                file.
+                """
                 contents = file.file.read()
                 summary = []
                 curchar = None
@@ -59,15 +67,22 @@ class HTTPTests(helper.CPWebCase):
                         count += 1
                     else:
                         if count:
-                            if py3k: curchar = chr(curchar)
+                            if py3k:
+                                curchar = chr(curchar)
                             summary.append("%s * %d" % (curchar, count))
                         count = 1
                         curchar = c
                 if count:
-                    if py3k: curchar = chr(curchar)
+                    if py3k:
+                        curchar = chr(curchar)
                     summary.append("%s * %d" % (curchar, count))
                 return ", ".join(summary)
             post_multipart.exposed = True
+            
+            @cherrypy.expose
+            def post_filename(self, myfile):
+                '''Return the name of the file which was uploaded.'''
+                return myfile.filename
 
         cherrypy.tree.mount(Root())
         cherrypy.config.update({'server.max_request_body_size': 30000000})
@@ -81,10 +96,7 @@ class HTTPTests(helper.CPWebCase):
         # Send a message with neither header and no body. Even though
         # the request is of method POST, this should be OK because we set
         # request.process_request_body to False for our handler.
-        if self.scheme == "https":
-            c = HTTPSConnection('%s:%s' % (self.interface(), self.PORT))
-        else:
-            c = HTTPConnection('%s:%s' % (self.interface(), self.PORT))
+        c = self.make_connection()
         c.request("POST", "/no_body")
         response = c.getresponse()
         self.body = response.fp.read()
@@ -111,15 +123,12 @@ class HTTPTests(helper.CPWebCase):
         contents = "".join([c * 65536 for c in alphabet])
 
         # encode as multipart form data
-        files=[('file', 'file.txt', contents)]
+        files = [('file', 'file.txt', contents)]
         content_type, body = encode_multipart_formdata(files)
         body = body.encode('Latin-1')
 
         # post file
-        if self.scheme == 'https':
-            c = HTTPSConnection('%s:%s' % (self.interface(), self.PORT))
-        else:
-            c = HTTPConnection('%s:%s' % (self.interface(), self.PORT))
+        c = self.make_connection()
         c.putrequest('POST', '/post_multipart')
         c.putheader('Content-Type', content_type)
         c.putheader('Content-Length', str(len(body)))
@@ -131,16 +140,37 @@ class HTTPTests(helper.CPWebCase):
         self.status = str(response.status)
         self.assertStatus(200)
         self.assertBody(", ".join(["%s * 65536" % c for c in alphabet]))
+        
+    def test_post_filename_with_commas(self):
+        '''Testing that we can handle filenames with commas. This was
+        reported as a bug in:
+           https://bitbucket.org/cherrypy/cherrypy/issue/1146/'''
+        # We'll upload a bunch of files with differing names.
+        for fname in ['boop.csv', 'foo, bar.csv', 'bar, xxxx.csv', 'file"name.csv']:
+            files = [('myfile', fname, 'yunyeenyunyue')]
+            content_type, body = encode_multipart_formdata(files)
+            body = body.encode('Latin-1')
+
+            # post file
+            c = self.make_connection()
+            c.putrequest('POST', '/post_filename')
+            c.putheader('Content-Type', content_type)
+            c.putheader('Content-Length', str(len(body)))
+            c.endheaders()
+            c.send(body)
+
+            response = c.getresponse()
+            self.body = response.fp.read()
+            self.status = str(response.status)
+            self.assertStatus(200)
+            self.assertBody(fname)
 
     def test_malformed_request_line(self):
         if getattr(cherrypy.server, "using_apache", False):
             return self.skip("skipped due to known Apache differences...")
 
         # Test missing version in Request-Line
-        if self.scheme == 'https':
-            c = HTTPSConnection('%s:%s' % (self.interface(), self.PORT))
-        else:
-            c = HTTPConnection('%s:%s' % (self.interface(), self.PORT))
+        c = self.make_connection()
         c._output(ntob('GET /'))
         c._send_output()
         if hasattr(c, 'strict'):
@@ -154,14 +184,17 @@ class HTTPTests(helper.CPWebCase):
         self.assertEqual(response.fp.read(22), ntob("Malformed Request-Line"))
         c.close()
 
+    def test_request_line_split_issue_1220(self):
+        Request_URI = "/index?intervenant-entreprise-evenement_classaction=evenement-mailremerciements&_path=intervenant-entreprise-evenement&intervenant-entreprise-evenement_action-id=19404&intervenant-entreprise-evenement_id=19404&intervenant-entreprise_id=28092"
+        self.assertEqual(len("GET %s HTTP/1.1\r\n" % Request_URI), 256)
+        self.getPage(Request_URI)
+        self.assertBody("Hello world!")
+
     def test_malformed_header(self):
-        if self.scheme == 'https':
-            c = HTTPSConnection('%s:%s' % (self.interface(), self.PORT))
-        else:
-            c = HTTPConnection('%s:%s' % (self.interface(), self.PORT))
+        c = self.make_connection()
         c.putrequest('GET', '/')
         c.putheader('Content-Type', 'text/plain')
-        # See http://www.cherrypy.org/ticket/941
+        # See https://bitbucket.org/cherrypy/cherrypy/issue/941
         c._output(ntob('Re, 1.2.3.4#015#012'))
         c.endheaders()
 
@@ -202,11 +235,11 @@ class HTTPTests(helper.CPWebCase):
         try:
             response.begin()
             self.assertEqual(response.status, 400)
-            self.assertEqual(response.fp.read(22), ntob("Malformed Request-Line"))
+            self.assertEqual(response.fp.read(22),
+                             ntob("Malformed Request-Line"))
             c.close()
         except socket.error:
             e = sys.exc_info()[1]
             # "Connection reset by peer" is also acceptable.
             if e.errno != errno.ECONNRESET:
                 raise
-

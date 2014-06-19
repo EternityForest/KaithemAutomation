@@ -21,21 +21,23 @@
 
 import sys,os,threading
 
-#There is actually a very good reason to change the import path here.
-#It means we can refer to an installed copy of a library by the same name
-#We use for the copy we include. If the user has an installed version, his will be used.
-#If not, it will fall back to ours.
-sys.path.append(os.path.join(sys.path[0],'src','thirdparty'))
+
 
 #There are some libraries that are actually different for 3 and 2, so we use the appropriate one
 #By changing the pathe to include the proper ones.
+x = sys.path[0]
 if sys.version_info < (3,0):
-    sys.path.append(os.path.join(sys.path[0],'src','thirdparty','python2'))
+    sys.path = [os.path.join(x,'src','thirdparty','python2')] + sys.path
     from gzip import open as opengzip
 else:
     from gzip import GzipFile as opengzip
-    sys.path.append(os.path.join(sys.path[0],'src','thirdparty','python3'))
+    sys.path = [os.path.join(x,'src','thirdparty','python3')] + sys.path
 
+#There is actually a very good reason to change the import path here.
+#It means we can refer to an installed copy of a library by the same name
+#We use for the copy we include. Normally we use our version.
+#If not, it will fall back to theirs.
+sys.path = [os.path.join(x,'src','thirdparty')] + sys.path
     
 import time,signal
 import cherrypy,validictory
