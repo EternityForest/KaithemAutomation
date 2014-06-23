@@ -104,9 +104,9 @@ def everyminute():
                 free = int(re.search("MemFree.*?([0-9]+)",f).group(1))
                 cache = int(re.search("Cached.*?([0-9]+)",f).group(1))
                 
-                used = round(((total - (free+cache))/1000),2)
-                usedp = round((1-(free+cache)/total),3)
-                total = round(total/1024,2)
+                used = round(((total - (free+cache))/1000.0),2)
+                usedp = round((1-(free+cache)/float(total)),3)
+                total = round(total/1024.0,2)
                 if (time.time()-lastram>600) or usedp>0.8:
                     messagebus.postMessage("/system/perf/memuse",usedp)
                     lastram=time.time()
