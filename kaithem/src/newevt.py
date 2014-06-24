@@ -362,7 +362,7 @@ class CompileCodeStringsMixin():
             self.pymodule.__dict__['kaithem']=kaithemobj.kaithem
             self.pymodule.__dict__['module']=modules_state.scopes[self.module]
         except KeyError as e:
-            pass
+            raise e
         
         
         
@@ -449,14 +449,13 @@ class ChangedEvalEvent(BaseEvent,CompileCodeStringsMixin):
 
 class PolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
+        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
         self.polled = True
         
         #Sometimes an event is used for its setup action and never runs.
         #If the trigger is False, it will never trigger, so we don't poll it.
         if when == 'False':
             self.polled = False
-        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
-
         #Compile the trigger
         x = compile("def trigger():\n    return "+when,"Event_"+self.module+'_'+self.resource,'exec')
         exec(x,self.pymodule.__dict__)
@@ -477,10 +476,10 @@ class PolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
 
 class PolledInternalSystemEvent(BaseEvent,DirectFunctionsMixin):
     def __init__(self,when,do,scope = None ,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
+        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
         self.polled = True
         #Compile the trigger
         self.trigger = when
-        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
         self._init_setup_and_action(setup,do)
 
         
@@ -649,7 +648,5 @@ def make_event_from_resource(module,resource):
               priority=priority,
               m=module,
               r=resource)
-    
-    x.module = module
-    x.resource =resource
+
     return x

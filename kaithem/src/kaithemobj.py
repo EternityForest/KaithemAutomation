@@ -205,6 +205,14 @@ class Kaithem():
         def isPlaying(*args,**kwargs):
             return sound.isPlaying(*args,**kwargs)
         
+        @staticmethod
+        def position(*args,**kwargs):
+            return sound.position(*args,**kwargs)
+        
+        @staticmethod
+        def setvol(*args,**kwargs):
+            return sound.setvol(*args,**kwargs)
+        
         
     class message():
         @staticmethod

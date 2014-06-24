@@ -34,7 +34,8 @@ except:
     else:
         sorter = lambda x: x.tsub
     
-    if sys.version_info < (3,3):
+    #yappi have two api's in different versions
+    if hasattr(yappi,"get_stats"):
         stats = yappi.get_stats().func_stats
         gn = lambda x: x.name
     else:
