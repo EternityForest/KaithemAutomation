@@ -55,7 +55,7 @@ except:
     <th><a href="/settings/profiler/bytotal">Total Time</a></th>
     %for i in sorted(stats, key=sorter, reverse=True):
     <tr>
-    %if sys.version_info < (3,3):
+    %if not hasattr(i,"module"):
     <td>${0}</td>
     <td>${i.name}</td>
     <td>${0}</td>
