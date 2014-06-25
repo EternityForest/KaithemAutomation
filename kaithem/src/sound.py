@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import subprocess,os,math
+import subprocess,os,math,time,sys
 from . import util
 from .config import config
 
@@ -194,13 +194,16 @@ class MPlayerWrapper(SoundWrapper):
             f = open(os.devnull,"w")
             g = open(os.devnull,"w")
             
-            cmd = ["mplayer",filename,"slave","quiet","af","volume",str(math.log10(vol)*5),"ss",str(start)]
+            cmd = ["mplayer","-slave","-quiet","-af", "volume="+str(math.log10(vol)*10)," -ss "+str(start)]
             if end:
-                cmd.extend(["endpos",str(end)])
+                cmd.extend(["-endpos",str(end)])
             if "output" in kw:
-                cmd.extend(["ao","pulse"+kw['output']])
-            self.process = subprocess.Popen(cmd,stdout = f, stderr = g)
-            
+                cmd.extend(["-ao","pulse:"+kw['output']])
+            else:
+                cmd.extend(["-ao","pulse"])
+            self.started = time.time()
+            cmd.append(filename)
+            self.process = subprocess.Popen(cmd)#,stdout = f, stderr = g)
         def __del__(self):
             try:
                 self.process.terminate()
@@ -212,19 +215,19 @@ class MPlayerWrapper(SoundWrapper):
             return self.process.returncode == None
         
         def position(self):
-            return float(self.process.communicate("get_time_pos").decode('utf8').split('='))
+            return time.time() - self.started
         
         def setVol(self,volume):
-            self.process.communicate("volume "+str(volume*100)+" 1")
+            self.process.communicate("volume "+str(math.log10(vol)*10)+" 1")
         
     def playSound(self,filename,handle="PRIMARY",**kwargs):
         
         
         if 'volume' in kwargs:
             #odd way of throwing errors on non-numbers
-            v  = float(kwargs['volume'])*100
+            v  = float(kwargs['volume'])
         else:
-            v =100;
+            v =1;
         
         if 'start' in kwargs:
             #odd way of throwing errors on non-numbers

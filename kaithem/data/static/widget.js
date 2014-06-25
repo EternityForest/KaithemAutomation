@@ -31,15 +31,27 @@ function KWidget_sendValue(key,value)
 	}
 }
 
+    if ("data-rate" in document.currentScript)
+    {
+   	 kwidget_Delay = 1000/document.currentScript.getAttribute("data-rate");
+    }
+    else
+    {
+  	  kwidget_Delay = 150;
+    }
+
 function pollLoop()
 {
     var t;
+
+
+    
     t = Date.now();
     if((Object.keys(toSet).length+Object.keys(toPoll).length)>0)
     { 
 	poll();
     }	
-	window.setTimeout(pollLoop, 100-Math.max((Date.now()-t),0) );
+	window.setTimeout(pollLoop, kwidget_Delay-Math.max((Date.now()-t),0) );
 }
 
 function poll()

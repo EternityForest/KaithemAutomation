@@ -78,8 +78,8 @@ error-backoff:
     
 #List of possible audio backend players in order of preference. Support sox and mpg123.
 audio-backends:
-    - sox 
     - mplayer
+    - sox 
     - mpg123
 
 #How many times to retry loading an event before marking it as a failure and moving on

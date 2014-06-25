@@ -227,7 +227,7 @@ class Kaithem():
         @staticmethod
         def save(data,fn,mode="default"):
             if os.path.isdir(fn):
-                raise RuntimeError("Filename is already present, refusing to overwrite directory")
+                raise RuntimeError("Filename is already present as a directory, refusing to overwrite directory")
             
             if mode=="backup":
                 if os.path.isfile(fn):
@@ -250,7 +250,7 @@ class Kaithem():
                 elif x.endswith(".txt"):
                     f.write(str(data).encode())
                 elif x.endswith(".bin"):
-                    f.write(str(data).encode())
+                    f.write(data)
                 else:
                     raise ValueError('Unsupported File Extension')
             finally:
