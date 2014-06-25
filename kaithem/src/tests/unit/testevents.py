@@ -10,7 +10,7 @@ x.register()
 #Set y to 1
 x.pymodule.y = 1
 
-time.sleep(0.05)
+time.sleep(0.1)
 #y should immediately be set back to 0 at the next polling cycle 
 if x.pymodule.y == 1:
         common.fail("Edge-Triggered Event did nothing")

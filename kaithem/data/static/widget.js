@@ -51,7 +51,7 @@ function pollLoop()
     { 
 	poll();
     }	
-	window.setTimeout(pollLoop, kwidget_Delay-Math.max((Date.now()-t),0) );
+	window.setTimeout(pollLoop, Math.max((100-Math.max((Date.now()-t),0)),Date.now()+50) );
 }
 
 function poll()
