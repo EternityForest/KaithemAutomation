@@ -60,13 +60,8 @@ from src import widgets
 
 from src.config import config
 
-
-
-        
 util.updateIP()
         
-
-
 #Initialize the authorization module
 auth.initializeAuthentication()
 

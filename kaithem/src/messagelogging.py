@@ -171,7 +171,7 @@ def messagelistener(topic,message):
     #We only want to keep around the most recent couple of messages.
     #So, if we have too many messages in one topic, than we must discard one
     try:
-        if isSaved(topic):
+        if not isSaved(topic):
             if len(log[topic]) > config['non-logged-topic-limit']:
                 log[topic].popleft()
                 approxtotallogentries -=1
