@@ -67,12 +67,16 @@ class MessageBus(object):
     
     @staticmethod
     def parseTopic(topic):
+        "Parse the topic string into a list of all subscriptions that could possibly match."
+
+        #normalize topic
+        if topic.startswith('/'):
+            topic = topic[1:]
+            
         #Since this is a pure function(except the caching itself) we can cache it
         if topic in parsecache:
             return parsecache[topic]
-        "Parse the topic string into a list of all subscriptions that could possibly match."
-        if topic.startswith('/'):
-            topic = topic[1:]
+
         #A topic foo/bar/baz would go to
         #foo, foo/bar, and /foo/bar/baz
         #So we need to make a list like that
@@ -98,7 +102,7 @@ class MessageBus(object):
         for i in matchingtopics:
             if i in d:
                 #When we find a match, we make a copy of that subscriber list
-                x = list(d[i])
+                x = d[i][:]
                 #And iterate the copy
                 for ref in x:
                     #we call the ref to get its refferent

@@ -12,7 +12,7 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import time, threading,json, os,bz2, gzip, re
+import time, threading,json, os,bz2, gzip, re, collections
 import cherrypy
 from . import unitsofmeasure,messagebus,directories,workers,util,pages
 
@@ -145,6 +145,20 @@ def _dumpLogFile():
             size = size - os.path.getsize(os.path.join(where,i))
             os.remove(os.path.join(where,asnumbers[i]))
 
+#Dict beieng used as ordered set, it's a cache of topics that are known not to be logged.
+known_unsaved = collections.OrderedDict()
+
+def isSaved(topic):
+    "Determine of logging is set up for a given topic"
+    if topic in known_unsaved:
+        return False
+    if messagebus.MessageBus.parseTopic(topic).isdisjoint(toSave):
+        known_unsaved[topic]=True
+        if len(known_unsaved) > 1200:
+            known_unsaved.pop(last=False)
+        return False
+    else:
+        return True
 
 def messagelistener(topic,message):
     global log
@@ -157,7 +171,7 @@ def messagelistener(topic,message):
     #We only want to keep around the most recent couple of messages.
     #So, if we have too many messages in one topic, than we must discard one
     try:
-        if messagebus.MessageBus.parseTopic(topic).isdisjoint(toSave):
+        if isSaved(topic):
             if len(log[topic]) > config['non-logged-topic-limit']:
                 log[topic].popleft()
                 approxtotallogentries -=1
@@ -194,9 +208,11 @@ class WebInterface(object):
     
     @cherrypy.expose
     def startlogging(self,topic):
+        pages.require('/admin/logging.edit')
+        #Invalidate the cache of non-logged topics
+        known_unsaved = OrderedDict()
         topic=topic.encode("latin-1").decode("utf-8")
         topic = topic[1:]
-        pages.require('/admin/logging.edit')
         global loglistchanged
         loglistchanged = True
         toSave.add(topic)
@@ -204,9 +220,9 @@ class WebInterface(object):
     
     @cherrypy.expose
     def stoplogging(self,topic):
+        pages.require('/admin/logging.edit')
         topic=topic.encode("latin-1").decode("utf-8")
         topic = topic[1:]
-        pages.require('/admin/logging.edit')
         global loglistchanged
         loglistchanged = True
         toSave.discard(topic)
@@ -215,6 +231,8 @@ class WebInterface(object):
     @cherrypy.expose
     def setlogging(self, txt):
         pages.require('/admin/logging.edit')
+        #Invalidate the cache of non-logged topics
+        known_unsaved = OrderedDict()
         global loglistchanged
         loglistchanged = True
         global toSave
