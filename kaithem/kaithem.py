@@ -61,31 +61,9 @@ from src import widgets
 from src.config import config
 
 
-def updateIP():
-    global MyExternalIPAdress
-    #2 and 3 have basically the same module with diferent names
-    if sys.version_info < (3,0):
-        from urllib2 import urlopen
-    else:
-        from urllib.request import urlopen
+
         
-    #Yes, This really is the only way i know of to get your public IP.
-    try:
-        if config['get-public-ip']:
-            u= urlopen("http://ipecho.net/plain", timeout = 60)
-        MyExternalIPAdress = u.read()
-        
-        if sys.version_info > (3,0):
-            MyExternalIPAdress = MyExternalIPAdress.decode('utf8')
-    except:
-        MyExternalIPAdress = "unknown"
-    finally:
-        try:
-            u.close()
-        except Exception:
-            pass
-        
-updateIP()
+util.updateIP()
         
 
 

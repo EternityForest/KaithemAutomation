@@ -61,6 +61,12 @@ class SoundWrapper(object):
     def isPlaying(self):
         return False
     
+    def pause(self, handle ="PRIMARY"):
+        pass
+    
+    def resume(self,  handle ="PRIMARY"):
+        pass
+    
     
 
 class Mpg123Wrapper(SoundWrapper):
@@ -193,6 +199,7 @@ class MPlayerWrapper(SoundWrapper):
         def __init__(self,filename,vol,start,end,**kw):
             f = open(os.devnull,"w")
             g = open(os.devnull,"w")
+            self.paused = False
             
             cmd = ["mplayer","-slave","-quiet","-nogui","-af", "volume="+str(math.log10(vol)*10)]#,"-ss"+str(start)]
             if end:
@@ -221,6 +228,24 @@ class MPlayerWrapper(SoundWrapper):
             if self.isPlaying():
                 self.process.stdin.write(bytes("volume "+str(volume*100)+" 1\n",'utf8'))
                 self.process.stdin.flush()
+        
+        def pause(self):
+                try:
+                    if not self.paused:
+                        self.process.stdin.write(bytes("pause \n","utf8"))
+                        self.process.stdin.flush()
+                        self.paused= True
+                except:
+                    pass
+            
+        def resume(self):
+                try:
+                    if self.paused:
+                        self.process.stdin.write(bytes("pause \n","utf8"))
+                        self.process.stdin.flush()
+                        self.paused = False
+                except:
+                    pass
         
     def playSound(self,filename,handle="PRIMARY",**kwargs):
         
@@ -279,6 +304,22 @@ class MPlayerWrapper(SoundWrapper):
             return self.runningSounds[channel].setVol(vol)
         except KeyError:
             pass 
+    
+    
+    def pause(self,channel = "PRIMARY"):
+        "Return true if a sound is playing on channel"
+        try:
+            return self.runningSounds[channel].pause()
+        except KeyError:
+            pass 
+    
+    def resume(self,channel = "PRIMARY"):
+        "Return true if a sound is playing on channel"
+        try:
+            return self.runningSounds[channel].resume()
+        except KeyError:
+            pass 
+    
         
 
 l = {'sox':SOXWrapper, 'mpg123':Mpg123Wrapper, "mplayer":MPlayerWrapper}
@@ -302,6 +343,8 @@ for i in config['audio-backends']:
 playSound = backend.playSound
 stopSound = backend.stopSound
 isPlaying = backend.isPlaying
+pause = backend.pause
+resume = backend.resume
 stopAllSounds = backend.stopAllSounds
 setvol = backend.setVolume
 position = backend.getPosition

@@ -349,16 +349,26 @@ h4 {
             are also SOX specific and are ignored(full sound will always play) with other players.
             </p>
 
-        <h4>kaithem.sound.stop(handle)</h4>
-        <p>Stop a sound by handle. Defaults to PRIMARY.</p>
+        <h4>kaithem.sound.stop(handle="PRIMARY"")</h4>
+        <p>Stop a sound by handle.</p>
 
-        <h4>kaithem.sound.stopAll(handle)</h4>
+        <h4>kaithem.sound.stopAll()</h4>
         <p>Stop all currently playing sounds.</p>
 
         <h4>kaithem.sound.isPlaying(handle="PRIMARY")</h4>
         <p>Return true if a sound with handle handle is playing. Note that the sound might finish before you
             actually get around to doing anything with the value. If using the dummy backend because mpg123 is not
             installed, result is undefined, but will not be an error, and will be a boolean value.</p>
+            
+        <h4>kaithem.sound.setvol(vol,handle="PRIMARY")</h4>
+        <p>Set the volume of a sound. Volume goes from 0 to 1.
+        Only works with the mplayer backend. If you are using any other sound backend, this does nothing.</p>
+        
+        <h4>kaithem.sound.pause(handle="PRIMARY")</h4>
+        <p>Pause a sound. Does nothing if already paused Only works with the mplayer backend. If you are using any other sound backend, this does nothing.</p>
+        
+        <h4>kaithem.sound.resume(handle="PRIMARY")</h4>
+        <p>Resume a paused a sound. Does nothing if not paused. Only works with the mplayer backend. If you are using any other sound backend, this does nothing.</p>
 
         <h3>kaithem.message</h3>
         <h4>kaithem.message.post(topic,message)</h4>

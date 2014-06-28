@@ -196,6 +196,14 @@ class Kaithem():
         @staticmethod 
         def stop(*args,**kwargs):
             sound.stopSound(*args,**kwargs)
+            
+        @staticmethod 
+        def pause(*args,**kwargs):
+            sound.pause(*args,**kwargs)
+            
+        @staticmethod 
+        def resume(*args,**kwargs):
+            sound.resume(*args,**kwargs)
 
         @staticmethod
         def stopAll():
