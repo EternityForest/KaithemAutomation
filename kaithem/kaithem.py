@@ -41,6 +41,7 @@ sys.path = [os.path.join(x,'src','thirdparty')] + sys.path
     
 import time,signal
 import cherrypy,validictory
+from cherrypy import _cperror
 from src import util
 from src import pages
 from src import weblogin
@@ -133,6 +134,7 @@ class webapproot():
 class Errors():
     @cherrypy.expose 
     def permissionerror(self,):
+        cherrypy.response.status = 403
         return pages.get_template('errors/permissionerror.html').render()
     @cherrypy.expose 
     def alreadyexists(self,):
@@ -150,7 +152,15 @@ class Errors():
     @cherrypy.expose 
     def error(self,):
         cherrypy.response.status = 500
-        return pages.get_template('errors/wrongmethod.html').render()
+        return pages.get_template('errors/error.html').render(info="An Error Occurred")
+    
+
+def cpexception():
+    cherrypy.response.status = 500
+    cherrypy.response.body= bytes(pages.get_template('errors/cperror.html').render(e=_cperror.format_exc()),'utf8')
+
+        
+    
        
 #There are lots of other objects ad classes represeting subfolders of the website so we attatch them        
 root = webapproot()
@@ -178,6 +188,7 @@ site_config={
         "tools.encode.encoding":'utf-8',
         "tools.decode.on": True,
         "tools.decode.encoding": 'utf-8',
+        'request.error_response': cpexception,
         'log.screen': config['cherrypy-log-stdout'],
         'server.socket_host': bindto,
         'server.socket_port': config['https-port'],

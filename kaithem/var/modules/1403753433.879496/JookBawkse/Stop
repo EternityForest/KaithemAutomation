@@ -5,7 +5,7 @@
     "allow-xss": false,
     "auto-reload": false,
     "auto-reload-interval": 5.0,
-    "body": "<div class=\"sectionbox\">${module.textdisplay.render()}</div>",
+    "body": "<%\r\nimport time\r\ntime.sleep(0.1)\r\nkaithem.sound.stop()\r\nkaithem.web.goBack()%>",
     "dont-show-in-index": false,
     "no-header": false,
     "no-navheader": true,

@@ -194,7 +194,7 @@ class MPlayerWrapper(SoundWrapper):
             f = open(os.devnull,"w")
             g = open(os.devnull,"w")
             
-            cmd = ["mplayer","-slave","-quiet","-af", "volume="+str(math.log10(vol)*10)," -ss "+str(start)]
+            cmd = ["mplayer","-slave","-quiet","-af", "volume="+str(math.log10(vol)*10)]#,"-ss"+str(start)]
             if end:
                 cmd.extend(["-endpos",str(end)])
             if "output" in kw:
@@ -203,7 +203,7 @@ class MPlayerWrapper(SoundWrapper):
                 cmd.extend(["-ao","pulse"])
             self.started = time.time()
             cmd.append(filename)
-            self.process = subprocess.Popen(cmd)#,stdout = f, stderr = g)
+            self.process = subprocess.Popen(cmd,stdin=subprocess.PIPE)#,stdout = f, stderr = g)
         def __del__(self):
             try:
                 self.process.terminate()
@@ -218,7 +218,9 @@ class MPlayerWrapper(SoundWrapper):
             return time.time() - self.started
         
         def setVol(self,volume):
-            self.process.communicate("volume "+str(math.log10(vol)*10)+" 1")
+            if self.isPlaying():
+                self.process.stdin.write(bytes("volume "+str(math.log10(max(volume,0.001))*10)+" 1\n",'utf8'))
+                self.process.stdin.flush()
         
     def playSound(self,filename,handle="PRIMARY",**kwargs):
         
