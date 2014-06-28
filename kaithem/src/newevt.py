@@ -393,8 +393,8 @@ class MessageEvent(BaseEvent,CompileCodeStringsMixin):
             #Since we aren't under the BaseEvent.check() lock, we need to get it ourselves.
             with self.lock:
                 #setup environment
-                self.pymodule.__topic = topic
-                self.pymodule.__message = message
+                self.pymodule.__dict__['__topic'] = topic
+                self.pymodule.__dict__['__message'] = message
                 #We delegate the actual execution of the body to the on_trigger
                 self._on_trigger()
             
