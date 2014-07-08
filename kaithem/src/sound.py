@@ -188,7 +188,7 @@ class SOXWrapper(SoundWrapper):
             return self.runningSounds[channel].isPlaying()
         except KeyError:
             return False        
-
+    
 class MPlayerWrapper(SoundWrapper):
     backendname = "MPlayer"
     
@@ -201,7 +201,7 @@ class MPlayerWrapper(SoundWrapper):
             g = open(os.devnull,"w")
             self.paused = False
             
-            cmd = ["mplayer","-slave","-quiet","-nogui","-af", "volume="+str(math.log10(vol)*10)]#,"-ss"+str(start)]
+            cmd = ["mplayer" ,"-nogui", "-slave" , "-really-quiet", "-softvol" ,"-ss", str(start)]
             if end:
                 cmd.extend(["-endpos",str(end)])
             if "output" in kw:
@@ -210,7 +210,7 @@ class MPlayerWrapper(SoundWrapper):
                 cmd.extend(["-ao","pulse"])
             self.started = time.time()
             cmd.append(filename)
-            self.process = subprocess.Popen(cmd,stdin=subprocess.PIPE, stdout = f, stderr = g)
+            self.process = subprocess.Popen(cmd,stdin=subprocess.PIPE)#stdout = f, stderr = g)
         def __del__(self):
             try:
                 self.process.terminate()
@@ -226,8 +226,12 @@ class MPlayerWrapper(SoundWrapper):
         
         def setVol(self,volume):
             if self.isPlaying():
-                self.process.stdin.write(bytes("volume "+str(volume*100)+" 1\n",'utf8'))
-                self.process.stdin.flush()
+                try:
+                    self.process.stdin.write(bytes("volume "+str(volume*100)+" 1\n",'utf8'))
+                    self.process.stdin.flush()
+                    self.paused = False
+                except:
+                    pass
         
         def pause(self):
                 try:

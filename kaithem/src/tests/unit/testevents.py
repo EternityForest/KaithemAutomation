@@ -1,7 +1,8 @@
 import common
-from src import newevt,messagebus
+from src import newevt,messagebus,modules_state
 import time
 
+modules_state.scopes['x'] = {}
 #Create an event that sets y to 0 if it is 1
 x = newevt.Event("y==1","y=0",locals(),setup="y=0")
 

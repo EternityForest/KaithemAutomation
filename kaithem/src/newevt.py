@@ -368,9 +368,11 @@ class CompileCodeStringsMixin():
         
         exec(initializer,self.pymodule.__dict__)
         body = "def action():\n"
+        body += "    try:\n"
         for line in action.split('\n'):
-            body+=("    "+line+'\n')
-        body+=("    for i in locals(): globals()[i]=locals()[i]")
+            body+=("        "+line+'\n')
+        body += "    finally:\n"
+        body+=("        for i in locals(): globals()[i]=locals()[i]")
         body = compile(body,"Event_"+self.module+'_'+self.resource,'exec')
         exec(body,self.pymodule.__dict__)
 
@@ -545,7 +547,7 @@ def makeDummyEvent(module,resource):
     #This is one of those places that uses two different locks(!)
     with modules_state.modulesLock:
         
-        x = Event()
+        x = Event(m=module,r=resource)
         #Here is the other lock(!)
         with _event_list_lock: #Make sure nobody is iterating the eventlist
             if (module,resource) in __EventReferences:
