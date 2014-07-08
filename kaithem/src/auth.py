@@ -293,8 +293,7 @@ def destroyUnusedPermissions():
 def dumpDatabase():
     global authchanged
     if not authchanged:
-        return
-    authchanged = True
+        return False
     
     #Assemble the users and groups data and save it back where we found it
     temp = {"users":Users,"groups":Groups}
@@ -308,6 +307,9 @@ def dumpDatabase():
     f.write("completely arbitrary text")
     f.close()
     util.deleteAllButHighestNumberedNDirectories(directories.usersdir,2)
+    authchanged = False
+    return True
+
     
 def addGroupPermission(group,permission):
     global authchanged

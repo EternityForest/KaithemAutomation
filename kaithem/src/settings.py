@@ -184,7 +184,6 @@ class Settings():
     def savetarget(self):
         pages.require("/admin/settings.edit")
         util.SaveAllState()
-        messagebus.postMessage("/system/notifications","Global server state was saved to disk")
         raise cherrypy.HTTPRedirect('/')
     
     @cherrypy.expose    

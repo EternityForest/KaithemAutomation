@@ -35,21 +35,31 @@ def SaveAllState():
     
     with savelock:
         try:
-            modules.saveAll()
-            auth.dumpDatabase()
+            x = False
+            x = x or modules.saveAll()
+            x = x or auth.dumpDatabase()
             messagelogging.dumpLogFile()
-            registry.sync()
+            x = x or registry.sync()
+            #Always send the message, because there is almost always going to be at least some log entries saved
+            messagebus.postMessage("/system/notifications","Global server state was saved to disk")
+            return x
         except Exception as e:
             messagebus.postMessage("/system/notifications/errors",'Failed to save state:' + repr(e))
 
 
 def SaveAllStateExceptLogs():
     #fix circular import
-    from . import  auth,modules,messagelogging,messagebus
+    from . import  auth,modules,messagelogging,messagebus,registry
     with savelock:
         try:
-            auth.dumpDatabase()
-            modules.saveAll()
+            x = False
+            x = x or auth.dumpDatabase()
+            x = x or modules.saveAll()
+            x = x or registry.sync()
+            if x:
+                #Send the message only if something was actually saved.
+                messagebus.postMessage("/system/notifications","Global server state was saved to disk")
+            return x
         except Exception as e:
             messagebus.postMessage("/system/notifications/errors",'Failed to save state:' + repr(e))
 

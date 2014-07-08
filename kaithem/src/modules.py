@@ -41,12 +41,13 @@ class obj(object):
 def saveAll():
     global moduleschanged
     if not moduleschanged:
-        return
+        return False
     #This dumps the contents of the active modules in ram to a subfolder of the moduledir named after the current unix time"""
     saveModules(os.path.join(directories.moduledir,str(time.time()) ))
     #We only want 1 backup(for now at least) so clean up old ones.  
     util.deleteAllButHighestNumberedNDirectories(directories.moduledir,2)
     moduleschanged = False
+    return True
     
 def initModules():
     for i in range(0,15):

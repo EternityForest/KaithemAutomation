@@ -58,7 +58,7 @@ class PersistanceArea():
             if not self.files[i].isClean():
                 save = 1
         if not save:
-            return
+            return False
                 
         try:
             t=str(time.time())
@@ -79,6 +79,7 @@ class PersistanceArea():
         for i in self.files:
             self.files[i].markClean()
         util.deleteAllButHighestNumberedNDirectories(self.folder,2)
+        return True
         
     def open(self,f):
         if not f in self.files:
@@ -126,5 +127,6 @@ def set(key,value):
         
 def sync():
     with reglock:
-        registry.save()
+         x = registry.save()
+    return x
 
