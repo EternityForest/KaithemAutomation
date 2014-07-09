@@ -33,13 +33,11 @@ function KWidget_sendValue(key,value)
 
 function pollLoop()
 {
-    var t;
-    t = Date.now();
     if((Object.keys(toSet).length+Object.keys(toPoll).length)>0)
     { 
 	poll();
     }	
-	window.setTimeout(pollLoop, Math.max((100-Math.max((Date.now()-t),0)),Date.now()+50) );
+    window.setTimeout(pollLoop, 120);
 }
 
 function poll()
