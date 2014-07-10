@@ -201,7 +201,7 @@ class MPlayerWrapper(SoundWrapper):
             g = open(os.devnull,"w")
             self.paused = False
             
-            cmd = ["mplayer" ,"-nogui", "-slave" , "-really-quiet", "-softvol" ,"-ss", str(start)]
+            cmd = ["mplayer" ,"-nogui", "-slave" , "-quiet", "-softvol" ,"-ss", str(start)]
             if end:
                 cmd.extend(["-endpos",str(end)])
             if "output" in kw:
@@ -210,7 +210,7 @@ class MPlayerWrapper(SoundWrapper):
                 cmd.extend(["-ao","pulse"])
             self.started = time.time()
             cmd.append(filename)
-            self.process = subprocess.Popen(cmd,stdin=subprocess.PIPE)#stdout = f, stderr = g)
+            self.process = subprocess.Popen(cmd,stdin=subprocess.PIPE,stdout = f, stderr = g)
         def __del__(self):
             try:
                 self.process.terminate()

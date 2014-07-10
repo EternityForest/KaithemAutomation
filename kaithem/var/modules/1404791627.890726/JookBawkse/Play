@@ -5,8 +5,8 @@
     "allow-xss": false,
     "auto-reload": false,
     "auto-reload-interval": 5.0,
-    "body": "<%\r\nkaithem.sound.pause()\r\nkaithem.web.goBack()\r\n%>",
-    "dont-show-in-index": false,
+    "body": "<%\r\nimport time\r\nmodule.playlist.append(kwargs['fn'])\r\ntime.sleep(0.1)\r\nkaithem.web.goBack()%>",
+    "dont-show-in-index": true,
     "no-header": false,
     "no-navheader": true,
     "require-method": [

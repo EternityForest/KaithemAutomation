@@ -189,4 +189,5 @@ def updateIP():
             u.close()
         except Exception:
             pass
+    return MyExternalIPAdress
           

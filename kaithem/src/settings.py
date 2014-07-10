@@ -167,7 +167,6 @@ class Settings():
         registry.set("system/mail/lists",mail)
         auth.getPermissionsFromMail()
         raise cherrypy.HTTPRedirect("/settings/system")
-
                 
     
     @cherrypy.expose 

@@ -236,7 +236,8 @@ class Kaithem():
         def save(data,fn,mode="default"):
             if os.path.isdir(fn):
                 raise RuntimeError("Filename is already present as a directory, refusing to overwrite directory")
-            
+            #create the directory if it does not exist.
+            util.ensure_dir(os.path.split(fn)[0])
             if mode=="backup":
                 if os.path.isfile(fn):
                     os.rename(fn, fn+'~')

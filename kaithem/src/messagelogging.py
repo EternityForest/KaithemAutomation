@@ -16,7 +16,7 @@ import time, threading,json, os,bz2, gzip, re, collections
 import cherrypy
 from . import unitsofmeasure,messagebus,directories,workers,util,pages
 
-from cherrypy.lib.static import servae_file
+from cherrypy.lib.static import serve_file
 
 from .config import config
 from collections import defaultdict,deque
