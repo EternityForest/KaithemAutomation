@@ -31,11 +31,11 @@ if 'setup' in event:
 else:
     xyz = "pass"
 %>
-<textarea rows=3 class="pythoncode" name="setup" id="setupbox">${xyz}</textarea>
+<textarea rows=3 class="pythoncode" name="setup" id="setupbox">${xyz|h}</textarea>
 
 
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
-<div class="acediv" id="setupeditor"  style="height:35ex ;border: 1px solid #DDD;">${xyz}</div>
+<div class="acediv" id="setupeditor"  style="height:35ex ;border: 1px solid #DDD;">${xyz|h}</div>
 %endif
 
 
@@ -128,7 +128,7 @@ This event last ran:
 </p>
 <hr>
 <p class="help">
-Saving this module will case it to completely reload, including its local scope. Other resorces will not be affected.
+Saving this module will case it to completely reload, including its local scope. Other resources will not be affected.
 </p>
 %if pages.canUserDoThis("/admin/modules.edit"):
 <input type="submit" value="Save Changes"></input>

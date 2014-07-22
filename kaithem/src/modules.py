@@ -162,6 +162,7 @@ def load_modules_from_zip(f):
             ActiveModules[i] = new_modules[i]
             messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " uploaded module" + i + " from a zip file")    
             bookkeeponemodule(i)
+    auth.importPermissionsFromModules()
             
     z.close()
 

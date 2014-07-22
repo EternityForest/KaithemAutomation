@@ -48,7 +48,7 @@ if((Object.keys(toSet).length+Object.keys(toPoll).length)>0)
 	poll();
     }	
 
-window.setTimeout(pollLoop, 120);
+window.setTimeout(pollLoop, kwidget_Delay);
 }
 
 function poll()
