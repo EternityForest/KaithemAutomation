@@ -214,6 +214,13 @@ class WebInterface():
         #Require permissions and render page. A lotta that in this file.
         pages.require("/admin/modules.view")
         return pages.get_template("modules/index.html").render(ActiveModules = ActiveModules)
+    
+    @cherrypy.expose
+    def library(self):
+        #Require permissions and render page. A lotta that in this file.
+        pages.require("/admin/modules.view")
+        return pages.get_template("modules/library.html").render()
+
 
     @cherrypy.expose       
     def newmodule(self):
@@ -261,7 +268,18 @@ class WebInterface():
                 raise cherrypy.HTTPRedirect("/modules/module/"+util.url(kwargs['name']))
             else:
                 return pages.get_template("error.html").render(info = " A module already exists by that name,")
-            
+    
+    @cherrypy.expose
+    def loadlibmodule(self,module):
+        if module  in ActiveModules:
+            raise cherrypy.HTTPRedirect("/errors/alreadyexists")
+
+        loadModule(module,os.path.join(directories.datadir,"modules"))
+        bookkeeponemodule(module)
+        auth.importPermissionsFromModules()
+        raise cherrypy.HTTPRedirect('/modules')
+
+        
     @cherrypy.expose
     #This function handles HTTP requests of or relating to one specific already existing module.
     #The URLs that this function handles are of the form /modules/module/<modulename>[something?]     

@@ -275,12 +275,17 @@ class Slider(Widget):
 
     
     def render(self,type="realtime", orient='vertical',unit=''):
+        
+        if orient=='vertical':
+            orient='class="verticalslider" orient="vertical"'
+        else:
+            orient = 'class="horizontalslider"'
         if type=='debug':
             return {'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
         if type=='realtime':
             return """<div class="widgetcontainer sliderwidget">
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
-            class="verticalslider" orient="vertical"
+            %(orient)s
             onchange="            
             KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
             document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s';"
@@ -295,12 +300,12 @@ class Slider(Widget):
             }
             KWidget_register("%(id)s",upd);
             </script>
-            </div>"""%{'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
+            </div>"""%{'orient':orient,'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
         
         if type=='onrelease':
             return """<div class="widgetcontainer sliderwidget">
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
-            class="verticalslider" orient="vertical"
+            %(orient)s
             onchange="document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s'; document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();"
             onmouseup="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
             onmousedown="document.getElementById('%(htmlid)s').jsmodifiable = false;"
@@ -327,7 +332,7 @@ class Slider(Widget):
             document.getElementById('%(htmlid)s').jsmodifiable = true;
             KWidget_register("%(id)s",upd);
             </script>
-            </div>"""%{'en':self.isWritable(),'htmlid':mkid(), 'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
+            </div>"""%{'orient':orient,'en':self.isWritable(),'htmlid':mkid(), 'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
             raise ValueError("Invalid slider type:"%str(type))
         
 class Switch(Widget):

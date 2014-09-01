@@ -13,6 +13,8 @@
         "GET",
         "POST"
     ],
-    "require-permissions": [],
+    "require-permissions": [
+        "/users/jookbawkse/edit"
+    ],
     "resource-type": "page"
 }

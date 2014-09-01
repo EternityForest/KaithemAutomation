@@ -246,6 +246,7 @@ border-style:inset;
 border-width:2px;
 color: rgb(0,0,0);
 padding: 0px;
+margin:2px;
 vertical-align:text-top;
 }
 
@@ -291,6 +292,13 @@ input.verticalslider
      height:9.2em;
      width:1em;
      margin: auto 0;
+}
+
+input.horizontalslider
+{
+     height:0.5em;
+     width:12em;
+     
 }
 
 

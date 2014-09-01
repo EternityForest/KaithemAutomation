@@ -1,0 +1,11 @@
+{
+    "action": "kaithem.sound.play(module.playlist[0],volume=module.volume.read())\r\nmodule.played.append(module.playlist[0])\r\nmodule.played = module.played[-8:]\r\ndel module.playlist[0]",
+    "continual": false,
+    "disabled": false,
+    "once": true,
+    "priority": "realtime",
+    "rate-limit": 0.0,
+    "resource-type": "event",
+    "setup": "pass",
+    "trigger": "(not kaithem.sound.isPlaying()) and module.playlist"
+}

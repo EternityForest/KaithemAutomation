@@ -168,7 +168,8 @@ site_config={
         'server.ssl_module':'builtin',
         'server.ssl_certificate':os.path.join(directories.ssldir,'certificate.cert'),
         'server.ssl_private_key':os.path.join(directories.ssldir,'certificate.key'),
-        'server.thread_pool':config['https-thread-pool']
+        'server.thread_pool':config['https-thread-pool'],
+        'engine.autoreload.frequency' : 5
 }
 
 cnf={
