@@ -62,7 +62,8 @@ h4 {
         must have unique names. Resources can be anything from events and actions to user defined pages to custom
         permissions.
     </p>
-    <p>You can name modules as you like, but anything beginning with a double-underscore("__") is reserved.</p>
+    <p>You can name modules as you like, but anything beginning with a double-underscore("__") is reserved.
+    Resource, user, and group names beginning with a double underscore are also reserved.</p>
 
 
     <h2>
@@ -101,11 +102,11 @@ h4 {
             are written in HTML and may contain embedded mako template code. Every page is a resource of a module. Mako
             is a simple templating language allowing you to embed server-side python in HTML code. Python code in user
             defined pages has access to the kaithem object(see below) and and if desired the python code may have side
-            effects, allowing a wide variety of web servicies, information displays, and control panels to be created
+            effects, allowing a wide variety of web services, information displays, and control panels to be created
             using only kaithem's page system.</p>
 
-        <p>Acess to pages is controlled through kaithem's permission system, and any page may require one or more
-            permissions to acess. New Permissions can be defined as module resources.</p>
+        <p>Access to pages is controlled through kaithem's permission system, and any page may require one or more
+            permissions to access. New Permissions can be defined as module resources.</p>
 
         <p>Every user-created page has an URL of the form /pages/MODULENAME/PAGENAME</p>
 
@@ -114,6 +115,12 @@ h4 {
         <p>
             User pages should follow the <a href="/docs#theming">Theming Guidelines</a>.
         </p>
+        
+        <p>If is possible to handle requests for nonexistant pages to some extent.
+        If a user tries to access a page /pages/MODULENAME/[nonexistantpage] or
+        /pages/MODULENAME/some/big/long/path/to/nowhere
+        it will return /pages/MODULENAME/__default__ should such a page exist.
+        It will not create an HTTP redirect, it will simply return the contents of __default__</p>
 
         <h2>
             <a id="scope" name="scope"></a>Scoping

@@ -2,7 +2,11 @@
     from src.util import url as urlesc
 %>
 <%include file="/pageheader.html"/>
-<h2> User ${username}</h2>
+<h2>User <span
+%if username.startswith('__'):
+class="specialentry"\
+%endif
+>${username}</span></h2>
 <title>Edit User: ${username}</title>
 <form action="/auth/updateuser/${urlesc(username)}" method="POST" name="user">
 

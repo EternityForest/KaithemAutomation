@@ -137,7 +137,7 @@ def getPagesFromModules():
 #kaithem.py has come config option that cause this file to use the method dispatcher.
 class KaithemPage():
     
-    #Method encapsulating one request to a user-defined page
+    #Class encapsulating one request to a user-defined page
     exposed = True;
     
     def GET(self,module,resource,*args,**kwargs):
@@ -181,8 +181,11 @@ class KaithemPage():
             try:
                 page = _Pages[module][pagename]
             except KeyError as e:
-                messagebus.postMessage("/system/errors/http/nonexistant", "Someone tried to acess a page that did not exist at page %s of module %s"%(module,pagename))
-                raise e
+                if '__default__' in _Pages[module]:
+                    page = _Pages[module]['__default__']
+                else:
+                    messagebus.postMessage("/system/errors/http/nonexistant", "Someone tried to access a page that did not exist at page %s of module %s"%(module,pagename))
+                    raise e
             page.lastaccessed = time.time()
             #Check user permissions
             for i in page.permissions:

@@ -69,7 +69,11 @@ Pages are rendered using the Mako templating engine.
 %for i in sorted(module.keys()):
 	%if module[i]['resource-type'] == 'page':
 		<li>
-            <h4>${i|h}
+            <h4
+            %if i.startswith('__'):
+            class="specialentry"\
+            %endif
+            >${i|h}
         %if usrpages.getPageErrors(name,i):
         <span class="error">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
         %endif

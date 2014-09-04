@@ -15,7 +15,11 @@ The following users are registered with the server. <br>To create a log in as gu
 <hr>
 <ul>
 %for i in sorted(auth.Users.keys()):
-   <li> <a href="/auth/user/${url(i)}">${i}</a></li>
+   <li
+%if i.startswith('__'):
+class="specialentry"\
+%endif
+   > <a href="/auth/user/${url(i)}">${i}</a></li>
 %endfor
 </ul>
 </div>
