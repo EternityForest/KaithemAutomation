@@ -14,12 +14,19 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 import cherrypy,base64,os,time,subprocess,time,shutil
 from cherrypy.lib.static import serve_file
-from . import pages, util,messagebus,config,auth,registry,mail
+from . import pages, util,messagebus,config,auth,registry,mail,kaithemobj
 
 class Settings():
     @cherrypy.expose 
     def index(self):
         return pages.get_template("settings/index.html").render()
+    
+    
+    @cherrypy.expose 
+    def stopsounds(self,*args,**kwargs):
+        pages.require("/admin/settings.edit")
+        kaithemobj.kaithem.sound.stopAll()
+        raise cherrypy.HTTPRedirect("/settings")
     
     @cherrypy.expose 
     def files(self,*args,**kwargs):
@@ -32,7 +39,7 @@ class Settings():
                 os.remove(node)
             else:
                 shutil.rmtree(node)
-            cherrypy.HTTPRedirect(cherrypy.request.path_info.split('?')[0])
+            raise cherrypy.HTTPRedirect(cherrypy.request.path_info.split('?')[0])
                 
         if 'file' in kwargs:
             if os.path.exists(os.path.join(dir,kwargs['file'].filename)):

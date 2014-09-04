@@ -152,8 +152,8 @@ class Kaithem():
             registry.set(key,value)
             
         @staticmethod
-        def get(key):
-            return registry.get(key)
+        def get(*args,**kwargs):
+            return registry.get(*args,**kwargs)
         
     
     class mail(object):
