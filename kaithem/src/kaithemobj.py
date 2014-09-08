@@ -18,7 +18,7 @@
 import time,random,subprocess,threading,random,gzip,json,yaml,os
 
 import cherrypy
-from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry
+from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry,directories,pages
 from . import astrallibwrapper as sky
 
 #This exception is what we raise from within the page handler to serve a static file
@@ -190,6 +190,14 @@ class Kaithem():
             e.f_name = name
             raise e
         
+        @staticmethod
+        def user():
+            x =pages.getAcessingUser()
+            if x:
+                return x
+            else:
+                return ''
+        
     
     class sound(object):
 
@@ -300,10 +308,19 @@ class Kaithem():
                 
             return r
             
-            
+    class string():
+        @staticmethod
+        def usrstrftime(*a):
+            return unitsofmeasure.strftime(*a)
+         
+        @staticmethod
+        def SIFormat(number,d):
+            return unitsofmeasure.siFormatNumber(number,d)
+        
     class events():
         pass
         #Stuff gets inserted here externally
+        
         
 class obj():
     pass
@@ -312,46 +329,4 @@ kaithem = Kaithem()
 kaithem.widget = widgets
 kaithem.globals = obj() #this is just a place to stash stuff.
 
-sentences=["The birch canoe slid on the smooth planks.",
-"Glue the sheet to the dark blue background.",
-"It's easy to tell the depth of a well.",
-"These days a chicken leg is a rare dish.",
-"Rice is often served in round bowls.",
-"The juice of lemons makes fine punch.",
-"The box was thrown beside the parked truck.",
-"The hogs were fed chopped corn and garbage.",
-"Four hours of steady work faced us.",
-"A large size in stockings is hard to sell.",
-"The boy was there when the sun rose.",
-"A rod is used to catch pink salmon.",
-"The source of the huge river is the clear spring.",
-"Kick the ball straight and follow through.",
-"Help the woman get back to her feet.",
-"The book was written by my grandmother.",
-"Our family has always believed in magic.",
-"He felt a presence in the room.",
-"He read over his diary again after the light flickered.",
-"One must always respect the earth and sky.",
-"He saw a vision when he gazed into the bowl.",
-"She understood what the signs told her.",
-"I want you to know why I gave you that stone.",
-"Her aura was bright and untainted.",
-"To balance the elements he recited a chant.",
-"Truth can be found in all places.",
-"He kept his knowledge secret to avoid scattering his energy.",
-"It served him well to know the legend.",
-"He chanted softly the words she had taught him.",
-"In the dark she could see auras.",
-"You mustn't forget the important teachings",
-"""Deep into that darkness peering, long I stood there, wondering, fearing, doubting, dreaming dreams no mortal ever dared to dream before.  - E. A Poe""",
-"""The ninety and nine are with dreams, content but the hope of the world made new, is the hundredth man who is grimly bent on making those dreams come true. - E. A Poe""",
-"""A measured, hideous beating of strange drums floated down from afar in terrible rhythm. Some few of the legionarii shewed timidity, but sharp commands brought them into line, and the whole cohort was soon drawn up on the open plain east of the circus. -HP Lovecraft""",
-"""It is absolutely necessary, for the peace and safety of mankind, that some of earth's dark, dead corners and unplumbed depths be let alone; lest sleeping abnormalities wake to resurgent life, and blasphemously surviving nightmares squirm and splash out of their black lairs to newer and wider conquests. -HP Lovecraft""",
-"""One ring to rule them all, one ring to find them,
-One ring to bring them all and in the darkness bind them.""",
-"""That is not dead which can eternal lie,
-And with strange aeons even death may die."""
-]
-
-
-
+sentences= kaithem.persist.load(os.path.join(directories.datadir,"quotes.yaml"))

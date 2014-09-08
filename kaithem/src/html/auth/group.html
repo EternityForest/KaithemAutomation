@@ -21,7 +21,12 @@ Group Name: <input required="required" name="name" type="text" value="${name}"><
 All members of this group are entitled to all checked permissions.
 </p>
 %for i in sorted(auth.Permissions.keys()):
-	<br><h4>${i}</h4> <input type="checkbox" name="Permission${i}" value="true"\
+	<br><h4
+    
+%if i.startswith('__'):
+class="specialentry"\
+%endif
+>${i}</h4> <input type="checkbox" name="Permission${i}" value="true"\
 	%if i in auth.Groups[name]['permissions']:
 		checked="yes"\
 	%endif

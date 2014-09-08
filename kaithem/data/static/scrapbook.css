@@ -315,9 +315,3 @@ input.horizontalslider
 	color:rgba(36, 31, 100, 1);
 	text-shadow: 0px 0px 8px rgba(36, 31, 255, 1);
 */
-
-a.createbutton:before
-{
-content: 'X ';
-}
-

@@ -69,7 +69,7 @@ class Settings():
         if 'script' in kwargs:
             x = ''
             p = subprocess.Popen("bash -i",universal_newlines=True, shell=True,stdout=subprocess.PIPE,stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-            t =  p.communicate(bytes(kwargs['script'],'utf8'))
+            t =  p.communicate(kwargs['script'])
             x+= t[0] + t[1]
             try:
                 time.sleep(0.1)

@@ -463,7 +463,9 @@ h4 {
         <h4>kaithem.web.goBack()</h4>
         <p>When called from code embedded in an HTML page, raises an interrupt causing an HTTP redirect to the
             previous page to be sent. Useful for when you have a page that is only used for it's side effects.</p>
-
+            
+        <h4>kaithem.web.user()</h4>
+        <p>When called from within a page, returns the usernae of the accessing user or else an empty string if not logged in.</p>
         <h4>
             <a id="servefile" name="servefile"></a>kaithem.web.serveFile(path,contenttype,name = path)
         </h4>
@@ -551,6 +553,17 @@ h4 {
         <dd>Any other type may be compressed with bz2 compression(e.g. "bar.json.bz2")</dd>
         </dl>
         
+        <h3>kaithem.string</h3>
+        <h4>kaithem.string.usrstrftime([time])</h4>
+        <p>When called from within a page, formats the time(in seconds since the epoch),
+        according to the user's time settings. If no time is given, defaults to right now.</p>
+        
+        <h3>kaithem.string.siFormat(n,d)</h3>
+        <p>Takes a number and formats it with suffixes. 1000 becomes 1K, 1000000 becomes 1M.
+        d is the number of digits of precision to use.</p>
+        
+        
+   
         <h2>
             <a id="theming" name="theming"></a>Theming
         </h2>
@@ -606,6 +619,14 @@ h4 {
            can show in red in the logs, or trigger sounds, or similar. Again, only fairly important things should
            go here, as they will be listed on the front page.
         </p>
+        
+        <h3>/system/modules/loaded</h3>
+        <p>When a module has fully initialized, it's name is posted here.</p>
+        
+        <h3>/system/modules/unloaded</h3>
+        <p>When a module has been deleted, it's name is posted here.</p>
+        
+        
         
         <h3>/sytem/perf/FPS</h3>
         <p>Every ten minutes, a message will be posted to this topic containing only the current frame rate that

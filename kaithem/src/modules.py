@@ -121,6 +121,7 @@ def loadModule(moduledir,path_to_module_folder):
         name = unurl(moduledir)
         scopes[name] = obj()
         ActiveModules[name] = module
+        messagebus.postMessage("/system/modules/loaded",name)
         #bookkeeponemodule(name)
 
 def getModuleAsZip(module):
@@ -166,7 +167,7 @@ def load_modules_from_zip(f):
             
     z.close()
 
-def bookkeeponemodule(module):
+def bookkeeponemodule(module,update=False):
     """Given the name of one module that has been copied to activemodules but nothing else,
     let the rest of the system know the module is there."""
     scopes[module] = obj()
@@ -179,6 +180,9 @@ def bookkeeponemodule(module):
                 messagebus.postMessage("/system/notifications/errors","Failed to load page resource: " + i +" module: " + module + "\n" +str(e)+"\n"+"please edit and reload.")
 
     newevt.getEventsFromModules([module])
+    if not update:
+        messagebus.postMessage("/system/modules/loaded",module)
+
     
 
 
@@ -246,7 +250,8 @@ class WebInterface():
         #Get rid of any permissions defined in the modules.
         auth.importPermissionsFromModules()
         usrpages.removeModulePages(kwargs['name'])
-        messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Deleted module " + kwargs['name'])    
+        messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Deleted module " + kwargs['name'])
+        messagebus.postMessage("/system/modules/unloaded",kwargs['name'])  
         raise cherrypy.HTTPRedirect("/modules")
         
     @cherrypy.expose
@@ -347,7 +352,7 @@ class WebInterface():
                     newevt.removeModuleEvents(module)
                     usrpages.removeModulePages(module)
                     #And calls this function the generate the new cache
-                    bookkeeponemodule(kwargs['name'])
+                    bookkeeponemodule(kwargs['name'],update=True)
                     #Just for fun, we should probably also sync the permissions
                     auth.importPermissionsFromModules()
                 raise cherrypy.HTTPRedirect('/modules/module/'+util.url(kwargs['name']))

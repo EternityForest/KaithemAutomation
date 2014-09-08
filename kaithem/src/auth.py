@@ -56,7 +56,8 @@ BasePermissions = {
 "/admin/settings.edit": "Change core settings.",
 "/admin/logging.edit": "Modify settings in the logging subsystem",
 "/users/logs.view": "View the message logs.",
-"/users/accountsettings.edit" : "Edit ones own account preferences"
+"/users/accountsettings.edit" : "Edit ones own account preferences",
+"__all_permissions__": "Special universal permission that grants all permissions in the system. USe with care."
 }
 
 Permissions=BasePermissions
@@ -274,7 +275,10 @@ def checkTokenPermission(token,permission):
         if permission in Tokens[token].permissions:
             return True
         else:
-            return False
+            if '__all_permissions__' in Tokens[token].permissions:
+                return True
+            else:
+                return False
     else:
             return False
             
@@ -372,6 +376,9 @@ def canUserDoThis(user,permission):
     if '__guest__' in Users:
         if permission in Users['__guest__'].permissions:
             return True
+        
+    if '__all_permissions__' in Users[user].permissions:
+        return True
          
     if permission in Users[user].permissions:
         return True

@@ -93,6 +93,20 @@ import pytz
 <input type ="submit" value="Save"></input>
 
 </div>
+<h2>My Permissions</h2>
+<div class="sectionbox">
+<p class="help">These are the permissions you have been granted.</p>
+%for i in sorted(auth.Users[pages.getAcessingUser()].permissions):
+<h3 
+%if i.startswith('__'):
+class="specialentry"\
+%endif
+>${i|h}
+</h3>
+${auth.Permissions[i]|h}
+%endfor
+</div>
+
 
 </form>
 
