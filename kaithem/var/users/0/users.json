@@ -2,15 +2,16 @@
     "groups": {
         "Administrators": {
             "permissions": [
-                "/admin/settings.edit",
-                "/admin/logging.edit",
                 "/admin/users.edit",
-                "/admin/modules.edit",
-                "/admin/settings.view",
-                "/admin/mainpage.view",
-                "/users/accountsettings.edit",
                 "/users/logs.view",
-                "/admin/modules.view"
+                "/admin/mainpage.view",
+                "/admin/modules.edit",
+                "/users/accountsettings.edit",
+                "/admin/settings.edit",
+                "__all_permissions__",
+                "/admin/settings.view",
+                "/admin/modules.view",
+                "/admin/logging.edit"
             ]
         },
         "Guests": {
@@ -37,10 +38,10 @@
             "groups": [
                 "Administrators"
             ],
-            "password": "XohImNooBHFR0OVvjcYpJ3NgPQ1qq73WKhHvch0VQtg=",
-            "salt": "",
+            "password": "y1x9k/Re7pZpXX/t3VIxowVZZYe/QdKksov+aHrqMHM=",
+            "salt": "7u5+HkyP5Re1qAyTnIdiLQ==",
             "settings": {
-                "email": "riverheart201@gmail.com",
+                "email": "myemail@example.com",
                 "mailinglists": [
                     "RLpWcXaAPYcERWrbzb8YBw=="
                 ],

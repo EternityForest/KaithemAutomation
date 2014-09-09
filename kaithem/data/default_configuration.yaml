@@ -149,6 +149,10 @@ enable-js: yes
 #How to format times and dates
 time-format: "%A, %B %d, %Y at %l:%M:%S %p Server Time"
 
+#This is the file which contains a list of strings for kaithem.lorem and a few other places.
+#Used for the quotes in the login screen
+#Must be a YAML file containing a list of strings.
+quotes-file: default
 #####################MISC#######################################################
 #This really isn't used for anything except showing on the about box
 #Plus it involves a call to an external server. It will add extra time to startup.

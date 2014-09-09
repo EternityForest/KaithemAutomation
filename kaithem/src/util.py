@@ -36,10 +36,13 @@ def SaveAllState():
     with savelock:
         try:
             x = False
-            x = x or modules.saveAll()
-            x = x or auth.dumpDatabase()
+            if modules.saveAll():
+                x=True
+            if auth.dumpDatabase():
+                x=True
             messagelogging.dumpLogFile()
-            x = x or registry.sync()
+            if registry.sync():
+                x=True
             #Always send the message, because there is almost always going to be at least some log entries saved
             messagebus.postMessage("/system/notifications","Global server state was saved to disk")
             return x

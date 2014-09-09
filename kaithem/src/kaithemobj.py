@@ -18,7 +18,7 @@
 import time,random,subprocess,threading,random,gzip,json,yaml,os
 
 import cherrypy
-from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry,directories,pages
+from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry,directories,pages,config
 from . import astrallibwrapper as sky
 
 #This exception is what we raise from within the page handler to serve a static file
@@ -329,4 +329,7 @@ kaithem = Kaithem()
 kaithem.widget = widgets
 kaithem.globals = obj() #this is just a place to stash stuff.
 
-sentences= kaithem.persist.load(os.path.join(directories.datadir,"quotes.yaml"))
+if config.config['quotes-file'] == 'default':
+    sentences= kaithem.persist.load(os.path.join(directories.datadir,"quotes.yaml"))
+else:
+    sentences= kaithem.persist.load(config.config['quotes-file'])

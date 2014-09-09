@@ -57,7 +57,7 @@ BasePermissions = {
 "/admin/logging.edit": "Modify settings in the logging subsystem",
 "/users/logs.view": "View the message logs.",
 "/users/accountsettings.edit" : "Edit ones own account preferences",
-"__all_permissions__": "Special universal permission that grants all permissions in the system. USe with care."
+"__all_permissions__": "Special universal permission that grants all permissions in the system. Use with care."
 }
 
 Permissions=BasePermissions

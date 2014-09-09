@@ -2,28 +2,24 @@
     "data": {
         "keys": {
             "system/mail/address": {
-                "data": "riverheart201@gmail.com"
+                "data": "myemail@example.com"
             },
             "system/mail/lists": {
                 "data": {
                     "RLpWcXaAPYcERWrbzb8YBw==": {
                         "description": "Insert Description",
-                        "name": "Untitled"
-                    },
-                    "i6WPfJ276vxyqMRE+oiMRQ": {
-                        "description": "Insert Description",
-                        "name": "827 News"
+                        "name": "Demo List"
                     }
                 }
             },
             "system/mail/password": {
-                "data": "a"
+                "data": "blah"
             },
             "system/mail/port": {
-                "data": "587"
+                "data": "12345"
             },
             "system/mail/server": {
-                "data": "smtp.gmail.com"
+                "data": "smtp.example.com"
             }
         }
     }

@@ -103,7 +103,11 @@ class="specialentry"\
 %endif
 >${i|h}
 </h3>
-${auth.Permissions[i]|h}
+%if i in auth.Permissions:
+    ${auth.Permissions[i]|h}
+%else:
+    "Unknown"
+%endif
 %endfor
 </div>
 

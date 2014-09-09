@@ -1,7 +1,0 @@
-{
-    "action": "pass",
-    "once": true,
-    "resource-type": "event",
-    "setup": "#You can also use events just for setting things up, like this!\r\nkaithem.globals.count = 0",
-    "trigger": "False"
-}

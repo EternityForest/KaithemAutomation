@@ -180,6 +180,9 @@ properties:
     
     theme-url:
         type: string
+        
+    quotes-file:
+        type: string
     
     enable-js:
         type: boolean
