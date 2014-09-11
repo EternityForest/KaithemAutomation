@@ -529,12 +529,14 @@ def mvResource(module,resource,toModule,toResource):
         ActiveModules[toModule][toResource] = ActiveModules[module][resource]
         del ActiveModules[module][resource]
         newevt.renameEvent(module,resource,toModule,toResource)
+        return
 
     if ActiveModules[module][resource]['resource-type'] == 'page':
         ActiveModules[toModule][toResource] = ActiveModules[module][resource]
         del ActiveModules[module][resource]      
         usrpages.removeOnePage(module,resource)
         usrpages.updateOnePage(toResource,toModule)
+        return
 
          
 class KaithemEvent(dict):
