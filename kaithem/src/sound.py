@@ -196,7 +196,7 @@ class MPlayerWrapper(SoundWrapper):
     #If the object is destroyed it destroys the process stopping the sound
     #It also abstracts checking if its playing or not.
     class MPlayerSoundContainer(object):
-        def __init__(self,filename,vol,start,end,**kw):
+        def __init__(self,filename,vol,start,end,extras,**kw):
             f = open(os.devnull,"w")
             g = open(os.devnull,"w")
             self.paused = False
@@ -208,6 +208,11 @@ class MPlayerWrapper(SoundWrapper):
                 cmd.extend(["-ao","pulse:"+kw['output']])
             else:
                 cmd.extend(["-ao","pulse"])
+            
+            if 'eq' in extras:
+                if extras['eq'] == 'party':
+                    cmd.extend(['-af','equalizer=0:1.5:2:-7:-10:-5:-10:-10:1:1,volume=3'])
+
             self.started = time.time()
             cmd.append(filename)
             self.process = subprocess.Popen(cmd,stdin=subprocess.PIPE,stdout = f, stderr = g)
@@ -276,6 +281,11 @@ class MPlayerWrapper(SoundWrapper):
             e = {"output":kwargs['output']}
         else:
             e = {}
+        
+        if 'eq' in kwargs:
+            extras={'eq':kwargs['eq']}
+        else:
+            extras={}
         #Those old sound handles won't garbage collect themselves
         self.deleteStoppedSounds()
         #Raise an error if the file doesn't exist
@@ -283,7 +293,7 @@ class MPlayerWrapper(SoundWrapper):
             raise ValueError("Specified audio file'"+filename+"' does not exist")
         
         #Play the sound with a background process and keep a reference to it
-        self.runningSounds[handle] = self.MPlayerSoundContainer(filename,v,start,end,**e)
+        self.runningSounds[handle] = self.MPlayerSoundContainer(filename,v,start,end,extras,**e)
     
     def stopSound(self, handle ="PRIMARY"):
         #Delete the sound player reference object and its destructor will stop the sound

@@ -371,7 +371,7 @@ class CompileCodeStringsMixin():
         body += "    try:\n"
         for line in action.split('\n'):
             body+=("        "+line+'\n')
-        body += "    finally:\n"
+        body+= "    finally:\n"
         body+=("        for i in locals(): globals()[i]=locals()[i]")
         body = compile(body,"Event_"+self.module+'_'+self.resource,'exec')
         exec(body,self.pymodule.__dict__)

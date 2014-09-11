@@ -1,0 +1,26 @@
+{
+    "data": {
+        "keys": {
+            "system/mail/address": {
+                "data": "myemail@example.com"
+            },
+            "system/mail/lists": {
+                "data": {
+                    "RLpWcXaAPYcERWrbzb8YBw==": {
+                        "description": "Insert Description",
+                        "name": "Demo List"
+                    }
+                }
+            },
+            "system/mail/password": {
+                "data": "blah"
+            },
+            "system/mail/port": {
+                "data": "12345"
+            },
+            "system/mail/server": {
+                "data": "smtp.example.com"
+            }
+        }
+    }
+}

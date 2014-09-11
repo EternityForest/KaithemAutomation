@@ -347,7 +347,7 @@ h4 {
             command in the command line, or None if there is no such program</p>
 
         <h3>kaithem.sound</h3>
-        <h4>kaithem.play(filename,handle,volume=1,start=0,end= -0.0001)</h4>
+        <h4>kaithem.play(filename,handle,volume=1,start=0,end=-0.0001,extras={})</h4>
         <p>If you have mpg123 or SOX installed, play the file, otherwise do nothing. The handle
             parameter lets you name the new sound instance to stop it later. If you try to play a sound under the same
             handle as a stil-playing sound, the old one will be stopped. Defaults to PRIMARY.
@@ -357,6 +357,12 @@ h4 {
             Volume is a dimensionless multiplier that only works if using SOX. Otherwise it is ignored.
             Start and end times are in seconds, negative means relative to sound end. Start and end times
             are also SOX specific and are ignored(full sound will always play) with other players.
+            </p>
+            
+            <p>
+            Extras can be a dict that lets you activate extra features when using mplayer.
+            When extras contains a value "eq" that equals "party",
+            the equalizer will be set so as to sound more like "background music" and not interfere with conversation.
             </p>
 
         <h4>kaithem.sound.stop(handle="PRIMARY"")</h4>

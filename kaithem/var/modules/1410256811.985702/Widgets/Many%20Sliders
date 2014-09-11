@@ -1,0 +1,18 @@
+{
+    "allow-origins": [
+        "*"
+    ],
+    "allow-xss": false,
+    "auto-reload": false,
+    "auto-reload-interval": 5.0,
+    "body": "<script type=\"text/javascript\" src=\"/static/widget.js\"></script>\r\n<div class=\"sectionbox\">\r\n%for i in module.mass:\r\n    ${i.render()}\r\n%endfor\r\n</div>",
+    "dont-show-in-index": false,
+    "no-header": false,
+    "no-navheader": true,
+    "require-method": [
+        "GET",
+        "POST"
+    ],
+    "require-permissions": [],
+    "resource-type": "page"
+}
