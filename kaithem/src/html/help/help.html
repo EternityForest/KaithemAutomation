@@ -568,6 +568,148 @@ h4 {
         <p>Takes a number and formats it with suffixes. 1000 becomes 1K, 1000000 becomes 1M.
         d is the number of digits of precision to use.</p>
         
+        <h3>kaithem.device</h3>
+        <p>This is simply a dict of device objects, which can also be addressed directly(device['foo']==device.foo),
+        all of which descend from Device and present a standard interface. The kaithem device API allows different devices to present a similar API.
+        A device object will have the following properties, in addition to those specific to the type of device.<p>
+        
+        <h4>Device.id</h4>
+        <p>This is the devices read-only ID, which is unique to that physical device. It must either be globally unique(As in MAC address or UUID or URL or some such) or begin with local/.
+        It must be no more than 32 ASCII characters, and may be an empty string or None if the device does not have a unique ID.</p>
+        
+        <h4>Device.name</h4>
+        <p>A user-settable friendly name for the device. The user may write a string to this field and it will be saved, possibly to the device's physical EEPROM if the device supports it.
+        Should be interpreted as utf8. If the device does not support the concept of friendly names, should be None.</p>
+        
+        <h4>Device.model</h4>
+        <p>The type of device, as in the model number or product name.</p>
+        
+        <h4>Device.manufacturer</h4>
+        <p>The manufacturer of said device.</p>
+        
+        <h4>Device.status</h4>
+        <p>Read only. Must be None or a two-element tuple, the first element being one of the listed status codes, and the second being a short descriptive phrase.</p>
+        
+        <p>Status codes may be any of the follwong strings</p>
+        
+        <dl>
+        <dt>normal</dt>
+        <dd>Normal operation</dd>
+        
+        <dt>warning</dt>
+        <dd>Generic warning, somethng that could cause problems but does not currently affect operation(low battery, toner, etc)</dd>
+        
+        <dt>error</dt>
+        <dd>Generic error, something that currently affects operation(Power failure, burnt bulb, etc.)</dd>
+        
+        <dt>booting</dt>
+        <dd>Device is currently booting up.</dd>
+        
+        <dt>stopping</dt>
+        <dd>Device is shutting down</dd>
+        
+        <dt>off</dt>
+        <dd>Device is off</dd>
+        
+        <dt>busy</dt>
+        <dd>Device is busy in a way that makes it unable to do other things.</dd>
+        </dl>
+        
+        </dl>
+        
+        <h4>Device.override</h4>
+        <p>Reserved.
+        </p>
+        
+        <h4>Device.write</h4>
+        <p>Reserved.</p>
+        
+        <h4>Device.read</h4>
+        <p>Reserved.</p>
+        
+        <h4>Device.call</h4>
+        <p>Reserved.</p>
+        
+        
+        <h4>Device.info</h4>
+        <p>A dict containing all information about the device type.</p>
+        
+        <b>May contain</b>
+        
+        <p>Description, an english(or other non computer language) description, url, a link to more information,
+        and registers, a dict providing information about the devices members. Each key in registers must match a
+        member of the object.</p>
+        
+        <b>Each registers entry must contain</b>
+        
+        <p>type, which should be a string describing a python type, or else a validictory schema dict.
+        For properties this is the type and for functions it is the return type.</p>
+        
+        <p>flags, a list of numeric flags, from the following list:</p>
+        
+        <table border =1>
+        
+        <tr>
+        <td>
+        c
+        </td>
+        <td>
+        property is a callable function
+        </tr>
+        
+        <tr>
+        <td>
+        r
+        </td>
+        <td>
+        property is readable
+        </tr>
+        
+        <tr>
+        <td>
+        w
+        </td>
+        <td>
+        property is writable
+        </tr>
+        
+        <tr>
+        <td>
+        p
+        </td>
+        <td>
+        Reading this member has no side effects
+        </tr>
+        
+        <tr>
+        <td>
+        I
+        </td>
+        <td>
+        Writing this member is idempotent
+        </tr>
+   
+        </table>
+        
+        
+        <b>Each registers entry may contain</b>
+        
+        <p>description, a string</p>
+        
+        <p>signature,escribing what paraeters the function takes, as a list of strings or a list of validictory dicts.</p>
+        
+        
+        <b>numeric types only</b>
+        <p>unit, a unt of measurement, succh as KW or V or Kg</p>
+        
+        <p>min, the minimum</p>
+        
+        <p>max, the maximum</p>
+        
+        
+        
+        <p>Device derived cl
+        
         
    
         <h2>

@@ -343,6 +343,19 @@ class Kaithem():
 class obj():
     pass
 
+
+class Device(object):
+    def __init__(self):
+        pass
+    
+    id = None
+    model = "Kaithem Base Object"
+    name = "Unnamed"
+    manufacturer = "generic"
+    status = ('normal','Base Class')
+    info = {}
+    
+    
 kaithem = Kaithem()
 kaithem.widget = widgets
 kaithem.globals = obj() #this is just a place to stash stuff.
