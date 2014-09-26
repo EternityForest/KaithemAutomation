@@ -16,6 +16,8 @@
 """This is the global general purpose utility thing that is accesable from almost anywhere in user code."""
 
 import time,random,subprocess,threading,random,gzip,json,yaml,os
+lastNTP = 0
+oldNTPOffset = False
 
 import cherrypy
 from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry,directories,pages,config
@@ -114,6 +116,22 @@ class Kaithem():
         @staticmethod
         def moonPhase():
             return sky.moon()
+        
+        @staticmethod
+        def checkNTP():
+            global lastNTP,oldNTPOffset
+            try:
+                if (time.time() -lastNTP) > 500:
+                    lastNTP = time.time()
+                    c = ntplib.NTPClient()
+                    response = c.request('pool.ntp.org', version=3)
+                    oldNTPOffset = response.offset
+                    return response.offset
+                else:
+                    return oldNTPOffset
+            except:
+                return False
+                
         
     
     class sys(object):
