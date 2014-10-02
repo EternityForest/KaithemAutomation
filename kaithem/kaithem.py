@@ -22,7 +22,6 @@
 import sys,os,threading
 
 
-
 #There are some libraries that are actually different for 3 and 2, so we use the appropriate one
 #By changing the pathe to include the proper ones.
 x = sys.path[0]
@@ -48,6 +47,7 @@ from src import weblogin
 from src import auth
 from src import ManageUsers
 from src import directories
+from src import newevt
 from src import modules
 from src import settings
 from src import usrpages
@@ -147,14 +147,13 @@ root.logs = messagelogging.WebInterface()
 root.notifications = notifications.WI()
 root.widgets = widgets.WebInterface()
 
-#Start cherrrypy
+
 dn = os.path.dirname(os.path.realpath(__file__))
 
 if config['local-access-only']:
     bindto = '127.0.0.1'
 else:
     bindto = '0.0.0.0'
-
 
 site_config={
         "tools.encode.on" :True,
@@ -184,7 +183,6 @@ cnf={
         {
          'request.dispatch': cherrypy.dispatch.MethodDispatcher()
         }
-     
 }
 #Let the user create additional static directories
 for i in config['serve-static']:

@@ -17,7 +17,7 @@
 
 import time,random,subprocess,threading,random,gzip,json,yaml,os
 lastNTP = 0
-oldNTPOffset = False
+oldNTPOffset = 30*365*24*60*60
 
 import cherrypy
 from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry,directories,pages,config
@@ -118,19 +118,19 @@ class Kaithem():
             return sky.moon()
         
         @staticmethod
-        def checkNTP():
+        def accuracy():
             global lastNTP,oldNTPOffset
             try:
-                if (time.time() -lastNTP) > 500:
+                if (time.time() -lastNTP) > 600:
                     lastNTP = time.time()
                     c = ntplib.NTPClient()
                     response = c.request('pool.ntp.org', version=3)
-                    oldNTPOffset = response.offset
-                    return response.offset
-                else:
+                    oldNTPOffset = response.offset + response.root_delay + response.root_dispersion
                     return oldNTPOffset
+                else:
+                    return oldNTPOffset + lastNTP/10000
             except:
-                return False
+                return oldNTPOffset + lastNTP/10000
                 
         
     
@@ -343,18 +343,6 @@ class Kaithem():
 class obj():
     pass
 
-
-class Device(object):
-    def __init__(self):
-        pass
-    
-    id = None
-    model = "Kaithem Base Object"
-    name = "Unnamed"
-    manufacturer = "generic"
-    status = ('normal','Base Class')
-    info = {}
-    
     
 kaithem = Kaithem()
 kaithem.widget = widgets

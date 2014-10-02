@@ -118,8 +118,15 @@ def __manager():
         temp = time.time()
         with _event_list_lock:
             for i in _events:
-                workers.do(i.check)
-                
+                #BAD HACK ALERT
+                #Instead of letting the event do the countdown,
+                # we do it ourselves, because we don't want
+                #To send anything through the slow queue we don't need to.
+                #We rely on the obect itself to reset the countdown though.
+                if i.countdown <1:
+                    workers.do(i.check)
+                else:
+                    i.countdown -= 1
             #Don't spew another round of events until the last one finishes so we don't
             #fill up the queue. The way we do this, is that after we have finished queueing
             #up all the events to be polled, we insert a sentry.
@@ -317,13 +324,15 @@ class BaseEvent():
     
     def register(self):
         #Some events are really just containers for a callback, so there is no need to poll them
-        if self.polled:
-            if self not in _events:
-                _events.append(self)
+        with _event_list_lock:       
+            if self.polled:
+                if self not in _events:
+                    _events.append(self)
                 
     def unregister(self):
-        if self in _events:
-            _events.remove(self)
+        with _event_list_lock:
+            if self in _events:
+                _events.remove(self)
     
     def check(self):
         """This is the function that the polling system calls to poll the event.

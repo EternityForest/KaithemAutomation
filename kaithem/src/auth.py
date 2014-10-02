@@ -379,7 +379,7 @@ def canUserDoThis(user,permission):
         
     if '__all_permissions__' in Users[user].permissions:
         return True
-         
+    
     if permission in Users[user].permissions:
         return True
     return False
