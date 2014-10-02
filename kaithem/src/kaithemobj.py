@@ -299,7 +299,7 @@ class Kaithem():
                 if os.path.isfile(fn+'~'):
                     os.remove(fn+'~')
 
-            
+        @staticmethod
         def load(filename):
             try:
                 if filename.endswith(".gz"):
