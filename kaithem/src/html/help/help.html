@@ -69,7 +69,6 @@ h4 {
     <h2>
         <a id="events">Events</a>
     </h2>
-    <a id="trigger"></a>
         <p>
             One of the main automation constructs is the <em>event</em>. Events are mappings between a <em>trigger</em>
             and an <em>action</em>.A trigger can be a python expression that when the return value goes from False to
@@ -83,8 +82,11 @@ h4 {
 
 
         <p>Events have their own special scope similar to a local scope that is pre-populated when the event loads
-            with several useful things, among these the kaithem object(see below)</p>
-
+            with several useful things, among these the kaithem object(see below).
+            Internally they are implemented as modules that are generated on the fly.
+            The setup code runs directly inside the module, whilst the trigger and action are used to generate two functions.</p>
+        
+        <a id="trigger"></a>    
         <h3>Availible Trigger Expressions</h3>
         <h4>!onmsg [topic]</h4>
         <p>This trigger expression causes the event to occur when a message is posted to the internal message bus
@@ -126,13 +128,18 @@ h4 {
             <a id="scope" name="scope"></a>Scoping
         </h2>
         <p>Almost all programming languages have some concept of scope and Python is no different. Every event has
-            its own scope, similar to a function. if you set a variable in one event, it will be there next time the
-            event runs, but will not be directly visible in other resources. This does not apply to Mako code inside
-            page html. Mako code will act like function local variables and only persist for the life of the call</p>
+            its own global scope, similar to a module. If you set a variable in the event action and use the global keyword,
+            it will be there next time the event runs, but will not be directly visible in other resources.
+            If you assign a variable in an event action without the global keyword, it will simply disappear after the event runs like any function local variable.
+            This does not apply to Mako code inside page html. Mako code will act like function local variables and only persist for the life of the call, and globals don't really apply here.</p>
+            
+        <p>Anything defined in the Setup function of an event becomes a part of the global namespace for that event, and can be accessed by code in Trigger and Action,
+        and written to by use of the global keyword.</p>
+        
 
-        <p>Every resource scope however will contain an object called kaithem, which is a global object witho some
+        <p>Every resource scope(including setup,trigger,action, and Mako pages) however will contain an object called kaithem, which is a global object with some
             useful utilities, and an object called module, which is shared between all resources within one module. The
-            module objects have no special propereties beyond the ability to assign objects to them.</p>
+            module objects have no special properties beyond the ability to assign objects to them.</p>
 
 
         <h2>
