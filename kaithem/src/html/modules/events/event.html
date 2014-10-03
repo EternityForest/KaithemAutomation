@@ -17,8 +17,9 @@ from src.config import config
 <h3>Name</h3>
 <input name="name" value="${name|h}"></input>
 <h3>Setup Code</h3>
-<p class="help">Enter python code. It will execute in the event scope when it loads. If there is any problem,
+<p class="help">Enter python code. It will execute in the event <b>global</b> scope when it loads. If there is any problem,
 the other events will load then this will be retried. This is also how <a href="/docs#dependancies">dependancies</a> are reoslved.
+You will need to use the global keyword in the event action to overwrite a variable defined here.
 %if not pages.canUserDoThis("/admin/modules.edit"):
 <br>
 <span class="warning">You will not be able to save any change made as you are either not logged in or do not have permissions.</span>
@@ -91,6 +92,10 @@ else:
 <h3>Action</h3>
 <p class="help">
 This code will be executed when the trigger condition is met. Polling will be suspended until the action completes.
+<b>NOTE: The Action is scoped like a function body. If you want to assign to variables and have them stay around next time the function runs,
+you may need to use the global keyword. You may also need to use the global keyword if you get UnboundLocal errors.
+
+</b>
 </p>
 
 <textarea id="actionbox" name="action" rows=50 class="pythoncode">${event["action"]|h}</textarea>

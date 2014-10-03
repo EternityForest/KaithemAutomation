@@ -367,6 +367,8 @@ class CompileCodeStringsMixin():
         #Compile the action and run the initializer
         if setup == None:
             setup = "pass"
+            
+        #initialize the module scope with the kaithem object and the module thing.    
         initializer = compile(setup,"Event_"+self.module+'_'+self.resource,"exec")
         
         try:
@@ -374,18 +376,15 @@ class CompileCodeStringsMixin():
             self.pymodule.__dict__['module']=modules_state.scopes[self.module]
         except KeyError as e:
             raise e
+        exec(initializer,self.pymodule.__dict__,self.pymodule.__dict__)
         
-        
-        
-        exec(initializer,self.pymodule.__dict__)
         body = "def action():\n"
-        body += "    try:\n"
         for line in action.split('\n'):
-            body+=("        "+line+'\n')
-        body+= "    finally:\n"
-        body+=("        for i in locals(): globals()[i]=locals()[i]")
+            body+=("    "+line+'\n')
         body = compile(body,"Event_"+self.module+'_'+self.resource,'exec')
         exec(body,self.pymodule.__dict__)
+        #This is one of the weirder line of code I've ever writter
+        #Apperently for some reason we have to manually tell it where to go for global variables.
 
     
     def _do_action(self):

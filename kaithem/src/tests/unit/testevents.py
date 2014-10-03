@@ -4,7 +4,7 @@ import time
 
 modules_state.scopes['x'] = {}
 #Create an event that sets y to 0 if it is 1
-x = newevt.Event("y==1","y=0",locals(),setup="y=0")
+x = newevt.Event("y==1","global y\ny=0",locals(),setup="y=0")
 
 #Register event with polling.
 x.register()
@@ -54,7 +54,7 @@ if not x.pymodule.y:
     common.fail("Time delay event did not delete itself properly")
         
 #Same exact thing exept we use the onchange
-x = newevt.Event("!onchange y","y=5",locals())
+x = newevt.Event("!onchange y","global y\ny=5",locals())
 
 
 #Register event with polling.
@@ -81,7 +81,7 @@ if not x.pymodule.y == 1:
    
         
 #Now we test the message bus event
-x = newevt.Event("!onmsg /test","y='test'",locals())
+x = newevt.Event("!onmsg /test","global y\ny='test'",locals())
 
 
 #Register event with polling.
