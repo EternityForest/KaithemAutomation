@@ -43,6 +43,15 @@ class Kaithem():
         def uptime():
             return time.time()-systasks.systemStarted
         
+        @staticmethod
+        def errors(f):
+            try:
+                f()
+            except Exception as e:
+                return e
+            return None
+            
+        
     class time(object):
         @staticmethod
         def strftime(*args):
