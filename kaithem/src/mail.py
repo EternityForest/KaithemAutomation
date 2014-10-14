@@ -1,4 +1,4 @@
-from . import registry,workers,auth,pages
+from . import registry,workers,auth,pages,messagebus
 import smtplib,email
 
 from collections import deque
@@ -48,3 +48,29 @@ def raw_send(msg,to,subject,recipientName=None):
     if recipientName:
         msg['to'] = recipientName
     server.sendmail(fromaddr,tolist,msg.as_string())
+    
+def check_credentials():
+    if not registry.get("system/mail/server",False):
+        return    
+    try:
+        smtp_host = registry.get("system/mail/server")
+        smtp_port = registry.get("system/mail/port")
+        fromaddr = registry.get("system/mail/address")
+        server = smtplib.SMTP()
+        server.connect(smtp_host,smtp_port)
+        server.ehlo()
+        server.starttls()
+        server.login(fromaddr,registry.get("system/mail/password"))
+    except smtplib.SMTPAuthenticationError as e:
+        messagebus.postMessage("/system/errors/mail/login",repr(e))
+        messagebus.postMessage("/system/notifications/errors","Bad username or password for system email account\n"+repr(e))
+    finally:
+        try:
+            server.quit()
+        except:
+            pass
+        
+   
+
+        
+        

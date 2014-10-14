@@ -120,10 +120,13 @@ def everyminute():
             except Exception as e:
                 raise e
             
+    if datetime.now().hour == 0:
+        mail.check_credentials()
     
 #This is a polled trigger returning true at the top of every minute.
+#Less than 10 is fine, events see rising edges.
 def onminute():  
-    return kaithem.time.second() == 0
+    return kaithem.time.second() < 10
 
 #newevt provides a special type of trigger just for system internal events
 e = newevt.PolledInternalSystemEvent(onminute,everyminute,{},priority=20)

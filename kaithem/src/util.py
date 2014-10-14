@@ -193,4 +193,32 @@ def updateIP():
         except Exception:
             pass
     return MyExternalIPAdress
+
+lastNTP = 0
+oldNTPOffset = 30*365*24*60*60
+hasInternet = False
+
+def timeaccuracy():
+    from . import messagebus
+    global lastNTP,oldNTPOffset
+    try:
+        if (time.time() -lastNTP) > 600:
+            lastNTP = time.time()
+            c = ntplib.NTPClient()
+            response = c.request('pool.ntp.org', version=3)
+            oldNTPOffset = response.offset + response.root_delay + response.root_dispersion
+            if not hasInternet:
+                messagebus.postMessage("/system/internet",True)
+            hasInternet = True
+            return oldNTPOffset
+        else:
+            return oldNTPOffset + (time.time() -lastNTP)/10000
+    except:
+        if hasInternet:
+            messagebus.postMessage("/system/internet",False)
+        hasInternet = False
+        return oldNTPOffset + (time.time() -lastNTP)/10000
+
+        
+        
           

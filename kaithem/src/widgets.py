@@ -11,6 +11,8 @@ def mkid():
 
 
 class WebInterface():
+    
+    #This index is entirely for AJAX calls
     @cherrypy.expose
     def index(self,**k):
         j = json.loads(k['json'])
@@ -39,13 +41,16 @@ class Widget():
         
         self._callback = f
         
+        #Give the widget an ID for the client to refer to it by
         if not 'id' in kwargs:
             self.uuid = "id"+base64.b64encode(os.urandom(16)).decode().replace("/",'').replace("-",'').replace('+','')[:-2]
         else:
             self.uuid = kwargs['id']
-            
+        
+        #Insert self into the widgets list
         widgets[self.uuid] = self
 
+    #This function is called by the web interface code
     def _onRequest(self,user):
         """Widgets on the client side send AJAX requests for the new value. This function must
         return the value for the widget. For example a slider might request the newest value
@@ -55,10 +60,12 @@ class Widget():
                 return
             
         return self.onRequest(user)
-            
+    
+    #This function is meant to be overridden or used as is
     def onRequest(self,user):   
         return self._value
     
+    #This function is called by the web interface whenever this widget is written to
     def _onUpdate(self,user,value):
         for i in self._read_perms:
             if not auth.canUserDoThis(user,i):
@@ -70,26 +77,32 @@ class Widget():
             
         self.onUpdate(user,value)
         self._callback(user,value)
-    
+        
+    #Return True if this user can write to it
     def isWritable(self):
         for i in self._write_perms:
             if not auth.canUserDoThis(pages.getAcessingUser(),i):
                 return "disabled"
         return ""
         
-    
+    #Set a callback if it ever changes
     def attach(self,f):
         self._callback = f
-        
+    
+    #meant to be overridden or used as is
     def onUpdate(self,user,value):
         self._value = value
-        
+    
+    #Read and write are called by code on the server
     def read(self):
         return self._value
     
     def write(self,value):
         self._value = str(value)
+        #Is this the right behavior?
+        self._callback("__SERVER__",value)
     
+    #Lets you add permissions that are required to read or write the widget.
     def require(self,permission):
         self._read_perms.append(permission)
         
@@ -97,6 +110,7 @@ class Widget():
         self._write_perms.append(permission)
         
 
+#This widget is just a time display, it doesn't really talk to the server, but it's useful to keep the same interface.
 class TimeWidget(Widget):
     def onRequest(self,user):
         return str(unitsofmeasure.strftime())
@@ -181,6 +195,7 @@ class Meter(Widget):
         self._value = [0,'normal']
     
     def write(self,value):
+        #Decide a class so it can show red or yellow with high or low values.
         self.c = "normal"
         if 'high_warn' in self.k:
             if value >= self.k['high_warn']:

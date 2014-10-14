@@ -15,9 +15,8 @@
 
 """This is the global general purpose utility thing that is accesable from almost anywhere in user code."""
 
-import time,random,subprocess,threading,random,gzip,json,yaml,os
-lastNTP = 0
-oldNTPOffset = 30*365*24*60*60
+import time,random,subprocess,threading,random,gzip,json,yaml,os,ntplib
+
 
 import cherrypy
 from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry,directories,pages,config
@@ -128,18 +127,7 @@ class Kaithem():
         
         @staticmethod
         def accuracy():
-            global lastNTP,oldNTPOffset
-            try:
-                if (time.time() -lastNTP) > 600:
-                    lastNTP = time.time()
-                    c = ntplib.NTPClient()
-                    response = c.request('pool.ntp.org', version=3)
-                    oldNTPOffset = response.offset + response.root_delay + response.root_dispersion
-                    return oldNTPOffset
-                else:
-                    return oldNTPOffset + lastNTP/10000
-            except:
-                return oldNTPOffset + lastNTP/10000
+            return util.timeaccuracy()
                 
         
     
