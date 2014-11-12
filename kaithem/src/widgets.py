@@ -1,6 +1,8 @@
 import weakref,time,json,base64,cherrypy,os
 from . import auth,pages,unitsofmeasure,config
-from ws4py.websocket import WebSocket
+from src.config import config
+if config['enable-websockets']:
+    from ws4py.websocket import WebSocket
 widgets = weakref.WeakValueDictionary()
 n = 0
 
@@ -32,33 +34,34 @@ class WebInterface():
     @cherrypy.expose
     def ws(self):
         # you can access the class instance through
-        if not config.config['enable-websockets']:
+        if not config['enable-websockets']:
             raise RuntimeError("Websockets disabled in server config")
         handler = cherrypy.request.ws_handler
         handler.user = pages.getAcessingUser()
     
     @cherrypy.expose
     def ws_allowed(self):
-        return str(config.config['enable-websockets']) 
-
-class websocket(WebSocket):        
-    def received_message(self,message):
-        try:
-            o = json.loads(message.data.decode('utf8'))
-            resp = {}
-            user = self.user
-            req = o['req']
-            upd = o['upd']
-            
-            for i in upd:
-                widgets[i]._onUpdate(user,upd[i])
+        return str(config['enable-websockets'])
     
-            for i in req:
-                resp[i] = widgets[i]._onRequest(user)
-            
-            self.send(json.dumps(resp))
-        except Exception as e:
-            self.send(repr(e)+ " xyz")
+if config['enable-websockets']:
+    class websocket(WebSocket):        
+        def received_message(self,message):
+            try:
+                o = json.loads(message.data.decode('utf8'))
+                resp = {}
+                user = self.user
+                req = o['req']
+                upd = o['upd']
+                
+                for i in upd:
+                    widgets[i]._onUpdate(user,upd[i])
+        
+                for i in req:
+                    resp[i] = widgets[i]._onRequest(user)
+                
+                self.send(json.dumps(resp))
+            except Exception as e:
+                self.send(repr(e)+ " xyz")
 
 class Widget():
     def __init__(self,*args,**kwargs):

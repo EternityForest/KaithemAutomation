@@ -73,7 +73,7 @@ xmlhttp.open("GET","/widgets/ws_allowed",false);
 xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 xmlhttp.send();
 xmlDoc=xmlhttp.responseText;
-if (xmlDoc == 'True' & false)
+if (xmlDoc == 'True')
 {
 	function wspollLoop()
 	{

@@ -61,10 +61,12 @@ from src import widgets
 from src.config import config
 
 MyExternalIPAdress = util.updateIP()
-from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
-from ws4py.websocket import EchoWebSocket
-WebSocketPlugin(cherrypy.engine).subscribe()
-cherrypy.tools.websocket = WebSocketTool()
+
+if config['enable-websockets']:
+    from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
+    from ws4py.websocket import EchoWebSocket
+    WebSocketPlugin(cherrypy.engine).subscribe()
+    cherrypy.tools.websocket = WebSocketTool()
 
 
         

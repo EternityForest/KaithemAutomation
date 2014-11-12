@@ -86,7 +86,7 @@ audio-backends:
 max-load-attempts: 25
 
 #allow websocket connections? they may be unstable.
-enable-websockets: true
+enable-websockets: false
     
 ##################LOGGING######################################################
 #Notice: to actually control what topics are logged, use the kaithem/var/whattosave.txt or edit
