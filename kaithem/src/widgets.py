@@ -37,7 +37,10 @@ class WebInterface():
         if not config['enable-websockets']:
             raise RuntimeError("Websockets disabled in server config")
         handler = cherrypy.request.ws_handler
-        handler.user = pages.getAcessingUser()
+        if cherrypy.request.scheme == 'https':
+            handler.user = pages.getAcessingUser()
+        else:
+            handler.user = "__guest__"
     
     @cherrypy.expose
     def ws_allowed(self):

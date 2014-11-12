@@ -84,7 +84,7 @@ if (xmlDoc == 'True')
 	    }	
 	}
 
-	var connection = new WebSocket("wss://"+window.location.host + '/widgets/ws');
+	var connection = new WebSocket(window.location.protocol.replace("http","ws")+"//"+window.location.host + '/widgets/ws');
 
 	connection.onmessage = function(e){
 	var resp = JSON.parse(e.data);
