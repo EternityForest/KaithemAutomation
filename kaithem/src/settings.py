@@ -108,7 +108,7 @@ class Settings():
     def changeinfo(self,**kwargs):
         pages.require("/users/accountsettings.edit")
         auth.setUserSetting(pages.getAcessingUser(),'email',kwargs['email'])
-        
+        messagebus.postMessage("/system/auth/user/changedemail",pages.getAcessingUser())
         raise cherrypy.HTTPRedirect("/settings/account")
 
  
@@ -124,7 +124,8 @@ class Settings():
                 raise cherrypy.HTTPRedirect("/errors/mismatch")
         else:
             raise cherrypy.HTTPRedirect("/errors/loginerror")
-        
+        messagebus.postMessage("/system/auth/user/selfchangedepassword",pages.getAcessingUser())
+
         raise cherrypy.HTTPRedirect("/")
     
     @cherrypy.expose
@@ -230,6 +231,7 @@ class Settings():
         pages.require("/admin/settings.edit")
         registry.set("system/location/lat",float(kwargs['lat']))
         registry.set("system/location/lon",float(kwargs['lon']))
+        messagebus.postMessage("/system/settings/changedelocation",pages.getAcessingUser())
         raise cherrypy.HTTPRedirect('/settings/system')
     
     @cherrypy.expose    
@@ -239,6 +241,7 @@ class Settings():
         registry.set("system/location/lat",l['lat'])
         registry.set("system/location/lon",l['lon'])
         registry.set("system/location/city",l['city'])
+        messagebus.postMessage("/system/settings/changedelocation",pages.getAcessingUser())
         raise cherrypy.HTTPRedirect('/settings/system')
     
     @cherrypy.expose    
@@ -269,6 +272,7 @@ class Settings():
             if not yappi.is_running():
                 yappi.start()
             time.sleep(0.5)
+            messagebus.postMessage("/system/settings/activatedprofiler",pages.getAcessingUser())
             raise cherrypy.HTTPRedirect("/settings/profiler")
        
         @cherrypy.expose    

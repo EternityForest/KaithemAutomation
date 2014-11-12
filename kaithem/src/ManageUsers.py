@@ -30,6 +30,7 @@ class ManageAuthorization():
     def deluser(self,**kwargs):
         pages.require("/admin/users.edit")
         auth.removeUser(kwargs['user'])
+        messagebus.postMessage("/system/auth/user/deleted",{'user':kwargs['user'],'deletedby':pages.getAcessingUser()})
         raise cherrypy.HTTPRedirect("/auth")
     
     #POST target for deleting a group
@@ -37,6 +38,7 @@ class ManageAuthorization():
     def delgroup(self,**kwargs):
         pages.require("/admin/users.edit")
         auth.removeGroup(kwargs['group'])
+        messagebus.postMessage("/system/auth/group/deleted",{'group':kwargs['group'],'deletedby':pages.getAcessingUser()})
         raise cherrypy.HTTPRedirect("/auth")
     
     #INterface to select a user to delete
@@ -74,6 +76,8 @@ class ManageAuthorization():
         auth.addUser(kwargs['username'],kwargs['password'])
         #Take the user back to the users page
         messagebus.postMessage('/system/notifications','New user "'+kwargs['username']+'" added')
+        messagebus.postMessage("/system/auth/user/added",{'user':kwargs['username'],'addedby':pages.getAcessingUser()})
+
         raise cherrypy.HTTPRedirect("/auth/")
             
         
@@ -86,6 +90,8 @@ class ManageAuthorization():
         pages.require("/admin/users.edit")
         #create the new user
         auth.addGroup(kwargs['groupname'])
+        messagebus.postMessage("/system/auth/group/added",{'group':kwargs['groupname'],'addedby':pages.getAcessingUser()})
+
         #Take the user back to the users page
         raise cherrypy.HTTPRedirect("/auth/")
             
@@ -115,6 +121,7 @@ class ManageAuthorization():
             auth.changePassword(user,kwargs['password'])
             
         auth.changeUsername(user,kwargs['username'])
+        messagebus.postMessage("/system/auth/user/modified",{'user':user,'modifiedby':pages.getAcessingUser()})
         #Take the user back to the users page
         raise cherrypy.HTTPRedirect("/auth")
    
@@ -134,6 +141,8 @@ class ManageAuthorization():
                     
         #Take the user back to the users page
         auth.generateUserPermissions() #update all users to have the new permissions lists
+        messagebus.postMessage("/system/auth/group/changed",{'group':group,'changedby':pages.getAcessingUser()})
+
         raise cherrypy.HTTPRedirect("/auth")
             
     #Settings page for one individual user    

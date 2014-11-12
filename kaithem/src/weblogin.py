@@ -43,6 +43,7 @@ class LoginScreen():
             messagebus.postMessage("/system/auth/login",[kwargs['username'],cherrypy.request.remote.ip])
             raise cherrypy.HTTPRedirect(util.unurl(kwargs['go']))
         else:
+            messagebus.postMessage("/system/auth/loginfail",[kwargs['username'],cherrypy.request.remote.ip])
             raise cherrypy.HTTPRedirect("/errors/loginerror")
             
     @cherrypy.expose

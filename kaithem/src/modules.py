@@ -209,6 +209,7 @@ class WebInterface():
         global moduleschanged
         moduleschanged = True
         load_modules_from_zip(modules.file)
+        messagebus.postMessage("/system/modules/uploaded",{'user':pages.getAcessingUser()})
         raise cherrypy.HTTPRedirect("/modules/") 
             
         
@@ -251,7 +252,8 @@ class WebInterface():
         auth.importPermissionsFromModules()
         usrpages.removeModulePages(kwargs['name'])
         messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Deleted module " + kwargs['name'])
-        messagebus.postMessage("/system/modules/unloaded",kwargs['name'])  
+        messagebus.postMessage("/system/modules/unloaded",kwargs['name'])
+        messagebus.postMessage("/system/modules/deleted",{'user':pages.getAcessingUser()})
         raise cherrypy.HTTPRedirect("/modules")
         
     @cherrypy.expose
@@ -269,7 +271,8 @@ class WebInterface():
                 #Create the scope that code in the module will run in
                 scopes[kwargs['name']] = obj()
                 #Go directly to the newly created module
-                messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Created Module " + kwargs['name'])    
+                messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Created Module " + kwargs['name'])
+                messagebus.postMessage("/system/modules/new",{'user':pages.getAcessingUser(), 'module':kwargs['name']})
                 raise cherrypy.HTTPRedirect("/modules/module/"+util.url(kwargs['name']))
             else:
                 return pages.get_template("error.html").render(info = " A module already exists by that name,")
@@ -336,7 +339,9 @@ class WebInterface():
                     auth.importPermissionsFromModules() #sync auth's list of permissions
                     
                 messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " deleted resource " +
-                           kwargs['name'] + " from module " + module)    
+                           kwargs['name'] + " from module " + module)
+                messagebus.postMessage("/system/modules/deletedresource",{'user':pages.getAcessingUser(),'module':module,'resource':kwargs['name']})
+ 
                 raise cherrypy.HTTPRedirect('/modules')
 
             #This is the target used to change the name and description(basic info) of a module  
