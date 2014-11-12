@@ -31,14 +31,6 @@ function KWidget_sendValue(key,value)
 	}
 }
 
-    if ("data-rate" in document.currentScript)
-    {
-   	 kwidget_Delay = 1000/document.currentScript.getAttribute("data-rate");
-    }
-    else
-    {
-  	  kwidget_Delay = 150;
-    }
 
 function pollLoop()
 {
@@ -46,10 +38,12 @@ function pollLoop()
 if((Object.keys(toSet).length+Object.keys(toPoll).length)>0)
     { 
 	poll();
-    }	
+    }
+window.setTimeout(pollLoop, 120);
 
-window.setTimeout(pollLoop, kwidget_Delay);
 }
+
+
 
 function poll()
 {
@@ -71,6 +65,59 @@ function poll()
 	}
 	toSet={};
 
+
 }
 
-pollLoop();
+xmlhttp=new XMLHttpRequest();
+xmlhttp.open("GET","/widgets/ws_allowed",false);
+xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+xmlhttp.send();
+xmlDoc=xmlhttp.responseText;
+if (xmlDoc == 'True' & false)
+{
+	function wspollLoop()
+	{
+
+	if((Object.keys(toSet).length+Object.keys(toPoll).length)>0)
+	    { 
+		wpoll();
+	    }	
+	}
+
+	var connection = new WebSocket("wss://"+window.location.host + '/widgets/ws');
+
+	connection.onmessage = function(e){
+	var resp = JSON.parse(e.data);
+
+	for (var i in resp)
+		{
+			for(var j in toPoll[i])
+			{
+				toPoll[i][j](resp[i]);
+			}
+		}
+	window.setTimeout(wspollLoop, 80);
+
+	}
+
+	connection.onopen = function(e)
+	{
+		wspollLoop();
+		wspollLoop();
+	}
+
+	  
+	function wpoll()
+	{
+		var toSend = {'upd':toSet,'req':Object.keys(toPoll)};
+		var j = JSON.stringify(toSend);
+		connection.send(j);
+		toSet={};
+	}
+}
+else
+{
+	pollLoop();
+}
+
+

@@ -220,6 +220,28 @@ class Settings():
         return pages.get_template("settings/clearerrors.html").render()
     
     @cherrypy.expose    
+    def ip_geolocate(self):
+        pages.require("/admin/settings.edit")
+        
+        raise cherrypy.HTTPRedirect('/settings/system')
+    
+    @cherrypy.expose    
+    def changesettingstarget(self,**kwargs):
+        pages.require("/admin/settings.edit")
+        registry.set("system/location/lat",float(kwargs['lat']))
+        registry.set("system/location/lon",float(kwargs['lon']))
+        raise cherrypy.HTTPRedirect('/settings/system')
+    
+    @cherrypy.expose    
+    def ip_geolocate(self,**kwargs):
+        pages.require("/admin/settings.edit")
+        l = util.ip_geolocate()
+        registry.set("system/location/lat",l['lat'])
+        registry.set("system/location/lon",l['lon'])
+        registry.set("system/location/city",l['city'])
+        raise cherrypy.HTTPRedirect('/settings/system')
+    
+    @cherrypy.expose    
     def processes(self):
         pages.require("/admin/settings.view")
         return pages.get_template("settings/processes.html").render()

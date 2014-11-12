@@ -13,9 +13,9 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import time,atexit,sys,platform,re
+import time,atexit,sys,platform,re,datetime
 import cherrypy
-from . import newevt,messagebus,unitsofmeasure,util,messagelogging
+from . import newevt,messagebus,unitsofmeasure,util,messagelogging,mail
 from .kaithemobj import kaithem
 from .config import config
 
@@ -50,9 +50,10 @@ pageviewcountsmoother = util.LowPassFiter(0.3)
 frameRateWasTooLowLastMinute = False
 MemUseWasTooHigh = False
 firstrun = True
+checked = False
 
 def everyminute():
-    global pageviewsthisminute,firstrun
+    global pageviewsthisminute,firstrun,checked
     global pageviewpublishcountdown,lastpageviews
     global lastsaved, lastdumpedlogs,lastfpd,lastram,tenminutepagecount
     global frameRateWasTooLowLastMinute
@@ -119,9 +120,12 @@ def everyminute():
                     MemUseWasTooHigh = False
             except Exception as e:
                 raise e
-            
-    if datetime.now().hour == 0:
-        mail.check_credentials()
+    if datetime.datetime.now().hour == 0:    
+        if not checked:
+            checked=True
+            mail.check_credentials()
+    checked = False
+        
     
 #This is a polled trigger returning true at the top of every minute.
 #Less than 10 is fine, events see rising edges.

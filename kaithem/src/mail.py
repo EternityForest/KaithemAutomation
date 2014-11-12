@@ -1,5 +1,5 @@
 from . import registry,workers,auth,pages,messagebus
-import smtplib,email
+import smtplib,email,socket
 
 from collections import deque
 
@@ -51,7 +51,9 @@ def raw_send(msg,to,subject,recipientName=None):
     
 def check_credentials():
     if not registry.get("system/mail/server",False):
-        return    
+        return
+    if "smtp.example.com" in registry.get("system/mail/server",False):
+        return
     try:
         smtp_host = registry.get("system/mail/server")
         smtp_port = registry.get("system/mail/port")
@@ -64,6 +66,9 @@ def check_credentials():
     except smtplib.SMTPAuthenticationError as e:
         messagebus.postMessage("/system/errors/mail/login",repr(e))
         messagebus.postMessage("/system/notifications/errors","Bad username or password for system email account\n"+repr(e))
+    except socket.gaierror:
+        messagebus.postMessage("/system/errors/mail/other",repr(e))
+        messagebus.postMessage("/system/notifications/errors","Unkown mail host\n"+repr(e))
     finally:
         try:
             server.quit()

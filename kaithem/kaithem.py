@@ -61,6 +61,12 @@ from src import widgets
 from src.config import config
 
 MyExternalIPAdress = util.updateIP()
+from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
+from ws4py.websocket import EchoWebSocket
+WebSocketPlugin(cherrypy.engine).subscribe()
+cherrypy.tools.websocket = WebSocketTool()
+
+
         
 #Initialize the authorization module
 auth.initializeAuthentication()
@@ -170,7 +176,11 @@ site_config={
         'server.thread_pool':config['https-thread-pool'],
         'engine.autoreload.frequency' : 5
 }
-
+if config['enable-websockets']:
+    wscfg={'tools.websocket.on': True,
+           'tools.websocket.handler_cls': widgets.websocket}
+else:
+    wscfg = {}
 cnf={
     '/static':
         {'tools.staticdir.on': True,
@@ -182,7 +192,9 @@ cnf={
      '/pages':
         {
          'request.dispatch': cherrypy.dispatch.MethodDispatcher()
-        }
+        },
+     
+    '/widgets/ws': wscfg
 }
 #Let the user create additional static directories
 for i in config['serve-static']:

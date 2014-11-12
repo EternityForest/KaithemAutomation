@@ -45,6 +45,7 @@ import logging
 import select
 import threading
 import time
+import socket
 
 from ws4py import format_addresses
 from ws4py.compat import py3k
@@ -199,6 +200,7 @@ class WebSocketManager(threading.Thread):
         provide your own ``poller``.
         """
         threading.Thread.__init__(self)
+        self.name = self.name.replace("Thread",'WSManagerThread')
         self.lock = threading.Lock()
         self.websockets = {}
         self.running = False
@@ -307,7 +309,12 @@ class WebSocketManager(threading.Thread):
                 ws = self.websockets.get(fd)
                 
                 if ws and not ws.terminated:
-                    if not ws.once():
+                    try:
+                        result = ws.once()
+                    except:
+                        result = None
+                        
+                    if not result:
                         with self.lock:
                             fd = ws.sock.fileno()
                             self.websockets.pop(fd, None)

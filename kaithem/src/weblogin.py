@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 import cherrypy
-from . import pages, auth,util
+from . import pages, auth,util,messagebus
 
 class LoginScreen():
 
@@ -40,13 +40,15 @@ class LoginScreen():
             #Always test, folks!
             cherrypy.response.cookie['auth']['secure'] = ' '
             cherrypy.response.cookie['auth']['httponly'] = ' '
+            messagebus.postMessage("/system/auth/login",[kwargs['username'],cherrypy.request.remote.ip])
             raise cherrypy.HTTPRedirect(util.unurl(kwargs['go']))
         else:
             raise cherrypy.HTTPRedirect("/errors/loginerror")
             
     @cherrypy.expose
     def logout(self,**kwargs):
-        #Change the securit token to make the old one invalid and thus log user out.
+        #Change the security token to make the old one invalid and thus log user out.
         if cherrypy.request.cookie['auth'].value in auth.Tokens:
             auth.assignNewToken(auth.whoHasToken(cherrypy.request.cookie['auth'].value))
+            messagebus.postMessage("/system/auth/logout",[auth.whoHasToken(cherrypy.request.cookie['auth'].value),cherrypy.request.remote.ip])
         raise cherrypy.HTTPRedirect("/")

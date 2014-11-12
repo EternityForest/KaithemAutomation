@@ -4,12 +4,20 @@ import socket
 import time
 import threading
 import types
+import sys
 
 from ws4py import WS_KEY, WS_VERSION
 from ws4py.exc import HandshakeError, StreamClosed
 from ws4py.streaming import Stream
 from ws4py.messaging import Message, PongControlMessage
 from ws4py.compat import basestring, unicode
+
+if sys.version_info < (3,0):
+    error_that_we_should_ignore_in_close = socket.error
+else:
+    error_that_we_should_ignore_in_close = BrokenPipeError
+
+
 
 DEFAULT_READING_SIZE = 2
 
@@ -32,6 +40,7 @@ class Heartbeat(threading.Thread):
         threading.Thread.__init__(self)
         self.websocket = websocket
         self.frequency = frequency
+        self.name = self.name.replace("Thread","HeartbeatThread")
 
     def __enter__(self):
         if self.frequency:
@@ -173,7 +182,10 @@ class WebSocket(object):
         """
         if not self.server_terminated:
             self.server_terminated = True
-            self._write(self.stream.close(code=code, reason=reason).single(mask=self.stream.always_mask))
+            try:
+                self._write(self.stream.close(code=code, reason=reason).single(mask=self.stream.always_mask))
+            except error_that_we_should_ignore_in_close:
+                raise e
 
     def closed(self, code, reason=None):
         """
@@ -239,8 +251,9 @@ class WebSocket(object):
         """
         if self.terminated or self.sock is None:
             raise RuntimeError("Cannot send on a terminated websocket")
-
+        #MODIFIED BY DANIEL DUNN/EternityForest as a workaround
         self.sock.sendall(b)
+
 
     def send(self, payload, binary=False):
         """

@@ -13,9 +13,33 @@ You need the <i>/admin/settings.edit</i> permission to perform these actions</p>
 <a href="/settings/save">Save server state to disk</a><br>
 <a href="/settings/clearerrors">Clear all errors from pages and events</a>
 </div>
+
+<h2>Location</h2>
+<section>
+<p class="help">
+This is mostly used for astronomical calculations. Get Location uses <a href="http://ip-api.com/">ip-api.com</a>
+</p>
+<form action="/settings/changesettingstarget">
+<table border=1>
+<tr>
+<tr>
+<td>City</td>
+<td><input name="lon" value="${registry.get('system/location/city','')}".></td>
+</tr>
+<td>Lattitude</td>
+<td><input name="lat" value="${registry.get('system/location/lat','')}".></td>
+</tr>
+<tr>
+<td>Longitude</td>
+<td><input name="lon" value="${registry.get('system/location/lon','')}".></td>
+</tr>
+</table>
+<input type="submit"><a class="button" href="/settings/ip_geolocate">Get Location</a>
+</form>
+</section>
+
 <h2>Mailroom</h2>
 <div class="sectionbox">
-
 <h3>Email Account</h3>
 <p class="help">You must configure an email account for kaithem to use. Most free email services
 allow SMTP access. Gmail and Yahoo both work. You can also run your own SMTP server

@@ -1,6 +1,6 @@
 import weakref,time,json,base64,cherrypy,os
-from . import auth,pages,unitsofmeasure
-
+from . import auth,pages,unitsofmeasure,config
+from ws4py.websocket import WebSocket
 widgets = weakref.WeakValueDictionary()
 n = 0
 
@@ -28,7 +28,37 @@ class WebInterface():
             resp[i] = widgets[i]._onRequest(user)
         
         return json.dumps(resp)
-             
+  
+    @cherrypy.expose
+    def ws(self):
+        # you can access the class instance through
+        if not config.config['enable-websockets']:
+            raise RuntimeError("Websockets disabled in server config")
+        handler = cherrypy.request.ws_handler
+        handler.user = pages.getAcessingUser()
+    
+    @cherrypy.expose
+    def ws_allowed(self):
+        return str(config.config['enable-websockets']) 
+
+class websocket(WebSocket):        
+    def received_message(self,message):
+        try:
+            o = json.loads(message.data.decode('utf8'))
+            resp = {}
+            user = self.user
+            req = o['req']
+            upd = o['upd']
+            
+            for i in upd:
+                widgets[i]._onUpdate(user,upd[i])
+    
+            for i in req:
+                resp[i] = widgets[i]._onRequest(user)
+            
+            self.send(json.dumps(resp))
+        except Exception as e:
+            self.send(repr(e)+ " xyz")
 
 class Widget():
     def __init__(self,*args,**kwargs):
@@ -301,20 +331,30 @@ class Slider(Widget):
             return """<div class="widgetcontainer sliderwidget">
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
             %(orient)s
-            onchange="            
-            KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
-            document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s';"
-            ><br>
-            <span
-            class="numericpv"
-            id="%(htmlid)s_l">%(value)f%(unit)s</span>
-            <script type="text/javascript">
-            var upd=function(val){
-                document.getElementById('%(htmlid)s').value= val;
-                document.getElementById('%(htmlid)s_l').innerHTML= val+"%(unit)s";
-            }
-            KWidget_register("%(id)s",upd);
-            </script>
+           onchange="
+           clean_%(htmlid)s = false;        
+           KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
+           document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s';"
+           ><br>
+           <span
+           class="numericpv"
+           id="%(htmlid)s_l">%(value)f%(unit)s</span>
+           <script type="text/javascript">
+           var clean_%(htmlid)s = true;
+             
+           var upd=function(val){
+               if(clean_%(htmlid)s)
+               {
+               document.getElementById('%(htmlid)s').value= val;
+               document.getElementById('%(htmlid)s_l').innerHTML= val+"%(unit)s";
+               }
+               clean_%(htmlid)s = true;
+           }
+                      
+
+           KWidget_register("%(id)s",upd);
+           </script>
+     
             </div>"""%{'orient':orient,'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
         
         if type=='onrelease':
@@ -372,5 +412,4 @@ class Switch(Widget):
         </script>
         </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self._value, 'label':label}
         
-    
-    
+

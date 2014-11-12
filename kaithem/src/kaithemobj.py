@@ -98,27 +98,58 @@ class Kaithem():
             return (unitsofmeasure.DayOfWeek())
         
         @staticmethod
-        def isDark(lat,lon):
+        def isDark(lat=None,lon=None):
             return (sky.isDark(lat,lon))
         
         @staticmethod
-        def isRahu(lat,lon):
+        def isRahu(lat=None,lon=None):
+            if lat == None:
+                if lon == None:
+                    lat = registry.get("system/location/lat",None)
+                    lon = registry.get("system/location/lon",None)
+                if lat == None or lon ==None:
+                    raise RuntimeError("No server location set, fix this in system settings")
+                
             return (sky.isRahu(lat,lon))
         
         @staticmethod
-        def isDay(lat,lon):
+        def isDay(lat=None,lon=None):
+            if lat == None:
+                if lon == None:
+                    lat = registry.get("system/location/lat",None)
+                    lon = registry.get("system/location/lon",None)
+                if lat == None or lon ==None:
+                    raise RuntimeError("No server location set, fix this in system settings")
             return (sky.isDay(lat,lon))
         
         @staticmethod
-        def isNight(lat,lon):
+        def isNight(lat=None,lon=None):
+            if lat == None:
+                if lon == None:
+                    lat = registry.get("system/location/lat",None)
+                    lon = registry.get("system/location/lon",None)
+                if lat == None or lon ==None:
+                    raise RuntimeError("No server location set, fix this in system settings")
             return (sky.isNight(lat,lon))
         
         @staticmethod
-        def isLight(lat,lon):
+        def isLight(lat=None,lon=None):
+            if lat == None:
+                if lon == None:
+                    lat = registry.get("system/location/lat",None)
+                    lon = registry.get("system/location/lon",None)
+                if lat == None or lon ==None:
+                    raise RuntimeError("No server location set, fix this in system settings")
             return (sky.isLight(lat,lon))
         
         @staticmethod
-        def isDark(lat,lon):
+        def isDark(lat=None,lon=None):
+            if lat == None:
+                if lon == None:
+                    lat = registry.get("system/location/lat",None)
+                    lon = registry.get("system/location/lon",None)
+                if lat == None or lon ==None:
+                    raise RuntimeError("No server location set, fix this in system settings")
             return (sky.isDark(lat,lon))
         
         @staticmethod
@@ -331,6 +362,10 @@ class Kaithem():
         @staticmethod
         def SIFormat(number,d):
             return unitsofmeasure.siFormatNumber(number,d)
+        
+        @staticmethod
+        def formatTimeInterval(s,places):
+            return unitsofmeasure.formatTimeInterval(s,places)
         
     class events():
         pass

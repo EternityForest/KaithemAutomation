@@ -46,7 +46,7 @@ div.kmainpagebody
 
 /*a:link {background-color:#80FF80;}    /* unvisited link */
 /*a:hover {background-color:#0066FF;}   /* mouse over link */
-div.sectionbox {border-style:solid; 
+div.sectionbox,main>section{border-style:solid; 
 background: rgba(240, 230, 200, 0.5);
 border-width:2px;
 border-radius: 7px;

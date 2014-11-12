@@ -15,7 +15,7 @@
 
 
 
-import  os,threading,copy,sys,shutil
+import  os,threading,copy,sys,shutil,difflib,time,json
 #2 and 3 have basically the same module with diferent names
 if sys.version_info < (3,0):
     from urllib import quote
@@ -23,6 +23,11 @@ if sys.version_info < (3,0):
 else:
     from urllib.parse import quote
     from urllib.parse import unquote as unurl
+    
+if sys.version_info < (3,0):
+    from urllib2 import urlopen
+else:
+    from urllib.request import urlopen
 
 savelock = threading.RLock()
 
@@ -171,12 +176,6 @@ def clearErrors():
 
 def updateIP():
     global MyExternalIPAdress
-    #2 and 3 have basically the same module with diferent names
-    if sys.version_info < (3,0):
-        from urllib2 import urlopen
-    else:
-        from urllib.request import urlopen
-        
     #Yes, This really is the only way i know of to get your public IP.
     try:
         if config['get-public-ip']:
@@ -193,6 +192,18 @@ def updateIP():
         except Exception:
             pass
     return MyExternalIPAdress
+
+last = time.time()
+def ip_geolocate():
+   #Block for a bit if its been less than a second since the last time we did this
+   while time.time()-last < 1.5:
+       time.sleep(0.1)
+   u=urlopen("http://ip-api.com/json", timeout = 60) 
+   try:
+       return(json.loads(u.read().decode('utf8')))
+   
+   finally:
+       u.close()
 
 lastNTP = 0
 oldNTPOffset = 30*365*24*60*60
@@ -219,6 +230,17 @@ def timeaccuracy():
         hasInternet = False
         return oldNTPOffset + (time.time() -lastNTP)/10000
 
-        
+def diff(a,b):
+    x = a.split("\n")
+    x2 = []
+    for i in x:
+        x2.append(i)
+    y=b.split("\n")
+    y2 = []
+    for i in y:
+        y2.append(i)
+    return ''.join(difflib.unified_diif(x2,y2))
+
+
         
           

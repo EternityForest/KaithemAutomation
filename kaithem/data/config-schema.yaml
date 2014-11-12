@@ -192,6 +192,9 @@ properties:
     
     get-public-ip:
         type: boolean
+    
+    enable-websockets:
+        type: boolean
 
 additionalProperties: no
     

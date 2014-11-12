@@ -318,28 +318,39 @@ h4 {
         if there is no sunrise or sunset in the current day(as in some regions in the arctic circle during some seasons).</b>
         <h4>kaithem.time.isDay(lat,lon)</h4>
         <p>Return true if it is before sunset in the given lat-lon location.
+        If no coordinates are supplied, the server location configured in the settings page is used.
+        If no location is configured, an error is raised.
         </p>
         
-        <h4>kaithem.time.isNight(lat,lon)</h4>
+        <h4>kaithem.time.isNight(lat=None,lon=None)</h4>
         <p>Return true if it is after sunset in the given lat-lon location.
         Kaithem handles coordinates as floating point values.
+        If no coordinates are supplied, the server location configured in the settings page is used.
+        If no location is configured, an error is raised.
+     
         </p>
         
-        <h4>kaithem.time.isDark(lat,lon)</h4>
+        <h4>kaithem.time.isDark(lat=None,lon=None)</h4>
         <p>Return true if it is currently past civil twilight in the given lat-lon location.
         Civil twilight is defined when the sun is 6 degrees below the horizon.
         In some countries, drivers must turn on headlights past civil twilight.
         Civil twilight is commonly used as the time to start using artificial light sources.
+        If no coordinates are supplied, the server location configured in the settings page is used.
+        If no location is configured, an error is raised.
         </p>
         
-        <h4>kaithem.time.isLight(lat,lon)</h4>
+        <h4>kaithem.time.isLight(lat=None,lon=None)</h4>
         <p>Return true if it is not past civil twilight given lat-lon location.
+        If no coordinates are supplied, the server location configured in the settings page is used.
+        If no location is configured, an error is raised.
         </p>
         
-        <h4>kaithem.time.isRahu(lat,lon)</h4>
+        <h4>kaithem.time.isRahu(llat=None,lon=None)</h4>
         <p>Return true if it is currently Rahukalaam
         (A period during each day that is considered inauspicious for new ventures in Indian astrology)
         in the given lat-lon location. For more info see the <a href= "http://en.wikipedia.org/wiki/Rahukaalam">wiki article.</a>
+        If no coordinates are supplied, the server location configured in the settings page is used.
+        If no location is configured, an error is raised.
         
         <h4>kaithem.time.accuracy()</h4>
         <p>Get a conservative estimate(offset plus root delay plus root dispersion) of the maximum error of the system clock in seconds using NTP.
@@ -584,6 +595,10 @@ h4 {
         <h3>kaithem.string.siFormat(n,d)</h3>
         <p>Takes a number and formats it with suffixes. 1000 becomes 1K, 1000000 becomes 1M.
         d is the number of digits of precision to use.</p>
+        
+        <h3>kaithem.string.formatTimeInterval(n,places=1)</h3>
+        <p>Takes a length of time in secons and formats it. Places is the mx units to use.
+        formatTimeInterval(5,1) becomes ""5 seconds", formatTimeInterval(65,2) returns "1 minute 5 seconds"</p>
         
         <h2>
             <a id="theming" name="theming"></a>Theming
