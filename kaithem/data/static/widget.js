@@ -1,15 +1,16 @@
 toSet = {};
-toPoll= {};
+justSet ={};
+KWidget_toPoll= {};
 
 function KWidget_register(key,callback)
 {
-	if (key in toPoll)
+	if (key in KWidget_toPoll)
 	{
-		toPoll[key].push(callback);
+		KWidget_toPoll[key].push(callback);
 	}
 	else
 	{
-		toPoll[key] = [callback];
+		KWidget_toPoll[key] = [callback];
 	}
 }
 
@@ -35,7 +36,7 @@ function KWidget_sendValue(key,value)
 function pollLoop()
 {
 
-if((Object.keys(toSet).length+Object.keys(toPoll).length)>0)
+if((Object.keys(toSet).length+Object.keys(KWidget_toPoll).length)>0)
     { 
 	poll();
     }
@@ -47,22 +48,21 @@ window.setTimeout(pollLoop, 120);
 
 function poll()
 {
-	var toSend = {'upd':toSet,'req':Object.keys(toPoll)};
+	var toSend = {'upd':toSet,'req':Object.keys(KWidget_toPoll)};
 	var j = JSON.stringify(toSend);
 	xmlhttp=new XMLHttpRequest();
 	xmlhttp.open("GET","/widgets?json="+escape(j),false);
     xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 	xmlhttp.send();
+	KWidget_dirty = {};
 	xmlDoc=xmlhttp.responseText;
 	resp = JSON.parse(xmlDoc);
-	
-	for (var i in resp)
-	{
-		for(var j in toPoll[i])
-		{
-			toPoll[i][j](resp[i]);
-		}
-	}
+			for(var j in KWidget_toPoll[i])
+			{
+				KWidget_toPoll[i][j](resp[i]);
+			}
+
+	justSet = toSet;
 	toSet={};
 
 
@@ -78,29 +78,32 @@ if (xmlDoc == 'True')
 	function wspollLoop()
 	{
 
-	if((Object.keys(toSet).length+Object.keys(toPoll).length)>0)
+	if((Object.keys(toSet).length+Object.keys(KWidget_toPoll).length)>0)
 	    { 
 		wpoll();
 	    }	
 	}
 
-	var connection = new WebSocket(window.location.protocol.replace("http","ws")+"//"+window.location.host + '/widgets/ws');
+	var KWidget_connection = new WebSocket(window.location.protocol.replace("http","ws")+"//"+window.location.host + '/widgets/ws');
 
-	connection.onmessage = function(e){
+	KWidget_connection.onmessage = function(e){
 	var resp = JSON.parse(e.data);
 
 	for (var i in resp)
 		{
-			for(var j in toPoll[i])
+			if((! (i in toSet))&(! (i in toSet)))
 			{
-				toPoll[i][j](resp[i]);
+				for(var j in KWidget_toPoll[i])
+				{
+					KWidget_toPoll[i][j](resp[i]);
+				}
 			}
 		}
-	window.setTimeout(wspollLoop, 80);
+	window.setTimeout(wspollLoop, 60);
 
 	}
 
-	connection.onopen = function(e)
+	KWidget_connection.onopen = function(e)
 	{
 		wspollLoop();
 		wspollLoop();
@@ -109,9 +112,10 @@ if (xmlDoc == 'True')
 	  
 	function wpoll()
 	{
-		var toSend = {'upd':toSet,'req':Object.keys(toPoll)};
+		var toSend = {'upd':toSet,'req':Object.keys(KWidget_toPoll)};
 		var j = JSON.stringify(toSend);
-		connection.send(j);
+		KWidget_connection.send(j);
+		justSet = toSet;
 		toSet={};
 	}
 }

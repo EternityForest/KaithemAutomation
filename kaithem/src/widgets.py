@@ -337,8 +337,12 @@ class Slider(Widget):
             return """<div class="widgetcontainer sliderwidget">
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
             %(orient)s
+           ontouchend ="setTimeout(function(){%(htmlid)s_clean = true},250)"
+           ontouchleave ="setTimeout(function(){%(htmlid)s_clean = true},250)"
+           onkeyup ="setTimeout(function(){%(htmlid)s_clean = true},250)"
+           onmouseup ="setTimeout(function(){%(htmlid)s_clean = true},250)"
            onchange="
-           clean_%(htmlid)s = false;        
+           %(htmlid)s_clean = false;
            KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
            document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s';"
            ><br>
@@ -346,15 +350,13 @@ class Slider(Widget):
            class="numericpv"
            id="%(htmlid)s_l">%(value)f%(unit)s</span>
            <script type="text/javascript">
-           var clean_%(htmlid)s = true;
-             
+            %(htmlid)s_clean = true;
            var upd=function(val){
-               if(clean_%(htmlid)s)
+               if(%(htmlid)s_clean)
                {
                document.getElementById('%(htmlid)s').value= val;
                document.getElementById('%(htmlid)s_l').innerHTML= val+"%(unit)s";
                }
-               clean_%(htmlid)s = true;
            }
                       
 
@@ -409,10 +411,18 @@ class Switch(Widget):
             x =''
             
         return """<div class="widgetcontainer">
-        <label><input %(en)s id="%(htmlid)s" type="checkbox" onchange="KWidget_setValue('%(id)s',document.getElementById('%(htmlid)s').checked)" %(x)s>%(label)s</label>
+        <label><input %(en)s id="%(htmlid)s" type="checkbox" 
+        onchange="
+        %(htmlid)s_clean = false;
+        setTimeout(function(){%(htmlid)s_clean = true},250);
+        KWidget_setValue('%(id)s',document.getElementById('%(htmlid)s').checked)" %(x)s>%(label)s</label>
         <script type="text/javascript">
+        %(htmlid)s_clean = true;
         var upd=function(val){
+            if(%(htmlid)s_clean)
+            {
             document.getElementById('%(htmlid)s').checked= val;
+            }
         }
         KWidget_register("%(id)s",upd);
         </script>
