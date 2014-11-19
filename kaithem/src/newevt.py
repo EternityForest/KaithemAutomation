@@ -122,7 +122,7 @@ def __manager():
                 #Instead of letting the event do the countdown,
                 # we do it ourselves, because we don't want
                 #To send anything through the slow queue we don't need to.
-                #We rely on the obect itself to reset the countdown though.
+                #We rely on the object itself to reset the countdown though.
                 if i.countdown <1:
                     workers.do(i.check)
                 else:

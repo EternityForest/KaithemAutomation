@@ -8,6 +8,7 @@
     import gc
     import multiprocessing
     import re
+    import threading
     from src import unitsofmeasure
     from src import newevt
     from src import systasks
@@ -63,7 +64,7 @@
     <br>
     <div class="sectionbox">
 <p>
-<b>IP Data</b>
+<h3>IP Data</h3>
     <table border=1>
         <tr>
             <td>LAN IP Adress</td>
@@ -75,7 +76,7 @@
     </table>
 </p>
 <p>
-<b>Current Statistics</b>
+<h3>Current Statistics</h3>
     <table border=1>
         <tr>
             <td>Approximate frames per second</td>
@@ -148,7 +149,7 @@
     
 </p>
 <p>
-<b>System Info</b>
+<h3>System Info</h3>
 <table border=1>
     <tr>
         <td>CPU Type</td>
@@ -198,11 +199,24 @@
     </tr>
 </table>
 
-<b>lm_sensors output(Requires lm_sensors to be installed)</b>
+<h3>lm_sensors output(Requires lm_sensors to be installed)</h3>
 <pre>
 ${kaithemobj.kaithem.sys.sensors()|h}
 </pre>
+
+<h3>Running Threads</h3>
+<ul>
+%for i in sorted(threading.enumerate(),key=lambda d:d.name):
+%if "Main" in i.name:
+<li style="display:inline-block;"class="specialentry">${i.name|h}</li>
+%else:
+<li style="display:inline-block;">${i.name|h}</li>
+%endif
+,
+%endfor
+</ul>
 </div>
+
 
 <h2>Acknowledgements</h2>
 <div class="sectionbox">
@@ -219,6 +233,8 @@ ${kaithemobj.kaithem.sys.sensors()|h}
 <li><a href= "https://github.com/sunlightlabs/validictory">Validictory(Config file validation)</a></li>
 <li><a href= "http://code.google.com/p/yappi/">Yappi(Performance Profiler, must be installed separately to enable profiling)</a></li>
 <li><a href= "http://code.google.com/p/ntplib/">ntplib(Network time protocol stuff)</a></li>
+<li><a href= "https://ws4py.readthedocs.org/en/latest/">ws4py(Websocket Support)</a></li>
+
 </ul>
 <h3>Graphics</h3>
 <ul>
