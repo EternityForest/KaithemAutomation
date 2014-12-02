@@ -1,6 +1,6 @@
 <%!
 from src.util import url
-from src import newevt,unitsofmeasure,pages,auth
+from src import newevt,unitsofmeasure,pages,auth,modules_state
 from collections import defaultdict
 import traceback,time
 from src.config import config
@@ -9,7 +9,17 @@ from src.config import config
 <%include file="/pageheader.html"/>
 <title>Kaithem Event</title>
 <h2>Event "${name|h}" of module <a href="/modules/module/${url(module)}">${module|h}</a></h2>
-
+%if not (module,name) in newevt.EventReferences:
+<span class="error">Event not active, An error prevented this event from loading.</span>
+%endif
+%if not version == '__live__':
+<p class="warning">This is an unsaved recovered draft version, that could not load because of errors.
+not the actual version that is loaded on the server. Please correct any errors and try saving again,
+or go to the working copy and save that to delete this draft.</p>
+<p class="menubar">
+<a class="button" href="/modules/module/${url(module)}/resource/${url(name)}/__live__">Go to Live Version</a>
+<p>
+%endif
 <div class="sectionbox">
 
 
@@ -105,7 +115,7 @@ you may need to use the global keyword. You may also need to use the global keyw
 %endif
 
 
-%if newevt.getEventErrors(module,name):
+%if newevt.getEventErrors(module,name) and version == "__live__":
 <h3 class="error">Errors[${len(newevt.getEventErrors(module,name))}]</h3>
 <p class ="help">
 This section the most recent errors that occured while executing the event or trigger.

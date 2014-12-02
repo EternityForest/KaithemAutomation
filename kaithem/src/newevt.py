@@ -21,7 +21,7 @@ from . import workers, kaithemobj,messagebus,util,modules_state
 
 from .config import config
 
-#Use this lock whenever you acess _events or __EventReferences in any way.
+#Use this lock whenever you access _events or __EventReferences in any way.
 #Most of the time it should be held by the event manager that continually iterates it.
 #To update the _events, event execution must temporarily pause
 _event_list_lock = threading.RLock() 

@@ -311,7 +311,10 @@ class WebInterface():
 
             #This case shows the information and editing page for one resource
             if path[0] == 'resource':
-                return resourceEditPage(module,path[1])
+                version = '__default__'
+                if len(path)>2:
+                    version = path[2]
+                return resourceEditPage(module,path[1],version)
 
             #This goes to a dispatcher that takes into account the type of resource and updates everything about the resource.
             if path[0] == 'updateresource':
@@ -429,17 +432,26 @@ def addResourceTarget(module,type,name,kwargs):
                 
                       
 #show a edit page for a resource. No side effect here so it only requires the view permission
-def resourceEditPage(module,resource,*args,**kwargs):
+def resourceEditPage(module,resource,version='default'):
     pages.require("/admin/modules.view")
     
     #Workaround for cherrypy decoding unicode as if it is latin 1
     #Because of some bizzare wsgi thing i think.
     module=module.encode("latin-1").decode("utf-8")
     resource=resource.encode("latin-1").decode("utf-8")
-    
+
     with modulesLock:
         resourceinquestion = ActiveModules[module][resource]
-        
+        if version == '__default__':
+            try:
+                resourceinquestion = ActiveModules[module][resource]['versions']['__draft__']
+                version = '__draft__'
+            except KeyError as e:
+                version = "__live__"
+                pass
+        else:
+            version = '__live__'
+            
         if resourceinquestion['resource-type'] == 'permission':
             return permissionEditPage(module, resource)
 
@@ -447,7 +459,8 @@ def resourceEditPage(module,resource,*args,**kwargs):
             return pages.get_template("modules/events/event.html").render(
                 module =module,
                 name =resource,
-                event =ActiveModules[module][resource])
+                event =resourceinquestion,
+                version=version)
 
         if resourceinquestion['resource-type'] == 'page':
             if 'require-permissions' in resourceinquestion:
@@ -455,7 +468,7 @@ def resourceEditPage(module,resource,*args,**kwargs):
             else:
                 requiredpermissions = []
                 
-            return pages.get_template("modules/pages/page.html").render(module=module,name=resource,
+            return pages.get_template("modules/pages/page.html").render(module=module,name=resource, 
             page=ActiveModules[module][resource],requiredpermissions = requiredpermissions)
 
 def permissionEditPage(module,resource):
@@ -478,8 +491,23 @@ def resourceUpdateTarget(module,resource,kwargs):
             auth.importPermissionsFromModules() #sync auth's list of permissions 
     
         if t == 'event':
+            
             #Test compile, throw error on fail.
-            e = newevt.Event(kwargs['trigger'],kwargs['action'],newevt.make_eventscope(module),setup=kwargs['setup'],m=module,r=resource)
+            try:
+                e = newevt.Event(kwargs['trigger'],kwargs['action'],newevt.make_eventscope(module),setup=kwargs['setup'],m=module,r=resource)
+            except Exception as e:
+                if not 'versions' in resourceobj:
+                    resourceobj['versions'] = {}
+                resourceobj['versions']['__draft__'] = r = {}
+                r['resource-type'] = 'event'
+                r['trigger'] = kwargs['trigger']
+                r['action'] = kwargs['action']
+                r['setup'] = kwargs['setup']
+                r['priority'] = kwargs['priority']
+                r['continual'] = 'continual' in kwargs
+                r['rate-limit'] = float(kwargs['ratelimit'])
+                raise e
+                    
             resourceobj['trigger'] = kwargs['trigger']
             resourceobj['action'] = kwargs['action']
             resourceobj['setup'] = kwargs['setup']
@@ -488,6 +516,10 @@ def resourceUpdateTarget(module,resource,kwargs):
             resourceobj['rate-limit'] = float(kwargs['ratelimit'])
             #I really need to do something about this possibly brittle bookkeeping system
             #But anyway, when the active modules thing changes we must update the newevt cache thing.
+            
+            del resourceobj['versions']['__draft__']
+            
+            
             newevt.updateOneEvent(resource,module)
     
         if t == 'page':
