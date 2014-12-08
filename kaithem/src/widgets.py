@@ -341,7 +341,7 @@ class Slider(Widget):
            %(htmlid)s_clean=false;
            KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
            document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s';
-           setTimeout(function(){%(htmlid)s_clean=true},150);"
+           setTimeout(function(){%(htmlid)s_clean=true},150);i"
            ><br>
            <span
            class="numericpv"

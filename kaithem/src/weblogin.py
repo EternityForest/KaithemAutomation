@@ -50,6 +50,6 @@ class LoginScreen():
     def logout(self,**kwargs):
         #Change the security token to make the old one invalid and thus log user out.
         if cherrypy.request.cookie['auth'].value in auth.Tokens:
-            auth.assignNewToken(auth.whoHasToken(cherrypy.request.cookie['auth'].value))
             messagebus.postMessage("/system/auth/logout",[auth.whoHasToken(cherrypy.request.cookie['auth'].value),cherrypy.request.remote.ip])
+            auth.assignNewToken(auth.whoHasToken(cherrypy.request.cookie['auth'].value))
         raise cherrypy.HTTPRedirect("/")

@@ -21,8 +21,6 @@ or go to the working copy and save that to delete this draft.</p>
 <p>
 %endif
 <div class="sectionbox">
-
-
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
 <h3>Name</h3>
 <input name="name" value="${name|h}"></input>
@@ -48,7 +46,6 @@ else:
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
 <div class="acediv" id="setupeditor"  style="height:35ex ;border: 1px solid #DDD;">${xyz|h}</div>
 %endif
-
 
 <h3>Trigger</h3>
 <p class="help">Enter the trigger here. The trigger may either be a python expression. Only one copy of each event will poll at a time.

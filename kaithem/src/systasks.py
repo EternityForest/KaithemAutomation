@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import time,atexit,sys,platform,re,datetime
+import time,atexit,sys,platform,re,datetime,threading,weakref
 import cherrypy
 from . import newevt,messagebus,unitsofmeasure,util,messagelogging,mail
 from .kaithemobj import kaithem
@@ -51,6 +51,33 @@ frameRateWasTooLowLastMinute = False
 MemUseWasTooHigh = False
 firstrun = True
 checked = False
+
+
+
+##These are for a future migration away from the current way of scheduling things.
+
+def check_mail_credentials():
+    mail.check_credentials()
+
+def logstats():
+    pass
+
+def autosave():
+    global lastsaved,lastdumpedlogs
+    if not config['autosave-state'] == 'never':
+        if (time.time() -lastsaved) > saveinterval:
+            lastsaved = time.time()
+            #This does not dump the log files. The log files change often.
+            #It would suck to have tons of tiny log files so we let the user configure
+            #Them separately
+            util.SaveAllStateExceptLogs()
+            
+    if not config['autosave-logs'] == 'never':
+        if (time.time() -lastdumpedlogs) > dumplogsinterval:
+            lastdumpedlogs = time.time()
+            messagelogging.dumpLogFile()
+    
+    
 
 def everyminute():
     global pageviewsthisminute,firstrun,checked
@@ -124,7 +151,8 @@ def everyminute():
         if not checked:
             checked=True
             mail.check_credentials()
-    checked = False
+    else:
+        checked = False
         
     
 #This is a polled trigger returning true at the top of every minute.

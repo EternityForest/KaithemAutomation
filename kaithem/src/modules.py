@@ -15,7 +15,7 @@
 
 #File for keeping track of and editing kaithem modules(not python modules)
 import threading,urllib,shutil,sys,time,os,json
-import cherrypy
+import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus
 from .modules_state import ActiveModules,modulesLock,scopes
 
@@ -42,8 +42,12 @@ def saveAll():
     global moduleschanged
     if not moduleschanged:
         return False
+    if time.time()> util.min_time:
+        t = time.time()
+    else:
+        t = int(util.min_time) +1.234
     #This dumps the contents of the active modules in ram to a subfolder of the moduledir named after the current unix time"""
-    saveModules(os.path.join(directories.moduledir,str(time.time()) ))
+    saveModules(os.path.join(directories.moduledir,str(t) ))
     #We only want 1 backup(for now at least) so clean up old ones.  
     util.deleteAllButHighestNumberedNDirectories(directories.moduledir,2)
     moduleschanged = False
@@ -114,7 +118,7 @@ def loadModule(moduledir,path_to_module_folder):
             try:
                 f = open(os.path.join(path_to_module_folder,moduledir,i))
                 #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
-                module[unurl(i)] = json.load(f)
+                module[unurl(i)] = yaml.load(f)
             finally:
                 f.close()
         
@@ -343,7 +347,7 @@ class WebInterface():
                     
                 messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " deleted resource " +
                            kwargs['name'] + " from module " + module)
-                messagebus.postMessage("/system/modules/deletedresource",{'user':pages.getAcessingUser(),'module':module,'resource':kwargs['name']})
+                messagebus.postMessage("/system/modules/deletedresource",{'ip':cherrypy.request.remote.ip,'user':pages.getAcessingUser(),'module':module,'resource':kwargs['name']})
  
                 raise cherrypy.HTTPRedirect('/modules')
 
@@ -498,7 +502,7 @@ def resourceUpdateTarget(module,resource,kwargs):
             except Exception as e:
                 if not 'versions' in resourceobj:
                     resourceobj['versions'] = {}
-                resourceobj['versions']['__draft__'] = r = {}
+                resourceobj['versions']['__draft__'] = r = resourceobj.copy().pop('versions')
                 r['resource-type'] = 'event'
                 r['trigger'] = kwargs['trigger']
                 r['action'] = kwargs['action']
@@ -507,7 +511,7 @@ def resourceUpdateTarget(module,resource,kwargs):
                 r['continual'] = 'continual' in kwargs
                 r['rate-limit'] = float(kwargs['ratelimit'])
                 raise e
-                    
+            
             resourceobj['trigger'] = kwargs['trigger']
             resourceobj['action'] = kwargs['action']
             resourceobj['setup'] = kwargs['setup']
@@ -517,7 +521,12 @@ def resourceUpdateTarget(module,resource,kwargs):
             #I really need to do something about this possibly brittle bookkeeping system
             #But anyway, when the active modules thing changes we must update the newevt cache thing.
             
-            del resourceobj['versions']['__draft__']
+            
+            #Delete the draft if any
+            try:
+                del resourceobj['versions']['__draft__']
+            except:
+                pass
             
             
             newevt.updateOneEvent(resource,module)

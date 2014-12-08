@@ -4,15 +4,17 @@
 <h3>Development</h3>
 <div class="sectionbox">
 <ul>
-<li>kaithem.time.accuracy() returns an estimate of the max error in the current system time in seconds.</li>
+<li>kaithem.time.accuracy() returns an estimate of the max error in the current system time in seconds using NTP.</li>
 <li>Slight performance boost for low-priority events</li>
 <li>kaithem.misc.errors(f) calls f with no args and returns any exceptions that might result.</li>
 <li>Automatic daily check of mail settings in case someone changed things.</li>
 <li>kaithem.string.formatTimeInterval()</li>
 <li>When a user logs in, his [username,ip] is posted to /system/auth/login, or to /auth/user/logout when he logs out.</li>
 <li>Ability to set default vaules for lattitude and longitude in astro functions.</li>
-<li>When a user fails to log in, his username and IP address are posted to /auth/user/loginfail</li>
+<li>When a user logs in, logs out, or fails to log in, his username and IP address are posted to /auth/user/loginfail</li>
 <li>Lots of misc logging</li>
+<li>(very) Basic versioning support for events, will save your draft in case of error, and allows reverting.</li>
+<li>Auto fall back to tilde version if kaithem.persist.load fails(autorecover=false to disable this)</li>
 </ul>
 </div>
 

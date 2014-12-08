@@ -601,6 +601,7 @@ def getEventsFromModules(only = None):
                             #the actions to set it up
                             f = needstobeloaded(i,m)
                             toLoad.add(f)
+                            f.i =i; f.m =m
            
             #for each allowed loading attempt, we loop over
             #the events and try to set them up. If this fails,
@@ -615,6 +616,7 @@ def getEventsFromModules(only = None):
                 for p in toLoad:
                     try:
                         p.f()
+                        messagebus.postMessage("/system/events/loaded",[p.i,p.m])
                         
                     #If there is an error, add it t the list of things to be retried.
                     except Exception as e:
@@ -662,3 +664,68 @@ def make_event_from_resource(module,resource):
               r=resource)
 
     return x
+
+
+class Scheduler(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.second = weakref.WeakSet()
+        self.minute = weakref.WeakSet()
+        self.hour = weakref.WeakSet()
+        self.sec2 = []
+        self.min2=[]
+        self.events = []
+        self.events2
+        self.daemon = True
+        self.running = True
+        self.start()
+        self.name = 'SchedulerThread'
+        
+    def everySecond(self,f):
+        self.sec2.append(f)
+        return f
+        
+    def everyMinute(self,f):
+        self.min2.append(f)
+        return f
+    
+    def _at(self,f,time,exact = 60*5):
+        self.events2.append((f,time,min(exact,1)))
+
+    def run(self):
+        while self.running:
+            for i in self.second:
+                try:
+                    i()
+                except:
+                    pass
+            if time.localtime().tm_sec == 0:
+                for i in self.minute:
+                    try:
+                        i()
+                    except:
+                        pass
+                    
+            while self.events and self.events[0][1]>time.time():
+                f = self.events.popleft()
+                if f[1]< time.time() + f[2]:
+                    try:
+                        f[0]()
+                    except:
+                        pass
+                    
+            #We can't let users directly add to the lists, so the users put stuff in staging
+            #Areas until we finish iterating. Then we copy all the items to the lists.
+            for i in self.sec2:
+                self.second.add(i)
+            for i in self.min2:
+                self.minute.add(i)
+            if self.events2:
+                self.events.extend(self.events2)
+                self.events = sorted(self.events)
+                self.events2 = []
+                
+            self.min2=[]
+            self.sec2 = []
+            #Sleep until beginning of the next second
+            time.sleep(1-(time.time()%1))

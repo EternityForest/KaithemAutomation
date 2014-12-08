@@ -24,6 +24,8 @@ else:
     from urllib.parse import quote
     from urllib.parse import unquote as unurl
     
+min_time = 0
+  
 if sys.version_info < (3,0):
     from urllib2 import urlopen
 else:
@@ -98,13 +100,14 @@ def getHighestNumberedTimeDirectory(where):
         and also ignoring non-timestapt float looking named directories
     """
     asnumbers = {}
+    global min_time
     
     for i in get_immediate_subdirectories(where):
         try:
             asnumbers[float(i)] = i
         except ValueError:
             pass
-        
+    min_time = max(sorted(asnumbers.keys(), reverse=True)[0],min_time)
     return asnumbers[sorted(asnumbers.keys(), reverse=True)[0]]
 
 def deleteAllButHighestNumberedNDirectories(where,N):
@@ -216,7 +219,7 @@ def timeaccuracy():
         if (time.time() -lastNTP) > 600:
             lastNTP = time.time()
             c = ntplib.NTPClient()
-            response = c.request('pool.ntp.org', version=3)
+            response = c.request("ntp.pool.org", version=3)
             oldNTPOffset = response.offset + response.root_delay + response.root_dispersion
             if not hasInternet:
                 messagebus.postMessage("/system/internet",True)
@@ -239,8 +242,16 @@ def diff(a,b):
     y2 = []
     for i in y:
         y2.append(i)
-    return ''.join(difflib.unified_diif(x2,y2))
+    return ''.join(difflib.unified_diff(x2,y2))
 
+
+#This returns either the current time, or a value that is higher than any
+#timestamp in the latest server save
+def time_or_increment():
+    if time.time()>min_time:
+        return time.time()
+    else:
+        return int(min_time)+1.234567
 
         
           

@@ -301,7 +301,11 @@ def dumpDatabase():
     
     #Assemble the users and groups data and save it back where we found it
     temp = {"users":Users,"groups":Groups}
-    p = os.path.join(directories.usersdir,str(time.time()))
+    if time.time()> util.min_time:
+        t = time.time()
+    else:
+        t = int(util.min_time) +1.234
+    p = os.path.join(directories.usersdir,str(t))
     os.mkdir(p)
     f = open(os.path.join(p,"users.json"),"w")
     #pretty print

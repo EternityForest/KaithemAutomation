@@ -71,7 +71,7 @@ class PersistanceArea():
             return False
                 
         try:
-            t=str(time.time())
+            t=str(util.time_or_increment())
             util.ensure_dir(self.folder)
             os.mkdir(os.path.join(self.folder,t))
             #This segment relies on copy and deepcopy being atomic...

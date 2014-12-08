@@ -20,6 +20,9 @@ class Settings():
     @cherrypy.expose 
     def index(self):
         return pages.get_template("settings/index.html").render()
+    @cherrypy.expose 
+    def threads(self):
+        return pages.get_template("settings/threads.html").render()
     
     
     @cherrypy.expose 

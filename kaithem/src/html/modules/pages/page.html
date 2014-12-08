@@ -109,7 +109,7 @@ These extra settings let you control the display or permissions of the page
                 checked="yes"
             %endif
          %endif
-       ></input>Allow cross-origin requests from(comma separated, * means any) 
+       ></input>Allow cross-origin requests from(comma separated, * means any)<
 <%
 origins = ""
 if 'allow-origins' in page:
@@ -122,7 +122,6 @@ else:
 <input type="text"  name="allow-origins"
         value= "${origins|h}"
        ></input>
-       
  </div>
 <p class="help">Require the following permissions to access this page</p>
 <div class="scrollbox">

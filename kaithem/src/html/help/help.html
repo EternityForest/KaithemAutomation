@@ -353,7 +353,7 @@ h4 {
         If no location is configured, an error is raised.
         
         <h4>kaithem.time.accuracy()</h4>
-        <p>Get a conservative estimate(offset plus root delay plus root dispersion) of the maximum error of the system clock in seconds using NTP.
+        <p>Get a conservative estimate(offset plus root delay plus root dispersion) of the maximum error of the system clock in seconds using pool.ntp.org
         Only polls NTP at most every 600 seconds. If the server is unreachable, uses the cached value,
         plus 100ppm of the time since the server was checked. If the server was never reachable, use the value of 30 years.</p>
        
@@ -662,7 +662,8 @@ h4 {
         <h3>/system/modules/unloaded</h3>
         <p>When a module has been deleted, it's name is posted here.</p>
         
-        
+        <h3>/system/modules/events/loaded</h3>
+        <p>The module and resource of any event that loads or reloads gets posted here.</p>
         
         <h3>/sytem/perf/FPS</h3>
         <p>Every ten minutes, a message will be posted to this topic containing only the current frame rate that
@@ -683,6 +684,15 @@ h4 {
         the logs page for a short time. Be careful to either not send any private data on the message bus,
         or be very careful who you give permission to see the logs.
         </p>
+        
+        <h3>system/auth/login</h3>
+        <p>When a user logs in, his username and IP are posted here as a two element list.</p>
+        
+        <h3>system/auth/logout</h3>
+        <p>When a user logs out, his username and IP are posted here as a two element list.</p>
+        
+        <h3>system/auth/loginfail</h3>
+        <p>When a user fails to logs in, his username and IP are posted here as a two element list.</p>
         
      
 

@@ -328,7 +328,7 @@ class Kaithem():
                     os.remove(fn+'~')
 
         @staticmethod
-        def load(filename):
+        def load(filename,autorecover = True):
             try:
                 if filename.endswith(".gz"):
                     f = gzip.GzipFile(filename,mode='rb')
@@ -349,8 +349,19 @@ class Kaithem():
                     r=f.read()
                 else:
                     raise ValueError('Unsupported File Extension')
-            finally:
+            except Exception as e:
+                try:
+                    f.close()
+                except:
+                    pass
+                if not autorecover:
+                    raise e
+                else:
+                    return kaithem.persist.load(filename +'~', False)
+            try:
                 f.close()
+            except:
+                pass
                 
             return r
             

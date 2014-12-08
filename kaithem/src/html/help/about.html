@@ -204,17 +204,6 @@
 ${kaithemobj.kaithem.sys.sensors()|h}
 </pre>
 
-<h3>Running Threads</h3>
-<ul>
-%for i in sorted(threading.enumerate(),key=lambda d:d.name):
-%if "Main" in i.name:
-<li style="display:inline-block;"class="specialentry">${i.name|h}</li>
-%else:
-<li style="display:inline-block;">${i.name|h}</li>
-%endif
-,
-%endfor
-</ul>
 </div>
 
 
