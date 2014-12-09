@@ -12,10 +12,15 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import cherrypy,base64,os,time,subprocess,time,shutil
+import cherrypy,base64,os,time,subprocess,time,shutil,sys
 from cherrypy.lib.static import serve_file
 from . import pages, util,messagebus,config,auth,registry,mail,kaithemobj
 
+if sys.version_info < (3,0):
+    import StringIO as io
+else:
+    import io
+    
 class Settings():
     @cherrypy.expose 
     def index(self):
@@ -223,6 +228,20 @@ class Settings():
         pages.require("/admin/settings.edit")
         return pages.get_template("settings/clearerrors.html").render()
     
+    @cherrypy.expose    
+    def settime(self):
+        pages.require("/admin/settings.edit")
+        return pages.get_template("settings/settime.html").render()
+    
+    @cherrypy.expose    
+    def set_time_from_web(self,**kwargs):
+        pages.require("/admin/settings.edit")
+        s = io.StringIO(kwargs['password'])
+        t = int(cherrypy.request.headers['REQUEST_TIME'])
+        subprocess.call(["sudo","-S","date","-s","+%Y%m%d%H%M%S",time.strftime("%Y%m%d%H%M%S",time.gmtime(t-0.15))],stdin=s)
+        raise cherrypy.HTTPRedirect('/settings/system')
+
+        
     @cherrypy.expose    
     def ip_geolocate(self):
         pages.require("/admin/settings.edit")

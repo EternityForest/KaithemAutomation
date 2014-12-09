@@ -338,22 +338,23 @@ class Slider(Widget):
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
             %(orient)s
            oninput="
-           %(htmlid)s_clean=false;
+           %(htmlid)s_clean=%(htmlid)s_cleannext=false;
            KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
            document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s';
-           setTimeout(function(){%(htmlid)s_clean=true},150);i"
+           setTimeout(function(){%(htmlid)s_cleannext=true},150);"
            ><br>
            <span
            class="numericpv"
            id="%(htmlid)s_l">%(value)f%(unit)s</span>
            <script type="text/javascript">
-           %(htmlid)s_clean = true;
+           %(htmlid)s_clean =%(htmlid)s_cleannext= true;
            var upd=function(val){
            if(%(htmlid)s_clean)
            {
             document.getElementById('%(htmlid)s').value= val;
             document.getElementById('%(htmlid)s_l').innerHTML= val+"%(unit)s";
             }
+            %(htmlid)s_clean =%(htmlid)s_cleannext;
            }
                     
            KWidget_register("%(id)s",upd);
@@ -409,19 +410,56 @@ class Switch(Widget):
         return """<div class="widgetcontainer">
         <label><input %(en)s id="%(htmlid)s" type="checkbox" 
         onchange="
-        %(htmlid)s_clean = false;
-        setTimeout(function(){%(htmlid)s_clean = true},350);
+        %(htmlid)s_clean = %(htmlid)s_cleannext= false;
+        setTimeout(function(){%(htmlid)s_cleannext = true},350);
         KWidget_setValue('%(id)s',document.getElementById('%(htmlid)s').checked)" %(x)s>%(label)s</label>
         <script type="text/javascript">
-        %(htmlid)s_clean = true;
+        %(htmlid)s_clean=%(htmlid)s_cleannext = true;
         var upd=function(val){
             if(%(htmlid)s_clean)
             {
             document.getElementById('%(htmlid)s').checked= val;
             }
+            %(htmlid)s_clean=%(htmlid)s_cleannext;
+
         }
         KWidget_register("%(id)s",upd);
         </script>
         </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self._value, 'label':label}
         
 
+
+class TextBox(Widget):
+    def __init__(self,min=0,max=100,step=0.1,*args,**kwargs):
+        Widget.__init__(self,*args,**kwargs)
+        self._value = ''
+
+    
+    def render(self,label):
+        if self._value:
+            x = "checked=1"
+        else:
+            x =''
+            
+        return """<div class="widgetcontainer">
+        <label>%(label)s<input %(en)s id="%(htmlid)s" type="text" 
+        onfocus="
+        %(htmlid)s_clean = false;
+        "
+        onblur="
+        setTimeout(function(){%(htmlid)s_clean = true},350);
+        KWidget_setValue('%(id)s',document.getElementById('%(htmlid)s').value)
+        "
+         %(x)s></label>
+        <script type="text/javascript">
+                %(htmlid)s_clean = true;
+
+        var upd=function(val){
+            if(%(htmlid)s_clean)
+            {
+            document.getElementById('%(htmlid)s').value= val;
+            }
+        }
+        KWidget_register("%(id)s",upd);
+        </script>
+        </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self._value, 'label':label}
