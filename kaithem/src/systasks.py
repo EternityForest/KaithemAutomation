@@ -53,55 +53,21 @@ firstrun = True
 checked = False
 
 
-
-##These are for a future migration away from the current way of scheduling things.
-
+@newevt.scheduler.everyMinute
 def check_mail_credentials():
-    mail.check_credentials()
+    if time.localtime().tm_min==0:
+        mail.check_credentials()
 
+@newevt.scheduler.everyMinute
 def logstats():
-    pass
-
-def autosave():
-    global lastsaved,lastdumpedlogs
-    if not config['autosave-state'] == 'never':
-        if (time.time() -lastsaved) > saveinterval:
-            lastsaved = time.time()
-            #This does not dump the log files. The log files change often.
-            #It would suck to have tons of tiny log files so we let the user configure
-            #Them separately
-            util.SaveAllStateExceptLogs()
-            
-    if not config['autosave-logs'] == 'never':
-        if (time.time() -lastdumpedlogs) > dumplogsinterval:
-            lastdumpedlogs = time.time()
-            messagelogging.dumpLogFile()
-    
-    
-
-def everyminute():
     global pageviewsthisminute,firstrun,checked
     global pageviewpublishcountdown,lastpageviews
-    global lastsaved, lastdumpedlogs,lastfpd,lastram,tenminutepagecount
     global frameRateWasTooLowLastMinute
     global MemUseWasTooHigh
-    if not config['autosave-state'] == 'never':
-        if (time.time() -lastsaved) > saveinterval:
-            lastsaved = time.time()
-            #This does not dump the log files. The log files change often.
-            #It would suck to have tons of tiny log files so we let the user configure
-            #Them separately
-            util.SaveAllStateExceptLogs()
-            
-    if not config['autosave-logs'] == 'never':
-        if (time.time() -lastdumpedlogs) > dumplogsinterval:
-            lastdumpedlogs = time.time()
-            messagelogging.dumpLogFile()
-    
-    if (newevt.averageFramesPerSecond < config['max-frame-rate']*0.95) or time.time()>lastfpd+(60*10):    
-        messagebus.postMessage("/system/perf/FPS" , round(newevt.averageFramesPerSecond,2))
-        lastfpd = time.time()
-            
+    global lastfpd,lastram,tenminutepagecount,lastfpd
+
+    pass
+    #Do the page count
     tenminutepagecount += pageviewsthisminute
             
     pageviewcountsmoother.sample(pageviewsthisminute)
@@ -111,9 +77,9 @@ def everyminute():
         messagebus.postMessage("/system/perf/requestsperminute" , tenminutepagecount/10)
         lastpageviews = time.time()
         tenminutepagecount = 0
-
-    
-    #The frame rate is not valid for the first few seconds because of the average
+        
+#Frame rate and mem
+ #The frame rate is not valid for the first few seconds because of the average
     if not firstrun:
         #Hysteresis to avoid flooding
         if newevt.averageFramesPerSecond < config['max-frame-rate']*0.50:
@@ -147,24 +113,28 @@ def everyminute():
                     MemUseWasTooHigh = False
             except Exception as e:
                 raise e
-    if datetime.datetime.now().hour == 0:    
-        if not checked:
-            checked=True
-            mail.check_credentials()
-    else:
-        checked = False
+            
+    if (newevt.averageFramesPerSecond < config['max-frame-rate']*0.95) or time.time()>lastfpd+(60*10):    
+        messagebus.postMessage("/system/perf/FPS" , round(newevt.averageFramesPerSecond,2))
+        lastfpd = time.time()
         
-    
-#This is a polled trigger returning true at the top of every minute.
-#Less than 10 is fine, events see rising edges.
-def onminute():  
-    return kaithem.time.second() < 10
-
-#newevt provides a special type of trigger just for system internal events
-e = newevt.PolledInternalSystemEvent(onminute,everyminute,{},priority=20)
-e.module = "<Internal System Polling>"
-e.resource = "EveryMinute"
-e.register()
+        
+@newevt.scheduler.everyMinute
+def autosave():
+    global lastsaved,lastdumpedlogs
+    if not config['autosave-state'] == 'never':
+        if (time.time() -lastsaved) > saveinterval:
+            lastsaved = time.time()
+            #This does not dump the log files. The log files change often.
+            #It would suck to have tons of tiny log files so we let the user configure
+            #Them separately
+            util.SaveAllStateExceptLogs()
+            
+    if not config['autosave-logs'] == 'never':
+        if (time.time() -lastdumpedlogs) > dumplogsinterval:
+            lastdumpedlogs = time.time()
+            messagelogging.dumpLogFile()
+            
 
 #let the user choose to have the server save everything before a shutdown
 if config['save-before-shutdown']:

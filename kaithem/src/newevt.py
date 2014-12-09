@@ -16,9 +16,8 @@
 #NOTICE: A LOT OF LOCKS ARE USED IN THIS FILE. WHEN TWO LOCKS ARE USED, ALWAYS GET _event_list_lock LAST
 #IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
-import traceback,threading,sys,time,atexit,collections,os,base64,imp,types
+import traceback,threading,sys,time,atexit,collections,os,base64,imp,types,weakref
 from . import workers, kaithemobj,messagebus,util,modules_state
-
 from .config import config
 
 #Use this lock whenever you access _events or __EventReferences in any way.
@@ -675,7 +674,7 @@ class Scheduler(threading.Thread):
         self.sec2 = []
         self.min2=[]
         self.events = []
-        self.events2
+        self.events2 = []
         self.daemon = True
         self.running = True
         self.start()
@@ -698,13 +697,19 @@ class Scheduler(threading.Thread):
                 try:
                     i()
                 except:
-                    pass
+                    messagebus.postMessage('system/errors/scheduler/second/'+
+                                            {"function":i.__name__,
+                                            "module":i.__module__,
+                                            "traceback":traceback.format_exc()})
             if time.localtime().tm_sec == 0:
                 for i in self.minute:
                     try:
                         i()
                     except:
-                        pass
+                        messagebus.postMessage('system/errors/scheduler/minute'+
+                                           {"function":i.__name__,
+                                            "module":i.__module__,
+                                            "traceback":traceback.format_exc()})
                     
             while self.events and self.events[0][1]>time.time():
                 f = self.events.popleft()
@@ -729,3 +734,5 @@ class Scheduler(threading.Thread):
             self.sec2 = []
             #Sleep until beginning of the next second
             time.sleep(1-(time.time()%1))
+
+scheduler = Scheduler()

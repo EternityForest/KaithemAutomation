@@ -19,7 +19,7 @@
 
 #This file manages a work queue that feeds a threadpool
 #Tasks will be performed on a best effort basis and errors will be caught and ignored.
-import threading,sys,cherrypy
+import threading,sys,cherrypy,traceback
 import atexit,time
 from .config import config
 
@@ -57,9 +57,17 @@ def __workerloop():
         try:
             #We need the timeout othewise it could block forever
             #and thus not notice if run was False
-            __queue.get(timeout = 5)()
-        except:
-            pass
+            f=__queue.get(timeout = 5)
+            f()
+        except Exception as e:
+            try:
+                import messagebus
+                messagebus.postMessage('system/errors/workers'+
+                                           {"function":f.__name__,
+                                            "module":f.__module__,
+                                            "traceback":traceback.format_exc()})
+            except:
+                pass
 
 #Wrap queue.put because it looks nicer
 def do(func):

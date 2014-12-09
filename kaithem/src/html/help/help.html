@@ -643,7 +643,19 @@ h4 {
         <h3>/system/errors/events/*module*/*event*</h3>
         <p>Mhen an error occurs in a module, A message will be broadcast on this topic,where module and event are
             the relevant module and event.</p>
+        
+        <h3>system/errors/workers</h3>
+        <p>When an error occurs in Kaithem's background worker pool, it will be logged here.
+        There could possibly be a lot of traffic here if a realtime event decides to spew a bunch.</p>
+        
+        <h3>system/errors/scheduler/second</h3>
+        <p>When an event occurs in kaithem's internal time scheduler it will be posted here.
+        Nothing currently uses this except a few system tasks.</p>
 
+        <h3>system/errors/scheduler/minute</h3>
+        <p>When an event occurs in kaithem's internal time scheduler it will be posted here.
+        Nothing currently uses this except a few system tasks.</p>
+        
         <h3>/system/notifications</h3>
         <p>All messages broadcasted to this topic will appear on the front page. They should be normal text strings,
             and should not contain any time information as they will be listed by time on the front page anyway. Care
