@@ -37,6 +37,15 @@ else:
 #We use for the copy we include. Normally we use our version.
 #If not, it will fall back to theirs.
 sys.path = [os.path.join(x,'src','thirdparty')] + sys.path
+
+#Low priority modules will default to using the version installed on the user's computer.
+sys.path =  sys.path + [os.path.join(x,'src','thirdparty',"lowpriority")]
+
+if sys.version_info < (3,0):
+    sys.path = sys.path+[os.path.join(x,'src','thirdparty','lowpriority','python2')]
+else:
+    sys.path = sys.path+[os.path.join(x,'src','thirdparty','lowpriority','python3')]
+
     
 import time,signal
 import cherrypy,validictory

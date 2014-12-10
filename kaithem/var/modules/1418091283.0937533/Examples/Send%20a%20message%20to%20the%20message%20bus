@@ -1,0 +1,11 @@
+{
+    "body": "<%!import os%>\r\n\r\n<%kaithem.message.post(\"/test\", \"BLAH BLAH BLAH\" )%>\r\nThis page sends a message to the message bus every time it is viewed. It sends a \"BLAH BLAH BLAH at /test",
+    "no-header": false,
+    "no-navheader": true,
+    "require-method": [
+        "GET",
+        "POST"
+    ],
+    "require-permissions": [],
+    "resource-type": "page"
+}

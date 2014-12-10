@@ -1,0 +1,11 @@
+{
+    "body": "This page tries to set module.x to 50.\r\nHowever there is an event trigger waiting for module.x to change that immediately resets it to 0\r\nSee the page \"View Useless Machine Result\" to see module.x\r\n<%module.x = 50%>",
+    "no-header": false,
+    "no-navheader": true,
+    "require-method": [
+        "GET",
+        "POST"
+    ],
+    "require-permissions": [],
+    "resource-type": "page"
+}

@@ -1,0 +1,21 @@
+<%include file="/pageheader.html"/>
+<%!import threading%>
+<h1>Running Proceses</h1>
+<div class="sectionbox">
+<h2>Running Threads</h2>
+<ul>
+%for i in sorted(threading.enumerate(),key=lambda d:d.name):
+%if "Main" in i.name:
+<li class="specialentry">
+%else:
+<li>
+%endif
+${i.name|h}
+%if i.daemon:
+<i>(daemon)</i>
+%endif
+</li>
+%endfor
+</ul>
+</div>
+<%include file="/pagefooter.html"/>
