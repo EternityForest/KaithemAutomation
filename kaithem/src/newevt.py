@@ -668,9 +668,9 @@ def make_event_from_resource(module,resource):
 class Scheduler(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
-        self.second = weakref.WeakSet()
-        self.minute = weakref.WeakSet()
-        self.hour = weakref.WeakSet()
+        self.second = set()
+        self.minute = set()
+        self.hour = set()
         self.sec2 = []
         self.min2=[]
         self.events = []
@@ -690,12 +690,15 @@ class Scheduler(threading.Thread):
     
     def _at(self,f,time,exact = 60*5):
         self.events2.append((f,time,min(exact,1)))
+        return f
 
     def run(self):
         while self.running:
             for i in self.second:
                 try:
-                    i()
+                    f= i()
+                    if f:
+                        f()
                 except:
                     messagebus.postMessage('system/errors/scheduler/second/'+
                                             {"function":i.__name__,
@@ -704,7 +707,9 @@ class Scheduler(threading.Thread):
             if time.localtime().tm_sec == 0:
                 for i in self.minute:
                     try:
-                        i()
+                       f= i()
+                       if f:
+                           f()
                     except:
                         messagebus.postMessage('system/errors/scheduler/minute'+
                                            {"function":i.__name__,
@@ -718,21 +723,28 @@ class Scheduler(threading.Thread):
                         f[0]()
                     except:
                         pass
+            #Don't make there be a reference hanging around
+            try:
+                del f
+            except:
+                pass
                     
             #We can't let users directly add to the lists, so the users put stuff in staging
             #Areas until we finish iterating. Then we copy all the items to the lists.
             for i in self.sec2:
-                self.second.add(i)
+                self.second.add(weakref.ref(i))
             for i in self.min2:
-                self.minute.add(i)
-            if self.events2:
-                self.events.extend(self.events2)
-                self.events = sorted(self.events)
-                self.events2 = []
+                self.minute.add(weakref.ref(i))
+            for i in self.events2:
+                self.events.append((weakref.ref(i[0]),i[1]))
+            self.events = sorted(self.events,key = lambda i:i[1])
+            self.events2 = []
                 
             self.min2=[]
             self.sec2 = []
             #Sleep until beginning of the next second
             time.sleep(1-(time.time()%1))
 
+
 scheduler = Scheduler()
+

@@ -104,12 +104,13 @@ def logstats():
                 if (time.time()-lastram>600) or usedp>0.8:
                     messagebus.postMessage("/system/perf/memuse",usedp)
                     lastram=time.time()
-                #No hysteresis here, mem use should change slower and is more important IMHO than cpu
+                    
                 if usedp > config['mem-use-warn']:
                     if not MemUseWasTooHigh:
                         MemUseWasTooHigh = True
                         messagebus.postMessage("/system/notifications/warnings" , "Total System Memory Use rose above "+str(int(config['mem-use-warn']*100))+"%")
-                else:
+                
+                if usedp < (config['mem-use-warn']-0.05):
                     MemUseWasTooHigh = False
             except Exception as e:
                 raise e
