@@ -1,0 +1,18 @@
+{
+    "allow-origins": [
+        "*"
+    ],
+    "allow-xss": false,
+    "auto-reload": false,
+    "auto-reload-interval": 5.0,
+    "body": "<%\r\nfrom src import newevt\r\n%>\r\n<div class=\"sectionbox\">\r\n${newevt.scheduler.events}\r\n</div>",
+    "dont-show-in-index": false,
+    "no-header": false,
+    "no-navheader": true,
+    "require-method": [
+        "GET",
+        "POST"
+    ],
+    "require-permissions": [],
+    "resource-type": "page"
+}

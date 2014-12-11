@@ -19,8 +19,9 @@
 import traceback,threading,sys,time,atexit,collections,os,base64,imp,types,weakref,dateutil,datetime,recurrent,re,pytz
 import dateutil.rrule
 import dateutil.tz
-from . import workers, kaithemobj,messagebus,util,modules_state
+from . import workers, kaithemobj,messagebus,util,modules_state,scheduling
 from .config import config
+from .scheduling import scheduler
 
 #Use this lock whenever you access _events or __EventReferences in any way.
 #Most of the time it should be held by the event manager that continually iterates it.
@@ -511,52 +512,41 @@ class PolledInternalSystemEvent(BaseEvent,DirectFunctionsMixin):
             #The eval was false, so the previous state was False
             self._prevstate = False
             
+            
 class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
         self.polled = False
         self.trigger = when
         BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
         self._init_setup_and_action(setup,do)
-        scheduler.schedule(self.handler,get_next_run(self.trigger))
-
+        self.handler= self._handler
+        scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
+        #Bound methods aren't enough to stop GC
     
-    def handler(self):
-        scheduler.schedule(self.handler,get_next_run(self.trigger))
-        self._on_trigger()
-        
-            
-def get_next_run(s,start = None):
-    messagebus.postMessage('ass',s)
-    if start==None:
-        start = datetime.datetime.now().replace(hour=0,minute=0,second=0,microsecond=0)
-    r = recurrent.RecurringEvent()
-    dt = r.parse(s)
-    if isinstance(dt,str):
-        rr = dateutil.rrule.rrulestr(r.get_RFC_rrule(),dtstart=start)
-        dt=rr.after(datetime.datetime.now())
-    tz = re.search(r"(\w\w+/\w+)",s)
-    if tz:
-        tz = dateutil.tz.gettz(tz.groups()[0])
-        EPOCH = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
-        dt= dt.replace(tzinfo = tz)
-        offset = 0
+    def _handler(self):
+        messagebus.postMessage("handled","")
 
-    else:
-        EPOCH = datetime.datetime(1970, 1, 1)
-        offset = time.timezone
+        if not 'allow_overlap' in self.trigger:
+            if not self.lock.acquire(False):
+                scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
+                messagebus.postMessage("start","")
+
+                return
+        try:
+            self._on_trigger()
+            messagebus.postMessage("on_triggered","")
+
+        finally:
+            try:
+                self.lock.release()
+                messagebus.postMessage("released","")
+
+            except:
+                pass
+            scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
+            messagebus.postMessage("schedueled_end",scheduling.get_next_run(self.trigger))
 
         
-    if sys.version_info < (3,0):
-        return (dt-EPOCH).total_seconds()+offset
-    else:
-        return (dt-EPOCH)/datetime.timedelta(seconds=1)+offset
-    
-
-        
-        
-    
-
- 
 #BORING BOOKEEPING BELOW
 
 
@@ -714,95 +704,4 @@ def make_event_from_resource(module,resource):
               r=resource)
 
     return x
-
-
-class Scheduler(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-        self.second = set()
-        self.minute = set()
-        self.hour = set()
-        self.sec2 = []
-        self.min2=[]
-        self.events = []
-        self.events2 = []
-        self.daemon = True
-        self.running = True
-        self.start()
-        self.name = 'SchedulerThread'
-        
-    def everySecond(self,f):
-        self.sec2.append(f)
-        return f
-        
-    def everyMinute(self,f):
-        self.min2.append(f)
-        return f
-    
-    def schedule(self,f,at,exact = 60*5):
-        if at < time.time()-exact:
-            return False
-        self.events2.append((f,at,min(exact,1)))
-        return True
-
-    def at(self,t,exact=60*5):
-        def decorator(f):
-            self.schedule(f, time, exact)
-        return f
-
-    def run(self):
-        while self.running:
-            for i in self.second:
-                try:
-                    f= i()
-                    if f:
-                        f()
-                except:
-                    messagebus.postMessage('system/errors/scheduler/second/'+
-                                            {"function":i.__name__,
-                                            "module":i.__module__,
-                                            "traceback":traceback.format_exc()})
-            if time.localtime().tm_sec == 0:
-                for i in self.minute:
-                    try:
-                       f= i()
-                       if f:
-                           f()
-                    except:
-                        messagebus.postMessage('system/errors/scheduler/minute'+
-                                           {"function":i.__name__,
-                                            "module":i.__module__,
-                                            "traceback":traceback.format_exc()})
-                    
-            while self.events and self.events[0][1]>time.time():
-                f = self.events.popleft()
-                if f[1]< time.time() + f[2]:
-                    try:
-                        f[0]()
-                    except:
-                        pass
-            #Don't make there be a reference hanging around
-            try:
-                del f
-            except:
-                pass
-                    
-            #We can't let users directly add to the lists, so the users put stuff in staging
-            #Areas until we finish iterating. Then we copy all the items to the lists.
-            for i in self.sec2:
-                self.second.add(weakref.ref(i))
-            for i in self.min2:
-                self.minute.add(weakref.ref(i))
-            for i in self.events2:
-                self.events.append((weakref.ref(i[0]),i[1],i[2]))
-            self.events = sorted(self.events,key = lambda i:i[1])
-            self.events2 = []
-                
-            self.min2=[]
-            self.sec2 = []
-            #Sleep until beginning of the next second
-            time.sleep(1-(time.time()%1))
-
-
-scheduler = Scheduler()
 

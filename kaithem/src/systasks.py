@@ -15,7 +15,7 @@
 
 import time,atexit,sys,platform,re,datetime,threading,weakref
 import cherrypy
-from . import newevt,messagebus,unitsofmeasure,util,messagelogging,mail
+from . import newevt,messagebus,unitsofmeasure,util,messagelogging,mail,scheduling
 from .kaithemobj import kaithem
 from .config import config
 
@@ -53,12 +53,12 @@ firstrun = True
 checked = False
 
 
-@newevt.scheduler.everyMinute
+@scheduling.scheduler.everyMinute
 def check_mail_credentials():
     if time.localtime().tm_min==0:
         mail.check_credentials()
 
-@newevt.scheduler.everyMinute
+@scheduling.scheduler.everyMinute
 def logstats():
     global pageviewsthisminute,firstrun,checked
     global pageviewpublishcountdown,lastpageviews
@@ -120,7 +120,7 @@ def logstats():
         lastfpd = time.time()
         
         
-@newevt.scheduler.everyMinute
+@scheduling.scheduler.everyMinute
 def autosave():
     global lastsaved,lastdumpedlogs
     if not config['autosave-state'] == 'never':

@@ -7,5 +7,5 @@
     "rate-limit": 0.0,
     "resource-type": "event",
     "setup": "pass",
-    "trigger": "!time every second"
+    "trigger": "!time every 2 seconds"
 }
