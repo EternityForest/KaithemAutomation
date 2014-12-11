@@ -1,3 +1,76 @@
+11 Jul 2014 - bear
+    bump version to v1.5
+    released v1.4
+
+    Updated setup.py for wheel compatibility
+    renamed README.txt to README.rst
+    renamed MANIFEST to MANIFEST.in
+    cleaned up a lot of the doc and notes
+
+    Commit 3fc165e701 mafagafo Now it works for Python 3.4.1
+    Commit d5883801e7 borgstrom Restore Python 2.6 compatibility
+
+8 Jul 2014 - bear
+    bumped version to 1.4
+
+    Issue #45 make a new release to really fix backwards compatibility
+    Issue #43 Please tag version 1.3
+
+    Commit 29c5c8961d devainandor fixed Python 3 compatibility in pdtLocale_icu
+    Commit d7304f18f7 inean Fix support for 'now' when no modifiers are present
+    Commit 26bfc91c28 sashaacker Added parseDT method.
+    Commit 848deb47e2 rmecham Added support for dotted meridians.
+    Commit c821e08ce2 ccho-sevenrooms corrected misspelling of 'thirteen'
+
+24 Jan 2014 - bear
+    bumped version to 1.3
+    
+    many changes - amazing how hard it is to keep this file up to date
+    when using GitHub.
+
+    See https://github.com/bear/parsedatetime/commits/master for details.
+
+    Biggest change is the addition of the nlp() function by Geoffrey Floyd:
+      nlp() function that utilizes parse() after making judgements about 
+      what datetime information belongs together. It makes logical groupings 
+      based on proximity and returns a parsed datetime for each matched 
+      grouping of datetime text, along with location info within the given inputString.
+
+27 Jun 2013 - bear
+    bumped version to 1.2
+
+04 Mar 2013 - bear
+    bumped version to 1.1.2
+
+    deploy import fix from Antonio Messina
+    also noticed that the urls were pointing to my older site, corrected
+
+03 Mar 2013 - bear
+    bumped version to 1.1.1
+
+    Ugh - debug log caused an error during formatting
+    Issue 10 https://github.com/bear/parsedatetime/issues/10
+
+14 Nov 2012 - bear
+
+    Added test for "last friday"
+    Updated MANIFEST to reflect renamed README file
+    Bumped version to 1.1
+
+15 Mar 2011 - bear
+
+    Updated 1.0.0 code to work with 2.6+ (need to try 2.5) and also updated 
+    docs and other supporting code
+
+07 Sep 2009 - bear
+
+    Created branches/python25 from current trunk to save the current code
+
+    Converted trunk to Python 3 and also refactored how the module is structured
+    so that it no longer requires import parsedatetime.parsedatetime
+
+    Bumped version to 1.0.0 to reflect the major refactoring
+
 07 Jan 2009 - bear
 
     0.8.7 release

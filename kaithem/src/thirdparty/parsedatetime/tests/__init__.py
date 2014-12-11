@@ -1,26 +1,27 @@
+
 """
 Unit tests for parsedatetime
 
 The tests can be run as a C{suite} by running::
 
     python run_tests.py parsedatetime
+
+Requires Python 3.0 or later
 """
 
-license = """
-Copyright (c) 2004-2007 Mike Taylor
-Copyright (c) 2006-2007 Darshana Chhajed
-All rights reserved.
+__author__       = 'Mike Taylor (bear@code-bear.com)'
+__copyright__    = 'Copyright (c) 2004 Mike Taylor'
+__license__      = 'Apache v2.0'
+__version__      = '1.0.0'
+__contributors__ = [ 'Darshana Chhajed',
+                     'Michael Lim (lim.ck.michael@gmail.com)',
+                     'Bernd Zeimetz (bzed@debian.org)',
+                   ]
+import logging
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+log = logging.getLogger('parsedatetime')
+echoHandler   = logging.StreamHandler()
+echoFormatter = logging.Formatter('%(levelname)-8s %(message)s')
+log.addHandler(echoHandler)
 
-   http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
-
+#log.setLevel(logging.DEBUG)     

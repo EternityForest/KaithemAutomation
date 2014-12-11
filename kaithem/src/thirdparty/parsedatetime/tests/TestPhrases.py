@@ -1,36 +1,42 @@
-#!/usr/bin/env python
 
 """
 Test parsing of strings that are phrases
 """
 
 import unittest, time, datetime
-import parsedatetime.parsedatetime as pt
+import parsedatetime as pdt
 
   # a special compare function is used to allow us to ignore the seconds as
   # the running of the test could cross a minute boundary
-def _compareResults(result, check, debug=False):
+def _compareResults(result, check, dateOnly=False, debug=False):
     target, t_flag = result
     value,  v_flag = check
 
     t_yr, t_mth, t_dy, t_hr, t_min, _, _, _, _ = target
     v_yr, v_mth, v_dy, v_hr, v_min, _, _, _, _ = value
 
-    if debug:
-        print target, t_flag
-        print t_yr, t_mth, t_dy, t_hr, t_min, t_sec, t_wd, t_yd, t_isdst, t_flag
-        print value, v_flag
-        print v_yr, v_mth, v_dy, v_hr, v_min, v_sec, v_wd, v_yd, v_isdst, v_flag
+    if dateOnly:
+        return ((t_yr == v_yr) and (t_mth == v_mth) and (t_dy == v_dy)) and (t_flag == v_flag)
+    else:
+        return ((t_yr == v_yr) and (t_mth == v_mth) and (t_dy == v_dy) and
+                (t_hr == v_hr) and (t_min == v_min)) and (t_flag == v_flag)
 
-    return ((t_yr == v_yr) and (t_mth == v_mth) and (t_dy == v_dy) and
-            (t_hr == v_hr) and (t_min == v_min)) and (t_flag == v_flag)
 
 class test(unittest.TestCase):
+
     def setUp(self):
-        self.cal = pt.Calendar()
+        self.cal = pdt.Calendar()
         self.yr, self.mth, self.dy, self.hr, self.mn, self.sec, self.wd, self.yd, self.isdst = time.localtime()
 
     def testPhrases(self):
+        #
+        # NOTE - this test will fail under certain conditions
+        #        It is building an absolute date for comparison and then testing
+        #        the parsing of relative phrases and as such will fail if run
+        #        near the midnight transition.
+        #        Thanks to Chris Petrilli for asking about it and prompting me
+        #        to create this note!
+        #
         start  = datetime.datetime(self.yr, self.mth, self.dy, self.hr, self.mn, self.sec).timetuple()
         target = datetime.datetime(self.yr, self.mth, self.dy, 16, 0, 0).timetuple()
 
@@ -47,7 +53,6 @@ class test(unittest.TestCase):
 
         self.assertTrue(_compareResults(self.cal.parse('tomorrow eod', start), (target, 3)))
         self.assertTrue(_compareResults(self.cal.parse('eod tomorrow', start), (target, 3)))
-
 
     def testPhraseWithDays_DOWStyle_1_False(self):
         s = datetime.datetime.now()
@@ -85,7 +90,6 @@ class test(unittest.TestCase):
 
         self.assertTrue(_compareResults(self.cal.parse('eod %s' % day, start), (target, 3)))
 
-
     def testEndOfPhrases(self):
         s = datetime.datetime.now()
 
@@ -104,18 +108,33 @@ class test(unittest.TestCase):
         start  = s.timetuple()
         target = t.timetuple()
 
-        self.assertTrue(_compareResults(self.cal.parse('eom',         start), (target, 1)))
-        self.assertTrue(_compareResults(self.cal.parse('meeting eom', start), (target, 1)))
+        self.assertTrue(_compareResults(self.cal.parse('eom',         start), (target, 2)))
+        self.assertTrue(_compareResults(self.cal.parse('meeting eom', start), (target, 2)))
 
         s = datetime.datetime.now()
 
         (yr, mth, dy, hr, mn, sec, wd, yd, isdst) = s.timetuple()
 
-        t = datetime.datetime(yr, 12, 31, hr, mn, sec)
+        t = datetime.datetime(yr, 12, 31, 9, 0, 0)
 
         start  = s.timetuple()
         target = t.timetuple()
 
-        self.assertTrue(_compareResults(self.cal.parse('eoy',         start), (target, 1)))
-        self.assertTrue(_compareResults(self.cal.parse('meeting eoy', start), (target, 1)))
+        self.assertTrue(_compareResults(self.cal.parse('eoy',         start), (target, 2)))
+        self.assertTrue(_compareResults(self.cal.parse('meeting eoy', start), (target, 2)))
 
+    def testLastPhrases(self):
+        for day in (11, 12, 13, 14, 15, 16, 17):
+            start  = datetime.datetime(2012, 11, day, 9, 0, 0)
+
+            (yr, mth, dy, _, _, _, wd, yd, isdst) = start.timetuple()
+
+            n = 4 - wd
+            if n >= 0:
+                n -= 7
+
+            target = start + datetime.timedelta(days=n)
+
+            #print '*********', start, target, n, self.cal.parse('last friday', start.timetuple())
+
+            self.assertTrue(_compareResults(self.cal.parse('last friday', start.timetuple()), (target.timetuple(), 1), dateOnly=True))

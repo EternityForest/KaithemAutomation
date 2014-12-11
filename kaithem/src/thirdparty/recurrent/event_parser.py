@@ -9,7 +9,7 @@ except ImportError:
 
 pdt = parsedatetime.Calendar()
 
-from constants import *
+from .constants import *
 
 log = logging.getLogger('recurrent')
 #log.setLevel(logging.DEBUG)

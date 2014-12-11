@@ -1,11 +1,10 @@
-#!/usr/bin/env python
 
 """
 Test parsing of strings with multiple chunks
 """
 
 import unittest, time, datetime
-import parsedatetime.parsedatetime as pt
+import parsedatetime as pdt
 
 
   # a special compare function is used to allow us to ignore the seconds as
@@ -20,9 +19,11 @@ def _compareResults(result, check):
     return ((t_yr == v_yr) and (t_mth == v_mth) and (t_dy == v_dy) and
             (t_hr == v_hr) and (t_min == v_min)) and (t_flag == v_flag)
 
+
 class test(unittest.TestCase):
+
     def setUp(self):
-        self.cal = pt.Calendar()
+        self.cal = pdt.Calendar()
         self.yr, self.mth, self.dy, self.hr, self.mn, self.sec, self.wd, self.yd, self.isdst = time.localtime()
 
     def testSimpleMultipleItems(self):
@@ -50,7 +51,6 @@ class test(unittest.TestCase):
 
         self.assertTrue(_compareResults(self.cal.parse('3y 5h 50m', start), (target, 3)))
 
-
     def testMultipleItemsWithPunctuation(self):
         s = datetime.datetime.now()
         t = self.cal.inc(s, year=3) + datetime.timedelta(days=5, weeks=2)
@@ -61,7 +61,6 @@ class test(unittest.TestCase):
         self.assertTrue(_compareResults(self.cal.parse('3 years, 2 weeks, 5 days',    start), (target, 1)))
         self.assertTrue(_compareResults(self.cal.parse('3 years, 2 weeks and 5 days', start), (target, 1)))
         self.assertTrue(_compareResults(self.cal.parse('3y, 2w, 5d ',                 start), (target, 1)))
-
 
     def testUnixATStyle(self):
         s = datetime.datetime.now()
@@ -74,7 +73,6 @@ class test(unittest.TestCase):
 
         self.assertTrue(_compareResults(self.cal.parse('4pm + 3 days', start), (target, 3)))
         self.assertTrue(_compareResults(self.cal.parse('4pm +3 days',  start), (target, 3)))
-
 
     def testUnixATStyleNegative(self):
         s = datetime.datetime.now()

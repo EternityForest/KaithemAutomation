@@ -204,9 +204,9 @@ def test_expression(string, expected):
                     self.assertFalse(v)
                 # ensure rrule string can be parsed by dateutil
                 rrule.rrulestr(val)
-        except AssertionError, e:
+        except AssertionError as e:
             if known_failure:
-                print "Expected failure:", expected_params
+                print ("Expected failure:", expected_params)
                 return
             raise e
         if known_failure:
@@ -220,5 +220,5 @@ for i, expr in enumerate(expressions):
 
 
 if __name__ == '__main__':
-    print "Dates relative to %s" % NOW
+    print ("Dates relative to %s" % NOW)
     unittest.main(verbosity=2)

@@ -16,7 +16,9 @@
 #NOTICE: A LOT OF LOCKS ARE USED IN THIS FILE. WHEN TWO LOCKS ARE USED, ALWAYS GET _event_list_lock LAST
 #IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
-import traceback,threading,sys,time,atexit,collections,os,base64,imp,types,weakref
+import traceback,threading,sys,time,atexit,collections,os,base64,imp,types,weakref,dateutil,datetime,recurrent,re,pytz
+import dateutil.rrule
+import dateutil.tz
 from . import workers, kaithemobj,messagebus,util,modules_state
 from .config import config
 
@@ -163,7 +165,7 @@ t.start()
 
 def parseTrigger(when):
     """
-    Parse a trigger expression into a tokeized form
+    Parse a trigger expression into a tokenized form
     """
     output = []
     
@@ -171,7 +173,7 @@ def parseTrigger(when):
     for i in when.strip().split(' '):
         if not i == '':
             output.append(i)
-            
+                
     #Take into account normal python expression triggers and return a similar format
     if output[0].startswith('!'):
         return output
@@ -196,6 +198,9 @@ def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setu
     elif trigger[0] == '!edgetrigger':
         return PolledEvalEvent(when,do,scope,continual,ratelimit,setup,priority,**kwargs)
     
+    elif trigger[0] == '!time':
+        return RecurringEvent(' '.join(trigger[1:]),do,scope,continual,ratelimit,setup,priority,**kwargs)
+    
     #Defensive programming, raise error on nonsense event type
     raise RuntimeError("Invalid trigger expression that begins with" + str(trigger[0]))
 
@@ -214,7 +219,7 @@ def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setu
 #And errors in _check will be logged.
 
 class BaseEvent():
-    """Base Class represeting one event.
+    """Base Class representing one event.
     scope must be a dict representing the scope in which both the trigger and action will be executed.
     When the trigger goes from fase to true, the action will occur.
     
@@ -505,7 +510,53 @@ class PolledInternalSystemEvent(BaseEvent,DirectFunctionsMixin):
         else:
             #The eval was false, so the previous state was False
             self._prevstate = False
+            
+class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
+    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
+        self.polled = False
+        self.trigger = when
+        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
+        self._init_setup_and_action(setup,do)
+        scheduler.schedule(self.handler,get_next_run(self.trigger))
 
+    
+    def handler(self):
+        scheduler.schedule(self.handler,get_next_run(self.trigger))
+        self._on_trigger()
+        
+            
+def get_next_run(s,start = None):
+    messagebus.postMessage('ass',s)
+    if start==None:
+        start = datetime.datetime.now().replace(hour=0,minute=0,second=0,microsecond=0)
+    r = recurrent.RecurringEvent()
+    dt = r.parse(s)
+    if isinstance(dt,str):
+        rr = dateutil.rrule.rrulestr(r.get_RFC_rrule(),dtstart=start)
+        dt=rr.after(datetime.datetime.now())
+    tz = re.search(r"(\w\w+/\w+)",s)
+    if tz:
+        tz = dateutil.tz.gettz(tz.groups()[0])
+        EPOCH = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
+        dt= dt.replace(tzinfo = tz)
+        offset = 0
+
+    else:
+        EPOCH = datetime.datetime(1970, 1, 1)
+        offset = time.timezone
+
+        
+    if sys.version_info < (3,0):
+        return (dt-EPOCH).total_seconds()+offset
+    else:
+        return (dt-EPOCH)/datetime.timedelta(seconds=1)+offset
+    
+
+        
+        
+    
+
+ 
 #BORING BOOKEEPING BELOW
 
 
@@ -619,7 +670,7 @@ def getEventsFromModules(only = None):
                         
                     #If there is an error, add it t the list of things to be retried.
                     except Exception as e:
-                        p.error = e
+                        p.error = traceback.format_exc(6)
                         nextRound.add(p)
                         pass
                 toLoad = nextRound
@@ -688,8 +739,15 @@ class Scheduler(threading.Thread):
         self.min2.append(f)
         return f
     
-    def _at(self,f,time,exact = 60*5):
-        self.events2.append((f,time,min(exact,1)))
+    def schedule(self,f,at,exact = 60*5):
+        if at < time.time()-exact:
+            return False
+        self.events2.append((f,at,min(exact,1)))
+        return True
+
+    def at(self,t,exact=60*5):
+        def decorator(f):
+            self.schedule(f, time, exact)
         return f
 
     def run(self):
@@ -736,7 +794,7 @@ class Scheduler(threading.Thread):
             for i in self.min2:
                 self.minute.add(weakref.ref(i))
             for i in self.events2:
-                self.events.append((weakref.ref(i[0]),i[1]))
+                self.events.append((weakref.ref(i[0]),i[1],i[2]))
             self.events = sorted(self.events,key = lambda i:i[1])
             self.events2 = []
                 
