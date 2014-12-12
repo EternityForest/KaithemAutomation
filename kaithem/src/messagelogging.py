@@ -43,7 +43,8 @@ def dumpLogFile():
     try:
         _dumpLogFile()
     except Exception as e:
-        messagebus.postMessage("/system/errors/saving-logs/",repr(e))
+        
+        messagebus.postMessage("/system/errors/saving-logs/",traceback.format_exc())
 
 def _dumpLogFile():    
     """Flush all log entires that belong to topics that are in the list of things to save, and clear the staging area"""
@@ -110,8 +111,9 @@ def _dumpLogFile():
                 
 
                 
-                
         where =os.path.join(directories.logdir,'dumps')
+        if not os.path.exists(where):
+            os.makedirs(where)
         #Actually dump the log.
         with openlog(os.path.join(where,str(time.time())+ext),'wb') as f:
             print()
