@@ -566,7 +566,6 @@ def makeDummyEvent(module,resource):
             x.register()
             #Update index
             __EventReferences[module,resource] = x
-        messagebus.postMessage("debug",str(__EventReferences))
 
 #look in the modules and compile all the event code
 #if only is supplied, must be a set and will only look in those modules
