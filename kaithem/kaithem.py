@@ -67,6 +67,7 @@ from src import systasks
 from src import registry
 from src import widgets
 
+
 from src.config import config
 
 MyExternalIPAdress = util.updateIP()
@@ -163,6 +164,7 @@ root.pages = usrpages.KaithemPage()
 root.logs = messagelogging.WebInterface()
 root.notifications = notifications.WI()
 root.widgets = widgets.WebInterface()
+
 
 
 dn = os.path.dirname(os.path.realpath(__file__))

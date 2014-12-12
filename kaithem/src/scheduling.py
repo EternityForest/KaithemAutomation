@@ -1,4 +1,4 @@
-import threading,sys,re,time,datetime,weakref,re,recurrent,dateutil
+import threading,sys,re,time,datetime,weakref,re,recurrent,dateutil,os
 from . import messagebus
        
 class Scheduler(threading.Thread):
@@ -14,6 +14,7 @@ class Scheduler(threading.Thread):
         self.daemon = True
         self.running = True
         self.name = 'SchedulerThread'
+        self.lock = threading.Lock()
         
     def everySecond(self,f):
         self.sec2.append(f)
@@ -24,8 +25,24 @@ class Scheduler(threading.Thread):
         return f
     
     def schedule(self,f,at,exact = 60*5):
-        self.events2.append((weakref.ref(f),at,exact))
-
+        class ScheduledEvent():
+            def __init__(self,id,parent):
+                self.id = id
+                self.parent = parent
+            def unregister(self):
+                self.parent._unschedule(id)
+            
+        id = str(time.time())+f.__module__+repr(os.urandom(3))
+        self.events2.append((weakref.ref(f),at,exact,id))
+        return ScheduledEvent(id,self)
+    
+    def _unschedule(self,id):
+        with self.lock:
+            for index,i in enumerate(self.events):
+                if i[4] == id:
+                    self.pop(index)
+    
+    
     def at(self,t,exact=60*5):
         def decorator(f):
             self.schedule(f, time, exact)
@@ -34,69 +51,59 @@ class Scheduler(threading.Thread):
     def run(self):
         while self.running:
             messagebus.postMessage("/system/scheduler/tick", time.time())
-
-            for i in self.second:
+            with self.lock:
+                for i in self.second:
+                    try:
+                        f= i()
+                        if f:
+                            f()
+                    except:
+                        try:
+                            messagebus.postMessage('system/errors/scheduler/second/'+
+                                                    {"function":f.__name__,
+                                                    "module":f.__module__,
+                                                    "traceback":traceback.format_exc()})
+                        except:
+                            pass
+                if time.localtime().tm_sec == 0:
+                    for i in self.minute:
+                        try:
+                           f= i()
+                           if f:
+                               f()
+                        except:
+                            try:
+                                messagebus.postMessage('system/errors/scheduler/minute'+
+                                                   {"function":f.__name__,
+                                                    "module":f.__module__,
+                                                    "traceback":traceback.format_exc()})
+                            except:
+                                pass
+                
+                #Iterate over all the events until we get to one that is in the future
+                while self.events and (self.events[0][1]<time.time()):
+                    #Get the event tuple
+                    f = self.events.pop(0)
+                    #If the exact parameter is false, or it is less than exact in the past
+                    if f[2]==False or f[1]< time.time() + f[2] :
+                        #Then we dereference the weak reference and call the function
+                        try:
+                           f =f[0]()
+                           if f:
+                               f()
+                        except:
+                            try:
+                                messagebus.postMessage('system/errors/scheduler/minute'+
+                                                   {"function":f.__name__,
+                                                    "module":f.__module__,
+                                                    "traceback":traceback.format_exc()})
+                            except:
+                                pass
+                #Don't make there be a reference hanging around
                 try:
-                    f= i()
-                    if f:
-                        f()
+                    del f
                 except:
-                    try:
-                        messagebus.postMessage('system/errors/scheduler/second/'+
-                                                {"function":f.__name__,
-                                                "module":f.__module__,
-                                                "traceback":traceback.format_exc()})
-                    except:
-                        pass
-            if time.localtime().tm_sec == 0:
-                for i in self.minute:
-                    try:
-                       f= i()
-                       if f:
-                           f()
-                    except:
-                        try:
-                            messagebus.postMessage('system/errors/scheduler/minute'+
-                                               {"function":f.__name__,
-                                                "module":f.__module__,
-                                                "traceback":traceback.format_exc()})
-                        except:
-                            pass
-            
-            #Iterate over all the events until we get to one that is in the future
-            while self.events and (self.events[0][1]<time.time()):
-                #Get the event tuple
-                f = self.events.pop(0)
-                messagebus.postMessage("got",str(f)+str(time.time()))
-
-                #If the exact parameter is false, or it is less than exact in the past
-                if f[2]==False or f[1]< time.time() + f[2] :
-                    messagebus.postMessage("nortooold","")
-
-                    #Then we dereference the weak reference and call the function
-                    try:
-                       f =f[0]()
-                       messagebus.postMessage("dereferenced",str(f))
-
-                       if f:
-                           messagebus.postMessage("calling","")
-
-                           f()
-                           messagebus.postMessage("called","")
-
-                    except:
-                        try:
-                            messagebus.postMessage('system/errors/scheduler/minute'+
-                                               {"function":f.__name__,
-                                                "module":f.__module__,
-                                                "traceback":traceback.format_exc()})
-                        except:
-                            pass
-            #Don't make there be a reference hanging around
-            try:
-                del f
-            except:
-                pass
+                    pass
                     
             #We can't let users directly add to the lists, so the users put stuff in staging
             #Areas until we finish iterating. Then we copy all the items to the lists.

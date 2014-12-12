@@ -7,6 +7,8 @@ from src.config import config
 %>
 
 <%include file="/pageheader.html"/>
+
+
 <title>Kaithem Event</title>
 <h2>Event "${name|h}" of module <a href="/modules/module/${url(module)}">${module|h}</a></h2>
 %if not (module,name) in newevt.EventReferences:
@@ -115,7 +117,7 @@ you may need to use the global keyword. You may also need to use the global keyw
 %if newevt.getEventErrors(module,name) and version == "__live__":
 <h3 class="error">Errors[${len(newevt.getEventErrors(module,name))}]</h3>
 <p class ="help">
-This section the most recent errors that occured while executing the event or trigger.
+This section the most recent errors that ocurred while executing the event or trigger.
 </p>
 <div class="scrollbox">
 %for i in newevt.getEventErrors(module,name):
@@ -195,5 +197,6 @@ setupeditor.getSession().on('change', function(e) {
 
 <script>document.getElementById('setupbox').style.display='none';</script>
 <script>document.getElementById('setupeditor').style.display='block';</script>
+
 %endif
 <%include file="/pagefooter.html"/>

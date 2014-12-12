@@ -520,32 +520,30 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
         BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
         self._init_setup_and_action(setup,do)
         self.handler= self._handler
-        scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
+        self.next=scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
         #Bound methods aren't enough to stop GC
     
     def _handler(self):
-        messagebus.postMessage("handled","")
-
         if not 'allow_overlap' in self.trigger:
             if not self.lock.acquire(False):
-                scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
+                self.next=scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
                 messagebus.postMessage("start","")
 
                 return
         try:
             self._on_trigger()
-            messagebus.postMessage("on_triggered","")
 
         finally:
             try:
                 self.lock.release()
-                messagebus.postMessage("released","")
 
             except:
                 pass
-            scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
-            messagebus.postMessage("schedueled_end",scheduling.get_next_run(self.trigger))
-
+            self.next=scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
+    
+    def __del__(self):
+        self.next.unregister()
+        
         
 #BORING BOOKEEPING BELOW
 
