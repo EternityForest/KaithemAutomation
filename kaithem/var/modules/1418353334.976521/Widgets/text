@@ -5,7 +5,7 @@
     "allow-xss": false,
     "auto-reload": false,
     "auto-reload-interval": 5.0,
-    "body": "<script type=\"text/javascript\" src=\"/static/widget.js\"></script>\r\n\r\n<div class=\"sectionbox\">${module.textbox.render('ass')}</div>",
+    "body": "<script type=\"text/javascript\" src=\"/static/widget.js\"></script>\r\n\r\n<div class=\"sectionbox\">${module.textbox.render('text box: ')}</div>",
     "dont-show-in-index": false,
     "no-header": false,
     "no-navheader": true,

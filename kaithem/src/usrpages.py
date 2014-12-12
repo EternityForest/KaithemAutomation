@@ -132,7 +132,28 @@ def getPagesFromModules():
                 for m in modules_state.ActiveModules[i].copy():
                     j=modules_state.ActiveModules[i][m]
                     if j['resource-type']=='page':
-                        _Pages[i][m] = CompiledPage(j,i,m)
+                        try:
+                            _Pages[i][m] = CompiledPage(j,i,m)
+                        except Exception as e:
+                            makeDummyPage(m,i)
+                            tb = traceback.format_exc()
+                            #When an error happens, log it and save the time
+                            #Note that we are logging to the compiled event object
+                            _Pages[i][m].errors.append([time.strftime(config['time-format']),tb])
+                            try:
+                                messagebus.postMessage('system/errors/pages/'+
+                                                   i+'/'+
+                                                   m,str(tb))
+                            except Exception as e:
+                                print (e)
+                            #Keep only the most recent 25 errors
+                            
+                            #If this is the first error(high level: transition from ok to not ok)
+                            #send a global system messsage that will go to the front page.
+                            if len(_Pages[i][m].errors)==1:
+                                messagebus.postMessage('/system/notifications/errors',
+                                                       "Page \""+m+"\" of module \""+i+
+                                                       "\" may need attention")
 
 #kaithem.py has come config option that cause this file to use the method dispatcher.
 class KaithemPage():
