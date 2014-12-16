@@ -1,13 +1,12 @@
 <%!
 from src.util import url
-from src import newevt,unitsofmeasure,pages,auth,modules_state
+from src import newevt,unitsofmeasure,pages,auth,modules_state,pages,widgets
 from collections import defaultdict
 import traceback,time
 from src.config import config
 %>
 
 <%include file="/pageheader.html"/>
-
 
 <title>Kaithem Event</title>
 <h2>Event "${name|h}" of module <a href="/modules/module/${url(module)}">${module|h}</a></h2>
@@ -60,6 +59,8 @@ else:
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
 <div id="triggereditor" class="acediv" style="height:2ex ;border: 1px solid #DDD;">${event["trigger"]|h}</div>
 %endif
+
+<p style="display:none" id="rrule">Next Run: <span id="rrulespan"></span></p>
 
 
 <h3>Additional Trigger Options</h3>
@@ -151,9 +152,6 @@ Saving this module will case it to completely reload, including its local scope.
 %endif
 </form>
 </div>
-
-
-
 
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
 <script src="/static/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>

@@ -122,7 +122,8 @@ class Scheduler(threading.Thread):
             time.sleep(1-(time.time()%1))
             
 def get_next_run(s,start = None):
-    messagebus.postMessage('ass',s)
+    
+    s = s.replace("every second",'every 1 seconds')
     if start==None:
         start = datetime.datetime.now().replace(hour=0,minute=0,second=0,microsecond=0)
     r = recurrent.RecurringEvent()
