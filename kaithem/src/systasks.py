@@ -110,7 +110,7 @@ def logstats():
                         MemUseWasTooHigh = True
                         messagebus.postMessage("/system/notifications/warnings" , "Total System Memory Use rose above "+str(int(config['mem-use-warn']*100))+"%")
                 
-                if usedp < (config['mem-use-warn']-0.05):
+                if usedp < (config['mem-use-warn']-0.08):
                     MemUseWasTooHigh = False
             except Exception as e:
                 raise e
