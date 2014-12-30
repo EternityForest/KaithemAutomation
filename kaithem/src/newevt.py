@@ -527,11 +527,11 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
         if not 'allow_overlap' in self.trigger:
             if not self.lock.acquire(False):
                 self.next=scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
-                messagebus.postMessage("start","")
-
                 return
         try:
-            self._on_trigger()
+            def f():
+                self._on_trigger()
+            workers.do(f)
 
         finally:
             try:

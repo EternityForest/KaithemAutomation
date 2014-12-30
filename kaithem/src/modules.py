@@ -196,6 +196,7 @@ class WebInterface():
     @cherrypy.expose
     def nextrun(self,**kwargs):
         pages.require('/admin/modules.view')
+        
         return str(scheduling.get_next_run(kwargs['string']))
     
     
