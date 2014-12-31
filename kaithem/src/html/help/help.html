@@ -265,18 +265,16 @@ h4 {
             actually be classic Lorem Ipsum text.</p>
 
         <h4>kaithem.misc.do(function):</h4>
-        <p>Executes a function of no arguments in the background using kaithem's thread pool. Any uncaught errors
-            are simply ignored</p>
+        <p>Executes a function of no arguments in the background using kaithem's thread pool.
+        Any errors are posted to the message bus at system/errors/workers.
+        There is no protection against infinite loops.</p>
             
         <h4>Kaithem.misc.uptime()</h4>
         <p>Returns uptime in seconds of the kaithem server(not of the machine itself)</p>
         
         <h4>Kaithem.misc.errors(f)</h4>
-        <p>Returns any exception object raised during calling f, or else none if no errors.</p>
-        
+        <p>Returns any exception object raised during calling f, or else none if no errors.</p>      
   
-
-
         <h3>kaithem.time</h3>
         <h4>kaithem.time.strftime(timestamp)</h4>
         <p>Format a time in seconds since the epoch according to the user's preference. When called outside
