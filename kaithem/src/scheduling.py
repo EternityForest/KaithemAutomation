@@ -65,6 +65,7 @@ class Scheduler(threading.Thread):
                                                     "traceback":traceback.format_exc()})
                         except:
                             pass
+                        
                 if time.localtime().tm_sec == 0:
                     for i in self.minute:
                         try:
@@ -93,7 +94,7 @@ class Scheduler(threading.Thread):
                                f()
                         except:
                             try:
-                                messagebus.postMessage('system/errors/scheduler/minute'+
+                                messagebus.postMessage('system/errors/scheduler/time'+
                                                    {"function":f.__name__,
                                                     "module":f.__module__,
                                                     "traceback":traceback.format_exc()})
@@ -121,6 +122,8 @@ class Scheduler(threading.Thread):
             #Sleep until beginning of the next second
             time.sleep(1-(time.time()%1))
             
+
+    
 def get_next_run(s,start = None):
     
     s = s.replace("every second",'every 1 seconds')
@@ -143,13 +146,13 @@ def get_next_run(s,start = None):
 
     else:
         EPOCH = datetime.datetime(1970, 1, 1)
-        offset = time.timezone
+        offset = dateutil.tz.tzlocal().utcoffset(dt)
 
         
     if sys.version_info < (3,0):
-        return (dt-EPOCH).total_seconds()+offset
+        return ((dt-EPOCH)-offset).total_seconds()
     else:
-        return (dt-EPOCH)/datetime.timedelta(seconds=1)+offset
+        return ((dt-EPOCH)-offset)/datetime.timedelta(seconds=1)
 
 
 scheduler = Scheduler()

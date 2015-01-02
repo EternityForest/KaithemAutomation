@@ -550,7 +550,8 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
     def __del__(self):
         self.next.unregister()
 
-#If the system time has been set, we may want to recalculate all of the events
+#If the system time has been set, we may want to recalculate all of the events.
+#Work in progress
 def recalc_schedule():
     with _event_list_lock:
         for i in _EventReferences:
