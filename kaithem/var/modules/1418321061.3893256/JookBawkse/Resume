@@ -1,0 +1,18 @@
+{
+    "allow-origins": [
+        "*"
+    ],
+    "allow-xss": false,
+    "auto-reload": false,
+    "auto-reload-interval": 5.0,
+    "body": "<%\r\nkaithem.sound.resume(\"jookbawkse\")\r\nkaithem.web.goBack()\r\n%>",
+    "dont-show-in-index": false,
+    "no-header": false,
+    "no-navheader": true,
+    "require-method": [
+        "GET",
+        "POST"
+    ],
+    "require-permissions": [],
+    "resource-type": "page"
+}

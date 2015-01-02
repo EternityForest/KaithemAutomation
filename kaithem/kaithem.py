@@ -67,6 +67,7 @@ from src import systasks
 from src import registry
 from src import widgets
 
+
 from src.config import config
 
 MyExternalIPAdress = util.updateIP()
@@ -165,6 +166,7 @@ root.notifications = notifications.WI()
 root.widgets = widgets.WebInterface()
 
 
+
 dn = os.path.dirname(os.path.realpath(__file__))
 
 if config['local-access-only']:
@@ -248,5 +250,8 @@ server2.subscribe()
 messagebus.postMessage('/system/startup','System Initialized')
 messagebus.postMessage('/system/notifications','System Initialized')
 
+if time.time() < 1420070400:
+    messagebus.postMessage('/system/notifications/errors',"System Clock probably wrong, some features may not work properly.")
+    
 cherrypy.engine.start()
 cherrypy.engine.block()

@@ -96,6 +96,19 @@ h4 {
         <h4>!onchange [expression]</h4>
         <p>This trigger expression causes the event to occur when the value of expression changes. the most recent
             value of expression is availible as __value.</p>
+            
+            
+        <h4>!time [expression]</h4>
+        <p>This causes the event to occur at a specific time, such as "every Friday" or "every hour on Monday".
+           This is powered by the recurrent library and supports any expression that library does.
+           Events will occur near the start of a second.
+           </p>
+           
+        <p>Some preprocessing occurs before the recurrent library parses it, 
+        so that any expression of the form blah/blah will be interpreted as a timezone. Timezone names must be in the Olson TZ list("US/Central","Etc/UTC", etc)
+        If the time expression does not contain a time zone, it will be assumed to be in the server's local time.</p>
+        
+        
 
         <h2>
             <a id="pages" name="pages"></a>Pages:
@@ -265,9 +278,11 @@ h4 {
             actually be classic Lorem Ipsum text.</p>
 
         <h4>kaithem.misc.do(function):</h4>
+
         <p>Executes a function of no arguments in the background using kaithem's thread pool.
         Any errors are posted to the message bus at system/errors/workers.
         There is no protection against infinite loops.</p>
+
             
         <h4>Kaithem.misc.uptime()</h4>
         <p>Returns uptime in seconds of the kaithem server(not of the machine itself)</p>

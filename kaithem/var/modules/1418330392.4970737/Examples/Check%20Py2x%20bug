@@ -1,0 +1,11 @@
+{
+    "action": "p+=1\r\nx={}",
+    "continual": false,
+    "disabled": false,
+    "once": true,
+    "priority": "interactive",
+    "rate-limit": 0.0,
+    "resource-type": "event",
+    "setup": "#This will cause two issues in python 2, a dictionary changed size suring iteration bug, and an error wherin it won't be able to find p\r\np=0\r\n",
+    "trigger": "False"
+}

@@ -16,7 +16,7 @@
 #File for keeping track of and editing kaithem modules(not python modules)
 import threading,urllib,shutil,sys,time,os,json
 import cherrypy,yaml
-from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus
+from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling
 from .modules_state import ActiveModules,modulesLock,scopes
 
 
@@ -190,8 +190,15 @@ def bookkeeponemodule(module,update=False):
     
 
 
-#The clas defining the interface to allow the user to perform generic create/delete/upload functionality.
+#The class defining the interface to allow the user to perform generic create/delete/upload functionality.
 class WebInterface():
+    
+    @cherrypy.expose
+    def nextrun(self,**kwargs):
+        pages.require('/admin/modules.view')
+        
+        return str(scheduling.get_next_run(kwargs['string']))
+    
     
     #This lets the user download a module as a zip file
     @cherrypy.expose

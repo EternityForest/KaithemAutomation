@@ -16,9 +16,12 @@
 #NOTICE: A LOT OF LOCKS ARE USED IN THIS FILE. WHEN TWO LOCKS ARE USED, ALWAYS GET _event_list_lock LAST
 #IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
-import traceback,threading,sys,time,atexit,collections,os,base64,imp,types,weakref
-from . import workers, kaithemobj,messagebus,util,modules_state
+import traceback,threading,sys,time,atexit,collections,os,base64,imp,types,weakref,dateutil,datetime,recurrent,re,pytz
+import dateutil.rrule
+import dateutil.tz
+from . import workers, kaithemobj,messagebus,util,modules_state,scheduling
 from .config import config
+from .scheduling import scheduler
 
 #Use this lock whenever you access _events or __EventReferences in any way.
 #Most of the time it should be held by the event manager that continually iterates it.
@@ -163,7 +166,7 @@ t.start()
 
 def parseTrigger(when):
     """
-    Parse a trigger expression into a tokeized form
+    Parse a trigger expression into a tokenized form
     """
     output = []
     
@@ -171,7 +174,7 @@ def parseTrigger(when):
     for i in when.strip().split(' '):
         if not i == '':
             output.append(i)
-            
+                
     #Take into account normal python expression triggers and return a similar format
     if output[0].startswith('!'):
         return output
@@ -196,6 +199,9 @@ def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setu
     elif trigger[0] == '!edgetrigger':
         return PolledEvalEvent(when,do,scope,continual,ratelimit,setup,priority,**kwargs)
     
+    elif trigger[0] == '!time':
+        return RecurringEvent(' '.join(trigger[1:]),do,scope,continual,ratelimit,setup,priority,**kwargs)
+    
     #Defensive programming, raise error on nonsense event type
     raise RuntimeError("Invalid trigger expression that begins with" + str(trigger[0]))
 
@@ -214,7 +220,7 @@ def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setu
 #And errors in _check will be logged.
 
 class BaseEvent():
-    """Base Class represeting one event.
+    """Base Class representing one event.
     scope must be a dict representing the scope in which both the trigger and action will be executed.
     When the trigger goes from fase to true, the action will occur.
     
@@ -506,6 +512,52 @@ class PolledInternalSystemEvent(BaseEvent,DirectFunctionsMixin):
             #The eval was false, so the previous state was False
             self._prevstate = False
 
+            
+class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
+    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
+        self.polled = False
+        self.trigger = when
+        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
+        self._init_setup_and_action(setup,do)
+        self.handler= self._handler
+        self.next=scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
+        #Bound methods aren't enough to stop GC
+    
+    #Recalculate the next time at which the event should run, for cases in which the time was set incorrectly
+    #And has now been changed. Not well tested, work in progress, might cause a missed event or something. 
+    def recalc_time(self):
+        self.next.unregister()
+        self.next=scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
+    
+    def _handler(self):
+        if not 'allow_overlap' in self.trigger:
+            if not self.lock.acquire(False):
+                self.next=scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
+                return
+        try:
+            def f():
+                self._on_trigger()
+            workers.do(f)
+
+        finally:
+            try:
+                self.lock.release()
+
+            except:
+                pass
+            self.next=scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
+    
+    def __del__(self):
+        self.next.unregister()
+
+#If the system time has been set, we may want to recalculate all of the events
+def recalc_schedule():
+    with _event_list_lock:
+        for i in _EventReferences:
+            if isinstance(_EventReferences[i],RecurringEvent):
+                _EventReferences[i].recalc_time()
+        
+        
 #BORING BOOKEEPING BELOW
 
 
@@ -618,7 +670,7 @@ def getEventsFromModules(only = None):
                         
                     #If there is an error, add it t the list of things to be retried.
                     except Exception as e:
-                        p.error = e
+                        p.error = traceback.format_exc(6)
                         nextRound.add(p)
                         pass
                 toLoad = nextRound
@@ -662,88 +714,4 @@ def make_event_from_resource(module,resource):
               r=resource)
 
     return x
-
-
-class Scheduler(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-        self.second = set()
-        self.minute = set()
-        self.hour = set()
-        self.sec2 = []
-        self.min2=[]
-        self.events = []
-        self.events2 = []
-        self.daemon = True
-        self.running = True
-        self.start()
-        self.name = 'SchedulerThread'
-        
-    def everySecond(self,f):
-        self.sec2.append(f)
-        return f
-        
-    def everyMinute(self,f):
-        self.min2.append(f)
-        return f
-    
-    def _at(self,f,time,exact = 60*5):
-        self.events2.append((f,time,min(exact,1)))
-        return f
-
-    def run(self):
-        while self.running:
-            for i in self.second:
-                try:
-                    f= i()
-                    if f:
-                        f()
-                except:
-                    messagebus.postMessage('system/errors/scheduler/second/'+
-                                            {"function":i.__name__,
-                                            "module":i.__module__,
-                                            "traceback":traceback.format_exc()})
-            if time.localtime().tm_sec == 0:
-                for i in self.minute:
-                    try:
-                       f= i()
-                       if f:
-                           f()
-                    except:
-                        messagebus.postMessage('system/errors/scheduler/minute'+
-                                           {"function":i.__name__,
-                                            "module":i.__module__,
-                                            "traceback":traceback.format_exc()})
-                    
-            while self.events and self.events[0][1]>time.time():
-                f = self.events.popleft()
-                if f[1]< time.time() + f[2]:
-                    try:
-                        f[0]()
-                    except:
-                        pass
-            #Don't make there be a reference hanging around
-            try:
-                del f
-            except:
-                pass
-                    
-            #We can't let users directly add to the lists, so the users put stuff in staging
-            #Areas until we finish iterating. Then we copy all the items to the lists.
-            for i in self.sec2:
-                self.second.add(weakref.ref(i))
-            for i in self.min2:
-                self.minute.add(weakref.ref(i))
-            for i in self.events2:
-                self.events.append((weakref.ref(i[0]),i[1]))
-            self.events = sorted(self.events,key = lambda i:i[1])
-            self.events2 = []
-                
-            self.min2=[]
-            self.sec2 = []
-            #Sleep until beginning of the next second
-            time.sleep(1-(time.time()%1))
-
-
-scheduler = Scheduler()
 
