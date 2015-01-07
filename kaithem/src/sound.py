@@ -58,7 +58,7 @@ class SoundWrapper(object):
     def stopSound(self, handle ="PRIMARY"):
         pass
     
-    def isPlaying(self):
+    def isPlaying(self,handle="blah"):
         return False
     
     def pause(self, handle ="PRIMARY"):

@@ -54,7 +54,7 @@
 	<title>About Kaithem </title>
     <h1>About Kaithem Automation</h1>
 	<div class="sectionbox">
-    Copyright 2013 Daniel Black. Available under the terms of the <a href="/license">GNU general public license</a>.
+    Copyright 2013-2015 Daniel Dunn. Available under the terms of the <a href="/license">GNU general public license</a>.
     Includes external open-source libraries by third parties.
     </div>
     <div class="sectionbox">${config['about-box-banner']}</div>
@@ -201,9 +201,27 @@
 
 <h3>lm_sensors output(Requires lm_sensors to be installed)</h3>
 <pre>
+
 ${kaithemobj.kaithem.sys.sensors()|h}
 </pre>
+<%
+def module_version(m):
+    if hasattr(m,"__version__"):
+        return m.__version__
+    if hasattr(m,"version"):
+        return m.version
+    return None
+%>
 
+<h2>Imported Module Versions</h2>
+<table border =1>
+<tr><th>Module</th><th>Version</th></tr>
+%for i in sys.modules:
+%if module_version(sys.modules[i]):
+<tr><td>${i|h}</td><td>${module_version(sys.modules[i])|h}</td></tr>
+%endif
+%endfor
+</table>
 </div>
 
 
@@ -218,6 +236,7 @@ ${kaithemobj.kaithem.sys.sensors()|h}
 <li><a href="https://pypi.python.org/pypi/astral">Astral(Astronomical calculations)</a></li>
 <li><a href="http://ace.c9.io/#nav=about">Ace Code Editor(Syntax Highlighting)</a></li>
 <li><a href="http://pytz.sourceforge.net/">pytz(Time Zones)</a></li>
+<li><a href="https://labix.org/python-dateutil">dateutil</a></li>
 <li><a href="http://hacks.bluesmoon.info/strftime/index.html#intro_sec">strftime for javascript</a></li>
 <li><a href= "https://github.com/sunlightlabs/validictory">Validictory(Config file validation)</a></li>
 <li><a href= "http://code.google.com/p/yappi/">Yappi(Performance Profiler, must be installed separately to enable profiling)</a></li>

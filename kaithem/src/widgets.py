@@ -443,17 +443,14 @@ class TextBox(Widget):
             
         return """<div class="widgetcontainer">
         <label>%(label)s<input %(en)s id="%(htmlid)s" type="text" 
-        onfocus="
-        %(htmlid)s_clean = false;
-        "
-        onblur="
-        setTimeout(function(){%(htmlid)s_clean = true},350);
+        onblur="%(htmlid)s_clean= true;"
+        onfocus=" %(htmlid)s_clean = false;"
+        oninput="
         KWidget_setValue('%(id)s',document.getElementById('%(htmlid)s').value)
         "
-         %(x)s></label>
+                ></label>
         <script type="text/javascript">
-                %(htmlid)s_clean = true;
-
+ %(htmlid)s_clean = true;
         var upd=function(val){
             if(%(htmlid)s_clean)
             {

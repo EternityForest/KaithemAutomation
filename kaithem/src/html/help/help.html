@@ -108,6 +108,8 @@ h4 {
         so that any expression of the form blah/blah will be interpreted as a timezone. Timezone names must be in the Olson TZ list("US/Central","Etc/UTC", etc)
         If the time expression does not contain a time zone, it will be assumed to be in the server's local time.</p>
         
+        <p>If a time event is still running by the next occurrance, it will be skipped unless allow_overlap is present somewhere in the string.</p>
+        
         
 
         <h2>
@@ -497,7 +499,9 @@ h4 {
         <p>Switch.read() and Switch.write() return and accept boolean values.</p>
         
         
-        
+        <h4>kaithem.widgets.TextBox</h4>
+        <p>A text box control. render() takes an optional parameter that provides a label for the box.</p>
+        <p>On the server, you can call read() to get it's contents or write(s) to set it's contents</p> 
         
         <h3>kaithem.web</h3>
         
@@ -605,11 +609,11 @@ h4 {
         <p>When called from within a page, formats the time(in seconds since the epoch),
         according to the user's time settings. If no time is given, defaults to right now.</p>
         
-        <h3>kaithem.string.siFormat(n,d)</h3>
-        <p>Takes a number and formats it with suffixes. 1000 becomes 1K, 1000000 becomes 1M.
+        <h3>kaithem.string.siFormat(n,d=2)</h3>
+        <p>Takes a number and formats it with suffixes. 1000 becomes 1K, 1,000,000 becomes 1M.
         d is the number of digits of precision to use.</p>
         
-        <h3>kaithem.string.formatTimeInterval(n,places=1)</h3>
+        <h3>kaithem.string.formatTimeInterval(n,places=2)</h3>
         <p>Takes a length of time in secons and formats it. Places is the mx units to use.
         formatTimeInterval(5,1) becomes ""5 seconds", formatTimeInterval(65,2) returns "1 minute 5 seconds"</p>
         

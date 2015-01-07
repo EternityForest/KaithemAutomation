@@ -12,13 +12,6 @@ from ws4py.streaming import Stream
 from ws4py.messaging import Message, PongControlMessage
 from ws4py.compat import basestring, unicode
 
-if sys.version_info < (3,0):
-    error_that_we_should_ignore_in_close = socket.error
-else:
-    error_that_we_should_ignore_in_close = BrokenPipeError
-
-
-
 DEFAULT_READING_SIZE = 2
 
 logger = logging.getLogger('ws4py')
@@ -182,10 +175,7 @@ class WebSocket(object):
         """
         if not self.server_terminated:
             self.server_terminated = True
-            try:
-                self._write(self.stream.close(code=code, reason=reason).single(mask=self.stream.always_mask))
-            except error_that_we_should_ignore_in_close:
-                raise e
+            self._write(self.stream.close(code=code, reason=reason).single(mask=self.stream.always_mask))
 
     def closed(self, code, reason=None):
         """

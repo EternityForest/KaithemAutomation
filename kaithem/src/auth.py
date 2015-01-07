@@ -51,7 +51,7 @@ BasePermissions = {
 "/admin/users.edit":"Edit users, groups, and permissions, View and change usernames and passwords. Implies full access so watch out who you give this to.",
 "/admin/mainpage.view": "View the main page of the application.",
 "/admin/modules.view":  "View and download all module contents but not make any changes.",
-"/admin/modules.edit":  "Create, Edit, Import, Upload, and Download modules and module contents. Gives root access essentially so watch out.",
+"/admin/modules.edit":  "Create, Edit, Import, Upload, and Download modules and module contents. Gives full access essentially so watch out.",
 "/admin/settings.view": "View but not change settings.",
 "/admin/settings.edit": "Change core settings.",
 "/admin/logging.edit": "Modify settings in the logging subsystem",
