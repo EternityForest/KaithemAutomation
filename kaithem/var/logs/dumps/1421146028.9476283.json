@@ -1,0 +1,16 @@
+{
+ "/system/notifications": [
+  [
+   1421145987.052467, 
+   "Global server state was saved to disk"
+  ], 
+  [
+   1421145994.0989382, 
+   "User admin added resource tick of type event to module Examples"
+  ], 
+  [
+   1421146023.1624048, 
+   "User admin modified resource tick of module Examples"
+  ]
+ ]
+}

@@ -495,7 +495,6 @@ def resourceUpdateTarget(module,resource,kwargs):
     with modulesLock:
         t = ActiveModules[module][resource]['resource-type']
         resourceobj = ActiveModules[module][resource]
-        
         if t == 'permission': 
             resourceobj['description'] = kwargs['description']
             #has its own lock

@@ -371,11 +371,11 @@ class Kaithem():
             return unitsofmeasure.strftime(*a)
          
         @staticmethod
-        def SIFormat(number,d):
+        def SIFormat(number,d=2):
             return unitsofmeasure.siFormatNumber(number,d)
         
         @staticmethod
-        def formatTimeInterval(s,places):
+        def formatTimeInterval(s,places=2):
             return unitsofmeasure.formatTimeInterval(s,places)
         
     class events():

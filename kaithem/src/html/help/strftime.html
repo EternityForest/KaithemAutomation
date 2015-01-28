@@ -1,0 +1,34 @@
+<%include file="/pageheader.html"/>
+<title>Strftime Specifiers</title>
+<section>
+<table border=1>
+
+<tr>Directive</td>Meaning</td>Notes
+<tr><td>%a</td><td>Locale’s abbreviated weekday name</td></tr>
+<tr><td>%A</td><td>Locale’s full weekday name</td></tr>
+<tr><td>%b</td><td>Locale’s abbreviated month name</td></tr>
+<tr><td>%B</td><td>Locale’s full month name</td></tr>
+<tr><td>%c</td><td>Locale’s appropriate date and time representation</td></tr>
+<tr><td>%d</td><td>Day of the month as a decimal number [01,31]</td></tr>
+<tr><td>%H</td><td>Hour (24-hour clock) as a decimal number [00,23]</td></tr>
+<tr><td>%I</td><td>Hour (12-hour clock) as a decimal number [01,12]</td></tr>
+<tr><td>%j</td><td>Day of the year as a decimal number [001,366]</td></tr>
+<tr><td>%m</td><td>Month as a decimal number [01,12]</td></tr>
+<tr><td>%M</td><td>Minute as a decimal number [00,59]</td></tr>
+<tr><td>%p</td><td>Locale’s equivalent of either AM or PM</td>(1)
+<tr><td>%S</td><td>Second as a decimal number [00,61]</td>(2)
+<tr><td>%U</td><td>Week number of the year (Sunday as the first day of the week) as a decimal number [00,53]. All days in a new year preceding the first Sunday are considered to be in week 0</td>(3)
+<tr><td>%w</td><td>Weekday as a decimal number [0(Sunday),6]</td></tr>
+<tr><td>%W</td><td>Week number of the year (Monday as the first day of the week) as a decimal number [00,53]. All days in a new year preceding the first Monday are considered to be in week 0</td>(3)
+<tr><td>%x</td><td>Locale’s appropriate date representation</td></tr>
+<tr><td>%X</td><td>Locale’s appropriate time representation</td></tr>
+<tr><td>%y</td><td>Year without century as a decimal number [00,99]</td></tr>
+<tr><td>%Y</td><td>Year with century as a decimal number</td></tr>
+<tr><td>%Z</td><td>Time zone name (no characters if no time zone exists)</td></tr>
+<tr><td>%%</td><td>A literal '%' character</td></tr>
+</table>
+
+Source: <a href="https://docs.python.org/2/library/time.html">https://docs.python.org/2/library/time.html</a>
+</section>
+
+<%include file="/pagefooter.html"/>

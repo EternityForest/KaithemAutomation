@@ -1,6 +1,6 @@
 <%!
 from src.util import url
-from src import newevt,unitsofmeasure,pages,auth,modules_state,pages,widgets
+from src import newevt,unitsofmeasure,pages,auth,modules_state,pages,widgets,scheduling
 from collections import defaultdict
 import traceback,time
 from src.config import config
@@ -59,7 +59,17 @@ else:
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
 <div id="triggereditor" class="acediv" style="height:2ex ;border: 1px solid #DDD;">${event["trigger"]|h}</div>
 %endif
-
+<%!
+def get_time(t):
+  try:
+      return scheduling.get_next_run(t)
+  except Exception as e:
+      return 0
+%>
+%if event['trigger'].startswith("!time"):
+<p><b>Next Run for "${event['trigger'][5:]|h}" (After ${unitsofmeasure.strftime(time.time())|h}):
+${unitsofmeasure.strftime(get_time(event['trigger']))|h}</b></p>
+%endif
 <p style="display:none" id="rrule">Next Run: <span id="rrulespan"></span></p>
 
 

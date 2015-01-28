@@ -103,6 +103,8 @@ class webapproot():
     #docs,about,helpmenu, and license are just static pages
     @cherrypy.expose 
     def docs(self,*path,**data):
+        if path:
+            return pages.get_template('help/'+path[0]+'.html').render()
         return pages.get_template('help/help.html').render()
     
     @cherrypy.expose 

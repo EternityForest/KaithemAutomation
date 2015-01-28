@@ -15,7 +15,7 @@
 
 
 
-import  os,threading,copy,sys,shutil,difflib,time,json
+import  os,threading,copy,sys,shutil,difflib,time,json,traceback
 #2 and 3 have basically the same module with diferent names
 if sys.version_info < (3,0):
     from urllib import quote
@@ -54,7 +54,7 @@ def SaveAllState():
             messagebus.postMessage("/system/notifications","Global server state was saved to disk")
             return x
         except Exception as e:
-            messagebus.postMessage("/system/notifications/errors",'Failed to save state:' + repr(e))
+            messagebus.postMessage("/system/notifications/errors",'Failed to save state:' + traceback.format_tb())
 
 
 def SaveAllStateExceptLogs():
