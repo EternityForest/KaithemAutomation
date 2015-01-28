@@ -150,7 +150,10 @@ class Errors():
 
 def cpexception():
     cherrypy.response.status = 500
-    cherrypy.response.body= bytes(pages.get_template('errors/cperror.html').render(e=_cperror.format_exc()),'utf8')
+    if sys.version_info < (3,0):
+        cherrypy.response.body= bytes(pages.get_template('errors/cperror.html').render(e=_cperror.format_exc()))
+    else:
+        cherrypy.response.body= bytes(pages.get_template('errors/cperror.html').render(e=_cperror.format_exc()),'utf8')
 
         
     
