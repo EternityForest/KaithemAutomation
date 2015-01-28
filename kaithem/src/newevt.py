@@ -261,8 +261,8 @@ class BaseEvent():
         #Tese are only used for debug messages, but still someone should set them after they make the object
         self.module = m
         self.resource = r
-        self.pymodule = types.ModuleType("Event_"+m+"_"+r)
-        self.pymodule.__file__ = "Event_"+m+"_"+r
+        self.pymodule = types.ModuleType(str("Event_"+m+"_"+r))
+        self.pymodule.__file__ = str("Event_"+m+"_"+r)
         #This lock makes sure that only one copy of the event executes at once.
         self.lock = threading.Lock()
         
