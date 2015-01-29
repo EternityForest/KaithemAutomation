@@ -78,7 +78,7 @@ def saveModules(where):
         for i in ActiveModules:
             #Iterate over all of the resources in a module and save them as json files
             #under the URL urld module name for the filename.
-            for resource in ActiveModules[i]:
+            for ace in ActiveModules[i]:
                 #Make sure there is a directory at where/module/
                 util.ensure_dir(os.path.join(where,url(i),url(resource))  )
                 #Open a file at /where/module/resource
@@ -504,7 +504,7 @@ def resourceUpdateTarget(module,resource,kwargs):
             
             #Test compile, throw error on fail.
             try:
-                e = newevt.Event(kwargs['trigger'],kwargs['action'],newevt.make_eventscope(module),setup=kwargs['setup'],m=module,r=resource)
+                ev = newevt.Event(kwargs['trigger'],kwargs['action'],newevt.make_eventscope(module),setup=kwargs['setup'],m=module,r=resource)
             except Exception as e:
                 if not 'versions' in resourceobj:
                     resourceobj['versions'] = {}
@@ -516,6 +516,7 @@ def resourceUpdateTarget(module,resource,kwargs):
                 r['priority'] = kwargs['priority']
                 r['continual'] = 'continual' in kwargs
                 r['rate-limit'] = float(kwargs['ratelimit'])
+                messagebus.postMessage("system/errors/misc/failedeventupdate", "In: "+ module +" "+resource+ "\n"+ traceback.format_exc(4))
                 raise e
             
             resourceobj['trigger'] = kwargs['trigger']

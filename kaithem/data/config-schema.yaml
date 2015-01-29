@@ -114,6 +114,7 @@ properties:
                 -mpg123
                 -sox
                 -mplayer
+                -mplayeralsa
  
     max-load-attempts:
         type: integer
