@@ -29,7 +29,7 @@ https-thread-pool: 15
 task-queue-size: 500
 
 #The maximum polling cycles per second to run at
-max-frame-rate: 24
+max-frame-rate: 60
 
 #A minimum delay between frames even if less would be required to maintain the frame rate.
 delay-between-frames : 0.012

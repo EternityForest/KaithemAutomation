@@ -54,7 +54,7 @@ def SaveAllState():
             messagebus.postMessage("/system/notifications","Global server state was saved to disk")
             return x
         except Exception as e:
-            messagebus.postMessage("/system/notifications/errors",'Failed to save state:' + traceback.format_tb())
+            messagebus.postMessage("/system/notifications/errors",'Failed to save state:' + traceback.format_exc(4))
 
 
 def SaveAllStateExceptLogs():
