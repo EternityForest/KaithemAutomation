@@ -78,7 +78,7 @@ def saveModules(where):
         for i in ActiveModules:
             #Iterate over all of the resources in a module and save them as json files
             #under the URL urld module name for the filename.
-            for ace in ActiveModules[i]:
+            for resource in ActiveModules[i]:
                 #Make sure there is a directory at where/module/
                 util.ensure_dir(os.path.join(where,url(i),url(resource))  )
                 #Open a file at /where/module/resource
