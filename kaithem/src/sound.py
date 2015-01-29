@@ -336,7 +336,7 @@ class MPlayerWrapper(SoundWrapper):
         
         
 class MPlayer2Wrapper(SoundWrapper):
-    backendname = "MPlayer"
+    backendname = "MPlayerAlsaOnly"
     
     #What this does is it keeps a reference to the sound player process and
     #If the object is destroyed it destroys the process stopping the sound
