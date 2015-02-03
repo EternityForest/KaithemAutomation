@@ -252,6 +252,15 @@ def time_or_increment():
         return time.time()
     else:
         return int(min_time)+1.234567
+    
+def roundto(n,s):
+    if not s:
+        return n
+    if((n%s)>(s/2)):
+        return n+(s-(n%s))
+    else:
+        return n - n%s
+
 
         
           

@@ -134,7 +134,7 @@ class Widget():
         return self._value
     
     def write(self,value):
-        self._value = str(value)
+        self._value = value
         #Is this the right behavior?
         self._callback("__SERVER__",value)
     
@@ -207,7 +207,7 @@ class TextDisplay(Widget):
         }
         KWidget_register('%s',upd);
         </script>%s
-        </span>"""%(height,width, self.uuid,self.uuid,self.uuid,self._value))
+        </div>"""%(height,width, self.uuid,self.uuid,self.uuid,self._value))
 
 
 class Meter(Widget):
@@ -251,9 +251,10 @@ class Meter(Widget):
                 
         self._value=[round(value,3),self.c]
         
-    def render(self,unit=''):
+    def render(self,unit='',label=''):
         return("""
         <div class="widgetcontainer meterwidget">
+        <b>%s</b><br>
         <span class="numericpv" id="%s" style=" margin:0px;">
         <script type="text/javascript">
         var upd = function(val)
@@ -267,7 +268,7 @@ class Meter(Widget):
         </span></br>
         <meter id="%s_m" value="%d" min="%d" max="%d" high="%d" low="%d"></meter>
 
-        </div>"""%(self.uuid,
+        </div>"""%(label,self.uuid,
                           self.uuid,unit,self.uuid,self.uuid,self.uuid,self._value[0],
                           self.uuid,self._value[0], self.k['min'],self.k['max'],self.k['high_warn'],self.k['low_warn']
                           
@@ -323,9 +324,13 @@ class Slider(Widget):
         self.step = step
         Widget.__init__(self,*args,**kwargs)
         self._value = 0
-
+        
+    def write(self,value):
+        self._value = util.roundto(float(value),self.step)
+        #Is this the right behavior?
+        self._callback("__SERVER__",value)
     
-    def render(self,type="realtime", orient='vertical',unit=''):
+    def render(self,type="realtime", orient='vertical',unit='', label=''):
         
         if orient=='vertical':
             orient='class="verticalslider" orient="vertical"'
@@ -335,6 +340,7 @@ class Slider(Widget):
             return {'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
         if type=='realtime':
             return """<div class="widgetcontainer sliderwidget">
+            <b>%(label)s</b></br>
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
             %(orient)s
            oninput="
@@ -360,10 +366,11 @@ class Slider(Widget):
            KWidget_register("%(id)s",upd);
            </script>
      
-            </div>"""%{'orient':orient,'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
+            </div>"""%{'label':label, 'orient':orient,'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
         
         if type=='onrelease':
             return """<div class="widgetcontainer sliderwidget">
+            <b>%(label)s</b><br>
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
             %(orient)s
             onchange="document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s'; document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();"
@@ -392,14 +399,18 @@ class Slider(Widget):
             document.getElementById('%(htmlid)s').jsmodifiable = true;
             KWidget_register("%(id)s",upd);
             </script>
-            </div>"""%{'orient':orient,'en':self.isWritable(),'htmlid':mkid(), 'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
+            </div>"""%{'label':label, 'orient':orient,'en':self.isWritable(),'htmlid':mkid(), 'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
             raise ValueError("Invalid slider type:"%str(type))
         
 class Switch(Widget):
-    def __init__(self,min=0,max=100,step=0.1,*args,**kwargs):
+    def __init__(self,*args,**kwargs):
         Widget.__init__(self,*args,**kwargs)
         self._value = False
-
+      
+    def write(self,value):
+        self._value = bool(value)
+        #Is this the right behavior?
+        self._callback("__SERVER__",value)
     
     def render(self,label):
         if self._value:
@@ -430,10 +441,14 @@ class Switch(Widget):
 
 
 class TextBox(Widget):
-    def __init__(self,min=0,max=100,step=0.1,*args,**kwargs):
+    def __init__(self,*args,**kwargs):
         Widget.__init__(self,*args,**kwargs)
         self._value = ''
-
+        
+    def write(self,value):
+        self._value = str(value)
+        #Is this the right behavior?
+        self._callback("__SERVER__",value)
     
     def render(self,label):
         if self._value:

@@ -216,7 +216,7 @@ h4 {
         <h3>Widget.render(*args,**kwargs)</h3>
         <p>Returns an HTML representation of the widget, including all javascript needed,
         and suitable for direct inclusion in HTML code as you would a div or img.
-        Widgets are usually inline-block elements.
+        Widgets are usually inline-block elements. Many numeric widgets will take an optional kewyword argument label and unit.
         </p>
         
         <h3>Widget.uuid (Always available)</h3>
@@ -472,7 +472,8 @@ h4 {
         
         <p>Mobile devices may not be able to register press-and-hold, but should handle normall presses correctly.</p>
         
-        <p>render() takes the optional keyword element type. If type is "trigger", it will render as a larger button that is disabled by default, with a smaller arm/disarm button above it,
+        <p>render() takes a <b>required</b> first argument content which is is usually a short string such as "submit" which will appear as the contents of the HTML button.
+        render() also takes the optional keyword element type. If type is "trigger", it will render as a larger button that is disabled by default, with a smaller arm/disarm button above it,
         that one must use in order to enable the button. However, as far as the server knows, it acts as a normal button. Good for things you don't want to press accidentally.
         </p>
         
@@ -483,12 +484,14 @@ h4 {
         <p>The constructor for meter can take a upper critical value called high, a lower crtitcal value called low, an upper warning threshold called high_warn, and a lower warning threshold called low_warn.
         These are all passes as keyword arguments.</p>
         
-        <p>Render takes one optional parameter called unit, that specifies a unit to associate, like "Volts" or "Hz" or such.</p>
+        <p>Render takes the optional parameter called unit, that specifies a unit to associate, like "Volts" or "Hz" or such, and the optional parameter label,
+        which specifies a label such as "CH1 Voltage"</p>
         
         <h4>kaithem.widgets.Slider(**kwargs)</h4>
         <p>A slider widget, that currently may only be vertical. Optional parameters: min, max, and step, must be numbers and control the range and step size of the slider.</p>
         
-        <p>Slider.render() takes an optional parameter <i>unit</i> which specifies a unit of measurement to associate. It also takes a parameter type,  which by default is 'realtime',
+        <p>Slider.render() takes an optional parameter <i>unit</i> which specifies a unit of measurement to associate. optional parameter label,
+        which specifies a label such as "CH1 Voltage, It also takes a parameter type,  which by default is 'realtime',
         which causes the value to be sent to the server whenever the slider is moved. If this value is "onrelease", data will only be sent to the server when you release your mouse or take your finger off the touchscreen.</p>
         
         <h4>kaithem.widgets.Switch(**kwargs)</h4>
@@ -502,6 +505,8 @@ h4 {
         <h4>kaithem.widgets.TextBox</h4>
         <p>A text box control. render() takes an optional parameter that provides a label for the box.</p>
         <p>On the server, you can call read() to get it's contents or write(s) to set it's contents</p> 
+        
+        <p>TextBox.render() takes an optional parameter label to provide a label for the box.</p>
         
         <h3>kaithem.web</h3>
         
