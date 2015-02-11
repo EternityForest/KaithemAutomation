@@ -101,8 +101,14 @@ def countEvents():
 def STOP():
     global run
     run = False
+t=0
+def stim():
+    global t
+    t=time.time()
+    print('000000000')
     
-
+def ptim():
+    print(time.time()-t)
 #In a background thread, we use the worker pool to check all threads
 
 run = True
@@ -110,12 +116,12 @@ run = True
 #And put the check() fuction of each event object into the thread pool
 def __manager():
     temp = 0;
-    framedelay = 1.0/config['max-frame-rate']
-    mindelay = config['delay-between-frames']
     global averageFramesPerSecond
     averageFramesPerSecond = 0
     #Basically loops for the lief of the app
     while run:
+        framedelay = 1.0/config['max-frame-rate']
+        mindelay = config['delay-between-frames']
         #Get the time at the start of the loop
         temp = time.time()
         with _event_list_lock:
@@ -139,17 +145,16 @@ def __manager():
             #events. We depend on the event objects themselves to enforce the guarantee that only
             #one copy of the event can run at once.
             e = threading.Event()
-            
             def f():
                 e.set()
             workers.do(f)
-            #On the of chance something odd happens, let's not wait forever.
-            e.wait(15)
-            
+
         #Limit the polling cycles per second to avoid CPU hogging
         #Subtract the time the loop took from the delay
         #Allow config to impose a minimum delay
         time.sleep(max(framedelay-(time.time()-temp),mindelay))
+        #On the of chance something odd happens, let's not wait forever.
+        e.wait(15)
         #smoothing filter
         averageFramesPerSecond = (averageFramesPerSecond *0.98) +   ((1/(time.time()-temp)) *0.02)
             
@@ -237,6 +242,7 @@ class BaseEvent():
         self.ratelimit = ratelimit
         self.continual = continual
         self.countdown = 0
+        self.printoutput = []
         fps= config['max-frame-rate']
         #symbolic prioity os a rd like high,realtime, etc
         #Actual priority is a number that causes polling to occur every nth frame
@@ -271,7 +277,11 @@ class BaseEvent():
         
         #A place to put errors
         self.errors = []
-
+        
+    def new_print(self,d):
+        self.printoutput.append(time.time(),str(d))
+        self.printoutput = self.printoutput[-100:]
+        
     def _on_trigger(self):
         #This function gets called when whatever the event's trigger condition is.
         #it provides common stuff to all trigger types like logging and rate limiting

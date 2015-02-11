@@ -25,10 +25,16 @@ class Settings():
     @cherrypy.expose 
     def index(self):
         return pages.get_template("settings/index.html").render()
+    
+    @cherrypy.expose 
+    def reloadcfg(self):
+        pages.require("/admin/settings.edit")
+        config.reload()
+        raise cherrypy.HTTPRedirect("/settings")
+
     @cherrypy.expose 
     def threads(self):
         return pages.get_template("settings/threads.html").render()
-    
     
     @cherrypy.expose 
     def stopsounds(self,*args,**kwargs):

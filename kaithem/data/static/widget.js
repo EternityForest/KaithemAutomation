@@ -87,7 +87,13 @@ if (xmlDoc == 'True')
 	var KWidget_connection = new WebSocket(window.location.protocol.replace("http","ws")+"//"+window.location.host + '/widgets/ws');
 
 	KWidget_connection.onmessage = function(e){
+		try{
 	var resp = JSON.parse(e.data);
+		}
+		catch(err)
+		{
+			console.log("JSON Parse Error in websocket response:\n"+e.data)
+		}
 
 	for (var i in resp)
 		{

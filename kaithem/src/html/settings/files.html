@@ -21,7 +21,7 @@ Upload File:
 
 <table border=1>
 <tr><th>Path</th><th>Size</th><th>Delete</th></tr>
-%for i in os.listdir(dir):
+%for i in sorted(os.listdir(dir)):
 
 <tr><td><a href="/settings/files/${util.url(os.path.join(dir,i))}">${i+("/" if os.path.isdir(os.path.join(dir,i)) else '')|h}</a></td>
 <td>${unitsofmeasure.siFormatNumber(os.path.getsize(os.path.join(dir,i)),1)}B</td>

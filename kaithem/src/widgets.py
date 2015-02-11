@@ -373,7 +373,7 @@ class Slider(Widget):
             <b>%(label)s</b><br>
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
             %(orient)s
-            onchange="document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s'; document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();"
+            oninput="document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s'; document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();"
             onmouseup="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
             onmousedown="document.getElementById('%(htmlid)s').jsmodifiable = false;"
             onkeyup="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
@@ -475,3 +475,40 @@ class TextBox(Widget):
         KWidget_register("%(id)s",upd);
         </script>
         </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self._value, 'label':label}
+        
+class APIWidget(Widget):
+        def __init__(self,*args,**kwargs):
+            Widget.__init__(self,*args,**kwargs)
+            self._value = None
+            
+        def render(self,htmlid):
+            return """
+            <script>
+                %(htmlid)s = {};
+                %(htmlid)s.value = "Waiting..."
+                %(htmlid)s.clean = 0;
+                var upd = function(val)
+                    {
+                        if (%(htmlid)s.clean==0)
+                            {
+                                 %(htmlid)s.value = val;
+                            }
+                        else
+                            {
+                                %(htmlid)s.clean -=1;
+                            }
+                    }
+                    
+                %(htmlid)s.set = function(val)
+                    {
+                         KWidget_setValue("%(id)s", val);
+                         %(htmlid)s.clean = 2;
+                    }
+                    
+                    KWidget_register("%(id)s",upd);
+            </script>
+            """%{'htmlid':htmlid, 'id' :self.uuid, 'value': json.dumps(self._value)}
+            
+            
+                
+            

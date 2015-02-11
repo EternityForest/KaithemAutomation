@@ -258,7 +258,6 @@ def userLogin(username,password):
     if  username in Users:
         m = hashlib.sha256()
         m.update(usr_bytes(password,'utf8'))
-        print(Users[username]['salt'])
         m.update(base64.b64decode(Users[username]['salt'].encode('utf8')  ))
         m = m.digest()
         if base64.b64decode(Users[username]['password'].encode('utf8')) == m:

@@ -209,14 +209,19 @@ def module_version(m):
     if hasattr(m,"__version__"):
         return m.__version__
     if hasattr(m,"version"):
-        return m.version
+        if isinstance(m.version, (str,int,float,tuple)):
+            return m.version
+    if hasattr(m,"VERSION"):
+        return m.VERSION
+    if hasattr(m,"__VERSION__"):
+        return m.__VERSION__
     return None
 %>
 
 <h2>Imported Module Versions</h2>
 <table border =1>
 <tr><th>Module</th><th>Version</th></tr>
-%for i in sys.modules:
+%for i in sorted(sys.modules):
 %if module_version(sys.modules[i]):
 <tr><td>${i|h}</td><td>${module_version(sys.modules[i])|h}</td></tr>
 %endif

@@ -19,7 +19,6 @@ from . import messagebus,pages
 from .unitsofmeasure import strftime
 from .config import config
 
-keep_notifications = config['notifications-to-keep']
 notificationslog =   []
 
 def makenotifier():
@@ -79,7 +78,7 @@ def subscriber(topic,message):
     global notificationslog
     notificationslog.append((time.time(),topic,message))
     #Delete all but the most recent N notifications, where N is from the config file.
-    notificationslog = notificationslog[-keep_notifications:] 
+    notificationslog = notificationslog[-config['notifications-to-keep']:] 
     
 messagebus.subscribe('/system/notifications/',subscriber)
 

@@ -27,7 +27,7 @@ def canIGoToThisPage(page):
 %>
 
 <div class="sectionbox">
-<p class="help">This is a listing of all pages on the server that you have acess to.</p>
+<p class="help">This is a listing of all pages on the server that you have access to.</p>
 %for i in sorted(modules.keys()):
     <h3>${i|h}</h3>
     %for j in sorted(modules[i].keys()):

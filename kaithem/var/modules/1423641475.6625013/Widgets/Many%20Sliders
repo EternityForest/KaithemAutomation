@@ -5,7 +5,7 @@
     "allow-xss": false,
     "auto-reload": false,
     "auto-reload-interval": 5.0,
-    "body": "<%\r\nimport time\r\nkaithem.sound.stop(\"jookbawkse\")\r\ntime.sleep(0.1)\r\nkaithem.web.goBack()\r\n%>",
+    "body": "<script type=\"text/javascript\" src=\"/static/widget.js\"></script>\r\n<div class=\"sectionbox\">\r\n%for i in module.mass:\r\n    ${i.render()}\r\n%endfor\r\n</div>",
     "dont-show-in-index": false,
     "no-header": false,
     "no-navheader": true,

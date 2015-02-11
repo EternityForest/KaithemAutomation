@@ -1,0 +1,11 @@
+{
+    "body": "<div class=\"sectionbox\">\r\nThis page was created through the kaithem web interface. You can go to the \"edit page\" button to see the source.\r\nNotice how the user pages integrate with the theming?\r\n</div>",
+    "no-header": false,
+    "no-navheader": true,
+    "require-method": [
+        "GET",
+        "POST"
+    ],
+    "require-permissions": [],
+    "resource-type": "page"
+}

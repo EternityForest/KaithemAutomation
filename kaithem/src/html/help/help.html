@@ -29,7 +29,7 @@ h4 {
     <p>Kaithem is written in pure Python and will run in either 2.6+ or 3.xx without modification, the difference
         being that unicode resource and user names are not allowed in Kaithem on 2.xx</p>
 
-    <p>Kaithem includes all dependancies(except the optional mpg123 or SOX(SOX is used if both are installed unless configured otherwise) for sound support)</p>
+    <p>Kaithem includes all dependancies(except the optional mpg123 or SOX or mplayer for sound support)</p>
 
     <p>In addition, Kaithem provides TLS/SSL encryption, user management, and serves as a basic IDE to create web
         pages that can interact with your process data. Kaithem was not designed for mission-critical control purposes,
@@ -254,7 +254,7 @@ h4 {
         sets the current "value" of the widget, an is available for all writable widgets where the idea of "value" makes sense.
         </p>
         
-        <h3>Widget.attatch(f)</h3>
+        <h3><a name="widgetattach"></a>Widget.attach(f)</h3>
         <p>Set a callback that fires when new data comes in from the widget. The function must take two values, user, and data.
         User is the username of the user that changed the widget, and data is it's new value</p> 
         
@@ -388,24 +388,46 @@ h4 {
         <h4>kaithem.sys.which(exe)</h4>
         <p>Similar to the unix which command. Returns the path to the program that will be called for a given
             command in the command line, or None if there is no such program</p>
+            
+        <h3>kaithem.registry</h3>
+        <p>The kaithem registry is a persistance store for small amounts of configuration data.
+        It does not get saved to disk until the server state is saved, or a configured autosave occurs.
+        The registry is heirarchial and slash separated, keys are strings,
+        values are anything json serializable, and keys should begin with the relevant module name, and should condier double underscores reserved.</p>
+        
+        <h4>kaithem.registry.get(key,default=None)</h4>
+        <p>Gets the registry key. Returns default if the key does not exist.</p>
+        
+        <h4>kaithem.registry.set(key,value)</h4>
+        <p>Sets the registry key.</p>
+        
 
         <h3>kaithem.sound</h3>
-        <h4>kaithem.play(filename,handle,volume=1,start=0,end=-0.0001,extras={})</h4>
+        
+        <p>The kaithem.sound API is slightly different depending on which backend has been configured.
+        By default mplayer will be used if available and is the recommended backed.<p>
+        
+        <h4>kaithem.play(filename,handle="PRIMARY",volume=1,start=0,end=-0.0001, eq=None, output=None,fs=False)</h4>
         <p>If you have mpg123 or SOX installed, play the file, otherwise do nothing. The handle
             parameter lets you name the new sound instance to stop it later. If you try to play a sound under the same
             handle as a stil-playing sound, the old one will be stopped. Defaults to PRIMARY.
+            </p><p>
+            With the mplayer backend, if you give it a video file, it will likely open a window and play it.
+            Passing fs=True may allow you to play fullscreen, but any use of this "hidden feature" is very experimental.
+            results may be undefined if you attempt to play a video in an environment that does not support it.
             
+            All the features that work with audio should also work with video.
             </p>
             <p>
-            Volume is a dimensionless multiplier that only works if using SOX. Otherwise it is ignored.
+            Volume is a dimensionless multiplier that only works if using SOX or mplayer. Otherwise it is ignored.
             Start and end times are in seconds, negative means relative to sound end. Start and end times
-            are also SOX specific and are ignored(full sound will always play) with other players.
+            are also SOX/mplayer specific and are ignored(full sound will always play) with other players.
             </p>
             
             <p>
-            Extras can be a dict that lets you activate extra features when using mplayer.
-            When extras contains a value "eq" that equals "party",
-            the equalizer will be set so as to sound more like "background music" and not interfere with conversation.
+            output and eq are mplayer specific and do nothing with other backends. eq if present can take the value 'party' 
+            causing the EQ to be set to allow easier conversation. output must be a string that selects an output device.
+            A typical value on linx would be pulse::n where n is the pulse sink index, see mplayer's -ao option for more details.
             </p>
 
         <h4>kaithem.sound.stop(handle="PRIMARY"")</h4>
@@ -416,8 +438,8 @@ h4 {
 
         <h4>kaithem.sound.isPlaying(handle="PRIMARY")</h4>
         <p>Return true if a sound with handle handle is playing. Note that the sound might finish before you
-            actually get around to doing anything with the value. If using the dummy backend because mpg123 is not
-            installed, result is undefined, but will not be an error, and will be a boolean value.</p>
+            actually get around to doing anything with the value. If using the dummy backend because a backend is not
+            installed, result is undefined, but will not be an error, and will be a boolean value. If a sound is paused, will return True anyway.</p>
             
         <h4>kaithem.sound.setvol(vol,handle="PRIMARY")</h4>
         <p>Set the volume of a sound. Volume goes from 0 to 1.
@@ -466,7 +488,7 @@ h4 {
         ['released'], but if the user quickly taps the button(a common use for buttons), the value will be ['pressed','released'] or some such.
         Basically, the value records what happened during the most recent pollng period in which there was activity.</p>
         
-        <p>The sugessted pattern for dealing with these is to use attatch() to set a callback, then use a line like "if 'pushed' in value:" to detect button presses.
+        <p>The sugessted pattern for dealing with these is to use <a href="#widgetattach">attach()</a> to set a callback, then use a line like "if 'pushed' in value:" to detect button presses.
            Directly reading the value is not reccomended.
         </p>
         
@@ -508,6 +530,18 @@ h4 {
         
         <p>TextBox.render() takes an optional parameter label to provide a label for the box.</p>
         
+        <h4>kaithem.widgets.APIWidget</h4>
+        <p>This widget exists to allow you to create custom widgets easily. When you render() it, you pass a parameter htmlid.
+        The render function returns a script that places an object into a global javascript variable of that name.
+        You can use obj.set(x) to set the widget's value to x, and retrieve the widget's value with obj.value.
+        You may use any value that can be represented as JSON.</p>
+        
+        <p>If you would rather recieve a callback after every pollingcycle with the current value,
+        just redefine the objects upd(val) method.</p>
+        
+        <p>On the python side, <a href="#widgetattach">attach()</a>, read(), and write() all work as expected.</p>
+        
+        
         <h3>kaithem.web</h3>
         
         <h4>kaithem.web.url(url)</h4>
@@ -530,6 +564,8 @@ h4 {
             the current page and instead serve a static file. Useful when you need to serve a static file and also need
             to restrict acess to it with permissions.</p>
         
+        <h4>kaithem.web.hasPermission(permission)<h4>
+        <p>When clled from within a mako template, returns true if the acessing user has the given permission.</p>
         <h3><a id="kdotmail"></a>kaithem.mail</h3>
         <p>These functions allow sending email messages through the <a href="#email">SMTP Server</a> configured in the
         settings page</p>
@@ -922,6 +958,11 @@ front-page-banner: |
             option in your config file to point to the new theme. You will likely just want to modify the existing
             scrapbook.css because it is a 100+ line file and there are some things that don't quite look right with the
             browser defaults.</p>
+            
+        <h4>Rewrite the HTML</h4>
+        <p>The HTML is pretty simple, and most pages include the header src/html/pageheader.html.
+        The only trouble with modifying things is updatability, and the easiest way to fix that is probably using a version control tool like Git.
+        Modifying the HTML might be the best option for more extensive customizations.</p>
 
         <h3>What can I do to make Kaithem more reliable?</h3>
         <p>Watch out for things that have to be turned on,left on for a while, and then turned off. Don't depend on

@@ -8,10 +8,12 @@ import yaml
 <title>Options</title>
 <div class="sectionbox">
 <p class="help">
-You need the <i>/admin/settings.edit</i> permission to perform these actions</p>
+You need the <i>/admin/settings.edit</i> permission to perform these actions. <b>Note that "saving" settings on this page will not be saved to disk unless you then use save server state to disk, or an autosave occurs</b> </p>
 <a href="/settings/restart">Completely restart the whole server(!)</a><br>
 <a href="/settings/save">Save server state to disk</a><br>
-<a href="/settings/clearerrors">Clear all errors from pages and events</a>
+<a href="/settings/clearerrors">Clear all errors from pages and events</a><br>
+<a href="/settings/reloadcfg">Reload the configuration file(Not all options take effect without restart)</a>
+
 </div>
 
 <h2>Server Location</h2>

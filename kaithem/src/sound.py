@@ -204,10 +204,12 @@ class MPlayerWrapper(SoundWrapper):
             cmd = ["mplayer" ,"-nogui", "-slave" , "-quiet", "-softvol" ,"-ss", str(start)]
             if end:
                 cmd.extend(["-endpos",str(end)])
-            if "output" in kw:
-                cmd.extend(["-ao","pulse:"+kw['output']])
-            else:
-                cmd.extend(["-ao","pulse"])
+                
+            if "output" in kw and pulseaudio:
+                cmd.extend(["-ao",kw['output']])
+            
+            if "fs" in kw and kw['fs']:
+                cmd.extend(["-fs"])
             
             if 'eq' in extras:
                 if extras['eq'] == 'party':
@@ -282,6 +284,9 @@ class MPlayerWrapper(SoundWrapper):
         else:
             e = {}
         
+        if 'fs' in kwargs:
+            e['fs'] = kwargs['fs']
+ 
         if 'eq' in kwargs:
             extras={'eq':kwargs['eq']}
         else:
@@ -336,7 +341,7 @@ class MPlayerWrapper(SoundWrapper):
         
         
 class MPlayer2Wrapper(SoundWrapper):
-    backendname = "MPlayerAlsaOnly"
+    backendname = "MPlayer_ALSAOnly"
     
     #What this does is it keeps a reference to the sound player process and
     #If the object is destroyed it destroys the process stopping the sound
@@ -347,13 +352,10 @@ class MPlayer2Wrapper(SoundWrapper):
             g = open(os.devnull,"w")
             self.paused = False
             
-            cmd = ["mplayer" ,"-nogui", "-slave" , "-quiet", "-softvol" ,"-ss", str(start)]
+            cmd = ["mplayer" ,"-nogui", "-novideo", "-slave" , "-quiet", "-softvol" ,"-ss", str(start)]
             if end:
                 cmd.extend(["-endpos",str(end)])
-            if "output" in kw:
-                cmd.extend(["-ao","pulse:"+kw['output']])
-            else:
-                cmd.extend(["-ao","pulse"])
+
             
             if 'eq' in extras:
                 if extras['eq'] == 'party':
@@ -482,19 +484,18 @@ class MPlayer2Wrapper(SoundWrapper):
     
         
 
-l = {'sox':SOXWrapper, 'mpg123':Mpg123Wrapper, "mplayer":MPlayerWrapper, "mplayeralsa":MPlayer2Wrapper}
+l = {'sox':SOXWrapper, 'mpg123':Mpg123Wrapper, "mplayer":MPlayerWrapper}
 
 
 backend = SoundWrapper()
-
+if util.which('pulseaudio'):
+    pulseaudio=True
+else:
+    pulseaudio=False
 for i in config['audio-backends']:
     if util.which(i):
         #Don't use MPlayer without pulseaudio, we need to support mu
         if i =="mplayer":
-            if util.which("pulseaudio"):
-                backend = l[i]()
-                break
-        else:
             backend = l[i]()
             break
             

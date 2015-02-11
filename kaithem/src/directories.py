@@ -25,7 +25,6 @@ from .config import config
 dn = os.path.dirname(os.path.realpath(__file__))
 vardir =os.path.join(dn,'..')
 vardir = os.path.join(vardir,config['site-data-dir'])
-
 usersdir = os.path.join(vardir,'users')
 logdir = os.path.join(vardir,'logs')
 regdir = os.path.join(vardir,'registry')
@@ -33,3 +32,16 @@ moduledir = os.path.join(vardir,'modules')
 datadir = os.path.join(dn,'../data')
 htmldir = os.path.join(dn,'html')
 ssldir =  os.path.join(vardir,config['ssl-dir'])
+
+def recreate():
+    global dn,vardir,usersdir, logdir, regdir, moduledir, datadir, htmldir, ssldir
+    dn = os.path.dirname(os.path.realpath(__file__))
+    vd =os.path.join(dn,'..')
+    vardir = os.path.join(vd,config['site-data-dir'])
+    usersdir = os.path.join(vardir,'users')
+    logdir = os.path.join(vardir,'logs')
+    regdir = os.path.join(vardir,'registry')
+    moduledir = os.path.join(vardir,'modules')
+    datadir = os.path.join(dn,'../data')
+    htmldir = os.path.join(dn,'html')
+    ssldir =  os.path.join(vardir,config['ssl-dir'])

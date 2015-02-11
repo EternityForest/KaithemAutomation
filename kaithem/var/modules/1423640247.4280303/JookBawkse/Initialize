@@ -1,0 +1,20 @@
+{
+    "action": "s = '<b>Now Playing:'+ module.played[-1] + \"</b><br><ol>\"\r\nx = 0\r\n\r\nfor i in module.playlist:\r\n    if x == (module.pointer-1)%len(module.playlist):\r\n        s+='<li class=\"specialentry\">'+i+'<a class=\"button\" href=\"/pages/JookBawkse/Remove?i=' +kaithem.web.url(i)+'\">Remove</a><a class=\"button\" href=\"/pages/JookBawkse/mtf?i='+kaithem.web.url(i)+'\">Move to front</a></li>'\r\n    else:\r\n        s+='<li>'+i+'<a class=\"button\" href=\"/pages/JookBawkse/Remove?i=' +kaithem.web.url(i)+'\">Remove</a><a class=\"button\" href=\"/pages/JookBawkse/mtf?i='+kaithem.web.url(i)+'\">Move to front</a></li>'\r\n    x+=1\r\ns +='</ol>'\r\nmodule.pld.write(s)\r\n",
+    "continual": true,
+    "disabled": false,
+    "once": true,
+    "priority": "interactive",
+    "rate-limit": 1.0,
+    "resource-type": "event",
+    "setup": "import os\r\nmodule.playlist = []\r\nmodule.played = [\"Silence\"]\r\nmodule.pld = kaithem.widget.TextDisplay()\r\nmodule.shuffle = kaithem.widget.Switch()\r\nmodule.pointer = 0\r\ncache = None\r\ndef rescan():\r\n    global cache\r\n    cache = None\r\n    get_media()\r\nmodule.rescan = rescan\r\ndef get_media():\r\n    global cache\r\n    if cache:\r\n        return cache\r\n    else:\r\n        x = []\r\n        for i in os.walk(kaithem.registry.get(\"jookbawkse/mediadir\")):\r\n            for j in i[2]:\r\n                if j.endswith(\"mp3\") or j.endswith(\"MP3\") or j.endswith(\"ogg\") or j.endswith(\"wav\"):\r\n                    x.append((os.path.basename(j),os.path.join(i[0],j)))\r\n        cache=x\r\n        return x\r\n            \r\nmodule.get_media = get_media\r\n\r\nmodule.volume = kaithem.widget.Slider(min=0,max=1.2,step=0.01)\r\nmodule.party = kaithem.widget.Switch()\r\n\r\n\r\n\r\ndef f(usr,val):\r\n    kaithem.sound.setvol(val,\"jookbawkse\")\r\nmodule.volume.attach(f)\r\n            ",
+    "trigger": "True",
+    "versions": {
+        "action": "s = 'Now Playing:'+ module.played[-1] + \"<br><br><ul>\"\r\nx = 0\r\n\r\nfor i in module.playlist:\r\n    if x == (module.pointer-1)%len(module.playlist):\r\n        s+='<li class=\"specialentry\">'+i+'<a class=\"button\" href=\"/pages/JookBawkse/Remove?i=' +kaithem.web.url(i)+'\">Remove</a><a class=\"button\" href=\"/pages/JookBawkse/mtf?i='+kaithem.web.url(i)+'\">Move to front</a></li>'\r\n    else:\r\n        s+='<li>'+i+'<a class=\"button\" href=\"/pages/JookBawkse/Remove?i=' +kaithem.web.url(i)+'\">Remove</a><a class=\"button\" href=\"/pages/JookBawkse/mtf?i='+kaithem.web.url(i)+'\">Move to front</a></li>'\r\n    x+=1\r\ns +='</ul>\r\nmodule.pld.write(s)\r\n",
+        "continual": true,
+        "priority": "interactive",
+        "rate-limit": 1.0,
+        "resource-type": "event",
+        "setup": "import os\r\nmodule.playlist = []\r\nmodule.played = [\"Silence\"]\r\nmodule.pld = kaithem.widget.TextDisplay()\r\nmodule.pointer = 0\r\ncache = None\r\ndef rescan():\r\n    global cache\r\n    cache = None\r\n    get_media()\r\nmodule.rescan = rescan\r\ndef get_media():\r\n    global cache\r\n    if cache:\r\n        return cache\r\n    else:\r\n        x = []\r\n        for i in os.walk(kaithem.registry.get(\"jookbawkse/mediadir\")):\r\n            for j in i[2]:\r\n                if j.endswith(\"mp3\") or j.endswith(\"MP3\") or j.endswith(\"ogg\") or j.endswith(\"wav\"):\r\n                    x.append((os.path.basename(j),os.path.join(i[0],j)))\r\n        cache=x\r\n        return x\r\n            \r\nmodule.get_media = get_media\r\n\r\nmodule.volume = kaithem.widget.Slider(min=0,max=1.2,step=0.01)\r\nmodule.party = kaithem.widget.Switch()\r\n\r\n\r\n\r\ndef f(usr,val):\r\n    kaithem.sound.setvol(val,\"jookbawkse\")\r\nmodule.volume.attach(f)\r\n            ",
+        "trigger": "True"
+    }
+}

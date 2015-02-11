@@ -98,7 +98,7 @@ class webapproot():
         
     @cherrypy.expose 
     def pagelisting(self,*path,**data):
-        return pages.get_template('pagelisting.html').render(modules = modules.ActiveModules)
+        return pages.get_template('pagelisting.html').render_unicode(modules = modules.ActiveModules)
         
     #docs,about,helpmenu, and license are just static pages
     @cherrypy.expose 

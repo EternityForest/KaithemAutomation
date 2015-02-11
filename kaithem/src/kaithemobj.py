@@ -243,6 +243,10 @@ class Kaithem():
                 return x
             else:
                 return ''
+            
+        @staticmethod
+        def hasPermission(permission):
+            return pages.canUserDoThis(permission)
         
     
     class sound(object):

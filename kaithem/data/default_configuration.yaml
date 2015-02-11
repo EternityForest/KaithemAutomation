@@ -15,13 +15,13 @@ ssl-dir : ssl
 site-data-dir: var
 
 #How many threads to allocate for the worker thread pool
-worker-threads: 30
+worker-threads: 10
 
 #How many threads cherrypy should use for the web server to serve unencrypted pages
-http-thread-pool: 5
+http-thread-pool: 3
 
 #How many threads cherrypy should use for the web server to serve encrypted pages
-https-thread-pool: 15
+https-thread-pool: 10
 
 #How many tasks can be queued up in the thread pool before inserts start to block until old tasks finish
 #should not really affect much as the task queue should not get even close to full unless you have
@@ -32,7 +32,7 @@ task-queue-size: 500
 max-frame-rate: 60
 
 #A minimum delay between frames even if less would be required to maintain the frame rate.
-delay-between-frames : 0.012
+delay-between-frames : 0.005
 
 #Serve additional directories of static files
 #Must be a dict mapping names to directories on the server's disk.
@@ -79,7 +79,6 @@ error-backoff:
 #List of possible audio backend players in order of preference. Support sox and mpg123.
 audio-backends:
     - mplayer
-    - mplayeralsa
     - sox 
     - mpg123
 

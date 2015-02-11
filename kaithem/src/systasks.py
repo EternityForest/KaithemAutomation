@@ -24,12 +24,15 @@ systemStarted = time.time()
 
 
 lastsaved = time.time()
-if not config['autosave-state'] == 'never':
-    saveinterval = unitsofmeasure.timeIntervalFromString(config['autosave-state'])
-
-lastdumpedlogs = time.time()
-if not config['autosave-logs'] == 'never':
-    dumplogsinterval = unitsofmeasure.timeIntervalFromString(config['autosave-logs'])
+def getcfg():
+    if not config['autosave-state'] == 'never':
+        saveinterval = unitsofmeasure.timeIntervalFromString(config['autosave-state'])
+    
+    lastdumpedlogs = time.time()
+    if not config['autosave-logs'] == 'never':
+        dumplogsinterval = unitsofmeasure.timeIntervalFromString(config['autosave-logs'])
+        
+getcfg()
 
 lastgotip = time.time()
 lastfpd=0

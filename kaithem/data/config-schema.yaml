@@ -1,5 +1,5 @@
 type:  object
-
+  
 properties:
     http-port:
         type: integer
@@ -114,7 +114,6 @@ properties:
                 -mpg123
                 -sox
                 -mplayer
-                -mplayeralsa
  
     max-load-attempts:
         type: integer
