@@ -1,5 +1,5 @@
 from . import util,directories,messagebus
-import os,time,json,copy,hashlib,threading
+import os,time,json,copy,hashlib,threading,copy
 
 class PersistanceArea():
     
@@ -116,7 +116,7 @@ def get(key,default=None):
 
     with reglock:
         f = registry.open(prefix)
-        return f['keys'][key]['data']
+        return copy.deepcopy(f['keys'][key]['data'])
 
 
 def exists(key):
@@ -143,7 +143,7 @@ def set(key,value):
             f['keys']={}
         if not key in f['keys']:
             f['keys'][key]={}
-        f['keys'][key]['data'] = value
+        f['keys'][key]['data'] = copy.deepcopy(value)
         
 def sync():
     with reglock:

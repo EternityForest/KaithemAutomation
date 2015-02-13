@@ -1,0 +1,22 @@
+{
+    "data": {
+        "keys": {
+            "jookbawkse/mediadir": {
+                "data": "/media/Files/My Music/MP3s"
+            },
+            "jookbawkse/playlists": {
+                "data": {
+                    "Test": [
+                        "/media/Files/My Music/MP3s/Kim Carnes - Bette Davis Eyes.mp3",
+                        "/media/Files/My Music/MP3s/Irish Rovers/Upon a Shamrock Shore- Songs of Ireland & the Irish/04 Up Among the Heather.mp3",
+                        "/media/Files/My Music/MP3s/The_Birthday_Massacre_-_Midnight.mp3",
+                        "/media/Files/My Music/MP3s/Hobbit Soundrack - Rednote/19 The Spider Gauntlet.mp3",
+                        "/media/Files/My Music/MP3s/Irish Rovers/Upon a Shamrock Shore- Songs of Ireland & the Irish/08 Pennywhistle Peddler.mp3",
+                        "/media/Files/My Music/MP3s/Leaves_Eyes_-_Empty_Horizon.mp3",
+                        "/media/Files/My Music/MP3s/Amazon MP3/Phil Collins/Brother Bear/03 - Welcome.mp3"
+                    ]
+                }
+            }
+        }
+    }
+}

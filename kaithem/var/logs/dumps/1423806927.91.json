@@ -1,0 +1,26 @@
+{
+ "/system/notifications": [
+  [
+   1423806850.507655, 
+   "Global server state was saved to disk"
+  ], 
+  [
+   1423806879.384677, 
+   "User admin modified resource SavePL of module JookBawkse"
+  ], 
+  [
+   1423806903.581327, 
+   "User admin modified resource LoadPlaylist of module JookBawkse"
+  ], 
+  [
+   1423806920.260687, 
+   "User admin modified resource Menu of module JookBawkse"
+  ]
+ ], 
+ "/system/perf/FPS": [
+  [
+   1423806900.009542, 
+   47.92
+  ]
+ ]
+}

@@ -2,7 +2,7 @@
 <%!
 from src.util import url
 import cherrypy
-from src import auth
+from src import auth,pages
 %>
 <title>Page Index</title>
 <h2>Page Index</h2>
@@ -18,10 +18,9 @@ def canIGoToThisPage(page):
     if not page['require-permissions']:
         return True
     else:
-        if (not 'auth' in cherrypy.request.cookie) or cherrypy.request.cookie['auth'].value not in auth.Tokens:
-            return False
+
         for i in page['require-permissions']:
-            if not auth.checkTokenPermission(cherrypy.request.cookie['auth'].value,i):
+            if not pages.canUserDoThis(i):
                 return False
     return True
 %>

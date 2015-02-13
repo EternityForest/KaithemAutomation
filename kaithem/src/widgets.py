@@ -117,7 +117,7 @@ class Widget():
     #Return True if this user can write to it
     def isWritable(self):
         for i in self._write_perms:
-            if not auth.canUserDoThis(pages.getAcessingUser(),i):
+            if not pages.canUserDoThis(i):
                 return "disabled"
         return ""
         
