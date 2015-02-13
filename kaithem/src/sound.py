@@ -202,6 +202,9 @@ class MPlayerWrapper(SoundWrapper):
             self.paused = False
             
             cmd = ["mplayer" ,"-nogui", "-slave" , "-quiet", "-softvol" ,"-ss", str(start)]
+            
+            if not 'eq' in extras:
+                cmd.extend(["-af", "volume="+str(10*math.log10(vol))])
             if end:
                 cmd.extend(["-endpos",str(end)])
                 
@@ -216,7 +219,7 @@ class MPlayerWrapper(SoundWrapper):
                 
             if 'eq' in extras:
                 if extras['eq'] == 'party':
-                    cmd.extend(['-af','equalizer=0:1.5:2:-7:-10:-5:-10:-10:1:1,volume=3'])
+                    cmd.extend(['-af','equalizer=0:1.5:2:-7:-10:-5:-10:-10:1:1,volume='+str((10*math.log10(vol)+5))])
 
             self.started = time.time()
             cmd.append(filename)
@@ -233,6 +236,19 @@ class MPlayerWrapper(SoundWrapper):
         
         def position(self):
             return time.time() - self.started
+        
+        def seek(self,position):
+               if self.isPlaying():
+                try:
+                    if sys.version_info < (3,0):
+                        self.process.stdin.write(bytes("seek "+str(position)+" 2\n"))
+                    else:
+                        self.process.stdin.write(bytes("seek "+str(position)+" 2\n",'utf8'))
+                    self.process.stdin.flush()
+                    self.paused = False
+                except:
+                    pass
+
         
         def setVol(self,volume):
             if self.isPlaying():
