@@ -5,8 +5,8 @@
     "allow-xss": false,
     "auto-reload": false,
     "auto-reload-interval": 5.0,
-    "body": "<%\r\nkaithem.sound.resume(\"jookbawkse\")\r\nkaithem.web.goBack()\r\n%>",
-    "dont-show-in-index": true,
+    "body": "<script type=\"text/javascript\" src=\"/static/widget.js\"></script>\r\n<div class=\"sectionbox\">${module.textdisplay.render()}</div>",
+    "dont-show-in-index": false,
     "no-header": false,
     "no-navheader": true,
     "require-method": [

@@ -1,5 +1,5 @@
 {
-    "action": "module.pointer += 1\r\nmodule.pointer = module.pointer % len(module.playlist)\r\nif module.shuffle.read():\r\n    module.pointer = random.choice(range(0,len(module.playlist)))\r\n    for i in range(0,20):\r\n        if module.playlist[module.pointer] in module.played[-int(len(module.playlist)*0.75):]:\r\n            module.pointer = random.choice(range(0,len(module.playlist)))\r\nelse:            \r\n    module.pointer = module.pointer % len(module.playlist)\r\nkaithem.sound.play(module.playlist[module.pointer],\"jookbawkse\",volume=module.volume.read())\r\nkaithem.sound.setvol(module.volume.read(),\"jookbawkse\")\r\nmodule.played.append(module.playlist[module.pointer])\r\nmodule.played = module.played[-10:]\r\n",
+    "action": "module.pointer += 1\r\nmodule.pointer = module.pointer % len(module.playlist)\r\nif module.shuffle.read():\r\n    module.pointer = random.choice(range(0,len(module.playlist)))\r\n    for i in range(0,20):\r\n        if module.playlist[module.pointer] in module.played[-int(len(module.playlist)*0.75):]:\r\n            module.pointer = random.choice(range(0,len(module.playlist)))\r\nelse:            \r\n    module.pointer = module.pointer % len(module.playlist)\r\nkaithem.sound.play(module.playlist[module.pointer],\"jookbawkse\",volume=module.volume.read(), fs=module.fullscreen.read())\r\nkaithem.sound.setvol(module.volume.read(),\"jookbawkse\")\r\nmodule.played.append(module.playlist[module.pointer])\r\nmodule.played = module.played[-10:]\r\nif not module.continual.read():\r\n    if module.toPlay:\r\n        module.toPlay -= 1\r\n    module.remaining.write(str(module.toPlay))",
     "continual": false,
     "disabled": false,
     "once": true,
@@ -7,7 +7,7 @@
     "rate-limit": 0.0,
     "resource-type": "event",
     "setup": "import random",
-    "trigger": "(not kaithem.sound.isPlaying(\"jookbawkse\")) and module.playlist",
+    "trigger": "(not kaithem.sound.isPlaying(\"jookbawkse\")) and module.playlist and module.toPlay",
     "versions": {
         "action": "if module.shuffle.read():\r\n    module.pointer = random.choice(range(0,len(module.playlist)))\r\n    for i in range(0,20):\r\n        if module.playlist[module.pointer] == module.played[-1]\r\n            module.pointer = random.choice(range(0,len(module.playlist)))\r\nelse:            \r\n    module.pointer = module.pointer % len(module.playlist)\r\nkaithem.sound.play(module.playlist[module.pointer],\"jookbawkse\",volume=module.volume.read())\r\nkaithem.sound.setvol(module.volume.read(),\"jookbawkse\")\r\nmodule.played.append(module.playlist[module.pointer])\r\nmodule.played = module.played[-10:]\r\nmodule.pointer += 1\r\nmodule.pointer = module.pointer % len(module.playlist)\r\n",
         "continual": false,

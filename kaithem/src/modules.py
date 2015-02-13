@@ -517,7 +517,7 @@ def resourceUpdateTarget(module,resource,kwargs):
                 r['continual'] = 'continual' in kwargs
                 r['rate-limit'] = float(kwargs['ratelimit'])
                 messagebus.postMessage("system/errors/misc/failedeventupdate", "In: "+ module +" "+resource+ "\n"+ traceback.format_exc(4))
-                raise e
+                raise
             
             resourceobj['trigger'] = kwargs['trigger']
             resourceobj['action'] = kwargs['action']

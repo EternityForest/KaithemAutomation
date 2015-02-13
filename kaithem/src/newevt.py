@@ -117,6 +117,7 @@ run = True
 def __manager():
     temp = 0;
     global averageFramesPerSecond
+    lastFrame = 0
     averageFramesPerSecond = 0
     #Basically loops for the lief of the app
     while run:
@@ -135,6 +136,7 @@ def __manager():
                     workers.do(i.check)
                 else:
                     i.countdown -= 1
+
             #Don't spew another round of events until the last one finishes so we don't
             #fill up the queue. The way we do this, is that after we have finished queueing
             #up all the events to be polled, we insert a sentry.
@@ -144,6 +146,7 @@ def __manager():
             #If one event takes several seconds to poll, it will not prevent the next round of
             #events. We depend on the event objects themselves to enforce the guarantee that only
             #one copy of the event can run at once.
+
             e = threading.Event()
             def f():
                 e.set()
@@ -153,10 +156,12 @@ def __manager():
         #Subtract the time the loop took from the delay
         #Allow config to impose a minimum delay
         time.sleep(max(framedelay-(time.time()-temp),mindelay))
+
         #On the of chance something odd happens, let's not wait forever.
         e.wait(15)
         #smoothing filter
-        averageFramesPerSecond = (averageFramesPerSecond *0.98) +   ((1/(time.time()-temp)) *0.02)
+        averageFramesPerSecond = (averageFramesPerSecond *0.98) +   ((1.0/(time.time()-lastFrame)) *0.02)
+        lastFrame = time.time()
             
 #Start the manager thread as a daemon
 #Kaithem has a system wide worker pool so we don't need to reinvent that
