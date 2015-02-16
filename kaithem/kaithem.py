@@ -21,7 +21,6 @@
 
 import sys,os,threading
 
-
 #There are some libraries that are actually different for 3 and 2, so we use the appropriate one
 #By changing the pathe to include the proper ones.
 x = sys.path[0]

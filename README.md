@@ -49,6 +49,10 @@ If you force stop it it might leave behind a lingering process that you have to 
 
 Change Log
 =============
+
+###0.51 IMPORTANT SECURITY UPDATE VERSION!!!!!!!!!!!!!!!!!!!!!!!!
+* Fix bug where kaithem would set it's var folders to publically readable if the wrong umask settings were used(Which is basically always)
+
 ###0.5
 
 * kaithem.time.accuracy() returns an estimate of the max error in the current system time in seconds using NTP.

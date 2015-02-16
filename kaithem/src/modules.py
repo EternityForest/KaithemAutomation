@@ -75,14 +75,18 @@ def initModules():
     
 def saveModules(where):
     with modulesLock:
+        util.ensure_dir2(os.path.join(where))
+        util.chmod_private_try(os.path.join(where))
         for i in ActiveModules:
             #Iterate over all of the resources in a module and save them as json files
             #under the URL urld module name for the filename.
             for resource in ActiveModules[i]:
                 #Make sure there is a directory at where/module/
                 util.ensure_dir(os.path.join(where,url(i),url(resource))  )
+                util.chmod_private_try(os.path.join(where,url(i)))
                 #Open a file at /where/module/resource
                 with  open(os.path.join(where,url(i),url(resource)),"w") as f:
+                    util.chmod_private_try(os.path.join(where,url(i),url(resource)))
                     #Make a json file there and prettyprint it
                     json.dump(ActiveModules[i][resource],f,sort_keys=True,indent=4, separators=(',', ': '))
 
@@ -99,6 +103,7 @@ def saveModules(where):
             if unurl(i) not in ActiveModules:
                 shutil.rmtree(os.path.join(where,i))
         with open(os.path.join(where,'__COMPLETE__'),'w') as f:
+            util.chmod_private_try(os.path.join(where,'__COMPLETE__'))
             f.write("By this string of contents quite arbitrary, I hereby mark this dump as consistant!!!")
 
 

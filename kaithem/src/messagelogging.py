@@ -12,7 +12,7 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import time, threading,json, os,bz2, gzip, re, collections
+import time, threading,json, os,bz2, gzip, re, collections,traceback
 import cherrypy
 from . import unitsofmeasure,messagebus,directories,workers,util,pages
 
@@ -74,7 +74,7 @@ def _dumpLogFile():
         ext = '.json.gz'
 
     elif config['log-compress'] == 'none':
-        openlog = open
+        openlog = util.open_private_text_write
         ext = '.json'
         
     else:
@@ -93,6 +93,7 @@ def _dumpLogFile():
         if loglistchanged:
             #Save the list of things to dump
             with open(os.path.join(directories.logdir,"whattosave.txt"),'w') as f:
+                util.chmod_private_try(os.path.join(directories.logdir,"whattosave.txt"))
                 for i in toSave:
                     f.write(i+'\n')
             loglistchanged = False
@@ -117,6 +118,7 @@ def _dumpLogFile():
         #Actually dump the log.
         with openlog(os.path.join(where,str(time.time())+ext),'wb') as f:
             print()
+            util.chmod_private_try(os.path.join(where,str(time.time())+ext))
             dump(temp,f)
             f.close()
         

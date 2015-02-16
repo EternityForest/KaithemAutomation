@@ -88,11 +88,13 @@ class PersistanceArea():
             t=str(util.time_or_increment())
             util.ensure_dir2(self.folder)
             os.mkdir(os.path.join(self.folder,t))
+            util.chmod_private_try(os.path.join(self.folder,t))
             #This segment relies on copy and deepcopy being atomic...
             #iterate over files and dump each to a json, set error flag if there are any errors
             for i in self.files.copy():
                 try:
                         with open(os.path.join(self.folder,t,i+".json"),'w') as x:
+                            util.chmod_private_try(os.path.join(self.folder,t,i+".json"))
                             json.dump({'data':copy.deepcopy(self.files[i])},x,sort_keys=True,indent=4, separators=(',', ': '))
                 except Exception as e:
                     error =1
@@ -107,6 +109,7 @@ class PersistanceArea():
 
         if not error:
             with open(os.path.join(self.folder,t,'kaithem_dump_valid.txt'),"w") as x:
+                util.chmod_private_try(os.path.join(self.folder,t,'kaithem_dump_valid.txt'))
                 x.write("This file certifies this folder as valid")
         else:
             print("Failure dumping persistance dicts.")

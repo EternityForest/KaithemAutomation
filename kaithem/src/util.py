@@ -15,7 +15,7 @@
 
 
 
-import  os,threading,copy,sys,shutil,difflib,time,json,traceback
+import  os,threading,copy,sys,shutil,difflib,time,json,traceback,stat
 #2 and 3 have basically the same module with diferent names
 if sys.version_info < (3,0):
     from urllib import quote
@@ -33,9 +33,27 @@ else:
 
 savelock = threading.RLock()
 
+def chmod_private_try(p):
+    try:
+        os.chmod(p,stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+    except Exception as e:
+        raise e
+
+def open_private_text_write(p):
+    try:
+        x = os.open('/path/to/file', os.O_RDWR | os.O_CREAT, 0o0600)
+        return os.fdopen(x,'w')
+    except:
+        try:
+            os.close(x)
+        except:
+            pass
+        return open(p,'w')
+         
+
 def url(string):
     return quote(string,'')
-
+  
 def SaveAllState():
     #fix circular import by putting it here
     from . import  auth,modules,messagelogging,messagebus,registry

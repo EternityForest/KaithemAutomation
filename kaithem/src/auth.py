@@ -306,11 +306,14 @@ def dumpDatabase():
         t = int(util.min_time) +1.234
     p = os.path.join(directories.usersdir,str(t))
     os.mkdir(p)
+    util.chmod_private_try(p)
     f = open(os.path.join(p,"users.json"),"w")
+    util.chmod_private_try(os.path.join(p,"users.json"))
     #pretty print
     json.dump(temp,f,sort_keys=True, indent=4, separators=(',', ': '))
     f.close()
     f = open(os.path.join(p,"__COMPLETE__"),"w")
+    util.chmod_private_try(os.path.join(p,"__COMPLETE__"))
     f.write("completely arbitrary text")
     f.close()
     util.deleteAllButHighestNumberedNDirectories(directories.usersdir,2)
