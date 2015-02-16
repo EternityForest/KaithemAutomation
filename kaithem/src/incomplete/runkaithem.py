@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-#Copyright Daniel Black 2013
+#Copyright Daniel Dunn 2013
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify

@@ -16,12 +16,10 @@
         },
         "Guests": {
             "permissions": [
-                "/users/mail/lists/RLpWcXaAPYcERWrbzb8YBw==/subscribe",
-                "/users/mail/lists/GkhepUwMILlhRopLDlZzAA==/subscribe",
                 "/admin/settings.view",
-                "/admin/mainpage.view",
-                "/users/mail/lists/8Dij4x/9u4FTY5j89ewnUA==/subscribe",
-                "/admin/modules.view"
+                "/users/mail/lists/RLpWcXaAPYcERWrbzb8YBw==/subscribe",
+                "/admin/modules.view",
+                "/admin/mainpage.view"
             ]
         }
     },

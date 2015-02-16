@@ -49,7 +49,7 @@ If you force stop it it might leave behind a lingering process that you have to 
 
 Change Log
 =============
-###Development
+###0.5
 
 * kaithem.time.accuracy() returns an estimate of the max error in the current system time in seconds using NTP.
 * Slight performance boost for low-priority events
@@ -66,6 +66,24 @@ Change Log
 * Support for !time trigger expressions
 * About Page now shows module versions
 * Defaults for precision parameter of kaithem.string methods
+* Default strftime string now only uses portable characters
+* Revert cherrypy to 3.2.3 for users running python 2.
+* Fix error pages on python2
+* Fix python2 inability to create new events
+* Default FPS is 60 instead of 24
+* Fix intermittent error that sliders sometimes raised because write() was converting to string
+* Fix documentation on the widget system
+* (partial)Ability to reload the configuration files
+* File manager now sorted
+* New APIWidget allows you to easily interact with the server in custom javascript.
+* Onrelease slider widget lets you see what you are doing before you let go
+* mplayer backend works even without pulseaudio
+* Document kaithem.registry functions
+* Pause, unpause, and set volume now work correctly in python2
+* JookBawkse module now has better interface, shows now playing in realtime, allows rescanning the media library
+* Fix bug where the registry entries were the same object as what you set instead of a copy.
+* Fix Bug where some pages were not showing up in the pagelisting even if the user had permissions
+* Fix bug where trying to render a widget with write permissions crashed if a __guest__ tried
 
 ###0.45 Hotfix 001
 * Fix "changed size during iteration" event bug, Replace outdated event scoping documentation.

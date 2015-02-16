@@ -1,4 +1,4 @@
-#Copyright Daniel Black 2013
+#Copyright Daniel Dunn 2013
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify
@@ -78,6 +78,10 @@ def ensure_dir(f):
     d = os.path.dirname(f)
     if not os.path.exists(d):
         os.makedirs(d)
+
+def ensure_dir2(f):
+    if not os.path.exists(f):
+        os.makedirs(f)
         
 def readfile(f):
     with open(f) as fh:
