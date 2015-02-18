@@ -40,10 +40,7 @@
             "salt": "7u5+HkyP5Re1qAyTnIdiLQ==",
             "settings": {
                 "email": "myemail@example.com",
-                "mailinglists": [
-                    "RLpWcXaAPYcERWrbzb8YBw=="
-                ],
-                "strftime": "%A, %B %d, %Y at %l:%M:%S %p %Z",
+                "strftime": "%A, %B %d, %Y at %I:%M:%S %p %Z",
                 "timezone": "UTC"
             },
             "username": "admin"

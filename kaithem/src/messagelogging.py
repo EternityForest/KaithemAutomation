@@ -74,7 +74,7 @@ def _dumpLogFile():
         ext = '.json.gz'
 
     elif config['log-compress'] == 'none':
-        openlog = util.open_private_text_write
+        openlog = open
         ext = '.json'
         
     else:
@@ -117,7 +117,6 @@ def _dumpLogFile():
             os.makedirs(where)
         #Actually dump the log.
         with openlog(os.path.join(where,str(time.time())+ext),'wb') as f:
-            print()
             util.chmod_private_try(os.path.join(where,str(time.time())+ext))
             dump(temp,f)
             f.close()

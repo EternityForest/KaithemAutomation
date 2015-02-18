@@ -59,7 +59,7 @@
     </div>
     <div class="sectionbox">${config['about-box-banner']}</div>
     <div class="sectionbox">
-    Version: 0.51
+    Version: 0.52
     </div>
     <br>
     <div class="sectionbox">
@@ -110,7 +110,7 @@
             try:
                 load = os.getloadavg()
                 load = (round(load[0],2), round(load[1],2),round(load[2],2))
-            except OSError:
+            except:
                 load = "Load average not availible on non UNIX-like systems."
                 
             try:
@@ -232,8 +232,7 @@ def module_version(m):
 
 <h2>Acknowledgements</h2>
 <div class="sectionbox">
-<h3>Libraries Used</h3>
-
+<h3>Python Libraries Used</h3>
 <ul>
 <li><a href="http://www.cherrypy.org/">CherryPy(Web Framework)</a></li>
 <li><a href="http://www.makotemplates.org/">Mako(HTML Template Engine)</a></li>
@@ -249,12 +248,18 @@ def module_version(m):
 <li><a href= "https://ws4py.readthedocs.org/en/latest/">ws4py(Websocket Support)</a></li>
 <li><a href="https://github.com/kvh/recurrent">recurrent(Natural language datetime)</a>
 <li><a href="https://github.com/bear/parsedatetime">parsedatetime(Natural language datetime)</a>
-
 </ul>
+<h3>Command Line Utilities</h3>
+<ul>
+<li><a href="http://www.mplayerhq.hu/design7/news.html">mplayer(Default audio backend)</a></li>
+<li><a href="http://www.lm-sensors.org/">lm-sensors(Used for about box temperature display if availible</a></li>
+</ul>
+
 <h3>Graphics</h3>
 <ul>
 <li><a href="http://webtreats.mysitemyway.com/">Webtreats ETC</a></li>
 </ul>
+
 <h3>Tools</h3>
 <ul>
 <li><a href="http://www.gimp.org/">GIMP(Image Editor)</a></li>

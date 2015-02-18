@@ -50,6 +50,16 @@ If you force stop it it might leave behind a lingering process that you have to 
 Change Log
 =============
 
+###0.52(Minor Bugfix Release)
+
+* Fix about box error on windows 
+* Fix non-cross platform default strftime 
+* Should the user enter a bad strftime, revert to the default
+* Fix error saving uncompressed logs 
+* Add mplayer and lm-sensors to acknowledgements 
+
+
+
 ###0.51 IMPORTANT SECURITY UPDATE VERSION!!!!!!!!!!!!!!!!!!!!!!!!
 * Fix bug where kaithem would set it's var folders to publically readable if the wrong umask settings were used(Which is basically always)
 
