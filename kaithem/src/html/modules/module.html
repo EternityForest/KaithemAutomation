@@ -1,6 +1,7 @@
 <%!
 from src.util import url
-from src import pages,newevt,usrpages
+from src import pages,newevt,usrpages,unitsofmeasure,util
+import time
 %>
 
 <%include file="/pageheader.html"/>
@@ -32,12 +33,13 @@ This Page allows you to view and edit information and resources associated with 
 
 <br>
 
-<h3>Resources</h3>
+<h3>Resources in ${"/".join([name]+path)|h}</h3>
 <div class="sectionbox">
 <p class="menubar">
-<a class="button createbutton" href="/modules/module/${url(name)}/addresource/event">Add Event</a>
-<a class="button createbutton" href="/modules/module/${url(name)}/addresource/permission">Add Permission</a>
-<a class="button createbutton" href="/modules/module/${url(name)}/addresource/page">Add Page</a>
+<a class="button createbutton" href="/modules/module/${url(name)}/addresource/event/${'/'.join(path)|u}">Add Event</a>
+<a class="button createbutton" href="/modules/module/${url(name)}/addresource/permission/${'/'.join(path)|u}">Add Permission</a>
+<a class="button createbutton" href="/modules/module/${url(name)}/addresource/page/${'/'.join(path)|u}">Add Page</a>
+<a class="button createbutton" href="/modules/module/${url(name)}/addresource/directory/${'/'.join(path)|u}">Add Folder</a>
 <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource">Delete Resource</a>
 </p>
 <p class="help">This module contains the following resources.</p>
@@ -47,61 +49,88 @@ def get_time(t):
       return scheduling.get_next_run(t)
   except Exception as e:
       return 0
-%>
 
+def in_folder(r,f,n):
+     r = [n]+util.split_escape(r,'/')
+     f = util.split_escape(f,'/')
+     print("=========")
+     print(r)
+     print(f)
+     if not len(r)==len(f)+1:
+	  return False
+     x = 0
+     for i in f:
+	  if not r[x] == i:
+	       return False
+	  x +=1
+     return True
+%>
+<dl>
+<dt><a href="/modules/module/${url(name)}">Top</a>(Go to Top level module folder)</dt>
+<hr>
 %for i in sorted(sorted(module.keys()), key=lambda x: module[x]['resource-type']):
+%if in_folder(i,fullpath,name):
 	%if module[i]['resource-type'] == 'event':
-	       <b><a href="/modules/module/${url(name)}/resource/${url(i)}">${i|h}</a></b>
+	  <dt>
+	       <b><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a></b>	       
 	       (Event)
-	     %if newevt.fastGetEventErrors(name,i):
-	     <span class="error">[${len(newevt.fastGetEventErrors(name,i))} Errors]</span>
-	     %endif
-	     <br>
-	       Last Ran: 
-	       %if newevt.getEventLastRan(name,i):
-	       ${unitsofmeasure.strftime(newevt.getEventLastRan(name,i))|h}
-	       (about ${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(name,i),2)} ago)
-	       
-	       %else:
-	       This event has not ran since it loaded.
-	       %endif
-	       
-	       %if module[i]['trigger'].startswith("!time"):
-	       <br>Next Run for "${module[i]['trigger'][6:]|h}":
-	       ${unitsofmeasure.strftime(get_time(module[i]['trigger']))|h}</b></p>
-	       %endif
+	       %if newevt.fastGetEventErrors(name,i):
+	       <span class="error">[${len(newevt.fastGetEventErrors(name,i))} Errors]</span>
+	       %endif       
+	  </dt>
+	  <dd>
+	       <b>Trigger:</b> ${module[i]['trigger']|h}<br>
+     
+		    <b>Last Ran:</b> 
+		    %if newevt.getEventLastRan(name,i):
+		    ${unitsofmeasure.strftime(newevt.getEventLastRan(name,i))|h}
+		    (about ${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(name,i),2)} ago)
+		    %else:
+		    This event has not ran since it loaded.
+		    %endif
+		    
+		    
+		    %if module[i]['trigger'].startswith("!time"):
+		    <br><b>Next Run:</b>
+		    ${unitsofmeasure.strftime(get_time(module[i]['trigger']))|h}</b></p>
+		    %endif
+	  </dd>
 	%endif
 	
 	%if module[i]['resource-type'] == 'page':
-     
-            <b
-            %if i.startswith('__'):
-            class="specialentry"\
-            %endif
-            >${i|h}
-	    
-        %if usrpages.getPageErrors(name,i):
-        <span class="error">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
-        %endif
-        </b>(Page)
-                 <a href="/pages/${url(name)}/${url(i)}">Go to page</a>|
-                 <a href="/modules/module/${url(name)}/resource/${url(i)}">Edit Page</a>
+	  <dt>
+	       <b\
+	       %if i.startswith('__'):
+	       class="specialentry"\
+	       %endif
+	       >${util.split_escape(i,'/')[-1]|h}    
+		%if usrpages.getPageErrors(name,i):
+		<span class="error">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
+		%endif
+		</b>(Page) <a href="/pages/${url(name)}/${url(i)}">Go to page</a>|<a href="/modules/module/${url(name)}/resource/${url(i)}">Edit Page</a></dt>
+	  <dd>
         %if 'require-permissions' in module[i] and module[i]['require-permissions']:
-	  <br>Permissions:
+	  <b>Permissions:</b>
 	  %for x in module[i]['require-permissions']:
 	  ${x|h}
 	  %endfor
 	  %endif
-	  
+	  </dd>
 	%endif
 	
        %if module[i]['resource-type'] == 'permission':
        
-      <p><h4><a href="/modules/module/${url(name)}/resource/${url(i)}">${i|h}</a></h4>
-      Resource Type: Permission
-      </p>
+      <dt><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a>(permission)<dt>
+ 
+	%endif
+	
+     %if module[i]['resource-type'] == 'directory':
+       
+      <dt><b><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a></b> (folder)<dt>
+ 
 	%endif
 	<hr>
+%endif
 %endfor
 </div>
 

@@ -34,8 +34,27 @@ from .util import url,unurl
 #it's o the code knows to save everything is it has been changed.
 moduleschanged = False
 
+class event_interface(object):
+   def __init__(self, ):
+      self.type = "event"
+   
+class page_inteface(object):
+   def __init__(self, ):
+      self.type = "page"
+      
+class permission_inteface(object):
+   def __init__(self, ):
+      self.type = "permission"
+
 class obj(object):
-    pass
+   def __getitem__(self,x):
+      x= ActiveModules[self.__kaithem_modulename__][x]
+      if x['resource-type'] == 'page':
+         x = page_interface()
+      if x['resource-type'] == 'event':
+         x = event_interface()
+      if x['resource-type'] == 'permission':
+         x = permission_interface()
 
 #saveall and loadall are the ones outside code shold use to save and load the state of what modules are loaded
 def saveAll():
@@ -309,27 +328,39 @@ class WebInterface():
     #The URLs that this function handles are of the form /modules/module/<modulename>[something?]     
     def module(self,module,*path,**kwargs):
         global moduleschanged
-
+        root = util.split_escape(module,"/")[0]
+        modulepath = util.split_escape(module,"/")[1:]
+        fullpath = module
+        if len(path)>2:
+         fullpath += "/" + path[2]
         #If we are not performing an action on a module just going to its page
         if not path:
             pages.require("/admin/modules.view")
-            return pages.get_template("modules/module.html").render(module = ActiveModules[module],name = module)
+            return pages.get_template("modules/module.html").render(module = ActiveModules[root],name = root,path=modulepath,fullpath=fullpath)
             
         else:
             #This gets the interface to add a page
             if path[0] == 'addresource':
+                if len(path)>2:
+                  x = path[2]
+                else:
+                  x =""
                 #path[1] tells what type of resource is being created and addResourceDispatcher returns the appropriate crud screen
-                return addResourceDispatcher(module,path[1])
+                return addResourceDispatcher(module,path[1],x)
             
             #This case handles the POST request from the new resource target
             if path[0] == 'addresourcetarget':
-                return addResourceTarget(module,path[1],kwargs['name'],kwargs)
+                if len(path)>2:
+                  x = path[2]
+                else:
+                  x =""
+                return addResourceTarget(module,path[1],kwargs['name'],kwargs,x)
 
             #This case shows the information and editing page for one resource
             if path[0] == 'resource':
                 version = '__default__'
-                if len(path)>2:
-                    version = path[2]
+                if len(path)>1:
+                    version = path[1]
                 return resourceEditPage(module,path[1],version)
 
             #This goes to a dispatcher that takes into account the type of resource and updates everything about the resource.
@@ -346,7 +377,7 @@ class WebInterface():
                 pages.require("/admin/modules.edit")
                 moduleschanged = True
                 with modulesLock:
-                   r = ActiveModules[module].pop(kwargs['name'])
+                   r = ActiveModules[root].pop(kwargs['name'])
                    
                 if r['resource-type'] == 'page':
                     usrpages.removeOnePage(module,kwargs['name'])
@@ -368,13 +399,13 @@ class WebInterface():
                 pages.require("/admin/modules.edit")
                 moduleschanged = True
                 with modulesLock:
-                    ActiveModules[module]['__description']['text'] = kwargs['description']
-                    ActiveModules[kwargs['name']] = ActiveModules.pop(module)
+                    ActiveModules[root]['__description']['text'] = kwargs['description']
+                    ActiveModules[kwargs['name']] = ActiveModules.pop(root)
                     
                     #UHHG. So very much code tht just syncs data structures.
                     #This gets rid of the cache under the old name
-                    newevt.removeModuleEvents(module)
-                    usrpages.removeModulePages(module)
+                    newevt.removeModuleEvents(root)
+                    usrpages.removeModulePages(root)
                     #And calls this function the generate the new cache
                     bookkeeponemodule(kwargs['name'],update=True)
                     #Just for fun, we should probably also sync the permissions
@@ -382,35 +413,55 @@ class WebInterface():
                 raise cherrypy.HTTPRedirect('/modules/module/'+util.url(kwargs['name']))
 
 #Return a CRUD screen to create a new resource taking into the type of resource the user wants to create               
-def addResourceDispatcher(module,type):
+def addResourceDispatcher(module,type,path):
     pages.require("/admin/modules.edit")
     
     #Return a crud to add a new permission
     if type == 'permission':
-        return pages.get_template("modules/permissions/new.html").render(module=module)
+        return pages.get_template("modules/permissions/new.html").render(module=module,path=path)
 
     #return a crud to add a new event
     if type == 'event':
-        return pages.get_template("modules/events/new.html").render(module=module)
+        return pages.get_template("modules/events/new.html").render(module=module,path=path)
 
     #return a crud to add a new event
     if type == 'page':
-        return pages.get_template("modules/pages/new.html").render(module=module)
+        return pages.get_template("modules/pages/new.html").render(module=module,path=path)
+
+    #return a crud to add a new event
+    if type == 'directory':
+        return pages.get_template("modules/directories/new.html").render(module=module,path=path)
 
 #The target for the POST from the CRUD to actually create the new resource
 #Basically it takes a module, a new resourc name, and a type, and creates a template resource
-def addResourceTarget(module,type,name,kwargs):
+def addResourceTarget(module,type,name,kwargs,path):
     pages.require("/admin/modules.edit")
     global moduleschanged
     moduleschanged = True
+    
+    #Wow is this code ever ugly. Bascially we are going to pack the path and the module together.
+    escapedName = (kwargs['name'].replace("\\","\\\\").replace("/",'\\/'))
+    if path:
+      escapedName += "/" + path
+    x = util.split_escape(module,"/","\\")
+    escapedName = "/".join(x[1:]+[escapedName]) 
+    root = x[0]
+    
     def insertResource(r):
-        ActiveModules[module][kwargs['name']] = r
+        ActiveModules[root][escapedName] = r
     
     with modulesLock:
         #Check if a resource by that name is already there
-        if kwargs['name'] in ActiveModules[module]:
+        if escapedName in ActiveModules[root]:
             raise cherrypy.HTTPRedirect("/errors/alreadyexists")
-        
+         
+        #Create a permission
+        if type == 'directory':
+            insertResource({
+                "resource-type":"directory"})
+            raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module))
+
+            
         #Create a permission
         if type == 'permission':
             insertResource({
@@ -431,20 +482,20 @@ def addResourceTarget(module,type,name,kwargs):
                            )
             #newevt maintains a cache of precompiled events that must be kept in sync with
             #the modules
-            newevt.updateOneEvent(kwargs['name'],module)
+            newevt.updateOneEvent(escapedName,root)
         
         if type == 'page':
                 insertResource({
                     "resource-type":"page",
                     "body":'<div class="sectionbox">Content here</div>',
                     'no-navheader':True})
-                usrpages.updateOnePage(kwargs['name'],module)
+                usrpages.updateOnePage(escapedName,root)
 
         messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + " added resource " +
-                           kwargs['name'] + " of type " + type+" to module " + module)
+                           escapedName + " of type " + type+" to module " + root)
         
         #Take the user straight to the resource page
-        raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+util.url(name))
+        raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+util.url(escapedName))
                 
                       
 #show a edit page for a resource. No side effect here so it only requires the view permission
@@ -486,6 +537,10 @@ def resourceEditPage(module,resource,version='default'):
                 
             return pages.get_template("modules/pages/page.html").render(module=module,name=resource, 
             page=ActiveModules[module][resource],requiredpermissions = requiredpermissions)
+         
+        if resourceinquestion['resource-type'] == 'directory':
+            pages.require("/admin/modules.view")
+            return pages.get_template("modules/module.html").render(module = ActiveModules[module],name = module, path=util.split_escape(resource,'\\'), fullpath=module+"/"+resource)
 
 def permissionEditPage(module,resource):
     pages.require("/admin/modules.view")

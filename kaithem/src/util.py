@@ -283,6 +283,39 @@ def roundto(n,s):
     else:
         return n - n%s
 
-
+def split_escape(s,separator, escape=None):
+    current_token = ""
+    tokens = []
+    literal = False
+    
+    for i in s:
+        if literal:
+            current_token += i
+            literal = False
+        elif i == separator:
+            tokens+= [current_token]
+            current_token = ""
         
+        elif i == escape:
+            literal = True
+        else:
+            current_token +=i
+    
+    if current_token:        
+        return tokens+[current_token]
+    else:
+        return tokens
+
+def unescape(s,escape="\\"):
+    s2 = ""
+    literal = False
+    for i in s:
+        if literal:
+            s2+=i
+            literal= False
+        elif i == escape:
+            literal = True
+        else:
+            s2+=i
+    return s2
           
