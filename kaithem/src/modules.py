@@ -359,8 +359,8 @@ class WebInterface():
             #This case shows the information and editing page for one resource
             if path[0] == 'resource':
                 version = '__default__'
-                if len(path)>1:
-                    version = path[1]
+                if len(path)>2:
+                    version = path[2]
                 return resourceEditPage(module,path[1],version)
 
             #This goes to a dispatcher that takes into account the type of resource and updates everything about the resource.
@@ -442,7 +442,7 @@ def addResourceTarget(module,type,name,kwargs,path):
     #Wow is this code ever ugly. Bascially we are going to pack the path and the module together.
     escapedName = (kwargs['name'].replace("\\","\\\\").replace("/",'\\/'))
     if path:
-      escapedName += "/" + path
+      escapedName = path+ "/" + escapedName
     x = util.split_escape(module,"/","\\")
     escapedName = "/".join(x[1:]+[escapedName]) 
     root = x[0]

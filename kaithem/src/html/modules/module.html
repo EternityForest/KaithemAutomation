@@ -66,7 +66,11 @@ def in_folder(r,f,n):
      return True
 %>
 <dl>
-<dt><a href="/modules/module/${url(name)}">Top</a>(Go to Top level module folder)</dt>
+<dt class="specialentry"><a href="/modules/module/${url(name)}">Top</a>(Go to Top level module folder)</dt>
+%if path and len(util.split_escape(path[0],"/","\\"))>1:
+<hr>
+<dt class="specialentry"><a href="/modules/module/${name|h}/resource/${"/".join( [i.replace("\\","\\\\").replace("/","\\/") for i in util.split_escape(path[0],"/","\\")[:-1]] )|u}">..</a></dt>
+%endif
 <hr>
 %for i in sorted(sorted(module.keys()), key=lambda x: module[x]['resource-type']):
 %if in_folder(i,fullpath,name):
@@ -107,7 +111,9 @@ def in_folder(r,f,n):
 		%if usrpages.getPageErrors(name,i):
 		<span class="error">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
 		%endif
-		</b>(Page) <a href="/pages/${url(name)}/${url(i)}">Go to page</a>|<a href="/modules/module/${url(name)}/resource/${url(i)}">Edit Page</a></dt>
+		</b>(Page) <a href="${usrpages.url_for_resource(name,i)}">Go to page</a>|<a href="/modules/module/${url(name)}/resource/${i.replace("\\/","%2F")}">
+		
+		Edit Page</a></dt>
 	  <dd>
         %if 'require-permissions' in module[i] and module[i]['require-permissions']:
 	  <b>Permissions:</b>

@@ -319,3 +319,5 @@ def unescape(s,escape="\\"):
             s2+=i
     return s2
           
+def module_onelevelup(s):
+    return "/".join([i.replace("\\","\\\\").replace("/","\\/") for i in s.split_escape(s,"/","\\")])

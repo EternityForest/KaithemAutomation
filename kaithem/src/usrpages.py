@@ -23,6 +23,13 @@ from .config import config
 
 errors = {}
 
+def url_for_resource(module,resource):
+    s = "/pages/"
+    s += util.url(module)
+    s+= "/"
+    s+= "/".join([util.url(i) for i in util.split_escape(resource,"/")])
+    return s
+
 class CompiledPage():
     def __init__(self, resource,m='unknown',r='unknown'):
         
@@ -161,26 +168,26 @@ class KaithemPage():
     #Class encapsulating one request to a user-defined page
     exposed = True;
     
-    def GET(self,module,resource,*args,**kwargs):
+    def GET(self,module,*args,**kwargs):
         #Workaround for cherrypy decoding unicode as if it is latin 1
         #Because of some bizzare wsgi thing i think.
         module=module.encode("latin-1").decode("utf-8")
-        resource=resource.encode("latin-1").decode("utf-8")
-        return self._serve(module,resource,*args, **kwargs)
+        args = [i.encode("latin-1").decode("utf-8") for i in args]
+        return self._serve(module,*args, **kwargs)
     
-    def POST(self,module,resource,*args,**kwargs):
+    def POST(self,module,*args,**kwargs):
         #Workaround for cherrypy decoding unicode as if it is latin 1
         #Because of some bizzare wsgi thing i think.
         module=module.encode("latin-1").decode("utf-8")
-        resource=resource.encode("latin-1").decode("utf-8")
-        return self._serve(module,resource,*args, **kwargs)
+        args = [i.encode("latin-1").decode("utf-8") for i in args]
+        return self._serve(module,*args, **kwargs)
     
     def OPTION(self,module,resource,*args,**kwargs):
         #Workaround for cherrypy decoding unicode as if it is latin 1
         #Because of some bizzare wsgi thing i think.
         module=module.encode("latin-1").decode("utf-8")
-        resource=resource.encode("latin-1").decode("utf-8") 
-        self._headers(Pages[module][resource])
+        args = [i.encode("latin-1").decode("utf-8") for i in args]
+        self._headers(self.lookup(module,args))
         return ""
                 
     def _headers(self,page):
@@ -195,18 +202,32 @@ class KaithemPage():
                 if cherrypy.request.headers['Origin'] in page.origins or '*' in page.origins:
                     cherrypy.response.headers['Access-Control-Allow-Origin'] = cherrypy.request.headers['Origin']
                 cherrypy.response.headers['Access-Control-Allow-Methods'] = x 
-                
-    def _serve(self,module,pagename,*args,**kwargs):
+    
+    def lookup(self,module,args):
+        resource_path = [i.replace("\\","\\\\").replace("/","\\/") for i in args]
+        print(resource_path)
+        m = _Pages[module]
+        if "/".join(resource_path) in m:
+            return _Pages[module]["/".join(resource_path)]
+            
+        if "/".join(resource_path+['__index__']) in m:
+            return _Pages[module][ "/".join(resource_path+['__index__'])]
+
+        while resource_path:
+            resource_path.pop()
+            if "/".join(resource_path+['__default__']) in m:
+                return m["/".join(resource_path+['__default__']) ]
+            
+        return None
+
+                        
+    def _serve(self,module,*args,**kwargs):
         global _page_list_lock
         with _page_list_lock:
-            try:
-                page = _Pages[module][pagename]
-            except KeyError as e:
-                if '__default__' in _Pages[module]:
-                    page = _Pages[module]['__default__']
-                else:
-                    messagebus.postMessage("/system/errors/http/nonexistant", "Someone tried to access a page that did not exist at page %s of module %s"%(module,pagename))
-                    raise e
+            page = self.lookup(module,args)
+            if None==page:
+                messagebus.postMessage("/system/errors/http/nonexistant", "Someone tried to access a page that did not exist in module %s with path %s"%(module,args))
+                raise cherrypy.NotFound()
             page.lastaccessed = time.time()
             #Check user permissions
             for i in page.permissions:
