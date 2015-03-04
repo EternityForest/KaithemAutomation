@@ -69,7 +69,18 @@ from src import widgets
 
 from src.config import config
 
+if config['local-access-only']:
+    bindto = '127.0.0.1'
+else:
+    bindto = '0.0.0.0'
+    
+cherrypy.process.servers.check_port(bindto, config['http-port'], timeout=1.0)
+cherrypy.process.servers.check_port(bindto, config['https-port'], timeout=1.0)
+
+
 MyExternalIPAdress = util.updateIP()
+
+
 
 if config['enable-websockets']:
     from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
@@ -173,10 +184,7 @@ root.widgets = widgets.WebInterface()
 
 dn = os.path.dirname(os.path.realpath(__file__))
 
-if config['local-access-only']:
-    bindto = '127.0.0.1'
-else:
-    bindto = '0.0.0.0'
+
 
 site_config={
         "tools.encode.on" :True,
@@ -256,6 +264,8 @@ messagebus.postMessage('/system/notifications','System Initialized')
 
 if time.time() < 1420070400:
     messagebus.postMessage('/system/notifications/errors',"System Clock probably wrong, some features may not work properly.")
-    
+
+
+
 cherrypy.engine.start()
 cherrypy.engine.block()

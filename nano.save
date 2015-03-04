@@ -1,0 +1,36 @@
+Map 1 to nesting modules
+
+The simplest system would be ZIP style fake naming for resources, combined with flag in each module like "usedirectories" indicating that forward slashes still indicate
+difiberglass
+
+
+
+
+n]]]]]]]]]]]]aaaaaptrewqqqqqqqq	\\]eeetdd4dfdddddddddddddddrectories. To make a resource in a directory with slashes in it, we would simply escape it.
+
+Alternately, we use real folders, however we translate paths to modules to directory resources and parent links, storing them as usr dicts and attributes, and translating back
+to real folders on save. This might be the most logical.
+
+Either way we would want to keep the same "Flat storage area" where possible. Maybe use tuples to index them. Resources are now indexed by tuple path.
+
+Also the "module" object would need to exist per-folder now. But it's attributes need to be shared... This could cause some problems.
+Each module could now have an object that getting and setting attributes is passed through to, however each object would have a distict dict. 
+I doubt thread safety would be an issue, but we could make the module object dicts threadsafe iterable with an auto copy.
+
+Options:
+Actual Folders
+Fake With Names
+Fake With Attributes
+
+Internal storage:
+Module resource dicts indexed using tuples and linked using folder objects
+
+Display options:
+Subfolders as resource type, no other changes.
+All resources in one big grouping sorted first by type
+
+URL representation: Either some kind of tuple representation(probably file path allowing escapes for forward slashes) or just numbers
+
+module.x is still shared by the entire top level module. module[x] now gets resource objects. Resource objects might just let you access the name and scope and such. folders 
+could be resource objects, and could be iterated to find out things like "If a page named X exists" or such, making certain things way easier. If we allowed YAML as a resource
+type(For big chunks of data) we could get to  i

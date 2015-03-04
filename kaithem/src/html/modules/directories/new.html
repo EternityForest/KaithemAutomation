@@ -1,0 +1,15 @@
+<%!
+from src.util import url
+%>
+<%include file="/pageheader.html"/>
+<h2>Add Directory</h2>
+<title>Add Event</title>
+<div class="sectionbox">
+<hr>
+<form action="/modules/module/${url(module)}/addresourcetarget/directory/${path|u}" method="POST" name="new">
+<h3>Name</h3><input required="required" name="name" class="name" type="text"></input><br>
+<br><input value="Create Event" type="submit">
+</form>
+</div>
+
+<%include file="/pagefooter.html"/>
