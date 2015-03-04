@@ -62,8 +62,12 @@ h4 {
         must have unique names. Resources can be anything from events and actions to user defined pages to custom
         permissions.
     </p>
+    
     <p>You can name modules as you like, but anything beginning with a double-underscore("__") is reserved.
     Resource, user, and group names beginning with a double underscore are also reserved.</p>
+    
+    <p>Resources may have any name, however the slash is considered the path separator to allow for subfolders within modules.
+    The slash may be escaped using an backslash, as can the backslash itself. Whitespace in paths has no special meaning.</p>
 
 
     <h2>
@@ -115,6 +119,7 @@ h4 {
         <h2>
             <a id="pages" name="pages"></a>Pages:
         </h2>
+        
         <p>Kaithem allows users with the appropriate permissions to create user-defined pages. User defined pages
             are written in HTML and may contain embedded mako template code. Every page is a resource of a module. Mako
             is a simple templating language allowing you to embed server-side python in HTML code. Python code in user
@@ -125,7 +130,10 @@ h4 {
         <p>Access to pages is controlled through kaithem's permission system, and any page may require one or more
             permissions to access. New Permissions can be defined as module resources.</p>
 
-        <p>Every user-created page has an URL of the form /pages/MODULENAME/PAGENAME</p>
+        <p>Every user-created page has an URL of the form /pages/MODULENAME/PAGE/PATH/GOES/HERE</p>
+        <p>For example, A resource bar in module foo would be found at "/pages/foo/bar", while a resource baz in folder bar in foo will be found in /pages/foo/bar/baz</p>
+        
+    
 
         <p>Unlike events, the page-local scope does not persist between calls</p>
 
@@ -133,17 +141,18 @@ h4 {
             User pages should follow the <a href="/docs#theming">Theming Guidelines</a>.
         </p>
         
-        <p>If is possible to handle requests for nonexistant pages to some extent.
-        If a user tries to access a page /pages/MODULENAME/[nonexistantpage] or
-        /pages/MODULENAME/some/big/long/path/to/nowhere
-        it will return /pages/MODULENAME/__default__ should such a page exist.
-        It will not create an HTTP redirect, it will simply return the contents of __default__</p>
-
+        <h3> Default and Index pages.</h3>
+        <p>Should you go to /pages/foo/bar and bar is a folder, foo/bar/__index__will be returned should it exist.</p>
+        
+        <p>Nonexistant page handling: Should you go to /pages/foo/bar/nonexistant, bar will first be searched for a __default__ page, then foo, then the root.
+        If no default is found, an error will be returned.</p>
+        
         <h2>
             <a id="scope" name="scope"></a>Scoping
         </h2>
+        
         <p>Almost all programming languages have some concept of scope and Python is no different. Every event has
-            its own global scope, similar to a module. If you set a variable in the event action and use the global keyword,
+            its own global scope, similar to a (python) module. If you set a variable in the event action and use the global keyword,
             it will be there next time the event runs, but will not be directly visible in other resources.
             If you assign a variable in an event action without the global keyword, it will simply disappear after the event runs like any function local variable.
             This does not apply to Mako code inside page html. Mako code will act like function local variables and only persist for the life of the call, and globals don't really apply here.</p>
@@ -151,9 +160,12 @@ h4 {
         <p>Anything defined in the Setup function of an event becomes a part of the global namespace for that event, and can be accessed by code in Trigger and Action,
         and written to by use of the global keyword.</p>
         
+        <p>Internally, the events are compiled to (in memory, bytecode is not written to disk) python modules and the actions become functions.</p>
+        
 
         <p>Every resource scope(including setup,trigger,action, and Mako pages) however will contain an object called kaithem, which is a global object with some
-            useful utilities, and an object called module, which is shared between all resources within one module. The
+            useful utilities, and an object called module, which is shared between all resources within one module
+            (Regardless of where in the nested heirarchy the resoucrce is). The
             module objects have no special properties beyond the ability to assign objects to them.</p>
 
 

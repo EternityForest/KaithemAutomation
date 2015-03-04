@@ -205,7 +205,6 @@ class KaithemPage():
     
     def lookup(self,module,args):
         resource_path = [i.replace("\\","\\\\").replace("/","\\/") for i in args]
-        print(resource_path)
         m = _Pages[module]
         if "/".join(resource_path) in m:
             return _Pages[module]["/".join(resource_path)]

@@ -628,14 +628,17 @@ def resourceUpdateTarget(module,resource,kwargs):
                 
     messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + " modified resource " +
                            resource + " of module " + module)
-    
+    r =resource
+    if 'name' in kwargs:
+        r = kwargs['name']
     if 'GoNow' in kwargs:
-        r =resource
-        if 'name' in kwargs:
-            r = kwargs['name']
-        raise cherrypy.HTTPRedirect("/pages/"+util.url(module)+"/"+util.url(r))
+        raise cherrypy.HTTPRedirect(usrpages.url_for_resource(module,r))
     #Return user to the module page       
-    raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module))#+'/resource/'+util.url(resource))
+    x = util.split_escape(r,"/")
+    if len(x)>1:
+        raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource'+'/'.join([util.url(i) for i in x[:-1]]))
+    else:
+        raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module))#+'/resource/'+util.url(resource))
 
 def mvResource(module,resource,toModule,toResource):  
     if ActiveModules[module][resource]['resource-type'] == 'event':
