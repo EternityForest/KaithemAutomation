@@ -15,6 +15,7 @@ import cherrypy
 
     <div style="width: 100%">
     ${config['top-banner-html']}
+   
     <ul  border="" id="nav">
 <li><a href="/">Main</a>
             %if config['enable-js'] and pages.canUserDoThis("/admin/mainpage.view"):
@@ -96,23 +97,23 @@ import cherrypy
             
             
             </li>
-            <li><a href="/modules/">Modules</a></li>
-            <li><a href="/pagelisting">Page Index</a></li>
+            <li><a class="moduleslink" href="/modules/">Modules</a></li>
+            <li><a class="pageslink" href="/pagelisting">Page Index</a></li>
 
-            <li><a href="/helpmenu">Help</a></li>
+            <li><a class="helplink" href="/helpmenu">Help</a></li>
             
-            <li><a href="/settings">Settings and Tools</a></li>
+            <li><a class="settingslink" href="/settings">Settings and Tools</a></li>
             %if "auth" in cherrypy.request.cookie:
             
                 %if cherrypy.request.cookie['auth'].value in auth.Tokens:
-                    <li><a href="/login/logout">Logout</a></li>
+                    <li><a class="loginlink" href="/login/logout">Logout</a></li>
                     
                 %else:
-                    <li><a href="/login?go=${util.url(cherrypy.url())}">Login</a></li>
+                    <li><a class="loginlink" href="/login?go=${util.url(cherrypy.url())}">Login</a></li>
                 %endif
                 
             %else:
-                <li><a href="/login?go=${util.url(cherrypy.url())}">Login</a></li>
+                <li><a class="loginlink" href="/login?go=${util.url(cherrypy.url())}">Login</a></li>
             %endif
 
     </ul>

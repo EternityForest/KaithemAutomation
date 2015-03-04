@@ -36,10 +36,10 @@ This Page allows you to view and edit information and resources associated with 
 <h3>Resources in ${"/".join([name]+path)|h}</h3>
 <div class="sectionbox">
 <p class="menubar">
-<a class="button createbutton" href="/modules/module/${url(name)}/addresource/event/${'/'.join(path)|u}">Add Event</a>
-<a class="button createbutton" href="/modules/module/${url(name)}/addresource/permission/${'/'.join(path)|u}">Add Permission</a>
-<a class="button createbutton" href="/modules/module/${url(name)}/addresource/page/${'/'.join(path)|u}">Add Page</a>
-<a class="button createbutton" href="/modules/module/${url(name)}/addresource/directory/${'/'.join(path)|u}">Add Folder</a>
+<a class="button createbutton addeventbutton" href="/modules/module/${url(name)}/addresource/event/${'/'.join(path)|u}">Event</a>
+<a class="button createbutton addpermissionbutton" href="/modules/module/${url(name)}/addresource/permission/${'/'.join(path)|u}">Permission</a>
+<a class="button createbutton addpagebutton" href="/modules/module/${url(name)}/addresource/page/${'/'.join(path)|u}">Page</a>
+<a class="button createbutton addfolderbutton" href="/modules/module/${url(name)}/addresource/directory/${'/'.join(path)|u}">Folder</a>
 <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource">Delete Resource</a>
 </p>
 <p class="help">This module contains the following resources.</p>
@@ -73,8 +73,7 @@ def in_folder(r,f,n):
 %if in_folder(i,fullpath,name):
 	%if module[i]['resource-type'] == 'event':
 	  <dt>
-	       <b><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a></b>	       
-	       (Event)
+	       <span class="event-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a></b>	       
 	       %if newevt.fastGetEventErrors(name,i):
 	       <span class="error">[${len(newevt.fastGetEventErrors(name,i))} Errors]</span>
 	       %endif       
@@ -100,15 +99,15 @@ def in_folder(r,f,n):
 	
 	%if module[i]['resource-type'] == 'page':
 	  <dt>
-	       <b\
+	       <span class="page-icon"></span><b\
 	       %if i.startswith('__'):
-	       class="specialentry"\
+	       class="specialentry page"\
 	       %endif
 	       >${util.split_escape(i,'/')[-1]|h}    
 		%if usrpages.getPageErrors(name,i):
 		<span class="error">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
 		%endif
-		</b>(Page) <a href="${usrpages.url_for_resource(name,i)}">Go to page</a>|<a href="/modules/module/${url(name)}/resource/${i.replace("\\/","%2F")}">
+		</b><a href="${usrpages.url_for_resource(name,i)}">Go to page</a>|<a href="/modules/module/${url(name)}/resource/${i.replace("\\/","%2F")}">
 		
 		Edit Page</a></dt>
 	  <dd>
@@ -123,13 +122,13 @@ def in_folder(r,f,n):
 	
        %if module[i]['resource-type'] == 'permission':
        
-      <dt><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a>(permission)<dt>
+      <dt><span class="permission-icon"></span><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a><dt>
  
 	%endif
 	
      %if module[i]['resource-type'] == 'directory':
        
-      <dt><b><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a></b> (folder)<dt>
+      <dt><span class="directory-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a></b> (folder)<dt>
  
 	%endif
 	<hr>
