@@ -73,7 +73,8 @@ def in_folder(r,f,n):
 %if in_folder(i,fullpath,name):
 	%if module[i]['resource-type'] == 'event':
 	  <dt>
-	       <span class="event-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a></b>	       
+	       <span class="event-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a>
+<a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a></b>	       
 	       %if newevt.fastGetEventErrors(name,i):
 	       <span class="error">[${len(newevt.fastGetEventErrors(name,i))} Errors]</span>
 	       %endif       
@@ -107,9 +108,10 @@ def in_folder(r,f,n):
 		%if usrpages.getPageErrors(name,i):
 		<span class="error">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
 		%endif
-		</b><a href="${usrpages.url_for_resource(name,i)}">Go to page</a>|<a href="/modules/module/${url(name)}/resource/${i.replace("\\/","%2F")}">
+		</b><a class="gobutton" href="${usrpages.url_for_resource(name,i)}">Go to page</a>|<a class="editbutton"
+ href="/modules/module/${url(name)}/resource/${i.replace("\\/","%2F")}">
 		
-		Edit Page</a></dt>
+		Edit Page</a><a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a></dt>
 	  <dd>
         %if 'require-permissions' in module[i] and module[i]['require-permissions']:
 	  <b>Permissions:</b>
@@ -122,13 +124,16 @@ def in_folder(r,f,n):
 	
        %if module[i]['resource-type'] == 'permission':
        
-      <dt><span class="permission-icon"></span><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a><dt>
+      <dt><span class="permission-icon"></span><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a>
+<a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+<dt>
  
 	%endif
 	
      %if module[i]['resource-type'] == 'directory':
        
-      <dt><span class="directory-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a></b> (folder)<dt>
+      <dt><span class="directory-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a></b>
+<a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a><dt>
  
 	%endif
 	<hr>

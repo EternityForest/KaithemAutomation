@@ -1,3 +1,15 @@
+/*Layout*/
+#nav li
+{
+	display:inline;
+	border-width:1px;
+	border-style: none solid none none; 
+    display: table-cell;
+    text-align:center;
+    border-color: grey;
+    font-size:125%;
+}
+
 ::selection {
 background: rgba(140, 180, 140, 0.5);
 color:rgb(70, 45, 19);
@@ -44,8 +56,6 @@ div.kmainpagebody
 
 }
 
-/*a:link {background-color:#80FF80;}    /* unvisited link */
-/*a:hover {background-color:#0066FF;}   /* mouse over link */
 div.sectionbox,main>section{border-style:solid; 
 background: rgba(240, 230, 200, 0.5);
 border-width:2px;
@@ -93,17 +103,7 @@ padding:2px;
 
 }
 
-#nav li
-{
-	display:inline;
-	border-width:1px;
-	border-style: none solid none none; 
-    display: table-cell;
-    text-align:center;
-    border-color: grey;
-    font-size:125%;
-    
-}
+
 
 #nav li:last-child
 {
@@ -148,7 +148,7 @@ background-color:rgba(255,255,255,0.2);
 border-radius:5px;
 padding: 1px 3px 1px 3px;
 }
-/*background-color:rgba(255,150,150,0.33);*/
+
 a:hover{background-color:#E6F6B8;}
 ul{line-height:128%;}
 
@@ -328,6 +328,15 @@ a.createbutton::before
  content: url(/static/img/icons/silk/add.png);   
 }
 
+a.editbutton::before
+{
+content: url(/static/img/icons/silk/pencil.png);
+}
+
+a.gobutton::before
+{
+content: url(/static/img/icons/silk/arrow_right.png);
+}
 a.deletebutton::before
 {
  content: url(/static/img/icons/silk/cross.png);   
@@ -368,6 +377,11 @@ span.directory-icon::before
  content: url(/static/img/icons/silk/folder.png);   
 }
 
+span.settings-icon::before
+{
+ content: url(/static/img/icons/silk/cog.png);   
+}
+
 a.modules-library-link::before
 {
   content: url(/static/img/icons/silk/lorry.png);   
@@ -387,3 +401,6 @@ a.pageslink::before
 	color:rgba(36, 31, 100, 1);
 	text-shadow: 0px 0px 8px rgba(36, 31, 255, 1);
 */
+/*background-color:rgba(255,150,150,0.33);*/
+/*a:link {background-color:#80FF80;}    /* unvisited link */
+/*a:hover {background-color:#0066FF;}   /* mouse over link */

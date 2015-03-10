@@ -370,7 +370,11 @@ class WebInterface():
             #This returns a page to delete any resource by name
             if path[0] == 'deleteresource':
                 pages.require("/admin/modules.edit")
-                return pages.get_template("modules/deleteresource.html").render(module=module)
+                if len(path)>1:
+                    x = path[1]
+                else:
+                    x =""
+                return pages.get_template("modules/deleteresource.html").render(module=module,r=x)
 
             #This handles the POST request to actually do the deletion
             if path[0] == 'deleteresourcetarget':

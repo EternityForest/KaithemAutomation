@@ -1,0 +1,11 @@
+{
+    "body": "<%kaithem.globals.count+=1%>\r\nThis page increments a variable called kaithem.global.count by one. Anything in kaithem.global is shared system-wide. This variable got it's value from the event called init.\r\n",
+    "no-header": false,
+    "no-navheader": true,
+    "require-method": [
+        "GET",
+        "POST"
+    ],
+    "require-permissions": [],
+    "resource-type": "page"
+}

@@ -1,0 +1,206 @@
+{
+ "/system/notifications": [
+  [
+   1425976083.898446, 
+   "System Initialized"
+  ], 
+  [
+   1425976554.674801, 
+   "User admin modified resource Initialize of module JookBawkse"
+  ], 
+  [
+   1425976624.190048, 
+   "User admin modified resource Initialize of module JookBawkse"
+  ], 
+  [
+   1425976808.185031, 
+   "User admin added resource Stop2 of type page to module JookBawkse"
+  ], 
+  [
+   1425976832.473344, 
+   "User admin modified resource Stop2 of module JookBawkse"
+  ], 
+  [
+   1425976857.355359, 
+   "User admin modified resource Menu of module JookBawkse"
+  ], 
+  [
+   1425976913.707831, 
+   "User admin modified resource Menu of module JookBawkse"
+  ], 
+  [
+   1425976993.335423, 
+   "User admin modified resource Stop of module JookBawkse"
+  ], 
+  [
+   1425977034.342793, 
+   "User admin modified resource Play of module JookBawkse"
+  ], 
+  [
+   1425977120.328699, 
+   "User admin modified resource Stop2 of module JookBawkse"
+  ], 
+  [
+   1425977159.579967, 
+   "User admin modified resource Menu of module JookBawkse"
+  ], 
+  [
+   1425977169.235142, 
+   "User admin modified resource Menu of module JookBawkse"
+  ], 
+  [
+   1425977181.873241, 
+   "User admin modified resource Menu of module JookBawkse"
+  ], 
+  [
+   1425977197.106674, 
+   "User admin modified resource Menu of module JookBawkse"
+  ], 
+  [
+   1425977207.077046, 
+   "User admin modified resource Menu of module JookBawkse"
+  ], 
+  [
+   1425977392.883552, 
+   "User admin modified resource reset of module JookBawkse"
+  ], 
+  [
+   1425977470.922827, 
+   "User admin modified resource LoadPlaylist of module JookBawkse"
+  ], 
+  [
+   1425977491.192783, 
+   "User admin modified resource LoadPlaylist of module JookBawkse"
+  ], 
+  [
+   1425977498.967886, 
+   "User admin modified resource LoadPlaylist of module JookBawkse"
+  ]
+ ], 
+ "/system/perf/FPS": [
+  [
+   1425976140.092855, 
+   47.75
+  ], 
+  [
+   1425976200.005626, 
+   49.4
+  ], 
+  [
+   1425976260.010754, 
+   48.59
+  ], 
+  [
+   1425976320.00653, 
+   47.18
+  ], 
+  [
+   1425976380.004744, 
+   49.38
+  ], 
+  [
+   1425976440.002758, 
+   51.2
+  ], 
+  [
+   1425976500.004744, 
+   50.37
+  ], 
+  [
+   1425976560.016964, 
+   51.01
+  ], 
+  [
+   1425976620.002202, 
+   46.12
+  ], 
+  [
+   1425976680.00636, 
+   44.04
+  ], 
+  [
+   1425976740.010114, 
+   51.38
+  ], 
+  [
+   1425976800.022089, 
+   50.38
+  ], 
+  [
+   1425976860.006999, 
+   46.84
+  ], 
+  [
+   1425976920.009306, 
+   46.03
+  ], 
+  [
+   1425976980.015502, 
+   48.26
+  ], 
+  [
+   1425977040.00679, 
+   45.91
+  ], 
+  [
+   1425977100.01123, 
+   51.78
+  ], 
+  [
+   1425977160.004178, 
+   48.94
+  ], 
+  [
+   1425977220.01098, 
+   52.89
+  ], 
+  [
+   1425977280.010153, 
+   49.4
+  ], 
+  [
+   1425977340.00605, 
+   47.93
+  ], 
+  [
+   1425977400.007379, 
+   48.44
+  ], 
+  [
+   1425977460.004028, 
+   47.92
+  ], 
+  [
+   1425977520.003604, 
+   49.82
+  ]
+ ], 
+ "/system/perf/memuse": [
+  [
+   1425976140.09281, 
+   0.756
+  ], 
+  [
+   1425976800.022066, 
+   0.74
+  ], 
+  [
+   1425977460.003961, 
+   0.737
+  ]
+ ], 
+ "/system/perf/requestsperminute": [
+  [
+   1425976140.0161, 
+   3
+  ], 
+  [
+   1425976800.022022, 
+   30
+  ], 
+  [
+   1425977400.007338, 
+   36
+  ]
+ ]
+}

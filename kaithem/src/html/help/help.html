@@ -861,7 +861,7 @@ an-option-with-a-list-as-a-value:
         <p>
             Kaithem comes with a default security certificate in the kaithem/var/ssl directory. Becuase it is publicly
             known, it provides <b>ABSOLUTELY NO SECURITY</b>. The intent is to let you test out Kaithem easily, but if
-            you want to actually deploy an instance, you <b>MUST</b> replace thesecurity key with a real one and keep it
+            you want to actually deploy an instance, you <b>MUST</b> replace the security key with a real one and keep it
             secret. There are plenty of TLS/SSL Certificate tutorials,
             and equally important is that you ensure that the permissions on the private key file are truly set to private.
         </p>
@@ -1045,7 +1045,8 @@ front-page-banner: |
          <p>To update Kaithem, simply go into the Kaithem install folder in the user's home dir, and do a git pull.</p>
          
          <p>Be careful updating, 100% backwards compatibility is not guaranteed at this stage of the project,
-          and some config options might gte deprecated and your settings may be ignored.</p>
+          and some config options might gte deprecated and your settings may be ignored.
+         That said, backwards compatibility is an important goal, and release notes should include and known issues.</p>
           
          <p>You should make a copy of kaithem/var,  put it somewhere else, and change the
          <pre>site-data-dir</pre>
@@ -1053,6 +1054,9 @@ front-page-banner: |
          In your config file to point to it. Also change ssl-dir to point to whereever you put the certificate.cert and certificate.key files of your private key.
          If you don't do this, it will write your data(modules,pages,events,settings) directly into the cloned repo, which may cause an error when you try to update via git.
          </p>
+
+          <p>If you are doing web kiosks or datalogging or anything else wherer you need to reliably track changing data, the 
+                "keep everything in ram and periodically save" model may not work. You might want to consider using a spinnin drive or good SSD and SQLite. for rapidly changing data.</p>
          <h3>Audio is not working on the RasPi</h3>
          
          <p>At least on the version of Raspbian used for testing, SoX will not work unless you set the following environment variables
@@ -1131,6 +1135,9 @@ depends = FunctionCallThatWillFailIfDependacyNotMet()
         <p>Internally, the setup code is run once during the 'test compile', then once when actually creating the event.
         The objet created in the test compile is deteted, so all deleters are honored.
         Your setup setions should be retry tolerant anyway, but this issue may be fixed later</p>
+
+<h3>I need better data reliability than simple autosave</h3>
+<p>Then you should probably use sqlite, which is built into python, or another transactional database.</p>
 </div>
 
 <%include file="/pagefooter.html"/>

@@ -1,6 +1,6 @@
 <%!
 from src.config import config
-from src import auth,util,notifications,pages
+from src import auth,util,notifications,pages,modules,registry
 import cherrypy
 %>
 
@@ -97,12 +97,19 @@ import cherrypy
             
             
             </li>
-            <li><a class="moduleslink" href="/modules/">Modules</a></li>
+            <li><a class="moduleslink" href="/modules/">Modules</a>
+%if modules.moduleschanged:
+*
+%endif</li>
             <li><a class="pageslink" href="/pagelisting">Page Index</a></li>
 
             <li><a class="helplink" href="/helpmenu">Help</a></li>
             
-            <li><a class="settingslink" href="/settings">Settings and Tools</a></li>
+            <li><a class="settingslink" href="/settings">Settings and Tools</a>
+
+%if auth.authchanged:
+*
+%endif</li>
             %if "auth" in cherrypy.request.cookie:
             
                 %if cherrypy.request.cookie['auth'].value in auth.Tokens:
@@ -115,7 +122,6 @@ import cherrypy
             %else:
                 <li><a class="loginlink" href="/login?go=${util.url(cherrypy.url())}">Login</a></li>
             %endif
-
     </ul>
     </div>
     <main>
