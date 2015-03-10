@@ -134,6 +134,7 @@ properties:
             -tiny
             -normal
             -pretty
+            -null
             
     log-compress:
         type: string

@@ -111,15 +111,17 @@ def _dumpLogFile():
             return
                 
 
-                
+
         where =os.path.join(directories.logdir,'dumps')
         if not os.path.exists(where):
             os.makedirs(where)
-        #Actually dump the log.
-        with openlog(os.path.join(where,str(time.time())+ext),'wb') as f:
-            util.chmod_private_try(os.path.join(where,str(time.time())+ext))
-            dump(temp,f)
-            f.close()
+
+        if not config['log-format'] == 'null':     
+            #Actually dump the log.
+            with openlog(os.path.join(where,str(time.time())+ext),'wb') as f:
+                util.chmod_private_try(os.path.join(where,str(time.time())+ext))
+                dump(temp,f)
+                f.close()
         
         
         asnumbers = {}

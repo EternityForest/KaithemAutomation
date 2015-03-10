@@ -27,8 +27,10 @@ x = sys.path[0]
 if sys.version_info < (3,0):
     sys.path = [os.path.join(x,'src','thirdparty','python2')] + sys.path
     from gzip import open as opengzip
+    import thread
 else:
     from gzip import GzipFile as opengzip
+    import _thread as thread
     sys.path = [os.path.join(x,'src','thirdparty','python3')] + sys.path
 
 #There is actually a very good reason to change the import path here.
@@ -79,7 +81,7 @@ cherrypy.process.servers.check_port(bindto, config['https-port'], timeout=1.0)
 
 
 MyExternalIPAdress = util.updateIP()
-
+thread.stack_size(64000)
 
 
 if config['enable-websockets']:
