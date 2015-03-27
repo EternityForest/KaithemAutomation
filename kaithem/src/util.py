@@ -321,3 +321,14 @@ def unescape(s,escape="\\"):
           
 def module_onelevelup(s):
     return "/".join([i.replace("\\","\\\\").replace("/","\\/") for i in s.split_escape(s,"/","\\")])
+
+numberlock = threading.Lock()
+current_number = -1
+
+def unique_number():
+    with numberlock:
+        current_number +=1
+        x = current_number
+    return x
+
+    

@@ -372,7 +372,7 @@ class Slider(Widget):
            if(%(htmlid)s_clean)
            {
             document.getElementById('%(htmlid)s').value= val;
-            document.getElementById('%(htmlid)s_l').innerHTML= val+"%(unit)s";
+            document.getElementById('%(htmlid)s_l').innerHTML= (Math.round(val*1000)/1000)+"%(unit)s";
             }
             %(htmlid)s_clean =%(htmlid)s_cleannext;
            }

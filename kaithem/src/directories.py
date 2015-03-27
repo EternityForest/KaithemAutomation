@@ -31,6 +31,7 @@ regdir = os.path.join(vardir,'registry')
 moduledir = os.path.join(vardir,'modules')
 datadir = os.path.join(dn,'../data')
 htmldir = os.path.join(dn,'html')
+
 ssldir =  os.path.join(vardir,config['ssl-dir'])
 
 def recreate():

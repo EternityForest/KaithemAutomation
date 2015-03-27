@@ -82,7 +82,11 @@ class Settings():
         pages.require("/admin/settings.edit")
         if 'script' in kwargs:
             x = ''
-            p = subprocess.Popen("bash -i",universal_newlines=True, shell=True,stdout=subprocess.PIPE,stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+            if util.which("bash"):
+                p = subprocess.Popen("bash -i",universal_newlines=True, shell=True,stdout=subprocess.PIPE,stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+            else:
+                p = subprocess.Popen("sh -i",universal_newlines=True, shell=True,stdout=subprocess.PIPE,stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+
             t =  p.communicate(kwargs['script'])
             x+= t[0] + t[1]
             try:
@@ -94,7 +98,7 @@ class Settings():
                 pass
             return pages.get_template("settings/console.html").render(output=x)
         else:
-            return pages.get_template("settings/console.html").render(output="Kaithem BASH Shell")
+            return pages.get_template("settings/console.html").render(output="Kaithem System Shell")
 
     
     @cherrypy.expose 

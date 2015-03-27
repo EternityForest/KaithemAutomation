@@ -74,7 +74,7 @@ def dump(j):
         %for i in sorted(messagelogging.log.keys(),key=sortkey,reverse = rev):
             <div id="f_${i}">
                 %if not set(messagebus.MessageBus.parseTopic(i)).isdisjoint(set(messagelogging.toSave)):
-                    <h3>${i|h}</h3>
+                    <h3 ${'class="error"' if 'error' in i else ''}>${i|h}</h3>
                     (logging)
                     %if i[1:] in messagelogging.toSave:
                         <a href="/logs/stoplogging/${url(i)}">[stop]</a>)
@@ -82,7 +82,7 @@ def dump(j):
                         [logged because it is part of a subtree that is being logged]
                     %endif
                 %else:
-                    <h3>${i|h}</h3>
+                    <h3 ${'class="error"' if 'error' in i else ''}>${i|h}</h3>
                     (will not be saved to log file <a href="/logs/startlogging/${url(i)}">[start logging]</a>)
                 %endif
                 

@@ -257,13 +257,14 @@ class KaithemPage():
                     return cherrypy.lib.static.serve_file(e.f_filepath,e.f_MIME,e.f_name)
                 
                 tb = traceback.format_exc()
+                tb = "Request from: "+cherrypy.request.remote.ip+"("+pages.getAcessingUser()+")\n"+cherrypy.request.request_line+"\n"+str(cherrypy.request.cookie)+"\n"+tb
                 #When an error happens, log it and save the time
                 #Note that we are logging to the compiled event object
                 page.errors.append([time.strftime(config['time-format']),tb])
                 try:
                     messagebus.postMessage('system/errors/pages/'+
                                        module+'/'+
-                                       pagename,str(tb))
+                                       "/".join(args),str(tb))
                 except Exception as e:
                     print (e)
                 #Keep only the most recent 25 errors
@@ -272,6 +273,6 @@ class KaithemPage():
                 #send a global system messsage that will go to the front page.
                 if len(page.errors)==1:
                     messagebus.postMessage('/system/notifications/errors',
-                                           "Page \""+pagename+"\" of module \""+module+
+                                           "Page \""+"/".join(args)+"\" of module \""+module+
                                            "\" may need attention")
                 raise (e)
