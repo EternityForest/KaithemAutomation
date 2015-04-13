@@ -354,7 +354,7 @@ class Slider(Widget):
             return {'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
         if type=='realtime':
             return """<div class="widgetcontainer sliderwidget">
-            <b>%(label)s</b></br>
+            <b><p>%(label)s</p></b>
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
             %(orient)s
            oninput="
@@ -384,7 +384,7 @@ class Slider(Widget):
         
         if type=='onrelease':
             return """<div class="widgetcontainer sliderwidget">
-            <b>%(label)s</b><br>
+            <b><p">%(label)s</p></b>
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
             %(orient)s
             oninput="document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s'; document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();"
