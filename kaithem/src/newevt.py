@@ -423,10 +423,13 @@ class MessageEvent(BaseEvent,CompileCodeStringsMixin):
         def action_wrapper(topic,message):
             #Since we aren't under the BaseEvent.check() lock, we need to get it ourselves.
             with self.lock:
-                #I think this is a circular reference bug. This probably isn't the way to fix it.
-                #But I want it fixed fast because it's a crappy bug.
+
+                #These two lines were an old fix for a circular reference buf that made message events not go away.
+                #It is still here just in case another circular reference bug pops up.
                 if (self.module,self.resource) not in EventReferences:
                     return
+
+
                 #setup environment
                 self.pymodule.__dict__['__topic'] = topic
                 self.pymodule.__dict__['__message'] = message
@@ -444,6 +447,10 @@ class MessageEvent(BaseEvent,CompileCodeStringsMixin):
         #Subscribe our new function to the topic we want
         messagebus.subscribe(t,action_wrapper)
         self._init_setup_and_action(setup,do)
+
+    #This is the real solution for the circular reference nonsense, until the messagebus has a real unsubscribe feature.
+    def unregister():
+        del self.action_wrapper_because_we_need_to_keep_a_reference
 
 class ChangedEvalEvent(BaseEvent,CompileCodeStringsMixin):
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
