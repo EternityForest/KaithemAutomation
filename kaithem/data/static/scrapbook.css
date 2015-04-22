@@ -3,7 +3,7 @@
 {
 	display:inline;
 	border-width:1px;
-	border-style: none solid none none; 
+	border-style: none solid none none;
     display: table-cell;
     text-align:center;
     border-color: grey;
@@ -35,7 +35,7 @@ tr.header
 div.kmainpagebody
 {
 }
-#topbanner {  
+#topbanner {
   width: 100%;
   background: rgba(255, 255, 230, 0.25);
   border-radius: 12px;
@@ -49,14 +49,14 @@ div.kmainpagebody
 	color:rgba(80,110,80,1);
 }
 
-#page {  
-  background-repeat: repeat;  
+#page {
+  background-repeat: repeat;
   background-image: url("/static/img/webtreats_minty_green_pattern_08.jpg");  -webkit-background-size: 100% auto;
   background-color:rgb(150,170,100);
 
 }
 
-div.sectionbox,main>section{border-style:solid; 
+div.sectionbox,main>section{border-style:solid;
 background: rgba(240, 230, 200, 0.5);
 border-width:2px;
 border-radius: 7px;
@@ -72,7 +72,7 @@ margin:2px;
 }
 
 div.scrollbox {
-border-style:solid; 
+border-style:solid;
 
 border-width:2px;
 border-radius: 7px;
@@ -90,7 +90,7 @@ margin:0.5%;
 }
 
 #nav {
-border-style:solid; 
+border-style:solid;
 background: rgba(255, 255, 230, 0.25);
 border-width: 2px;
 margin-top: 1px;
@@ -108,9 +108,9 @@ padding:2px;
 #nav li:last-child
 {
 	display:inline;
-	border-style: none ; 
+	border-style: none ;
     display: table-cell;
-	
+
 }
 
 nav.li:hover
@@ -127,7 +127,7 @@ textarea.pythoncode {background-color: #E6E6B8; width:100%; overflow:"scroll";fo
 textarea.htmlcode {background-color: #E6E6B8; width:100%; overflow:"scroll";font-size:125%;}
 textarea.code {
 	background-color: #E6E6B8;
-	 width:100%; 
+	 width:100%;
 	 overflow:"scroll";
 	 font-size:125%;
 	 }
@@ -144,7 +144,7 @@ h4{margin-top:0.3em; margin-bottom: 0.3em}
 h5{margin:8px;}
 
 a{
-background-color:rgba(255,255,255,0.2); 
+background-color:rgba(255,255,255,0.2);
 border-radius:5px;
 padding: 1px 3px 1px 3px;
 }
@@ -153,11 +153,11 @@ a:hover{background-color:#E6F6B8;}
 ul{line-height:128%;}
 
 p.help{
-background-color:rgba(255,255,25,0.1); 
+background-color:rgba(255,255,25,0.1);
 border-radius:5px;
 margin-bottom:5px;
 margin-top:5px;
-border-style:solid; 
+border-style:solid;
 border-width:1px;
 border-radius: 7px;
 padding:3px;
@@ -165,10 +165,10 @@ cursor:help;
 }
 
 p.menubar{
-background-color:rgba(255,25,255,0.1); 
+background-color:rgba(255,25,255,0.1);
 border-radius:5px;
 margin:2px;
-border-style:solid; 
+border-style:solid;
 border-width:1px;
 border-radius: 7px;
 padding:4px;
@@ -228,14 +228,14 @@ table tr:nth-child(even) td{
 {
 	color: 	#900000;
     background-color: rgba(255,200,0,0.2);
-	
+
 }
 
 .warning
 {
 	color: 	#806600;
 	background-color: rgba(255,255,0,0.2);
-	
+
 }
 
 
@@ -298,7 +298,7 @@ button.triggerbuttonwidget
 
 input.verticalslider
 {
-	-webkit-appearance: slider-vertical; 
+	-webkit-appearance: slider-vertical;
      writing-mode: bt-lr;
      height:9.2em;
      width:1em;
@@ -309,7 +309,7 @@ input.horizontalslider
 {
      height:0.5em;
      width:12em;
-     
+
 }
 
 .specialentry
@@ -325,7 +325,7 @@ dt
 
 a.createbutton::before
 {
- content: url(/static/img/icons/silk/add.png);   
+ content: url(/static/img/icons/silk/add.png);
 }
 
 a.editbutton::before
@@ -339,62 +339,62 @@ content: url(/static/img/icons/silk/arrow_right.png);
 }
 a.deletebutton::before
 {
- content: url(/static/img/icons/silk/cross.png);   
+ content: url(/static/img/icons/silk/cross.png);
 }
 
 a.settingslink::before
 {
- content: url(/static/img/icons/silk/cog.png);   
+ content: url(/static/img/icons/silk/cog.png);
 }
 
 a.helplink::before
 {
- content: url(/static/img/icons/silk/book_open.png);   
+ content: url(/static/img/icons/silk/book_open.png);
 }
 
 a.loginlink::before
 {
- content: url(/static/img/icons/silk/key.png);   
+ content: url(/static/img/icons/silk/key.png);
 }
 
 span.page-icon::before
 {
- content: url(/static/img/icons/silk/page.png);   
+ content: url(/static/img/icons/silk/page.png);
 }
 
 span.permission-icon::before
 {
- content: url(/static/img/icons/silk/key.png);   
+ content: url(/static/img/icons/silk/key.png);
 }
 
 span.event-icon::before
 {
- content: url(/static/img/icons/silk/script.png);   
+ content: url(/static/img/icons/silk/script.png);
 }
 
 span.directory-icon::before
 {
- content: url(/static/img/icons/silk/folder.png);   
+ content: url(/static/img/icons/silk/folder.png);
 }
 
 span.settings-icon::before
 {
- content: url(/static/img/icons/silk/cog.png);   
+ content: url(/static/img/icons/silk/cog.png);
 }
 
 a.modules-library-link::before
 {
-  content: url(/static/img/icons/silk/lorry.png);   
+  content: url(/static/img/icons/silk/lorry.png);
 }
 
 a.upload-module-button::before
 {
-  content: url(/static/img/icons/silk/arrow_up.png);   
+  content: url(/static/img/icons/silk/arrow_up.png);
 }
 
 a.pageslink::before
 {
-  content: url(/static/img/icons/silk/page_white_stack.png);   
+  content: url(/static/img/icons/silk/page_white_stack.png);
 }
 
 /*

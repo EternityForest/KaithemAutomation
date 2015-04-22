@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import weakref,threading,time,os,random,json,traceback
+import weakref,threading,time,os,random,json,traceback,cherrypy
 from . import workers
 from collections import defaultdict, OrderedDict
 
@@ -59,10 +59,13 @@ class MessageBus(object):
             #Add something to topic before we delete it but after the test.
             #That would result in a canceled subscription
             #So we use this lock.
-            with _subscribers_list_modify_lock:
-                if not self.subscribers[topic]:
-                    self.subscribers.pop(topic)
-
+            try:
+                with _subscribers_list_modify_lock:
+                    if not self.subscribers[topic]:
+                        self.subscribers.pop(topic)
+            except AttributeError as e:
+                if cherrypy.engine.state == cherrypy.engine.states.STARTED:
+                    raise e
         self.subscribers[topic].append(weakref.ref(callback,delsubscription))
 
     @staticmethod

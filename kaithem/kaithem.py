@@ -47,7 +47,7 @@ if sys.version_info < (3,0):
 else:
     sys.path = sys.path+[os.path.join(x,'src','thirdparty','lowpriority','python3')]
 
-    
+
 import time,signal
 import cherrypy,validictory
 from cherrypy import _cperror
@@ -75,7 +75,7 @@ if config['local-access-only']:
     bindto = '127.0.0.1'
 else:
     bindto = '0.0.0.0'
-    
+
 cherrypy.process.servers.check_port(bindto, config['http-port'], timeout=1.0)
 cherrypy.process.servers.check_port(bindto, config['https-port'], timeout=1.0)
 
@@ -91,7 +91,7 @@ if config['enable-websockets']:
     cherrypy.tools.websocket = WebSocketTool()
 
 
-        
+
 #Initialize the authorization module
 auth.initializeAuthentication()
 
@@ -100,65 +100,65 @@ modules.initModules()
 
 #This class represents the "/" root of the web app
 class webapproot():
-    
-   #"/" is mapped to this 
-    @cherrypy.expose 
+
+   #"/" is mapped to this
+    @cherrypy.expose
     def index(self,*path,**data):
         pages.require("/admin/mainpage.view")
         cherrypy.response.cookie['LastSawMainPage'] = time.time()
         return pages.get_template('index.html').render()
-        
-    @cherrypy.expose 
+
+    @cherrypy.expose
     def pagelisting(self,*path,**data):
         return pages.get_template('pagelisting.html').render_unicode(modules = modules.ActiveModules)
-        
+
     #docs,about,helpmenu, and license are just static pages
-    @cherrypy.expose 
+    @cherrypy.expose
     def docs(self,*path,**data):
         if path:
             return pages.get_template('help/'+path[0]+'.html').render()
         return pages.get_template('help/help.html').render()
-    
-    @cherrypy.expose 
+
+    @cherrypy.expose
     def makohelp(self,*path,**data):
         return pages.get_template('help/makoreference.html').render()
-    
-    @cherrypy.expose 
+
+    @cherrypy.expose
     def about(self,*path,**data):
         return pages.get_template('help/about.html').render(myip = MyExternalIPAdress)
-    @cherrypy.expose 
+    @cherrypy.expose
     def changelog(self,*path,**data):
         return pages.get_template('help/changes.html').render(myip = MyExternalIPAdress)
-    @cherrypy.expose 
+    @cherrypy.expose
     def helpmenu(self,*path,**data):
         return pages.get_template('help/index.html').render()
-    @cherrypy.expose 
+    @cherrypy.expose
     def license(self,*path,**data):
         return pages.get_template('help/license.html').render()
 
 class Errors():
-    @cherrypy.expose 
+    @cherrypy.expose
     def permissionerror(self,):
         cherrypy.response.status = 403
         return pages.get_template('errors/permissionerror.html').render()
-    @cherrypy.expose 
+    @cherrypy.expose
     def alreadyexists(self,):
         return pages.get_template('errors/alreadyexists.html').render()
-    @cherrypy.expose 
+    @cherrypy.expose
     def gosecure(self,):
         return pages.get_template('errors/gosecure.html').render()
-    @cherrypy.expose 
+    @cherrypy.expose
     def loginerror(self,):
         return pages.get_template('errors/loginerror.html').render()
-    @cherrypy.expose 
+    @cherrypy.expose
     def wrongmethod(self,):
         cherrypy.response.status = 405
         return pages.get_template('errors/wrongmethod.html').render()
-    @cherrypy.expose 
+    @cherrypy.expose
     def error(self,):
         cherrypy.response.status = 500
         return pages.get_template('errors/error.html').render(info="An Error Occurred")
-    
+
 
 def cpexception():
     cherrypy.response.status = 500
@@ -167,10 +167,10 @@ def cpexception():
     else:
         cherrypy.response.body= bytes(pages.get_template('errors/cperror.html').render(e=_cperror.format_exc()),'utf8')
 
-        
-    
-       
-#There are lots of other objects ad classes represeting subfolders of the website so we attatch them        
+
+
+
+#There are lots of other objects ad classes represeting subfolders of the website so we attatch them
 root = webapproot()
 root.login = weblogin.LoginScreen()
 root.auth = ManageUsers.ManageAuthorization()
@@ -215,12 +215,12 @@ cnf={
         "tools.sessions.on": False,
         "tools.addheader.on": True
         },
-     
+
      '/pages':
         {
          'request.dispatch': cherrypy.dispatch.MethodDispatcher()
         },
-     
+
     '/widgets/ws': wscfg
 }
 #Let the user create additional static directories
@@ -231,16 +231,16 @@ for i in config['serve-static']:
         'tools.staticdir.dir': config['serve-static'][i],
         "tools.sessions.on": False,
         "tools.addheader.on": True
-        }    
+        }
 
 def addheader(*args,**kwargs):
     "This function's only purpose is to tell the browser to cache requests for an hour"
     cherrypy.response.headers['Cache-Control'] = "max-age=3600"
     #del cherrypy.response.headers['Expires']
-    
+
 def pageloadnotify(*args,**kwargs):
     systasks.aPageJustLoaded()
-cherrypy.config.update(site_config)    
+cherrypy.config.update(site_config)
 cherrypy.tools.pageloadnotify = cherrypy.Tool('on_start_resource', pageloadnotify)
 cherrypy.config['tools.pageloadnotify.on'] = True
 
@@ -266,7 +266,6 @@ messagebus.postMessage('/system/notifications','System Initialized')
 
 if time.time() < 1420070400:
     messagebus.postMessage('/system/notifications/errors',"System Clock probably wrong, some features may not work properly.")
-
 
 
 cherrypy.engine.start()
