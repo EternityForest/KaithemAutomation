@@ -16,8 +16,8 @@ This Page allows you to view and edit information and resources associated with 
 <div class="sectionbox">
 
 <p class="help">Changing the name of a module will invalidate all external references to the module by its old name. Also, if the name is in use it will be overwritten. Be Careful.</p><hr>
-<h4>Name:</h4> 
-<input required="required" class="modulename" name="name" type="text" value="${name|h}">  
+<h4>Name:</h4>
+<input required="required" class="modulename" name="name" type="text" value="${name|h}">
 <h4>Info:</h4>
 <textarea name="description" class="description" rows=5>${module['__description']['text']|h}</textarea>
 <hr>
@@ -71,46 +71,47 @@ def in_folder(r,f,n):
 <hr>
 %for i in sorted(sorted(module.keys()), key=lambda x: module[x]['resource-type']):
 %if in_folder(i,fullpath,name):
+
 	%if module[i]['resource-type'] == 'event':
 	  <dt>
 	       <span class="event-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a>
-<a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a></b>	       
+<a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a></b>
 	       %if newevt.fastGetEventErrors(name,i):
 	       <span class="error">[${len(newevt.fastGetEventErrors(name,i))} Errors]</span>
-	       %endif       
+	       %endif
 	  </dt>
 	  <dd>
 	       <b>Trigger:</b> ${module[i]['trigger']|h}<br>
-     
-		    <b>Last Ran:</b> 
+
+		    <b>Last Ran:</b>
 		    %if newevt.getEventLastRan(name,i):
 		    ${unitsofmeasure.strftime(newevt.getEventLastRan(name,i))|h}
 		    (about ${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(name,i),2)} ago)
 		    %else:
 		    This event has not ran since it loaded.
 		    %endif
-		    
-		    
+
+
 		    %if module[i]['trigger'].startswith("!time"):
 		    <br><b>Next Run:</b>
 		    ${unitsofmeasure.strftime(get_time(module[i]['trigger']))|h}</b></p>
 		    %endif
 	  </dd>
 	%endif
-	
+
 	%if module[i]['resource-type'] == 'page':
 	  <dt>
 	       <span class="page-icon"></span><b\
 	       %if i.startswith('__'):
 	       class="specialentry page"\
 	       %endif
-	       >${util.split_escape(i,'/')[-1]|h}    
+	       >${util.split_escape(i,'/')[-1]|h}
 		%if usrpages.getPageErrors(name,i):
 		<span class="error">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
 		%endif
 		</b><a class="gobutton" href="${usrpages.url_for_resource(name,i)}">Go to page</a>|<a class="editbutton"
- href="/modules/module/${url(name)}/resource/${i.replace("\\/","%2F")}">
-		
+        href="/modules/module/${url(name)}/resource/${url(i)}">
+
 		Edit Page</a><a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a></dt>
 	  <dd>
         %if 'require-permissions' in module[i] and module[i]['require-permissions']:
@@ -121,20 +122,20 @@ def in_folder(r,f,n):
 	  %endif
 	  </dd>
 	%endif
-	
+
        %if module[i]['resource-type'] == 'permission':
-       
+
       <dt><span class="permission-icon"></span><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a>
 <a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
 <dt>
- 
+
 	%endif
-	
+
      %if module[i]['resource-type'] == 'directory':
-       
+
       <dt><span class="directory-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a></b>
 <a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a><dt>
- 
+
 	%endif
 	<hr>
 %endif

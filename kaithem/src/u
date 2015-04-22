@@ -1,0 +1,27 @@
+import weakref
+
+class Tag():
+    def __init__(self,default=0):
+        self.subscribers = {}
+        self.value = default
+
+    def
+    def _push(self, value):
+        for i in self.subscribers:
+            try:
+                self.subscribers[i]()(value)
+            except:
+                pass
+
+    def subscribe(self,f):
+        id = util.unique_number
+        def g():
+            del self.subscribers[id]
+        self.subscribers[id] = weakref.ref(f,g)
+
+
+What's up with the float project?
+
+power>rpi: microUSB
+rpi>arduino: USB
+arduo

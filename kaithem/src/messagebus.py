@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import weakref,threading,time,os,random,json
+import weakref,threading,time,os,random,json,traceback
 from . import workers
 from collections import defaultdict, OrderedDict
 
@@ -22,7 +22,7 @@ _subscribers_list_modify_lock = threading.Lock()
 parsecache = OrderedDict()
 
 class MessageBus(object):
-    
+
     def __init__(self,executor = None):
         """You pass this a function of one argument that just calls its argument. Defaults to calling in
         same thread and ignoring errors.
@@ -36,9 +36,9 @@ class MessageBus(object):
             self.executor = do
         else:
             self.executor = executor
-            
+
         self.subscribers = defaultdict(list)
-        
+
     def subscribe(self,topic,callback):
         if topic.startswith('/'):
             if not len(topic)==1:
@@ -62,9 +62,9 @@ class MessageBus(object):
             with _subscribers_list_modify_lock:
                 if not self.subscribers[topic]:
                     self.subscribers.pop(topic)
-        
+
         self.subscribers[topic].append(weakref.ref(callback,delsubscription))
-    
+
     @staticmethod
     def parseTopic(topic):
         "Parse the topic string into a list of all subscriptions that could possibly match."
@@ -72,7 +72,7 @@ class MessageBus(object):
         #normalize topic
         if topic.startswith('/'):
             topic = topic[1:]
-            
+
         #Since this is a pure function(except the caching itself) we can cache it
         if topic in parsecache:
             return parsecache[topic]
@@ -91,12 +91,12 @@ class MessageBus(object):
         #Don't let the cache get too big.
         #Getting rid of the oldest should hopefully converge to the most used topics being cached
         if len(parsecache) > 1200:
-            parsecache.popitem(last=False) 
+            parsecache.popitem(last=False)
         return matchingtopics
-    
-    def _post(self, topic,message):
+
+    def _post(self, topic,message,errors):
         matchingtopics = self.parseTopic(topic)
-        
+
         #We can't iterate on anything that could possibly change so we make copies
         d = self.subscribers.copy()
         for i in matchingtopics:
@@ -112,39 +112,40 @@ class MessageBus(object):
                     try:
                         f =ref()(topic,message)
                     except:
-                        pass
-                    
-    
-    def postMessage(self, topic, message):
+                        try:
+                            if errors:
+                                self.postMessage("/system/messagebus/errors","Error in subscribed function handling topic: " + topic+"\n"+traceback.format_exc(6),False)
+                        except:
+                                pass
+
+
+
+
+    def postMessage(self, topic, message,errors=True):
         #Use the executor to run the post message job
         #To allow for the possibility of it running in the background as a thread
-        
+
         #A little more checking than usual here because the message bus is so central.
         #Also, if anyone implements logging they will appreciate no crap on the bus.
         try:
             topic = str(topic)
         except Exception:
             raise TypeError("Topic must be a string or castable to a string.")
-        
+
         #Ugly way to find if json serializable. Just try it
         try:
             json.dumps(message)
         except Exception:
             raise ValueError("Message must be serializable as JSON")
-        
+
         def f():
-            self._post(topic,message)
+            self._post(topic,message,errors)
         f.__name__ = 'Publish_'+topic
         self.executor(f)
-        
-        
-        
 
-_bus = MessageBus(workers.do)      
+
+
+
+_bus = MessageBus(workers.do)
 subscribe = _bus.subscribe
 postMessage = _bus.postMessage
-        
-    
-        
-    
-

@@ -240,7 +240,7 @@ class BaseEvent():
     continual: Execute as often as possible while condition remains true
 
     """
-    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = None,priority = 2,m='x',r='x'):
+    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = None,priority = 2,m=None,r=None):
         #Copy in the data from args
         self.scope = scope
         self._prevstate = False
@@ -269,9 +269,8 @@ class BaseEvent():
                 self.priority = config['priority-response']['interactive']
 
         self.runTimes = []
-        #Tese are only used for debug messages, but still someone should set them after they make the object
-        self.module = m
-        self.resource = r
+        self.module = m if m else "<unknown>"
+        self.resource = r if r else util.unique_number()
         self.pymodule = types.ModuleType(str("Event_"+m+"_"+r))
         self.pymodule.__file__ = str("Event_"+m+"_"+r)
         #This lock makes sure that only one copy of the event executes at once.
@@ -307,7 +306,7 @@ class BaseEvent():
 
     def _handle_exception(self, e):
 
-            tb = traceback.format_exc()
+            tb = traceback.format_exc(6)
             #When an error happens, log it and save the time
             #Note that we are logging to the compiled event object
             self.errors.append([time.strftime(config['time-format']),tb])
@@ -426,7 +425,7 @@ class MessageEvent(BaseEvent,CompileCodeStringsMixin):
             with self.lock:
                 #I think this is a circular reference bug. This probably isn't the way to fix it.
                 #But I want it fixed fast because it's a crappy bug.
-                if self not in _EvenReferences:
+                if (self.module,self.resource) not in EventReferences:
                     return
                 #setup environment
                 self.pymodule.__dict__['__topic'] = topic

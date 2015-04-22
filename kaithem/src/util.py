@@ -23,9 +23,9 @@ if sys.version_info < (3,0):
 else:
     from urllib.parse import quote
     from urllib.parse import unquote as unurl
-    
+
 min_time = 0
-  
+
 if sys.version_info < (3,0):
     from urllib2 import urlopen
 else:
@@ -49,15 +49,15 @@ def open_private_text_write(p):
         except:
             pass
         return open(p,'w')
-         
+
 
 def url(string):
     return quote(string,'')
-  
+
 def SaveAllState():
     #fix circular import by putting it here
     from . import  auth,modules,messagelogging,messagebus,registry
-    
+
     with savelock:
         try:
             x = False
@@ -91,7 +91,7 @@ def SaveAllStateExceptLogs():
         except Exception as e:
             messagebus.postMessage("/system/notifications/errors",'Failed to save state:' + repr(e))
 
-    
+
 def ensure_dir(f):
     d = os.path.dirname(f)
     if not os.path.exists(d):
@@ -100,7 +100,7 @@ def ensure_dir(f):
 def ensure_dir2(f):
     if not os.path.exists(f):
         os.makedirs(f)
-        
+
 def readfile(f):
     with open(f) as fh:
         r = fh.read()
@@ -115,15 +115,15 @@ def get_immediate_subdirectories(folder):
 def get_files(folder):
     return [name for name in os.listdir(folder)
             if not os.path.isdir(os.path.join(folder, name))]
-            
-#fix this to not be ugly     
+
+#fix this to not be ugly
 def getHighestNumberedTimeDirectory(where):
     """Given a directory containing entirely folders named after floating point values get the name of the highest. ignore files.
         and also ignoring non-timestapt float looking named directories
     """
     asnumbers = {}
     global min_time
-    
+
     for i in get_immediate_subdirectories(where):
         try:
             asnumbers[float(i)] = i
@@ -142,7 +142,7 @@ def deleteAllButHighestNumberedNDirectories(where,N):
                 asnumbers[float(i)] = i
             except ValueError:
                 pass
-    
+
     for i in sorted(asnumbers.keys())[0:-N]:
         shutil.rmtree(os.path.join(where,asnumbers[i]))
 
@@ -151,18 +151,18 @@ class LowPassFiter(object):
     def __init__(self,speed,startval=0 ):
         self.value = startval
         self.speed = speed
-    
+
     def sample(self, x):
         self.value = (self.value *(1-self.speed)) +   ((x) *self.speed)
 
 #Credit to Jay of stack overflow for this function
 def which(program):
     "Check if a program is installed like you would do with UNIX's which command."
-    
+
     #Because in windows, the actual executable name has .exe while the command name does not.
     if sys.platform == "win32" and not program.endswith(".exe"):
         program += ".exe"
-        
+
     #Find out if path represents a file that the current user can execute.
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
@@ -172,7 +172,7 @@ def which(program):
     if fpath:
         if is_exe(program):
             return program
-        
+
     #Else search the path for the file.
     else:
         for path in os.environ["PATH"].split(os.pathsep):
@@ -180,7 +180,7 @@ def which(program):
             exe_file = os.path.join(path, program)
             if is_exe(exe_file):
                 return exe_file
-            
+
     #If we got this far in execution, we assume the file is not there and return None
     return None
 
@@ -189,14 +189,14 @@ def restart():
 
 def exit():
     cherrypy.engine.exit()
-    
+
 def clearErrors():
     from . import usrpages,newevt
     for i in newevt._events[:]:
         i.errors = []
     for i in usrpages._Pages.items():
         for j in i[1].items():
-            j[1].errors = []  
+            j[1].errors = []
 
 
 def updateIP():
@@ -206,7 +206,7 @@ def updateIP():
         if config['get-public-ip']:
             u= urlopen("http://ipecho.net/plain", timeout = 60)
         MyExternalIPAdress = u.read()
-        
+
         if sys.version_info > (3,0):
             MyExternalIPAdress = MyExternalIPAdress.decode('utf8')
     except:
@@ -223,10 +223,10 @@ def ip_geolocate():
    #Block for a bit if its been less than a second since the last time we did this
    while time.time()-last < 1.5:
        time.sleep(0.1)
-   u=urlopen("http://ip-api.com/json", timeout = 60) 
+   u=urlopen("http://ip-api.com/json", timeout = 60)
    try:
        return(json.loads(u.read().decode('utf8')))
-   
+
    finally:
        u.close()
 
@@ -274,7 +274,7 @@ def time_or_increment():
         return time.time()
     else:
         return int(min_time)+1.234567
-    
+
 def roundto(n,s):
     if not s:
         return n
@@ -283,11 +283,11 @@ def roundto(n,s):
     else:
         return n - n%s
 
-def split_escape(s,separator, escape=None):
+def split_escape(s,separator, escape=None,preserve_escapes=False):
     current_token = ""
     tokens = []
     literal = False
-    
+
     for i in s:
         if literal:
             current_token += i
@@ -295,13 +295,15 @@ def split_escape(s,separator, escape=None):
         elif i == separator:
             tokens+= [current_token]
             current_token = ""
-        
+
         elif i == escape:
             literal = True
+            if preserve_escapes:
+                current_token += i
         else:
             current_token +=i
-    
-    if current_token:        
+
+    if current_token:
         return tokens+[current_token]
     else:
         return tokens
@@ -318,7 +320,7 @@ def unescape(s,escape="\\"):
         else:
             s2+=i
     return s2
-          
+
 def module_onelevelup(s):
     return "/".join([i.replace("\\","\\\\").replace("/","\\/") for i in s.split_escape(s,"/","\\")])
 
@@ -330,5 +332,3 @@ def unique_number():
         current_number +=1
         x = current_number
     return x
-
-    

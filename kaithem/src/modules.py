@@ -25,7 +25,7 @@ if sys.version_info < (3,0):
    from StringIO import StringIO
 else:
     from io import BytesIO as StringIO
-    
+
 import zipfile
 
 from .util import url,unurl
@@ -37,11 +37,11 @@ moduleschanged = False
 class event_interface(object):
    def __init__(self, ):
       self.type = "event"
-   
+
 class page_inteface(object):
    def __init__(self, ):
       self.type = "page"
-      
+
 class permission_inteface(object):
    def __init__(self, ):
       self.type = "permission"
@@ -67,17 +67,17 @@ def saveAll():
         t = int(util.min_time) +1.234
     #This dumps the contents of the active modules in ram to a subfolder of the moduledir named after the current unix time"""
     saveModules(os.path.join(directories.moduledir,str(t) ))
-    #We only want 1 backup(for now at least) so clean up old ones.  
+    #We only want 1 backup(for now at least) so clean up old ones.
     util.deleteAllButHighestNumberedNDirectories(directories.moduledir,2)
     moduleschanged = False
     return True
-    
+
 def initModules():
     for i in range(0,15):
         #Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
         name = util.getHighestNumberedTimeDirectory(directories.moduledir)
         possibledir = os.path.join(directories.moduledir,name)
-        
+
         #__COMPLETE__ is a special file we write to the dump directory to show it as valid
         if '''__COMPLETE__''' in util.get_files(possibledir):
             loadModules(possibledir)
@@ -90,8 +90,8 @@ def initModules():
             #To an interruption, rename it and try again
             shutil.copytree(possibledir,os.path.join(directories.moduledir,name+"INCOMPLETE"))
             shutil.rmtree(possibledir)
-        
-    
+
+
 def saveModules(where):
     with modulesLock:
         util.ensure_dir2(os.path.join(where))
@@ -112,7 +112,7 @@ def saveModules(where):
             #Now we iterate over the existing resource files in the filesystem and delete those that correspond to
             #modules that have been deleted in the ActiveModules workspace thing.
             for i in util.get_immediate_subdirectories(os.path.join(where,url(i))):
-                if unurl(i) not in ActiveModules:  
+                if unurl(i) not in ActiveModules:
                     os.remove(os.path.join(where,url(i),i))
 
         for i in util.get_immediate_subdirectories(where):
@@ -136,7 +136,7 @@ def loadModules(modulesdir):
 def loadModule(moduledir,path_to_module_folder):
     with modulesLock:
         #Make an empty dict to hold the module resources
-        module = {} 
+        module = {}
         #Iterate over all resource files and load them
         for i in util.get_files(os.path.join(path_to_module_folder,moduledir)):
             try:
@@ -145,7 +145,7 @@ def loadModule(moduledir,path_to_module_folder):
                 module[unurl(i)] = yaml.load(f)
             finally:
                 f.close()
-        
+
         name = unurl(moduledir)
         scopes[name] = obj()
         ActiveModules[name] = module
@@ -166,13 +166,13 @@ def getModuleAsZip(module):
         s = ram_file.getvalue()
         ram_file.close()
         return s
-    
+
 def load_modules_from_zip(f):
     "Given a zip file, import all modules found therin."
     new_modules = {}
     z = zipfile.ZipFile(f)
 
-    for i in z.namelist():
+    for i in z.list():
         #get just the folder, ie the module
         p = unurl(i.split('/')[0])
         #Remove the.json by getting rid of last 5 chars
@@ -182,17 +182,17 @@ def load_modules_from_zip(f):
         f = z.open(i)
         new_modules[p][n] = json.loads(f.read().decode())
         f.close()
-    
+
     with modulesLock:
         for i in new_modules:
             if i in ActiveModules:
                 raise cherrypy.HTTPRedirect("/errors/alreadyexists")
         for i in new_modules:
             ActiveModules[i] = new_modules[i]
-            messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " uploaded module" + i + " from a zip file")    
+            messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " uploaded module" + i + " from a zip file")
             bookkeeponemodule(i)
     auth.importPermissionsFromModules()
-            
+
     z.close()
 
 def bookkeeponemodule(module,update=False):
@@ -211,33 +211,33 @@ def bookkeeponemodule(module,update=False):
     if not update:
         messagebus.postMessage("/system/modules/loaded",module)
 
-    
+
 
 
 #The class defining the interface to allow the user to perform generic create/delete/upload functionality.
 class WebInterface():
-    
+
     @cherrypy.expose
     def nextrun(self,**kwargs):
         pages.require('/admin/modules.view')
-        
+
         return str(scheduling.get_next_run(kwargs['string']))
-    
-    
+
+
     #This lets the user download a module as a zip file
     @cherrypy.expose
     def downloads(self,module):
         pages.require('/admin/modules.view')
         cherrypy.response.headers['Content-Type']= 'application/zip'
         return getModuleAsZip(module)
-    
+
     #This lets the user upload modules
     @cherrypy.expose
     def upload(self):
         pages.require('/admin/modules.edit')
         return pages.get_template("modules/upload.html").render()
         #This lets the user upload modules
-        
+
     @cherrypy.expose
     def uploadtarget(self,modules):
         pages.require('/admin/modules.edit')
@@ -245,16 +245,16 @@ class WebInterface():
         moduleschanged = True
         load_modules_from_zip(modules.file)
         messagebus.postMessage("/system/modules/uploaded",{'user':pages.getAcessingUser()})
-        raise cherrypy.HTTPRedirect("/modules/") 
-            
-        
-    
+        raise cherrypy.HTTPRedirect("/modules/")
+
+
+
     @cherrypy.expose
     def index(self):
         #Require permissions and render page. A lotta that in this file.
         pages.require("/admin/modules.view")
         return pages.get_template("modules/index.html").render(ActiveModules = ActiveModules)
-    
+
     @cherrypy.expose
     def library(self):
         #Require permissions and render page. A lotta that in this file.
@@ -262,11 +262,11 @@ class WebInterface():
         return pages.get_template("modules/library.html").render()
 
 
-    @cherrypy.expose       
+    @cherrypy.expose
     def newmodule(self):
         pages.require("/admin/modules.edit")
         return pages.get_template("modules/new.html").render()
-        
+
     #CRUD screen to delete a module
     @cherrypy.expose
     def deletemodule(self):
@@ -290,7 +290,7 @@ class WebInterface():
         messagebus.postMessage("/system/modules/unloaded",kwargs['name'])
         messagebus.postMessage("/system/modules/deleted",{'user':pages.getAcessingUser()})
         raise cherrypy.HTTPRedirect("/modules")
-        
+
     @cherrypy.expose
     def newmoduletarget(self,**kwargs):
         global scopes
@@ -311,7 +311,7 @@ class WebInterface():
                 raise cherrypy.HTTPRedirect("/modules/module/"+util.url(kwargs['name']))
             else:
                 return pages.get_template("error.html").render(info = " A module already exists by that name,")
-    
+
     @cherrypy.expose
     def loadlibmodule(self,module):
         if module  in ActiveModules:
@@ -322,10 +322,10 @@ class WebInterface():
         auth.importPermissionsFromModules()
         raise cherrypy.HTTPRedirect('/modules')
 
-        
+
     @cherrypy.expose
     #This function handles HTTP requests of or relating to one specific already existing module.
-    #The URLs that this function handles are of the form /modules/module/<modulename>[something?]     
+    #The URLs that this function handles are of the form /modules/module/<modulename>[something?]
     def module(self,module,*path,**kwargs):
         global moduleschanged
         root = util.split_escape(module,"/")[0]
@@ -337,7 +337,7 @@ class WebInterface():
         if not path:
             pages.require("/admin/modules.view")
             return pages.get_template("modules/module.html").render(module = ActiveModules[root],name = root,path=modulepath,fullpath=fullpath)
-            
+
         else:
             #This gets the interface to add a page
             if path[0] == 'addresource':
@@ -347,7 +347,7 @@ class WebInterface():
                   x =""
                 #path[1] tells what type of resource is being created and addResourceDispatcher returns the appropriate crud screen
                 return addResourceDispatcher(module,path[1],x)
-            
+
             #This case handles the POST request from the new resource target
             if path[0] == 'addresourcetarget':
                 if len(path)>2:
@@ -382,30 +382,30 @@ class WebInterface():
                 moduleschanged = True
                 with modulesLock:
                    r = ActiveModules[root].pop(kwargs['name'])
-                   
+
                 if r['resource-type'] == 'page':
                     usrpages.removeOnePage(module,kwargs['name'])
                 #Annoying bookkeeping crap to get rid of the cached crap
                 if r['resource-type'] == 'event':
                     newevt.removeOneEvent(module,kwargs['name'])
-                    
+
                 if r['resource-type'] == 'permission':
                     auth.importPermissionsFromModules() #sync auth's list of permissions
-                    
+
                 messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " deleted resource " +
                            kwargs['name'] + " from module " + module)
                 messagebus.postMessage("/system/modules/deletedresource",{'ip':cherrypy.request.remote.ip,'user':pages.getAcessingUser(),'module':module,'resource':kwargs['name']})
- 
+
                 raise cherrypy.HTTPRedirect('/modules')
 
-            #This is the target used to change the name and description(basic info) of a module  
+            #This is the target used to change the name and description(basic info) of a module
             if path[0] == 'update':
                 pages.require("/admin/modules.edit")
                 moduleschanged = True
                 with modulesLock:
                     ActiveModules[root]['__description']['text'] = kwargs['description']
                     ActiveModules[kwargs['name']] = ActiveModules.pop(root)
-                    
+
                     #UHHG. So very much code tht just syncs data structures.
                     #This gets rid of the cache under the old name
                     newevt.removeModuleEvents(root)
@@ -416,10 +416,10 @@ class WebInterface():
                     auth.importPermissionsFromModules()
                 raise cherrypy.HTTPRedirect('/modules/module/'+util.url(kwargs['name']))
 
-#Return a CRUD screen to create a new resource taking into the type of resource the user wants to create               
+#Return a CRUD screen to create a new resource taking into the type of resource the user wants to create
 def addResourceDispatcher(module,type,path):
     pages.require("/admin/modules.edit")
-    
+
     #Return a crud to add a new permission
     if type == 'permission':
         return pages.get_template("modules/permissions/new.html").render(module=module,path=path)
@@ -442,38 +442,38 @@ def addResourceTarget(module,type,name,kwargs,path):
     pages.require("/admin/modules.edit")
     global moduleschanged
     moduleschanged = True
-    
+
     #Wow is this code ever ugly. Bascially we are going to pack the path and the module together.
     escapedName = (kwargs['name'].replace("\\","\\\\").replace("/",'\\/'))
     if path:
       escapedName = path+ "/" + escapedName
     x = util.split_escape(module,"/","\\")
-    escapedName = "/".join(x[1:]+[escapedName]) 
+    escapedName = "/".join(x[1:]+[escapedName])
     root = x[0]
-    
+
     def insertResource(r):
         ActiveModules[root][escapedName] = r
-    
+
     with modulesLock:
         #Check if a resource by that name is already there
         if escapedName in ActiveModules[root]:
             raise cherrypy.HTTPRedirect("/errors/alreadyexists")
-         
+
         #Create a permission
         if type == 'directory':
             insertResource({
                 "resource-type":"directory"})
             raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module))
 
-            
+
         #Create a permission
         if type == 'permission':
             insertResource({
                 "resource-type":"permission",
                 "description":kwargs['description']})
             #has its own lock
-            auth.importPermissionsFromModules() #sync auth's list of permissions 
-            
+            auth.importPermissionsFromModules() #sync auth's list of permissions
+
         if type == 'event':
             insertResource({
                 "resource-type":"event",
@@ -482,12 +482,12 @@ def addResourceTarget(module,type,name,kwargs,path):
                 "once":True,
                 "disabled":False
                 }
-                           
+
                            )
             #newevt maintains a cache of precompiled events that must be kept in sync with
             #the modules
             newevt.updateOneEvent(escapedName,root)
-        
+
         if type == 'page':
                 insertResource({
                     "resource-type":"page",
@@ -497,15 +497,15 @@ def addResourceTarget(module,type,name,kwargs,path):
 
         messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + " added resource " +
                            escapedName + " of type " + type+" to module " + root)
-        
+
         #Take the user straight to the resource page
         raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+util.url(escapedName))
-                
-                      
+
+
 #show a edit page for a resource. No side effect here so it only requires the view permission
 def resourceEditPage(module,resource,version='default'):
     pages.require("/admin/modules.view")
-    
+
     #Workaround for cherrypy decoding unicode as if it is latin 1
     #Because of some bizzare wsgi thing i think.
     module=module.encode("latin-1").decode("utf-8")
@@ -522,7 +522,7 @@ def resourceEditPage(module,resource,version='default'):
                 pass
         else:
             version = '__live__'
-            
+
         if resourceinquestion['resource-type'] == 'permission':
             return permissionEditPage(module, resource)
 
@@ -538,17 +538,17 @@ def resourceEditPage(module,resource,version='default'):
                 requiredpermissions = resourceinquestion['require-permissions']
             else:
                 requiredpermissions = []
-                
-            return pages.get_template("modules/pages/page.html").render(module=module,name=resource, 
+
+            return pages.get_template("modules/pages/page.html").render(module=module,name=resource,
             page=ActiveModules[module][resource],requiredpermissions = requiredpermissions)
-         
+
         if resourceinquestion['resource-type'] == 'directory':
             pages.require("/admin/modules.view")
             return pages.get_template("modules/module.html").render(module = ActiveModules[module],name = module, path=util.split_escape(resource,'\\'), fullpath=module+"/"+resource)
 
 def permissionEditPage(module,resource):
     pages.require("/admin/modules.view")
-    return pages.get_template("modules/permissions/permission.html").render(module = module, 
+    return pages.get_template("modules/permissions/permission.html").render(module = module,
     permission = resource, description = ActiveModules[module][resource]['description'])
 
 #The actual POST target to modify a resource. Context dependant based on resource type.
@@ -559,13 +559,13 @@ def resourceUpdateTarget(module,resource,kwargs):
     with modulesLock:
         t = ActiveModules[module][resource]['resource-type']
         resourceobj = ActiveModules[module][resource]
-        if t == 'permission': 
+        if t == 'permission':
             resourceobj['description'] = kwargs['description']
             #has its own lock
-            auth.importPermissionsFromModules() #sync auth's list of permissions 
-    
+            auth.importPermissionsFromModules() #sync auth's list of permissions
+
         if t == 'event':
-            
+
             #Test compile, throw error on fail.
             try:
                 ev = newevt.Event(kwargs['trigger'],kwargs['action'],newevt.make_eventscope(module),setup=kwargs['setup'],m=module,r=resource)
@@ -582,7 +582,7 @@ def resourceUpdateTarget(module,resource,kwargs):
                 r['rate-limit'] = float(kwargs['ratelimit'])
                 messagebus.postMessage("system/errors/misc/failedeventupdate", "In: "+ module +" "+resource+ "\n"+ traceback.format_exc(4))
                 raise
-            
+
             resourceobj['trigger'] = kwargs['trigger']
             resourceobj['action'] = kwargs['action']
             resourceobj['setup'] = kwargs['setup']
@@ -591,17 +591,17 @@ def resourceUpdateTarget(module,resource,kwargs):
             resourceobj['rate-limit'] = float(kwargs['ratelimit'])
             #I really need to do something about this possibly brittle bookkeeping system
             #But anyway, when the active modules thing changes we must update the newevt cache thing.
-            
-            
+
+
             #Delete the draft if any
             try:
                 del resourceobj['versions']['__draft__']
             except:
                 pass
-            
-            
+
+
             newevt.updateOneEvent(resource,module)
-    
+
         if t == 'page':
             resourceobj['body'] = kwargs['body']
             resourceobj['no-navheader'] = 'no-navheader' in kwargs
@@ -616,7 +616,7 @@ def resourceUpdateTarget(module,resource,kwargs):
             if 'allow-GET' in kwargs:
                 resourceobj['require-method'].append('GET')
             if 'allow-POST' in kwargs:
-                resourceobj['require-method'].append('POST')                
+                resourceobj['require-method'].append('POST')
             #permission checkboxes
             resourceobj['require-permissions'] = []
             for i in kwargs:
@@ -625,11 +625,11 @@ def resourceUpdateTarget(module,resource,kwargs):
                     if kwargs[i] == 'true':
                         resourceobj['require-permissions'].append(i[10:])
             usrpages.updateOnePage(resource,module)
-            
+
         if 'name' in kwargs:
             if not kwargs['name'] == resource:
                 mvResource(module,resource,module,kwargs['name'])
-                
+
     messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + " modified resource " +
                            resource + " of module " + module)
     r =resource
@@ -637,14 +637,23 @@ def resourceUpdateTarget(module,resource,kwargs):
         r = kwargs['name']
     if 'GoNow' in kwargs:
         raise cherrypy.HTTPRedirect(usrpages.url_for_resource(module,r))
-    #Return user to the module page       
+    #Return user to the module page. If name has a folder, return the user to it;s containing folder.
     x = util.split_escape(r,"/")
     if len(x)>1:
-        raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource'+'/'.join([util.url(i) for i in x[:-1]]))
+        raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+'/'.join([util.url(i) for i in x[:-1]]))
     else:
         raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module))#+'/resource/'+util.url(resource))
 
-def mvResource(module,resource,toModule,toResource):  
+def mvResource(module,resource,toModule,toResource):
+    #Raise an error if the user ever tries to move something somewhere that does not exist.
+    new = util.split_escape(toResource,"\\",True)
+    if not ('/'.join(new[:-1]) in ActiveModules[toModule] or len(new)<2):
+        raise cherrypy.HTTPRedirect("/errors/nofoldererror")
+
+    if not toModule in ActiveModules:
+        raise cherrypy.HTTPRedirect("/errors/nofoldererror")
+
+
     if ActiveModules[module][resource]['resource-type'] == 'event':
         ActiveModules[toModule][toResource] = ActiveModules[module][resource]
         del ActiveModules[module][resource]
@@ -653,14 +662,11 @@ def mvResource(module,resource,toModule,toResource):
 
     if ActiveModules[module][resource]['resource-type'] == 'page':
         ActiveModules[toModule][toResource] = ActiveModules[module][resource]
-        del ActiveModules[module][resource]      
+        del ActiveModules[module][resource]
         usrpages.removeOnePage(module,resource)
         usrpages.updateOnePage(toResource,toModule)
         return
 
-         
+
 class KaithemEvent(dict):
     pass
-
-
-
