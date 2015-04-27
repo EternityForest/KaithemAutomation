@@ -151,6 +151,9 @@ class Errors():
     def loginerror(self,):
         return pages.get_template('errors/loginerror.html').render()
     @cherrypy.expose
+    def nofoldermoveerror(self,):
+        return pages.get_template('errors/nofoldermove.html').render()
+    @cherrypy.expose
     def wrongmethod(self,):
         cherrypy.response.status = 405
         return pages.get_template('errors/wrongmethod.html').render()

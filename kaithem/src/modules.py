@@ -646,12 +646,15 @@ def resourceUpdateTarget(module,resource,kwargs):
 
 def mvResource(module,resource,toModule,toResource):
     #Raise an error if the user ever tries to move something somewhere that does not exist.
-    new = util.split_escape(toResource,"\\",True)
+    new = util.split_escape(toResource,"/", "\\",True)
     if not ('/'.join(new[:-1]) in ActiveModules[toModule] or len(new)<2):
-        raise cherrypy.HTTPRedirect("/errors/nofoldererror")
-
+        raise cherrypy.HTTPRedirect("/errors/nofoldermoveerror")
     if not toModule in ActiveModules:
-        raise cherrypy.HTTPRedirect("/errors/nofoldererror")
+        raise cherrypy.HTTPRedirect("/errors/nofoldermoveerror")
+    #If something by the name of the directory we are moving to exists but it is not a directory.
+    #short circuit evaluating the len makes this clause ignore moves that are to the root of a module.
+    if not (len(new)<2 or ActiveModules[toModule]['/'.join(new[:-1])]['resource-type']=='directory'):
+        raise cherrypy.HTTPRedirect("/errors/nofoldermoveerror")
 
 
     if ActiveModules[module][resource]['resource-type'] == 'event':
