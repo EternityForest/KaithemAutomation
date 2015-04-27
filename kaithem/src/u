@@ -1,11 +1,19 @@
-import weakref
+import weakref,traceback, time
+from src import util
+
+1st order filter algorithm:
+        
 
 class Tag():
-    def __init__(self,default=0):
+    def __init__(self,name, getter= None, default=0):
         self.subscribers = {}
         self.value = default
+        self.read_permissions = []
+        self.write_permissions = []
+        self.getter = getter
+        self.name = name
+        self.updated = 0
 
-    def
     def _push(self, value):
         for i in self.subscribers:
             try:
@@ -13,15 +21,41 @@ class Tag():
             except:
                 pass
 
+    def __call__(self):
+        if self.getter():
+            try:
+                self.value = self.getter()
+                self.updated = time.time
+            except Exception as e:
+                messagebus.postMessage("system/tagpoints/errors", traceback.format_tb(6))
+            self._push(self.value)
+        else:
+            return self.value
+
+    @property
+    def age(self):
+        return time.time()-self.updated
+
+    def write(self,value):
+        self.value = value
+        self.updated = time.time()
+        self.push(value)
+
     def subscribe(self,f):
-        id = util.unique_number
+        id = util.unique_number()
         def g():
             del self.subscribers[id]
+
         self.subscribers[id] = weakref.ref(f,g)
+        return id
+
+    def unsubscribe(self,f):
+        del self.subscribers[id]
 
 
-What's up with the float project?
+    def require(self, p):
+        self.read_permissions.append(p)
+        self.write_permissions.append(p)
 
-power>rpi: microUSB
-rpi>arduino: USB
-arduo
+    def requireToWrite(self,p):
+        self.write_permissions.append(p)

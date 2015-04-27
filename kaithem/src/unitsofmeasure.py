@@ -21,14 +21,14 @@ class DayOfWeek(str):
     """This class it a value object that will appear like a string but supports intelligent comparisions like Dow=='Thu' etc.
         supports upper ad lower case and abbreviations and numbers(monday=0).
         If you don't pass it a weekday day when initializing it it will default to today in local time
-    
+
     """
     def __init__(self,day=""):
-    
+
         #If no day supplied, default to today
         if day == "":
             day = time.localtime().tm_wday
-            
+
         self.namestonumbers= {
                 'Mon':0,'Monday':0,'M':0, 0:0,
                 'Tue':1,'Tuesday':1, 'Tues':1,'Tu':1, 1:1,
@@ -39,7 +39,7 @@ class DayOfWeek(str):
                 'Sun':6,'Sunday':6,
                 6:6,
                }
-               
+
         self.numberstonames=[
                         ['Monday','Mon'],
                         ['Tuesday','Tue','Tu','Tues'],
@@ -55,45 +55,45 @@ class DayOfWeek(str):
             self.value = self.namestonumbers[day]
         except Exception as e:
             raise e#ValueError('Does not appear to be any valid day of the week')
-     
+
     def __str__(self):
         return(self.numberstonames[self.value][0])
-    
+
     def __int__(self):
         return self.value
-     
+
     def __repr__(self):
          return(self.numberstonames[self.value][0])
-     
+
     def __eq__(self,other):
          try:
              if isinstance(other,DayOfWeek):
                  if self.value == other.value:
                      return True
-             
+
              if isinstance(other,str):
                  other=other.capitalize()
-                 
+
              if self.namestonumbers[other] == self.value:
                  return True
              else:
                  return False
-             
+
          except KeyError:
              raise RuntimeError("Invalid to compare day of week to " + repr(other))
-         
+
 class Month(str):
     """This class it a value object that will appear like a string but supports intelligent comparisions like Dow=='Thu' etc.
         supports upper ad lower case and abbreviations and numbers(monday=0).
         If you don't pass it a weekday day when initializing it it will default to today in local time
-    
+
     """
     def __init__(self,month=None):
-    
+
         #If no day supplied, default to today
         if month ==None:
             self.value = time.localtime().tm_mon
-            
+
         self.namestonumbers= {
                 "Jan":1, "January":1,
                 "Feb":2, "February":2,
@@ -109,7 +109,7 @@ class Month(str):
                 "Dec":12,"December":12,
                 1:1,2:2,3:3,4:4, 5:5, 6:6,7:7,8:8,9:9,10:10,11:11,12:12
                }
-               
+
         self.numberstonames=[
                              ["January"],["February"],["March"],["April"],["May"],["June"],["July"],["August"],
                              ["September"],['October'],['November'],['December']
@@ -122,56 +122,56 @@ class Month(str):
             self.value = self.namestonumbers[self.value]
         except KeyError as e:
             raise ValueError('Does not appear to be any valid Month')
-     
+
     def __str__(self):
         return(self.numberstonames[self.value][0])
-    
+
     def __int__(self):
         return(self.value)
-    
+
     def __repr__(self):
          return(self.numberstonames[self.value][0])
-     
+
 #     def __cmp__(self,other):
 #          try:
 #             if isinstance(other,Month):
 #                 otherval = other.value
 #             elif isinstance(other,str):
-#                 other=other.capitalize()     
+#                 other=other.capitalize()
 #                 otherval = self.namestonumbers[other]
 #             else:
 #                 otherval = other
-#                 
+#
 #                 if self.value == otherval:
 #                     return 0
 #                 if self.value > otherval:
 #                     return 1
 #                 return -1
-#             
+#
 #          except KeyError:
 #             return -1
-     
+
     def __eq__(self,other):
          try:
             if isinstance(other,Month):
                 if self.value == other.value:
                     return True
-                
+
             if isinstance(other,str):
                 other=other.capitalize()
-                 
+
             if self.namestonumbers[other] == self.value:
                  return True
             else:
                  return False
          except KeyError:
              return False
-        
+
 time_as_seconds ={
 'year' : 60*60*24*365,
 #A "month" as commonly used is a vauge unit. is it 28 days? 30? 31?
 #To solve that, I define it as 1/12th of a solar year.
-'month' : 60*60*24*30.4368333333, 
+'month' : 60*60*24*30.4368333333,
 'week' : 60*60*24*7,
 'day' : 60*60*24,
 "hour" : 60*60,
@@ -185,7 +185,7 @@ time_as_seconds ={
 }
 
 def timeIntervalFromString(s):
-    """Take a string like '10 hours' or 'five minutes 32 milliseconds' 
+    """Take a string like '10 hours' or 'five minutes 32 milliseconds'
     or '1 year and 1 day' to a number of seconds"""
     regex = r"([0-9]*)\D*?(year|month|week|day|hour|minute|second|millisecond)s?"
     r = re.compile(regex)
@@ -196,14 +196,31 @@ def timeIntervalFromString(s):
         number = float(i.group(1))
         total += number*multiplier
     return total
-    
 
-def formatTimeInterval(t,maxunits):
+
+def formatTimeInterval(t,maxunits,clock=False):
     """Take a length of time t in seconds, and return a nicely formatted string
     like "2 hours, 4 minutes, 12 seconds".
     maxunits is the maximum number of units to use in the string(7 will add a milliseconds field to times in years)
-    
+
     """
+    if clock:
+        frac = t%1
+        t -= frac
+        seconds = t%60
+        t-= seconds
+        minutes = (t-(int(t/3600)*3600))/60
+        t -= t%3600
+        hours= t/3600
+
+        s = "%02d:%02d"%(hours,minutes)
+        if maxunits>2:
+            s+= ":%02d"%(seconds)
+        if maxunits>3:
+            #Adding 0.01 seems to help with some kind of obnoxious rounding bug thing. Prob a better way to do things.
+            s+=":%03d"%(0.01+frac*1000)
+
+        return s
     s = ""
     for i in sorted(time_as_seconds.items(),key= lambda x:x[1], reverse=True):
         if maxunits == 0:
@@ -211,7 +228,7 @@ def formatTimeInterval(t,maxunits):
         x = t%i[1]
         b=(t-x)
         y=(t-x)/i[1]
-        
+
         t = t-b
         if y>1:
             s += str(int(round(y))) + " " + i[0]+"s, "
@@ -245,14 +262,14 @@ def iround(number,digits):
 def siFormatNumber(number,digits=2):
     if number == 0:
         return "0 "
-    
+
     if number > 1000000000:
         return(str(iround(number/1000000000,digits))+' G')
     if number > 1000000:
         return(str(iround(number/1000000,digits))+' M')
     if number > 1000:
         return(str(iround(number/1000,digits))+' K')
-    
+
     if number < 0.00000001:
         return(str(round(number*1000000000000,digits))+' p')
     if number < 0.00001:
@@ -261,7 +278,7 @@ def siFormatNumber(number,digits=2):
         return(str(iround(number*1000000,digits))+' u')
     if number < 0.01:
         return(str(iround(number*1000,digits))+' m')
-    
+
     return str(iround(number,digits))+' '
 
 
@@ -272,7 +289,7 @@ def strftime(*arg):
         d = datetime.datetime.utcfromtimestamp(*arg).replace(tzinfo=pytz.utc)
     else:
         d = datetime.datetime.utcfromtimestamp(time.time()).replace(tzinfo=pytz.utc)
-        
+
     return tz.normalize(d.astimezone(tz)).strftime(auth.getUserSetting(pages.getAcessingUser(),'strftime'))
     try:
         "Format a time according to the time-format option in the configuration file"
