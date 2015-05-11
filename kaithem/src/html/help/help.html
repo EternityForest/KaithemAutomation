@@ -668,9 +668,11 @@ h4 {
         <p>Takes a number and formats it with suffixes. 1000 becomes 1K, 1,000,000 becomes 1M.
         d is the number of digits of precision to use.</p>
 
-        <h3>kaithem.string.formatTimeInterval(n,places=2)</h3>
+        <h3>kaithem.string.formatTimeInterval(n,places=2,clock=False)</h3>
         <p>Takes a length of time in secons and formats it. Places is the mx units to use.
         formatTimeInterval(5,1) becomes ""5 seconds", formatTimeInterval(65,2) returns "1 minute 5 seconds"</p>
+
+		<p>If clock==True, places is ignored and output is in HH:MM format. If places is 3 or 4 format will be HH:MM:SS or HH:MM:SS:mmm where mmmm is milliseconds.</p>
 
         <h2>
             <a id="theming" name="theming"></a>Theming

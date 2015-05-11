@@ -32,7 +32,7 @@ def url_for_resource(module,resource):
 
 class CompiledPage():
     def __init__(self, resource,m='unknown',r='unknown'):
-        
+
         template = resource['body']
         self.errors = []
         #For compatibility with older versions, we provide defaults
@@ -41,22 +41,22 @@ class CompiledPage():
              self.permissions = resource["require-permissions"]
         else:
             self.permissions = []
-        
+
         if 'allow-xss' in resource:
              self.xss = resource["allow-xss"]
         else:
             self.xss = False
-            
+
         if 'allow-origins' in resource:
             self.origins = resource["allow-origins"]
         else:
             self.origins = []
-            
+
         if 'require-method' in resource:
             self.methods = resource['require-method']
         else:
             self.methods = ['POST','GET']
-        
+
         #Yes, I know this logic is ugly.
         if 'no-navheader' in resource:
             if resource['no-navheader']:
@@ -65,21 +65,21 @@ class CompiledPage():
                 header = util.readfile(os.path.join(directories.htmldir,'pageheader.html'))
         else:
             header = util.readfile(os.path.join(directories.htmldir,'pageheader.html'))
-            
+
         if 'no-header' in resource:
             if resource['no-header']:
                 header = ""
-        
+
         if 'auto-reload' in resource:
             if resource['auto-reload']:
                 header += '<meta http-equiv="refresh" content="%d">' % resource['auto-reload-interval']
-        
+
         footer = util.readfile(os.path.join(directories.htmldir,'pagefooter.html'))
-        
+
         templatesource = header + template + footer
         self.template = mako.template.Template(templatesource,uri="Template"+m+'_'+r)
-            
-            
+
+
 def getPageErrors(module,resource):
     return _Pages[module][resource].errors
 
@@ -94,7 +94,7 @@ def removeOnePage(module,resource):
         if module in _Pages:
             if resource in _Pages[module]:
                     del _Pages[module][resource]
-                    
+
 #Delete all __events in a module from the cache
 def removeModulePages(module):
     #There might not be any pages, so we use the if
@@ -108,7 +108,7 @@ def updateOnePage(resource,module):
     with modules_state.modulesLock:
         if module not in _Pages:
             _Pages[module]={}
-            
+
         #Get the page resource in question
         j = modules_state.ActiveModules[module][resource]
         _Pages[module][resource] = CompiledPage(j)
@@ -116,14 +116,14 @@ def updateOnePage(resource,module):
 def makeDummyPage(resource,module):
         if module not in _Pages:
             _Pages[module]={}
-    
+
         #Get the page resource in question
         j = {
                     "resource-type":"page",
                     "body":"Content here",
                     'no-navheader':True}
         _Pages[module][resource] = CompiledPage(j)
-        
+
 
 #look in the modules and compile all the event code
 def getPagesFromModules():
@@ -135,7 +135,7 @@ def getPagesFromModules():
             for i in modules_state.ActiveModules.copy():
                 #For each loaded and active module, we make a subdict in _Pages
                 _Pages[i] = {} # make an empty place for pages in this module
-                #now we loop over all the resources o the module to see which ones are pages 
+                #now we loop over all the resources o the module to see which ones are pages
                 for m in modules_state.ActiveModules[i].copy():
                     j=modules_state.ActiveModules[i][m]
                     if j['resource-type']=='page':
@@ -154,7 +154,7 @@ def getPagesFromModules():
                             except Exception as e:
                                 print (e)
                             #Keep only the most recent 25 errors
-                            
+
                             #If this is the first error(high level: transition from ok to not ok)
                             #send a global system messsage that will go to the front page.
                             if len(_Pages[i][m].errors)==1:
@@ -164,24 +164,24 @@ def getPagesFromModules():
 
 #kaithem.py has come config option that cause this file to use the method dispatcher.
 class KaithemPage():
-    
+
     #Class encapsulating one request to a user-defined page
     exposed = True;
-    
+
     def GET(self,module,*args,**kwargs):
         #Workaround for cherrypy decoding unicode as if it is latin 1
         #Because of some bizzare wsgi thing i think.
         module=module.encode("latin-1").decode("utf-8")
         args = [i.encode("latin-1").decode("utf-8") for i in args]
         return self._serve(module,*args, **kwargs)
-    
+
     def POST(self,module,*args,**kwargs):
         #Workaround for cherrypy decoding unicode as if it is latin 1
         #Because of some bizzare wsgi thing i think.
         module=module.encode("latin-1").decode("utf-8")
         args = [i.encode("latin-1").decode("utf-8") for i in args]
         return self._serve(module,*args, **kwargs)
-    
+
     def OPTION(self,module,resource,*args,**kwargs):
         #Workaround for cherrypy decoding unicode as if it is latin 1
         #Because of some bizzare wsgi thing i think.
@@ -189,26 +189,26 @@ class KaithemPage():
         args = [i.encode("latin-1").decode("utf-8") for i in args]
         self._headers(self.lookup(module,args))
         return ""
-                
+
     def _headers(self,page):
         x = ""
         for i in page.methods:
             x+= i + ", "
         x=x[:-2]
-        
+
         cherrypy.response.headers['Allow'] = x + ", HEAD, OPTIONS"
         if page.xss:
             if 'Origin' in cherrypy.request.headers:
                 if cherrypy.request.headers['Origin'] in page.origins or '*' in page.origins:
                     cherrypy.response.headers['Access-Control-Allow-Origin'] = cherrypy.request.headers['Origin']
-                cherrypy.response.headers['Access-Control-Allow-Methods'] = x 
-    
+                cherrypy.response.headers['Access-Control-Allow-Methods'] = x
+
     def lookup(self,module,args):
         resource_path = [i.replace("\\","\\\\").replace("/","\\/") for i in args]
         m = _Pages[module]
         if "/".join(resource_path) in m:
             return _Pages[module]["/".join(resource_path)]
-            
+
         if "/".join(resource_path+['__index__']) in m:
             return _Pages[module][ "/".join(resource_path+['__index__'])]
 
@@ -216,10 +216,10 @@ class KaithemPage():
             resource_path.pop()
             if "/".join(resource_path+['__default__']) in m:
                 return m["/".join(resource_path+['__default__']) ]
-            
+
         return None
 
-                        
+
     def _serve(self,module,*args,**kwargs):
         global _page_list_lock
         with _page_list_lock:
@@ -231,7 +231,7 @@ class KaithemPage():
             #Check user permissions
             for i in page.permissions:
                 pages.require(i)
-            
+
             self._headers(page)
             #Check HTTP Method
             if cherrypy.request.method not in page.methods:
@@ -250,17 +250,17 @@ class KaithemPage():
                 #So we just reraise it unchanged
                 if isinstance(e,cherrypy.HTTPRedirect):
                     raise e
-                
+
                 #The way we let users securely serve static files is to simply
                 #Give them a function that raises this special exception
                 if isinstance(e,kaithemobj.ServeFileInsteadOfRenderingPageException):
                     return cherrypy.lib.static.serve_file(e.f_filepath,e.f_MIME,e.f_name)
-                
+
                 tb = traceback.format_exc()
-                tb = "Request from: "+cherrypy.request.remote.ip+"("+pages.getAcessingUser()+")\n"+cherrypy.request.request_line+"\n"+str(cherrypy.request.cookie)+"\n"+tb
+                data= "Request from: "+cherrypy.request.remote.ip+"("+pages.getAcessingUser()+")\n"+cherrypy.request.request_line+"\n"+str(cherrypy.request.cookie)
                 #When an error happens, log it and save the time
                 #Note that we are logging to the compiled event object
-                page.errors.append([time.strftime(config['time-format']),tb])
+                page.errors.append([time.strftime(config['time-format']),tb,data])
                 try:
                     messagebus.postMessage('system/errors/pages/'+
                                        module+'/'+
@@ -268,7 +268,7 @@ class KaithemPage():
                 except Exception as e:
                     print (e)
                 #Keep only the most recent 25 errors
-                
+
                 #If this is the first error(high level: transition from ok to not ok)
                 #send a global system messsage that will go to the front page.
                 if len(page.errors)==1:
