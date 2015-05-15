@@ -64,8 +64,12 @@ class MessageBus(object):
                     if not self.subscribers[topic]:
                         self.subscribers.pop(topic)
             except AttributeError as e:
-                if cherrypy.engine.state == cherrypy.engine.states.STARTED:
-                    raise e
+                #This try and if statement are supposed to catch nuisiance errors when shutting down.
+                try:
+                    if cherrypy.engine.state == cherrypy.engine.states.STARTED:
+                        raise e
+                except:
+                        pass
         self.subscribers[topic].append(weakref.ref(callback,delsubscription))
 
     @staticmethod
@@ -190,8 +194,12 @@ class PyMessageBus(object):
                     if not self.subscribers[topic]:
                         self.subscribers.pop(topic)
             except AttributeError as e:
-                if cherrypy.engine.state == cherrypy.engine.states.STARTED:
-                    raise e
+                #This try and if statement are supposed to catch nuisiance errors when shutting down.
+                try:
+                    if cherrypy.engine.state == cherrypy.engine.states.STARTED:
+                        raise e
+                except:
+                        pass
         self.subscribers[topic].append(weakref.ref(callback,delsubscription))
 
     def _post(self, topic,message,errors):

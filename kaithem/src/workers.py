@@ -29,7 +29,7 @@ if sys.version_info < (3,0):
     queue = Queue
 else:
     import queue
-    
+
 __queue = queue.Queue(config['task-queue-size'])
 run = True
 
