@@ -428,8 +428,7 @@ class MessageEvent(BaseEvent,CompileCodeStringsMixin):
                 #It is still here just in case another circular reference bug pops up.
                 if (self.module,self.resource) not in EventReferences:
                     return
-
-
+                    
                 #setup environment
                 self.pymodule.__dict__['__topic'] = topic
                 self.pymodule.__dict__['__message'] = message
@@ -449,7 +448,7 @@ class MessageEvent(BaseEvent,CompileCodeStringsMixin):
         self._init_setup_and_action(setup,do)
 
     #This is the real solution for the circular reference nonsense, until the messagebus has a real unsubscribe feature.
-    def unregister():
+    def unregister(self):
         del self.action_wrapper_because_we_need_to_keep_a_reference
 
 class ChangedEvalEvent(BaseEvent,CompileCodeStringsMixin):

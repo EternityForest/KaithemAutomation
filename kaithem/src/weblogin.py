@@ -1,4 +1,4 @@
-#Copyright Daniel Dunn 2013
+#Copyright Daniel Dunn 2013, 2015
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify
@@ -23,7 +23,7 @@ class LoginScreen():
         if not cherrypy.request.scheme == 'https':
             raise cherrypy.HTTPRedirect("/errors/gosecure")
         return pages.get_template("login.html").render()
-        
+
     @cherrypy.expose
     def login(self,**kwargs):
         if not cherrypy.request.scheme == 'https':
@@ -41,11 +41,14 @@ class LoginScreen():
             cherrypy.response.cookie['auth']['secure'] = ' '
             cherrypy.response.cookie['auth']['httponly'] = ' '
             messagebus.postMessage("/system/auth/login",[kwargs['username'],cherrypy.request.remote.ip])
-            raise cherrypy.HTTPRedirect(util.unurl(kwargs['go']))
+            if not "/errors/loginerror" in util.unurl(kwargs['go']):
+                raise cherrypy.HTTPRedirect(util.unurl(kwargs['go']))
+            else:
+                raise cherrypy.HTTPRedirect("/")
         else:
             messagebus.postMessage("/system/auth/loginfail",[kwargs['username'],cherrypy.request.remote.ip])
             raise cherrypy.HTTPRedirect("/errors/loginerror")
-            
+
     @cherrypy.expose
     def logout(self,**kwargs):
         #Change the security token to make the old one invalid and thus log user out.

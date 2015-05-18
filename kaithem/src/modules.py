@@ -172,7 +172,7 @@ def load_modules_from_zip(f):
     new_modules = {}
     z = zipfile.ZipFile(f)
 
-    for i in z.list():
+    for i in z.namelist():
         #get just the folder, ie the module
         p = unurl(i.split('/')[0])
         #Remove the.json by getting rid of last 5 chars
