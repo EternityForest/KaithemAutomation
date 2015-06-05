@@ -112,7 +112,7 @@ class Widget():
         return self.onRequest(user)
 
     #This function is meant to be overridden or used as is
-    def onRequest(self,user):  
+    def onRequest(self,user):
         return self._value
 
     #This function is called by the web interface whenever this widget is written to
@@ -213,15 +213,25 @@ class DynamicSpan(Widget):
 
 class TextDisplay(Widget):
     def render(self,height='4em',width='24em'):
+        #We only want to update the div when it has changed, otherwise some browsers might not let you click the links
         return("""<div style="height:%s; width:%s; overflow-x:auto; overflow-y:scroll;" class="widgetcontainer" id="%s">
         <script type="text/javascript">
+        KWidget_%s_prev = "PlaceHolder1234";
         var upd = function(val)
         {
-            document.getElementById("%s").innerHTML=val;
+            if(val == KWidget_%s_prev)
+            {
+
+            }
+            else
+            {
+                document.getElementById("%s").innerHTML=val;
+                KWidget_%s_prev = val;
+            }
         }
         KWidget_register('%s',upd);
         </script>%s
-        </div>"""%(height,width, self.uuid,self.uuid,self.uuid,self._value))
+        </div>"""%(height,width, self.uuid, self.uuid, self.uuid, self.uuid,self.uuid,self.uuid,self._value))
 
 
 class Meter(Widget):
@@ -353,7 +363,7 @@ class Slider(Widget):
         if type=='debug':
             return {'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
         if type=='realtime':
-            return """<div class="widgetcontainer sliderwidget">
+            return """<div class="widgetcontainer sliderwidget" ontouchmove = function(e) {e.preventDefault()};>
             <b><p>%(label)s</p></b>
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
             %(orient)s

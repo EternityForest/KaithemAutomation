@@ -5,7 +5,7 @@
     "allow-xss": false,
     "auto-reload": false,
     "auto-reload-interval": 5.0,
-    "body": "<%\r\nmodule.pointer = -1\r\nkaithem.sound.stop(\"jookbawkse\")\r\nkaithem.web.goBack()\r\n%>",
+    "body": "<%\r\nimport time\r\nmodule.pointer = (max(-1, module.pointer-2))\r\nkaithem.sound.stop(\"jookbawkse\")\r\ntime.sleep(0.3)\r\nkaithem.web.goBack()\r\n%>",
     "dont-show-in-index": false,
     "no-header": false,
     "no-navheader": true,

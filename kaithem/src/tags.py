@@ -21,8 +21,10 @@ import weakref,traceback, time
 
 #Tag
 
+tags = {}
+
 class Tag():
-    def __init__(self,name="Untitled_Tag", getter=None, default=0):
+    def __init__(self,name, getter=None, default=0):
         self.subscribers = {}
         self.value = default
         self.read_permissions = []
@@ -133,19 +135,19 @@ class CVFilter(Tag):
             self.updated = time.tim
             self,_push(value)
 
-            def __call__(self,*args):
-                change = self.rate*self.age()
-                self.value = min(self.value-chane, max(self.value+change,self.target))
-                if args:
-                    self.write(args[0])
+        def __call__(self,*args):
+            change = self.rate*self.age()
+            self.value = min(self.value-chane, max(self.value+change,self.target))
+            if args:
+                self.write(args[0])
+                self.updated = time.time
+                return
+            if self.getter() and self.age>self.interval:
+                try:
+                    self.target = self.getter()
                     self.updated = time.time
-                    return
-                if self.getter() and self.age>self.interval:
-                    try:
-                        self.target = self.getter()
-                        self.updated = time.time
-                    except Exception as e:
-                        messagebus.postMessage("system/tagpoints/errors", traceback.format_tb(6))
-                    self._push(self.value)
-                else:
-                    return self.value
+                except Exception as e:
+                    messagebus.postMessage("system/tagpoints/errors", traceback.format_tb(6))
+                self._push(self.value)
+            else:
+                return self.value

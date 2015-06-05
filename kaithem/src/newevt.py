@@ -305,7 +305,6 @@ class BaseEvent():
                 self._handle_exception(e)
 
     def _handle_exception(self, e):
-
             tb = traceback.format_exc(6)
             #When an error happens, log it and save the time
             #Note that we are logging to the compiled event object
@@ -428,7 +427,7 @@ class MessageEvent(BaseEvent,CompileCodeStringsMixin):
                 #It is still here just in case another circular reference bug pops up.
                 if (self.module,self.resource) not in EventReferences:
                     return
-                    
+
                 #setup environment
                 self.pymodule.__dict__['__topic'] = topic
                 self.pymodule.__dict__['__message'] = message
@@ -653,31 +652,33 @@ def getEventsFromModules(only = None):
 
     #Closures were acting weird. This class is to be like a non wierd closure.
     class needstobeloaded():
-        def __init__(self,i,m):
-            self.i =i
-            self.m = m
+        def __init__(self,module,resource):
+            self.module=module
+            self.resource = resource
+
         def f(self):
-            x = make_event_from_resource(self.i,self.m)
+            x = make_event_from_resource(self.module,self.resource)
             x.register()
             #Now we update the references
-            globals()['__EventReferences'][self.i,self.m] = x
+            globals()['__EventReferences'][self.module,self.resource] = x
 
     with modules_state.modulesLock:
         with _event_list_lock:
             #Set _events to an empty list we can build on
-            for i in modules_state.ActiveModules:
+            for module in modules_state.ActiveModules:
                 #now we loop over all the resources of the module to see which ones are _events
-                if only == None or (i in only)  :
-                    for m in modules_state.ActiveModules[i]:
-                        j = modules_state.ActiveModules[i][m]
-                        if j['resource-type']=='event':
+                if only == None or (module in only)  :
+                    for resource in modules_state.ActiveModules[module]:
+                        x = modules_state.ActiveModules[module][resource]
+                        if x['resource-type']=='event':
                             #For every resource that is an event, we make an event object based on it
                             #And put it in the event referenced thing.
                             #However, we do this indirectly, for each event we create a function representing
                             #the actions to set it up
-                            f = needstobeloaded(i,m)
+                            f = needstobeloaded(module, resource)
                             toLoad.add(f)
-                            f.i =i; f.m =m
+                            f.module =module
+                            f.resource =resource
 
             #for each allowed loading attempt, we loop over
             #the events and try to set them up. If this fails,
@@ -689,23 +690,25 @@ def getEventsFromModules(only = None):
             for baz in range(0,max(1,config['max-load-attempts'])):
 
                 nextRound = set()
-                for p in toLoad:
+                for i in toLoad:
                     try:
-                        p.f()
-                        messagebus.postMessage("/system/events/loaded",[p.i,p.m])
+                        i.f()
+                        messagebus.postMessage("/system/events/loaded",[i.module,i.resource])
 
                     #If there is an error, add it t the list of things to be retried.
                     except Exception as e:
-                        p.error = traceback.format_exc(6)
-                        nextRound.add(p)
+                        i.error = traceback.format_exc(6)
+                        nextRound.add(i)
                         pass
                 toLoad = nextRound
 
             #Iterate over the failures after trying the max number of times to fix them
             #and make the dummy events and notifications
             for i in toLoad:
-                makeDummyEvent(i.i,i.m)
-                messagebus.postMessage("/system/notifications/errors","Failed to load event resource: " + i.m +" module: " + i.i + "\n" +str(i.error)+"\n"+"please edit and reload.")
+                makeDummyEvent(i.module,i.resource)
+                #Add the reason for the error to the actual object so it shows up on the page.
+                __EventReferences[i.module , i.resource].errors.append([time.strftime(config['time-format']),str(i.error)])
+                messagebus.postMessage("/system/notifications/errors","Failed to load event resource: " + i.resource +" module: " + i.module + "\n" +str(i.error)+"\n"+"please edit and reload.")
 
 def make_event_from_resource(module,resource):
     "Returns an event object when given a module and resource name pointing to an event resource."

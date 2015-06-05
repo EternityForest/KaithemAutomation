@@ -1,4 +1,45 @@
 /*Layout*/
+
+
+/*****************************General***********************************************************************************/
+#page {
+  background-repeat: repeat;
+  background-image: url("/static/img/webtreats_minty_green_pattern_08.jpg");  -webkit-background-size: 100% auto;
+  background-color:rgb(150,170,100);
+
+}
+
+::selection {
+	background: rgba(140, 180, 140, 0.5);
+	color:rgb(70, 45, 19);
+}
+
+::-moz-selection {background: rgba(0, 0, 250, 0.25);}
+
+
+.error
+{
+	color: 	#900000;
+    background-color: rgba(255,200,0,0.2);
+
+}
+
+.warning
+{
+	color: 	#806600;
+	background-color: rgba(255,255,0,0.2);
+
+}
+
+.specialentry
+{
+	color:rgba(50, 70, 100, 1);
+	text-shadow: 0px 0px 8px rgba(50, 70, 255, 1);
+}
+
+
+/*************************Navigation and headers************************************************************/
+
 #nav li
 {
 	display:inline;
@@ -9,38 +50,37 @@
     border-color: grey;
     font-size:125%;
 }
-
-::selection {
-background: rgba(140, 180, 140, 0.5);
-color:rgb(70, 45, 19);
-}
-::-moz-selection {background: rgba(0, 0, 250, 0.25);}
-
-dl
-{
+#nav {
+	border-style:solid;
+	background: rgba(255, 255, 230, 0.25);
+	border-width: 2px;
+	margin-top: 1px;
+    margin-bottom: 0.3em;
+	width:100%;
+	border-radius:9px;
+	list-style-type:none;
+	display: table;
+	border-color:grey;
 	padding:2px;
-	margin:2px;
 }
-
-table{
-	border-style: solid;
-	border-width:3px;
-	border-collapse:collapse;
-}
-
-tr.header
+#nav li:last-child
 {
-	font-weight:bold;
+	display:inline;
+	border-style: none ;
+    display: table-cell;
+
+}
+nav.li:hover
+{
+	background-color:#E6F6B8;
 }
 
-div.kmainpagebody
-{
-}
+
 #topbanner {
   width: 100%;
   background: rgba(255, 255, 230, 0.25);
   border-radius: 12px;
-  margin:5px;
+  margin:2px;
   background-image: linear-gradient(bottom, rgb(119,232,109) 20%, rgb(222,104,210) 51%, rgb(190,255,69) 96%);
 }
 
@@ -50,22 +90,94 @@ div.kmainpagebody
 	color:rgba(80,110,80,1);
 }
 
-#page {
-  background-repeat: repeat;
-  background-image: url("/static/img/webtreats_minty_green_pattern_08.jpg");  -webkit-background-size: 100% auto;
-  background-color:rgb(150,170,100);
-
+/************************HTML ELEMENTS***********************************/
+dl
+{
+	padding:2px;
+	margin:2px;
 }
 
-div.sectionbox,main>section{border-style:solid;
-background: rgba(240, 230, 200, 0.5);
-border-width:2px;
-border-radius: 7px;
-padding-top:0.2%;
-padding-bottom:0.5%;
-padding-right:1%;
-padding-left:0.5%;
-margin:2px;
+dt
+{
+	margin: 0.2em;
+}
+
+p{
+	margin:0.5%;
+}
+
+hr {
+	border: none;
+	border-top: 1px solid #bbb;
+	background-color: #ddd; color: #ddd;
+	height: 1px;
+}
+h1{color:#2F2418;}
+h2{margin-top:0.3em;margin-bottom: 0.3em}
+h3{margin-top:0.3em;margin-bottom: 0.3em}
+h4{margin-top:0.3em; margin-bottom: 0.3em}
+h5{margin:8px;}
+
+a
+	{
+		background-color:rgba(255,255,255,0.2);
+		border-radius:5px;
+		padding: 1px 3px 1px 3px;
+	}
+a:hover
+	{
+		background-color:#E6F6B8;
+	}
+
+ul{line-height:128%;}
+
+tr.header
+{
+	font-weight:bold;
+}
+/*Tables*/
+table
+	{
+		border-style: solid;
+		border-width:3px;
+		border-collapse:collapse;
+	}
+table tr:nth-child(odd) td
+	{
+		background-color: rgba(255,255,255,0.1);
+	}
+table tr:nth-child(even) td
+	{
+		background-color: rgba(0,0,0,0.1);
+	}
+tr:hover
+	{
+		/*background-color: rgba(70,170,70,0.35);*/
+		background-color: rgba(120,190,120,0.45);
+	}
+
+pre
+	{
+		margin: 0.2em;
+	    background-color: rgba(255,255,255,0.3);
+	}
+
+
+
+div.kmainpagebody
+{
+}
+
+div.sectionbox,main>section{
+	border-style:solid;
+	background: rgba(240, 230, 200, 0.5);
+	border-width:2px;
+	border-radius: 7px;
+	padding-top:0.2%;
+	padding-bottom:0.5%;
+	padding-right:1%;
+	padding-left:0.5%;
+	margin:2px;
 }
 
 .ace_editor div {
@@ -73,51 +185,19 @@ margin:2px;
 }
 
 div.scrollbox {
-border-style:solid;
-
-border-width:2px;
-border-radius: 7px;
-max-height:10em;
-overflow:auto;
-padding-top:0.5%;
-padding-bottom:0.5%;
-padding-right:1%;
-padding-left:0.5%;
-margin:3px;
-}
-
-p{
-margin:0.5%;
-}
-
-#nav {
-border-style:solid;
-background: rgba(255, 255, 230, 0.25);
-border-width: 2px;
-margin-top: 1px;
-width:100%;
-border-radius:9px;
-list-style-type:none;
-display: table;
-border-color:grey;
-padding:2px;
-
+	border-style:solid;
+	border-width:2px;
+	border-radius: 7px;
+	max-height:10em;
+	overflow:auto;
+	padding-top:0.5%;
+	padding-bottom:0.5%;
+	padding-right:1%;
+	padding-left:0.5%;
+	margin:3px;
 }
 
 
-
-#nav li:last-child
-{
-	display:inline;
-	border-style: none ;
-    display: table-cell;
-
-}
-
-nav.li:hover
-{
-background-color:#E6F6B8;
-}
 
 button {background-color: #E6E6B8;border-radius:7px;}
 input {background-color: #E6E6B8;border-radius:7px;}
@@ -133,25 +213,7 @@ textarea.code {
 	 font-size:125%;
 	 }
 
-hr {
-	border: none;
-	border-top: 1px solid #bbb;
-	background-color: #ddd; color: #ddd;
-	height: 1px;
-}
-h1{color:#2F2418;}
-h3{margin-top:0.3em;margin-bottom: 0.3em}
-h4{margin-top:0.3em; margin-bottom: 0.3em}
-h5{margin:8px;}
 
-a{
-background-color:rgba(255,255,255,0.2);
-border-radius:5px;
-padding: 1px 3px 1px 3px;
-}
-
-a:hover{background-color:#E6F6B8;}
-ul{line-height:128%;}
 
 p.help{
 background-color:rgba(255,255,25,0.1);
@@ -211,85 +273,54 @@ span.pre
     background-color: rgba(255,255,255,0.3);
 }
 
-pre
-{
-    background-color: rgba(255,255,255,0.3);
-}
 
-table tr:nth-child(odd) td{
-		background-color: rgba(255,255,255,0.1);
-}
-table tr:nth-child(even) td{
-	background-color: rgba(0,0,0,0.1);
-}
-
-
-
-.error
-{
-	color: 	#900000;
-    background-color: rgba(255,200,0,0.2);
-
-}
-
-.warning
-{
-	color: 	#806600;
-	background-color: rgba(255,255,0,0.2);
-
-}
-
-
-tr:hover
-{
-/*background-color: rgba(70,170,70,0.35);*/
-background-color: rgba(120,190,120,0.45);
-}
 
 /*Widget Styles*/
 
+/*This div is the container for most of the built in widgets. */
 div.widgetcontainer
 {
-display:inline-block;
-background-color: rgba(70,90,70,0.25);
-padding-top: 0px;
-border-radius:5px;
-border-style:inset;
-border-width:2px;
-color: rgb(0,0,0);
-padding: 0px;
-margin:2px;
-vertical-align:text-top;
+	display:inline-block;
+	background-color: rgba(70,90,70,0.25);
+	padding-top: 0px;
+	border-radius:5px;
+	border-style:inset;
+	border-width:2px;
+	color: rgb(0,0,0);
+	padding: 0px;
+	margin:2px;
+	vertical-align:text-top;
 }
 
 div.widgetcontainer:hover
 {
-/*background-color: rgba(70,170,70,0.35);*/
-background-color: rgba(120,190,120,0.45);
+	/*background-color: rgba(70,170,70,0.35);*/
+	background-color: rgba(120,190,120,0.45);
 }
 
+/*Numeric Process Value. These spans are intended for displays of changing numbers.*/
 span.numericpv
 {
-background-color: rgba(255,255,200,0.30);
-cursor:crosshair;
+	background-color: rgba(255,255,200,0.30);
+	cursor:crosshair;
 }
-
 span.numericpv:hover
 {
-background-color: rgba(230,255,200,0.50);
-cursor:crosshair;
+	background-color: rgba(230,255,200,0.50);
+	cursor:crosshair;
 }
+
 
 div.sliderwidget
 {
-min-width:3.5em;
-text-align:center;
-font-size:90%;
+	min-width:3.5em;
+	text-align:center;
+	font-size:90%;
 }
 
 div.meterwidget
 {
-text-align:center;
+	text-align:center;
 }
 
 button.triggerbuttonwidget
@@ -313,16 +344,6 @@ input.horizontalslider
 
 }
 
-.specialentry
-{
-	color:rgba(50, 70, 100, 1);
-	text-shadow: 0px 0px 8px rgba(50, 70, 255, 1);
-}
-
-dt
-{
-	margin: 0.2em;
-}
 
 a.createbutton::before
 {

@@ -47,7 +47,7 @@
                 except IOError:
                     pass
         return ip
-        
+
 %>
 
 <%include file="/pageheader.html"/>
@@ -59,7 +59,7 @@
     </div>
     <div class="sectionbox">${config['about-box-banner']}</div>
     <div class="sectionbox">
-    Version: Dev version later than 0.52 
+    Version: Dev version later than 0.52
     </div>
     <br>
     <div class="sectionbox">
@@ -72,6 +72,14 @@
         </tr><tr>
             <td>WAN(Public) IP when sys loaded</td>
             <td>${myip}</td>
+        </tr>
+        <tr>
+            <td>HTTPS(Secure) Port</td>
+            <td>${config['https-port']}</td>
+        </tr>
+        <tr>
+            <td>HTTP(Unsecure) Port</td>
+            <td>${config['http-port']}</td>
         </tr>
     </table>
 </p>
@@ -106,47 +114,47 @@
                 ${unitsofmeasure.formatTimeInterval(time.time()-systasks.systemStarted,4)}
             </td>
         </tr>
-        <% 
+        <%
             try:
                 load = os.getloadavg()
                 load = (round(load[0],2), round(load[1],2),round(load[2],2))
             except:
                 load = "Load average not availible on non UNIX-like systems."
-                
+
             try:
                 f = util.readfile("/proc/meminfo")
                 total = int(re.search("MemTotal.*?([0-9]+)",f).group(1))
                 free = int(re.search("MemFree.*?([0-9]+)",f).group(1))
                 cache = int(re.search("Cached.*?([0-9]+)",f).group(1))
-                
+
                 used = round(((total - (free+cache))/1000.0),2)
                 usedp = round((1-(free+cache)/float(total))*100,2)
                 total = round(total/1024,2)
             except Exception as e:
                 total=used=usedp = "Unavailable"
-                
+
             def makecpuspan(num):
                 if num> multiprocessing.cpu_count():
                     return 'style="color:red;"'
                 else:
                     return ""
         %>
-        
+
         <tr>
             <td>System Load Average(UNIX only)</td>
             <td>
             1 min: <span ${makecpuspan(load[0])}><b>${load[0]}</b></span>
-            5 min: <span ${makecpuspan(load[1])}><b>${load[1]}</b></span> 
+            5 min: <span ${makecpuspan(load[1])}><b>${load[1]}</b></span>
             15 min: <span ${makecpuspan(load[2])}><b>${load[2]}</b></span>
             </td>
         </tr>
-        
+
         <tr>
             <td>Memory Used By All Processes(UNIX only)</td>
             <td>${used} MB (${usedp}%)</td>
         </tr>
     </table>
-    
+
 </p>
 <p>
 <h3>System Info</h3>
@@ -155,7 +163,7 @@
         <td>CPU Type</td>
         <td>${platform.machine()|h}
     </tr>
-    
+
     <tr>
         <td>CPU Count</td>
         <td>${multiprocessing.cpu_count()|h}
@@ -164,7 +172,7 @@
         <td>CPU</td>
         <td>${platform.processor()|h}</td>
     </tr>
-    
+
     <tr>
         <td>Total Availible RAM(UNIX Only)</td>
         <td>${total|h} MB</td>
@@ -173,7 +181,7 @@
         <td>OS Type</td>
         <td>${platform.system()|h}</td>
     </tr>
-    
+
     <tr>
         <td>OS Version</td>
         <td>${platform.release()|h}</td>
@@ -182,17 +190,17 @@
         <td>Python Version</td>
         <td>${platform.python_version()|h}</td>
     </tr>
-    
+
      <tr>
         <td>CherryPy Version</td>
         <td>${cherrypy.__version__|h}</td>
     </tr>
-    
+
     <tr>
         <td>Audio Backend</td>
         <td>${sound.backend.backendname|h}</td>
     </tr>
-    
+
     <tr>
         <td>System Time Zone</td>
         <td>${time.tzname[0]|h}</td>
@@ -239,27 +247,27 @@ def module_version(m):
     Copyright (c) 2004-2011, CherryPy Team (team@cherrypy.org)
     All rights reserved.
 
-    Redistribution and use in source and binary forms, with or without modification, 
+    Redistribution and use in source and binary forms, with or without modification,
     are permitted provided that the following conditions are met:
 
-        * Redistributions of source code must retain the above copyright notice, 
+        * Redistributions of source code must retain the above copyright notice,
           this list of conditions and the following disclaimer.
-        * Redistributions in binary form must reproduce the above copyright notice, 
-          this list of conditions and the following disclaimer in the documentation 
+        * Redistributions in binary form must reproduce the above copyright notice,
+          this list of conditions and the following disclaimer in the documentation
           and/or other materials provided with the distribution.
-        * Neither the name of the CherryPy Team nor the names of its contributors 
-          may be used to endorse or promote products derived from this software 
+        * Neither the name of the CherryPy Team nor the names of its contributors
+          may be used to endorse or promote products derived from this software
           without specific prior written permission.
 
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
-    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
-    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
-    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
-    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     </pre></dd>
 <dt><a href="http://www.makotemplates.org/">Mako(HTML Template Engine)</a>(MIT License)</dt>
@@ -501,31 +509,31 @@ Temple Place, Suite 330, Boston, MA 0.1.2-1307 USA
 NOTICE: The version of ws4py included with kaithem has been modified by the author of kaithem.
 
 
-Copyright (c) 2011-2014, Sylvain Hellegouarch 
-All rights reserved. 
+Copyright (c) 2011-2014, Sylvain Hellegouarch
+All rights reserved.
 
-Redistribution and use in source and binary forms, with or without 
-modification, are permitted provided that the following conditions are met: 
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
 
- * Redistributions of source code must retain the above copyright notice, 
-   this list of conditions and the following disclaimer. 
- * Redistributions in binary form must reproduce the above copyright 
-   notice, this list of conditions and the following disclaimer in the 
-   documentation and/or other materials provided with the distribution. 
- * Neither the name of ws4py nor the names of its contributors may be used 
-   to endorse or promote products derived from this software without 
-   specific prior written permission. 
+ * Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+ * Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+ * Neither the name of ws4py nor the names of its contributors may be used
+   to endorse or promote products derived from this software without
+   specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
-LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 </pre></dd>
 <dt><a href="https://github.com/kvh/recurrent">recurrent(Natural language datetime)</a>(MIT License)</dt>

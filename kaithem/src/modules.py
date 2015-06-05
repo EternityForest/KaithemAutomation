@@ -437,7 +437,7 @@ def addResourceDispatcher(module,type,path):
         return pages.get_template("modules/directories/new.html").render(module=module,path=path)
 
 #The target for the POST from the CRUD to actually create the new resource
-#Basically it takes a module, a new resourc name, and a type, and creates a template resource
+#Basically it takes a module, a new resource name, and a type, and creates a template resource
 def addResourceTarget(module,type,name,kwargs,path):
     pages.require("/admin/modules.edit")
     global moduleschanged

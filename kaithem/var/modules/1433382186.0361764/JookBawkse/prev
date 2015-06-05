@@ -5,8 +5,8 @@
     "allow-xss": false,
     "auto-reload": false,
     "auto-reload-interval": 5.0,
-    "body": "<%\r\nimport time\r\nmodule.playlist.append(kwargs['fn'])\r\ntime.sleep(0.1)\r\nkaithem.sound.resume(\"jookbawkse\")\r\nkaithem.web.goBack()%>",
-    "dont-show-in-index": true,
+    "body": "<%\r\nimport time\r\nmodule.pointer = (max(-1, module.pointer-2))\r\nkaithem.sound.stop(\"jookbawkse\")\r\ntime.sleep(0.3)\r\nkaithem.web.goBack()\r\n%>",
+    "dont-show-in-index": false,
     "no-header": false,
     "no-navheader": true,
     "require-method": [

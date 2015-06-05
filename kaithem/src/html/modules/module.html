@@ -50,9 +50,15 @@ def get_time(t):
   except Exception as e:
       return 0
 
+#n is the module name
+#f is the folder we are checking if it is in, including the module name
+#r is the path of the resource
 def in_folder(r,f,n):
-     r = [n]+util.split_escape(r,'/')
-     f = util.split_escape(f,'/')
+     #Get the path as a list, including the module name
+     r = [n]+util.split_escape(r,'/','\\')
+     #Get the path of the folder
+     f = util.split_escape(f,'/','\\')
+     #make sure the resource path is one longer than module
      if not len(r)==len(f)+1:
 	  return False
      x = 0
@@ -74,7 +80,7 @@ def in_folder(r,f,n):
 
 	%if module[i]['resource-type'] == 'event':
 	  <dt>
-	       <span class="event-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a>
+	       <span class="event-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
 <a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a></b>
 	       %if newevt.fastGetEventErrors(name,i):
 	       <span class="error">[${len(newevt.fastGetEventErrors(name,i))} Errors]</span>
@@ -105,7 +111,7 @@ def in_folder(r,f,n):
 	       %if i.startswith('__'):
 	       class="specialentry page"\
 	       %endif
-	       >${util.split_escape(i,'/')[-1]|h}
+	       >${util.split_escape(i,'/','\\')[-1]|h}
 		%if usrpages.getPageErrors(name,i):
 		<span class="error">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
 		%endif
@@ -125,7 +131,7 @@ def in_folder(r,f,n):
 
        %if module[i]['resource-type'] == 'permission':
 
-      <dt><span class="permission-icon"></span><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a>
+      <dt><span class="permission-icon"></span><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
 <a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
 <dt>
 
