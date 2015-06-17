@@ -283,6 +283,10 @@ class Kaithem():
         def setvol(*args,**kwargs):
             return sound.setvol(*args,**kwargs)
 
+        @staticmethod
+        def setEQ(*args,**kwargs):
+            return sound.setEQ(*args,**kwargs)
+
 
     class message():
         @staticmethod

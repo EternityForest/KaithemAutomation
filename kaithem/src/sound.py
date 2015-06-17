@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import subprocess,os,math,time,sys
+import subprocess,os,math,time,sys,threading
 from . import util
 from .config import config
 
@@ -50,6 +50,9 @@ class SoundWrapper(object):
             return False
 
     def setVolume(self,channel = "PRIMARY"):
+        pass
+
+    def setEQ(self,channel="PRIMARY"):
         pass
 
     def playSound(self,filename,handle="PRIMARY",**kwargs):
@@ -197,6 +200,7 @@ class MPlayerWrapper(SoundWrapper):
     #It also abstracts checking if its playing or not.
     class MPlayerSoundContainer(object):
         def __init__(self,filename,vol,start,end,extras,**kw):
+            self.lock = threading.RLock()
             f = open(os.devnull,"w")
             g = open(os.devnull,"w")
             self.paused = False
@@ -204,14 +208,14 @@ class MPlayerWrapper(SoundWrapper):
             cmd = ["mplayer" ,"-nogui", "-slave" , "-quiet", "-softvol" ,"-ss", str(start)]
 
             if not 'eq' in extras:
-                cmd.extend(["-af", "volume="+str(10*math.log10(vol))])
+                cmd.extend(["-af", "equalizer=0:0:0:0:0:0:0:0:0:0,volume="+str(10*math.log10(vol))])
             if end:
                 cmd.extend(["-endpos",str(end)])
 
             if "output" in kw and pulseaudio:
                 cmd.extend(["-ao",kw['output']])
 
-            if "video_outpur" in kw:
+            if "video_output" in kw:
                 cmd.extend(["-vo",kw['output']])
 
             if "fs" in kw and kw['fs']:
@@ -223,10 +227,14 @@ class MPlayerWrapper(SoundWrapper):
             if 'eq' in extras:
                 if extras['eq'] == 'party':
                     cmd.extend(['-af','equalizer=0:1.5:2:-7:-10:-5:-10:-10:1:1,volume='+str((10*math.log10(vol)+5))])
+                else:
+                    cmd.extend(['-af','equalizer=' +":".join(extras['eq'])+",volume="+str((10*math.log10(vol)+5))])
 
             self.started = time.time()
             cmd.append(filename)
-            self.process = subprocess.Popen(cmd,stdin=subprocess.PIPE,stdout = f, stderr = g)
+            self.process = subprocess.Popen(cmd,stdin=subprocess.PIPE, stdout = f, stderr = g)
+
+
         def __del__(self):
             try:
                 self.process.terminate()
@@ -241,31 +249,45 @@ class MPlayerWrapper(SoundWrapper):
             return time.time() - self.started
 
         def seek(self,position):
-               if self.isPlaying():
-                try:
-                    if sys.version_info < (3,0):
-                        self.process.stdin.write(bytes("seek "+str(position)+" 2\n"))
-                    else:
-                        self.process.stdin.write(bytes("seek "+str(position)+" 2\n",'utf8'))
-                    self.process.stdin.flush()
-                    self.paused = False
-                except:
-                    pass
+               with self.lock:
+                   if self.isPlaying():
+                    try:
+                        if sys.version_info < (3,0):
+                            self.process.stdin.write(bytes("pausing_keep seek "+str(position)+" 2\n"))
+                        else:
+                            self.process.stdin.write(bytes("pausing_keep seek "+str(position)+" 2\n",'utf8'))
+                        self.process.stdin.flush()
+                        self.started = time.time()-position
+                    except:
+                        pass
 
 
         def setVol(self,volume):
-            if self.isPlaying():
-                try:
-                    if sys.version_info < (3,0):
-                        self.process.stdin.write(bytes("volume "+str(volume*100)+" 1\n"))
-                    else:
-                        self.process.stdin.write(bytes("volume "+str(volume*100)+" 1\n",'utf8'))
-                    self.process.stdin.flush()
-                    self.paused = False
-                except:
-                    pass
+            with self.lock:
+                if self.isPlaying():
+                    try:
+                        if sys.version_info < (3,0):
+                            self.process.stdin.write(bytes("pausing_keep volume "+str(volume*100)+" 1\n"))
+                        else:
+                            self.process.stdin.write(bytes("pausing_keep volume "+str(volume*100)+" 1\n",'utf8'))
+                        self.process.stdin.flush()
+                    except:
+                        pass
+
+        def setEQ(self,eq):
+            with self.lock:
+                if self.isPlaying():
+                    try:
+                        if sys.version_info < (3,0):
+                            self.process.stdin.write(bytes("pausing_keep af_cmdline equalizer "+":".join([str(i) for i in eq]) +"\n"))
+                        else:
+                            self.process.stdin.write(bytes("pausing_keep af_cmdline equalizer "+":".join([str(i) for i in eq]) +"\n", "utf8"))
+                        self.process.stdin.flush()
+                    except Exception as e:
+                        raise e
 
         def pause(self):
+            with self.lock:
                 try:
                     if not self.paused:
                         self.process.stdin.write(b"pause \n")
@@ -275,6 +297,7 @@ class MPlayerWrapper(SoundWrapper):
                     pass
 
         def resume(self):
+            with self.lock:
                 try:
                     if self.paused:
                         self.process.stdin.write(b"pause \n")
@@ -352,6 +375,19 @@ class MPlayerWrapper(SoundWrapper):
         except KeyError:
             pass
 
+    def seek(self,position,channel = "PRIMARY"):
+        "Return true if a sound is playing on channel"
+        try:
+            return self.runningSounds[channel].seek(position)
+        except KeyError:
+            pass
+
+    def setEQ(self,eq,channel = "PRIMARY"):
+        "Return true if a sound is playing on channel"
+        try:
+            return self.runningSounds[channel].setEQ(eq)
+        except KeyError:
+            pass
 
     def pause(self,channel = "PRIMARY"):
         "Return true if a sound is playing on channel"
@@ -391,4 +427,5 @@ pause = backend.pause
 resume = backend.resume
 stopAllSounds = backend.stopAllSounds
 setvol = backend.setVolume
+setEQ = backend.setEQ
 position = backend.getPosition

@@ -12,8 +12,8 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import weakref,time,json,base64,cherrypy,os
-from . import auth,pages,unitsofmeasure,config,util
+import weakref,time,json,base64,cherrypy,os, traceback
+from . import auth,pages,unitsofmeasure,config,util,messagebus
 from src.config import config
 if config['enable-websockets']:
     from ws4py.websocket import WebSocket
@@ -126,7 +126,12 @@ class Widget():
                 return
 
         self.onUpdate(user,value)
-        self._callback(user,value)
+        try:
+            self._callback(user,value)
+        except Exception as e:
+            messagebus.postMessage("/system/errors/widgets", traceback.format_exc(6))
+            raise e
+
 
     #Return True if this user can write to it
     def isWritable(self):
