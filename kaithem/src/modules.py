@@ -339,6 +339,12 @@ class WebInterface():
             return pages.get_template("modules/module.html").render(module = ActiveModules[root],name = root,path=modulepath,fullpath=fullpath)
 
         else:
+
+            if path[0] == 'obj':
+                #There might be a password or something important in the actual module object. Best to restrict who can access it.
+                pages.require("/admin/modules.edit")
+                return pages.get_template("modules/modulescope.html").render(name = root, obj = scopes[root])
+
             #This gets the interface to add a page
             if path[0] == 'addresource':
                 if len(path)>2:

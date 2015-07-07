@@ -11,7 +11,9 @@ This Page allows you to view and edit information and resources associated with 
 <title>Module: ${name|h}</title>
 
 <form action="/modules/module/${url(name)}/update" method="POST" name="user">
-<a href="/modules/downloads/${url(name)}">Download this module as a zip file</a>
+<a href="/modules/downloads/${url(name)}">Download this module as a zip file</a><br>
+<a href="/modules/module/${url(name)}/obj">View the module namespace object(New, requires edit permission)</a>
+
 <h3>Basic Information</h3>
 <div class="sectionbox">
 
@@ -87,6 +89,7 @@ def in_folder(r,f,n):
 	       %endif
 	  </dt>
 	  <dd>
+          <p>${newevt.getEventInfo((name,i))|h}</p>
 	       <b>Trigger:</b> ${module[i]['trigger']|h}<br>
 
 		    <b>Last Ran:</b>

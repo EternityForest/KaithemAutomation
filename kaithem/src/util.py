@@ -20,9 +20,11 @@ import  os,threading,copy,sys,shutil,difflib,time,json,traceback,stat
 if sys.version_info < (3,0):
     from urllib import quote
     from urllib import unquote as unurl
+    import repr as reprlib
 else:
     from urllib.parse import quote
     from urllib.parse import unquote as unurl
+    import reprlib
 
 min_time = 0
 
@@ -332,3 +334,14 @@ def unique_number():
         current_number +=1
         x = current_number
     return x
+
+srepr = reprlib.Repr()
+
+srepr.maxdict = 25
+srepr.maxlist = 10
+srepr.maxset = 10
+srepr.maxlong = 10
+srepr.maxstring = 50
+srepr.maxother = 50
+
+saferepr = srepr.repr

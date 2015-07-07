@@ -157,6 +157,8 @@ class PyMessageBus(object):
         """You pass this a function of one argument that just calls its argument. Defaults to calling in
         same thread and ignoring errors.
         """
+        self.values = OrderedDict()
+        self.lock= threading.Lock()
         if executor==None:
             def do(self, f):
                 try:
@@ -168,7 +170,14 @@ class PyMessageBus(object):
             self.executor = executor
 
         self.subscribers = defaultdict(list)
-
+    def last(self,tag,default):
+        if tag in self.values:
+            return self.values[tag]
+            #Move value to end, so that the most often used ones migrate to the end and don't get deleted.
+            #with self.lock:
+            #    x = self.values[tag]
+            #    del self.values[tag]
+            #    self.values[tag] = x
     def subscribe(self,topic,callback):
         if topic.startswith('/'):
             if not len(topic)==1:
@@ -223,14 +232,21 @@ class PyMessageBus(object):
                     except:
                                 pass
 
-    def postMessage(self, topic, message,errors=True):
+    def postMessage(self, topic, message,errors=True,save=True):
         #Use the executor to run the post message job
         #To allow for the possibility of it running in the background as a thread
+        if save:
+            self.values[topic] = (time.time(),message)
+            if len(self.values>2000):
+                self.values.popitem(False)
         def f():
             self._post(topic,message,errors)
         f.__name__ = 'Publish_'+topic
         self.executor(f)
 
+_pybus = PyMessageBus()
 _bus = MessageBus(workers.do)
 subscribe = _bus.subscribe
 postMessage = _bus.postMessage
+pySubscribe = _pybus.subscribe
+pyPostMessage = _pybus.postMessage

@@ -46,6 +46,8 @@ tenminutepagecount = 0
 def aPageJustLoaded():
     global pageviewsthisminute
     pageviewsthisminute = pageviewsthisminute +1
+    if config["log-http"]:
+        messagebus.postMessage("/system/http/access", {"ip":cherrypy.request.remote.ip, "req":cherrypy.request.request_line})
 
 #Acessed by stuff outide this file
 pageviewcountsmoother = util.LowPassFiter(0.3)

@@ -33,6 +33,8 @@ _events = []
 __EventReferences = {}
 EventReferences = __EventReferences
 
+def getEventInfo(event):
+    return EventReferences[event].__doc__ if EventReferences[event].__doc__  else ""
 
 def renameEvent(oldModule,oldResource,module,resource):
     with _event_list_lock:
@@ -401,6 +403,7 @@ class CompileCodeStringsMixin():
             body+=("    "+line+'\n')
         body = compile(body,"Event_"+self.module+'_'+self.resource,'exec')
         exec(body,self.pymodule.__dict__)
+        self.__doc__ = self.pymodule.__doc__
         #This is one of the weirder line of code I've ever writter
         #Apperently for some reason we have to manually tell it where to go for global variables.
 

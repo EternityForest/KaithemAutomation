@@ -36,7 +36,7 @@ This is mostly used for astronomical calculations. Get Location uses <a href="ht
 <td><input name="lon" value="${registry.get('system/location/lon','')}".></td>
 </tr>
 </table>
-<input type="submit"><a class="button" href="/settings/ip_geolocate">Get Location</a>
+<input type="submit" ><a class="button" href="/settings/ip_geolocate">Get Location</a>
 </form>
 </section>
 
@@ -47,7 +47,7 @@ This is mostly used for astronomical calculations. Get Location uses <a href="ht
 allow SMTP access. Gmail and Yahoo both work. You can also run your own SMTP server
 Unencrypted connections are not supported. Please note: the email password must be stored in plaintext in a kaithem registry file.</p>
 <form action="/settings/savemail" method="POST">
-<table border=1> 
+<table border=1>
 <tr>
 <td>SMTP Server</td><td><input name="smtpserver" value="${registry.get("system/mail/server")}"></input></td>
 </tr>
@@ -119,4 +119,3 @@ ${yaml.dump(config.config,width=120,indent=4,default_flow_style=False)|h}
 
 </div>
 <%include file="/pagefooter.html"/>
-
