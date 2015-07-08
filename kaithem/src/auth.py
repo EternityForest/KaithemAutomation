@@ -37,10 +37,10 @@ if sys.version_info < (3,0):
     #It's ok if it doesn't actually do anything because of the fact that hash.update is fine with str in 2.xx
     def usr_bytes(s,x):
         return(str(s))
-    
+
 else:
     usr_bytes = bytes
-    
+
 #If nobody loadsusers from the file make sure nothing breaks(mostly for tests)
 Users = {}
 Groups = {}
@@ -57,6 +57,7 @@ BasePermissions = {
 "/admin/logging.edit": "Modify settings in the logging subsystem",
 "/users/logs.view": "View the message logs.",
 "/users/accountsettings.edit" : "Edit ones own account preferences",
+"/admin/errors.view": "View errors in resources. Note that /users/logs.view or /admin/modules.edit will also allow this.",
 "__all_permissions__": "Special universal permission that grants all permissions in the system. Use with care."
 }
 
@@ -75,7 +76,7 @@ def importPermissionsFromModules():
                 if modules_state.ActiveModules[module][resource]['resource-type']=='permission':
                     #add it to the permissions list
                     Permissions[resource] = modules_state.ActiveModules[module][resource]['description']
- 
+
 def getPermissionsFromMail():
     for i in registry.get('system/mail/lists',{}):
         Permissions["/users/mail/lists/"+i+"/subscribe"] = "Subscribe to mailing list with given UUID"
@@ -92,7 +93,7 @@ def changeUsername(old,new):
     #the actual user object
     Users[new] = Users.pop(old)
     Users[new]['username'] = new
-    
+
 def changePassword(user,newpassword):
     global authchanged
     authchanged = True
@@ -112,15 +113,15 @@ def changePassword(user,newpassword):
     if sys.version_info > (3,0):
         p = p.decode("utf8")
     Users[user]['password'] = p
-    
-    
+
+
 def addUser(username,password):
     global authchanged
     authchanged = True
     if not username in Users: #stop overwriting attempts
         Users[username] = User({'username':username,'groups':[]})
         changePassword(username,password)
-        
+
 def removeUser(user):
     global authchanged
     authchanged = True
@@ -129,7 +130,7 @@ def removeUser(user):
     if hasattr(x,'token'):
         if x.token in Tokens:
             Tokens.pop(x.token)
-            
+
 def removeGroup(group):
     global authchanged
     authchanged = True
@@ -139,14 +140,14 @@ def removeGroup(group):
         if group in Users[i]['groups']:
             Users[i]['groups'].remove(group)
     generateUserPermissions()
-            
-            
+
+
 def addGroup(groupname):
     global authchanged
     authchanged = True
     if not groupname in Groups: #stop from overwriting
             Groups[groupname] = {'permissions':[]}
-        
+
 def addUserToGroup(username,group):
     global authchanged
     authchanged = True
@@ -166,7 +167,7 @@ def initializeAuthentication():
         #Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
         name = util.getHighestNumberedTimeDirectory(directories.usersdir)
         possibledir = os.path.join(directories.usersdir,name)
-        
+
         #__COMPLETE__ is a special file we write to the dump directory to show it as valid
         if '''__COMPLETE__''' in util.get_files(possibledir):
             try:
@@ -183,14 +184,14 @@ def initializeAuthentication():
                     p2 = input("Reenter Password:")
                     if not p==p2:
                         print("password mismatch")
-                        
+
                 m = hashlib.sha256()
                 r = os.urandom(16)
                 r64 = base64.b64encode(r)
                 m.update(p)
                 m.update(r)
                 pwd = base64.b64encode(m)
-                
+
                 temp = {
                         "groups": {
                             "Administrators": {
@@ -218,7 +219,7 @@ def initializeAuthentication():
                             }
                         }
                     }
-               
+
             global Users
             Users = temp['users']
             global Groups
@@ -229,7 +230,7 @@ def initializeAuthentication():
                 #What an unreadable line! It turs all the dicts in Users into User() instances
                 Users[user] = User(Users[user])
                 assignNewToken(user)
-                
+
             generateUserPermissions()
             break #We sucessfully found the latest good users.json dump! so we break the loop
         else:
@@ -238,7 +239,7 @@ def initializeAuthentication():
             shutil.copytree(possibledir,os.path.join(directories.usersdir,name+"INCOMPLETE"))
             shutil.rmtree(possibledir)
     getPermissionsFromMail()
-    
+
 def generateUserPermissions(username = None):
     #TODO let you do one user at a time
     """Generate the list of permissions for each user from their groups"""
@@ -252,7 +253,7 @@ def generateUserPermissions(username = None):
         #If the user has a token, update the stored copy of user in the tokens dict too
         if hasattr(Users[i],'token'):
             Tokens[Users[i].token] = Users[i]
-                
+
 def userLogin(username,password):
     """return a base64 authentication token on sucess or return False on failure"""
     if  username in Users:
@@ -280,7 +281,7 @@ def checkTokenPermission(token,permission):
                 return False
     else:
             return False
-            
+
 #Remove references to deleted permissions
 #NO-OP, Lets just let user manually uncheck them.
 def destroyUnusedPermissions():
@@ -297,7 +298,7 @@ def dumpDatabase():
     global authchanged
     if not authchanged:
         return False
-    
+
     #Assemble the users and groups data and save it back where we found it
     temp = {"users":Users,"groups":Groups}
     if time.time()> util.min_time:
@@ -320,21 +321,21 @@ def dumpDatabase():
     authchanged = False
     return True
 
-    
+
 def addGroupPermission(group,permission):
     global authchanged
     authchanged = True
     if permission not in Groups[group]['permissions']:
         Groups[group]['permissions'].append(permission)
-    
+
 def removeGroupPermission(group,permission):
     global authchanged
     authchanged = True
     Groups[group]['permissions'].remove(permission)
-        
+
 def whoHasToken(token):
     return Tokens[token]['username']
-    
+
 
 def assignNewToken(user):
     """Log user out by defining a new token"""
@@ -346,7 +347,7 @@ def assignNewToken(user):
         del Tokens[oldtoken]
     Users[user].token = x
     Tokens[x] = Users[user]
-    
+
 class UnsetSettingException:
     pass
 
@@ -361,9 +362,9 @@ def setUserSetting(user,setting,value):
     json.dumps(value)
     if not 'settings' in user:
         user['settings'] = {}
-        
+
     Users[un]['settings'][setting]= value
-    
+
 def getUserSetting(user,setting):
         if user == '<unknown>':
             return defaultusersettings[setting]
@@ -371,7 +372,7 @@ def getUserSetting(user,setting):
         if not 'settings' in user:
             return defaultusersettings[setting]
 
-        
+
         if setting in user['settings']:
             return user['settings'][setting]
         else:
@@ -382,12 +383,10 @@ def canUserDoThis(user,permission):
     if '__guest__' in Users:
         if permission in Users['__guest__'].permissions:
             return True
-        
+
     if '__all_permissions__' in Users[user].permissions:
         return True
-    
+
     if permission in Users[user].permissions:
         return True
     return False
-
-        

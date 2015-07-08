@@ -125,7 +125,7 @@ you may need to use the global keyword. You may also need to use the global keyw
 %endif
 
 
-%if newevt.getEventErrors(module,name) and version == "__live__":
+%if newevt.getEventErrors(module,name) and version == "__live__" and (pages.canUserDoThis("/users/logs.view") or  pages.canUserDoThis("/admin/modules.edit") or pages.canUserDoThis("/admin/errors.view")):
 <h3 class="error">Errors[${len(newevt.getEventErrors(module,name))}]</h3>
 <p class ="help">
 This section the most recent errors that ocurred while executing the event or trigger.
@@ -169,11 +169,11 @@ Saving this module will case it to completely reload, including its local scope.
     var actioneditor = ace.edit("actioneditor");
     actioneditor.setTheme("ace/theme/dawn");
     actioneditor.getSession().setMode("ace/mode/python");
-    
+
     var triggereditor = ace.edit("triggereditor");
     triggereditor.setTheme("ace/theme/dawn");
     triggereditor.getSession().setMode("ace/mode/python");
-    
+
     var setupeditor = ace.edit("setupeditor");
     setupeditor.setTheme("ace/theme/dawn");
     setupeditor.getSession().setMode("ace/mode/python");

@@ -497,7 +497,7 @@ def addResourceTarget(module,type,name,kwargs,path):
         if type == 'page':
                 insertResource({
                     "resource-type":"page",
-                    "body":'<div class="sectionbox">Content here</div>',
+                    "body":'<%!\n#Code Here runs once when page is first rendered. Good place for import statements.\n%>\n<%\n#Python Code here runs every page load\n%>\n<h2>Title</h2>\n<div class="sectionbox">\nContent here\n</div>',
                     'no-navheader':True})
                 usrpages.updateOnePage(escapedName,root)
 

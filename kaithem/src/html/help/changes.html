@@ -12,7 +12,7 @@
 <li>New config option: log-format: null discards logs instead of saving them.</li>
 <li>Slider widgets only show a few decimal places now</li>
 <li>Fix pagename not defined issue that interfered with proper error logging in pages</li>
-<li>Add more complete logging info to page error logs</li>
+<li>Add more complete logging info to page error logs. The user's IP, and the exact URL they tried will be logged.</li>
 <li>Flag errors in red in log page</li>
 <li>Fix bug where message events were not stopping when deleted</li>
 <li>Page Error logs now show IP address of requester and any cookies(requires permission "users/logs.view")</li>
@@ -25,6 +25,8 @@
 <li>Can now inspect module objects</li>
 <li>Page acesses can be logged</li>
 <li>Adding a __doc__ string to the code in the setup portion of an event will now add a description on the module index.</li>
+<li>One must have either /admin/modules.edit, /users/logs.view, or /admin/errors.view to view page or event errors.</li>
+<li>Better default new page contents
 </ul>
 </div>
 

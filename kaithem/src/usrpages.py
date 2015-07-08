@@ -81,7 +81,10 @@ class CompiledPage():
 
 
 def getPageErrors(module,resource):
-    return _Pages[module][resource].errors
+    try:
+        return _Pages[module][resource].errors
+    except KeyError:
+        return((0,"No Error list available for page that was not compiled or loaded","Page has not been compiled or loaded and does not exist in compiled page list"))
 
 
 _Pages = {}
@@ -257,7 +260,7 @@ class KaithemPage():
                     return cherrypy.lib.static.serve_file(e.f_filepath,e.f_MIME,e.f_name)
 
                 tb = traceback.format_exc()
-                data= "Request from: "+cherrypy.request.remote.ip+"("+pages.getAcessingUser()+")\n"+cherrypy.request.request_line+"\n"+str(cherrypy.request.cookie)
+                data= "Request from: "+cherrypy.request.remote.ip+"("+pages.getAcessingUser()+")\n"+cherrypy.request.request_line+"\n"
                 #When an error happens, log it and save the time
                 #Note that we are logging to the compiled event object
                 page.errors.append([time.strftime(config['time-format']),tb,data])
