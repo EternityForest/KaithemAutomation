@@ -125,7 +125,8 @@ you may need to use the global keyword. You may also need to use the global keyw
 %endif
 
 
-%if newevt.getEventErrors(module,name) and version == "__live__" and (pages.canUserDoThis("/users/logs.view") or  pages.canUserDoThis("/admin/modules.edit") or pages.canUserDoThis("/admin/errors.view")):
+%if newevt.getEventErrors(module,name) and version == "__live__":
+%if (pages.canUserDoThis("/users/logs.view") or  pages.canUserDoThis("/admin/modules.edit") or pages.canUserDoThis("/admin/errors.view")):
 <h3 class="error">Errors[${len(newevt.getEventErrors(module,name))}]</h3>
 <p class ="help">
 This section the most recent errors that ocurred while executing the event or trigger.
@@ -136,6 +137,9 @@ This section the most recent errors that ocurred while executing the event or tr
     <pre>${i[1]|h}</pre>
 %endfor
 </div>
+%else:
+<p class="error">Some Errors Hidden because you are not logged in or do not have the permissions to view them.</p>
+%endif
 %endif
 <hr>
 <h3>Info</h3>

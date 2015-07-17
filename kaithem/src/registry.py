@@ -16,30 +16,30 @@ from . import util,directories,messagebus
 import os,time,json,copy,hashlib,threading,copy
 
 class PersistanceArea():
-    
+
     #A special dict that works mostly like a normal one, except for it raises
     #an error if someone puts something non serializable in.
-    
+
     class PersistanceDict(dict):
         def __init__(self, *args):
             self.md5 = ''
             dict.__init__(self, *args)
-        
+
         #True if nothing changed since last marked clean. Used to decide to save or not.
         def isClean(self):
             if self.md5 == hashlib.md5(json.dumps(copy.deepcopy(self)).encode('utf8')).digest():
                 return True
             else:
                 return False
-        
+
         #We could use a flag, but using the hash doesn't have possible thread issues.
         def markClean(self):
             self.md5 = hashlib.md5(json.dumps(copy.deepcopy(self)).encode('utf8')).digest()
-    
+
         def __getitem__(self, key):
             val = dict.__getitem__(self, key)
             return val
-        
+
         #Custom getitem because we want to ensure nobody puts non serializable things in
         def __setitem__(self, key, val):
             try:
@@ -47,7 +47,7 @@ class PersistanceArea():
             except:
                 raise RuntimeError("Invalid dict insert %s:%s has a non serializable value or key"%(key,val))
             dict.__setitem__(self, key, val)
-        
+
     def __init__(self,folder):
         try:
             #We want to loop over all the timestamp named directories till we find a valid one
@@ -55,7 +55,7 @@ class PersistanceArea():
             while(1):
                 f = util.getHighestNumberedTimeDirectory(folder)
                 if os.path.isfile(os.path.join(folder,f,"kaithem_dump_valid.txt")):
-                    
+
                     #Handle finding valid directory
                     #Take all the json files and make PersistanceDicts, and mark them clean.
                     self.files = {}
@@ -67,12 +67,12 @@ class PersistanceArea():
                     break
                 else:
                     os.rename(os.path.join(folder,f),os.path.join(folder,"INCOMPLETE"+f))
-            
+
         except Exception as e:
             print(e)
             self.files = {}
         self.folder = folder
-    
+
     #Save persistane area to folder dump
     def save(self):
         error =0
@@ -83,7 +83,7 @@ class PersistanceArea():
                 save = 1
         if not save:
             return False
-                
+
         try:
             t=str(util.time_or_increment())
             util.ensure_dir2(self.folder)
@@ -117,7 +117,7 @@ class PersistanceArea():
             self.files[i].markClean()
         util.deleteAllButHighestNumberedNDirectories(self.folder,2)
         return True
-        
+
     def open(self,f):
         if not f in self.files:
             self.files[f]= self.PersistanceDict()
@@ -125,6 +125,11 @@ class PersistanceArea():
 
 registry = PersistanceArea(directories.regdir)
 reglock = threading.Lock()
+
+#This is not the actual way we determine if it is clean or not for saving, that is determined per file in an odd way.
+#however, this is used for display purposes.
+is_clean = True
+
 
 def get(key,default=None):
     if not exists(key):
@@ -147,8 +152,10 @@ def exists(key):
             return True
         else:
             return False
-    
+
 def set(key,value):
+    global is_clean
+    is_clean = False
     try:
         json.dumps({key:value})
     except:
@@ -161,9 +168,10 @@ def set(key,value):
         if not key in f['keys']:
             f['keys'][key]={}
         f['keys'][key]['data'] = copy.deepcopy(value)
-        
+
 def sync():
+    global is_clean
     with reglock:
          x = registry.save()
+    is_clean = True
     return x
-
