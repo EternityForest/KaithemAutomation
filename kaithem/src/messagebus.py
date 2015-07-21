@@ -206,6 +206,7 @@ class PyMessageBus(object):
                 #This try and if statement are supposed to catch nuisiance errors when shutting down.
                 try:
                     if cherrypy.engine.state == cherrypy.engine.states.STARTED:
+
                         raise e
                 except:
                         pass
@@ -216,7 +217,7 @@ class PyMessageBus(object):
         d = self.subscribers.copy()
         if topic in d:
             #When we find a match, we make a copy of that subscriber list
-            x = d[i][:]
+            x = d[topic][:]
             #And iterate the copy
             for ref in x:
                 #we call the ref to get its refferent
@@ -237,12 +238,13 @@ class PyMessageBus(object):
         #To allow for the possibility of it running in the background as a thread
         if save:
             self.values[topic] = (time.time(),message)
-            if len(self.values>2000):
+            if len(self.values)>2000:
                 self.values.popitem(False)
         def f():
             self._post(topic,message,errors)
         f.__name__ = 'Publish_'+topic
         self.executor(f)
+
 
 _pybus = PyMessageBus()
 _bus = MessageBus(workers.do)

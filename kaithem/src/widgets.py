@@ -12,7 +12,7 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import weakref,time,json,base64,cherrypy,os, traceback
+import weakref,time,json,base64,cherrypy,os, traceback,random
 from . import auth,pages,unitsofmeasure,config,util,messagebus
 from src.config import config
 if config['enable-websockets']:
@@ -20,6 +20,7 @@ if config['enable-websockets']:
 widgets = weakref.WeakValueDictionary()
 n = 0
 
+server_session_ID= str(time.time())+str(os.urandom(8))
 def mkid():
     global n
     n=(n+1)%10000
@@ -59,6 +60,10 @@ class WebInterface():
     @cherrypy.expose
     def ws_allowed(self):
         return str(config['enable-websockets'])
+
+    @cherrypy.expose
+    def session_id(self):
+        return server_session_ID
 
 if config['enable-websockets']:
     class websocket(WebSocket):
