@@ -90,6 +90,12 @@ def getPageErrors(module,resource):
 _Pages = {}
 _page_list_lock = threading.Lock()
 
+def getPageInfo(module,resource):
+    try:
+        return _Pages[module][resource].template.module.__doc__ or ""
+    except:
+        return ""
+
 #Delete a event from the cache by module and resource
 def removeOnePage(module,resource):
     #Look up the eb

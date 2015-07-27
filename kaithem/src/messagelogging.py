@@ -19,7 +19,7 @@ from . import unitsofmeasure,messagebus,directories,workers,util,pages
 from cherrypy.lib.static import serve_file
 
 from .config import config
-from collections import defaultdict,deque
+from collections import defaultdict,deque,OrderedDict
 #this flag tells if we need to save the list of what to log
 loglistchanged = False
 
@@ -30,7 +30,7 @@ savelock = threading.RLock()
 toSave = set()
 with open(os.path.join(directories.logdir,"whattosave.txt"),'r') as f:
     x = f.read()
-    
+
 for line in x.split('\n'):
     toSave.add(line.strip())
 
@@ -38,37 +38,37 @@ del x
 log = defaultdict(deque)
 
 
-    
+
 def dumpLogFile():
     try:
         _dumpLogFile()
     except Exception as e:
-        
+
         messagebus.postMessage("/system/errors/saving-logs/",traceback.format_exc())
 
-def _dumpLogFile():    
+def _dumpLogFile():
     """Flush all log entires that belong to topics that are in the list of things to save, and clear the staging area"""
     if config['log-format'] == 'normal':
         def dump(j,f):
             f.write(json.dumps(j,sort_keys=True,indent=1).encode())
-            
+
     elif config['log-format'] == 'tiny':
         def dump(j,f):
             f.write(json.dumps(j,sort_keys=True,separators=(',',':')).encode())
-    
+
     elif config['log-format'] == 'pretty':
         def dump(j,f):
             f.write(json.dumps(j,sort_keys=True,indent=4, separators=(',', ': ')).encode())
-    
+
     else:
         def dump(j,f):
             f.write(json.dumps(j,sort_keys=True,indent=1).encode())
             messagebus.postMessage("system/notifications","Invalid config option for 'log-format' so defaulting to normal")
-    
+
     if config['log-compress'] == 'bz2':
         openlog=  bz2.BZ2File
         ext = '.json.bz2'
-    
+
     elif config['log-compress'] == 'gzip':
         openlog = gzip.GzipFile
         ext = '.json.gz'
@@ -76,20 +76,20 @@ def _dumpLogFile():
     elif config['log-compress'] == 'none':
         openlog = open
         ext = '.json'
-        
+
     else:
         openlog = open
         messagebus.postMessage("system/notifications","Invalid config option for 'log-compress' so defaulting to no compression")
-        
-     
+
+
     global log,loglistchanged
     global approxtotallogentries
-    
+
     with savelock:
         temp = dict(log)
         log = defaultdict(deque)
         approxtotallogentries = 0
-        
+
         if loglistchanged:
             #Save the list of things to dump
             with open(os.path.join(directories.logdir,"whattosave.txt"),'w') as f:
@@ -97,7 +97,7 @@ def _dumpLogFile():
                 for i in toSave:
                     f.write(i+'\n')
             loglistchanged = False
-                
+
         #Get rid of anything that is not in the list of things to dump to the log
         temp2 = {}
         for i in temp:
@@ -105,25 +105,25 @@ def _dumpLogFile():
             if not set(messagebus.MessageBus.parseTopic(i)).isdisjoint(toSave):
                 temp2[i] = list(temp[i])
         temp = temp2
-        
+
         #If there is no log entries to save, don't dump an empty file.
         if not temp:
             return
-                
+
 
 
         where =os.path.join(directories.logdir,'dumps')
         if not os.path.exists(where):
             os.makedirs(where)
 
-        if not config['log-format'] == 'null':     
+        if not config['log-format'] == 'null':
             #Actually dump the log.
             with openlog(os.path.join(where,str(time.time())+ext),'wb') as f:
                 util.chmod_private_try(os.path.join(where,str(time.time())+ext))
                 dump(temp,f)
                 f.close()
-        
-        
+
+
         asnumbers = {}
         for i in util.get_files(where):
                 try:
@@ -136,13 +136,13 @@ def _dumpLogFile():
                         asnumbers[float(i[:-9])] = i
                 except ValueError:
                     pass
-        
+
         maxsize = unitsofmeasure.strToIntWithSIMultipliers(config['keep-log-files'])
         size = 0
         #Loop over all the old log dumps and add up the sizes
         for i in util.get_files(where):
             size = size + os.path.getsize(os.path.join(where,i))
-        
+
         #Get rid of oldest log dumps until the total size is within the limit
         for i in sorted(asnumbers.keys()):
             if size <= maxsize:
@@ -168,10 +168,10 @@ def isSaved(topic):
 def messagelistener(topic,message):
     global log
     global approxtotallogentries
-    
+
     #Default dicts are good.
     log[topic].append((time.time(),message))
-    
+
     #Unless a topic is in our list of things that we are saving,
     #We only want to keep around the most recent couple of messages.
     #So, if we have too many messages in one topic, than we must discard one
@@ -183,7 +183,7 @@ def messagelistener(topic,message):
     except Exception as e:
         print (e)
 
-            
+
     #This is not threadsafe. Hence the approx.
     #I'm assuming i had a good reason to set this back to 0 in dumpLogFile() not right here.
     approxtotallogentries +=1
@@ -210,19 +210,20 @@ class WebInterface(object):
     def index(self,*args,**kwargs ):
         pages.require('/users/logs.view')
         return pages.get_template('logging/index.html').render()
-    
+
     @cherrypy.expose
     def startlogging(self,topic):
+        global known_unsaved
         pages.require('/admin/logging.edit')
         #Invalidate the cache of non-logged topics
         known_unsaved = OrderedDict()
         topic=topic.encode("latin-1").decode("utf-8")
-        topic = topic[1:]
+        topic = topic[:]
         global loglistchanged
         loglistchanged = True
         toSave.add(topic)
         return pages.get_template('logging/index.html').render()
-    
+
     @cherrypy.expose
     def stoplogging(self,topic):
         pages.require('/admin/logging.edit')
@@ -232,12 +233,12 @@ class WebInterface(object):
         loglistchanged = True
         toSave.discard(topic)
         return pages.get_template('logging/index.html').render()
-    
+
     @cherrypy.expose
     def setlogging(self, txt):
+        global known_unsaved
         pages.require('/admin/logging.edit')
         #Invalidate the cache of non-logged topics
-        known_unsaved = OrderedDict()
         global loglistchanged
         loglistchanged = True
         global toSave
@@ -246,37 +247,39 @@ class WebInterface(object):
             line = line.strip()
             if line.startswith("/"):
                 line = line[1:]
-            toSave.add(line)
+            if line:
+                toSave.add(line)
+        known_unsaved = OrderedDict()
         return pages.get_template('logging/index.html').render()
-    
+
     @cherrypy.expose
     def flushlogs(self):
         pages.require('/admin/logging.edit')
         return pages.get_template('logging/dump.html').render()
-    
+
     @cherrypy.expose
     def dumpfiletarget(self):
         pages.require('/admin/logging.edit')
         dumpLogFile()
         return pages.get_template('logging/index.html').render()
-        
+
     @cherrypy.expose
     def archive(self):
         pages.require('/users/logs.view')
         return pages.get_template('logging/archive.html').render(files = listlogdumps())
-            
+
     @cherrypy.expose
-    def viewall(self, topic):
+    def viewall(self, topic,page=1):
         pages.require('/users/logs.view')
-        return pages.get_template('logging/topic.html').render(topicname=topic)
-    
+        return pages.get_template('logging/topic.html').render(topicname=topic, page=int(page))
+
     @cherrypy.expose
     def clearall(self,topic):
         topic=topic.encode("latin-1").decode("utf-8")
         pages.require('/admin/logging.edit')
         log.pop(topic)
         return pages.get_template('logging/index.html').render()
-    
+
     @cherrypy.expose
     def servelog(self,filename):
         pages.require('/users/logs.view')
@@ -285,6 +288,3 @@ class WebInterface(object):
         if not filename.startswith(os.path.join(directories.logdir,'dumps')):
             raise RuntimeError("Security Violation")
         return serve_file(filename, "application/x-download",os.path.split(filename)[1])
-
-            
-        

@@ -34,9 +34,11 @@ __EventReferences = {}
 EventReferences = __EventReferences
 
 def getEventInfo(event):
+    "Given a tuple of (module, resource),  return the doc string of an event if it exists, else return '' "
     return EventReferences[event].__doc__ if EventReferences[event].__doc__  else ""
 
 def renameEvent(oldModule,oldResource,module,resource):
+    "Move an event, similar to unix mv"
     with _event_list_lock:
         __EventReferences[module,resource] = __EventReferences[oldModule,oldResource]
         del  __EventReferences[oldModule,oldResource]
@@ -44,11 +46,12 @@ def renameEvent(oldModule,oldResource,module,resource):
         __EventReferences[module,resource].module = module
 
 def getEventErrors(module,event):
+    "Return a list of errors for a given event. Uses _event_list_lock"
     with _event_list_lock:
             return __EventReferences[module,event].errors
 
 def fastGetEventErrors(module,event):
-    "This version might not always be accurate, but will never modify anything or return an error"
+    "This version might not always be accurate, but will never modify anything or return an error. Does not  use a lock."
     try:
         return __EventReferences[module,event].errors
     except:
@@ -57,6 +60,15 @@ def fastGetEventErrors(module,event):
 #Given two functions, execute the action when the trigger is true.
 #Trigger takes no arguments and returns a boolean
 def when(trigger,action,priority="interactive"):
+    """
+    Create a one time event that deletes itself after firing.
+
+    Args:
+        trigger(function): The event occurs when this goes true
+        action(function): This function is called when the event fires
+        priority(string): One of realtime, interactive, low, etc. determines how often to poll.
+    """
+
     module = '<OneTimeEvents>'
     resource = trigger.__name__ + '>' + action.__name__ + ' ' + 'set at ' + str(time.time()) + ' id='+str(base64.b64encode(os.urandom(16)))
     def f():

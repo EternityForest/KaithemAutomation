@@ -108,7 +108,17 @@ class Widget():
     #This function is called by the web interface code
     def _onRequest(self,user):
         """Widgets on the client side send AJAX requests for the new value. This function must
-        return the value for the widget. For example a slider might request the newest value
+        return the value for the widget. For example a slider might request the newest value.
+
+        This function is also responsible for verifying that the user has the right permissions
+
+        This function is generally only called by the library.
+
+        This function returns if the user does not have permission
+
+        Args:
+            user(string):
+                the username of the user who is tring to access things.
         """
         for i in self._read_perms:
             if not auth.canUserDoThis(user,i):
@@ -118,10 +128,17 @@ class Widget():
 
     #This function is meant to be overridden or used as is
     def onRequest(self,user):
+        """This function is called after permissions have been verified when a client requests the current value. Usually just returns self._value
+
+        Args:
+            user(string):
+                The username of the acessung client
+        """
         return self._value
 
     #This function is called by the web interface whenever this widget is written to
     def _onUpdate(self,user,value):
+        """Called internally to write a value to the widget. Responisble for verifying permissions. Returns if user does not have permission"""
         for i in self._read_perms:
             if not auth.canUserDoThis(user,i):
                 return
@@ -176,6 +193,12 @@ class TimeWidget(Widget):
         return str(unitsofmeasure.strftime())
 
     def render(self,type='widget'):
+        """
+        Args:
+            type(string): if "widget",  returns it with normal widget styling. If "inline", it jsut looks like a span.
+        Returns:
+            string: An HTML and JS string that can be directly added as one would add any HTML inline block tag
+        """
         if type=='widget':
             return("""<div id="%s" class="widgetcontainer">
             <script type="text/javascript" src="/static/strftime-min.js">
@@ -211,6 +234,10 @@ time_widget = TimeWidget(Widget)
 
 class DynamicSpan(Widget):
     def render(self):
+        """
+        Returns:
+            string: An HTML and JS string that can be directly added as one would add any HTML inline block tag
+        """
         return("""<span id="%s">
         <script type="text/javascript">
         var upd = function(val)
@@ -223,6 +250,10 @@ class DynamicSpan(Widget):
 
 class TextDisplay(Widget):
     def render(self,height='4em',width='24em'):
+        """
+        Returns:
+            string: An HTML and JS string that can be directly added as one would add any HTML inline block tag
+        """
         #We only want to update the div when it has changed, otherwise some browsers might not let you click the links
         return("""<div style="height:%s; width:%s; overflow-x:auto; overflow-y:scroll;" class="widgetcontainer" id="%s">
         <script type="text/javascript">

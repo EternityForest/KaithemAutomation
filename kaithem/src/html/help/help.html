@@ -674,6 +674,15 @@ h4 {
 
 		<p>If clock==True, places is ignored and output is in HH:MM format. If places is 3 or 4 format will be HH:MM:SS or HH:MM:SS:mmm where mmmm is milliseconds.</p>
 
+		<h2>JS Library</h2>
+		<p>
+		The /static/js/ directory on the webserver(Which in reality maps to the folder kaithem/src/js), contains a file "tablib.js".</p>
+
+		<p>
+		By referencing this file, you can enable a custom HTML element tab-panel. Basically a tab panel contains a number of tab-pane elements, each with a
+	   name attribute. This implements a rudimentary tabview interface that may be styled through the CSS(see the default scrapbook.css for examples.)
+       </p>
+
         <h2>
             <a id="theming" name="theming"></a>Theming
         </h2>
@@ -734,13 +743,25 @@ h4 {
         <p>All messages broadcasted to this topic will appear on the front page. They should be normal text strings,
             and should not contain any time information as they will be listed by time on the front page anyway. Care
             must be taken not to flood the front page and thereby hide important messages. Only system-wide or major
-            events should be logged here.</p>
+            events should be logged here. One should subscribe to "/system/notifications/" with the trailing slash, as many messages are posted to subtopics.</p>
 
         <h3>/system/notifications/errors</h3>
         <p>Messages here are like normal system/notifications/ messages, but are semantically errors, and
-           can show in red in the logs, or trigger sounds, or similar. Again, only fairly important things should
-           go here, as they will be listed on the front page.
+           can show in red in the logs, or trigger sounds, or send out text messages, or similar. Again, only fairly important things should
+           go here, as they will be listed on the front page. Use for things like power failure, network connectivity loss, etc.<br>
+		Where possible one should wait ten seconds or so before sending a message for something that might resolve itself, like a network issue.
         </p>
+
+		<h3>/system/notifications/warnings</h3>
+        <p>
+			These messages show in yellow in the front page and the logs. Use for generic warnings.
+        </p>
+
+		<h3>/system/notifications/important</h3>
+		<p>Messages show highlighted in logs. Use for things that you want to be noticed, but don't neccesarily require immediate action,
+			like when a connection has been established or restored with a server, The system boots up, or to notify of important events, store opening hours, etc.
+			Routine things that happen frequently such as "main battery fully charged" shouldn't be put here.
+		</p>
 
         <h3>/system/modules/loaded</h3>
         <p>When a module has fully initialized, it's name is posted here.</p>

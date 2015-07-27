@@ -1,6 +1,6 @@
 import threading,sys,re,time,datetime,weakref,re,recurrent,dateutil,os
-from . import messagebus
-       
+from . import messagebus,workers
+
 class Scheduler(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -15,39 +15,42 @@ class Scheduler(threading.Thread):
         self.running = True
         self.name = 'SchedulerThread'
         self.lock = threading.Lock()
-        
+
     def everySecond(self,f):
+        f = workers.async(f)
         self.sec2.append(f)
         return f
-        
+
     def everyMinute(self,f):
+        f = workers.async(f)
         self.min2.append(f)
         return f
-    
+
     def schedule(self,f,at,exact = 60*5):
+        f = workers.async(f)
         class ScheduledEvent():
             def __init__(self,id,parent):
                 self.id = id
                 self.parent = parent
             def unregister(self):
                 self.parent._unschedule(id)
-            
+
         id = str(time.time())+f.__module__+repr(os.urandom(3))
         self.events2.append((weakref.ref(f),at,exact,id))
         return ScheduledEvent(id,self)
-    
+
     def _unschedule(self,id):
         with self.lock:
             for index,i in enumerate(self.events):
                 if i[4] == id:
                     self.pop(index)
-    
-    
+
+
     def at(self,t,exact=60*5):
         def decorator(f):
             self.schedule(f, time, exact)
         return f
-    
+
     def run(self):
         while self.running:
             messagebus.postMessage("/system/scheduler/tick", time.time())
@@ -65,7 +68,7 @@ class Scheduler(threading.Thread):
                                                     "traceback":traceback.format_exc()})
                         except:
                             pass
-                        
+
                 if time.localtime().tm_sec == 0:
                     for i in self.minute:
                         try:
@@ -80,7 +83,7 @@ class Scheduler(threading.Thread):
                                                     "traceback":traceback.format_exc()})
                             except:
                                 pass
-                
+
                 #Iterate over all the events until we get to one that is in the future
                 while self.events and (self.events[0][1]<time.time()):
                     #Get the event tuple
@@ -105,7 +108,7 @@ class Scheduler(threading.Thread):
                     del f
                 except:
                     pass
-                    
+
             #We can't let users directly add to the lists, so the users put stuff in staging
             #Areas until we finish iterating. Then we copy all the items to the lists.
             for i in self.sec2:
@@ -116,22 +119,22 @@ class Scheduler(threading.Thread):
                 self.events.append(i)
             self.events = sorted(self.events,key = lambda i:i[1])
             self.events2 = []
-                
+
             self.min2=[]
             self.sec2 = []
             #Sleep until beginning of the next second
             time.sleep(1-(time.time()%1))
-            
 
-    
+
+
 def get_next_run(s,start = None):
-    
+
     s = s.replace("every second",'every 1 seconds')
     if start==None:
         start = datetime.datetime.now().replace(minute=0,second=0,microsecond=0)
     r = recurrent.RecurringEvent()
     dt = r.parse(s)
-    
+
     if isinstance(dt,str):
         rr = dateutil.rrule.rrulestr(r.get_RFC_rrule(),dtstart=start)
         dt=rr.after(datetime.datetime.now())
@@ -148,7 +151,7 @@ def get_next_run(s,start = None):
         EPOCH = datetime.datetime(1970, 1, 1)
         offset = dateutil.tz.tzlocal().utcoffset(dt)
 
-        
+
     if sys.version_info < (3,0):
         return ((dt-EPOCH)-offset).total_seconds()
     else:

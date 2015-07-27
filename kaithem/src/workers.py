@@ -76,6 +76,13 @@ def do(func):
 def waitingtasks():
     return __queue.qsize()
 
+def async(f):
+    def g():
+        do(f)
+    return g
+
+
+
 workers = []
 #Start a number of threads as determined by the config file
 for i in range(0,config['worker-threads']):

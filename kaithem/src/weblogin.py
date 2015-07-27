@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import cherrypy
+import cherrypy, time
 from . import pages, auth,util,messagebus
 
 class LoginScreen():
@@ -28,6 +28,7 @@ class LoginScreen():
     def login(self,**kwargs):
         if not cherrypy.request.scheme == 'https':
             raise cherrypy.HTTPRedirect("/errors/gosecure")
+        time.sleep(1.2)
         x = auth.userLogin(kwargs['username'],kwargs['pwd'])
         if not x=='failure':
             #Give the user the security token.

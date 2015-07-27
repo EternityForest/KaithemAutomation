@@ -118,7 +118,6 @@ def get_files(folder):
     return [name for name in os.listdir(folder)
             if not os.path.isdir(os.path.join(folder, name))]
 
-#fix this to not be ugly
 def getHighestNumberedTimeDirectory(where):
     """Given a directory containing entirely folders named after floating point values get the name of the highest. ignore files.
         and also ignoring non-timestapt float looking named directories

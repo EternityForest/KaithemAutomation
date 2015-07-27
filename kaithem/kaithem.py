@@ -141,15 +141,19 @@ class Errors():
     def permissionerror(self,):
         cherrypy.response.status = 403
         return pages.get_template('errors/permissionerror.html').render()
+
     @cherrypy.expose
     def alreadyexists(self,):
         return pages.get_template('errors/alreadyexists.html').render()
+
     @cherrypy.expose
     def gosecure(self,):
         return pages.get_template('errors/gosecure.html').render()
+
     @cherrypy.expose
     def loginerror(self,):
         return pages.get_template('errors/loginerror.html').render()
+
     @cherrypy.expose
     def nofoldermoveerror(self,):
         return pages.get_template('errors/nofoldermove.html').render()
@@ -212,10 +216,25 @@ if config['enable-websockets']:
            'tools.websocket.handler_cls': widgets.websocket}
 else:
     wscfg = {}
+
 cnf={
     '/static':
         {'tools.staticdir.on': True,
         'tools.staticdir.dir':os.path.join(dn,'data/static'),
+        "tools.sessions.on": False,
+        "tools.addheader.on": True
+        },
+
+    '/static/js':
+        {'tools.staticdir.on': True,
+        'tools.staticdir.dir':os.path.join(dn,'src/js'),
+        "tools.sessions.on": False,
+        "tools.addheader.on": True
+        },
+
+    '/static/css':
+        {'tools.staticdir.on': True,
+        'tools.staticdir.dir':os.path.join(dn,'src/css'),
         "tools.sessions.on": False,
         "tools.addheader.on": True
         },
@@ -266,10 +285,14 @@ server2.subscribe()
 
 
 messagebus.postMessage('/system/startup','System Initialized')
-messagebus.postMessage('/system/notifications','System Initialized')
+messagebus.postMessage('/system/notifications/important','System Initialized')
 
 if time.time() < 1420070400:
-    messagebus.postMessage('/system/notifications/errors',"System Clock probably wrong, some features may not work properly.")
+    messagebus.postMessage('/system/notifications/errors',"System Clock is wrong, some features may not work properly.")
+
+if time.time() < util.min_time:
+        messagebus.postMessage('/system/notifications/errors',"System Clock may be wrong, or time has been set backwards at some point. If system clock is correct and this error does not go away, you can fix it manually be correcting folder name timestamps in the var dir.")
+
 
 
 cherrypy.engine.start()

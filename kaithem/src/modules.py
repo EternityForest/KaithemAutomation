@@ -483,6 +483,7 @@ def addResourceTarget(module,type,name,kwargs,path):
         if type == 'event':
             insertResource({
                 "resource-type":"event",
+                "setup" : "#This code runs once when the event loads. It also runs when you save the event during the test compile\n#and may run multiple times when kaithem boots due to dependancy resolution\n__doc__=''",
                 "trigger":"False",
                 "action":"pass",
                 "once":True,
@@ -497,7 +498,7 @@ def addResourceTarget(module,type,name,kwargs,path):
         if type == 'page':
                 insertResource({
                     "resource-type":"page",
-                    "body":'<%!\n#Code Here runs once when page is first rendered. Good place for import statements.\n%>\n<%\n#Python Code here runs every page load\n%>\n<h2>Title</h2>\n<div class="sectionbox">\nContent here\n</div>',
+                    "body":'<%!\n#Code Here runs once when page is first rendered. Good place for import statements.\n__doc__= ""\n%>\n<%\n#Python Code here runs every page load\n%>\n<h2>Title</h2>\n<div class="sectionbox">\nContent here\n</div>',
                     'no-navheader':True})
                 usrpages.updateOnePage(escapedName,root)
 

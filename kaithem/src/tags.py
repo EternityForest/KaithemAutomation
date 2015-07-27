@@ -24,7 +24,26 @@ import weakref,traceback, time
 tags = {}
 
 class Tag():
-    def __init__(self,name, getter=None, default=0):
+    def __init__(self,name, getter=None, default=0, min=None,
+     max=None,high=None, low=None, high_warn=None,
+      low_warn=None, step=None, normal_low= None,
+      normal_high=None, clip_range=True):
+        __doc__ = """
+        Args:
+            name: A simple natural language name, like "InputVoltage" or something. No restrictions on characters or formatting.
+            getter: If supplied, must be a function of no arguments. reading the tagpoint's value will return the result of the function
+            default: The inital value of the tag point
+            min: The minimum value. Attempts to set lower values will clip or raise an error depending on clip_range
+            max; The maximum value. Will clip or raise error depeding on clip_range
+            high: A value that is considered to be excessively high, usually so mmuch so that action should be taken. May send a notification if exceeded
+            low: A value that is considered to be excessively low.
+            high_warn: A value considered to be at the upper edge of normal operation, enough that a warning may be produced
+            low_warn: A value considered to be at the lower edge of normal operation.
+            normal_low: The lowest value considered completely normal
+            normal_high: The highest value considered completely normal
+            step: The "resolution" of the tag point. All writes will be rounded to the nearest multiple of this.
+            clip_range: Default is true. if true, clip high and low values exceeding min and max instead of raising an exception
+        """
         self.subscribers = {}
         self.value = default
         self.read_permissions = []
@@ -33,7 +52,17 @@ class Tag():
         self.name = name
         self.updated = 0
         self.interval = 0.015
-
+        self.min = min
+        self.max = max
+        self.high = high
+        self.low= low
+        self.high_warn = high_warn
+        self.low_warn = low_warn
+        self.normal_high = normal_high
+        self.normal_low = normal_low
+        self.step = step
+        self.clip_range = clip_range
+        self.is_normal = True
     #Complicated. terrible, and unmaintainable code using parts of things that were't supposed to be public.
     #Watch out to either refactor this or not make breaking changes in widget.py
 
@@ -93,12 +122,54 @@ class Tag():
         return time.time()-self.updated
 
     def write(self,value):
+        if (self.low != None) and value < self.low:
+            if self.is_normal >1:
+                messagebus.postMessage("/system/tagpoints/range/error", {"LowTripPoint":self.low, "Value":value})
+            self.is_normal = 0
+
+        if (self.high != None) and value > self.high:
+            if self.is_normal > 1:
+                messagebus.postMessage("/system/tagpoints/range/error", {"HighTripPoint":self.high, "Value":value})
+            self.is_normal = 0
+
+        if (self.low_warn != None) and value < self.low_warn:
+            if self.is_normal:
+                messagebus.postMessage("/system/tagpoints/range/error", {"LowTripPoint":self.low_warn), "Value":value})
+            self.is_normal = False
+
+        if (self.high_warn != None) and value > self.high_warn:
+            if self.is_normal:
+                messagebus.postMessage("/system/tagpoints/range/error", {"HighTripPoint":self.max, "Value":value})
+            self.is_normal = False
+
+        if self.normal_high != None and self.normal_low != None:
+            if value>self.normal_low and value < self.normal_high:
+                self.is_normal = 2
+
+        if not self.min == None:
+            if value<self.min:
+                if self.clip_range:
+                    value = self.min
+                else:
+                    raise RuntimeError("Value of " + str(value) + " out of range for TagPoint"
+
+        if not self.max == None:
+            if value > self.max:
+                if self.clip_range:
+                    value = self.max
+                else:
+                    raise RuntimeError("Value of " + str(value)+ " out of range for TagPoint")
+
+        if not self.step ==None:
+            value = util.roundto(value, self.step)
+
+
         self.value = float(value)
         self.updated = time.time()
         self._push(value)
 
     def subscribe(self,f):
-        id = 78878 #util.unique_number()
+        id = util.unique_number()
         def g():
             del self.subscribers[id]
 

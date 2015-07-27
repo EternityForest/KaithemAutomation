@@ -123,6 +123,8 @@ def in_folder(r,f,n):
 
 		Edit Page</a><a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a></dt>
 	  <dd>
+          <p>${usrpages.getPageInfo(name,i)|h}</p>
+
         %if 'require-permissions' in module[i] and module[i]['require-permissions']:
 	  <b>Permissions:</b>
 	  %for x in module[i]['require-permissions']:
