@@ -17,17 +17,14 @@ class Scheduler(threading.Thread):
         self.lock = threading.Lock()
 
     def everySecond(self,f):
-        f = workers.async(f)
         self.sec2.append(f)
         return f
 
     def everyMinute(self,f):
-        f = workers.async(f)
         self.min2.append(f)
         return f
 
     def schedule(self,f,at,exact = 60*5):
-        f = workers.async(f)
         class ScheduledEvent():
             def __init__(self,id,parent):
                 self.id = id
@@ -103,7 +100,7 @@ class Scheduler(threading.Thread):
                                                     "traceback":traceback.format_exc()})
                             except:
                                 pass
-                #Don't make there be a reference hanging around
+                #Don't make there be a reference hanging around to screw up the weakref garbage collection
                 try:
                     del f
                 except:
@@ -128,7 +125,6 @@ class Scheduler(threading.Thread):
 
 
 def get_next_run(s,start = None):
-
     s = s.replace("every second",'every 1 seconds')
     if start==None:
         start = datetime.datetime.now().replace(minute=0,second=0,microsecond=0)

@@ -558,9 +558,10 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
         self.trigger = when
         BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
         self._init_setup_and_action(setup,do)
+        #Bound methods aren't enough to stop GC
+        #TODO, Maybe this method should be asyncified?
         self.handler= self._handler
         self.next=scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
-        #Bound methods aren't enough to stop GC
 
     #Recalculate the next time at which the event should run, for cases in which the time was set incorrectly
     #And has now been changed. Not well tested, work in progress, might cause a missed event or something.
@@ -582,7 +583,8 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
             try:
                 self.lock.release()
 
-            except:
+            except Exception as e:
+                print(e)
                 pass
             self.next=scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
 

@@ -23,6 +23,9 @@ import threading,sys,cherrypy,traceback
 import atexit,time
 from .config import config
 
+def inWaiting():
+    return len(__queue)
+
 #2 and 3 have basically the same module with diferent names
 if sys.version_info < (3,0):
     import Queue
@@ -76,9 +79,10 @@ def do(func):
 def waitingtasks():
     return __queue.qsize()
 
+#This is a decorator to make an asychronous version of a function
 def async(f):
     def g():
-        do(f)
+        __queue.put(func)
     return g
 
 
