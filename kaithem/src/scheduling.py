@@ -46,9 +46,9 @@ class Scheduler(threading.Thread):
                     self.pop(index)
 
 
-    def at(self,t,exact=60*5):
+    def at(self,t,exact=60*5, async = True):
         def decorator(f):
-            self.schedule(f, time, exact)
+            self.schedule(workers.async(f) if async else f, time, exact)
         return f
 
     def run(self):

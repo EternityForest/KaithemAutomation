@@ -16,6 +16,32 @@
 import cherrypy, time
 from . import pages, auth,util,messagebus
 
+
+#Experimenal code not implemented, intended to send warning if the ratio of failed logins to real logins is excessive
+#in a short period.
+lastCleared = time.time()
+recentAttempts = 0
+alreadySent = 0
+
+def onAttempt():
+    if time.time()-lastCleared > 60*30:
+        lastCleared = time.time()
+        if recentAttempts < 50:
+            alreadySent = 0
+        recentAttempts = 0
+    recentAttempts += 1
+    if recentAttempts > 150 and not alreadysent:
+        messagebus.postMessage("/system/notifications/warnings","Excessive number of failed attempts in the last 30 minutes.")
+
+def onLogin():
+    if time.time()-lastCleared > 60*30:
+        lastCleared = 0
+        if recentAttempts < 50:
+            alreadySent = 0
+        recentAttempts = 0
+    recentAttempts -= 1.5
+
+
 class LoginScreen():
 
     @cherrypy.expose
@@ -28,7 +54,7 @@ class LoginScreen():
     def login(self,**kwargs):
         if not cherrypy.request.scheme == 'https':
             raise cherrypy.HTTPRedirect("/errors/gosecure")
-        time.sleep(1.2)
+        time.sleep(0.005)
         x = auth.userLogin(kwargs['username'],kwargs['pwd'])
         if not x=='failure':
             #Give the user the security token.
