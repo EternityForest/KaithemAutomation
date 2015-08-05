@@ -25,7 +25,7 @@ class Scheduler(threading.Thread):
         self.min2.append(f)
         return f
 
-    def schedule(self,f,at,exact = 60*5):
+    def schedule(self,f,at,exact = 60*3):
         class ScheduledEvent():
             def __init__(self,id,parent):
                 self.id = id
