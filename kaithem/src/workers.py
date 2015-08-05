@@ -72,20 +72,24 @@ def __workerloop():
             except:
                 pass
 
-#Wrap queue.put because it looks nicer
 def do(func):
+    """Run a function in the background
+
+    funct(function):
+        A function of 0 arguments to be ran in the background in another thread immediatly,
+    """
     __queue.put(func)
 
 def waitingtasks():
+    "Return the number of tasks in the task queue"
     return __queue.qsize()
 
 #This is a decorator to make an asychronous version of a function
 def async(f):
+    """Given a function f, return a function g that asyncronously executes f. Basically calling g will immediately run f in the thread pool."""
     def g():
-        __queue.put(func)
+        __queue.put(f)
     return g
-
-
 
 workers = []
 #Start a number of threads as determined by the config file

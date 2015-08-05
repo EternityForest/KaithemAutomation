@@ -52,6 +52,10 @@ class LoginScreen():
 
     @cherrypy.expose
     def login(self,**kwargs):
+        if auth.getUserSetting(pages.getAcessingUser(),"restrict-lan"):
+            if not util.iis_private_ip(cherrypy.request.remote.ip):
+                raise cherrypy.HTTPRedirect("/errors/localonly")
+
         if not cherrypy.request.scheme == 'https':
             raise cherrypy.HTTPRedirect("/errors/gosecure")
         time.sleep(0.005)

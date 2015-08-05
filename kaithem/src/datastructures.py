@@ -55,6 +55,55 @@ class Cache():
     def age(self,key):
         return self.items[key][0]
 
-class IterableWeakDict():
+
+#Incomplete
+class IterableWeakValueDict():
+    """It's like a threadsafe weak value dict. You can iterate on it without fear of it changing size."""
     def __init__(self):
         self.dict = d
+        self.lock = threading.Lock()
+
+    def __contains__(self, key):
+        def __getitem__(self,key):
+            try:
+                x = self.dict[key]()
+                if not x==None:
+                    return True
+                else:
+                    return False
+            except:
+                    return False
+
+
+
+    def __iter__(self):
+        with self.lock:
+            new = {}
+            for i in self.dict:
+                try:
+                    x = self.dict[i]
+                    if not x == None:
+                        new[i] == x
+                except:
+                    pass
+        return new.__iter__
+
+
+    def __setitem__(self,key,value):
+        with self.lock:
+            def f(wr):
+                try:
+                    del self.dict[key]
+                except:
+                    pass
+            self.dict[key] = weakref.WeakRef(value)
+
+    def __getitem__(self,key):
+        try:
+            x = self.dict[key]()
+            if not x == None:
+                return x
+            else:
+                raise KeyError
+        except:
+                raise KeyError

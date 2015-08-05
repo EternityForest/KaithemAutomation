@@ -1,4 +1,4 @@
-import threading,sys,re,time,datetime,weakref,re,recurrent,dateutil,os
+import threading,sys,re,time,datetime,weakref,re,recurrent,dateutil,os,traceback, collections
 from . import messagebus,workers
 
 class Scheduler(threading.Thread):
@@ -10,6 +10,7 @@ class Scheduler(threading.Thread):
         self.sec2 = []
         self.min2=[]
         self.events = []
+        self.errored_events = collections.OrderedDict()
         self.events2 = []
         self.daemon = True
         self.running = True
@@ -48,6 +49,20 @@ class Scheduler(threading.Thread):
             self.schedule(workers.async(f) if async else f, time, exact)
         return f
 
+    def handle_error_notification(self,f):
+        if repr(f)+str(id(f)) in self.errored_events:
+            return
+        else:
+            try:
+                m = f.__module__
+            except:
+                m = "<unknown>"
+            messagebus.postMessage("/system/notifications/errors", "Problem in scheduled event function: "+repr(f) +" in module: "+ m+", check logs for more info.")
+            self.errored_events[repr(f)+str(id(f))] = True
+            if len(self.errored_events) > 250:
+                self.errored_events.popitem(False)
+
+
     def run(self):
         while self.running:
             messagebus.postMessage("/system/scheduler/tick", time.time())
@@ -59,11 +74,12 @@ class Scheduler(threading.Thread):
                             f()
                     except:
                         try:
-                            messagebus.postMessage('system/errors/scheduler/second/'+
+                            messagebus.postMessage('system/errors/scheduler/second/',
                                                     {"function":f.__name__,
                                                     "module":f.__module__,
-                                                    "traceback":traceback.format_exc()})
-                        except:
+                                                    "traceback":traceback.format_exc(6)})
+                            self.handle_error_notification(f)
+                        except Exception as e:
                             pass
 
                 if time.localtime().tm_sec == 0:
@@ -74,10 +90,11 @@ class Scheduler(threading.Thread):
                                f()
                         except:
                             try:
-                                messagebus.postMessage('system/errors/scheduler/minute'+
+                                messagebus.postMessage('system/errors/scheduler/minute',
                                                    {"function":f.__name__,
                                                     "module":f.__module__,
-                                                    "traceback":traceback.format_exc()})
+                                                    "traceback":traceback.format_exc(6)})
+                                self.handle_error_notification(f)
                             except:
                                 pass
 
@@ -94,10 +111,11 @@ class Scheduler(threading.Thread):
                                f()
                         except:
                             try:
-                                messagebus.postMessage('system/errors/scheduler/time'+
+                                messagebus.postMessage('system/errors/scheduler/time',
                                                    {"function":f.__name__,
                                                     "module":f.__module__,
-                                                    "traceback":traceback.format_exc()})
+                                                    "traceback":traceback.format_exc(6)})
+                                self.handle_error_notification(f)
                             except:
                                 pass
                 #Don't make there be a reference hanging around to screw up the weakref garbage collection

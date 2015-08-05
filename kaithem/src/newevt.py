@@ -142,12 +142,20 @@ def __manager():
         with _event_list_lock:
             for i in _events:
                 #BAD HACK ALERT
-                #Instead of letting the event do the countdown,
+                #Instead of letting the event do the countdown.
                 # we do it ourselves, because we don't want
                 #To send anything through the slow queue we don't need to.
                 #We rely on the object itself to reset the countdown though.
+
+                #We also check the ratelimit ourselves here.
+                #This should probably be moved into an event.precheck function.
                 if i.countdown <1:
-                    workers.do(i.check)
+                    #If there is a ratelimit, we check the ratelimit here also.
+                    if i.ratelimit:
+                        if time.time()-i.lastexecuted > i.ratelimit:
+                            workers.do(i.check)
+                    else:
+                        workers.do(i.check)
                 else:
                     i.countdown -= 1
 

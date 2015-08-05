@@ -38,13 +38,13 @@ del x
 log = defaultdict(deque)
 
 
-
 def dumpLogFile():
     try:
         _dumpLogFile()
+        messagebus.postMessage("/system/notifications/", "Dumped log file")
     except Exception as e:
-
         messagebus.postMessage("/system/errors/saving-logs/",traceback.format_exc())
+        messagebus.postMessage("/system/notifications/errors/","Error saving log file")
 
 def _dumpLogFile():
     """Flush all log entires that belong to topics that are in the list of things to save, and clear the staging area"""
@@ -118,8 +118,9 @@ def _dumpLogFile():
 
         if not config['log-format'] == 'null':
             #Actually dump the log.
-            with openlog(os.path.join(where,str(time.time())+ext),'wb') as f:
-                util.chmod_private_try(os.path.join(where,str(time.time())+ext))
+            t = time.time()
+            with openlog(os.path.join(where,str(t)+ext),'wb') as f:
+                util.chmod_private_try(os.path.join(where,str(t)+ext))
                 dump(temp,f)
                 f.close()
 

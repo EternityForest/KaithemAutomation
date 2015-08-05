@@ -71,10 +71,10 @@ def SaveAllState():
             if registry.sync():
                 x=True
             #Always send the message, because there is almost always going to be at least some log entries saved
-            messagebus.postMessage("/system/notifications","Global server state was saved to disk")
+            messagebus.postMessage("/system/notifications/important","Global server state was saved to disk")
             return x
         except Exception as e:
-            messagebus.postMessage("/system/notifications/errors",'Failed to save state:' + traceback.format_exc(4))
+            messagebus.postMessage("/system/notifications/errors",'Failed to save state:' + traceback.format_exc(8))
 
 
 def SaveAllStateExceptLogs():
@@ -327,12 +327,31 @@ def module_onelevelup(s):
 
 numberlock = threading.Lock()
 current_number = -1
-
 def unique_number():
+    global current_number
     with numberlock:
         current_number +=1
         x = current_number
     return x
+
+def is_private_ip(ip):
+    if '.' in ip:
+        ip = [int(i) for i in ip.split('.')]
+
+        if ip[0] == 10 or ip[0] == 127:
+            return True
+
+        elif ip[0] == [172]:
+                if ip[1]>= 16 and ip[1]<= 31:
+                    return True
+
+        elif ip[0] == 192 and ip[1] == 168:
+            return True
+
+        return False
+    else:
+         raise ValueError("This function doesn't support IPv6")
+
 
 srepr = reprlib.Repr()
 

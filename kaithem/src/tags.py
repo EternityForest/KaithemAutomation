@@ -1,5 +1,5 @@
 import weakref,traceback, time
-#from src import util
+from src import util
 
 # A tag point is very similar to a variable, except for the fact that you can subscribe to it and be notified if it changes py passing a function that takes
 # one argument to tag.subscribe. You must maintain a reference to f or it will be garbage collected.
@@ -63,13 +63,15 @@ class Tag():
         self.step = step
         self.clip_range = clip_range
         self.is_normal = True
+        self.autopoll = False
+
     #Complicated. terrible, and unmaintainable code using parts of things that were't supposed to be public.
     #Watch out to either refactor this or not make breaking changes in widget.py
 
     #Basically this creates a meter object, modifies it to share permissions with self,
     #then modifies things to pass through reads and writes. Actually checking permissions is handled by widget.py.
     def meter(self,*args,**kwargs):
-        m = widgets.Meter(*args.**kwargs)
+        m = widgets.Meter(*args,**kwargs)
         m._write_perms = self.write_permissions
         m._read_perms = self.read_permissions
         def f(obj, usr):
@@ -78,7 +80,7 @@ class Tag():
         return m
 
     def slider(self,*args,**kwargs):
-        m = widgets.Slider(*args.**kwargs)
+        m = widgets.Slider(*args,**kwargs)
         m._write_perms = self.write_permissions
         m._read_perms = self.read_permissions
         def f(obj, usr):
@@ -105,15 +107,14 @@ class Tag():
     def __call__(self,*args):
         if args:
             self.write(args[0])
-            self.updated = time.time
-            return
-        if self.getter() and self.age>self.interval:
+            self.updated = time.time()
+            return self.value
+        if self.getter and self.age>self.interval:
             try:
-                self.value = self.getter()
-                self.updated = time.time
+                self.write(self.getter())
+                self.updated = time.time()
             except Exception as e:
                 messagebus.postMessage("system/tagpoints/errors", traceback.format_tb(6))
-            self._push(self.value)
         else:
             return self.value
 
@@ -121,65 +122,67 @@ class Tag():
     def age(self):
         return time.time()-self.updated
 
+    def _handle_new_value(self,value):
+            "Even in this class, one should direct all writes to value throught this to keep alarms and constraints in one place. "
+            if not self.min == None:
+                if value<self.min:
+                    if self.clip_range:
+                        value = self.min
+                    else:
+                        raise RuntimeError("Value of " + str(value) + " out of range for TagPoint")
+
+            if not self.max == None:
+                if value > self.max:
+                    if self.clip_range:
+                        value = self.max
+                    else:
+                        raise RuntimeError("Value of " + str(value)+ " out of range for TagPoint")
+
+            if not self.step ==None:
+                value = util.roundto(value, self.step)
+            self.value = float(value)
+            self.updated = time.time()
+            self._push(value)
+
     def write(self,value):
-        if (self.low != None) and value < self.low:
-            if self.is_normal >1:
-                messagebus.postMessage("/system/tagpoints/range/error", {"LowTripPoint":self.low, "Value":value})
-            self.is_normal = 0
+        "Handle either the user or the getter writing to the tag point"
+        self._handle_new_value(value)
 
-        if (self.high != None) and value > self.high:
-            if self.is_normal > 1:
-                messagebus.postMessage("/system/tagpoints/range/error", {"HighTripPoint":self.high, "Value":value})
-            self.is_normal = 0
+    def begin_autopoll(self):
+        try:
+            self.evt.unregister()
+        except:
+            pass
+        self.evt = PolledInternalSystemEvent(lambda: True, self,continual=True, ratelimit = self.interval)
+        self.evt,register()
 
-        if (self.low_warn != None) and value < self.low_warn:
-            if self.is_normal:
-                messagebus.postMessage("/system/tagpoints/range/error", {"LowTripPoint":self.low_warn), "Value":value})
-            self.is_normal = False
+    def end_autopoll(self):
+        try:
+            self.evt.unregister()
+        except:
+            pass
 
-        if (self.high_warn != None) and value > self.high_warn:
-            if self.is_normal:
-                messagebus.postMessage("/system/tagpoints/range/error", {"HighTripPoint":self.max, "Value":value})
-            self.is_normal = False
-
-        if self.normal_high != None and self.normal_low != None:
-            if value>self.normal_low and value < self.normal_high:
-                self.is_normal = 2
-
-        if not self.min == None:
-            if value<self.min:
-                if self.clip_range:
-                    value = self.min
-                else:
-                    raise RuntimeError("Value of " + str(value) + " out of range for TagPoint"
-
-        if not self.max == None:
-            if value > self.max:
-                if self.clip_range:
-                    value = self.max
-                else:
-                    raise RuntimeError("Value of " + str(value)+ " out of range for TagPoint")
-
-        if not self.step ==None:
-            value = util.roundto(value, self.step)
-
-
-        self.value = float(value)
-        self.updated = time.time()
-        self._push(value)
+    def __del__(self):
+        try:
+            self.end_autopoll()
+        except:
+            pass
 
     def subscribe(self,f):
         id = util.unique_number()
-        def g():
-            del self.subscribers[id]
-
+        def g(o):
+            self.unsubscribe(id)
         self.subscribers[id] = weakref.ref(f,g)
+        if self.autopoll:
+            self.begin_autopoll()
         return id
 
     def unsubscribe(self,id):
         try:
             del self.subscribers[id]
-        except KeyError:
+            if not self.subscribers:
+                self.end_autopoll()
+        except:
             pass
 
     def require(self, p):
@@ -189,36 +192,57 @@ class Tag():
     def requireToWrite(self,p):
         self.write_permissions.append(p)
 
-class CVFilter(Tag):
-        def __init__(self,name="Untitled_Tag", getter=None, default=0):
-            self.target = 0;
-            Tag.__init__(self,name,getter,default)
 
-        def set(self,value):
-            self.value = value
-            self.target = value
-            self.updated = time.time()
+class FilterTag(Tag):
+        def __init__(self,*args,**kwargs):
+            Tag.__init__(self,*args,**kwargs)
+            self.last_input = 0
 
-        def write(self.value):
-            change = self.rate*self.age()
-            self.value = min(self.value-chane, max(self.value+change,self.target))
-            self.target = value
-            self.updated = time.tim
-            self,_push(value)
+        def filter_step(self):
+            return self.last_input
 
         def __call__(self,*args):
-            change = self.rate*self.age()
-            self.value = min(self.value-chane, max(self.value+change,self.target))
+            x = self.filter_step()
+            self._handle_new_value(x)
             if args:
-                self.write(args[0])
-                self.updated = time.time
-                return
-            if self.getter() and self.age>self.interval:
+                self.last_input=args[0]
+                self.updated = time.time()
+            if self.getter and self.age>self.interval:
                 try:
-                    self.target = self.getter()
-                    self.updated = time.time
+                    self.last_input=self.getter()
+                    self.updated = time.time()
                 except Exception as e:
                     messagebus.postMessage("system/tagpoints/errors", traceback.format_tb(6))
-                self._push(self.value)
-            else:
-                return self.value
+            return x
+
+class CVFilterTag(FilterTag):
+    def __init__(self, *args,**kwargs):
+        FilterTag.__init__(self,*args,**kwargs)
+        self.rate = kwargs['rate'] if "rate" in kwargs else 1
+        self.last_input = 0
+        self.position = 0
+
+
+    def filter_step(self):
+        if self.updated:
+            change = time.time()-self.updated*self.rate
+            if self.position < self.last_input:
+                self.position = min(self.last_input, self.position+change)
+            if self.position > self.last_input:
+                self.position = max(self.last_input, self.position-change)
+        return self.position
+
+t = CVFilterTag("Butt")
+def f(x):
+    print(x)
+t.subscribe(f)
+
+t(10)
+time.sleep(1)
+t(10)
+time.sleep(1)
+t(10)
+time.sleep(1.2)
+t(10)
+def f(x):
+    print(x)
