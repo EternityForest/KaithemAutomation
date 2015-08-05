@@ -1,0 +1,24 @@
+.cm-s-codemirror-scrapbook span.cm-meta {color: #FF1717;}
+.cm-s-codemirror-scrapbook span.cm-keyword { line-height: 1em; font-weight: bold; color: #7F0055; }
+.cm-s-codemirror-scrapbook span.cm-atom {color: #219;}
+.cm-s-codemirror-scrapbook span.cm-number {color: #164;}
+.cm-s-codemirror-scrapbook span.cm-def {color: #00f;}
+.cm-s-codemirror-scrapbook span.cm-variable {color: black;}
+.cm-s-codemirror-scrapbook span.cm-variable-2 {color: #0000C0;}
+.cm-s-codemirror-scrapbook span.cm-variable-3 {color: #0000C0;}
+.cm-s-codemirror-scrapbook span.cm-property {color: black;}
+.cm-s-codemirror-scrapbook span.cm-operator {color: black;}
+.cm-s-codemirror-scrapbook span.cm-comment {color: #3F7F5F;}
+.cm-s-codemirror-scrapbook span.cm-string {color: #2A00FF;}
+.cm-s-codemirror-scrapbook span.cm-string-2 {color: #f50;}
+.cm-s-codemirror-scrapbook span.cm-qualifier {color: #555;}
+.cm-s-codemirror-scrapbook span.cm-builtin {color: #30a;}
+.cm-s-codemirror-scrapbook span.cm-bracket {color: #cc7;}
+.cm-s-codemirror-scrapbook span.cm-tag {color: #170;}
+.cm-s-codemirror-scrapbook span.cm-attribute {color: #00c;}
+.cm-s-codemirror-scrapbook span.cm-link {color: #219;}
+.cm-s-codemirror-scrapbook span.cm-error {color: #f00;}
+.cm-s-codemirror-scrapbook.CodeMirror { background:rgba(210,220,190,0.95);  border-style: solid; }
+.cm-s-codemirror-scrapbook .CodeMirror-gutters { background:rgba(220,220,200,0.75);  }
+.cm-s-codemirror-scrapbook .CodeMirror-activeline-background {background: #e8f2ff !important;}
+.cm-s-codemirror-scrapbook .CodeMirror-matchingbracket {outline:1px solid grey; color:black !important;}

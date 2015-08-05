@@ -73,10 +73,9 @@ def check_time_set():
         #assume the time has been set. Use 30 seconds because maybe high CPU load could make it take longer than a minute.
         if abs(time.time() - (time_last_minute+60)) >   1000:
             messagebus.postMessage("/system/notifications/warnings" , "Kaithem has detected the system time may have been set by " + str(time.time() - (time_last_minute+60)) +'s')
-        
+
         elif abs(time.time() - (time_last_minute+60)) >   30:
             messagebus.postMessage("/system/notifications/important" , "Kaithem has detected the system time may have been set by " + str(time.time() - (time_last_minute+60)) +'s')
-
 
     time_last_minute = time.time()
 

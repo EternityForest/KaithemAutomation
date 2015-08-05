@@ -5,6 +5,18 @@ from src import usrpages,pages,util
 from src.config import config
 %>
 <%include file="/pageheader.html"/>
+%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
+<link rel=stylesheet href="/static/js/codemirror/lib/codemirror.css">
+<link rel=stylesheet href="/static/css/codemirror-scrapbook.css">
+
+<script src="/static/js/codemirror/lib/codemirror.js"></script>
+<script src="/static/js/codemirror/mode/xml/xml.js"></script>
+<script src="/static/js/codemirror/mode/javascript/javascript.js"></script>
+<script src="/static/js/codemirror/mode/css/css.js"></script>
+<script src="/static/js/codemirror/mode/htmlmixed/htmlmixed.js"></script>
+<script src="/static/js/codemirror/addon/edit/matchbrackets.js"></script>
+
+%endif
 <title>Kaithem Page</title>
 <h2>Page "${name|h}" of module <a href="/modules/module/${url(module)}">${module|h}</a></h2>
 Page URL: <a class="gobutton" href="${usrpages.url_for_resource(module,name)}">${''+usrpages.url_for_resource(module,name)}</a>
@@ -33,9 +45,17 @@ Please see cherrypy's documentation for more info.
 
 
 <textarea id="box" name="body" rows=25 class="htmlcode">${page["body"]|h}</textarea>
-
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
-<div id="pageeditor" class="acediv" style="height: 75ex;border: 1px solid #DDD;">${page["body"]|h}</div>
+<script>
+var editor = CodeMirror.fromTextArea(document.getElementById("box"), {
+    lineNumbers: true,
+    mode: "text/html",
+    matchBrackets: true,
+    theme:"codemirror-scrapbook"
+  });
+
+editor.setSize("99%","35em")
+</script>
 %endif
 
 <p class="help">
@@ -168,19 +188,5 @@ Saving this module will cause it to be immediately acessable from the web.
 </form>
 </div>
 
-%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
-<script src="/static/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
-<script>
-var pageeditor = ace.edit("pageeditor");
-pageeditor.setTheme("ace/theme/dawn");
-pageeditor.getSession().setMode("ace/mode/html");
 
-pageeditor.getSession().on('change', function(e) {
-    document.getElementById('box').value = pageeditor.getValue();
-});
-
-document.getElementById('box').style.display='none';
-document.getElementById('pageeditor').style.display='block';
-</script>
-%endif
 <%include file="/pagefooter.html"/>
