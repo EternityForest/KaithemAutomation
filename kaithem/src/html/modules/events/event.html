@@ -7,7 +7,13 @@ from src.config import config
 %>
 
 <%include file="/pageheader.html"/>
-
+%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
+<link rel=stylesheet href="/static/js/codemirror/lib/codemirror.css">
+<link rel=stylesheet href="/static/css/codemirror-scrapbook.css">
+<script src="/static/js/codemirror/lib/codemirror.js"></script>
+<script src="/static/js/codemirror/mode/python/python.js"></script>
+<script src="/static/js/codemirror/addon/edit/matchbrackets.js"></script>
+%endif
 <title>Kaithem Event</title>
 <h2>Event "${name|h}" of module <a href="/modules/module/${url(module)}">${module|h}</a></h2>
 %if not (module,name) in newevt.EventReferences:
@@ -45,7 +51,15 @@ else:
 
 
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
-<div class="acediv" id="setupeditor"  style="height:65ex ;border: 1px solid #DDD;">${xyz|h}</div>
+<script>
+var editor = CodeMirror.fromTextArea(document.getElementById("setupbox"), {
+    lineNumbers: true,
+    mode: "python",
+    matchBrackets: true,
+    theme:"codemirror-scrapbook"
+  });
+editor.setSize("99%","45em")
+</script>
 %endif
 
 <h3>Trigger</h3>
@@ -57,8 +71,24 @@ else:
 <input class="pythoncode" id="triggerbox" type="text" name="trigger" value="${event['trigger']|h}"></input>
 
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
-<div id="triggereditor" class="acediv" style="height:2ex ;border: 1px solid #DDD;">${event["trigger"]|h}</div>
+<script>
+var triggereditor = CodeMirror.fromTextArea(document.getElementById("triggerbox"), {
+    lineNumbers: true,
+    mode: "python",
+    matchBrackets: true,
+    theme:"codemirror-scrapbook"
+  });
+triggereditor.setSize("99%","2.5ex");
+
+//Limit to one line, thanks Tigran Saluev of Stack Overflow for the code
+triggereditor.on("beforeChange", function(instance, change) {
+    var newtext = change.text.join("").replace(/\n/g, ""); // remove ALL \n !
+    change.update(change.from, change.to, [newtext]);
+    return true;
+});
+</script>
 %endif
+
 <%!
 def get_time(t):
   try:
@@ -121,7 +151,15 @@ you may need to use the global keyword. You may also need to use the global keyw
 <textarea id="actionbox" name="action" rows=50 class="pythoncode">${event["action"]|h}</textarea>
 
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
-<div class="acediv" id="actioneditor" style="height: 60ex;border: 1px solid #DDD;">${event["action"]|h}</div>
+<script>
+var editor = CodeMirror.fromTextArea(document.getElementById("actionbox"), {
+    lineNumbers: true,
+    mode: "python",
+    matchBrackets: true,
+    theme:"codemirror-scrapbook"
+  });
+editor.setSize("99%","40em")
+</script>
 %endif
 
 
@@ -168,47 +206,7 @@ Saving this module will case it to completely reload, including its local scope.
 </div>
 
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
-<script src="/static/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
-<script>
-    var actioneditor = ace.edit("actioneditor");
-    actioneditor.setTheme("ace/theme/dawn");
-    actioneditor.getSession().setMode("ace/mode/python");
 
-    var triggereditor = ace.edit("triggereditor");
-    triggereditor.setTheme("ace/theme/dawn");
-    triggereditor.getSession().setMode("ace/mode/python");
-
-    var setupeditor = ace.edit("setupeditor");
-    setupeditor.setTheme("ace/theme/dawn");
-    setupeditor.getSession().setMode("ace/mode/python");
-</script>
-
-<script>
-triggereditor.getSession().on('change', function(e) {
-    document.getElementById('triggerbox').value = triggereditor.getValue();
-});
-</script>
-
-<script>
-actioneditor.getSession().on('change', function(e) {
-    document.getElementById('actionbox').value = actioneditor.getValue();
-});
-</script>
-
-<script>
-setupeditor.getSession().on('change', function(e) {
-    document.getElementById('setupbox').value = setupeditor.getValue();
-});
-</script>
-
-<script>document.getElementById('triggerbox').style.display='none';</script>
-<script>document.getElementById('triggereditor').style.display='block';</script>
-
-<script>document.getElementById('actionbox').style.display='none';</script>
-<script>document.getElementById('actioneditor').style.display='block';</script>
-
-<script>document.getElementById('setupbox').style.display='none';</script>
-<script>document.getElementById('setupeditor').style.display='block';</script>
 
 %endif
 <%include file="/pagefooter.html"/>
