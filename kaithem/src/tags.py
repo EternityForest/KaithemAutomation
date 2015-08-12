@@ -51,6 +51,10 @@ class Tag():
         One must be careful not to create cycles of tags that might call each other in a gigantic loop. However, the interval setting can be used to break loops,
         as a tag with a valid cache value will return that instead of calling upstream tags.
 
+        If you set tag.autopoll, the tag will automatically poll the getter at tag.interval if it has any subscribers. polling starts as soon as something subscribes.
+
+        All listed args are also properties that are settable at any time.
+
         Args:
             name: A simple natural language name, like "InputVoltage" or something. No restrictions on characters or formatting.
             getter: If supplied, must be a function of no arguments. reading the tagpoint's value will return the result of the function
@@ -67,6 +71,7 @@ class Tag():
             clip_range: Default is true. if true, clip high and low values exceeding min and max instead of raising an exception
         """
         self.subscribers = {}
+        self._subscribers = {}
         self.value = default
         self.read_permissions = []
         self.write_permissions = []
@@ -86,6 +91,7 @@ class Tag():
         self.clip_range = clip_range
         self.is_normal = True
         self.autopoll = False
+        self.id = util.unique_number()
 
     #Complicated. terrible, and unmaintainable code using parts of things that were't supposed to be public.
     #Watch out to either refactor this or not make breaking changes in widget.py
@@ -119,12 +125,20 @@ class Tag():
     def __nonzero__(self):
         return self()>0,5
 
+    def repr(self):
+        return("<Tag point "+self.id+ " name: " + self.name+" with value: "+ str(self.value) + ">")
     def _push(self, value):
-        for i in self.subscribers:
+        for i in self._subscribers:
             try:
-                self.subscribers[i]()(value)
+                x = self._subscribers[i]()
+                x(value)
+            except:
+                messagebus.postMessage("system/tagpoints/errors/subscribers","Error in subscriber to tag point " +repr(self) + " in function " + repr(x)+"\n"+traceback.format_tb(6))
+            try:
+                del x
             except:
                 pass
+
 
     def __call__(self,*args):
         if args:
@@ -138,7 +152,7 @@ class Tag():
                 self.write(self.getter())
                 self.updated = time.time()
             except Exception as e:
-                messagebus.postMessage("system/tagpoints/errors", traceback.format_tb(6))
+                messagebus.postMessage("system/tagpoints/errors/input", traceback.format_tb(6))
         return self.value
 
     @property
@@ -198,6 +212,7 @@ class Tag():
         self.subscribers[id] = weakref.ref(f,g)
         if self.autopoll:
             self.begin_autopoll()
+        self.update_subscribers()
         return id
 
     def unsubscribe(self,id):
@@ -205,8 +220,12 @@ class Tag():
             del self.subscribers[id]
             if not self.subscribers:
                 self.end_autopoll()
+            self.update_subscribers()
         except:
             pass
+
+    def update_subscribers(self):
+        self._subscribers = self.subscribers
 
     def require(self, p):
         self.read_permissions.append(p)

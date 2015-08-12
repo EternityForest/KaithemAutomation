@@ -185,6 +185,12 @@ properties:
     theme-url:
         type: string
 
+    cm-theme-url:
+        type: string
+
+    cm-theme:
+        type: string
+        
     quotes-file:
         type: string
 

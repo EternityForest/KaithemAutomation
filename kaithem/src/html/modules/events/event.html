@@ -10,7 +10,7 @@ from src.config import config
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
 <link rel=stylesheet href="/static/js/codemirror/lib/codemirror.css">
 <link rel=stylesheet href="/static/js/codemirror/addon/dialog/dialog.css">
-<link rel=stylesheet href="/static/css/codemirror-scrapbook.css">
+<link rel=stylesheet href="${config['cm-theme-url']}">
 <script src="/static/js/codemirror/lib/codemirror.js"></script>
 <script src="/static/js/codemirror/mode/python/python.js"></script>
 <script src="/static/js/codemirror/addon/edit/matchbrackets.js"></script>
@@ -62,13 +62,10 @@ var editor = CodeMirror.fromTextArea(document.getElementById("setupbox"), {
     lineNumbers: true,
     mode: "python",
     matchBrackets: true,
-    theme:"codemirror-scrapbook",
+    theme: "${config['cm-theme']}",
     indentUnit:4,
+    tabMode: 'spaces',
     extraKeys: {
-      Tab: function(cm) {
-        var spaces = Array(cm.getOption("indentUnit") + 1).join(" ");
-        cm.replaceSelection(spaces);
-    },
    "Ctrl-F": "findPersistent",
    "Cmd-F": "findPersistent"
    }
@@ -91,7 +88,7 @@ var triggereditor = CodeMirror.fromTextArea(document.getElementById("triggerbox"
     lineNumbers: true,
     mode: "python",
     matchBrackets: true,
-    theme:"codemirror-scrapbook",
+    theme: "${config['cm-theme']}",
 
   });
 triggereditor.setSize("99%","2.5ex");
@@ -172,15 +169,13 @@ var editor = CodeMirror.fromTextArea(document.getElementById("actionbox"), {
     lineNumbers: true,
     mode: "python",
     matchBrackets: true,
-    theme:"codemirror-scrapbook",
+    theme: "${config['cm-theme']}",
   indentUnit:4,
+  tabMode: 'spaces',
   extraKeys: {
-    Tab: function(cm) {
-      var spaces = Array(cm.getOption("indentUnit") + 1).join(" ");
-      cm.replaceSelection(spaces);
-  }
-
-  }
+ "Ctrl-F": "findPersistent",
+ "Cmd-F": "findPersistent"
+ }
   }
 
   );

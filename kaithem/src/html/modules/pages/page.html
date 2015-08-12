@@ -7,8 +7,7 @@ from src.config import config
 <%include file="/pageheader.html"/>
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
 <link rel=stylesheet href="/static/js/codemirror/lib/codemirror.css">
-<link rel=stylesheet href="/static/css/codemirror-scrapbook.css">
-
+<link rel=stylesheet href="${config['cm-theme-url']}">
 <script src="/static/js/codemirror/lib/codemirror.js"></script>
 <script src="/static/js/codemirror/mode/xml/xml.js"></script>
 <script src="/static/js/codemirror/mode/javascript/javascript.js"></script>
@@ -51,8 +50,14 @@ var editor = CodeMirror.fromTextArea(document.getElementById("box"), {
     lineNumbers: true,
     mode: "text/html",
     matchBrackets: true,
-    theme:"codemirror-scrapbook"
-  });
+    theme: "${config['cm-theme']}",
+  indentUnit:4,
+  tabMode: 'spaces',
+  extraKeys: {
+ "Ctrl-F": "findPersistent",
+ "Cmd-F": "findPersistent"
+ }
+ });
 
 editor.setSize("99%","45em")
 </script>
