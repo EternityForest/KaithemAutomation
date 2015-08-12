@@ -9,10 +9,16 @@ from src.config import config
 <%include file="/pageheader.html"/>
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
 <link rel=stylesheet href="/static/js/codemirror/lib/codemirror.css">
+<link rel=stylesheet href="/static/js/codemirror/addon/dialog/dialog.css">
 <link rel=stylesheet href="/static/css/codemirror-scrapbook.css">
 <script src="/static/js/codemirror/lib/codemirror.js"></script>
 <script src="/static/js/codemirror/mode/python/python.js"></script>
 <script src="/static/js/codemirror/addon/edit/matchbrackets.js"></script>
+<script src="/static/js/codemirror/addon/search/search.js"></script>
+<script src="/static/js/codemirror/addon/search/searchcursor.js"></script>
+<script src="/static/js/codemirror/addon/dialog/dialog.js"></script>
+<script src="/static/js/codemirror/addon/scroll/annotatescrollbar.js"></script>
+<script src="/static/js/codemirror/addon/search/matchesonscrollbar.js"></script>
 %endif
 <title>Kaithem Event</title>
 <h2>Event "${name|h}" of module <a href="/modules/module/${url(module)}">${module|h}</a></h2>
@@ -56,7 +62,16 @@ var editor = CodeMirror.fromTextArea(document.getElementById("setupbox"), {
     lineNumbers: true,
     mode: "python",
     matchBrackets: true,
-    theme:"codemirror-scrapbook"
+    theme:"codemirror-scrapbook",
+    indentUnit:4,
+    extraKeys: {
+      Tab: function(cm) {
+        var spaces = Array(cm.getOption("indentUnit") + 1).join(" ");
+        cm.replaceSelection(spaces);
+    },
+   "Ctrl-F": "findPersistent",
+   "Cmd-F": "findPersistent"
+   }
   });
 editor.setSize("99%","45em")
 </script>
@@ -76,7 +91,8 @@ var triggereditor = CodeMirror.fromTextArea(document.getElementById("triggerbox"
     lineNumbers: true,
     mode: "python",
     matchBrackets: true,
-    theme:"codemirror-scrapbook"
+    theme:"codemirror-scrapbook",
+
   });
 triggereditor.setSize("99%","2.5ex");
 
@@ -156,8 +172,18 @@ var editor = CodeMirror.fromTextArea(document.getElementById("actionbox"), {
     lineNumbers: true,
     mode: "python",
     matchBrackets: true,
-    theme:"codemirror-scrapbook"
-  });
+    theme:"codemirror-scrapbook",
+  indentUnit:4,
+  extraKeys: {
+    Tab: function(cm) {
+      var spaces = Array(cm.getOption("indentUnit") + 1).join(" ");
+      cm.replaceSelection(spaces);
+  }
+
+  }
+  }
+
+  );
 editor.setSize("99%","40em")
 </script>
 %endif

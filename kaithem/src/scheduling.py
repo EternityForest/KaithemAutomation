@@ -1,6 +1,8 @@
 import threading,sys,re,time,datetime,weakref,re,recurrent,dateutil,os,traceback, collections
 from . import messagebus,workers
 
+
+last_did_minute_tasks = 0
 class Scheduler(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -18,11 +20,11 @@ class Scheduler(threading.Thread):
         self.lock = threading.Lock()
 
     def everySecond(self,f):
-        self.sec2.append(f)
+        self.sec2.append(workers.async(f))
         return f
 
     def everyMinute(self,f):
-        self.min2.append(f)
+        self.min2.append(workers.async(f))
         return f
 
     def schedule(self,f,at,exact = 60*3):
@@ -40,7 +42,7 @@ class Scheduler(threading.Thread):
     def _unschedule(self,id):
         with self.lock:
             for index,i in enumerate(self.events):
-                if i[4] == id:
+                if i[3] == id:
                     self.pop(index)
 
 
@@ -64,14 +66,18 @@ class Scheduler(threading.Thread):
 
 
     def run(self):
+        global last_did_minute_tasks
         while self.running:
             messagebus.postMessage("/system/scheduler/tick", time.time())
+            delete_broken = False
             with self.lock:
                 for i in self.second:
                     try:
                         f= i()
                         if f:
                             f()
+                        else:
+                            delete_broken = True
                     except:
                         try:
                             messagebus.postMessage('system/errors/scheduler/second/',
@@ -81,13 +87,18 @@ class Scheduler(threading.Thread):
                             self.handle_error_notification(f)
                         except Exception as e:
                             pass
-
-                if time.localtime().tm_sec == 0:
+                #A tiny bit of variatiion in timing of minutes is allowed, so we don't miss events of something.
+                #However, just checking if tm_sec==0 sometimes resulted in double firing, because
+                #sometimes the loop would go twice in a second.
+                if time.localtime().tm_sec < 2 and time.time()-last_did_minute_tasks > 58:
+                    last_did_minute_tasks = time.time()
                     for i in self.minute:
                         try:
                            f= i()
                            if f:
                                f()
+                           else:
+                               delete_broken = True
                         except:
                             try:
                                 messagebus.postMessage('system/errors/scheduler/minute',
@@ -109,6 +120,8 @@ class Scheduler(threading.Thread):
                            f =f[0]()
                            if f:
                                f()
+                           else:
+                               delete_broken = True
                         except:
                             try:
                                 messagebus.postMessage('system/errors/scheduler/time',
@@ -118,6 +131,13 @@ class Scheduler(threading.Thread):
                                 self.handle_error_notification(f)
                             except:
                                 pass
+                if delete_broken:
+                    for i in self.second.copy():
+                        if not i():
+                            self.second.remove(i)
+                    for i in self.minute.copy():
+                        if not i():
+                            self.minute.remove(i)
                 #Don't make there be a reference hanging around to screw up the weakref garbage collection
                 try:
                     del f

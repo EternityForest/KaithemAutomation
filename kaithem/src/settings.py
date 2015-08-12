@@ -87,7 +87,22 @@ class Settings():
             else:
                 p = subprocess.Popen("sh -i",universal_newlines=True, shell=True,stdout=subprocess.PIPE,stdin=subprocess.PIPE, stderr=subprocess.PIPE)
 
-            t =  p.communicate(kwargs['script'])
+            #Windows 3.2
+            if sys.version == (3,2) and os.platform == 'nt':
+                t =  p.communicate(kwargs['script'])
+
+            #UNIX 3.2
+            elif sys.version == (3,2):
+                t =  p.communicate(bytes(kwargs['script'],'utf-8'))
+            else:
+                t =  p.communicate(kwargs['script'])
+
+            if isinstance(t,bytes):
+                try:
+                    t = t.decode('utf-8')
+                except:
+                    pass
+
             x+= t[0] + t[1]
             try:
                 time.sleep(0.1)

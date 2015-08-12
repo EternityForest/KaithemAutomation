@@ -260,7 +260,7 @@ class TextDisplay(Widget):
         KWidget_%s_prev = "PlaceHolder1234";
         var upd = function(val)
         {
-            if(val == KWidget_%s_prev)
+            if(val == KWidget_%s_prev || val==null)
             {
 
             }
@@ -552,6 +552,7 @@ class APIWidget(Widget):
                 %(htmlid)s = {};
                 %(htmlid)s.value = "Waiting..."
                 %(htmlid)s.clean = 0;
+
                 var upd = function(val)
                     {
                         if (%(htmlid)s.clean==0)
