@@ -4,11 +4,10 @@
 <title>Save</title>
 <div class="sectionbox">
 
-<p>
-Are you sure you want to restart? Be sure you have saved the server state if there are any changes
-That you want to keep.
+<p class="warning">
+Are you sure you want to restart without saving changes? This will override any setting to save before shutdown.
 </p>
-<form method="post" action="/settings/restarttarget">
+<form method="post" action="/settings/restarttarget_nosave">
 <button type="submit">Restart server now</button>
 </form>
 </div>

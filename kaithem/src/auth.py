@@ -31,6 +31,15 @@ import json,base64,os,time,shutil,hashlib,base64,sys,yaml
 with open(os.path.join(directories.datadir,"defaultusersettings.yaml")) as f:
     defaultusersettings = yaml.load(f)
 
+#untested stuff that only works sometimes maybe for supporting logins by unix users
+try:
+    if sys.version_info < (3,3):
+        from shlex import quote as shellquote
+    else:
+        from pipes import quote as shellquote
+except:
+    pass
+
 if sys.version_info < (3,0):
     #In python 2 bytes is an alias for str
     #So we need to make a version bytes take a dummy arg to match 3.xx interface
@@ -390,3 +399,7 @@ def canUserDoThis(user,permission):
     if permission in Users[user].permissions:
         return True
     return False
+
+
+def sys_login(username, password):
+    return subprocess.check_output('echo "'+ shellquote(password[:40]) +'" | sudo  -S -u ' + shellquote(username[:25]) +' groups', shell=True)[:-1]

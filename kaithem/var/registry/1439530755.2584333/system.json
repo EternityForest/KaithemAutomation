@@ -1,6 +1,15 @@
 {
     "data": {
         "keys": {
+            "system/location/city": {
+                "data": "Seattle"
+            },
+            "system/location/lat": {
+                "data": 47.602
+            },
+            "system/location/lon": {
+                "data": -122.3284
+            },
             "system/mail/address": {
                 "data": "myemail@example.com"
             },

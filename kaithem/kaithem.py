@@ -161,6 +161,7 @@ class Errors():
     def wrongmethod(self,):
         cherrypy.response.status = 405
         return pages.get_template('errors/wrongmethod.html').render()
+
     @cherrypy.expose
     def error(self,):
         cherrypy.response.status = 500

@@ -3,7 +3,7 @@
 import sys
 from src import unitsofmeasure
 %>
-<h1>All Settings</h1>
+<h1>Profiler</h1>
 <div class="sectionbox">
 <dl>
 <%
@@ -17,37 +17,43 @@ except:
 %if _yappi:
     <dl>
     %if not yappi.is_running():
-        <dt><a href="/settings/profiler/start">Start Profiler</a></dt>
-        <dd>Start the profiling engine
+        <dt><form method="post" action="/settings/profiler/start">
+        <button type="submit">Start</button>
+        </form></dt>
+        <dd>Start the profiler</dd>
     %else:
-        <dt><a href="/settings/profiler/stop">Stop</a></dt>
+        <dt><form method="post" action="/settings/profiler/stop">
+        <button type="submit">Stop</button>
+        </form></dt>
         <dd>Stop the profiler</dd>
     %endif
-        <dt><a href="/settings/profiler/clear">Clear</a></dt>
+        <dt><form method="post" action="/settings/profiler/clear">
+        <button type="submit">Clear</button>
+        </form></dt>
         <dd>Clear Profile Data</dd>
     </dl>
-    
+
      %if  yappi.is_running():
     <%
     if sort == 'total':
         sorter = lambda x: x.ttot
     else:
         sorter = lambda x: x.tsub
-    
+
     #yappi have two api's in different versions
     if hasattr(yappi,"get_stats"):
         stats = yappi.get_stats().func_stats
         gn = lambda x: x.name
     else:
         gn = lambda x: x.full_name
-        stats= yappi.get_func_stats()       
+        stats= yappi.get_func_stats()
     %>
     <h2>Statistics</h2>
     <table border=1 style="font-size:85%;">
     <tr>
     <th>Module</th>
     <th>Name</th>
-    
+
     <th>Line</th>
     <th>Call Count</th>
     <th><a href="/settings/profiler">Total Subtime</a></th>
@@ -59,7 +65,7 @@ except:
     <td>${0}</td>
     <td>${i.name}</td>
     <td>${0}</td>
-    
+
     <td>${unitsofmeasure.siFormatNumber(i.ncall)}</td>
     <td>${unitsofmeasure.siFormatNumber(i.tsub)}s</td>
     <td>${unitsofmeasure.siFormatNumber(i.tavg)}s</td>
@@ -68,13 +74,13 @@ except:
     <td>${i.module}</td>
     <td>${i.name}</td>
     <td>${i.lineno}</td>
-    
+
     <td>${unitsofmeasure.siFormatNumber(i.ncall)}</td>
     <td>${unitsofmeasure.siFormatNumber(i.tsub)}s</td>
     <td>${unitsofmeasure.siFormatNumber(i.tavg)}s</td>
     <td>${unitsofmeasure.siFormatNumber(i.ttot)}s</td>
     %endif
-    
+
     </tr>
     %endfor
     </table>

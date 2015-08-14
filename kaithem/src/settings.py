@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 import cherrypy,base64,os,time,subprocess,time,shutil,sys
 from cherrypy.lib.static import serve_file
-from . import pages, util,messagebus,config,auth,registry,mail,kaithemobj
+from . import pages, util,messagebus,config,auth,registry,mail,kaithemobj, config
 
 if sys.version_info < (3,0):
     import StringIO as io
@@ -28,7 +28,7 @@ class Settings():
 
     @cherrypy.expose
     def reloadcfg(self):
-        pages.require("/admin/settings.edit")
+        pages.require("/admin/settings.edit", noautoreturn=True)
         config.reload()
         raise cherrypy.HTTPRedirect("/settings")
 
@@ -38,7 +38,7 @@ class Settings():
 
     @cherrypy.expose
     def stopsounds(self,*args,**kwargs):
-        pages.require("/admin/settings.edit")
+        pages.require("/admin/settings.edit", noautoreturn=True)
         kaithemobj.kaithem.sound.stopAll()
         raise cherrypy.HTTPRedirect("/settings")
 
@@ -123,6 +123,7 @@ class Settings():
     @cherrypy.expose
     def changeprefs(self,**kwargs):
         pages.require("/users/accountsettings.edit")
+        pages.postOnly()
         lists = []
         for i in kwargs:
             if i.startswith("pref_"):
@@ -142,6 +143,7 @@ class Settings():
     @cherrypy.expose
     def changeinfo(self,**kwargs):
         pages.require("/users/accountsettings.edit")
+        pages.postOnly()
         if len(kwargs['email'])> 120:
             raise RuntimeError("Limit 120 chars for email address")
         auth.setUserSetting(pages.getAcessingUser(),'email',kwargs['email'])
@@ -152,6 +154,7 @@ class Settings():
     @cherrypy.expose
     def changepwd(self,**kwargs):
         pages.require("/users/accountsettings.edit")
+        pages.postOnly()
         t = cherrypy.request.cookie['auth'].value
         u = auth.whoHasToken(t)
         if len(kwargs['new'])> 100:
@@ -183,6 +186,7 @@ class Settings():
     @cherrypy.expose
     def savemail(self,*a,**k):
         pages.require("/admin/settings.edit")
+        pages.postOnly()
         registry.set("system/mail/server",  k['smtpserver'])
         registry.set("system/mail/port",  k['smtpport'])
         registry.set("system/mail/address" ,k['smtpaddress'])
@@ -228,7 +232,7 @@ class Settings():
 
     @cherrypy.expose
     def savetarget(self):
-        pages.require("/admin/settings.edit")
+        pages.require("/admin/settings.edit", noautoreturn=True)
         util.SaveAllState()
         raise cherrypy.HTTPRedirect('/')
 
@@ -238,8 +242,34 @@ class Settings():
         return pages.get_template("settings/restart.html").render()
 
     @cherrypy.expose
-    def restarttarget(self):
+    def restart_nosave(self):
         pages.require("/admin/settings.edit")
+        return pages.get_template("settings/restart_nosave.html").render()
+
+    @cherrypy.expose
+    def restarttarget(self):
+        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.postOnly()
+        #This log won't be seen by anyone unless they set up autosaving before resets
+        messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + ' reset the system.')
+        cherrypy.engine.restart()#(!)
+        #It might come online fast enough for this to work, otherwise they see an error.
+        return  """
+                <HTML>
+                <HEAD>
+                <META HTTP-EQUIV="refresh" CONTENT="30;URL=/">
+                </HEAD>
+                <BODY>
+                <p>Reloading. If you get an error, try again.</p>
+                </BODY>
+                </HTML> """
+
+    @cherrypy.expose
+    def restarttarget_nosave(self):
+        "This turns off the config option to save before shutting down."
+        pages.require("/admin/settings.edit", noautoreturn=True)
+        pages.postOnly()
+        config.config['save-before-shutdown'] = False
         #This log won't be seen by anyone unless they set up autosaving before resets
         messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + ' reset the system.')
         cherrypy.engine.restart()#(!)
@@ -266,7 +296,7 @@ class Settings():
 
     @cherrypy.expose
     def set_time_from_web(self,**kwargs):
-        pages.require("/admin/settings.edit")
+        pages.require("/admin/settings.edit", noautoreturn=True)
         s = io.StringIO(kwargs['password'])
         t = int(cherrypy.request.headers['REQUEST_TIME'])
         subprocess.call(["sudo","-S","date","-s","+%Y%m%d%H%M%S",time.strftime("%Y%m%d%H%M%S",time.gmtime(t-0.15))],stdin=s)
@@ -274,14 +304,9 @@ class Settings():
 
 
     @cherrypy.expose
-    def ip_geolocate(self):
-        pages.require("/admin/settings.edit")
-
-        raise cherrypy.HTTPRedirect('/settings/system')
-
-    @cherrypy.expose
     def changesettingstarget(self,**kwargs):
-        pages.require("/admin/settings.edit")
+        pages.require("/admin/settings.edit",noautoreturn=True)
+        pages.postOnly()
         registry.set("system/location/lat",float(kwargs['lat']))
         registry.set("system/location/lon",float(kwargs['lon']))
         messagebus.postMessage("/system/settings/changedelocation",pages.getAcessingUser())
@@ -289,7 +314,8 @@ class Settings():
 
     @cherrypy.expose
     def ip_geolocate(self,**kwargs):
-        pages.require("/admin/settings.edit")
+        pages.require("/admin/settings.edit",noautoreturn=True)
+        pages.postOnly()
         l = util.ip_geolocate()
         registry.set("system/location/lat",l['lat'])
         registry.set("system/location/lon",l['lon'])
@@ -304,7 +330,8 @@ class Settings():
 
     @cherrypy.expose
     def clearerrorstarget(self):
-        pages.require("/admin/settings.edit")
+        pages.require("/admin/settings.edit",noautoreturn=True)
+        pages.postOnly()
         util.clearErrors()
         messagebus.postMessage("/system/notifications","All errors were cleared by" + pages.getAcessingUser())
         raise cherrypy.HTTPRedirect('/')
@@ -314,13 +341,16 @@ class Settings():
         def index():
             pages.require("/admin/settings.edit")
             return pages.get_template("settings/profiler/index.html").render(sort='')
+
         @cherrypy.expose
         def bytotal():
             pages.require("/admin/settings.edit")
             return pages.get_template("settings/profiler/index.html").render(sort='total')
+
         @cherrypy.expose
         def start():
-            pages.require("/admin/settings.edit")
+            pages.require("/admin/settings.edit", noautoreturn=True)
+            pages.postOnly()
             import yappi
             if not yappi.is_running():
                 yappi.start()
@@ -330,7 +360,8 @@ class Settings():
 
         @cherrypy.expose
         def stop():
-            pages.require("/admin/settings.edit")
+            pages.require("/admin/settings.edit",  noautoreturn=True)
+            pages.postOnly()
             import yappi
             if yappi.is_running():
                 yappi.stop()
@@ -338,7 +369,8 @@ class Settings():
 
         @cherrypy.expose
         def clear():
-            pages.require("/admin/settings.edit")
+            pages.require("/admin/settings.edit",  noautoreturn=True)
+            pages.postOnly()
             import yappi
             yappi.clear_stats()
             raise cherrypy.HTTPRedirect("/settings/profiler/")

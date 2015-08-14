@@ -54,7 +54,7 @@ wait-for-workers : 60
 
 #If this is yes, the server will try to save all persistant state before it shuts down.
 #This includes dumping logs to file.
-save-before-shutdown: no
+save-before-shutdown: yes
 
 #How fast to poll for events of specific priorities. Times in seconds
 priority-response:

@@ -29,6 +29,7 @@ class ManageAuthorization():
     @cherrypy.expose
     def deluser(self,**kwargs):
         pages.require("/admin/users.edit")
+        pages.postOnly()
         auth.removeUser(kwargs['user'])
         messagebus.postMessage("/system/auth/user/deleted",{'user':kwargs['user'],'deletedby':pages.getAcessingUser()})
         raise cherrypy.HTTPRedirect("/auth")
@@ -37,6 +38,7 @@ class ManageAuthorization():
     @cherrypy.expose
     def delgroup(self,**kwargs):
         pages.require("/admin/users.edit")
+        pages.postOnly()
         auth.removeGroup(kwargs['group'])
         messagebus.postMessage("/system/auth/group/deleted",{'group':kwargs['group'],'deletedby':pages.getAcessingUser()})
         raise cherrypy.HTTPRedirect("/auth")
@@ -71,7 +73,8 @@ class ManageAuthorization():
         #THIS IS A HACK TO PREVENT UNICODE STRINGS IN PY2.XX FROM GETTING THROUGH
         #BECAUSE QUOTE() IS USUALLY WHERE THEY CRASH. #AWFULHACK
         quote(kwargs['username'])
-        pages.require("/admin/users.edit")
+        pages.require("/admin/users.edit", noautoreturn=True)
+        pages.postOnly()
         #create the new user
         auth.addUser(kwargs['username'],kwargs['password'])
         #Take the user back to the users page
@@ -87,7 +90,8 @@ class ManageAuthorization():
         #THIS IS A HACK TO PREVENT UNICODE STRINGS IN PY2.XX FROM GETTING THROUGH
         #BECAUSE QUOTE() IS USUALLY WHERE THEY CRASH. #AWFULHACK
         quote(kwargs['groupname'])
-        pages.require("/admin/users.edit")
+        pages.require("/admin/users.edit", noautoreturn=True)
+        pages.postOnly()
         #create the new user
         auth.addGroup(kwargs['groupname'])
         messagebus.postMessage("/system/auth/group/added",{'group':kwargs['groupname'],'addedby':pages.getAcessingUser()})
@@ -98,10 +102,11 @@ class ManageAuthorization():
     @cherrypy.expose
     #handler for the POST request to change user settings
     def updateuser(self,user,**kwargs):
+        pages.require("/admin/users.edit",  noautoreturn=True)
+        pages.postOnly()
 
         if not kwargs['password'] == kwargs['password2']:
             raise RuntimeError('passwords must match')
-
         user=user.encode("latin-1").decode("utf-8")
         #THIS IS A HACK TO PREVENT UNICODE STRINGS IN PY2.XX FROM GETTING THROUGH
         #BECAUSE QUOTE() IS USUALLY WHERE THEY CRASH. #AWFULHACK
@@ -129,7 +134,8 @@ class ManageAuthorization():
     @cherrypy.expose
     #handler for the POST request to change user settings
     def updategroup(self,group,**kwargs):
-        pages.require("/admin/users.edit")
+        pages.require("/admin/users.edit",  noautoreturn=True)
+        pages.postOnly()
         group=group.encode("latin-1").decode("utf-8")
 
         auth.Groups[group]['permissions'] = []

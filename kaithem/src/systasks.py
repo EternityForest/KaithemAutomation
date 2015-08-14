@@ -159,8 +159,9 @@ def autosave():
             messagelogging.dumpLogFile()
 
 def save():
-    print("saving before shutting down")
-    util.SaveAllState()
+    if config['save-before-shutdown']:
+        messagebus.postMessage('/system/notifications/important/',"System saving before shutting down")
+        util.SaveAllState()
 
 #let the user choose to have the server save everything before a shutdown
 if config['save-before-shutdown']:

@@ -407,6 +407,7 @@ class WebInterface():
             #This is the target used to change the name and description(basic info) of a module
             if path[0] == 'update':
                 pages.require("/admin/modules.edit")
+                pages.postOnly()
                 moduleschanged = True
                 with modulesLock:
                     ActiveModules[root]['__description']['text'] = kwargs['description']
@@ -560,7 +561,8 @@ def permissionEditPage(module,resource):
 
 #The actual POST target to modify a resource. Context dependant based on resource type.
 def resourceUpdateTarget(module,resource,kwargs):
-    pages.require("/admin/modules.edit")
+    pages.require("/admin/modules.edit",noautoreturn=True)
+    pages.postOnly()
     global moduleschanged
     moduleschanged = True
     with modulesLock:
