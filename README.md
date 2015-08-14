@@ -1,6 +1,8 @@
 KaithemAutomation
 =================
 
+NOTE: VERSIONS 0.52 AND EARLIER CONTAIN A CRITICAL SECURITY FLAW!!!
+
 Flexible Linux home/commercial automation server written in python, HTML, Mako, and CSS. More low level than your average HA system. May work on non-linux, but it is not tested.
 
 You automate things by directly writing python and HTML via a web IDE. Create pages and secure them with a flexible user/group/permission system! Create events that run when an expression becomes true! An internal message bus logs events. Write HTML Pages with mako templates. Automatically generate websocket powered widgets without writing any javascript. Built in performance profiling(requires yappi). Play audio using one of several audio backends(mplayer suggested).
@@ -49,6 +51,10 @@ If you force stop it it might leave behind a lingering process that you have to 
 
 Change Log
 =============
+
+###0.53(Hotfix for 0.52
+This is a single line change to fix a critical bug.
+*Fix bug that let anyone, even an unregistered user change the settings for any user.
 
 ###0.52(Minor Bugfix Release)
 
