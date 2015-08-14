@@ -277,6 +277,7 @@ class WebInterface():
     @cherrypy.expose
     def deletemoduletarget(self,**kwargs):
         pages.require("/admin/modules.edit")
+        pages.postOnly()
         global moduleschanged
         moduleschanged = True
         with modulesLock:
@@ -295,6 +296,7 @@ class WebInterface():
     def newmoduletarget(self,**kwargs):
         global scopes
         pages.require("/admin/modules.edit")
+        pages.postOnly()
         global moduleschanged
         moduleschanged = True
         #If there is no module by that name, create a blank template and the scope obj
@@ -375,7 +377,7 @@ class WebInterface():
 
             #This returns a page to delete any resource by name
             if path[0] == 'deleteresource':
-                pages.require("/admin/modules.edit")
+                pages.require("/admin/modules.edit", noautoreturn = True)
                 if len(path)>1:
                     x = path[1]
                 else:
@@ -385,6 +387,7 @@ class WebInterface():
             #This handles the POST request to actually do the deletion
             if path[0] == 'deleteresourcetarget':
                 pages.require("/admin/modules.edit")
+                pages.postOnly()
                 moduleschanged = True
                 with modulesLock:
                    r = ActiveModules[root].pop(kwargs['name'])
@@ -401,8 +404,10 @@ class WebInterface():
                 messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " deleted resource " +
                            kwargs['name'] + " from module " + module)
                 messagebus.postMessage("/system/modules/deletedresource",{'ip':cherrypy.request.remote.ip,'user':pages.getAcessingUser(),'module':module,'resource':kwargs['name']})
-
-                raise cherrypy.HTTPRedirect('/modules')
+                if len(util.split_escape(kwargs['name'],'/','\\'))>1:
+                    raise cherrypy.HTTPRedirect('/modules/module/'+util.url(module)+'/resource/'+util.url(util.module_onelevelup(kwargs['name'])))
+                else:
+                    raise cherrypy.HTTPRedirect('/modules/module/'+util.url(module))
 
             #This is the target used to change the name and description(basic info) of a module
             if path[0] == 'update':
@@ -447,6 +452,7 @@ def addResourceDispatcher(module,type,path):
 #Basically it takes a module, a new resource name, and a type, and creates a template resource
 def addResourceTarget(module,type,name,kwargs,path):
     pages.require("/admin/modules.edit")
+    pages.postOnly()
     global moduleschanged
     moduleschanged = True
 

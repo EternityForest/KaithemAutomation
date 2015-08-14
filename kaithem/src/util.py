@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #Copyright Daniel Dunn 2013
 #This file is part of Kaithem Automation.
 
@@ -15,7 +16,7 @@
 
 
 
-import  os,threading,copy,sys,shutil,difflib,time,json,traceback,stat
+import  os,threading,copy,sys,shutil,difflib,time,json,traceback,stat,subprocess
 #2 and 3 have basically the same module with diferent names
 if sys.version_info < (3,0):
     from urllib import quote
@@ -88,7 +89,7 @@ def SaveAllStateExceptLogs():
             x = x or registry.sync()
             if x:
                 #Send the message only if something was actually saved.
-                messagebus.postMessage("/system/notifications","Global server state was saved to disk")
+                messagebus.postMessage("/system/notifications/important","Global server state was saved to disk")
             return x
         except Exception as e:
             messagebus.postMessage("/system/notifications/errors",'Failed to save state:' + repr(e))
@@ -323,7 +324,7 @@ def unescape(s,escape="\\"):
     return s2
 
 def module_onelevelup(s):
-    return "/".join([i.replace("\\","\\\\").replace("/","\\/") for i in s.split_escape(s,"/","\\")])
+    return "/".join([i.replace("\\","\\\\").replace("/","\\/") for i in split_escape(s,"/","\\")[:-1]])
 
 numberlock = threading.Lock()
 current_number = -1
@@ -363,3 +364,26 @@ srepr.maxstring = 50
 srepr.maxother = 50
 
 saferepr = srepr.repr
+
+#Partly based on code by Tamás of stack overflow.
+def drop_perms(user, group = None):
+    if os.name == 'nt':
+        return
+    if os.getuid() != 0:
+        return
+
+    import grp, pwd
+
+    #Thanks to Gareth A. Lloyd of Stack Exchange!
+    groups = [g.gr_gid for g in grp.getgrall() if user in g.gr_mem]
+    gid = pwd.getpwnam(user).pw_gid
+    groups.append(grp.getgrgid(gid).gr_gid)
+
+    if  group == "__default__":
+        group = user
+
+    running_uid = pwd.getpwnam(user).pw_uid
+    running_gid = grp.getgrnam(group).gr_gid
+    os.setgroups(groups)
+    os.setgid(running_gid)
+    os.setuid(running_uid)

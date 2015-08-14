@@ -1,0 +1,20 @@
+{
+    "allow-origins": [
+        "*"
+    ],
+    "allow-xss": false,
+    "auto-reload": false,
+    "auto-reload-interval": 5.0,
+    "body": "<script type=\"text/javascript\" src=\"/static/widget.js\"></script>\r\n<h2>JookBawkse Controls</h2>\r\n<div class=\"sectionbox\">\r\n    <div style=\"display:inline-block; float:left;\">\r\n    ${module.play.render(\"Play\")}\r\n    <a class=\"button\" href=\"/pages/JookBawkse/prev\">Prev</a>\r\n    <a class=\"button\" href=\"/pages/JookBawkse/Stop\">Next</a>\r\n    <a class=\"button\" href=\"/pages/JookBawkse/Pause\">Pause</a>\r\n    <a class=\"button\" href=\"/pages/JookBawkse/Resume\">Resume</a><br>\r\n    <a class=\"button\" href=\"/pages/JookBawkse/Set%20Media%20Location\">Set Music Folder</a>\r\n    <a class=\"button\" href=\"/pages/JookBawkse/Rescan\">Rescan Media</a></br>\r\n    <a class=\"button\" href=\"/pages/JookBawkse/LoadPlaylist\">Load Playlist</a>\r\n    <a class=\"button\" href=\"/pages/JookBawkse/SavePL\">Save Playlist</a><br>\r\n    ${module.continual.render(\"Loop Playlist\")}<br>\r\n    ${module.fullscreen.render(\"Play Videos Fullscreen\")}<br>\r\n    ${module.party.render(\"Party Mode(Set EQ for conversation)\")}<br>\r\n    </div>\r\n        ${module.volume.render(label='Volume')}\r\n</div>\r\n\r\n\r\n<h2>Playlist</h2>\r\n<div class=\"sectionbox\">\r\n${module.pld.render(height=\"15em\", width='98%')}\r\n</div>\r\n<h2>Media</h2>\r\n<div class=\"sectionbox\">\r\n    <ul>\r\n    %for i in module.get_media():\r\n    <li><a href=\"/pages/JookBawkse/Play?fn=${i[1]|u}\">${i[0]|h}</a></li>\r\n    %endfor\r\n    </ul>\r\n</div>",
+    "dont-show-in-index": false,
+    "no-header": false,
+    "no-navheader": true,
+    "require-method": [
+        "GET",
+        "POST"
+    ],
+    "require-permissions": [
+        "/users/jookbawkse/view"
+    ],
+    "resource-type": "page"
+}

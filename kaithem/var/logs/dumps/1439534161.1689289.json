@@ -1,0 +1,16 @@
+{
+ "/system/notifications": [
+  [
+   1439534076.706013,
+   "User admin Created Module test"
+  ],
+  [
+   1439534104.4730935,
+   "User admin added resource dir1/dir2/bung of type event to module test"
+  ],
+  [
+   1439534137.3736165,
+   "User admin deleted resource dir1/dir2/bung from module test"
+  ]
+ ]
+}

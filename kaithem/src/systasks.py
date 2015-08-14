@@ -171,7 +171,7 @@ if config['save-before-shutdown']:
 
 def sd():
     messagebus.postMessage('/system/shutdown',"System about to shut down or restart")
-    messagebus.postMessage('/system/notifications/shutdown',"System shutting down now")
+    messagebus.postMessage('/system/notifications/important',"System shutting down now")
 
 
 sd.priority = 25

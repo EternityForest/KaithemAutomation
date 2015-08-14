@@ -54,7 +54,7 @@ wait-for-workers : 60
 
 #If this is yes, the server will try to save all persistant state before it shuts down.
 #This includes dumping logs to file.
-save-before-shutdown: yes
+save-before-shutdown: no
 
 #How fast to poll for events of specific priorities. Times in seconds
 priority-response:
@@ -92,6 +92,14 @@ enable-websockets: true
 #Now deprecated, might do nothing or break something if turned off.
 enable-js: yes
 
+
+#This setting does nothing unless the process is started as root on UNIX.
+#if the process does get started as root, then it will drop to this user.
+#By default we assume that if the user starts the process as root he wants it to run as root.
+run-as-user: root
+
+#If this is not default, and run as user is not root, and the user starts the process as root, then we use this group.
+run-as-group: __default__
 ##################LOGGING######################################################
 #Notice: to actually control what topics are logged, use the kaithem/var/whattosave.txt or edit
 #through the web interface

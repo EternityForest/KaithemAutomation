@@ -118,7 +118,13 @@ properties:
     max-load-attempts:
         type: integer
         minimum: 1
-        maximum: 5000
+        maximum: 500
+
+    run-as-user:
+        type: string
+
+    run-as-group:
+        type: string
 
     log-dump-size:
         type: integer
@@ -190,7 +196,7 @@ properties:
 
     cm-theme:
         type: string
-        
+
     quotes-file:
         type: string
 

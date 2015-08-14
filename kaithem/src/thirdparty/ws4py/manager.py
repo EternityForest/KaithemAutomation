@@ -93,8 +93,11 @@ class SelectPoller(object):
         if not self._fds:
             time.sleep(self.timeout)
             return []
-
-        r, w, x = select.select(self._fds, [], [], self.timeout)
+        #Modification for the kaithem project, this is to fix the interrupted system call crap
+        try:
+            r, w, x = select.select(self._fds, [], [], self.timeout)
+        except IOError:
+            return []
         return r
 
 class EPollPoller(object):
@@ -103,7 +106,7 @@ class EPollPoller(object):
         An epoll poller that uses the ``epoll``
         implementation to determines which
         file descriptors have data available to read.
-
+sel
         Available on Unix flavors mostly.
         """
         self.poller = select.epoll()
@@ -136,7 +139,12 @@ class EPollPoller(object):
         Polls once and yields each ready-to-be-read
         file-descriptor
         """
-        events = self.poller.poll(timeout=self.timeout)
+        #Modification for the kaithem project, this is to fix the interrupted system call crap
+        try:
+            events = self.poller.poll(timeout=self.timeout)
+        except IOError:
+            events = []
+
         for fd, event in events:
             if event | select.EPOLLIN | select.EPOLLPRI:
                 yield fd
@@ -164,6 +172,7 @@ class KQueuePoller(object):
         Register a new file descriptor to be
         part of the select polling next time around.
         """
+        #Modification for the kaithem project, this is to fix the interrupted system call crap
         try:
             self.poller.register(fd, select.EPOLLIN | select.EPOLLPRI)
         except IOError:
@@ -180,7 +189,12 @@ class KQueuePoller(object):
         Polls once and yields each ready-to-be-read
         file-descriptor
         """
-        events = self.poller.poll(timeout=self.timeout)
+        #Modification for the kaithem project, this is to fix the interrupted system call crap
+        try:
+            events = self.poller.poll(timeout=self.timeout)
+        except IOError:
+            events = []
+
         for fd, event in events:
             if event | select.EPOLLIN | select.EPOLLPRI:
                 yield fd
@@ -241,7 +255,7 @@ class WebSocketManager(threading.Thread):
         """
         if websocket in self:
             return
-        
+
         logger.info("Managing websocket %s" % format_addresses(websocket))
         websocket.opened()
         with self.lock:
@@ -259,7 +273,7 @@ class WebSocketManager(threading.Thread):
         """
         if websocket not in self:
             return
-        
+
         logger.info("Removing websocket %s" % format_addresses(websocket))
         with self.lock:
             fd = websocket.sock.fileno()
@@ -298,22 +312,19 @@ class WebSocketManager(threading.Thread):
         while self.running:
             with self.lock:
                 polled = self.poller.poll()
-
             if not self.running:
                 break
 
             for fd in polled:
                 if not self.running:
                     break
-                
-                ws = self.websockets.get(fd)
-                
-                if ws and not ws.terminated:
-                    try:
-                        result = ws.once()
-                    except:
-                        result = None
-                        
+                try:
+                    ws = self.websockets.get(fd)
+                    if ws and not ws.terminated:
+                            result = ws.once()
+                except:
+                    result = None
+
                     if not result:
                         with self.lock:
                             fd = ws.sock.fileno()

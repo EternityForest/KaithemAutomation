@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 import time, threading,json, os,bz2, gzip, re, collections,traceback
 import cherrypy
-from . import unitsofmeasure,messagebus,directories,workers,util,pages
+from . import unitsofmeasure,messagebus,directories,workers,util,pages, config
 
 from cherrypy.lib.static import serve_file
 
@@ -28,13 +28,19 @@ approxtotallogentries = 0
 savelock = threading.RLock()
 
 toSave = set()
-with open(os.path.join(directories.logdir,"whattosave.txt"),'r') as f:
-    x = f.read()
+try:
+    if os.path.isfile(os.path.join(directories.logdir,"whattosave.txt")):
+        with open(os.path.join(directories.logdir,"whattosave.txt"),'r') as f:
+            x = f.read()
+        for line in x.split('\n'):
+            toSave.add(line.strip())
+        del x
+    else:
+        for i in config.config['log-topics']:
+            toSave.add(i)
+except:
+    messagebus.postMessage("/system/notifications/errors", "Error loading logged topics list. using defaults:\n"+traceback.format_exc(6))
 
-for line in x.split('\n'):
-    toSave.add(line.strip())
-
-del x
 log = defaultdict(deque)
 
 
@@ -43,7 +49,7 @@ def dumpLogFile():
         _dumpLogFile()
         messagebus.postMessage("/system/notifications/", "Dumped log file")
     except Exception as e:
-        messagebus.postMessage("/system/errors/saving-logs/",traceback.format_exc())
+        messagebus.postMessage("/system/errors/saving-logs/",traceback.format_exc(6))
         messagebus.postMessage("/system/notifications/errors/","Error saving log file")
 
 def _dumpLogFile():
@@ -239,6 +245,7 @@ class WebInterface(object):
     def setlogging(self, txt):
         global known_unsaved
         pages.require('/admin/logging.edit')
+        pages.postOnly()
         #Invalidate the cache of non-logged topics
         global loglistchanged
         loglistchanged = True
@@ -261,6 +268,7 @@ class WebInterface(object):
     @cherrypy.expose
     def dumpfiletarget(self):
         pages.require('/admin/logging.edit')
+        pages.postOnly()
         dumpLogFile()
         return pages.get_template('logging/index.html').render()
 
@@ -278,6 +286,7 @@ class WebInterface(object):
     def clearall(self,topic):
         topic=topic.encode("latin-1").decode("utf-8")
         pages.require('/admin/logging.edit')
+        pages.postOnly()
         log.pop(topic)
         return pages.get_template('logging/index.html').render()
 

@@ -26,6 +26,17 @@
             return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s',
                                     ifname[:15].encode('utf-8') ))[20:24])
 
+    def get_user():
+        try:
+            return subprocess.check_output(['whoami'])
+        except:
+            return ""
+    def get_user():
+        try:
+            return subprocess.check_output(['whoami'])
+        except:
+            return ""
+
     def get_lan_ip():
         ip = socket.gethostbyname(socket.gethostname())
         if os.name != "nt":

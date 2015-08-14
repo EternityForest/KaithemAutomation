@@ -1,0 +1,20 @@
+{
+ "/system/notifications": [
+  [
+   1439534400.566347,
+   "User admin added resource dir1/poop of type event to module test"
+  ],
+  [
+   1439534418.0822196,
+   "User admin added resource dir1/dir2/poop of type permission to module test"
+  ],
+  [
+   1439534419.2646759,
+   "User admin modified resource dir1/dir2/poop of module test"
+  ],
+  [
+   1439534425.247992,
+   "User admin deleted resource dir1/poop from module test"
+  ]
+ ]
+}

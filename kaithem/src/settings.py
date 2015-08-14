@@ -81,6 +81,7 @@ class Settings():
     def console(self,**kwargs):
         pages.require("/admin/settings.edit")
         if 'script' in kwargs:
+            pages.postOnly()
             x = ''
             if util.which("bash"):
                 p = subprocess.Popen("bash -i",universal_newlines=True, shell=True,stdout=subprocess.PIPE,stdin=subprocess.PIPE, stderr=subprocess.PIPE)

@@ -1,0 +1,11 @@
+Package: kaithem
+Version: 0.53
+Architecture: all
+Essential: no
+Section: web
+Priority: optional
+Depends: python(>=2.7), systemd
+Suggests: mplayer,
+Maintainer: Daniel Dunn
+Installed-Size: 50000
+Description: The KaithemAutomation Web GUI based automation platform

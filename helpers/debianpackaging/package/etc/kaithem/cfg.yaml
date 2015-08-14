@@ -1,0 +1,4 @@
+site-data-dir: /usr/lib/kaithem
+ssl-dir: /etc/kaithem
+save-before-shutdown: yes
+

@@ -52,6 +52,8 @@ import time,signal
 import cherrypy,validictory
 from cherrypy import _cperror
 from src import util
+from src import messagebus
+from src import notifications
 from src import pages
 from src import weblogin
 from src import auth
@@ -61,8 +63,6 @@ from src import newevt
 from src import modules
 from src import settings
 from src import usrpages
-from src import messagebus
-from src import notifications
 from src import messagelogging
 from src import systasks
 from src import registry
@@ -285,8 +285,7 @@ server2.thread_pool=config['http-thread-pool']
 server2.subscribe()
 
 
-messagebus.postMessage('/system/startup','System Initialized')
-messagebus.postMessage('/system/notifications/important','System Initialized')
+
 
 if time.time() < 1420070400:
     messagebus.postMessage('/system/notifications/errors',"System Clock is wrong, some features may not work properly.")
@@ -297,4 +296,8 @@ if time.time() < util.min_time:
 
 
 cherrypy.engine.start()
+#If configured that way on unix, check if we are root and drop root.
+util.drop_perms(config['run-as-user'], config['run-as-group'])
+messagebus.postMessage('/system/startup','System Initialized')
+messagebus.postMessage('/system/notifications/important','System Initialized')
 cherrypy.engine.block()
