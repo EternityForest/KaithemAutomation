@@ -20,14 +20,19 @@ class Scheduler(threading.Thread):
         self.lock = threading.Lock()
 
     def everySecond(self,f):
-        self.sec2.append(workers.async(f))
+        "Cause f to be executed every second as long as a reference to f exists. Returns f, so may be used as a decorator."
+        self.sec2.append(f)
         return f
 
     def everyMinute(self,f):
-        self.min2.append(workers.async(f))
+        "Cause f to be executed every minute as long as a reference to f exists. Returns f so may be used as a decorator."
+        self.min2.append(f)
         return f
 
     def schedule(self,f,at,exact = 60*3):
+        """Cause f to be called at time at, which must be a UNIX timestamp. Exact controls how late the function may be called instead of giving up entirely.
+            A reference to f must be maintained until then. Returns an object with an unregister() method that may also be called to cancel the event.
+        """
         class ScheduledEvent():
             def __init__(self,id,parent):
                 self.id = id
@@ -45,10 +50,10 @@ class Scheduler(threading.Thread):
                 if i[3] == id:
                     self.pop(index)
 
-
     def at(self,t,exact=60*5, async = True):
+        "Decorator to schedule something to happen at an exact time."
         def decorator(f):
-            self.schedule(workers.async(f) if async else f, time, exact)
+            self.schedule(f, time, exact)
         return f
 
     def handle_error_notification(self,f):
@@ -73,7 +78,7 @@ class Scheduler(threading.Thread):
             with self.lock:
                 for i in self.second:
                     try:
-                        f= i()
+                        f= workers.async(i())
                         if f:
                             f()
                         else:
@@ -94,7 +99,7 @@ class Scheduler(threading.Thread):
                     last_did_minute_tasks = time.time()
                     for i in self.minute:
                         try:
-                           f= i()
+                           f= workers.async(i())
                            if f:
                                f()
                            else:
@@ -117,7 +122,7 @@ class Scheduler(threading.Thread):
                     if f[2]==False or f[1]< time.time() + f[2] :
                         #Then we dereference the weak reference and call the function
                         try:
-                           f =f[0]()
+                           f =workers.async(f[0]())
                            if f:
                                f()
                            else:
