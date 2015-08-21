@@ -1,4 +1,13 @@
 site-data-dir: /usr/lib/kaithem
-ssl-dir: /etc/kaithem
+ssl-dir: /var/lib/kaithem
 save-before-shutdown: yes
+run-as-user: kaithem
+autosave-state: 12 hours
+worker-threads: 10
+http-thread-pool: 4
+https-thread-pool: 10
 
+#The port on which web pages will be served. The default port is 443, but we use 8001 in case you are running apache or something.
+https-port : 8001
+#The port on which unencrypted web pages will be served. The default port is 80, but we use 8001 in case you are running apache or something.
+http-port : 8002

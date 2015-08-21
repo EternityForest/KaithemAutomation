@@ -1,0 +1,15 @@
+adduser --system --no-create-home kaithem
+useradd -G serial kaithem
+useradd -G dialout kaithem
+useradd -G audio kaithem
+chown -R kaithem /var/lib/kaithem
+mkdir /var/lib/kaithem
+chown kaithem /var/lib/kaithem
+chmod 600 /var/lib/kaithem/
+mkdir /var/lib/kaithem/ssl
+chown kaithem /var/lib/kaithem/ssl
+chmod 600 /var/lib/kaithem/ssl
+#Look at this race condition here! Someone could steal that private key before we chmod it!
+openssl req -nodes -new -x509 -keyout /var/lib/kaithem/ssl/certificate.key  -out  /var/lib/kaithem/ssl/certificate.cert -days 3650 -subj '/CN=localhost'
+chmod 600 /var/lib/kaithem/ssl/certificate.key
+chown kaithem /var/lib/kaithem/ssl/certificate.key

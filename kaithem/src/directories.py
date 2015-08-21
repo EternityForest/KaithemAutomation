@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-#This is for the ability to move directories. 
+#This is for the ability to move directories.
 #State is for modules ad persistance files
 #cfg is any user configurable things
 #Log is the log files
@@ -22,8 +22,12 @@
 import os
 from .config import config
 
+#Normally we run from one folder. If it's been installed, we change the paths a bit.
 dn = os.path.dirname(os.path.realpath(__file__))
-vardir =os.path.join(dn,'..')
+if "/usr/lib" in dn:
+    vardir= "/var/lib/kaithem"
+else:
+    vardir =os.path.join(dn,'..')
 vardir = os.path.join(vardir,config['site-data-dir'])
 usersdir = os.path.join(vardir,'users')
 logdir = os.path.join(vardir,'logs')
@@ -31,7 +35,6 @@ regdir = os.path.join(vardir,'registry')
 moduledir = os.path.join(vardir,'modules')
 datadir = os.path.join(dn,'../data')
 htmldir = os.path.join(dn,'html')
-
 ssldir =  os.path.join(vardir,config['ssl-dir'])
 
 def recreate():

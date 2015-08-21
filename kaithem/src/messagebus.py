@@ -21,6 +21,15 @@ from collections import defaultdict, OrderedDict
 _subscribers_list_modify_lock = threading.Lock()
 parsecache = OrderedDict()
 
+def normalize_topic(topic):
+    """"Because some topics are equivalent("/foo" and "foo"), this lets us convert them to the canonical "/foo" representation.
+    Note that "/foo/" is not the same as "/foo", because a trailing slash indicates a "directory"."""
+    topic = topic.strip()
+    if not topic.startswith('/'):
+        return '/'+topic
+    else:
+        return topic
+
 class MessageBus(object):
 
     def __init__(self,executor = None):
@@ -40,9 +49,7 @@ class MessageBus(object):
         self.subscribers = defaultdict(list)
 
     def subscribe(self,topic,callback):
-        if topic.startswith('/'):
-            if not len(topic)==1:
-                topic = topic[1:]
+        topic=normalize_topic(topic)
         #Allright, here is how this works.
         #We have to deal with the possibility that, at any time,
         #The callback will cease to exist. That, in fact, is how one unsubscribes.
@@ -76,10 +83,7 @@ class MessageBus(object):
     def parseTopic(topic):
         "Parse the topic string into a list of all subscriptions that could possibly match."
 
-        #normalize topic
-        if topic.startswith('/'):
-            topic = topic[1:]
-
+        topic=normalize_topic(topic)
         #Since this is a pure function(except the caching itself) we can cache it
         if topic in parsecache:
             return parsecache[topic]
@@ -134,6 +138,7 @@ class MessageBus(object):
 
         #A little more checking than usual here because the message bus is so central.
         #Also, if anyone implements logging they will appreciate no crap on the bus.
+        topic=normalize_topic(topic)
         try:
             topic = str(topic)
         except Exception:

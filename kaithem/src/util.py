@@ -36,9 +36,12 @@ else:
 
 savelock = threading.RLock()
 
-def chmod_private_try(p):
+def chmod_private_try(p, execute=True):
     try:
-        os.chmod(p,stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+        if execute:
+            os.chmod(p,stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+        else:
+            os.chmod(p,stat.S_IRUSR|stat.S_IWUSR)
     except Exception as e:
         raise e
 

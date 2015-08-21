@@ -139,7 +139,7 @@ sel
         Polls once and yields each ready-to-be-read
         file-descriptor
         """
-        #Modification for the kaithem project, this is to fix the interrupted system call crap
+        #Modification for the kaithem project, this is to fix the interrupted system call
         try:
             events = self.poller.poll(timeout=self.timeout)
         except IOError:

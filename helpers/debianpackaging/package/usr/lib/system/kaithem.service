@@ -1,0 +1,13 @@
+[Unit]
+Description=KaithemAutomation python based automation server
+After=basic.target
+Type=simple
+Restart=on-failure
+RestartSec=5
+
+[Service]
+TimeoutStartSec=0
+ExecStart="/usr/bin/kaithem -c /etc/kaithem/cfg.yaml"
+
+[Install]
+WantedBy=multi-user.target

@@ -126,6 +126,12 @@ properties:
     run-as-group:
         type: string
 
+    log-topics:
+        type: array
+        uniqueitems: yes
+        items:
+            type: string
+
     log-dump-size:
         type: integer
         minimum: 1

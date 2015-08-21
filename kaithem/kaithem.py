@@ -19,25 +19,30 @@
 #This file is the main entry point of the app. It imports everything, loads configuration,
 #sets up and starts the server, and contains page handlers for the main page.
 
-import sys,os,threading
+import sys,os,threading,traceback
 
 #There are some libraries that are actually different for 3 and 2, so we use the appropriate one
 #By changing the pathe to include the proper ones.
 x = sys.path[0]
+if x.startswith('/usr/bin'):
+    x = "/usr/lib/kaithem"
+else:
+    x = os.path.join(x,'src')
+
 if sys.version_info < (3,0):
-    sys.path = [os.path.join(x,'src','thirdparty','python2')] + sys.path
+    sys.path = [os.path.join(x,'thirdparty','python2')] + sys.path
     from gzip import open as opengzip
     import thread
 else:
     from gzip import GzipFile as opengzip
     import _thread as thread
-    sys.path = [os.path.join(x,'src','thirdparty','python3')] + sys.path
+    sys.path = [os.path.join(x,'thirdparty','python3')] + sys.path
 
 #There is actually a very good reason to change the import path here.
 #It means we can refer to an installed copy of a library by the same name
 #We use for the copy we include. Normally we use our version.
 #If not, it will fall back to theirs.
-sys.path = [os.path.join(x,'src','thirdparty')] + sys.path
+sys.path = [os.path.join(x,'thirdparty')] + sys.path
 
 #Low priority modules will default to using the version installed on the user's computer.
 sys.path =  sys.path + [os.path.join(x,'src','thirdparty',"lowpriority")]

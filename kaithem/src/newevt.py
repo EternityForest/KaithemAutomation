@@ -322,7 +322,7 @@ class BaseEvent():
                 #Action could be any number of things, so this method mut be implemented by
                 #A derived class or inherited from a mixin.
                 self._do_action()
-                messagebus.postMessage('system/events/ran/',[self.module, self.resource])
+                messagebus.postMessage('/system/events/ran',[self.module, self.resource])
             except Exception as e:
                 self._handle_exception(e)
 
@@ -335,7 +335,7 @@ class BaseEvent():
             self.errors = self.errors[-(config['errors-to-keep']):]
             #The mesagebus is largely untested and we don't want to kill the thread.
             try:
-                messagebus.postMessage('system/errors/events/'+
+                messagebus.postMessage('/system/errors/events/'+
                                        self.module+'/'+
                                        self.resource,str(tb))
             except Exception as e:

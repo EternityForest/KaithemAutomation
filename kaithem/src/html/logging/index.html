@@ -25,9 +25,9 @@ def dump(j):
             else
                 {
                     element.hidden = false;
-                }         
+                }
         }
-        
+
      function hideshow()
      {
         for (var i=0; i<document.getElementById('ListOfTopics').children.length; i++) {
@@ -51,10 +51,10 @@ def dump(j):
         | Show only topics containing:<input type="text" id="filter"
         onchange="hideshow()" onkeyup="hideshow()"/>
     %endif
-    
-    
+
+
     </p>
-    
+
     <div id="ListOfTopics">
     <%
         rev = False
@@ -67,8 +67,8 @@ def dump(j):
         else:
             sortkey = lambda x: x
      %>
-                
-             
+
+
     There are ${len(messagelogging.log)|h} recent topics. Sorting:[<a href="/logs?sort=topic">Alphabetical</a>|<a href="/logs?sort=time">Most Recently Active</a>]<br>
     %if messagelogging.log:
         %for i in sorted(messagelogging.log.keys(),key=sortkey,reverse = rev):
@@ -76,7 +76,7 @@ def dump(j):
                 %if not set(messagebus.MessageBus.parseTopic(i)).isdisjoint(set(messagelogging.toSave)):
                     <h3 ${'class="error"' if 'error' in i else ''}>${i|h}</h3>
                     (logging)
-                    %if i[1:] in messagelogging.toSave:
+                    %if i in messagelogging.toSave:
                         <a href="/logs/stoplogging/${url(i)}">[stop]</a>)
                     %else:
                         [logged because it is part of a subtree that is being logged]
@@ -85,7 +85,7 @@ def dump(j):
                     <h3 ${'class="error"' if 'error' in i else ''}>${i|h}</h3>
                     (will not be saved to log file <a href="/logs/startlogging/${url(i)}">[start logging]</a>)
                 %endif
-                
+
                 <p>
                     <table border=1>
                     <tr>

@@ -15,7 +15,7 @@
 import time, threading,json, os,bz2, gzip, re, collections,traceback
 import cherrypy
 from . import unitsofmeasure,messagebus,directories,workers,util,pages, config
-
+from .messagebus import normalize_topic
 from cherrypy.lib.static import serve_file
 
 from .config import config
@@ -33,16 +33,15 @@ try:
         with open(os.path.join(directories.logdir,"whattosave.txt"),'r') as f:
             x = f.read()
         for line in x.split('\n'):
-            toSave.add(line.strip())
+            toSave.add(normalize_topic(line.strip()))
         del x
     else:
-        for i in config.config['log-topics']:
-            toSave.add(i)
+        for i in config['log-topics']:
+            toSave.add(normalize_topic(i))
 except:
     messagebus.postMessage("/system/notifications/errors", "Error loading logged topics list. using defaults:\n"+traceback.format_exc(6))
 
 log = defaultdict(deque)
-
 
 def dumpLogFile():
     try:
@@ -228,7 +227,7 @@ class WebInterface(object):
         topic = topic[:]
         global loglistchanged
         loglistchanged = True
-        toSave.add(topic)
+        toSave.add(normalize_topic(topic))
         return pages.get_template('logging/index.html').render()
 
     @cherrypy.expose
@@ -238,7 +237,7 @@ class WebInterface(object):
         topic = topic[1:]
         global loglistchanged
         loglistchanged = True
-        toSave.discard(topic)
+        toSave.discard(normalize_topic(topic))
         return pages.get_template('logging/index.html').render()
 
     @cherrypy.expose
@@ -256,7 +255,7 @@ class WebInterface(object):
             if line.startswith("/"):
                 line = line[1:]
             if line:
-                toSave.add(line)
+                toSave.add(normalize_topic(line))
         known_unsaved = OrderedDict()
         return pages.get_template('logging/index.html').render()
 
@@ -280,14 +279,14 @@ class WebInterface(object):
     @cherrypy.expose
     def viewall(self, topic,page=1):
         pages.require('/users/logs.view')
-        return pages.get_template('logging/topic.html').render(topicname=topic, page=int(page))
+        return pages.get_template('logging/topic.html').render(topicname=normalize_topic(topic), page=int(page))
 
     @cherrypy.expose
     def clearall(self,topic):
         topic=topic.encode("latin-1").decode("utf-8")
         pages.require('/admin/logging.edit')
         pages.postOnly()
-        log.pop(topic)
+        log.pop(normalize_topic(topic))
         return pages.get_template('logging/index.html').render()
 
     @cherrypy.expose

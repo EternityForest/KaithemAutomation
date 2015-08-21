@@ -126,7 +126,7 @@ class WebSocket(object):
         At which interval the heartbeat will be running.
         Set this to `0` or `None` to disable it entirely.
         """
-
+        self.buf = b""
         self._local_address = None
         self._peer_address = None
 
@@ -300,13 +300,18 @@ class WebSocket(object):
             return False
 
         try:
-            b = self.sock.recv(self.reading_buffer_size)
-        except socket.error:
-            logger.exception("Failed to receive data")
+            self.buf = self.buf +self.sock.recv(4096)
+        except (socket.error, OSError) as e:
+            self.unhandled_error(e)
             return False
         else:
-            if not self.process(b):
-                return False
+            while len(self.buf)>=self.reading_buffer_size:
+                #Get the oldest n bytes, and then remove them from the buffer.
+                b = self.buf[:self.reading_buffer_size]
+                self.buf = self.buf[self.reading_buffer_size:]
+                #Process basically only returns false on errors.
+                if not self.process(b):
+                    return False
 
         return True
 
@@ -356,7 +361,7 @@ class WebSocket(object):
 
         if not bytes and self.reading_buffer_size > 0:
             return False
-        
+
         self.reading_buffer_size = s.parser.send(bytes) or DEFAULT_READING_SIZE
 
         if s.closing is not None:

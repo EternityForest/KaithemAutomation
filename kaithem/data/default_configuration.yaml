@@ -104,6 +104,10 @@ run-as-group: __default__
 #Notice: to actually control what topics are logged, use the kaithem/var/whattosave.txt or edit
 #through the web interface
 
+#By default, log these topics unless the user changes the settings via the web interface.
+log-topics:
+    - /system/notifications/
+
 #How many entires to log before flushing to disk or deleting
 log-dump-size: 33000
 
