@@ -4,8 +4,8 @@ Architecture: all
 Essential: no
 Section: web
 Priority: optional
-Depends: python3, systemd, python3-pytz
-Suggests: mplayer, python3-pyserial
+Depends: python3, systemd
+Suggests: mplayer, python3-pyserial, python3-pytz
 Maintainer: Daniel Dunn
 Installed-Size: 50000
 Description: The KaithemAutomation Web GUI based automation platform

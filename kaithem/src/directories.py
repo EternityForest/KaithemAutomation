@@ -26,16 +26,25 @@ from .config import config
 dn = os.path.dirname(os.path.realpath(__file__))
 if "/usr/lib" in dn:
     vardir= "/var/lib/kaithem"
+    datadir = "/usr/share/kaithem"
+    logdir = "/var/log/kaithem"
 else:
     vardir =os.path.join(dn,'..')
-vardir = os.path.join(vardir,config['site-data-dir'])
+    vardir = os.path.join(vardir,config['site-data-dir'])
+    datadir = os.path.join(dn,'../data')
+    logdir = os.path.join(vardir,'logs')
+
+
+    
 usersdir = os.path.join(vardir,'users')
-logdir = os.path.join(vardir,'logs')
 regdir = os.path.join(vardir,'registry')
 moduledir = os.path.join(vardir,'modules')
-datadir = os.path.join(dn,'../data')
 htmldir = os.path.join(dn,'html')
-ssldir =  os.path.join(vardir,config['ssl-dir'])
+if not config['ssl-dir'].startswith("/"):
+    ssldir =  os.path.join(vardir,config['ssl-dir'])
+else:
+    ssldir =  os.path.join(config['ssl-dir'])
+    
 
 def recreate():
     global dn,vardir,usersdir, logdir, regdir, moduledir, datadir, htmldir, ssldir

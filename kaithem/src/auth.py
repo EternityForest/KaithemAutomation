@@ -348,7 +348,7 @@ def dumpDatabase():
     else:
         t = int(util.min_time) +1.234
     p = os.path.join(directories.usersdir,str(t))
-    os.mkdir(p)
+    util.ensure_dir2(p)
     util.chmod_private_try(p)
     f = open(os.path.join(p,"users.json"),"w")
     util.chmod_private_try(os.path.join(p,"users.json"))

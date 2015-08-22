@@ -7,7 +7,7 @@ RestartSec=5
 
 [Service]
 TimeoutStartSec=0
-ExecStart=/usr/bin/kaithem -c /etc/kaithem/cfg.yaml"
+ExecStart=/usr/bin/kaithem -c /etc/kaithem/cfg.yaml
 
 [Install]
 WantedBy=multi-user.target

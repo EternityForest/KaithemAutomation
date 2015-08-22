@@ -23,11 +23,19 @@ import sys,os,threading,traceback
 
 #There are some libraries that are actually different for 3 and 2, so we use the appropriate one
 #By changing the pathe to include the proper ones.
+
+#Also, when we install onl linux, everything gets moved around, so we change the paths accordingly.
 x = sys.path[0]
+linuxpackage = False
+#This is ow we detect if we are running in "unzip+run mode" or installed on linux.
+#If we are installed, then src is found in /usr/lib/kaithem
+
 if x.startswith('/usr/bin'):
     x = "/usr/lib/kaithem"
-else:
-    x = os.path.join(x,'src')
+    linuxpackage = True
+    sys.path = [x] + sys.path
+    
+x = os.path.join(x,'src')
 
 if sys.version_info < (3,0):
     sys.path = [os.path.join(x,'thirdparty','python2')] + sys.path
@@ -45,12 +53,12 @@ else:
 sys.path = [os.path.join(x,'thirdparty')] + sys.path
 
 #Low priority modules will default to using the version installed on the user's computer.
-sys.path =  sys.path + [os.path.join(x,'src','thirdparty',"lowpriority")]
+sys.path =  sys.path + [os.path.join(x,'thirdparty',"lowpriority")]
 
 if sys.version_info < (3,0):
-    sys.path = sys.path+[os.path.join(x,'src','thirdparty','lowpriority','python2')]
+    sys.path = sys.path+[os.path.join(x,'thirdparty','lowpriority','python2')]
 else:
-    sys.path = sys.path+[os.path.join(x,'src','thirdparty','lowpriority','python3')]
+    sys.path = sys.path+[os.path.join(x,'thirdparty','lowpriority','python3')]
 
 
 import time,signal
@@ -236,10 +244,12 @@ root.notifications = notifications.WI()
 root.widgets = widgets.WebInterface()
 
 
-
-dn = os.path.dirname(os.path.realpath(__file__))
-
-
+if not linuxpackage:
+    sdn = os.path.join(os.path.dirname(os.path.realpath(__file__)),"src")
+    ddn = os.path.join(os.path.dirname(os.path.realpath(__file__)),"data")
+else:
+    sdn = "/usr/lib/kaithem/src"
+    ddn = "/usr/share/kaithem"
 
 site_config={
         "tools.encode.on" :True,
@@ -266,21 +276,21 @@ else:
 cnf={
     '/static':
         {'tools.staticdir.on': True,
-        'tools.staticdir.dir':os.path.join(dn,'data/static'),
+        'tools.staticdir.dir':os.path.join(ddn,'static'),
         "tools.sessions.on": False,
         "tools.addheader.on": True
         },
 
     '/static/js':
         {'tools.staticdir.on': True,
-        'tools.staticdir.dir':os.path.join(dn,'src/js'),
+        'tools.staticdir.dir':os.path.join(sdn,'js'),
         "tools.sessions.on": False,
         "tools.addheader.on": True
         },
 
     '/static/css':
         {'tools.staticdir.on': True,
-        'tools.staticdir.dir':os.path.join(dn,'src/css'),
+        'tools.staticdir.dir':os.path.join(sdn,'css'),
         "tools.sessions.on": False,
         "tools.addheader.on": True
         },
