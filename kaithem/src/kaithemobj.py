@@ -299,7 +299,21 @@ class Kaithem():
 
     class persist():
         @staticmethod
-        def save(data,fn,mode="default"):
+        def save(data,fn,mode="default", private=False):
+            """Save data to file. Filename must end in .json, .yaml, .txt, or .bin. Data will be encoded appropriately.
+                Also supports compressed versions via filenames ending in .gz or .bz2.
+                Args:
+                    data:
+                        the data to be written. if fn is a .json or .yaml, must be serializable. If filename is .txt, must be a string.
+                        If .bin, must be something like bytes.
+                    mode:
+                        If default, just overwrite the file. If backup, rename existing file to file~ then delete it on sucessful write.
+                        Note that load() may not notice all corrupted JSON or YAML files, however gz and bz2 include checksums.
+                    private:
+                        If True, file created with mode 700(Full access to root and owner but not even read to anyone else)
+                        If False(the default), file created with default mode
+            """
+
             if os.path.isdir(fn):
                 raise RuntimeError("Filename is already present as a directory, refusing to overwrite directory")
             #create the directory if it does not exist.
@@ -317,7 +331,8 @@ class Kaithem():
                 else:
                     f = open(fn,'wb')
                     x=fn
-
+                if private:
+                    util.chmod_private_try(fn)
                 if x.endswith(".json"):
                     f.write(json.dumps(data).encode('utf8'))
                 elif x.endswith(".yaml"):
@@ -337,6 +352,12 @@ class Kaithem():
 
         @staticmethod
         def load(filename,autorecover = True):
+            """Load a file. Return str if file extension is .txt, bytes on .bin, dict on .yaml or .json.
+
+            After that may be a .bz2 or a .gz for compression.
+
+            If autorecover is True, if the file is missing or corrupted(May not catch all corrupted YAML files), looks for a ~ backup before failing.
+            maybe best to use gz if you really care because gz has a checksum"""
             try:
                 if filename.endswith(".gz"):
                     f = gzip.GzipFile(filename,mode='rb')

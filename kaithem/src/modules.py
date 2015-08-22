@@ -56,43 +56,54 @@ class obj(object):
       if x['resource-type'] == 'permission':
          x = permission_interface()
 
-#saveall and loadall are the ones outside code shold use to save and load the state of what modules are loaded
 def saveAll():
-    global moduleschanged
-    if not moduleschanged:
-        return False
-    if time.time()> util.min_time:
-        t = time.time()
-    else:
-        t = int(util.min_time) +1.234
-    #This dumps the contents of the active modules in ram to a subfolder of the moduledir named after the current unix time"""
-    saveModules(os.path.join(directories.moduledir,str(t) ))
-    #We only want 1 backup(for now at least) so clean up old ones.
-    util.deleteAllButHighestNumberedNDirectories(directories.moduledir,2)
-    moduleschanged = False
-    return True
+    """saveAll and loadall are the ones outside code shold use to save and load the state of what modules are loaded.
+    This function creates a timestamp directory in the confugured modules dir, then saves the modules to it, and deletes the old ones."""
+    
+    #This is an RLock, and we need to use the lock so that someone else doesn't make a change while we are saving that isn't caught by
+    #moduleschanged.
+    with modulesLock:
+        global moduleschanged
+        if not moduleschanged:
+            return False
+        if time.time()> util.min_time:
+            t = time.time()
+        else:
+            t = int(util.min_time) +1.234
+        #This dumps the contents of the active modules in ram to a subfolder of the moduledir named after the current unix time"""
+        saveModules(os.path.join(directories.moduledir,str(t) ))
+        #We only want 1 backup(for now at least) so clean up old ones.
+        util.deleteAllButHighestNumberedNDirectories(directories.moduledir,2)
+        moduleschanged = False
+        return True
 
 def initModules():
-    for i in range(0,15):
-        #Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
-        name = util.getHighestNumberedTimeDirectory(directories.moduledir)
-        possibledir = os.path.join(directories.moduledir,name)
+    """"Find the most recent module dump folder and use that. Should there not be a module dump folder, it is corrupted, etc,
+    Then start with an empty list of modules. Should normally be called once at startup."""
+    try:
+        for i in range(0,15):
+            #Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
+            name = util.getHighestNumberedTimeDirectory(directories.moduledir)
+            possibledir = os.path.join(directories.moduledir,name)
 
-        #__COMPLETE__ is a special file we write to the dump directory to show it as valid
-        if '''__COMPLETE__''' in util.get_files(possibledir):
-            loadModules(possibledir)
-            auth.importPermissionsFromModules()
-            newevt.getEventsFromModules()
-            usrpages.getPagesFromModules()
-            break #We sucessfully found the latest good ActiveModules dump! so we break the loop
-        else:
-            #If there was no flag indicating that this was an actual complete dump as opposed
-            #To an interruption, rename it and try again
-            shutil.copytree(possibledir,os.path.join(directories.moduledir,name+"INCOMPLETE"))
-            shutil.rmtree(possibledir)
+            #__COMPLETE__ is a special file we write to the dump directory to show it as valid
+            if '''__COMPLETE__''' in util.get_files(possibledir):
+                loadModules(possibledir)
+                auth.importPermissionsFromModules()
+                newevt.getEventsFromModules()
+                usrpages.getPagesFromModules()
+                break #We sucessfully found the latest good ActiveModules dump! so we break the loop
+            else:
+                #If there was no flag indicating that this was an actual complete dump as opposed
+                #To an interruption, rename it and try again
+                shutil.copytree(possibledir,os.path.join(directories.moduledir,name+"INCOMPLETE"))
+                shutil.rmtree(possibledir)
+    except:
+        pass
 
 
 def saveModules(where):
+    """Save the modules in a directory as JSON files. Low level and does not handle the timestamp directories, etc."""
     with modulesLock:
         util.ensure_dir2(os.path.join(where))
         util.chmod_private_try(os.path.join(where))
@@ -126,14 +137,14 @@ def saveModules(where):
             f.write("By this string of contents quite arbitrary, I hereby mark this dump as consistant!!!")
 
 
-#Load all modules in the given folder to RAM
 def loadModules(modulesdir):
+    "Load all modules in the given folder to RAM"
     for i in util.get_immediate_subdirectories(modulesdir):
         loadModule(i,modulesdir)
 
 
-#Load a single module but don't bookkeep it . Used by loadModules
 def loadModule(moduledir,path_to_module_folder):
+    "Load a single module but don't bookkeep it . Used by loadModules"
     with modulesLock:
         #Make an empty dict to hold the module resources
         module = {}

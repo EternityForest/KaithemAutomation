@@ -71,6 +71,7 @@ class Scheduler(threading.Thread):
 
 
     def run(self):
+        "This runs in a loop for as long as the program runs and runs the tasks. It works by waking up every second and checking what needs doing"
         global last_did_minute_tasks
         while self.running:
             messagebus.postMessage("/system/scheduler/tick", time.time())

@@ -14,7 +14,6 @@ def dump(j):
 def getEntries(p,page = 1):
     global entries
     start =len(p)- ((page) * 200)
-    print(page, start, len(p))
     stop = max(0,start + 200)
     x = list(itertools.islice(p,max(0,start),stop) )
     return reversed(x), len(x)

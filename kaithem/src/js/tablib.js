@@ -7,13 +7,7 @@ var makeFunction = function(e,a,b,d)
             a[i][1].style = "display:none";
             e.style = "display:block;"
             }
-
-
-
-
         var i = d.firstChild;
-
-
         while (i)
             {
 
@@ -51,7 +45,6 @@ var f =function (n)
                         d.appendChild(b);
                     }
                tabview.insertBefore(d,tabview.firstChild);
-
     }
 var g = function()
 {

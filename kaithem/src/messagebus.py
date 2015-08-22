@@ -13,6 +13,8 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
+"This file manages the kaithem global message bus that is used mostly for logging but also for many other tasks."
+
 import weakref,threading,time,os,random,json,traceback,cherrypy
 from . import workers
 from collections import defaultdict, OrderedDict
@@ -31,7 +33,6 @@ def normalize_topic(topic):
         return topic
 
 class MessageBus(object):
-
     def __init__(self,executor = None):
         """You pass this a function of one argument that just calls its argument. Defaults to calling in
         same thread and ignoring errors.
@@ -157,9 +158,12 @@ class MessageBus(object):
 
 
 class PyMessageBus(object):
-
     def __init__(self,executor = None):
-        """You pass this a function of one argument that just calls its argument. Defaults to calling in
+        """
+        Represents the entirety of the message bus
+
+        You pass this constructot a function of one argument that just calls its argument. That allows you to
+        always run message bus posting in a background thread. Defaults to calling in
         same thread and ignoring errors.
         """
         self.values = OrderedDict()
@@ -183,7 +187,10 @@ class PyMessageBus(object):
             #    x = self.values[tag]
             #    del self.values[tag]
             #    self.values[tag] = x
+
     def subscribe(self,topic,callback):
+        """Subscribe function callback(topic, message) to the topic. Function is weak referenced, so you must keep a reference to it around, or else
+        it will be unsubscribed automatically. In some(most? all?), class instance methods aren't good enough I don't think."""
         if topic.startswith('/'):
             if not len(topic)==1:
                 topic = topic[1:]
@@ -239,6 +246,9 @@ class PyMessageBus(object):
                                 pass
 
     def postMessage(self, topic, message,errors=True,save=True):
+        """This is the main public interface way to post a message. It will post message(Which may be any JSON object type, to topic(Which must be string)
+        It returns almost imediately and delegates actually posting the message to the background thread pool.
+        """
         #Use the executor to run the post message job
         #To allow for the possibility of it running in the background as a thread
         if save:

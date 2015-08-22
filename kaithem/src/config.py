@@ -38,11 +38,14 @@ def my_represent_scalar(self, tag, value, style=None):
 yaml.representer.BaseRepresenter.represent_scalar = my_represent_scalar
 #################################################################
 def load():
+    global argcmd
     _argp = argparse.ArgumentParser()
     
     #Manually specify a confifuration file, or else there must be one in /etc/kaithem
     _argp.add_argument("-c")
     _argp.add_argument("-p")
+    _argp.add_argument("--initialpackagesetup")
+
     argcmd = _argp.parse_args(sys.argv[1:])
     
     _dn = os.path.dirname(os.path.realpath(__file__))

@@ -293,7 +293,6 @@ class WebInterface(object):
     def servelog(self,filename):
         pages.require('/users/logs.view')
         #Make sure the user can't acess any file on the server like this
-        print(filename)
         if not filename.startswith(os.path.join(directories.logdir,'dumps')):
             raise RuntimeError("Security Violation")
         return serve_file(filename, "application/x-download",os.path.split(filename)[1])

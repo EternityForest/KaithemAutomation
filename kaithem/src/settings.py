@@ -24,26 +24,32 @@ else:
 class Settings():
     @cherrypy.expose
     def index(self):
+        """Index page for web interface"""
         return pages.get_template("settings/index.html").render()
 
     @cherrypy.expose
     def reloadcfg(self):
+        """"Used to reload the config file"""
         pages.require("/admin/settings.edit", noautoreturn=True)
         config.reload()
         raise cherrypy.HTTPRedirect("/settings")
 
     @cherrypy.expose
     def threads(self):
+        """Return a page showing all of kaithem's current running threads"""
+        pages.require("/admin/settings.view", noautoreturn=True)
         return pages.get_template("settings/threads.html").render()
 
     @cherrypy.expose
     def stopsounds(self,*args,**kwargs):
+        """Used to stop all sounds currently being played via kaithem's sound module"""
         pages.require("/admin/settings.edit", noautoreturn=True)
         kaithemobj.kaithem.sound.stopAll()
         raise cherrypy.HTTPRedirect("/settings")
 
     @cherrypy.expose
     def files(self,*args,**kwargs):
+        """Return a file manager. Kwargs may contain del=file to delete a file. The rest of the path is the directory to look in."""
         pages.require("/admin/settings.edit")
         dir=os.path.join('/',*args)
 

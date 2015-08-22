@@ -45,17 +45,20 @@ if sys.version_info < (3,0):
     #So we need to make a version bytes take a dummy arg to match 3.xx interface
     #It's ok if it doesn't actually do anything because of the fact that hash.update is fine with str in 2.xx
     def usr_bytes(s,x):
+        "Bytes is an alias for str in py2x, so we make this wrapper so it has the same interface as py3x"
         return(str(s))
 
 else:
     usr_bytes = bytes
 
 #If nobody loadsusers from the file make sure nothing breaks(mostly for tests)
+"""A dict of all the users"""
 Users = {}
+"""A dict of all the groups"""
 Groups = {}
 
-#These are the "built in" permissions required to control basic functions
-#User code can add to these
+"""These are the "built in" permissions required to control basic functions
+User code can add to these"""
 BasePermissions = {
 "/admin/users.edit":"Edit users, groups, and permissions, View and change usernames and passwords. Implies full access so watch out who you give this to.",
 "/admin/mainpage.view": "View the main page of the application.",
@@ -72,11 +75,12 @@ BasePermissions = {
 
 Permissions=BasePermissions
 
-#True only if auth module stuff changed since last save
-#YOU MUST SET THIS EVERY TIME YOU CHANGE THE STATE AND WANT IT TO BE PERSISTANT
+"""True only if auth module stuff changed since last save, used to prevent unneccesary disk writes.
+YOU MUST SET THIS EVERY TIME YOU CHANGE THE STATE AND WANT IT TO BE PERSISTANT"""
 authchanged = False
 
 def importPermissionsFromModules():
+    "Import all user defined permissions that are module resources into the global list of modules that can be assigned, and delete any that are no loger defined in modules."
     Permissions=BasePermissions
     with modules_state.modulesLock:
         for module in modules_state.ActiveModules.copy():#Iterate over all modules
@@ -87,6 +91,7 @@ def importPermissionsFromModules():
                     Permissions[resource] = modules_state.ActiveModules[module][resource]['description']
 
 def getPermissionsFromMail():
+    """Generate a permission for each mailing list, and add that permission to the global list of assignable permissions"""
     for i in registry.get('system/mail/lists',{}):
         Permissions["/users/mail/lists/"+i+"/subscribe"] = "Subscribe to mailing list with given UUID"
 
@@ -96,6 +101,7 @@ class User(dict):
     pass
 
 def changeUsername(old,new):
+    "Change a user's username"
     global authchanged
     authchanged = True
     #this should work because tokens stores object references ad we are not deleting
@@ -104,6 +110,7 @@ def changeUsername(old,new):
     Users[new]['username'] = new
 
 def changePassword(user,newpassword):
+    "Change a user's password"
     global authchanged
     authchanged = True
     salt = os.urandom(16)
@@ -170,83 +177,108 @@ def removeUserFromGroup(username,group):
     Users[username]['groups'].remove(group)
     generateUserPermissions(username) #Regenerate the per-user permissions cache for that user
 
+def promptGenerateUser(username="admin"):
+    global authchanged
+    p = "same"
+    p2 = "different"
+    while not p == p2:
+        p = "same"
+        p2 = "different"
+        p = input("Account %s created. Choose password:"%username)
+        p2 = input("Reenter Password:")
+        if not p==p2:
+            print("password mismatch")
+
+    m = hashlib.sha256()
+    r = os.urandom(16)
+    r64 = base64.b64encode(r).decode("utf-8")
+    m.update(usr_bytes(p,'utf-8'))
+    m.update(r)
+    pwd = base64.b64encode(m.digest()).decode('utf-8')
+
+    temp = {
+            "groups": {
+                "Administrators": {
+                    "permissions": [
+                        "/admin/settings.edit",
+                        "/admin/logging.edit",
+                        "/admin/users.edit",
+                        "/users/pagelisting.view",
+                        "/admin/modules.edit",
+                        "/admin/settings.view",
+                        "/admin/mainpage.view",
+                        "/users/logs.view",
+                        "/admin/modules.view",
+                        "__all_permissions__"
+                        
+                    ]
+                }
+            },
+            "users": {
+               username: {
+                    "groups": [
+                        "Administrators"
+                    ],
+                    "password": pwd,
+                    "username": "admin",
+                    "salt": r64
+                }
+            }
+        }
+    global Users
+    Users = temp['users']
+    global Groups
+    Groups = temp['groups']
+    global Tokens
+    Tokens = {}
+    for user in Users:
+        #What an unreadable line! It turs all the dicts in Users into User() instances
+        Users[user] = User(Users[user])
+        assignNewToken(user)
+    authchanged = True
+    generateUserPermissions()
+        
 def initializeAuthentication():
+    "Load the saved users and groups, and the permissions from the mailing lists, but not the permissions from the modules. "
     #If no file use default but set filename anyway so the dump function will work
     for i in range(0,15):
         #Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
-        name = util.getHighestNumberedTimeDirectory(directories.usersdir)
-        possibledir = os.path.join(directories.usersdir,name)
-
-        #__COMPLETE__ is a special file we write to the dump directory to show it as valid
-        if '''__COMPLETE__''' in util.get_files(possibledir):
-            try:
-                f = open(os.path.join(possibledir,'users.json'))
-                temp = json.load(f)
-                f.close()
-            except:
-                p = "same"
-                p2 = "different"
-                while not p == p2:
-                    p = "same"
-                    p2 = "different"
-                    p = input("No users list found. Account 'admin' created. Choose password:")
-                    p2 = input("Reenter Password:")
-                    if not p==p2:
-                        print("password mismatch")
-
-                m = hashlib.sha256()
-                r = os.urandom(16)
-                r64 = base64.b64encode(r)
-                m.update(p)
-                m.update(r)
-                pwd = base64.b64encode(m)
-
-                temp = {
-                        "groups": {
-                            "Administrators": {
-                                "permissions": [
-                                    "/admin/settings.edit",
-                                    "/admin/logging.edit",
-                                    "/admin/users.edit",
-                                    "/users/pagelisting.view",
-                                    "/admin/modules.edit",
-                                    "/admin/settings.view",
-                                    "/admin/mainpage.view",
-                                    "/users/logs.view",
-                                    "/admin/modules.view"
-                                ]
-                            }
-                        },
-                        "users": {
-                            "admin": {
-                                "groups": [
-                                    "Administrators"
-                                ],
-                                "password": pwd,
-                                "username": "admin",
-                                "salt": r64
-                            }
-                        }
-                    }
-
-            global Users
-            Users = temp['users']
-            global Groups
-            Groups = temp['groups']
-            global Tokens
-            Tokens = {}
-            for user in Users:
-                #What an unreadable line! It turs all the dicts in Users into User() instances
-                Users[user] = User(Users[user])
-                assignNewToken(user)
-
-            generateUserPermissions()
-            break #We sucessfully found the latest good users.json dump! so we break the loop
+        try:
+            name = util.getHighestNumberedTimeDirectory(directories.usersdir)
+        except:
+            print("Could not find any user database dump file.")
+            promptGenerateUser()
+            break
         else:
-            #If there was no flag indicating that this was an actual complete dump as opposed
-            #To an interruption, rename it and try again
-            shutil.copytree(possibledir,os.path.join(directories.usersdir,name+"INCOMPLETE"))
-            shutil.rmtree(possibledir)
+            possibledir = os.path.join(directories.usersdir,name)
+
+            #__COMPLETE__ is a special file we write to the dump directory to show it as valid
+            if '''__COMPLETE__''' in util.get_files(possibledir):
+                try:
+                    f = open(os.path.join(possibledir,'users.json'))
+                    temp = json.load(f)
+                    f.close()
+                except:
+                    print("User database file corrupted, you may be able to recover it manually.")
+                    promptGenerateUser()
+                global Users
+                Users = temp['users']
+                global Groups
+                Groups = temp['groups']
+                global Tokens
+                Tokens = {}
+                for user in Users:
+                    #What an unreadable line! It turs all the dicts in Users into User() instances
+                    Users[user] = User(Users[user])
+                    assignNewToken(user)
+
+                generateUserPermissions()
+                break #We sucessfully found the latest good users.json dump! so we break the loop
+            else:
+                #If there was no flag indicating that this was an actual complete dump as opposed
+                #To an interruption, rename it and try again
+                shutil.copytree(possibledir,os.path.join(directories.usersdir,name+"INCOMPLETE"))
+                shutil.rmtree(possibledir)
     getPermissionsFromMail()
 
 def generateUserPermissions(username = None):
@@ -304,6 +336,7 @@ def destroyUnusedPermissions():
 #Save the state of the entire users/groups/permissions system
 
 def dumpDatabase():
+    """Save the state of the users and groups to a file."""
     global authchanged
     if not authchanged:
         return False
@@ -332,6 +365,7 @@ def dumpDatabase():
 
 
 def addGroupPermission(group,permission):
+    """Add a permission to a group"""
     global authchanged
     authchanged = True
     if permission not in Groups[group]['permissions']:
@@ -388,6 +422,7 @@ def getUserSetting(user,setting):
             return defaultusersettings[setting]
 
 def canUserDoThis(user,permission):
+    """Return True if given user(by username) has access to the given permission"""
         #If the special __guest__ user can do it, anybody can.
     if '__guest__' in Users:
         if permission in Users['__guest__'].permissions:

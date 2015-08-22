@@ -1,0 +1,18 @@
+{
+ "/system/notifications": [
+  [
+   1440143199.4932034,
+   "User admin added resource test of type permission to module test"
+  ],
+  [
+   1440143200.3334644,
+   "User admin modified resource test of module test"
+  ]
+ ],
+ "/system/notifications/important": [
+  [
+   1440143181.7547417,
+   "System Initialized"
+  ]
+ ]
+}
