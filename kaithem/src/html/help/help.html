@@ -635,13 +635,16 @@ h4 {
         </dl>
 
 
-        <h4>kaithem.persist.save(data,filename,mode=default)</h4>
+        <h4>kaithem.persist.save(data,filename,mode=default,private=False)</h4>
         <p>
         Saves data to a file named fn in a format dictated by the file extension.
         If the file does it exist, it will be created. If it does, it will be overwritten.
         If mode=='backup', a tilde will be apended to the existig file's name,
         the new file written, and then the backup will be deleted. Compressed filetypes are also supported.
         </p>
+        
+        <p>If private is True, file will have the mode 700(Only owner or admin/root can read or write the file).
+        The mode is changed before the file is written so there is no race condition attack.</p>
 
         <h4>Supported File Types</h4>
         <dl>
@@ -752,16 +755,16 @@ h4 {
 		Where possible one should wait ten seconds or so before sending a message for something that might resolve itself, like a network issue.
         </p>
 
-		<h3>/system/notifications/warnings</h3>
+        <h3>/system/notifications/warnings</h3>
         <p>
-			These messages show in yellow in the front page and the logs. Use for generic warnings.
+	These messages show in yellow in the front page and the logs. Use for generic warnings.
         </p>
 
-		<h3>/system/notifications/important</h3>
-		<p>Messages show highlighted in logs. Use for things that you want to be noticed, but don't neccesarily require immediate action,
-			like when a connection has been established or restored with a server, The system boots up, or to notify of important events, store opening hours, etc.
-			Routine things that happen frequently such as "main battery fully charged" shouldn't be put here.
-		</p>
+        <h3>/system/notifications/important</h3>
+        <p>Messages show highlighted in logs. Use for things that you want to be noticed, but don't neccesarily require immediate action,
+                like when a connection has been established or restored with a server, The system boots up, or to notify of important events, store opening hours, etc.
+                Routine things that happen frequently such as "main battery fully charged" shouldn't be put here.
+        </p>
 
         <h3>/system/modules/loaded</h3>
         <p>When a module has fully initialized, it's name is posted here.</p>

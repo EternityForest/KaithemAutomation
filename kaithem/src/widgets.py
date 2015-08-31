@@ -90,6 +90,8 @@ class Widget():
         self._value = None
         self._read_perms = []
         self._write_perms=[]
+        self.errored_function = None
+        self.errored_getter = None
 
         def f(u,v):
             pass
@@ -123,8 +125,14 @@ class Widget():
         for i in self._read_perms:
             if not auth.canUserDoThis(user,i):
                 return
-
-        return self.onRequest(user)
+        try:
+            return self.onRequest(user)
+        except Exception as e:
+            messagebus.postMessage("/system/errors/widgets", traceback.format_exc(6))
+            if not (self.errored_getter == id(self._callback)):
+                messagebus.postMessage("/system/notifications/errors", "Error in widget getter function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
+                                        %(self._callback.__name__, self._callback.__module__))
+                self.errored_getter = id(self._callback)
 
     #This function is meant to be overridden or used as is
     def onRequest(self,user):
@@ -152,6 +160,10 @@ class Widget():
             self._callback(user,value)
         except Exception as e:
             messagebus.postMessage("/system/errors/widgets", traceback.format_exc(6))
+            if not (self.errored_function == id(self._callback)):
+                messagebus.postMessage("/system/notifications/errors", "Error in widget callback function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
+                                       %(self._callback.__name__, self._callback.__module__))
+                self.errored_function = id(self._callback)
             raise e
 
 

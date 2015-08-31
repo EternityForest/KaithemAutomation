@@ -67,6 +67,7 @@ from cherrypy import _cperror
 from src import util
 from src import messagebus
 
+
 def installThreadExcepthook():
     """
     Workaround for sys.excepthook thread bug
@@ -78,6 +79,7 @@ def installThreadExcepthook():
     since this replaces a new-style class method.
 
     Modified by kaithem project to do something slightly different. Credit to Ian Beaver.
+    What our version does is posts to the message bus when a thread starts, stops, or has an exception.
     """
     init_old = threading.Thread.__init__
     def init(self, *args, **kwargs):
@@ -197,19 +199,24 @@ class Errors():
 
     @cherrypy.expose
     def alreadyexists(self,):
+        cherrypy.response.status = 400
         return pages.get_template('errors/alreadyexists.html').render()
 
     @cherrypy.expose
     def gosecure(self,):
+        cherrypy.response.status = 426
         return pages.get_template('errors/gosecure.html').render()
 
     @cherrypy.expose
     def loginerror(self,):
+        cherrypy.response.status = 400
         return pages.get_template('errors/loginerror.html').render()
 
     @cherrypy.expose
     def nofoldermoveerror(self,):
+        cherrypy.response.status = 400
         return pages.get_template('errors/nofoldermove.html').render()
+    
     @cherrypy.expose
     def wrongmethod(self,):
         cherrypy.response.status = 405

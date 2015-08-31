@@ -149,7 +149,6 @@ KWidget_connect = function()
 		KWidget_connection.onopen = function(e)
 		{
 			wspollLoop();
-			wspollLoop();
 			KWidget_reconnect_timeout = 1500;
 		}
 
