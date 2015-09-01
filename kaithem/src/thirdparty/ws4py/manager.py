@@ -45,7 +45,6 @@ import logging
 import select
 import threading
 import time
-import socket
 
 from ws4py import format_addresses
 from ws4py.compat import py3k
@@ -93,10 +92,9 @@ class SelectPoller(object):
         if not self._fds:
             time.sleep(self.timeout)
             return []
-        #Modification for the kaithem project, this is to fix the interrupted system call crap
         try:
             r, w, x = select.select(self._fds, [], [], self.timeout)
-        except IOError:
+        except IOError as e:
             return []
         return r
 
@@ -106,7 +104,7 @@ class EPollPoller(object):
         An epoll poller that uses the ``epoll``
         implementation to determines which
         file descriptors have data available to read.
-sel
+
         Available on Unix flavors mostly.
         """
         self.poller = select.epoll()
@@ -139,7 +137,6 @@ sel
         Polls once and yields each ready-to-be-read
         file-descriptor
         """
-        #Modification for the kaithem project, this is to fix the interrupted system call
         try:
             events = self.poller.poll(timeout=self.timeout)
         except IOError:
@@ -172,7 +169,6 @@ class KQueuePoller(object):
         Register a new file descriptor to be
         part of the select polling next time around.
         """
-        #Modification for the kaithem project, this is to fix the interrupted system call crap
         try:
             self.poller.register(fd, select.EPOLLIN | select.EPOLLPRI)
         except IOError:
@@ -189,12 +185,10 @@ class KQueuePoller(object):
         Polls once and yields each ready-to-be-read
         file-descriptor
         """
-        #Modification for the kaithem project, this is to fix the interrupted system call crap
         try:
             events = self.poller.poll(timeout=self.timeout)
         except IOError:
             events = []
-
         for fd, event in events:
             if event | select.EPOLLIN | select.EPOLLPRI:
                 yield fd
@@ -214,7 +208,6 @@ class WebSocketManager(threading.Thread):
         provide your own ``poller``.
         """
         threading.Thread.__init__(self)
-        self.name = self.name.replace("Thread",'WSManagerThread')
         self.lock = threading.Lock()
         self.websockets = {}
         self.running = False
@@ -318,14 +311,17 @@ class WebSocketManager(threading.Thread):
             for fd in polled:
                 if not self.running:
                     break
-                try:
-                    ws = self.websockets.get(fd)
-                    if ws and not ws.terminated:
-                            result = ws.once()
-                except:
-                    result = None
 
-                    if not result:
+                ws = self.websockets.get(fd)
+                if ws and not ws.terminated:
+                    #I don't know what kind of errors might spew out of here, but they probably shouldn't crash the entire server.
+                    try:
+                        x = ws.once()
+                    #Treat the error as if once() had returned None
+                    except Exception as e:
+                        x=None
+                        logger.error("Terminating websocket %s due to exception: %s in once method" % (format_addresses(ws), repr(e)) )
+                    if not ws.once():
                         with self.lock:
                             fd = ws.sock.fileno()
                             self.websockets.pop(fd, None)
@@ -334,6 +330,7 @@ class WebSocketManager(threading.Thread):
                         if not ws.terminated:
                             logger.info("Terminating websocket %s" % format_addresses(ws))
                             ws.terminate()
+
 
     def close_all(self, code=1001, message='Server is shutting down'):
         """
