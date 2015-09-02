@@ -17,7 +17,23 @@ from src.config import config
 
 %endif
 <title>Kaithem Page</title>
-<h2>Page "${name|h}" of module <a href="/modules/module/${url(module)}">${module|h}</a></h2>
+<h2>Editing page: ${name|h}</h2>
+<p class=pathnav>Path:
+<%
+temp_p = ""
+path = util.split_escape(name,"/","\\")
+%>
+<a class="button" href="/modules/module/${url(module)}#resources">${module|h}</a>
+%if path:
+%for i in path[:-1]:
+<%
+temp_p+= i+'/'
+%>\
+<a class="button" href="/modules/module/${url(module)}/resource/${url(temp_p[:-1])}#resources">${i|h}</a>
+%endfor
+%endif
+<b>${path[-1]|h}</b>
+</p>
 Page URL: <a class="gobutton" href="${usrpages.url_for_resource(module,name)}">${''+usrpages.url_for_resource(module,name)}</a>
 <div class="sectionbox">
 
@@ -41,7 +57,6 @@ Any keyword arguments from forms etc are availible as a dict called "kwargs".
 Information about the actual HTTP request is availble by acessing the cherrypy.request object which is aliased to "request" in user page code.
 Please see cherrypy's documentation for more info.
 </p>
-
 
 <textarea id="box" name="body" rows=25 class="htmlcode">${page["body"]|h}</textarea>
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):

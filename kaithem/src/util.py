@@ -16,7 +16,8 @@
 
 
 "This file ideally should only depend on sdtilb stuff and import the rest as needed. We don't want this to drag in threads and everything"
-import  os,threading,copy,sys,shutil,difflib,time,json,traceback,stat,subprocess
+import  os,threading,copy,sys,shutil,difflib,time,json,traceback,stat,subprocess,copy
+import yaml
 #2 and 3 have basically the same module with diferent names
 if sys.version_info < (3,0):
     from urllib import quote
@@ -288,7 +289,7 @@ def roundto(n,s):
     else:
         return n - n%s
 
-def split_escape(s,separator, escape=None,preserve_escapes=False):
+def split_escape(s, separator, escape=None,preserve_escapes=False):
     current_token = ""
     tokens = []
     literal = False
@@ -390,3 +391,25 @@ def drop_perms(user, group = None):
     os.setgroups(groups)
     os.setgid(running_gid)
     os.setuid(running_uid)
+
+def display_yaml(d):
+    d = copy.deepcopy(d)
+    _yaml_esc(d)
+    return yaml.dump(d)
+
+def _yaml_esc(s,depth=0,r=""):
+    if depth>20:
+        raise RuntimeError()
+    if isinstance(s,(str,float,int)):
+        return
+    if isinstance(s,list):
+        x = range(0,len(s))
+    else:
+        x = s
+    for i in x:
+        if isinstance(s[i],str):
+            s[i] = s[i].replace("\t","\\t").replace("\r",r)
+        else:
+            _yaml_esc(s[i])
+        
+            

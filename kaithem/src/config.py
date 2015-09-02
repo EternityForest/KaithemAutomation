@@ -21,6 +21,8 @@ import yaml,argparse,sys,os, validictory
 def should_use_block(value):
     if "\n" in value:
         return True
+    if "\r" in value:
+        return True
     return False
 
 def my_represent_scalar(self, tag, value, style=None):

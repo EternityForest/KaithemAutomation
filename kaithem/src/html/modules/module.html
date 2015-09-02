@@ -36,20 +36,35 @@ This Page allows you to view and edit information and resources associated with 
 
 <br>
 
-<h3>Resources in ${"/".join([name]+path)|h}</h3>
+<h3 id="resources">Resources in ${"/".join([name]+path)|h}</h3>
 <div class="sectionbox">
 <p class="menubar">
-<a class="button createbutton addeventbutton" href="/modules/module/${url(name)}/addresource/event/${'/'.join(path)|u}">Event</a>
-<a class="button createbutton addpermissionbutton" href="/modules/module/${url(name)}/addresource/permission/${'/'.join(path)|u}">Permission</a>
-<a class="button createbutton addpagebutton" href="/modules/module/${url(name)}/addresource/page/${'/'.join(path)|u}">Page</a>
-<a class="button createbutton addfolderbutton" href="/modules/module/${url(name)}/addresource/directory/${'/'.join(path)|u}">Folder</a>
+
+<a class="button createbutton addeventbutton" href="/modules/module/${url(name)}/addresource/event/${url('/'.join(path))}">Event</a>
+<a class="button createbutton addpermissionbutton" href="/modules/module/${url(name)}/addresource/permission/${url('/'.join(path))}">Permission</a>
+<a class="button createbutton addpagebutton" href="/modules/module/${url(name)}/addresource/page/${url('/'.join(path))}">Page</a>
+<a class="button createbutton addfolderbutton" href="/modules/module/${url(name)}/addresource/directory/${url('/'.join(path))}">Folder</a>
 <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource">Delete Resource</a>
+</p>
+<p class="pathnav">Path:
+<%
+temp_p = ""
+%>
+<a class="button" href="/modules/module/${url(name)}#resources">${name|h}</a>
+%if path:
+%for i in util.split_escape(path[0],"/","\\"):
+<%
+temp_p+= i+'/'
+%>\
+<a class="button" href="/modules/module/${url(name)}/resource/${url(temp_p[:-1])}#resources">${i|h}</a>
+%endfor
+%endif
 </p>
 <p class="help">This module contains the following resources.</p>
 <%!
 def get_time(t):
   try:
-      return scheduling.get_next_run(t)
+      return scheduling.get_next_run(t) or 0
   except Exception as e:
       return 0
 
@@ -72,18 +87,19 @@ def in_folder(r,f,n):
      return True
 %>
 <dl>
-<dt class="specialentry"><a href="/modules/module/${url(name)}">Top</a>(Go to Top level module folder)</dt>
+<dt class="specialentry"><a href="/modules/module/${url(name)}#resources">Top</a>(Go to Top level module folder)</dt>
 %if path and len(util.split_escape(path[0],"/","\\"))>1:
 <hr>
-<dt class="specialentry"><a href="/modules/module/${name|h}/resource/${"/".join( [i.replace("\\","\\\\").replace("/","\\/") for i in util.split_escape(path[0],"/","\\")[:-1]] )|u}">..</a></dt>
+<dt class="specialentry"><a href="/modules/module/${name|h}/resource/${"/".join( [i.replace("\\","\\\\").replace("/","\\/") for i in util.split_escape(path[0],"/","\\")[:-1]] )|u}#resources">..</a></dt>
 %endif
 <hr>
 %for i in sorted(sorted(module.keys()), key=lambda x: module[x]['resource-type']):
+
 %if in_folder(i,fullpath,name):
 
 	%if module[i]['resource-type'] == 'event':
 	  <dt>
-	       <span class="event-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
+	       <span class="event-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}#setupheading">${util.split_escape(i,'/','\\')[-1]|h}</a>
 <a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a></b>
 	       %if newevt.fastGetEventErrors(name,i):
 	       <span class="error">[${len(newevt.fastGetEventErrors(name,i))} Errors]</span>
@@ -120,7 +136,7 @@ def in_folder(r,f,n):
 		<span class="error">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
 		%endif
 		</b><a class="gobutton" href="${usrpages.url_for_resource(name,i)}">Go to page</a>|<a class="editbutton"
-        href="/modules/module/${url(name)}/resource/${url(i)}">
+        href="/modules/module/${url(name)}/resource/${url(i)}#pagebody">
 
 		Edit Page</a><a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a></dt>
 	  <dd>
@@ -145,7 +161,7 @@ def in_folder(r,f,n):
 
      %if module[i]['resource-type'] == 'directory':
 
-      <dt><span class="directory-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/')[-1]|h}</a></b>
+      <dt><span class="directory-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}#resources">${util.split_escape(i,'/')[-1]|h}</a></b>
 <a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a><dt>
 
 	%endif

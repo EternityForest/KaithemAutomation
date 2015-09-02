@@ -14,7 +14,7 @@ ${i.name|h}
 %if i.daemon:
 <i>(daemon)</i>
 %endif
-</li>
+: running <b>${i.run.__name__}</b> defined in <b>${i.__module__}</b></li>
 %endfor
 </ul>
 </div>
