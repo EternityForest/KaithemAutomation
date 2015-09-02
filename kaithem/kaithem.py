@@ -94,6 +94,8 @@ def installThreadExcepthook():
                 messagebus.postMessage("/system/notifications/errors","Exception in thread %s, thread stopped. More details in logs."%self.name)
                 messagebus.postMessage("/system/threads/errors","Exception in thread %s:\n%s"%(self.name, traceback.format_exc(6)))
                 raise
+        #Rename thread so debugging works
+        run_with_except_hook.__name__ = run_old.__name__
         self.run = run_with_except_hook
     threading.Thread.__init__ = init
 
@@ -285,7 +287,9 @@ cnf={
         {'tools.staticdir.on': True,
         'tools.staticdir.dir':os.path.join(ddn,'static'),
         "tools.sessions.on": False,
-        "tools.addheader.on": True
+        "tools.addheader.on": True,
+        'tools.expires.on'    : True,
+        'tools.expires.secs'  : 3600# expire in an hour
         },
 
     '/static/js':
@@ -363,3 +367,31 @@ util.drop_perms(config['run-as-user'], config['run-as-group'])
 messagebus.postMessage('/system/startup','System Initialized')
 messagebus.postMessage('/system/notifications/important','System Initialized')
 cherrypy.engine.block()
+cherrypy.engine.exit()
+time.sleep(1)
+cherrypy.engine.exit()
+print("Cherrypy engine stopped")
+
+#Partial workaround for a bug where it won't exit in python3. This probably won't work on windows
+if sys.version_info > (3,0):
+    #Wait until all non daemon threads are finished shutting down.
+    while 1:
+        exit = True
+        for i in sorted(threading.enumerate(),key=lambda d:d.name):
+            if (not i.daemon) and (not(i.name=="MainThread")):
+                exit=False
+        if exit:
+            break
+        
+    #If still not stopped, try to stop
+    try:
+        #Try the most graceful way first.
+        print("Still running, sending signals")
+        os.kill(os.getpid(), signal.SIGINT)
+        time.sleep(0.5)
+        os.kill(os.getpid(), signal.SIGTERM)
+        time.sleep(1)
+        os.kill(os.getpid(), signal.SIGKILL)
+
+    except:
+        raise

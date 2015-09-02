@@ -289,6 +289,20 @@ span.pre
     background-color: rgba(255,255,255,0.3);
 }
 
+p.pathnav
+{
+background-color:rgba(140,200,140,0.2);
+background-color:rgba(255,25,255,0.1);
+border-radius:5px;
+margin-bottom:5px;
+margin-top:5px;
+border-style:solid;
+border-width:1px;
+border-radius: 7px;
+padding:3px;
+cursor:help;
+}
+
 
 /*Tab panel stuff*/
 

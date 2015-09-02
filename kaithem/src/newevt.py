@@ -403,7 +403,7 @@ class BaseEvent():
 
 class CompileCodeStringsMixin():
     "This mixin lets a class take strings of code for its setup and action"
-    def _init_setup_and_action(self,setup,action):
+    def _init_setup_and_action(self,setup,action,params={}):
         #Compile the action and run the initializer
         if setup == None:
             setup = "pass"
@@ -414,6 +414,7 @@ class CompileCodeStringsMixin():
         try:
             self.pymodule.__dict__['kaithem']=kaithemobj.kaithem
             self.pymodule.__dict__['module']=modules_state.scopes[self.module]
+            self.pymodule.__dict__.update(params)
         except KeyError as e:
             raise e
         exec(initializer,self.pymodule.__dict__,self.pymodule.__dict__)
@@ -434,6 +435,40 @@ class CompileCodeStringsMixin():
 class DirectFunctionsMixin():
         def _init_setup_and_action(self,setup,action):
             self._do_action = action
+            
+class FunctionEvent(BaseEvent,CompileCodeStringsMixin):
+    """A type of event that works by putting a function called action in the event scope. Calling action triggers
+    the function. All the normal logging and error handling and everything still happens, except that the exception
+    gets reraised if it happens."""
+    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
+        #This event type is not polled. Note that it doesn't even have a check() method.
+        self.polled = False
+        self.lock = threading.RLock()
+        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
+        def action_wrapper(topic,message):
+            #Since we aren't under the BaseEvent.check() lock, we need to get it ourselves.
+            with self.lock:
+                #These two lines were an old fix for a circular reference buf that made message events not go away.
+                #It is still here just in case another circular reference bug pops up.
+                if (self.module,self.resource) not in EventReferences:
+                    return
+                #setup environment
+                self.pymodule.__dict__['__topic'] = topic
+                self.pymodule.__dict__['__message'] = message
+                #We delegate the actual execution of the body to the on_trigger
+                self._on_trigger()
+
+        #Handle whatever stupid whitespace someone puts in
+        #What this does is to eliminate leading whitespace, split on first space,
+        #Then get rid of any extra spaces in between the command and argument.
+        t = when.strip().split(' ',1)[1].strip()
+        #Subscribe our new function to the topic we want
+        messagebus.subscribe(t,action_wrapper)
+        self._init_setup_and_action(setup,do,{'action':action_wrapper})
+
+    #This is the real solution for the circular reference nonsense, until the messagebus has a real unsubscribe feature.
+    def unregister(self):
+        del self.action_wrapper_because_we_need_to_keep_a_reference
 
 class MessageEvent(BaseEvent,CompileCodeStringsMixin):
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
@@ -475,7 +510,7 @@ class MessageEvent(BaseEvent,CompileCodeStringsMixin):
 
 class ChangedEvalEvent(BaseEvent,CompileCodeStringsMixin):
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
-                #If the user tries to use the !onchanged trigger expression,
+        #If the user tries to use the !onchanged trigger expression,
         #what we do is to make a function that does the actual checking and always returns false
         #This means it will be called every frame but the usual trigger method(which is edge triggered)
         #Is bypassed. Instead, we directly call self._on_trigger and return false
@@ -561,6 +596,7 @@ class PolledInternalSystemEvent(BaseEvent,DirectFunctionsMixin):
 
 
 class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
+    "This represents an event that happens on a schedule"
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
         self.polled = False
         self.trigger = when
@@ -569,35 +605,57 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
         #Bound methods aren't enough to stop GC
         #TODO, Maybe this method should be asyncified?
         self.handler= self._handler
+        self.exact = self.get_exact()
         self.next=scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
-
+        
+    def get_exact(self):
+        r = re.match(r"exact( ([0-9]*\.?[0-9]))?" , self.trigger)
+        if not r:
+            return False
+        if re.groups():
+            return float(re.groups[1])
+        else:
+            return 3
+        
     #Recalculate the next time at which the event should run, for cases in which the time was set incorrectly
     #And has now been changed. Not well tested, work in progress, might cause a missed event or something.
     def recalc_time(self):
-        self.next.unregister()
-        self.next=scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
+        try:
+            self.next.unregister()
+        except AttributeError:
+            pass
+        self.nextruntime = scheduling.get_next_run(self.trigger)
+        self.next=scheduler.schedule(self.handler,self.nextruntime,False)
 
     def _handler(self):
         if not 'allow_overlap' in self.trigger:
             if not self.lock.acquire(False):
-                self.next=scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
+                self.nextruntime = scheduling.get_next_run(self.trigger)
+                self.next=scheduler.schedule(self.handler, self.nextruntime , False)
                 return
         try:
+            #If the scheduler misses it and we have exact configured, then we just don't do the
+            #Actual action.
             def f():
-                self._on_trigger()
+                if not (self.exact and (time.time()  > (self.nextruntime + self.exact))):
+                    self._on_trigger()
             workers.do(f)
 
         finally:
             try:
                 self.lock.release()
-
             except Exception as e:
                 print(e)
                 pass
-            self.next=scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
+            nextrun = 0
+            self.nextruntime = scheduling.get_next_run(self.trigger)
+            self.next=scheduler.schedule(self.handler, self.nextruntime, False)
 
     def __del__(self):
-        self.next.unregister()
+        try:
+            self.next.unregister()
+        except AttributeError:
+            pass
 
 #If the system time has been set, we may want to recalculate all of the events.
 #Work in progress

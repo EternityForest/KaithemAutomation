@@ -1,0 +1,5 @@
+{
+    "body": "<%!\n#Code Here runs once when page is first rendered. Good place for import statements.\n__doc__= \"\"\n%>\n<%\n#Python Code here runs every page load\n%>\n<h2>Title</h2>\n<div class=\"sectionbox\">\nContent here\n</div>",
+    "no-navheader": true,
+    "resource-type": "page"
+}

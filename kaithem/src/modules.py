@@ -666,9 +666,9 @@ def resourceUpdateTarget(module,resource,kwargs):
     #Return user to the module page. If name has a folder, return the user to it;s containing folder.
     x = util.split_escape(r,"/")
     if len(x)>1:
-        raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+'/'.join([util.url(i) for i in x[:-1]]))
+        raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+'/'.join([util.url(i) for i in x[:-1]])+"#resources")
     else:
-        raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module))#+'/resource/'+util.url(resource))
+        raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+"#resources")#+'/resource/'+util.url(resource))
 
 def mvResource(module,resource,toModule,toResource):
     #Raise an error if the user ever tries to move something somewhere that does not exist.

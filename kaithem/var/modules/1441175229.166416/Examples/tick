@@ -6,6 +6,6 @@
     "priority": "interactive",
     "rate-limit": 0.0,
     "resource-type": "event",
-    "setup": "pass",
+    "setup": "\"Shows !time triggers. Note that !time triggers use natural language processing and it is usually much better to use normal triggers like !onchange kaithem.time.hour\"",
     "trigger": "!time every second"
 }

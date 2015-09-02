@@ -1,4 +1,10 @@
 {
+    "allow-origins": [
+        "*"
+    ],
+    "allow-xss": false,
+    "auto-reload": false,
+    "auto-reload-interval": 5.0,
     "body": "<meta http-equiv=\"reload\" content=\"5; url=https://localhost:8001/pages/Examples/Dynamic%20Pages\">\r\n<div class=\"sectionbox\">\r\n<p>\r\nThis page tells you what day of week it is. It does this by calling a function and including the output in the page via the Mako template engine.\r\n</p>\r\n<p>\r\nIt is ${kaithem.time.dayofweek()}!\r\n</p>\r\n</div>",
     "dont-show-in-index": false,
     "no-header": false,

@@ -22,6 +22,7 @@ from src.config import config
 %endif
 <title>Kaithem Event</title>
 <h2>Event "${name|h}" of module <a href="/modules/module/${url(module)}">${module|h}</a></h2>
+
 %if not (module,name) in newevt.EventReferences:
 <span class="error">Event not active, An error prevented this event from loading.</span>
 %endif
@@ -37,7 +38,7 @@ or go to the working copy and save that to delete this draft.</p>
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
 <h3>Name</h3>
 <input name="name" value="${name|h}"></input>
-<h3>Setup Code</h3>
+<h3 id="setupheading">Setup Code</h3>
 <p class="help">Enter python code. It will execute in the event <b>global</b> scope when it loads. If there is any problem,
 the other events will load then this will be retried. This is also how <a href="/docs#dependancies">dependancies</a> are reoslved.
 You will need to use the global keyword in the event action to overwrite a variable defined here.
@@ -70,7 +71,7 @@ var editor = CodeMirror.fromTextArea(document.getElementById("setupbox"), {
    "Cmd-F": "findPersistent"
    }
   });
-editor.setSize("99%","45em")
+editor.setSize("99%","35em")
 </script>
 %endif
 
@@ -105,13 +106,19 @@ triggereditor.on("beforeChange", function(instance, change) {
 <%!
 def get_time(t):
   try:
-      return scheduling.get_next_run(t)
+      return scheduling.get_next_run(t) or 0
   except Exception as e:
       return 0
+
+def get_rrule(t):
+  try:
+      return scheduling.get_schedule_string_info(t)
+  except Exception as e:
+      return ""
 %>
 %if event['trigger'].startswith("!time"):
-<p><b>Next Run for "${event['trigger'][5:]|h}" (After ${unitsofmeasure.strftime(time.time())|h}):
-${unitsofmeasure.strftime(get_time(event['trigger']))|h}</b></p>
+<p style="font-size:90%">Next Run for "${event['trigger'][5:]|h}" (After ${unitsofmeasure.strftime(time.time())|h}):
+${unitsofmeasure.strftime(get_time(event['trigger']))|h}<br>RRule string: ${get_rrule(event['trigger'])|h}</p>
 %endif
 <p style="display:none" id="rrule">Next Run: <span id="rrulespan"></span></p>
 

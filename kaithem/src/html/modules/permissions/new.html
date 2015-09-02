@@ -7,7 +7,7 @@ from src.util import url
 <div class="sectionbox">
 <p class ="help">This page allows you to define custom permissions. This allows finer-grained access control for resources.</p>
 <hr>
-<form action="/modules/module/${url(module)}/addresourcetarget/permission/${path|u}" method="POST" name="new">
+<form action="/modules/module/${url(module)}/addresourcetarget/permission/${url(path)}" method="POST" name="new">
 <h3>Name</h3><input required="required" name="name" class="name" type="text"></input><br>
 <h3>Description</h3>
 <textarea required="required" name="description" cols = 5 class="description"></textarea><br>

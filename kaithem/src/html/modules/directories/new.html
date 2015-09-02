@@ -6,7 +6,7 @@ from src.util import url
 <title>Add Event</title>
 <div class="sectionbox">
 <hr>
-<form action="/modules/module/${url(module)}/addresourcetarget/directory/${path|u}" method="POST" name="new">
+<form action="/modules/module/${url(module)}/addresourcetarget/directory/${(path)}" method="POST" name="new">
 <h3>Name</h3><input required="required" name="name" class="name" type="text"></input><br>
 <br><input value="Create Event" type="submit">
 </form>

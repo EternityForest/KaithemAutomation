@@ -47,7 +47,8 @@ class Tag():
         self.name = name
         self.updated = 0
         self.interval = 0.015
-
+        #We only post to the message bus once per function, we keep track of the ids here.
+        self.already_posted_error = {}
     #Complicated. terrible, and unmaintainable code using parts of things that were't supposed to be public.
     #Watch out to either refactor this or not make breaking changes in widget.py
 
@@ -85,7 +86,10 @@ class Tag():
             try:
                 self.subscribers[i]()(value)
             except:
-                pass
+                messagebus.postMessage("system/tagpoints/errors", traceback.format_tb(6))
+                if not id(self.subscribers[i]()) in self.already_posted_error:
+                    messagebus.postMessage("system/notifications/errors", "Error in tag point getter %s from module %s."%(strself.subscribers[i]().__name__), str(self.subscribers[i]().__module__)))
+                    self.already_posted_error[id(self.subscribers[i]())] = True
 
     def __call__(self,*args):
         if args:
@@ -98,6 +102,9 @@ class Tag():
                 self.updated = time.time
             except Exception as e:
                 messagebus.postMessage("system/tagpoints/errors", traceback.format_tb(6))
+                if not id(self.getter) in self.already_posted_error:
+                    messagebus.postMessage("system/notifications/errors", "Error in tag point getter %s from module %s."%(str(self.getter.__name__), str(self.getter.__module__)))
+                    self.already_posted_error[id(self.getter)] = True
             self._push(self.value)
         else:
             return self.value
@@ -112,12 +119,17 @@ class Tag():
         self._push(value)
 
     def subscribe(self,f):
-        id = 78878 #util.unique_number()
+        sid = 78878 #util.unique_number()
+        fid = id(f)
         def g():
-            del self.subscribers[id]
+            del self.subscribers[sid]
+            try:
+                del self.already_posted_error[fid]
+            except:
+                pass
 
-        self.subscribers[id] = weakref.ref(f,g)
-        return id
+        self.subscribers[sid] = weakref.ref(f,g)
+        return sid
 
     def unsubscribe(self,id):
         try:
@@ -162,6 +174,9 @@ class CVFilter(Tag):
                     self.updated = time.time
                 except Exception as e:
                     messagebus.postMessage("system/tagpoints/errors", traceback.format_tb(6))
+                    if not id(self.getter) in self.already_posted_error:
+                        messagebus.postMessage("system/notifications/errors", "Error in tag point getter %s from module %s."%(str(self.getter.__name__), str(self.getter.__module__)))
+                        self.already_posted_error[id(self.getter)] = True
                 self._push(self.value)
             else:
                 return self.value
