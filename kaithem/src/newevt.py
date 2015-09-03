@@ -606,7 +606,11 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
         #TODO, Maybe this method should be asyncified?
         self.handler= self._handler
         self.exact = self.get_exact()
-        self.next=scheduler.schedule(self.handler,scheduling.get_next_run(self.trigger),False)
+        
+        self.nextruntime = scheduling.get_next_run(self.trigger)
+        if self.nextruntime == None:
+            return
+        self.next=scheduler.schedule(self.handler,self.nextruntime,False)
         
     def get_exact(self):
         r = re.match(r"exact( ([0-9]*\.?[0-9]))?" , self.trigger)
@@ -625,6 +629,8 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
         except AttributeError:
             pass
         self.nextruntime = scheduling.get_next_run(self.trigger)
+        if self.nextruntime == None:
+            return
         self.next=scheduler.schedule(self.handler,self.nextruntime,False)
 
     def _handler(self):
@@ -649,13 +655,47 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
                 pass
             nextrun = 0
             self.nextruntime = scheduling.get_next_run(self.trigger)
-            self.next=scheduler.schedule(self.handler, self.nextruntime, False)
+            if self.nextruntime == None:
+                return
+            
+            if self.nextruntime:
+                self.next=scheduler.schedule(self.handler, self.nextruntime, False)
+                return
+            print("Caught event trying to return None for get next run, time is:", time.time(), " expr is ", self.trigger, " last ran ", self.lastexecuted,"retrying")
+            time.sleep(0.179)#A random number unlikely to sync up with anything
+            
+            if self.nextruntime:
+                self.next=scheduler.schedule(self.handler, self.nextruntime, False)
+                return
+            print("""Caught event trying to return None for get next run
+                (might be an event that only runs for a period that already expired), and retry 1 failed time is:""", 
+                  time.time(), " expr is ",
+                  self.trigger, " last ran ",
+                  self.lastexecuted,"retrying")
+            time.sleep(1.353)#A random number unlikely to sync up with anything
+            
+            if self.nextruntime:
+                self.next=scheduler.schedule(self.handler, self.nextruntime, False)
+                return
+            print("""Caught event trying to return None for get next run
+                (might be an event that only runs for a period that already expired), and retry 1 failed time is:""", 
+                  time.time(), " expr is ",
+                  self.trigger, " last ran ",
+                  self.lastexecuted,"NOT retrying")
+
 
     def __del__(self):
         try:
             self.next.unregister()
         except AttributeError:
             pass
+        
+    def unregister(self):
+        try:
+            self.next.unregister()
+        except AttributeError:
+            pass
+        
 
 #If the system time has been set, we may want to recalculate all of the events.
 #Work in progress

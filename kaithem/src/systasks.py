@@ -57,14 +57,12 @@ MemUseWasTooHigh = False
 firstrun = True
 checked = False
 
-time_last_minute = 0
 
-@scheduling.scheduler.everyMinute
+@scheduling.scheduler.everyHour
 def check_mail_credentials():
-    if time.localtime().tm_min==0:
         mail.check_credentials()
 
-
+time_last_minute = 0
 @scheduling.scheduler.everyMinute
 def check_time_set():
     global time_last_minute

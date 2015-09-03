@@ -64,13 +64,19 @@ def __workerloop():
             f()
         except Exception as e:
             try:
-                import messagebus
-                messagebus.postMessage('system/errors/workers'+
+                from src import messagebus
+                messagebus.postMessage('system/errors/workers',
                                            {"function":f.__name__,
                                             "module":f.__module__,
-                                            "traceback":traceback.format_exc()})
+                                            "traceback":traceback.format_exc(6)})
             except:
-                pass
+                try:
+                    messagebus.postMessage('system/errors/workers',
+                                           {
+                                            "traceback":traceback.format_exc(6)})
+                except:
+                    print("Failed to post error in background task to messagebus")
+                
 
 def do(func):
     """Run a function in the background

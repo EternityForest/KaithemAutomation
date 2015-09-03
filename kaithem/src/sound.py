@@ -214,6 +214,7 @@ class MPlayerWrapper(SoundWrapper):
 
             if "output" in kw and pulseaudio:
                 cmd.extend(["-ao",kw['output']])
+                           
 
             if "video_output" in kw:
                 cmd.extend(["-vo",kw['output']])

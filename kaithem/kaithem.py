@@ -93,7 +93,7 @@ def installThreadExcepthook():
             except Exception as e:
                 messagebus.postMessage("/system/notifications/errors","Exception in thread %s, thread stopped. More details in logs."%self.name)
                 messagebus.postMessage("/system/threads/errors","Exception in thread %s:\n%s"%(self.name, traceback.format_exc(6)))
-                raise
+                raise e
         #Rename thread so debugging works
         run_with_except_hook.__name__ = run_old.__name__
         self.run = run_with_except_hook
