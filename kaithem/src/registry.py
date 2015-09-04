@@ -13,8 +13,8 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 from . import util,directories,messagebus
-import os,time,json,copy,hashlib,threading,copy
-
+import os,time,json,copy,hashlib,threading,copy, traceback, shutil
+from .util import url, unurl
 class PersistanceArea():
 
     #A special dict that works mostly like a normal one, except for it raises
@@ -52,21 +52,37 @@ class PersistanceArea():
         try:
             #We want to loop over all the timestamp named directories till we find a valid one
             #We rename invalid ones to INCOMPLETE<name>
-            while(1):
-                f = util.getHighestNumberedTimeDirectory(folder)
-                if os.path.isfile(os.path.join(folder,f,"kaithem_dump_valid.txt")):
-
-                    #Handle finding valid directory
-                    #Take all the json files and make PersistanceDicts, and mark them clean.
-                    self.files = {}
-                    for i in util.get_files(os.path.join(folder,f)):
-                        if i.endswith('.json'):
-                            with open(os.path.join(folder,f,i)) as x:
-                                self.files[i[:-5]] = self.PersistanceDict(json.load(x)['data'])
-                                self.files[i[:-5]].markClean()
-                    break
+                #This is going to recheck data every time.
+                f = None
+                if os.path.isfile(os.path.join(folder,"data","kaithem_dump_valid.txt")):
+                    f = "data"
                 else:
-                    os.rename(os.path.join(folder,f),os.path.join(folder,"INCOMPLETE"+f))
+                    for i in(0,15):
+                        f = util.getHighestNumberedTimeDirectory(folder)
+                        if os.path.isfile(os.path.join(folder,f,"kaithem_dump_valid.txt")):
+                            break
+                        else:
+                            shutil.copytree(os.path.join(folder,f),os.path.join(folder,"INCOMPLETE"+f))
+                            shutil.rmtree(os.path.join(folder,f))
+                            
+                if not os.path.isfile(os.path.join(folder,"data","kaithem_dump_valid.txt")):
+                    if os.path.isdir(os.path.join(folder,"data")):
+                        shutil.copytree(os.path.join(folder,f),os.path.join(folder,"INCOMPLETE"+f))
+        
+                #Not that we are in a try block
+                if not f:
+                    raise RuntimeError("No Folder Found")
+                            
+                #Handle finding valid directory
+                #Take all the json files and make PersistanceDicts, and mark them clean.
+                self.files = {}
+                for i in util.get_files(os.path.join(folder,f)):
+                    if i.endswith('.json'):
+                        with open(os.path.join(folder,f,i)) as x:
+                            self.files[i[:-5]] = self.PersistanceDict(json.load(x)['data'])
+                            self.files[i[:-5]].markClean()
+                    
+
 
         except Exception as e:
             print(e)
@@ -87,15 +103,40 @@ class PersistanceArea():
         try:
             t=str(util.time_or_increment())
             util.ensure_dir2(self.folder)
-            os.mkdir(os.path.join(self.folder,t))
-            util.chmod_private_try(os.path.join(self.folder,t))
+            
+            if os.path.isdir(os.path.join(self.folder, "data")):
+                #Copy everything except the completion marker
+                shutil.copytree(os.path.join(self.folder, "data"), os.path.join(self.folder,t),
+                                ignore = shutil.ignore_patterns("kaithem_dump_valid.txt"))
+                                                   
+                with open(os.path.join(self.folder,t,'kaithem_dump_valid.txt'),"w") as x:
+                    util.chmod_private_try(os.path.join(self.folder,t,'kaithem_dump_valid.txt'))
+                    x.write("This file certifies this folder as valid")
+            else:
+                util.ensure_dir2(os.path.join(self.folder,"data"))
+            
+            if os.path.isdir(os.path.join(self.folder,"data","kaithem_dump_valid.txt")):
+                os.remove(os.path.join(self.folder,"data","kaithem_dump_valid.txt"))
             #This segment relies on copy and deepcopy being atomic...
             #iterate over files and dump each to a json, set error flag if there are any errors
             for i in self.files.copy():
                 try:
-                        with open(os.path.join(self.folder,t,i+".json"),'w') as x:
-                            util.chmod_private_try(os.path.join(self.folder,t,i+".json"))
+                        with open(os.path.join(self.folder,"data",url(i)+".json"),'w') as x:
+                            util.chmod_private_try(os.path.join(self.folder,"data",url(i)+".json"))
                             json.dump({'data':copy.deepcopy(self.files[i])},x,sort_keys=True,indent=4, separators=(',', ': '))
+                except Exception as e:
+                    error =1
+                    try:
+                        messagebus.postMessage("/system/notifications/errors",'Registry save error:' + repr(e))
+                    except:
+                       pass
+                   
+            for i in util.get_files(os.path.join(self.folder,"data")):
+                print(i)
+                try:
+                    if (not unurl(i)[:-5] in self.files) and not i=="kaithem_dump_valid.txt":
+                        print(unurl(i))
+                        os.remove(os.path.join(self.folder,"data",i))
                 except Exception as e:
                     error =1
                     try:
@@ -108,8 +149,8 @@ class PersistanceArea():
             messagebus.postMessage("/system/notifications/errors",'Registry save error:' + repr(e))
 
         if not error:
-            with open(os.path.join(self.folder,t,'kaithem_dump_valid.txt'),"w") as x:
-                util.chmod_private_try(os.path.join(self.folder,t,'kaithem_dump_valid.txt'))
+            with open(os.path.join(self.folder,"data",'kaithem_dump_valid.txt'),"w") as x:
+                util.chmod_private_try(os.path.join(self.folder,"data",'kaithem_dump_valid.txt'))
                 x.write("This file certifies this folder as valid")
         else:
             print("Failure dumping persistance dicts.")

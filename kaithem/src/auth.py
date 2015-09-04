@@ -24,9 +24,10 @@ of a valid token"""
 #Users and groups are saved in RAM and synched with the filesystem due to the goal
 #of not using the filesystem much to save any SD cards.
 
-from . import util,directories,modules_state,registry
+from . import util,directories,modules_state,registry,messagebus
 import json,base64,os,time,shutil,hashlib,base64,sys,yaml
 
+Tokens = {}
 
 with open(os.path.join(directories.datadir,"defaultusersettings.yaml")) as f:
     defaultusersettings = yaml.load(f)
@@ -237,48 +238,58 @@ def promptGenerateUser(username="admin"):
         assignNewToken(user)
     authchanged = True
     generateUserPermissions()
-        
+
+def tryToLoadFrom(d):
+    if os.path.isfile(os.path.join(d,"__COMPLETE__")):
+        try:
+            f = open(os.path.join(d,'users.json'))
+            temp = json.load(f)
+        finally:
+            f.close()
+        global Users
+        Users = temp['users']
+        global Groups
+        Groups = temp['groups']
+        global Tokens
+        Tokens = {}
+        for user in Users:
+            #What an unreadable line! It turs all the dicts in Users into User() instances
+            Users[user] = User(Users[user])
+            assignNewToken(user)
+        generateUserPermissions()
+        return True
+    else:
+        raise RuntimeError("No complete marker found")
+
+data_bad = False
 def initializeAuthentication():
     "Load the saved users and groups, and the permissions from the mailing lists, but not the permissions from the modules. "
     #If no file use default but set filename anyway so the dump function will work
-    for i in range(0,15):
-        #Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
-        try:
-            name = util.getHighestNumberedTimeDirectory(directories.usersdir)
-        except:
-            print("Could not find any user database dump file.")
-            promptGenerateUser()
-            break
-        else:
-            possibledir = os.path.join(directories.usersdir,name)
+    #Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
+    loaded = False
+    try:
+        tryToLoadFrom(os.path.join(directories.usersdir,"data"))
+        loaded = True
+    except Exception as e:
+        messagebus.postMessage("/system/notifications/errors","Error loading auth data, may be able to continue from old state:\n"+str(e))
+        data_bad=True
+        for i in range(0,15):
+            try:
+                dirname = util.getHighestNumberedTimeDirectory(directories.usersdir)
+                tryToLoadFrom(os.path.join(d))
+                loaded =True
+                messagebus.postMessage("/system/notifications/warnings","Using old version of users list. This could create a secuirty issue if the old version allowes access to a malicious user")
+                break;
+            except:
+                messagebus.postMessage("/system/notifications/errors","Could not load old state:\n"+str(e))
+                pass
+            
+    if not loaded:
+        time.sleep(2)
+        promptGenerateUser()
+        messagebus.postMessage("/system/notifications/warnings","No valid users file, using command line prompt")
 
-            #__COMPLETE__ is a special file we write to the dump directory to show it as valid
-            if '''__COMPLETE__''' in util.get_files(possibledir):
-                try:
-                    f = open(os.path.join(possibledir,'users.json'))
-                    temp = json.load(f)
-                    f.close()
-                except:
-                    print("User database file corrupted, you may be able to recover it manually.")
-                    promptGenerateUser()
-                global Users
-                Users = temp['users']
-                global Groups
-                Groups = temp['groups']
-                global Tokens
-                Tokens = {}
-                for user in Users:
-                    #What an unreadable line! It turs all the dicts in Users into User() instances
-                    Users[user] = User(Users[user])
-                    assignNewToken(user)
-
-                generateUserPermissions()
-                break #We sucessfully found the latest good users.json dump! so we break the loop
-            else:
-                #If there was no flag indicating that this was an actual complete dump as opposed
-                #To an interruption, rename it and try again
-                shutil.copytree(possibledir,os.path.join(directories.usersdir,name+"INCOMPLETE"))
-                shutil.rmtree(possibledir)
+        
     getPermissionsFromMail()
 
 def generateUserPermissions(username = None):
@@ -347,7 +358,29 @@ def dumpDatabase():
         t = time.time()
     else:
         t = int(util.min_time) +1.234
-    p = os.path.join(directories.usersdir,str(t))
+    
+    if os.path.isdir(os.path.join(directories.usersdir,str("data"))):
+    #Copy the data found in data to a new directory named after the current time. Don't copy completion marker
+        
+        #If the data dir was corrupt, copy it to a different place than a normal backup.
+        if not data_bad:
+            copyto = os.path.join(directories.usersdir,str(t))
+        else:
+            copyto = os.path.join(directories.usersdir,str(t)+"INCOMPLETE")
+
+        shutil.copytree(os.path.join(directories.usersdir,str("data")), copyto,
+                        ignore=shutil.ignore_patterns("__COMPLETE__"))
+        #Add completion marker at the end
+        with open(os.path.join(copyto,'__COMPLETE__'),"w") as x:
+            util.chmod_private_try(os.path.join(copyto,'__COMPLETE__'))
+            x.write("This file certifies this folder as valid")
+            
+            
+    p = os.path.join(directories.usersdir,"data")
+    
+    if os.path.isfile(os.path.join(p,'__COMPLETE__')):
+        os.remove(os.path.join(p,'__COMPLETE__'))
+        
     util.ensure_dir2(p)
     util.chmod_private_try(p)
     f = open(os.path.join(p,"users.json"),"w")

@@ -1,0 +1,6 @@
+modules/*
+registry/*
+users/*
+!modules/data/
+!registry/data/
+!registry/

@@ -70,8 +70,18 @@ def saveAll():
             t = time.time()
         else:
             t = int(util.min_time) +1.234
-        #This dumps the contents of the active modules in ram to a subfolder of the moduledir named after the current unix time"""
-        saveModules(os.path.join(directories.moduledir,str(t) ))
+        
+        if os.path.isdir(os.path.join(directories.moduledir,str("data"))):
+        #Copy the data found in data to a new directory named after the current time. Don't copy completion marker
+            shutil.copytree(os.path.join(directories.moduledir,str("data")), os.path.join(directories.moduledir,str(t)),
+                            ignore=shutil.ignore_patterns("__COMPLETE__"))
+            #Add completion marker at the end
+            with open(os.path.join(directories.moduledir,str(t),'__COMPLETE__'),"w") as x:
+                util.chmod_private_try(os.path.join(directories.moduledir,str(t),'__COMPLETE__'))
+                x.write("This file certifies this folder as valid")
+        
+        #This dumps the contents of the active modules in ram to a directory named data"""
+        saveModules(os.path.join(directories.moduledir,"data"))
         #We only want 1 backup(for now at least) so clean up old ones.
         util.deleteAllButHighestNumberedNDirectories(directories.moduledir,2)
         moduleschanged = False
@@ -81,25 +91,36 @@ def initModules():
     """"Find the most recent module dump folder and use that. Should there not be a module dump folder, it is corrupted, etc,
     Then start with an empty list of modules. Should normally be called once at startup."""
     try:
-        for i in range(0,15):
-            #Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
-            name = util.getHighestNumberedTimeDirectory(directories.moduledir)
-            possibledir = os.path.join(directories.moduledir,name)
+        #__COMPLETE__ is a special file we write to the dump directory to show it as valid
+        possibledir= os.path.join(directories.moduledir,"data")
+        if os.path.isdir(possibledir) and '''__COMPLETE__''' in util.get_files(possibledir):
+            loadModules(possibledir)
+            #we found the latest good ActiveModules dump! so we break the loop
+        else:
+            for i in range(0,15):
+                #Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
+                name = util.getHighestNumberedTimeDirectory(directories.moduledir)
+                possibledir = os.path.join(directories.moduledir,name)
 
-            #__COMPLETE__ is a special file we write to the dump directory to show it as valid
-            if '''__COMPLETE__''' in util.get_files(possibledir):
-                loadModules(possibledir)
-                auth.importPermissionsFromModules()
-                newevt.getEventsFromModules()
-                usrpages.getPagesFromModules()
-                break #We sucessfully found the latest good ActiveModules dump! so we break the loop
-            else:
-                #If there was no flag indicating that this was an actual complete dump as opposed
-                #To an interruption, rename it and try again
-                shutil.copytree(possibledir,os.path.join(directories.moduledir,name+"INCOMPLETE"))
-                shutil.rmtree(possibledir)
+                if '''__COMPLETE__''' in util.get_files(possibledir):
+                    loadModules(possibledir)
+                #we found the latest good ActiveModules dump! so we break the loop
+                    break
+                else:
+                    #If there was no flag indicating that this was an actual complete dump as opposed
+                    #To an interruption, rename it and try again
+                    
+                    shutil.copytree(possibledir,os.path.join(directories.moduledir,name+"INCOMPLETE"))
+                    #It would be best if we didn't rename or get rid of the data directory because that's where
+                    #manual tools might be working. 
+                    if not possibledir == os.path.join(directories.moduledir,"data"):
+                        shutil.rmtree(possibledir)
     except:
         pass
+    
+    auth.importPermissionsFromModules()
+    newevt.getEventsFromModules()
+    usrpages.getPagesFromModules()
 
 
 def saveModules(where):
@@ -107,6 +128,11 @@ def saveModules(where):
     with modulesLock:
         util.ensure_dir2(os.path.join(where))
         util.chmod_private_try(os.path.join(where))
+        #If there is a complete marker, remove it before we get started. This marks
+        #things as incomplete and then when loading it will use the old version
+        #when done saving we put the complete marker back.
+        if os.path.isfile(os.path.join(where,'__COMPLETE__')):
+            os.remove(os.path.join(where,'__COMPLETE__'))
         for i in ActiveModules:
             #Iterate over all of the resources in a module and save them as json files
             #under the URL urld module name for the filename.
@@ -122,9 +148,9 @@ def saveModules(where):
 
             #Now we iterate over the existing resource files in the filesystem and delete those that correspond to
             #modules that have been deleted in the ActiveModules workspace thing.
-            for i in util.get_immediate_subdirectories(os.path.join(where,url(i))):
-                if unurl(i) not in ActiveModules:
-                    os.remove(os.path.join(where,url(i),i))
+            for j in util.get_files(os.path.join(where,url(i))):
+                if unurl(j) not in ActiveModules[i]:
+                    os.remove(os.path.join(where,url(i),j))
 
         for i in util.get_immediate_subdirectories(where):
             #Look in the modules directory, and if the module folder is not in ActiveModules\
