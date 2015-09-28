@@ -1,4 +1,4 @@
-#Copyright Daniel Dunn 2013
+#Copyright Daniel Dunn 2013, 2015
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify
@@ -275,7 +275,12 @@ def initializeAuthentication():
         data_bad=True
         for i in range(0,15):
             try:
-                dirname = util.getHighestNumberedTimeDirectory(directories.usersdir)
+                try:
+                    dirname = util.getHighestNumberedTimeDirectory(directories.usersdir)
+                except:
+                    messagebus.postMessage("/system/notifications/errors","No old auth state found")
+                    break
+
                 tryToLoadFrom(os.path.join(d))
                 loaded =True
                 messagebus.postMessage("/system/notifications/warnings","Using old version of users list. This could create a secuirty issue if the old version allowes access to a malicious user")

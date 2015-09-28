@@ -1,20 +1,30 @@
-{
-    "allow-origins": [
-        "*"
-    ],
-    "allow-xss": false,
-    "auto-reload": false,
-    "auto-reload-interval": 5.0,
-    "body": "<%\r\nimport cherrypy\r\nx =kaithem.registry.get(\"jookbawkse/playlists\",{})\r\nif 'pl' in kwargs:\r\n    module.playlist = x[kwargs['pl']]\r\n    raise cherrypy.HTTPRedirect(\"/pages/JookBawkse/Menu\")\r\nif 'dl' in kwargs:\r\n    del x[kwargs['dl']]\r\n    kaithem.registry.set(\"jookbawkse/playlists\",x)\r\n\r\n%>\r\n<div class=\"sectionbox\">\r\n<ul>\r\n    %for i in x:\r\n        <li><a href=\"/pages/JookBawkse/LoadPlaylist?pl=${kaithem.web.url(i)}\">${i}</a> <a href=\"/pages/JookBawkse/LoadPlaylist?dl=${kaithem.web.url(i)}\">(Delete)</a></li>\r\n    %endfor\r\n</ul>\r\n</div>",
-    "dont-show-in-index": true,
-    "no-header": false,
-    "no-navheader": true,
-    "require-method": [
-        "GET",
-        "POST"
-    ],
-    "require-permissions": [
-        "/users/jookbawkse/use"
-    ],
-    "resource-type": "page"
-}
+allow-origins: ['*']
+allow-xss: false
+auto-reload: false
+auto-reload-interval: 5.0
+dont-show-in-index: true
+no-header: false
+no-navheader: true
+require-method: [GET, POST]
+require-permissions: [/users/jookbawkse/use]
+resource-type: page
+
+---
+<%
+import cherrypy
+x =kaithem.registry.get("jookbawkse/playlists",{})
+if 'pl' in kwargs:
+    module.playlist = x[kwargs['pl']]
+    raise cherrypy.HTTPRedirect("/pages/JookBawkse/Menu")
+if 'dl' in kwargs:
+    del x[kwargs['dl']]
+    kaithem.registry.set("jookbawkse/playlists",x)
+
+%>
+<div class="sectionbox">
+<ul>
+    %for i in x:
+        <li><a href="/pages/JookBawkse/LoadPlaylist?pl=${kaithem.web.url(i)}">${i}</a> <a href="/pages/JookBawkse/LoadPlaylist?dl=${kaithem.web.url(i)}">(Delete)</a></li>
+    %endfor
+</ul>
+</div>

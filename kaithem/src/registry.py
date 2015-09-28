@@ -13,8 +13,9 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 from . import util,directories,messagebus
-import os,time,json,copy,hashlib,threading,copy, traceback, shutil
+import os,time,json,copy,hashlib,threading,copy, traceback, shutil, yaml, validictory
 from .util import url, unurl
+
 class PersistanceArea():
 
     #A special dict that works mostly like a normal one, except for it raises
@@ -23,6 +24,7 @@ class PersistanceArea():
     class PersistanceDict(dict):
         def __init__(self, *args):
             self.md5 = ''
+            self.schemas = {}
             dict.__init__(self, *args)
 
         #True if nothing changed since last marked clean. Used to decide to save or not.
@@ -35,12 +37,14 @@ class PersistanceArea():
         #We could use a flag, but using the hash doesn't have possible thread issues.
         def markClean(self):
             self.md5 = hashlib.md5(json.dumps(copy.deepcopy(self)).encode('utf8')).digest()
-
+        
         def __getitem__(self, key):
             val = dict.__getitem__(self, key)
             return val
 
-        #Custom getitem because we want to ensure nobody puts non serializable things in
+        #Custom setitem because we want to ensure nobody puts non serializable things in
+        #Even though we might use YAML at some point it stil makes sense to limit things to JSON
+        #for simplicity
         def __setitem__(self, key, val):
             try:
                 json.dumps({key:val})
@@ -182,6 +186,15 @@ def get(key,default=None):
         return copy.deepcopy(f['keys'][key]['data'])
 
 
+def delete(key):
+    prefix = key.split("/")[0]
+    with reglock:
+        f = registry.open(prefix)
+        if not 'keys' in f:
+            return False
+        k= f['keys']
+        del k[key]
+
 def exists(key):
     prefix = key.split("/")[0]
     with reglock:
@@ -208,7 +221,26 @@ def set(key,value):
             f['keys']={}
         if not key in f['keys']:
             f['keys'][key]={}
+        if 'schema' in f['keys'][key]:
+            validictory.validate(value, f['keys'][key]['schema'])
         f['keys'][key]['data'] = copy.deepcopy(value)
+        
+def setschema(key,schema):
+    global is_clean
+    is_clean = False
+    try:
+        json.dumps({key:schema})
+    except:
+        raise Exception
+    with reglock:
+        prefix = key.split("/")[0]
+        f = registry.open(prefix)
+        if not 'keys' in f:
+            f['keys']={}
+        if not key in f['keys']:
+            f['keys'][key]={}
+        validictory.SchemaValidator(schema)
+        f['keys'][key]['schema'] = copy.deepcopy(schema)
 
 def sync():
     global is_clean

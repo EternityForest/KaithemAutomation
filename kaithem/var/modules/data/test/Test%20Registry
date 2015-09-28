@@ -1,0 +1,56 @@
+{continual: false, disabled: false, once: true, priority: interactive, rate-limit: 0.0,
+  resource-type: event, trigger: 'True'}
+
+---
+#This code runs once when the event loads. It also runs when you save the event during the test compile
+#and may run multiple times when kaithem boots due to dependancy resolution
+__doc__=''
+---
+r = kaithem.registry
+r.setschema("test/test", {"type":"string"})
+
+fail = ''
+
+try:
+    r.set('test/test',32)
+    fail = "Registry schema let bad data through"
+except:
+    pass
+if fail:
+    raise RuntimeError(fail)
+    
+r.set("test/test","This is a string")
+
+if not r.get("test/test") == "This is a string":
+    raise RuntimeError("Registry readback failure")
+    
+r.set("test/test","This is a string2")
+if not r.get("test/test") == "This is a string2":
+    raise RuntimeError("Registry readback failure")
+
+r.delete("test/test")
+r.setschema("test/test", {"type":"integer"})
+
+try:
+    r.set('test/test',"xyz")
+    fail = "Registry schema let bad data through"
+except:
+    pass
+if fail:
+    raise RuntimeError(fail)
+    
+r.set("test/test",1)
+
+if not r.get("test/test") == 1:
+    raise RuntimeError("Registry readback failure")
+    
+r.set("test/test",2)
+if not r.get("test/test") == 2:
+    raise RuntimeError("Registry readback failure")
+    
+r.setschema("test/test", {})
+r.set("test/test",1)
+r.set("test/test",{})
+r.set("test/test","blah")
+
+

@@ -1,11 +1,9 @@
-{
-    "action": "pass",
-    "continual": false,
-    "disabled": false,
-    "once": true,
-    "priority": "interactive",
-    "rate-limit": 0.0,
-    "resource-type": "event",
-    "setup": "#This code runs once when the event loads. It also runs when you save the event during the test compile\r\n#and may run multiple times when kaithem boots due to dependancy resolution\r\n__doc__='This event should not run'",
-    "trigger": "!time every second until 8:50pm september 3 2015"
-}
+{continual: false, disabled: false, once: true, priority: interactive, rate-limit: 0.0,
+  resource-type: event, trigger: '!time every second until 8:50pm september 3 2015'}
+
+---
+#This code runs once when the event loads. It also runs when you save the event during the test compile
+#and may run multiple times when kaithem boots due to dependancy resolution
+__doc__='This event should not run'
+---
+pass

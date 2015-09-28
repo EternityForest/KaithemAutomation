@@ -1,4 +1,2 @@
-{
-    "resource-type": "module-description",
-    "text": "Module info here"
-}
+{resource-type: module-description, text: 'This is a basic self test module. Warning:
+    this will write to /tmp if it can and the /tmp exists.'}

@@ -1,20 +1,28 @@
-{
-    "allow-origins": [
-        "*"
-    ],
-    "allow-xss": false,
-    "auto-reload": false,
-    "auto-reload-interval": 5.0,
-    "body": "<%\r\nimport cherrypy\r\nif 'name' in kwargs:\r\n    x = kaithem.registry.get(\"jookbawkse/playlists\",{})\r\n    x[kwargs['name']] = module.playlist\r\n    kaithem.registry.set(\"jookbawkse/playlists\",x)\r\n    raise cherrypy.HTTPRedirect(\"/pages/JookBawkse/Menu\")\r\n%>\r\n<h2>Save Playlist</h2>\r\n<div class=\"sectionbox\">\r\n    <form method=\"POST\">\r\n        Name to save as:<input name=\"name\"></input><input type=submit></input>\r\n    </form>\r\n</div>",
-    "dont-show-in-index": true,
-    "no-header": false,
-    "no-navheader": true,
-    "require-method": [
-        "GET",
-        "POST"
-    ],
-    "require-permissions": [
-        "/users/jookbawkse/use"
-    ],
-    "resource-type": "page"
-}
+allow-origins: ['*']
+allow-xss: false
+auto-reload: false
+auto-reload-interval: 5.0
+dont-show-in-index: true
+no-header: false
+no-navheader: true
+require-method: [GET, POST]
+require-permissions: [/users/jookbawkse/use]
+resource-type: page
+
+---
+
+
+<%
+import cherrypy
+if 'name' in kwargs:
+    x = kaithem.registry.get("jookbawkse/playlists",{})
+    x[kwargs['name']] = module.playlist
+    kaithem.registry.set("jookbawkse/playlists",x)
+    raise cherrypy.HTTPRedirect("/pages/JookBawkse/Menu")
+%>
+<h2>Save Playlist</h2>
+<div class="sectionbox">
+    <form method="POST">
+        Name to save as:<input name="name"></input><input type=submit></input>
+    </form>
+</div>

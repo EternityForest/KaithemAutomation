@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-#Copyright Daniel Dunn 2013
+#Copyright Daniel Dunn 2013-2015
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify
@@ -14,17 +14,19 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-
+#
+__version__ = "0.53 Develpoment"
+__version_info__ = (0,5,3,"dev",0)
 
 #This file is the main entry point of the app. It imports everything, loads configuration,
 #sets up and starts the server, and contains page handlers for the main page.
 
 import sys,os,threading,traceback
-
+        
 #There are some libraries that are actually different for 3 and 2, so we use the appropriate one
 #By changing the pathe to include the proper ones.
 
-#Also, when we install onl linux, everything gets moved around, so we change the paths accordingly.
+#Also, when we install on linux, everything gets moved around, so we change the paths accordingly.
 x = sys.path[0]
 linuxpackage = False
 #This is ow we detect if we are running in "unzip+run mode" or installed on linux.
@@ -95,7 +97,15 @@ def installThreadExcepthook():
                 messagebus.postMessage("/system/threads/errors","Exception in thread %s:\n%s"%(self.name, traceback.format_exc(6)))
                 raise e
         #Rename thread so debugging works
-        run_with_except_hook.__name__ = run_old.__name__
+        try:
+            if self._target:
+                run_with_except_hook.__name__ = self._target.__name__
+                run_with_except_hook.__module__ =self._target.__module__
+        except:
+            try:
+                run_with_except_hook.__name__ = "run"
+            except:
+                pass
         self.run = run_with_except_hook
     threading.Thread.__init__ = init
 
@@ -111,6 +121,7 @@ from src import directories
 #Initialize the authorization module
 auth.initializeAuthentication()
 if cfg.argcmd.initialpackagesetup:
+    util.drop_perms(cfg.config['run-as-user'], cfg.config['run-as-group'])
     auth.dumpDatabase()
     print("Kaithem users set up. Now exiting(May take a few seconds. You may start the service manually or via systemd/init")
     cherrypy.engine.exit()
@@ -359,8 +370,10 @@ if time.time() < 1420070400:
 if time.time() < util.min_time:
         messagebus.postMessage('/system/notifications/errors',"System Clock may be wrong, or time has been set backwards at some point. If system clock is correct and this error does not go away, you can fix it manually be correcting folder name timestamps in the var dir.")
 
-
-
+sys.modules['kaithem'] = sys.modules['__main__']
+from src import kaithemobj
+kaithemobj.kaithem.misc.version      = __version__
+kaithemobj.kaithem.misc.version_info = __version_info__
 cherrypy.engine.start()
 #If configured that way on unix, check if we are root and drop root.
 util.drop_perms(config['run-as-user'], config['run-as-group'])

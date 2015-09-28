@@ -87,12 +87,10 @@ def in_folder(r,f,n):
      return True
 %>
 <dl>
-<dt class="specialentry"><a href="/modules/module/${url(name)}#resources">Top</a>(Go to Top level module folder)</dt>
 %if path and len(util.split_escape(path[0],"/","\\"))>1:
-<hr>
 <dt class="specialentry"><a href="/modules/module/${name|h}/resource/${"/".join( [i.replace("\\","\\\\").replace("/","\\/") for i in util.split_escape(path[0],"/","\\")[:-1]] )|u}#resources">..</a></dt>
-%endif
 <hr>
+%endif
 %for i in sorted(sorted(module.keys()), key=lambda x: module[x]['resource-type']):
 
 %if in_folder(i,fullpath,name):
@@ -106,13 +104,13 @@ def in_folder(r,f,n):
 	       %endif
 	  </dt>
 	  <dd>
-          <p>${newevt.getEventInfo((name,i))|h}</p>
-	       <b>Trigger:</b> ${module[i]['trigger']|h}<br>
+          <p class="resource-docstring">${newevt.getEventInfo((name,i))|h}</p>
+	       <b>Trigger:</b>  <code>${module[i]['trigger']|h}</code><br>
 
 		    <b>Last Ran:</b>
 		    %if newevt.getEventLastRan(name,i):
-		    ${unitsofmeasure.strftime(newevt.getEventLastRan(name,i))|h}
-		    (about ${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(name,i),2)} ago)
+		    <code>${unitsofmeasure.strftime(newevt.getEventLastRan(name,i))|h}
+		    (about ${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(name,i),2)} ago)</code>
 		    %else:
 		    This event has not ran since it loaded.
 		    %endif
@@ -120,7 +118,7 @@ def in_folder(r,f,n):
 
 		    %if module[i]['trigger'].startswith("!time"):
 		    <br><b>Next Run:</b>
-		    ${unitsofmeasure.strftime(get_time(module[i]['trigger']))|h}</b></p>
+		    <code>${unitsofmeasure.strftime(get_time(module[i]['trigger']))|h}</code></p>
 		    %endif
 	  </dd>
 	%endif
@@ -140,7 +138,7 @@ def in_folder(r,f,n):
 
 		Edit Page</a><a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a></dt>
 	  <dd>
-          <p>${usrpages.getPageInfo(name,i)|h}</p>
+          <p class="resource-docstring">${usrpages.getPageInfo(name,i)|h}</p>
 
         %if 'require-permissions' in module[i] and module[i]['require-permissions']:
 	  <b>Permissions:</b>

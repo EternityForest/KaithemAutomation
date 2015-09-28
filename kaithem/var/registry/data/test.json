@@ -1,0 +1,10 @@
+{
+    "data": {
+        "keys": {
+            "test/test": {
+                "data": "blah",
+                "schema": {}
+            }
+        }
+    }
+}

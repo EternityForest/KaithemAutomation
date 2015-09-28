@@ -1,18 +1,16 @@
-{
-    "allow-origins": [
-        "*"
-    ],
-    "allow-xss": false,
-    "auto-reload": false,
-    "auto-reload-interval": 5.0,
-    "body": "<script type=\"text/javascript\" src=\"/static/widget.js\"></script>\r\n<div class=\"sectionbox\">This Meter Measures Nothing: ${module.meter.render('%')}</div>",
-    "dont-show-in-index": false,
-    "no-header": false,
-    "no-navheader": true,
-    "require-method": [
-        "GET",
-        "POST"
-    ],
-    "require-permissions": [],
-    "resource-type": "page"
-}
+allow-origins: ['*']
+allow-xss: false
+auto-reload: false
+auto-reload-interval: 5.0
+dont-show-in-index: false
+no-header: false
+no-navheader: true
+require-method: [GET, POST]
+require-permissions: []
+resource-type: page
+
+---
+
+
+<script type="text/javascript" src="/static/widget.js"></script>
+<div class="sectionbox">This Meter Measures Nothing: ${module.meter.render('%')}</div>

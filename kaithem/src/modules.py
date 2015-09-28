@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #File for keeping track of and editing kaithem modules(not python modules)
-import threading,urllib,shutil,sys,time,os,json,traceback
+import threading,urllib,shutil,sys,time,os,json,traceback, copy
 import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling
 from .modules_state import ActiveModules,modulesLock,scopes
@@ -55,6 +55,56 @@ class obj(object):
          x = event_interface()
       if x['resource-type'] == 'permission':
          x = permission_interface()
+         
+
+def loadResource(r):
+    with open(r) as f:
+        d = f.read()
+    if "\r---\r" in d:
+            f = d.split("\r---\r")
+    elif "\r\n\---\r\n" in d:
+            f = d.split("\r\n---\r\n")
+    else:
+        f = d.split("\n---\n")
+    r = yaml.load(f[0])
+    
+    #Catch old style save files
+    if len(f)>1:
+        if r['resource-type'] == 'page':
+            r['body'] = f[1]
+            
+        if r['resource-type'] == 'event':
+            r['setup'] = f[1]
+            r['action'] = f[2]
+    
+    return r
+
+def saveResource2(r,fn):
+    r = copy.deepcopy(r)
+    if r['resource-type'] == 'page':
+        b = r['body']
+        del r['body']
+        d = yaml.dump(r) + "\n---\n" + b
+        
+    elif r['resource-type'] == 'event':
+        t = r['setup']
+        del r['setup']
+        a = r['action']
+        del r['action']
+        d = yaml.dump(r) + "\n---\n" + t + "\n---\n" + a
+        
+    else:
+        d = yaml.dump(r)
+        
+    with open(fn,"w") as f:
+        util.chmod_private_try(fn)
+        f.write(d)
+        
+def saveResource(r,fn):
+    with open(fn,"w") as f:
+        util.chmod_private_try(fn)
+        f.write(yaml.dump(r))
+        
 
 def saveAll():
     """saveAll and loadall are the ones outside code shold use to save and load the state of what modules are loaded.
@@ -90,6 +140,10 @@ def saveAll():
 def initModules():
     """"Find the most recent module dump folder and use that. Should there not be a module dump folder, it is corrupted, etc,
     Then start with an empty list of modules. Should normally be called once at startup."""
+    if not os.path.isdir(directories.moduledir):
+        return
+    if not util.get_immediate_subdirectories(directories.moduledir):
+        return
     try:
         #__COMPLETE__ is a special file we write to the dump directory to show it as valid
         possibledir= os.path.join(directories.moduledir,"data")
@@ -97,6 +151,7 @@ def initModules():
             loadModules(possibledir)
             #we found the latest good ActiveModules dump! so we break the loop
         else:
+            messagebus.postMessage("/system/notifications/errors" ,"Modules folder appears corrupted, falling back to latest backup version")
             for i in range(0,15):
                 #Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
                 name = util.getHighestNumberedTimeDirectory(directories.moduledir)
@@ -116,7 +171,7 @@ def initModules():
                     if not possibledir == os.path.join(directories.moduledir,"data"):
                         shutil.rmtree(possibledir)
     except:
-        pass
+        messagebus.postMessage("/system/notifications/errors" ," Error loading modules: "+ traceback.format_exc(4))
     
     auth.importPermissionsFromModules()
     newevt.getEventsFromModules()
@@ -141,10 +196,9 @@ def saveModules(where):
                 util.ensure_dir(os.path.join(where,url(i),url(resource))  )
                 util.chmod_private_try(os.path.join(where,url(i)))
                 #Open a file at /where/module/resource
-                with  open(os.path.join(where,url(i),url(resource)),"w") as f:
-                    util.chmod_private_try(os.path.join(where,url(i),url(resource)))
-                    #Make a json file there and prettyprint it
-                    json.dump(ActiveModules[i][resource],f,sort_keys=True,indent=4, separators=(',', ': '))
+                fn = os.path.join(where,url(i),url(resource))
+                #Make a json file there and prettyprint it
+                saveResource2(ActiveModules[i][resource],fn)
 
             #Now we iterate over the existing resource files in the filesystem and delete those that correspond to
             #modules that have been deleted in the ActiveModules workspace thing.
@@ -175,13 +229,18 @@ def loadModule(moduledir,path_to_module_folder):
         #Make an empty dict to hold the module resources
         module = {}
         #Iterate over all resource files and load them
-        for i in util.get_files(os.path.join(path_to_module_folder,moduledir)):
-            try:
-                f = open(os.path.join(path_to_module_folder,moduledir,i))
-                #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
-                module[unurl(i)] = yaml.load(f)
-            finally:
-                f.close()
+        for root, dirs, files in os.walk(os.path.join(path_to_module_folder,moduledir)):
+                for i in files:
+                    relfn = os.path.relpath(os.path.join(root,i),os.path.join(path_to_module_folder,moduledir))
+                    fn = os.path.join(path_to_module_folder,moduledir , relfn)
+                    #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
+                    module[unurl(relfn)] = loadResource(fn)
+                for i in dirs:
+                    relfn = os.path.relpath(os.path.join(root,i),os.path.join(path_to_module_folder,moduledir))
+                    fn = os.path.join(path_to_module_folder,moduledir , relfn)
+                    #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
+                    module[unurl(relfn)] = {"resource-type":"directory"}
+                    
 
         name = unurl(moduledir)
         scopes[name] = obj()
@@ -303,7 +362,15 @@ class WebInterface():
     def newmodule(self):
         pages.require("/admin/modules.edit")
         return pages.get_template("modules/new.html").render()
-
+    
+    #@cherrypy.expose
+    #def manual_run(self,module, resource):
+        ##These modules handle their own permissions
+        #if isinstance(EventReferences[module,resource], newevt.ManualEvent):
+            #EventReferences[module,resource].run()
+        #else:
+            #raise RuntimeError("Event does not support running manually")
+        
     #CRUD screen to delete a module
     @cherrypy.expose
     def deletemodule(self):
@@ -353,6 +420,8 @@ class WebInterface():
 
     @cherrypy.expose
     def loadlibmodule(self,module):
+        pages.require("/admin/modules.edit")
+        pages.postOnly()
         if module  in ActiveModules:
             raise cherrypy.HTTPRedirect("/errors/alreadyexists")
 
@@ -620,7 +689,7 @@ def resourceUpdateTarget(module,resource,kwargs):
 
             #Test compile, throw error on fail.
             try:
-                ev = newevt.Event(kwargs['trigger'],kwargs['action'],newevt.make_eventscope(module),setup=kwargs['setup'],m=module,r=resource)
+                evt = newevt.Event(kwargs['trigger'],kwargs['action'],newevt.make_eventscope(module),setup=kwargs['setup'],m=module,r=resource)
             except Exception as e:
                 if not 'versions' in resourceobj:
                     resourceobj['versions'] = {}

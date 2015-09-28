@@ -1,4 +1,4 @@
-#Copyright Daniel Dunn 2013
+#Copyright Daniel Dunn 2013-2015
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify
@@ -15,7 +15,7 @@
 
 """This is the global general purpose utility thing that is accesable from almost anywhere in user code."""
 
-import time,random,subprocess,threading,random,gzip,json,yaml,os,ntplib
+import time,random,subprocess,threading,random,gzip,json,yaml,os,ntplib,bz2
 
 
 import cherrypy
@@ -182,6 +182,7 @@ class Kaithem():
         @staticmethod
         def which(exe):
             return util.which(exe)
+        
         @staticmethod
         def sensors():
             try:
@@ -196,6 +197,14 @@ class Kaithem():
         @staticmethod
         def set(key,value):
             registry.set(key,value)
+            
+        @staticmethod
+        def setschema(key,schema):
+            registry.setschema(key,schema)
+            
+        @staticmethod
+        def delete(key):
+            registry.delete(key)
 
         @staticmethod
         def get(*args,**kwargs):
@@ -331,6 +340,7 @@ class Kaithem():
                 else:
                     f = open(fn,'wb')
                     x=fn
+                    
                 if private:
                     util.chmod_private_try(fn)
                 if x.endswith(".json"):
@@ -361,20 +371,21 @@ class Kaithem():
             try:
                 if filename.endswith(".gz"):
                     f = gzip.GzipFile(filename,mode='rb')
-                    filename = filename[:-3]
+                    x = filename[:-3]
                 elif filename.endswith(".bz2"):
-                    filename = filename[:-4]
+                    x = filename[:-4]
                     f = bz2.BZ2File(filename,mode='rb')
                 else:
                     f = open(filename,'rb')
+                    x = filename
 
-                if filename.endswith(".json"):
+                if x.endswith(".json"):
                     r=json.loads(f.read().decode('utf8'))
-                elif filename.endswith(".yaml"):
+                elif x.endswith(".yaml"):
                     r=yaml.load(f.read().decode('utf8'))
-                elif filename.endswith(".txt"):
+                elif x.endswith(".txt"):
                     r=f.read().decode('utf8')
-                elif filename.endswith(".bin"):
+                elif x.endswith(".bin"):
                     r=f.read()
                 else:
                     raise ValueError('Unsupported File Extension')

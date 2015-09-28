@@ -1,4 +1,2 @@
-{
-    "resource-type": "module-description",
-    "text": "This module is a tutorial. You should have admin rights on the Kaithem instance you do this on. Visit the pages!"
-}
+{resource-type: module-description, text: This module is a tutorial. You should have
+    admin rights on the Kaithem instance you do this on. Visit the pages!}

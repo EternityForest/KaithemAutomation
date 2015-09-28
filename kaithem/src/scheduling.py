@@ -1,3 +1,18 @@
+#Copyright Daniel Dunn 2015
+#This file is part of Kaithem Automation.
+
+#Kaithem Automation is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, version 3.
+
+#Kaithem Automation is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+
 import threading,sys,re,time,datetime,weakref,re,recurrent,dateutil,os,traceback, collections,random
 from . import messagebus,workers
 
@@ -29,7 +44,7 @@ class Event():
 class RepeatingEvent():
     "Does function every interval seconds, and stops if you don't keep a reference to function"
     def __init__(self,function,interval):
-        self.f = weakref.ref(function)
+        self.f = weakref.ref(function, callback=self.unregister())
         self.interval = float(interval)
         self.scheduled = False
         self.errored = False
@@ -88,8 +103,20 @@ class RepeatingEvent():
                     self.lock.release()
         finally:
             self.scheduled = False
-            
-#This is a rewrite not currently used or anywhere near complete.
+
+#class ComplexRecurringEvent():
+    #def schedule(self):
+        #if self.scheduled:
+            #return
+        #else:
+            #t = self.schedulefunc(self.last)
+            #if t<time.time():
+                #if self.makeup:
+                    #n = self.schedulefunc(t)
+                    #x = (t+n)/2
+            #self.scheduled = t
+            #s
+        
 class NewScheduler(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)

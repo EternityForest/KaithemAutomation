@@ -1,4 +1,4 @@
-#Copyright Daniel Dunn 2013
+#Copyright Daniel Dunn 2013-2015
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify
@@ -84,6 +84,11 @@ def when(trigger,action,priority="interactive"):
 #Given two functions, execute the action when the trigger is true.
 #Trigger takes no arguments and returns a boolean
 def after(delay,action,priority="interactive"):
+    #If the time is in the future, then we use the scheduler.
+    if delay > 1.2:
+        scheduling.schedule.schedule(action, time.time()+delay)
+        return
+    
     module = '<OneTimeEvents>'
     resource = "after(" +str(delay) +")"+ '>' + action.__name__ + ' ' + 'set at ' + str(time.time()) + ' id='+str(base64.b64encode(os.urandom(16)))
     start = time.time()
@@ -221,6 +226,18 @@ def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setu
 
     if scope == None:
         scope = make_eventscope()
+        
+    if trigger[0] == '!function':
+        if len(when.split(';',1))>1:
+            triggeraction = when.split(';',1)[1].strip()
+        else:
+            triggeraction = None
+        if 'nolock' in trigger:
+            l = False
+        else:
+            l = True
+            
+        return FunctionEvent(trigger[1].split(';')[0], triggeraction, l ,do,scope,continual,ratelimit,setup,priority,**kwargs)
 
     if trigger[0] == '!onmsg':
         return MessageEvent(when,do,scope,continual,ratelimit,setup,priority,**kwargs)
@@ -435,40 +452,172 @@ class CompileCodeStringsMixin():
 class DirectFunctionsMixin():
         def _init_setup_and_action(self,setup,action):
             self._do_action = action
-            
-class FunctionEvent(BaseEvent,CompileCodeStringsMixin):
-    """A type of event that works by putting a function called action in the event scope. Calling action triggers
-    the function. All the normal logging and error handling and everything still happens, except that the exception
-    gets reraised if it happens."""
-    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
-        #This event type is not polled. Note that it doesn't even have a check() method.
-        self.polled = False
-        self.lock = threading.RLock()
+
+class FunctionWrapper():
+    "A wrapper class that acts like a mutable function so that function events can handoff seamlessly"
+    def __init__(self, f = lambda : 0):
+        self.f = f
+    def __call__(self):
+        self.f()
+        
+#Note: this class does things itself instead of using that CompileCodeStringsMixin
+#I'm not sure that was the best idea to use that actually....
+class FunctionEvent(BaseEvent):
+    def __init__(self,fname,trigaction,l,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
         BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
-        def action_wrapper(topic,message):
-            #Since we aren't under the BaseEvent.check() lock, we need to get it ourselves.
-            with self.lock:
-                #These two lines were an old fix for a circular reference buf that made message events not go away.
-                #It is still here just in case another circular reference bug pops up.
-                if (self.module,self.resource) not in EventReferences:
-                    return
-                #setup environment
-                self.pymodule.__dict__['__topic'] = topic
-                self.pymodule.__dict__['__message'] = message
-                #We delegate the actual execution of the body to the on_trigger
-                self._on_trigger()
+        self.polled = False
+        self.pymodule.__dict__['kaithem']=kaithemobj.kaithem
+        self.pymodule.__dict__['module'] =modules_state.scopes[self.module]
+        self.active = True
+        self.fname = fname
+        if l:
+            def f():
+                with self.lock:
+                    self._on_trigger()
+        else:
+            f = self._on_trigger
+        self.f = FunctionWrapper(f)
+        self.xyz(do, trigaction, setup)
+    
+    def handoff(self, evt):
+        """Handoff to new event. Calls to old function get routed to new function.
+        Works even of you unregister old event."""
+        self.f.f = evt.f.f
+        
+    #This was the fastest way to deal with weird exec in nested function with import star buisiness.
+    def xyz(self,do, trigaction,setup):
+        #compile the body
+        body = "def kaithem_event_action():\n"
+        for line in do.split('\n'):
+            body+=("    "+line+'\n')
+            
+        body = compile(body,"Event_"+self.module+'_'+self.resource,'exec')
 
-        #Handle whatever stupid whitespace someone puts in
-        #What this does is to eliminate leading whitespace, split on first space,
-        #Then get rid of any extra spaces in between the command and argument.
-        t = when.strip().split(' ',1)[1].strip()
-        #Subscribe our new function to the topic we want
-        messagebus.subscribe(t,action_wrapper)
-        self._init_setup_and_action(setup,do,{'action':action_wrapper})
+        exec(body , self.pymodule.__dict__)
+        
+        #this lets you do things like !function module.foo
+        self.pymodule.__dict__["_kaithem_temp_event_function"] = self.f
+        x = compile(self.fname+" = _kaithem_temp_event_function","Event_"+self.module+'_'+self.resource,'exec')
+        exec(x,self.pymodule.__dict__)
+        del self.pymodule.__dict__["_kaithem_temp_event_function"]
 
-    #This is the real solution for the circular reference nonsense, until the messagebus has a real unsubscribe feature.
+        if trigaction:
+            trigaction = compile(trigaction,"Event_"+self.module+'_'+self.resource+'trigaction','exec')
+            exec(trigaction,self.pymodule.__dict__)
+        #initialize the module scope with the kaithem object and the module thing.
+        initializer = compile(setup,"Event_"+self.module+'_'+self.resource+"setup","exec")
+        exec(initializer,self.pymodule.__dict__,self.pymodule.__dict__)
+
+    def register(self):
+        self.active = True
+        
     def unregister(self):
-        del self.action_wrapper_because_we_need_to_keep_a_reference
+        self.active = False
+        try:
+            x = compile("del "+ self.fname,"Event_"+self.module+'_'+self.resource,'exec')
+            exec(x,self.pymodule.__dict__)
+        except Exception as e:
+            print(e)
+    
+    #The only difference between this and the base class version is
+    #That this version propagates exceptions
+    def _on_trigger(self):
+        #This function gets called when whatever the event's trigger condition is.
+        #it provides common stuff to all trigger types like logging and rate limiting
+
+        #Check the current time minus the last time against the rate limit
+        #Don't execute more often than ratelimit
+        if not self.active:
+            raise RuntimeError("Cannot run deleted FunctionEvent")
+        
+        if (time.time() -self.lastexecuted >self.ratelimit):
+            #Set the varible so we know when the last time the body actually ran
+            self.lastexecuted = time.time()
+            try:
+                #Action could be any number of things, so this method mut be implemented by
+                #A derived class or inherited from a mixin.
+                self._do_action()
+                messagebus.postMessage('/system/events/ran',[self.module, self.resource])
+            except Exception as e:
+                if self.active:
+                    self._handle_exception(e)
+                raise
+
+        
+    def _do_action(self):
+        self.pymodule.kaithem_event_action()
+
+##Note: this class does things itself instead of using that CompileCodeStringsMixin
+##I'm not sure that was the best idea to use that actually....
+#class ManualEvent(BaseEvent):
+    #def run(self):
+        #for i in self.permissions:
+            #pages.require(i)
+        #pages.postOnly()
+        #self.f()
+        
+        ##Return user to the module page. If name has a folder, return the user to it;s containing folder.
+        #x = util.split_escape(self.resource,"/")
+        #if len(x)>1:
+            #raise cherrypy.HTTPRedirect("/modules/module/"+util.url(self.module)+'/resource/'+'/'.join([util.url(i) for i in x[:-1]])+"#resources")
+        #else:
+            #raise cherrypy.HTTPRedirect("/modules/module/"+util.url(self.module)+"#resources")#+'/resource/'+util.url(resource))
+        
+    #def __init__(self,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
+        #BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
+        #self.polled = False
+        #self.pymodule.__dict__['kaithem']=kaithemobj.kaithem
+        #self.pymodule.__dict__['module'] =modules_state.scopes[self.module]
+        #def f():
+            #with self.lock:
+                #self._on_trigger()
+        #self.f =f()
+
+        ##compile the body
+        #body = "def kaithem_event_action():\n"
+        #for line in do.split('\n'):
+            #body+=("    "+line+'\n')
+            
+        #body = compile(body,"Event_"+self.module+'_'+self.resource,'exec')
+        #exec(body,self.pymodule.__dict__)
+        
+        ##this lets you do things like !function module.foo
+        #self.pymodule.__dict__["_kaithem_temp_event_function"] = f
+        #x = compile(fname+" = _kaithem_temp_event_function","Event_"+self.module+'_'+self.resource,'exec')
+        #exec(x,self.pymodule.__dict__)
+        #del self.pymodule.__dict__["_kaithem_temp_event_function"]
+        
+        ##initialize the module scope with the kaithem object and the module thing.
+        #initializer = compile(setup,"Event_"+self.module+'_'+self.resource+"setup","exec")
+        #exec(initializer,self.pymodule.__dict__,self.pymodule.__dict__)
+    
+    ##The only difference between this and the base class version is
+    ##That this version propagates exceptions
+    #def _on_trigger(self):
+        ##This function gets called when whatever the event's trigger condition is.
+        ##it provides common stuff to all trigger types like logging and rate limiting
+
+        ##Check the current time minus the last time against the rate limit
+        ##Don't execute more often than ratelimit
+        #if not self.active:
+            #raise RuntimeError("Cannot run deleted FunctionEvent")
+        
+        #if (time.time() -self.lastexecuted >self.ratelimit):
+            ##Set the varible so we know when the last time the body actually ran
+            #self.lastexecuted = time.time()
+            #try:
+                ##Action could be any number of things, so this method mut be implemented by
+                ##A derived class or inherited from a mixin.
+                #self._do_action()
+                #messagebus.postMessage('/system/events/ran',[self.module, self.resource])
+            #except Exception as e:
+                #if self.active:
+                    #self._handle_exception(e)
+                #raise
+
+        
+    #def _do_action(self):
+        #self.pymodule.kaithem_event_action()
 
 class MessageEvent(BaseEvent,CompileCodeStringsMixin):
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
@@ -740,13 +889,20 @@ def updateOneEvent(resource,module):
     with modules_state.modulesLock:
 
         x = make_event_from_resource(module,resource)
+        
+        #Special case for functionevents, we do a handoff. This means that any references to the old
+        #event now call the new one.
+        if isinstance(x, FunctionEvent) and isinstance(__EventReferences[module,resource], FunctionEvent):
+            __EventReferences[module,resource].handoff(x)
+            
         #Here is the other lock(!)
         with _event_list_lock: #Make sure nobody is iterating the eventlist
             if (module,resource) in __EventReferences:
                 __EventReferences[module,resource].unregister()
-
             #Add new event
             x.register()
+            
+            
             #Update index
             __EventReferences[module,resource] = x
 

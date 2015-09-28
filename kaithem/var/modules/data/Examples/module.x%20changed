@@ -1,11 +1,13 @@
-{
-    "action": "#This is like a useless machine. Whenever x changes, it sets it back to 0!\r\nmodule.x = 0",
-    "continual": false,
-    "once": true,
-    "priority": "interactive",
-    "rate-limit": 0.0,
-    "resource-type": "event",
-    "setup": "module.x = 0",
-    "trigger": "!onchange module.x",
-    "versions": {}
-}
+continual: false
+once: true
+priority: interactive
+rate-limit: 0.0
+resource-type: event
+trigger: '!onchange module.x'
+versions: {}
+
+---
+module.x = 0
+---
+#This is like a useless machine. Whenever x changes, it sets it back to 0!
+module.x = 0

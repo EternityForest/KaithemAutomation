@@ -122,6 +122,9 @@ h4 {
 
         <p>If a time event is still running by the next occurrance, it will be skipped unless allow_overlap is present somewhere in the string.</p>
         
+       
+        
+        <p>If you delete the event but something else still has a reference to the function, calling it will raise an error</p>
         <p class="warning">Be careful with this one. Some input values might just not work, others may crash the system when they are entered, in a bad way where everything just hangs.
         Mostly the problem is with things that specify a specific range of time like "every day between 2010 and 2012". If the date is in the distance past it will hang.
         You should strongly consider using standard polled edge triggers, kaithem.time, or rate limit triggers instead.
@@ -136,7 +139,10 @@ h4 {
         
         <p>In general recurrent appears to be a great library but natural language is hard for computers and you should always verify it is doing what you want.</p>
         
-
+        <h4>!function [name]</h4>
+        <p>This trigger expression assigns the action to name. !function module.x is the same as module.x = action, where action
+        is a function that triggers the event. You mak put a semicolon and a statement after it, as in !function f; obj.attach(f)
+        and the statement will be run after the function is assigned.</p>
 
         <h2>
             <a id="pages" name="pages"></a>Pages:
@@ -308,23 +314,38 @@ h4 {
 
 
         <h3>kaithem.misc</h3>
-
-        <h4>kaithem.misc.lorem()</h4>
-        <p>Returns about a sentence to a paragraph of placeholder text that may change between calls and may not
-            actually be classic Lorem Ipsum text.</p>
-
+        
+        
         <h4>kaithem.misc.do(function):</h4>
 
         <p>Executes a function of no arguments in the background using kaithem's thread pool.
         Any errors are posted to the message bus at system/errors/workers.
         There is no protection against infinite loops.</p>
+        
+        <h4>Kaithem.misc.errors(f)</h4>
+        <p>Returns any exception object raised during calling f, or else none if no errors.</p>
+    
+        <h4>kaithem.misc.lorem()</h4>
+        <p>Returns about a sentence to a paragraph of placeholder text that may change between calls and may not
+            actually be classic Lorem Ipsum text.</p>
 
 
         <h4>Kaithem.misc.uptime()</h4>
         <p>Returns uptime in seconds of the kaithem server(not of the machine itself)</p>
+        
+        <h4>kaithem.misc.version()</h4>
+        <p>Returns the current version as an unformatted short string, such as "x.xx Release".
+        The formatting of this string may change, and it may contain extra text. But it wil be reasonably 
+        short and one line.</p>
+        
+        <h4>kaithem.misc.version_info()</h4>
+        <p>Returns the current verson as a 5 element tuple similar to python's sys.version_info.
+        The format is (major, minor, micro, releaselevel, serial).</p>
+        
+        <p>releaselevel may be any of dev, alpha, beta, candidate, final</p>
+        
+        <p>Serial is not guaranteed to actually do anything</p>
 
-        <h4>Kaithem.misc.errors(f)</h4>
-        <p>Returns any exception object raised during calling f, or else none if no errors.</p>
 
         <h3>kaithem.time</h3>
         <h4>kaithem.time.strftime(timestamp)</h4>
@@ -427,14 +448,29 @@ h4 {
         <p>The kaithem registry is a persistance store for small amounts of configuration data.
         It does not get saved to disk until the server state is saved, or a configured autosave occurs.
         The registry is heirarchial and slash separated, keys are strings,
-        values are anything json serializable, and keys should begin with the relevant module name, and should condier double underscores reserved.</p>
+        values are anything json serializable, and keys should begin with the relevant module name, and should consider double underscores reserved.</p>
+        
+        <p>Internally as of V0.53, the registry is stored with one file per root path component("foo/bar" and "foo/baz" are stored in the same file)</p>
+        
+        <p>These should really not be used for large amount of data or frequently acessed data as the registry is not designed for
+        high performance. Applications include small amounts of configuration data such as schedules, playlists, and disk locations for other files.</p>
+        
+        <p>Registry files are only readable by the user kaithem runs as and so you should store passwords in the registry instead of
+        directly in the code.</p>
 
         <h4>kaithem.registry.get(key,default=None)</h4>
         <p>Gets the registry key. Returns default if the key does not exist.</p>
 
         <h4>kaithem.registry.set(key,value)</h4>
         <p>Sets the registry key.</p>
-
+        
+        <h4>kaithem.registry.setschema(key, schema)</h4>
+        <p>Set a validictory validation schema for key. Schema must be a dict describing the format(Validictory schemas are very
+        close to JSON schema, see validictory documentation for more info). If you try to set a key to a value that is invalid acording to a schema,
+        it will raise an error.</p>
+        
+        <h4>kaithem.registry.delete(key, schema)</h4>
+        <p>Delete a key and and data and schema assosiated with it</p>
 
         <h3>kaithem.sound</h3>
 

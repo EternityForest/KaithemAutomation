@@ -1,11 +1,10 @@
-{
-    "body": "The value of the count is: ${kaithem.globals.count}",
-    "no-header": false,
-    "no-navheader": true,
-    "require-method": [
-        "GET",
-        "POST"
-    ],
-    "require-permissions": [],
-    "resource-type": "page"
-}
+no-header: false
+no-navheader: true
+require-method: [GET, POST]
+require-permissions: []
+resource-type: page
+
+---
+
+
+The value of the count is: ${kaithem.globals.count}

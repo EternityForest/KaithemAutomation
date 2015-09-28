@@ -9,6 +9,8 @@
     import multiprocessing
     import re
     import threading
+    
+    import kaithem
     from src import unitsofmeasure
     from src import newevt
     from src import systasks
@@ -70,7 +72,7 @@
     </div>
     <div class="sectionbox">${config['about-box-banner']}</div>
     <div class="sectionbox">
-    Version: Dev version later than 0.52
+    Version: ${kaithem.__version__|h}
     </div>
     <br>
     <div class="sectionbox">
