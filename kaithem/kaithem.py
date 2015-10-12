@@ -130,6 +130,7 @@ if cfg.argcmd.initialpackagesetup:
 from src import ManageUsers
 from src import newevt
 from src import modules
+from src import modules_interface
 from src import settings
 from src import usrpages
 from src import messagelogging
@@ -255,7 +256,7 @@ def cpexception():
 root = webapproot()
 root.login = weblogin.LoginScreen()
 root.auth = ManageUsers.ManageAuthorization()
-root.modules = modules.WebInterface()
+root.modules = modules_interface.WebInterface()
 root.settings = settings.Settings()
 root.errors = Errors()
 root.pages = usrpages.KaithemPage()
