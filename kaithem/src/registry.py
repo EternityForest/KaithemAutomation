@@ -114,7 +114,7 @@ class PersistanceArea():
                                 ignore = shutil.ignore_patterns("kaithem_dump_valid.txt"))
                                                    
                 with open(os.path.join(self.folder,t,'kaithem_dump_valid.txt'),"w") as x:
-                    util.chmod_private_try(os.path.join(self.folder,t,'kaithem_dump_valid.txt'))
+                    util.chmod_private_try(os.path.join(self.folder,t,'kaithem_dump_valid.txt'), execute=False)
                     x.write("This file certifies this folder as valid")
             else:
                 util.ensure_dir2(os.path.join(self.folder,"data"))
@@ -126,7 +126,7 @@ class PersistanceArea():
             for i in self.files.copy():
                 try:
                         with open(os.path.join(self.folder,"data",url(i)+".json"),'w') as x:
-                            util.chmod_private_try(os.path.join(self.folder,"data",url(i)+".json"))
+                            util.chmod_private_try(os.path.join(self.folder,"data",url(i)+".json"), execute=False)
                             json.dump({'data':copy.deepcopy(self.files[i])},x,sort_keys=True,indent=4, separators=(',', ': '))
                 except Exception as e:
                     error =1
@@ -154,7 +154,7 @@ class PersistanceArea():
 
         if not error:
             with open(os.path.join(self.folder,"data",'kaithem_dump_valid.txt'),"w") as x:
-                util.chmod_private_try(os.path.join(self.folder,"data",'kaithem_dump_valid.txt'))
+                util.chmod_private_try(os.path.join(self.folder,"data",'kaithem_dump_valid.txt'), execute=False)
                 x.write("This file certifies this folder as valid")
         else:
             print("Failure dumping persistance dicts.")

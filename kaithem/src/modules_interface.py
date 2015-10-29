@@ -17,7 +17,7 @@ import threading,urllib,shutil,sys,time,os,json,traceback, copy
 import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling
 from .modules import *
-
+from src import modules
 #The class defining the interface to allow the user to perform generic create/delete/upload functionality.
 class WebInterface():
 
@@ -27,14 +27,28 @@ class WebInterface():
 
         return str(scheduling.get_next_run(kwargs['string']))
 
+    #This lets the user download a module as a zip file with yaml encoded resources
+    @cherrypy.expose
+    def yamldownload(self,module):
+        pages.require('/admin/modules.view')
+        cherrypy.response.headers['Content-Type']= 'application/zip'
+        return getModuleAsYamlZip(module[:-4] if module.endswith('.zip') else module)
 
     #This lets the user download a module as a zip file
+    @cherrypy.expose
+    def download(self,module):
+        pages.require('/admin/modules.view')
+        cherrypy.response.headers['Content-Type']= 'application/zip'
+        return getModuleAsZip(module[:-4])
+    
+    #This lets the user download a module as a zip file. But this one is deprecated.
+    #It's only here for backwards compatibility, but it really doesn't matter.
     @cherrypy.expose
     def downloads(self,module):
         pages.require('/admin/modules.view')
         cherrypy.response.headers['Content-Type']= 'application/zip'
         return getModuleAsZip(module)
-
+    
     #This lets the user upload modules
     @cherrypy.expose
     def upload(self):
@@ -45,8 +59,8 @@ class WebInterface():
     @cherrypy.expose
     def uploadtarget(self,modules):
         pages.require('/admin/modules.edit')
-        global moduleschanged
-        moduleschanged = True
+        
+        modules.moduleschanged = True
         load_modules_from_zip(modules.file)
         messagebus.postMessage("/system/modules/uploaded",{'user':pages.getAcessingUser()})
         raise cherrypy.HTTPRedirect("/modules/")
@@ -90,8 +104,8 @@ class WebInterface():
     def deletemoduletarget(self,**kwargs):
         pages.require("/admin/modules.edit")
         pages.postOnly()
-        global moduleschanged
-        moduleschanged = True
+        
+        modules.moduleschanged = True
         with modulesLock:
            ActiveModules.pop(kwargs['name'])
         #Get rid of any lingering cached events
@@ -109,8 +123,8 @@ class WebInterface():
         global scopes
         pages.require("/admin/modules.edit")
         pages.postOnly()
-        global moduleschanged
-        moduleschanged = True
+        
+        modules.moduleschanged = True
         #If there is no module by that name, create a blank template and the scope obj
         with modulesLock:
             if kwargs['name'] not in ActiveModules:
@@ -143,7 +157,7 @@ class WebInterface():
     #This function handles HTTP requests of or relating to one specific already existing module.
     #The URLs that this function handles are of the form /modules/module/<modulename>[something?]
     def module(self,module,*path,**kwargs):
-        global moduleschanged
+        
         root = util.split_escape(module,"/")[0]
         modulepath = util.split_escape(module,"/")[1:]
         fullpath = module
@@ -202,7 +216,7 @@ class WebInterface():
             if path[0] == 'deleteresourcetarget':
                 pages.require("/admin/modules.edit")
                 pages.postOnly()
-                moduleschanged = True
+                modules.moduleschanged = True
                 with modulesLock:
                    r = ActiveModules[root].pop(kwargs['name'])
 
@@ -227,7 +241,7 @@ class WebInterface():
             if path[0] == 'update':
                 pages.require("/admin/modules.edit")
                 pages.postOnly()
-                moduleschanged = True
+                modules.moduleschanged = True
                 with modulesLock:
                     ActiveModules[root]['__description']['text'] = kwargs['description']
                     ActiveModules[kwargs['name']] = ActiveModules.pop(root)
@@ -267,8 +281,8 @@ def addResourceDispatcher(module,type,path):
 def addResourceTarget(module,type,name,kwargs,path):
     pages.require("/admin/modules.edit")
     pages.postOnly()
-    global moduleschanged
-    moduleschanged = True
+    
+    modules.moduleschanged = True
 
     #Wow is this code ever ugly. Bascially we are going to pack the path and the module together.
     escapedName = (kwargs['name'].replace("\\","\\\\").replace("/",'\\/'))
@@ -383,8 +397,8 @@ def permissionEditPage(module,resource):
 def resourceUpdateTarget(module,resource,kwargs):
     pages.require("/admin/modules.edit",noautoreturn=True)
     pages.postOnly()
-    global moduleschanged
-    moduleschanged = True
+    
+    modules.moduleschanged = True
     with modulesLock:
         t = ActiveModules[module][resource]['resource-type']
         resourceobj = ActiveModules[module][resource]

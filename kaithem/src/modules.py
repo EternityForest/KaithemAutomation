@@ -20,6 +20,14 @@ from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,
 from .modules_state import ActiveModules,modulesLock,scopes
 
 
+def new_empty_module():
+    return {"__description":
+                {"resource-type":"module-description",
+                "text":"Module info here"}}
+                
+def new_module_container():
+    return {}
+
 #2.x vs 3.x once again have renamed stuff
 if sys.version_info < (3,0):
    from StringIO import StringIO
@@ -57,6 +65,7 @@ class obj(object):
          x = permission_interface()
          
 
+#Backwards compatible resource loader.
 def loadResource(r):
     with open(r) as f:
         d = f.read()
@@ -84,25 +93,25 @@ def saveResource2(r,fn):
     if r['resource-type'] == 'page':
         b = r['body']
         del r['body']
-        d = yaml.dump(r) + "\n---\n" + b
+        d = yaml.dump(r) + "\n#End YAML metadata, page body mako code begins on first line after ---\n---\n" + b
         
     elif r['resource-type'] == 'event':
         t = r['setup']
         del r['setup']
         a = r['action']
         del r['action']
-        d = yaml.dump(r) + "\n---\n" + t + "\n---\n" + a
+        d = yaml.dump(r) + "\n#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.\n---\n" + t + "\n---\n" + a
         
     else:
         d = yaml.dump(r)
         
     with open(fn,"w") as f:
-        util.chmod_private_try(fn)
+        util.chmod_private_try(fn,execute = False)
         f.write(d)
         
 def saveResource(r,fn):
     with open(fn,"w") as f:
-        util.chmod_private_try(fn)
+        util.chmod_private_try(fn, execute=False)
         f.write(yaml.dump(r))
         
 
@@ -127,7 +136,7 @@ def saveAll():
                             ignore=shutil.ignore_patterns("__COMPLETE__"))
             #Add completion marker at the end
             with open(os.path.join(directories.moduledir,str(t),'__COMPLETE__'),"w") as x:
-                util.chmod_private_try(os.path.join(directories.moduledir,str(t),'__COMPLETE__'))
+                util.chmod_private_try(os.path.join(directories.moduledir,str(t),'__COMPLETE__'), execute=False)
                 x.write("This file certifies this folder as valid")
         
         #This dumps the contents of the active modules in ram to a directory named data"""
@@ -213,7 +222,7 @@ def saveModules(where):
             if unurl(i) not in ActiveModules:
                 shutil.rmtree(os.path.join(where,i))
         with open(os.path.join(where,'__COMPLETE__'),'w') as f:
-            util.chmod_private_try(os.path.join(where,'__COMPLETE__'))
+            util.chmod_private_try(os.path.join(where,'__COMPLETE__'), execute=False)
             f.write("By this string of contents quite arbitrary, I hereby mark this dump as consistant!!!")
 
 
@@ -262,6 +271,21 @@ def getModuleAsZip(module):
         s = ram_file.getvalue()
         ram_file.close()
         return s
+    
+def getModuleAsYamlZip(module):
+    with modulesLock:
+        #We use a stringIO so we can avoid using a real file.
+        ram_file = StringIO()
+        z = zipfile.ZipFile(ram_file,'w')
+        #Dump each resource to JSON in the ZIP
+        for resource in ActiveModules[module]:
+            #AFAIK Zip files fake the directories with naming conventions
+            s = yaml.dump(ActiveModules[module][resource])
+            z.writestr(url(module)+'/'+url(resource)+".yaml",s)
+        z.close()
+        s = ram_file.getvalue()
+        ram_file.close()
+        return s
 
 def load_modules_from_zip(f):
     "Given a zip file, import all modules found therin."
@@ -276,7 +300,7 @@ def load_modules_from_zip(f):
         if p not in new_modules:
             new_modules[p] = {}
         f = z.open(i)
-        new_modules[p][n] = json.loads(f.read().decode())
+        new_modules[p][n] = yaml.load(f.read().decode())
         f.close()
 
     with modulesLock:

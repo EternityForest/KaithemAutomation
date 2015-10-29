@@ -12,7 +12,8 @@ This Page allows you to view and edit information and resources associated with 
 <title>Module: ${name|h}</title>
 
 <form action="/modules/module/${url(name)}/update" method="POST" name="user">
-<a href="/modules/downloads/${url(name)}">Download this module as a zip file</a><br>
+<a href="/modules/download/${url(name)}.zip">Download this module as a zip file</a><br>
+<a href="/modules/yamldownload/${url(name)}.zip">Download this module as a zip file with YAML resources(not compatible with older versions)</a><br>
 <a href="/modules/module/${url(name)}/obj">View the module namespace object(New, requires edit permission)</a>
 
 <h3>Basic Information</h3>

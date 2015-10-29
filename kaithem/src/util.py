@@ -327,6 +327,9 @@ def unescape(s,escape="\\"):
             s2+=i
     return s2
 
+def resourcename_escape(s):
+    return s.replace("\\","\\\\").replace("/","\\/")
+
 def module_onelevelup(s):
     return "/".join([i.replace("\\","\\\\").replace("/","\\/") for i in split_escape(s,"/","\\")[:-1]])
 
@@ -364,8 +367,8 @@ srepr.maxdict = 25
 srepr.maxlist = 10
 srepr.maxset = 10
 srepr.maxlong = 10
-srepr.maxstring = 50
-srepr.maxother = 50
+srepr.maxstring = 80
+srepr.maxother = 80
 
 saferepr = srepr.repr
 

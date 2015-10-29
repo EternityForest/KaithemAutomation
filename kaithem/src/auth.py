@@ -377,7 +377,7 @@ def dumpDatabase():
                         ignore=shutil.ignore_patterns("__COMPLETE__"))
         #Add completion marker at the end
         with open(os.path.join(copyto,'__COMPLETE__'),"w") as x:
-            util.chmod_private_try(os.path.join(copyto,'__COMPLETE__'))
+            util.chmod_private_try(os.path.join(copyto,'__COMPLETE__'), execute=False)
             x.write("This file certifies this folder as valid")
             
             
@@ -389,12 +389,12 @@ def dumpDatabase():
     util.ensure_dir2(p)
     util.chmod_private_try(p)
     f = open(os.path.join(p,"users.json"),"w")
-    util.chmod_private_try(os.path.join(p,"users.json"))
+    util.chmod_private_try(os.path.join(p,"users.json"),execute=False)
     #pretty print
     json.dump(temp,f,sort_keys=True, indent=4, separators=(',', ': '))
     f.close()
     f = open(os.path.join(p,"__COMPLETE__"),"w")
-    util.chmod_private_try(os.path.join(p,"__COMPLETE__"))
+    util.chmod_private_try(os.path.join(p,"__COMPLETE__"),execute=False)
     f.write("completely arbitrary text")
     f.close()
     util.deleteAllButHighestNumberedNDirectories(directories.usersdir,2)

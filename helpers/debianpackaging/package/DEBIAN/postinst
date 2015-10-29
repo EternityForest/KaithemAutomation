@@ -1,12 +1,18 @@
 if [ ! -f /var/lib/kaithem/users/data/users.json ]
 then
     adduser --system --no-create-home kaithem
-    useradd -G serial kaithem
-    useradd -G dialout kaithem
-    useradd -G audio kaithem
+    usermod -a -G serial kaithem
+    usermod -a -G dialout kaithem
+    usermod -a -G audio kaithem
+    usermod -a -G gpio kaithem
+    usermod -a -G i2c kaithem
+    usermod -a -G video kaithem
+    usermod -a -G spi kaithem
     groupadd -r kaithem
-    usermod -g kaithem kaithem
-    chown -R kaithem /var/lib/kaithem
+    usermod -a -G kaithem kaithem
+    mkdir /var/log/kaithem
+    chmod 700 /var/log/kaithem
+    chown kaithem /var/log/kaithem
     mkdir /var/lib/kaithem
     chown kaithem /var/lib/kaithem
     chmod 700 /var/lib/kaithem/
@@ -19,4 +25,5 @@ then
     chown kaithem /var/lib/kaithem/ssl/certificate.key
     systemctl enable kaithem
     kaithem --initialpackagesetup x
+    systemctl start kaithem
 fi

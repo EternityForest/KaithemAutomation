@@ -1,5 +1,9 @@
 import collections, threading
 
+
+
+
+#UNTESTED
 class Cache():
     """Cache that acts like a dict, except it clears out old entries"""
     def __init__(self, limit = 1000, maxAge = 0):
