@@ -14,18 +14,26 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #File for keeping track of and editing kaithem modules(not python modules)
-import threading,urllib,shutil,sys,time,os,json,traceback
+import threading,urllib,shutil,sys,time,os,json,traceback, copy
 import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling
 from .modules_state import ActiveModules,modulesLock,scopes
 
+
+def new_empty_module():
+    return {"__description":
+                {"resource-type":"module-description",
+                "text":"Module info here"}}
+                
+def new_module_container():
+    return {}
 
 #2.x vs 3.x once again have renamed stuff
 if sys.version_info < (3,0):
    from StringIO import StringIO
 else:
     from io import BytesIO as StringIO
-    
+
 import zipfile
 
 from .util import url,unurl
@@ -34,49 +42,161 @@ from .util import url,unurl
 #it's o the code knows to save everything is it has been changed.
 moduleschanged = False
 
-class obj(object):
-    pass
+class event_interface(object):
+   def __init__(self, ):
+      self.type = "event"
 
-#saveall and loadall are the ones outside code shold use to save and load the state of what modules are loaded
-def saveAll():
-    global moduleschanged
-    if not moduleschanged:
-        return False
-    if time.time()> util.min_time:
-        t = time.time()
+class page_inteface(object):
+   def __init__(self, ):
+      self.type = "page"
+
+class permission_inteface(object):
+   def __init__(self, ):
+      self.type = "permission"
+
+class obj(object):
+   def __getitem__(self,x):
+      x= ActiveModules[self.__kaithem_modulename__][x]
+      if x['resource-type'] == 'page':
+         x = page_interface()
+      if x['resource-type'] == 'event':
+         x = event_interface()
+      if x['resource-type'] == 'permission':
+         x = permission_interface()
+         
+
+#Backwards compatible resource loader.
+def loadResource(r):
+    with open(r) as f:
+        d = f.read()
+    if "\r---\r" in d:
+            f = d.split("\r---\r")
+    elif "\r\n\---\r\n" in d:
+            f = d.split("\r\n---\r\n")
     else:
-        t = int(util.min_time) +1.234
-    #This dumps the contents of the active modules in ram to a subfolder of the moduledir named after the current unix time"""
-    saveModules(os.path.join(directories.moduledir,str(t) ))
-    #We only want 1 backup(for now at least) so clean up old ones.  
-    util.deleteAllButHighestNumberedNDirectories(directories.moduledir,2)
-    moduleschanged = False
-    return True
+        f = d.split("\n---\n")
+    r = yaml.load(f[0])
     
-def initModules():
-    for i in range(0,15):
-        #Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
-        name = util.getHighestNumberedTimeDirectory(directories.moduledir)
-        possibledir = os.path.join(directories.moduledir,name)
+    #Catch old style save files
+    if len(f)>1:
+        if r['resource-type'] == 'page':
+            r['body'] = f[1]
+            
+        if r['resource-type'] == 'event':
+            r['setup'] = f[1]
+            r['action'] = f[2]
+    
+    return r
+
+def saveResource2(r,fn):
+    r = copy.deepcopy(r)
+    if r['resource-type'] == 'page':
+        b = r['body']
+        del r['body']
+        d = yaml.dump(r) + "\n#End YAML metadata, page body mako code begins on first line after ---\n---\n" + b
         
-        #__COMPLETE__ is a special file we write to the dump directory to show it as valid
-        if '''__COMPLETE__''' in util.get_files(possibledir):
-            loadModules(possibledir)
-            auth.importPermissionsFromModules()
-            newevt.getEventsFromModules()
-            usrpages.getPagesFromModules()
-            break #We sucessfully found the latest good ActiveModules dump! so we break the loop
+    elif r['resource-type'] == 'event':
+        t = r['setup']
+        del r['setup']
+        a = r['action']
+        del r['action']
+        d = yaml.dump(r) + "\n#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.\n---\n" + t + "\n---\n" + a
+        
+    else:
+        d = yaml.dump(r)
+        
+    with open(fn,"w") as f:
+        util.chmod_private_try(fn,execute = False)
+        f.write(d)
+        
+def saveResource(r,fn):
+    with open(fn,"w") as f:
+        util.chmod_private_try(fn, execute=False)
+        f.write(yaml.dump(r))
+        
+
+def saveAll():
+    """saveAll and loadall are the ones outside code shold use to save and load the state of what modules are loaded.
+    This function creates a timestamp directory in the confugured modules dir, then saves the modules to it, and deletes the old ones."""
+    
+    #This is an RLock, and we need to use the lock so that someone else doesn't make a change while we are saving that isn't caught by
+    #moduleschanged.
+    with modulesLock:
+        global moduleschanged
+        if not moduleschanged:
+            return False
+        if time.time()> util.min_time:
+            t = time.time()
         else:
-            #If there was no flag indicating that this was an actual complete dump as opposed
-            #To an interruption, rename it and try again
-            shutil.copytree(possibledir,os.path.join(directories.moduledir,name+"INCOMPLETE"))
-            shutil.rmtree(possibledir)
+            t = int(util.min_time) +1.234
         
+        if os.path.isdir(os.path.join(directories.moduledir,str("data"))):
+        #Copy the data found in data to a new directory named after the current time. Don't copy completion marker
+            shutil.copytree(os.path.join(directories.moduledir,str("data")), os.path.join(directories.moduledir,str(t)),
+                            ignore=shutil.ignore_patterns("__COMPLETE__"))
+            #Add completion marker at the end
+            with open(os.path.join(directories.moduledir,str(t),'__COMPLETE__'),"w") as x:
+                util.chmod_private_try(os.path.join(directories.moduledir,str(t),'__COMPLETE__'), execute=False)
+                x.write("This file certifies this folder as valid")
+        
+        #This dumps the contents of the active modules in ram to a directory named data"""
+        saveModules(os.path.join(directories.moduledir,"data"))
+        #We only want 1 backup(for now at least) so clean up old ones.
+        util.deleteAllButHighestNumberedNDirectories(directories.moduledir,2)
+        moduleschanged = False
+        return True
+
+def initModules():
+    """"Find the most recent module dump folder and use that. Should there not be a module dump folder, it is corrupted, etc,
+    Then start with an empty list of modules. Should normally be called once at startup."""
+    if not os.path.isdir(directories.moduledir):
+        return
+    if not util.get_immediate_subdirectories(directories.moduledir):
+        return
+    try:
+        #__COMPLETE__ is a special file we write to the dump directory to show it as valid
+        possibledir= os.path.join(directories.moduledir,"data")
+        if os.path.isdir(possibledir) and '''__COMPLETE__''' in util.get_files(possibledir):
+            loadModules(possibledir)
+            #we found the latest good ActiveModules dump! so we break the loop
+        else:
+            messagebus.postMessage("/system/notifications/errors" ,"Modules folder appears corrupted, falling back to latest backup version")
+            for i in range(0,15):
+                #Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
+                name = util.getHighestNumberedTimeDirectory(directories.moduledir)
+                possibledir = os.path.join(directories.moduledir,name)
+
+                if '''__COMPLETE__''' in util.get_files(possibledir):
+                    loadModules(possibledir)
+                #we found the latest good ActiveModules dump! so we break the loop
+                    break
+                else:
+                    #If there was no flag indicating that this was an actual complete dump as opposed
+                    #To an interruption, rename it and try again
+                    
+                    shutil.copytree(possibledir,os.path.join(directories.moduledir,name+"INCOMPLETE"))
+                    #It would be best if we didn't rename or get rid of the data directory because that's where
+                    #manual tools might be working. 
+                    if not possibledir == os.path.join(directories.moduledir,"data"):
+                        shutil.rmtree(possibledir)
+    except:
+        messagebus.postMessage("/system/notifications/errors" ," Error loading modules: "+ traceback.format_exc(4))
     
+    auth.importPermissionsFromModules()
+    newevt.getEventsFromModules()
+    usrpages.getPagesFromModules()
+
+
 def saveModules(where):
+    """Save the modules in a directory as JSON files. Low level and does not handle the timestamp directories, etc."""
     with modulesLock:
         util.ensure_dir2(os.path.join(where))
         util.chmod_private_try(os.path.join(where))
+        #If there is a complete marker, remove it before we get started. This marks
+        #things as incomplete and then when loading it will use the old version
+        #when done saving we put the complete marker back.
+        if os.path.isfile(os.path.join(where,'__COMPLETE__')):
+            os.remove(os.path.join(where,'__COMPLETE__'))
         for i in ActiveModules:
             #Iterate over all of the resources in a module and save them as json files
             #under the URL urld module name for the filename.
@@ -85,16 +205,15 @@ def saveModules(where):
                 util.ensure_dir(os.path.join(where,url(i),url(resource))  )
                 util.chmod_private_try(os.path.join(where,url(i)))
                 #Open a file at /where/module/resource
-                with  open(os.path.join(where,url(i),url(resource)),"w") as f:
-                    util.chmod_private_try(os.path.join(where,url(i),url(resource)))
-                    #Make a json file there and prettyprint it
-                    json.dump(ActiveModules[i][resource],f,sort_keys=True,indent=4, separators=(',', ': '))
+                fn = os.path.join(where,url(i),url(resource))
+                #Make a json file there and prettyprint it
+                saveResource2(ActiveModules[i][resource],fn)
 
             #Now we iterate over the existing resource files in the filesystem and delete those that correspond to
             #modules that have been deleted in the ActiveModules workspace thing.
-            for i in util.get_immediate_subdirectories(os.path.join(where,url(i))):
-                if unurl(i) not in ActiveModules:  
-                    os.remove(os.path.join(where,url(i),i))
+            for j in util.get_files(os.path.join(where,url(i))):
+                if unurl(j) not in ActiveModules[i]:
+                    os.remove(os.path.join(where,url(i),j))
 
         for i in util.get_immediate_subdirectories(where):
             #Look in the modules directory, and if the module folder is not in ActiveModules\
@@ -103,30 +222,35 @@ def saveModules(where):
             if unurl(i) not in ActiveModules:
                 shutil.rmtree(os.path.join(where,i))
         with open(os.path.join(where,'__COMPLETE__'),'w') as f:
-            util.chmod_private_try(os.path.join(where,'__COMPLETE__'))
+            util.chmod_private_try(os.path.join(where,'__COMPLETE__'), execute=False)
             f.write("By this string of contents quite arbitrary, I hereby mark this dump as consistant!!!")
 
 
-#Load all modules in the given folder to RAM
 def loadModules(modulesdir):
+    "Load all modules in the given folder to RAM"
     for i in util.get_immediate_subdirectories(modulesdir):
         loadModule(i,modulesdir)
 
 
-#Load a single module but don't bookkeep it . Used by loadModules
 def loadModule(moduledir,path_to_module_folder):
+    "Load a single module but don't bookkeep it . Used by loadModules"
     with modulesLock:
         #Make an empty dict to hold the module resources
-        module = {} 
+        module = {}
         #Iterate over all resource files and load them
-        for i in util.get_files(os.path.join(path_to_module_folder,moduledir)):
-            try:
-                f = open(os.path.join(path_to_module_folder,moduledir,i))
-                #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
-                module[unurl(i)] = yaml.load(f)
-            finally:
-                f.close()
-        
+        for root, dirs, files in os.walk(os.path.join(path_to_module_folder,moduledir)):
+                for i in files:
+                    relfn = os.path.relpath(os.path.join(root,i),os.path.join(path_to_module_folder,moduledir))
+                    fn = os.path.join(path_to_module_folder,moduledir , relfn)
+                    #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
+                    module[unurl(relfn)] = loadResource(fn)
+                for i in dirs:
+                    relfn = os.path.relpath(os.path.join(root,i),os.path.join(path_to_module_folder,moduledir))
+                    fn = os.path.join(path_to_module_folder,moduledir , relfn)
+                    #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
+                    module[unurl(relfn)] = {"resource-type":"directory"}
+                    
+
         name = unurl(moduledir)
         scopes[name] = obj()
         ActiveModules[name] = module
@@ -148,6 +272,21 @@ def getModuleAsZip(module):
         ram_file.close()
         return s
     
+def getModuleAsYamlZip(module):
+    with modulesLock:
+        #We use a stringIO so we can avoid using a real file.
+        ram_file = StringIO()
+        z = zipfile.ZipFile(ram_file,'w')
+        #Dump each resource to JSON in the ZIP
+        for resource in ActiveModules[module]:
+            #AFAIK Zip files fake the directories with naming conventions
+            s = yaml.dump(ActiveModules[module][resource])
+            z.writestr(url(module)+'/'+url(resource)+".yaml",s)
+        z.close()
+        s = ram_file.getvalue()
+        ram_file.close()
+        return s
+
 def load_modules_from_zip(f):
     "Given a zip file, import all modules found therin."
     new_modules = {}
@@ -161,19 +300,19 @@ def load_modules_from_zip(f):
         if p not in new_modules:
             new_modules[p] = {}
         f = z.open(i)
-        new_modules[p][n] = json.loads(f.read().decode())
+        new_modules[p][n] = yaml.load(f.read().decode())
         f.close()
-    
+
     with modulesLock:
         for i in new_modules:
             if i in ActiveModules:
                 raise cherrypy.HTTPRedirect("/errors/alreadyexists")
         for i in new_modules:
             ActiveModules[i] = new_modules[i]
-            messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " uploaded module" + i + " from a zip file")    
+            messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " uploaded module" + i + " from a zip file")
             bookkeeponemodule(i)
     auth.importPermissionsFromModules()
-            
+
     z.close()
 
 def bookkeeponemodule(module,update=False):
@@ -192,397 +331,20 @@ def bookkeeponemodule(module,update=False):
     if not update:
         messagebus.postMessage("/system/modules/loaded",module)
 
-    
+
+def mvResource(module,resource,toModule,toResource):
+    #Raise an error if the user ever tries to move something somewhere that does not exist.
+    new = util.split_escape(toResource,"/", "\\",True)
+    if not ('/'.join(new[:-1]) in ActiveModules[toModule] or len(new)<2):
+        raise cherrypy.HTTPRedirect("/errors/nofoldermoveerror")
+    if not toModule in ActiveModules:
+        raise cherrypy.HTTPRedirect("/errors/nofoldermoveerror")
+    #If something by the name of the directory we are moving to exists but it is not a directory.
+    #short circuit evaluating the len makes this clause ignore moves that are to the root of a module.
+    if not (len(new)<2 or ActiveModules[toModule]['/'.join(new[:-1])]['resource-type']=='directory'):
+        raise cherrypy.HTTPRedirect("/errors/nofoldermoveerror")
 
 
-#The class defining the interface to allow the user to perform generic create/delete/upload functionality.
-class WebInterface():
-    
-    @cherrypy.expose
-    def nextrun(self,**kwargs):
-        pages.require('/admin/modules.view')
-        
-        return str(scheduling.get_next_run(kwargs['string']))
-    
-    
-    #This lets the user download a module as a zip file
-    @cherrypy.expose
-    def downloads(self,module):
-        pages.require('/admin/modules.view')
-        cherrypy.response.headers['Content-Type']= 'application/zip'
-        return getModuleAsZip(module)
-    
-    #This lets the user upload modules
-    @cherrypy.expose
-    def upload(self):
-        pages.require('/admin/modules.edit')
-        return pages.get_template("modules/upload.html").render()
-        #This lets the user upload modules
-        
-    @cherrypy.expose
-    def uploadtarget(self,modules):
-        pages.require('/admin/modules.edit')
-        global moduleschanged
-        moduleschanged = True
-        load_modules_from_zip(modules.file)
-        messagebus.postMessage("/system/modules/uploaded",{'user':pages.getAcessingUser()})
-        raise cherrypy.HTTPRedirect("/modules/") 
-            
-        
-    
-    @cherrypy.expose
-    def index(self):
-        #Require permissions and render page. A lotta that in this file.
-        pages.require("/admin/modules.view")
-        return pages.get_template("modules/index.html").render(ActiveModules = ActiveModules)
-    
-    @cherrypy.expose
-    def library(self):
-        #Require permissions and render page. A lotta that in this file.
-        pages.require("/admin/modules.view")
-        return pages.get_template("modules/library.html").render()
-
-
-    @cherrypy.expose       
-    def newmodule(self):
-        pages.require("/admin/modules.edit")
-        return pages.get_template("modules/new.html").render()
-        
-    #CRUD screen to delete a module
-    @cherrypy.expose
-    def deletemodule(self):
-        pages.require("/admin/modules.edit")
-        return pages.get_template("modules/delete.html").render()
-
-    #POST target for CRUD screen for deleting module
-    @cherrypy.expose
-    def deletemoduletarget(self,**kwargs):
-        pages.require("/admin/modules.edit")
-        global moduleschanged
-        moduleschanged = True
-        with modulesLock:
-           ActiveModules.pop(kwargs['name'])
-        #Get rid of any lingering cached events
-        newevt.removeModuleEvents(kwargs['name'])
-        #Get rid of any permissions defined in the modules.
-        auth.importPermissionsFromModules()
-        usrpages.removeModulePages(kwargs['name'])
-        messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Deleted module " + kwargs['name'])
-        messagebus.postMessage("/system/modules/unloaded",kwargs['name'])
-        messagebus.postMessage("/system/modules/deleted",{'user':pages.getAcessingUser()})
-        raise cherrypy.HTTPRedirect("/modules")
-        
-    @cherrypy.expose
-    def newmoduletarget(self,**kwargs):
-        global scopes
-        pages.require("/admin/modules.edit")
-        global moduleschanged
-        moduleschanged = True
-        #If there is no module by that name, create a blank template and the scope obj
-        with modulesLock:
-            if kwargs['name'] not in ActiveModules:
-                ActiveModules[kwargs['name']] = {"__description":
-                {"resource-type":"module-description",
-                "text":"Module info here"}}
-                #Create the scope that code in the module will run in
-                scopes[kwargs['name']] = obj()
-                #Go directly to the newly created module
-                messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Created Module " + kwargs['name'])
-                messagebus.postMessage("/system/modules/new",{'user':pages.getAcessingUser(), 'module':kwargs['name']})
-                raise cherrypy.HTTPRedirect("/modules/module/"+util.url(kwargs['name']))
-            else:
-                return pages.get_template("error.html").render(info = " A module already exists by that name,")
-    
-    @cherrypy.expose
-    def loadlibmodule(self,module):
-        if module  in ActiveModules:
-            raise cherrypy.HTTPRedirect("/errors/alreadyexists")
-
-        loadModule(module,os.path.join(directories.datadir,"modules"))
-        bookkeeponemodule(module)
-        auth.importPermissionsFromModules()
-        raise cherrypy.HTTPRedirect('/modules')
-
-        
-    @cherrypy.expose
-    #This function handles HTTP requests of or relating to one specific already existing module.
-    #The URLs that this function handles are of the form /modules/module/<modulename>[something?]     
-    def module(self,module,*path,**kwargs):
-        global moduleschanged
-
-        #If we are not performing an action on a module just going to its page
-        if not path:
-            pages.require("/admin/modules.view")
-            return pages.get_template("modules/module.html").render(module = ActiveModules[module],name = module)
-            
-        else:
-            #This gets the interface to add a page
-            if path[0] == 'addresource':
-                #path[1] tells what type of resource is being created and addResourceDispatcher returns the appropriate crud screen
-                return addResourceDispatcher(module,path[1])
-            
-            #This case handles the POST request from the new resource target
-            if path[0] == 'addresourcetarget':
-                return addResourceTarget(module,path[1],kwargs['name'],kwargs)
-
-            #This case shows the information and editing page for one resource
-            if path[0] == 'resource':
-                version = '__default__'
-                if len(path)>2:
-                    version = path[2]
-                return resourceEditPage(module,path[1],version)
-
-            #This goes to a dispatcher that takes into account the type of resource and updates everything about the resource.
-            if path[0] == 'updateresource':
-                return resourceUpdateTarget(module,path[1],kwargs)
-
-            #This returns a page to delete any resource by name
-            if path[0] == 'deleteresource':
-                pages.require("/admin/modules.edit")
-                return pages.get_template("modules/deleteresource.html").render(module=module)
-
-            #This handles the POST request to actually do the deletion
-            if path[0] == 'deleteresourcetarget':
-                pages.require("/admin/modules.edit")
-                moduleschanged = True
-                with modulesLock:
-                   r = ActiveModules[module].pop(kwargs['name'])
-                   
-                if r['resource-type'] == 'page':
-                    usrpages.removeOnePage(module,kwargs['name'])
-                #Annoying bookkeeping crap to get rid of the cached crap
-                if r['resource-type'] == 'event':
-                    newevt.removeOneEvent(module,kwargs['name'])
-                    
-                if r['resource-type'] == 'permission':
-                    auth.importPermissionsFromModules() #sync auth's list of permissions
-                    
-                messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " deleted resource " +
-                           kwargs['name'] + " from module " + module)
-                messagebus.postMessage("/system/modules/deletedresource",{'ip':cherrypy.request.remote.ip,'user':pages.getAcessingUser(),'module':module,'resource':kwargs['name']})
- 
-                raise cherrypy.HTTPRedirect('/modules')
-
-            #This is the target used to change the name and description(basic info) of a module  
-            if path[0] == 'update':
-                pages.require("/admin/modules.edit")
-                moduleschanged = True
-                with modulesLock:
-                    ActiveModules[module]['__description']['text'] = kwargs['description']
-                    ActiveModules[kwargs['name']] = ActiveModules.pop(module)
-                    
-                    #UHHG. So very much code tht just syncs data structures.
-                    #This gets rid of the cache under the old name
-                    newevt.removeModuleEvents(module)
-                    usrpages.removeModulePages(module)
-                    #And calls this function the generate the new cache
-                    bookkeeponemodule(kwargs['name'],update=True)
-                    #Just for fun, we should probably also sync the permissions
-                    auth.importPermissionsFromModules()
-                raise cherrypy.HTTPRedirect('/modules/module/'+util.url(kwargs['name']))
-
-#Return a CRUD screen to create a new resource taking into the type of resource the user wants to create               
-def addResourceDispatcher(module,type):
-    pages.require("/admin/modules.edit")
-    
-    #Return a crud to add a new permission
-    if type == 'permission':
-        return pages.get_template("modules/permissions/new.html").render(module=module)
-
-    #return a crud to add a new event
-    if type == 'event':
-        return pages.get_template("modules/events/new.html").render(module=module)
-
-    #return a crud to add a new event
-    if type == 'page':
-        return pages.get_template("modules/pages/new.html").render(module=module)
-
-#The target for the POST from the CRUD to actually create the new resource
-#Basically it takes a module, a new resourc name, and a type, and creates a template resource
-def addResourceTarget(module,type,name,kwargs):
-    pages.require("/admin/modules.edit")
-    global moduleschanged
-    moduleschanged = True
-    def insertResource(r):
-        ActiveModules[module][kwargs['name']] = r
-    
-    with modulesLock:
-        #Check if a resource by that name is already there
-        if kwargs['name'] in ActiveModules[module]:
-            raise cherrypy.HTTPRedirect("/errors/alreadyexists")
-        
-        #Create a permission
-        if type == 'permission':
-            insertResource({
-                "resource-type":"permission",
-                "description":kwargs['description']})
-            #has its own lock
-            auth.importPermissionsFromModules() #sync auth's list of permissions 
-            
-        if type == 'event':
-            insertResource({
-                "resource-type":"event",
-                "trigger":"False",
-                "action":"pass",
-                "once":True,
-                "disabled":False
-                }
-                           
-                           )
-            #newevt maintains a cache of precompiled events that must be kept in sync with
-            #the modules
-            newevt.updateOneEvent(kwargs['name'],module)
-        
-        if type == 'page':
-                insertResource({
-                    "resource-type":"page",
-                    "body":'<div class="sectionbox">Content here</div>',
-                    'no-navheader':True})
-                usrpages.updateOnePage(kwargs['name'],module)
-
-        messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + " added resource " +
-                           kwargs['name'] + " of type " + type+" to module " + module)
-        
-        #Take the user straight to the resource page
-        raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+util.url(name))
-                
-                      
-#show a edit page for a resource. No side effect here so it only requires the view permission
-def resourceEditPage(module,resource,version='default'):
-    pages.require("/admin/modules.view")
-    
-    #Workaround for cherrypy decoding unicode as if it is latin 1
-    #Because of some bizzare wsgi thing i think.
-    module=module.encode("latin-1").decode("utf-8")
-    resource=resource.encode("latin-1").decode("utf-8")
-
-    with modulesLock:
-        resourceinquestion = ActiveModules[module][resource]
-        if version == '__default__':
-            try:
-                resourceinquestion = ActiveModules[module][resource]['versions']['__draft__']
-                version = '__draft__'
-            except KeyError as e:
-                version = "__live__"
-                pass
-        else:
-            version = '__live__'
-            
-        if resourceinquestion['resource-type'] == 'permission':
-            return permissionEditPage(module, resource)
-
-        if resourceinquestion['resource-type'] == 'event':
-            return pages.get_template("modules/events/event.html").render(
-                module =module,
-                name =resource,
-                event =resourceinquestion,
-                version=version)
-
-        if resourceinquestion['resource-type'] == 'page':
-            if 'require-permissions' in resourceinquestion:
-                requiredpermissions = resourceinquestion['require-permissions']
-            else:
-                requiredpermissions = []
-                
-            return pages.get_template("modules/pages/page.html").render(module=module,name=resource, 
-            page=ActiveModules[module][resource],requiredpermissions = requiredpermissions)
-
-def permissionEditPage(module,resource):
-    pages.require("/admin/modules.view")
-    return pages.get_template("modules/permissions/permission.html").render(module = module, 
-    permission = resource, description = ActiveModules[module][resource]['description'])
-
-#The actual POST target to modify a resource. Context dependant based on resource type.
-def resourceUpdateTarget(module,resource,kwargs):
-    pages.require("/admin/modules.edit")
-    global moduleschanged
-    moduleschanged = True
-    with modulesLock:
-        t = ActiveModules[module][resource]['resource-type']
-        resourceobj = ActiveModules[module][resource]
-        if t == 'permission': 
-            resourceobj['description'] = kwargs['description']
-            #has its own lock
-            auth.importPermissionsFromModules() #sync auth's list of permissions 
-    
-        if t == 'event':
-            
-            #Test compile, throw error on fail.
-            try:
-                ev = newevt.Event(kwargs['trigger'],kwargs['action'],newevt.make_eventscope(module),setup=kwargs['setup'],m=module,r=resource)
-            except Exception as e:
-                if not 'versions' in resourceobj:
-                    resourceobj['versions'] = {}
-                resourceobj['versions']['__draft__'] = r = resourceobj.copy().pop('versions')
-                r['resource-type'] = 'event'
-                r['trigger'] = kwargs['trigger']
-                r['action'] = kwargs['action']
-                r['setup'] = kwargs['setup']
-                r['priority'] = kwargs['priority']
-                r['continual'] = 'continual' in kwargs
-                r['rate-limit'] = float(kwargs['ratelimit'])
-                messagebus.postMessage("system/errors/misc/failedeventupdate", "In: "+ module +" "+resource+ "\n"+ traceback.format_exc(4))
-                raise
-            
-            resourceobj['trigger'] = kwargs['trigger']
-            resourceobj['action'] = kwargs['action']
-            resourceobj['setup'] = kwargs['setup']
-            resourceobj['priority'] = kwargs['priority']
-            resourceobj['continual'] = 'continual' in kwargs
-            resourceobj['rate-limit'] = float(kwargs['ratelimit'])
-            #I really need to do something about this possibly brittle bookkeeping system
-            #But anyway, when the active modules thing changes we must update the newevt cache thing.
-            
-            
-            #Delete the draft if any
-            try:
-                del resourceobj['versions']['__draft__']
-            except:
-                pass
-            
-            
-            newevt.updateOneEvent(resource,module)
-    
-        if t == 'page':
-            resourceobj['body'] = kwargs['body']
-            resourceobj['no-navheader'] = 'no-navheader' in kwargs
-            resourceobj['no-header'] = 'no-header' in kwargs
-            resourceobj['dont-show-in-index'] = 'dont-show-in-index' in kwargs
-            resourceobj['auto-reload'] = 'autoreload' in kwargs
-            resourceobj['allow-xss'] = 'allow-xss' in kwargs
-            resourceobj['allow-origins'] = [i.strip() for i in kwargs['allow-origins'].split(',')]
-            resourceobj['auto-reload-interval'] = float(kwargs['autoreloadinterval'])
-            #Method checkboxes
-            resourceobj['require-method'] = []
-            if 'allow-GET' in kwargs:
-                resourceobj['require-method'].append('GET')
-            if 'allow-POST' in kwargs:
-                resourceobj['require-method'].append('POST')                
-            #permission checkboxes
-            resourceobj['require-permissions'] = []
-            for i in kwargs:
-                #Since HTTP args don't have namespaces we prefix all the permission checkboxes with permission
-                if i[:10] == 'Permission':
-                    if kwargs[i] == 'true':
-                        resourceobj['require-permissions'].append(i[10:])
-            usrpages.updateOnePage(resource,module)
-            
-        if 'name' in kwargs:
-            if not kwargs['name'] == resource:
-                mvResource(module,resource,module,kwargs['name'])
-                
-    messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + " modified resource " +
-                           resource + " of module " + module)
-    
-    if 'GoNow' in kwargs:
-        r =resource
-        if 'name' in kwargs:
-            r = kwargs['name']
-        raise cherrypy.HTTPRedirect("/pages/"+util.url(module)+"/"+util.url(r))
-    #Return user to the module page       
-    raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module))#+'/resource/'+util.url(resource))
-
-def mvResource(module,resource,toModule,toResource):  
     if ActiveModules[module][resource]['resource-type'] == 'event':
         ActiveModules[toModule][toResource] = ActiveModules[module][resource]
         del ActiveModules[module][resource]
@@ -591,14 +353,11 @@ def mvResource(module,resource,toModule,toResource):
 
     if ActiveModules[module][resource]['resource-type'] == 'page':
         ActiveModules[toModule][toResource] = ActiveModules[module][resource]
-        del ActiveModules[module][resource]      
+        del ActiveModules[module][resource]
         usrpages.removeOnePage(module,resource)
         usrpages.updateOnePage(toResource,toModule)
         return
 
-         
+
 class KaithemEvent(dict):
     pass
-
-
-

@@ -1,5 +1,6 @@
 <%!
     from src.util import url as urlesc
+    from src import auth
 %>
 <%include file="/pageheader.html"/>
 <h2>User <span
@@ -14,7 +15,13 @@ class="specialentry"\
 <div class="sectionbox">
 Username:<input required="required" name="username" type="text" value="${username}"></input><br>
 Password(Leave blank=don't change):<input name="password" type="password" value="" autocomplete='off'></input>
-Retype:<input name="password2" type="password" value="" autocomplete='off'></input>
+Retype:<input name="password2" type="password" value="" autocomplete='off'></input><br>
+<label>Dissalow login from IP outside of LAN<input name="lanonly" type="checkbox"
+
+%if auth.getUserSetting(username,"restrict-lan"):
+    checked="yes"
+%endif
+></lan>
 </div>
 
 

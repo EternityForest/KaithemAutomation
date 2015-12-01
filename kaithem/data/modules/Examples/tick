@@ -1,0 +1,16 @@
+continual: false
+disabled: false
+once: true
+priority: interactive
+rate-limit: 0.0
+resource-type: event
+trigger: '!time every second'
+versions: {action: pass, continual: false, priority: interactive, rate-limit: 0.0,
+  resource-type: event, setup: '"Shows !time triggers. Note that !time triggers use
+    natural language processing and it is usually much better to use normal triggers
+    like !onchange kaithem.time.hour"', trigger: '!time every second until 2011'}
+
+---
+"Shows !time triggers. Note that !time triggers use natural language processing and it is usually much better to use normal triggers like !onchange kaithem.time.hour"
+---
+pass

@@ -1,4 +1,4 @@
-#Copyright Daniel Dunn 2013
+#Copyright Daniel Dunn 2013-2015
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify
@@ -15,7 +15,7 @@
 
 """This is the global general purpose utility thing that is accesable from almost anywhere in user code."""
 
-import time,random,subprocess,threading,random,gzip,json,yaml,os,ntplib
+import time,random,subprocess,threading,random,gzip,json,yaml,os,ntplib,bz2
 
 
 import cherrypy
@@ -33,15 +33,15 @@ class Kaithem():
         def lorem():
             return(random.choice(sentences))
             #return ("""lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin vitae laoreet eros. Integer nunc nisl, ultrices et commodo sit amet, dapibus vitae sem. Nam vel odio metus, ac cursus nulla. Pellentesque scelerisque consequat massa, non mollis dolor commodo ultrices. Vivamus sit amet sapien non metus fringilla pretium ut vitae lorem. Donec eu purus nulla, quis venenatis ipsum. Proin rhoncus laoreet ullamcorper. Etiam fringilla ligula ut erat feugiat et pulvinar velit fringilla.""")
-      
-        @staticmethod    
+
+        @staticmethod
         def do(f):
             workers.do(f)
-            
-        @staticmethod    
+
+        @staticmethod
         def uptime():
             return time.time()-systasks.systemStarted
-        
+
         @staticmethod
         def errors(f):
             try:
@@ -49,13 +49,13 @@ class Kaithem():
             except Exception as e:
                 return e
             return None
-            
-        
+
+
     class time(object):
         @staticmethod
         def strftime(*args):
             return unitsofmeasure.strftime(*args)
-        
+
         @staticmethod
         def time():
             return time.time()
@@ -84,23 +84,23 @@ class Kaithem():
         def minute():
             return(time.localtime().tm_min)
 
-        @staticmethod   
+        @staticmethod
         def second():
             return(time.localtime().tm_sec)
-        
+
         @staticmethod
         def isdst(self):
             #It returns 1 or 0, cast to bool because that's just weird.
             return(bool(time.localtime().tm_isdst))
-                   
+
         @staticmethod
         def dayofweek():
             return (unitsofmeasure.DayOfWeek())
-        
+
         @staticmethod
         def isDark(lat=None,lon=None):
             return (sky.isDark(lat,lon))
-        
+
         @staticmethod
         def isRahu(lat=None,lon=None):
             if lat == None:
@@ -109,9 +109,9 @@ class Kaithem():
                     lon = registry.get("system/location/lon",None)
                 if lat == None or lon ==None:
                     raise RuntimeError("No server location set, fix this in system settings")
-                
+
             return (sky.isRahu(lat,lon))
-        
+
         @staticmethod
         def isDay(lat=None,lon=None):
             if lat == None:
@@ -121,7 +121,7 @@ class Kaithem():
                 if lat == None or lon ==None:
                     raise RuntimeError("No server location set, fix this in system settings")
             return (sky.isDay(lat,lon))
-        
+
         @staticmethod
         def isNight(lat=None,lon=None):
             if lat == None:
@@ -131,7 +131,7 @@ class Kaithem():
                 if lat == None or lon ==None:
                     raise RuntimeError("No server location set, fix this in system settings")
             return (sky.isNight(lat,lon))
-        
+
         @staticmethod
         def isLight(lat=None,lon=None):
             if lat == None:
@@ -141,7 +141,7 @@ class Kaithem():
                 if lat == None or lon ==None:
                     raise RuntimeError("No server location set, fix this in system settings")
             return (sky.isLight(lat,lon))
-        
+
         @staticmethod
         def isDark(lat=None,lon=None):
             if lat == None:
@@ -151,17 +151,17 @@ class Kaithem():
                 if lat == None or lon ==None:
                     raise RuntimeError("No server location set, fix this in system settings")
             return (sky.isDark(lat,lon))
-        
+
         @staticmethod
         def moonPhase():
             return sky.moon()
-        
+
         @staticmethod
         def accuracy():
             return util.timeaccuracy()
-                
-        
-    
+
+
+
     class sys(object):
         @staticmethod
         def shellex(cmd):
@@ -170,18 +170,19 @@ class Kaithem():
         @staticmethod
         def shellexbg(cmd):
             subprocess.Popen(cmd,shell=True)
-            
+
         @staticmethod
         def lsdirs(path):
             return util.get_immediate_subdirectories(path)
-            
-        @staticmethod  
+
+        @staticmethod
         def lsfiles(path):
             return util.get_files(path)
-        
+
         @staticmethod
         def which(exe):
             return util.which(exe)
+        
         @staticmethod
         def sensors():
             try:
@@ -191,39 +192,47 @@ class Kaithem():
                      return('"sensors" command failed(lm_sensors not available)')
             except:
                 return('sensors call failed')
-    
+
     class registry(object):
         @staticmethod
         def set(key,value):
             registry.set(key,value)
             
         @staticmethod
+        def setschema(key,schema):
+            registry.setschema(key,schema)
+            
+        @staticmethod
+        def delete(key):
+            registry.delete(key)
+
+        @staticmethod
         def get(*args,**kwargs):
             return registry.get(*args,**kwargs)
-        
-    
+
+
     class mail(object):
         @staticmethod
         def send(recipient,subject,message):
             mail.raw_send(message,recipient,subject)
-            
+
         @staticmethod
         def listSend(list,subject,message):
             mail.rawlistsend(subject,message,list)
-            
+
     class web(object):
         @staticmethod
         def unurl(s):
             return util.unurl(s)
-        
+
         @staticmethod
         def url(s):
             return util.url(s)
-        
+
         @staticmethod
         def goBack():
             raise cherrypy.HTTPRedirect(cherrypy.request.headers['Referer'])
-        
+
         @staticmethod
         def serveFile(path, contenttype = "",name = None):
             "Skip the rendering of the current page and Serve a static file instead."
@@ -235,7 +244,7 @@ class Kaithem():
             e.f_MIME = contenttype
             e.f_name = name
             raise e
-        
+
         @staticmethod
         def user():
             x =pages.getAcessingUser()
@@ -243,59 +252,77 @@ class Kaithem():
                 return x
             else:
                 return ''
-            
+
         @staticmethod
         def hasPermission(permission):
             return pages.canUserDoThis(permission)
-        
-    
+
+
     class sound(object):
 
         @staticmethod
         def play(*args,**kwargs):
             sound.playSound(*args,**kwargs)
 
-        @staticmethod 
+        @staticmethod
         def stop(*args,**kwargs):
             sound.stopSound(*args,**kwargs)
-            
-        @staticmethod 
+
+        @staticmethod
         def pause(*args,**kwargs):
             sound.pause(*args,**kwargs)
-            
-        @staticmethod 
+
+        @staticmethod
         def resume(*args,**kwargs):
             sound.resume(*args,**kwargs)
 
         @staticmethod
         def stopAll():
             sound.stopAllSounds()
-            
+
         @staticmethod
         def isPlaying(*args,**kwargs):
             return sound.isPlaying(*args,**kwargs)
-        
+
         @staticmethod
         def position(*args,**kwargs):
             return sound.position(*args,**kwargs)
-        
+
         @staticmethod
         def setvol(*args,**kwargs):
             return sound.setvol(*args,**kwargs)
-        
-        
+
+        @staticmethod
+        def setEQ(*args,**kwargs):
+            return sound.setEQ(*args,**kwargs)
+
+
     class message():
         @staticmethod
         def post(topic,message):
             messagebus.postMessage(topic,message)
 
-        @staticmethod   
+        @staticmethod
         def subscribe(topic,callback ):
             messagebus.subscribe(topic,callback)
-    
+
     class persist():
         @staticmethod
-        def save(data,fn,mode="default"):
+        def save(data,fn,mode="default", private=False):
+            """Save data to file. Filename must end in .json, .yaml, .txt, or .bin. Data will be encoded appropriately.
+                Also supports compressed versions via filenames ending in .gz or .bz2.
+                Args:
+                    data:
+                        the data to be written. if fn is a .json or .yaml, must be serializable. If filename is .txt, must be a string.
+                        If .bin, must be something like bytes.
+                    mode:
+                        If default, just overwrite the file. If backup, rename existing file to file~ then delete it on sucessful write.
+                        Note that load() may not notice all corrupted JSON or YAML files, however gz and bz2 include checksums.
+                    private:
+                        If True, file created with mode 700(Full access to root and owner but not even read to anyone else)
+                        If False(the default), file created with default mode
+            """
+
             if os.path.isdir(fn):
                 raise RuntimeError("Filename is already present as a directory, refusing to overwrite directory")
             #create the directory if it does not exist.
@@ -313,7 +340,9 @@ class Kaithem():
                 else:
                     f = open(fn,'wb')
                     x=fn
-                
+                    
+                if private:
+                    util.chmod_private_try(fn)
                 if x.endswith(".json"):
                     f.write(json.dumps(data).encode('utf8'))
                 elif x.endswith(".yaml"):
@@ -326,30 +355,37 @@ class Kaithem():
                     raise ValueError('Unsupported File Extension')
             finally:
                 f.close()
-                
+
             if mode=="backup":
                 if os.path.isfile(fn+'~'):
                     os.remove(fn+'~')
 
         @staticmethod
         def load(filename,autorecover = True):
+            """Load a file. Return str if file extension is .txt, bytes on .bin, dict on .yaml or .json.
+
+            After that may be a .bz2 or a .gz for compression.
+
+            If autorecover is True, if the file is missing or corrupted(May not catch all corrupted YAML files), looks for a ~ backup before failing.
+            maybe best to use gz if you really care because gz has a checksum"""
             try:
                 if filename.endswith(".gz"):
                     f = gzip.GzipFile(filename,mode='rb')
-                    filename = filename[:-3]
+                    x = filename[:-3]
                 elif filename.endswith(".bz2"):
-                    filename = filename[:-4]
+                    x = filename[:-4]
                     f = bz2.BZ2File(filename,mode='rb')
                 else:
                     f = open(filename,'rb')
-                
-                if filename.endswith(".json"):
+                    x = filename
+
+                if x.endswith(".json"):
                     r=json.loads(f.read().decode('utf8'))
-                elif filename.endswith(".yaml"):
+                elif x.endswith(".yaml"):
                     r=yaml.load(f.read().decode('utf8'))
-                elif filename.endswith(".txt"):
+                elif x.endswith(".txt"):
                     r=f.read().decode('utf8')
-                elif filename.endswith(".bin"):
+                elif x.endswith(".bin"):
                     r=f.read()
                 else:
                     raise ValueError('Unsupported File Extension')
@@ -366,31 +402,31 @@ class Kaithem():
                 f.close()
             except:
                 pass
-                
+
             return r
-            
+
     class string():
         @staticmethod
         def usrstrftime(*a):
             return unitsofmeasure.strftime(*a)
-         
+
         @staticmethod
         def SIFormat(number,d=2):
             return unitsofmeasure.siFormatNumber(number,d)
-        
+
         @staticmethod
-        def formatTimeInterval(s,places=2):
-            return unitsofmeasure.formatTimeInterval(s,places)
-        
+        def formatTimeInterval(s,places=2,clock=False):
+            return unitsofmeasure.formatTimeInterval(s,places,clock)
+
     class events():
         pass
         #Stuff gets inserted here externally
-        
-        
+
+
 class obj():
     pass
 
-    
+
 kaithem = Kaithem()
 kaithem.widget = widgets
 kaithem.globals = obj() #this is just a place to stash stuff.

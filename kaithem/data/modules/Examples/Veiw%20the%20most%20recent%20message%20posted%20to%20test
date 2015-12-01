@@ -1,0 +1,10 @@
+no-header: false
+no-navheader: true
+require-method: [GET, POST]
+require-permissions: []
+resource-type: page
+
+---
+
+
+The most recent message posted to /test on the internal bus is: ${module.last_msg}

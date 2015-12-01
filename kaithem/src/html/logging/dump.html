@@ -1,10 +1,14 @@
 <%include file="/pageheader.html"/>
-<h2>Save</h2>
+<h2>Flush Logs</h2>
 
-<title>Save</title>
+<title>Flush Logs</title>
 <div class="sectionbox">
 <ul>
-<li><a <a class="button savebutton" href="/logs/dumpfiletarget">Confirm Dumping log file</a></li>
+<li>
+    <form method="post" action="/logs/dumpfiletarget">
+    <button type="submit">Flush Logs to File</button>
+    </form>
+</li>
 <ul>
 </div>
 <%include file="/pagefooter.html"/>

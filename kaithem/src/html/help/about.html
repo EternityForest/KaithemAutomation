@@ -9,6 +9,8 @@
     import multiprocessing
     import re
     import threading
+
+    import kaithem
     from src import unitsofmeasure
     from src import newevt
     from src import systasks
@@ -16,6 +18,7 @@
     from src import usrpages
     from src import util
     from src import kaithemobj
+    from src import workers
     from src.config import config
     if os.name != "nt":
         import fcntl
@@ -25,6 +28,17 @@
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s',
                                     ifname[:15].encode('utf-8') ))[20:24])
+
+    def get_user():
+        try:
+            return subprocess.check_output(['whoami'])
+        except:
+            return ""
+    def get_user():
+        try:
+            return subprocess.check_output(['whoami'])
+        except:
+            return ""
 
     def get_lan_ip():
         ip = socket.gethostbyname(socket.gethostname())
@@ -47,7 +61,7 @@
                 except IOError:
                     pass
         return ip
-
+        
 %>
 
 <%include file="/pageheader.html"/>
@@ -59,7 +73,7 @@
     </div>
     <div class="sectionbox">${config['about-box-banner']}</div>
     <div class="sectionbox">
-    Version: 0.53
+    Version: ${kaithem.__version__|h}
     </div>
     <br>
     <div class="sectionbox">
@@ -72,6 +86,14 @@
         </tr><tr>
             <td>WAN(Public) IP when sys loaded</td>
             <td>${myip}</td>
+        </tr>
+        <tr>
+            <td>HTTPS(Secure) Port</td>
+            <td>${config['https-port']}</td>
+        </tr>
+        <tr>
+            <td>HTTP(Unsecure) Port</td>
+            <td>${config['http-port']}</td>
         </tr>
     </table>
 </p>
@@ -106,47 +128,51 @@
                 ${unitsofmeasure.formatTimeInterval(time.time()-systasks.systemStarted,4)}
             </td>
         </tr>
-        <%
+        <% 
             try:
                 load = os.getloadavg()
                 load = (round(load[0],2), round(load[1],2),round(load[2],2))
             except:
                 load = "Load average not availible on non UNIX-like systems."
-
+                
             try:
                 f = util.readfile("/proc/meminfo")
                 total = int(re.search("MemTotal.*?([0-9]+)",f).group(1))
                 free = int(re.search("MemFree.*?([0-9]+)",f).group(1))
                 cache = int(re.search("Cached.*?([0-9]+)",f).group(1))
-
+                
                 used = round(((total - (free+cache))/1000.0),2)
                 usedp = round((1-(free+cache)/float(total))*100,2)
                 total = round(total/1024,2)
             except Exception as e:
                 total=used=usedp = "Unavailable"
-
+                
             def makecpuspan(num):
                 if num> multiprocessing.cpu_count():
                     return 'style="color:red;"'
                 else:
                     return ""
         %>
-
+        
         <tr>
             <td>System Load Average(UNIX only)</td>
             <td>
             1 min: <span ${makecpuspan(load[0])}><b>${load[0]}</b></span>
-            5 min: <span ${makecpuspan(load[1])}><b>${load[1]}</b></span>
+            5 min: <span ${makecpuspan(load[1])}><b>${load[1]}</b></span> 
             15 min: <span ${makecpuspan(load[2])}><b>${load[2]}</b></span>
             </td>
         </tr>
-
+        
         <tr>
             <td>Memory Used By All Processes(UNIX only)</td>
             <td>${used} MB (${usedp}%)</td>
         </tr>
+        <tr>
+            <td>Tasks in thread pool queue</td>
+            <td>${workers.waitingtasks()}</td>
+        </tr>
     </table>
-
+    
 </p>
 <p>
 <h3>System Info</h3>
@@ -155,7 +181,7 @@
         <td>CPU Type</td>
         <td>${platform.machine()|h}
     </tr>
-
+    
     <tr>
         <td>CPU Count</td>
         <td>${multiprocessing.cpu_count()|h}
@@ -164,7 +190,7 @@
         <td>CPU</td>
         <td>${platform.processor()|h}</td>
     </tr>
-
+    
     <tr>
         <td>Total Availible RAM(UNIX Only)</td>
         <td>${total|h} MB</td>
@@ -173,7 +199,7 @@
         <td>OS Type</td>
         <td>${platform.system()|h}</td>
     </tr>
-
+    
     <tr>
         <td>OS Version</td>
         <td>${platform.release()|h}</td>
@@ -182,17 +208,17 @@
         <td>Python Version</td>
         <td>${platform.python_version()|h}</td>
     </tr>
-
+    
      <tr>
         <td>CherryPy Version</td>
         <td>${cherrypy.__version__|h}</td>
     </tr>
-
+    
     <tr>
         <td>Audio Backend</td>
         <td>${sound.backend.backendname|h}</td>
     </tr>
-
+    
     <tr>
         <td>System Time Zone</td>
         <td>${time.tzname[0]|h}</td>
@@ -232,22 +258,341 @@ def module_version(m):
 
 <h2>Acknowledgements</h2>
 <div class="sectionbox">
-<h3>Python Libraries Used</h3>
-<ul>
-<li><a href="http://www.cherrypy.org/">CherryPy(Web Framework)</a></li>
-<li><a href="http://www.makotemplates.org/">Mako(HTML Template Engine)</a></li>
-<li><a href="http://www.pyyaml.org/">PyYAML(YAML Parser)</a></li>
-<li><a href="https://pypi.python.org/pypi/astral">Astral(Astronomical calculations)</a></li>
-<li><a href="http://ace.c9.io/#nav=about">Ace Code Editor(Syntax Highlighting)</a></li>
-<li><a href="http://pytz.sourceforge.net/">pytz(Time Zones)</a></li>
-<li><a href="https://labix.org/python-dateutil">dateutil</a></li>
-<li><a href="http://hacks.bluesmoon.info/strftime/index.html#intro_sec">strftime for javascript</a></li>
-<li><a href= "https://github.com/sunlightlabs/validictory">Validictory(Config file validation)</a></li>
-<li><a href= "http://code.google.com/p/yappi/">Yappi(Performance Profiler, must be installed separately to enable profiling)</a></li>
-<li><a href= "http://code.google.com/p/ntplib/">ntplib(Network time protocol stuff)</a></li>
-<li><a href= "https://ws4py.readthedocs.org/en/latest/">ws4py(Websocket Support)</a></li>
-<li><a href="https://github.com/kvh/recurrent">recurrent(Natural language datetime)</a>
-<li><a href="https://github.com/bear/parsedatetime">parsedatetime(Natural language datetime)</a>
+<h3>Python Libraries Used(License info not guaranteed)</h3>
+<dl>
+<dt><a href="http://www.cherrypy.org/">CherryPy(Web Framework)</a>(BSD License)</dt>
+    <dd><pre>
+    Copyright (c) 2004-2011, CherryPy Team (team@cherrypy.org)
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without modification,
+    are permitted provided that the following conditions are met:
+
+        * Redistributions of source code must retain the above copyright notice,
+          this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright notice,
+          this list of conditions and the following disclaimer in the documentation
+          and/or other materials provided with the distribution.
+        * Neither the name of the CherryPy Team nor the names of its contributors
+          may be used to endorse or promote products derived from this software
+          without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+    </pre></dd>
+<dt><a href="http://www.makotemplates.org/">Mako(HTML Template Engine)</a>(MIT License)</dt>
+<dd><pre>
+This is the MIT license: http://www.opensource.org/licenses/mit-license.php
+
+Copyright (C) 2006-2012 the Mako authors and contributors <see AUTHORS file>.
+Mako is a trademark of Michael Bayer.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this
+software and associated documentation files (the "Software"), to deal in the Software
+without restriction, including without limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
+to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+</pre></dd>
+
+<dt><a href="http://www.pyyaml.org/">PyYAML(YAML Parser)</a>(MIT License)</dt>
+<dd><pre>
+Copyright (c) 2006 Kirill Simonov
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</pre></dd>
+
+<dt><a href="https://pypi.python.org/pypi/astral">Astral(Astronomical calculations)</a>(Apache 2.0)</dt>
+<dd><pre>
+Copyright 2009-2012, Simon Kennedy, code@sffjunkie.co.uk
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+</pre></dd>
+<dt><a href="http://pytz.sourceforge.net/">pytz(Time Zones)</a>(MIT)</dt>
+<dd><pre>
+Copyright (c) 2003-2009 Stuart Bishop <stuart@stuartbishop.net>
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+</pre></dd>
+<dt><a href="https://labix.org/python-dateutil">dateutil</a>(BSD)</dt>
+<dd><pre>
+dateutil - Extensions to the standard python 2.3+ datetime module.
+
+Copyright (c) 2003-2011 - Gustavo Niemeyer <gustavo@niemeyer.net>
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
+    * Neither the name of the copyright holder nor the names of its
+      contributors may be used to endorse or promote products derived from
+      this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+</pre></dd>
+
+<dt><a href="http://hacks.bluesmoon.info/strftime/index.html#intro_sec">strftime for javascript</a>(MIT)</dt>
+<dd><pre>
+Copyright (c) 2008, Philip S Tellis &ltphilip@bluesmoon.info&gt
+All rights reserved.
+
+This code is distributed under the terms of the BSD licence
+
+Redistribution and use of this software in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this list of conditions
+ and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright notice, this list of
+ conditions and the following disclaimer in the documentation and/or other materials provided
+ with the distribution.
+* The names of the contributors to this file may not be used to endorse or promote products
+ derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+</pre></dd>
+<dt><a href= "https://github.com/sunlightlabs/validictory">Validictory(Config file validation)</a>(MIT)</dt>
+<dd><pre>
+Copyright (c) 2013 Sunlight Labs, James Turk
+Contains code from jsonschema 0.2, copyright 2008 Ian Lewis, Yusuke Muraoka
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</pre></dd>
+<dt><a href= "http://code.google.com/p/yappi/">Yappi(Performance Profiler, must be installed separately to enable profiling)</a>(MIT)</dt>
+<dd><pre>
+Copyright (c) 2009-2014 Sumer Cip
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+</pre></dd>
+<dt><a href= "http://code.google.com/p/ntplib/">ntplib(Network time protocol stuff)</a>(LGPL)</dt>
+<dd><pre>
+ntplib - Python NTP library.
+Copyright (C) 2009 Charles-Francois Natali <neologix@free.fr>
+
+ntplib is free software; you can redistribute it and/or modify it under the
+terms of the GNU Lesser General Public License as published by the Free
+Software Foundation; either version 2 of the License, or (at your option) any
+later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this program; if not, write to the Free Software Foundation, Inc., 59
+Temple Place, Suite 330, Boston, MA 0.1.2-1307 USA
+</pre></dd>
+<dt><a href= "https://ws4py.readthedocs.org/en/latest/">ws4py(Websocket Support)</a>(BSD License)</dt>
+<dd><pre>
+NOTICE: The version of ws4py included with kaithem has been modified by the author of kaithem.
+
+
+Copyright (c) 2011-2014, Sylvain Hellegouarch
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+ * Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+ * Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+ * Neither the name of ws4py nor the names of its contributors may be used
+   to endorse or promote products derived from this software without
+   specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+</pre></dd>
+<dt><a href="https://github.com/kvh/recurrent">recurrent(Natural language datetime)</a>(MIT License)</dt>
+<dd><pre>
+Copyright (c) 2012 Ken Van Haren
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+</dt></pre>
+
+<dt><a href="https://github.com/bear/parsedatetime">parsedatetime(Natural language datetime)</a>(Apache 2.0)</dt>
+<dd><pre>
+Copyright 2004-2014 Mike Taylor
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+</pre></dd>
+
+<dt><a href="https://codemirror.net/">CodeMirror</a>(MIT)</dt>
+<dd><pre>
+Copyright (C) 2015 by Marijn Haverbeke <marijnh@gmail.com> and others
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+</pre>
+</dd>
 </ul>
 <h3>Command Line Utilities</h3>
 <ul>
@@ -258,6 +603,7 @@ def module_version(m):
 <h3>Graphics</h3>
 <ul>
 <li><a href="http://webtreats.mysitemyway.com/">Webtreats ETC</a></li>
+<li><a href="http://www.famfamfam.com/lab/icons/silk/">Silk Icon Pack(Almost all icons used in kaithem)</a></li>
 </ul>
 
 <h3>Tools</h3>

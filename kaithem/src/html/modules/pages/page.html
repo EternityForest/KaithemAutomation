@@ -5,9 +5,36 @@ from src import usrpages,pages,util
 from src.config import config
 %>
 <%include file="/pageheader.html"/>
+%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
+<link rel=stylesheet href="/static/js/codemirror/lib/codemirror.css">
+<link rel=stylesheet href="${config['cm-theme-url']}">
+<script src="/static/js/codemirror/lib/codemirror.js"></script>
+<script src="/static/js/codemirror/mode/xml/xml.js"></script>
+<script src="/static/js/codemirror/mode/javascript/javascript.js"></script>
+<script src="/static/js/codemirror/mode/css/css.js"></script>
+<script src="/static/js/codemirror/mode/htmlmixed/htmlmixed.js"></script>
+<script src="/static/js/codemirror/addon/edit/matchbrackets.js"></script>
+
+%endif
 <title>Kaithem Page</title>
-<h2>Page "${name|h}" of module <a href="/modules/module/${url(module)}">${module|h}</a></h2>
-Page URL: <a href="/pages/${util.url(module)}/${util.url(name)}">/pages/${util.url(module)}/${util.url(name)}</a>
+<h2>Editing page: ${name|h}</h2>
+<p class=pathnav>Path:
+<%
+temp_p = ""
+path = util.split_escape(name,"/","\\")
+%>
+<a class="button" href="/modules/module/${url(module)}#resources">${module|h}</a>
+%if path:
+%for i in path[:-1]:
+<%
+temp_p+= i+'/'
+%>\
+<a class="button" href="/modules/module/${url(module)}/resource/${url(temp_p[:-1])}#resources">${i|h}</a>
+%endfor
+%endif
+<b>${path[-1]|h}</b>
+</p>
+Page URL: <a class="gobutton" href="${usrpages.url_for_resource(module,name)}">${''+usrpages.url_for_resource(module,name)}</a>
 <div class="sectionbox">
 
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
@@ -30,16 +57,29 @@ Any keyword arguments from forms etc are availible as a dict called "kwargs".
 Information about the actual HTTP request is availble by acessing the cherrypy.request object which is aliased to "request" in user page code.
 Please see cherrypy's documentation for more info.
 </p>
- 
-         
-<textarea id="box" name="body" rows=25 class="htmlcode">${page["body"]|h}</textarea>
 
+<textarea id="box" name="body" rows=25 class="htmlcode">${page["body"]|h}</textarea>
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
-<div id="pageeditor" class="acediv" style="height: 75ex;border: 1px solid #DDD;">${page["body"]|h}</div>
+<script>
+var editor = CodeMirror.fromTextArea(document.getElementById("box"), {
+    lineNumbers: true,
+    mode: "text/html",
+    matchBrackets: true,
+    theme: "${config['cm-theme']}",
+  indentUnit:4,
+  tabMode: 'spaces',
+  extraKeys: {
+ "Ctrl-F": "findPersistent",
+ "Cmd-F": "findPersistent"
+ }
+ });
+
+editor.setSize("99%","45em")
+</script>
 %endif
 
 <p class="help">
-These extra settings let you control the display or permissions of the page
+<span class="settings-icon">These extra settings let you control the display or permissions of the page
 </p>
 <div class="scrollbox">
 
@@ -58,7 +98,7 @@ These extra settings let you control the display or permissions of the page
             %endif
          %endif
        ></input>Don't add any additional content(raw plaintext/webservice mode)<br>
-       
+
 <input type="checkbox"  name="dont-show-in-index" value="true"
          %if 'dont-show-in-index' in page:
             %if page['dont-show-in-index'] == True:
@@ -66,7 +106,7 @@ These extra settings let you control the display or permissions of the page
             %endif
          %endif
        ></input>Don't show this page in the page index<br>
-       
+
 <input type="checkbox"  name="allow-GET" value="true"
          %if 'require-method' in page:
             %if 'GET' in page['require-method']:
@@ -76,7 +116,7 @@ These extra settings let you control the display or permissions of the page
             checked="yes"
          %endif
        ></input>Make this page acessable by GET requests<br>
-       
+
 <input type="checkbox"  name="allow-POST" value="true"
          %if 'require-method' in page:
             %if 'POST' in page['require-method']:
@@ -102,7 +142,7 @@ These extra settings let you control the display or permissions of the page
                 value= 5.0
         %endif
        ></input> seconds. (this could create a lot of server traffic. don't DDoS yourself!)<br>
-       
+
 <input type="checkbox" name="allow-xss"
          %if 'allow-xss' in page:
             %if page['allow-xss']:
@@ -123,7 +163,7 @@ else:
         value= "${origins|h}"
        ></input>
  </div>
-<p class="help">Require the following permissions to access this page</p>
+<p class="help"><span class="permission-icon"></span>Require the following permissions to access this page</p>
 <div class="scrollbox">
 <ul>
 %for i in sorted(auth.Permissions.keys()):
@@ -136,6 +176,7 @@ else:
 </ul>
 </div>
 %if usrpages.getPageErrors(module,name):
+%if (pages.canUserDoThis("/users/logs.view") or  pages.canUserDoThis("/admin/modules.edit") or pages.canUserDoThis("/admin/errors.view")):
 <h3>Errors</h3>
 <p class ="help">
 This section shows up to the most recent 25 errors that occured while rendering the page.
@@ -143,9 +184,17 @@ This section shows up to the most recent 25 errors that occured while rendering 
 <div class="scrollbox">
 %for i in usrpages.getPageErrors(module,name):
     <h4>${i[0]|h}</h4>
-    <pre>${str(i[1])|h}</pre>
+<pre>
+%if pages.canUserDoThis("/users/logs.view"):
+${str(i[2])|h}
+%endif
+${str(i[1])|h}
+</pre>
 %endfor
 </div>
+%else:
+<p class="error">Some Errors Hidden because you are not logged in or do not have the permissions to view them.</p>
+%endif
 %endif
 <p class="help">
 Saving this module will cause it to be immediately acessable from the web.
@@ -159,19 +208,5 @@ Saving this module will cause it to be immediately acessable from the web.
 </form>
 </div>
 
-%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
-<script src="/static/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
-<script>
-var pageeditor = ace.edit("pageeditor");
-pageeditor.setTheme("ace/theme/dawn");
-pageeditor.getSession().setMode("ace/mode/html");
 
-pageeditor.getSession().on('change', function(e) {
-    document.getElementById('box').value = pageeditor.getValue();
-});
-
-document.getElementById('box').style.display='none';
-document.getElementById('pageeditor').style.display='block';
-</script>
-%endif
 <%include file="/pagefooter.html"/>

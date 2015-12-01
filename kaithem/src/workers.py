@@ -23,13 +23,16 @@ import threading,sys,cherrypy,traceback
 import atexit,time
 from .config import config
 
+def inWaiting():
+    return len(__queue)
+
 #2 and 3 have basically the same module with diferent names
 if sys.version_info < (3,0):
     import Queue
     queue = Queue
 else:
     import queue
-    
+
 __queue = queue.Queue(config['task-queue-size'])
 run = True
 
@@ -61,20 +64,38 @@ def __workerloop():
             f()
         except Exception as e:
             try:
-                import messagebus
-                messagebus.postMessage('system/errors/workers'+
+                from src import messagebus
+                messagebus.postMessage('system/errors/workers',
                                            {"function":f.__name__,
                                             "module":f.__module__,
-                                            "traceback":traceback.format_exc()})
+                                            "traceback":traceback.format_exc(6)})
             except:
-                pass
+                try:
+                    messagebus.postMessage('system/errors/workers',
+                                           {
+                                            "traceback":traceback.format_exc(6)})
+                except:
+                    print("Failed to post error in background task to messagebus")
+                
 
-#Wrap queue.put because it looks nicer
 def do(func):
+    """Run a function in the background
+
+    funct(function):
+        A function of 0 arguments to be ran in the background in another thread immediatly,
+    """
     __queue.put(func)
 
 def waitingtasks():
+    "Return the number of tasks in the task queue"
     return __queue.qsize()
+
+#This is a decorator to make an asychronous version of a function
+def async(f):
+    """Given a function f, return a function g that asyncronously executes f. Basically calling g will immediately run f in the thread pool."""
+    def g():
+        __queue.put(f)
+    return g
 
 workers = []
 #Start a number of threads as determined by the config file

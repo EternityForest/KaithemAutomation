@@ -1,7 +1,7 @@
 <%include file="/pageheader.html"/>
 <%!
 from src import messagelogging
-import time,json
+import time,json,itertools,math
 from src.unitsofmeasure import formatTimeInterval,strftime
 from src.util import url
 from src.config import config
@@ -10,14 +10,31 @@ def dump(j):
     if isinstance(j,str):
         return j
     return json.dumps(j,sort_keys=True,indent=4, separators=(',', ': '))
+
+def getEntries(p,page = 1):
+    global entries
+    start =len(p)- ((page) * 200)
+    stop = max(0,start + 200)
+    x = list(itertools.islice(p,max(0,start),stop) )
+    return reversed(x), len(x)
 %>
 
-<h2>Recent messages on topic ${topicname|h}</h2>
+<%
+e,entries = getEntries(messagelogging.log[topicname], page)
+%>
+
+<h2>Recent messages on topic ${topicname|h} (${len(messagelogging.log[topicname])} Messages total, ${entries} shown)</h2>
 <div class="sectionbox">
 <p class="help">
 Only messages posted since the most recent periodic dump are shown
 </p>
-%for i in reversed(list(messagelogging.log[topicname])):
+<p class="menubar">
+Page:
+%for i in range(1,(int(math.ceil(len(messagelogging.log[topicname])/200))+1)):
+    <a href= "?page=${str(i)}"> ${i} </a>
+%endfor
+<p>
+%for i in e:
     <h3>${strftime(i[0])}(about ${formatTimeInterval(time.time()-i[0],2)} ago)</h3>
     <p><pre>${dump(i[1])|h}</pre></p>
 %endfor

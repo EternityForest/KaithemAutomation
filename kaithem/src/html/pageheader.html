@@ -1,6 +1,6 @@
 <%!
 from src.config import config
-from src import auth,util,notifications,pages
+from src import auth,util,notifications,pages,modules,registry
 import cherrypy
 %>
 
@@ -10,11 +10,12 @@ import cherrypy
     <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">
     <link rel="stylesheet" type="text/css" href="${config['theme-url']}">
     </head>
-    
-  <body id="page"> 
+
+  <body id="page">
 
     <div style="width: 100%">
     ${config['top-banner-html']}
+
     <ul  border="" id="nav">
 <li><a href="/">Main</a>
             %if config['enable-js'] and pages.canUserDoThis("/admin/mainpage.view"):
@@ -45,7 +46,7 @@ import cherrypy
                             return c_value;
                             }
                     function f()
-                    {    
+                    {
                     x = new XMLHttpRequest();
                     if (!getCookie("LastSawMainPage"))
                     {
@@ -61,17 +62,17 @@ import cherrypy
                     if(k[0]>0)
                     {
                         document.getElementById("notifications").innerHTML= "("+k[0]+")";
-                        
+
                         if(k[2]>0)
                         {
                         document.getElementById("notifications").className = "warning";
                         }
-                        
+
                         if(k[3]>0)
                         {
                         document.getElementById("notifications").className = "error";
                         }
-                        
+
                     }
                     else
                     {
@@ -83,39 +84,50 @@ import cherrypy
                     setTimeout(f,350);
                     setTimeout(f,1000);
                     setTimeout(f,4000);
-                    
-                    
+
+
             %elif pages.canUserDoThis("/admin/mainpage.view"):
 
             ${notifications.makenotifier()}
             %endif
-                    
-                
+
+
                 </script>
             </span>
-            
-            
+
+
             </li>
-            <li><a href="/modules/">Modules</a></li>
-            <li><a href="/pagelisting">Page Index</a></li>
+            <li><a class="moduleslink" href="/modules/">Modules</a>
+%if modules.moduleschanged:
+<span title="The modules have unsaved changes">*</span>
+%endif
+            <li><a class="pageslink" href="/pagelisting">Page Index</a></li>
 
-            <li><a href="/helpmenu">Help</a></li>
-            
-            <li><a href="/settings">Settings and Tools</a></li>
+            <li><a class="helplink" href="/helpmenu">Help</a></li>
+
+            <li><a class="settingslink" href="/settings">Settings and Tools</a>
+
+%if auth.authchanged:
+<span title="The users, groups, user settings, or permissions have unsaved changes">*</span>
+%endif
+
+%if not registry.is_clean:
+<span title="The kaithem registry has unsaved changes">*</span>
+%endif
+
+</li>
             %if "auth" in cherrypy.request.cookie:
-            
-                %if cherrypy.request.cookie['auth'].value in auth.Tokens:
-                    <li><a href="/login/logout">Logout</a></li>
-                    
-                %else:
-                    <li><a href="/login?go=${util.url(cherrypy.url())}">Login</a></li>
-                %endif
-                
-            %else:
-                <li><a href="/login?go=${util.url(cherrypy.url())}">Login</a></li>
-            %endif
 
+                %if cherrypy.request.cookie['auth'].value in auth.Tokens:
+                    <li><a class="loginlink" href="/login/logout">Logout</a></li>
+
+                %else:
+                    <li><a class="loginlink" href="/login?go=${util.url(cherrypy.url())}">Login</a></li>
+                %endif
+
+            %else:
+                <li><a class="loginlink" href="/login?go=${util.url(cherrypy.url())}">Login</a></li>
+            %endif
     </ul>
     </div>
     <main>
-

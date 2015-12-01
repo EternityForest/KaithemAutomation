@@ -1,4 +1,4 @@
-#Copyright Daniel Dunn 2013
+#Copyright Daniel Dunn 2013, 2015
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify
@@ -13,8 +13,34 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import cherrypy
+import cherrypy, time
 from . import pages, auth,util,messagebus
+
+
+#Experimenal code not implemented, intended to send warning if the ratio of failed logins to real logins is excessive
+#in a short period.
+lastCleared = time.time()
+recentAttempts = 0
+alreadySent = 0
+
+def onAttempt():
+    if time.time()-lastCleared > 60*30:
+        lastCleared = time.time()
+        if recentAttempts < 50:
+            alreadySent = 0
+        recentAttempts = 0
+    recentAttempts += 1
+    if recentAttempts > 150 and not alreadysent:
+        messagebus.postMessage("/system/notifications/warnings","Excessive number of failed attempts in the last 30 minutes.")
+
+def onLogin():
+    if time.time()-lastCleared > 60*30:
+        lastCleared = 0
+        if recentAttempts < 50:
+            alreadySent = 0
+        recentAttempts = 0
+    recentAttempts -= 1.5
+
 
 class LoginScreen():
 
@@ -23,11 +49,16 @@ class LoginScreen():
         if not cherrypy.request.scheme == 'https':
             raise cherrypy.HTTPRedirect("/errors/gosecure")
         return pages.get_template("login.html").render()
-        
+
     @cherrypy.expose
     def login(self,**kwargs):
+        if auth.getUserSetting(pages.getAcessingUser(),"restrict-lan"):
+            if not util.iis_private_ip(cherrypy.request.remote.ip):
+                raise cherrypy.HTTPRedirect("/errors/localonly")
+
         if not cherrypy.request.scheme == 'https':
             raise cherrypy.HTTPRedirect("/errors/gosecure")
+        time.sleep(0.005)
         x = auth.userLogin(kwargs['username'],kwargs['pwd'])
         if not x=='failure':
             #Give the user the security token.
@@ -41,11 +72,14 @@ class LoginScreen():
             cherrypy.response.cookie['auth']['secure'] = ' '
             cherrypy.response.cookie['auth']['httponly'] = ' '
             messagebus.postMessage("/system/auth/login",[kwargs['username'],cherrypy.request.remote.ip])
-            raise cherrypy.HTTPRedirect(util.unurl(kwargs['go']))
+            if not "/errors/loginerror" in util.unurl(kwargs['go']):
+                raise cherrypy.HTTPRedirect(util.unurl(kwargs['go']))
+            else:
+                raise cherrypy.HTTPRedirect("/")
         else:
             messagebus.postMessage("/system/auth/loginfail",[kwargs['username'],cherrypy.request.remote.ip])
             raise cherrypy.HTTPRedirect("/errors/loginerror")
-            
+
     @cherrypy.expose
     def logout(self,**kwargs):
         #Change the security token to make the old one invalid and thus log user out.

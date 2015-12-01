@@ -1,0 +1,10 @@
+{continual: false, disabled: false, once: true, priority: interactive, rate-limit: 0.0,
+  resource-type: event, trigger: 'False'}
+
+---
+#This will cause two issues in python 2, a dictionary changed size suring iteration bug, and an error wherin it won't be able to find p
+p=0
+
+---
+p+=1
+x={}

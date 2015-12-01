@@ -2,7 +2,7 @@
 <%!
 from src.util import url
 import cherrypy
-from src import auth,pages
+from src import auth,pages,usrpages
 %>
 <title>Page Index</title>
 <h2>Page Index</h2>
@@ -32,7 +32,7 @@ def canIGoToThisPage(page):
     %for j in sorted(modules[i].keys()):
         %if modules[i][j]['resource-type'] =='page':
             %if canIGoToThisPage(modules[i][j]):
-            <a href="/pages/${url(i)}/${url(j)}">${j|h}</a></br>
+            <a href="${usrpages.url_for_resource(i,j)}">${j|h}</a></br>
             %endif
         %endif
     %endfor

@@ -4,8 +4,10 @@ import pytz
 %>
 <%include file="/pageheader.html"/>
 <h1>My Account</h1>
+<p class="help">Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</p>
 <h2>Security</h2>
 <div class="sectionbox">
+Restricted to LAN IP addresses(Only admin can change): ${auth.getUserSetting(pages.getAcessingUser(), 'restrict-lan')}</br>
 <h3>Change Password</h3>
 <form action='/settings/changepwd' method='post'>
 <table border=1>
@@ -40,11 +42,11 @@ import pytz
     %if pages.canUserDoThis("/users/mail/lists/"+i+"/subscribe"):
     <div>
     <input type="checkbox" name="list_${i|h}" value="subscribe"
-    
+
     %if i in auth.getUserSetting(pages.getAcessingUser(),'mailinglists'):
     checked="on"
     %endif
-    
+
     ></input> ${x[i]['name']|h}(UUID: ${i})<p>${x[i]['description']}</p>
     </div>
     %endif
@@ -80,15 +82,15 @@ import pytz
 <div class="sectionbox">
 <table border=1>
 <tr>
-<td>Enable Ace Code Editor</td>
+<td>Enable CodeMirror Code Editor</td>
 <td>
 <input type="checkbox" name="useace" value="true"
-    
+
     %if auth.getUserSetting(pages.getAcessingUser(),'useace'):
     checked="on"
     %endif
-    
-></input> 
+
+></input>
 </table>
 <input type ="submit" value="Save"></input>
 
@@ -97,7 +99,7 @@ import pytz
 <div class="sectionbox">
 <p class="help">These are the permissions you have been granted.</p>
 %for i in sorted(auth.Users[pages.getAcessingUser()].permissions):
-<h3 
+<h3
 %if i.startswith('__'):
 class="specialentry"\
 %endif

@@ -1,0 +1,18 @@
+<%!
+from src.util import url
+from src import pages,newevt,usrpages,unitsofmeasure,util
+import json
+%>
+
+<%include file="/pageheader.html"/>
+<h2>Module ${name|h} Scope</h2>
+
+<div class="sectionbox">
+    <p class="help">
+    This shows all of the attributes of the "module" object that is available in pages and events and is shared between the entire module.
+    <p>
+%for i in obj.__dict__:
+<h3>${i|h}</h3>
+<pre>${util.saferepr(obj.__dict__[i])|h}</pre>
+%endfor
+</article>

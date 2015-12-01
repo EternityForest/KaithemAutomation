@@ -52,7 +52,54 @@ If you force stop it it might leave behind a lingering process that you have to 
 Change Log
 =============
 
-###0.53(Hotfix for 0.52
+
+
+###0.54
+
+* New file browser like module view
+* New resource type: folder
+* Support for __index__ pages
+* Raise exception if port not free instead of exiting silently.
+* New config option: log-format: null discards logs instead of saving them.
+* Slider widgets only show a few decimal places now
+* Fix pagename not defined issue that interfered with proper error logging in pages
+* Add more complete logging info to page error logs. The user's IP, and the exact URL they tried will be logged.
+* Flag errors in red in log page
+* Fix bug where message events were not stopping when deleted
+* Page Error logs now show IP address of requester and any cookies(requires permission "users/logs.view")
+* Retrying logging in no longer redirects to same error page even if sucessful
+* Fix weird file not found linux error in file manager that made dangling symlinks screw everything up
+* Fix bug where text selection and links sometimes don't work in text display widgets
+* Errors in zip uploads show up on the event pages themselves
+* Add JS to sliders to try to stop unintentional page slipping around on mobile
+* Errors in widget callback functions now post to /system/errors/widget s
+* Can now inspect module objects
+* Page acesses can be logged
+* Adding a __doc__ string to the code in the setup portion of an event will now add a description on the module index.
+* You can also add doc string descriptions to pages with a module level block comment and __doc__="str" 
+* One must have either /admin/modules.edit, /users/logs.view, or /admin/errors.view to view page or event errors.
+* Better default new page contents
+* Mouse over the unsaved change asterix to view specifically what has unsaved changes.
+* Unsaved registry changes now have the asterix
+* Paginated logs, fix major bug with logging
+* /system/notifications/important notifications are highlighted
+* Switch to CodeMirror instead of ace for better theming and mobile support(You may need to anable it in your user settings)
+* Improve normalization of messagebus topics, which had caused some problems with missed messages in the log.
+* Basic Debian packaging tools
+* Private option for kaithem.persist.save
+* Errors occurring in widget callbacks are now reported on the front page errors log.
+* Threads page tells you what the thread class is
+* New(Fully compatible with old saves) save format that is much easier to work with manually and with git
+* kaithem.misc.version and kaithem.misc.version_info values
+* Usability Improvements
+* !function event triggers let you trigger an event by calling a function
+* Remove unsafe GET requests
+* Fix security hole in loading library module that allowed any user to do so.
+* Increase stack size to 256K per thread, preventing segfaults
+* Fix bug where all accesses to user pages had to use the same lock which meant that accessing a page could actually cause a deadlock if accessing that page caused an HTTP to another page
+* Lots of misc changes
+
+###0.53(Hotfix for 0.52)
 This is a single line change to fix a critical bug.
 *Fix bug that let anyone, even an unregistered user change the settings for any user.
 

@@ -1,0 +1,13 @@
+no-header: false
+no-navheader: true
+require-method: [GET, POST]
+require-permissions: []
+resource-type: page
+
+---
+
+
+<div class="sectionbox">
+This page was created through the kaithem web interface. You can go to the "edit page" button to see the source.
+Notice how the user pages integrate with the theming?
+</div>

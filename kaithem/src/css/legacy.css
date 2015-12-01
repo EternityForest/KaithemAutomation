@@ -1,0 +1,8 @@
+/*
+Re enable the blink tag.
+*/
+blink
+{
+    display: inline;
+    text-decoration: blink;
+}

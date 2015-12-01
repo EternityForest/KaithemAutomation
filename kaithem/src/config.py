@@ -21,6 +21,8 @@ import yaml,argparse,sys,os, validictory
 def should_use_block(value):
     if "\n" in value:
         return True
+    if "\r" in value:
+        return True
     return False
 
 def my_represent_scalar(self, tag, value, style=None):
@@ -36,19 +38,28 @@ def my_represent_scalar(self, tag, value, style=None):
     return node
 
 yaml.representer.BaseRepresenter.represent_scalar = my_represent_scalar
+
+#detect linux.
+if os.path.realpath(__file__).startswith('/usr/'):
+    _dn = "/usr/share/kaithem"
+else:
+    _dn = os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","data")
+    
 #################################################################
 def load():
+    global argcmd
     _argp = argparse.ArgumentParser()
     
     #Manually specify a confifuration file, or else there must be one in /etc/kaithem
     _argp.add_argument("-c")
     _argp.add_argument("-p")
+    _argp.add_argument("--initialpackagesetup")
+
     argcmd = _argp.parse_args(sys.argv[1:])
-    
-    _dn = os.path.dirname(os.path.realpath(__file__))
+
     
     #This can't bw gotten from directories or wed get a circular import
-    with open(os.path.join(_dn,"../data/default_configuration.yaml")) as f:
+    with open(os.path.join(_dn,"default_configuration.yaml")) as f:
         _defconfig = yaml.load(f)
     
     #Attempt to open any manually specified config file
@@ -75,14 +86,12 @@ def load():
 def reload():
     global config
     c = load()
-    _dn = os.path.dirname(os.path.realpath(__file__))
-    with open(os.path.join(_dn,"../data/config-schema.yaml")) as f:
+    with open(os.path.join(_dn,"config-schema.yaml")) as f:
         validictory.validate(c,yaml.load(f))
     config.update(c)
 
 c = load()
-_dn = os.path.dirname(os.path.realpath(__file__))
-with open(os.path.join(_dn,"../data/config-schema.yaml")) as f:
+with open(os.path.join(_dn,"config-schema.yaml")) as f:
     validictory.validate(c,yaml.load(f))
 config = c
 del c

@@ -10,11 +10,11 @@
 %else:
 <li>
 %endif
-${i.name|h}
+${i.name|h}(${i.__class__|h})
 %if i.daemon:
 <i>(daemon)</i>
 %endif
-</li>
+: running a function defined in <b>${i.__module__}</b></li>
 %endfor
 </ul>
 </div>

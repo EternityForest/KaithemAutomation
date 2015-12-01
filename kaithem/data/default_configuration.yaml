@@ -15,7 +15,7 @@ ssl-dir : ssl
 site-data-dir: var
 
 #How many threads to allocate for the worker thread pool
-worker-threads: 8
+worker-threads: 12
 
 #How many threads cherrypy should use for the web server to serve unencrypted pages
 http-thread-pool: 3
@@ -64,22 +64,22 @@ priority-response:
     medium: 2.5
     low: 45
     verylow: 120
-    
-#should an error occur while polling or running an event, 
+
+#should an error occur while polling or running an event,
 #how long to wait before polling that event again in seconds
 error-backoff:
-    realtime: 0.05 #Assume realtime really does need to be fast
+    realtime: 1 #Assume realtime really does need to be fast
     interactive: 5
     high: 7
     medium: 9
     #Those last two are already really slow.
     low: 45
     verylow: 120
-    
+
 #List of possible audio backend players in order of preference. Support sox and mpg123.
 audio-backends:
     - mplayer
-    - sox 
+    - sox
     - mpg123
 
 #How many times to retry loading an event before marking it as a failure and moving on
@@ -87,10 +87,26 @@ max-load-attempts: 25
 
 #allow websocket connections? they may be unstable.
 enable-websockets: true
-    
+
+#Enable optional javascript effects.
+#Now deprecated, might do nothing or break something if turned off.
+enable-js: yes
+
+
+#This setting does nothing unless the process is started as root on UNIX.
+#if the process does get started as root, then it will drop to this user.
+#By default we assume that if the user starts the process as root he wants it to run as root.
+run-as-user: root
+
+#If this is not default, and run as user is not root, and the user starts the process as root, then we use this group.
+run-as-group: __default__
 ##################LOGGING######################################################
 #Notice: to actually control what topics are logged, use the kaithem/var/whattosave.txt or edit
 #through the web interface
+
+#By default, log these topics unless the user changes the settings via the web interface.
+log-topics:
+    - /system/notifications/
 
 #How many entires to log before flushing to disk or deleting
 log-dump-size: 33000
@@ -109,7 +125,7 @@ log-compress: none
 errors-to-keep: 50
 
 #How many old system notifications to show on front page(does not affect logging)
-notifications-to-keep: 100
+notifications-to-keep: 250
 
 #How often to automatically dump the log file. must be [number] [unit] like 2 hours. units: second,minute,hour,day,week,year
 #can also be "never"
@@ -122,6 +138,9 @@ cherrypy-log-stdout: no
 #List of topic that will be printed to stdout if anything is published to them
 print-topics:
     - /system/notifications/
+
+#Log Requests to /system/http/access
+log-http: yes
 
 #Fraction of memory that can be used by all processes o unix before kaithem makes a warning in the log.
 mem-use-warn: 0.85
@@ -136,7 +155,7 @@ front-page-banner: |
     Kaithem was not designed for mission critical or safety of life systems and no warranty is expressed or implied.<br>
     Use entirely at your own risk.</b>
 
-#This HTML is used as the top banner for deployment branding 
+#This HTML is used as the top banner for deployment branding
 top-banner-html: |
     <div id="topbanner"><h1 align="center">Kaithem Automation Server</h1></div>
 
@@ -145,9 +164,10 @@ about-box-banner: "This space can be customized with site specific data in the c
 
 #The URL from which to retrieve the CSS theme file
 theme-url: /static/scrapbook.css
-    
-#Enable optional javascript effects
-enable-js: yes
+
+#The URL from which to retrieve the CSS theme file for codemirror, or else no to use a codemirror builtin theme.
+cm-theme-url: /static/css/codemirror-scrapbook.css
+cm-theme: codemirror-scrapbook
 
 #How to format times and dates
 time-format: "%A, %B %d, %Y at %I:%M:%S %p Server Time"

@@ -4,12 +4,12 @@ import socket
 import time
 import threading
 import types
-import sys
 
 from ws4py import WS_KEY, WS_VERSION
 from ws4py.exc import HandshakeError, StreamClosed
 from ws4py.streaming import Stream
-from ws4py.messaging import Message, PongControlMessage
+from ws4py.messaging import Message, PingControlMessage,\
+    PongControlMessage
 from ws4py.compat import basestring, unicode
 
 DEFAULT_READING_SIZE = 2
@@ -33,7 +33,6 @@ class Heartbeat(threading.Thread):
         threading.Thread.__init__(self)
         self.websocket = websocket
         self.frequency = frequency
-        self.name = self.name.replace("Thread","HeartbeatThread")
 
     def __enter__(self):
         if self.frequency:
@@ -126,6 +125,8 @@ class WebSocket(object):
         At which interval the heartbeat will be running.
         Set this to `0` or `None` to disable it entirely.
         """
+        "Internal buffer to get around SSL problems"
+        self.buf = b''
 
         self._local_address = None
         self._peer_address = None
@@ -212,6 +213,13 @@ class WebSocket(object):
             finally:
                 self.sock = None
 
+    def ping(self, message):
+        """
+        Send a ping message to the remote peer.
+        The given `message` must be a unicode string.
+        """
+        self.send(PingControlMessage(message))
+
     def ponged(self, pong):
         """
         Pong message, as a :class:`messaging.PongControlMessage` instance,
@@ -231,6 +239,22 @@ class WebSocket(object):
         """
         pass
 
+    def unhandled_error(self, error):
+        """
+        Called whenever a socket, or an OS, error is trapped
+        by ws4py but not managed by it. The given error is
+        an instance of `socket.error` or `OSError`.
+
+        Note however that application exceptions will not go
+        through this handler. Instead, do make sure you
+        protect your code appropriately in `received_message`
+        or `send`.
+
+        The default behaviour of this handler is to log
+        the error with a message.
+        """
+        logger.exception("Failed to receive data")
+
     def _write(self, b):
         """
         Trying to prevent a write operation
@@ -241,9 +265,8 @@ class WebSocket(object):
         """
         if self.terminated or self.sock is None:
             raise RuntimeError("Cannot send on a terminated websocket")
-        #MODIFIED BY DANIEL DUNN/EternityForest as a workaround
-        self.sock.sendall(b)
 
+        self.sock.sendall(b)
 
     def send(self, payload, binary=False):
         """
@@ -285,9 +308,14 @@ class WebSocket(object):
         Performs the operation of reading from the underlying
         connection in order to feed the stream of bytes.
 
-        We start with a small size of two bytes to be read
-        from the connection so that we can quickly parse an
-        incoming frame header. Then the stream indicates
+        Because this needs to support SSL sockets, we must always
+        read as much as might be in the socket at any given time,
+        however process expects to have itself called with only a certain
+        number of bytes at a time. That number is found in
+        self.reading_buffer_size, so we read everything into our own buffer,
+        and then from there feed self.process.
+
+        Then the stream indicates
         whatever size must be read from the connection since
         it knows the frame payload length.
 
@@ -300,13 +328,21 @@ class WebSocket(object):
             return False
 
         try:
-            b = self.sock.recv(self.reading_buffer_size)
-        except socket.error:
-            logger.exception("Failed to receive data")
+            x = self.sock.recv(4096)
+            if not x:
+                return False
+            self.buf = self.buf + x
+        except (socket.error, OSError) as e:
+            self.unhandled_error(e)
             return False
         else:
-            if not self.process(b):
-                return False
+            while len(self.buf)>=self.reading_buffer_size:
+                #Get the oldest n bytes, and then remove them from the buffer.
+                b = self.buf[:self.reading_buffer_size]
+                self.buf = self.buf[self.reading_buffer_size:]
+                #Process basically only returns false on errors.
+                if not self.process(b):
+                    return False
 
         return True
 
@@ -326,7 +362,7 @@ class WebSocket(object):
         self.client_terminated = self.server_terminated = True
 
         try:
-            if not s.closing:
+            if s.closing is None:
                 self.closed(1006, "Going away")
             else:
                 self.closed(s.closing.code, s.closing.reason)
@@ -356,7 +392,7 @@ class WebSocket(object):
 
         if not bytes and self.reading_buffer_size > 0:
             return False
-        
+
         self.reading_buffer_size = s.parser.send(bytes) or DEFAULT_READING_SIZE
 
         if s.closing is not None:
@@ -365,7 +401,6 @@ class WebSocket(object):
                 self.close(s.closing.code, s.closing.reason)
             else:
                 self.client_terminated = True
-            s = None
             return False
 
         if s.errors:
@@ -373,7 +408,6 @@ class WebSocket(object):
                 logger.debug("Error message received (%d) '%s'" % (error.code, error.reason))
                 self.close(error.code, error.reason)
             s.errors = []
-            s = None
             return False
 
         if s.has_message:
@@ -381,7 +415,6 @@ class WebSocket(object):
             if s.message is not None:
                 s.message.data = None
                 s.message = None
-            s = None
             return True
 
         if s.pings:
@@ -394,7 +427,6 @@ class WebSocket(object):
                 self.ponged(pong)
             s.pongs = []
 
-        s = None
         return True
 
     def run(self):

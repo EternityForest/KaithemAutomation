@@ -12,14 +12,15 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import weakref,time,json,base64,cherrypy,os
-from . import auth,pages,unitsofmeasure,config,util
+import weakref,time,json,base64,cherrypy,os, traceback,random
+from . import auth,pages,unitsofmeasure,config,util,messagebus
 from src.config import config
 if config['enable-websockets']:
     from ws4py.websocket import WebSocket
 widgets = weakref.WeakValueDictionary()
 n = 0
 
+server_session_ID= str(time.time())+str(os.urandom(8))
 def mkid():
     global n
     n=(n+1)%10000
@@ -27,7 +28,7 @@ def mkid():
 
 
 class WebInterface():
-    
+
     #This index is entirely for AJAX calls
     @cherrypy.expose
     def index(self,**k):
@@ -36,15 +37,15 @@ class WebInterface():
         user = pages.getAcessingUser()
         req = j['req']
         upd = j['upd']
-        
+
         for i in j['upd']:
             widgets[i]._onUpdate(user,upd[i])
 
         for i in req:
             resp[i] = widgets[i]._onRequest(user)
-        
+
         return json.dumps(resp)
-  
+
     @cherrypy.expose
     def ws(self):
         # you can access the class instance through
@@ -55,13 +56,17 @@ class WebInterface():
             handler.user = pages.getAcessingUser()
         else:
             handler.user = "__guest__"
-    
+
     @cherrypy.expose
     def ws_allowed(self):
         return str(config['enable-websockets'])
-    
+
+    @cherrypy.expose
+    def session_id(self):
+        return server_session_ID
+
 if config['enable-websockets']:
-    class websocket(WebSocket):        
+    class websocket(WebSocket):
         def received_message(self,message):
             try:
                 o = json.loads(message.data.decode('utf8'))
@@ -69,13 +74,13 @@ if config['enable-websockets']:
                 user = self.user
                 req = o['req']
                 upd = o['upd']
-                
+
                 for i in upd:
                     widgets[i]._onUpdate(user,upd[i])
-        
+
                 for i in req:
                     resp[i] = widgets[i]._onRequest(user)
-                
+
                 self.send(json.dumps(resp))
             except Exception as e:
                 self.send(repr(e)+ " xyz")
@@ -85,87 +90,127 @@ class Widget():
         self._value = None
         self._read_perms = []
         self._write_perms=[]
-        
+        self.errored_function = None
+        self.errored_getter = None
+
         def f(u,v):
             pass
-        
+
         self._callback = f
-        
+
         #Give the widget an ID for the client to refer to it by
         if not 'id' in kwargs:
             self.uuid = "id"+base64.b64encode(os.urandom(16)).decode().replace("/",'').replace("-",'').replace('+','')[:-2]
         else:
             self.uuid = kwargs['id']
-        
+
         #Insert self into the widgets list
         widgets[self.uuid] = self
 
     #This function is called by the web interface code
     def _onRequest(self,user):
         """Widgets on the client side send AJAX requests for the new value. This function must
-        return the value for the widget. For example a slider might request the newest value
+        return the value for the widget. For example a slider might request the newest value.
+
+        This function is also responsible for verifying that the user has the right permissions
+
+        This function is generally only called by the library.
+
+        This function returns if the user does not have permission
+
+        Args:
+            user(string):
+                the username of the user who is tring to access things.
         """
         for i in self._read_perms:
             if not auth.canUserDoThis(user,i):
                 return
-            
-        return self.onRequest(user)
-    
+        try:
+            return self.onRequest(user)
+        except Exception as e:
+            messagebus.postMessage("/system/errors/widgets", traceback.format_exc(6))
+            if not (self.errored_getter == id(self._callback)):
+                messagebus.postMessage("/system/notifications/errors", "Error in widget getter function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
+                                        %(self._callback.__name__, self._callback.__module__))
+                self.errored_getter = id(self._callback)
+
     #This function is meant to be overridden or used as is
-    def onRequest(self,user):   
+    def onRequest(self,user):
+        """This function is called after permissions have been verified when a client requests the current value. Usually just returns self._value
+
+        Args:
+            user(string):
+                The username of the acessung client
+        """
         return self._value
-    
+
     #This function is called by the web interface whenever this widget is written to
     def _onUpdate(self,user,value):
+        """Called internally to write a value to the widget. Responisble for verifying permissions. Returns if user does not have permission"""
         for i in self._read_perms:
             if not auth.canUserDoThis(user,i):
                 return
-            
+
         for i in self._write_perms:
             if not auth.canUserDoThis(user,i):
                 return
-            
+
         self.onUpdate(user,value)
-        self._callback(user,value)
-        
+        try:
+            self._callback(user,value)
+        except Exception as e:
+            messagebus.postMessage("/system/errors/widgets", traceback.format_exc(6))
+            if not (self.errored_function == id(self._callback)):
+                messagebus.postMessage("/system/notifications/errors", "Error in widget callback function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
+                                       %(self._callback.__name__, self._callback.__module__))
+                self.errored_function = id(self._callback)
+            raise e
+
+
     #Return True if this user can write to it
     def isWritable(self):
         for i in self._write_perms:
             if not pages.canUserDoThis(i):
                 return "disabled"
         return ""
-        
+
     #Set a callback if it ever changes
     def attach(self,f):
         self._callback = f
-    
+
     #meant to be overridden or used as is
     def onUpdate(self,user,value):
         self._value = value
-    
+
     #Read and write are called by code on the server
     def read(self):
         return self._value
-    
+
     def write(self,value):
         self._value = value
         #Is this the right behavior?
         self._callback("__SERVER__",value)
-    
+
     #Lets you add permissions that are required to read or write the widget.
     def require(self,permission):
         self._read_perms.append(permission)
-        
+
     def requireToWrite(self,permission):
         self._write_perms.append(permission)
-        
+
 
 #This widget is just a time display, it doesn't really talk to the server, but it's useful to keep the same interface.
 class TimeWidget(Widget):
     def onRequest(self,user):
         return str(unitsofmeasure.strftime())
-    
+
     def render(self,type='widget'):
+        """
+        Args:
+            type(string): if "widget",  returns it with normal widget styling. If "inline", it jsut looks like a span.
+        Returns:
+            string: An HTML and JS string that can be directly added as one would add any HTML inline block tag
+        """
         if type=='widget':
             return("""<div id="%s" class="widgetcontainer">
             <script type="text/javascript" src="/static/strftime-min.js">
@@ -174,13 +219,13 @@ class TimeWidget(Widget):
             var f = function(val)
             {
                var d = new Date();
-    
+
                 document.getElementById("%s").innerHTML=d.strftime("%s");
             }
             setInterval(f,70);
             </script>
             </div>"""%(self.uuid,self.uuid,auth.getUserSetting(pages.getAcessingUser(),'strftime').replace('%l','%I')))
-        
+
         if type=='inline':
             return("""<span id="%s">
             <script type="text/javascript" src="/static/strftime-min.js">
@@ -189,18 +234,22 @@ class TimeWidget(Widget):
             var f = function(val)
             {
                var d = new Date();
-    
+
                 document.getElementById("%s").innerHTML=d.strftime("%s");
             }
             setInterval(f,70);
             </script>
             </span>"""%(self.uuid,self.uuid,auth.getUserSetting(pages.getAcessingUser(),'strftime').replace('%l','%I')))
-        
+
 time_widget = TimeWidget(Widget)
 
-            
+
 class DynamicSpan(Widget):
     def render(self):
+        """
+        Returns:
+            string: An HTML and JS string that can be directly added as one would add any HTML inline block tag
+        """
         return("""<span id="%s">
         <script type="text/javascript">
         var upd = function(val)
@@ -213,15 +262,29 @@ class DynamicSpan(Widget):
 
 class TextDisplay(Widget):
     def render(self,height='4em',width='24em'):
+        """
+        Returns:
+            string: An HTML and JS string that can be directly added as one would add any HTML inline block tag
+        """
+        #We only want to update the div when it has changed, otherwise some browsers might not let you click the links
         return("""<div style="height:%s; width:%s; overflow-x:auto; overflow-y:scroll;" class="widgetcontainer" id="%s">
         <script type="text/javascript">
+        KWidget_%s_prev = "PlaceHolder1234";
         var upd = function(val)
         {
-            document.getElementById("%s").innerHTML=val;
+            if(val == KWidget_%s_prev || val==null)
+            {
+
+            }
+            else
+            {
+                document.getElementById("%s").innerHTML=val;
+                KWidget_%s_prev = val;
+            }
         }
         KWidget_register('%s',upd);
         </script>%s
-        </div>"""%(height,width, self.uuid,self.uuid,self.uuid,self._value))
+        </div>"""%(height,width, self.uuid, self.uuid, self.uuid, self.uuid,self.uuid,self.uuid,self._value))
 
 
 class Meter(Widget):
@@ -239,32 +302,32 @@ class Meter(Widget):
             self.k['min'] = 0
         if not 'max' in self.k:
             self.k['max'] = 100
-            
-        
+
+
         Widget.__init__(self,*args,**kwargs)
         self._value = [0,'normal']
-    
+
     def write(self,value):
         #Decide a class so it can show red or yellow with high or low values.
         self.c = "normal"
         if 'high_warn' in self.k:
             if value >= self.k['high_warn']:
                 self.c = 'warning'
-                
+
         if 'low_warn' in self.k:
             if value <= self.k['low_warn']:
                 self.c = 'warning'
-                
+
         if 'high' in self.k:
             if value >= self.k['high']:
                 self.c = 'error'
-        
+
         if 'low' in self.k:
             if value <= self.k['low']:
                 self.c = 'error'
-                
+
         self._value=[round(value,3),self.c]
-        
+
     def render(self,unit='',label=''):
         return("""
         <div class="widgetcontainer meterwidget">
@@ -285,7 +348,7 @@ class Meter(Widget):
         </div>"""%(label,self.uuid,
                           self.uuid,unit,self.uuid,self.uuid,self.uuid,self._value[0],
                           self.uuid,self._value[0], self.k['min'],self.k['max'],self.k['high_warn'],self.k['low_warn']
-                          
+
                           ))
 
 class Button(Widget):
@@ -295,7 +358,7 @@ class Button(Widget):
             return("""
             <button %s type="button" id="%s" onmousedown="KWidget_sendValue('%s','pushed')" onmouseleave="KWidget_sendValue('%s','released')" onmouseup="KWidget_sendValue('%s','released')">%s</button>
              """%(self.isWritable(),self.uuid,self.uuid,self.uuid,self.uuid,content))
-        
+
         if type=="trigger":
             return("""
             <div class="widgetcontainer">
@@ -317,8 +380,8 @@ class Button(Widget):
                     document.getElementById("%s_3").style='background-color:red;';
                 }
             }
-            
-            
+
+
 
             </script>
             <button type="button" id="%s_1" onmousedown="%s_toggle()">ARM</button><br/>
@@ -327,7 +390,7 @@ class Button(Widget):
             </button>
             </div>
              """%(self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.uuid,self.isWritable(),self.uuid,content))
-            
+
         raise RuntimeError("Invalid Button Type")
 
 
@@ -338,14 +401,14 @@ class Slider(Widget):
         self.step = step
         Widget.__init__(self,*args,**kwargs)
         self._value = 0
-        
+
     def write(self,value):
         self._value = util.roundto(float(value),self.step)
         #Is this the right behavior?
         self._callback("__SERVER__",value)
-    
+
     def render(self,type="realtime", orient='vertical',unit='', label=''):
-        
+
         if orient=='vertical':
             orient='class="verticalslider" orient="vertical"'
         else:
@@ -353,8 +416,8 @@ class Slider(Widget):
         if type=='debug':
             return {'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
         if type=='realtime':
-            return """<div class="widgetcontainer sliderwidget">
-            <b>%(label)s</b></br>
+            return """<div class="widgetcontainer sliderwidget" ontouchmove = function(e) {e.preventDefault()};>
+            <b><p>%(label)s</p></b>
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
             %(orient)s
            oninput="
@@ -372,19 +435,19 @@ class Slider(Widget):
            if(%(htmlid)s_clean)
            {
             document.getElementById('%(htmlid)s').value= val;
-            document.getElementById('%(htmlid)s_l').innerHTML= val+"%(unit)s";
+            document.getElementById('%(htmlid)s_l').innerHTML= (Math.round(val*1000)/1000)+"%(unit)s";
             }
             %(htmlid)s_clean =%(htmlid)s_cleannext;
            }
-                    
+
            KWidget_register("%(id)s",upd);
            </script>
-     
+
             </div>"""%{'label':label, 'orient':orient,'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
-        
+
         if type=='onrelease':
             return """<div class="widgetcontainer sliderwidget">
-            <b>%(label)s</b><br>
+            <b><p">%(label)s</p></b>
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
             %(orient)s
             oninput="document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s'; document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();"
@@ -400,14 +463,14 @@ class Slider(Widget):
             <span class="numericpv" id="%(htmlid)s_l">%(value)f%(unit)s</span>
             <script type="text/javascript">
             var upd=function(val){
-            
+
                 if(document.getElementById('%(htmlid)s').jsmodifiable & ((new Date).getTime()-document.getElementById('%(htmlid)s').lastmoved > 300))
                 {
                 document.getElementById('%(htmlid)s').value= val;
                 document.getElementById('%(htmlid)s_l').innerHTML= val+"%(unit)s";
                 }
-                
-                
+
+
             }
             document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();
             document.getElementById('%(htmlid)s').jsmodifiable = true;
@@ -415,25 +478,25 @@ class Slider(Widget):
             </script>
             </div>"""%{'label':label, 'orient':orient,'en':self.isWritable(),'htmlid':mkid(), 'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
             raise ValueError("Invalid slider type:"%str(type))
-        
+
 class Switch(Widget):
     def __init__(self,*args,**kwargs):
         Widget.__init__(self,*args,**kwargs)
         self._value = False
-      
+
     def write(self,value):
         self._value = bool(value)
         #Is this the right behavior?
         self._callback("__SERVER__",value)
-    
+
     def render(self,label):
         if self._value:
             x = "checked=1"
         else:
             x =''
-            
+
         return """<div class="widgetcontainer">
-        <label><input %(en)s id="%(htmlid)s" type="checkbox" 
+        <label><input %(en)s id="%(htmlid)s" type="checkbox"
         onchange="
         %(htmlid)s_clean = %(htmlid)s_cleannext= false;
         setTimeout(function(){%(htmlid)s_cleannext = true},350);
@@ -451,27 +514,27 @@ class Switch(Widget):
         KWidget_register("%(id)s",upd);
         </script>
         </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self._value, 'label':label}
-        
+
 
 
 class TextBox(Widget):
     def __init__(self,*args,**kwargs):
         Widget.__init__(self,*args,**kwargs)
         self._value = ''
-        
+
     def write(self,value):
         self._value = str(value)
         #Is this the right behavior?
         self._callback("__SERVER__",value)
-    
+
     def render(self,label):
         if self._value:
             x = "checked=1"
         else:
             x =''
-            
+
         return """<div class="widgetcontainer">
-        <label>%(label)s<input %(en)s id="%(htmlid)s" type="text" 
+        <label>%(label)s<input %(en)s id="%(htmlid)s" type="text"
         onblur="%(htmlid)s_clean= true;"
         onfocus=" %(htmlid)s_clean = false;"
         oninput="
@@ -489,18 +552,19 @@ class TextBox(Widget):
         KWidget_register("%(id)s",upd);
         </script>
         </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self._value, 'label':label}
-        
+
 class APIWidget(Widget):
         def __init__(self,*args,**kwargs):
             Widget.__init__(self,*args,**kwargs)
             self._value = None
-            
+
         def render(self,htmlid):
             return """
             <script>
                 %(htmlid)s = {};
                 %(htmlid)s.value = "Waiting..."
                 %(htmlid)s.clean = 0;
+
                 var upd = function(val)
                     {
                         if (%(htmlid)s.clean==0)
@@ -512,17 +576,13 @@ class APIWidget(Widget):
                                 %(htmlid)s.clean -=1;
                             }
                     }
-                    
+
                 %(htmlid)s.set = function(val)
                     {
                          KWidget_setValue("%(id)s", val);
                          %(htmlid)s.clean = 2;
                     }
-                    
+
                     KWidget_register("%(id)s",upd);
             </script>
             """%{'htmlid':htmlid, 'id' :self.uuid, 'value': json.dumps(self._value)}
-            
-            
-                
-            

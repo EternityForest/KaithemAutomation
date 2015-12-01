@@ -1,0 +1,20 @@
+{continual: false, disabled: false, once: true, priority: interactive, rate-limit: 0.0,
+  resource-type: event, trigger: 'True'}
+
+---
+#This code runs once when the event loads. It also runs when you save the event during the test compile
+#and may run multiple times when kaithem boots due to dependancy resolution
+__doc__=''
+import time
+
+suceed = 0
+def f(m,v):
+    global suceed
+    suceed = 1
+---
+kaithem.message.subscribe("/testtopic", f)
+kaithem.message.post("/testtopic","Test")
+
+time.sleep(1)
+if not suceed:
+    raise RuntimeError("Message not delivered within 1 second")

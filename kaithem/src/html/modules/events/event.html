@@ -4,12 +4,41 @@ from src import newevt,unitsofmeasure,pages,auth,modules_state,pages,widgets,sch
 from collections import defaultdict
 import traceback,time
 from src.config import config
+from src import util
 %>
 
 <%include file="/pageheader.html"/>
-
+%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
+<link rel=stylesheet href="/static/js/codemirror/lib/codemirror.css">
+<link rel=stylesheet href="/static/js/codemirror/addon/dialog/dialog.css">
+<link rel=stylesheet href="${config['cm-theme-url']}">
+<script src="/static/js/codemirror/lib/codemirror.js"></script>
+<script src="/static/js/codemirror/mode/python/python.js"></script>
+<script src="/static/js/codemirror/addon/edit/matchbrackets.js"></script>
+<script src="/static/js/codemirror/addon/search/search.js"></script>
+<script src="/static/js/codemirror/addon/search/searchcursor.js"></script>
+<script src="/static/js/codemirror/addon/dialog/dialog.js"></script>
+<script src="/static/js/codemirror/addon/scroll/annotatescrollbar.js"></script>
+<script src="/static/js/codemirror/addon/search/matchesonscrollbar.js"></script>
+%endif
 <title>Kaithem Event</title>
 <h2>Event "${name|h}" of module <a href="/modules/module/${url(module)}">${module|h}</a></h2>
+<p class=pathnav>Path:
+<%
+temp_p = ""
+path = util.split_escape(name,"/","\\")
+%>
+<a class="button" href="/modules/module/${url(module)}#resources">${module|h}</a>
+%if path:
+%for i in path[:-1]:
+<%
+temp_p+= i+'/'
+%>\
+<a class="button" href="/modules/module/${url(module)}/resource/${url(temp_p[:-1])}#resources">${i|h}</a>
+%endfor
+%endif
+<b>${path[-1]|h}</b>
+</p>
 %if not (module,name) in newevt.EventReferences:
 <span class="error">Event not active, An error prevented this event from loading.</span>
 %endif
@@ -25,7 +54,7 @@ or go to the working copy and save that to delete this draft.</p>
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
 <h3>Name</h3>
 <input name="name" value="${name|h}"></input>
-<h3>Setup Code</h3>
+<h3 id="setupheading">Setup Code</h3>
 <p class="help">Enter python code. It will execute in the event <b>global</b> scope when it loads. If there is any problem,
 the other events will load then this will be retried. This is also how <a href="/docs#dependancies">dependancies</a> are reoslved.
 You will need to use the global keyword in the event action to overwrite a variable defined here.
@@ -45,7 +74,21 @@ else:
 
 
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
-<div class="acediv" id="setupeditor"  style="height:35ex ;border: 1px solid #DDD;">${xyz|h}</div>
+<script>
+var editor = CodeMirror.fromTextArea(document.getElementById("setupbox"), {
+    lineNumbers: true,
+    mode: "python",
+    matchBrackets: true,
+    theme: "${config['cm-theme']}",
+    indentUnit:4,
+    tabMode: 'spaces',
+    extraKeys: {
+   "Ctrl-F": "findPersistent",
+   "Cmd-F": "findPersistent"
+   }
+  });
+editor.setSize("99%","35em")
+</script>
 %endif
 
 <h3>Trigger</h3>
@@ -57,18 +100,41 @@ else:
 <input class="pythoncode" id="triggerbox" type="text" name="trigger" value="${event['trigger']|h}"></input>
 
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
-<div id="triggereditor" class="acediv" style="height:2ex ;border: 1px solid #DDD;">${event["trigger"]|h}</div>
+<script>
+var triggereditor = CodeMirror.fromTextArea(document.getElementById("triggerbox"), {
+    lineNumbers: true,
+    mode: "python",
+    matchBrackets: true,
+    theme: "${config['cm-theme']}",
+
+  });
+triggereditor.setSize("99%","2.5ex");
+
+//Limit to one line, thanks Tigran Saluev of Stack Overflow for the code
+triggereditor.on("beforeChange", function(instance, change) {
+    var newtext = change.text.join("").replace(/\n/g, ""); // remove ALL \n !
+    change.update(change.from, change.to, [newtext]);
+    return true;
+});
+</script>
 %endif
+
 <%!
 def get_time(t):
   try:
-      return scheduling.get_next_run(t)
+      return scheduling.get_next_run(t) or 0
   except Exception as e:
       return 0
+
+def get_rrule(t):
+  try:
+      return scheduling.get_schedule_string_info(t)
+  except Exception as e:
+      return ""
 %>
 %if event['trigger'].startswith("!time"):
-<p><b>Next Run for "${event['trigger'][5:]|h}" (After ${unitsofmeasure.strftime(time.time())|h}):
-${unitsofmeasure.strftime(get_time(event['trigger']))|h}</b></p>
+<p style="font-size:90%">Next Run for "${event['trigger'][5:]|h}" (After ${unitsofmeasure.strftime(time.time())|h}):
+${unitsofmeasure.strftime(get_time(event['trigger']))|h}<br>RRule string: ${get_rrule(event['trigger'])|h}</p>
 %endif
 <p style="display:none" id="rrule">Next Run: <span id="rrulespan"></span></p>
 
@@ -121,11 +187,28 @@ you may need to use the global keyword. You may also need to use the global keyw
 <textarea id="actionbox" name="action" rows=50 class="pythoncode">${event["action"]|h}</textarea>
 
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
-<div class="acediv" id="actioneditor" style="height: 60ex;border: 1px solid #DDD;">${event["action"]|h}</div>
+<script>
+var editor = CodeMirror.fromTextArea(document.getElementById("actionbox"), {
+    lineNumbers: true,
+    mode: "python",
+    matchBrackets: true,
+    theme: "${config['cm-theme']}",
+  indentUnit:4,
+  tabMode: 'spaces',
+  extraKeys: {
+ "Ctrl-F": "findPersistent",
+ "Cmd-F": "findPersistent"
+ }
+  }
+
+  );
+editor.setSize("99%","40em")
+</script>
 %endif
 
 
 %if newevt.getEventErrors(module,name) and version == "__live__":
+%if (pages.canUserDoThis("/users/logs.view") or  pages.canUserDoThis("/admin/modules.edit") or pages.canUserDoThis("/admin/errors.view")):
 <h3 class="error">Errors[${len(newevt.getEventErrors(module,name))}]</h3>
 <p class ="help">
 This section the most recent errors that ocurred while executing the event or trigger.
@@ -136,6 +219,9 @@ This section the most recent errors that ocurred while executing the event or tr
     <pre>${i[1]|h}</pre>
 %endfor
 </div>
+%else:
+<p class="error">Some Errors Hidden because you are not logged in or do not have the permissions to view them.</p>
+%endif
 %endif
 <hr>
 <h3>Info</h3>
@@ -164,47 +250,7 @@ Saving this module will case it to completely reload, including its local scope.
 </div>
 
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
-<script src="/static/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
-<script>
-    var actioneditor = ace.edit("actioneditor");
-    actioneditor.setTheme("ace/theme/dawn");
-    actioneditor.getSession().setMode("ace/mode/python");
-    
-    var triggereditor = ace.edit("triggereditor");
-    triggereditor.setTheme("ace/theme/dawn");
-    triggereditor.getSession().setMode("ace/mode/python");
-    
-    var setupeditor = ace.edit("setupeditor");
-    setupeditor.setTheme("ace/theme/dawn");
-    setupeditor.getSession().setMode("ace/mode/python");
-</script>
 
-<script>
-triggereditor.getSession().on('change', function(e) {
-    document.getElementById('triggerbox').value = triggereditor.getValue();
-});
-</script>
-
-<script>
-actioneditor.getSession().on('change', function(e) {
-    document.getElementById('actionbox').value = actioneditor.getValue();
-});
-</script>
-
-<script>
-setupeditor.getSession().on('change', function(e) {
-    document.getElementById('setupbox').value = setupeditor.getValue();
-});
-</script>
-
-<script>document.getElementById('triggerbox').style.display='none';</script>
-<script>document.getElementById('triggereditor').style.display='block';</script>
-
-<script>document.getElementById('actionbox').style.display='none';</script>
-<script>document.getElementById('actioneditor').style.display='block';</script>
-
-<script>document.getElementById('setupbox').style.display='none';</script>
-<script>document.getElementById('setupeditor').style.display='block';</script>
 
 %endif
 <%include file="/pagefooter.html"/>

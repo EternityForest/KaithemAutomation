@@ -2,6 +2,54 @@
 <title>Kaithem Help</title>
 <h2>Change Log</h2>
 
+<h3>0.54</h3>
+<div class="sectionbox">
+<ul>
+<li>New file browser like module view</li>
+<li>New resource type: folder</li>
+<li>Support for __index__ pages</li>
+<li>Raise exception if port not free instead of exiting silently.</li>
+<li>New config option: log-format: null discards logs instead of saving them.</li>
+<li>Slider widgets only show a few decimal places now</li>
+<li>Fix pagename not defined issue that interfered with proper error logging in pages</li>
+<li>Add more complete logging info to page error logs. The user's IP, and the exact URL they tried will be logged.</li>
+<li>Flag errors in red in log page</li>
+<li>Fix bug where message events were not stopping when deleted</li>
+<li>Page Error logs now show IP address of requester and any cookies(requires permission "users/logs.view")</li>
+<li>Retrying logging in no longer redirects to same error page even if sucessful</li>
+<li>Fix weird file not found linux error in file manager that made dangling symlinks screw everything up</li>
+<li>Fix bug where text selection and links sometimes don't work in text display widgets</li>
+<li>Errors in zip uploads show up on the event pages themselves</li>
+<li>Add JS to sliders to try to stop unintentional page slipping around on mobile</li>
+<li>Errors in widget callback functions now post to /system/errors/widget s</li>
+<li>Can now inspect module objects</li>
+<li>Page acesses can be logged</li>
+<li>Adding a __doc__ string to the code in the setup portion of an event will now add a description on the module index.</li>
+<li>You can also add doc string descriptions to pages with a module level block comment and __doc__="str" </li>
+<li>One must have either /admin/modules.edit, /users/logs.view, or /admin/errors.view to view page or event errors.</li>
+<li>Better default new page contents</lI>
+<li>Mouse over the unsaved change asterix to view specifically what has unsaved changes.</li>
+<li>Unsaved registry changes now have the asterix</li>
+<li>Paginated logs, fix major bug with logging</li>
+<li>/system/notifications/important notifications are highlighted</li>
+<li>Switch to CodeMirror instead of ace for better theming and mobile support(You may need to anable it in your user settings)</li>
+<li>Improve normalization of messagebus topics, which had caused some problems with missed messages in the log.</li>
+<li>Basic Debian packaging tools</li>
+<li>Private option for kaithem.persist.save</li>
+<li>Errors occurring in widget callbacks are now reported on the front page errors log.</li>
+<li>Threads page tells you what the thread class is</li>
+<li>New(Fully compatible with old saves) save format that is much easier to work with manually and with git</li>
+<li>kaithem.misc.version and kaithem.misc.version_info values</li>
+<li>Usability Improvements</li>
+<li>!function event triggers let you trigger an event by calling a function</li>
+<li>Remove unsafe GET requests</li>
+<li>Fix security hole in loading library module that allowed any user to do so.</li>
+<li>Increase stack size to 256K per thread, preventing segfaults</li>
+<li>Fix bug where all accesses to user pages had to use the same lock which meant that accessing a page could actually cause a deadlock if accessing that page caused an HTTP to another page</li>
+<li>Lots of misc changes</li>
+</ul>
+</div>
+
 <h3>0.53</h3>
 <div class="sectionbox">
 <p class="warning">

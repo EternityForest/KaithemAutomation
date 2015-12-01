@@ -1,22 +1,27 @@
 <%!
 from src.util import url
-from src import pages,newevt,usrpages
+from src import pages,newevt,usrpages,unitsofmeasure,util,scheduling
+import time
 %>
 
 <%include file="/pageheader.html"/>
 <h2>Module ${name|h}</h2>
+<p class="help">Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</p>
 
 This Page allows you to view and edit information and resources associated with this module.<br><br>
 <title>Module: ${name|h}</title>
 
 <form action="/modules/module/${url(name)}/update" method="POST" name="user">
-<a href="/modules/downloads/${url(name)}">Download this module as a zip file</a>
+<a href="/modules/download/${url(name)}.zip">Download this module as a zip file</a><br>
+<a href="/modules/yamldownload/${url(name)}.zip">Download this module as a zip file with YAML resources(not compatible with older versions)</a><br>
+<a href="/modules/module/${url(name)}/obj">View the module namespace object(New, requires edit permission)</a>
+
 <h3>Basic Information</h3>
 <div class="sectionbox">
 
 <p class="help">Changing the name of a module will invalidate all external references to the module by its old name. Also, if the name is in use it will be overwritten. Be Careful.</p><hr>
-<h4>Name:</h4> 
-<input required="required" class="modulename" name="name" type="text" value="${name|h}">  
+<h4>Name:</h4>
+<input required="required" class="modulename" name="name" type="text" value="${name|h}">
 <h4>Info:</h4>
 <textarea name="description" class="description" rows=5>${module['__description']['text']|h}</textarea>
 <hr>
@@ -32,82 +37,137 @@ This Page allows you to view and edit information and resources associated with 
 
 <br>
 
-<h3>Events</h3>
+<h3 id="resources">Resources in ${"/".join([name]+path)|h}</h3>
 <div class="sectionbox">
 <p class="menubar">
-<a class="button createbutton" href="/modules/module/${url(name)}/addresource/event">Add Event</a>
-<a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource">Delete Event</a>
-</p>
-<p class="help">This module defines the following events.
-An event is a statement that something should happen when a condition is met.</p>
 
-<ul>
-%for i in sorted(module.keys()):
+<a class="button createbutton addeventbutton" href="/modules/module/${url(name)}/addresource/event/${url('/'.join(path))}">Event</a>
+<a class="button createbutton addpermissionbutton" href="/modules/module/${url(name)}/addresource/permission/${url('/'.join(path))}">Permission</a>
+<a class="button createbutton addpagebutton" href="/modules/module/${url(name)}/addresource/page/${url('/'.join(path))}">Page</a>
+<a class="button createbutton addfolderbutton" href="/modules/module/${url(name)}/addresource/directory/${url('/'.join(path))}">Folder</a>
+<a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource">Delete Resource</a>
+</p>
+<p class="pathnav">Path:
+<%
+temp_p = ""
+%>
+<a class="button" href="/modules/module/${url(name)}#resources">${name|h}</a>
+%if path:
+%for i in util.split_escape(path[0],"/","\\"):
+<%
+temp_p+= i+'/'
+%>\
+<a class="button" href="/modules/module/${url(name)}/resource/${url(temp_p[:-1])}#resources">${i|h}</a>
+%endfor
+%endif
+</p>
+<p class="help">This module contains the following resources.</p>
+<%!
+def get_time(t):
+  try:
+      return scheduling.get_next_run(t) or 0
+  except Exception as e:
+      return 0
+
+#n is the module name
+#f is the folder we are checking if it is in, including the module name
+#r is the path of the resource
+def in_folder(r,f,n):
+     #Get the path as a list, including the module name
+     r = [n]+util.split_escape(r,'/','\\')
+     #Get the path of the folder
+     f = util.split_escape(f,'/','\\')
+     #make sure the resource path is one longer than module
+     if not len(r)==len(f)+1:
+	  return False
+     x = 0
+     for i in f:
+	  if not r[x] == i:
+	       return False
+	  x +=1
+     return True
+%>
+<dl>
+%if path and len(util.split_escape(path[0],"/","\\"))>1:
+<dt class="specialentry"><a href="/modules/module/${name|h}/resource/${"/".join( [i.replace("\\","\\\\").replace("/","\\/") for i in util.split_escape(path[0],"/","\\")[:-1]] )|u}#resources">..</a></dt>
+<hr>
+%endif
+%for i in sorted(sorted(module.keys()), key=lambda x: module[x]['resource-type']):
+
+%if in_folder(i,fullpath,name):
+
 	%if module[i]['resource-type'] == 'event':
-		<li><a href="/modules/module/${url(name)}/resource/${url(i)}">${i|h}</a>
-        %if newevt.fastGetEventErrors(name,i):
-        <span class="error">[${len(newevt.fastGetEventErrors(name,i))} Errors]</span>
-        %endif
-        </li>
+	  <dt>
+	       <span class="event-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}#setupheading">${util.split_escape(i,'/','\\')[-1]|h}</a>
+<a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a></b>
+	       %if newevt.fastGetEventErrors(name,i):
+	       <span class="error">[${len(newevt.fastGetEventErrors(name,i))} Errors]</span>
+	       %endif
+	  </dt>
+	  <dd>
+          <p class="resource-docstring">${newevt.getEventInfo((name,i))|h}</p>
+	       <b>Trigger:</b>  <code>${module[i]['trigger']|h}</code><br>
+
+		    <b>Last Ran:</b>
+		    %if newevt.getEventLastRan(name,i):
+		    <code>${unitsofmeasure.strftime(newevt.getEventLastRan(name,i))|h}
+		    (about ${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(name,i),2)} ago)</code>
+		    %else:
+		    This event has not ran since it loaded.
+		    %endif
+
+
+		    %if module[i]['trigger'].startswith("!time"):
+		    <br><b>Next Run:</b>
+		    <code>${unitsofmeasure.strftime(get_time(module[i]['trigger']))|h}</code></p>
+		    %endif
+	  </dd>
 	%endif
-%endfor
-</ul>
-</div>
 
-<h3>Pages</h3>
-<div class="sectionbox">
-<p class="menubar">
-<a class="button createbutton" href="/modules/module/${url(name)}/addresource/page">Add Page</a>
-<a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource">Delete Page</a>
-</p>
-<p class="help">This module defines the following pages.
-A page is a dynamic HTML page which can be used to display and edit information and settings.
-Pages are rendered using the Mako templating engine.
-</p>
-
-<ul>
-%for i in sorted(module.keys()):
 	%if module[i]['resource-type'] == 'page':
-		<li>
-            <h4
-            %if i.startswith('__'):
-            class="specialentry"\
-            %endif
-            >${i|h}
-        %if usrpages.getPageErrors(name,i):
-        <span class="error">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
-        %endif
-        </h4>
-            <p>
-                 <a href="/pages/${url(name)}/${url(i)}">Go to page</a>|
-                 <a href="/modules/module/${url(name)}/resource/${url(i)}">Edit Page</a>
-            </p>
+	  <dt>
+	       <span class="page-icon"></span><b\
+	       %if i.startswith('__'):
+	       class="specialentry page"\
+	       %endif
+	       >${util.split_escape(i,'/','\\')[-1]|h}
+		%if usrpages.getPageErrors(name,i):
+		<span class="error">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
+		%endif
+		</b><a class="gobutton" href="${usrpages.url_for_resource(name,i)}">Go to page</a>|<a class="editbutton"
+        href="/modules/module/${url(name)}/resource/${url(i)}#pagebody">
 
-        </li>
+		Edit Page</a><a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a></dt>
+	  <dd>
+          <p class="resource-docstring">${usrpages.getPageInfo(name,i)|h}</p>
+
+        %if 'require-permissions' in module[i] and module[i]['require-permissions']:
+	  <b>Permissions:</b>
+	  %for x in module[i]['require-permissions']:
+	  ${x|h}
+	  %endfor
+	  %endif
+	  </dd>
 	%endif
+
+       %if module[i]['resource-type'] == 'permission':
+
+      <dt><span class="permission-icon"></span><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
+<a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+<dt>
+
+	%endif
+
+     %if module[i]['resource-type'] == 'directory':
+
+      <dt><span class="directory-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}#resources">${util.split_escape(i,'/')[-1]|h}</a></b>
+<a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a><dt>
+
+	%endif
+	<hr>
+%endif
 %endfor
-</ul>
 </div>
 
-<br>
-
-<h3>Permissions</h3>
-<div class="sectionbox">
-<p class="menubar">
-<a class="button createbutton" href="/modules/module/${url(name)}/addresource/permission">Add Permission</a>
-<a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource">Delete Permission</a>
-</p>
-
-<p class="help">This module defines the following permissions.
-To assign permissions to groups, see the Authenticaton page.</p>
-
-<ul>
-%for i in sorted(module.keys()):
-	%if module[i]['resource-type'] == 'permission':
-		<li><a href="/modules/module/${url(name)}/resource/${url(i)}">${i|h}</a></li>
-	%endif
-%endfor
-</ul>
-</div>
 
 <%include file="/pagefooter.html"/>

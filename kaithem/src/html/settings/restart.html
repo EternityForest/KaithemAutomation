@@ -1,15 +1,15 @@
 <%include file="/pageheader.html"/>
-<h2>Save</h2>
+<h2>Restart Without Saving</h2>
 
-<title>Save</title>
+<title>Restart Without Saving</title>
 <div class="sectionbox">
 
 <p>
 Are you sure you want to restart? Be sure you have saved the server state if there are any changes
 That you want to keep.
 </p>
-<ul>
-<li><a <a class="button" href="/settings/restarttarget">Restart Kaithem Server Now</a></li>
-<ul>
+<form method="post" action="/settings/restarttarget">
+<button type="submit">Restart server now</button>
+</form>
 </div>
 <%include file="/pagefooter.html"/>

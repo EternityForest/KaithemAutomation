@@ -1,4 +1,4 @@
-#Copyright Daniel Dunn 2013
+#Copyright Daniel Dunn 2013. 2015
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify
@@ -22,22 +22,44 @@ from . import directories,auth,util
 _Lookup = TemplateLookup(directories=[directories.htmldir])
 get_template = _Lookup.get_template
 
+def postOnly():
+    """Redirect user to main page if the request is anything but POST"""
+    if not cherrypy.request.method == "POST":
+        raise cherrypy.HTTPRedirect("/errors/wrongmethod")
+
 #Redirect user to an error message if he does not have the proper permission.
-def require(permission):
-    """Get the user that is making the request bound to this thread, 
-        and then raise an interrupt if he does not have the permission specified"""
-    
+def require(permission, noautoreturn = False):
+    """Get the user that is making the request bound to this thread,
+        and then raise an interrupt if he does not have the permission specified.
+
+        Normally this will prompt the user to go to a login page, and if they log in it takes them right back where they were
+        trying to go. However if the place they were going has an effect, you might want them to confirm first, so set noauto to true
+        to take them to the main page on successful login, or set it to a url to take them there instead.
+        """
+
     #If the special __guest__ user can do it, anybody can.
     if '__guest__' in auth.Users:
         if permission in auth.Users['__guest__'].permissions:
             return
-    
+    #Don't autoreturn users that came here from a POST call.
+    if not noautoreturn and cherrypy.request.method == 'POST':
+        noautoreturn = True
+
+    #Default to taking them to the main page.
+    if noautoreturn is True:
+        noautoreturn = '/'
+        
+    if noautoreturn:
+        url = util.url(noautoreturn)
+    else:
+        url = util.url(cherrypy.url())
+
     if not cherrypy.request.scheme == 'https':
         raise cherrypy.HTTPRedirect("/errors/gosecure")
     if not 'auth' in cherrypy.request.cookie:
-        raise cherrypy.HTTPRedirect("/login?"+util.url(cherrypy.url()))
+        raise cherrypy.HTTPRedirect("/login?"+url)
     if cherrypy.request.cookie['auth'].value not in auth.Tokens:
-        raise cherrypy.HTTPRedirect("/login?"+util.url(cherrypy.url()))
+        raise cherrypy.HTTPRedirect("/login?"+url)
     if not auth.checkTokenPermission(cherrypy.request.cookie['auth'].value,permission):
         raise cherrypy.HTTPRedirect("/errors/permissionerror")
 
@@ -49,13 +71,13 @@ def canUserDoThis(permission):
     #if we are using http, this should catch it beause the ookie is https only
     if not 'auth' in cherrypy.request.cookie:
         return False
-    
+
     if cherrypy.request.cookie['auth'].value not in auth.Tokens:
         return False
-    
+
     if not auth.checkTokenPermission(cherrypy.request.cookie['auth'].value,permission):
         return False
-    
+
     return True
 
 def getAcessingUser():

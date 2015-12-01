@@ -1,0 +1,14 @@
+{continual: false, disabled: false, once: true, priority: interactive, rate-limit: 0.0,
+  resource-type: event, trigger: 'True'}
+
+---
+#This code runs once when the event loads. It also runs when you save the event during the test compile
+#and may run multiple times when kaithem boots due to dependancy resolution
+__doc__='This Event runs once and starts a thread with an error in it. This you should see something in the notifications signifying a thread stopped.'
+import threading
+---
+def f():
+    nonexistant()
+t = threading.Thread(target=f)
+t.name= "ThisThreadShouldExitWithAnException"
+t.start()

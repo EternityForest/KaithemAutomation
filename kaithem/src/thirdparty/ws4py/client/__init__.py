@@ -245,11 +245,10 @@ class WebSocketBaseClient(WebSocket):
         handshake.
         """
         headers = [
-            ('Host', self.host),
+            ('Host', '%s:%s' % (self.host, self.port)),
             ('Connection', 'Upgrade'),
             ('Upgrade', 'websocket'),
             ('Sec-WebSocket-Key', self.key.decode('utf-8')),
-            ('Origin', self.url),
             ('Sec-WebSocket-Version', str(max(WS_VERSION)))
             ]
         
@@ -258,6 +257,19 @@ class WebSocketBaseClient(WebSocket):
 
         if self.extra_headers:
             headers.extend(self.extra_headers)
+
+        if not any(x for x in headers if x[0].lower() == 'origin'):
+
+            scheme, url = self.url.split(":", 1)
+            parsed = urlsplit(url, scheme="http")
+            if parsed.hostname:
+                self.host = parsed.hostname
+            else:
+                self.host = 'localhost'
+            origin = scheme + '://' + parsed.hostname
+            if parsed.port:
+                origin = origin + ':' + str(parsed.port)
+            headers.append(('Origin', origin))
 
         return headers
 
@@ -298,21 +310,24 @@ class WebSocketBaseClient(WebSocket):
             header = header.strip().lower()
             value = value.strip().lower()
 
-            if header == 'upgrade' and value != 'websocket':
+            if header == b'upgrade' and value != b'websocket':
                 raise HandshakeError("Invalid Upgrade header: %s" % value)
 
-            elif header == 'connection' and value != 'upgrade':
+            elif header == b'connection' and value != b'upgrade':
                 raise HandshakeError("Invalid Connection header: %s" % value)
 
-            elif header == 'sec-websocket-accept':
-                match = b64encode(sha1(self.key.encode('utf-8') + WS_KEY).digest())
+            elif header == b'sec-websocket-accept':
+                match = b64encode(sha1(self.key + WS_KEY).digest())
                 if value != match.lower():
                     raise HandshakeError("Invalid challenge response: %s" % value)
 
-            elif header == 'sec-websocket-protocol':
+            elif header == b'sec-websocket-protocol':
                 protocols = ','.join(value)
 
-            elif header == 'sec-websocket-extensions':
+            elif header == b'sec-websocket-extensions':
                 extensions = ','.join(value)
 
         return protocols, extensions
+
+    def handshake_ok(self):
+        self.opened()

@@ -1,7 +1,7 @@
 <%!
 from src.util import url
 from src import util,directories
-import os,json
+import os, yaml
 %>
 <%include file="/pageheader.html"/>
 <h2>Modules Library<sup><a href="/docs#modules">[help]</a></sup></h2>
@@ -20,8 +20,10 @@ libdir = os.path.join(directories.datadir,"modules")
 %>
 
 %for i in sorted(util.get_immediate_subdirectories(libdir)):
-   <dt>${i|h}<a class="button" href="/modules/loadlibmodule/${url(i)}">Load</a></dt>
-   <dd>${json.load(open(os.path.join(libdir,i,"__description")))['text']|h}</dd>
+   <dt>${i|h}<form method=POST action="/modules/loadlibmodule/${url(i)}">
+   <input type="submit" value="Load"></input>
+   </form></dt>
+   <dd>${yaml.load(open(os.path.join(libdir,i,"__description")))['text']|h}</dd>
 %endfor
 </ul>
 </div>

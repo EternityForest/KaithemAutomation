@@ -4,12 +4,18 @@ from src import config,registry
 import yaml
 %>
 <h2>Options</h2>
-
+<p class="help">Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</p>
 <title>Options</title>
 <div class="sectionbox">
 <p class="help">
 You need the <i>/admin/settings.edit</i> permission to perform these actions. <b>Note that "saving" settings on this page will not be saved to disk unless you then use save server state to disk, or an autosave occurs</b> </p>
 <a href="/settings/restart">Completely restart the whole server(!)</a><br>
+%if not config.config['save-before-shutdown']:
+<p class="warning">Kaithem is not currently configured to save before shutting down. Restarting will lose any unsaved changes to modules, the registry, users and groups, and settings.</p>
+%else:
+<a href="/settings/restart_nosave">Completely restart the whole server without saving first(!)</a><br>
+%endif
+<br>
 <a href="/settings/save">Save server state to disk</a><br>
 <a href="/settings/clearerrors">Clear all errors from pages and events</a><br>
 <a href="/settings/reloadcfg">Reload the configuration file(Not all options take effect without restart)</a>
@@ -21,12 +27,12 @@ You need the <i>/admin/settings.edit</i> permission to perform these actions. <b
 <p class="help">
 This is mostly used for astronomical calculations. Get Location uses <a href="http://ip-api.com/">ip-api.com</a>
 </p>
-<form action="/settings/changesettingstarget">
+<form method="POST" action="/settings/changesettingstarget">
 <table border=1>
 <tr>
 <tr>
 <td>City</td>
-<td><input name="lon" value="${registry.get('system/location/city','')}".></td>
+<td><input name="city" value="${registry.get('system/location/city','')}".></td>
 </tr>
 <td>Lattitude</td>
 <td><input name="lat" value="${registry.get('system/location/lat','')}".></td>
@@ -36,7 +42,10 @@ This is mostly used for astronomical calculations. Get Location uses <a href="ht
 <td><input name="lon" value="${registry.get('system/location/lon','')}".></td>
 </tr>
 </table>
-<input type="submit"><a class="button" href="/settings/ip_geolocate">Get Location</a>
+<input type="submit" >
+</form>
+<form method="post" action="/settings/ip_geolocate">
+<button type="submit">Get Location now</button>
 </form>
 </section>
 
@@ -47,7 +56,7 @@ This is mostly used for astronomical calculations. Get Location uses <a href="ht
 allow SMTP access. Gmail and Yahoo both work. You can also run your own SMTP server
 Unencrypted connections are not supported. Please note: the email password must be stored in plaintext in a kaithem registry file.</p>
 <form action="/settings/savemail" method="POST">
-<table border=1> 
+<table border=1>
 <tr>
 <td>SMTP Server</td><td><input name="smtpserver" value="${registry.get("system/mail/server")}"></input></td>
 </tr>
@@ -91,13 +100,13 @@ ${i|h}
 
 </form>
 <h3>Send Test Email</h3>
-<form action="/settings/testmail">
+<form method="post" action="/settings/testmail">
 
 <input name="to" placeholder="Destination Address"></input><input type="submit" value="Test Email"></input>
 </form>
 
 <h3>Send Message To List</h3>
-<form action="/settings/listmail">
+<form method="post" action="/settings/listmail">
 <input name="list" placeholder="List UUID"></input>
 <input name="subj" placeholder="Subject"></input><br>
 <textarea name="msg" class="code" placeholder="Message Here"></textarea>
@@ -119,4 +128,3 @@ ${yaml.dump(config.config,width=120,indent=4,default_flow_style=False)|h}
 
 </div>
 <%include file="/pagefooter.html"/>
-

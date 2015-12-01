@@ -12,6 +12,7 @@ color:rgb(100, 255, 255);
 a
 {
 color:rgb(100, 255, 255);
+text-decoration:none;
 }
 
 a:visited
@@ -107,11 +108,16 @@ padding:1px;
 
 }
 
+
 #nav li
 {
+
 	border-width:1px;
-	 font-size:125%;
-    
+	border-style: none solid none none; 
+    display: table-cell;
+    text-align:center;
+    border-color: grey;
+    font-size:125%;
 }
 
 #nav li:last-child

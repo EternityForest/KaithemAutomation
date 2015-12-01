@@ -16,10 +16,6 @@
 """This file is an wrapper around some of the astral library, a pure python
 library providing all of kaithem's astronomical functions"""
 
-
-
-
-
 import astral, pytz,datetime,time,calendar
 a = astral.Astral()
 
@@ -83,3 +79,39 @@ def moon():
                 | 21 = Last quarter
    """
     return a.moon_phase(datetime.date.today(),pytz.UTC)
+
+seasons= {"spring": 0, "summer":1, "fall":2,"autumn":2, "winter": 3, 1:1, 2:2, 3:3, 4:4, 5:5}
+seasonnames = ["spring","summer","autumn","winter"]
+
+class Season():
+    def init(self, season):
+        self.season = seasons(season)
+
+    def __str__(self,other):
+        return seasonnames[self.season]
+
+    def __int__(self,other):
+        return self.season
+
+    def __eq__(self, other):
+        if self.season == seasons[other]:
+            return True
+        return False
+
+def season(self, lat, long):
+    HEMISPHERE = 'north' if lat>0 else 'south'
+    date = self.now()
+    md = date.month * 100 + date.day
+
+    if ((md > 320) and (md < 621)):
+        s = 0 #spring
+    elif ((md > 620) and (md < 923)):
+        s = 1 #summer
+    elif ((md > 922) and (md < 1223)):
+        s = 2 #fall
+    else:
+        s = 3 #winter
+
+    if not HEMISPHERE == 'north':
+        s = (s + 2) % 3
+    return Season(s)

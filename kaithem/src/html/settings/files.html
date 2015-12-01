@@ -3,6 +3,11 @@
 from src import unitsofmeasure,util
 import os,urllib
 
+def size(f):
+    try:
+        return unitsofmeasure.siFormatNumber(os.path.getsize(os.path.join(dir,f)),1)
+    except Exception as e:
+        return str(e)
 %>
 <h1>File Manager</h1>
 <div class="sectionbox">
@@ -24,7 +29,8 @@ Upload File:
 %for i in sorted(os.listdir(dir)):
 
 <tr><td><a href="/settings/files/${util.url(os.path.join(dir,i))}">${i+("/" if os.path.isdir(os.path.join(dir,i)) else '')|h}</a></td>
-<td>${unitsofmeasure.siFormatNumber(os.path.getsize(os.path.join(dir,i)),1)}B</td>
+<td>${size(i)}B</td>\
+
 <td><a href="/settings/cnfdel/${util.url(os.path.join(dir,i))}">Delete</a></td>
 </tr>
 %endfor

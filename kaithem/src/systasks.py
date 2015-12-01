@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import time,atexit,sys,platform,re,datetime,threading,weakref
+import time,atexit,sys,platform,re,datetime,threading,weakref,signal
 import cherrypy
 from . import newevt,messagebus,unitsofmeasure,util,messagelogging,mail,scheduling
 from .kaithemobj import kaithem
@@ -27,11 +27,11 @@ lastsaved = time.time()
 def getcfg():
     if not config['autosave-state'] == 'never':
         saveinterval = unitsofmeasure.timeIntervalFromString(config['autosave-state'])
-    
+
     lastdumpedlogs = time.time()
     if not config['autosave-logs'] == 'never':
         dumplogsinterval = unitsofmeasure.timeIntervalFromString(config['autosave-logs'])
-        
+
 getcfg()
 
 lastgotip = time.time()
@@ -46,6 +46,8 @@ tenminutepagecount = 0
 def aPageJustLoaded():
     global pageviewsthisminute
     pageviewsthisminute = pageviewsthisminute +1
+    if config["log-http"]:
+        messagebus.postMessage("/system/http/access", {"ip":cherrypy.request.remote.ip, "req":cherrypy.request.request_line})
 
 #Acessed by stuff outide this file
 pageviewcountsmoother = util.LowPassFiter(0.3)
@@ -55,22 +57,27 @@ MemUseWasTooHigh = False
 firstrun = True
 checked = False
 
-time_last_minute = 0
 
-@scheduling.scheduler.everyMinute
+@scheduling.scheduler.everyHour
 def check_mail_credentials():
-    if time.localtime().tm_min==0:
         mail.check_credentials()
 
-
+time_last_minute = 0
 @scheduling.scheduler.everyMinute
 def check_time_set():
     global time_last_minute
     if time_last_minute:
-        if abs(time.time()-time_last_minute())>60*5:
-            messagebus.postMessage("Kaithem has detected the system time was set.")
+        #This event is supposed to run every minute. So we add 60 to the last run's time. If the current time is more than 7 seconds off from that.
+        #assume the time has been set. Use 30 seconds because maybe high CPU load could make it take longer than a minute.
+        if abs(time.time() - (time_last_minute+60)) >   1000:
+            messagebus.postMessage("/system/notifications/warnings" , "Kaithem has detected the system time may have been set by " + str(time.time() - (time_last_minute+60)) +'s. This message will sometimes also show when the system resumes from suspend.')
+
+        elif abs(time.time() - (time_last_minute+60)) >   30:
+            messagebus.postMessage("/system/notifications/important" , "Kaithem has detected the system time may have been set by " + str(time.time() - (time_last_minute+60)) +'s. This message will sometimes also show when the system resumes from suspend.')
+
     time_last_minute = time.time()
-        
+
+
 @scheduling.scheduler.everyMinute
 def logstats():
     global pageviewsthisminute,firstrun,checked
@@ -82,15 +89,15 @@ def logstats():
     pass
     #Do the page count
     tenminutepagecount += pageviewsthisminute
-            
+
     pageviewcountsmoother.sample(pageviewsthisminute)
     pageviewsthisminute = 0
-    
+
     if (time.time()>lastpageviews+600) and tenminutepagecount>0:
         messagebus.postMessage("/system/perf/requestsperminute" , tenminutepagecount/10)
         lastpageviews = time.time()
         tenminutepagecount = 0
-        
+
 #Frame rate and mem
  #The frame rate is not valid for the first few seconds because of the average
     if not firstrun:
@@ -102,37 +109,37 @@ def logstats():
 
         if newevt.averageFramesPerSecond < config['max-frame-rate']*0.8:
             frameRateWasTooLowLastMinute = False
-            
-    firstrun == False   
+
+    firstrun == False
     if platform.system()=="Linux":
             try:
                 f = util.readfile("/proc/meminfo")
                 total = int(re.search("MemTotal.*?([0-9]+)",f).group(1))
                 free = int(re.search("MemFree.*?([0-9]+)",f).group(1))
                 cache = int(re.search("Cached.*?([0-9]+)",f).group(1))
-                
+
                 used = round(((total - (free+cache))/1000.0),2)
                 usedp = round((1-(free+cache)/float(total)),3)
                 total = round(total/1024.0,2)
                 if (time.time()-lastram>600) or usedp>0.8:
                     messagebus.postMessage("/system/perf/memuse",usedp)
                     lastram=time.time()
-                    
+
                 if usedp > config['mem-use-warn']:
                     if not MemUseWasTooHigh:
                         MemUseWasTooHigh = True
                         messagebus.postMessage("/system/notifications/warnings" , "Total System Memory Use rose above "+str(int(config['mem-use-warn']*100))+"%")
-                
+
                 if usedp < (config['mem-use-warn']-0.08):
                     MemUseWasTooHigh = False
             except Exception as e:
                 raise e
-            
-    if (newevt.averageFramesPerSecond < config['max-frame-rate']*0.95) or time.time()>lastfpd+(60*10):    
+
+    if (newevt.averageFramesPerSecond < config['max-frame-rate']*0.95) or time.time()>lastfpd+(60*10):
         messagebus.postMessage("/system/perf/FPS" , round(newevt.averageFramesPerSecond,2))
         lastfpd = time.time()
-        
-        
+
+
 @scheduling.scheduler.everyMinute
 def autosave():
     global lastsaved,lastdumpedlogs
@@ -143,26 +150,33 @@ def autosave():
             #It would suck to have tons of tiny log files so we let the user configure
             #Them separately
             util.SaveAllStateExceptLogs()
-            
+
     if not config['autosave-logs'] == 'never':
         if (time.time() -lastdumpedlogs) > dumplogsinterval:
             lastdumpedlogs = time.time()
             messagelogging.dumpLogFile()
-            
+
+def save():
+    if config['save-before-shutdown']:
+        messagebus.postMessage('/system/notifications/important/',"System saving before shutting down")
+        util.SaveAllState()
 
 #let the user choose to have the server save everything before a shutdown
 if config['save-before-shutdown']:
-    def save():
-        print("saving before shutting down")
-        util.SaveAllState()
     atexit.register(save)
     cherrypy.engine.subscribe("exit",save)
-    
-    
+
+
 def sd():
     messagebus.postMessage('/system/shutdown',"System about to shut down or restart")
-    
+    messagebus.postMessage('/system/notifications/important',"System shutting down now")
+
+
 sd.priority = 25
 atexit.register(sd)
-cherrypy.engine.subscribe("exit",sd)   
-    
+cherrypy.engine.subscribe("stop",sd)
+
+def stop(*args):
+    messagebus.postMessage('/system/notifications/shutdown',"Recieved SIGINT.")
+    cherrypy.engine.exit()
+signal.signal(signal.SIGINT,stop)
