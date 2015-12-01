@@ -151,7 +151,7 @@ cherrypy.process.servers.check_port(bindto, config['https-port'], timeout=1.0)
 
 
 MyExternalIPAdress = util.updateIP()
-thread.stack_size(64000)
+thread.stack_size(256000)
 
 
 if config['enable-websockets']:

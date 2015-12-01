@@ -44,6 +44,8 @@
 <li>!function event triggers let you trigger an event by calling a function</li>
 <li>Remove unsafe GET requests</li>
 <li>Fix security hole in loading library module that allowed any user to do so.</li>
+<li>Increase stack size to 256K per thread, preventing segfaults</li>
+<li>Fix bug where all accesses to user pages had to use the same lock which meant that accessing a page could actually cause a deadlock if accessing that page caused an HTTP to another page</li>
 </ul>
 </div>
 

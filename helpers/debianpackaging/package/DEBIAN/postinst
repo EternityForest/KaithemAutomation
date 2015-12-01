@@ -23,7 +23,7 @@ then
     openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /var/lib/kaithem/ssl/certificate.key  -out  /var/lib/kaithem/ssl/certificate.cert -subj '/CN=localhost'
     chmod 600 /var/lib/kaithem/ssl/certificate.key
     chown kaithem /var/lib/kaithem/ssl/certificate.key
-    systemctl enable kaithem
+    systemctl enable kaithem.service
     kaithem --initialpackagesetup x
-    systemctl start kaithem
+    systemctl start kaithem.service
 fi

@@ -184,6 +184,23 @@ time_as_seconds ={
 "femtosecond"  :0.000000000000001,
 }
 
+
+time_as_seconds_abbr ={
+'yr' : 60*60*24*365,
+#A "month" as commonly used is a vauge unit. is it 28 days? 30? 31?
+#To solve that, I define it as 1/12th of a solar year.
+'month' : 60*60*24*30.4368333333,
+'w' : 60*60*24*7,
+'d' : 60*60*24,
+"h" : 60*60,
+"m" : 60,
+"s" : 1,
+"ms" : 0.001,
+"us" : 0.000001,
+"ns"  : 0.000000001,
+"ps"  : 0.000000000001,
+"fs"  :0.000000000000001,
+}
 def timeIntervalFromString(s):
     """Take a string like '10 hours' or 'five minutes 32 milliseconds'
     or '1 year and 1 day' to a number of seconds"""
@@ -198,7 +215,7 @@ def timeIntervalFromString(s):
     return total
 
 
-def formatTimeInterval(t,maxunits,clock=False):
+def formatTimeIntervallong(t,maxunits,clock=False):
     """Take a length of time t in seconds, and return a nicely formatted string
     like "2 hours, 4 minutes, 12 seconds".
     maxunits is the maximum number of units to use in the string(7 will add a milliseconds field to times in years)
@@ -237,7 +254,51 @@ def formatTimeInterval(t,maxunits,clock=False):
             s += str(int(round(y))) + " " + i[0]+", "
             maxunits -=1
     return s[:-2]
-    e
+
+def formatTimeIntervalabbr(t,maxunits,clock=False):
+    """Take a length of time t in seconds, and return a nicely formatted string
+    like "2 hours, 4 minutes, 12 seconds".
+    maxunits is the maximum number of units to use in the string(7 will add a milliseconds field to times in years)
+
+    """
+    if clock:
+        frac = t%1
+        t -= frac
+        seconds = t%60
+        t-= seconds
+        minutes = (t-(int(t/3600)*3600))/60
+        t -= t%3600
+        hours= t/3600
+
+        s = "%02d:%02d"%(hours,minutes)
+        if maxunits>2:
+            s+= ":%02d"%(seconds)
+        if maxunits>3:
+            #Adding 0.01 seems to help with some kind of obnoxious rounding bug thing. Prob a better way to do things.
+            s+=":%03d"%(0.01+frac*1000)
+
+        return s
+    s = ""
+    for i in sorted(time_as_seconds_abbr.items(),key= lambda x:x[1], reverse=True):
+        if maxunits == 0:
+            return s[:-1]
+        x = t%i[1]
+        b=(t-x)
+        y=(t-x)/i[1]
+
+        t = t-b
+        if y>1: 
+            if i[0]=="month":
+                s += str(int(round(y))) + i[0]+"s "
+            else:
+                s += str(int(round(y))) + i[0]+" "
+            maxunits -=1
+        elif y:
+            s += str(int(round(y))) + i[0]+" "
+            maxunits -=1
+    return s[:-1]
+
+formatTimeInterval = formatTimeIntervallong
 
 def strToIntWithSIMultipliers(s):
     """Take a string of the form number[k|m|g] or just number and convert to an actual number

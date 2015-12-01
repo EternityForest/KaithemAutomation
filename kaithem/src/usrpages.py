@@ -77,7 +77,7 @@ class CompiledPage():
         footer = util.readfile(os.path.join(directories.htmldir,'pagefooter.html'))
 
         templatesource = header + template + footer
-        self.template = mako.template.Template(templatesource,uri="Template"+m+'_'+r)
+        self.template = mako.template.Template(templatesource, uri="Template"+m+'_'+r)
 
 
 def getPageErrors(module,resource):
@@ -173,7 +173,6 @@ def getPagesFromModules():
 
 #kaithem.py has come config option that cause this file to use the method dispatcher.
 class KaithemPage():
-
     #Class encapsulating one request to a user-defined page
     exposed = True;
 
@@ -230,58 +229,56 @@ class KaithemPage():
 
 
     def _serve(self,module,*args,**kwargs):
-        global _page_list_lock
-        with _page_list_lock:
-            page = self.lookup(module,args)
-            if None==page:
-                messagebus.postMessage("/system/errors/http/nonexistant", "Someone tried to access a page that did not exist in module %s with path %s"%(module,args))
-                raise cherrypy.NotFound()
-            page.lastaccessed = time.time()
-            #Check user permissions
-            for i in page.permissions:
-                pages.require(i)
+        page = self.lookup(module,args)
+        if None==page:
+            messagebus.postMessage("/system/errors/http/nonexistant", "Someone tried to access a page that did not exist in module %s with path %s"%(module,args))
+            raise cherrypy.NotFound()
+        page.lastaccessed = time.time()
+        #Check user permissions
+        for i in page.permissions:
+            pages.require(i)
 
-            self._headers(page)
-            #Check HTTP Method
-            if cherrypy.request.method not in page.methods:
-                #Raise a redirect the the wrongmethod error page
-                raise cherrypy.HTTPRedirect('/errors/wrongmethod')
+        self._headers(page)
+        #Check HTTP Method
+        if cherrypy.request.method not in page.methods:
+            #Raise a redirect the the wrongmethod error page
+            raise cherrypy.HTTPRedirect('/errors/wrongmethod')
+        try:
+            return page.template.render(
+                kaithem = kaithemobj.kaithem,
+                request = cherrypy.request,
+                module = modules_state.scopes[module],
+                path = args,
+                kwargs = kwargs
+                )
+        except Exception as e:
+            #The HTTPRedirect is NOT an error, and should not be handled like one.
+            #So we just reraise it unchanged
+            if isinstance(e,cherrypy.HTTPRedirect):
+                raise e
+
+            #The way we let users securely serve static files is to simply
+            #Give them a function that raises this special exception
+            if isinstance(e,kaithemobj.ServeFileInsteadOfRenderingPageException):
+                return cherrypy.lib.static.serve_file(e.f_filepath,e.f_MIME,e.f_name)
+
+            tb = traceback.format_exc()
+            data= "Request from: "+cherrypy.request.remote.ip+"("+pages.getAcessingUser()+")\n"+cherrypy.request.request_line+"\n"
+            #When an error happens, log it and save the time
+            #Note that we are logging to the compiled event object
+            page.errors.append([time.strftime(config['time-format']),tb,data])
             try:
-                return page.template.render(
-                   kaithem = kaithemobj.kaithem,
-                   request = cherrypy.request,
-                   module = modules_state.scopes[module],
-                   path = args,
-                   kwargs = kwargs
-                   )
+                messagebus.postMessage('system/errors/pages/'+
+                                    module+'/'+
+                                    "/".join(args),str(tb))
             except Exception as e:
-                #The HTTPRedirect is NOT an error, and should not be handled like one.
-                #So we just reraise it unchanged
-                if isinstance(e,cherrypy.HTTPRedirect):
-                    raise e
+                print (e)
+            #Keep only the most recent 25 errors
 
-                #The way we let users securely serve static files is to simply
-                #Give them a function that raises this special exception
-                if isinstance(e,kaithemobj.ServeFileInsteadOfRenderingPageException):
-                    return cherrypy.lib.static.serve_file(e.f_filepath,e.f_MIME,e.f_name)
-
-                tb = traceback.format_exc()
-                data= "Request from: "+cherrypy.request.remote.ip+"("+pages.getAcessingUser()+")\n"+cherrypy.request.request_line+"\n"
-                #When an error happens, log it and save the time
-                #Note that we are logging to the compiled event object
-                page.errors.append([time.strftime(config['time-format']),tb,data])
-                try:
-                    messagebus.postMessage('system/errors/pages/'+
-                                       module+'/'+
-                                       "/".join(args),str(tb))
-                except Exception as e:
-                    print (e)
-                #Keep only the most recent 25 errors
-
-                #If this is the first error(high level: transition from ok to not ok)
-                #send a global system messsage that will go to the front page.
-                if len(page.errors)==1:
-                    messagebus.postMessage('/system/notifications/errors',
-                                           "Page \""+"/".join(args)+"\" of module \""+module+
-                                           "\" may need attention")
-                raise (e)
+            #If this is the first error(high level: transition from ok to not ok)
+            #send a global system messsage that will go to the front page.
+            if len(page.errors)==1:
+                messagebus.postMessage('/system/notifications/errors',
+                                        "Page \""+"/".join(args)+"\" of module \""+module+
+                                        "\" may need attention")
+            raise (e)

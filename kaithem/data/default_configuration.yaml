@@ -15,7 +15,7 @@ ssl-dir : ssl
 site-data-dir: var
 
 #How many threads to allocate for the worker thread pool
-worker-threads: 8
+worker-threads: 12
 
 #How many threads cherrypy should use for the web server to serve unencrypted pages
 http-thread-pool: 3
@@ -68,7 +68,7 @@ priority-response:
 #should an error occur while polling or running an event,
 #how long to wait before polling that event again in seconds
 error-backoff:
-    realtime: 0.05 #Assume realtime really does need to be fast
+    realtime: 1 #Assume realtime really does need to be fast
     interactive: 5
     high: 7
     medium: 9

@@ -9,7 +9,7 @@
     import multiprocessing
     import re
     import threading
-    
+
     import kaithem
     from src import unitsofmeasure
     from src import newevt
@@ -18,6 +18,7 @@
     from src import usrpages
     from src import util
     from src import kaithemobj
+    from src import workers
     from src.config import config
     if os.name != "nt":
         import fcntl
@@ -165,6 +166,10 @@
         <tr>
             <td>Memory Used By All Processes(UNIX only)</td>
             <td>${used} MB (${usedp}%)</td>
+        </tr>
+        <tr>
+            <td>Tasks in thread pool queue</td>
+            <td>${workers.waitingtasks()}</td>
         </tr>
     </table>
 

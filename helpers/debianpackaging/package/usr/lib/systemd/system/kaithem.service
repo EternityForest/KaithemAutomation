@@ -1,6 +1,6 @@
 [Unit]
 Description=KaithemAutomation python based automation server
-After=basic.target
+After=basic.target time-sync.target
 Type=simple
 Restart=on-failure
 RestartSec=5

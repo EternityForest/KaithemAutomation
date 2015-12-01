@@ -205,7 +205,7 @@ class MPlayerWrapper(SoundWrapper):
             g = open(os.devnull,"w")
             self.paused = False
 
-            cmd = ["mplayer" ,"-nogui", "-slave" , "-quiet", "-softvol" ,"-ss", str(start)]
+            cmd = ["mplayer" , "-slave" , "-quiet", "-softvol" ,"-ss", str(start)]
 
             if not 'eq' in extras:
                 cmd.extend(["-af", "equalizer=0:0:0:0:0:0:0:0:0:0,volume="+str(10*math.log10(vol))])
