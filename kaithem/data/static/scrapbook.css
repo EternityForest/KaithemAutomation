@@ -239,7 +239,7 @@ cursor:help;
 }
 
 /*This is a paragraph serving a similar funtion to the menu bars at the top of desktop application windows*/
-p.menubar{
+p.menubar div.menubar{
 background-color:rgba(255,25,255,0.1);
 border-radius:5px;
 margin:2px;

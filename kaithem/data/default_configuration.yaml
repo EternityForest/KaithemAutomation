@@ -101,6 +101,7 @@ run-as-user: root
 #If this is not default, and run as user is not root, and the user starts the process as root, then we use this group.
 run-as-group: __default__
 
+#If set to yes and setproctitle is installed, changes process title to kaithem instead of python.
 change-process-title: yes
 ##################LOGGING######################################################
 #Notice: to actually control what topics are logged, use the kaithem/var/whattosave.txt or edit

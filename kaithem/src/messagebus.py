@@ -179,6 +179,7 @@ class PyMessageBus(object):
             self.executor = executor
 
         self.subscribers = defaultdict(list)
+        
     def last(self,tag,default):
         if tag in self.values:
             return self.values[tag]

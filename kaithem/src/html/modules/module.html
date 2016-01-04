@@ -39,14 +39,18 @@ This Page allows you to view and edit information and resources associated with 
 
 <h3 id="resources">Resources in ${"/".join([name]+path)|h}</h3>
 <div class="sectionbox">
-<p class="menubar">
+<div class="menubar">
 
 <a class="button createbutton addeventbutton" href="/modules/module/${url(name)}/addresource/event/${url('/'.join(path))}">Event</a>
 <a class="button createbutton addpermissionbutton" href="/modules/module/${url(name)}/addresource/permission/${url('/'.join(path))}">Permission</a>
 <a class="button createbutton addpagebutton" href="/modules/module/${url(name)}/addresource/page/${url('/'.join(path))}">Page</a>
 <a class="button createbutton addfolderbutton" href="/modules/module/${url(name)}/addresource/directory/${url('/'.join(path))}">Folder</a>
 <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource">Delete Resource</a>
-</p>
+<form style="display:inline;" action="/modules/search/${url(name)}"><input name="search" placeholder="Search this module"/><input type=submit value="search"/></form>
+
+</div>
+
+
 <p class="pathnav">Path:
 <%
 temp_p = ""
@@ -62,6 +66,7 @@ temp_p+= i+'/'
 %endif
 </p>
 <p class="help">This module contains the following resources.</p>
+
 <%!
 def get_time(t):
   try:
