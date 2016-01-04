@@ -2,7 +2,12 @@
 <title>Kaithem Help</title>
 <h2>Change Log</h2>
 
-<h3>Development</h3>
+<h3>0.55</h3>
+<div class="sectionbox">
+<ul>
+<li>Fix bug where si formatted numbers were rounded down</li>
+</ul>
+<h3>0.54</h3>
 <div class="sectionbox">
 <ul>
 <li>New file browser like module view</li>
@@ -46,8 +51,20 @@
 <li>Fix security hole in loading library module that allowed any user to do so.</li>
 <li>Increase stack size to 256K per thread, preventing segfaults</li>
 <li>Fix bug where all accesses to user pages had to use the same lock which meant that accessing a page could actually cause a deadlock if accessing that page caused an HTTP to another page</li>
+<li>Lots of misc changes</li>
 </ul>
 </div>
+
+<h3>0.53</h3>
+<div class="sectionbox">
+<p class="warning">
+    This version differs by only a single line from 0.52 and fixes a critical security flaw. All users of the previous version should upgrade immediately.
+</p>
+<ul>
+<li>Fix bug that let anyone, even an unregistered user change the settings for any user.</li>
+</ul>
+</div>
+
 
 <h3>0.52(Minor Bugfix Release)</h3>
 <div class="sectionbox">

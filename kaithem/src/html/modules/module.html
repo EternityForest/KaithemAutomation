@@ -119,7 +119,15 @@ def in_folder(r,f,n):
 
 		    %if module[i]['trigger'].startswith("!time"):
 		    <br><b>Next Run:</b>
-		    <code>${unitsofmeasure.strftime(get_time(module[i]['trigger']))|h}</code></p>
+		    <%
+		      xyz= get_time(module[i]['trigger'])
+		      unitsofmeasure.strftime()
+		      if xyz ==0:
+                        xyz= "<b>Not Scheduled to Run</b>"
+                      else:
+                        xyz =unitsofmeasure.strftime()
+                    %>
+		    <code>${xyz}</code></p>
 		    %endif
 	  </dd>
 	%endif

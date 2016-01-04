@@ -100,6 +100,8 @@ run-as-user: root
 
 #If this is not default, and run as user is not root, and the user starts the process as root, then we use this group.
 run-as-group: __default__
+
+change-process-title: yes
 ##################LOGGING######################################################
 #Notice: to actually control what topics are logged, use the kaithem/var/whattosave.txt or edit
 #through the web interface
@@ -171,6 +173,9 @@ cm-theme: codemirror-scrapbook
 
 #How to format times and dates
 time-format: "%A, %B %d, %Y at %I:%M:%S %p Server Time"
+
+#If yes, is 1 Minute 29 Seconds instead of 1m 29s
+full-time-intervals: no
 
 #This is the file which contains a list of strings for kaithem.lorem and a few other places.
 #Used for the quotes in the login screen

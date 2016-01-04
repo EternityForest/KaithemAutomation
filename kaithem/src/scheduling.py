@@ -67,7 +67,7 @@ class RepeatingEvent():
         t = time.time()+offset
         #This is important in the next step. Here we add a fraction of the interval to pust times like 59.95 over
         #otherwise it will schedule it for 60 when clearly a minute in the future should be 120
-        t += self.interval/10
+        t += self.interval/10.0
         #Calculate the last modulo of the interval. We do this by doing the module to see how far past it we are
         #then subtracting. 
         last = t-(t%self.interval)

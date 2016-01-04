@@ -412,6 +412,8 @@ def resourceUpdateTarget(module,resource,kwargs):
             #Test compile, throw error on fail.
             try:
                 evt = newevt.Event(kwargs['trigger'],kwargs['action'],newevt.make_eventscope(module),setup=kwargs['setup'],m=module,r=resource)
+                del evt
+                time.sleep(0.1)
             except Exception as e:
                 if not 'versions' in resourceobj:
                     resourceobj['versions'] = {}

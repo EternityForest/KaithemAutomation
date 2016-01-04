@@ -15,14 +15,15 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #
-__version__ = "0.53 Develpoment"
-__version_info__ = (0,5,3,"dev",0)
+__version__ = "0.55 Develpoment"
+__version_info__ = (0,5,5,"dev",0)
+
 
 #This file is the main entry point of the app. It imports everything, loads configuration,
 #sets up and starts the server, and contains page handlers for the main page.
 
 import sys,os,threading,traceback
-        
+
 #There are some libraries that are actually different for 3 and 2, so we use the appropriate one
 #By changing the pathe to include the proper ones.
 
@@ -111,7 +112,6 @@ def installThreadExcepthook():
 
 installThreadExcepthook()
 
-
 from src import notifications
 from src import pages
 from src import weblogin
@@ -138,7 +138,6 @@ from src import systasks
 from src import registry
 from src import widgets
 
-
 from src.config import config
 
 if config['local-access-only']:
@@ -153,6 +152,12 @@ cherrypy.process.servers.check_port(bindto, config['https-port'], timeout=1.0)
 MyExternalIPAdress = util.updateIP()
 thread.stack_size(256000)
 
+if config['change-process-title']:
+    try:
+        import setproctitle
+        setproctitle.setproctitle("kaithem")
+    except:
+        pass
 
 if config['enable-websockets']:
     from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool

@@ -125,7 +125,10 @@ properties:
 
     run-as-group:
         type: string
-
+        
+    change-process-title:
+        type: boolean
+        
     log-topics:
         type: array
         uniqueitems: yes
@@ -211,7 +214,10 @@ properties:
 
     time-format:
         type: string
-
+        
+    full-time-intervals:
+        type: boolean
+        
     get-public-ip:
         type: boolean
 
