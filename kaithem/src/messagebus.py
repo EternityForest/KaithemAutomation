@@ -50,7 +50,6 @@ class MessageBus(object):
             self.executor = executor
 
         self.subscribers = defaultdict(list)
-        self.subscribers_immutable =self.subscribers.copy()
 
     def subscribe(self,topic,callback):
         topic=normalize_topic(topic)
@@ -129,6 +128,7 @@ class MessageBus(object):
                     
     def _post(self, topic,message,errors):
         matchingtopics = self.parseTopic(topic)
+
         #We can't iterate on anything that could possibly change so we make copies
         d = self.subscribers_immutable
         for i in matchingtopics:

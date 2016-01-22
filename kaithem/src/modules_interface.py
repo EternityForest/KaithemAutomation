@@ -18,10 +18,61 @@ import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling
 from .modules import *
 from src import modules
+
+searchable = {'event': ['setup', 'trigger', 'action'], 'page':['body']}
+
+def searchModules(search,max_results=100,start=0,mstart=0):
+    pointer =mstart
+    results = []
+    for i in sorted(ActiveModules.keys(),reverse=True)[mstart:]:
+        x = searchModuleResources(i,search,max_results,start)
+        if x[0]:
+            results.append((i,x[0]))
+        max_results -=len(x[0])
+        start =0
+        pointer += 1
+        if not max_results:
+            return(results,max(0,pointer-1),x[1])
+    return(results,max(0,pointer-1),x[1])
+        
+
+def searchModuleResources(modulename,search,max_results=100,start=0):
+    m = ActiveModules[modulename]
+    results = []
+    pointer = start
+    for i in sorted(m.keys(),reverse=True)[start:]:
+        if not max_results>0:
+            return(results,pointer)
+        pointer += 1
+        if m[i]['resource-type'] in searchable:
+            if search in i:
+                results.append(i)
+                max_results -=1
+                continue
+            for j in searchable[ m[i]['resource-type']]:
+                x= m[i][j].find(search)
+                if x>0:
+                    results.append(i)
+                    max_results -=1
+                    break
+    return(results, pointer)
+
+
 #The class defining the interface to allow the user to perform generic create/delete/upload functionality.
 class WebInterface():
-    
-            
+    @cherrypy.expose
+    def search(self,module,**kwargs):
+        start=mstart=0
+        if 'mstart' in kwargs:
+            mstart = int(kwargs['mstart'])
+        if 'start' in kwargs:
+            start = int(kwargs['start'])
+        pages.require("/admin/modules.edit")
+        if not module=="__all__":
+            return pages.get_template("modules/search.html").render(search=kwargs['search'], name=module,results=searchModuleResources(module,kwargs['search'],100,start))
+        else:
+            return pages.get_template("modules/search.html").render(search=kwargs['search'], name=module,results=searchModules(kwargs['search'],100,start,mstart))
+
     @cherrypy.expose
     def nextrun(self,**kwargs):
         pages.require('/admin/modules.view')
