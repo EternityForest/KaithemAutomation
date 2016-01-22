@@ -9,6 +9,7 @@ require-method: [GET, POST]
 require-permissions: [/users/jookbawkse/use]
 resource-type: page
 
+#End YAML metadata, page body mako code begins on first line after ---
 ---
 <%
 if module.pointer > module.playlist.index(kwargs['i']):

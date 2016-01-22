@@ -22,6 +22,7 @@ versions:
   setup: module.pointer = 0
   trigger: (not kaithem.sound.isPlaying("jookbawkse")) and module.playlist
 
+#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
 ---
 import random
 ---

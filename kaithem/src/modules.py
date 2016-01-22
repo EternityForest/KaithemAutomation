@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #File for keeping track of and editing kaithem modules(not python modules)
-import threading,urllib,shutil,sys,time,os,json,traceback, copy
+import threading,urllib,shutil,sys,time,os,json,traceback, copy,hashlib
 import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling
 from .modules_state import ActiveModules,modulesLock,scopes

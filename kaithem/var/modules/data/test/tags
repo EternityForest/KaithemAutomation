@@ -123,6 +123,7 @@ versions:
     \              return self.value\r\n"
   trigger: 'False'
 
+#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
 ---
 #Copyright Daniel Dunn 2015
 #This file is part of Kaithem Automation.

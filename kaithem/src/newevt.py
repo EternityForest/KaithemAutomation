@@ -459,7 +459,9 @@ class FunctionWrapper():
         self.f = f
     def __call__(self):
         self.f()
-        
+
+
+
 #Note: this class does things itself instead of using that CompileCodeStringsMixin
 #I'm not sure that was the best idea to use that actually....
 class FunctionEvent(BaseEvent):
@@ -469,13 +471,21 @@ class FunctionEvent(BaseEvent):
         self.pymodule.__dict__['kaithem']=kaithemobj.kaithem
         self.pymodule.__dict__['module'] =modules_state.scopes[self.module]
         self.active = True
-        self.fname = fname
-        if l:
-            def f():
-                with self.lock:
-                    self._on_trigger()
+        if 'dummy' in kwargs:
+            dummy = kwargs['dummy']
         else:
-            f = self._on_trigger
+            dummy = False
+        self.fname = fname
+        if not dummy:
+            if l:
+                def f():
+                    with self.lock:
+                        self._on_trigger()
+            else:
+                f = self._on_trigger
+        else:
+            def f():
+                pass
         self.f = FunctionWrapper(f)
         self.xyz(do, trigaction, setup)
     
@@ -625,11 +635,13 @@ class MessageEvent(BaseEvent,CompileCodeStringsMixin):
         #This event type is not polled. Note that it doesn't even have a check() method.
         self.polled = False
         BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
-
+        self.lastran = 0
         def action_wrapper(topic,message):
             #Since we aren't under the BaseEvent.check() lock, we need to get it ourselves.
             with self.lock:
-
+                if self.ratelimit > time.time()-self.lastran:
+                    return
+                self.lastran = time.time()
                 #These two lines were an old fix for a circular reference buf that made message events not go away.
                 #It is still here just in case another circular reference bug pops up.
                 if (self.module,self.resource) not in EventReferences:
@@ -721,6 +733,7 @@ class PolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
         else:
             #The eval was false, so the previous state was False
             self._prevstate = False
+            
 
 class PolledInternalSystemEvent(BaseEvent,DirectFunctionsMixin):
     def __init__(self,when,do,scope = None ,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
@@ -992,6 +1005,8 @@ def getEventsFromModules(only = None):
 def make_event_from_resource(module,resource):
     "Returns an event object when given a module and resource name pointing to an event resource."
     r = modules_state.ActiveModules[module][resource]
+    
+
     #Add defaults for legacy events that do not have setup, rate limit, etc.
     if 'setup' in r:
         setupcode = r['setup']
@@ -1012,7 +1027,20 @@ def make_event_from_resource(module,resource):
         priority = r['priority']
     else:
         priority = 1
-
+        
+    if 'enable' in r:
+        if not r['enable']:
+            if not parseTrigger(r['trigger'][0]) == '!function':
+                return Event(m=module,r=resource)
+            else:
+               return Event(r['trigger'],r['action'],make_eventscope(module),
+              setup = setupcode,
+              continual = continual,
+              ratelimit=ratelimit,
+              priority=priority,
+              m=module,
+              r=resource,dummy=True)
+        
     x = Event(r['trigger'],r['action'],make_eventscope(module),
               setup = setupcode,
               continual = continual,

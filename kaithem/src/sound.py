@@ -69,7 +69,9 @@ class SoundWrapper(object):
 
     def resume(self,  handle ="PRIMARY"):
         pass
-
+    
+    def fadeTo(self, handle="PRIMARY"):
+        self.playSound(self,handle)
 
 
 class Mpg123Wrapper(SoundWrapper):
@@ -204,7 +206,7 @@ class MPlayerWrapper(SoundWrapper):
             f = open(os.devnull,"w")
             g = open(os.devnull,"w")
             self.paused = False
-
+            self.volume = vol
             cmd = ["mplayer" , "-slave" , "-quiet", "-softvol" ,"-ss", str(start)]
 
             if not 'eq' in extras:
@@ -264,6 +266,7 @@ class MPlayerWrapper(SoundWrapper):
 
 
         def setVol(self,volume):
+            self.volume = volume
             with self.lock:
                 if self.isPlaying():
                     try:
@@ -403,6 +406,29 @@ class MPlayerWrapper(SoundWrapper):
             return self.runningSounds[channel].resume()
         except KeyError:
             pass
+        
+    def fadeTo(self, channel, sound, length= 2.5,**kwargs):
+        try:
+            r = self.runningSounds[channel]
+            del self.runningSounds[channel]
+            self.runningSounds[channel+'_fade_beginning_sound'+str(time.time())] = r
+        except:
+            self.playSound(sound,channel,**kwargs)
+        if volume in kwargs:
+            volumetarget = kwargs['volume']
+            del kwargs['volume']
+            
+        def f():
+            self.playSound(sound, channel,volume=0,**kwargs)
+            oldinc = r.volume/float(length)
+            newinc = volumetarget/float(length)
+            newvol =0
+            for i in range(length*48):
+                r.setvol(r.volume-oldinc)
+                self.setVolume(newvol,channel)
+                newvol += newinc
+                time.sleep(1/48)
+        workers.do(f)
 
 l = {'sox':SOXWrapper, 'mpg123':Mpg123Wrapper, "mplayer":MPlayerWrapper}
 

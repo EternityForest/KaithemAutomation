@@ -9,6 +9,7 @@ require-method: [GET, POST]
 require-permissions: [/users/jookbawkse/view]
 resource-type: page
 
+#End YAML metadata, page body mako code begins on first line after ---
 ---
 <script type="text/javascript" src="/static/widget.js"></script>
 <h2>JookBawkse Controls</h2>

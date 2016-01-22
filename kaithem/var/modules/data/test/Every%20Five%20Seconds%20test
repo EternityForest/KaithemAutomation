@@ -21,6 +21,7 @@ versions:
     \n"
   trigger: '!time every five seconds'
 
+#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
 ---
 #This code runs once when the event loads. It also runs when you save the event during the test compile
 #and may run multiple times when kaithem boots due to dependancy resolution

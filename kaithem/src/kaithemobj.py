@@ -305,6 +305,16 @@ class Kaithem():
         @staticmethod
         def subscribe(topic,callback ):
             messagebus.subscribe(topic,callback)
+            
+    class pymessage():
+        @staticmethod
+        def post(topic,message):
+            messagebus.pyPostMessage(topic,message)
+
+        @staticmethod
+        def subscribe(topic,callback ):
+            messagebus.pySubscribe(topic,callback)
+
 
     class persist():
         @staticmethod

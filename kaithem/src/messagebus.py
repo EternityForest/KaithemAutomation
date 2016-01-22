@@ -21,8 +21,10 @@ from collections import defaultdict, OrderedDict
 
 
 _subscribers_list_modify_lock = threading.Lock()
-parsecache = OrderedDict()
 
+#OrderedDict doesn't seem as fast as dict. So I have a cache of the cache
+parsecache = OrderedDict()
+parsecachecache = {}
 def normalize_topic(topic):
     """"Because some topics are equivalent("/foo" and "foo"), this lets us convert them to the canonical "/foo" representation.
     Note that "/foo/" is not the same as "/foo", because a trailing slash indicates a "directory"."""
@@ -48,6 +50,7 @@ class MessageBus(object):
             self.executor = executor
 
         self.subscribers = defaultdict(list)
+        self.subscribers_immutable =self.subscribers.copy()
 
     def subscribe(self,topic,callback):
         topic=normalize_topic(topic)
@@ -79,15 +82,18 @@ class MessageBus(object):
                 except:
                         pass
         self.subscribers[topic].append(weakref.ref(callback,delsubscription))
+        self.subscribers_immutable = self.subscribers.copy()
 
     @staticmethod
     def parseTopic(topic):
         "Parse the topic string into a list of all subscriptions that could possibly match."
-
-        topic=normalize_topic(topic)
+        global parsecachecache
         #Since this is a pure function(except the caching itself) we can cache it
         if topic in parsecache:
-            return parsecache[topic]
+            return parsecachecache[topic]
+        #Let's cache by the original version of the topic, so we don't have to convert it to the canonical
+        oldtopic = topic
+        topic=normalize_topic(topic)
 
         #A topic foo/bar/baz would go to
         #foo, foo/bar, and /foo/bar/baz
@@ -99,18 +105,32 @@ class MessageBus(object):
         for i in parts:
             last += (i+'/')
             matchingtopics.add(last)
-        parsecache[topic] = matchingtopics
+        parsecache[oldtopic] = matchingtopics
         #Don't let the cache get too big.
         #Getting rid of the oldest should hopefully converge to the most used topics being cached
-        if len(parsecache) > 1200:
+        if len(parsecache) > 600:
             parsecache.popitem(last=False)
+        parsecachecache = dict(parsecache)
         return matchingtopics
 
+    def make_poster(self,f,topic,message,errors):
+        """return function g that calls f with (topic,message) and if errors is true posts another
+        message should an error occur running f"""
+        def g():
+            try:
+                f(topic,message)
+            except:
+                try:
+                    if errors:
+                        self.postMessage("/system/messagebus/errors","Error in subscribed function handling topic: " + topic+"\n"+traceback.format_exc(6),False)
+                except:
+                        pass
+        return g
+                    
     def _post(self, topic,message,errors):
         matchingtopics = self.parseTopic(topic)
-
         #We can't iterate on anything that could possibly change so we make copies
-        d = self.subscribers.copy()
+        d = self.subscribers_immutable
         for i in matchingtopics:
             if i in d:
                 #When we find a match, we make a copy of that subscriber list
@@ -121,17 +141,10 @@ class MessageBus(object):
                     #An error could happen in the subscriber
                     #Or a typeerror could because the weakref has been collected
                     #We ignore both of these errors and move on
-                    try:
-                        f =ref()(topic,message)
-                    except:
-                        try:
-                            if errors:
-                                self.postMessage("/system/messagebus/errors","Error in subscribed function handling topic: " + topic+"\n"+traceback.format_exc(6),False)
-                        except:
-                                pass
-
-
-
+                    f =ref()
+                    if f:
+                        g= self.make_poster(f,topic,message,errors)
+                        self.executor(g)
 
     def postMessage(self, topic, message,errors=True):
         #Use the executor to run the post message job
@@ -151,18 +164,15 @@ class MessageBus(object):
         except Exception:
             raise ValueError("Message must be serializable as JSON")
 
-        def f():
-            self._post(topic,message,errors)
-        f.__name__ = 'Publish_'+topic
-        self.executor(f)
+        self._post(topic,message,errors)
 
 
 class PyMessageBus(object):
     def __init__(self,executor = None):
         """
-        Represents the entirety of the message bus
+        Represents the entirety of the fast message bus
 
-        You pass this constructot a function of one argument that just calls its argument. That allows you to
+        You pass this construct a function of one argument that just calls its argument. That allows you to
         always run message bus posting in a background thread. Defaults to calling in
         same thread and ignoring errors.
         """
@@ -179,6 +189,8 @@ class PyMessageBus(object):
             self.executor = executor
 
         self.subscribers = defaultdict(list)
+        self.subscribers_immutable =self.subscribers.copy()        
+        
     def last(self,tag,default):
         if tag in self.values:
             return self.values[tag]
@@ -223,10 +235,11 @@ class PyMessageBus(object):
                 except:
                         pass
         self.subscribers[topic].append(weakref.ref(callback,delsubscription))
+        self.subscribers_immutable =self.subscribers.copy()
 
     def _post(self, topic,message,errors):
         #We can't iterate on anything that could possibly change so we make copies
-        d = self.subscribers.copy()
+        d = self.subscribers_immutable
         if topic in d:
             #When we find a match, we make a copy of that subscriber list
             x = d[topic][:]
@@ -261,7 +274,7 @@ class PyMessageBus(object):
         self.executor(f)
 
 
-_pybus = PyMessageBus()
+_pybus = PyMessageBus(workers.do)
 _bus = MessageBus(workers.do)
 subscribe = _bus.subscribe
 postMessage = _bus.postMessage

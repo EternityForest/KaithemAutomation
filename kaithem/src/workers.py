@@ -34,6 +34,7 @@ else:
     import queue
 
 __queue = queue.Queue(config['task-queue-size'])
+
 run = True
 
 def EXIT():

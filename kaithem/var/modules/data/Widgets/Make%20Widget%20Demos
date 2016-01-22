@@ -1,6 +1,7 @@
 {continual: true, disabled: false, once: true, priority: interactive, rate-limit: 2.5,
   resource-type: event, trigger: 'True'}
 
+#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
 ---
 
 

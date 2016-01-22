@@ -20,7 +20,8 @@ from .modules import *
 from src import modules
 #The class defining the interface to allow the user to perform generic create/delete/upload functionality.
 class WebInterface():
-
+    
+            
     @cherrypy.expose
     def nextrun(self,**kwargs):
         pages.require('/admin/modules.view')
@@ -173,7 +174,7 @@ class WebInterface():
             if path[0] == 'obj':
                 #There might be a password or something important in the actual module object. Best to restrict who can access it.
                 pages.require("/admin/modules.edit")
-                return pages.get_template("modules/modulescope.html").render(name = root, obj = scopes[root])
+                return pages.get_template("modules/modulescope.html").render(kwargs=kwargs, name = root, obj = scopes[root])
 
             #This gets the interface to add a page
             if path[0] == 'addresource':
@@ -410,23 +411,25 @@ def resourceUpdateTarget(module,resource,kwargs):
         if t == 'event':
 
             #Test compile, throw error on fail.
-            try:
-                evt = newevt.Event(kwargs['trigger'],kwargs['action'],newevt.make_eventscope(module),setup=kwargs['setup'],m=module,r=resource)
-                del evt
-                time.sleep(0.1)
-            except Exception as e:
-                if not 'versions' in resourceobj:
-                    resourceobj['versions'] = {}
-                resourceobj['versions']['__draft__'] = r = resourceobj.copy().pop('versions')
-                r['resource-type'] = 'event'
-                r['trigger'] = kwargs['trigger']
-                r['action'] = kwargs['action']
-                r['setup'] = kwargs['setup']
-                r['priority'] = kwargs['priority']
-                r['continual'] = 'continual' in kwargs
-                r['rate-limit'] = float(kwargs['ratelimit'])
-                messagebus.postMessage("system/errors/misc/failedeventupdate", "In: "+ module +" "+resource+ "\n"+ traceback.format_exc(4))
-                raise
+            if 'enable' in kwargs:
+                try:
+                    evt = newevt.Event(kwargs['trigger'],kwargs['action'],newevt.make_eventscope(module),setup=kwargs['setup'],m=module,r=resource)
+                    del evt
+                    time.sleep(0.1)
+                except Exception as e:
+                    if not 'versions' in resourceobj:
+                        resourceobj['versions'] = {}
+                    resourceobj['versions']['__draft__'] = r = resourceobj.copy().pop('versions')
+                    r['resource-type'] = 'event'
+                    r['trigger'] = kwargs['trigger']
+                    r['action'] = kwargs['action']
+                    r['setup'] = kwargs['setup']
+                    r['enable'] = 'enable' in kwargs
+                    r['priority'] = kwargs['priority']
+                    r['continual'] = 'continual' in kwargs
+                    r['rate-limit'] = float(kwargs['ratelimit'])
+                    messagebus.postMessage("system/errors/misc/failedeventupdate", "In: "+ module +" "+resource+ "\n"+ traceback.format_exc(4))
+                    raise
 
             resourceobj['trigger'] = kwargs['trigger']
             resourceobj['action'] = kwargs['action']
@@ -434,6 +437,8 @@ def resourceUpdateTarget(module,resource,kwargs):
             resourceobj['priority'] = kwargs['priority']
             resourceobj['continual'] = 'continual' in kwargs
             resourceobj['rate-limit'] = float(kwargs['ratelimit'])
+            resourceobj['enable'] = 'enable' in kwargs
+
             #I really need to do something about this possibly brittle bookkeeping system
             #But anyway, when the active modules thing changes we must update the newevt cache thing.
 

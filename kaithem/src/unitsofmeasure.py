@@ -341,11 +341,11 @@ def siFormatNumber(number,digits=2):
         return(str(round(number*(10**-15),digits))+'f')
     if number < 10**-9:
         return(str(round(number*1000000000000.0,digits))+'p')
-    if number < 0.00001:
+    if number <10**-6:
         return(str(iround(number*1000000000.0,digits))+'n')
     if number < 0.001:
         return(str(iround(number*1000000.0,digits))+'u')
-    if number < 0.01:
+    if number < 0.5:
         return(str(iround(number*1000.0,digits))+'m')
     return str(iround(number,digits))
 

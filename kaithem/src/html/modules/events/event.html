@@ -21,7 +21,13 @@ from src import util
 <script src="/static/js/codemirror/addon/scroll/annotatescrollbar.js"></script>
 <script src="/static/js/codemirror/addon/search/matchesonscrollbar.js"></script>
 %endif
-<title>Kaithem Event</title>
+<title>Kaithem Event\
+%if 'enable' in event:
+%if not event['enable'] == True:
+(disabled)\
+%endif
+%endif
+</title>
 <h2>Event "${name|h}" of module <a href="/modules/module/${url(module)}">${module|h}</a></h2>
 <p class=pathnav>Path:
 <%
@@ -52,8 +58,17 @@ or go to the working copy and save that to delete this draft.</p>
 %endif
 <div class="sectionbox">
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
-<h3>Name</h3>
-<input name="name" value="${name|h}"></input>
+<h3>Basic</h3>
+<label>Name:<input name="name" value="${name|h}"></input></label><br>
+ <label><input type="checkbox"  name="enable" value="false"
+         %if 'enable' in event:
+            %if event['enable'] == True:
+            checked="yes"
+            %endif
+        %else:
+            checked="yes"
+         %endif
+       ></input>Enable</label>
 <h3 id="setupheading">Setup Code</h3>
 <p class="help">Enter python code. It will execute in the event <b>global</b> scope when it loads. If there is any problem,
 the other events will load then this will be retried. This is also how <a href="/docs#dependancies">dependancies</a> are reoslved.

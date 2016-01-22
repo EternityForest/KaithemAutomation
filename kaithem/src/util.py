@@ -254,12 +254,12 @@ def timeaccuracy():
             hasInternet = True
             return oldNTPOffset
         else:
-            return oldNTPOffset + (time.time() -lastNTP)/10000
+            return oldNTPOffset + (time.time() -lastNTP)/10000.0
     except:
         if hasInternet:
             messagebus.postMessage("/system/internet",False)
         hasInternet = False
-        return oldNTPOffset + (time.time() -lastNTP)/10000
+        return oldNTPOffset + (time.time() -lastNTP)/10000.0
 
 def diff(a,b):
     x = a.split("\n")
@@ -364,13 +364,18 @@ def is_private_ip(ip):
 srepr = reprlib.Repr()
 
 srepr.maxdict = 25
-srepr.maxlist = 10
+srepr.maxlist = 15
 srepr.maxset = 10
-srepr.maxlong = 10
-srepr.maxstring = 80
-srepr.maxother = 80
+srepr.maxlong = 24
+srepr.maxstring = 120
+srepr.maxother = 120
 
-saferepr = srepr.repr
+def saferepr(obj):
+    try:
+        return srepr.repr(obj)
+    except Exception as e:
+        return e+" in repr() call"
+
 
 #Partly based on code by Tamás of stack overflow.
 def drop_perms(user, group = None):

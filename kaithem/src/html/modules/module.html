@@ -7,15 +7,13 @@ import time
 <%include file="/pageheader.html"/>
 <h2>Module ${name|h}</h2>
 <p class="help">Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</p>
-
-This Page allows you to view and edit information and resources associated with this module.<br><br>
 <title>Module: ${name|h}</title>
-
+<section>
 <form action="/modules/module/${url(name)}/update" method="POST" name="user">
 <a href="/modules/download/${url(name)}.zip">Download this module as a zip file</a><br>
 <a href="/modules/yamldownload/${url(name)}.zip">Download this module as a zip file with YAML resources(not compatible with older versions)</a><br>
 <a href="/modules/module/${url(name)}/obj">View the module namespace object(New, requires edit permission)</a>
-
+</section>
 <h3>Basic Information</h3>
 <div class="sectionbox">
 
@@ -99,6 +97,9 @@ def in_folder(r,f,n):
 	%if module[i]['resource-type'] == 'event':
 	  <dt>
 	       <span class="event-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}#setupheading">${util.split_escape(i,'/','\\')[-1]|h}</a>
+	       %if not module[i].get('enable',"True"):
+	       (disabled)
+	       %endif
 <a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a></b>
 	       %if newevt.fastGetEventErrors(name,i):
 	       <span class="error">[${len(newevt.fastGetEventErrors(name,i))} Errors]</span>
@@ -117,7 +118,7 @@ def in_folder(r,f,n):
 		    %endif
 
 
-		    %if module[i]['trigger'].startswith("!time"):
+		    %if module[i]['trigger'].startswith("!time") and module[i].get('enable',"True"):
 		    <br><b>Next Run:</b>
 		    <%
 		      xyz= get_time(module[i]['trigger'])

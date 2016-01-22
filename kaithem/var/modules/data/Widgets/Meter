@@ -9,6 +9,7 @@ require-method: [GET, POST]
 require-permissions: []
 resource-type: page
 
+#End YAML metadata, page body mako code begins on first line after ---
 ---
 
 

@@ -58,6 +58,7 @@ versions:
     \n    "
   trigger: 'True'
 
+#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
 ---
 import os
 module.playlist = []

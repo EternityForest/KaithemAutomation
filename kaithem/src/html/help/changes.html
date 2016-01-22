@@ -2,11 +2,15 @@
 <title>Kaithem Help</title>
 <h2>Change Log</h2>
 
-<h3>0.55</h3>
+<h3>0.55(Development)</h3>
 <div class="sectionbox">
 <ul>
 <li>Fix bug where si formatted numbers were rounded down</li>
+<li>Multiple message bus subscribers run simultaneously instead of sequentially</li>
+<li>Events now have an enable option</li>
+<li>Message events can now be ratelimited, additional messages are simply ignored</li>
 </ul>
+</div>
 <h3>0.54</h3>
 <div class="sectionbox">
 <ul>
@@ -58,7 +62,7 @@
 <h3>0.53</h3>
 <div class="sectionbox">
 <p class="warning">
-    This version differs by only a single line from 0.52 and fixes a critical security flaw. All users of the previous version should upgrade immediately.
+This version differs by only a single line from 0.52 and fixes a critical security flaw. All users of the previous version should upgrade immediately.
 </p>
 <ul>
 <li>Fix bug that let anyone, even an unregistered user change the settings for any user.</li>

@@ -61,7 +61,7 @@ def require(permission, noautoreturn = False):
     if cherrypy.request.cookie['auth'].value not in auth.Tokens:
         raise cherrypy.HTTPRedirect("/login?"+url)
     if not auth.checkTokenPermission(cherrypy.request.cookie['auth'].value,permission):
-        raise cherrypy.HTTPRedirect("/errors/permissionerror")
+        raise cherrypy.HTTPRedirect("/errors/permissionerror?")
 
 def canUserDoThis(permission):
         #If the special __guest__ user can do it, anybody can.
