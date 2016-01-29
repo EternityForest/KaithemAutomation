@@ -1,14 +1,13 @@
 <%!
 from src.util import url
+from src import modules
 %>
 <%include file="/pageheader.html"/>
 <h2> Modules <sup><a href="/docs#modules">[help]</a></sup></h2>
 <title>Kaithem Modules</title>
-
-
-<h3>Modules</h3>
 <div class="sectionbox">
 <div class="menubar">
+Modules State MD5: <b>${modules.moduleshash}</b></br>
 <a class="button createbutton" href="/modules/newmodule">Add New Module</a>
 <a class="button deletebutton" href="/modules/deletemodule">Delete Module</a>
 <a class="button upload-module-button" href="/modules/upload">Upload Modules as ZIP file</a>
@@ -24,7 +23,7 @@ The following modules are currently loaded and active on the server.
 <hr>
 <ul>
 %for i in sorted(ActiveModules.keys()):
-   <li> <a href="/modules/module/${url(i)}#resources">${i}</a></li>
+   <li> <a href="/modules/module/${url(i)}#resources" title="MD5: ${modules.getModuleHash(i)}">${i}</a></li>
 %endfor
 </ul>
 </div>

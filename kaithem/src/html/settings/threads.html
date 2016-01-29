@@ -10,11 +10,11 @@
 %else:
 <li>
 %endif
-${i.name|h}(${i.__class__|h})
+<b>${i.name|h}</b>(${i.__class__|h})
 %if i.daemon:
 <i>(daemon)</i>
 %endif
-: running a function defined in <b>${i.__module__}</b></li>
+: running a function defined in <b>${i._target.__module__ if hasattr(i,'_target') and i._target else i.__module__}</b></li>
 %endfor
 </ul>
 </div>

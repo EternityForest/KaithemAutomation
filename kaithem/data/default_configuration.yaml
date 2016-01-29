@@ -151,6 +151,11 @@ mem-use-warn: 0.85
 #How many messages to keep on topics that are not being logged
 non-logged-topic-limit: 100
 
+#Where to look for audio files that are specified with relative paths. Earlier entries used first.
+#Default refers to the sounds kaithem ships with.
+audio-paths:
+    - default
+
 #####################THEMING AND BRANDING#######################################
 #This HTML Goes into the top box on the main page. It is configurable in case a deployment wants to add branding.
 front-page-banner: |

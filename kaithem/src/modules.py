@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #File for keeping track of and editing kaithem modules(not python modules)
-import threading,urllib,shutil,sys,time,os,json,traceback, copy,hashlib
+import threading,urllib,shutil,sys,time,os,json,traceback,copy,hashlib
 import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling
 from .modules_state import ActiveModules,modulesLock,scopes
@@ -42,6 +42,37 @@ from .util import url,unurl
 #it's o the code knows to save everything is it has been changed.
 moduleschanged = False
 
+    
+
+
+moduleshash= "000000000000000000000000"
+modulehashes = {}
+
+def hashModules():
+    m=hashlib.md5()
+    with modulesLock:
+        for i in sorted(ActiveModules.keys()):
+            for j in sorted(ActiveModules[i].keys()):
+                m.update(json.dumps(ActiveModules[i][j],sort_keys=True,separators=(',',':')).encode('utf-8'))
+    return m.hexdigest().upper()
+
+def hashModule(module):
+    m=hashlib.md5()
+    with modulesLock:
+        m.update(json.dumps(ActiveModules[module],sort_keys=True,separators=(',',':')).encode('utf-8'))
+    return m.hexdigest()
+
+def getModuleHash(m):
+    if not m in modulehashes:
+        modulehashes[m] = hashModule(m)
+    return modulehashes[m]
+
+def modulesHaveChanged():
+    global moduleschanged,moduleshash, modulehashes
+    moduleschanged = True
+    moduleshash = hashModules()
+    modulehashes = {}
+    
 class event_interface(object):
    def __init__(self, ):
       self.type = "event"
@@ -147,6 +178,7 @@ def saveAll():
         return True
 
 def initModules():
+    global moduleshash
     """"Find the most recent module dump folder and use that. Should there not be a module dump folder, it is corrupted, etc,
     Then start with an empty list of modules. Should normally be called once at startup."""
     if not os.path.isdir(directories.moduledir):
@@ -185,6 +217,8 @@ def initModules():
     auth.importPermissionsFromModules()
     newevt.getEventsFromModules()
     usrpages.getPagesFromModules()
+    moduleshash = hashModules()
+
 
 
 def saveModules(where):

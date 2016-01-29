@@ -1,5 +1,6 @@
 continual: false
 disabled: false
+enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
@@ -25,7 +26,7 @@ versions:
 ---
 #This code runs once when the event loads. It also runs when you save the event during the test compile
 #and may run multiple times when kaithem boots due to dependancy resolution
-__doc__='Test that event scheduled for every five seconds runs at correct fre'
+__doc__='Test that event scheduled for every five seconds runs at correct frequency'
 import time
 last = 0
 posted = False

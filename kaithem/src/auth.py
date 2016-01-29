@@ -465,6 +465,10 @@ def canUserDoThis(user,permission):
     if '__guest__' in Users:
         if permission in Users['__guest__'].permissions:
             return True
+    
+    #If guests can't do the thing and the user is unknown, the answer should be no.
+    if user in ("<unknown", "__unknown__"):
+        return False
 
     if '__all_permissions__' in Users[user].permissions:
         return True

@@ -1,0 +1,21 @@
+<%!
+from src.util import url
+from src import pages,newevt,usrpages,unitsofmeasure,util,widgets,kaithemobj
+import json,re,cherrypy,inspect
+%>
+
+<%include file="/pageheader.html"/>
+<title>Object Inspector</title>
+
+<h2>Inspecting ${objname|h}</h2>
+<article>
+
+<h3>Source Code</h3>
+%try:
+<pre>
+${inspect.getsource(obj)|h}
+</pre>
+%except:
+<p>No Source Code Found</p>
+%endtry
+</article>

@@ -111,8 +111,7 @@ class WebInterface():
     @cherrypy.expose
     def uploadtarget(self,modules):
         pages.require('/admin/modules.edit')
-        
-        modules.moduleschanged = True
+        modules.modulesHaveChanged()
         load_modules_from_zip(modules.file)
         messagebus.postMessage("/system/modules/uploaded",{'user':pages.getAcessingUser()})
         raise cherrypy.HTTPRedirect("/modules/")
@@ -157,7 +156,7 @@ class WebInterface():
         pages.require("/admin/modules.edit")
         pages.postOnly()
         
-        modules.moduleschanged = True
+        modules.modulesHaveChanged()
         with modulesLock:
            ActiveModules.pop(kwargs['name'])
         #Get rid of any lingering cached events
@@ -176,7 +175,7 @@ class WebInterface():
         pages.require("/admin/modules.edit")
         pages.postOnly()
         
-        modules.moduleschanged = True
+        modules.modulesHaveChanged()
         #If there is no module by that name, create a blank template and the scope obj
         with modulesLock:
             if kwargs['name'] not in ActiveModules:
@@ -225,7 +224,10 @@ class WebInterface():
             if path[0] == 'obj':
                 #There might be a password or something important in the actual module object. Best to restrict who can access it.
                 pages.require("/admin/modules.edit")
-                return pages.get_template("modules/modulescope.html").render(kwargs=kwargs, name = root, obj = scopes[root])
+                if not "obj" in kwargs:
+                    return pages.get_template("modules/modulescope.html").render(kwargs=kwargs, name = root, obj = scopes[root])
+                else:
+                    return pages.get_template("obj_insp.html").render(objname = kwargs['obj'], obj = getattr(scopes[root],kwargs['obj']))
 
             #This gets the interface to add a page
             if path[0] == 'addresource':
@@ -268,7 +270,7 @@ class WebInterface():
             if path[0] == 'deleteresourcetarget':
                 pages.require("/admin/modules.edit")
                 pages.postOnly()
-                modules.moduleschanged = True
+                modules.modulesHaveChanged()
                 with modulesLock:
                    r = ActiveModules[root].pop(kwargs['name'])
 
@@ -293,7 +295,7 @@ class WebInterface():
             if path[0] == 'update':
                 pages.require("/admin/modules.edit")
                 pages.postOnly()
-                modules.moduleschanged = True
+                modules.modulesHaveChanged()
                 with modulesLock:
                     ActiveModules[root]['__description']['text'] = kwargs['description']
                     ActiveModules[kwargs['name']] = ActiveModules.pop(root)
@@ -333,8 +335,7 @@ def addResourceDispatcher(module,type,path):
 def addResourceTarget(module,type,name,kwargs,path):
     pages.require("/admin/modules.edit")
     pages.postOnly()
-    
-    modules.moduleschanged = True
+    modules.modulesHaveChanged()
 
     #Wow is this code ever ugly. Bascially we are going to pack the path and the module together.
     escapedName = (kwargs['name'].replace("\\","\\\\").replace("/",'\\/'))
@@ -449,8 +450,7 @@ def permissionEditPage(module,resource):
 def resourceUpdateTarget(module,resource,kwargs):
     pages.require("/admin/modules.edit",noautoreturn=True)
     pages.postOnly()
-    
-    modules.moduleschanged = True
+    modules.modulesHaveChanged()
     with modulesLock:
         t = ActiveModules[module][resource]['resource-type']
         resourceobj = ActiveModules[module][resource]

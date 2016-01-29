@@ -143,6 +143,11 @@ h4 {
         <p>This trigger expression assigns the action to name. !function module.x is the same as module.x = action, where action
         is a function that triggers the event. You mak put a semicolon and a statement after it, as in !function f; obj.attach(f)
         and the statement will be run after the function is assigned.</p>
+        
+        <p>Function events support handoff, in that if you update a function event, all existing references will
+        also be updated to reference the new event.</p>
+        
+        
 
         <h2>
             <a id="pages" name="pages"></a>Pages:
@@ -478,10 +483,16 @@ h4 {
         By default mplayer will be used if available and is the recommended backed.<p>
 
         <h4>kaithem.play(filename,handle="PRIMARY",volume=1,start=0,end=-0.0001, eq=None, output=None,fs=False)</h4>
-        <p>If you have mpg123 or SOX installed, play the file, otherwise do nothing. The handle
+          <p>If you have mpg123 or SOX installed, play the file, otherwise do nothing. The handle
             parameter lets you name the new sound instance to stop it later. If you try to play a sound under the same
             handle as a stil-playing sound, the old one will be stopped. Defaults to PRIMARY.
-            </p><p>
+            </p>
+            
+            <p>Kaithem will look in the audio search paths specified in the audio-paths config option if the path is relative.
+            By default it will only look in kaithem's built in audio folder, which contains the following: alert.ogg, which is a simple chime type alert,
+            and error.ogg, a short harsh buzzing alarm. Mpg123 seems to support ogg files but it doesn't appear to be docmented.</p> 
+            
+            <p>
             With the mplayer backend, if you give it a video file, it will likely open a window and play it.
             Passing fs=True may allow you to play fullscreen, but any use of this "hidden feature" is very experimental.
             results may be undefined if you attempt to play a video in an environment that does not support it.
@@ -499,6 +510,7 @@ h4 {
             causing the EQ to be set to allow easier conversation. output must be a string that selects an output device.
             A typical value on linx would be pulse::n where n is the pulse sink index, see mplayer's -ao option for more details.
             </p>
+            
 
         <h4>kaithem.sound.stop(handle="PRIMARY"")</h4>
         <p>Stop a sound by handle.</p>

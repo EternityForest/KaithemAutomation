@@ -1,5 +1,6 @@
 <%!
 from src.util import url
+from src.modules import getModuleHash
 from src import pages,newevt,usrpages,unitsofmeasure,util,scheduling
 import time
 %>
@@ -10,6 +11,7 @@ import time
 <title>Module: ${name|h}</title>
 <section>
 <form action="/modules/module/${url(name)}/update" method="POST" name="user">
+MD5 Sum: <b>${getModuleHash(name)}</b></br>
 <a href="/modules/download/${url(name)}.zip">Download this module as a zip file</a><br>
 <a href="/modules/yamldownload/${url(name)}.zip">Download this module as a zip file with YAML resources(not compatible with older versions)</a><br>
 <a href="/modules/module/${url(name)}/obj">View the module namespace object(New, requires edit permission)</a>
@@ -117,7 +119,7 @@ def in_folder(r,f,n):
 		    <b>Last Ran:</b>
 		    %if newevt.getEventLastRan(name,i):
 		    <code>${unitsofmeasure.strftime(newevt.getEventLastRan(name,i))|h}
-		    (about ${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(name,i),2)} ago)</code>
+		    (${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(name,i),2)} ago)</code>
 		    %else:
 		    This event has not ran since it loaded.
 		    %endif

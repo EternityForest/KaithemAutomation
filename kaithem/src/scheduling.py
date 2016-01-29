@@ -104,6 +104,31 @@ class RepeatingEvent():
         finally:
             self.scheduled = False
 
+class RepeatWhileEvent(RepeatingEvent):
+    "Does function every interval seconds, and stops if you don't keep a reference to function"
+    def __init__(self,function,interval):
+        self.ended=False
+        RepeatingEvent.__init__(self,function,interval)
+        
+    def _run(self):
+        if self.ended:
+            return
+        try:
+            if self.lock.acquire(False):
+                try:
+                    f = self.f()
+                    if not f:
+                        self.unregister()
+                    else:
+                        r =f()
+                        if not r:
+                            self.unregister()
+                            self.ended = True
+                finally:
+                    self.lock.release()
+        finally:
+            self.scheduled = False
+    
 #class ComplexRecurringEvent():
     #def schedule(self):
         #if self.scheduled:

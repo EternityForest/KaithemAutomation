@@ -74,6 +74,8 @@ class HeirarchyDict():
 #Lets just store the entire list of modules as a huge dict for now at least
 ActiveModules = {}
 
+
+
 "this lock protects the activemodules thing. Any changes at all should go through this."
 modulesLock = RLock()
 

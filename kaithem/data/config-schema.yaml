@@ -114,7 +114,11 @@ properties:
                 -mpg123
                 -sox
                 -mplayer
-
+                
+    audio-paths:
+        type: array
+        uniqueItems: yes
+        
     max-load-attempts:
         type: integer
         minimum: 1
