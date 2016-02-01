@@ -58,6 +58,17 @@ def searchModuleResources(modulename,search,max_results=100,start=0):
     return(results, pointer)
 
 
+def followAttributes(root, path):
+    l = path.split(",")
+    for i in l:
+        if i.startswith("a"):
+            root = getattr(root, i[1:])
+        elif i.startswith("i"):
+            root = root[int(i[1:])]
+        else:
+            root = root[unurl(i[1:])]
+    return root
+
 #The class defining the interface to allow the user to perform generic create/delete/upload functionality.
 class WebInterface():
     @cherrypy.expose
@@ -224,10 +235,10 @@ class WebInterface():
             if path[0] == 'obj':
                 #There might be a password or something important in the actual module object. Best to restrict who can access it.
                 pages.require("/admin/modules.edit")
-                if not "obj" in kwargs:
+                if not "objpath" in kwargs:
                     return pages.get_template("modules/modulescope.html").render(kwargs=kwargs, name = root, obj = scopes[root])
                 else:
-                    return pages.get_template("obj_insp.html").render(objname = kwargs['obj'], obj = getattr(scopes[root],kwargs['obj']))
+                    return pages.get_template("obj_insp.html").render(objpath = kwargs['objpath'],objname = kwargs['objname'], obj = followAttributes(scopes[root],kwargs['objpath']))
 
             #This gets the interface to add a page
             if path[0] == 'addresource':

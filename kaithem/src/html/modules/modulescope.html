@@ -26,7 +26,7 @@ if "cmd" in kwargs:
     This shows all of the attributes of the "module" object that is available in pages and events and is shared between the entire module.
     <p>
 %for i in obj.__dict__:
-<h3>${i|h}</h3>
+<h3><a href="?objpath=a${i|h}&objname=${i|h}">${i|h}</a></h3>
 <pre>${util.saferepr(obj.__dict__[i])|h}</pre>
 %endfor
 

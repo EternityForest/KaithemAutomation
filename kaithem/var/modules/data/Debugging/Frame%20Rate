@@ -1,10 +1,11 @@
 continual: false
 disabled: false
+enable: true
 once: true
-priority: interactive
+priority: !!python/unicode 'realtime'
 rate-limit: 0.0
 resource-type: event
-trigger: '!onchange kaithem.time.second()'
+trigger: !!python/unicode '!onchange kaithem.time.second()'
 versions:
   action: "if time.time()-last>1.2:\r\n    kaithem.messagebus.post(\"/system/notifications/errors\"\
     , \"Frame rate dropped, onchange second fired more than 1s since last\")"

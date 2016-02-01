@@ -8,14 +8,49 @@ import json,re,cherrypy,inspect
 <title>Object Inspector</title>
 
 <h2>Inspecting ${objname|h}</h2>
+${obj.__class__|h}
+<pre>${util.saferepr(obj)|h}</pre>
 <article>
 
+%if hasattr(obj,'__dict__'):
+<h3>Object Attributes</h3>
+<div class="sectionbox">
+<dl>
+%for i in obj.__dict__:
+<dt><a href="?objname=${objname}.${i}&objpath=${objpath},a${i}">${i|h}</a></dt>
+<dd>${util.saferepr(obj.__dict__[i])|h}</dd>
+%endfor
+</div>
+%endif
+
+
 <h3>Source Code</h3>
-%try:
 <pre>
+%try:
 ${inspect.getsource(obj)|h}
-</pre>
 %except:
 <p>No Source Code Found</p>
 %endtry
+</pre>
+
+%if isinstance(obj, (list)):
+<h3>List Contents (${len(obj)} items)</h3>
+<ol start=0>
+%for n, i in enumerate(obj):
+<li><a href="?objname=${objname}[${n}]&objpath=${objpath},i${n}">${repr(i)}</a></li>
+%endfor
+</ol>
+%endif
+
+%if isinstance(obj, (dict)):
+<h3>Dict Contents (${len(obj)} items)</h3>
+<div class="sectionbox">
+<dl>
+%for i in obj:
+<dt><a href="?objname=${objname}['${i}']&objpath=${objpath},s${i}">${i|h}</a></dt>
+<dd>${util.saferepr(obj[i])|h}</dd>
+%endfor
+</div>
+%endif
+
 </article>

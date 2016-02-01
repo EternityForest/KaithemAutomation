@@ -43,10 +43,11 @@ except:
 
 log = defaultdict(deque)
 
-def dumpLogFile():
+def dumpLogFile(silent=False):
     try:
         _dumpLogFile()
-        messagebus.postMessage("/system/notifications/", "Dumped log file")
+        if not silent:
+            messagebus.postMessage("/system/notifications/", "Dumped log file")
     except Exception as e:
         messagebus.postMessage("/system/errors/saving-logs/",traceback.format_exc(6))
         messagebus.postMessage("/system/notifications/errors/","Error saving log file")

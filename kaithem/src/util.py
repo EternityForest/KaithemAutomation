@@ -72,7 +72,7 @@ def SaveAllState():
                 x=True
             if auth.dumpDatabase():
                 x=True
-            messagelogging.dumpLogFile()
+            messagelogging.dumpLogFile(silent=True)
             if registry.sync():
                 x=True
             #Always send the message, because there is almost always going to be at least some log entries saved
