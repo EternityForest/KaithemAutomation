@@ -81,6 +81,7 @@ audio-backends:
     - mplayer
     - sox
     - mpg123
+    - madplay
 
 #How many times to retry loading an event before marking it as a failure and moving on
 max-load-attempts: 25

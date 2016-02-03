@@ -104,6 +104,48 @@ class RepeatingEvent():
         finally:
             self.scheduled = False
 
+class SelfSchedulingEvent():
+    "Does function every interval seconds, and stops if you don't keep a reference to function"
+    def __init__(self,function,interval):
+        self.f = weakref.ref(function, callback=self.unregister())
+        self.interval = float(interval)
+        self.scheduled = False
+        self.errored = False
+        self.lock = threading.Lock()
+    
+    def schedule(self):
+        """Put self in queue based on the time already calculated by the function"""
+
+        scheduler.insert(self)
+        self.scheduled = True
+
+        
+    def register(self):
+        scheduler.register_repeating(self)
+        
+    def unregister(self):
+        scheduler.unregister(self)
+            
+    def run(self):
+        workers.do(self._run)
+        
+    def _run(self):
+        try:
+            if self.lock.acquire(False):
+                try:
+                    f = self.f()
+                    if not f:
+                        self.unregister()
+                    else:
+                        self.time = f()
+                finally:
+                    self.lock.release()
+        finally:
+            self.scheduled = False
+
+
+
+
 class RepeatWhileEvent(RepeatingEvent):
     "Does function every interval seconds, and stops if you don't keep a reference to function"
     def __init__(self,function,interval):
@@ -124,6 +166,8 @@ class RepeatWhileEvent(RepeatingEvent):
                         if not r:
                             self.unregister()
                             self.ended = True
+                except Exception as e:
+                    print(e)
                 finally:
                     self.lock.release()
         finally:

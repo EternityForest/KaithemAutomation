@@ -81,7 +81,7 @@ def when(trigger,action,priority="interactive"):
     __EventReferences[module,resource] = e
     e.register()
 
-#Given two functions, execute the action when the trigger is true.
+#Given two functions, execute the action after delay.
 #Trigger takes no arguments and returns a boolean
 def after(delay,action,priority="interactive"):
     #If the time is in the future, then we use the scheduler.
@@ -544,7 +544,7 @@ class FunctionEvent(BaseEvent):
             #Set the varible so we know when the last time the body actually ran
             self.lastexecuted = time.time()
             try:
-                #Action could be any number of things, so this method mut be implemented by
+                #Action could be any number of things, so this method must be implemented by
                 #A derived class or inherited from a mixin.
                 self._do_action()
                 messagebus.postMessage('/system/events/ran',[self.module, self.resource])

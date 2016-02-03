@@ -114,6 +114,7 @@ properties:
                 -mpg123
                 -sox
                 -mplayer
+                -madplay
                 
     audio-paths:
         type: array
