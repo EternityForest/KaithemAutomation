@@ -407,6 +407,7 @@ class Kaithem():
                 if not autorecover:
                     raise e
                 else:
+                    #Avoid a loop, we call ourself but set the param to false
                     return kaithem.persist.load(filename +'~', False)
             try:
                 f.close()
