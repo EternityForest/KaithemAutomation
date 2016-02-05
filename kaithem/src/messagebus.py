@@ -20,7 +20,7 @@ from . import workers
 from collections import defaultdict, OrderedDict
 
 
-_subscribers_list_modify_lock = threading.Lock()
+_subscribers_list_modify_lock = threading.RLock()
 
 #OrderedDict doesn't seem as fast as dict. So I have a cache of the cache
 parsecache = OrderedDict()
@@ -80,8 +80,9 @@ class MessageBus(object):
                         raise e
                 except:
                         pass
-        self.subscribers[topic].append(weakref.ref(callback,delsubscription))
-        self.subscribers_immutable = self.subscribers.copy()
+        with _subscribers_list_modify_lock:
+            self.subscribers[topic].append(weakref.ref(callback,delsubscription))
+            self.subscribers_immutable = self.subscribers.copy()
 
     @staticmethod
     def parseTopic(topic):
@@ -125,10 +126,9 @@ class MessageBus(object):
                 except:
                         pass
         return g
-                    
+
     def _post(self, topic,message,errors):
         matchingtopics = self.parseTopic(topic)
-
         #We can't iterate on anything that could possibly change so we make copies
         d = self.subscribers_immutable
         for i in matchingtopics:
@@ -189,8 +189,8 @@ class PyMessageBus(object):
             self.executor = executor
 
         self.subscribers = defaultdict(list)
-        self.subscribers_immutable =self.subscribers.copy()        
-        
+        self.subscribers_immutable =self.subscribers.copy()
+
     def last(self,tag,default):
         if tag in self.values:
             return self.values[tag]
@@ -241,7 +241,7 @@ class PyMessageBus(object):
         #We can't iterate on anything that could possibly change so we make copies
         d = self.subscribers_immutable
         if topic in d:
-            #When we find a match, we make a copy of that subscriber list
+            #When we find a match, we make a copy of that subscriber list. #TODO maybe make this not depend on [:] being atomic?
             x = d[topic][:]
             #And iterate the copy
             for ref in x:

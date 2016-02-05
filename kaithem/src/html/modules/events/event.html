@@ -239,6 +239,15 @@ This section the most recent errors that ocurred while executing the event or tr
 %endif
 %endif
 <hr>
+
+<%
+p = newevt.getPrintOutput((module,name))
+%>
+
+%if p:
+<h3>Output(${len(p)} bytes)</h3>
+<pre>${p|h}</pre>
+%endif
 <h3>Info</h3>
 <p>
 This event last ran:
@@ -249,6 +258,7 @@ This event last ran:
 %else:
 <b>This event has not ran since it loaded.</b>
 %endif
+
 
 
 </p>

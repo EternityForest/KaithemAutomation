@@ -33,6 +33,10 @@ _events = []
 __EventReferences = {}
 EventReferences = __EventReferences
 
+def getPrintOutput(event):
+    "Given a tuple of (module, resource),  return the doc string of an event if it exists, else return '' "
+    return EventReferences[event].printoutput
+
 def getEventInfo(event):
     "Given a tuple of (module, resource),  return the doc string of an event if it exists, else return '' "
     return EventReferences[event].__doc__ if EventReferences[event].__doc__  else ""
@@ -88,7 +92,7 @@ def after(delay,action,priority="interactive"):
     if delay > 1.2:
         scheduling.schedule.schedule(action, time.time()+delay)
         return
-    
+
     module = '<OneTimeEvents>'
     resource = "after(" +str(delay) +")"+ '>' + action.__name__ + ' ' + 'set at ' + str(time.time()) + ' id='+str(base64.b64encode(os.urandom(16)))
     start = time.time()
@@ -226,7 +230,7 @@ def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setu
 
     if scope == None:
         scope = make_eventscope()
-        
+
     if trigger[0] == '!function':
         if len(when.split(';',1))>1:
             triggeraction = when.split(';',1)[1].strip()
@@ -236,7 +240,7 @@ def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setu
             l = False
         else:
             l = True
-            
+
         return FunctionEvent(trigger[1].split(';')[0], triggeraction, l ,do,scope,continual,ratelimit,setup,priority,**kwargs)
 
     if trigger[0] == '!onmsg':
@@ -286,7 +290,7 @@ class BaseEvent():
         self.ratelimit = ratelimit
         self.continual = continual
         self.countdown = 0
-        self.printoutput = []
+        self.printoutput = ""
         fps= config['max-frame-rate']
         #symbolic prioity os a rd like high,realtime, etc
         #Actual priority is a number that causes polling to occur every nth frame
@@ -314,16 +318,23 @@ class BaseEvent():
         self.pymodule.__file__ = str("Event_"+m+"_"+r)
         #This lock makes sure that only one copy of the event executes at once.
         self.lock = threading.Lock()
-
         #This keeps track of the last time the event was triggered  so we can rate limit
         self.lastexecuted = 0
 
         #A place to put errors
         self.errors = []
 
+    def cleanup(self):
+        try:
+            with self.lock:
+                self.pymodule.__dict__.clear()
+        except:
+            raise
+
     def new_print(self,d):
-        self.printoutput.append(time.time(),str(d))
-        self.printoutput = self.printoutput[-100:]
+        print(d)
+        self.printoutput+=str(d)+"\n"
+        self.printoutput = self.printoutput[-2500:]
 
     def _on_trigger(self):
         #This function gets called when whatever the event's trigger condition is.
@@ -431,6 +442,10 @@ class CompileCodeStringsMixin():
         try:
             self.pymodule.__dict__['kaithem']=kaithemobj.kaithem
             self.pymodule.__dict__['module']=modules_state.scopes[self.module]
+            try:
+                self.pymodule.__dict__['print']=self.new_print
+            except:
+                pass
             self.pymodule.__dict__.update(params)
         except KeyError as e:
             raise e
@@ -457,7 +472,15 @@ class FunctionWrapper():
     "A wrapper class that acts like a mutable function so that function events can handoff seamlessly"
     def __init__(self, f = lambda : 0):
         self.f = f
+        self.wait = False
+
     def __call__(self):
+        if self.wait:
+            started = time.time()
+            while(time.time()-started<100 and not self.wait):
+                time.sleep(0.05)
+            if self.wait:
+                raise RuntimeError("Event being modified and is taking more than 100 seconds")
         self.f()
 
 
@@ -488,23 +511,23 @@ class FunctionEvent(BaseEvent):
                 pass
         self.f = FunctionWrapper(f)
         self.xyz(do, trigaction, setup)
-    
+
     def handoff(self, evt):
         """Handoff to new event. Calls to old function get routed to new function.
         Works even of you unregister old event."""
         self.f.f = evt.f.f
-        
+
     #This was the fastest way to deal with weird exec in nested function with import star buisiness.
     def xyz(self,do, trigaction,setup):
         #compile the body
         body = "def kaithem_event_action():\n"
         for line in do.split('\n'):
             body+=("    "+line+'\n')
-            
+
         body = compile(body,"Event_"+self.module+'_'+self.resource,'exec')
 
         exec(body , self.pymodule.__dict__)
-        
+
         #this lets you do things like !function module.foo
         self.pymodule.__dict__["_kaithem_temp_event_function"] = self.f
         x = compile(self.fname+" = _kaithem_temp_event_function","Event_"+self.module+'_'+self.resource,'exec')
@@ -520,7 +543,7 @@ class FunctionEvent(BaseEvent):
 
     def register(self):
         self.active = True
-        
+
     def unregister(self):
         self.active = False
         try:
@@ -528,7 +551,7 @@ class FunctionEvent(BaseEvent):
             exec(x,self.pymodule.__dict__)
         except Exception as e:
             print(e)
-    
+
     #The only difference between this and the base class version is
     #That this version propagates exceptions
     def _on_trigger(self):
@@ -539,7 +562,7 @@ class FunctionEvent(BaseEvent):
         #Don't execute more often than ratelimit
         if not self.active:
             raise RuntimeError("Cannot run deleted FunctionEvent")
-        
+
         if (time.time() -self.lastexecuted >self.ratelimit):
             #Set the varible so we know when the last time the body actually ran
             self.lastexecuted = time.time()
@@ -553,7 +576,7 @@ class FunctionEvent(BaseEvent):
                     self._handle_exception(e)
                 raise
 
-        
+
     def _do_action(self):
         self.pymodule.kaithem_event_action()
 
@@ -565,14 +588,14 @@ class FunctionEvent(BaseEvent):
             #pages.require(i)
         #pages.postOnly()
         #self.f()
-        
+
         ##Return user to the module page. If name has a folder, return the user to it;s containing folder.
         #x = util.split_escape(self.resource,"/")
         #if len(x)>1:
             #raise cherrypy.HTTPRedirect("/modules/module/"+util.url(self.module)+'/resource/'+'/'.join([util.url(i) for i in x[:-1]])+"#resources")
         #else:
             #raise cherrypy.HTTPRedirect("/modules/module/"+util.url(self.module)+"#resources")#+'/resource/'+util.url(resource))
-        
+
     #def __init__(self,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
         #BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
         #self.polled = False
@@ -587,20 +610,20 @@ class FunctionEvent(BaseEvent):
         #body = "def kaithem_event_action():\n"
         #for line in do.split('\n'):
             #body+=("    "+line+'\n')
-            
+
         #body = compile(body,"Event_"+self.module+'_'+self.resource,'exec')
         #exec(body,self.pymodule.__dict__)
-        
+
         ##this lets you do things like !function module.foo
         #self.pymodule.__dict__["_kaithem_temp_event_function"] = f
         #x = compile(fname+" = _kaithem_temp_event_function","Event_"+self.module+'_'+self.resource,'exec')
         #exec(x,self.pymodule.__dict__)
         #del self.pymodule.__dict__["_kaithem_temp_event_function"]
-        
+
         ##initialize the module scope with the kaithem object and the module thing.
         #initializer = compile(setup,"Event_"+self.module+'_'+self.resource+"setup","exec")
         #exec(initializer,self.pymodule.__dict__,self.pymodule.__dict__)
-    
+
     ##The only difference between this and the base class version is
     ##That this version propagates exceptions
     #def _on_trigger(self):
@@ -611,7 +634,7 @@ class FunctionEvent(BaseEvent):
         ##Don't execute more often than ratelimit
         #if not self.active:
             #raise RuntimeError("Cannot run deleted FunctionEvent")
-        
+
         #if (time.time() -self.lastexecuted >self.ratelimit):
             ##Set the varible so we know when the last time the body actually ran
             #self.lastexecuted = time.time()
@@ -625,7 +648,7 @@ class FunctionEvent(BaseEvent):
                     #self._handle_exception(e)
                 #raise
 
-        
+
     #def _do_action(self):
         #self.pymodule.kaithem_event_action()
 
@@ -733,7 +756,7 @@ class PolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
         else:
             #The eval was false, so the previous state was False
             self._prevstate = False
-            
+
 
 class PolledInternalSystemEvent(BaseEvent,DirectFunctionsMixin):
     def __init__(self,when,do,scope = None ,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
@@ -768,12 +791,12 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
         #TODO, Maybe this method should be asyncified?
         self.handler= self._handler
         self.exact = self.get_exact()
-        
+
         self.nextruntime = scheduling.get_next_run(self.trigger)
         if self.nextruntime == None:
             return
         self.next=scheduler.schedule(self.handler,self.nextruntime,False)
-        
+
     def get_exact(self):
         r = re.match(r"exact( ([0-9]*\.?[0-9]))?" , self.trigger)
         if not r:
@@ -782,7 +805,7 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
             return float(re.groups[1])
         else:
             return 3
-        
+
     #Recalculate the next time at which the event should run, for cases in which the time was set incorrectly
     #And has now been changed. Not well tested, work in progress, might cause a missed event or something.
     def recalc_time(self):
@@ -819,28 +842,28 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
             self.nextruntime = scheduling.get_next_run(self.trigger)
             if self.nextruntime == None:
                 return
-            
+
             if self.nextruntime:
                 self.next=scheduler.schedule(self.handler, self.nextruntime, False)
                 return
             print("Caught event trying to return None for get next run, time is:", time.time(), " expr is ", self.trigger, " last ran ", self.lastexecuted,"retrying")
             time.sleep(0.179)#A random number unlikely to sync up with anything
-            
+
             if self.nextruntime:
                 self.next=scheduler.schedule(self.handler, self.nextruntime, False)
                 return
             print("""Caught event trying to return None for get next run
-                (might be an event that only runs for a period that already expired), and retry 1 failed time is:""", 
+                (might be an event that only runs for a period that already expired), and retry 1 failed time is:""",
                   time.time(), " expr is ",
                   self.trigger, " last ran ",
                   self.lastexecuted,"retrying")
             time.sleep(1.353)#A random number unlikely to sync up with anything
-            
+
             if self.nextruntime:
                 self.next=scheduler.schedule(self.handler, self.nextruntime, False)
                 return
             print("""Caught event trying to return None for get next run
-                (might be an event that only runs for a period that already expired), and retry 1 failed time is:""", 
+                (might be an event that only runs for a period that already expired), and retry 1 failed time is:""",
                   time.time(), " expr is ",
                   self.trigger, " last ran ",
                   self.lastexecuted,"NOT retrying")
@@ -851,13 +874,13 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
             self.next.unregister()
         except AttributeError:
             pass
-        
+
     def unregister(self):
         try:
             self.next.unregister()
         except AttributeError:
             pass
-        
+
 
 #If the system time has been set, we may want to recalculate all of the events.
 #Work in progress
@@ -876,6 +899,7 @@ def removeOneEvent(module,resource):
     with _event_list_lock:
         if (module,resource) in __EventReferences:
             __EventReferences[module,resource].unregister()
+            __EventReferences[module,resource].cleanup()
             del __EventReferences[module,resource]
 
 #Delete all _events in a module from the cache
@@ -885,6 +909,7 @@ def removeModuleEvents(module):
             if i[0] == module:
                 #delete both the event and the reference to it
                 __EventReferences[i].unregister()
+                __EventReferences[module,resource].cleanup()
                 del __EventReferences[i]
 
 #Every event has it's own local scope that it uses, this creates the dict to represent it
@@ -896,26 +921,51 @@ def make_eventscope(module = None):
            return {'module':None, 'kaithem':kaithemobj.kaithem}
 
 #This piece of code will update the actual event object based on the event resource definition in the module
-#Also can add a new event
-def updateOneEvent(resource,module):
+#Also can add a new event.
+#Now if you already have an event object, like from a test compile, you can just use that.
+def updateOneEvent(resource,module, o=None):
     #This is one of those places that uses two different locks(!)
     with modules_state.modulesLock:
+        if (module,resource) in EventReferences:
+            old = EventReferences[module,resource]
+        else:
+            old = None
 
-        x = make_event_from_resource(module,resource)
-        
+        #We want to destroy the old event before making a new one but we also want seamless handoff
+        #So what we do is we tell the old one to block if anyone calls it until we are done
+        if isinstance(old, FunctionEvent):
+            EventReferences[module,resource].f.wait = True
+
+        if old:
+            #Unregister first, then clean up.
+            old.unregister()
+            #Now we clean it up and delete any references the user code might have had to things
+            old.cleanup()
+        #Really we should wait a bit longer but this is a compromise, we wait so any cleanup effects can propagate.
+        #80ms is better than nothing I guess.
+        time.sleep(0.08)
+
+        if not o:
+            #Now we make the event
+            x = make_event_from_resource(module,resource)
+        else:
+            x = o
+
         #Special case for functionevents, we do a handoff. This means that any references to the old
         #event now call the new one.
-        if isinstance(x, FunctionEvent) and isinstance(__EventReferences[module,resource], FunctionEvent):
-            __EventReferences[module,resource].handoff(x)
-            
+
+        #If old one and new one are functionevents we can hand off, if only old, then we just unblock
+        if isinstance(old, FunctionEvent):
+            if isinstance(x, FunctionEvent):
+                __EventReferences[module,resource].handoff(x)
+            #Unblock the old one no matter what or else it will have to block for the full timeout duration
+            __EventReferences[module,resource].f.wait = False
+
+
         #Here is the other lock(!)
         with _event_list_lock: #Make sure nobody is iterating the eventlist
-            if (module,resource) in __EventReferences:
-                __EventReferences[module,resource].unregister()
             #Add new event
             x.register()
-            
-            
             #Update index
             __EventReferences[module,resource] = x
 
@@ -940,7 +990,7 @@ def makeDummyEvent(module,resource):
 #if only is supplied, must be a set and will only look in those modules
 def getEventsFromModules(only = None):
     global _events
-    toLoad = set()
+    toLoad = []
 
     #Closures were acting weird. This class is to be like a non wierd closure.
     class needstobeloaded():
@@ -956,7 +1006,6 @@ def getEventsFromModules(only = None):
 
     with modules_state.modulesLock:
         with _event_list_lock:
-            #Set _events to an empty list we can build on
             for module in modules_state.ActiveModules:
                 #now we loop over all the resources of the module to see which ones are _events
                 if only == None or (module in only)  :
@@ -968,32 +1017,31 @@ def getEventsFromModules(only = None):
                             #However, we do this indirectly, for each event we create a function representing
                             #the actions to set it up
                             f = needstobeloaded(module, resource)
-                            toLoad.add(f)
+                            toLoad.append(f)
                             f.module =module
                             f.resource =resource
 
+            toLoad =sorted(toLoad,key= lambda x: (x.module,x.module))
+            nextRound = []
             #for each allowed loading attempt, we loop over
             #the events and try to set them up. If this fails,
             #add to the retry list and retry next round. This means they will be attempted again
             #up to the maximum number of tries. The important part is that we don't
             #retry immediately, but only after trying the remaining list of events.
             #This is because inter-event dependancies are the most common reason for failure.
-
             for baz in range(0,max(1,config['max-load-attempts'])):
-
-                nextRound = set()
                 for i in toLoad:
                     try:
                         i.f()
                         messagebus.postMessage("/system/events/loaded",[i.module,i.resource])
-
+                        time.sleep(0.005)
                     #If there is an error, add it t the list of things to be retried.
                     except Exception as e:
                         i.error = traceback.format_exc(6)
-                        nextRound.add(i)
+                        nextRound.append(i)
                         pass
                 toLoad = nextRound
-
+                nextRound =[]
             #Iterate over the failures after trying the max number of times to fix them
             #and make the dummy events and notifications
             for i in toLoad:
@@ -1002,10 +1050,16 @@ def getEventsFromModules(only = None):
                 __EventReferences[i.module , i.resource].errors.append([time.strftime(config['time-format']),str(i.error)])
                 messagebus.postMessage("/system/notifications/errors","Failed to load event resource: " + i.resource +" module: " + i.module + "\n" +str(i.error)+"\n"+"please edit and reload.")
 
-def make_event_from_resource(module,resource):
-    "Returns an event object when given a module and resource name pointing to an event resource."
-    r = modules_state.ActiveModules[module][resource]
-    
+def make_event_from_resource(module,resource,subst=None):
+    """Returns an event object when given a module and resource name pointing to an event resource.
+    Also, if subst is a dict, will use the dict given in subst instead of looking it up.
+
+    The reason for this is so that you can try test compiling without having to actually change the resource.
+    """
+    if not subst:
+        r = modules_state.ActiveModules[module][resource]
+    else:
+        r = subst
 
     #Add defaults for legacy events that do not have setup, rate limit, etc.
     if 'setup' in r:
@@ -1027,7 +1081,7 @@ def make_event_from_resource(module,resource):
         priority = r['priority']
     else:
         priority = 1
-        
+
     if 'enable' in r:
         if not r['enable']:
             if not parseTrigger(r['trigger'][0]) == '!function':
@@ -1040,7 +1094,7 @@ def make_event_from_resource(module,resource):
               priority=priority,
               m=module,
               r=resource,dummy=True)
-        
+
     x = Event(r['trigger'],r['action'],make_eventscope(module),
               setup = setupcode,
               continual = continual,

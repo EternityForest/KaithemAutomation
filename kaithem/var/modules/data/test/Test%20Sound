@@ -7,5 +7,6 @@
 #and may run multiple times when kaithem boots due to dependancy resolution
 __doc__='When kaithem loads or this event is saved, this plays a sound.'
 kaithem.sound.play("alert.ogg")
+ 
 ---
 pass

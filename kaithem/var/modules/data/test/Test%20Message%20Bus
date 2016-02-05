@@ -1,5 +1,5 @@
-{continual: false, disabled: false, once: true, priority: interactive, rate-limit: 0.0,
-  resource-type: event, trigger: 'True'}
+{continual: false, disabled: false, enable: true, once: true, priority: interactive,
+  rate-limit: 0.0, resource-type: event, trigger: 'True'}
 
 #End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
 ---
@@ -7,15 +7,26 @@
 #and may run multiple times when kaithem boots due to dependancy resolution
 __doc__=''
 import time
+suceed = 5000
 
-suceed = 0
-def f(m,v):
-    global suceed
-    suceed = 1
 ---
-kaithem.message.subscribe("/testtopic", f)
-kaithem.message.post("/testtopic","Test")
+def run(self):
+    def f(m,v):
+        global succeed
+        suceed -=1
+    kaithem.message.subscribe('/testtopic',f)
+    for i in range(0,10000):
+        kaithem.message.post("/testtopic","Test")
+    time.sleep(30)
+    if suceed:
+        raise RuntimeError("Message bus test failed. This might just be because the computer is too slow.")
 
-time.sleep(1)
-if not suceed:
-    raise RuntimeError("Message not delivered within 1 second")
+def run2():
+    for i in range(0,10000):
+        def f(m,v):
+            pass
+        kaithem.message.subscribe('/testtopic',f)
+        del f
+
+kaithem.misc.do(run)
+kaithem.misc.do(run2)

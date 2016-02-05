@@ -34,7 +34,7 @@ def searchModules(search,max_results=100,start=0,mstart=0):
         if not max_results:
             return(results,max(0,pointer-1),x[1])
     return(results,max(0,pointer-1),x[1])
-        
+
 
 def searchModuleResources(modulename,search,max_results=100,start=0):
     m = ActiveModules[modulename]
@@ -103,7 +103,7 @@ class WebInterface():
         pages.require('/admin/modules.view')
         cherrypy.response.headers['Content-Type']= 'application/zip'
         return getModuleAsZip(module[:-4])
-    
+
     #This lets the user download a module as a zip file. But this one is deprecated.
     #It's only here for backwards compatibility, but it really doesn't matter.
     @cherrypy.expose
@@ -111,7 +111,7 @@ class WebInterface():
         pages.require('/admin/modules.view')
         cherrypy.response.headers['Content-Type']= 'application/zip'
         return getModuleAsZip(module)
-    
+
     #This lets the user upload modules
     @cherrypy.expose
     def upload(self):
@@ -146,7 +146,7 @@ class WebInterface():
     def newmodule(self):
         pages.require("/admin/modules.edit")
         return pages.get_template("modules/new.html").render()
-    
+
     #@cherrypy.expose
     #def manual_run(self,module, resource):
         ##These modules handle their own permissions
@@ -154,7 +154,7 @@ class WebInterface():
             #EventReferences[module,resource].run()
         #else:
             #raise RuntimeError("Event does not support running manually")
-        
+
     #CRUD screen to delete a module
     @cherrypy.expose
     def deletemodule(self):
@@ -166,7 +166,7 @@ class WebInterface():
     def deletemoduletarget(self,**kwargs):
         pages.require("/admin/modules.edit")
         pages.postOnly()
-        
+
         modules.modulesHaveChanged()
         with modulesLock:
            ActiveModules.pop(kwargs['name'])
@@ -185,7 +185,7 @@ class WebInterface():
         global scopes
         pages.require("/admin/modules.edit")
         pages.postOnly()
-        
+
         modules.modulesHaveChanged()
         #If there is no module by that name, create a blank template and the scope obj
         with modulesLock:
@@ -219,7 +219,7 @@ class WebInterface():
     #This function handles HTTP requests of or relating to one specific already existing module.
     #The URLs that this function handles are of the form /modules/module/<modulename>[something?]
     def module(self,module,*path,**kwargs):
-        
+
         root = util.split_escape(module,"/")[0]
         modulepath = util.split_escape(module,"/")[1:]
         fullpath = module
@@ -475,31 +475,34 @@ def resourceUpdateTarget(module,resource,kwargs):
             #Test compile, throw error on fail.
             if 'enable' in kwargs:
                 try:
-                    evt = newevt.Event(kwargs['trigger'],kwargs['action'],newevt.make_eventscope(module),setup=kwargs['setup'],m=module,r=resource)
-                    del evt
-                    time.sleep(0.1)
+                    #Make a copy of the old resource object and modify it
+                    r2= resourceobj.copy()
+                    r2['trigger'] = kwargs['trigger']
+                    r2['action'] = kwargs['action']
+                    r2['setup'] = kwargs['setup']
+                    r2['priority'] = kwargs['priority']
+                    r2['continual'] = 'continual' in kwargs
+                    r2['rate-limit'] = float(kwargs['ratelimit'])
+                    r2['enable'] = 'enable' in kwargs
+
+                    #Remove the old event even before we do a test compile. If we can't do the new version just put the old one back.
+                    newevt.removeOneEvent(module,resource)
+                    #Leave a delay so that effects of cleanup can fully propagate.
+                    time.sleep(0.08)
+                    evt = None
+                    #UMake event from resource, but use our substitute modified dict
+                    evt = newevt. make_event_from_resource(module,resource, r2)
+
                 except Exception as e:
                     if not 'versions' in resourceobj:
                         resourceobj['versions'] = {}
-                    resourceobj['versions']['__draft__'] = r = resourceobj.copy().pop('versions')
-                    r['resource-type'] = 'event'
-                    r['trigger'] = kwargs['trigger']
-                    r['action'] = kwargs['action']
-                    r['setup'] = kwargs['setup']
-                    r['enable'] = 'enable' in kwargs
-                    r['priority'] = kwargs['priority']
-                    r['continual'] = 'continual' in kwargs
-                    r['rate-limit'] = float(kwargs['ratelimit'])
+                    resourceobj['versions']['__draft__'] = r2.pop('versions')
+
                     messagebus.postMessage("system/errors/misc/failedeventupdate", "In: "+ module +" "+resource+ "\n"+ traceback.format_exc(4))
                     raise
 
-            resourceobj['trigger'] = kwargs['trigger']
-            resourceobj['action'] = kwargs['action']
-            resourceobj['setup'] = kwargs['setup']
-            resourceobj['priority'] = kwargs['priority']
-            resourceobj['continual'] = 'continual' in kwargs
-            resourceobj['rate-limit'] = float(kwargs['ratelimit'])
-            resourceobj['enable'] = 'enable' in kwargs
+                #If everything seems fine, then we update the actual resource data
+                ActiveModules[module][resource]=r2
 
             #I really need to do something about this possibly brittle bookkeeping system
             #But anyway, when the active modules thing changes we must update the newevt cache thing.
@@ -511,8 +514,9 @@ def resourceUpdateTarget(module,resource,kwargs):
             except:
                 pass
 
-
-            newevt.updateOneEvent(resource,module)
+            #if the test compile fails, evt will be None and the function will look up the old one in the modules database
+            #And compile that. Otherwise, we avoid having to double-compile.
+            newevt.updateOneEvent(resource,module,evt)
 
         if t == 'page':
             resourceobj['body'] = kwargs['body']

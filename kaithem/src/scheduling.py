@@ -30,7 +30,7 @@ class Event():
 
     def run(self):
         workers.do(self._run)
-        
+
     def _run(self):
         f = self.f()
         if not f:
@@ -40,7 +40,7 @@ class Event():
 
     def unregister(self):
         scheduler.remove(self)
-        
+
 class RepeatingEvent():
     "Does function every interval seconds, and stops if you don't keep a reference to function"
     def __init__(self,function,interval):
@@ -49,48 +49,56 @@ class RepeatingEvent():
         self.scheduled = False
         self.errored = False
         self.lock = threading.Lock()
-    
+        self.lastrun = None
+        del function
+
     def schedule(self):
-        """Calculate next runtime and put self into the queue.
-        Currently should only every be called from the loop in the scheduler."""
-        #We want to schedule to the multiple of local time.
-        #Things on the hour should be on the local hour.
+        with self.lock:
+            if self.scheduled:
+                return
+            if not self.lastrun:
+                self.lastrun = time.time()
+            """Calculate next runtime and put self into the queue.
+            Currently should only every be called from the loop in the scheduler."""
+            #We want to schedule to the multiple of local time.
+            #Things on the hour should be on the local hour.
 
-        #adapted from J.F. Sebastian of Stack Overflow
-        #We should really just recheck the schedule every n seconds
-        millis = 1288483950000
-        ts = millis * 1e-3
-        # local time == (utc time + utc offset)
-        offset =(datetime.datetime.fromtimestamp(ts) - datetime.datetime.utcfromtimestamp(ts)).total_seconds()
-        
-        #Convert to local time
-        t = time.time()+offset
-        #This is important in the next step. Here we add a fraction of the interval to pust times like 59.95 over
-        #otherwise it will schedule it for 60 when clearly a minute in the future should be 120
-        t += self.interval/10.0
-        #Calculate the last modulo of the interval. We do this by doing the module to see how far past it we are
-        #then subtracting. 
-        last = t-(t%self.interval)
-        
-        #Get the time after last
-        t = last+ self.interval
-        #Convert back to UTC/UNIX
-        self.time = t-offset
+            #adapted from J.F. Sebastian of Stack Overflow
+            #We should really just recheck the schedule every n seconds
+            millis = 1288483950000
+            ts = millis * 1e-3
+            # local time == (utc time + utc offset)
+            offset =(datetime.datetime.fromtimestamp(ts) - datetime.datetime.utcfromtimestamp(ts)).total_seconds()
 
-        scheduler.insert(self)
-        self.scheduled = True
+            #Convert to local time
+            t = self.lastrun+offset
+            #This is important in the next step. Here we add a fraction of the interval to pust times like 59.95 over
+            #otherwise it will schedule it for 60 when clearly a minute in the future should be 120
+            t += self.interval/10.0
+            #Calculate the last modulo of the interval. We do this by doing the module to see how far past it we are
+            #then subtracting.
+            last = t-(t%self.interval)
 
-        
+            #Get the time after last
+            t = last+ self.interval
+            #Convert back to UTC/UNIX
+            self.time = t-offset
+
+            scheduler.insert(self)
+            self.scheduled = True
+
+
     def register(self):
         scheduler.register_repeating(self)
-        
+
     def unregister(self):
         scheduler.unregister(self)
-            
+
     def run(self):
         workers.do(self._run)
-        
+
     def _run(self):
+        self.lastrun = time.time()
         try:
             if self.lock.acquire(False):
                 try:
@@ -101,6 +109,7 @@ class RepeatingEvent():
                         f()
                 finally:
                     self.lock.release()
+                    del f
         finally:
             self.scheduled = False
 
@@ -112,23 +121,23 @@ class SelfSchedulingEvent():
         self.scheduled = False
         self.errored = False
         self.lock = threading.Lock()
-    
+
     def schedule(self):
         """Put self in queue based on the time already calculated by the function"""
 
         scheduler.insert(self)
         self.scheduled = True
 
-        
+
     def register(self):
         scheduler.register_repeating(self)
-        
+
     def unregister(self):
         scheduler.unregister(self)
-            
+
     def run(self):
         workers.do(self._run)
-        
+
     def _run(self):
         try:
             if self.lock.acquire(False):
@@ -151,7 +160,7 @@ class RepeatWhileEvent(RepeatingEvent):
     def __init__(self,function,interval):
         self.ended=False
         RepeatingEvent.__init__(self,function,interval)
-        
+
     def _run(self):
         if self.ended:
             return
@@ -166,13 +175,12 @@ class RepeatWhileEvent(RepeatingEvent):
                         if not r:
                             self.unregister()
                             self.ended = True
-                except Exception as e:
-                    print(e)
                 finally:
                     self.lock.release()
+                    del f
         finally:
             self.scheduled = False
-    
+
 #class ComplexRecurringEvent():
     #def schedule(self):
         #if self.scheduled:
@@ -185,7 +193,7 @@ class RepeatWhileEvent(RepeatingEvent):
                     #x = (t+n)/2
             #self.scheduled = t
             #s
-        
+
 class NewScheduler(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -194,39 +202,40 @@ class NewScheduler(threading.Thread):
         self.repeatingtasks= []
         self.daemon = True
         self.name = 'SchedulerThread2'
-        
+
     def everySecond(self,f):
         e = RepeatingEvent(f,1)
         e.register()
         return f
-    
+
     def everyMinute(self,f):
         e = RepeatingEvent(f,60)
         e.register()
         return f
-        
+
     def everyHour(self,f):
         e = RepeatingEvent(f,3600)
         e.register()
         return f
-    
+
     def every(self,f, interval):
         interval = float(interval)
         e = RepeatingEvent(f,interval)
         e.register()
         return f
-    
+
     def schedule(self, f, t, exact=False):
         t = float(t)
         e = Event(f, t)
         e.schedule()
         return e
-        
+
     def insert(self, event):
         "Insert something that has a time and a _run property that wants its _run called at time"
         with self.lock:
             self.tasks.append(event)
-            
+            self.tasks = sorted(self.tasks, key=lambda x: x.time or -1)
+
     def remove(self, event):
         "Remove something that has a time and a _run property that wants its _run to not be called at time"
         with self.lock:
@@ -239,7 +248,7 @@ class NewScheduler(threading.Thread):
         "Register a RepeatingEvent class"
         with self.lock:
             self.repeatingtasks.append(event)
-            
+
     def unregister(self, event):
         "unregister a RepeatingEvent"
         with self.lock:
@@ -249,30 +258,18 @@ class NewScheduler(threading.Thread):
             except:
                 pass
 
-                
+
     def run(self):
         while 1:
+
             #Caculate the time until the next UNIX timestamp whole number, with 0.0011s offset to compensate
             #for the time it takes to process 0.9989
-            time_till_next_second = max(0,(random.random()+0.5)-(time.time()%1))
+            time_till_next_second = max(0, 0.9989-(time.time()%1) )
             if self.tasks:
                 time.sleep(max(min((self.tasks[0].time-time.time()),time_till_next_second),0))
             else:
                 time.sleep(time_till_next_second)
-                
-            #Take all the repeating tasks that aren't already scheduled to happen and schedule them.
-            #Normally tasks reschedule themselves, but this check catches any errors in
-            #the chain of run>reschedule>run>etc
-            for i in self.repeatingtasks:
-                if not i.scheduled:
-                    i.schedule()
-                    
-            #This is under lock so it doesn't clobber insertswith the sorted old version or something
-            #I don't know if list.sort is atomic so we do this instead.
-            with self.lock:
-                #Sort the list of tasks from soonest to latest
-                self.tasks = sorted(self.tasks, key=lambda x: x.time or -1)
-                
+
             #Run tasks until all remaining ones are in the future
             while self.tasks and (self.tasks[0].time <time.time()):
                 i = self.tasks.pop(False)
@@ -280,15 +277,25 @@ class NewScheduler(threading.Thread):
                     i.run()
                 except:
                     f = i.f()
-                    messagebus.postMessage('system/errors/scheduler/time',
-                                        {"function":f.__name__,
-                                        "module":f.__module__,
-                                        "traceback":traceback.format_exc(6)})
-                    if not i.errored:
-                        m = f.__module__
-                        messagebus.postMessage("/system/notifications/errors", "Problem in scheduled event function: "+repr(f)+" in module: "+ m+", check logs for more info.")
-                        i.errored = True
+                    if hasattr(f,"__name__") and hasattr(f,"__module__"):
+                        messagebus.postMessage('system/errors/scheduler/time',
+                                            {"function":f.__name__,
+                                            "module":f.__module__,
+                                            "traceback":traceback.format_exc(6)})
+                        if not i.errored:
+                            m = f.__module__
+                            messagebus.postMessage("/system/notifications/errors",
+                            "Problem in scheduled event function: "+repr(f)+" in module: "+ m
+                                    +", check logs for more info.")
+                            i.errored = True
                     del f
+
+            #Take all the repeating tasks that aren't already scheduled to happen and schedule them.
+            #Normally tasks would just reschedule themselves, but this way prevents any errors in
+            #the chain of run>reschedule>run>etc
+            for i in self.repeatingtasks:
+                if not i.scheduled:
+                    i.schedule()
 
 
 last_did_minute_tasks = 0
@@ -359,7 +366,7 @@ class Scheduler(threading.Thread):
             self.errored_events[repr(f)+str(id(f))] = True
             if len(self.errored_events) > 250:
                 self.errored_events.popitem(False)
-                
+
     def run(self):
         "This runs in a loop for as long as the program runs and runs the tasks. It works by waking up every second and checking what needs doing"
         global last_did_minute_tasks
@@ -442,8 +449,8 @@ class Scheduler(threading.Thread):
                                 #self.handle_error_notification(f)
                             #except:
                                 #pass
-                            
-                        
+
+
                 if delete_broken:
                     for i in self.second.copy():
                         if not i():
@@ -456,10 +463,10 @@ class Scheduler(threading.Thread):
                     del f
                 except:
                     pass
-                
-                #Sleep until beginning of the next second. We do this before the 
+
+                #Sleep until beginning of the next second. We do this before the
                 time.sleep(1-(time.time()%1))
-      
+
                 #We do this first because we want to do it right before the actual running the stuff or else we
                 #will have old versions.
                 for i in self.sec2:
@@ -473,7 +480,7 @@ class Scheduler(threading.Thread):
 
             self.min2=[]
             self.sec2 = []
-                
+
 
 #this class doesn't work yet
 class ScheduleCalculator():
@@ -481,16 +488,16 @@ class ScheduleCalculator():
         s = s.replace("every second",'every 1 seconds')
         if start==None:
             self.start = datetime.datetime.now().replace(minute=0,second=0,microsecond=0)
-            
+
         if initial_position:
             self.position = initial_position
-            
+
         else:
             self.position = time.time()
-            
+
         r = recurrent.RecurringEvent()
         dt = r.parse(s)
-        
+
         if isinstance(dt,str):
             self.recurring = True
             rr = dateutil.rrule.rrulestr(r.get_RFC_rrule(),dtstart=start)
@@ -498,7 +505,7 @@ class ScheduleCalculator():
                 dt=rr.after(datetime.datetime.fromtimestamp(after))
             else:
                 dt=rr.after(datetime.datetime.now())
-                
+
         tz = re.search(r"(\w\w+/\w+)",s)
         if tz:
             tz = dateutil.tz.gettz(tz.groups()[0])
@@ -517,7 +524,7 @@ class ScheduleCalculator():
             return ((dt-EPOCH)-offset).total_seconds()
         else:
             return ((dt-EPOCH)-offset)/datetime.timedelta(seconds=1)
-        
+
 def get_schedule_string_info(s):
     r = recurrent.RecurringEvent()
     dt = r.parse(s)
@@ -557,7 +564,7 @@ def get_next_run(s,start = None, after=None):
         x= ((dt-EPOCH)-offset).total_seconds()
     else:
         x= ((dt-EPOCH)-offset)/datetime.timedelta(seconds=1)
-    
+
     return x
 
 
@@ -566,4 +573,3 @@ def get_next_run(s,start = None, after=None):
 scheduler = NewScheduler()
 #scheduler = Scheduler()
 scheduler.start()
-

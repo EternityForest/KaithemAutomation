@@ -98,7 +98,6 @@ def in_folder(r,f,n):
 <hr>
 %endif
 %for i in sorted(sorted(module.keys()), key=lambda x: module[x]['resource-type']):
-
 %if in_folder(i,fullpath,name):
 
 	%if module[i]['resource-type'] == 'event':
