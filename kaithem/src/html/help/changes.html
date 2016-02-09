@@ -17,6 +17,8 @@
 <li>Setup actions no longer run twice when saving! (However, setup actions may run and retry any number of times due to dependancy resolution at bootup)</li>
 <li>Fix bug where references in the locals of deleted or modified events sometimes still hung around and messed up APIs based on __del__</li>
 <li>Stable initial event loading attempt order(Sorted by (module,resource) tuple.) Failed events will be retried up to the max attempts in the same order.</li>
+<li>Kaithem now appears to shut down properly without the old workaround</li>
+
 </ul>
 </div>
 <h3>0.54</h3>

@@ -393,31 +393,36 @@ util.drop_perms(config['run-as-user'], config['run-as-group'])
 messagebus.postMessage('/system/startup','System Initialized')
 messagebus.postMessage('/system/notifications/important','System Initialized')
 cherrypy.engine.block()
-cherrypy.engine.exit()
-time.sleep(1)
-cherrypy.engine.exit()
+
+#Old workaround for things not stopping on python3 that no longer appears to be needed.
+# cherrypy.engine.exit()
+# time.sleep(1)
+# cherrypy.engine.exit()
 print("Cherrypy engine stopped")
+#
+# #Partial workaround for a bug where it won't exit in python3. This probably won't work on windows
+# if sys.version_info > (3,0):
+#     #Wait until all non daemon threads are finished shutting down.
+#     while 1:
+#         exit = True
+#         for i in sorted(threading.enumerate(),key=lambda d:d.name):
+#             if (not i.daemon) and (not(i.name=="MainThread")):
+#                 exit=False
+#         if exit:
+#             break
 
-#Partial workaround for a bug where it won't exit in python3. This probably won't work on windows
-if sys.version_info > (3,0):
-    #Wait until all non daemon threads are finished shutting down.
-    while 1:
-        exit = True
-        for i in sorted(threading.enumerate(),key=lambda d:d.name):
-            if (not i.daemon) and (not(i.name=="MainThread")):
-                exit=False
-        if exit:
-            break
-
-    #If still not stopped, try to stop
-    try:
-        #Try the most graceful way first.
-        print("Still running, sending signals")
-        os.kill(os.getpid(), signal.SIGINT)
-        time.sleep(0.5)
-        os.kill(os.getpid(), signal.SIGTERM)
-        time.sleep(1)
-        os.kill(os.getpid(), signal.SIGKILL)
-
-    except:
-        raise
+    #
+    # #If still not stopped, try to stop
+    # try:
+    #     #Try the most graceful way first.
+    #     for i in threading.enumerate():
+    #         print("Waiting on thread: "+str(i))
+    #     print("Still running, sending signals")
+    #     os.kill(os.getpid(), signal.SIGINT)
+    #     time.sleep(0.5)
+    #     os.kill(os.getpid(), signal.SIGTERM)
+    #     time.sleep(1)
+    #     os.kill(os.getpid(), signal.SIGKILL)
+    #
+    # except:
+    #     raise
