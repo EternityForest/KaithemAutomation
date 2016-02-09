@@ -24,7 +24,7 @@ def new_empty_module():
     return {"__description":
                 {"resource-type":"module-description",
                 "text":"Module info here"}}
-                
+
 def new_module_container():
     return {}
 
@@ -42,7 +42,7 @@ from .util import url,unurl
 #it's o the code knows to save everything is it has been changed.
 moduleschanged = False
 
-    
+
 
 
 moduleshash= "000000000000000000000000"
@@ -65,14 +65,14 @@ def hashModule(module):
 def getModuleHash(m):
     if not m in modulehashes:
         modulehashes[m] = hashModule(m)
-    return modulehashes[m]
+    return modulehashes[m].upper()
 
 def modulesHaveChanged():
     global moduleschanged,moduleshash, modulehashes
     moduleschanged = True
     moduleshash = hashModules()
     modulehashes = {}
-    
+
 class event_interface(object):
    def __init__(self, ):
       self.type = "event"
@@ -94,7 +94,7 @@ class obj(object):
          x = event_interface()
       if x['resource-type'] == 'permission':
          x = permission_interface()
-         
+
 
 #Backwards compatible resource loader.
 def loadResource(r):
@@ -107,16 +107,16 @@ def loadResource(r):
     else:
         f = d.split("\n---\n")
     r = yaml.load(f[0])
-    
+
     #Catch old style save files
     if len(f)>1:
         if r['resource-type'] == 'page':
             r['body'] = f[1]
-            
+
         if r['resource-type'] == 'event':
             r['setup'] = f[1]
             r['action'] = f[2]
-    
+
     return r
 
 def saveResource2(r,fn):
@@ -125,31 +125,31 @@ def saveResource2(r,fn):
         b = r['body']
         del r['body']
         d = yaml.dump(r) + "\n#End YAML metadata, page body mako code begins on first line after ---\n---\n" + b
-        
+
     elif r['resource-type'] == 'event':
         t = r['setup']
         del r['setup']
         a = r['action']
         del r['action']
         d = yaml.dump(r) + "\n#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.\n---\n" + t + "\n---\n" + a
-        
+
     else:
         d = yaml.dump(r)
-        
+
     with open(fn,"w") as f:
         util.chmod_private_try(fn,execute = False)
         f.write(d)
-        
+
 def saveResource(r,fn):
     with open(fn,"w") as f:
         util.chmod_private_try(fn, execute=False)
         f.write(yaml.dump(r))
-        
+
 
 def saveAll():
     """saveAll and loadall are the ones outside code shold use to save and load the state of what modules are loaded.
     This function creates a timestamp directory in the confugured modules dir, then saves the modules to it, and deletes the old ones."""
-    
+
     #This is an RLock, and we need to use the lock so that someone else doesn't make a change while we are saving that isn't caught by
     #moduleschanged.
     with modulesLock:
@@ -160,7 +160,7 @@ def saveAll():
             t = time.time()
         else:
             t = int(util.min_time) +1.234
-        
+
         if os.path.isdir(os.path.join(directories.moduledir,str("data"))):
         #Copy the data found in data to a new directory named after the current time. Don't copy completion marker
             shutil.copytree(os.path.join(directories.moduledir,str("data")), os.path.join(directories.moduledir,str(t)),
@@ -169,7 +169,7 @@ def saveAll():
             with open(os.path.join(directories.moduledir,str(t),'__COMPLETE__'),"w") as x:
                 util.chmod_private_try(os.path.join(directories.moduledir,str(t),'__COMPLETE__'), execute=False)
                 x.write("This file certifies this folder as valid")
-        
+
         #This dumps the contents of the active modules in ram to a directory named data"""
         saveModules(os.path.join(directories.moduledir,"data"))
         #We only want 1 backup(for now at least) so clean up old ones.
@@ -205,15 +205,15 @@ def initModules():
                 else:
                     #If there was no flag indicating that this was an actual complete dump as opposed
                     #To an interruption, rename it and try again
-                    
+
                     shutil.copytree(possibledir,os.path.join(directories.moduledir,name+"INCOMPLETE"))
                     #It would be best if we didn't rename or get rid of the data directory because that's where
-                    #manual tools might be working. 
+                    #manual tools might be working.
                     if not possibledir == os.path.join(directories.moduledir,"data"):
                         shutil.rmtree(possibledir)
     except:
         messagebus.postMessage("/system/notifications/errors" ," Error loading modules: "+ traceback.format_exc(4))
-    
+
     auth.importPermissionsFromModules()
     newevt.getEventsFromModules()
     usrpages.getPagesFromModules()
@@ -283,7 +283,7 @@ def loadModule(moduledir,path_to_module_folder):
                     fn = os.path.join(path_to_module_folder,moduledir , relfn)
                     #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
                     module[unurl(relfn)] = {"resource-type":"directory"}
-                    
+
 
         name = unurl(moduledir)
         scopes[name] = obj()
@@ -305,7 +305,7 @@ def getModuleAsZip(module):
         s = ram_file.getvalue()
         ram_file.close()
         return s
-    
+
 def getModuleAsYamlZip(module):
     with modulesLock:
         #We use a stringIO so we can avoid using a real file.

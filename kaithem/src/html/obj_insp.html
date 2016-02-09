@@ -37,7 +37,7 @@ ${inspect.getsource(obj)|h}
 <h3>List Contents (${len(obj)} items)</h3>
 <ol start=0>
 %for n, i in enumerate(obj):
-<li><a href="?objname=${objname}[${n}]&objpath=${objpath},i${n}">${repr(i)}</a></li>
+<li><a href="?objname=${objname}[${n}]&objpath=${objpath|h},i${n}">${util.saferepr(i)|h}</a></li>
 %endfor
 </ol>
 %endif

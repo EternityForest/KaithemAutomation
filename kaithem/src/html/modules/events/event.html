@@ -244,7 +244,7 @@ This section the most recent errors that ocurred while executing the event or tr
 p = newevt.getPrintOutput((module,name))
 %>
 
-%if p:
+%if p and pages.canUserDoThis("/admin/eventoutput.view"):
 <h3>Output(${len(p)} bytes)</h3>
 <pre>${p|h}</pre>
 %endif

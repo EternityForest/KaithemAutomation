@@ -196,6 +196,15 @@ ${str(i[1])|h}
 <p class="error">Some Errors Hidden because you are not logged in or do not have the permissions to view them.</p>
 %endif
 %endif
+
+<%
+p = usrpages.getPageOutput(module,name)
+%>
+
+%if p:
+<h3>Output(${len(p)} bytes)</h3>
+<pre>${p|h}</pre>
+%endif
 <p class="help">
 Saving this module will cause it to be immediately acessable from the web.
 </p>

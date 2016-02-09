@@ -68,6 +68,7 @@ BasePermissions = {
 "/admin/settings.view": "View but not change settings.",
 "/admin/settings.edit": "Change core settings.",
 "/admin/logging.edit": "Modify settings in the logging subsystem",
+"/admin/eventoutput.view": "View the message logs.",
 "/users/logs.view": "View the message logs.",
 "/users/accountsettings.edit" : "Edit ones own account preferences",
 "/admin/errors.view": "View errors in resources. Note that /users/logs.view or /admin/modules.edit will also allow this.",
@@ -211,7 +212,7 @@ def promptGenerateUser(username="admin"):
                         "/users/logs.view",
                         "/admin/modules.view",
                         "__all_permissions__"
-                        
+
                     ]
                 }
             },
@@ -288,13 +289,13 @@ def initializeAuthentication():
             except:
                 messagebus.postMessage("/system/notifications/errors","Could not load old state:\n"+str(e))
                 pass
-            
+
     if not loaded:
         time.sleep(2)
         promptGenerateUser()
         messagebus.postMessage("/system/notifications/warnings","No valid users file, using command line prompt")
 
-        
+
     getPermissionsFromMail()
 
 def generateUserPermissions(username = None):
@@ -363,10 +364,10 @@ def dumpDatabase():
         t = time.time()
     else:
         t = int(util.min_time) +1.234
-    
+
     if os.path.isdir(os.path.join(directories.usersdir,str("data"))):
     #Copy the data found in data to a new directory named after the current time. Don't copy completion marker
-        
+
         #If the data dir was corrupt, copy it to a different place than a normal backup.
         if not data_bad:
             copyto = os.path.join(directories.usersdir,str(t))
@@ -379,13 +380,13 @@ def dumpDatabase():
         with open(os.path.join(copyto,'__COMPLETE__'),"w") as x:
             util.chmod_private_try(os.path.join(copyto,'__COMPLETE__'), execute=False)
             x.write("This file certifies this folder as valid")
-            
-            
+
+
     p = os.path.join(directories.usersdir,"data")
-    
+
     if os.path.isfile(os.path.join(p,'__COMPLETE__')):
         os.remove(os.path.join(p,'__COMPLETE__'))
-        
+
     util.ensure_dir2(p)
     util.chmod_private_try(p)
     f = open(os.path.join(p,"users.json"),"w")
@@ -465,7 +466,7 @@ def canUserDoThis(user,permission):
     if '__guest__' in Users:
         if permission in Users['__guest__'].permissions:
             return True
-    
+
     #If guests can't do the thing and the user is unknown, the answer should be no.
     if user in ("<unknown", "__unknown__"):
         return False

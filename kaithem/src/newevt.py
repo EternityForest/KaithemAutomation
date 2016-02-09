@@ -148,6 +148,9 @@ def __manager():
         mindelay = config['delay-between-frames']
         #Get the time at the start of the loop
         temp = time.time()
+        e = threading.Event()
+        def f():
+            e.set()
         with _event_list_lock:
             for i in _events:
                 #BAD HACK ALERT
@@ -178,10 +181,7 @@ def __manager():
             #events. We depend on the event objects themselves to enforce the guarantee that only
             #one copy of the event can run at once.
 
-            e = threading.Event()
-            def f():
-                e.set()
-            workers.do(f)
+        workers.do(f)
 
         #Limit the polling cycles per second to avoid CPU hogging
         #Subtract the time the loop took from the delay
@@ -189,6 +189,7 @@ def __manager():
         time.sleep(max(framedelay-(time.time()-temp),mindelay))
 
         #On the of chance something odd happens, let's not wait forever.
+        e.clear()
         e.wait(15)
         #smoothing filter
         averageFramesPerSecond = (averageFramesPerSecond *0.98) +   ((1.0/(time.time()-lastFrame)) *0.02)
@@ -909,7 +910,7 @@ def removeModuleEvents(module):
             if i[0] == module:
                 #delete both the event and the reference to it
                 __EventReferences[i].unregister()
-                __EventReferences[module,resource].cleanup()
+                __EventReferences[i].cleanup()
                 del __EventReferences[i]
 
 #Every event has it's own local scope that it uses, this creates the dict to represent it

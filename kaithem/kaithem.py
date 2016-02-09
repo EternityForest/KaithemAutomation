@@ -18,9 +18,16 @@
 __version__ = "0.55 Develpoment"
 __version_info__ = (0,5,5,"dev",0)
 
+#Library that makes threading and lock operations, which we use a lot of, use native code on linux
+try:
+    import pthreading
+    pthreading.monkey_patch()
+except:
+    pass
 
 #This file is the main entry point of the app. It imports everything, loads configuration,
 #sets up and starts the server, and contains page handlers for the main page.
+
 
 import sys,os,threading,traceback
 
@@ -37,7 +44,7 @@ if x.startswith('/usr/bin'):
     x = "/usr/lib/kaithem"
     linuxpackage = True
     sys.path = [x] + sys.path
-    
+
 x = os.path.join(x,'src')
 
 if sys.version_info < (3,0):
@@ -235,7 +242,7 @@ class Errors():
     def nofoldermoveerror(self,):
         cherrypy.response.status = 400
         return pages.get_template('errors/nofoldermove.html').render()
-    
+
     @cherrypy.expose
     def wrongmethod(self,):
         cherrypy.response.status = 405
@@ -401,7 +408,7 @@ if sys.version_info > (3,0):
                 exit=False
         if exit:
             break
-        
+
     #If still not stopped, try to stop
     try:
         #Try the most graceful way first.
