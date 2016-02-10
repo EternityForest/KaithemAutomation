@@ -1,0 +1,137 @@
+continual: false
+disabled: false
+enable: true
+once: true
+priority: interactive
+rate-limit: 0.0
+resource-type: event
+trigger: 'True'
+versions: {}
+
+#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
+---
+#This code runs once when the foot loads. It also runs when you save the event during the test compile
+#and may run multiple times when kaithem boots due to dependancy resolution
+__doc__=''
+from src import newevt,messagebus,modules_state
+import time,traceback
+
+def theTest():
+    with modules_state.modulesLock:
+        modules_state.scopes['x'] = {}
+        #Create an event that sets y to 0 if it is 1
+        x = newevt.Event("y==1","global y\ny=0",locals(),setup="y=0")
+        x.module=x.resource="TEST"
+
+        #Register event with polling.
+        x.register()
+        #Set y to 1
+        x.pymodule.y = 1
+
+        time.sleep(0.1)
+        #y should immediately be set back to 0 at the next polling cycle
+        if x.pymodule.y == 1:
+                raise RuntimeError("Edge-Triggered Event did nothing")
+
+        #Unregister event and make sure it really goes away
+        x.unregister()
+        x.pymodule.y =1
+        if not x.pymodule.y == 1:
+                raise RuntimeError("Edge-Triggered Event did not go away when unregistered")
+
+        ##Testing one time events
+        x.pymodule.y = False
+        def f():
+            return x.pymodule.y
+
+        def g():
+            x.pymodule.y = False
+
+        newevt.when(f,g)
+        time.sleep(0.1)
+        x.pymodule.y = True
+        time.sleep(0.5)
+        if x.pymodule.y:
+            raise RuntimeError("One time event did not trigger")
+
+        x.pymodule.y = True
+        time.sleep(0.5)
+        if not x.pymodule.y:
+            raise RuntimeError("One time event did not delete itself properly")
+
+        newevt.after(1,g)
+
+        x.pymodule.y = True
+        time.sleep(1.2)
+        if x.pymodule.y:
+            raise RuntimeError("Time delay event did not trigger")
+
+        x.pymodule.y = True
+        time.sleep(1.2)
+        if not x.pymodule.y:
+            raise RuntimeError("Time delay event did not delete itself properly")
+
+        #Same exact thing exept we use the onchange
+        x = newevt.Event("!onchange y","global y\ny=5",locals())
+        x.module=x.resource="TEST"
+
+
+        #Register event with polling.
+        x.register()
+        #Give it a value to change from
+        x.pymodule.y = 0
+        #Let it notice the old value
+        time.sleep(0.10)
+        #Set y to 1
+        x.pymodule.y = 1
+
+        time.sleep(0.10)
+        #y should immediately be set back to 0 at the next polling cycle
+        if x.pymodule.y == 1:
+                raise RuntimeError("Onchange Event did nothing")
+
+        #Unregister event and make sure it really goes away
+        x.unregister()
+        x.pymodule.y =1
+        if not x.pymodule.y == 1:
+                raise RuntimeError("Onchange Event did not go away when unregistered")
+
+
+
+
+        #Now we test the message bus event
+        x = newevt.Event("!onmsg /test","global y\ny='test'",locals())
+        x.module=x.resource="TEST"
+
+
+
+        #Register event with polling.
+        x.register()
+        #Give it a value to change from
+        messagebus.postMessage("/test",'foo')
+        #Let it notice the old value
+
+        time.sleep(0.25)
+        #y should immediately be set back to 0 at the next polling cycle
+        if not  x.pymodule.y == 'test':
+                raise RuntimeError("Message Event did nothing")
+
+        #Unregister event and make sure it really goes away
+        x.unregister()
+        x.pymodule.y =1
+
+        messagebus.postMessage('foo',"/test")
+        if x.pymodule.y == 'test':
+                raise RuntimeError("Message Event did not go away when unregistered")
+
+
+        print("Sucess in testing event module")
+def runtest():
+    try:
+        theTest()
+    except:
+        messagebus.postMessage("/system/notifications/errors",    traceback.format_exc(6))
+
+---
+#Uncomment this an it will deadlock.
+#kaithem.misc.do(runtest)

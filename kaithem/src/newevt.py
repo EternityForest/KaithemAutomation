@@ -79,7 +79,7 @@ def when(trigger,action,priority="interactive"):
         action()
         removeOneEvent(module,resource)
 
-    e = PolledInternalSystemEvent(trigger,f,priority=priority)
+    e = PolledInternalSystemEvent(trigger,f,priority=priority,m=module,r=resource)
     e.module = module
     e.resource = resource
     __EventReferences[module,resource] = e
@@ -89,9 +89,12 @@ def when(trigger,action,priority="interactive"):
 #Trigger takes no arguments and returns a boolean
 def after(delay,action,priority="interactive"):
     #If the time is in the future, then we use the scheduler.
+    print("poop")
     if delay > 1.2:
-        scheduling.schedule.schedule(action, time.time()+delay)
+        scheduling.scheduler.schedule(action, time.time()+delay)
         return
+    print("poop")
+
 
     module = '<OneTimeEvents>'
     resource = "after(" +str(delay) +")"+ '>' + action.__name__ + ' ' + 'set at ' + str(time.time()) + ' id='+str(base64.b64encode(os.urandom(16)))
@@ -105,10 +108,14 @@ def after(delay,action,priority="interactive"):
         action()
         removeOneEvent(module,resource)
     e = PolledInternalSystemEvent(f,g,priority=priority)
+    print("poop")
+
     e.module = module
     e.resource = resource
     __EventReferences[module,resource] = e
     e.register()
+    print("poop")
+
 
 kaithemobj.kaithem.events.when = when
 kaithemobj.kaithem.events.after = after
@@ -313,9 +320,9 @@ class BaseEvent():
 
         self.runTimes = []
         self.module = m if m else "<unknown>"
-        self.resource = r if r else util.unique_number()
-        self.pymodule = types.ModuleType(str("Event_"+m+"_"+r))
-        self.pymodule.__file__ = str("Event_"+m+"_"+r)
+        self.resource = r if r else str(util.unique_number())
+        self.pymodule = types.ModuleType(str("Event_"+self.module +"_"+self.resource))
+        self.pymodule.__file__ = str("Event_"+self.module +"_"+self.resource)
         #This lock makes sure that only one copy of the event executes at once.
         self.lock = threading.Lock()
         #This keeps track of the last time the event was triggered  so we can rate limit
@@ -428,7 +435,8 @@ class BaseEvent():
                 self._handle_exception(e)
         finally:
             self.lock.release()
-
+class DummyModuleScope():
+    pass
 class CompileCodeStringsMixin():
     "This mixin lets a class take strings of code for its setup and action"
     def _init_setup_and_action(self,setup,action,params={}):
@@ -441,7 +449,7 @@ class CompileCodeStringsMixin():
 
         try:
             self.pymodule.__dict__['kaithem']=kaithemobj.kaithem
-            self.pymodule.__dict__['module']=modules_state.scopes[self.module]
+            self.pymodule.__dict__['module']=modules_state.scopes[self.module] if self.module in modules_state.scopes else DummyModuleScope()
             try:
                 self.pymodule.__dict__['print']=self.new_print
             except:

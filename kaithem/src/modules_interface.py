@@ -496,7 +496,10 @@ def resourceUpdateTarget(module,resource,kwargs):
                 except Exception as e:
                     if not 'versions' in resourceobj:
                         resourceobj['versions'] = {}
-                    resourceobj['versions']['__draft__'] = r2.pop('versions')
+                    if 'versions' in r2:
+                        r2.pop("versions")
+
+                    resourceobj['versions']['__draft__'] = copy.deepcopy(r2)
 
                     messagebus.postMessage("system/errors/misc/failedeventupdate", "In: "+ module +" "+resource+ "\n"+ traceback.format_exc(4))
                     raise

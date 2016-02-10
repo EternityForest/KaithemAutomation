@@ -61,8 +61,12 @@ def __workerloop():
         try:
             #We need the timeout othewise it could block forever
             #and thus not notice if run was False
-            f=__queue.get(timeout = 5)
+            try:
+                f=__queue.get(timeout = 5)
+            except queue.Empty:
+                pass
             f()
+
         except Exception as e:
             try:
                 from src import messagebus
