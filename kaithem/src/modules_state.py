@@ -25,7 +25,6 @@ class BaseHeirarchyDict(dict):
 
     def __setitem__(self, key, val):
         self.flat[key]=HeirarchyDict(val)
-
     def copy(self):
         return self.flat.copy()
     def keys(self):
@@ -54,27 +53,39 @@ class HeirarchyDict(dict):
     Values must be dicts that have a resource type item.
     If you delete a directory, things that directory contains won't be deleted.
 
-    Flat will not contain any dicts unless you explicitly put them there.
-    It also won't automatically make enclosing dicts.
+    Flat will not contain any heirarchydicts.
 
     Basially all this is is a helper to make it faster to search the heirarchy in a dict and that's about it.
 
-    However, it will disallow you from putting things into a nonexistant directory.
-
     To navigate it heirarchially, look in the obj.root. It will be a dict. all the contents will either be values
     aka resource dicts or heirarchydict instances to represent folders.
+
+    Each dict.flat has all the directory contents, but subdirectories are represented by the directory resource,
+    And you call getDir to get the HeirarchyDict that corresponds to that directory.
+
+    For example, a contains directory b which has resource c.
+
+    You iterate a and see a resource with type directory called b. you call a.getDir("b") and get b. That one has the resource c.
     """
     def __init__(self,d={}):
+        #This stores subdirectory references
         self.root = {}
+        #This stores actual items, but indexed by full path.
         self.flat = {}
         for i in sorted(d,key= lambda x:len(x)):
+            print(i, self.root.keys())
             self[i]=d[i]
 
-    def _put_item_in(self, key, val,realkey):
-        self.flat[realkey]=val
+    def _put_item_in(self, key, val,realkey,subst=None):
+        #Given key, which is a path elative to this dict,
+        #/=And realkey, which is the full key, traverse the chain
+        #Of heriarchy dicts until you get to the last one, and insert value there.
+
+        #If val is a heirarchy
         key2 = util.split_escape(key,"/","\\")
         l =self.root
         m=self
+        #Traverse all but last path component
         for i in key2[:-1]:
             if not i in l:
                 return
@@ -83,14 +94,19 @@ class HeirarchyDict(dict):
                 m=l[i]
             else:
                 return
+
+
+        #Do the actual insert.
+        m.flat[realkey] = val
         if val.get('resource-type') == "directory":
-            m._put_item_in(key2[-1],HeirarchyDict(),realkey)
+            m.root[key2[-1]] = HeirarchyDict()
         else:
-            m._put_item_in(key2[-1],val,realkey)
+            m.root[key2[-1]] = val
 
     def __setitem__(self, key, val):
-        self.flat[key]=val
+        #This will likely only ever be used at the base of the thing. So here the key is the same as the realkey
         key2 = util.split_escape(key,"/","\\")
+        self.flat[key]=value
         l =self.root
         m=self
         for i in key2[:-1]:
@@ -102,10 +118,7 @@ class HeirarchyDict(dict):
             else:
                 return
 
-        if val.get('resource-type') == "directory":
-            m._put_item_in(key2[-1],HeirarchyDict(),key)
-        else:
-            m._put_item_in(key2[-1],val,key)
+        m._put_item_in(key2[-1],val,key)
 
     def getDir(self,key):
         if isinstance(key,(list,tuple)):
@@ -151,7 +164,26 @@ class HeirarchyDict(dict):
 #Lets just store the entire list of modules as a huge dict for now at least
 ActiveModules = {}
 
+def in_folder(r,f):
+    if not r.startswith(f):
+        return False
+    #Get the path as a list
+    r = util.split_escape(r,'/','\\')
+    #Get the path of the folder
+    f = util.split_escape(f,'/','\\')
+    #make sure the resource path is one longer than module
+    if not len(r)==len(f)+1:
+        return False
+    return True
 
+@util.lrucache(100)
+def ls_folder(m,d):
+    o = []
+    x = ActiveModules[m]
+    for i in x:
+        if in_folder(i,d):
+            o.append(i)
+    return o
 
 "this lock protects the activemodules thing. Any changes at all should go through this."
 modulesLock = RLock()

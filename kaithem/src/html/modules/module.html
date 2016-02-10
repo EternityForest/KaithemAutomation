@@ -1,7 +1,7 @@
 <%!
 from src.util import url
 from src.modules import getModuleHash
-from src import pages,newevt,usrpages,unitsofmeasure,util,scheduling
+from src import pages,newevt,usrpages,unitsofmeasure,util,scheduling,modules_state
 import time
 %>
 
@@ -97,7 +97,7 @@ def in_folder(r,f,n):
 <dt class="specialentry"><a href="/modules/module/${name|h}/resource/${"/".join( [i.replace("\\","\\\\").replace("/","\\/") for i in util.split_escape(path[0],"/","\\")[:-1]] )|u}#resources">..</a></dt>
 <hr>
 %endif
-%for i in sorted(sorted(module.keys()), key=lambda x: module[x]['resource-type']):
+%for i in sorted(sorted(modules_state.ls_folder(name,'/'.join(path))), key=lambda x: module[x]['resource-type']):
 %if in_folder(i,fullpath,name):
 
 	%if module[i]['resource-type'] == 'event':

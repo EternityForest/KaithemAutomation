@@ -16,7 +16,7 @@
 
 
 "This file ideally should only depend on sdtilb stuff and import the rest as needed. We don't want this to drag in threads and everything"
-import  os,threading,copy,sys,shutil,difflib,time,json,traceback,stat,subprocess,copy
+import  os,threading,copy,sys,shutil,difflib,time,json,traceback,stat,subprocess,copy,collections
 import yaml
 #2 and 3 have basically the same module with diferent names
 if sys.version_info < (3,0):
@@ -405,6 +405,41 @@ def drop_perms(user, group = None):
     os.setgid(running_gid)
     os.setuid(running_uid)
 
+
+def lrucache(n):
+    class LruCache():
+        def __init__(self, f):
+            self.f = f
+            self.n =n
+            self.cache = collections.OrderedDict()
+
+        def invalidate_cache(self,*args,**kwargs):
+            if (not args) and not kwargs:
+                self.cache = collections.OrderedDict()
+            else:
+                self.cache.pop(self.fargs(args,kwargs))
+
+
+        def fargs(self, a,kw):
+            k = []
+            for i in kw.items():
+                k.append(i)
+            return (a,tuple(k))
+
+
+        def __call__(self, *args,**kwargs):
+            x =self.fargs(args,kwargs)
+            if x in self.cache:
+                self.cache[x]=self.cache.pop(x)
+            else:
+                self.cache[x] = self.f(*args,**kwargs)
+                if len(self.cache)>self.n:
+                    self.cache.popitem(last=False)
+            return self.cache[x]
+    return LruCache
+
+
+
 def display_yaml(d):
     d = copy.deepcopy(d)
     _yaml_esc(d)
@@ -424,7 +459,3 @@ def _yaml_esc(s,depth=0,r=""):
             s[i] = s[i].replace("\t","\\t").replace("\r",r)
         else:
             _yaml_esc(s[i])
-
-
-        
-            

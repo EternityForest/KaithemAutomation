@@ -50,6 +50,7 @@ class MessageBus(object):
             self.executor = executor
 
         self.subscribers = defaultdict(list)
+        self.subscribers_immutable = {}
 
     def subscribe(self,topic,callback):
         topic=normalize_topic(topic)

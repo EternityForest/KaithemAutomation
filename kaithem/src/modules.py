@@ -16,7 +16,7 @@
 #File for keeping track of and editing kaithem modules(not python modules)
 import threading,urllib,shutil,sys,time,os,json,traceback,copy,hashlib
 import cherrypy,yaml
-from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling
+from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling,modules_state
 from .modules_state import ActiveModules,modulesLock,scopes
 
 
@@ -72,6 +72,7 @@ def modulesHaveChanged():
     moduleschanged = True
     moduleshash = hashModules()
     modulehashes = {}
+    modules_state.ls_folder.invalidate_cache()
 
 class event_interface(object):
    def __init__(self, ):
