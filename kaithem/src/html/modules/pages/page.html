@@ -17,7 +17,7 @@ from src.config import config
 
 %endif
 <title>Kaithem Page</title>
-<h2>Editing page: ${name|h}</h2>
+<h2>Editing page: ${util.split_escape(name,'/','\\')[-1] | h}</h2>
 <p class=pathnav>Path:
 <%
 temp_p = ""
@@ -38,8 +38,8 @@ Page URL: <a class="gobutton" href="${usrpages.url_for_resource(module,name)}">$
 <div class="sectionbox">
 
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
-<h3>Name</h3>
-<input name="name" value="${name|h}"></input>
+<h3>Path</h3>
+<input title="Backslashes are escapes and / is the path separator. You can move this resource to another directory by renaming." name="name" value="${name|h}" style="width:90%"></input>
 <h3>Page Body</h3>
 
 %if pages.canUserDoThis("/admin/modules.edit"):

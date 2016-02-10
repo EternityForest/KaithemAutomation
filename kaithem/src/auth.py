@@ -90,7 +90,7 @@ def importPermissionsFromModules():
             for resource in modules_state.ActiveModules[module].copy():
                 if modules_state.ActiveModules[module][resource]['resource-type']=='permission':
                     #add it to the permissions list
-                    Permissions[resource] = modules_state.ActiveModules[module][resource]['description']
+                    Permissions[util.split_escape(resource,'/','\\')[-1]] = modules_state.ActiveModules[module][resource]['description']
 
 def getPermissionsFromMail():
     """Generate a permission for each mailing list, and add that permission to the global list of assignable permissions"""

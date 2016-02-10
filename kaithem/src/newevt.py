@@ -180,7 +180,7 @@ def __manager():
             #If one event takes several seconds to poll, it will not prevent the next round of
             #events. We depend on the event objects themselves to enforce the guarantee that only
             #one copy of the event can run at once.
-
+        e.clear()
         workers.do(f)
 
         #Limit the polling cycles per second to avoid CPU hogging
@@ -189,8 +189,7 @@ def __manager():
         time.sleep(max(framedelay-(time.time()-temp),mindelay))
 
         #On the of chance something odd happens, let's not wait forever.
-        e.clear()
-        e.wait(15)
+        e.wait(5)
         #smoothing filter
         averageFramesPerSecond = (averageFramesPerSecond *0.98) +   ((1.0/(time.time()-lastFrame)) *0.02)
         lastFrame = time.time()
