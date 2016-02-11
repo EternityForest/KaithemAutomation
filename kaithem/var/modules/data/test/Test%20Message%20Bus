@@ -20,6 +20,8 @@ def run(self):
     time.sleep(30)
     if suceed:
         raise RuntimeError("Message bus test failed. This might just be because the computer is too slow.")
+    else:
+        print("Sucess in testing message bus")
 
 def run2():
     for i in range(0,10000):

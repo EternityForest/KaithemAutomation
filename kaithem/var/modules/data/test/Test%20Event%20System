@@ -58,7 +58,6 @@ def theTest():
         time.sleep(0.5)
         if not x.pymodule.y:
             raise RuntimeError("One time event did not delete itself properly")
-
         newevt.after(1,g)
 
         x.pymodule.y = True
@@ -72,7 +71,7 @@ def theTest():
             raise RuntimeError("Time delay event did not delete itself properly")
 
         #Same exact thing exept we use the onchange
-        x = newevt.Event("!onchange y","global y\ny=5",locals())
+        x = newevt.Event("!onchange y","global y\ny=5")
         x.module=x.resource="TEST"
 
 
@@ -96,25 +95,30 @@ def theTest():
         if not x.pymodule.y == 1:
                 raise RuntimeError("Onchange Event did not go away when unregistered")
 
-
-
-
         #Now we test the message bus event
-        x = newevt.Event("!onmsg /test","global y\ny='test'",locals())
-        x.module=x.resource="TEST"
-
-
-
-        #Register event with polling.
-        x.register()
+        x = newevt.Event("!onmsg /test","global y\ny='test'")
+        #There is a weird old feature where message events don't work if not in EventReferences
+        #It was an old thing to caths a circular reference bug.
+        with newevt._event_list_lock: #Make sure nobody is iterating the eventlist
+            #Add new event
+            x.register()
+            #Update index
+            newevt.EventReferences[x.module,x.resource] = x
+        time.sleep(0.25)
         #Give it a value to change from
         messagebus.postMessage("/test",'foo')
         #Let it notice the old value
 
         time.sleep(0.25)
+        print(x.action_wrapper_because_we_need_to_keep_a_reference)
         #y should immediately be set back to 0 at the next polling cycle
-        if not  x.pymodule.y == 'test':
-                raise RuntimeError("Message Event did nothing")
+        if not hasattr(x.pymodule,'y'):
+                time.sleep(5)
+                if not hasattr(x.pymodule,'y'):
+                    raise RuntimeError("Message Event did nothing or took longer than 5s")
+                else:
+                    raise RuntimeError("Message Event had slow performance, delivery took more than 0.25s")
+ 
 
         #Unregister event and make sure it really goes away
         x.unregister()
@@ -133,5 +137,5 @@ def runtest():
         messagebus.postMessage("/system/notifications/errors",    traceback.format_exc(6))
 
 ---
-#Uncomment this an it will deadlock.
-#kaithem.misc.do(runtest)
+#Uncomment this an it might deadlock.
+kaithem.misc.do(runtest)

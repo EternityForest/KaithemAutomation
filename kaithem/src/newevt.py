@@ -74,10 +74,16 @@ def when(trigger,action,priority="interactive"):
     """
 
     module = '<OneTimeEvents>'
-    resource = trigger.__name__ + '>' + action.__name__ + ' ' + 'set at ' + str(time.time()) + ' id='+str(base64.b64encode(os.urandom(16)))
+    resource = trigger.__name__ + '>' + action.__name__ + ' ' + 'set at ' + str(time.time()) + 'by thread: '+str(threading.currentThread().ident)+' id='+str(base64.b64encode(os.urandom(16)))
+
+    #We cannot remove the event from within itself because of the lock that
+    #We do not want to make into an RLock for speed. So we do it in a different thread.
+    def rm_slf():
+        removeOneEvent(module,resource)
+
     def f():
         action()
-        removeOneEvent(module,resource)
+        workers.do(rm_slf)
 
     e = PolledInternalSystemEvent(trigger,f,priority=priority,m=module,r=resource)
     e.module = module
@@ -89,32 +95,34 @@ def when(trigger,action,priority="interactive"):
 #Trigger takes no arguments and returns a boolean
 def after(delay,action,priority="interactive"):
     #If the time is in the future, then we use the scheduler.
-    print("poop")
     if delay > 1.2:
         scheduling.scheduler.schedule(action, time.time()+delay)
         return
-    print("poop")
 
 
     module = '<OneTimeEvents>'
-    resource = "after(" +str(delay) +")"+ '>' + action.__name__ + ' ' + 'set at ' + str(time.time()) + ' id='+str(base64.b64encode(os.urandom(16)))
+    resource = "after(" +str(delay) +")"+ '>' + action.__name__ + ' ' + 'set at ' + str(time.time()) +'by thread: '   +str(threading.currentThread().ident)+' id='+str(base64.b64encode(os.urandom(16)))
     start = time.time()
     def f():
         if time.time() > start+delay:
             return True
         return False
 
+    #We cannot remove the event from within itself because of the lock that
+    #We do not want to make into an RLock for speed. So we do it in a different thread.
+    def rm_slf():
+        removeOneEvent(module,resource)
+
     def g():
         action()
-        removeOneEvent(module,resource)
+        workers.do(rm_slf)
+
     e = PolledInternalSystemEvent(f,g,priority=priority)
-    print("poop")
 
     e.module = module
     e.resource = resource
     __EventReferences[module,resource] = e
     e.register()
-    print("poop")
 
 
 kaithemobj.kaithem.events.when = when
@@ -923,10 +931,9 @@ def removeModuleEvents(module):
 #Every event has it's own local scope that it uses, this creates the dict to represent it
 def make_eventscope(module = None):
     if module:
-        with modules_state.modulesLock:
-           return {'module':modules_state.scopes[module],'kaithem':kaithemobj.kaithem}
+        return {'module':modules_state.scopes[module],'kaithem':kaithemobj.kaithem}
     else:
-           return {'module':None, 'kaithem':kaithemobj.kaithem}
+        return {'module':None, 'kaithem':kaithemobj.kaithem}
 
 #This piece of code will update the actual event object based on the event resource definition in the module
 #Also can add a new event.
@@ -952,7 +959,6 @@ def updateOneEvent(resource,module, o=None):
         #Really we should wait a bit longer but this is a compromise, we wait so any cleanup effects can propagate.
         #80ms is better than nothing I guess.
         time.sleep(0.08)
-
         if not o:
             #Now we make the event
             x = make_event_from_resource(module,resource)
@@ -968,7 +974,6 @@ def updateOneEvent(resource,module, o=None):
                 __EventReferences[module,resource].handoff(x)
             #Unblock the old one no matter what or else it will have to block for the full timeout duration
             __EventReferences[module,resource].f.wait = False
-
 
         #Here is the other lock(!)
         with _event_list_lock: #Make sure nobody is iterating the eventlist

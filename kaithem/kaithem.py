@@ -18,6 +18,9 @@
 __version__ = "0.55 Develpoment"
 __version_info__ = (0,5,5,"dev",0)
 
+import pystuck; pystuck.run_server()
+
+
 #Library that makes threading and lock operations, which we use a lot of, use native code on linux
 try:
     import pthreading
