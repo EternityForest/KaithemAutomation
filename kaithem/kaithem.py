@@ -178,9 +178,10 @@ if config['enable-websockets']:
 #Load all modules from the active modules directory
 modules.initModules()
 
+
+
 #This class represents the "/" root of the web app
 class webapproot():
-
    #"/" is mapped to this
     @cherrypy.expose
     def index(self,*path,**data):

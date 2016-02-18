@@ -406,7 +406,7 @@ def drop_perms(user, group = None):
     os.setuid(running_uid)
 
 
-def lrucache(n):
+def lrucache(n=10):
     class LruCache():
         def __init__(self, f):
             self.f = f
