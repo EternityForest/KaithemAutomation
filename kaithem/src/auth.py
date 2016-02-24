@@ -121,14 +121,14 @@ def changePassword(user,newpassword):
     #Base64 should never return a byte string. The point of base64 is to store binary data
     #as normal strings. So why would I ever want a base64 value stores as bytes()?
     #Anyway, python2 doesn't do that, so we just decode it if its new python.
-    if sys.version_info > (3,0):
+    if sys.version_info >= (3,0):
         salt64 = salt64.decode("utf8")
     Users[user]['salt'] = salt64
     m = hashlib.sha256()
     m.update(usr_bytes(newpassword,'utf8'))
     m.update(salt)
     p = base64.b64encode(m.digest())
-    if sys.version_info > (3,0):
+    if sys.version_info >= (3,0):
         p = p.decode("utf8")
     Users[user]['password'] = p
 

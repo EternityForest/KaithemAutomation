@@ -75,7 +75,7 @@ import cherrypy,validictory
 from cherrypy import _cperror
 from src import util
 from src import messagebus
-
+from src import pylogginghandler
 
 def installThreadExcepthook():
     """
