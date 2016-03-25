@@ -135,13 +135,13 @@ if cfg.argcmd.initialpackagesetup:
 
 from src import ManageUsers
 from src import newevt
+from src import registry
 from src import modules
 from src import modules_interface
 from src import settings
 from src import usrpages
 from src import messagelogging
 from src import systasks
-from src import registry
 from src import widgets
 
 from src.config import config

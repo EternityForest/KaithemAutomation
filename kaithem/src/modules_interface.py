@@ -15,7 +15,7 @@
 
 import threading,urllib,shutil,sys,time,os,json,traceback, copy
 import cherrypy,yaml
-from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling
+from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling, registry
 from .modules import *
 from src import modules
 
@@ -123,7 +123,9 @@ class WebInterface():
     def uploadtarget(self,modules):
         pages.require('/admin/modules.edit')
         modules.modulesHaveChanged()
-        load_modules_from_zip(modules.file)
+        for i in load_modules_from_zip(modules.file):
+            unsaved_changed_obj[i] = "Module added by"+ pages.getAcessingUser()
+
         messagebus.postMessage("/system/modules/uploaded",{'user':pages.getAcessingUser()})
         raise cherrypy.HTTPRedirect("/modules/")
 
@@ -147,6 +149,19 @@ class WebInterface():
         pages.require("/admin/modules.edit")
         return pages.get_template("modules/new.html").render()
 
+    @cherrypy.expose
+    def savemodule(self, module):
+        pages.require("/admin/modules.edit")
+        return pages.get_template("modules/savemodule.html").render(m=module)
+
+    @cherrypy.expose
+    def savemoduletarget(self, module):
+        with modulesLock:
+            pages.require("/admin/modules.edit")
+            pages.postOnly()
+            saveModule(ActiveModules[module],registry.get("system/module_locations")[module])
+        raise cherrypy.HTTPRedirect("/modules")
+
     #@cherrypy.expose
     #def manual_run(self,module, resource):
         ##These modules handle their own permissions
@@ -168,6 +183,7 @@ class WebInterface():
         pages.postOnly()
 
         modules.modulesHaveChanged()
+        unsaved_changed_obj[kwargs['name']]=="Module Deleted by " + pages.getAcessingUser()
         with modulesLock:
            ActiveModules.pop(kwargs['name'])
         #Get rid of any lingering cached events
@@ -187,6 +203,18 @@ class WebInterface():
         pages.postOnly()
 
         modules.modulesHaveChanged()
+
+        #Lets do this outside of modules lock just to be safe
+        if "location" in kwargs:
+            with registry.reglock:
+                d=registry.get("system/module_locations",{})
+                d[kwargs['name']] = os.path.expanduser(kwargs['location'])
+                if kwargs['location']:
+                    if not os.path.exists(os.path.expanduser(kwargs['location'])):
+                        os.mkdir(os.path.expanduser(kwargs['location']))
+                else:
+                    del d[kwargs['name']]
+                registry.set("system/module_locations",d)
         #If there is no module by that name, create a blank template and the scope obj
         with modulesLock:
             if kwargs['name'] not in ActiveModules:
@@ -198,6 +226,8 @@ class WebInterface():
                 #Go directly to the newly created module
                 messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Created Module " + kwargs['name'])
                 messagebus.postMessage("/system/modules/new",{'user':pages.getAcessingUser(), 'module':kwargs['name']})
+
+
                 raise cherrypy.HTTPRedirect("/modules/module/"+util.url(kwargs['name']))
             else:
                 return pages.get_template("error.html").render(info = " A module already exists by that name,")
@@ -282,6 +312,8 @@ class WebInterface():
                 pages.require("/admin/modules.edit")
                 pages.postOnly()
                 modules.modulesHaveChanged()
+                unsaved_changed_obj[(module,kwargs['name'])]=="Resource Deleted by " + pages.getAcessingUser()
+
                 with modulesLock:
                    r = ActiveModules[root].pop(kwargs['name'])
 
@@ -307,7 +339,19 @@ class WebInterface():
                 pages.require("/admin/modules.edit")
                 pages.postOnly()
                 modules.modulesHaveChanged()
+                unsaved_changed_obj[kwargs['name']] = "Module modified by"+ pages.getAcessingUser()
+                #Lets do this outside of modules lock just to be safe
+                if "location" in kwargs and kwargs['location']:
+                    with registry.reglock:
+                        d=registry.get("system/module_locations",{})
+                        d2 = d.copy()
+                        d2[kwargs['name']] = os.path.expanduser(kwargs['location'])
+                        if not os.path.exists(os.path.expanduser(kwargs['location'])):
+                            os.mkdir(os.path.expanduser(kwargs['location']))
+                        if not d2 ==d:
+                            registry.set("system/module_locations",d)
                 with modulesLock:
+
                     ActiveModules[root]['__description']['text'] = kwargs['description']
                     ActiveModules[kwargs['name']] = ActiveModules.pop(root)
 
@@ -355,6 +399,7 @@ def addResourceTarget(module,type,name,kwargs,path):
     x = util.split_escape(module,"/","\\")
     escapedName = "/".join(x[1:]+[escapedName])
     root = x[0]
+    unsaved_changed_obj[(root,escapedName)] = "Resource added by"+ pages.getAcessingUser()
 
     def insertResource(r):
         ActiveModules[root][escapedName] = r
@@ -462,6 +507,8 @@ def resourceUpdateTarget(module,resource,kwargs):
     pages.require("/admin/modules.edit",noautoreturn=True)
     pages.postOnly()
     modules.modulesHaveChanged()
+    unsaved_changed_obj[(module,resource)] = "Resource modified by"+ pages.getAcessingUser()
+
     with modulesLock:
         t = ActiveModules[module][resource]['resource-type']
         resourceobj = ActiveModules[module][resource]

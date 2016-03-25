@@ -16,7 +16,7 @@
 #File for keeping track of and editing kaithem modules(not python modules)
 import threading,urllib,shutil,sys,time,os,json,traceback,copy,hashlib
 import cherrypy,yaml
-from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling,modules_state
+from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling,modules_state,registry
 from .modules_state import ActiveModules,modulesLock,scopes
 
 
@@ -41,9 +41,10 @@ from .util import url,unurl
 #This must be set to true by anything that changes the modules
 #it's o the code knows to save everything is it has been changed.
 moduleschanged = False
+unsaved_changed_obj = {}
 
-
-
+#This lets us have some modules saved outside the var dir.
+external_module_locations = {}
 
 moduleshash= "000000000000000000000000"
 modulehashes = {}
@@ -141,6 +142,7 @@ def saveResource2(r,fn):
         util.chmod_private_try(fn,execute = False)
         f.write(d)
 
+
 def saveResource(r,fn):
     with open(fn,"w") as f:
         util.chmod_private_try(fn, execute=False)
@@ -179,9 +181,17 @@ def saveAll():
         return True
 
 def initModules():
-    global moduleshash
+    global moduleshash, external_module_locations
     """"Find the most recent module dump folder and use that. Should there not be a module dump folder, it is corrupted, etc,
     Then start with an empty list of modules. Should normally be called once at startup."""
+
+
+    for k,v in registry.get("system/module_locations",{}).items():
+        try:
+            loadModule(v, os.path.split(v)[0], k)
+        except:
+            messagebus.postMessage("/system/notifications/errors" ," Error loading external module: "+ traceback.format_exc(4))
+
     if not os.path.isdir(directories.moduledir):
         return
     if not util.get_immediate_subdirectories(directories.moduledir):
@@ -221,6 +231,28 @@ def initModules():
     moduleshash = hashModules()
 
 
+def saveModule(module, dir,modulename=None):
+    #Iterate over all of the resources in a module and save them as json files
+    #under the URL urld module name for the filename.
+    for resource in module:
+        #Make sure there is a directory at where/module/
+        util.ensure_dir(os.path.join(dir,url(resource))  )
+        util.chmod_private_try(dir)
+        #Open a file at /where/module/resource
+        fn = os.path.join(dir,url(resource))
+        #Make a json file there and prettyprint it
+        saveResource2(module[resource],fn)
+        if (modulename,resource) in unsaved_changed_obj:
+            del unsaved_changed_obj[modulename,resource]
+    #Now we iterate over the existing resource files in the filesystem and delete those that correspond to
+    #modules that have been deleted in the ActiveModules workspace thing.
+    for j in util.get_files(dir):
+        if unurl(j) not in module:
+            os.remove(os.path.join(dir))
+            if (module,unurl(j)) in unsaved_changed_obj:
+                del unsaved_changed_obj[module,unurl(j)]
+    if modulename in unsaved_changed_obj:
+        del unsaved_changed_obj[modulename]
 
 def saveModules(where):
     """Save the modules in a directory as JSON files. Low level and does not handle the timestamp directories, etc."""
@@ -232,30 +264,22 @@ def saveModules(where):
         #when done saving we put the complete marker back.
         if os.path.isfile(os.path.join(where,'__COMPLETE__')):
             os.remove(os.path.join(where,'__COMPLETE__'))
-        for i in ActiveModules:
-            #Iterate over all of the resources in a module and save them as json files
-            #under the URL urld module name for the filename.
-            for resource in ActiveModules[i]:
-                #Make sure there is a directory at where/module/
-                util.ensure_dir(os.path.join(where,url(i),url(resource))  )
-                util.chmod_private_try(os.path.join(where,url(i)))
-                #Open a file at /where/module/resource
-                fn = os.path.join(where,url(i),url(resource))
-                #Make a json file there and prettyprint it
-                saveResource2(ActiveModules[i][resource],fn)
 
-            #Now we iterate over the existing resource files in the filesystem and delete those that correspond to
-            #modules that have been deleted in the ActiveModules workspace thing.
-            for j in util.get_files(os.path.join(where,url(i))):
-                if unurl(j) not in ActiveModules[i]:
-                    os.remove(os.path.join(where,url(i),j))
+        for i in [i for i in ActiveModules if not i in registry.get("system/module_locations")]:
+            saveModule(ActiveModules[i],os.path.join(where,url(i)),modulename=i)
+
+        for i in registry.get("system/module_locations"):
+            saveModule(ActiveModules[i],registry.get("system/module_locations")[i],modulename=i)
 
         for i in util.get_immediate_subdirectories(where):
             #Look in the modules directory, and if the module folder is not in ActiveModules\
             #We assume the user deleted the module so we should delete the save file for it.
             #Note that we URL url file names for the module filenames and foldernames.
-            if unurl(i) not in ActiveModules:
+            if unurl(i) not in ActiveModules or ( (unurl(i) in registry.get("system/module_locations"))  and not registry.get("system/module_locations")[unurl(i)]==os.path.join(where,i)):
                 shutil.rmtree(os.path.join(where,i))
+                if unurl(i) in unsaved_changed_obj:
+                    del unsaved_changed_obj[unurl(i)]
+
         with open(os.path.join(where,'__COMPLETE__'),'w') as f:
             util.chmod_private_try(os.path.join(where,'__COMPLETE__'), execute=False)
             f.write("By this string of contents quite arbitrary, I hereby mark this dump as consistant!!!")
@@ -267,7 +291,7 @@ def loadModules(modulesdir):
         loadModule(i,modulesdir)
 
 
-def loadModule(moduledir,path_to_module_folder):
+def loadModule(moduledir,path_to_module_folder, modulename=None):
     "Load a single module but don't bookkeep it . Used by loadModules"
     with modulesLock:
         #Make an empty dict to hold the module resources
@@ -287,9 +311,9 @@ def loadModule(moduledir,path_to_module_folder):
 
 
         name = unurl(moduledir)
-        scopes[name] = obj()
-        ActiveModules[name] = module
-        messagebus.postMessage("/system/modules/loaded",name)
+        scopes[modulename or  name] = obj()
+        ActiveModules[modulename or  name] = module
+        messagebus.postMessage("/system/modules/loaded",modulename or name)
         #bookkeeponemodule(name)
 
 def getModuleAsZip(module):
@@ -349,6 +373,7 @@ def load_modules_from_zip(f):
     auth.importPermissionsFromModules()
 
     z.close()
+    return new_modules.keys()
 
 def bookkeeponemodule(module,update=False):
     """Given the name of one module that has been copied to activemodules but nothing else,

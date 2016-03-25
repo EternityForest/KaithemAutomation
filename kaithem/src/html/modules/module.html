@@ -1,7 +1,7 @@
 <%!
 from src.util import url
 from src.modules import getModuleHash
-from src import pages,newevt,usrpages,unitsofmeasure,util,scheduling,modules_state
+from src import pages,newevt,usrpages,unitsofmeasure,util,scheduling,modules_state,registry,modules
 import time
 %>
 
@@ -24,6 +24,8 @@ MD5 Sum: <b>${getModuleHash(name)}</b></br>
 <input required="required" class="modulename" name="name" type="text" value="${name|h}">
 <h4>Info:</h4>
 <textarea name="description" class="description" rows=5>${module['__description']['text']|h}</textarea>
+<h4>Save Location(blank=default):</h4>
+<input name="location" value="${registry.get("system/module_locations",{}).get(name,"")|h}"></input>
 <hr>
 %if pages.canUserDoThis("/admin/modules.edit"):
 <input type="submit" value="Save Changes"></input>
@@ -46,6 +48,9 @@ MD5 Sum: <b>${getModuleHash(name)}</b></br>
 <a class="button createbutton addpagebutton" href="/modules/module/${url(name)}/addresource/page/${url('/'.join(path))}">Page</a>
 <a class="button createbutton addfolderbutton" href="/modules/module/${url(name)}/addresource/directory/${url('/'.join(path))}">Folder</a>
 <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource">Delete Resource</a>
+%if registry.get("system/module_locations",{}).get(name,""):
+<a class="button savebutton" href="/modules/savemodule/${name}">Save Module</a>
+%endif
 <form style="display:inline;" action="/modules/search/${url(name)}"><input name="search" placeholder="Search this module"/><input type=submit value="search"/></form>
 
 </div>
@@ -102,7 +107,11 @@ def in_folder(r,f,n):
 
 	%if module[i]['resource-type'] == 'event':
 	  <dt>
-	       <span class="event-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}#setupheading">${util.split_escape(i,'/','\\')[-1]|h}</a>
+	       <span class="event-icon"></span><b>\
+%if (name,i) in modules.unsaved_changed_obj:
+*\
+%endif
+<a href="/modules/module/${url(name)}/resource/${url(i)}#setupheading">${util.split_escape(i,'/','\\')[-1]|h}</a>\
 	       %if not module[i].get('enable',"True"):
 	       (disabled)
 	       %endif
@@ -141,6 +150,9 @@ def in_folder(r,f,n):
 
 	%if module[i]['resource-type'] == 'page':
 	  <dt>
+          %if (name,i) in modules.unsaved_changed_obj:
+          *\
+          %endif
 	       <span class="page-icon"></span><b\
 	       %if i.startswith('__'):
 	       class="specialentry page"\
@@ -167,7 +179,11 @@ def in_folder(r,f,n):
 
        %if module[i]['resource-type'] == 'permission':
 
-      <dt><span class="permission-icon"></span><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
+      <dt><span class="permission-icon"></span>\
+  %if (name,i) in modules.unsaved_changed_obj:
+  *\
+  %endif
+<a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
 <a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
 <dt>
 
@@ -175,7 +191,11 @@ def in_folder(r,f,n):
 
      %if module[i]['resource-type'] == 'directory':
 
-      <dt><span class="directory-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}#resources">${util.split_escape(i,'/')[-1]|h}</a></b>
+      <dt>
+%if (name,i) in modules.unsaved_changed_obj or [True for j in modules.unsaved_changed_obj if isinstance(j,tuple) and j[0]==name and j[1].startswith(i)]:
+*\
+%endif
+<span class="directory-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}#resources">${util.split_escape(i,'/')[-1]|h}</a></b>
 <a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a><dt>
 
 	%endif

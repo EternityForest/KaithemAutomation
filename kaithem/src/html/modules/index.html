@@ -23,7 +23,11 @@ The following modules are currently loaded and active on the server.
 <hr>
 <ul>
 %for i in sorted(ActiveModules.keys()):
-   <li> <a href="/modules/module/${url(i)}#resources" title="MD5: ${modules.getModuleHash(i)}">${i}</a></li>
+<li>\
+%if i in modules.unsaved_changed_obj or i in [i[0] for i in modules.unsaved_changed_obj if isinstance(i,tuple)]:
+*\
+%endif
+<a href="/modules/module/${url(i)}#resources" title="MD5: ${modules.getModuleHash(i)}">${i}</a></li>\
 %endfor
 </ul>
 </div>
