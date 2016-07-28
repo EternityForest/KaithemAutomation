@@ -115,11 +115,11 @@ properties:
                 -sox
                 -mplayer
                 -madplay
-                
+
     audio-paths:
         type: array
         uniqueItems: yes
-        
+
     max-load-attempts:
         type: integer
         minimum: 1
@@ -130,10 +130,10 @@ properties:
 
     run-as-group:
         type: string
-        
+
     change-process-title:
         type: boolean
-        
+
     log-topics:
         type: array
         uniqueitems: yes
@@ -193,6 +193,9 @@ properties:
         type: integer
         minimum: 0
 
+    downloads-include-md5-in-filename:
+        type: boolean
+
     front-page-banner:
         type: string
 
@@ -219,10 +222,10 @@ properties:
 
     time-format:
         type: string
-        
+
     full-time-intervals:
         type: boolean
-        
+
     get-public-ip:
         type: boolean
 

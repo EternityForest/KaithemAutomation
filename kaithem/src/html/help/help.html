@@ -107,13 +107,13 @@ h4 {
         <h4>!time [expression]</h4>
         <p>This causes the event to occur at a specific time, such as "every Friday" or "every hour on Monday".
            This is powered by the recurrent library and supports any expression that library does.
-           Events will occur near the start of a second. Specific time zones are supported with olson format time zones, e.g. "!time Every day at 8:30pm Etc/UTC". If no time zone 
+           Events will occur near the start of a second. Specific time zones are supported with olson format time zones, e.g. "!time Every day at 8:30pm Etc/UTC". If no time zone
            is provided, the local time zone will be used.
         </p>
-        
+
         <p>By default, if an event is late it will be run as soon as possible, but if more than one event is missed
         it will not run multiple times to make up. If the string "exact &ltnumber&gt" appears, then events more than number seconds late will just be skipped(Events after run as usual).</p>
-        
+
         <p>Examples: "!time every minute exact 2.5", "Every day at 8:30pm".</p>
 
         <p>Some preprocessing occurs before the recurrent library parses it,
@@ -121,33 +121,33 @@ h4 {
         If the time expression does not contain a time zone, it will be assumed to be in the server's local time.</p>
 
         <p>If a time event is still running by the next occurrance, it will be skipped unless allow_overlap is present somewhere in the string.</p>
-        
-       
-        
+
+
+
         <p>If you delete the event but something else still has a reference to the function, calling it will raise an error</p>
         <p class="warning">Be careful with this one. Some input values might just not work, others may crash the system when they are entered, in a bad way where everything just hangs.
         Mostly the problem is with things that specify a specific range of time like "every day between 2010 and 2012". If the date is in the distance past it will hang.
         You should strongly consider using standard polled edge triggers, kaithem.time, or rate limit triggers instead.
         </p>
-        
+
         <p>Other issues are things like "Between april and june".
         It seems to think you mean april of next year to next june.
         However "april-june" seems to work as expected.</p>
-        
+
         <p>Another thing to watch out for is that it does not store time reference points. So something like "every month" might
         run every time kaithem reboots, and then a month on from there, etc. Since you probably want the first of the month, you need to be explicit "on the first of each month".</p>
-        
+
         <p>In general recurrent appears to be a great library but natural language is hard for computers and you should always verify it is doing what you want.</p>
-        
+
         <h4>!function [name]</h4>
         <p>This trigger expression assigns the action to name. !function module.x is the same as module.x = action, where action
         is a function that triggers the event. You mak put a semicolon and a statement after it, as in !function f; obj.attach(f)
         and the statement will be run after the function is assigned.</p>
-        
+
         <p>Function events support handoff, in that if you update a function event, all existing references will
         also be updated to reference the new event.</p>
-        
-        
+
+
 
         <h2>
             <a id="pages" name="pages"></a>Pages:
@@ -319,17 +319,17 @@ h4 {
 
 
         <h3>kaithem.misc</h3>
-        
-        
+
+
         <h4>kaithem.misc.do(function):</h4>
 
         <p>Executes a function of no arguments in the background using kaithem's thread pool.
         Any errors are posted to the message bus at system/errors/workers.
         There is no protection against infinite loops.</p>
-        
+
         <h4>Kaithem.misc.errors(f)</h4>
         <p>Returns any exception object raised during calling f, or else none if no errors.</p>
-    
+
         <h4>kaithem.misc.lorem()</h4>
         <p>Returns about a sentence to a paragraph of placeholder text that may change between calls and may not
             actually be classic Lorem Ipsum text.</p>
@@ -337,18 +337,18 @@ h4 {
 
         <h4>Kaithem.misc.uptime()</h4>
         <p>Returns uptime in seconds of the kaithem server(not of the machine itself)</p>
-        
+
         <h4>kaithem.misc.version()</h4>
         <p>Returns the current version as an unformatted short string, such as "x.xx Release".
-        The formatting of this string may change, and it may contain extra text. But it wil be reasonably 
+        The formatting of this string may change, and it may contain extra text. But it wil be reasonably
         short and one line.</p>
-        
+
         <h4>kaithem.misc.version_info()</h4>
         <p>Returns the current verson as a 5 element tuple similar to python's sys.version_info.
         The format is (major, minor, micro, releaselevel, serial).</p>
-        
+
         <p>releaselevel may be any of dev, alpha, beta, candidate, final</p>
-        
+
         <p>Serial is not guaranteed to actually do anything</p>
 
 
@@ -454,12 +454,12 @@ h4 {
         It does not get saved to disk until the server state is saved, or a configured autosave occurs.
         The registry is heirarchial and slash separated, keys are strings,
         values are anything json serializable, and keys should begin with the relevant module name, and should consider double underscores reserved.</p>
-        
+
         <p>Internally as of V0.53, the registry is stored with one file per root path component("foo/bar" and "foo/baz" are stored in the same file)</p>
-        
+
         <p>These should really not be used for large amount of data or frequently acessed data as the registry is not designed for
         high performance. Applications include small amounts of configuration data such as schedules, playlists, and disk locations for other files.</p>
-        
+
         <p>Registry files are only readable by the user kaithem runs as and so you should store passwords in the registry instead of
         directly in the code.</p>
 
@@ -468,12 +468,12 @@ h4 {
 
         <h4>kaithem.registry.set(key,value)</h4>
         <p>Sets the registry key.</p>
-        
+
         <h4>kaithem.registry.setschema(key, schema)</h4>
         <p>Set a validictory validation schema for key. Schema must be a dict describing the format(Validictory schemas are very
         close to JSON schema, see validictory documentation for more info). If you try to set a key to a value that is invalid acording to a schema,
         it will raise an error.</p>
-        
+
         <h4>kaithem.registry.delete(key, schema)</h4>
         <p>Delete a key and and data and schema assosiated with it</p>
 
@@ -487,11 +487,11 @@ h4 {
             parameter lets you name the new sound instance to stop it later. If you try to play a sound under the same
             handle as a stil-playing sound, the old one will be stopped. Defaults to PRIMARY.
             </p>
-            
+
             <p>Kaithem will look in the audio search paths specified in the audio-paths config option if the path is relative.
             By default it will only look in kaithem's built in audio folder, which contains the following: alert.ogg, which is a simple chime type alert,
-            and error.ogg, a short harsh buzzing alarm. Mpg123 seems to support ogg files but it doesn't appear to be docmented.</p> 
-            
+            and error.ogg, a short harsh buzzing alarm. Mpg123 seems to support ogg files but it doesn't appear to be docmented.</p>
+
             <p>
             With the mplayer backend, if you give it a video file, it will likely open a window and play it.
             Passing fs=True may allow you to play fullscreen, but any use of this "hidden feature" is very experimental.
@@ -510,7 +510,7 @@ h4 {
             causing the EQ to be set to allow easier conversation. output must be a string that selects an output device.
             A typical value on linx would be pulse::n where n is the pulse sink index, see mplayer's -ao option for more details.
             </p>
-            
+
 
         <h4>kaithem.sound.stop(handle="PRIMARY"")</h4>
         <p>Stop a sound by handle.</p>
@@ -710,7 +710,7 @@ h4 {
         If mode=='backup', a tilde will be apended to the existig file's name,
         the new file written, and then the backup will be deleted. Compressed filetypes are also supported.
         </p>
-        
+
         <p>If private is True, file will have the mode 700(Only owner or admin/root can read or write the file).
         The mode is changed before the file is written so there is no race condition attack.</p>
 
@@ -952,7 +952,12 @@ an-option-with-a-list-as-a-value:
         <h3>My data is not being saved to the log files! Help!</h3>
         <p>Kaithem only saves topics to the hard drive if they are in the list of things to save. Go to the logging
             page and select the channels you are interested in.</p>
+		<h3>What do the module MD5 Sums mean?</h3>
+		<p>The MD5 sum of a module is computed by dumping that module as a JSON file using the minimal representation, with sorted keys, formatted as a dict where resource names are keys, and hashing it.
+			The MD5 of the entire list of modules is computed by dumping each module, concatenating them in sorted order, and hashing.
+			As of 0.55 the hash algorithm is subject to change, but will be consistent between instances of kaithem of the same version on any platform.<br>
 
+			Currently the primary purpose of the hashes is simply to allow one to easily compare if two modules are identical or if a module has been changed.</br>
         <h3>What is with these security certificate errors?</h3>
         <p>
             Kaithem comes with a default security certificate in the kaithem/var/ssl directory. Becuase it is publicly

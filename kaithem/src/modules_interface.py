@@ -18,6 +18,7 @@ import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling, registry
 from .modules import *
 from src import modules
+from src.config import config
 
 searchable = {'event': ['setup', 'trigger', 'action'], 'page':['body']}
 
@@ -94,6 +95,8 @@ class WebInterface():
     @cherrypy.expose
     def yamldownload(self,module):
         pages.require('/admin/modules.view')
+        if config["downloads-include-md5-in-filename"]:
+            cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="%s"'%util.url(module[:-4]+"_"+getModuleHash(module[:-4]))
         cherrypy.response.headers['Content-Type']= 'application/zip'
         return getModuleAsYamlZip(module[:-4] if module.endswith('.zip') else module)
 
@@ -101,7 +104,10 @@ class WebInterface():
     @cherrypy.expose
     def download(self,module):
         pages.require('/admin/modules.view')
+        if config["downloads-include-md5-in-filename"]:
+            cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="%s"' % util.url(module[:-4]+"_"+getModuleHash(module[:-4]))
         cherrypy.response.headers['Content-Type']= 'application/zip'
+
         return getModuleAsZip(module[:-4])
 
     #This lets the user download a module as a zip file. But this one is deprecated.
@@ -120,11 +126,13 @@ class WebInterface():
         #This lets the user upload modules
 
     @cherrypy.expose
-    def uploadtarget(self,modules):
+    def uploadtarget(self,modulesfile):
         pages.require('/admin/modules.edit')
         modules.modulesHaveChanged()
-        for i in load_modules_from_zip(modules.file):
-            unsaved_changed_obj[i] = "Module added by"+ pages.getAcessingUser()
+        for i in load_modules_from_zip(modulesfile.file):
+            unsaved_changed_obj[i] = "Module uploaded by"+ pages.getAcessingUser()
+            for j in ActiveModules[i]:
+                unsaved_changed_obj[i,j] = "Resource is part of module uploaded by"+ pages.getAcessingUser()
 
         messagebus.postMessage("/system/modules/uploaded",{'user':pages.getAcessingUser()})
         raise cherrypy.HTTPRedirect("/modules/")
@@ -183,7 +191,7 @@ class WebInterface():
         pages.postOnly()
 
         modules.modulesHaveChanged()
-        unsaved_changed_obj[kwargs['name']]=="Module Deleted by " + pages.getAcessingUser()
+        unsaved_changed_obj[kwargs['name']]="Module Deleted by " + pages.getAcessingUser()
         with modulesLock:
            ActiveModules.pop(kwargs['name'])
         #Get rid of any lingering cached events
@@ -194,6 +202,13 @@ class WebInterface():
         messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Deleted module " + kwargs['name'])
         messagebus.postMessage("/system/modules/unloaded",kwargs['name'])
         messagebus.postMessage("/system/modules/deleted",{'user':pages.getAcessingUser()})
+
+        with registry.reglock:
+            d=registry.get("system/module_locations",{})
+            if kwargs['name'] in d:
+                del d[kwargs['name']]
+                registry.set("system/module_locations",d)
+
         raise cherrypy.HTTPRedirect("/modules")
 
     @cherrypy.expose
@@ -215,12 +230,22 @@ class WebInterface():
                 else:
                     del d[kwargs['name']]
                 registry.set("system/module_locations",d)
+
         #If there is no module by that name, create a blank template and the scope obj
         with modulesLock:
             if kwargs['name'] not in ActiveModules:
-                ActiveModules[kwargs['name']] = {"__description":
-                {"resource-type":"module-description",
-                "text":"Module info here"}}
+                if 'location' in kwargs:
+                    try:
+                        loadModule(os.path.split( kwargs['location'])[1], os.path.split( kwargs['location'])[0],kwargs['name'])
+                        bookkeeponemodule(kwargs['name'])
+                    except:
+                        ActiveModules[kwargs['name']] = {"__description":
+                        {"resource-type":"module-description",
+                        "text":"Module info here"}}
+                else:
+                    ActiveModules[kwargs['name']] = {"__description":
+                    {"resource-type":"module-description",
+                    "text":"Module info here"}}
                 #Create the scope that code in the module will run in
                 scopes[kwargs['name']] = obj()
                 #Go directly to the newly created module
@@ -312,7 +337,7 @@ class WebInterface():
                 pages.require("/admin/modules.edit")
                 pages.postOnly()
                 modules.modulesHaveChanged()
-                unsaved_changed_obj[(module,kwargs['name'])]=="Resource Deleted by " + pages.getAcessingUser()
+                unsaved_changed_obj[(module,kwargs['name'])]="Resource Deleted by " + pages.getAcessingUser()
 
                 with modulesLock:
                    r = ActiveModules[root].pop(kwargs['name'])
@@ -431,7 +456,7 @@ def addResourceTarget(module,type,name,kwargs,path):
                 "trigger":"False",
                 "action":"pass",
                 "once":True,
-                "disabled":False
+                "enable":True
                 }
 
                            )
@@ -518,7 +543,7 @@ def resourceUpdateTarget(module,resource,kwargs):
             auth.importPermissionsFromModules() #sync auth's list of permissions
 
         if t == 'event':
-
+            evt = None
             #Test compile, throw error on fail.
             if 'enable' in kwargs:
                 try:
@@ -536,7 +561,6 @@ def resourceUpdateTarget(module,resource,kwargs):
                     newevt.removeOneEvent(module,resource)
                     #Leave a delay so that effects of cleanup can fully propagate.
                     time.sleep(0.08)
-                    evt = None
                     #UMake event from resource, but use our substitute modified dict
                     evt = newevt. make_event_from_resource(module,resource, r2)
 
@@ -553,6 +577,26 @@ def resourceUpdateTarget(module,resource,kwargs):
 
                 #If everything seems fine, then we update the actual resource data
                 ActiveModules[module][resource]=r2
+            #Save but don't enable
+            else:
+                #Make a copy of the old resource object and modify it
+                r2= resourceobj.copy()
+                r2['trigger'] = kwargs['trigger']
+                r2['action'] = kwargs['action']
+                r2['setup'] = kwargs['setup']
+                r2['priority'] = kwargs['priority']
+                r2['continual'] = 'continual' in kwargs
+                r2['rate-limit'] = float(kwargs['ratelimit'])
+                r2['enable'] = 'enable' in kwargs
+
+                #Remove the old event even before we do a test compile. If we can't do the new version just put the old one back.
+                newevt.removeOneEvent(module,resource)
+                #Leave a delay so that effects of cleanup can fully propagate.
+                time.sleep(0.08)
+
+                #If everything seems fine, then we update the actual resource data
+                ActiveModules[module][resource]=r2
+
 
             #I really need to do something about this possibly brittle bookkeeping system
             #But anyway, when the active modules thing changes we must update the newevt cache thing.

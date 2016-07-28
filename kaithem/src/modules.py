@@ -234,55 +234,77 @@ def initModules():
 def saveModule(module, dir,modulename=None):
     #Iterate over all of the resources in a module and save them as json files
     #under the URL urld module name for the filename.
-    for resource in module:
-        #Make sure there is a directory at where/module/
-        util.ensure_dir(os.path.join(dir,url(resource))  )
-        util.chmod_private_try(dir)
-        #Open a file at /where/module/resource
-        fn = os.path.join(dir,url(resource))
-        #Make a json file there and prettyprint it
-        saveResource2(module[resource],fn)
-        if (modulename,resource) in unsaved_changed_obj:
-            del unsaved_changed_obj[modulename,resource]
-    #Now we iterate over the existing resource files in the filesystem and delete those that correspond to
-    #modules that have been deleted in the ActiveModules workspace thing.
-    for j in util.get_files(dir):
-        if unurl(j) not in module:
-            os.remove(os.path.join(dir))
-            if (module,unurl(j)) in unsaved_changed_obj:
-                del unsaved_changed_obj[module,unurl(j)]
-    if modulename in unsaved_changed_obj:
-        del unsaved_changed_obj[modulename]
+    global unsaved_changed_obj
+    xxx = unsaved_changed_obj.copy()
+    try:
+        for resource in module:
+            #Make sure there is a directory at where/module/
+            util.ensure_dir(os.path.join(dir,url(resource))  )
+            util.chmod_private_try(dir)
+            #Open a file at /where/module/resource
+            fn = os.path.join(dir,url(resource))
+            #Make a json file there and prettyprint it
+            saveResource2(module[resource],fn)
+            if (modulename,resource) in unsaved_changed_obj:
+                del unsaved_changed_obj[modulename,resource]
+        #Now we iterate over the existing resource files in the filesystem and delete those that correspond to
+        #modules that have been deleted in the ActiveModules workspace thing.
+        for j in util.get_files(dir):
+            if unurl(j) not in module:
+                os.remove(os.path.join(dir))
+                if (module,unurl(j)) in unsaved_changed_obj:
+                    del unsaved_changed_obj[module,unurl(j)]
+
+        if modulename in unsaved_changed_obj:
+            del unsaved_changed_obj[modulename]
+    except:
+        unsaved_changed_obj = xxx
+        raise
 
 def saveModules(where):
     """Save the modules in a directory as JSON files. Low level and does not handle the timestamp directories, etc."""
+    global unsaved_changed_obj
     with modulesLock:
-        util.ensure_dir2(os.path.join(where))
-        util.chmod_private_try(os.path.join(where))
-        #If there is a complete marker, remove it before we get started. This marks
-        #things as incomplete and then when loading it will use the old version
-        #when done saving we put the complete marker back.
-        if os.path.isfile(os.path.join(where,'__COMPLETE__')):
-            os.remove(os.path.join(where,'__COMPLETE__'))
+        xxx = unsaved_changed_obj.copy()
+        try:
+            util.ensure_dir2(os.path.join(where))
+            util.chmod_private_try(os.path.join(where))
+            #If there is a complete marker, remove it before we get started. This marks
+            #things as incomplete and then when loading it will use the old version
+            #when done saving we put the complete marker back.
+            if os.path.isfile(os.path.join(where,'__COMPLETE__')):
+                os.remove(os.path.join(where,'__COMPLETE__'))
 
-        for i in [i for i in ActiveModules if not i in registry.get("system/module_locations")]:
-            saveModule(ActiveModules[i],os.path.join(where,url(i)),modulename=i)
+            for i in [i for i in ActiveModules if not i in registry.get("system/module_locations")]:
+                saveModule(ActiveModules[i],os.path.join(where,url(i)),modulename=i)
 
-        for i in registry.get("system/module_locations"):
-            saveModule(ActiveModules[i],registry.get("system/module_locations")[i],modulename=i)
+            for i in registry.get("system/module_locations"):
+                try:
+                    saveModule(ActiveModules[i],registry.get("system/module_locations")[i],modulename=i)
+                except:
+                    messagebus.postMessage("/system/notifications/errors",'Failed to save external module:' + traceback.format_exc(8))
 
-        for i in util.get_immediate_subdirectories(where):
-            #Look in the modules directory, and if the module folder is not in ActiveModules\
-            #We assume the user deleted the module so we should delete the save file for it.
-            #Note that we URL url file names for the module filenames and foldernames.
-            if unurl(i) not in ActiveModules or ( (unurl(i) in registry.get("system/module_locations"))  and not registry.get("system/module_locations")[unurl(i)]==os.path.join(where,i)):
-                shutil.rmtree(os.path.join(where,i))
-                if unurl(i) in unsaved_changed_obj:
-                    del unsaved_changed_obj[unurl(i)]
+            for i in util.get_immediate_subdirectories(where):
+                #Look in the modules directory, and if the module folder is not in ActiveModules\
+                #We assume the user deleted the module so we should delete the save file for it.
+                #Note that we URL url file names for the module filenames and foldernames.
+                if unurl(i) not in ActiveModules or ( (unurl(i) in registry.get("system/module_locations"))  and not registry.get("system/module_locations")[unurl(i)]==os.path.join(where,i)):
+                    shutil.rmtree(os.path.join(where,i))
+                    if unurl(i) in unsaved_changed_obj:
+                        del unsaved_changed_obj[unurl(i)]
 
-        with open(os.path.join(where,'__COMPLETE__'),'w') as f:
-            util.chmod_private_try(os.path.join(where,'__COMPLETE__'), execute=False)
-            f.write("By this string of contents quite arbitrary, I hereby mark this dump as consistant!!!")
+            #This is kind of a hack to deal with deleted external modules
+            for i in unsaved_changed_obj:
+                if isinstance(i,str):
+                    if not i in ActiveModules:
+                        del unsaved_changed_obj[i]
+
+            with open(os.path.join(where,'__COMPLETE__'),'w') as f:
+                util.chmod_private_try(os.path.join(where,'__COMPLETE__'), execute=False)
+                f.write("By this string of contents quite arbitrary, I hereby mark this dump as consistant!!!")
+        except:
+            unsaved_changed_obj = xxx
+            raise
 
 
 def loadModules(modulesdir):

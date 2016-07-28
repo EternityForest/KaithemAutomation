@@ -152,6 +152,9 @@ mem-use-warn: 0.85
 #How many messages to keep on topics that are not being logged
 non-logged-topic-limit: 100
 
+#Should downloaded module filenames inclue the MD5 Hash?
+downloads-include-md5-in-filename: yes
+
 #Where to look for audio files that are specified with relative paths. Earlier entries used first.
 #Default refers to the sounds kaithem ships with.
 audio-paths:
