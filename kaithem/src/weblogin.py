@@ -71,6 +71,13 @@ class LoginScreen():
             #Always test, folks!
             cherrypy.response.cookie['auth']['secure'] = ' '
             cherrypy.response.cookie['auth']['httponly'] = ' '
+            x = auth.Users[kwargs['username']]
+            if not 'loginhistory' in x:
+                x['loginhistory'] = [(time.time(), cherrypy.request.remote.ip)]
+            else:
+                x['loginhistory'].append((time.time(), cherrypy.request.remote.ip))
+                x['loginhistory'] = x['loginhistory'][:100]
+
             messagebus.postMessage("/system/auth/login",[kwargs['username'],cherrypy.request.remote.ip])
             if not "/errors/loginerror" in util.unurl(kwargs['go']):
                 raise cherrypy.HTTPRedirect(util.unurl(kwargs['go']))

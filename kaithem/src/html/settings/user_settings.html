@@ -1,5 +1,5 @@
 <%!
-from src import auth, pages,registry
+from src import auth, pages,registry,unitsofmeasure
 import pytz
 %>
 <%include file="/pageheader.html"/>
@@ -11,6 +11,7 @@ Restricted to LAN IP addresses(Only admin can change): ${auth.getUserSetting(pag
 <h3>Change Password</h3>
 <form action='/settings/changepwd' method='post'>
 <table border=1>
+
 <tr><td>Current Password</td><td><input name="old" type ="password"></input></td></tr>
 <tr><td>New Password</td><td><input name="new" type ="password"></input></td></tr>
 <tr><td>Retype New Password</td><td><input name="new2" type ="password"></input></td></tr>
@@ -112,6 +113,16 @@ class="specialentry"\
 %endif
 %endfor
 </div>
+
+%try:
+<h3>Login History</h3>
+<div class="sectionbox">
+%for i in (auth.Users[pages.getAcessingUser()]['loginhistory']):
+<b>${unitsofmeasure.strftime(i[0])|h}: login from ${i[1]|h}</b><br>
+%endfor
+</div>
+%except:
+%endtry
 
 
 </form>

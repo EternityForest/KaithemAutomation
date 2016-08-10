@@ -64,7 +64,6 @@ def url(string):
 def SaveAllState():
     #fix circular import by putting it here
     from . import  auth,modules,messagelogging,messagebus,registry
-
     with savelock:
         try:
             x = False
@@ -72,9 +71,9 @@ def SaveAllState():
                 x=True
             if auth.dumpDatabase():
                 x=True
-            messagelogging.dumpLogFile(silent=True)
             if registry.sync():
                 x=True
+            messagelogging.dumpLogFile(silent=True)
             #Always send the message, because there is almost always going to be at least some log entries saved
             messagebus.postMessage("/system/notifications/important","Global server state was saved to disk")
             return x

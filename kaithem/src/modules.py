@@ -237,23 +237,27 @@ def saveModule(module, dir,modulename=None):
     global unsaved_changed_obj
     xxx = unsaved_changed_obj.copy()
     try:
+        #Make sure there is a directory at where/module/
+        util.ensure_dir2(os.path.join(dir))
+        util.chmod_private_try(dir)
         for resource in module:
-            #Make sure there is a directory at where/module/
-            util.ensure_dir(os.path.join(dir,url(resource))  )
-            util.chmod_private_try(dir)
             #Open a file at /where/module/resource
             fn = os.path.join(dir,url(resource))
             #Make a json file there and prettyprint it
             saveResource2(module[resource],fn)
             if (modulename,resource) in unsaved_changed_obj:
                 del unsaved_changed_obj[modulename,resource]
+
         #Now we iterate over the existing resource files in the filesystem and delete those that correspond to
-        #modules that have been deleted in the ActiveModules workspace thing.
-        for j in util.get_files(dir):
-            if unurl(j) not in module:
-                os.remove(os.path.join(dir))
-                if (module,unurl(j)) in unsaved_changed_obj:
-                    del unsaved_changed_obj[module,unurl(j)]
+        #resources that have been deleted in the ActiveModules workspace thing.
+        #If there were no resources in module, and we never made a dir, don't do anything.
+        if os.path.isdir(dir):
+            for j in util.get_files(dir):
+                if unurl(j) not in module:
+                    os.remove(os.path.join(dir,j))
+                    #Remove them from the list of unsaved changed things.
+                    if (modulename,unurl(j)) in unsaved_changed_obj:
+                        del unsaved_changed_obj[modulename,unurl(j)]
 
         if modulename in unsaved_changed_obj:
             del unsaved_changed_obj[modulename]

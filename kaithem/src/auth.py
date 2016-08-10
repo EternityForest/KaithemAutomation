@@ -327,6 +327,8 @@ def userLogin(username,password):
             return (Users[username].token)
     return "failure"
 
+
+
 def checkTokenPermission(token,permission):
     """return true if the user associated with token has the permission"""
     if token in Tokens:
@@ -359,7 +361,10 @@ def dumpDatabase():
         return False
 
     #Assemble the users and groups data and save it back where we found it
-    temp = {"users":Users,"groups":Groups}
+    temp = {"users":Users.copy(),"groups":Groups.copy()}
+    #Don't save the login history.
+    if 'loginhistory' in temp['users']:
+        del temp['users']['loginhistory']
     if time.time()> util.min_time:
         t = time.time()
     else:

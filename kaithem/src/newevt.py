@@ -39,7 +39,7 @@ def getPrintOutput(event):
 
 def getEventInfo(event):
     "Given a tuple of (module, resource),  return the doc string of an event if it exists, else return '' "
-    return EventReferences[event].__doc__ if EventReferences[event].__doc__  else ""
+    return EventReferences[event].__doc__ if event in EventReferences and EventReferences[event].__doc__  else ""
 
 def renameEvent(oldModule,oldResource,module,resource):
     "Move an event, similar to unix mv"
@@ -52,7 +52,10 @@ def renameEvent(oldModule,oldResource,module,resource):
 def getEventErrors(module,event):
     "Return a list of errors for a given event. Uses _event_list_lock"
     with _event_list_lock:
-            return __EventReferences[module,event].errors
+            try:
+                return __EventReferences[module,event].errors
+            except:
+                return['0','Event does not exist or was not properly initialized']
 
 def fastGetEventErrors(module,event):
     "This version might not always be accurate, but will never modify anything or return an error. Does not  use a lock."

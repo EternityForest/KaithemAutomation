@@ -15,7 +15,7 @@
 
 from mako.template import Template
 from mako.lookup import TemplateLookup
-import cherrypy
+import cherrypy,base64
 from . import auth
 from . import directories,auth,util
 
@@ -48,11 +48,29 @@ def require(permission, noautoreturn = False):
     #Default to taking them to the main page.
     if noautoreturn is True:
         noautoreturn = '/'
-        
+
     if noautoreturn:
         url = util.url(noautoreturn)
     else:
         url = util.url(cherrypy.url())
+
+    if "Authorization" in cherrypy.request.headers:
+        x = cherrypy.request.headers['Authorization'].split("Basic ")
+        if len(x)>1:
+            #Get username and password from http header
+            b = base64.b64decode(x[1])
+            b = b.split(";")
+            if not cherrypy.request.scheme == 'https':
+                raise cherrypy.HTTPRedirect("/errors/gosecure")
+            #Get token using sername and password
+            t = userLogin(b[0],b[1])
+            #Check the credentials of that token
+            if t not in auth.Tokens:
+                raise cherrypy.HTTPRedirect("/login?"+url)
+            if not auth.checkTokenPermission(t,permission):
+                raise cherrypy.HTTPRedirect("/errors/permissionerror?")
+            else:
+                return True
 
     if not cherrypy.request.scheme == 'https':
         raise cherrypy.HTTPRedirect("/errors/gosecure")
@@ -70,6 +88,10 @@ def canUserDoThis(permission):
             return True
     #if we are using http, this should catch it beause the ookie is https only
     if not 'auth' in cherrypy.request.cookie:
+        return False
+
+    #Don't allow users to do things that require permission via HTTP
+    if not cherrypy.request.scheme == 'https':
         return False
 
     if cherrypy.request.cookie['auth'].value not in auth.Tokens:

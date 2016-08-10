@@ -6,6 +6,14 @@ import time
 %>
 
 <%include file="/pageheader.html"/>
+
+<%
+def getDesc():
+    try:
+        return module['__description']['text']
+    except:
+        return "No module description found"
+%>
 <h2>Module ${name|h}</h2>
 <p class="help">Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</p>
 <title>Module: ${name|h}</title>
@@ -23,7 +31,7 @@ MD5 Sum: <b>${getModuleHash(name)}</b></br>
 <h4>Name:</h4>
 <input required="required" class="modulename" name="name" type="text" value="${name|h}">
 <h4>Info:</h4>
-<textarea name="description" class="description" rows=5>${module['__description']['text']|h}</textarea>
+<textarea name="description" class="description" rows=5>${getDesc()|h}</textarea>
 <h4>Save Location(blank=default):</h4>
 <input name="location" value="${registry.get("system/module_locations",{}).get(name,"")|h}"></input>
 <hr>
@@ -123,15 +131,17 @@ def in_folder(r,f,n):
 	  <dd>
           <p class="resource-docstring">${newevt.getEventInfo((name,i))|h}</p>
 	       <b>Trigger:</b>  <code>${module[i]['trigger']|h}</code><br>
-
-		    <b>Last Ran:</b>
-		    %if newevt.getEventLastRan(name,i):
-		    <code>${unitsofmeasure.strftime(newevt.getEventLastRan(name,i))|h}
-		    (${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(name,i),2)} ago)</code>
-		    %else:
-		    This event has not ran since it loaded.
-		    %endif
-
+            %try:
+    		    <b>Last Ran:</b>
+    		    %if newevt.getEventLastRan(name,i):
+    		    <code>${unitsofmeasure.strftime(newevt.getEventLastRan(name,i))|h}
+    		    (${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(name,i),2)} ago)</code>
+    		    %else:
+    		    This event has not ran since it loaded.
+    		    %endif
+            %except Exception as e:
+            <b>${e.__class__|h} getting last runtime. Event likely has an error and has never been fully initialized</b>
+            %endtry
 
 		    %if module[i]['trigger'].startswith("!time") and module[i].get('enable',"True"):
 		    <br><b>Next Run:</b>
