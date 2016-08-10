@@ -24,10 +24,14 @@ The following modules are currently loaded and active on the server.
 <ul>
 %for i in sorted(ActiveModules.keys()):
 <li>\
-%if i in modules.unsaved_changed_obj or i in [i[0] for i in modules.unsaved_changed_obj if isinstance(i,tuple)]:
+%if i in modules.unsaved_changed_obj or i in [j[0] for j in modules.unsaved_changed_obj if isinstance(j,tuple)]:
 *\
 %endif
+%try:
 <a href="/modules/module/${url(i)}#resources" title="MD5: ${modules.getModuleHash(i)}">${i}</a></li>\
+%except Excption as e:
+${e|h}
+%endtry
 %endfor
 </ul>
 </div>

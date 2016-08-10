@@ -126,10 +126,11 @@ class WebInterface():
         #This lets the user upload modules
 
     @cherrypy.expose
-    def uploadtarget(self,modulesfile):
+    def uploadtarget(self,modulesfile,**kwargs):
         pages.require('/admin/modules.edit')
+        pages.postOnly()
         modules.modulesHaveChanged()
-        for i in load_modules_from_zip(modulesfile.file):
+        for i in load_modules_from_zip(modulesfile.file, replace='replace' in kwargs):
             unsaved_changed_obj[i] = "Module uploaded by"+ pages.getAcessingUser()
             for j in ActiveModules[i]:
                 unsaved_changed_obj[i,j] = "Resource is part of module uploaded by"+ pages.getAcessingUser()
@@ -286,6 +287,16 @@ class WebInterface():
             return pages.get_template("modules/module.html").render(module = ActiveModules[root],name = root,path=modulepath,fullpath=fullpath)
 
         else:
+            if path[0] == 'runevent':
+                pages.require("/admin/modules.edit")
+                pages.postOnly()
+                newevt.manualRun((module,kwargs[name]))
+                raise cherrypy.HTTPRedirect('/modules/module/'+util.url(module))
+
+            if path[0] == 'runeventdialog':
+                #There might be a password or something important in the actual module object. Best to restrict who can access it.
+                pages.require("/admin/modules.edit")
+                return pages.get_template("modules/events/run.html").render(name = path[0])
 
             if path[0] == 'obj':
                 #There might be a password or something important in the actual module object. Best to restrict who can access it.

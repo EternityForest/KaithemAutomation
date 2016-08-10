@@ -372,7 +372,7 @@ def getModuleAsYamlZip(module):
         ram_file.close()
         return s
 
-def load_modules_from_zip(f):
+def load_modules_from_zip(f,replace=False):
     "Given a zip file, import all modules found therin."
     new_modules = {}
     z = zipfile.ZipFile(f)
@@ -389,13 +389,50 @@ def load_modules_from_zip(f):
         f.close()
 
     with modulesLock:
+        backup = {}
+
+        #Precheck if anything is being overwritten
+        replaced_count=0
         for i in new_modules:
             if i in ActiveModules:
-                raise cherrypy.HTTPRedirect("/errors/alreadyexists")
+                if not replace:
+                    raise cherrypy.HTTPRedirect("/errors/alreadyexists")
+                replaced_count+=1
+
         for i in new_modules:
-            ActiveModules[i] = new_modules[i]
-            messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " uploaded module" + i + " from a zip file")
-            bookkeeponemodule(i)
+            if i in ActiveModules:
+                backup[i]=ActiveModules[i].copy()
+
+                modulesHaveChanged()
+                unsaved_changed_obj[i]="Module Deleted by " + pages.getAcessingUser()
+                with modulesLock:
+                   ActiveModules.pop(i)
+                #Get rid of any lingering cached events
+                newevt.removeModuleEvents(i)
+                #Get rid of any permissions defined in the modules.
+                auth.importPermissionsFromModules()
+                usrpages.removeModulePages(i)
+                messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Deleted old module " + i+" for auto upgrade")
+                messagebus.postMessage("/system/modules/unloaded",i)
+                messagebus.postMessage("/system/modules/deleted",{'user':pages.getAcessingUser()})
+
+                with registry.reglock:
+                    d=registry.get("system/module_locations",{})
+                    if i in d:
+                        del d[i]
+                registry.set("system/module_locations",d)
+
+        for i in new_modules:
+            try:
+                ActiveModules[i] = new_modules[i]
+                messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " uploaded module" + i + " from a zip file")
+                bookkeeponemodule(i)
+            except:
+                if i in backup:
+                    ActiveModules[i] = backup[i]
+                    messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " uploaded module" + i + " from a zip file, but initializing failed. Reverting to old version.")
+                    bookkeeponemodule(i)
+                raise
     auth.importPermissionsFromModules()
 
     z.close()

@@ -33,6 +33,10 @@ _events = []
 __EventReferences = {}
 EventReferences = __EventReferences
 
+def manualRun(event):
+    "Run an event manually"
+    return EventReferences[event].manualRun()
+
 def getPrintOutput(event):
     "Given a tuple of (module, resource),  return the doc string of an event if it exists, else return '' "
     return EventReferences[event].printoutput
@@ -341,6 +345,15 @@ class BaseEvent():
 
         #A place to put errors
         self.errors = []
+
+    def manualRun(self):
+        #J.F. Sebastian of stackoverflow's post was helpful for this
+        if not lock.acquire(blocking=False):
+            raise WouldBlockError
+        try:
+            self._on_trigger(self)
+        finally:
+            lock.release()
 
     def cleanup(self):
         try:
@@ -944,46 +957,50 @@ def make_eventscope(module = None):
 def updateOneEvent(resource,module, o=None):
     #This is one of those places that uses two different locks(!)
     with modules_state.modulesLock:
-        if (module,resource) in EventReferences:
-            old = EventReferences[module,resource]
-        else:
-            old = None
+        try:
+            #Get either a reference to the old version or None
+            if (module,resource) in EventReferences:
+                old = EventReferences[module,resource]
+            else:
+                old = None
 
-        #We want to destroy the old event before making a new one but we also want seamless handoff
-        #So what we do is we tell the old one to block if anyone calls it until we are done
-        if isinstance(old, FunctionEvent):
-            EventReferences[module,resource].f.wait = True
+            #We want to destroy the old event before making a new one but we also want seamless handoff
+            #So what we do is we tell the old one to block if anyone calls it until we are done
+            if isinstance(old, FunctionEvent):
+                EventReferences[module,resource].f.wait = True
 
-        if old:
-            #Unregister first, then clean up.
-            old.unregister()
-            #Now we clean it up and delete any references the user code might have had to things
-            old.cleanup()
-        #Really we should wait a bit longer but this is a compromise, we wait so any cleanup effects can propagate.
-        #80ms is better than nothing I guess.
-        time.sleep(0.08)
-        if not o:
-            #Now we make the event
-            x = make_event_from_resource(module,resource)
-        else:
-            x = o
+            if old:
+                #Unregister first, then clean up.
+                old.unregister()
+                #Now we clean it up and delete any references the user code might have had to things
+                old.cleanup()
+            #Really we should wait a bit longer but this is a compromise, we wait so any cleanup effects can propagate.
+            #120ms is better than nothing I guess.
+            time.sleep(0.120)
+            if not o:
+                #Now we make the event
+                x = make_event_from_resource(module,resource)
+            else:
+                x = o
 
-        #Special case for functionevents, we do a handoff. This means that any references to the old
-        #event now call the new one.
+            #Special case for functionevents, we do a handoff. This means that any references to the old
+            #event now call the new one.
 
-        #If old one and new one are functionevents we can hand off, if only old, then we just unblock
-        if isinstance(old, FunctionEvent):
-            if isinstance(x, FunctionEvent):
-                __EventReferences[module,resource].handoff(x)
-            #Unblock the old one no matter what or else it will have to block for the full timeout duration
-            __EventReferences[module,resource].f.wait = False
+            #If old one and new one are functionevents we can hand off, if only old, then we just unblock
+            if isinstance(old, FunctionEvent):
+                if isinstance(x, FunctionEvent):
+                    __EventReferences[module,resource].handoff(x)
+                #Unblock the old one no matter what or else it will have to block for the full timeout duration
+                __EventReferences[module,resource].f.wait = False
 
-        #Here is the other lock(!)
-        with _event_list_lock: #Make sure nobody is iterating the eventlist
-            #Add new event
-            x.register()
-            #Update index
-            __EventReferences[module,resource] = x
+            #Here is the other lock(!)
+            with _event_list_lock: #Make sure nobody is iterating the eventlist
+                #Add new event
+                x.register()
+                #Update index
+                __EventReferences[module,resource] = x
+        except:
+            mak
 
 #makes a dummy event for when there is an error loading and puts it in the right place
 #The dummy does nothing but is in the right place

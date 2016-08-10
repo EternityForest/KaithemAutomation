@@ -110,6 +110,22 @@ dt
 	margin: 0.2em;
 }
 
+li:hover
+{
+    background-color:rgba(230, 255, 150, 0.2);
+}
+
+dt:hover
+{
+    background-color:rgba(230, 255, 150, 0.2);
+}
+
+dt:hover+dd
+{
+    background-color:rgba(230, 255, 150, 0.2);
+}
+
+
 p{
 	margin:0.5%;
 }

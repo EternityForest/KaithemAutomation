@@ -33,7 +33,7 @@ MD5 Sum: <b>${getModuleHash(name)}</b></br>
 <h4>Info:</h4>
 <textarea name="description" class="description" rows=5>${getDesc()|h}</textarea>
 <h4>Save Location(blank=default):</h4>
-<input name="location" value="${registry.get("system/module_locations",{}).get(name,"")|h}"></input>
+<input name="location" title="Enter a directory name on the server's local filesystem" value="${registry.get("system/module_locations",{}).get(name,"")|h}"></input>
 <hr>
 %if pages.canUserDoThis("/admin/modules.edit"):
 <input type="submit" value="Save Changes"></input>
@@ -113,7 +113,7 @@ def in_folder(r,f,n):
 %for i in sorted(sorted(modules_state.ls_folder(name,'/'.join(path))), key=lambda x: module[x]['resource-type']):
 %if in_folder(i,fullpath,name):
 
-	%if module[i]['resource-type'] == 'event':
+%if module[i]['resource-type'] == 'event':
 	  <dt>
 	       <span class="event-icon"></span><b>\
 %if (name,i) in modules.unsaved_changed_obj:
@@ -123,7 +123,10 @@ def in_folder(r,f,n):
 	       %if not module[i].get('enable',"True"):
 	       (disabled)
 	       %endif
-<a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a></b>
+       </b>
+
+<a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+<a class="button" href="/modules/module/${url(name)}/runeventdialog/${url(i)}">Run Now</a>
 	       %if newevt.fastGetEventErrors(name,i):
 	       <span class="error">[${len(newevt.fastGetEventErrors(name,i))} Errors]</span>
 	       %endif
@@ -171,10 +174,11 @@ def in_folder(r,f,n):
 		%if usrpages.getPageErrors(name,i):
 		<span class="error">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
 		%endif
-		</b><a class="gobutton" href="${usrpages.url_for_resource(name,i)}">Go to page</a>|<a class="editbutton"
+		</b><a class="button gobutton" href="${usrpages.url_for_resource(name,i)}">Go to page</a><a class="button editbutton"
         href="/modules/module/${url(name)}/resource/${url(i)}#pagebody">
 
-		Edit Page</a><a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a></dt>
+		Edit Page</a><a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+    </dt>
 	  <dd>
           <p class="resource-docstring">${usrpages.getPageInfo(name,i)|h}</p>
 
@@ -194,7 +198,7 @@ def in_folder(r,f,n):
   *\
   %endif
 <a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
-<a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+<a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
 <dt>
 
 	%endif
@@ -205,8 +209,8 @@ def in_folder(r,f,n):
 %if (name,i) in modules.unsaved_changed_obj or [True for j in modules.unsaved_changed_obj if isinstance(j,tuple) and j[0]==name and j[1].startswith(i)]:
 *\
 %endif
-<span class="directory-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}#resources">${util.split_escape(i,'/')[-1]|h}</a></b>
-<a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a><dt>
+<span class="directory-icon"></span><b><ahref="/modules/module/${url(name)}/resource/${url(i)}#resources">${util.split_escape(i,'/')[-1]|h}</a></b>
+<a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a><dt>
 
 	%endif
 	<hr>
