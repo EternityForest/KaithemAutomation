@@ -1,0 +1,24 @@
+continual: false
+enable: true
+once: true
+priority: interactive
+rate-limit: 0.0
+resource-type: event
+trigger: '!onchange kaithem.time.second()'
+versions: {}
+
+#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
+---
+#This code runs once when the event loads. It also runs when you save the event during the test compile
+#and may run multiple times when kaithem boots due to dependancy resolution
+__doc__="Raises an error if it detects kaithem's response time is too slow to an onchange event"
+import time
+last = time.time()
+lastposted = 0
+---
+global last,lastposted
+if time.time()-last>1.2:
+    if time.time()-lastposted>5*60:
+        kaithem.message.post("/system/notifications/errors", "Frame rate dropped, onchange second fired more than 1s since last")
+        lastposted = time.time()
+last = time.time()
