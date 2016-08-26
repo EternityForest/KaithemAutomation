@@ -56,7 +56,7 @@ or go to the working copy and save that to delete this draft.</p>
 <a class="button" href="/modules/module/${url(module)}/resource/${url(name)}/__live__">Go to Live Version</a>
 <p>
 %endif
-<div class="sectionbox">
+<section>
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
 <h3>Basic</h3>
 <label><b>Path:</b><input title="Backslashes are escapes and / is the path separator. You can move this resource to another directory by renaming." name="name" value="${name|h}" style="width:90%;"></input></label><br>
@@ -272,7 +272,7 @@ Saving this module will case it to completely reload, including its local scope.
 <p>You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
 %endif
 </form>
-</div>
+</section>
 
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
 

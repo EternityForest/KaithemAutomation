@@ -35,7 +35,7 @@ temp_p+= i+'/'
 <b>${path[-1]|h}</b>
 </p>
 Page URL: <a class="gobutton" href="${usrpages.url_for_resource(module,name)}">${''+usrpages.url_for_resource(module,name)}</a>
-<div class="sectionbox">
+<section>
 
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
 <h3>Path</h3>
@@ -215,7 +215,7 @@ Saving this module will cause it to be immediately acessable from the web.
 <p class="warning">You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
 %endif
 </form>
-</div>
+</section>
 
 
 <%include file="/pagefooter.html"/>

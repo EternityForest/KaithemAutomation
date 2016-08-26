@@ -20,7 +20,7 @@ if "cmd" in kwargs:
 
 %>
 
-<div class="sectionbox">
+<section>
 <h2>Module Object Viewer</h2>
     <p class="help">
     This shows all of the attributes of the "module" object that is available in pages and events and is shared between the entire module.
@@ -30,10 +30,10 @@ if "cmd" in kwargs:
 <pre>${util.saferepr(obj.__dict__[i])|h}</pre>
 %endfor
 
-</article>
+</section>
 
 
-<article>
+<section>
 <a id="cmd"></a>
 <h2>Command Interpreter</h2>
 <p>You can enter single line commands here. Commands execute in the scope of the module objects __dict__, so module.cheese
@@ -58,4 +58,5 @@ Result:
 <form action=#cmd method=post>
 <input name="cmd" size=80><input type="submit" value="Go">
 </form>
-</article>
+</section>
+<%include file="/pagefooter.html"/>

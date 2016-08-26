@@ -5,12 +5,12 @@
 <%include file="/pageheader.html"/>
 <h2>Upload Module or Modules as ZIP file</h2>
 <title>Upload Module</title>
-<div class="sectionbox">
+<section>
     <form action="/modules/uploadtarget" method="POST" name="new" enctype="multipart/form-data">
         File Containing Modules:
         <input required="required" name="modulesfile" type="file"></input><br>
         <label><input type="checkbox" name="replace" type="file"></input>Replace Existing Module if present</label><br>
         <br><input value="Create Module" type="submit">
     </form>
-</div>
+<section>
 <%include file="/pagefooter.html"/>

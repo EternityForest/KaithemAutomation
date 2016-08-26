@@ -41,19 +41,36 @@ def require(permission, noautoreturn = False):
     if '__guest__' in auth.Users:
         if permission in auth.Users['__guest__'].permissions:
             return
-    #Don't autoreturn users that came here from a POST call.
-    if not noautoreturn and cherrypy.request.method == 'POST':
-        noautoreturn = True
 
-    #Default to taking them to the main page.
-    if noautoreturn is True:
-        noautoreturn = '/'
+    #Anything guest can't do needs https
+    if not cherrypy.request.scheme == 'https':
+        raise cherrypy.HTTPRedirect("/errors/gosecure")
 
-    if noautoreturn:
-        url = util.url(noautoreturn)
-    else:
-        url = util.url(cherrypy.url())
+    user = pages.getAcessingUser():
 
+    if user=="<unknown>":
+        #The login page can auto return people to what they were doing before logging in
+        #Don't autoreturn users that came here from a POST call.
+        if noautoreturn or cherrypy.request.method == 'POST':
+            noautoreturn = True
+        #Default to taking them to the main page.
+        if noautoreturn:
+            url = util.url("/")
+        else:
+            url = util.url(cherrypy.url())
+        raise cherrypy.HTTPRedirect("/login?"+url)
+
+    if not auth.canUserDoThis(user,permission):
+        raise cherrypy.HTTPRedirect("/errors/permissionerror?")
+
+def canUserDoThis(permission):
+    return auth.canUserDoThis(getAcessingUser(),permission)
+
+def getAcessingUser():
+    """Return the username of the user making the request bound to this thread or <UNKNOWN> if not logged in.
+       The result of this function can be trusted because it uses the authentication token.
+    """
+    #Handle HTTP Basic Auth
     if "Authorization" in cherrypy.request.headers:
         x = cherrypy.request.headers['Authorization'].split("Basic ")
         if len(x)>1:
@@ -61,51 +78,18 @@ def require(permission, noautoreturn = False):
             b = base64.b64decode(x[1])
             b = b.split(";")
             if not cherrypy.request.scheme == 'https':
+                #Basic auth over http is not secure at all, so we raise an error if we catch it.
                 raise cherrypy.HTTPRedirect("/errors/gosecure")
-            #Get token using sername and password
+            #Get token using username and password
             t = userLogin(b[0],b[1])
             #Check the credentials of that token
             if t not in auth.Tokens:
-                raise cherrypy.HTTPRedirect("/login?"+url)
-            if not auth.checkTokenPermission(t,permission):
-                raise cherrypy.HTTPRedirect("/errors/permissionerror?")
+                return "<unknown>"
             else:
-                return True
+                return b[0]
 
-    if not cherrypy.request.scheme == 'https':
-        raise cherrypy.HTTPRedirect("/errors/gosecure")
-    if not 'auth' in cherrypy.request.cookie:
-        raise cherrypy.HTTPRedirect("/login?"+url)
-    if cherrypy.request.cookie['auth'].value not in auth.Tokens:
-        raise cherrypy.HTTPRedirect("/login?"+url)
-    if not auth.checkTokenPermission(cherrypy.request.cookie['auth'].value,permission):
-        raise cherrypy.HTTPRedirect("/errors/permissionerror?")
-
-def canUserDoThis(permission):
-        #If the special __guest__ user can do it, anybody can.
-    if '__guest__' in auth.Users:
-        if permission in auth.Users['__guest__'].permissions:
-            return True
-    #if we are using http, this should catch it beause the ookie is https only
-    if not 'auth' in cherrypy.request.cookie:
-        return False
-
-    #Don't allow users to do things that require permission via HTTP
-    if not cherrypy.request.scheme == 'https':
-        return False
-
-    if cherrypy.request.cookie['auth'].value not in auth.Tokens:
-        return False
-
-    if not auth.checkTokenPermission(cherrypy.request.cookie['auth'].value,permission):
-        return False
-
-    return True
-
-def getAcessingUser():
-    """Return the username of the user making the request bound to this thread or <UNKNOWN> if not logged in.
-       The result of this function can be trusted because it uses the authentication token.
-    """
+    #Handle token based auth
     if (not 'auth' in cherrypy.request.cookie) or cherrypy.request.cookie['auth'].value not in auth.Tokens:
        return "<unknown>"
+
     return auth.whoHasToken(cherrypy.request.cookie['auth'].value)

@@ -8,7 +8,7 @@ import time
 <h2>Module ${name|h} Search</h2>
 
 <h3 id="results">Search Results in ${name|h}</h3>
-<div class="sectionbox">
+<section>
 <div class="menubar">
 <form style="display:inline;" action="/modules/search/${url(name)}"><input name="search" placeholder="Search this module"/><input type=submit value="search"/></form>
 
@@ -41,7 +41,6 @@ import time
 %endfor
 %endif
 
-</div>
-
+</section>
 
 <%include file="/pagefooter.html"/>

@@ -4,13 +4,13 @@ from src.util import url
 <%include file="/pageheader.html"/>
 <h2>Manually Run Event</h2>
 <title>Manually Run Event</title>
-<div class="sectionbox">
+<section>
 <p class ="help">Enter name of event in this module you want to run.</p>
 <hr>
 <form action="/modules/module/${url(module)}/runevent" method="POST" name="new">
 <h3>Name</h3><input required="required" name="name" class="name" type="text"></input><br>
 <br><input value="Run" type="submit">
 </form>
-</div>
+</section>
 
 <%include file="/pagefooter.html"/>

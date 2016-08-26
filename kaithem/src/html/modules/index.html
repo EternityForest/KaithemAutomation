@@ -5,7 +5,7 @@ from src import modules
 <%include file="/pageheader.html"/>
 <h2> Modules <sup><a href="/docs#modules">[help]</a></sup></h2>
 <title>Kaithem Modules</title>
-<div class="sectionbox">
+<section>
 <div class="menubar">
 Modules State MD5: <b>${modules.moduleshash}</b></br>
 <a class="button createbutton" href="/modules/newmodule">Add New Module</a>
@@ -34,4 +34,5 @@ ${e|h}
 %endtry
 %endfor
 </ul>
-</div>
+</section>
+<%include file="/pagefooter.html"/>
