@@ -181,13 +181,17 @@ def removeUserFromGroup(username,group):
 
 def promptGenerateUser(username="admin"):
     global authchanged
-    p = "same"
-    p2 = "different"
+    p = "samevscdfghjkl,ljhgfdsfhjmk,.lkjhgfdgnm,kjgfdnmj,kjuytredsfvbnhjmk?P>O:P_O>{:?{|<>/,.(0%(%(*5)))}"
+    p2 = "differentgfbhnjmuytrfdcvbnjuytfgcvbnmjuytgfvbnmjkiuytgfvbnmjuytgfvbnmjkuyhgf"
+    try:
+        input2=raw_input
+    except:
+        input2=input
     while not p == p2:
-        p = "same"
-        p2 = "different"
-        p = input("Account %s created. Choose password:"%username)
-        p2 = input("Reenter Password:")
+        p = "samejytfdcvbnjytfgvbnmjuytrfdcv bnmjuytgfvbnmjuytgfvbnmjytgfvbnjytgfcvliku7ytrfghjuytrfg:{<}>?<MLNI)*&(Y?>:I)"
+        p2 = "differentkyhgfvbnmjuytrdcxvbhjytredsxcvbnjkjnmkliuytrdsfgtrewsxdcvghjkmkiuhgft54ewe3wdfghujhjkiu76y7yuijh"
+        p = input2("Account %s created. Choose password:"%(username))
+        p2 = input2("Reenter Password:")
         if not p==p2:
             print("password mismatch")
 
@@ -202,17 +206,7 @@ def promptGenerateUser(username="admin"):
             "groups": {
                 "Administrators": {
                     "permissions": [
-                        "/admin/settings.edit",
-                        "/admin/logging.edit",
-                        "/admin/users.edit",
-                        "/users/pagelisting.view",
-                        "/admin/modules.edit",
-                        "/admin/settings.view",
-                        "/admin/mainpage.view",
-                        "/users/logs.view",
-                        "/admin/modules.view",
                         "__all_permissions__"
-
                     ]
                 }
             },
@@ -274,21 +268,14 @@ def initializeAuthentication():
     except Exception as e:
         messagebus.postMessage("/system/notifications/errors","Error loading auth data, may be able to continue from old state:\n"+str(e))
         data_bad=True
-        for i in range(0,15):
-            try:
-                try:
-                    dirname = util.getHighestNumberedTimeDirectory(directories.usersdir)
-                except:
-                    messagebus.postMessage("/system/notifications/errors","No old auth state found")
-                    break
-
-                tryToLoadFrom(os.path.join(d))
-                loaded =True
-                messagebus.postMessage("/system/notifications/warnings","Using old version of users list. This could create a secuirty issue if the old version allowes access to a malicious user")
-                break;
-            except:
-                messagebus.postMessage("/system/notifications/errors","Could not load old state:\n"+str(e))
-                pass
+        try:
+            dirname = util.getHighestNumberedTimeDirectory(directories.usersdir)
+            tryToLoadFrom(dirname)
+            loaded =True
+            messagebus.postMessage("/system/notifications/warnings","Saving was interrupted. Using last version of users list. This could create a secuirty issue if the old version allowes access to a malicious user")
+        except:
+            messagebus.postMessage("/system/notifications/errors","Could not load old state:\n"+str(e))
+            pass
 
     if not loaded:
         time.sleep(2)
@@ -473,7 +460,7 @@ def canUserDoThis(user,permission):
             return True
 
     #If guests can't do the thing and the user is unknown, the answer should be no.
-    if user in ("<unknown", "__unknown__"):
+    if user in ("<unknown>", "__unknown__"):
         return False
 
     if '__all_permissions__' in Users[user].permissions:

@@ -76,6 +76,8 @@ from cherrypy import _cperror
 from src import util
 from src import messagebus
 from src import pylogginghandler
+from src import messagelogging
+
 
 def installThreadExcepthook():
     """
@@ -124,6 +126,7 @@ from src import weblogin
 from src import auth
 from src import config as cfg
 from src import directories
+
 #Initialize the authorization module
 auth.initializeAuthentication()
 if cfg.argcmd.initialpackagesetup:
@@ -140,7 +143,6 @@ from src import modules
 from src import modules_interface
 from src import settings
 from src import usrpages
-from src import messagelogging
 from src import systasks
 from src import widgets
 

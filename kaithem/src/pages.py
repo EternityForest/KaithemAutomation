@@ -46,7 +46,7 @@ def require(permission, noautoreturn = False):
     if not cherrypy.request.scheme == 'https':
         raise cherrypy.HTTPRedirect("/errors/gosecure")
 
-    user = pages.getAcessingUser():
+    user = getAcessingUser()
 
     if user=="<unknown>":
         #The login page can auto return people to what they were doing before logging in

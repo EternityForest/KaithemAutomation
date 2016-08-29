@@ -226,6 +226,7 @@ def set(key,value):
         f['keys'][key]['data'] = copy.deepcopy(value)
 
 def setschema(key,schema):
+    "Associate a validitory schema with a key such that nobody can set an invalid value to it"
     global is_clean
     is_clean = False
     try:

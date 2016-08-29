@@ -195,6 +195,7 @@ class WebInterface():
         unsaved_changed_obj[kwargs['name']]="Module Deleted by " + pages.getAcessingUser()
         with modulesLock:
            ActiveModules.pop(kwargs['name'])
+           scopes.pop(kwargs['name'])
         #Get rid of any lingering cached events
         newevt.removeModuleEvents(kwargs['name'])
         #Get rid of any permissions defined in the modules.
