@@ -190,26 +190,9 @@ class WebInterface():
     def deletemoduletarget(self,**kwargs):
         pages.require("/admin/modules.edit")
         pages.postOnly()
+        modules.rmModule(kwargs['name'],"Module Deleted by " + pages.getAcessingUser())
 
-        modules.modulesHaveChanged()
-        unsaved_changed_obj[kwargs['name']]="Module Deleted by " + pages.getAcessingUser()
-        with modulesLock:
-           ActiveModules.pop(kwargs['name'])
-           scopes.pop(kwargs['name'])
-        #Get rid of any lingering cached events
-        newevt.removeModuleEvents(kwargs['name'])
-        #Get rid of any permissions defined in the modules.
-        auth.importPermissionsFromModules()
-        usrpages.removeModulePages(kwargs['name'])
         messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Deleted module " + kwargs['name'])
-        messagebus.postMessage("/system/modules/unloaded",kwargs['name'])
-        messagebus.postMessage("/system/modules/deleted",{'user':pages.getAcessingUser()})
-
-        with registry.reglock:
-            d=registry.get("system/module_locations",{})
-            if kwargs['name'] in d:
-                del d[kwargs['name']]
-                registry.set("system/module_locations",d)
 
         raise cherrypy.HTTPRedirect("/modules")
 
@@ -348,20 +331,7 @@ class WebInterface():
             if path[0] == 'deleteresourcetarget':
                 pages.require("/admin/modules.edit")
                 pages.postOnly()
-                modules.modulesHaveChanged()
-                unsaved_changed_obj[(module,kwargs['name'])]="Resource Deleted by " + pages.getAcessingUser()
-
-                with modulesLock:
-                   r = ActiveModules[root].pop(kwargs['name'])
-
-                if r['resource-type'] == 'page':
-                    usrpages.removeOnePage(module,kwargs['name'])
-                #Annoying bookkeeping crap to get rid of the cached crap
-                if r['resource-type'] == 'event':
-                    newevt.removeOneEvent(module,kwargs['name'])
-
-                if r['resource-type'] == 'permission':
-                    auth.importPermissionsFromModules() #sync auth's list of permissions
+                modules.rmResource(module,kwargs[name],"Resource Deleted by " + pages.getAcessingUser())
 
                 messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " deleted resource " +
                            kwargs['name'] + " from module " + module)
@@ -411,16 +381,18 @@ def addResourceDispatcher(module,type,path):
         return pages.get_template("modules/permissions/new.html").render(module=module,path=path)
 
     #return a crud to add a new event
-    if type == 'event':
+    elif type == 'event':
         return pages.get_template("modules/events/new.html").render(module=module,path=path)
 
     #return a crud to add a new event
-    if type == 'page':
+    elif type == 'page':
         return pages.get_template("modules/pages/new.html").render(module=module,path=path)
 
     #return a crud to add a new event
-    if type == 'directory':
+    elif type == 'directory':
         return pages.get_template("modules/directories/new.html").render(module=module,path=path)
+    else:
+        return additionalTypes[type].createpage(module,path)
 
 #The target for the POST from the CRUD to actually create the new resource
 #Basically it takes a module, a new resource name, and a type, and creates a template resource
@@ -454,14 +426,14 @@ def addResourceTarget(module,type,name,kwargs,path):
 
 
         #Create a permission
-        if type == 'permission':
+        elif type == 'permission':
             insertResource({
                 "resource-type":"permission",
                 "description":kwargs['description']})
             #has its own lock
             auth.importPermissionsFromModules() #sync auth's list of permissions
 
-        if type == 'event':
+        elif type == 'event':
             insertResource({
                 "resource-type":"event",
                 "setup" : "#This code runs once when the event loads. It also runs when you save the event during the test compile\n#and may run multiple times when kaithem boots due to dependancy resolution\n__doc__=''",
@@ -476,12 +448,19 @@ def addResourceTarget(module,type,name,kwargs,path):
             #the modules
             newevt.updateOneEvent(escapedName,root)
 
-        if type == 'page':
+        elif type == 'page':
                 insertResource({
                     "resource-type":"page",
                     "body":'<%!\n#Code Here runs once when page is first rendered. Good place for import statements.\n__doc__= ""\n%>\n<%\n#Python Code here runs every page load\n%>\n<h2>Title</h2>\n<div class="sectionbox">\nContent here\n</div>',
                     'no-navheader':True})
                 usrpages.updateOnePage(escapedName,root)
+
+        else:
+            r = additionalTypes[type].create(module,path,name,kwargs)
+            insertResource(r)
+            f=additionalTypes[type].onload
+            if f:
+                f(module,name, r)
 
         messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + " added resource " +
                            escapedName + " of type " + type+" to module " + root)
@@ -534,6 +513,9 @@ def resourceEditPage(module,resource,version='default'):
             pages.require("/admin/modules.view")
             return pages.get_template("modules/module.html").render(module = ActiveModules[module],name = module, path=util.split_escape(resource,'\\'), fullpath=module+"/"+resource)
 
+        #This is for the custom resource types interface stuff.
+        return additionalTypes[resourceinquestion['resource-type']].editpage(module,resource, resourceinquestion)
+
 def permissionEditPage(module,resource):
     pages.require("/admin/modules.view")
     return pages.get_template("modules/permissions/permission.html").render(module = module,
@@ -554,7 +536,7 @@ def resourceUpdateTarget(module,resource,kwargs):
             #has its own lock
             auth.importPermissionsFromModules() #sync auth's list of permissions
 
-        if t == 'event':
+        elif t == 'event':
             evt = None
             #Test compile, throw error on fail.
             if 'enable' in kwargs:
@@ -624,7 +606,7 @@ def resourceUpdateTarget(module,resource,kwargs):
             #And compile that. Otherwise, we avoid having to double-compile.
             newevt.updateOneEvent(resource,module,evt)
 
-        if t == 'page':
+        elif t == 'page':
             resourceobj['body'] = kwargs['body']
             resourceobj['no-navheader'] = 'no-navheader' in kwargs
             resourceobj['no-header'] = 'no-header' in kwargs
@@ -647,6 +629,9 @@ def resourceUpdateTarget(module,resource,kwargs):
                     if kwargs[i] == 'true':
                         resourceobj['require-permissions'].append(i[10:])
             usrpages.updateOnePage(resource,module)
+
+        else:
+            additionalTypes[resourceobj['resource-type']].update(module,resource, kwargs)
 
         if 'name' in kwargs:
             if not kwargs['name'] == resource:

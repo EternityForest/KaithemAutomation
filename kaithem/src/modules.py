@@ -17,7 +17,7 @@
 import threading,urllib,shutil,sys,time,os,json,traceback,copy,hashlib
 import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling,modules_state,registry
-from .modules_state import ActiveModules,modulesLock,scopes
+from .modules_state import ActiveModules,modulesLock,scopes,additionalTypes
 
 
 def new_empty_module():
@@ -402,36 +402,23 @@ def load_modules_from_zip(f,replace=False):
         for i in new_modules:
             if i in ActiveModules:
                 backup[i]=ActiveModules[i].copy()
+                modules.rmModule(i,"Module Deleted by " + pages.getAcessingUser())
 
-                modulesHaveChanged()
-                unsaved_changed_obj[i]="Module Deleted by " + pages.getAcessingUser()
-                with modulesLock:
-                   ActiveModules.pop(i)
-                #Get rid of any lingering cached events
-                newevt.removeModuleEvents(i)
-                #Get rid of any permissions defined in the modules.
-                auth.importPermissionsFromModules()
-                usrpages.removeModulePages(i)
                 messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Deleted old module " + i+" for auto upgrade")
                 messagebus.postMessage("/system/modules/unloaded",i)
                 messagebus.postMessage("/system/modules/deleted",{'user':pages.getAcessingUser()})
-
-                with registry.reglock:
-                    d=registry.get("system/module_locations",{})
-                    if i in d:
-                        del d[i]
-                registry.set("system/module_locations",d)
-
-        for i in new_modules:
+                
             try:
-                ActiveModules[i] = new_modules[i]
-                messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " uploaded module" + i + " from a zip file")
-                bookkeeponemodule(i)
-            except:
-                if i in backup:
-                    ActiveModules[i] = backup[i]
-                    messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " uploaded module" + i + " from a zip file, but initializing failed. Reverting to old version.")
+                for i in new_modules:
+                    ActiveModules[i] = new_modules[i]
+                    messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " uploaded module" + i + " from a zip file")
                     bookkeeponemodule(i)
+            except:
+                for i in new_modules:
+                    if i in backup:
+                        ActiveModules[i] = backup[i]
+                        messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " uploaded module" + i + " from a zip file, but initializing failed. Reverting to old version.")
+                        bookkeeponemodule(i)
                 raise
     auth.importPermissionsFromModules()
 
@@ -481,6 +468,55 @@ def mvResource(module,resource,toModule,toResource):
         usrpages.updateOnePage(toResource,toModule)
         return
 
+def rmResource(module,resource,message="Resource Deleted"):
+    "Delete one resource by name, message is an optional message explaining the change"
+    modules.modulesHaveChanged()
+    unsaved_changed_obj[(module,resource)] = message
+
+    with modulesLock:
+       r = ActiveModules[root].pop(resource)
+    try:
+        if r['resource-type'] == 'page':
+            usrpages.removeOnePage(module,resource)
+
+        elif r['resource-type'] == 'event':
+            newevt.removeOneEvent(module,resource)
+
+        elif r['resource-type'] == 'permission':
+            auth.importPermissionsFromModules() #sync auth's list of permissions
+
+        else:
+               additionalTypes[r['resource-type']].ondelete(module,resource,r)
+    except:
+           messagebus.postMessage("/system/modules/errors/unloading","Error deleting resource: "+str(module,resource))
+
+def rmModule(module,message="deleted"):
+        modules.modulesHaveChanged()
+        unsaved_changed_obj[module]=message
+        with modulesLock:
+           j = copy.deepcopy(ActiveModules.pop(module))
+           scopes.pop(module)
+
+        #Delete any custom resource types hanging around.
+        for k in j:
+            if j['resource-type'] in additionalTypes:
+                try:
+                   additionalTypes[j['resource-type']].ondelete(i,k,j[k])
+                except:
+                   messagebus.postMessage("/system/modules/errors/unloading","Error deleting resource: "+str(i,k))
+        #Get rid of any lingering cached events
+        newevt.removeModuleEvents(module)
+        #Get rid of any permissions defined in the modules.
+        auth.importPermissionsFromModules()
+        usrpages.removeModulePages(module)
+
+        with registry.reglock:
+            d=registry.get("system/module_locations",{})
+            if kwargs['name'] in d:
+                del d[kwargs['name']]
+                registry.set("system/module_locations",d)
+        messagebus.postMessage("/system/modules/unloaded",module)
+        messagebus.postMessage("/system/modules/deleted",{'user':pages.getAcessingUser()})
 
 class KaithemEvent(dict):
     pass
