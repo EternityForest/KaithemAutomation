@@ -75,27 +75,84 @@ def modulesHaveChanged():
     modulehashes = {}
     modules_state.ls_folder.invalidate_cache()
 
-class event_interface(object):
-   def __init__(self, ):
-      self.type = "event"
 
-class page_inteface(object):
-   def __init__(self, ):
-      self.type = "page"
+class ResourceInterface():
+    def __init__(self, r,m,o):
+        self.resource =r
+        self.module = m
+        self.data = o
 
-class permission_inteface(object):
-   def __init__(self, ):
-      self.type = "permission"
+    def getData():
+        return copy.deepcopy()
 
-class obj(object):
-   def __getitem__(self,x):
-      x= ActiveModules[self.__kaithem_modulename__][x]
-      if x['resource-type'] == 'page':
-         x = page_interface()
-      if x['resource-type'] == 'event':
-         x = event_interface()
-      if x['resource-type'] == 'permission':
-         x = permission_interface()
+class Event(ResourceInterface):
+    resourceType = "event"
+
+class Page(ResourceInterface):
+    resourceType = "page"
+
+class Permission(ResourceInterface):
+    resourceType = "permission"
+
+class ModuleObject(object):
+    def __getitem__(self,name):
+        "When someone acesses a key, return an interface to that module."
+        x= ActiveModules[self.__kaithem_modulename__][name]
+        module=self.__kaithem_modulename__
+
+        resourcetype = x['resource-type']
+
+        if resourcetype == 'page':
+            x = Page(module,name,x)
+
+        elif resourcetype == 'event':
+            x = Event(module,name,x)
+
+        elif resourcetype == 'permission':
+            x = Permission(module,name,x)
+
+        else:
+            return x
+
+    def __setitem__(self,name, value):
+        "When someone sets an item, validate it, then do any required bookkeeping"
+
+        #Raise an exception on anything non-serializable or without a resource-type,
+        #As those could break something.
+        json.dumps({name:value})
+
+        if not 'resource-type' in value:
+            raise ValueError("Supplied dict has no resource-type")
+
+        with modulesLock:
+            resourcetype= value['resource-type']
+            module = self.__kaithem_modulename__
+
+            unsaved_changed_obj[(module,name)] = "User code inserted or modified module"
+            #Insert the new item into the global modules thing
+            ActiveModules[module][name]=value
+            modulesHaveChanged()
+
+            #Make sure we recognize the resource-type, or else we can't load it.
+            if (not resourcetype in ['event','page','permission','directory']) and (not resourcetype in additionalTypes):
+                raise ValueError("Unknown resource-type")
+
+            #Do the type-specific init action
+            if resourcetype == 'event':
+                e = newevt.make_event_from_resource(module,name)
+                newevt.updateOneEvent(module,name,e)
+
+            elif resourcetype == 'page':
+                #Yes, module and resource really are backwards, and no, it wasn't a good idea to do that.
+                usrpages.updateOnePage(name,module)
+
+            elif resourcetype == 'permission':
+                auth.importPermissionsFromModules()
+
+            else:
+                additionalTypes[resourcetype].onload(module,name, value)
+
+
 
 
 #Backwards compatible resource loader.
@@ -337,7 +394,7 @@ def loadModule(moduledir,path_to_module_folder, modulename=None):
 
 
         name = unurl(moduledir)
-        scopes[modulename or  name] = obj()
+        scopes[modulename or  name] = ModuleObject()
         ActiveModules[modulename or  name] = module
         messagebus.postMessage("/system/modules/loaded",modulename or name)
         #bookkeeponemodule(name)
@@ -407,7 +464,7 @@ def load_modules_from_zip(f,replace=False):
                 messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Deleted old module " + i+" for auto upgrade")
                 messagebus.postMessage("/system/modules/unloaded",i)
                 messagebus.postMessage("/system/modules/deleted",{'user':pages.getAcessingUser()})
-                
+
             try:
                 for i in new_modules:
                     ActiveModules[i] = new_modules[i]
@@ -428,7 +485,7 @@ def load_modules_from_zip(f,replace=False):
 def bookkeeponemodule(module,update=False):
     """Given the name of one module that has been copied to activemodules but nothing else,
     let the rest of the system know the module is there."""
-    scopes[module] = obj()
+    scopes[module] = ModuleObject()
     for i in ActiveModules[module]:
         if ActiveModules[module][i]['resource-type'] == 'page':
             try:

@@ -47,6 +47,9 @@ from src import util
 additionalTypes = weakref.WeakValueDictionary()
 
 class ResourceType():
+    def __init__(self):
+        self.createButton = None
+        
     def createpage(self,module,path):
         return """
 

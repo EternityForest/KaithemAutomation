@@ -19,6 +19,7 @@ from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,
 from .modules import *
 from src import modules
 from src.config import config
+from cherrypy.lib.static import serve_file
 
 searchable = {'event': ['setup', 'trigger', 'action'], 'page':['body']}
 
@@ -317,6 +318,65 @@ class WebInterface():
             #This goes to a dispatcher that takes into account the type of resource and updates everything about the resource.
             if path[0] == 'updateresource':
                 return resourceUpdateTarget(module,path[1],kwargs)
+
+
+            #This gets the interface to add a page
+            if path[0] == 'getfileresource':
+
+                pages.require("/admin/modules.edit")
+
+                folder = os.path.join(directories.vardir,"modules","filedata")
+                data_basename =ActiveModules[module][path[1]]['target']
+                dataname = os.path.join(folder,data_basename)
+                if os.path.isfile(dataname):
+                    return serve_file(dataname,mimetypes.guess_type(dataname,False))
+
+
+            #This gets the interface to add a page
+            if path[0] == 'addfileresource':
+                pages.require("/admin/modules.edit")
+                if len(path)>1:
+                  x = path[1]
+                else:
+                  x =""
+                #path[1] tells what type of resource is being created and addResourceDispatcher returns the appropriate crud screen
+                return pages.get_template("modules/uploadfileresource.html").render(module=module,path=x)
+
+
+            #This goes to a dispatcher that takes into account the type of resource and updates everything about the resource.
+            if path[0] == 'uploadfileresourcetarget':
+                pages.require("/admin/modules.edit", noautoreturn = True)
+                pages.postOnly()
+                folder = os.path.join(directories.vardir,"modules","filedata")
+                util.ensure_dir2(folder)
+                data_basename = kwargs['name']+str(time.time())
+                dataname = os.path.join(folder,data_basename)
+                inputfile = kwargs['file']
+
+                with open(dataname,"wb") as f:
+                    while True:
+                        d = inputfile.file.read(8192)
+                        if not d:
+                            break
+                        f.write(d)
+
+                with modulesLock:
+                    #####BEGIN BLOCK OF CODE COPY PASTED FROM ANOTHER PART OF CODE. I DO NOT REALLY UNDERSTAND IT
+                    #Wow is this code ever ugly. Bascially we are going to pack the path and the module together.
+                    escapedName = (kwargs['name'].replace("\\","\\\\").replace("/",'\\/'))
+                    if len(path)>1:
+                      escapedName = path[1]+ "/" + escapedName
+                    x = util.split_escape(module,"/","\\")
+                    escapedName = "/".join(x[1:]+[escapedName])
+                    root = x[0]
+                    unsaved_changed_obj[(root,escapedName)] = "Resource added by"+ pages.getAcessingUser()
+
+                    def insertResource(r):
+                        ActiveModules[root][escapedName] = r
+                    ####END BLOCK OF COPY PASTED CODE.
+
+                    insertResource({'resource-type':'internal-fileref', 'target':data_basename})
+                    modulesHaveChanged()
 
             #This returns a page to delete any resource by name
             if path[0] == 'deleteresource':
