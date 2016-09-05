@@ -515,7 +515,103 @@ class Switch(Widget):
         </script>
         </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self._value, 'label':label}
 
+class TagPoint(Widget):
+    def __init__(self,tag):
+        Widget.__init__(self)
+        self.tag = tag
 
+    def write(self,value):
+        self._value = bool(value)
+        #Is this the right behavior?
+        self._callback("__SERVER__",value)
+
+    def render(self,label):
+        if self._value:
+            x = "checked=1"
+        else:
+            x =''
+        if type=='realtime':
+            sl= """<div class="widgetcontainer sliderwidget" ontouchmove = function(e) {e.preventDefault()};>
+            <b><p>%(label)s</p></b>
+            <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
+           oninput="
+           %(htmlid)s_clean=%(htmlid)s_cleannext=false;
+           KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
+           document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s';
+           setTimeout(function(){%(htmlid)s_cleannext=true},150);"
+           ><br>
+           <span
+           class="numericpv"
+           id="%(htmlid)s_l">%(value)f%(unit)s</span>
+           <script type="text/javascript">
+           %(htmlid)s_clean =%(htmlid)s_cleannext= true;
+           var upd=function(val){
+           if(%(htmlid)s_clean)
+           {
+            document.getElementById('%(htmlid)s').value= val;
+            document.getElementById('%(htmlid)s_l').innerHTML= (Math.round(val*1000)/1000)+"%(unit)s";
+            }
+            %(htmlid)s_clean =%(htmlid)s_cleannext;
+           }
+
+           KWidget_register("%(id)s",upd);
+           </script>
+
+            </div>"""%{'label':label,'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.tag.min, 'step':self.step, 'max':self.tag.max, 'value':self._value, 'unit':unit}
+
+        if type=='onrelease':
+            sl= """<div class="widgetcontainer sliderwidget">
+            <b><p">%(label)s</p></b>
+            <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
+            oninput="document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s'; document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();"
+            onmouseup="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
+            onmousedown="document.getElementById('%(htmlid)s').jsmodifiable = false;"
+            onkeyup="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
+            ontouchend="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
+            ontouchstart="document.getElementById('%(htmlid)s').jsmodifiable = false;"
+            ontouchleave="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
+
+
+            ><br>
+            <span class="numericpv" id="%(htmlid)s_l">%(value)f%(unit)s</span>
+            <script type="text/javascript">
+            var upd=function(val){
+
+                if(document.getElementById('%(htmlid)s').jsmodifiable & ((new Date).getTime()-document.getElementById('%(htmlid)s').lastmoved > 300))
+                {
+                document.getElementById('%(htmlid)s').value= val;
+                document.getElementById('%(htmlid)s_l').innerHTML= val+"%(unit)s";
+                }
+
+
+            }
+            document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();
+            document.getElementById('%(htmlid)s').jsmodifiable = true;
+            KWidget_register("%(id)s",upd);
+            </script>
+            </div>"""%{'label':label,'en':self.isWritable(),'htmlid':mkid(), 'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
+
+        return """<div class="widgetcontainer">"""+sl+"""
+
+
+        <label><input %(en)s id="%(htmlid)sman" type="checkbox"
+        onchange="
+        %(htmlid)s_clean = %(htmlid)s_cleannext= false;
+        setTimeout(function(){%(htmlid)s_cleannext = true},350);
+        KWidget_setValue('%(id)s',(document.getElementById('%(htmlid)sman').checked))" %(x)s>Manual</label>
+        <script type="text/javascript">
+        %(htmlid)s_clean=%(htmlid)s_cleannext = true;
+        var upd=function(val){
+            if(%(htmlid)s_clean)
+            {
+            document.getElementById('%(htmlid)sman').checked= val;
+            }
+            %(htmlid)s_clean=%(htmlid)s_cleannext;
+
+        }
+        KWidget_register("%(id)s",upd);
+        </script>
+        </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self._value, 'label':label}
 
 class TextBox(Widget):
     def __init__(self,*args,**kwargs):
