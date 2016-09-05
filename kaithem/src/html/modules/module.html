@@ -1,8 +1,9 @@
 <%!
+from src.unitsofmeasure import siFormatNumber
 from src.util import url
-from src.modules import getModuleHash
+from src.modules import getModuleHash,fileResourceAbsPaths
 from src import pages,newevt,usrpages,unitsofmeasure,util,scheduling,modules_state,registry,modules
-import time
+import time,os
 %>
 
 <%include file="/pageheader.html"/>
@@ -120,6 +121,12 @@ def in_folder(r,f,n):
 %for i in sorted(sorted(modules_state.ls_folder(name,'/'.join(path))), key=lambda x: module[x]['resource-type']):
 %if in_folder(i,fullpath,name):
 
+%if not 'resource-type' in module[i]:
+<p class=error>OBJECT ${i|h} MISSING resource-type</p>
+<%
+continue
+%>
+%endif
 %if module[i]['resource-type'] == 'event':
 	  <dt>
 	       <span class="event-icon"></span><b>\
@@ -213,13 +220,18 @@ def in_folder(r,f,n):
 
 %if module[i]['resource-type'] == 'internal-fileref':
 
-   <dt><span class="permission-icon"></span>\
+   <dt>\
 %if (name,i) in modules.unsaved_changed_obj:
 *\
 %endif
 <a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
 <a class="button" href="/modules/module/${url(name)}/getfileresource/${url(i)}">Raw File</a>
 <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+%try:
+<span>Size: ${siFormatNumber(os.path.getsize(fileResourceAbsPaths[name,i]))}</span>\
+%except Exception as e:
+<span>File could not be acessed: ${e}</span>\
+%endtry
 <dt>
 
  %endif

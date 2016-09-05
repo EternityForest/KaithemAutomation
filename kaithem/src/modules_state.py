@@ -46,10 +46,14 @@ from src import util
 #Note that the actual dict objects are directly passed, you can modify them in place but you still must return them.
 additionalTypes = weakref.WeakValueDictionary()
 
+#This is a dict indexed by module/resource tuples that contains the absolute path to what
+#The system considers the current "loaded" version.
+fileResourceAbsPaths = {}
+
 class ResourceType():
     def __init__(self):
         self.createButton = None
-        
+
     def createpage(self,module,path):
         return """
 
@@ -64,6 +68,7 @@ class ResourceType():
 
     def editpage(self,module,resource,resourceobj):
         return str(resourceobj)
+        
     def update(self,module,resource,resourceobj,**kwargs):
         return resourceobj
     def onload(self,module,resource,resourceobj):

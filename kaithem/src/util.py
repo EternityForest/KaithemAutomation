@@ -97,6 +97,23 @@ def SaveAllStateExceptLogs():
         except Exception as e:
             messagebus.postMessage("/system/notifications/errors",'Failed to save state:' + repr(e))
 
+#http://stackoverflow.com/questions/3812849/how-to-check-whether-a-directory-is-a-sub-directory-of-another-directory
+#It looks like a lot of people might have contributed to this little bit of code.
+def in_directory(file, directory):
+    #make both absolute
+    directory = os.path.join(os.path.realpath(directory), '')
+    file = os.path.realpath(file)
+
+    #return true, if the common prefix of both is equal to directory
+    #e.g. /a/b/c/d.rst and directory is /a/b, the common prefix is /a/b
+    return os.path.commonprefix([file, directory]) == directory
+
+def fakeUnixRename(src,dst):
+    if src==dst:
+        return
+    if os.path.isfile(d) and not sys.name =="posix":
+        os.remove(dst)
+    shutil.move(src,dst)
 
 def ensure_dir(f):
     d = os.path.dirname(f)

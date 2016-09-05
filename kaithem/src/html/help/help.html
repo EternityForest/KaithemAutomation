@@ -69,7 +69,15 @@ h4 {
     <p>Resources may have any name, however the slash is considered the path separator to allow for subfolders within modules.
     The slash may be escaped using an backslash, as can the backslash itself. Whitespace in paths has no special meaning.</p>
 
+    <p>Most resources are internal Kaithem-specific datatypes that are kept in ram.
+	   However, modules may also contain arbitrary files as resources.
+	   Because of RAM limitations, files are not kept in RAM, and a file upload is a real upload to disk.
+	   However, the atomicity of the action of saving modules is preserved, because files are stored in a special
+	   data folder and linked to as needed from within the module.</p>
+
+
 	<p>To move a resource between folders, you simply rename it. To move foo/baz to a folder bar, simply rename it bar/baz.</p>
+
 
 
     <h2>

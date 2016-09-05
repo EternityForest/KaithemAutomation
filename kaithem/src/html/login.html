@@ -9,7 +9,7 @@ import cherrypy
     <h2 style="text-align: center;">Please Log In</h2>
     <section>
     <div style="text-align: center;">
-      <form method="POST" action="/login/login/?go=${cherrypy.request.query_string}" name="login"> <p>
+      <form method="POST" action="/login/login?go=${cherrypy.request.query_string}" name="login"> <p>
         <span style="font-weight: bold;">Username:</span>
         <input required="required" name="username" type="text"><br>
         <span style="font-weight: bold;">Password:</span>&nbsp;

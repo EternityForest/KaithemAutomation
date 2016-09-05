@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import threading,urllib,shutil,sys,time,os,json,traceback, copy
+import threading,urllib,shutil,sys,time,os,json,traceback, copy,mimetypes
 import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling, registry
 from .modules import *
@@ -130,7 +130,7 @@ class WebInterface():
     def uploadtarget(self,modulesfile,**kwargs):
         pages.require('/admin/modules.edit')
         pages.postOnly()
-        modules.modulesHaveChanged()
+        modulesHaveChanged()
         for i in load_modules_from_zip(modulesfile.file, replace='replace' in kwargs):
             unsaved_changed_obj[i] = "Module uploaded by"+ pages.getAcessingUser()
             for j in ActiveModules[i]:
@@ -138,8 +138,6 @@ class WebInterface():
 
         messagebus.postMessage("/system/modules/uploaded",{'user':pages.getAcessingUser()})
         raise cherrypy.HTTPRedirect("/modules/")
-
-
 
     @cherrypy.expose
     def index(self):
@@ -191,7 +189,7 @@ class WebInterface():
     def deletemoduletarget(self,**kwargs):
         pages.require("/admin/modules.edit")
         pages.postOnly()
-        modules.rmModule(kwargs['name'],"Module Deleted by " + pages.getAcessingUser())
+        rmModule(kwargs['name'],"Module Deleted by " + pages.getAcessingUser())
 
         messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Deleted module " + kwargs['name'])
 
@@ -203,7 +201,7 @@ class WebInterface():
         pages.require("/admin/modules.edit")
         pages.postOnly()
 
-        modules.modulesHaveChanged()
+        modulesHaveChanged()
 
         #Lets do this outside of modules lock just to be safe
         if "location" in kwargs:
@@ -220,7 +218,7 @@ class WebInterface():
         #If there is no module by that name, create a blank template and the scope obj
         with modulesLock:
             if kwargs['name'] not in ActiveModules:
-                if 'location' in kwargs:
+                if 'location' in kwargs and kwargs['location']:
                     try:
                         loadModule(os.path.split( kwargs['location'])[1], os.path.split( kwargs['location'])[0],kwargs['name'])
                         bookkeeponemodule(kwargs['name'])
@@ -233,7 +231,7 @@ class WebInterface():
                     {"resource-type":"module-description",
                     "text":"Module info here"}}
                 #Create the scope that code in the module will run in
-                scopes[kwargs['name']] = obj()
+                scopes[kwargs['name']] = ModuleObject()
                 #Go directly to the newly created module
                 messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Created Module " + kwargs['name'])
                 messagebus.postMessage("/system/modules/new",{'user':pages.getAcessingUser(), 'module':kwargs['name']})
@@ -245,6 +243,7 @@ class WebInterface():
 
     @cherrypy.expose
     def loadlibmodule(self,module):
+        "Load a module from the library"
         pages.require("/admin/modules.edit")
         pages.postOnly()
         if module  in ActiveModules:
@@ -326,10 +325,13 @@ class WebInterface():
                 pages.require("/admin/modules.edit")
 
                 folder = os.path.join(directories.vardir,"modules","filedata")
-                data_basename =ActiveModules[module][path[1]]['target']
+                data_basename =fileResourceAbsPaths[module,path[1]]
                 dataname = os.path.join(folder,data_basename)
                 if os.path.isfile(dataname):
-                    return serve_file(dataname,mimetypes.guess_type(dataname,False))
+                    return serve_file(dataname,
+                    content_type=mimetypes.guess_type(path[1],False)[0] or "application/x-unknown",
+                    disposition="inline;",
+                    name=path[1])
 
 
             #This gets the interface to add a page
@@ -349,7 +351,7 @@ class WebInterface():
                 pages.postOnly()
                 folder = os.path.join(directories.vardir,"modules","filedata")
                 util.ensure_dir2(folder)
-                data_basename = kwargs['name']+str(time.time())
+                data_basename = kwargs['name']+"_"+str(os.urandom(24).encode('hex'))
                 dataname = os.path.join(folder,data_basename)
                 inputfile = kwargs['file']
 
@@ -376,6 +378,7 @@ class WebInterface():
                     ####END BLOCK OF COPY PASTED CODE.
 
                     insertResource({'resource-type':'internal-fileref', 'target':data_basename})
+                    fileResourceAbsPaths[root,kwargs['name']] = dataname
                     modulesHaveChanged()
 
             #This returns a page to delete any resource by name
@@ -391,7 +394,7 @@ class WebInterface():
             if path[0] == 'deleteresourcetarget':
                 pages.require("/admin/modules.edit")
                 pages.postOnly()
-                modules.rmResource(module,kwargs[name],"Resource Deleted by " + pages.getAcessingUser())
+                rmResource(module,kwargs['name'],"Resource Deleted by " + pages.getAcessingUser())
 
                 messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " deleted resource " +
                            kwargs['name'] + " from module " + module)
@@ -405,7 +408,7 @@ class WebInterface():
             if path[0] == 'update':
                 pages.require("/admin/modules.edit")
                 pages.postOnly()
-                modules.modulesHaveChanged()
+                modulesHaveChanged()
                 unsaved_changed_obj[kwargs['name']] = "Module modified by"+ pages.getAcessingUser()
                 #Lets do this outside of modules lock just to be safe
                 if "location" in kwargs and kwargs['location']:
@@ -418,8 +421,11 @@ class WebInterface():
                         if not d2 ==d:
                             registry.set("system/module_locations",d)
                 with modulesLock:
-
-                    ActiveModules[root]['__description']['text'] = kwargs['description']
+                    #Missing descriptions have caused a lot of bugs
+                    if '__description' in ActiveModules[root]:
+                        ActiveModules[root]['__description']['text'] = kwargs['description']
+                    else:
+                        ActiveModules[root]['__description'] = {'resource-type':'module-description','text':kwargs['description']}
                     ActiveModules[kwargs['name']] = ActiveModules.pop(root)
 
                     #UHHG. So very much code tht just syncs data structures.
@@ -459,7 +465,7 @@ def addResourceDispatcher(module,type,path):
 def addResourceTarget(module,type,name,kwargs,path):
     pages.require("/admin/modules.edit")
     pages.postOnly()
-    modules.modulesHaveChanged()
+    modulesHaveChanged()
 
     #Wow is this code ever ugly. Bascially we are going to pack the path and the module together.
     escapedName = (kwargs['name'].replace("\\","\\\\").replace("/",'\\/'))
@@ -550,6 +556,10 @@ def resourceEditPage(module,resource,version='default'):
         else:
             version = '__live__'
 
+        if not 'resource-type' in resourceinquestion:
+            logging.warning("No resource type found for "+resource)
+            return
+
         if resourceinquestion['resource-type'] == 'permission':
             return permissionEditPage(module, resource)
 
@@ -559,6 +569,12 @@ def resourceEditPage(module,resource,version='default'):
                 name =resource,
                 event =resourceinquestion,
                 version=version)
+
+        if resourceinquestion['resource-type'] == 'internal-fileref':
+            return pages.get_template("modules/fileresources/fileresource.html").render(
+                module =module,
+                resource =resource,
+                resourceobj =resourceinquestion)
 
         if resourceinquestion['resource-type'] == 'page':
             if 'require-permissions' in resourceinquestion:
@@ -585,7 +601,7 @@ def permissionEditPage(module,resource):
 def resourceUpdateTarget(module,resource,kwargs):
     pages.require("/admin/modules.edit",noautoreturn=True)
     pages.postOnly()
-    modules.modulesHaveChanged()
+    modulesHaveChanged()
     unsaved_changed_obj[(module,resource)] = "Resource modified by"+ pages.getAcessingUser()
 
     with modulesLock:

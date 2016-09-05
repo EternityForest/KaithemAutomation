@@ -14,10 +14,10 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #File for keeping track of and editing kaithem modules(not python modules)
-import threading,urllib,shutil,sys,time,os,json,traceback,copy,hashlib
+import threading,urllib,shutil,sys,time,os,json,traceback,copy,hashlib,logging
 import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling,modules_state,registry
-from .modules_state import ActiveModules,modulesLock,scopes,additionalTypes
+from .modules_state import ActiveModules,modulesLock,scopes,additionalTypes,fileResourceAbsPaths
 
 
 def new_empty_module():
@@ -95,6 +95,12 @@ class Permission(ResourceInterface):
     resourceType = "permission"
 
 class ModuleObject(object):
+    """
+    These are the objects acessible as 'module' within pages, events, etc.
+    Normally you use them to share variables, but they have incomplete and undocumented support
+    For acting as an API for user code to acess or modify the resources, which could be useful if you want to be able to
+    dynamically create resources, or more likely just acess file resource contents or metadata about the module.
+    """
     def __getitem__(self,name):
         "When someone acesses a key, return an interface to that module."
         x= ActiveModules[self.__kaithem_modulename__][name]
@@ -123,6 +129,7 @@ class ModuleObject(object):
 
         if not 'resource-type' in value:
             raise ValueError("Supplied dict has no resource-type")
+
 
         with modulesLock:
             resourcetype= value['resource-type']
@@ -156,8 +163,9 @@ class ModuleObject(object):
 
 
 #Backwards compatible resource loader.
-def loadResource(r):
-    with open(r) as f:
+def loadResource(fn):
+
+    with open(fn) as f:
         d = f.read()
     if "\r---\r" in d:
             f = d.split("\r---\r")
@@ -167,7 +175,7 @@ def loadResource(r):
         f = d.split("\n---\n")
     r = yaml.load(f[0])
 
-    #Catch old style save files
+    #Catch new style save files
     if len(f)>1:
         if r['resource-type'] == 'page':
             r['body'] = f[1]
@@ -175,7 +183,6 @@ def loadResource(r):
         if r['resource-type'] == 'event':
             r['setup'] = f[1]
             r['action'] = f[2]
-
     return r
 
 def saveResource2(r,fn):
@@ -205,6 +212,13 @@ def saveResource(r,fn):
         util.chmod_private_try(fn, execute=False)
         f.write(yaml.dump(r))
 
+def cleanupBlobs():
+    fddir = os.path.join(directories.vardir,"modules","filedata")
+    inUseFiles = [os.path.basename(i) for i in fileResourceAbsPaths.values()]
+    for i in os.listdir( fddir):
+        if not i in inUseFiles:
+            fn = os.path.join(fddir,i )
+            os.remove(fn)
 
 def saveAll():
     """saveAll and loadall are the ones outside code shold use to save and load the state of what modules are loaded.
@@ -234,6 +248,7 @@ def saveAll():
         saveModules(os.path.join(directories.moduledir,"data"))
         #We only want 1 backup(for now at least) so clean up old ones.
         util.deleteAllButHighestNumberedNDirectories(directories.moduledir,2)
+        cleanupBlobs()
         moduleschanged = False
         return True
 
@@ -246,6 +261,16 @@ def initModules():
     for k,v in registry.get("system/module_locations",{}).items():
         try:
             loadModule(v, os.path.split(v)[0], k)
+        except:
+            messagebus.postMessage("/system/notifications/errors" ," Error loading external module: "+ traceback.format_exc(4))
+
+    for i in util.get_files(directories.moduledir):
+        if not i.endswith('.json'):
+            continue
+        with open(i) as f:
+            d = json.load(f)
+        try:
+            loadModule(os.basename(d['directory']), os.path.split(d['directory'])[0], d['name'])
         except:
             messagebus.postMessage("/system/notifications/errors" ," Error loading external module: "+ traceback.format_exc(4))
 
@@ -286,6 +311,7 @@ def initModules():
     newevt.getEventsFromModules()
     usrpages.getPagesFromModules()
     moduleshash = hashModules()
+    cleanupBlobs()
 
 
 def saveModule(module, dir,modulename=None):
@@ -301,9 +327,32 @@ def saveModule(module, dir,modulename=None):
             #Open a file at /where/module/resource
             fn = os.path.join(dir,url(resource))
             #Make a json file there and prettyprint it
-            saveResource2(module[resource],fn)
+            r = module[resource]
+            saveResource2(r,fn)
             if (modulename,resource) in unsaved_changed_obj:
                 del unsaved_changed_obj[modulename,resource]
+
+            if r['resource-type'] == "internal-fileref":
+                #Handle two separate ways of handling these file resources.
+                #One is to store them directly in the module data in a special folder.
+                #That's what we do if we are using an external folder
+                #For internal folders we don't want to store duplicate copies in the dumps,
+                #So we store them in one big folder that is shared between all loaded modules.
+                #Which is not exactly ideal, but all the per-module stuff is stored in dumps.
+
+                #Basically, we want to always copy the current "loaded" version over.
+                #But actually we don't need to copy, we can do a move.
+                currentFileLocation = fileResourceAbsPaths[modulename,resourcename]
+                if util.in_directory(fn, directories.vardir):
+                    newpath = os.path.join(directories.vardir,"modules","filedata",r['target'])
+                    util.ensure_dir(newpath)
+                    util.fakeUnixRename(currentFileLocation,newpath)
+                    fileResourceAbsPaths[modulename,resourcename] = newpath
+                else:
+                    newpath = os.path.join(moduledir,"__filedata__",r['target'])
+                    util.ensure_dir(newpath)
+                    util.fakeUnixRename(currentFileLocation,newpath)
+                    fileResourceAbsPaths[modulename,resourcename] = newpath
 
         #Now we iterate over the existing resource files in the filesystem and delete those that correspond to
         #resources that have been deleted in the ActiveModules workspace thing.
@@ -374,29 +423,50 @@ def loadModules(modulesdir):
         loadModule(i,modulesdir)
 
 
-def loadModule(moduledir,path_to_module_folder, modulename=None):
+def loadModule(moduledirname,path_to_module_folder, modulename=None):
     "Load a single module but don't bookkeep it . Used by loadModules"
     with modulesLock:
         #Make an empty dict to hold the module resources
         module = {}
+        moduledir = os.path.join(path_to_module_folder,moduledirname)
+        modulename = modulename or unurl(moduledirname)
         #Iterate over all resource files and load them
-        for root, dirs, files in os.walk(os.path.join(path_to_module_folder,moduledir)):
+        for root, dirs, files in os.walk(moduledir):
                 for i in files:
-                    relfn = os.path.relpath(os.path.join(root,i),os.path.join(path_to_module_folder,moduledir))
-                    fn = os.path.join(path_to_module_folder,moduledir , relfn)
+                    relfn = os.path.relpath(os.path.join(root,i),moduledir)
+                    fn = os.path.join(moduledir , relfn)
+                    #Hack to exclude kaithem's special fildedata folders.
+                    if "/__filedata__" in fn:
+                        continue
                     #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
-                    module[unurl(relfn)] = loadResource(fn)
+                    resourcename = unurl(relfn)
+                    r = loadResource(fn)
+                    module[resourcename] = r
+                    if not 'resource-type' in r:
+                        logging.warning("No resource type found for "+resourcename)
+                        continue
+                    if r['resource-type'] == "internal-fileref":
+                        #Handle two separate ways of handling these file resources.
+                        #One is to store them directly in the module data in a special folder.
+                        #That's what we do if we are using an external folder
+                        #For internal folders we don't want to store duplicate copies in the dumps,
+                        #So we store them in one big folder that is shared between all loaded modules.
+                        #Which is not exactly ideal, but all the per-module stuff is stored in dumps.
+                        if util.in_directory(fn, directories.vardir):
+                            fileResourceAbsPaths[modulename,resourcename] = os.path.join(directories.vardir,"modules","filedata",r['target'])
+                        else:
+                            fileResourceAbsPaths[modulename,resourcename] = os.path.join(moduledir,"filedata",r['target'])
+
                 for i in dirs:
-                    relfn = os.path.relpath(os.path.join(root,i),os.path.join(path_to_module_folder,moduledir))
-                    fn = os.path.join(path_to_module_folder,moduledir , relfn)
+                    relfn = os.path.relpath(os.path.join(root,i),moduledir)
+                    fn = os.path.join(moduledir , relfn)
                     #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
                     module[unurl(relfn)] = {"resource-type":"directory"}
 
 
-        name = unurl(moduledir)
-        scopes[modulename or  name] = ModuleObject()
-        ActiveModules[modulename or  name] = module
-        messagebus.postMessage("/system/modules/loaded",modulename or name)
+        scopes[modulename] = ModuleObject()
+        ActiveModules[modulename] = module
+        messagebus.postMessage("/system/modules/loaded",modulename)
         #bookkeeponemodule(name)
 
 def getModuleAsZip(module):
@@ -459,7 +529,7 @@ def load_modules_from_zip(f,replace=False):
         for i in new_modules:
             if i in ActiveModules:
                 backup[i]=ActiveModules[i].copy()
-                modules.rmModule(i,"Module Deleted by " + pages.getAcessingUser())
+                rmModule(i,"Module Deleted by " + pages.getAcessingUser())
 
                 messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Deleted old module " + i+" for auto upgrade")
                 messagebus.postMessage("/system/modules/unloaded",i)
@@ -511,6 +581,12 @@ def mvResource(module,resource,toModule,toResource):
     if not (len(new)<2 or ActiveModules[toModule]['/'.join(new[:-1])]['resource-type']=='directory'):
         raise cherrypy.HTTPRedirect("/errors/nofoldermoveerror")
 
+    if ActiveModules[module][resource]['resource-type'] == 'internal-fileref':
+            ActiveModules[toModule][toResource] = ActiveModules[module][resource]
+            del ActiveModules[module][resource]
+            fileResourceAbsPaths[toModule,toResource] = fileResourceAbsPaths[module,resource]
+            del fileResourceAbsPaths[module,resource]
+            return
 
     if ActiveModules[module][resource]['resource-type'] == 'event':
         ActiveModules[toModule][toResource] = ActiveModules[module][resource]
@@ -527,11 +603,11 @@ def mvResource(module,resource,toModule,toResource):
 
 def rmResource(module,resource,message="Resource Deleted"):
     "Delete one resource by name, message is an optional message explaining the change"
-    modules.modulesHaveChanged()
+    modulesHaveChanged()
     unsaved_changed_obj[(module,resource)] = message
 
     with modulesLock:
-       r = ActiveModules[root].pop(resource)
+       r = ActiveModules[module].pop(resource)
     try:
         if r['resource-type'] == 'page':
             usrpages.removeOnePage(module,resource)
@@ -542,13 +618,17 @@ def rmResource(module,resource,message="Resource Deleted"):
         elif r['resource-type'] == 'permission':
             auth.importPermissionsFromModules() #sync auth's list of permissions
 
+        elif r['resource-type'] == 'internal-fileref':
+            os.remove(fileResourceAbsPaths[module,resource])
+            del fileResourceAbsPaths[module,resource]
+
         else:
                additionalTypes[r['resource-type']].ondelete(module,resource,r)
     except:
-           messagebus.postMessage("/system/modules/errors/unloading","Error deleting resource: "+str(module,resource))
+           messagebus.postMessage("/system/modules/errors/unloading","Error deleting resource: "+str((module,resource)))
 
 def rmModule(module,message="deleted"):
-        modules.modulesHaveChanged()
+        modulesHaveChanged()
         unsaved_changed_obj[module]=message
         with modulesLock:
            j = copy.deepcopy(ActiveModules.pop(module))
