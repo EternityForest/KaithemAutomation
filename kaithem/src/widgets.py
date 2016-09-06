@@ -704,7 +704,7 @@ class APIWidget(Widget):
                 %(htmlid)s.value = "Waiting..."
                 %(htmlid)s.clean = 0;
 
-                var upd = function(val)
+                var _upd = function(val)
                     {
                         if (%(htmlid)s.clean==0)
                             {
@@ -714,7 +714,13 @@ class APIWidget(Widget):
                             {
                                 %(htmlid)s.clean -=1;
                             }
+                        %(htmlid)s.upd(val)
                     }
+
+                %(htmlid)s.upd = function(val)
+                        {
+                        }
+
 
                 %(htmlid)s.set = function(val)
                     {
@@ -722,6 +728,6 @@ class APIWidget(Widget):
                          %(htmlid)s.clean = 2;
                     }
 
-                    KWidget_subscribe("%(id)s",upd);
+                    KWidget_subscribe("%(id)s",_upd);
             </script>
             """%{'htmlid':htmlid, 'id' :self.uuid, 'value': json.dumps(self._value)}

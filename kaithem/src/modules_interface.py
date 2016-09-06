@@ -415,9 +415,21 @@ class WebInterface():
                     with registry.reglock:
                         d=registry.get("system/module_locations",{})
                         d2 = d.copy()
+                        d2.pop(root)
                         d2[kwargs['name']] = os.path.expanduser(kwargs['location'])
                         if not os.path.exists(os.path.expanduser(kwargs['location'])):
                             os.mkdir(os.path.expanduser(kwargs['location']))
+                        if not d2 ==d:
+                            registry.set("system/module_locations",d)
+                else:
+                    with registry.reglock:
+                        #It doesn't matter if we are changing the name.
+                        #Becaue the whole thing would fail if there was an entry under the new name,
+                        #So obviously there cannot be any entry in the registry by that name
+                        d=registry.get("system/module_locations",{})
+                        d2 = d.copy()
+                        if root in d2:
+                            d2.pop(root)
                         if not d2 ==d:
                             registry.set("system/module_locations",d)
                 with modulesLock:

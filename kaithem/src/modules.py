@@ -342,17 +342,17 @@ def saveModule(module, dir,modulename=None):
 
                 #Basically, we want to always copy the current "loaded" version over.
                 #But actually we don't need to copy, we can do a move.
-                currentFileLocation = fileResourceAbsPaths[modulename,resourcename]
+                currentFileLocation = fileResourceAbsPaths[modulename,resource]
                 if util.in_directory(fn, directories.vardir):
                     newpath = os.path.join(directories.vardir,"modules","filedata",r['target'])
                     util.ensure_dir(newpath)
                     util.fakeUnixRename(currentFileLocation,newpath)
-                    fileResourceAbsPaths[modulename,resourcename] = newpath
+                    fileResourceAbsPaths[modulename,resource] = newpath
                 else:
                     newpath = os.path.join(moduledir,"__filedata__",r['target'])
                     util.ensure_dir(newpath)
                     util.fakeUnixRename(currentFileLocation,newpath)
-                    fileResourceAbsPaths[modulename,resourcename] = newpath
+                    fileResourceAbsPaths[modulename,resource] = newpath
 
         #Now we iterate over the existing resource files in the filesystem and delete those that correspond to
         #resources that have been deleted in the ActiveModules workspace thing.
