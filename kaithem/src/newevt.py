@@ -39,7 +39,10 @@ def manualRun(event):
 
 def getPrintOutput(event):
     "Given a tuple of (module, resource),  return the doc string of an event if it exists, else return '' "
-    return EventReferences[event].printoutput
+    try:
+        return EventReferences[event].printoutput
+    except:
+        return ""
 
 def getEventInfo(event):
     "Given a tuple of (module, resource),  return the doc string of an event if it exists, else return '' "
@@ -137,8 +140,10 @@ kaithemobj.kaithem.events.after = after
 
 def getEventLastRan(module,event):
     with _event_list_lock:
-            return __EventReferences[module,event].lastexecuted
-
+            try:
+                return __EventReferences[module,event].lastexecuted
+            except Exception as e:
+                return(str(e))
 def countEvents():
     #Why bother with the lock. The event count is not critical at all.
     return len(_events)
@@ -305,7 +310,10 @@ class BaseEvent():
     continual: Execute as often as possible while condition remains true
 
     """
+    def __del__(self):
+        print("del",self.resource)
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = None,priority = 2,m=None,r=None):
+
         #Copy in the data from args
         self.scope = scope
         self._prevstate = False

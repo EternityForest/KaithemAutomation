@@ -5,7 +5,7 @@ once: true
 priority: interactive
 rate-limit: 1.0
 resource-type: event
-trigger: 'True'
+trigger: 'False'
 versions:
   action: pass
   continual: false
@@ -126,6 +126,6 @@ versions:
 
 #End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
 ---
-import time
+print("This text should appear at the bottom of the event edit page.")
 ---
-print("Event 'Test Print Output' Ran at: " + str(time.time()))
+pass
