@@ -12,9 +12,12 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import weakref,time,json,base64,cherrypy,os, traceback,random
+import weakref,time,json,base64,cherrypy,os, traceback,random,threading
 from . import auth,pages,unitsofmeasure,config,util,messagebus
 from src.config import config
+
+#Modify lock for any websocket's subscriptions
+subscriptionLock = threading.Lock()
 if config['enable-websockets']:
     from ws4py.websocket import WebSocket
 widgets = weakref.WeakValueDictionary()
@@ -67,23 +70,55 @@ class WebInterface():
 
 if config['enable-websockets']:
     class websocket(WebSocket):
+        def __init__(self,*args,**kwargs):
+            self.subscriptions = []
+            self.lastPushedNewData = 0
+            WebSocket.__init__(self,*args,**kwargs)
+
+        def closed(self,code,reason):
+            with subscriptionLock:
+                for i in self.subscriptions:
+                    try:
+                        widgets[i].subscriptions.pop(self.user)
+                        widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
+                    except:
+                        pass
+
         def received_message(self,message):
             try:
                 o = json.loads(message.data.decode('utf8'))
-                resp = {}
+                resp = []
                 user = self.user
                 req = o['req']
                 upd = o['upd']
 
                 for i in upd:
-                    widgets[i]._onUpdate(user,upd[i])
+                    widgets[i[0]]._onUpdate(user,i[1])
 
                 for i in req:
-                    resp[i] = widgets[i]._onRequest(user)
+                    resp.append([i, widgets[i]._onRequest(user)])
 
-                self.send(json.dumps(resp))
+                if 'subsc' in o:
+                    for i in o['subsc']:
+                        if i in self.subscriptions:
+                            continue
+                        if i == "__WIDGETERROR__":
+                            continue
+                        def f(msg):
+                            try:
+                                self.send(json.dumps([[i,msg]]))
+                            except:
+                                messagebus.postMessage("system/errors/widgets/websocket", traceback.format_exc(6))
+                        with subscriptionLock:
+                            widgets[i].subscriptions[self.user] = f
+                            widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
+                        self.subscriptions.append(i)
+                        resp.append([i, widgets[i]._onRequest(user)])
+                        self.send(json.dumps(resp))
+
             except Exception as e:
-                self.send(repr(e)+ " xyz")
+                messagebus.postMessage("system/errors/widgets/websocket", traceback.format_exc(6))
+                self.send(json.dumps({'__WIDGETERROR__':repr(e)}))
 
 class Widget():
     def __init__(self,*args,**kwargs):
@@ -92,6 +127,8 @@ class Widget():
         self._write_perms=[]
         self.errored_function = None
         self.errored_getter = None
+        self.subscriptions = {}
+        self.subscriptions_atomic = {}
 
         def f(u,v):
             pass
@@ -181,6 +218,7 @@ class Widget():
     #meant to be overridden or used as is
     def onUpdate(self,user,value):
         self._value = value
+        self.push(value)
 
     #Read and write are called by code on the server
     def read(self):
@@ -188,8 +226,13 @@ class Widget():
 
     def write(self,value):
         self._value = value
+        self.push(value)
+
+    def push(self,value,users=None):
         #Is this the right behavior?
         self._callback("__SERVER__",value)
+        for i in self.subscriptions_atomic:
+            self.subscriptions_atomic[i](value)
 
     #Lets you add permissions that are required to read or write the widget.
     def require(self,permission):
@@ -256,7 +299,7 @@ class DynamicSpan(Widget):
         {
             document.getElementById("%s").innerHTML=val;
         }
-        KWidget_register('%s',upd);
+        KWidget_subscribe('%s',upd);
         </script>%s
         </span>"""%(self.uuid,self.uuid,self.uuid,self._value))
 
@@ -282,7 +325,7 @@ class TextDisplay(Widget):
                 KWidget_%s_prev = val;
             }
         }
-        KWidget_register('%s',upd);
+        KWidget_subscribe('%s',upd);
         </script>%s
         </div>"""%(height,width, self.uuid, self.uuid, self.uuid, self.uuid,self.uuid,self.uuid,self._value))
 
@@ -326,7 +369,7 @@ class Meter(Widget):
             if value <= self.k['low']:
                 self.c = 'error'
 
-        self._value=[round(value,3),self.c]
+        Widget.write(self,[round(value,3),self.c])
 
     def render(self,unit='',label=''):
         return("""
@@ -340,7 +383,7 @@ class Meter(Widget):
             document.getElementById("%s_m").value=val[0];
             document.getElementById("%s").className=val[1]+" numericpv";
         }
-        KWidget_register('%s',upd);
+        KWidget_subscribe('%s',upd);
         </script>%s
         </span></br>
         <meter id="%s_m" value="%d" min="%d" max="%d" high="%d" low="%d"></meter>
@@ -385,7 +428,7 @@ class Button(Widget):
 
             </script>
             <button type="button" id="%s_1" onmousedown="%s_toggle()">ARM</button><br/>
-            <button type="button" class="triggerbuttonwidget" disabled=true id="%s_2" onmousedown="KWidget_sendValue('%s','pushed')" onmouseleave="KWidget_sendValue('%s','released')" onmouseup="KWidget_sendValue('%s','released')" %s>
+            <button type="button" class="triggerbuttonwidget" disabled=true id="%s_2" onmousedown="KWidget_setValue('%s','ped')" onmouseleave="KWidget_setValue('%s','released')" onmouseup="KWidget_setValue('%s','released')" %s>
             <span id="%s_3">%s</span>
             </button>
             </div>
@@ -440,7 +483,7 @@ class Slider(Widget):
             %(htmlid)s_clean =%(htmlid)s_cleannext;
            }
 
-           KWidget_register("%(id)s",upd);
+           KWidget_subscribe("%(id)s",upd);
            </script>
 
             </div>"""%{'label':label, 'orient':orient,'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
@@ -474,7 +517,7 @@ class Slider(Widget):
             }
             document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();
             document.getElementById('%(htmlid)s').jsmodifiable = true;
-            KWidget_register("%(id)s",upd);
+            KWidget_subscribe("%(id)s",upd);
             </script>
             </div>"""%{'label':label, 'orient':orient,'en':self.isWritable(),'htmlid':mkid(), 'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
             raise ValueError("Invalid slider type:"%str(type))
@@ -511,7 +554,7 @@ class Switch(Widget):
             %(htmlid)s_clean=%(htmlid)s_cleannext;
 
         }
-        KWidget_register("%(id)s",upd);
+        KWidget_subscribe("%(id)s",upd);
         </script>
         </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self._value, 'label':label}
 
@@ -554,7 +597,7 @@ class TagPoint(Widget):
             %(htmlid)s_clean =%(htmlid)s_cleannext;
            }
 
-           KWidget_register("%(id)s",upd);
+           KWidget_subscribe("%(id)s",upd);
            </script>
 
             </div>"""%{'label':label,'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.tag.min, 'step':self.step, 'max':self.tag.max, 'value':self._value, 'unit':unit}
@@ -587,7 +630,7 @@ class TagPoint(Widget):
             }
             document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();
             document.getElementById('%(htmlid)s').jsmodifiable = true;
-            KWidget_register("%(id)s",upd);
+            KWidget_subscribe("%(id)s",upd);
             </script>
             </div>"""%{'label':label,'en':self.isWritable(),'htmlid':mkid(), 'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
 
@@ -609,7 +652,7 @@ class TagPoint(Widget):
             %(htmlid)s_clean=%(htmlid)s_cleannext;
 
         }
-        KWidget_register("%(id)s",upd);
+        KWidget_subscribe("%(id)s",upd);
         </script>
         </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self._value, 'label':label}
 
@@ -645,7 +688,7 @@ class TextBox(Widget):
             document.getElementById('%(htmlid)s').value= val;
             }
         }
-        KWidget_register("%(id)s",upd);
+        KWidget_subscribe("%(id)s",upd);
         </script>
         </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self._value, 'label':label}
 
@@ -679,6 +722,6 @@ class APIWidget(Widget):
                          %(htmlid)s.clean = 2;
                     }
 
-                    KWidget_register("%(id)s",upd);
+                    KWidget_subscribe("%(id)s",upd);
             </script>
             """%{'htmlid':htmlid, 'id' :self.uuid, 'value': json.dumps(self._value)}

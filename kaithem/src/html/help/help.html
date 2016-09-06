@@ -64,7 +64,8 @@ h4 {
     </p>
 
     <p>You can name modules as you like, but anything beginning with a double-underscore("__") is reserved.
-    Resource, user, and group names beginning with a double underscore are also reserved.</p>
+    Resource, user, and group names beginning with a double underscore are also reserved.
+	Basically any name beginning with a double underscore may at some point be used by kaithem internally.</p>
 
     <p>Resources may have any name, however the slash is considered the path separator to allow for subfolders within modules.
     The slash may be escaped using an backslash, as can the backslash itself. Whitespace in paths has no special meaning.</p>
@@ -75,6 +76,7 @@ h4 {
 	   However, the atomicity of the action of saving modules is preserved, because files are stored in a special
 	   data folder and linked to as needed from within the module.</p>
 
+	<p>When using an external folder to store modules, files are instead stored in a special subdirectory with their normal names.</p>
 
 	<p>To move a resource between folders, you simply rename it. To move foo/baz to a folder bar, simply rename it bar/baz.</p>
 
@@ -283,19 +285,7 @@ h4 {
         <p>Causes the object to reject AJAX write requests from any device that does not have the permissions.
         You can apply as many permissions as you want.</p>
 
-        <h3>Widget.onRequest(user) (Always Available)</h3>
-        <p>
-        This function is automatically called when an authorized client requests the latest value.
-        It must return None for unknown/no change or else a JSON serializable value specific to the widget type.
-        You only need to know about this function when creating custom widgets.
-        </p>
 
-        <h3>Widget.onUpdate(user,value) (Always Available)</h3>
-        <p>
-        This function is automatically called when an authorized client requests to set a new value.
-        value will be specific to the widget.
-        You only need to know about this function when creating custom widgets.
-        </p>
 
         <h3>Widget.read() (Usually Available)</h3>
         <p>
@@ -306,6 +296,23 @@ h4 {
         <p>
         sets the current "value" of the widget, an is available for all writable widgets where the idea of "value" makes sense.
         </p>
+
+		<h3>Widget.onRequest(user) (Always Available)</h3>
+		<p>
+		This function is automatically called when an authorized client requests the latest value.
+		It must return None for unknown/no change or else a JSON serializable value specific to the widget type.
+		You only need to know about this function when creating custom widgets.
+		</p>
+
+		<h3>Widget.onUpdate(user,value) (Always Available)</h3>
+		<p>
+		This function is automatically called when an authorized client requests to set a new value.
+		value will be specific to the widget. You only need to know about this function when creating custom widgets.
+		</p>
+
+		<h3>Widget.push(value)</h3>
+		<p>The way widgets work has changed very slightly. This function pushes a new widget value or message to any clients.
+			Previously the client had to request the value. You only need to know about this function when creating custom widgets.</p>
 
         <h3><a name="widgetattach"></a>Widget.attach(f)</h3>
         <p>Set a callback that fires when new data comes in from the widget. The function must take two values, user, and data.
