@@ -164,26 +164,30 @@ class ModuleObject(object):
 
 #Backwards compatible resource loader.
 def loadResource(fn):
+    try:
+        with open(fn) as f:
+            d = f.read()
+        if "\r---\r" in d:
+                f = d.split("\r---\r")
+        elif "\r\n\---\r\n" in d:
+                f = d.split("\r\n---\r\n")
+        else:
+            f = d.split("\n---\n")
+        r = yaml.load(f[0])
 
-    with open(fn) as f:
-        d = f.read()
-    if "\r---\r" in d:
-            f = d.split("\r---\r")
-    elif "\r\n\---\r\n" in d:
-            f = d.split("\r\n---\r\n")
-    else:
-        f = d.split("\n---\n")
-    r = yaml.load(f[0])
+        #Catch new style save files
+        if len(f)>1:
+            if r['resource-type'] == 'page':
+                r['body'] = f[1]
 
-    #Catch new style save files
-    if len(f)>1:
-        if r['resource-type'] == 'page':
-            r['body'] = f[1]
-
-        if r['resource-type'] == 'event':
-            r['setup'] = f[1]
-            r['action'] = f[2]
-    return r
+            if r['resource-type'] == 'event':
+                r['setup'] = f[1]
+                r['action'] = f[2]
+        return r
+    except:
+        print(fn)
+        logging.exception("Error loading resource from file "+fn)
+        raise
 
 def saveResource2(r,fn):
     r = copy.deepcopy(r)
@@ -222,7 +226,7 @@ def cleanupBlobs():
 
 def saveAll():
     """saveAll and loadall are the ones outside code shold use to save and load the state of what modules are loaded.
-    This function creates a timestamp directory in the confugured modules dir, then saves the modules to it, and deletes the old ones."""
+    This function writes to data after backing up to a timestamp dir and deleting old timestamp dirs"""
 
     #This is an RLock, and we need to use the lock so that someone else doesn't make a change while we are saving that isn't caught by
     #moduleschanged.
@@ -257,22 +261,6 @@ def initModules():
     """"Find the most recent module dump folder and use that. Should there not be a module dump folder, it is corrupted, etc,
     Then start with an empty list of modules. Should normally be called once at startup."""
 
-
-    for k,v in registry.get("system/module_locations",{}).items():
-        try:
-            loadModule(v, os.path.split(v)[0], k)
-        except:
-            messagebus.postMessage("/system/notifications/errors" ," Error loading external module: "+ traceback.format_exc(4))
-
-    for i in util.get_files(directories.moduledir):
-        if not i.endswith('.json'):
-            continue
-        with open(i) as f:
-            d = json.load(f)
-        try:
-            loadModule(os.basename(d['directory']), os.path.split(d['directory'])[0], d['name'])
-        except:
-            messagebus.postMessage("/system/notifications/errors" ," Error loading external module: "+ traceback.format_exc(4))
 
     if not os.path.isdir(directories.moduledir):
         return
@@ -385,12 +373,12 @@ def saveModules(where):
             if os.path.isfile(os.path.join(where,'__COMPLETE__')):
                 os.remove(os.path.join(where,'__COMPLETE__'))
 
-            for i in [i for i in ActiveModules if not i in registry.get("system/module_locations")]:
+            for i in [i for i in ActiveModules if not i in external_module_locations]:
                 saveModule(ActiveModules[i],os.path.join(where,url(i)),modulename=i)
 
-            for i in registry.get("system/module_locations"):
+            for i in external_module_locations:
                 try:
-                    saveModule(ActiveModules[i],registry.get("system/module_locations")[i],modulename=i)
+                    saveModule(ActiveModules[i],external_module_locations[i],modulename=i)
                 except:
                     messagebus.postMessage("/system/notifications/errors",'Failed to save external module:' + traceback.format_exc(8))
 
@@ -398,10 +386,17 @@ def saveModules(where):
                 #Look in the modules directory, and if the module folder is not in ActiveModules\
                 #We assume the user deleted the module so we should delete the save file for it.
                 #Note that we URL url file names for the module filenames and foldernames.
-                if unurl(i) not in ActiveModules or ( (unurl(i) in registry.get("system/module_locations"))  and not registry.get("system/module_locations")[unurl(i)]==os.path.join(where,i)):
+                if unurl(i) not in ActiveModules or ((unurl(i) in external_module_locations)  and not external_module_locations[unurl(i)]==os.path.join(where,i)):
                     shutil.rmtree(os.path.join(where,i))
                     if unurl(i) in unsaved_changed_obj:
                         del unsaved_changed_obj[unurl(i)]
+
+            for i in external_module_locations:
+                with open(os.path.join(where, "__"+url(i)+".location"),"w") as f:
+                    if not f.read() == external_module_locations[i]:
+                        f.seek(0)
+                        f.write(external_module_locations[i])
+
 
             #This is kind of a hack to deal with deleted external modules
             for i in unsaved_changed_obj:
@@ -420,21 +415,31 @@ def saveModules(where):
 def loadModules(modulesdir):
     "Load all modules in the given folder to RAM"
     for i in util.get_immediate_subdirectories(modulesdir):
-        loadModule(i,modulesdir)
+        loadModule(os.path.join(modulesdir,i), i)
 
+    for i in os.listdir(modulesdir):
+        try:
+            if not i.endswith(".location"):
+                continue
+            if not os.path.isfile(os.path.join(modulesdir,i)):
+                continue
+            with open(os.path.join(modulesdir,i)) as f:
+                s = f.read(1024)
+            external_module_locations[i[2:-9]] = s
+            loadModule(s, i[:-9])
+        except:
+            messagebus.postMessage("/system/notifications/errors" ," Error loading external module: "+ traceback.format_exc(4))
 
-def loadModule(moduledirname,path_to_module_folder, modulename=None):
+def loadModule(folder, modulename):
     "Load a single module but don't bookkeep it . Used by loadModules"
     with modulesLock:
         #Make an empty dict to hold the module resources
         module = {}
-        moduledir = os.path.join(path_to_module_folder,moduledirname)
-        modulename = modulename or unurl(moduledirname)
         #Iterate over all resource files and load them
-        for root, dirs, files in os.walk(moduledir):
+        for root, dirs, files in os.walk(folder):
                 for i in files:
-                    relfn = os.path.relpath(os.path.join(root,i),moduledir)
-                    fn = os.path.join(moduledir , relfn)
+                    relfn = os.path.relpath(os.path.join(root,i),folder)
+                    fn = os.path.join(folder , relfn)
                     #Hack to exclude kaithem's special fildedata folders.
                     if "/__filedata__" in fn:
                         continue
@@ -455,11 +460,11 @@ def loadModule(moduledirname,path_to_module_folder, modulename=None):
                         if util.in_directory(fn, directories.vardir):
                             fileResourceAbsPaths[modulename,resourcename] = os.path.join(directories.vardir,"modules","filedata",r['target'])
                         else:
-                            fileResourceAbsPaths[modulename,resourcename] = os.path.join(moduledir,"filedata",r['target'])
+                            fileResourceAbsPaths[modulename,resourcename] = os.path.join(folder,"filedata",r['target'])
 
                 for i in dirs:
-                    relfn = os.path.relpath(os.path.join(root,i),moduledir)
-                    fn = os.path.join(moduledir , relfn)
+                    relfn = os.path.relpath(os.path.join(root,i),folder)
+                    fn = os.path.join(folder , relfn)
                     #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
                     module[unurl(relfn)] = {"resource-type":"directory"}
 
@@ -647,11 +652,9 @@ def rmModule(module,message="deleted"):
         auth.importPermissionsFromModules()
         usrpages.removeModulePages(module)
 
-        with registry.reglock:
-            d=registry.get("system/module_locations",{})
-            if kwargs['name'] in d:
-                del d[kwargs['name']]
-                registry.set("system/module_locations",d)
+        if module in external_module_locations:
+            del external_module_locations[module]
+
         messagebus.postMessage("/system/modules/unloaded",module)
         messagebus.postMessage("/system/modules/deleted",{'user':pages.getAcessingUser()})
 

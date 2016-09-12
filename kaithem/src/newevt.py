@@ -143,7 +143,7 @@ def getEventLastRan(module,event):
             try:
                 return __EventReferences[module,event].lastexecuted
             except Exception as e:
-                return(str(e))
+                return 0
 def countEvents():
     #Why bother with the lock. The event count is not critical at all.
     return len(_events)
@@ -310,8 +310,7 @@ class BaseEvent():
     continual: Execute as often as possible while condition remains true
 
     """
-    def __del__(self):
-        print("del",self.resource)
+
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = None,priority = 2,m=None,r=None):
 
         #Copy in the data from args

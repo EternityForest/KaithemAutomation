@@ -167,7 +167,10 @@ class WebInterface():
         with modulesLock:
             pages.require("/admin/modules.edit")
             pages.postOnly()
-            saveModule(ActiveModules[module],registry.get("system/module_locations")[module])
+            saveModule(ActiveModules[module],external_module_locations[module])
+            if not os.path.isfile(os.path.join(directories.moduledir,"data","__"+url(module)+".location")):
+                with open(os.path.join(directories.moduledir,"data","__"+url(module)+".location"),"w") as f:
+                    f.write(external_module_locations[module])
         raise cherrypy.HTTPRedirect("/modules")
 
     #@cherrypy.expose
@@ -206,14 +209,8 @@ class WebInterface():
         #Lets do this outside of modules lock just to be safe
         if "location" in kwargs:
             with registry.reglock:
-                d=registry.get("system/module_locations",{})
-                d[kwargs['name']] = os.path.expanduser(kwargs['location'])
-                if kwargs['location']:
-                    if not os.path.exists(os.path.expanduser(kwargs['location'])):
-                        os.mkdir(os.path.expanduser(kwargs['location']))
-                else:
-                    del d[kwargs['name']]
-                registry.set("system/module_locations",d)
+                external_module_locations[kwargs['name']]= os.path.expanduser(kwargs['location'])
+
 
         #If there is no module by that name, create a blank template and the scope obj
         with modulesLock:
@@ -410,28 +407,26 @@ class WebInterface():
                 pages.postOnly()
                 modulesHaveChanged()
                 unsaved_changed_obj[kwargs['name']] = "Module modified by"+ pages.getAcessingUser()
-                #Lets do this outside of modules lock just to be safe
+                unsaved_changed_obj[root] = "Module was renamed by"+ pages.getAcessingUser()
+
                 if "location" in kwargs and kwargs['location']:
-                    with registry.reglock:
-                        d=registry.get("system/module_locations",{})
-                        d2 = d.copy()
-                        d2.pop(root)
-                        d2[kwargs['name']] = os.path.expanduser(kwargs['location'])
-                        if not os.path.exists(os.path.expanduser(kwargs['location'])):
-                            os.mkdir(os.path.expanduser(kwargs['location']))
-                        if not d2 ==d:
-                            registry.set("system/module_locations",d)
+                    external_module_locations[kwargs['name']]= kwargs['location']
+                    #We can't just do a delete and then set, what if something odd happens between?
+                    if not kwargs['name']== root and root in external_module_locations:
+                        del external_module_locations[root]
                 else:
-                    with registry.reglock:
-                        #It doesn't matter if we are changing the name.
-                        #Becaue the whole thing would fail if there was an entry under the new name,
-                        #So obviously there cannot be any entry in the registry by that name
-                        d=registry.get("system/module_locations",{})
-                        d2 = d.copy()
-                        if root in d2:
-                            d2.pop(root)
-                        if not d2 ==d:
-                            registry.set("system/module_locations",d)
+                    #We must delete this before deleting the actual external_module_locations entry
+                    #If this fails, we can still save, and will reload correctly.
+                    #But if there was no entry, but there was a file,
+                    #It would reload from the external, but save to the internal,
+                    #Which would be very confusing. We want to load from where we saved.
+
+                    #If we somehow have no file but an entry, saving will remake the file.
+                    #If there's no entry, we will only be able to save by saving the whole state.
+                    if  os.path.isfile(os.path.join(directories.moduledir,"data","__"+url(root)+".location")):
+                        if module in external_module_locations:
+                            os.remove(external_module_locations[root])
+                    external_module_locations.pop(root)
                 with modulesLock:
                     #Missing descriptions have caused a lot of bugs
                     if '__description' in ActiveModules[root]:

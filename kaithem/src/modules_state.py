@@ -50,6 +50,9 @@ additionalTypes = weakref.WeakValueDictionary()
 #The system considers the current "loaded" version.
 fileResourceAbsPaths = {}
 
+#When a module is saved outside of the var dir, we put the folder in which it is saved in here.
+external_module_locations = {}
+
 class ResourceType():
     def __init__(self):
         self.createButton = None
@@ -68,7 +71,7 @@ class ResourceType():
 
     def editpage(self,module,resource,resourceobj):
         return str(resourceobj)
-        
+
     def update(self,module,resource,resourceobj,**kwargs):
         return resourceobj
     def onload(self,module,resource,resourceobj):
@@ -76,7 +79,6 @@ class ResourceType():
     def onmove(self,module,resource,toModule,toResource,resourceobj):
         return True
     def ondelete(self,module,resource,obj):
-        print(module,resource,'Deletion Handler Called')
         return True
 
 r = ResourceType()
@@ -136,7 +138,6 @@ class HeirarchyDict(dict):
         #This stores actual items, but indexed by full path.
         self.flat = {}
         for i in sorted(d,key= lambda x:len(x)):
-            print(i, self.root.keys())
             self[i]=d[i]
 
     def _put_item_in(self, key, val,realkey,subst=None):
@@ -188,7 +189,6 @@ class HeirarchyDict(dict):
             key2=key
         else:
             key2 = util.split_escape(key,"/","\\")
-        print (key2)
         l =self.root
         for i in key2:
             l = l[i].root

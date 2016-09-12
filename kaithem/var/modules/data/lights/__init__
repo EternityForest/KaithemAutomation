@@ -1,0 +1,125 @@
+continual: false
+disabled: false
+enable: true
+once: true
+priority: interactive
+rate-limit: 0.0
+resource-type: event
+trigger: 'False'
+versions: {}
+
+#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
+---
+#This code runs once when the event loads. It also runs when you save the event during the test compile
+#and may run multiple times when kaithem boots due to dependancy resolution
+__doc__=''
+import time,random,weakref, os,threading,uuid
+
+module.scenes = weakref.WeakValueDictionary()
+
+module.boards={}
+class LightBoard():
+    def __init__(self, count=65536):
+        self.channelNames = {}
+        self.link = kaithem.widget.APIWidget("api_link")       
+        self.groups ={}
+        self.values = [0.0]*count
+        self.scenes = []
+        self.activeScenes = []
+        self.count = count
+        #Bound method weakref nonsense prevention
+    	self.onmsg = lambda x,y:self._onmsg(x,y)
+        self.lock = threading.Lock()
+        
+    def _onmsg(self,msg,user):
+        pass
+    def setChannelName(self,id,name="Untitled"):
+        self.channelNames[id]=name
+	    
+    def addScene(self,scene,t=None):
+        "Add a scene to the list of active scenes"
+        self.link.write(['go',scene.name, scene.id])
+        t=t or time.time()
+        scene.start(t)
+        self.scenes.append(scene)
+        self.scenes = sorted(self.scenes,key=lambda k: (k.priority,k.started))
+        with self.lock:
+        	self.activeScenes = self.scenes[:]
+            
+    def rmScene(self,scene):
+    	self.scenes.remove(i)
+        with self.lock:
+        	self.activeScenes = self.scenes[:]
+
+    def render(self,t=None):
+        t = t or time.time()
+        self.values = [0.0]*65536
+        for i in self.activeScenes :
+            if i.length>0 and i.started+i.length<t:
+                self.rmScene(i)
+
+        for i in self.activeScenes:
+            if i.visible:
+                i.render(t)
+                for j in i.values:
+                	self.values[j] = (self.values[j]*(1-i.alpha)) +  (i.values[j]*(i.alpha))
+        return self.values
+
+class Scene():
+    "An objecting representing one scene"
+    def __init__(self,name, values={}, length=0, alpha=1, fadein=0,fadeout=0,priority= 50, visible=True):
+        self.alpha = alpha
+        self.name = name
+        self.values = values
+        self.fadein = fadein
+        self.length = length
+        self.fadein = fadein
+        self.fadeout = fadeout
+        self.priority = priority
+        self.visible = visible
+        self.id = uuid.uuid4().hex
+        module.scenes[self.id] = self
+
+    def start(self,t=None):
+        t =t or time.time()
+        self.started = t
+        self.manualAlpha = False
+            
+    def setAlpha(self,val):
+        self.manualAlpha = True
+        self.alpha = val
+        
+    def setValue(self,channel,value):
+          self.values[channel] = value
+            
+    def render(self,t=None):
+        "Calculate the current alpha value"
+        t =t or time.time()
+        t=t-self.started
+
+        if t>self.length and self.length:
+            self.alpha = 0
+            return
+        
+        if t<self.fadein:
+            self.alpha = (t/self.fadein)*self.set_alpha
+            return
+        
+        if t>(self.length-self.fadeout) and self.length:
+            self.alpha = (1-((t-(self.length-self.fadeout))/self.fadeout)) *self.set_alpha
+            return                     
+module.Scene = Scene
+module.testScene = Scene("testScene")
+module.testScene.values = {0:0, 1:1.0, 2:1, 3:1}
+
+module.testScene2 = Scene("sceneeee2",alpha=0.5,priority = 51)
+module.testScene2.values = {0:5, 1:0, 2:1, 3:1}
+
+
+module.boards["default"] = LightBoard()
+module.boards["default"] .addScene(module.testScene)
+module.boards["default"] .addScene(module.testScene2)
+module.boards["default"] .render()
+print((module.testScene2.alpha, module.boards["default"].values[:10]))
+---
+pass

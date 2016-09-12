@@ -1,7 +1,7 @@
 <%!
 from src.unitsofmeasure import siFormatNumber
 from src.util import url
-from src.modules import getModuleHash,fileResourceAbsPaths
+from src.modules import getModuleHash,fileResourceAbsPaths, external_module_locations
 from src import pages,newevt,usrpages,unitsofmeasure,util,scheduling,modules_state,registry,modules
 import time,os
 %>
@@ -34,7 +34,7 @@ MD5 Sum: <b>${getModuleHash(name)}</b></br>
 <h4>Info:</h4>
 <textarea name="description" class="description" rows=5>${getDesc()|h}</textarea>
 <h4>Save Location(blank=default):</h4>
-<input name="location" title="Enter a directory name on the server's local filesystem" value="${registry.get("system/module_locations",{}).get(name,"")|h}"></input>
+<input name="location" title="Enter a directory name on the server's local filesystem" value="${external_module_locations.get(name,"")|h}"></input>
 <hr>
 %if pages.canUserDoThis("/admin/modules.edit"):
 <input type="submit" value="Save Changes"></input>
@@ -64,7 +64,7 @@ MD5 Sum: <b>${getModuleHash(name)}</b></br>
 %endif
 %endfor
 <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource">Delete Resource</a>
-%if registry.get("system/module_locations",{}).get(name,""):
+%if external_module_locations.get(name,""):
 <a class="button savebutton" href="/modules/savemodule/${name}">Save Module</a>
 %endif
 <form style="display:inline;" action="/modules/search/${url(name)}"><input name="search" placeholder="Search this module"/><input type=submit value="search"/></form>
