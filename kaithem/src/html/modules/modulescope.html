@@ -5,7 +5,7 @@ import json,re,cherrypy
 %>
 
 <%include file="/pageheader.html"/>
-<title>Module Object</title>
+<title>Object Inspector</title>
 <%
 result = ''
 %>
@@ -21,9 +21,9 @@ if "cmd" in kwargs:
 %>
 
 <section>
-<h2>Module Object Viewer</h2>
+    <h2>Inspecting ${objname|h}</h2>
     <p class="help">
-    This shows all of the attributes of the "module" object that is available in pages and events and is shared between the entire module.
+        This shows all attributes of the selected object and allows you to run commands in the namespace of the selected object.
     <p>
 %for i in obj.__dict__:
 <h3><a href="?objpath=a${i|h}&objname=${i|h}">${i|h}</a></h3>
@@ -36,7 +36,7 @@ if "cmd" in kwargs:
 <section>
 <a id="cmd"></a>
 <h2>Command Interpreter</h2>
-<p>You can enter single line commands here. Commands execute in the scope of the module objects __dict__, so module.cheese
+<p>You can enter single line commands here. Commands execute in the scope of the object's __dict__, so obj.cheese
 here would just be cheese. the kaithem object is available as kaithem as usual. You can call functions and get the result, and you can set and delete values.
 multiline code doesn't work however. Be careful when refreshing this page as it may resend. Using this will add a __builtins__ to the module object.<p>
 %if "cmd" in kwargs:

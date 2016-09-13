@@ -44,8 +44,12 @@ h4 {
 
     <P>
         One <b>very important note</b> about Kaithem is that it does not save anything to the disk except when told to
-        or if autosave was explicilty configured. To do this, go to the Save State page and follow the instructions. In
-        the event that the software crashes while saving, old data will not be corrupted and the old version will be
+        or if autosave was explicilty configured. In kaithem "Save" generally means to update the in-memory
+		copy, wheras "Save to disk" means to actually whatever is in memory to the disk.
+		To do this, go to the Save State page in Settings and follow the instructions. Modules configured as external can be saved individually.
+	</p>
+
+	<p>In the event that the software crashes while saving, old data will not be corrupted and the old version will be
         used. Manual recovery of the new version will likely be possible for at least some files.
     </P>
 
@@ -56,10 +60,14 @@ h4 {
         <a id="modules"></a>Modules:
     </h2>
     <p>
-        Kaithem is based on the idea that <em>everything is a module</em>. This makes it very easy to write new device
-        drivers, as they can simply be modules. Code and management pages are just resources within modules. A module is
+		Kaithem stores all user created resources in modules. This makes
+		it very easy to write new device drivers, as they can simply be modules that place functions
+		into a global namespace.
+	</p>
+	<p>
+ 		Code and management pages are just resources within modules. A module is
         just a loose collection of resources all with a unique name. Note that two resources with different types still
-        must have unique names. Resources can be anything from events and actions to user defined pages to custom
+        must have unique names(within a module). Resources can be anything from events and actions to user defined pages to custom
         permissions.
     </p>
 

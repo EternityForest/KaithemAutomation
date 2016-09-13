@@ -28,8 +28,12 @@ The following modules are currently loaded and active on the server.
 *\
 %endif
 %try:
-<a href="/modules/module/${url(i)}#resources" title="MD5: ${modules.getModuleHash(i)}">${i}</a></li>\
-%except Excption as e:
+<a href="/modules/module/${url(i)}#resources" title="MD5: ${modules.getModuleHash(i)}">${i}</a>\
+%if i in modules.external_module_locations:
+[From ${modules.external_module_locations[i]|h}]\
+%endif
+</li>\
+%except Exception as e:
 ${e|h}
 %endtry
 %endfor

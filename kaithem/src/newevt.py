@@ -29,7 +29,7 @@ from .scheduling import scheduler
 _event_list_lock = threading.RLock()
 _events = []
 
-#Let us now have a way to get at active event objects by means of their origin resource and module.
+#Let us now have a way to get at active event objects by means of their origin (resource, module) tuple.
 __EventReferences = {}
 EventReferences = __EventReferences
 
@@ -393,7 +393,10 @@ class BaseEvent():
                 self._handle_exception(e)
 
     def _handle_exception(self, e):
-            tb = traceback.format_exc(6)
+            if sys.version_info>(3,0):
+                tb = traceback.format_exc(6, chain=True)
+            else:
+                tb = traceback.format_exc(6)
             #When an error happens, log it and save the time
             #Note that we are logging to the compiled event object
             self.errors.append([time.strftime(config['time-format']),tb])
@@ -1077,7 +1080,10 @@ def getEventsFromModules(only = None):
                         time.sleep(0.005)
                     #If there is an error, add it t the list of things to be retried.
                     except Exception as e:
-                        i.error = traceback.format_exc(6)
+                        if sys.version_info > (3,0):
+                            i.error = traceback.format_exc(6,chain = True)
+                        else:
+                            i.error = traceback.format_exc(6)
                         nextRound.append(i)
                         pass
                 toLoad = nextRound

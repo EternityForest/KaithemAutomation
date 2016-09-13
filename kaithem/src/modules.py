@@ -101,6 +101,7 @@ class ModuleObject(object):
     For acting as an API for user code to acess or modify the resources, which could be useful if you want to be able to
     dynamically create resources, or more likely just acess file resource contents or metadata about the module.
     """
+
     def __getitem__(self,name):
         "When someone acesses a key, return an interface to that module."
         x= ActiveModules[self.__kaithem_modulename__][name]
@@ -355,8 +356,8 @@ def saveModule(module, dir,modulename=None):
 
         if modulename in unsaved_changed_obj:
             del unsaved_changed_obj[modulename]
-    except:
         unsaved_changed_obj = xxx
+    except:
         raise
 
 def saveModules(where):
@@ -392,14 +393,14 @@ def saveModules(where):
                         del unsaved_changed_obj[unurl(i)]
 
             for i in external_module_locations:
-                with open(os.path.join(where, "__"+url(i)+".location"),"w") as f:
+                with open(os.path.join(where, "__"+url(i)+".location"),"w+") as f:
                     if not f.read() == external_module_locations[i]:
                         f.seek(0)
                         f.write(external_module_locations[i])
 
 
             #This is kind of a hack to deal with deleted external modules
-            for i in unsaved_changed_obj:
+            for i in xxx:
                 if isinstance(i,str):
                     if not i in ActiveModules:
                         del unsaved_changed_obj[i]
@@ -407,8 +408,8 @@ def saveModules(where):
             with open(os.path.join(where,'__COMPLETE__'),'w') as f:
                 util.chmod_private_try(os.path.join(where,'__COMPLETE__'), execute=False)
                 f.write("By this string of contents quite arbitrary, I hereby mark this dump as consistant!!!")
-        except:
             unsaved_changed_obj = xxx
+        except:
             raise
 
 
@@ -423,10 +424,12 @@ def loadModules(modulesdir):
                 continue
             if not os.path.isfile(os.path.join(modulesdir,i)):
                 continue
+            #Read ythe location we are supposed to load from
             with open(os.path.join(modulesdir,i)) as f:
                 s = f.read(1024)
+            #Get rid of the __ and .location, then set the location in the dict
             external_module_locations[i[2:-9]] = s
-            loadModule(s, i[:-9])
+            loadModule(s, i[2:-9])
         except:
             messagebus.postMessage("/system/notifications/errors" ," Error loading external module: "+ traceback.format_exc(4))
 
@@ -560,7 +563,8 @@ def load_modules_from_zip(f,replace=False):
 def bookkeeponemodule(module,update=False):
     """Given the name of one module that has been copied to activemodules but nothing else,
     let the rest of the system know the module is there."""
-    scopes[module] = ModuleObject()
+    if not module in scopes:
+        scopes[module] = ModuleObject()
     for i in ActiveModules[module]:
         if ActiveModules[module][i]['resource-type'] == 'page':
             try:
@@ -632,6 +636,41 @@ def rmResource(module,resource,message="Resource Deleted"):
     except:
            messagebus.postMessage("/system/modules/errors/unloading","Error deleting resource: "+str((module,resource)))
 
+def newModule(name,location=None):
+    "Create a new module by the supplied name, throwing an error if one already exists. If location exists, load from there."
+    modulesHaveChanged()
+    #Lets do this outside of modules lock just to be safe
+    if location:
+        with registry.reglock:
+            external_module_locations[name]= os.path.expanduser(location)
+
+    #If there is no module by that name, create a blank template and the scope obj
+    with modulesLock:
+        if name in ActiveModules:
+            raise RuntimeError("A module by that name already exists.")
+        if location:
+            if os.path.isfile(location):
+                raise RuntimeError('Cannot create new module that would clobber existing file')
+
+            if os.path.isdir(location):
+                loadModule(location,name)
+            else:
+                ActiveModules[name] = {"__description":
+                {"resource-type":"module-description",
+                "text":"Module info here"}}
+        else:
+            ActiveModules[name] = {"__description":
+            {"resource-type":"module-description",
+            "text":"Module info here"}}
+
+        bookkeeponemodule(name)
+        #Go directly to the newly created module
+        messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Created Module " + name)
+        messagebus.postMessage("/system/modules/new",{'user':pages.getAcessingUser(), 'module':name})
+
+
+
+
 def rmModule(module,message="deleted"):
         modulesHaveChanged()
         unsaved_changed_obj[module]=message
@@ -641,7 +680,7 @@ def rmModule(module,message="deleted"):
 
         #Delete any custom resource types hanging around.
         for k in j:
-            if j['resource-type'] in additionalTypes:
+            if j.get('resource-type',None) in additionalTypes:
                 try:
                    additionalTypes[j['resource-type']].ondelete(i,k,j[k])
                 except:

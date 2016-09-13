@@ -267,6 +267,7 @@ This event last ran:
 Saving this module will case it to completely reload, including its local scope. Other resources will not be affected.
 </p>
 %if pages.canUserDoThis("/admin/modules.edit"):
+<a href="/modules/module/${url(module)}/obj/event/${url(name)}">View the event's namespace(requires edit permission, beware shoulder surfers)</a></br>
 <input type="submit" value="Save Changes"></input>
 %else:
 <p>You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>

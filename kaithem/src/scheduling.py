@@ -65,6 +65,7 @@ class RepeatingEvent(BaseEvent):
         del function
 
     def schedule(self):
+        "Insert self into the scheduler. This causes it to run once. To actually repeat, use register."
         with self.lock:
             if self.scheduled:
                 return
@@ -101,6 +102,7 @@ class RepeatingEvent(BaseEvent):
 
 
     def register(self):
+        "Register as a repeating event. "
         scheduler.register_repeating(self)
 
     def unregister(self):

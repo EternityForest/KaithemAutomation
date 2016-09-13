@@ -204,39 +204,12 @@ class WebInterface():
         pages.require("/admin/modules.edit")
         pages.postOnly()
 
-        modulesHaveChanged()
-
-        #Lets do this outside of modules lock just to be safe
-        if "location" in kwargs:
-            with registry.reglock:
-                external_module_locations[kwargs['name']]= os.path.expanduser(kwargs['location'])
-
-
         #If there is no module by that name, create a blank template and the scope obj
         with modulesLock:
-            if kwargs['name'] not in ActiveModules:
-                if 'location' in kwargs and kwargs['location']:
-                    try:
-                        loadModule(os.path.split( kwargs['location'])[1], os.path.split( kwargs['location'])[0],kwargs['name'])
-                        bookkeeponemodule(kwargs['name'])
-                    except:
-                        ActiveModules[kwargs['name']] = {"__description":
-                        {"resource-type":"module-description",
-                        "text":"Module info here"}}
-                else:
-                    ActiveModules[kwargs['name']] = {"__description":
-                    {"resource-type":"module-description",
-                    "text":"Module info here"}}
-                #Create the scope that code in the module will run in
-                scopes[kwargs['name']] = ModuleObject()
-                #Go directly to the newly created module
-                messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Created Module " + kwargs['name'])
-                messagebus.postMessage("/system/modules/new",{'user':pages.getAcessingUser(), 'module':kwargs['name']})
-
-
-                raise cherrypy.HTTPRedirect("/modules/module/"+util.url(kwargs['name']))
-            else:
+            if kwargs['name'] in ActiveModules:
                 return pages.get_template("error.html").render(info = " A module already exists by that name,")
+            newModule(kwargs['name'], kwargs.get("location",None))
+            raise cherrypy.HTTPRedirect("/modules/module/"+util.url(kwargs['name']))
 
     @cherrypy.expose
     def loadlibmodule(self,module):
@@ -282,10 +255,22 @@ class WebInterface():
             if path[0] == 'obj':
                 #There might be a password or something important in the actual module object. Best to restrict who can access it.
                 pages.require("/admin/modules.edit")
+
+                if path[1] == "module":
+                    obj = scopes[root]
+                    objname = "Module Obj: " +root
+
+                if path[1] == "event":
+                    obj = newevt.EventReferences[root,path[2]].pymodule
+                    objname = "Event: " +path[2]
+
+                if 'objname' in kwargs:
+                    objname = kwargs['objname']
+
                 if not "objpath" in kwargs:
-                    return pages.get_template("modules/modulescope.html").render(kwargs=kwargs, name = root, obj = scopes[root])
+                    return pages.get_template("modules/modulescope.html").render(kwargs=kwargs, name = root,obj=obj, objname=objname)
                 else:
-                    return pages.get_template("obj_insp.html").render(objpath = kwargs['objpath'],objname = kwargs['objname'], obj = followAttributes(scopes[root],kwargs['objpath']))
+                    return pages.get_template("obj_insp.html").render(objpath = kwargs['objpath'],objname=objname, obj = followAttributes(obj,kwargs['objpath']))
 
             #This gets the interface to add a page
             if path[0] == 'addresource':
