@@ -44,10 +44,7 @@ function KWidget_subscribe(key,callback)
 
 function KWidget_register(key, callback)
 {
-	if(!unpolled)
-	{
-		KWidget_polled.push(key);
-	}
+    KWidget_polled.push(key);
 	KWidget_subscribe(key,callback);
 }
 function KWidget_setValue(key,value)
@@ -147,16 +144,18 @@ KWidget_connect = function()
 		KWidget_connection.onmessage = function(e){
 			try{
 		        var resp = JSON.parse(e.data);
+				console.log(resp);
 			}
 			catch(err)
 			{
 				console.log("JSON Parse Error in websocket response:\n"+e.data);
 			}
 
-		for (n=0;n<resp.length; n++)
+        //Iterate messages
+		for (var n=0;n<resp.length; n++)
 			{
 				i=resp[n]
-				for(var j in KWidget_serverMsgCallbacks[i[0]])
+				for(var j=0; j<KWidget_serverMsgCallbacks[i[0]].length; j++)
 					{
 						KWidget_serverMsgCallbacks[i[0]][j](resp[n][1]);
 					}
@@ -187,6 +186,8 @@ KWidget_connect = function()
 			{
 			    window.setTimeout(KWidget_poll_ratelimited, 120);
 		    }
+
+			KWidget_pollWaiting =false
 		}
 
 		KWidget_lastSend =0
@@ -209,10 +210,12 @@ KWidget_connect = function()
 			else{
 				if(KWidget_pollWaiting)
 				{
+					console.log("Already waiting");
+					console.log(n);
 					return
 				}
 				KWidget_pollWaiting = true;
-				window.setTimeout(KWidget_poll_ratelimited,44-(n-KWidget_lastSend))
+				window.setTimeout(KWidget_poll_ratelimited,50-(n-KWidget_lastSend))
 			}
 		}
 

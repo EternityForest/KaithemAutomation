@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #File for keeping track of and editing kaithem modules(not python modules)
-import threading,urllib,shutil,sys,time,os,json,traceback,copy,hashlib,logging
+import threading,urllib,shutil,sys,time,os,json,traceback,copy,hashlib,logging, gc
 import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling,modules_state,registry
 from .modules_state import ActiveModules,modulesLock,scopes,additionalTypes,fileResourceAbsPaths
@@ -620,10 +620,11 @@ def rmResource(module,resource,message="Resource Deleted"):
     try:
         if r['resource-type'] == 'page':
             usrpages.removeOnePage(module,resource)
+            gc.collect()
 
         elif r['resource-type'] == 'event':
             newevt.removeOneEvent(module,resource)
-
+            
         elif r['resource-type'] == 'permission':
             auth.importPermissionsFromModules() #sync auth's list of permissions
 
@@ -672,30 +673,31 @@ def newModule(name,location=None):
 
 
 def rmModule(module,message="deleted"):
-        modulesHaveChanged()
-        unsaved_changed_obj[module]=message
-        with modulesLock:
-           j = copy.deepcopy(ActiveModules.pop(module))
-           scopes.pop(module)
+    modulesHaveChanged()
+    unsaved_changed_obj[module]=message
+    with modulesLock:
+       j = copy.deepcopy(ActiveModules.pop(module))
+       scopes.pop(module)
 
-        #Delete any custom resource types hanging around.
-        for k in j:
-            if j.get('resource-type',None) in additionalTypes:
-                try:
-                   additionalTypes[j['resource-type']].ondelete(i,k,j[k])
-                except:
-                   messagebus.postMessage("/system/modules/errors/unloading","Error deleting resource: "+str(i,k))
-        #Get rid of any lingering cached events
-        newevt.removeModuleEvents(module)
-        #Get rid of any permissions defined in the modules.
-        auth.importPermissionsFromModules()
-        usrpages.removeModulePages(module)
+    #Delete any custom resource types hanging around.
+    for k in j:
+        if j.get('resource-type',None) in additionalTypes:
+            try:
+               additionalTypes[j['resource-type']].ondelete(i,k,j[k])
+            except:
+               messagebus.postMessage("/system/modules/errors/unloading","Error deleting resource: "+str(i,k))
+    #Get rid of any lingering cached events
+    newevt.removeModuleEvents(module)
+    #Get rid of any permissions defined in the modules.
+    auth.importPermissionsFromModules()
+    usrpages.removeModulePages(module)
 
-        if module in external_module_locations:
-            del external_module_locations[module]
-
-        messagebus.postMessage("/system/modules/unloaded",module)
-        messagebus.postMessage("/system/modules/deleted",{'user':pages.getAcessingUser()})
+    if module in external_module_locations:
+        del external_module_locations[module]
+    #Get rid of any garbage cycles associated with the event.
+    gc.collect()
+    messagebus.postMessage("/system/modules/unloaded",module)
+    messagebus.postMessage("/system/modules/deleted",{'user':pages.getAcessingUser()})
 
 class KaithemEvent(dict):
     pass

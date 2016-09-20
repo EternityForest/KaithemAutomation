@@ -16,7 +16,7 @@
 #NOTICE: A LOT OF LOCKS ARE USED IN THIS FILE. WHEN TWO LOCKS ARE USED, ALWAYS GET _event_list_lock LAST
 #IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
-import traceback,threading,sys,time,atexit,collections,os,base64,imp,types,weakref,dateutil,datetime,recurrent,re,pytz
+import traceback,threading,sys,time,atexit,collections,os,base64,imp,types,weakref,dateutil,datetime,recurrent,re,pytz,gc
 import dateutil.rrule
 import dateutil.tz
 from . import workers, kaithemobj,messagebus,util,modules_state,scheduling
@@ -493,7 +493,7 @@ class CompileCodeStringsMixin():
             raise e
         exec(initializer,self.pymodule.__dict__,self.pymodule.__dict__)
 
-        body = "def action():\n"
+        body = "def _event_action():\n"
         for line in action.split('\n'):
             body+=("    "+line+'\n')
         body = compile(body,"Event_"+self.module+'_'+self.resource,'exec')
@@ -504,7 +504,7 @@ class CompileCodeStringsMixin():
 
 
     def _do_action(self):
-        self.pymodule.action()
+        self.pymodule._event_action()
 
 class DirectFunctionsMixin():
         def _init_setup_and_action(self,setup,action):
@@ -748,7 +748,7 @@ class ChangedEvalEvent(BaseEvent,CompileCodeStringsMixin):
         BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
         self._init_setup_and_action(setup,do)
 
-        x = compile("def trigger():\n    return "+f,"Event_"+self.module+'_'+self.resource,'exec')
+        x = compile("def _event_trigger():\n    return "+f,"Event_"+self.module+'_'+self.resource,'exec')
         exec(x,self.pymodule.__dict__)
 
         #This flag indicates that we have never had a reading
@@ -757,7 +757,7 @@ class ChangedEvalEvent(BaseEvent,CompileCodeStringsMixin):
 
     def _check(self):
         #Evaluate the function that gives us the values we are looking for changes in
-        self.latest = self.pymodule.trigger()
+        self.latest = self.pymodule._event_trigger()
         #If this is the very first reading,
         if not self.at_least_one_reading:
             #make a fake previous reading the same as the last one
@@ -782,7 +782,7 @@ class PolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
         if when == 'False':
             self.polled = False
         #Compile the trigger
-        x = compile("def trigger():\n    return "+when,"Event_"+self.module+'_'+self.resource,'exec')
+        x = compile("def _event_trigger():\n    return "+when,"Event_"+self.module+'_'+self.resource,'exec')
         exec(x,self.pymodule.__dict__)
 
         self._init_setup_and_action(setup,do)
@@ -790,7 +790,7 @@ class PolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
     def _check(self):
         """Check if the trigger is true and if so do the action."""
         #Eval the condition in the local event scope
-        if self.pymodule.trigger():
+        if self.pymodule._event_trigger():
             #Only execute once on false to true change unless continual was set
             if (self.continual or self._prevstate == False):
                 self._prevstate = True
@@ -943,6 +943,8 @@ def removeOneEvent(module,resource):
             __EventReferences[module,resource].unregister()
             __EventReferences[module,resource].cleanup()
             del __EventReferences[module,resource]
+    gc.collect()
+
 
 #Delete all _events in a module from the cache
 def removeModuleEvents(module):

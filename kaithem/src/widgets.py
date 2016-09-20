@@ -68,6 +68,14 @@ class WebInterface():
     def session_id(self):
         return server_session_ID
 
+def subsc_closure(self,i):
+    def f(msg):
+        try:
+            self.send(json.dumps([[i,msg]]))
+        except:
+            messagebus.postMessage("system/errors/widgets/websocket", traceback.format_exc(6))
+    return f
+
 if config['enable-websockets']:
     class websocket(WebSocket):
         def __init__(self,*args,**kwargs):
@@ -104,13 +112,9 @@ if config['enable-websockets']:
                             continue
                         if i == "__WIDGETERROR__":
                             continue
-                        def f(msg):
-                            try:
-                                self.send(json.dumps([[i,msg]]))
-                            except:
-                                messagebus.postMessage("system/errors/widgets/websocket", traceback.format_exc(6))
+
                         with subscriptionLock:
-                            widgets[i].subscriptions[self.user] = f
+                            widgets[i].subscriptions[self.user] = subsc_closure(self,i)
                             widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
                         self.subscriptions.append(i)
                         resp.append([i, widgets[i]._onRequest(user)])
@@ -463,6 +467,7 @@ class Slider(Widget):
             <b><p>%(label)s</p></b>
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
             %(orient)s
+           onchange="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));"
            oninput="
            %(htmlid)s_clean=%(htmlid)s_cleannext=false;
            KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
