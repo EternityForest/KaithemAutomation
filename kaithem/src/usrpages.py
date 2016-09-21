@@ -15,7 +15,7 @@
 
 
 #This file handles the display of user-created pages
-import time,os,threading,traceback
+import time,os,threading,traceback,gc
 from .import kaithemobj,util,pages,directories,messagebus,systasks,modules_state
 import mako, cherrypy,sys
 
@@ -113,6 +113,8 @@ def removeOnePage(module,resource):
         if module in _Pages:
             if resource in _Pages[module]:
                     del _Pages[module][resource]
+    gc.collect()
+
 
 #Delete all __events in a module from the cache
 def removeModulePages(module):

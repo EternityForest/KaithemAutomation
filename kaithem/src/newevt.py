@@ -355,12 +355,16 @@ class BaseEvent():
 
     def manualRun(self):
         #J.F. Sebastian of stackoverflow's post was helpful for this
-        if not lock.acquire(blocking=False):
-            raise WouldBlockError
+        if not self.lock.acquire(blocking=False):
+            time.sleep(0.1)
+            if not self.lock.acquire(blocking=False):
+                time.sleep(0.7)
+                if not self.lock.acquire():
+                    raise WouldBlockError("Could not acquire lock while event already running or polling. Trying again may work.")
         try:
-            self._on_trigger(self)
+            self._on_trigger()
         finally:
-            lock.release()
+            self.lock.release()
 
     def cleanup(self):
         try:
@@ -833,8 +837,8 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
         #TODO, Maybe this method should be asyncified?
         self.handler= self._handler
         self.exact = self.get_exact()
-
-        self.nextruntime = scheduling.get_next_run(self.trigger)
+        self.rr = scheduling.get_rrule(self.trigger)
+        self.nextruntime = scheduling.get_next_run(self.trigger,rr=self.rr)
         if self.nextruntime == None:
             return
         self.next=scheduler.schedule(self.handler,self.nextruntime,False)
@@ -855,7 +859,7 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
             self.next.unregister()
         except AttributeError:
             pass
-        self.nextruntime = scheduling.get_next_run(self.trigger)
+        self.nextruntime = scheduling.get_next_run(self.trigger, rr=self.rr)
         if self.nextruntime == None:
             return
         self.next=scheduler.schedule(self.handler,self.nextruntime,False)

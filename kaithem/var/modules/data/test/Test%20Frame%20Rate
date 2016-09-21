@@ -1,7 +1,7 @@
 continual: false
 enable: true
 once: true
-priority: interactive
+priority: realtime
 rate-limit: 0.0
 resource-type: event
 trigger: '!onchange kaithem.time.second()'
@@ -19,6 +19,6 @@ lastposted = 0
 global last,lastposted
 if time.time()-last>1.2:
     if time.time()-lastposted>5*60:
-        kaithem.message.post("/system/notifications/errors", "Frame rate dropped, onchange second fired more than 1s since last")
+        kaithem.message.post("/system/notifications/errors", "Frame rate dropped, onchange second fired more than 1s since last. Actual Delay: "+str(time.time()-last)+"s")
         lastposted = time.time()
 last = time.time()

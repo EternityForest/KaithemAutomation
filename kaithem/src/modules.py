@@ -304,10 +304,10 @@ def initModules():
 
 
 def saveModule(module, dir,modulename=None):
+    "Returns a list of saved module,resource tuples and the saved resource."
     #Iterate over all of the resources in a module and save them as json files
     #under the URL urld module name for the filename.
-    global unsaved_changed_obj
-    xxx = unsaved_changed_obj.copy()
+    saved = []
     try:
         #Make sure there is a directory at where/module/
         util.ensure_dir2(os.path.join(dir))
@@ -318,8 +318,7 @@ def saveModule(module, dir,modulename=None):
             #Make a json file there and prettyprint it
             r = module[resource]
             saveResource2(r,fn)
-            if (modulename,resource) in unsaved_changed_obj:
-                del unsaved_changed_obj[modulename,resource]
+            saved.append((modulename,resource))
 
             if r['resource-type'] == "internal-fileref":
                 #Handle two separate ways of handling these file resources.
@@ -354,15 +353,16 @@ def saveModule(module, dir,modulename=None):
                     if (modulename,unurl(j)) in unsaved_changed_obj:
                         del unsaved_changed_obj[modulename,unurl(j)]
 
-        if modulename in unsaved_changed_obj:
-            del unsaved_changed_obj[modulename]
-        unsaved_changed_obj = xxx
+        saved.append(modulename)
+        return saved
     except:
         raise
 
 def saveModules(where):
     """Save the modules in a directory as JSON files. Low level and does not handle the timestamp directories, etc."""
     global unsaved_changed_obj
+    #List to keep track of saved modules and resources
+    saved = []
     with modulesLock:
         xxx = unsaved_changed_obj.copy()
         try:
@@ -375,11 +375,11 @@ def saveModules(where):
                 os.remove(os.path.join(where,'__COMPLETE__'))
 
             for i in [i for i in ActiveModules if not i in external_module_locations]:
-                saveModule(ActiveModules[i],os.path.join(where,url(i)),modulename=i)
+                saved.extend(saveModule(ActiveModules[i],os.path.join(where,url(i)),modulename=i))
 
             for i in external_module_locations:
                 try:
-                    saveModule(ActiveModules[i],external_module_locations[i],modulename=i)
+                    saved.extend(saveModule(ActiveModules[i],external_module_locations[i],modulename=i))
                 except:
                     messagebus.postMessage("/system/notifications/errors",'Failed to save external module:' + traceback.format_exc(8))
 
@@ -389,8 +389,7 @@ def saveModules(where):
                 #Note that we URL url file names for the module filenames and foldernames.
                 if unurl(i) not in ActiveModules or ((unurl(i) in external_module_locations)  and not external_module_locations[unurl(i)]==os.path.join(where,i)):
                     shutil.rmtree(os.path.join(where,i))
-                    if unurl(i) in unsaved_changed_obj:
-                        del unsaved_changed_obj[unurl(i)]
+                    saved.append(unurl(i))
 
             for i in external_module_locations:
                 with open(os.path.join(where, "__"+url(i)+".location"),"w+") as f:
@@ -402,13 +401,16 @@ def saveModules(where):
             #This is kind of a hack to deal with deleted external modules
             for i in xxx:
                 if isinstance(i,str):
-                    if not i in ActiveModules:
-                        del unsaved_changed_obj[i]
+                    saved.append(i)
 
             with open(os.path.join(where,'__COMPLETE__'),'w') as f:
                 util.chmod_private_try(os.path.join(where,'__COMPLETE__'), execute=False)
                 f.write("By this string of contents quite arbitrary, I hereby mark this dump as consistant!!!")
-            unsaved_changed_obj = xxx
+
+            #Now that we know the dump is actually valid, we remove those entries from the unsaved list for real
+            for i in saved:
+                if i in unsaved_changed_obj:
+                    del unsaved_changed_obj[i]
         except:
             raise
 
@@ -620,11 +622,10 @@ def rmResource(module,resource,message="Resource Deleted"):
     try:
         if r['resource-type'] == 'page':
             usrpages.removeOnePage(module,resource)
-            gc.collect()
 
         elif r['resource-type'] == 'event':
             newevt.removeOneEvent(module,resource)
-            
+
         elif r['resource-type'] == 'permission':
             auth.importPermissionsFromModules() #sync auth's list of permissions
 

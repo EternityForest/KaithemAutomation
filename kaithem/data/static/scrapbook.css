@@ -446,21 +446,27 @@ input.horizontalslider
 
 
 /*These just add icons to links*/
-a.createbutton::before
+.createbutton::before
 {
  content: url(/static/img/icons/silk/add.png);
 }
 
-a.editbutton::before
+.editbutton::before
 {
 content: url(/static/img/icons/silk/pencil.png);
 }
 
-a.gobutton::before
+.gobutton::before
 {
 content: url(/static/img/icons/silk/arrow_right.png);
 }
-a.deletebutton::before
+
+.playbutton::before
+{
+content: url(/static/img/icons/silk/control_play.png);
+}
+
+.deletebutton::before
 {
  content: url(/static/img/icons/silk/cross.png);
 }

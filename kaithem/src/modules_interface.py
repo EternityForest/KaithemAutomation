@@ -244,13 +244,13 @@ class WebInterface():
             if path[0] == 'runevent':
                 pages.require("/admin/modules.edit")
                 pages.postOnly()
-                newevt.manualRun((module,kwargs[name]))
-                raise cherrypy.HTTPRedirect('/modules/module/'+util.url(module))
+                newevt.manualRun((module,kwargs['name']))
+                raise cherrypy.HTTPRedirect('/modules/module/'+util.url(root))
 
             if path[0] == 'runeventdialog':
                 #There might be a password or something important in the actual module object. Best to restrict who can access it.
                 pages.require("/admin/modules.edit")
-                return pages.get_template("modules/events/run.html").render(name = path[0])
+                return pages.get_template("modules/events/run.html").render(module = root,event=path[1])
 
             if path[0] == 'obj':
                 #There might be a password or something important in the actual module object. Best to restrict who can access it.

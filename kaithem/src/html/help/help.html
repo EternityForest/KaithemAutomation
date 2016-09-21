@@ -786,10 +786,11 @@ h4 {
         <p>a div with class="scrollbox" will look like a secionbox but scroll on overflow. May be nested in
             sectionboxes.</p>
 
-        <h3>Action Links</h3>
+        <h3>Action Links and Buttons</h3>
         <p>Any link having the primary purpose of performing an action as opposed to navigation should have the
             class "button". If the action is delete, it should also have the class "deletebutton", likewise for
-            "createbutton" and "savebutton"</p>
+            "createbutton", "savebutton", "editbutton", and "playbutton"
+			These classes may be used on links or actual buttons.</p>
 
         <h3>Short help strings</h3>
         <p>Short help texts in the gui should be wrapped in a p element with class ="help"</p>
@@ -797,6 +798,23 @@ h4 {
         <h3>Menu Bars</h3>
         <p>Oftentimes you want to have something like the menu bars at the top of windows in desktop apps. An easy
             way to do this is to put your controls in a p element of class = "menubar"</p>
+
+		<h3>Highlighting</h3>
+		<p>Making spans, paragraphs, etc stand out can be done by applying the classes "highlight", "specialentry",
+			"error", or "warning".</p>
+
+	    <p>specialentry is used when an entry in a list is different from other entries, and might be used for things like __methods__ and admin users</p>
+
+		<p>highlight is just a general purpose highlight for more important that usual entries</p>
+
+		<p>error and warning should be used when a element is an error notification</p>
+
+		<h3>Other Stuff</h3>
+		<p>At the moment, theming kaithem's built in widgets and things like that must be done by reading the the code as most of <thead>
+			classes are not documented.</p>
+
+		<p>However, where possible kaithem prefers semantic HTML to classes, so it should be relatively easy to figure out.</p>
+		</thead>
 
 
         <h2>The Internal Message Bus</h2>

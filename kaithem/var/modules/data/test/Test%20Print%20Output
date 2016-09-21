@@ -126,6 +126,7 @@ versions:
 
 #End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
 ---
+"Manually run this event to test manual running also"
 print("This text should appear at the bottom of the event edit page.")
 ---
-pass
+print("If trigger is false, it means that if this gets printed it was run manually.")

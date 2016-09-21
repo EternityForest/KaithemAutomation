@@ -23,7 +23,7 @@ def getDesc():
 MD5 Sum: <b>${getModuleHash(name)}</b></br>
 <a href="/modules/download/${url(name)}.zip">Download this module as a zip file</a><br>
 <a href="/modules/yamldownload/${url(name)}.zip">Download this module as a zip file with YAML resources(not compatible with older versions)</a><br>
-<a href="/modules/module/${url(name)}/obj/module">View the module namespace object(New, requires edit permission)</a>
+<a href="/modules/module/${url(name)}/obj/module">View the module namespace object(requires edit permission, beware shoulder surfers)</a>
 </section>
 <h3>Basic Information</h3>
 <div class="sectionbox">
@@ -89,11 +89,11 @@ temp_p+= i+'/'
 <p class="help">This module contains the following resources.</p>
 
 <%!
-def get_time(t):
+def get_time(ev):
   try:
-      return scheduling.get_next_run(t) or 0
+      return newevt.EventReferences[ev].nextruntime or 0
   except Exception as e:
-      return 0
+      return -1
 
 #n is the module name
 #f is the folder we are checking if it is in, including the module name
@@ -140,7 +140,7 @@ continue
        </b>
 
 <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
-<a class="button" href="/modules/module/${url(name)}/runeventdialog/${url(i)}">Run Now</a>
+<a class="button playbutton" href="/modules/module/${url(name)}/runeventdialog/${url(i)}">Run Now</a>
 	       %if newevt.fastGetEventErrors(name,i):
 	       <span class="error">[${len(newevt.fastGetEventErrors(name,i))} Errors]</span>
 	       %endif
@@ -162,14 +162,16 @@ continue
 
 		    %if module[i]['trigger'].startswith("!time") and module[i].get('enable',"True"):
 		    <br><b>Next Run:</b>
-		    <%
-		      xyz= get_time(module[i]['trigger'])
-		      unitsofmeasure.strftime()
-		      if xyz ==0:
-                        xyz= "<b>Not Scheduled to Run</b>"
-                      else:
-                        xyz =unitsofmeasure.strftime()
-                    %>
+            <%
+            xyz= get_time((name,i))
+            unitsofmeasure.strftime()
+            if xyz ==0:
+                xyz= "<b>Not Scheduled to Run</b>"
+            elif xyz == -1:
+                xyz="Error getting next run time, try refreshing page again."
+            else:
+                xyz =unitsofmeasure.strftime(xyz)
+            %>
 		    <code>${xyz}</code></p>
 		    %endif
 	  </dd>
