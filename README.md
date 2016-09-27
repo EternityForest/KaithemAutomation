@@ -1,21 +1,31 @@
 KaithemAutomation
 =================
 
-Flexible Linux home/commercial automation server written in python, HTML, Mako, and CSS. More low level than your average HA system. May work on non-linux, but it is not tested.
+Flexible Linux home/commercial automation server written in pure python, HTML, Mako, and CSS. More low level than your average HA system. Runs on python2 and python3, pill likely work on any platform, but it is not tested outside of linux.
 
-You automate things by directly writing python and HTML via a web IDE. Create pages and secure them with a flexible user/group/permission system! Create events that run when an expression becomes true! An internal message bus logs events. Write HTML Pages with mako templates. Automatically generate websocket powered widgets without writing any javascript. Built in performance profiling(requires yappi). Play audio using one of several audio backends(mplayer suggested).
+You automate things by directly writing python and HTML via a web IDE. Create pages and secure them with SSL and a flexible user/group/permission system!
 
-The entire server state is maintained in RAM, and any changes you make to your code never touches the disk unless you explicitly save or configure
-auto-save. This allows experimentation without wearing out flash drives. Logs are also maintained in ram and then dumped all at once at configurable intervals. The save format is a simple JSON format that can be hand edited if needed. Most save files are never overwritten, instead a new file is created and then the old one deleted only after the new one is complete, preventing certain file corruption issues.
+Create events that run when an expression becomes true! An internal message bus logs events. Write HTML Pages with Mako templates. Automatically generate WebSocket powered widgets without writing any javascript. Built in performance profiling(requires yappi). Play audio using one of several audio backends(mplayer suggested).
 
-Kaithem includes a lbrary for common automation tasks such as file IO, timing, executing functions in the background, formatting numbers, and more.
+The entire server state is maintained in RAM, and any changes you make to your code never touches the disk unless you explicitly save or configure auto-save. This allows experimentation without wearing out SD cards.
 
-Scheduling an event to run at 3pm is as simple as "!time 3pm" with the new special trigger expressions.
+Saving occurs transactionally, so a copy of the state of the server is made before changing the new one. The save format is a simple YAML format that can be hand edited if needed.
+
+You can store small amounts of data in the registry which will be persisted to disk the next time the state is saved, or there are built in libraries for YAML or JSON based persistance with atomic file updates(The old file is renamed to file~ and only deleted after the new file is created)
+
+Logs are maintained in ram and then dumped all at once at configurable intervals.
+
+Pages and events are types of resources that can be grouped into "modules" and uploaded and downloaded as zip files. This makes it relatively easy to manage multiple servers that need to run similar code.
+
+
+Kaithem includes a library for common automation tasks such as file IO, timing, executing functions in the background, formatting numbers, and more.
+
+Kaithem is still beta, but has been used in production applications running for months at a time.
 
 KAITHEM WAS NOT DESIGNED FOR MILITARY, AEROSPACE, IDUSTRIAL,
 MEDICAL, NUCLEAR, SAFETY OF LIFE OR ANY OTHER CRITICAL APPLICATION
 ESPECIALLY THE CURRENT STILL-IN-DEVELOPMENT VERSION. YOU PROBABLY SHOULDN'T TRUST IT FOR
-A SECURITY SYSTEM FOR A BAG OF FUNYUNS(tm) AT THIS POINT! 
+A SECURITY SYSTEM FOR A BAG OF FUNYUNS(tm) AT THIS POINT!
 
 Installation
 ============
@@ -29,7 +39,7 @@ Command line options:
     "-c"
         Supply a specific configuration file. Otherwise uses default. Any option not found in supplied file
         Reverts to default the files are YAML, see kaithem/data/default_configuration.txt for info on options.
-        
+
     "-p"
         Specify a port. Overrides all config stuff.
 
@@ -52,11 +62,11 @@ Change Log
 
 ###0.52(Minor Bugfix Release)
 
-* Fix about box error on windows 
-* Fix non-cross platform default strftime 
+* Fix about box error on windows
+* Fix non-cross platform default strftime
 * Should the user enter a bad strftime, revert to the default
-* Fix error saving uncompressed logs 
-* Add mplayer and lm-sensors to acknowledgements 
+* Fix error saving uncompressed logs
+* Add mplayer and lm-sensors to acknowledgements
 
 
 
@@ -148,4 +158,3 @@ Some images used in theming are taken from this site: http://webtreats.mysitemyw
 by some due to a restriction on "redistribution as-is for free in a manner that directly competes with our own websites."
 However they are royalty free for personal and commercial use ad do not require attribution, So I consider them appropriate
 for an open project
-

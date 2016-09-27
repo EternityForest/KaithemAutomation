@@ -84,145 +84,80 @@ class ResourceType():
 r = ResourceType()
 additionalTypes['example'] = r
 
-class BaseHeirarchyDict(dict):
+class HierarchyDict():
     def __init__(self):
         self.flat = {}
-
-    def __setitem__(self, key, val):
-        self.flat[key]=HeirarchyDict(val)
-    def copy(self):
-        return self.flat.copy()
-    def keys(self):
-        return self.flat.keys()
-    def items(self):
-        return self.flat.items()
-    def values(self):
-        return self.flat.values()
-
-    def __delitem__(self,key):
-        del self.flat[key]
-
-
-    def __iter__(self,):
-        return self.flat.__iter__()
-
-    def __contains__(self, key):
-        return self.flat.__contains__(key)
-
-    def __getitem__(self,key):
-        return self.flat[key]
-
-class HeirarchyDict(dict):
-    """
-    Dict that is designed for heirarchial keys of the form x/y/z, supporting \ escapes.
-    Values must be dicts that have a resource type item.
-    If you delete a directory, things that directory contains won't be deleted.
-
-    Flat will not contain any heirarchydicts.
-
-    Basially all this is is a helper to make it faster to search the heirarchy in a dict and that's about it.
-
-    To navigate it heirarchially, look in the obj.root. It will be a dict. all the contents will either be values
-    aka resource dicts or heirarchydict instances to represent folders.
-
-    Each dict.flat has all the directory contents, but subdirectories are represented by the directory resource,
-    And you call getDir to get the HeirarchyDict that corresponds to that directory.
-
-    For example, a contains directory b which has resource c.
-
-    You iterate a and see a resource with type directory called b. you call a.getDir("b") and get b. That one has the resource c.
-    """
-    def __init__(self,d={}):
-        #This stores subdirectory references
+        #This tree only stores the tree structure, actual elements are referenced by flat.
+        #Names can be both dirs and entries, and no matter what are marked by dicts in the root.
+        #To get the actual item, use root to navigate quickly and use flat to get the actual item
         self.root = {}
-        #This stores actual items, but indexed by full path.
-        self.flat = {}
-        for i in sorted(d,key= lambda x:len(x)):
-            self[i]=d[i]
+    def parsePath(self,s):
+        return util.split_escape(s,"/","\\")
 
-    def _put_item_in(self, key, val,realkey,subst=None):
-        #Given key, which is a path elative to this dict,
-        #/=And realkey, which is the full key, traverse the chain
-        #Of heriarchy dicts until you get to the last one, and insert value there.
-
-        #If val is a heirarchy
-        key2 = util.split_escape(key,"/","\\")
-        l =self.root
-        m=self
-        #Traverse all but last path component
-        for i in key2[:-1]:
-            if not i in l:
-                return
-            if isinstance(l[i], HeirarchyDict):
-                l = l[i].root
-                m=l[i]
-            else:
-                return
-
-
-        #Do the actual insert.
-        m.flat[realkey] = val
-        if val.get('resource-type') == "directory":
-            m.root[key2[-1]] = HeirarchyDict()
-        else:
-            m.root[key2[-1]] = val
-
-    def __setitem__(self, key, val):
-        #This will likely only ever be used at the base of the thing. So here the key is the same as the realkey
-        key2 = util.split_escape(key,"/","\\")
-        self.flat[key]=value
-        l =self.root
-        m=self
-        for i in key2[:-1]:
-            if not i in l:
-                return
-            if isinstance(l[i], HeirarchyDict):
-                l = l[i].root
-                m=l[i]
-            else:
-                return
-
-        m._put_item_in(key2[-1],val,key)
-
-    def getDir(self,key):
-        if isinstance(key,(list,tuple)):
-            key2=key
-        else:
-            key2 = util.split_escape(key,"/","\\")
-        l =self.root
-        for i in key2:
-            l = l[i].root
-        return l
+    def pathJoin(self,*p):
+        return "/".join(p)
     def copy(self):
         return self.flat.copy()
-    def keys(self):
-        return self.flat.keys()
-    def items(self):
-        return self.flat.items()
-    def values(self):
-        return self.flat.values()
 
-    def __delitem__(self,key):
-        del self.flat[key]
-        key = split_escape(key,"/","\\")
-        l =self.root
-
-        for i in key[:-1]:
+    def ls(self,k):
+        p = self.parsePath(k)
+        l = self.root
+        #Navigate to the last dir in the path, making dirs as needed.
+        for i in p:
             if i in l:
-                l = l[i].root
+                l = l[i]
             else:
-                return
+                l[i] = {}
+                l = l[i]
+        return l.keys()
 
-        del l[key[-1]]
+    def __contains__(self,k):
+        if k in self.flat:
+            return True
+        return False
 
-    def __iter__(self,):
-        return self.flat.__iter__()
+    def __setitem__(self,k,v):
+        self.flat[k] = v
+        p = self.parsePath(k)
+        l = self.root
+        #Navigate to the last dir in the path, making dirs as needed.
+        #
+        for i in p:
+            if i in l:
+                l = l[i]
+            else:
+                l[i] = {}
+                l = l[i]
+    def __getitem__(self,k):
+        return self.flat[k]
 
-    def __contains__(self, key):
-        return self.flat.__contains__(key)
+    def __delitem__(self,k):
+        del self.flat[k]
+        p = self.parsePath(k)
+        l = self.root
+        pathTaken = []
+        #Navigate to the last dir in the path, making dirs as needed
+        for i in p[:-1]:
+            if i in l:
+                pathTaken.append((l, l[i],i))
+                l = l[i]
+            else:
+                l[i] = {}
+                pathTaken.append((l,l[i],i))
+                l = l[i]
+        #Now delete the "leaf node"
+        for i in l[p[-1]]:
+            try:
+                del self[self.pathJoin(k,i)]
+            except KeyError:
+                pass
 
-    def __getitem__(self,key):
-        return self.flat[key]
+        del l[p[-1]]
+
+        #This deletes the entire chain of empty folders, should such things exist.
+        for i in reversed(pathTaken):
+            if not i[1]:
+                del i[0][2]
 
 #Lets just store the entire list of modules as a huge dict for now at least
 ActiveModules = {}
