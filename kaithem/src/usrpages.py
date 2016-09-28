@@ -75,8 +75,10 @@ class CompiledPage():
             if resource['auto-reload']:
                 header += '<meta http-equiv="refresh" content="%d">' % resource['auto-reload-interval']
 
-        footer = util.readfile(os.path.join(directories.htmldir,'pagefooter.html'))
-
+        if not ('no-header' in resource) or not (resource['no-header']):
+            footer = util.readfile(os.path.join(directories.htmldir,'pagefooter.html'))
+        else:
+            footer = ""
         templatesource = header + template + footer
         self.template = mako.template.Template(templatesource, uri="Template"+m+'_'+r)
 

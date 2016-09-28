@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import threading,urllib,shutil,sys,time,os,json,traceback, copy,mimetypes
+import threading,urllib,shutil,sys,time,os,json,traceback, copy,mimetypes,uuid
 import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling, registry
 from .modules import *
@@ -301,11 +301,8 @@ class WebInterface():
                 return resourceUpdateTarget(module,path[1],kwargs)
 
 
-            #This gets the interface to add a page
             if path[0] == 'getfileresource':
-
                 pages.require("/admin/modules.edit")
-
                 folder = os.path.join(directories.vardir,"modules","filedata")
                 data_basename =fileResourceAbsPaths[module,path[1]]
                 dataname = os.path.join(folder,data_basename)
@@ -333,7 +330,7 @@ class WebInterface():
                 pages.postOnly()
                 folder = os.path.join(directories.vardir,"modules","filedata")
                 util.ensure_dir2(folder)
-                data_basename = kwargs['name']+"_"+str(os.urandom(24).encode('hex'))
+                data_basename = kwargs['name']+"_"+str(uuid.uuid4().hex)
                 dataname = os.path.join(folder,data_basename)
                 inputfile = kwargs['file']
 
@@ -409,9 +406,11 @@ class WebInterface():
                     #If we somehow have no file but an entry, saving will remake the file.
                     #If there's no entry, we will only be able to save by saving the whole state.
                     if  os.path.isfile(os.path.join(directories.moduledir,"data","__"+url(root)+".location")):
-                        if module in external_module_locations:
+                        if root in external_module_locations:
                             os.remove(external_module_locations[root])
-                    external_module_locations.pop(root)
+                            
+                    if root in external_module_locations:
+                        external_module_locations.pop(root)
                 with modulesLock:
                     #Missing descriptions have caused a lot of bugs
                     if '__description' in ActiveModules[root]:

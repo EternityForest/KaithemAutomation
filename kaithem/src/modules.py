@@ -76,22 +76,22 @@ def modulesHaveChanged():
     modules_state.ls_folder.invalidate_cache()
 
 
-class ResourceInterface():
+class ResourceObject(dict):
     def __init__(self, r,m,o):
         self.resource =r
         self.module = m
-        self.data = o
+        dict.__init__(self,o)
 
     def getData():
-        return copy.deepcopy()
+        return copy.deepcopy(self)
 
-class Event(ResourceInterface):
+class Event(ResourceObject):
     resourceType = "event"
 
-class Page(ResourceInterface):
+class Page(ResourceObject):
     resourceType = "page"
 
-class Permission(ResourceInterface):
+class Permission(ResourceObject):
     resourceType = "permission"
 
 class ModuleObject(object):
@@ -306,7 +306,7 @@ def initModules():
 def saveModule(module, dir,modulename=None):
     "Returns a list of saved module,resource tuples and the saved resource."
     #Iterate over all of the resources in a module and save them as json files
-    #under the URL urld module name for the filename.
+    #under the URL url module name for the filename.
     saved = []
     try:
         #Make sure there is a directory at where/module/
@@ -317,7 +317,11 @@ def saveModule(module, dir,modulename=None):
             fn = os.path.join(dir,url(resource))
             #Make a json file there and prettyprint it
             r = module[resource]
-            saveResource2(r,fn)
+
+            #Allow non-saved virtual resources
+            if not hasattr(r,"ephemeral") or r.ephemeral==False:
+                saveResource2(r,fn)
+
             saved.append((modulename,resource))
 
             if r['resource-type'] == "internal-fileref":
