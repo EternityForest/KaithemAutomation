@@ -182,7 +182,7 @@ class Kaithem():
         @staticmethod
         def which(exe):
             return util.which(exe)
-        
+
         @staticmethod
         def sensors():
             try:
@@ -197,11 +197,11 @@ class Kaithem():
         @staticmethod
         def set(key,value):
             registry.set(key,value)
-            
+
         @staticmethod
         def setschema(key,schema):
             registry.setschema(key,schema)
-            
+
         @staticmethod
         def delete(key):
             registry.delete(key)
@@ -221,6 +221,12 @@ class Kaithem():
             mail.rawlistsend(subject,message,list)
 
     class web(object):
+        @staticmethod
+        def resource(name):
+            return pages.webResources[name].url
+
+        WebResource = pages.WebResource
+        
         @staticmethod
         def unurl(s):
             return util.unurl(s)
@@ -305,7 +311,7 @@ class Kaithem():
         @staticmethod
         def subscribe(topic,callback ):
             messagebus.subscribe(topic,callback)
-            
+
     class pymessage():
         @staticmethod
         def post(topic,message):
@@ -350,7 +356,7 @@ class Kaithem():
                 else:
                     f = open(fn,'wb')
                     x=fn
-                    
+
                 if private:
                     util.chmod_private_try(fn)
                 if x.endswith(".json"):

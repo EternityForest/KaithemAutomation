@@ -15,12 +15,31 @@
 
 from mako.template import Template
 from mako.lookup import TemplateLookup
-import cherrypy,base64
+import cherrypy,base64,weakref
 from . import auth
 from . import directories,auth,util
 
 _Lookup = TemplateLookup(directories=[directories.htmldir])
 get_template = _Lookup.get_template
+
+webResources = weakref.WeakValueDictionary()
+
+
+class WebResource():
+    """
+    Represents a pointer to a URL that can be looked up by name, so that looking up 'jquery' could tell you the actual URL.
+    Creating this class registers it in the list.
+    """
+    def __init__(self,name,url,priority=50):
+        self.url = url
+        self.priority = 50
+        try:
+            o =webResources[name]
+            if o.priority <= self.priority:
+                webResources[name] = self
+        except:
+            webResources[name] = self
+
 
 def postOnly():
     """Redirect user to main page if the request is anything but POST"""

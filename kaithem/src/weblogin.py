@@ -48,7 +48,7 @@ class LoginScreen():
     def index(self,**kwargs):
         if not cherrypy.request.scheme == 'https':
             raise cherrypy.HTTPRedirect("/errors/gosecure")
-        return pages.get_template("login.html").render()
+        return pages.get_template("login.html").render(target=kwargs.get("go","/"))
 
     @cherrypy.expose
     def login(self,**kwargs):
