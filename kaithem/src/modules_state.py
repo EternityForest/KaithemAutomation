@@ -162,6 +162,17 @@ class HierarchyDict():
 #Lets just store the entire list of modules as a huge dict for now at least
 ActiveModules = {}
 
+#The total list of al the vresources. We want to store separately so that we can handle the locking easier.
+virtualResourceRoot = {}
+
+
+def addVirtualResource(m,n,o):
+    "Adds a resource to ActiveModules that will go away as soon as there are no references."
+    def f(r):
+        ActiveModules[m].pop(n)
+    ActiveModules[m][n] = weakref.ref(o,f)
+
+
 def in_folder(r,f):
     if not r.startswith(f):
         return False
@@ -174,7 +185,6 @@ def in_folder(r,f):
         return False
     return True
 
-@util.lrucache(100)
 def ls_folder(m,d):
     o = []
     x = ActiveModules[m]
