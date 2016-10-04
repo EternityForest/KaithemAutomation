@@ -1,0 +1,11 @@
+no-header: false
+no-navheader: true
+require-method: [GET, POST]
+require-permissions: []
+resource-type: page
+
+#End YAML metadata, page body mako code begins on first line after ---
+---
+
+
+The value of the count is: ${kaithem.globals.count}

@@ -1,0 +1,14 @@
+no-header: false
+no-navheader: true
+require-method: [GET, POST]
+require-permissions: []
+resource-type: page
+
+#End YAML metadata, page body mako code begins on first line after ---
+---
+
+
+<%!import os%>
+
+<%kaithem.message.post("/test", "BLAH BLAH BLAH" )%>
+This page sends a message to the message bus every time it is viewed. It sends a "BLAH BLAH BLAH at /test

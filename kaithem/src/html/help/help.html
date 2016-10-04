@@ -230,6 +230,19 @@ h4 {
         <p>Upon creating a new permission, you will immediately be able to assign it to groups by selecting the
             checkbox in the group page.</p>
 
+        <h2>
+            <a id="fileref" name="fileref"></a>File Reference Resources
+        </h2>
+		<p>Beginning in version 0.55, modules may contain arbitrary files as resources.
+			To preserve kaithem's atomic save functionality, files are stored in one large pool with names that have long strings of characters after them,
+			and the modules themselves only contain references to them. The exception is in external modules and zip files. Saving to an external module will populate a special __filedata__
+			folder in that module, likewise with zip files. However, due to potential performance and memory constraints,
+			users without the edit permission will not be able to download copies of modules that include files.
+			You should still not make your modules publically viewable unless you have good reason.</p>
+
+		<p>You can always get the real disk path of a file resource from within the same module via the code: module['name'].getPath()</p>
+
+
         <h2>The Widget System</h2>
         <p>
         Kaithem integrates an AJAX library that allows you to create dynamic widgets within HTML pages that automatically interact with the corresponding object on the server.

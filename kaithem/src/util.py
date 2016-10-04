@@ -144,9 +144,11 @@ def search_paths(fn,paths):
         if os.path.exists(os.path.join(i,fn)):
             return os.path.join(i,fn)
 
-def getHighestNumberedTimeDirectory(where):
+def getHighestNumberedTimeDirectory(where,n=0):
     """Given a directory containing entirely folders named after floating point values get the name of the highest. ignore files.
         and also ignoring non-timestapt float looking named directories
+
+        n is normally 0, but setting it to 1 gets the second highest time dir, etc.
     """
     asnumbers = {}
     global min_time
@@ -157,7 +159,7 @@ def getHighestNumberedTimeDirectory(where):
         except ValueError:
             pass
     min_time = max(sorted(asnumbers.keys(), reverse=True)[0],min_time)
-    return asnumbers[sorted(asnumbers.keys(), reverse=True)[0]]
+    return asnumbers[sorted(asnumbers.keys(), reverse=True)[n]]
 
 def deleteAllButHighestNumberedNDirectories(where,N):
     """In a directory full of folders named after time values, we delete all but the highest N directores ignoring files

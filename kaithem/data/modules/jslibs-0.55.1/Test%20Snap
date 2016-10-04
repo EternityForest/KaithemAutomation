@@ -1,0 +1,39 @@
+allow-origins: ['*']
+allow-xss: false
+auto-reload: false
+auto-reload-interval: 5.0
+dont-show-in-index: false
+no-header: false
+no-navheader: true
+require-method: [GET, POST]
+require-permissions: []
+resource-type: page
+
+#End YAML metadata, page body mako code begins on first line after ---
+---
+<%!
+#Code Here runs once when page is first rendered. Good place for import statements.
+__doc__= ""
+%>
+<%
+#Python Code here runs every page load
+%>
+<h2>Testing Snap.svg</h2>
+<div class="sectionbox">
+<a href="http://snapsvg.io/">Snap.svg homepage</a>
+<script src="${kaithem.web.resource('snap.svg-0.4.1')}"></script>
+<svg id="svg" height="100">
+    </svg>
+<script>
+//This code is modified from: http://snapsvg.io/start/
+    
+var snapobj = Snap("#svg");
+var c = snapobj.circle(50, 50, 50);
+c.attr({
+    fill: "lightblue",
+    stroke: "black",
+    strokeWidth: 1
+});
+snapobj.text(25,50,"Snap.svg")
+</script>
+    </div>

@@ -20,10 +20,10 @@ libdir = os.path.join(directories.datadir,"modules")
 %>
 
 %for i in sorted(util.get_immediate_subdirectories(libdir)):
-   <dt>${i|h}<form method=POST action="/modules/loadlibmodule/${url(i)}">
+   <dt><b>${i|h}</b><form method=POST action="/modules/loadlibmodule/${url(i)}">
    <input type="submit" value="Load"></input>
    </form></dt>
-   <dd>${yaml.load(open(os.path.join(libdir,i,"__description")))['text']|h}</dd>
+   <dd><pre style="white-space: pre-wrap;">${yaml.load(open(os.path.join(libdir,i,"__description")))['text']|h}</pre></dd>
 %endfor
 </ul>
 </div>

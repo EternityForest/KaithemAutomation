@@ -185,6 +185,7 @@ def in_folder(r,f):
         return False
     return True
 
+@util.lrucache(800)
 def ls_folder(m,d):
     o = []
     x = ActiveModules[m]

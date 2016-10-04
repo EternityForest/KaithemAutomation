@@ -1,0 +1,11 @@
+no-header: false
+no-navheader: true
+require-method: [GET, POST]
+require-permissions: []
+resource-type: page
+
+#End YAML metadata, page body mako code begins on first line after ---
+---
+
+
+The most recent message posted to /test on the internal bus is: ${module.last_msg}

@@ -99,7 +99,7 @@ class WebInterface():
         if config["downloads-include-md5-in-filename"]:
             cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="%s"'%util.url(module[:-4]+"_"+getModuleHash(module[:-4]))
         cherrypy.response.headers['Content-Type']= 'application/zip'
-        return getModuleAsYamlZip(module[:-4] if module.endswith('.zip') else module)
+        return getModuleAsYamlZip(module[:-4] if module.endswith('.zip') else module, noFiles =not pages.canUserDoThis("/admin/modules.edit"))
 
     #This lets the user download a module as a zip file
     @cherrypy.expose
@@ -109,7 +109,7 @@ class WebInterface():
             cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="%s"' % util.url(module[:-4]+"_"+getModuleHash(module[:-4]))
         cherrypy.response.headers['Content-Type']= 'application/zip'
 
-        return getModuleAsZip(module[:-4])
+        return getModuleAsZip(module[:-4],noFiles =not pages.canUserDoThis("/admin/modules.edit"))
 
     #This lets the user download a module as a zip file. But this one is deprecated.
     #It's only here for backwards compatibility, but it really doesn't matter.
@@ -193,7 +193,6 @@ class WebInterface():
         pages.require("/admin/modules.edit")
         pages.postOnly()
         rmModule(kwargs['name'],"Module Deleted by " + pages.getAcessingUser())
-
         messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Deleted module " + kwargs['name'])
 
         raise cherrypy.HTTPRedirect("/modules")
@@ -219,7 +218,7 @@ class WebInterface():
         if module  in ActiveModules:
             raise cherrypy.HTTPRedirect("/errors/alreadyexists")
 
-        loadModule(module,os.path.join(directories.datadir,"modules"))
+        loadModule(os.path.join(directories.datadir,"modules",module),module)
         bookkeeponemodule(module)
         auth.importPermissionsFromModules()
         raise cherrypy.HTTPRedirect('/modules')
@@ -359,6 +358,8 @@ class WebInterface():
                     insertResource({'resource-type':'internal-fileref', 'target':data_basename})
                     fileResourceAbsPaths[root,kwargs['name']] = dataname
                     modulesHaveChanged()
+                raise cherrypy.HTTPRedirect("/modules/module/"+util.url(root))
+
 
             #This returns a page to delete any resource by name
             if path[0] == 'deleteresource':
@@ -408,7 +409,7 @@ class WebInterface():
                     if  os.path.isfile(os.path.join(directories.moduledir,"data","__"+url(root)+".location")):
                         if root in external_module_locations:
                             os.remove(external_module_locations[root])
-                            
+
                     if root in external_module_locations:
                         external_module_locations.pop(root)
                 with modulesLock:
