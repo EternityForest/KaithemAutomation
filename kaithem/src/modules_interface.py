@@ -167,10 +167,14 @@ class WebInterface():
         with modulesLock:
             pages.require("/admin/modules.edit")
             pages.postOnly()
-            saveModule(ActiveModules[module],external_module_locations[module])
+            s = saveModule(ActiveModules[module],external_module_locations[module])
             if not os.path.isfile(os.path.join(directories.moduledir,"data","__"+url(module)+".location")):
                 with open(os.path.join(directories.moduledir,"data","__"+url(module)+".location"),"w") as f:
                     f.write(external_module_locations[module])
+            for i in s:
+                if i in unsaved_changed_obj:
+                    del unsaved_changed_obj[i]
+
         raise cherrypy.HTTPRedirect("/modules")
 
     #@cherrypy.expose

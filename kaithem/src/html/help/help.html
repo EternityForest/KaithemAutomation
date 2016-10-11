@@ -625,8 +625,13 @@ h4 {
         <h4>kaithem.widgets.APIWidget</h4>
         <p>This widget exists to allow you to create custom widgets easily. When you render() it, you pass a parameter htmlid.
         The render function returns a script that places an object into a global javascript variable of that name.
-        You can use obj.set(x) to set the widget's value to x, and retrieve the widget's value with obj.value.
-        You may use any value that can be represented as JSON.</p>
+        You can use obj.set(x) to set the widget's value to x, and retrieve the widget's value with obj.value.</p>\
+
+        <p>
+        You can also use obj.send(x), to ensure that all values and not just the latest are transmitted. obj.send is more like a message
+        oriented pipe than a shared variable, although for simplicity set may be implemented similarly to send.</p>
+
+        <p>You may transmit any value that can be represented as JSON.</p>
 
         <p>If you would rather recieve a callback after every pollingcycle with the current value,
         just redefine the objects upd(val) method.</p>

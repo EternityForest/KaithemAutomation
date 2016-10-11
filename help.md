@@ -1,8 +1,14 @@
+&lt;%include file="/pageheader.html"/&gt;
+
+Kaithem Help
+
 Kaithem Help
 ============
 
-Introduction
-------------
+<div class="sectionbox">
+
+[](){#intro}Introduction
+------------------------
 
 Kaithem is an automation solution based on the concept of
 events,triggers, and actions. An event is a statement that when the
@@ -30,54 +36,48 @@ from the web interface.
 
 One **very important note** about Kaithem is that it does not save
 anything to the disk except when told to or if autosave was explicilty
-configured. To do this, go to the Save State page and follow the
-instructions. In the event that the software crashes while saving, old
-data will not be corrupted and the old version will be used. Manual
-recovery of the new version will likely be possible for at least some
-files.
+configured. In kaithem "Save" generally means to update the in-memory
+copy, wheras "Save to disk" means to actually whatever is in memory to
+the disk. To do this, go to the Save State page in Settings and follow
+the instructions. Modules configured as external can be saved
+individually.
+
+In the event that the software crashes while saving, old data will not
+be corrupted and the old version will be used. Manual recovery of the
+new version will likely be possible for at least some files.
 
 The exception to this rule is log files. Logs are maintained in ram till
 they reach a certain size(default 33,000 entries) then saved to disk.
 They are also saved when you explicitly save the entire state, or
 periodically if this is configured.
 
-Modules:
---------
+[](){#modules}Modules:
+----------------------
 
-Kaithem is based on the idea that *everything is a module*. This makes
-it very easy to write new device drivers, as they can simply be modules.
+Kaithem stores all user created resources in modules. This makes it very
+easy to write new device drivers, as they can simply be modules that
+place functions into a global namespace.
+
 Code and management pages are just resources within modules. A module is
 just a loose collection of resources all with a unique name. Note that
-two resources with different types still must have unique names.
-Resources can be anything from events and actions to user defined pages
-to custom permissions.
+two resources with different types still must have unique names(within a
+module). Resources can be anything from events and actions to user
+defined pages to custom permissions.
 
 You can name modules as you like, but anything beginning with a
 double-underscore("\_\_") is reserved. Resource, user, and group names
-beginning with a double underscore are also reserved. Basically any name
-beginning with a double underscore may at some point be used by kaithem
-internally.
+beginning with a double underscore are also reserved.
 
 Resources may have any name, however the slash is considered the path
 separator to allow for subfolders within modules. The slash may be
 escaped using an backslash, as can the backslash itself. Whitespace in
 paths has no special meaning.
 
-Most resources are internal Kaithem-specific datatypes that are kept in
-ram. However, modules may also contain arbitrary files as resources.
-Because of RAM limitations, files are not kept in RAM, and a file upload
-is a real upload to disk. However, the atomicity of the action of saving
-modules is preserved, because files are stored in a special data folder
-and linked to as needed from within the module.
-
-When using an external folder to store modules, files are instead stored
-in a special subdirectory with their normal names.
-
 To move a resource between folders, you simply rename it. To move
 foo/baz to a folder bar, simply rename it bar/baz.
 
-Events
-------
+[Events](){#events}
+-------------------
 
 One of the main automation constructs is the *event*. Events are
 mappings between a *trigger* and an *action*.A trigger can be a python
@@ -95,23 +95,24 @@ modules that are generated on the fly. The setup code runs directly
 inside the module, whilst the trigger and action are used to generate
 two functions.
 
+[](){#trigger}
 ### Availible Trigger Expressions
 
-#### !onmsg [topic]
+#### !onmsg \[topic\]
 
 This trigger expression causes the event to occur when a message is
-posted to the internal message bus matching [topic]. The actual topic
+posted to the internal message bus matching \[topic\]. The actual topic
 and message are then availible as \_\_topic and \_\_message
 respectively. If another message occurs while the event is running, it
 will be handled after the first event is done.
 
-#### !onchange [expression]
+#### !onchange \[expression\]
 
 This trigger expression causes the event to occur when the value of
 expression changes. the most recent value of expression is availible as
 \_\_value.
 
-#### !time [expression]
+#### !time \[expression\]
 
 This causes the event to occur at a specific time, such as "every
 Friday" or "every hour on Monday". This is powered by the recurrent
@@ -122,7 +123,7 @@ zone is provided, the local time zone will be used.
 
 By default, if an event is late it will be run as soon as possible, but
 if more than one event is missed it will not run multiple times to make
-up. If the string "exact &ltnumber\>" appears, then events more than
+up. If the string "exact &ltnumber&gt;" appears, then events more than
 number seconds late will just be skipped(Events after run as usual).
 
 Examples: "!time every minute exact 2.5", "Every day at 8:30pm".
@@ -162,7 +163,7 @@ In general recurrent appears to be a great library but natural language
 is hard for computers and you should always verify it is doing what you
 want.
 
-#### !function [name]
+#### !function \[name\]
 
 This trigger expression assigns the action to name. !function module.x
 is the same as module.x = action, where action is a function that
@@ -170,11 +171,8 @@ triggers the event. You mak put a semicolon and a statement after it, as
 in !function f; obj.attach(f) and the statement will be run after the
 function is assigned.
 
-Function events support handoff, in that if you update a function event,
-all existing references will also be updated to reference the new event.
-
-Pages:
-------
+[](){#pages}Pages:
+------------------
 
 Kaithem allows users with the appropriate permissions to create
 user-defined pages. User defined pages are written in HTML and may
@@ -210,8 +208,8 @@ Nonexistant page handling: Should you go to /pages/foo/bar/nonexistant,
 bar will first be searched for a \_\_default\_\_ page, then foo, then
 the root. If no default is found, an error will be returned.
 
-Scoping
--------
+[](){#scope}Scoping
+-------------------
 
 Almost all programming languages have some concept of scope and Python
 is no different. Every event has its own global scope, similar to a
@@ -238,30 +236,48 @@ between all resources within one module (Regardless of where in the
 nested heirarchy the resoucrce is). The module objects have no special
 properties beyond the ability to assign objects to them.
 
-Users and access control:
--------------------------
+[](){#auth}Users and access control:
+------------------------------------
 
 Access control is based on *users*, *groups*, and *permissions*.
 
-A user may belong to any number of groups. A user has access to all
-permissions of the groups he or she is a member of.
+A user may belong to any number of groups.<span
+style="font-style: italic;"> </span>A user has access to all permissions
+of the groups he or she is a member of.
 
 To create new users or groups, change group memberships or permissions,
-or delete users, you must have the /admin/users.edit permission. Keep in
-mind a user with this permission can give himself any other permission
-and so has full access. Do not give this permission to an untrusted
-user.
+or delete users, you must have the<span style="font-style: italic;">
+/admin/users.edit </span>permission. Keep in mind a user with this
+permission can give himself any other permission and so has full access.
+Do not give this permission to an untrusted user.
 
-Permissions are generally of the form  "/\<path\>/\<item\>.\<action\>"
-without quotes. The path describes the general catergory, the item
-specifies a resource, and the action specifies an action that may be
-performed on the resource. Modules may define their own permissions, and
-user-defined pages may be configured to require one or more permissions
-to access. For consistancy, You should always use the above permission
-format.
+Permissions are generally of the form 
+"/&lt;path&gt;/&lt;item&gt;.&lt;action&gt;" without quotes. The path
+describes the general catergory, the item specifies a resource, and the
+action specifies an action that may be performed on the resource.
+Modules may define their own permissions, and user-defined pages may be
+configured to require one or more permissions to access. For
+consistancy, You should always use the above permission format.
 
 Upon creating a new permission, you will immediately be able to assign
 it to groups by selecting the checkbox in the group page.
+
+[](){#fileref}File Reference Resources
+--------------------------------------
+
+Beginning in version 0.55, modules may contain arbitrary files as
+resources. To preserve kaithem's atomic save functionality, files are
+stored in one large pool with names that have long strings of characters
+after them, and the modules themselves only contain references to them.
+The exception is in external modules and zip files. Saving to an
+external module will populate a special \_\_filedata\_\_ folder in that
+module, likewise with zip files. However, due to potential performance
+and memory constraints, users without the edit permission will not be
+able to download copies of modules that include files. You should still
+not make your modules publically viewable unless you have good reason.
+
+You can always get the real disk path of a file resource from within the
+same module via the code: module\['name'\].getPath()
 
 The Widget System
 -----------------
@@ -288,14 +304,13 @@ polling for you.
 A widget object represents one widget, and handles AJAX for you
 automatically. Each widget type is slightly different, but all widgets
 have a render() method. The render method produces HTML suitable for
-direct inclusion in a page, as in \<%text\>
+direct inclusion in a page, as in &lt;%text&gt;
 
     ${module.myWidget.render()}
 
 The rendered HTML will contain a few functions, the ID of the widget
 object that created it, and a piece of code that registers it for
 polling.
-
 Widgets may take parameters in their render() function on a widget
 specific basis
 
@@ -337,16 +352,6 @@ Causes the object to reject AJAX write requests from any device that
 does not have the permissions. You can apply as many permissions as you
 want.
 
-### Widget.read() (Usually Available)
-
-returns the current "value" of the widget, an is available for all
-readable widgets where the idea of "value" makes sense.
-
-### Widget.write(value) (Usually Available)
-
-sets the current "value" of the widget, an is available for all writable
-widgets where the idea of "value" makes sense.
-
 ### Widget.onRequest(user) (Always Available)
 
 This function is automatically called when an authorized client requests
@@ -360,21 +365,24 @@ This function is automatically called when an authorized client requests
 to set a new value. value will be specific to the widget. You only need
 to know about this function when creating custom widgets.
 
-### Widget.push(value)
+### Widget.read() (Usually Available)
 
-The way widgets work has changed very slightly. This function pushes a
-new widget value or message to any clients. Previously the client had to
-request the value. You only need to know about this function when
-creating custom widgets.
+returns the current "value" of the widget, an is available for all
+readable widgets where the idea of "value" makes sense.
 
-### Widget.attach(f)
+### Widget.write(value) (Usually Available)
+
+sets the current "value" of the widget, an is available for all writable
+widgets where the idea of "value" makes sense.
+
+### []()Widget.attach(f)
 
 Set a callback that fires when new data comes in from the widget. The
 function must take two values, user, and data. User is the username of
 the user that changed the widget, and data is it's new value
 
-The Kaithem Object:
--------------------
+[](){#kaithemobject}The Kaithem Object:
+---------------------------------------
 
 The Kaithem object is one object available in almost all user defined
 code. It has the following properties:
@@ -453,7 +461,7 @@ can be intelligently compared(DoW=='tue','Tue,'Tuesday','tu',1,'1',etc).
 When usig numbers, monday is 0. Again, only equality comparisions, but
 you can cast to int.
 
-#### kaithem.time.[minute|second|hour]()
+#### kaithem.time.\[minute|second|hour\]()
 
 All of these functions perform as expected(e.g. minute() returns a
 number between 0 and 59). hour() uses 24 hour server local time
@@ -478,7 +486,6 @@ Returns the current moon phase as a number:
 **NOTE: isDay,isNight,isDark, and isLight may raise an exception if
 there is no sunrise or sunset in the current day(as in some regions in
 the arctic circle during some seasons).**
-
 #### kaithem.time.isDay(lat,lon)
 
 Return true if it is before sunset in the given lat-lon location. If no
@@ -602,13 +609,6 @@ nothing. The handle parameter lets you name the new sound instance to
 stop it later. If you try to play a sound under the same handle as a
 stil-playing sound, the old one will be stopped. Defaults to PRIMARY.
 
-Kaithem will look in the audio search paths specified in the audio-paths
-config option if the path is relative. By default it will only look in
-kaithem's built in audio folder, which contains the following:
-alert.ogg, which is a simple chime type alert, and error.ogg, a short
-harsh buzzing alarm. Mpg123 seems to support ogg files but it doesn't
-appear to be docmented.
-
 With the mplayer backend, if you give it a video file, it will likely
 open a window and play it. Passing fs=True may allow you to play
 fullscreen, but any use of this "hidden feature" is very experimental.
@@ -678,8 +678,8 @@ Request that function *callback* which must take two
 arguments(topic,message) be called whenever a message matching the topic
 is posted. Should the topic end with a slash, it will also match all
 subtopics(e.g. "/foo/" will match "/foo", "/foo/bar" and
-"/foo/anything"). Uncaaught errors in the callback are ignored. \
- You must always maintain a reference to the callback, otherwise, the
+"/foo/anything"). Uncaaught errors in the callback are ignored.\
+You must always maintain a reference to the callback, otherwise, the
 callback will be garbage collected and auto-unsubscribed. This is also
 how you unsubscribe.
 
@@ -708,9 +708,9 @@ system clock of the client, and as such will even work if
 #### kaithem.widgets.Button()
 
 This is a button. Data points from it are in the form of lists of
-states. Normally the value will be ['pushed'], or ['released'], but if
-the user quickly taps the button(a common use for buttons), the value
-will be ['pressed','released'] or some such. Basically, the value
+states. Normally the value will be \['pushed'\], or \['released'\], but
+if the user quickly taps the button(a common use for buttons), the value
+will be \['pressed','released'\] or some such. Basically, the value
 records what happened during the most recent pollng period in which
 there was activity.
 
@@ -786,8 +786,15 @@ This widget exists to allow you to create custom widgets easily. When
 you render() it, you pass a parameter htmlid. The render function
 returns a script that places an object into a global javascript variable
 of that name. You can use obj.set(x) to set the widget's value to x, and
-retrieve the widget's value with obj.value. You may use any value that
-can be represented as JSON.
+retrieve the widget's value with obj.value.
+
+\\
+You can also use obj.send(x), to ensure that all values and not just the
+latest are transmitted. obj.send is more like a message oriented pipe
+than a shared variable, although for simplicity set may be implemented
+similarly to send.
+
+You may transmit any value that can be represented as JSON.
 
 If you would rather recieve a callback after every pollingcycle with the
 current value, just redefine the objects upd(val) method.
@@ -816,7 +823,32 @@ when you have a page that is only used for it's side effects.
 When called from within a page, returns the usernae of the accessing
 user or else an empty string if not logged in.
 
-#### kaithem.web.serveFile(path,contenttype,name = path)
+#### kaithem.web.WebResource(name,url,priority=50)
+
+register a web resource, return an object that you must keep a reference
+to or it will be unregisted. The web resource system is intended to
+allow you to change the source of a file without changing pages
+depending on it, by simply looking up the URL by name at render-time.
+
+Names of JS libraries should satisfy the following: libname-x.y.z or
+libname-devx.y.z for versions not subject to minification and
+compression
+
+Lib names should not include the .js prefix, but may modify the version
+number if based on a lib that does not use x.y.z formatting.
+
+If two WebResources are registered by the same name, whichever has the
+higher priority takes effect. If they are equal, the newer one is used
+
+When a WebResource gets replaced, the old one is discarded, so if you
+want to change back to the old one, you must re-save whatever defines
+the old version.
+
+#### kaithem.web.resource(n)
+
+#### Given the name of a registered web resource, return an object that prints as a string representing it's URL
+
+#### [](){#servefile}kaithem.web.serveFile(path,contenttype,name = path)
 
 When called from code embedded in an HTML page,raises an interrupt
 causing the server to skip rendering the current page and instead serve
@@ -825,12 +857,12 @@ to restrict acess to it with permissions.
 
 #### kaithem.web.hasPermission(permission)
 
-####
+#### 
 
 When clled from within a mako template, returns true if the acessing
 user has the given permission.
 
-### kaithem.mail
+### [](){#kdotmail}kaithem.mail
 
 These functions allow sending email messages through the [SMTP
 Server](#email) configured in the settings page
@@ -886,15 +918,20 @@ and returned.
 
 .json
 :   Values may be list, dict, string, int, bool, or None
+
 .yaml
 :   Values may be list, dict, string, int, bool, or None
+
 .txt
 :   Values may be anything. str() will be used on it prior to saving.
+
 .bin
 :   Bytes and bytearrays.
+
 \*.gz
 :   Any other type may be compressed with gzip compresssion(e.g.
     "foo.txt.gz")
+
 \*.bz2
 :   Any other type may be compressed with bz2 compression(e.g.
     "bar.json.bz2")
@@ -915,34 +952,39 @@ written so there is no race condition attack.
 
 .json
 :   Values may be list, dict, string, int, bool, or None
+
 .yaml
 :   Values may be list, dict, string, int, bool, or None
+
 .txt
-:   Directly reads TXT file and returns as string. May be ASCII or
-    UTF-8.
+:   Directly reads TXT file and returns as string. May be ASCII
+    or UTF-8.
+
 .bin
 :   Bytes and bytearrays.
+
 \*.gz
 :   Any other type may be compressed with gzip compresssion(e.g.
     "foo.txt.gz")
+
 \*.bz2
 :   Any other type may be compressed with bz2 compression(e.g.
     "bar.json.bz2")
 
 ### kaithem.string
 
-#### kaithem.string.usrstrftime([time])
+#### kaithem.string.usrstrftime(\[time\])
 
 When called from within a page, formats the time(in seconds since the
 epoch), according to the user's time settings. If no time is given,
 defaults to right now.
 
-### kaithem.string.siFormat(n,d=2)
+#### kaithem.string.siFormat(n,d=2)
 
 Takes a number and formats it with suffixes. 1000 becomes 1K, 1,000,000
 becomes 1M. d is the number of digits of precision to use.
 
-### kaithem.string.formatTimeInterval(n,places=2,clock=False)
+#### kaithem.string.formatTimeInterval(n,places=2,clock=False)
 
 Takes a length of time in secons and formats it. Places is the mx units
 to use. formatTimeInterval(5,1) becomes ""5 seconds",
@@ -951,6 +993,24 @@ formatTimeInterval(65,2) returns "1 minute 5 seconds"
 If clock==True, places is ignored and output is in HH:MM format. If
 places is 3 or 4 format will be HH:MM:SS or HH:MM:SS:mmm where mmmm is
 milliseconds.
+
+### kaithem.plugin
+
+This namespace contains tools for writing plugins for kaithem. A kaithem
+plugin is just a module meant to extend kaithem's functionality.
+
+#### kaithem.plugin.addPlugin(name,object)
+
+Causes a weak proxy to object to become available at kaithem.name. The
+object will be deleted as soon as there are no references to it. Note
+that the automatic deletion feature may fail if the object has any
+methods that return anything containing a strong reference to the object
+itself.
+
+If automatic collection of garbage in this manner is not important, and
+your application is performance critical, you can directly insert
+objects via attribute assignment, however that could cause other modules
+to behave unpredictably when calling partially-deleted things.
 
 JS Library
 ----------
@@ -964,8 +1024,8 @@ each with a name attribute. This implements a rudimentary tabview
 interface that may be styled through the CSS(see the default
 scrapbook.css for examples.)
 
-Theming
--------
+[](){#theming}Theming
+---------------------
 
 The following conventions are used for consistancy in kaithem CSS. If
 you want your custom pages to be consistant with the rest of Kaithem's
@@ -983,12 +1043,13 @@ enough contrast with text to be easily readable outside of sectionboxes.
 a div with class="scrollbox" will look like a secionbox but scroll on
 overflow. May be nested in sectionboxes.
 
-### Action Links
+### Action Links and Buttons
 
 Any link having the primary purpose of performing an action as opposed
 to navigation should have the class "button". If the action is delete,
 it should also have the class "deletebutton", likewise for
-"createbutton" and "savebutton"
+"createbutton", "savebutton", "editbutton", and "playbutton" These
+classes may be used on links or actual buttons.
 
 ### Short help strings
 
@@ -1000,6 +1061,28 @@ Short help texts in the gui should be wrapped in a p element with class
 Oftentimes you want to have something like the menu bars at the top of
 windows in desktop apps. An easy way to do this is to put your controls
 in a p element of class = "menubar"
+
+### Highlighting
+
+Making spans, paragraphs, etc stand out can be done by applying the
+classes "highlight", "specialentry", "error", or "warning".
+
+specialentry is used when an entry in a list is different from other
+entries, and might be used for things like \_\_methods\_\_ and admin
+users
+
+highlight is just a general purpose highlight for more important that
+usual entries
+
+error and warning should be used when a element is an error notification
+
+### Other Stuff
+
+At the moment, theming kaithem's built in widgets and things like that
+must be done by reading the the code as most of
+classes are not documented.
+However, where possible kaithem prefers semantic HTML to classes, so it
+should be relatively easy to figure out.
 
 The Internal Message Bus
 ------------------------
@@ -1056,7 +1139,7 @@ semantically errors, and can show in red in the logs, or trigger sounds,
 or send out text messages, or similar. Again, only fairly important
 things should go here, as they will be listed on the front page. Use for
 things like power failure, network connectivity loss, etc.\
- Where possible one should wait ten seconds or so before sending a
+Where possible one should wait ten seconds or so before sending a
 message for something that might resolve itself, like a network issue.
 
 ### /system/notifications/warnings
@@ -1132,8 +1215,8 @@ element list.
 When a user fails to logs in, his username and IP are posted here as a
 two element list.
 
-Logging
--------
+[](){#logging}Logging
+---------------------
 
 Kaithem's native logging support is based on the message bus. Anytime a
 message is posted to the message bus, it gets stored in a "staging
@@ -1144,7 +1227,6 @@ the oldest
 Once the total number of messages in the staging area exceeds a
 threshold, The messages in the staging area will be filtered by topic
 then dumped to a file.
-
 What specific get logged is configurable from the logs page, which also
 allows you to see the messages in the staging area. Log dumps are in
 JSON format as one big dict of lists of messages indexed by topic, where
@@ -1153,8 +1235,8 @@ each message is an array of (timestamp,message)
 Log dumps will be found in kaithem/var/logs/dumps while the list of
 topics to save will be in kaithem/var/logs
 
-Email Alerts
-------------
+[](){#email}Email Alerts
+------------------------
 
 Kaithem can be configured to [send email](#kdotmail) through an SMTP
 server. Go to the settings page to configure this. You can also create
@@ -1166,428 +1248,6 @@ You must have that permission to subscribe to a list. Every user can
 enter an email address and recieve alerts from any list he has the
 correct permissions to subscribe to.
 
-FAQ
----
+&lt;%include file="/pagefooter.html"/&gt;
 
-### Where does Kaithem store data?
-
-By default, kaithem stores all variable data in kaithem/var(inside it's
-directory) It does not use the windows registry, APPDATA, a database, or
-any other central means of storage. However, keeping your data in
-kaithems "unzip and run" folder has a few problems. First and most
-important, it makes it hard to update, since if you download a new
-version it will not have your data.
-
-To avoid this, we recommend that you copy kaithem/var someplace else,
-and use the site-data-dir config option to point to the new location. If
-you copy var to /home/juan/ then site-data-dir should equal
-/home/juan/var
-
-### How do I use custom configuration files?
-
-Create your file, then, when you start Kaithem, use the -c command line
-argument to point to it. Example:
-
-    python3 kaithem.py -c myconfigfile
-
-Kaithem uses the YAML format for configuration files, which is a very
-simple and easy to read format. YAML example:
-
-    #this is a comment
-    option-name: this is the option value
-
-    another-option: 42
-
-    a-long-string-as-an-option: |
-        That pipe symbol after the colon lets us start
-        a big multiline string on the next line
-
-
-    an-option-with-a-list-as-a-value:
-        -uno
-        -dos
-        -tres
-
-NOTE: Kaithem will **only** load the configuration file on startup and
-you must reload kaithem for the changes to take effect.
-
-### My data is not being saved to the log files! Help!
-
-Kaithem only saves topics to the hard drive if they are in the list of
-things to save. Go to the logging page and select the channels you are
-interested in.
-
-### What do the module MD5 Sums mean?
-
-The MD5 sum of a module is computed by dumping that module as a JSON
-file using the minimal representation, with sorted keys, formatted as a
-dict where resource names are keys, and hashing it. The MD5 of the
-entire list of modules is computed by dumping each module, concatenating
-them in sorted order, and hashing. As of 0.55 the hash algorithm is
-subject to change, but will be consistent between instances of kaithem
-of the same version on any platform.\
- Currently the primary purpose of the hashes is simply to allow one to
-easily compare if two modules are identical or if a module has been
-changed.
-
-### What is with these security certificate errors?
-
-Kaithem comes with a default security certificate in the kaithem/var/ssl
-directory. Becuase it is publicly known, it provides **ABSOLUTELY NO
-SECURITY**. The intent is to let you test out Kaithem easily, but if you
-want to actually deploy an instance, you **MUST** replace the security
-key with a real one and keep it secret. There are plenty of TLS/SSL
-Certificate tutorials, and equally important is that you ensure that the
-permissions on the private key file are truly set to private.
-
-### How do I make an event that triggers at a certain time?
-
-To make an event that goes off at Noon, simply create a normal event and
-set the trigger to "kaithem.time.hour() == 12"
-
-### How do I tell Kaithem to serve a static file?
-
-Add something like this to your configuration file
-
-    serve-static:
-        images: /home/piper/My Pictures
-        images2: /home/piper/My Other Pictures
-
-Now the url /usr/static/images/page.jpg will point to the file
-/home/piper/My Pictures/page.jpg\
- All user-created static directories are mounted under /usr/static. Be
-VERY careful what you choose to serve statically, because anyone will be
-able to access them. If you need a secure way to serve a file, you are
-better off creating a page with the appropriate permissions, and using
-[kaithem.web.serveFile()](#servefile)
-
-### I am getting "permission denied" errors on the web interface
-
-You don't have permission to access that page. If you are admin, go to
-the authorization page and give yourself that permission.
-
-### I am not using flash memory, and would like to set up autosave
-
-By default, Kaithem tries to avoid automatic disk writes. This is to
-avoid wearing out low-cost flash storage on devices such as the RasPi.
-However, if you would like to configure the server to save the state on
-an interval, you can set the
-
-    autosave-state
-
-option in the configuration to an interval specified like "1 hour" or "1
-day" or 1 day 3 minutes.
-
-Valid units are second,minute,hour,day,week,month,year. Autosaving will
-not happen more than onceper minute no matter the setting and if data is
-unchanged disk will be untouched. A "month" when used as a length of
-time, is a year/12.
-
-**autosave-state does not touch log files. Use autosave-log for that.
-It's semantics are the same.**
-
-In addition to periodic saves, you might want to consider setting
-
-    save-before-shutdown
-
-to
-
-    yes
-
-This will tell the server to save everything including log dumps before
-shutting down.
-
-### I would like to back up the code that I wrote in Kaithem
-
-At the moment, the easiest way to do this is just to make a copy of the
-folder where your variable data is kept.
-
-### How exactly does logging work?
-
-the
-
-    keep-log-files
-
-configuration option deterimines how much space log files will consume
-before the oldest are deleted. The default is
-
-    256m
-
-or 256 Megabytes. You can use the suffixes k,m,and g, and if you don't
-supply a suffix, the number will be interpreted as bytes(!)
-
-Log files are kept in ram until the total number of log entries across
-all topics (even if the topics are not set up to be flushed to file)
-exceeds
-
-    log-dump-size
-
-Logs are stored in JSON files, and the level of formatting is determined
-by
-
-    log-format
-
-Log format can be any of:
-
--   normal
--   tiny
--   pretty
-
-Normal is the defaut, tiny is the smallest JSON possible, and pretty
-indents with 4 spaces among other things. All are equivalent valid JSON.
-
-To save space, logs can also be compressed with the option
-
-    log-compress
-
-This option can take any of:
-
--   none
--   gzip
--   bz2
-
-Compressed files will have the extension
-
-    .json.gz or .json.bz2
-
-### Can I customize Kaithem's appearance for my specific deployment?
-
-Certainly! Kaithem was designed with theming and customization in mind
-from the start. You will probably want to do some or all of the
-following.
-
-#### Change the Top Banner
-
-Changing the top banner is pretty simple. All you need to do is add a
-line in your configuration file like:
-
-    top-banner-html: |
-        &ltdiv id="topbanner">&lth1 align="center"&gtYOUR TEXT HERE</h1></div>
-
-Of course, you can add whatever HTML you like, this is just an example.
-You can even add images(see "[How do I tell Kaithem to serve a static
-file?](#static)")
-
-#### Changing the front page text
-
-This is equally easy. The top box on the front page is fully
-customizable. the front-page-banner attribute in your config file can
-contain any HTML. The default is:
-
-    front-page-banner: |
-        &ltb&gtKaithem is free software licensed under the GPLv3.&ltbr>
-        Kaithem was not designed for mission critical or safety of life systems and no warranty is expressed
-        or implied.&ltbr> Use entirely at your own risk.</b>
-
-#### Change the actual CSS theme
-
-This is a bit harder. The default CSS file is called scrapbook.css,
-found in /kaithem/data/static. What you will need to do is to create a
-new theme file, serve it as a static file, and then use the "theme-url"
-option in your config file to point to the new theme. You will likely
-just want to modify the existing scrapbook.css because it is a 100+ line
-file and there are some things that don't quite look right with the
-browser defaults.
-
-#### Rewrite the HTML
-
-The HTML is pretty simple, and most pages include the header
-src/html/pageheader.html. The only trouble with modifying things is
-updatability, and the easiest way to fix that is probably using a
-version control tool like Git. Modifying the HTML might be the best
-option for more extensive customizations.
-
-### What can I do to make Kaithem more reliable?
-
-Watch out for things that have to be turned on,left on for a while, and
-then turned off. Don't depend on high frame rates. Keep in mind that the
-server may need to restart at some time for updates. Everything should
-start with sane defaults immediately on loading. Keep in mind that the
-order in which events and modules load is not currently defined(this
-should be adressed soon), however an event will never run before it's
-setup section, and almost all dependancy issues should be handled by the
-automatic retry.
-
-An error in a setup section will cause that event to be skipped, the
-rest of the events to be loaded, then the failed ones will be retried up
-to the max attempts(default 25)
-
-On a related note, watch out for dependancies between events and
-modules. The order in which modules or events load is currently not
-defined. Dependancies are handled automatically in most cases.
-
-Also, keep in mind what happens when Kaithem shuts down or restarts: any
-events currently executing finish up, but no new events are run. (except
-events triggered by the /system/shutdown message)
-
-Put an emphasis on automatic management, detection, and recovery, and
-keep in mind external services may undergo downtime. Example: If you
-need a serial port, don't just set it up when kaithem loads. Create a
-manager event that periodically checks to make sure all is well and if
-not tries to reopen the port. Remember you may want to run Kaithem for
-months without a reboot.
-
-### Can I run multiple instances of Kaithem?
-
-Quite possibly. It has not been tested though. If you do, they should
-probably have different directories for variable data
-
-### What happens if two people edit something at the same time?
-
-Kaithem was not designed as a large-scale collaboration system. At the
-moment,If two people edit something at the same time, the last person to
-click save "wins".
-
-### How do unencrypted pages work?
-
-Kaithem will allow unencrypted acess to any page that does not require
-any permissions. Kaithem will also allow unencrypted acess to any page
-that the special user "\_\_guest\_\_" could access, if such a user
-exists. All other pages may only be acessed over HTTPS. use the
-'http-port' and 'http-thread-pool' options to change the number of
-threads assigned and the port used for unsecure access.
-
-### How can I change the port in which kaithem serves?
-
-Kaithem normally serves on two different ports, one for HTTP(plaintext)
-and one for HTTPS(Secure) connections. use the http-port and https-port
-configuration options to set each respectively. Use an integer value.
-
-### How should I deploy Kaithem in a real application?
-
-First, keep in mind that while Kaithem is fairly reliable, it was not
-designed for anything like medical equipment or nuclear plants. With
-that in mind, deploying Kaithem is pretty easy. You will most likely
-want an always-on server, probably running linux(The Raspberry Pi is a
-great server), and you will probably want to set up a static IP.
-
-Since, at the moment, Kaithem lacks an installer, the recommended
-installation procedure is to install git, create a new linux user just
-for the server, and clone into the new user's home directory. Give the
-user any permisions needed to acess your automation hardware.
-
-Be sure to use real SSL keys, and to change the default passwords.
-
-You will almost certainly want to automatically start on boot, and the
-easiest way to do this is to make an entry in the Kaithem user's
-crontab.
-
-To update Kaithem, simply go into the Kaithem install folder in the
-user's home dir, and do a git pull.
-
-Be careful updating, 100% backwards compatibility is not guaranteed at
-this stage of the project, and some config options might gte deprecated
-and your settings may be ignored. That said, backwards compatibility is
-an important goal, and release notes should include and known issues.
-
-You should make a copy of kaithem/var, put it somewhere else, and change
-the
-
-    site-data-dir
-
-In your config file to point to it. Also change ssl-dir to point to
-whereever you put the certificate.cert and certificate.key files of your
-private key. If you don't do this, it will write your
-data(modules,pages,events,settings) directly into the cloned repo, which
-may cause an error when you try to update via git.
-
-If you are doing web kiosks or datalogging or anything else wherer you
-need to reliably track changing data, the "keep everything in ram and
-periodically save" model may not work. You might want to consider using
-a spinnin drive or good SSD and SQLite. for rapidly changing data.
-
-### Audio is not working on the RasPi
-
-At least on the version of Raspbian used for testing, SoX will not work
-unless you set the following environment variables
-
-    AUDIODEV=hw:0
-    AUDIODRIVER=alsa
-
-Also,the user that kaithem is running under must be in the audio group,
-use
-
-    sudo usermod -a -G audio USERS_NAME
-
-to fix that. The default user had this enables already but if you made a
-new user you may need to use the command.
-
-###
-
-### How does the polling mechanism manage CPU time and prevent "hogging"?
-
-The short answer is that Kaithem attempts to distribute CPU time fairly,
-and make sure all events continue to run even when some are vastly
-slower than others. In general, the programmer should be able to imagine
-that each event has its on thread even though the thread pool model is
-used. The long answer in more technical.
-
-The current poll management system is based on the kaithem thread pool.
-The thread pool is a set of threads fed by a threadsafe queue. Function
-objects are placed in the queue and threads take them out and execute
-them.
-
-In kaithem, a polling cycle is called a frame. Every frame, kaithem puts
-the poll function of every event that needs to be polled into the queue.
-Should a thread get a poll function and find out that another thread is
-already polling it, that event is simply skipped to prevent a slow event
-clogging the pool by causing many threads to wait on the last thread to
-be done ith it so they can poll it.
-
-After the manager thread has inserted all the poll functions into the
-queue, it inserts a special sentinel. The manager thread will not start
-the next frame until this sentinel has run. The sentinel running lets us
-know that everything we put in the queue has been taken out. If a slow
-event is still running at this point, it will continue to run, and
-another copy of it should never be queued up in any way until the
-current one finished.
-
-The one known case in which slow tasks can bog down the system is if
-there are more slow tasks than there are threads in the pool. In this
-case the system may be unresponsive for a time until the tasks finish.
-This is unlikely as the odds of having dozens of tasks at the same time
-that are very slow is low in most systems.
-
-### How does Kaithem handle dependancies between resources?
-
-With pages, it's not much of an issue. Pages are compiled the first time
-they get accessed, and if that fails due to a dependancy, the compiling
-will be retried next time someone tries to access it. It is hard to
-imagine pages depending on each other in any major way anyway, because
-pages are usually not the place to write libraries.
-
-Events are another story. Since kaithem implements "running some code at
-startup", including user created functions, as an event, events may have
-any amount of dependancy on each other.
-
-The way that kaithem handles this, is that when an exception occurs in
-an event's setup code(while loading the event), kaithem simply stops,
-moves on with the rest of the list of events that need loading, and then
-comes back to the event that failed, up to a number of times set in the
-config.
-
-This means that you should almost never need to deal with dependancy
-resolution issues yourself, they are handled as a consequence of
-kaithem's auto-retry mechanism. However, to imporove load time, you may
-want to make dependancies more explicit by adding something like this:
-
-    depends = kaithem.globals.ThingThisEventExpectsToBePresent
-    depends = FunctionCallThatWillFailIfDependacyNotMet()
-
-to the beginning of the setup function. These lines will raise errors if
-there are unmet dependancies. causing kaithem to exit immediatly,
-instead of after having wasted more time. It's also valuable
-documentation. But in general, don't worry about dependancies. Just keep
-in mind that your setup functions might get retried.
-
-### Help! My setup code executes twice!
-
-Internally, the setup code is run once during the 'test compile', then
-once when actually creating the event. The object created in the test
-compile is deleted, so all deleters are honored. Your setup sections
-should be retry tolerant anyway, but this issue may be fixed later
-
-### I need better data reliability than simple autosave
-
-Then you should probably use sqlite, which is built into python, or
-another transactional database.
+</div>

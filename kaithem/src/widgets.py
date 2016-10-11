@@ -733,6 +733,12 @@ class APIWidget(Widget):
                          %(htmlid)s.clean = 2;
                     }
 
+                %(htmlid)s.send = function(val)
+                    {
+                         KWidget_sendValue("%(id)s", val);
+                         %(htmlid)s.clean = 2;
+                    }
+
                     KWidget_subscribe("%(id)s",_upd);
             </script>
             """%{'htmlid':htmlid, 'id' :self.uuid, 'value': json.dumps(self._value)}

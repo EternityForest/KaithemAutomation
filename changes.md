@@ -1,9 +1,13 @@
+&lt;%include file="/pageheader.html"/&gt;
+
 Kaithem Help
 
 Change Log
 ----------
 
 ### 0.55(Development)
+
+<div class="sectionbox">
 
 -   Fix bug where si formatted numbers were rounded down
 -   Multiple message bus subscribers run simultaneously instead of
@@ -24,8 +28,8 @@ Change Log
     resolution at bootup)
 -   Fix bug where references in the locals of deleted or modified events
     sometimes still hung around and messed up APIs based on \_\_del\_\_
--   Stable initial event loading attempt order(Sorted by
-    (module,resource) tuple.) Failed events will be retried up to the
+-   Stable initial event loading attempt order(Sorted
+    by (module,resource) tuple.) Failed events will be retried up to the
     max attempts in the same order.
 -   Kaithem now appears to shut down properly without the old workaround
 -   Ship with the requests library included, but prefer the installed
@@ -39,15 +43,25 @@ Change Log
     likely be fine, and only minor changes will be required to
     accomodate this new behavior. All default widgets are exactly the
     same from a user perspective, only faster and more efficient.
+-   Can now inspect event scopes just like module objects. Inspectors
+    have been greatly improved.
+-   Run a garbage collection sweep after deleting events or modules.
+-   Fix bug where "don't add aditional content" still added a footer.
+-   kaithem.web.resource lookups
+-   Add jslibs module
+
+</div>
 
 ### 0.54
+
+<div class="sectionbox">
 
 -   New file browser like module view
 -   New resource type: folder
 -   Support for \_\_index\_\_ pages
 -   Raise exception if port not free instead of exiting silently.
--   New config option: log-format: null discards logs instead of saving
-    them.
+-   New config option: log-format: null discards logs instead of
+    saving them.
 -   Slider widgets only show a few decimal places now
 -   Fix pagename not defined issue that interfered with proper error
     logging in pages
@@ -106,7 +120,11 @@ Change Log
     accessing that page caused an HTTP to another page
 -   Lots of misc changes
 
+</div>
+
 ### 0.53
+
+<div class="sectionbox">
 
 This version differs by only a single line from 0.52 and fixes a
 critical security flaw. All users of the previous version should upgrade
@@ -115,7 +133,11 @@ immediately.
 -   Fix bug that let anyone, even an unregistered user change the
     settings for any user.
 
+</div>
+
 ### 0.52(Minor Bugfix Release)
+
+<div class="sectionbox">
 
 -   Fix about box error on windows
 -   Fix non-cross platform default strftime
@@ -123,25 +145,33 @@ immediately.
 -   Fix error saving uncompressed logs
 -   Add mplayer and lm-sensors to acknowledgements
 
+</div>
+
 ### 0.51(Security Patch Release)
+
+<div class="sectionbox">
 
 -   Fix very old and very important security bug where kaithem's folders
     in it's var directory were readable by other users.
 
+</div>
+
 ### 0.5
+
+<div class="sectionbox">
 
 -   kaithem.time.accuracy() returns an estimate of the max error in the
     current system time in seconds using NTP.
 -   Slight performance boost for low-priority events
 -   kaithem.misc.errors(f) calls f with no args and returns any
     exceptions that might result.
--   Automatic daily check of mail settings in case someone changed
-    things.
+-   Automatic daily check of mail settings in case someone
+    changed things.
 -   kaithem.string.formatTimeInterval()
--   When a user logs in, his [username,ip] is posted to
+-   When a user logs in, his \[username,ip\] is posted to
     /system/auth/login, or to /auth/user/logout when he logs out.
--   Ability to set default vaules for lattitude and longitude in astro
-    functions.
+-   Ability to set default vaules for lattitude and longitude in
+    astro functions.
 -   When a user logs in, logs out, or fails to log in, his username and
     IP address are posted to /auth/user/loginfail
 -   Lots of misc logging
@@ -179,12 +209,20 @@ immediately.
 -   Fix bug where trying to render a widget with write permissions
     crashed if a \_\_guest\_\_ tried
 
+</div>
+
 ### 0.45 Hotfix 001
+
+<div class="sectionbox">
 
 -   Fix "changed size during iteration" event bug, Replace outdated
     event scoping documentation.
 
+</div>
+
 ### 0.45
+
+<div class="sectionbox">
 
 -   Built in profiling(with yappi)
 -   View processes on the server(on linux)
@@ -210,7 +248,11 @@ immediately.
 -   kaithem.string.userstrftime and kaithem.string.SIFormat
 -   User Settings Page shows a list of what permissions you have
 
+</div>
+
 ### Version 0.4
+
+<div class="sectionbox">
 
 -   New AJAX widgets(!)
 -   Critical dependancy resolution/initialization bugfix
@@ -219,8 +261,10 @@ immediately.
     errored during initialization
 -   Minor bugfix: event rate limit displays properly
 -   Status bar notifications work with chrome now
--   Ability to disable JS code highlighting per user(for mobile
-    browsers)
+-   Ability to disable JS code highlighting per user(for
+    mobile browsers)
 -   Kaithem Registry
 -   Theming Improvements
 -   kaithem.time.moonAge() renamed to kaithem.time.moonPhase()
+
+</div>
