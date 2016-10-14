@@ -59,7 +59,7 @@ class LoginScreen():
         if not cherrypy.request.scheme == 'https':
             raise cherrypy.HTTPRedirect("/errors/gosecure")
         time.sleep(0.005)
-        x = auth.userLogin(kwargs['username'],kwargs['pwd'])
+        x = auth.userLogin(kwargs['username'],kwargs['password'])
         if not x=='failure':
             #Give the user the security token.
             #AFAIK this is and should at least for now be the

@@ -42,8 +42,13 @@ class Event(BaseEvent):
         else:
             f()
 
-    def unregister(self):
+    def _unregister(self):
         scheduler.remove(self)
+
+    #We want to use the worker pool to unregister so that we know which thread the scheduler.unregister call is
+    #going to be in to prevent deadlocks. Also, we take a dummy var so we can use this as a weakref callback
+    def unregister(self,dummy=None):
+        workers.do(self._unregister)
 
 def shouldSkip(priority,interval,lateby,lastran):
     t = {'realtime':200, 'interactive':0.8, 'high':0.5, 'medium':0.3, 'low':0.2, "verylow":0.1}
@@ -56,7 +61,7 @@ class RepeatingEvent(BaseEvent):
     "Does function every interval seconds, and stops if you don't keep a reference to function"
     def __init__(self,function,interval,priority="realtime"):
         BaseEvent.__init__(self)
-        self.f = weakref.ref(function, callback=self.unregister())
+        self.f = weakref.ref(function, self.unregister)
         self.interval = float(interval)
         self.scheduled = False
         self.errored = False
@@ -104,8 +109,13 @@ class RepeatingEvent(BaseEvent):
     def register(self):
         scheduler.register_repeating(self)
 
-    def unregister(self):
+    def _unregister(self):
         scheduler.unregister(self)
+
+    #We want to use the worker pool to unregister so that we know which thread the scheduler.unregister call is
+    #going to be in to prevent deadlocks. Also, we take a dummy var so we can use this as a weakref callback
+    def unregister(self,dummy=None):
+        workers.do(self._unregister)
 
     def run(self):
         workers.do(self._run)
@@ -131,7 +141,7 @@ class RepeatingEvent(BaseEvent):
 class SelfSchedulingEvent():
     "Does function every interval seconds, and stops if you don't keep a reference to function"
     def __init__(self,function,interval):
-        self.f = weakref.ref(function, callback=self.unregister())
+        self.f = weakref.ref(function, self.unregister)
         self.interval = float(interval)
         self.scheduled = False
         self.errored = False
@@ -139,7 +149,6 @@ class SelfSchedulingEvent():
 
     def schedule(self):
         """Put self in queue based on the time already calculated by the function"""
-
         scheduler.insert(self)
         self.scheduled = True
 
@@ -147,8 +156,11 @@ class SelfSchedulingEvent():
     def register(self):
         scheduler.register_repeating(self)
 
-    def unregister(self):
+    def _unregister(self):
         scheduler.unregister(self)
+
+    def unregister(self,dummy=None):
+        workers.do(self._unregister)
 
     def run(self):
         workers.do(self._run)
@@ -159,7 +171,7 @@ class SelfSchedulingEvent():
                 try:
                     f = self.f()
                     if not f:
-                        self.unregister()
+                        self._unregister()
                     else:
                         self.time = f()
                 finally:
@@ -213,7 +225,7 @@ class NewScheduler(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.tasks = []
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         self.repeatingtasks= []
         self.daemon = True
         self.name = 'SchedulerThread2'

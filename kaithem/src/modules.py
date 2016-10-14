@@ -75,7 +75,6 @@ def modulesHaveChanged():
     modulehashes = {}
     modules_state.ls_folder.invalidate_cache()
 
-
 class ResourceObject(dict):
     def __init__(self, m,r,o):
         self.resource =r
