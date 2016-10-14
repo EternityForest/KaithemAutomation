@@ -13,12 +13,13 @@ versions: {}
 #and may run multiple times when kaithem boots due to dependancy resolution
 __doc__="Raises an error if it detects kaithem's response time is too slow to an onchange event"
 import time
-last = time.time()
+last = time.time()+10
 lastposted = 0
+
 ---
 global last,lastposted
 if time.time()-last>1.2:
     if time.time()-lastposted>5*60:
-        kaithem.message.post("/system/notifications/errors", "Frame rate dropped, onchange second fired more than 1s since last. Actual Delay: "+str(time.time()-last)+"s")
+        kaithem.message.post("/system/notifications/errors", "Frame rate dropped, onchange second fired more than 1s since last. May happen once at boot because of CPU loadActual Delay: "+str(time.time()-last)+"s")
         lastposted = time.time()
 last = time.time()

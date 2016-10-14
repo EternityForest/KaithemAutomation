@@ -62,7 +62,7 @@ def getEventErrors(module,event):
             try:
                 return __EventReferences[module,event].errors
             except:
-                return['0','Event does not exist or was not properly initialized']
+                return[['0','Event does not exist or was not properly initialized']]
 
 def fastGetEventErrors(module,event):
     "This version might not always be accurate, but will never modify anything or return an error. Does not  use a lock."
@@ -475,6 +475,7 @@ class BaseEvent():
             self.lock.release()
 class DummyModuleScope():
     pass
+
 class CompileCodeStringsMixin():
     "This mixin lets a class take strings of code for its setup and action"
     def _init_setup_and_action(self,setup,action,params={}):
@@ -491,7 +492,7 @@ class CompileCodeStringsMixin():
             try:
                 self.pymodule.__dict__['print']=self.new_print
             except:
-                pass
+                logging.exception("Failed to activate event print output functionality")
             self.pymodule.__dict__.update(params)
         except KeyError as e:
             raise e

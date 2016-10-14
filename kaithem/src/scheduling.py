@@ -115,7 +115,10 @@ class RepeatingEvent(BaseEvent):
     #We want to use the worker pool to unregister so that we know which thread the scheduler.unregister call is
     #going to be in to prevent deadlocks. Also, we take a dummy var so we can use this as a weakref callback
     def unregister(self,dummy=None):
-        workers.do(self._unregister)
+        try:
+            workers.do(self._unregister)
+        except:
+            pass
 
     def run(self):
         workers.do(self._run)
@@ -160,7 +163,11 @@ class SelfSchedulingEvent():
         scheduler.unregister(self)
 
     def unregister(self,dummy=None):
-        workers.do(self._unregister)
+        try:
+            workers.do(self._unregister)
+        #Catch nuisiance errors on interpreter shutdown
+        except:
+            pass
 
     def run(self):
         workers.do(self._run)
@@ -267,9 +274,10 @@ class NewScheduler(threading.Thread):
         "Remove something that has a time and a _run property that wants its _run to not be called at time"
         with self.lock:
             try:
-                self.tasks.remove(event)
+                if event in self.tasks:
+                    self.tasks.remove(event)
             except:
-                pass
+                logging.exception("failed to remove event")
 
     def register_repeating(self, event):
         "Register a RepeatingEvent class"
@@ -285,7 +293,8 @@ class NewScheduler(threading.Thread):
                 if event in self.tasks:
                     self.tasks.remove(event)
             except:
-                pass
+                logging.exception("failed to unregister event")
+
 
 
     def run(self):
@@ -416,7 +425,7 @@ def get_next_run(s,start = None, after=None,rr=None):
         tz = dateutil.tz.gettz(tz.groups()[0])
         if not tz:
             raise ValueError("Invalid Time Zone")
-        EPOCH = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
+        EPOCH = datetime.datetime(1970, 1, 1, tzinfo=dateutil.tz.tzutc())
         dt= dt.replace(tzinfo = tz)
         offset = datetime.timedelta(seconds=0)
 

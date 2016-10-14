@@ -7,18 +7,17 @@
 #and may run multiple times when kaithem boots due to dependancy resolution
 __doc__=''
 import time
-suceed = 5000
+suceed = [10000]
 
 ---
-def run(self):
+def run():
     def f(m,v):
-        global succeed
-        suceed -=1
+        suceed[0] = suceed[0] -1
     kaithem.message.subscribe('/testtopic',f)
     for i in range(0,10000):
         kaithem.message.post("/testtopic","Test")
     time.sleep(30)
-    if suceed:
+    if suceed[0]:
         raise RuntimeError("Message bus test failed. This might just be because the computer is too slow.")
     else:
         print("Sucess in testing message bus")
