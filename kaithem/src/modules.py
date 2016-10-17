@@ -179,6 +179,14 @@ def loadResource(fn):
     try:
         with open(fn) as f:
             d = f.read()
+
+        #This is a workaround for when dolphin puts .directory files in directories and gitignore files
+        #and things like that.
+        #I'd like to add more workarounds if there are other programs that insert similar crap files.
+        if not "resource-type" in d:
+            if "/.git" in fn or "/.gitignore" in fn or fn.endswith(".directory"):
+                return None
+
         if "\r---\r" in d:
                 f = d.split("\r---\r")
         elif "\r\n\---\r\n" in d:
@@ -487,6 +495,8 @@ def loadModule(folder, modulename):
                     #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
                     resourcename = unurl(relfn)
                     r = loadResource(fn)
+                    if not r:
+                        continue
                     module[resourcename] = r
                     if not 'resource-type' in r:
                         logging.warning("No resource type found for "+resourcename)

@@ -373,9 +373,12 @@ class BaseEvent():
         except:
             raise
 
-    def new_print(self,d):
-        print(d)
-        self.printoutput+=str(d)+"\n"
+    def new_print(self,*args):
+        print(*args)
+        if len(args)==1:
+            self.printoutput+=str(args[0])+"\n"
+        else:
+            self.printoutput+=str(args)+"\n"
         self.printoutput = self.printoutput[-2500:]
 
     def _on_trigger(self):
