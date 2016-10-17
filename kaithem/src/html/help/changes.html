@@ -11,7 +11,8 @@
 <li>Message events can now be ratelimited, additional messages are simply ignored</li>
 <li>Slight theming improvements</li>
 <li>Sound search path feature, added built in sounds</li>
-<li>Modules now display MD5 sums(Calculated by dumping to UTF-8 JSON in the most compact way with sorted keys)</li>
+<li>Modules now display MD5 sums(Calculated by dumping to UTF-8 JSON in the most compact way with sorted keys.
+    Module and resource names are also hashed, but the locations of external modules are ignored)</li>
 <li>Use of the print function in an event under python3 will print both to the console and to the event's editing page(only most recent 2500 bytes kept)</li>
 <li>Change the way the scheduler works</li>
 <li>Setup actions no longer run twice when saving! (However, setup actions may run and retry any number of times due to dependancy resolution at bootup)</li>
@@ -31,6 +32,8 @@
 <li>Fix bug where "don't add aditional content" still added a footer.</li>
 <li>kaithem.web.resource lookups</li>
 <li>Add jslibs module</li>
+<li>Can now manually run any event</li>
+<li>Lots of stability improvements</li>
 
 </ul>
 </div>

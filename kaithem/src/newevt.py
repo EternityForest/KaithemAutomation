@@ -355,9 +355,9 @@ class BaseEvent():
 
     def manualRun(self):
         #J.F. Sebastian of stackoverflow's post was helpful for this
-        if not self.lock.acquire(blocking=False):
+        if not self.lock.acquire(False):
             time.sleep(0.1)
-            if not self.lock.acquire(blocking=False):
+            if not self.lock.acquire(False):
                 time.sleep(0.7)
                 if not self.lock.acquire():
                     raise WouldBlockError("Could not acquire lock while event already running or polling. Trying again may work.")
@@ -374,10 +374,12 @@ class BaseEvent():
             raise
 
     def new_print(self,*args):
-        print(*args)
+        #No, we cannot just do print(*args), because it breaks on python2
         if len(args)==1:
+            print(args[0])
             self.printoutput+=str(args[0])+"\n"
         else:
+            print(args)
             self.printoutput+=str(args)+"\n"
         self.printoutput = self.printoutput[-2500:]
 

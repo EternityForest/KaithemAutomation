@@ -53,7 +53,9 @@ def hashModules():
     m=hashlib.md5()
     with modulesLock:
         for i in sorted(ActiveModules.keys()):
+            m.update(i.encode('utf-8'))
             for j in sorted(ActiveModules[i].keys()):
+                m.update(j.encode('utf-8'))
                 m.update(json.dumps(ActiveModules[i][j],sort_keys=True,separators=(',',':')).encode('utf-8'))
     return m.hexdigest().upper()
 
