@@ -179,8 +179,8 @@ class ModuleObject(object):
 #Backwards compatible resource loader.
 def loadResource(fn):
     try:
-        with open(fn) as f:
-            d = f.read()
+        with open(fn,"rb") as f:
+            d = f.read().decode("utf-8")
 
         #This is a workaround for when dolphin puts .directory files in directories and gitignore files
         #and things like that.
@@ -367,7 +367,7 @@ def saveModule(module, dir,modulename=None):
                     util.fakeUnixRename(currentFileLocation,newpath)
                     fileResourceAbsPaths[modulename,resource] = newpath
                 else:
-                    newpath = os.path.join(moduledir,"__filedata__",r['target'])
+                    newpath = os.path.join(dir,"__filedata__",r['target'])
                     util.ensure_dir(newpath)
                     util.fakeUnixRename(currentFileLocation,newpath)
                     fileResourceAbsPaths[modulename,resource] = newpath
@@ -662,6 +662,7 @@ def bookkeeponemodule(module,update=False):
                 usrpages.updateOnePage(i,module)
             except Exception as e:
                 usrpages.makeDummyPage(i,module)
+                logging.exception("failed to load resource")
                 messagebus.postMessage("/system/notifications/errors","Failed to load page resource: " + i +" module: " + module + "\n" +str(e)+"\n"+"please edit and reload.")
 
     newevt.getEventsFromModules([module])

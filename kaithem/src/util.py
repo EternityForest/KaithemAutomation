@@ -108,11 +108,8 @@ def in_directory(file, directory):
     #e.g. /a/b/c/d.rst and directory is /a/b, the common prefix is /a/b
     return os.path.commonprefix([file, directory]) == directory
 
+#What is the point of this? I don't know and there's probably an issue here.
 def fakeUnixRename(src,dst):
-    if src==dst:
-        return
-    if os.path.isfile(d) and not sys.name =="posix":
-        os.remove(dst)
     shutil.move(src,dst)
 
 def ensure_dir(f):

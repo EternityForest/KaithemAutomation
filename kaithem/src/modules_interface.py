@@ -167,7 +167,7 @@ class WebInterface():
         with modulesLock:
             pages.require("/admin/modules.edit")
             pages.postOnly()
-            s = saveModule(ActiveModules[module],external_module_locations[module])
+            s = saveModule(ActiveModules[module],external_module_locations[module],module)
             if not os.path.isfile(os.path.join(directories.moduledir,"data","__"+url(module)+".location")):
                 with open(os.path.join(directories.moduledir,"data","__"+url(module)+".location"),"w") as f:
                     f.write(external_module_locations[module])
