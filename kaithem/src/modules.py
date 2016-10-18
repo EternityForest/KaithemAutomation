@@ -183,10 +183,10 @@ def loadResource(fn):
             d = f.read().decode("utf-8")
 
         #This is a workaround for when dolphin puts .directory files in directories and gitignore files
-        #and things like that.
+        #and things like that. Also ignore attempts to load from filedata
         #I'd like to add more workarounds if there are other programs that insert similar crap files.
         if not "resource-type" in d:
-            if "/.git" in fn or "/.gitignore" in fn or fn.endswith(".directory"):
+            if "/.git" in fn or "/.gitignore" in fn or "__filedata__" in fn or fn.endswith(".directory"):
                 return None
 
         if "\r---\r" in d:
@@ -241,7 +241,7 @@ def saveResource(r,fn):
 def cleanupBlobs():
     fddir = os.path.join(directories.vardir,"modules","filedata")
     inUseFiles = [os.path.basename(i) for i in fileResourceAbsPaths.values()]
-    for i in os.listdir( fddir):
+    for i in os.listdir(fddir):
         if not i in inUseFiles:
             fn = os.path.join(fddir,i )
             os.remove(fn)
@@ -476,7 +476,7 @@ def loadModules(modulesdir):
                 s = f.read(1024)
             #Get rid of the __ and .location, then set the location in the dict
             external_module_locations[i[2:-9]] = s
-            loadModule(s, i[2:-9])
+            loadModule(s, util.unurl(i[2:-9]))
         except:
             messagebus.postMessage("/system/notifications/errors" ," Error loading external module: "+ traceback.format_exc(4))
 
@@ -492,7 +492,8 @@ def loadModule(folder, modulename):
                     fn = os.path.join(folder , relfn)
                     #Copy stuff from anything called filedata to handle library modules with filedata
                     if os.path.basename(root) == "__filedata__":
-                        shutil.copy(fn, os.path.join(directories.vardir,"modules","filedata"))
+                        if util.in_directory(fn, directories.datadir):
+                            shutil.copy(fn, os.path.join(directories.vardir,"modules","filedata"))
                         continue
                     #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
                     resourcename = unurl(relfn)
@@ -516,7 +517,7 @@ def loadModule(folder, modulename):
                         if util.in_directory(fn, directories.vardir) or util.in_directory(fn, directories.datadir) :
                             fileResourceAbsPaths[modulename,resourcename] = os.path.join(directories.vardir,"modules","filedata",r['target'])
                         else:
-                            fileResourceAbsPaths[modulename,resourcename] = os.path.join(folder,"filedata",r['target'])
+                            fileResourceAbsPaths[modulename,resourcename] = os.path.join(folder,"__filedata__",r['target'])
 
                 for i in dirs:
                     if i == "__filedata__":

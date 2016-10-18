@@ -99,8 +99,11 @@ class WebInterface():
         if config["downloads-include-md5-in-filename"]:
             cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="%s"'%util.url(module[:-4]+"_"+getModuleHash(module[:-4]))
         cherrypy.response.headers['Content-Type']= 'application/zip'
-        return getModuleAsYamlZip(module[:-4] if module.endswith('.zip') else module, noFiles =not pages.canUserDoThis("/admin/modules.edit"))
-
+        try:
+            return getModuleAsYamlZip(module[:-4] if module.endswith('.zip') else module, noFiles =not pages.canUserDoThis("/admin/modules.edit"))
+        except:
+            logging.exception("Failed to handle zip download request")
+            raise
     #This lets the user download a module as a zip file
     @cherrypy.expose
     def download(self,module):
@@ -108,8 +111,11 @@ class WebInterface():
         if config["downloads-include-md5-in-filename"]:
             cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="%s"' % util.url(module[:-4]+"_"+getModuleHash(module[:-4]))
         cherrypy.response.headers['Content-Type']= 'application/zip'
+        try:
+            return getModuleAsZip(module[:-4],noFiles =not pages.canUserDoThis("/admin/modules.edit"))
+        except:
+            logging.exception("Failed to handle zip download request")
 
-        return getModuleAsZip(module[:-4],noFiles =not pages.canUserDoThis("/admin/modules.edit"))
 
     #This lets the user download a module as a zip file. But this one is deprecated.
     #It's only here for backwards compatibility, but it really doesn't matter.
