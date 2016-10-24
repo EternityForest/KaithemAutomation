@@ -126,7 +126,7 @@ if config['enable-websockets']:
 
 class Widget():
     def __init__(self,*args,**kwargs):
-        self._value = None
+        self.value = None
         self._read_perms = []
         self._write_perms=[]
         self.errored_function = None
@@ -177,13 +177,13 @@ class Widget():
 
     #This function is meant to be overridden or used as is
     def onRequest(self,user):
-        """This function is called after permissions have been verified when a client requests the current value. Usually just returns self._value
+        """This function is called after permissions have been verified when a client requests the current value. Usually just returns self.value
 
         Args:
             user(string):
                 The username of the acessung client
         """
-        return self._value
+        return self.value
 
     #This function is called by the web interface whenever this widget is written to
     def _onUpdate(self,user,value):
@@ -197,6 +197,9 @@ class Widget():
                 return
 
         self.onUpdate(user,value)
+
+    def doCallback(self,user,value):
+        "Run the callback, and if said callback fails, post a message about it."
         try:
             self._callback(user,value)
         except Exception as e:
@@ -221,23 +224,27 @@ class Widget():
 
     #meant to be overridden or used as is
     def onUpdate(self,user,value):
-        self._value = value
+        self.value = value
         self.push(value)
 
     #Read and write are called by code on the server
     def read(self):
-        return self._value
+        return self.value
 
     def write(self,value):
-        self._value = value
+        self.value = value
         self.push(value)
 
     def push(self,value,users=None):
         #Is this the right behavior?
-        self._callback("__SERVER__",value)
+        self.doCallback("__SERVER__",value)
         for i in self.subscriptions_atomic:
             self.subscriptions_atomic[i](value)
 
+    def send(self,value):
+        "Send a value to all subscribers without invoking the local callback"
+        for i in self.subscriptions_atomic:
+            self.subscriptions_atomic[i](value)
     #Lets you add permissions that are required to read or write the widget.
     def require(self,permission):
         self._read_perms.append(permission)
@@ -305,7 +312,7 @@ class DynamicSpan(Widget):
         }
         KWidget_subscribe('%s',upd);
         </script>%s
-        </span>"""%(self.uuid,self.uuid,self.uuid,self._value))
+        </span>"""%(self.uuid,self.uuid,self.uuid,self.value))
 
 class TextDisplay(Widget):
     def render(self,height='4em',width='24em'):
@@ -331,7 +338,7 @@ class TextDisplay(Widget):
         }
         KWidget_subscribe('%s',upd);
         </script>%s
-        </div>"""%(height,width, self.uuid, self.uuid, self.uuid, self.uuid,self.uuid,self.uuid,self._value))
+        </div>"""%(height,width, self.uuid, self.uuid, self.uuid, self.uuid,self.uuid,self.uuid,self.value))
 
 
 class Meter(Widget):
@@ -352,7 +359,7 @@ class Meter(Widget):
 
 
         Widget.__init__(self,*args,**kwargs)
-        self._value = [0,'normal']
+        self.value = [0,'normal']
 
     def write(self,value):
         #Decide a class so it can show red or yellow with high or low values.
@@ -393,8 +400,8 @@ class Meter(Widget):
         <meter id="%s_m" value="%d" min="%d" max="%d" high="%d" low="%d"></meter>
 
         </div>"""%(label,self.uuid,
-                          self.uuid,unit,self.uuid,self.uuid,self.uuid,self._value[0],
-                          self.uuid,self._value[0], self.k['min'],self.k['max'],self.k['high_warn'],self.k['low_warn']
+                          self.uuid,unit,self.uuid,self.uuid,self.uuid,self.value[0],
+                          self.uuid,self.value[0], self.k['min'],self.k['max'],self.k['high_warn'],self.k['low_warn']
 
                           ))
 
@@ -447,10 +454,10 @@ class Slider(Widget):
         self.max = max
         self.step = step
         Widget.__init__(self,*args,**kwargs)
-        self._value = 0
+        self.value = 0
 
     def write(self,value):
-        self._value = util.roundto(float(value),self.step)
+        self.value = util.roundto(float(value),self.step)
         #Is this the right behavior?
         self._callback("__SERVER__",value)
 
@@ -461,7 +468,7 @@ class Slider(Widget):
         else:
             orient = 'class="horizontalslider"'
         if type=='debug':
-            return {'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
+            return {'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self.value, 'unit':unit}
         if type=='realtime':
             return """<div class="widgetcontainer sliderwidget" ontouchmove = function(e) {e.preventDefault()};>
             <b><p>%(label)s</p></b>
@@ -491,7 +498,7 @@ class Slider(Widget):
            KWidget_subscribe("%(id)s",upd);
            </script>
 
-            </div>"""%{'label':label, 'orient':orient,'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
+            </div>"""%{'label':label, 'orient':orient,'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self.value, 'unit':unit}
 
         if type=='onrelease':
             return """<div class="widgetcontainer sliderwidget">
@@ -524,21 +531,21 @@ class Slider(Widget):
             document.getElementById('%(htmlid)s').jsmodifiable = true;
             KWidget_subscribe("%(id)s",upd);
             </script>
-            </div>"""%{'label':label, 'orient':orient,'en':self.isWritable(),'htmlid':mkid(), 'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
+            </div>"""%{'label':label, 'orient':orient,'en':self.isWritable(),'htmlid':mkid(), 'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self.value, 'unit':unit}
             raise ValueError("Invalid slider type:"%str(type))
 
 class Switch(Widget):
     def __init__(self,*args,**kwargs):
         Widget.__init__(self,*args,**kwargs)
-        self._value = False
+        self.value = False
 
     def write(self,value):
-        self._value = bool(value)
+        self.value = bool(value)
         #Is this the right behavior?
         self._callback("__SERVER__",value)
 
     def render(self,label):
-        if self._value:
+        if self.value:
             x = "checked=1"
         else:
             x =''
@@ -561,7 +568,7 @@ class Switch(Widget):
         }
         KWidget_subscribe("%(id)s",upd);
         </script>
-        </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self._value, 'label':label}
+        </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self.value, 'label':label}
 
 class TagPoint(Widget):
     def __init__(self,tag):
@@ -569,12 +576,12 @@ class TagPoint(Widget):
         self.tag = tag
 
     def write(self,value):
-        self._value = bool(value)
+        self.value = bool(value)
         #Is this the right behavior?
         self._callback("__SERVER__",value)
 
     def render(self,label):
-        if self._value:
+        if self.value:
             x = "checked=1"
         else:
             x =''
@@ -605,7 +612,7 @@ class TagPoint(Widget):
            KWidget_subscribe("%(id)s",upd);
            </script>
 
-            </div>"""%{'label':label,'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.tag.min, 'step':self.step, 'max':self.tag.max, 'value':self._value, 'unit':unit}
+            </div>"""%{'label':label,'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.tag.min, 'step':self.step, 'max':self.tag.max, 'value':self.value, 'unit':unit}
 
         if type=='onrelease':
             sl= """<div class="widgetcontainer sliderwidget">
@@ -637,7 +644,7 @@ class TagPoint(Widget):
             document.getElementById('%(htmlid)s').jsmodifiable = true;
             KWidget_subscribe("%(id)s",upd);
             </script>
-            </div>"""%{'label':label,'en':self.isWritable(),'htmlid':mkid(), 'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self._value, 'unit':unit}
+            </div>"""%{'label':label,'en':self.isWritable(),'htmlid':mkid(), 'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self.value, 'unit':unit}
 
         return """<div class="widgetcontainer">"""+sl+"""
 
@@ -659,20 +666,20 @@ class TagPoint(Widget):
         }
         KWidget_subscribe("%(id)s",upd);
         </script>
-        </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self._value, 'label':label}
+        </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self.value, 'label':label}
 
 class TextBox(Widget):
     def __init__(self,*args,**kwargs):
         Widget.__init__(self,*args,**kwargs)
-        self._value = ''
+        self.value = ''
 
     def write(self,value):
-        self._value = str(value)
+        self.value = str(value)
         #Is this the right behavior?
         self._callback("__SERVER__",value)
 
     def render(self,label):
-        if self._value:
+        if self.value:
             x = "checked=1"
         else:
             x =''
@@ -695,12 +702,12 @@ class TextBox(Widget):
         }
         KWidget_subscribe("%(id)s",upd);
         </script>
-        </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self._value, 'label':label}
+        </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self.value, 'label':label}
 
 class APIWidget(Widget):
         def __init__(self,*args,**kwargs):
             Widget.__init__(self,*args,**kwargs)
-            self._value = None
+            self.value = None
 
         def render(self,htmlid):
             return """
@@ -741,4 +748,4 @@ class APIWidget(Widget):
 
                     KWidget_subscribe("%(id)s",_upd);
             </script>
-            """%{'htmlid':htmlid, 'id' :self.uuid, 'value': json.dumps(self._value)}
+            """%{'htmlid':htmlid, 'id' :self.uuid, 'value': json.dumps(self.value)}

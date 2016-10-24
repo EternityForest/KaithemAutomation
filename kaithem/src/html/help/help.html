@@ -301,23 +301,41 @@ h4 {
         <h3>Widget.onUpdate(user,value) (Always Available)</h3>
         <p>
         This function is automatically called when an authorized client requests to set a new value.
-        value will be specific to the widget.
-        You only need to know about this function when creating custom widgets.
+        value will be specific to the widget. You only need to know about this function when creating custom widgets.
+
         </p>
 
         <h3>Widget.read() (Usually Available)</h3>
         <p>
-        returns the current "value" of the widget, an is available for all readable widgets where the idea of "value" makes sense.
+        Returns the current "value" of the widget, an is available for all readable widgets where the idea of "value" makes sense.
+        Generally just returns self.value unless overridden.
         </p>
 
         <h3>Widget.write(value) (Usually Available)</h3>
         <p>
         sets the current "value" of the widget, an is available for all writable widgets where the idea of "value" makes sense.
+        Unless overridded, this will set self.value, invoke any callback set for the widget(with user __SERVER__),
+        and send the value to all subscribed clients.
         </p>
 
+        <p>This should not be used from within the callback or overridden message handler due to the possibility of creating loops.
+            To send a value to all clients without invoking any local callbacks or setting the local value, use send.</p>
+
+        <h3>Widget.send(value)</h3>
+        <p>Send value to all subscribed clients.</p>
+
         <h3><a name="widgetattach"></a>Widget.attach(f)</h3>
-        <p>Set a callback that fires when new data comes in from the widget. The function must take two values, user, and data.
-        User is the username of the user that changed the widget, and data is it's new value</p>
+        <p>Set a callback that fires when new data comes in from the widget.
+            It will fire when write() is called or when the client sends new data
+             The function must take two values, user, and data.
+            User is the username of the user that loaded the page that sent the data the widget,
+            and data is it's new value. user wil be set to __SERVER__ if write() is called.
+    </p>
+    <p>
+        You should not call self.write from within the callback to avoid an infinite loop,
+        although you can call write on other widgets without issue. If you wish to send replies from a callback, use self.send() instead
+        which does not set self.value or trigger the callback.
+    </p>
 
 
 

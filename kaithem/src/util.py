@@ -14,7 +14,6 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-
 "This file ideally should only depend on sdtilb stuff and import the rest as needed. We don't want this to drag in threads and everything"
 import  os,threading,copy,sys,shutil,difflib,time,json,traceback,stat,subprocess,copy,collections
 import yaml

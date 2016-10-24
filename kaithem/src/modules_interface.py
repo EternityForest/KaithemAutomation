@@ -337,7 +337,12 @@ class WebInterface():
             if path[0] == 'uploadfileresourcetarget':
                 pages.require("/admin/modules.edit", noautoreturn = True)
                 pages.postOnly()
-                folder = os.path.join(directories.vardir,"modules","filedata")
+
+                if not module in external_module_locations:
+                    folder = os.path.join(directories.vardir,"modules","filedata")
+                else:
+                    folder = os.path.join(external_module_locations[module],"__filedata__")
+
                 util.ensure_dir2(folder)
                 data_basename = kwargs['name']+"_"+str(uuid.uuid4().hex)
                 dataname = os.path.join(folder,data_basename)
