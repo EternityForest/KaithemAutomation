@@ -404,30 +404,30 @@ class WebInterface():
                 pages.require("/admin/modules.edit")
                 pages.postOnly()
                 modulesHaveChanged()
-                unsaved_changed_obj[kwargs['name']] = "Module modified by"+ pages.getAcessingUser()
-                unsaved_changed_obj[root] = "Module was renamed by"+ pages.getAcessingUser()
-
-                if "location" in kwargs and kwargs['location']:
-                    external_module_locations[kwargs['name']]= kwargs['location']
-                    #We can't just do a delete and then set, what if something odd happens between?
-                    if not kwargs['name']== root and root in external_module_locations:
-                        del external_module_locations[root]
-                else:
-                    #We must delete this before deleting the actual external_module_locations entry
-                    #If this fails, we can still save, and will reload correctly.
-                    #But if there was no entry, but there was a file,
-                    #It would reload from the external, but save to the internal,
-                    #Which would be very confusing. We want to load from where we saved.
-
-                    #If we somehow have no file but an entry, saving will remake the file.
-                    #If there's no entry, we will only be able to save by saving the whole state.
-                    if  os.path.isfile(os.path.join(directories.moduledir,"data","__"+url(root)+".location")):
-                        if root in external_module_locations:
-                            os.remove(external_module_locations[root])
-
-                    if root in external_module_locations:
-                        external_module_locations.pop(root)
                 with modulesLock:
+                    if not kwargs['name'] == root:
+                        unsaved_changed_obj[kwargs['name']] = "New name of module. "+ pages.getAcessingUser()+ " old name was "+root
+                        unsaved_changed_obj[root] = "Old name of module that was renamed by "+ pages.getAcessingUser()+" new name is "+kwargs['name']
+                    if "location" in kwargs and kwargs['location']:
+                        external_module_locations[kwargs['name']]= kwargs['location']
+                        #We can't just do a delete and then set, what if something odd happens between?
+                        if not kwargs['name']== root and root in external_module_locations:
+                            del external_module_locations[root]
+                    else:
+                        #We must delete this before deleting the actual external_module_locations entry
+                        #If this fails, we can still save, and will reload correctly.
+                        #But if there was no entry, but there was a file,
+                        #It would reload from the external, but save to the internal,
+                        #Which would be very confusing. We want to load from where we saved.
+
+                        #If we somehow have no file but an entry, saving will remake the file.
+                        #If there's no entry, we will only be able to save by saving the whole state.
+                        if  os.path.isfile(os.path.join(directories.moduledir,"data","__"+url(root)+".location")):
+                            if root in external_module_locations:
+                                os.remove(external_module_locations[root])
+
+                        if root in external_module_locations:
+                            external_module_locations.pop(root)
                     #Missing descriptions have caused a lot of bugs
                     if '__description' in ActiveModules[root]:
                         ActiveModules[root]['__description']['text'] = kwargs['description']

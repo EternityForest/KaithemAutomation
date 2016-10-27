@@ -207,7 +207,6 @@ def loadResource(fn):
                 r['action'] = f[2]
         return r
     except:
-        print(fn)
         logging.exception("Error loading resource from file "+fn)
         raise
 
@@ -407,7 +406,7 @@ def saveModules(where):
             for i in [i for i in ActiveModules if not i in external_module_locations]:
                 saved.extend(saveModule(ActiveModules[i],os.path.join(where,url(i)),modulename=i))
 
-            for i in external_module_locations:
+            for i in [i for i in ActiveModules if i in external_module_locations]:
                 try:
                     saved.extend(saveModule(ActiveModules[i],external_module_locations[i],modulename=i))
                 except:
@@ -446,10 +445,14 @@ def saveModules(where):
                 f.write("By this string of contents quite arbitrary, I hereby mark this dump as consistant!!!")
 
 
-            #mark things that get created and deleted before ever saving so they don't persist in the unsaved list
+            #mark things that get created and deleted before ever saving so they don't persist in the unsaved list.
+            #note that we skip things beginning with __ because that is reserved and migh not even represent a module.
             for i in unsaved_changed_obj:
-                if isinstance(i,tuple) and len(i)>1 and (not i[0]  in ActiveModules) or (not i[1] in ActiveModules[i[0]]):
+                if isinstance(i,tuple) and len(i)>1 and (not i[0].startswith("__")) and ((not i[0]  in ActiveModules) or (not i[1] in ActiveModules[i[0]])):
                     saved.append(i)
+                else:
+                    if isinstance(i,str) and not i.startswith("__") and not i in ActiveModules:
+                        saved.append(i)
 
             #Now that we know the dump is actually valid, we remove those entries from the unsaved list for real
             for i in saved:
@@ -461,9 +464,9 @@ def saveModules(where):
 
 
 def loadModules(modulesdir):
-    "Load all modules in the given folder to RAM"
+    "Load all modules in the given folder to RAM."
     for i in util.get_immediate_subdirectories(modulesdir):
-        loadModule(os.path.join(modulesdir,i), i)
+        loadModule(os.path.join(modulesdir,i), util.unurl(i))
 
     for i in os.listdir(modulesdir):
         try:
@@ -473,9 +476,10 @@ def loadModules(modulesdir):
                 continue
             #Read ythe location we are supposed to load from
             with open(os.path.join(modulesdir,i)) as f:
-                s = f.read(1024)
+                s = f.read(4096)
             #Get rid of the __ and .location, then set the location in the dict
-            external_module_locations[i[2:-9]] = s
+            with modulesLock:
+                external_module_locations[util.unurl(i[2:-9])] = s
             loadModule(s, util.unurl(i[2:-9]))
         except:
             messagebus.postMessage("/system/notifications/errors" ," Error loading external module: "+ traceback.format_exc(4))
@@ -612,7 +616,6 @@ def load_modules_from_zip(f,replace=False):
                         break
                     f.write(d)
             inputfile.close()
-            print(p,n)
             newfrpaths[p,n] = dataname
 
 
@@ -629,7 +632,7 @@ def load_modules_from_zip(f,replace=False):
         for i in new_modules:
             if i in ActiveModules:
                 backup[i]=ActiveModules[i].copy()
-                rmModule(i,"Module Deleted by " + pages.getAcessingUser())
+                rmModule(i,"Module Deleted by " + pages.getAcessingUser() + " during process of update")
 
                 messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Deleted old module " + i+" for auto upgrade")
                 messagebus.postMessage("/system/modules/unloaded",i)
@@ -734,13 +737,11 @@ def rmResource(module,resource,message="Resource Deleted"):
 def newModule(name,location=None):
     "Create a new module by the supplied name, throwing an error if one already exists. If location exists, load from there."
     modulesHaveChanged()
-    #Lets do this outside of modules lock just to be safe
-    if location:
-        with registry.reglock:
-            external_module_locations[name]= os.path.expanduser(location)
-
     #If there is no module by that name, create a blank template and the scope obj
     with modulesLock:
+        if location:
+            external_module_locations[name]= os.path.expanduser(location)
+
         if name in ActiveModules:
             raise RuntimeError("A module by that name already exists.")
         if location:
@@ -785,9 +786,9 @@ def rmModule(module,message="deleted"):
     #Get rid of any permissions defined in the modules.
     auth.importPermissionsFromModules()
     usrpages.removeModulePages(module)
-
-    if module in external_module_locations:
-        del external_module_locations[module]
+    with modulesLock:
+        if module in external_module_locations:
+            del external_module_locations[module]
     #Get rid of any garbage cycles associated with the event.
     gc.collect()
     messagebus.postMessage("/system/modules/unloaded",module)
