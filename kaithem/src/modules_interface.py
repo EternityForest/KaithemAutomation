@@ -68,7 +68,7 @@ def followAttributes(root, path):
         elif i.startswith("i"):
             root = root[int(i[1:])]
         else:
-            root = root[unurl(i[1:])]
+            root = root[util.unurl(i[1:])]
     return root
 
 #The class defining the interface to allow the user to perform generic create/delete/upload functionality.
@@ -545,11 +545,6 @@ def addResourceTarget(module,type,name,kwargs,path):
 #show a edit page for a resource. No side effect here so it only requires the view permission
 def resourceEditPage(module,resource,version='default'):
     pages.require("/admin/modules.view")
-
-    #Workaround for cherrypy decoding unicode as if it is latin 1
-    #Because of some bizzare wsgi thing i think.
-    module=module.encode("latin-1").decode("utf-8")
-    resource=resource.encode("latin-1").decode("utf-8")
 
     with modulesLock:
         resourceinquestion = ActiveModules[module][resource]

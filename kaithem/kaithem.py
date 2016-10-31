@@ -46,6 +46,9 @@ if x.startswith('/usr/bin'):
 
 x = os.path.join(x,'src')
 
+#Avoid having to rename six.py by treating it's folder as a special case.
+sys.path = [os.path.join(x,'thirdparty','six')] + sys.path
+
 if sys.version_info < (3,0):
     sys.path = [os.path.join(x,'thirdparty','python2')] + sys.path
     from gzip import open as opengzip

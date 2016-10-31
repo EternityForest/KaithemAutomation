@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #File for keeping track of and editing kaithem modules(not python modules)
-import threading,urllib,shutil,sys,time,os,json,traceback,copy,hashlib,logging,uuid, gc
+import threading,urllib,shutil,sys,time,os,json,traceback,copy,hashlib,logging,uuid, gc,re
 import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling,modules_state,registry
 from .modules_state import ActiveModules,modulesLock,scopes,additionalTypes,fileResourceAbsPaths
@@ -50,20 +50,28 @@ moduleshash= "000000000000000000000000"
 modulehashes = {}
 
 def hashModules():
-    m=hashlib.md5()
-    with modulesLock:
-        for i in sorted(ActiveModules.keys()):
-            m.update(i.encode('utf-8'))
-            for j in sorted(ActiveModules[i].keys()):
-                m.update(j.encode('utf-8'))
-                m.update(json.dumps(ActiveModules[i][j],sort_keys=True,separators=(',',':')).encode('utf-8'))
-    return m.hexdigest().upper()
+    try:
+        m=hashlib.md5()
+        with modulesLock:
+            for i in sorted(ActiveModules.keys()):
+                m.update(i.encode('utf-8'))
+                for j in sorted(ActiveModules[i].keys()):
+                    m.update(j.encode('utf-8'))
+                    m.update(json.dumps(ActiveModules[i][j],sort_keys=True,separators=(',',':')).encode('utf-8'))
+        return m.hexdigest().upper()
+    except:
+        logging.exception("Could not hash modules")
+        return("ERRORHASHINGMODULES")
 
 def hashModule(module):
-    m=hashlib.md5()
-    with modulesLock:
-        m.update(json.dumps(ActiveModules[module],sort_keys=True,separators=(',',':')).encode('utf-8'))
-    return m.hexdigest()
+    try:
+        m=hashlib.md5()
+        with modulesLock:
+            m.update(json.dumps(ActiveModules[module],sort_keys=True,separators=(',',':')).encode('utf-8'))
+        return m.hexdigest()
+    except:
+        logging.exception("Could not hash module")
+        return("ERRORHASHINGMODULE")
 
 def getModuleHash(m):
     if not m in modulehashes:
@@ -189,12 +197,8 @@ def loadResource(fn):
             if "/.git" in fn or "/.gitignore" in fn or "__filedata__" in fn or fn.endswith(".directory"):
                 return None
 
-        if "\r---\r" in d:
-                f = d.split("\r---\r")
-        elif "\r\n\---\r\n" in d:
-                f = d.split("\r\n---\r\n")
-        else:
-            f = d.split("\n---\n")
+        #This regex is meant to handle any combination of cr, lf, and trailing whitespaces
+        f = re.split("\r?\n---[ |\t]*?\r?\n",d)
         r = yaml.load(f[0])
 
         #Catch new style save files
@@ -227,15 +231,15 @@ def saveResource2(r,fn):
     else:
         d = yaml.dump(r)
 
-    with open(fn,"w") as f:
+    with open(fn,"wb") as f:
         util.chmod_private_try(fn,execute = False)
-        f.write(d)
+        f.write(d.encode("utf-8"))
 
 
 def saveResource(r,fn):
-    with open(fn,"w") as f:
+    with open(fn,"wb") as f:
         util.chmod_private_try(fn, execute=False)
-        f.write(yaml.dump(r))
+        f.write(yaml.dump(r).encode("utf-8"))
 
 def cleanupBlobs():
     fddir = os.path.join(directories.vardir,"modules","filedata")
@@ -358,29 +362,44 @@ def saveModule(module, dir,modulename=None):
                 #Which is not exactly ideal, but all the per-module stuff is stored in dumps.
 
                 #Basically, we want to always copy the current "loaded" version over.
-                #But actually we don't need to copy, we can do a move.
                 currentFileLocation = fileResourceAbsPaths[modulename,resource]
-                if util.in_directory(fn, directories.vardir):
-                    newpath = os.path.join(directories.vardir,"modules","filedata",r['target'])
-                    util.ensure_dir(newpath)
-                    util.fakeUnixRename(currentFileLocation,newpath)
-                    fileResourceAbsPaths[modulename,resource] = newpath
+                #Handle broken targets if a file was manually deleted
+                if os.path.isfile(currentFileLocation):
+                    #If the resource yaml file is in the vardir, so the file data goes in filedata from wherever it currently is.
+                    if util.in_directory(fn, directories.vardir):
+                        newpath = os.path.join(directories.vardir,"modules","filedata",r['target'])
+                        #And the file is not already in place
+                        if not newpath == currentFileLocation:
+                            util.ensure_dir(newpath)
+                            #It doesn't matter if this gets interrupted. Files are UUID identified so they never overwite
+                            #So really if a dump gets interrupted there won't be anything valid to reference it
+                            #and it will just get cleaned up as an unused blob.
+                            #What's important is not deleting stuff in external folders for no reason.
+                            shutil.copyfile(currentFileLocation, newpath)
+                            fileResourceAbsPaths[modulename,resource] = newpath
+                    #Resource file is outside vardir. So the actual file data belongs with the module folder
+                    else:
+                        newpath = os.path.join(dir,"__filedata__",r['target'])
+                        if not newpath == currentFileLocation:
+                            util.ensure_dir(newpath)
+                            #Storage is cheap enough I guess, might as well copy instead of move for now. Maybe
+                            #change it?
+                            shutil.copyfile(currentFileLocation, newpath)
+                            fileResourceAbsPaths[modulename,resource] = newpath
+                #broken target
                 else:
-                    newpath = os.path.join(dir,"__filedata__",r['target'])
-                    util.ensure_dir(newpath)
-                    util.fakeUnixRename(currentFileLocation,newpath)
-                    fileResourceAbsPaths[modulename,resource] = newpath
+                    logging.error("File reference resource has nonexistant target, igonring.")
 
         #Now we iterate over the existing resource files in the filesystem and delete those that correspond to
         #resources that have been deleted in the ActiveModules workspace thing.
         #If there were no resources in module, and we never made a dir, don't do anything.
         if os.path.isdir(dir):
             for j in util.get_files(dir):
-                if unurl(j) not in module:
+                if util.unurl(j) not in module:
                     os.remove(os.path.join(dir,j))
                     #Remove them from the list of unsaved changed things.
-                    if (modulename,unurl(j)) in unsaved_changed_obj:
-                        saved.append((modulename,unurl(j)))
+                    if (modulename,util.unurl(j)) in unsaved_changed_obj:
+                        saved.append((modulename,util.unurl(j)))
         saved.append(modulename)
         return saved
     except:
@@ -418,9 +437,9 @@ def saveModules(where):
                 #Note that we URL url file names for the module filenames and foldernames.
 
                 #We also delete things that are in the "external_module_locations" because they have been moved there. Unless it happens to point here!
-                if unurl(i) not in ActiveModules or (((unurl(i) in external_module_locations)  and not external_module_locations[unurl(i)]==os.path.join(where,i))):
+                if util.unurl(i) not in ActiveModules or (((util.unurl(i) in external_module_locations)  and not external_module_locations[util.unurl(i)]==os.path.join(where,i))):
                     shutil.rmtree(os.path.join(where,i))
-                    saved.append(unurl(i))
+                    saved.append(util.unurl(i))
 
             #Delete the .location pointer files to modules that have been deleted from ActiveModules
             for i in util.get_files(where):
@@ -500,7 +519,7 @@ def loadModule(folder, modulename):
                             shutil.copy(fn, os.path.join(directories.vardir,"modules","filedata"))
                         continue
                     #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
-                    resourcename = unurl(relfn)
+                    resourcename = util.unurl(relfn)
                     r = loadResource(fn)
                     if not r:
                         continue
@@ -529,7 +548,7 @@ def loadModule(folder, modulename):
                     relfn = os.path.relpath(os.path.join(root,i),folder)
                     fn = os.path.join(folder , relfn)
                     #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
-                    module[unurl(relfn)] = {"resource-type":"directory"}
+                    module[util.unurl(relfn)] = {"resource-type":"directory"}
 
 
         scopes[modulename] = ModuleObject(modulename)
@@ -584,9 +603,9 @@ def load_modules_from_zip(f,replace=False):
     newfrpaths = {}
     for i in z.namelist():
         #get just the folder, ie the module
-        p = unurl(i.split('/')[0])
+        p = util.unurl(i.split('/')[0])
         #Remove the.json by getting rid of last 5 chars
-        n = unurl((i.split('/'))[1][:-5])
+        n = util.unurl((i.split('/'))[1][:-5])
         if p not in new_modules and not "__filedata__" in p:
             new_modules[p] = {}
 
@@ -602,7 +621,7 @@ def load_modules_from_zip(f,replace=False):
             inputfile = z.open(i)
             folder = os.path.join(directories.vardir,"modules","filedata")
             util.ensure_dir2(folder)
-            data_basename = unurl(i.split('/')[1])
+            data_basename = util.unurl(i.split('/')[1])
             dataname = os.path.join(folder,data_basename)
 
             total = 0
