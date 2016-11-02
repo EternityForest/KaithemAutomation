@@ -1,0 +1,35 @@
+continual: false
+enable: true
+once: true
+priority: interactive
+rate-limit: 0.0
+resource-type: event
+trigger: 'False'
+versions: {}
+
+#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
+---
+#This code runs once when the event loads. It also runs when you save the event during the test compile
+#and may run multiple times when kaithem boots due to dependancy resolution
+__doc__="""
+Re-save this event. If it errors, there is a problem with deleted events. What this does is to put a weakref to something the first time it loads, and make sure it isn't
+there next time. Before a release re-save this a few times. Maybe delete it and check module.ref manually.
+"""
+
+import weakref,time
+
+if  hasattr(module,'ref'):
+    time.sleep(1)
+    if module.ref():
+   		raise RuntimeError("Event scope data is not being deleted within 1 seconds")
+        
+        
+class Foo():
+    pass
+abc = Foo()
+
+module.ref = weakref.ref(abc)
+if not module.ref():
+    raise RuntimeError("Ref didn't ref in the first place!!!!!!!")
+---
+pass

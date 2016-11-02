@@ -1,0 +1,33 @@
+{continual: false, disabled: false, enable: true, once: true, priority: interactive,
+  rate-limit: 0.0, resource-type: event, trigger: 'True'}
+
+#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
+---
+#This code runs once when the event loads. It also runs when you save the event during the test compile
+#and may run multiple times when kaithem boots due to dependancy resolution
+__doc__=''
+import time
+suceed = [10000]
+
+---
+def run():
+    def f(m,v):
+        suceed[0] = suceed[0] -1
+    kaithem.message.subscribe('/testtopic',f)
+    for i in range(0,10000):
+        kaithem.message.post("/testtopic","Test")
+    time.sleep(30)
+    if suceed[0]:
+        raise RuntimeError("Message bus test failed. This might just be because the computer is too slow.")
+    else:
+        print("Sucess in testing message bus")
+
+def run2():
+    for i in range(0,10000):
+        def f(m,v):
+            pass
+        kaithem.message.subscribe('/testtopic',f)
+        del f
+
+kaithem.misc.do(run)
+kaithem.misc.do(run2)

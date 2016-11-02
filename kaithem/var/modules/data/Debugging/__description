@@ -1,0 +1,3 @@
+{resource-type: module-description, text: A few things to examine the internal state
+    of things. Functions in this module may behave unpredictably and should basically
+    never be used outside of testing and debugging Kaithem itself.}
