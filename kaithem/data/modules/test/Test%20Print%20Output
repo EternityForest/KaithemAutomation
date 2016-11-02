@@ -1,0 +1,132 @@
+continual: true
+disabled: false
+enable: true
+once: true
+priority: interactive
+rate-limit: 1.0
+resource-type: event
+trigger: 'False'
+versions:
+  action: pass
+  continual: false
+  priority: interactive
+  rate-limit: 0.0
+  resource-type: event
+  setup: "#Copyright Daniel Dunn 2015\r\n#This file is part of Kaithem Automation.\r\
+    \n\r\n#Kaithem Automation is free software: you can redistribute it and/or modify\r\
+    \n#it under the terms of the GNU General Public License as published by\r\n#the\
+    \ Free Software Foundation, version 3.\r\n\r\n#Kaithem Automation is distributed\
+    \ in the hope that it will be useful,\r\n#but WITHOUT ANY WARRANTY; without even\
+    \ the implied warranty of\r\n#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\
+    \  See the\r\n#GNU General Public License for more details.\r\n\r\n#You should\
+    \ have received a copy of the GNU General Public License\r\n#along with Kaithem\
+    \ Automation.  If not, see <http://www.gnu.org/licenses/>.\r\nimport weakref,traceback,\
+    \ time, threading, scheduling\r\nfrom src import util, messagebus\r\n\r\n# A tag\
+    \ point is very similar to a variable, except for the fact that you can subscribe\
+    \ to it and be notified if it changes py passing a function that takes\r\n# one\
+    \ argument to tag.subscribe. You must maintain a reference to f or it will be\
+    \ garbage collected.\r\n#\r\n# The subscribe function returns a value that may\
+    \ be passed to unsubscribe for a more reliable means of deletion,\r\n#\r\n# To\
+    \ read the current value of a tag point, simply call it. The value will be returned,\
+    \ and if there are any subscribers, it will be passed to them as well.\r\n#\r\n\
+    # To write to the tag point, simply call it with one numeric argument.\r\n#\r\n\
+    # If you have set up a getter, the getter will be called whenever the tag points\
+    \ value is requested, and the value it returns will be used.\r\n#\r\n# tag.interval\
+    \ determines how long tag values can be cached for in seconds. tag.age is a property(not\
+    \ a function) that gives the total time since last updated.\r\n#\r\n# tag.require\
+    \ tells the tag point that a permission is needed to read to write.\r\n#\r\n#\
+    \ tag.meter takes the same parameters as widget.Meter and returns a meter that\
+    \ shows the value of the tag point.\r\n# Its permissions will be exactly the same\
+    \ as the point.\r\n\r\n#Tag\r\n\r\ntags = {}\r\n\r\nclass Tag():\r\n    def __init__(self,name,\
+    \ getter=None, default=0):\r\n        self.subscribers = {}\r\n        self.event\
+    \ = None\r\n        self.value = default\r\n        self.read_permissions = []\r\
+    \n        self.write_permissions = []\r\n        self.getter = getter\r\n    \
+    \    self.name = name\r\n        self.updated = 0\r\n        self._interval =\
+    \ 0.015\r\n        #We only post to the message bus once per function, we keep\
+    \ track of the ids here.\r\n        self.already_posted_error = {}\r\n       \
+    \ def f():\r\n            self()\r\n        self.poll = f\r\n        self.lock\
+    \ = threading.Lock()\r\n    #Complicated. terrible, and unmaintainable code using\
+    \ parts of things that were't supposed to be public.\r\n    #Watch out to either\
+    \ refactor this or not make breaking changes in widget.py\r\n\r\n    #Basically\
+    \ this creates a meter object, modifies it to share permissions with self,\r\n\
+    \    #then modifies things to pass through reads and writes. Actually checking\
+    \ permissions is handled by widget.py.\r\n    def meter(self,*args,**kwargs):\r\
+    \n        m = widgets.Meter(*args,**kwargs)\r\n        m._write_perms = self.write_permissions\r\
+    \n        m._read_perms = self.read_permissions\r\n        def f(obj, usr):\r\n\
+    \            return self()\r\n        m.onRequest = f\r\n        return m\r\n\r\
+    \n    def slider(self,*args,**kwargs):\r\n        m = widgets.Slider(*args,**kwargs)\r\
+    \n        m._write_perms = self.write_permissions\r\n        m._read_perms = self.read_permissions\r\
+    \n        def f(obj, usr):\r\n            return self()\r\n        m.onRequest\
+    \ = f\r\n        def f(obj,user,val):\r\n            self(val)\r\n        m.onUpdate\
+    \ = f\r\n        return m\r\n\r\n    def __bool__(self):\r\n        return self()>0.5\r\
+    \n\r\n    def __nonzero__(self):\r\n        return self()>0,5\r\n\r\n    def _push(self,\
+    \ value):\r\n        for i in self.subscribers:\r\n            try:\r\n      \
+    \          self.subscribers[i]()(value)\r\n            except:\r\n           \
+    \     messagebus.postMessage(\"system/tagpoints/errors\", traceback.format_tb(6))\r\
+    \n                if not id(self.subscribers[i]()) in self.already_posted_error:\r\
+    \n                    messagebus.postMessage(\"system/notifications/errors\",\
+    \ \"Error in tag point getter %s from module %s.\"%(strself.subscribers[i]().__name__),\
+    \ str(self.subscribers[i]().__module__))\r\n                    self.already_posted_error[id(self.subscribers[i]())]\
+    \ = True\r\n    @property\r\n    def interval(self):\r\n        return self._interval\r\
+    \n    \r\n    @interval.setter\r\n    def interval(self,val):\r\n        with\
+    \ self.lock:\r\n            self._interval = float(val)\r\n            if self.subscription:\r\
+    \n                self.subscription.unregister()\r\n                self.subscription\
+    \ = scheduling.RepeatingEvent(self.poll, self._interval)\r\n                self.subscription.register()\r\
+    \n            \r\n    def __call__(self,*args):\r\n        if args:\r\n      \
+    \      self.write(args[0])\r\n            self.updated = time.time\r\n       \
+    \     return\r\n        if self.getter() and self.age>self.interval:\r\n     \
+    \       try:\r\n                self.value = self.getter()\r\n               \
+    \ self.updated = time.time\r\n            except Exception as e:\r\n         \
+    \       messagebus.postMessage(\"system/tagpoints/errors\", traceback.format_tb(6))\r\
+    \n                if not id(self.getter) in self.already_posted_error:\r\n   \
+    \                 messagebus.postMessage(\"system/notifications/errors\", \"Error\
+    \ in tag point getter %s from module %s.\"%(str(self.getter.__name__), str(self.getter.__module__)))\r\
+    \n                    self.already_posted_error[id(self.getter)] = True\r\n  \
+    \          self._push(self.value)\r\n        else:\r\n            return self.value\r\
+    \n\r\n    @property\r\n    def age(self):\r\n        return time.time()-self.updated\r\
+    \n\r\n    def write(self,value):\r\n        with self.lock:\r\n            self.value\
+    \ = float(value)\r\n            self.updated = time.time()\r\n            self._push(value)\r\
+    \n\r\n    def subscribe(self,f):\r\n        with self.lock:\r\n            sid\
+    \ = util.unique_number()\r\n            fid = id(f)\r\n            def g():\r\n\
+    \                del self.subscribers[sid]\r\n                try:\r\n       \
+    \             del self.already_posted_error[fid]\r\n                except:\r\n\
+    \                    pass\r\n\r\n            self.subscribers[sid] = weakref.ref(f,g)\r\
+    \n            if not self.subscription:\r\n                self.event = scheduling.RepeatingEvent(self.poll,\
+    \ self.interval)\r\n                self.event.register()\r\n            return\
+    \ sid\r\n\r\n    def unsubscribe(self,id):\r\n        with self.lock:\r\n    \
+    \        try:\r\n                del self.subscribers[id]\r\n            except\
+    \ KeyError:\r\n                pass\r\n            if not self.subscribers and\
+    \ self.event:\r\n                self.event.unregister()\r\n                self.event\
+    \ = None\r\n            \r\n\r\n    def require(self, p):\r\n        with self.lock:\r\
+    \n            self.read_permissions.append(p)\r\n            self.write_permissions.append(p)\r\
+    \n\r\n    def requireToWrite(self,p):\r\n        with self.lock:\r\n         \
+    \   self.write_permissions.append(p)\r\n\r\nclass CVFilter(Tag):\r\n        def\
+    \ __init__(self,name=\"Untitled_Tag\", getter=None, default=0):\r\n          \
+    \  self.target = 0;\r\n            Tag.__init__(self,name,getter,default)\r\n\r\
+    \n        def set(self,value):\r\n            self.value = value\r\n         \
+    \   self.target = value\r\n            self.updated = time.time()\r\n\r\n    \
+    \    def write(self,value):\r\n            change = self.rate*self.age()\r\n \
+    \           self.value = min(self.value-chane, max(self.value+change,self.target))\r\
+    \n            self.target = value\r\n            self.updated = time.tim\r\n \
+    \           self,_push(value)\r\n\r\n        def __call__(self,*args):\r\n   \
+    \         change = self.rate*self.age()\r\n            self.value = min(self.value-chane,\
+    \ max(self.value+change,self.target))\r\n            if args:\r\n            \
+    \    self.write(args[0])\r\n                self.updated = time.time\r\n     \
+    \           return\r\n            if self.getter() and self.age>self.interval:\r\
+    \n                try:\r\n                    self.target = self.getter()\r\n\
+    \                    self.updated = time.time\r\n                except Exception\
+    \ as e:\r\n                    messagebus.postMessage(\"system/tagpoints/errors\"\
+    , traceback.format_tb(6))\r\n                    if not id(self.getter) in self.already_posted_error:\r\
+    \n                        messagebus.postMessage(\"system/notifications/errors\"\
+    , \"Error in tag point getter %s from module %s.\"%(str(self.getter.__name__),\
+    \ str(self.getter.__module__)))\r\n                        self.already_posted_error[id(self.getter)]\
+    \ = True\r\n                self._push(self.value)\r\n            else:\r\n  \
+    \              return self.value\r\n"
+  trigger: 'False'
+
+#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
+---
+"Manually run this event to test manual running also"
+print("This text should appear at the bottom of the event edit page.")
+---
+print("If trigger is false, it means that if this gets printed it was run manually.")

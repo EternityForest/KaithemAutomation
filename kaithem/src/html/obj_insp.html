@@ -1,0 +1,90 @@
+<%!
+from src.util import url
+from src import pages,newevt,usrpages,unitsofmeasure,util,widgets,kaithemobj
+import json,re,cherrypy,inspect
+%>
+<%
+try:
+    from dill.source import getsource
+except:
+    getsource = None
+%>
+<%include file="/pageheader.html"/>
+<title>Object Inspector</title>
+
+<h2>Inspecting ${objname|h}</h2>
+${obj.__class__|h}
+<pre>${util.saferepr(obj)|h}</pre>
+<article>
+
+%if hasattr(obj,'__dict__'):
+<h3>Object Attributes</h3>
+<div class="sectionbox">
+<dl>
+%for i in obj.__dict__:
+<dt><a href="?objname=${objname}.${i}&objpath=${objpath},a${i}">${i|h}</a></dt>
+<dd>${util.saferepr(obj.__dict__[i])|h}<br>
+    %if hasattr(obj.__dict__[i],'__doc__'):
+    <pre>${obj.__dict__[i].__doc__}</pre>
+    %endif
+</dd>
+%endfor
+
+%for i in['__class__','__getattr__','__setattr__', '__getattribute__',"__del__","__init__","__str__","__repr__"]:
+%if hasattr(obj,i):
+<dt><a href="?objname=${objname}.${i}&objpath=${objpath},a${i}">${i|h}</a></dt>
+<dd>${util.saferepr(getattr(obj,i))|h}</dd>
+%endif
+%endfor
+
+
+</div>
+%endif
+
+%if hasattr(obj,'__doc__'):
+<h3>Documentation String</h3>
+<div class="sectionbox">
+<pre>${obj.__doc__}</pre>
+</div>
+%endif
+
+<h3>Source Code</h3>
+<pre>
+%if hasattr(obj,"__globals__") and 'txt' in obj.__globals__:
+${util.saferepr(obj.__globals__['txt'])|h}
+%elif not getsource:
+%try:
+${inspect.getsource(obj)|h}
+%except Exception as e:
+<p>Inspect: No Source Code Found: ${e}</p>
+%endtry
+%else:
+%try:
+${getsource(obj)|h}
+%except Exception as e:
+<p>Dill: No Source Code Found: ${e}</p>
+%endtry
+%endif
+</pre>
+
+%if isinstance(obj, (list)):
+<h3>List Contents (${len(obj)} items)</h3>
+<ol start=0>
+%for n, i in enumerate(obj):
+<li><a href="?objname=${objname}[${n}]&objpath=${objpath|h},i${n}">${util.saferepr(i)|h}</a></li>
+%endfor
+</ol>
+%endif
+
+%if isinstance(obj, (dict)):
+<h3>Dict Contents (${len(obj)} items)</h3>
+<div class="sectionbox">
+<dl>
+%for i in obj:
+<dt><a href="?objname=${objname}['${i}']&objpath=${objpath},s${i}">${i|h}</a></dt>
+<dd>${util.saferepr(obj[i])|h}</dd>
+%endfor
+</div>
+%endif
+
+</article>

@@ -1,0 +1,46 @@
+<%!
+from src.util import url
+from src import pages,newevt,usrpages,unitsofmeasure,util,scheduling
+import time
+%>
+
+<%include file="/pageheader.html"/>
+<h2>Module ${name|h} Search</h2>
+
+<h3 id="results">Search Results in ${name|h}</h3>
+<section>
+<div class="menubar">
+<form style="display:inline;" action="/modules/search/${url(name)}"><input name="search" placeholder="Search this module"/><input type=submit value="search"/></form>
+
+
+%if results[1]>0 or (len(results)>2 and results[2]):
+%if not name=="__all__":
+<a href="/modules/search/${url(name)}?search=${url(search)}&start=${results[1]}">Next Page</a>
+%else:
+<a href="/modules/search/${url(name)}?search=${url(search)}&start=${results[2]}&mstart=${results[1]}">Next Page</a>
+%endif
+%endif
+
+</div>
+%if not name=="__all__":
+<ul>
+
+%for i in results[0]:
+<li><a href="/modules/module/${url(name)}/resource/${url(i)}">${i}</a></li>
+%endfor
+</ul>
+
+%else:
+%for i in results[0]:
+<h4>${i[0]|h}</h4>
+<ul>
+%for j in i[1]:
+<li><a href="/modules/module/${url(i[0])}/resource/${url(j)}">${j}</a></li>
+%endfor
+</ul>
+%endfor
+%endif
+
+</section>
+
+<%include file="/pagefooter.html"/>

@@ -1,18 +1,64 @@
 <%!
 from src.util import url
-from src import pages,newevt,usrpages,unitsofmeasure,util
-import json
+from src import pages,newevt,usrpages,unitsofmeasure,util,widgets,kaithemobj
+import json,re,cherrypy
 %>
 
 <%include file="/pageheader.html"/>
-<h2>Module ${name|h} Scope</h2>
+<title>Object Inspector</title>
+<%
+result = ''
+%>
+<%
+if "cmd" in kwargs:
+    if not cherrypy.request.method=="POST":
+        raise cherrypy.HTTPRedirect("/errors/wrongmethod")
+    if re.match('([a-zA-Z_][a-zA-Z0-9_]* *=[^=])|(import )|(del )',kwargs['cmd']):
+        exec(kwargs['cmd'], {"kaithem":kaithemobj.kaithem},obj.__dict__)
+    else:
+        result =eval(kwargs['cmd'], {"kaithem":kaithemobj.kaithem},obj.__dict__)
 
-<div class="sectionbox">
+%>
+
+<section>
+<h2>Inspecting ${objname|h}</h2>
     <p class="help">
-    This shows all of the attributes of the "module" object that is available in pages and events and is shared between the entire module.
+        This shows all attributes of the selected object and allows you to run commands in the namespace of the selected object.
     <p>
+
+
 %for i in obj.__dict__:
-<h3>${i|h}</h3>
+<h3><a href="?objpath=a${i|h}&objname=${i|h}">${i|h}</a></h3>
 <pre>${util.saferepr(obj.__dict__[i])|h}</pre>
 %endfor
-</article>
+
+</section>
+
+
+<section>
+<a id="cmd"></a>
+<h2>Command Interpreter</h2>
+<p>You can enter single line commands here. Commands execute in the scope of the object's __dict__, so obj.cheese
+here would just be cheese. the kaithem object is available as kaithem as usual. You can call functions and get the result, and you can set and delete values.
+multiline code doesn't work however. Be careful when refreshing this page as it may resend. Using this will add a __builtins__ to the module object.<p>
+%if "cmd" in kwargs:
+%if not cherrypy.request.method=="POST":
+<%
+raise cherrypy.HTTPRedirect("/errors/wrongmethod")
+%>
+%endif
+You Entered:
+<pre>${kwargs['cmd']}</pre>
+Result:
+%if re.match('([a-zA-Z_][a-zA-Z0-9_]* *=[^=])|(import )|(del )',kwargs['cmd']):
+<pre>Command Run</pre>
+%else:
+<pre>${result|h}</pre>
+%endif
+%endif
+
+<form action=#cmd method=post>
+<input name="cmd" size=80><input type="submit" value="Go">
+</form>
+</section>
+<%include file="/pagefooter.html"/>

@@ -61,7 +61,7 @@
                 except IOError:
                     pass
         return ip
-        
+
 %>
 
 <%include file="/pageheader.html"/>
@@ -128,41 +128,41 @@
                 ${unitsofmeasure.formatTimeInterval(time.time()-systasks.systemStarted,4)}
             </td>
         </tr>
-        <% 
+        <%
             try:
                 load = os.getloadavg()
                 load = (round(load[0],2), round(load[1],2),round(load[2],2))
             except:
                 load = "Load average not availible on non UNIX-like systems."
-                
+
             try:
                 f = util.readfile("/proc/meminfo")
                 total = int(re.search("MemTotal.*?([0-9]+)",f).group(1))
                 free = int(re.search("MemFree.*?([0-9]+)",f).group(1))
                 cache = int(re.search("Cached.*?([0-9]+)",f).group(1))
-                
+
                 used = round(((total - (free+cache))/1000.0),2)
                 usedp = round((1-(free+cache)/float(total))*100,2)
                 total = round(total/1024,2)
             except Exception as e:
                 total=used=usedp = "Unavailable"
-                
+
             def makecpuspan(num):
                 if num> multiprocessing.cpu_count():
                     return 'style="color:red;"'
                 else:
                     return ""
         %>
-        
+
         <tr>
             <td>System Load Average(UNIX only)</td>
             <td>
             1 min: <span ${makecpuspan(load[0])}><b>${load[0]}</b></span>
-            5 min: <span ${makecpuspan(load[1])}><b>${load[1]}</b></span> 
+            5 min: <span ${makecpuspan(load[1])}><b>${load[1]}</b></span>
             15 min: <span ${makecpuspan(load[2])}><b>${load[2]}</b></span>
             </td>
         </tr>
-        
+
         <tr>
             <td>Memory Used By All Processes(UNIX only)</td>
             <td>${used} MB (${usedp}%)</td>
@@ -172,7 +172,7 @@
             <td>${workers.waitingtasks()}</td>
         </tr>
     </table>
-    
+
 </p>
 <p>
 <h3>System Info</h3>
@@ -181,7 +181,7 @@
         <td>CPU Type</td>
         <td>${platform.machine()|h}
     </tr>
-    
+
     <tr>
         <td>CPU Count</td>
         <td>${multiprocessing.cpu_count()|h}
@@ -190,7 +190,7 @@
         <td>CPU</td>
         <td>${platform.processor()|h}</td>
     </tr>
-    
+
     <tr>
         <td>Total Availible RAM(UNIX Only)</td>
         <td>${total|h} MB</td>
@@ -199,7 +199,7 @@
         <td>OS Type</td>
         <td>${platform.system()|h}</td>
     </tr>
-    
+
     <tr>
         <td>OS Version</td>
         <td>${platform.release()|h}</td>
@@ -208,17 +208,17 @@
         <td>Python Version</td>
         <td>${platform.python_version()|h}</td>
     </tr>
-    
+
      <tr>
         <td>CherryPy Version</td>
         <td>${cherrypy.__version__|h}</td>
     </tr>
-    
+
     <tr>
         <td>Audio Backend</td>
         <td>${sound.backend.backendname|h}</td>
     </tr>
-    
+
     <tr>
         <td>System Time Zone</td>
         <td>${time.tzname[0]|h}</td>
@@ -593,6 +593,49 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 </pre>
 </dd>
+
+<dt><a href="http://docs.python-requests.org/en/master/">Requests</a>(Apache)</dt>
+<dd><pre>
+Copyright 2016 Kenneth Reitz
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+</pre>
+
+<dt><a href="http://pythonhosted.org/six/">Six</a>(MIT)</dt>
+<dd><pre>
+    Copyright (c) 2010-2015 Benjamin Peterson
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of
+    this software and associated documentation files (the "Software"), to deal in
+    the Software without restriction, including without limitation the rights to
+    use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+    the Software, and to permit persons to whom the Software is furnished to do so,
+    subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+    IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+    CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+</pre>
+
+</dd>
+
 </ul>
 <h3>Command Line Utilities</h3>
 <ul>
@@ -614,6 +657,7 @@ THE SOFTWARE.
 <li><a href="https://www.debian.org/">Debian (Linux Distro)</a></li>
 <li><a href="http://www.linuxmint.com/index.php">Linux Mint (Linux Distro)</a></li>
 <li><a href="http://bluegriffon.org/">BlueGriffon (Web Editor, UI Prototyping)</a></li>
+<li><a href="https://github.com/alonho/pystuck">pystuck(Python debugging tool)</a></li>
 
 </ul>
 <h3>Other</h3>
@@ -623,8 +667,7 @@ THE SOFTWARE.
 <li><a href="http://www.raspberrypi.org/">Raspberry Pi</a></li>
 <li><a href="https://github.com/">GitHub</a></li>
 <li><a href="http://en.wikipedia.org/wiki/Harvard_sentences">The Harvard Sentences(Some of the quotes in the login screen)</a></li>
-
-
+<li><a href="https://freesound.org/people/fins/">fins</a> and <a href="https://freesound.org/people/KIZILSUNGUR"/>KIZILSUNGUR</a> of  <a href="https://freesound.org/">freesound.org</a></li>
 </ul>
 
 </div>

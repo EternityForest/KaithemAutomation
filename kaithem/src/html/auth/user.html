@@ -1,6 +1,7 @@
 <%!
     from src.util import url as urlesc
     from src import auth
+    from src import unitsofmeasure
 %>
 <%include file="/pageheader.html"/>
 <h2>User <span
@@ -38,6 +39,20 @@ User ${username} is a member of the following groups:<br>
 	></input>${i}
 %endfor
 </div>
+
+
+%try:
+<h3>Login History</h3>
+<div class="sectionbox">
+%for i in reverse(auth.Users[username]['loginhistory']):
+<b>${unitsofmeasure.strftime(i[0])|h}: login from ${i[1]|h}</b><br>
+%endfor
+</div>
+%except:
+
+</div>
+
+%endtry
 
 <br><input value="Save Changes" type="submit">
 </form>

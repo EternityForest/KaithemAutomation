@@ -35,7 +35,7 @@ else:
     logdir = os.path.join(vardir,'logs')
 
 
-    
+
 usersdir = os.path.join(vardir,'users')
 regdir = os.path.join(vardir,'registry')
 moduledir = os.path.join(vardir,'modules')
@@ -44,7 +44,7 @@ if not config['ssl-dir'].startswith("/"):
     ssldir =  os.path.join(vardir,config['ssl-dir'])
 else:
     ssldir =  os.path.join(config['ssl-dir'])
-    
+
 
 def recreate():
     global dn,vardir,usersdir, logdir, regdir, moduledir, datadir, htmldir, ssldir

@@ -21,6 +21,7 @@
 {
 	color: 	#900000;
     background-color: rgba(255,200,0,0.2);
+        text-shadow: 0px 0px 6px rgba(255, 100, 100, 0.9);
 
 }
 .warning
@@ -84,7 +85,7 @@ nav.li:hover
   width: 100%;
   background: rgba(255, 255, 230, 0.25);
   border-radius: 12px;
-  margin:2px;
+  margin:1px;
   background-image: linear-gradient(bottom, rgb(119,232,109) 20%, rgb(222,104,210) 51%, rgb(190,255,69) 96%);
 }
 
@@ -92,6 +93,9 @@ nav.li:hover
 {
 	text-shadow:1px 1px 5px rgba(110,130,160,1);
 	color:rgba(80,110,80,1);
+        margin-bottom: 0.2em;
+        margin-top: 0.1em;
+
 }
 
 /************************HTML ELEMENTS***********************************/
@@ -105,6 +109,22 @@ dt
 {
 	margin: 0.2em;
 }
+
+li:hover
+{
+    background-color:rgba(230, 255, 150, 0.2);
+}
+
+dt:hover
+{
+    background-color:rgba(230, 255, 150, 0.2);
+}
+
+dt:hover+dd
+{
+    background-color:rgba(230, 255, 150, 0.2);
+}
+
 
 p{
 	margin:0.5%;
@@ -176,9 +196,9 @@ div.kmainpagebody
 }
 
 /*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
-div.sectionbox,main>section{
+div.sectionbox, main>section{
 	border-style:solid;
-	background: rgba(240, 230, 200, 0.5);
+	background: rgba(235, 230, 210, 0.67);
 	border-width:2px;
 	border-radius: 7px;
 	padding-top:0.2%;
@@ -239,7 +259,7 @@ cursor:help;
 }
 
 /*This is a paragraph serving a similar funtion to the menu bars at the top of desktop application windows*/
-p.menubar{
+p.menubar div.menubar{
 background-color:rgba(255,25,255,0.1);
 border-radius:5px;
 margin:2px;
@@ -426,21 +446,27 @@ input.horizontalslider
 
 
 /*These just add icons to links*/
-a.createbutton::before
+.createbutton::before
 {
  content: url(/static/img/icons/silk/add.png);
 }
 
-a.editbutton::before
+.editbutton::before
 {
 content: url(/static/img/icons/silk/pencil.png);
 }
 
-a.gobutton::before
+.gobutton::before
 {
 content: url(/static/img/icons/silk/arrow_right.png);
 }
-a.deletebutton::before
+
+.playbutton::before
+{
+content: url(/static/img/icons/silk/control_play.png);
+}
+
+.deletebutton::before
 {
  content: url(/static/img/icons/silk/cross.png);
 }

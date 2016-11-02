@@ -1,21 +1,30 @@
 <%!
+from src.unitsofmeasure import siFormatNumber
 from src.util import url
-from src import pages,newevt,usrpages,unitsofmeasure,util,scheduling
-import time
+from src.modules import getModuleHash,fileResourceAbsPaths, external_module_locations
+from src import pages,newevt,usrpages,unitsofmeasure,util,scheduling,modules_state,registry,modules
+import time,os
 %>
 
 <%include file="/pageheader.html"/>
+
+<%
+def getDesc():
+    try:
+        return module['__description']['text']
+    except:
+        return "No module description found"
+%>
 <h2>Module ${name|h}</h2>
 <p class="help">Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</p>
-
-This Page allows you to view and edit information and resources associated with this module.<br><br>
 <title>Module: ${name|h}</title>
-
+<section>
 <form action="/modules/module/${url(name)}/update" method="POST" name="user">
+MD5 Sum: <b>${getModuleHash(name)}</b></br>
 <a href="/modules/download/${url(name)}.zip">Download this module as a zip file</a><br>
 <a href="/modules/yamldownload/${url(name)}.zip">Download this module as a zip file with YAML resources(not compatible with older versions)</a><br>
-<a href="/modules/module/${url(name)}/obj">View the module namespace object(New, requires edit permission)</a>
-
+<a href="/modules/module/${url(name)}/obj/module">View the module namespace object(requires edit permission, beware shoulder surfers)</a>
+</section>
 <h3>Basic Information</h3>
 <div class="sectionbox">
 
@@ -23,7 +32,9 @@ This Page allows you to view and edit information and resources associated with 
 <h4>Name:</h4>
 <input required="required" class="modulename" name="name" type="text" value="${name|h}">
 <h4>Info:</h4>
-<textarea name="description" class="description" rows=5>${module['__description']['text']|h}</textarea>
+<textarea name="description" class="description" rows=5>${getDesc()|h}</textarea>
+<h4>Save Location(blank=default):</h4>
+<input name="location" title="Enter a directory name on the server's local filesystem" value="${external_module_locations.get(name,"")|h}"></input>
 <hr>
 %if pages.canUserDoThis("/admin/modules.edit"):
 <input type="submit" value="Save Changes"></input>
@@ -39,14 +50,28 @@ This Page allows you to view and edit information and resources associated with 
 
 <h3 id="resources">Resources in ${"/".join([name]+path)|h}</h3>
 <div class="sectionbox">
-<p class="menubar">
+<div class="menubar">
 
 <a class="button createbutton addeventbutton" href="/modules/module/${url(name)}/addresource/event/${url('/'.join(path))}">Event</a>
 <a class="button createbutton addpermissionbutton" href="/modules/module/${url(name)}/addresource/permission/${url('/'.join(path))}">Permission</a>
 <a class="button createbutton addpagebutton" href="/modules/module/${url(name)}/addresource/page/${url('/'.join(path))}">Page</a>
 <a class="button createbutton addfolderbutton" href="/modules/module/${url(name)}/addresource/directory/${url('/'.join(path))}">Folder</a>
+<a class="button createbutton" href="/modules/module/${url(name)}/addfileresource/${url('/'.join(path))}">File</a>
+
+%for i in modules.additionalTypes:
+%if modules.additionalTypes[i].createButton:
+<a class="button createbutton" href="/modules/module/${url(name)}/addresource/${i|u}/${url('/'.join(path))}">${modules.additionalTypes[i].createButton|h}</a>
+%endif
+%endfor
 <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource">Delete Resource</a>
-</p>
+%if external_module_locations.get(name,""):
+<a class="button savebutton" href="/modules/savemodule/${name}">Save Module</a>
+%endif
+<form style="display:inline;" action="/modules/search/${url(name)}"><input name="search" placeholder="Search this module"/><input type=submit value="search"/></form>
+
+</div>
+
+
 <p class="pathnav">Path:
 <%
 temp_p = ""
@@ -62,12 +87,13 @@ temp_p+= i+'/'
 %endif
 </p>
 <p class="help">This module contains the following resources.</p>
+
 <%!
-def get_time(t):
+def get_time(ev):
   try:
-      return scheduling.get_next_run(t) or 0
+      return newevt.EventReferences[ev].nextruntime or 0
   except Exception as e:
-      return 0
+      return -1
 
 #n is the module name
 #f is the folder we are checking if it is in, including the module name
@@ -92,14 +118,29 @@ def in_folder(r,f,n):
 <dt class="specialentry"><a href="/modules/module/${name|h}/resource/${"/".join( [i.replace("\\","\\\\").replace("/","\\/") for i in util.split_escape(path[0],"/","\\")[:-1]] )|u}#resources">..</a></dt>
 <hr>
 %endif
-%for i in sorted(sorted(module.keys()), key=lambda x: module[x]['resource-type']):
-
+%for i in sorted(sorted(modules_state.ls_folder(name,'/'.join(path))), key=lambda x: module[x]['resource-type']):
 %if in_folder(i,fullpath,name):
 
-	%if module[i]['resource-type'] == 'event':
+%if not 'resource-type' in module[i]:
+<p class=error>OBJECT ${i|h} MISSING resource-type</p>
+<%
+continue
+%>
+%endif
+%if module[i]['resource-type'] == 'event':
 	  <dt>
-	       <span class="event-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}#setupheading">${util.split_escape(i,'/','\\')[-1]|h}</a>
-<a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a></b>
+	       <span class="event-icon"></span><b>\
+%if (name,i) in modules.unsaved_changed_obj:
+*\
+%endif
+<a href="/modules/module/${url(name)}/resource/${url(i)}#setupheading">${util.split_escape(i,'/','\\')[-1]|h}</a>\
+	       %if not module[i].get('enable',"True"):
+	       (disabled)
+	       %endif
+       </b>
+
+<a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+<a class="button playbutton" href="/modules/module/${url(name)}/runeventdialog/${url(i)}">Run Now</a>
 	       %if newevt.fastGetEventErrors(name,i):
 	       <span class="error">[${len(newevt.fastGetEventErrors(name,i))} Errors]</span>
 	       %endif
@@ -107,25 +148,41 @@ def in_folder(r,f,n):
 	  <dd>
           <p class="resource-docstring">${newevt.getEventInfo((name,i))|h}</p>
 	       <b>Trigger:</b>  <code>${module[i]['trigger']|h}</code><br>
+            %try:
+            
+    		    <b>Last Ran:</b>
+    		    %if newevt.getEventLastRan(name,i):
+    		    <code>${unitsofmeasure.strftime(newevt.getEventLastRan(name,i))|h}
+    		    (${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(name,i),2)} ago)</code>
+    		    %else:
+    		    This event has not ran since it loaded.
+    		    %endif
+            %except Exception as e:
+            <b>${e.__class__|h} getting last runtime. Event likely has an error and has never been fully initialized</b>
+            %endtry
 
-		    <b>Last Ran:</b>
-		    %if newevt.getEventLastRan(name,i):
-		    <code>${unitsofmeasure.strftime(newevt.getEventLastRan(name,i))|h}
-		    (about ${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(name,i),2)} ago)</code>
-		    %else:
-		    This event has not ran since it loaded.
-		    %endif
-
-
-		    %if module[i]['trigger'].startswith("!time"):
+		    %if module[i]['trigger'].startswith("!time") and module[i].get('enable',"True"):
 		    <br><b>Next Run:</b>
-		    <code>${unitsofmeasure.strftime(get_time(module[i]['trigger']))|h}</code></p>
+            <%
+            xyz= get_time((name,i))
+            unitsofmeasure.strftime()
+            if xyz ==0:
+                xyz= "<b>Not Scheduled to Run</b>"
+            elif xyz == -1:
+                xyz="Error getting next run time, try refreshing page again."
+            else:
+                xyz =unitsofmeasure.strftime(xyz)
+            %>
+		    <code>${xyz}</code></p>
 		    %endif
 	  </dd>
 	%endif
 
 	%if module[i]['resource-type'] == 'page':
 	  <dt>
+          %if (name,i) in modules.unsaved_changed_obj:
+          *\
+          %endif
 	       <span class="page-icon"></span><b\
 	       %if i.startswith('__'):
 	       class="specialentry page"\
@@ -134,14 +191,15 @@ def in_folder(r,f,n):
 		%if usrpages.getPageErrors(name,i):
 		<span class="error">[${len(usrpages.getPageErrors(name,i))} Errors]</span>
 		%endif
-		</b><a class="gobutton" href="${usrpages.url_for_resource(name,i)}">Go to page</a>|<a class="editbutton"
+		</b><a class="button gobutton" href="${usrpages.url_for_resource(name,i)}">Go to page</a><a class="button editbutton"
         href="/modules/module/${url(name)}/resource/${url(i)}#pagebody">
 
-		Edit Page</a><a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a></dt>
+		Edit Page</a><a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+    </dt>
 	  <dd>
           <p class="resource-docstring">${usrpages.getPageInfo(name,i)|h}</p>
 
-        %if 'require-permissions' in module[i] and module[i]['require-permissions']:
+      %if 'require-permissions' in module[i] and module[i]['require-permissions']:
 	  <b>Permissions:</b>
 	  %for x in module[i]['require-permissions']:
 	  ${x|h}
@@ -152,16 +210,54 @@ def in_folder(r,f,n):
 
        %if module[i]['resource-type'] == 'permission':
 
-      <dt><span class="permission-icon"></span><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
-<a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+      <dt><span class="permission-icon"></span>\
+  %if (name,i) in modules.unsaved_changed_obj:
+  *\
+  %endif
+<a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
+<a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
 <dt>
 
 	%endif
+    %if module[i]['resource-type'] == 'internal-fileref':
+
+       <dt>\
+    %if (name,i) in modules.unsaved_changed_obj:
+    *\
+    %endif
+    <a href="/modules/module/${url(name)}/getfileresource/${url(i)}">${i}</a>
+    <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+    %try:
+    <span>Size: ${siFormatNumber(os.path.getsize(fileResourceAbsPaths[name,i]))}</span>\
+    %except Exception as e:
+    <span>File could not be acessed: ${e}</span>\
+    %endtry
+    <dt>
+
+     %endif
+
+
+
+    %if module[i]['resource-type'] not in ['event','permission','page','directory','internal-fileref'] and not i.startswith("__"):
+
+           <dt><span></span>\
+        %if (name,i) in modules.unsaved_changed_obj:
+        *\
+        %endif
+        <a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
+        <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
+        <dt>
+
+     %endif
 
      %if module[i]['resource-type'] == 'directory':
 
-      <dt><span class="directory-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}#resources">${util.split_escape(i,'/')[-1]|h}</a></b>
-<a class="deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a><dt>
+      <dt>
+%if (name,i) in modules.unsaved_changed_obj or [True for j in modules.unsaved_changed_obj if isinstance(j,tuple) and j[0]==name and j[1].startswith(i)]:
+*\
+%endif
+<span class="directory-icon"></span><b><a href="/modules/module/${url(name)}/resource/${url(i)}#resources">${util.split_escape(i,'/')[-1]|h}</a></b>
+<a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a><dt>
 
 	%endif
 	<hr>

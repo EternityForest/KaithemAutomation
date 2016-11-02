@@ -37,7 +37,7 @@ class PersistanceArea():
         #We could use a flag, but using the hash doesn't have possible thread issues.
         def markClean(self):
             self.md5 = hashlib.md5(json.dumps(copy.deepcopy(self)).encode('utf8')).digest()
-        
+
         def __getitem__(self, key):
             val = dict.__getitem__(self, key)
             return val
@@ -68,15 +68,15 @@ class PersistanceArea():
                         else:
                             shutil.copytree(os.path.join(folder,f),os.path.join(folder,"INCOMPLETE"+f))
                             shutil.rmtree(os.path.join(folder,f))
-                            
+
                 if not os.path.isfile(os.path.join(folder,"data","kaithem_dump_valid.txt")):
                     if os.path.isdir(os.path.join(folder,"data")):
                         shutil.copytree(os.path.join(folder,f),os.path.join(folder,"INCOMPLETE"+f))
-        
+
                 #Not that we are in a try block
                 if not f:
                     raise RuntimeError("No Folder Found")
-                            
+
                 #Handle finding valid directory
                 #Take all the json files and make PersistanceDicts, and mark them clean.
                 self.files = {}
@@ -85,7 +85,7 @@ class PersistanceArea():
                         with open(os.path.join(folder,f,i)) as x:
                             self.files[i[:-5]] = self.PersistanceDict(json.load(x)['data'])
                             self.files[i[:-5]].markClean()
-                    
+
 
 
         except Exception as e:
@@ -107,18 +107,18 @@ class PersistanceArea():
         try:
             t=str(util.time_or_increment())
             util.ensure_dir2(self.folder)
-            
+
             if os.path.isdir(os.path.join(self.folder, "data")):
                 #Copy everything except the completion marker
                 shutil.copytree(os.path.join(self.folder, "data"), os.path.join(self.folder,t),
                                 ignore = shutil.ignore_patterns("kaithem_dump_valid.txt"))
-                                                   
+
                 with open(os.path.join(self.folder,t,'kaithem_dump_valid.txt'),"w") as x:
                     util.chmod_private_try(os.path.join(self.folder,t,'kaithem_dump_valid.txt'), execute=False)
                     x.write("This file certifies this folder as valid")
             else:
                 util.ensure_dir2(os.path.join(self.folder,"data"))
-            
+
             if os.path.isdir(os.path.join(self.folder,"data","kaithem_dump_valid.txt")):
                 os.remove(os.path.join(self.folder,"data","kaithem_dump_valid.txt"))
             #This segment relies on copy and deepcopy being atomic...
@@ -134,7 +134,7 @@ class PersistanceArea():
                         messagebus.postMessage("/system/notifications/errors",'Registry save error:' + repr(e))
                     except:
                        pass
-                   
+
             for i in util.get_files(os.path.join(self.folder,"data")):
                 try:
                     if (not unurl(i)[:-5] in self.files) and not i=="kaithem_dump_valid.txt":
@@ -168,7 +168,7 @@ class PersistanceArea():
         return self.files[f]
 
 registry = PersistanceArea(directories.regdir)
-reglock = threading.Lock()
+reglock = threading.RLock()
 
 #This is not the actual way we determine if it is clean or not for saving, that is determined per file in an odd way.
 #however, this is used for display purposes.
@@ -223,8 +223,9 @@ def set(key,value):
         if 'schema' in f['keys'][key]:
             validictory.validate(value, f['keys'][key]['schema'])
         f['keys'][key]['data'] = copy.deepcopy(value)
-        
+
 def setschema(key,schema):
+    "Associate a validitory schema with a key such that nobody can set an invalid value to it"
     global is_clean
     is_clean = False
     try:

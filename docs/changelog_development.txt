@@ -1,2 +1,0 @@
-*Notification reminder with AJAX
-*Fixed RasPi Incorrect display of LAN IP

@@ -1,6 +1,9 @@
-modules/*
-registry/*
-users/*
-!modules/data/
-!registry/data/
+modules/*.*
+registry/*.*
+users/*.*
+logs/dumps/*.json
+!modules/data/*
+!modules/filedata/*
+!registry/data/*
 !registry/
+!users/data

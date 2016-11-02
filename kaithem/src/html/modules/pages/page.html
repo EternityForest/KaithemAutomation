@@ -17,7 +17,7 @@ from src.config import config
 
 %endif
 <title>Kaithem Page</title>
-<h2>Editing page: ${name|h}</h2>
+<h2>Editing page: ${util.split_escape(name,'/','\\')[-1] | h}</h2>
 <p class=pathnav>Path:
 <%
 temp_p = ""
@@ -35,11 +35,11 @@ temp_p+= i+'/'
 <b>${path[-1]|h}</b>
 </p>
 Page URL: <a class="gobutton" href="${usrpages.url_for_resource(module,name)}">${''+usrpages.url_for_resource(module,name)}</a>
-<div class="sectionbox">
+<section>
 
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
-<h3>Name</h3>
-<input name="name" value="${name|h}"></input>
+<h3>Path</h3>
+<input title="Backslashes are escapes and / is the path separator. You can move this resource to another directory by renaming." name="name" value="${name|h}" style="width:90%"></input>
 <h3>Page Body</h3>
 
 %if pages.canUserDoThis("/admin/modules.edit"):
@@ -196,6 +196,15 @@ ${str(i[1])|h}
 <p class="error">Some Errors Hidden because you are not logged in or do not have the permissions to view them.</p>
 %endif
 %endif
+
+<%
+p = usrpages.getPageOutput(module,name)
+%>
+
+%if p:
+<h3>Output(${len(p)} bytes)</h3>
+<pre>${p|h}</pre>
+%endif
 <p class="help">
 Saving this module will cause it to be immediately acessable from the web.
 </p>
@@ -206,7 +215,7 @@ Saving this module will cause it to be immediately acessable from the web.
 <p class="warning">You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
 %endif
 </form>
-</div>
+</section>
 
 
 <%include file="/pagefooter.html"/>

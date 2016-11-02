@@ -1,0 +1,49 @@
+{
+    "groups": {
+        "Administrators": {
+            "permissions": [
+                "__all_permissions__"
+            ]
+        },
+        "Guests": {
+            "permissions": [
+                "/admin/modules.view",
+                "/admin/settings.view",
+                "/admin/mainpage.view"
+            ]
+        }
+    },
+    "users": {
+        "__guest__": {
+            "groups": [
+                "Guests"
+            ],
+            "password": "V+hZrbd22NjvNwvQAfwOAzLrudfX/+SMuddMmetm0Vk=",
+            "salt": "AtTjOSUQyNFoklVv+i8Lbw==",
+            "settings": {
+                "restrict-lan": false
+            },
+            "username": "__guest__"
+        },
+        "admin": {
+            "groups": [
+                "Administrators"
+            ],
+            "password": "y1x9k/Re7pZpXX/t3VIxowVZZYe/QdKksov+aHrqMHM=",
+            "salt": "7u5+HkyP5Re1qAyTnIdiLQ==",
+            "settings": {
+                "email": "myemail@example.com",
+                "restrict-lan": false,
+                "strftime": "%A, %B %d, %Y at %I:%M:%S %p %Z",
+                "timezone": "UTC"
+            },
+            "username": "admin"
+        },
+        "poh": {
+            "groups": [],
+            "password": "lI5VghHC0R35N6olUbrJxcIap8Seu8QZeTMsihYm+rE=",
+            "salt": "1i2jjrTbI2GxPDfzNBXN1Q==",
+            "username": "poh"
+        }
+    }
+}

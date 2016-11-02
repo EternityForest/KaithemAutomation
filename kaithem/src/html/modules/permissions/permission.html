@@ -1,9 +1,10 @@
 <%!
-from src.util import url
+from src.util import url,split_escape
 from src import pages
 %>
 <%include file="/pageheader.html"/>
-<h2>Permission Resource "${permission | h}" of Module "${module | h}"</h2>
+<h2>Permission ${split_escape(permission,'/','\\')[-1] | h} in Module ${module | h}</h2>
+<span class="pre">Full Path: ${permission|h}</pre>
 <title>Permission Editor</title>
 
 <form action="/modules/module/${url(module)}/updateresource/${url(permission)}/" method="POST" name="new">

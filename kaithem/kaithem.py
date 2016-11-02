@@ -15,14 +15,21 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #
-__version__ = "0.54 Release"
-__version_info__ = (0,5,4,"final",0)
+__version__ = "0.55 Develpoment"
+__version_info__ = (0,5,5,"dev",0)
+#Library that makes threading and lock operations, which we use a lot of, use native code on linux
+try:
+    import pthreading
+    pthreading.monkey_patch()
+except:
+    pass
 
 #This file is the main entry point of the app. It imports everything, loads configuration,
 #sets up and starts the server, and contains page handlers for the main page.
 
+
 import sys,os,threading,traceback
-        
+
 #There are some libraries that are actually different for 3 and 2, so we use the appropriate one
 #By changing the pathe to include the proper ones.
 
@@ -36,8 +43,11 @@ if x.startswith('/usr/bin'):
     x = "/usr/lib/kaithem"
     linuxpackage = True
     sys.path = [x] + sys.path
-    
+
 x = os.path.join(x,'src')
+
+#Avoid having to rename six.py by treating it's folder as a special case.
+sys.path = [os.path.join(x,'thirdparty','six')] + sys.path
 
 if sys.version_info < (3,0):
     sys.path = [os.path.join(x,'thirdparty','python2')] + sys.path
@@ -68,6 +78,8 @@ import cherrypy,validictory
 from cherrypy import _cperror
 from src import util
 from src import messagebus
+from src import pylogginghandler
+from src import messagelogging
 
 
 def installThreadExcepthook():
@@ -111,13 +123,13 @@ def installThreadExcepthook():
 
 installThreadExcepthook()
 
-
 from src import notifications
 from src import pages
 from src import weblogin
 from src import auth
 from src import config as cfg
 from src import directories
+
 #Initialize the authorization module
 auth.initializeAuthentication()
 if cfg.argcmd.initialpackagesetup:
@@ -129,15 +141,13 @@ if cfg.argcmd.initialpackagesetup:
 
 from src import ManageUsers
 from src import newevt
+from src import registry
 from src import modules
 from src import modules_interface
 from src import settings
 from src import usrpages
-from src import messagelogging
 from src import systasks
-from src import registry
 from src import widgets
-
 
 from src.config import config
 
@@ -153,6 +163,12 @@ cherrypy.process.servers.check_port(bindto, config['https-port'], timeout=1.0)
 MyExternalIPAdress = util.updateIP()
 thread.stack_size(256000)
 
+if config['change-process-title']:
+    try:
+        import setproctitle
+        setproctitle.setproctitle("kaithem")
+    except:
+        pass
 
 if config['enable-websockets']:
     from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
@@ -167,9 +183,10 @@ if config['enable-websockets']:
 #Load all modules from the active modules directory
 modules.initModules()
 
+
+
 #This class represents the "/" root of the web app
 class webapproot():
-
    #"/" is mapped to this
     @cherrypy.expose
     def index(self,*path,**data):
@@ -230,7 +247,7 @@ class Errors():
     def nofoldermoveerror(self,):
         cherrypy.response.status = 400
         return pages.get_template('errors/nofoldermove.html').render()
-    
+
     @cherrypy.expose
     def wrongmethod(self,):
         cherrypy.response.status = 405
@@ -381,31 +398,36 @@ util.drop_perms(config['run-as-user'], config['run-as-group'])
 messagebus.postMessage('/system/startup','System Initialized')
 messagebus.postMessage('/system/notifications/important','System Initialized')
 cherrypy.engine.block()
-cherrypy.engine.exit()
-time.sleep(1)
-cherrypy.engine.exit()
+
+#Old workaround for things not stopping on python3 that no longer appears to be needed.
+# cherrypy.engine.exit()
+# time.sleep(1)
+# cherrypy.engine.exit()
 print("Cherrypy engine stopped")
+#
+# #Partial workaround for a bug where it won't exit in python3. This probably won't work on windows
+# if sys.version_info > (3,0):
+#     #Wait until all non daemon threads are finished shutting down.
+#     while 1:
+#         exit = True
+#         for i in sorted(threading.enumerate(),key=lambda d:d.name):
+#             if (not i.daemon) and (not(i.name=="MainThread")):
+#                 exit=False
+#         if exit:
+#             break
 
-#Partial workaround for a bug where it won't exit in python3. This probably won't work on windows
-if sys.version_info > (3,0):
-    #Wait until all non daemon threads are finished shutting down.
-    while 1:
-        exit = True
-        for i in sorted(threading.enumerate(),key=lambda d:d.name):
-            if (not i.daemon) and (not(i.name=="MainThread")):
-                exit=False
-        if exit:
-            break
-        
-    #If still not stopped, try to stop
-    try:
-        #Try the most graceful way first.
-        print("Still running, sending signals")
-        os.kill(os.getpid(), signal.SIGINT)
-        time.sleep(0.5)
-        os.kill(os.getpid(), signal.SIGTERM)
-        time.sleep(1)
-        os.kill(os.getpid(), signal.SIGKILL)
-
-    except:
-        raise
+    #
+    # #If still not stopped, try to stop
+    # try:
+    #     #Try the most graceful way first.
+    #     for i in threading.enumerate():
+    #         print("Waiting on thread: "+str(i))
+    #     print("Still running, sending signals")
+    #     os.kill(os.getpid(), signal.SIGINT)
+    #     time.sleep(0.5)
+    #     os.kill(os.getpid(), signal.SIGTERM)
+    #     time.sleep(1)
+    #     os.kill(os.getpid(), signal.SIGKILL)
+    #
+    # except:
+    #     raise

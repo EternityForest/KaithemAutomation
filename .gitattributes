@@ -1,0 +1,13 @@
+* text=auto
+*.py text
+*.md text
+*.html text
+*.yaml text
+*.json text
+*.mako text
+*.c text
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.xcf binary

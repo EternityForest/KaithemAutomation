@@ -1,0 +1,38 @@
+<%!
+    from src.util import url
+    from src import unitsofmeasure
+    from src.modules import fileResourceAbsPaths
+    import os
+%>
+
+<%include file="/pageheader.html"/>
+<h2>File Resource ${resource|h}</h2>
+<title${resource|h}</title>
+<section>
+    <table border=1>
+    <tr>
+    <th>
+    Path on server
+    </th>
+    <th>
+    Size
+    </th>
+    <th>
+    Link to raw file
+    </th>
+    </tr>
+    %try:
+    ${unitsofmeasure.siFormatNumber(os.path.getsize(fileResourceAbsPaths[module,resource]))}
+    %except:
+    File not acessible or does not exist
+    %endtry
+    <td>
+    <a href="${fileResourceAbsPaths[module,resource]|h}">${resource|h}</a>
+    </td>
+    <td>
+    ${fileResourceAbsPaths[module,resource]}
+    </td>
+    </tr>
+    </table>
+</section>
+<%include file="/pagefooter.html"/>

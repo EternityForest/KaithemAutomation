@@ -98,7 +98,7 @@ import cherrypy
 
             </li>
             <li><a class="moduleslink" href="/modules/">Modules</a>
-%if modules.moduleschanged:
+%if modules.unsaved_changed_obj:
 <span title="The modules have unsaved changes">*</span>
 %endif
             <li><a class="pageslink" href="/pagelisting">Page Index</a></li>

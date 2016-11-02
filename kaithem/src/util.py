@@ -14,9 +14,8 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-
 "This file ideally should only depend on sdtilb stuff and import the rest as needed. We don't want this to drag in threads and everything"
-import  os,threading,copy,sys,shutil,difflib,time,json,traceback,stat,subprocess,copy
+import  os,threading,copy,sys,shutil,difflib,time,json,traceback,stat,subprocess,copy,collections
 import yaml
 #2 and 3 have basically the same module with diferent names
 if sys.version_info < (3,0):
@@ -27,7 +26,7 @@ else:
     from urllib.parse import quote
     from urllib.parse import unquote as unurl
     import reprlib
-
+    
 min_time = 0
 
 if sys.version_info < (3,0):
@@ -64,7 +63,6 @@ def url(string):
 def SaveAllState():
     #fix circular import by putting it here
     from . import  auth,modules,messagelogging,messagebus,registry
-
     with savelock:
         try:
             x = False
@@ -72,9 +70,9 @@ def SaveAllState():
                 x=True
             if auth.dumpDatabase():
                 x=True
-            messagelogging.dumpLogFile()
             if registry.sync():
                 x=True
+            messagelogging.dumpLogFile(silent=True)
             #Always send the message, because there is almost always going to be at least some log entries saved
             messagebus.postMessage("/system/notifications/important","Global server state was saved to disk")
             return x
@@ -98,6 +96,20 @@ def SaveAllStateExceptLogs():
         except Exception as e:
             messagebus.postMessage("/system/notifications/errors",'Failed to save state:' + repr(e))
 
+#http://stackoverflow.com/questions/3812849/how-to-check-whether-a-directory-is-a-sub-directory-of-another-directory
+#It looks like a lot of people might have contributed to this little bit of code.
+def in_directory(file, directory):
+    #make both absolute
+    directory = os.path.join(os.path.realpath(directory), '')
+    file = os.path.realpath(file)
+
+    #return true, if the common prefix of both is equal to directory
+    #e.g. /a/b/c/d.rst and directory is /a/b, the common prefix is /a/b
+    return os.path.commonprefix([file, directory]) == directory
+
+#What is the point of this? I don't know and there's probably an issue here.
+def fakeUnixRename(src,dst):
+    shutil.move(src,dst)
 
 def ensure_dir(f):
     d = os.path.dirname(f)
@@ -123,9 +135,16 @@ def get_files(folder):
     return [name for name in os.listdir(folder)
             if not os.path.isdir(os.path.join(folder, name))]
 
-def getHighestNumberedTimeDirectory(where):
+def search_paths(fn,paths):
+    for i in paths:
+        if os.path.exists(os.path.join(i,fn)):
+            return os.path.join(i,fn)
+
+def getHighestNumberedTimeDirectory(where,n=0):
     """Given a directory containing entirely folders named after floating point values get the name of the highest. ignore files.
         and also ignoring non-timestapt float looking named directories
+
+        n is normally 0, but setting it to 1 gets the second highest time dir, etc.
     """
     asnumbers = {}
     global min_time
@@ -136,7 +155,7 @@ def getHighestNumberedTimeDirectory(where):
         except ValueError:
             pass
     min_time = max(sorted(asnumbers.keys(), reverse=True)[0],min_time)
-    return asnumbers[sorted(asnumbers.keys(), reverse=True)[0]]
+    return asnumbers[sorted(asnumbers.keys(), reverse=True)[n]]
 
 def deleteAllButHighestNumberedNDirectories(where,N):
     """In a directory full of folders named after time values, we delete all but the highest N directores ignoring files
@@ -254,12 +273,12 @@ def timeaccuracy():
             hasInternet = True
             return oldNTPOffset
         else:
-            return oldNTPOffset + (time.time() -lastNTP)/10000
+            return oldNTPOffset + (time.time() -lastNTP)/10000.0
     except:
         if hasInternet:
             messagebus.postMessage("/system/internet",False)
         hasInternet = False
-        return oldNTPOffset + (time.time() -lastNTP)/10000
+        return oldNTPOffset + (time.time() -lastNTP)/10000.0
 
 def diff(a,b):
     x = a.split("\n")
@@ -364,13 +383,18 @@ def is_private_ip(ip):
 srepr = reprlib.Repr()
 
 srepr.maxdict = 25
-srepr.maxlist = 10
+srepr.maxlist = 15
 srepr.maxset = 10
-srepr.maxlong = 10
-srepr.maxstring = 80
-srepr.maxother = 80
+srepr.maxlong = 24
+srepr.maxstring = 120
+srepr.maxother = 120
 
-saferepr = srepr.repr
+def saferepr(obj):
+    try:
+        return srepr.repr(obj)
+    except Exception as e:
+        return e+" in repr() call"
+
 
 #Partly based on code by Tamás of stack overflow.
 def drop_perms(user, group = None):
@@ -395,6 +419,41 @@ def drop_perms(user, group = None):
     os.setgid(running_gid)
     os.setuid(running_uid)
 
+
+def lrucache(n=10):
+    class LruCache():
+        def __init__(self, f):
+            self.f = f
+            self.n =n
+            self.cache = collections.OrderedDict()
+
+        def invalidate_cache(self,*args,**kwargs):
+            if (not args) and not kwargs:
+                self.cache = collections.OrderedDict()
+            else:
+                self.cache.pop(self.fargs(args,kwargs))
+
+
+        def fargs(self, a,kw):
+            k = []
+            for i in kw.items():
+                k.append(i)
+            return (a,tuple(k))
+
+
+        def __call__(self, *args,**kwargs):
+            x =self.fargs(args,kwargs)
+            if x in self.cache:
+                self.cache[x]=self.cache.pop(x)
+            else:
+                self.cache[x] = self.f(*args,**kwargs)
+                if len(self.cache)>self.n:
+                    self.cache.popitem(last=False)
+            return self.cache[x]
+    return LruCache
+
+
+
 def display_yaml(d):
     d = copy.deepcopy(d)
     _yaml_esc(d)
@@ -414,5 +473,3 @@ def _yaml_esc(s,depth=0,r=""):
             s[i] = s[i].replace("\t","\\t").replace("\r",r)
         else:
             _yaml_esc(s[i])
-        
-            

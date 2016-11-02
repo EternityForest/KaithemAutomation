@@ -81,6 +81,7 @@ audio-backends:
     - mplayer
     - sox
     - mpg123
+    - madplay
 
 #How many times to retry loading an event before marking it as a failure and moving on
 max-load-attempts: 25
@@ -100,6 +101,9 @@ run-as-user: root
 
 #If this is not default, and run as user is not root, and the user starts the process as root, then we use this group.
 run-as-group: __default__
+
+#If set to yes and setproctitle is installed, changes process title to kaithem instead of python.
+change-process-title: yes
 ##################LOGGING######################################################
 #Notice: to actually control what topics are logged, use the kaithem/var/whattosave.txt or edit
 #through the web interface
@@ -148,6 +152,14 @@ mem-use-warn: 0.85
 #How many messages to keep on topics that are not being logged
 non-logged-topic-limit: 100
 
+#Should downloaded module filenames inclue the MD5 Hash?
+downloads-include-md5-in-filename: yes
+
+#Where to look for audio files that are specified with relative paths. Earlier entries used first.
+#Default refers to the sounds kaithem ships with.
+audio-paths:
+    - default
+
 #####################THEMING AND BRANDING#######################################
 #This HTML Goes into the top box on the main page. It is configurable in case a deployment wants to add branding.
 front-page-banner: |
@@ -171,6 +183,9 @@ cm-theme: codemirror-scrapbook
 
 #How to format times and dates
 time-format: "%A, %B %d, %Y at %I:%M:%S %p Server Time"
+
+#If yes, is 1 Minute 29 Seconds instead of 1m 29s
+full-time-intervals: no
 
 #This is the file which contains a list of strings for kaithem.lorem and a few other places.
 #Used for the quotes in the login screen

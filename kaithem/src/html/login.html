@@ -4,17 +4,19 @@
 from src import auth,kaithemobj
 import cherrypy
 %>
+<title>Kaithem Login</title>
+
     <h2 style="text-align: center;">Please Log In</h2>
-    <div class="sectionbox">
+    <section>
     <div style="text-align: center;">
-      <form method="POST" action="/login/login/?go=${cherrypy.request.query_string}" name="login"> <p>
+      <form method="POST" action="/login/login?go=${target}" name="login"> <p>
         <span style="font-weight: bold;">Username:</span>
-        <input required="required" name="username" type="text"><br>
-        <span style="font-weight: bold;">Password:</span>&nbsp; 
-		<input name="pwd" type="password"></p>
+        <input required="required" name="username"><br>
+        <span style="font-weight: bold;">Password:</span>&nbsp;
+		<input name="password" type="password"></p>
         <input value="Login as Registered User"type="submit">
       </form>
 	</div>
-    </div>
+</section>
 <div class="sectionbox kflavortext"><i>"${kaithemobj.kaithem.misc.lorem()}"</i></div>
 <%include file="/pagefooter.html"/>

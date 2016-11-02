@@ -21,8 +21,14 @@ from src import util
 <script src="/static/js/codemirror/addon/scroll/annotatescrollbar.js"></script>
 <script src="/static/js/codemirror/addon/search/matchesonscrollbar.js"></script>
 %endif
-<title>Kaithem Event</title>
-<h2>Event "${name|h}" of module <a href="/modules/module/${url(module)}">${module|h}</a></h2>
+<title>Kaithem Event\
+%if 'enable' in event:
+%if not event['enable'] == True:
+(disabled)\
+%endif
+%endif
+</title>
+<h2>Event ${util.split_escape(name,'/','\\')[-1] | h} of module <a href="/modules/module/${url(module)}">${module|h}</a></h2>
 <p class=pathnav>Path:
 <%
 temp_p = ""
@@ -50,10 +56,19 @@ or go to the working copy and save that to delete this draft.</p>
 <a class="button" href="/modules/module/${url(module)}/resource/${url(name)}/__live__">Go to Live Version</a>
 <p>
 %endif
-<div class="sectionbox">
+<section>
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
-<h3>Name</h3>
-<input name="name" value="${name|h}"></input>
+<h3>Basic</h3>
+<label><b>Path:</b><input title="Backslashes are escapes and / is the path separator. You can move this resource to another directory by renaming." name="name" value="${name|h}" style="width:90%;"></input></label><br>
+ <label><input type="checkbox"  name="enable" value="false"
+         %if 'enable' in event:
+            %if event['enable'] == True:
+            checked="yes"
+            %endif
+        %else:
+            checked="yes"
+         %endif
+       ></input>Enable</label>
 <h3 id="setupheading">Setup Code</h3>
 <p class="help">Enter python code. It will execute in the event <b>global</b> scope when it loads. If there is any problem,
 the other events will load then this will be retried. This is also how <a href="/docs#dependancies">dependancies</a> are reoslved.
@@ -224,6 +239,15 @@ This section the most recent errors that ocurred while executing the event or tr
 %endif
 %endif
 <hr>
+
+<%
+p = newevt.getPrintOutput((module,name))
+%>
+
+%if p and pages.canUserDoThis("/admin/eventoutput.view"):
+<h3>Output(${len(p)} bytes)</h3>
+<pre>${p|h}</pre>
+%endif
 <h3>Info</h3>
 <p>
 This event last ran:
@@ -236,18 +260,20 @@ This event last ran:
 %endif
 
 
+
 </p>
 <hr>
 <p class="help">
 Saving this module will case it to completely reload, including its local scope. Other resources will not be affected.
 </p>
 %if pages.canUserDoThis("/admin/modules.edit"):
+<a href="/modules/module/${url(module)}/obj/event/${url(name)}">View the event's namespace(requires edit permission, beware shoulder surfers)</a></br>
 <input type="submit" value="Save Changes"></input>
 %else:
 <p>You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
 %endif
 </form>
-</div>
+</section>
 
 %if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
 

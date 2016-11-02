@@ -239,6 +239,7 @@ def formatTimeIntervallong(t,maxunits,clock=False):
 
         return s
     s = ""
+    
     for i in sorted(time_as_seconds.items(),key= lambda x:x[1], reverse=True):
         if maxunits == 0:
             return s[:-2]
@@ -298,7 +299,10 @@ def formatTimeIntervalabbr(t,maxunits,clock=False):
             maxunits -=1
     return s[:-1]
 
-formatTimeInterval = formatTimeIntervallong
+if not config['full-time-intervals']:
+    formatTimeInterval = formatTimeIntervalabbr
+else:
+    formatTimeInterval = formatTimeIntervallong
 
 def strToIntWithSIMultipliers(s):
     """Take a string of the form number[k|m|g] or just number and convert to an actual number
@@ -319,28 +323,31 @@ def iround(number,digits):
         return int(number)
     else:
         return round(number,digits)
-
+    
 def siFormatNumber(number,digits=2):
     if number == 0:
-        return "0 "
-
+        return "0"
+    if number > 10**15:
+        return(str(iround(number/1000000000000000.0,digits))+'P')
+    if number > 10**12:
+        return(str(iround(number/1000000000000.0,digits))+'T')
     if number > 1000000000:
-        return(str(iround(number/1000000000,digits))+' G')
+        return(str(iround(number/1000000000.0,digits))+'G')
     if number > 1000000:
-        return(str(iround(number/1000000,digits))+' M')
+        return(str(iround(number/1000000.0,digits))+'M')
     if number > 1000:
-        return(str(iround(number/1000,digits))+' K')
-
-    if number < 0.00000001:
-        return(str(round(number*1000000000000,digits))+' p')
-    if number < 0.00001:
-        return(str(iround(number*1000000000,digits))+' n')
+        return(str(iround(number/1000.0,digits))+'K')
+    if number < 10**-12:
+        return(str(round(number*(10**-15),digits))+'f')
+    if number < 10**-9:
+        return(str(round(number*1000000000000.0,digits))+'p')
+    if number <10**-6:
+        return(str(iround(number*1000000000.0,digits))+'n')
     if number < 0.001:
-        return(str(iround(number*1000000,digits))+' u')
-    if number < 0.01:
-        return(str(iround(number*1000,digits))+' m')
-
-    return str(iround(number,digits))+' '
+        return(str(iround(number*1000000.0,digits))+'u')
+    if number < 0.5:
+        return(str(iround(number*1000.0,digits))+'m')
+    return str(iround(number,digits))
 
 
 

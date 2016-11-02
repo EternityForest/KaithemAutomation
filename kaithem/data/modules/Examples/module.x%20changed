@@ -6,6 +6,7 @@ resource-type: event
 trigger: '!onchange module.x'
 versions: {}
 
+#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
 ---
 module.x = 0
 ---

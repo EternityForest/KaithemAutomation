@@ -34,6 +34,7 @@ else:
     import queue
 
 __queue = queue.Queue(config['task-queue-size'])
+
 run = True
 
 def EXIT():
@@ -60,8 +61,12 @@ def __workerloop():
         try:
             #We need the timeout othewise it could block forever
             #and thus not notice if run was False
-            f=__queue.get(timeout = 5)
+            try:
+                f=__queue.get(timeout = 5)
+            except queue.Empty:
+                pass
             f()
+
         except Exception as e:
             try:
                 from src import messagebus
@@ -74,9 +79,9 @@ def __workerloop():
                     messagebus.postMessage('system/errors/workers',
                                            {
                                             "traceback":traceback.format_exc(6)})
-                except:
-                    print("Failed to post error in background task to messagebus")
-                
+                except Exception as e:
+                    print("Failed to post error in background task to messagebus: "+traceback.format_exc(6))
+
 
 def do(func):
     """Run a function in the background

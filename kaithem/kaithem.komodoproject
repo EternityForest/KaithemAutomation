@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- Komodo Project File - DO NOT EDIT -->
-<project id="7f721379-982c-442b-a135-bd75aa4533a8" kpf_version="5" name="kaithem.komodoproject">
-<preference-set idref="7f721379-982c-442b-a135-bd75aa4533a8" id="project" preftype="project">
-  <string relative="path" id="import_dirname"></string>
-  <string id="import_exclude_matches">*.*~;*.bak;*.tmp;CVS;.#*;*.pyo;*.pyc;.svn;.git;.hg;.bzr;*%25*;tmp*.html;.DS_Store;*.swp;*.kpf;*.komodoproject;.komodotools;__pycache__;cherrypy;imgsrc;mako;loadedmodules;cfg;ssl</string>
-</preference-set>
-</project>

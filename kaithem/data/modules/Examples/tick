@@ -10,6 +10,7 @@ versions: {action: pass, continual: false, priority: interactive, rate-limit: 0.
     natural language processing and it is usually much better to use normal triggers
     like !onchange kaithem.time.hour"', trigger: '!time every second until 2011'}
 
+#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
 ---
 "Shows !time triggers. Note that !time triggers use natural language processing and it is usually much better to use normal triggers like !onchange kaithem.time.hour"
 ---

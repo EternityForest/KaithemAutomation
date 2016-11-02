@@ -68,6 +68,7 @@ BasePermissions = {
 "/admin/settings.view": "View but not change settings.",
 "/admin/settings.edit": "Change core settings.",
 "/admin/logging.edit": "Modify settings in the logging subsystem",
+"/admin/eventoutput.view": "View the message logs.",
 "/users/logs.view": "View the message logs.",
 "/users/accountsettings.edit" : "Edit ones own account preferences",
 "/admin/errors.view": "View errors in resources. Note that /users/logs.view or /admin/modules.edit will also allow this.",
@@ -89,7 +90,7 @@ def importPermissionsFromModules():
             for resource in modules_state.ActiveModules[module].copy():
                 if modules_state.ActiveModules[module][resource]['resource-type']=='permission':
                     #add it to the permissions list
-                    Permissions[resource] = modules_state.ActiveModules[module][resource]['description']
+                    Permissions[util.split_escape(resource,'/','\\')[-1]] = modules_state.ActiveModules[module][resource]['description']
 
 def getPermissionsFromMail():
     """Generate a permission for each mailing list, and add that permission to the global list of assignable permissions"""
@@ -120,14 +121,14 @@ def changePassword(user,newpassword):
     #Base64 should never return a byte string. The point of base64 is to store binary data
     #as normal strings. So why would I ever want a base64 value stores as bytes()?
     #Anyway, python2 doesn't do that, so we just decode it if its new python.
-    if sys.version_info > (3,0):
+    if sys.version_info >= (3,0):
         salt64 = salt64.decode("utf8")
     Users[user]['salt'] = salt64
     m = hashlib.sha256()
     m.update(usr_bytes(newpassword,'utf8'))
     m.update(salt)
     p = base64.b64encode(m.digest())
-    if sys.version_info > (3,0):
+    if sys.version_info >= (3,0):
         p = p.decode("utf8")
     Users[user]['password'] = p
 
@@ -180,13 +181,17 @@ def removeUserFromGroup(username,group):
 
 def promptGenerateUser(username="admin"):
     global authchanged
-    p = "same"
-    p2 = "different"
+    p = "samevscdfghjkl,ljhgfdsfhjmk,.lkjhgfdgnm,kjgfdnmj,kjuytredsfvbnhjmk?P>O:P_O>{:?{|<>/,.(0%(%(*5)))}"
+    p2 = "differentgfbhnjmuytrfdcvbnjuytfgcvbnmjuytgfvbnmjkiuytgfvbnmjuytgfvbnmjkuyhgf"
+    try:
+        input2=raw_input
+    except:
+        input2=input
     while not p == p2:
-        p = "same"
-        p2 = "different"
-        p = input("Account %s created. Choose password:"%username)
-        p2 = input("Reenter Password:")
+        p = "samejytfdcvbnjytfgvbnmjuytrfdcv bnmjuytgfvbnmjuytgfvbnmjytgfvbnjytgfcvliku7ytrfghjuytrfg:{<}>?<MLNI)*&(Y?>:I)"
+        p2 = "differentkyhgfvbnmjuytrdcxvbhjytredsxcvbnjkjnmkliuytrdsfgtrewsxdcvghjkmkiuhgft54ewe3wdfghujhjkiu76y7yuijh"
+        p = input2("Account %s created. Choose password:"%(username))
+        p2 = input2("Reenter Password:")
         if not p==p2:
             print("password mismatch")
 
@@ -201,17 +206,7 @@ def promptGenerateUser(username="admin"):
             "groups": {
                 "Administrators": {
                     "permissions": [
-                        "/admin/settings.edit",
-                        "/admin/logging.edit",
-                        "/admin/users.edit",
-                        "/users/pagelisting.view",
-                        "/admin/modules.edit",
-                        "/admin/settings.view",
-                        "/admin/mainpage.view",
-                        "/users/logs.view",
-                        "/admin/modules.view",
                         "__all_permissions__"
-                        
                     ]
                 }
             },
@@ -273,28 +268,27 @@ def initializeAuthentication():
     except Exception as e:
         messagebus.postMessage("/system/notifications/errors","Error loading auth data, may be able to continue from old state:\n"+str(e))
         data_bad=True
-        for i in range(0,15):
-            try:
-                try:
-                    dirname = util.getHighestNumberedTimeDirectory(directories.usersdir)
-                except:
-                    messagebus.postMessage("/system/notifications/errors","No old auth state found")
-                    break
+        try:
+            dirname = util.getHighestNumberedTimeDirectory(directories.usersdir)
+            tryToLoadFrom(dirname)
+            loaded =True
+            messagebus.postMessage("/system/notifications/warnings",
+            """Saving was interrupted. Using last version of users list.
+            This could create a secuirty issue if the old version allowes access to a malicious user.
+            To suppress this warning, please review your users and groups, and re-save the server state. You must make at least
+            one change to users and groups (Or click save on a user or group without making changes)
+            for them to actually be saved.
+            """)
+        except:
+            messagebus.postMessage("/system/notifications/errors","Could not load old state:\n"+str(e))
+            pass
 
-                tryToLoadFrom(os.path.join(d))
-                loaded =True
-                messagebus.postMessage("/system/notifications/warnings","Using old version of users list. This could create a secuirty issue if the old version allowes access to a malicious user")
-                break;
-            except:
-                messagebus.postMessage("/system/notifications/errors","Could not load old state:\n"+str(e))
-                pass
-            
     if not loaded:
         time.sleep(2)
         promptGenerateUser()
         messagebus.postMessage("/system/notifications/warnings","No valid users file, using command line prompt")
 
-        
+
     getPermissionsFromMail()
 
 def generateUserPermissions(username = None):
@@ -325,6 +319,8 @@ def userLogin(username,password):
                 assignNewToken(username)
             return (Users[username].token)
     return "failure"
+
+
 
 def checkTokenPermission(token,permission):
     """return true if the user associated with token has the permission"""
@@ -358,15 +354,18 @@ def dumpDatabase():
         return False
 
     #Assemble the users and groups data and save it back where we found it
-    temp = {"users":Users,"groups":Groups}
+    temp = {"users":Users.copy(),"groups":Groups.copy()}
+    #Don't save the login history.
+    if 'loginhistory' in temp['users']:
+        del temp['users']['loginhistory']
     if time.time()> util.min_time:
         t = time.time()
     else:
         t = int(util.min_time) +1.234
-    
+
     if os.path.isdir(os.path.join(directories.usersdir,str("data"))):
     #Copy the data found in data to a new directory named after the current time. Don't copy completion marker
-        
+
         #If the data dir was corrupt, copy it to a different place than a normal backup.
         if not data_bad:
             copyto = os.path.join(directories.usersdir,str(t))
@@ -379,13 +378,13 @@ def dumpDatabase():
         with open(os.path.join(copyto,'__COMPLETE__'),"w") as x:
             util.chmod_private_try(os.path.join(copyto,'__COMPLETE__'), execute=False)
             x.write("This file certifies this folder as valid")
-            
-            
+
+
     p = os.path.join(directories.usersdir,"data")
-    
+
     if os.path.isfile(os.path.join(p,'__COMPLETE__')):
         os.remove(os.path.join(p,'__COMPLETE__'))
-        
+
     util.ensure_dir2(p)
     util.chmod_private_try(p)
     f = open(os.path.join(p,"users.json"),"w")
@@ -465,6 +464,10 @@ def canUserDoThis(user,permission):
     if '__guest__' in Users:
         if permission in Users['__guest__'].permissions:
             return True
+
+    #If guests can't do the thing and the user is unknown, the answer should be no.
+    if user in ("<unknown>", "__unknown__"):
+        return False
 
     if '__all_permissions__' in Users[user].permissions:
         return True

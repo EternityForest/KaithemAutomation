@@ -48,7 +48,7 @@ class LoginScreen():
     def index(self,**kwargs):
         if not cherrypy.request.scheme == 'https':
             raise cherrypy.HTTPRedirect("/errors/gosecure")
-        return pages.get_template("login.html").render()
+        return pages.get_template("login.html").render(target=kwargs.get("go","/"))
 
     @cherrypy.expose
     def login(self,**kwargs):
@@ -59,7 +59,7 @@ class LoginScreen():
         if not cherrypy.request.scheme == 'https':
             raise cherrypy.HTTPRedirect("/errors/gosecure")
         time.sleep(0.005)
-        x = auth.userLogin(kwargs['username'],kwargs['pwd'])
+        x = auth.userLogin(kwargs['username'],kwargs['password'])
         if not x=='failure':
             #Give the user the security token.
             #AFAIK this is and should at least for now be the
@@ -71,6 +71,13 @@ class LoginScreen():
             #Always test, folks!
             cherrypy.response.cookie['auth']['secure'] = ' '
             cherrypy.response.cookie['auth']['httponly'] = ' '
+            x = auth.Users[kwargs['username']]
+            if not 'loginhistory' in x:
+                x['loginhistory'] = [(time.time(), cherrypy.request.remote.ip)]
+            else:
+                x['loginhistory'].append((time.time(), cherrypy.request.remote.ip))
+                x['loginhistory'] = x['loginhistory'][:100]
+
             messagebus.postMessage("/system/auth/login",[kwargs['username'],cherrypy.request.remote.ip])
             if not "/errors/loginerror" in util.unurl(kwargs['go']):
                 raise cherrypy.HTTPRedirect(util.unurl(kwargs['go']))

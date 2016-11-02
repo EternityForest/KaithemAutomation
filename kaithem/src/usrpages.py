@@ -15,9 +15,9 @@
 
 
 #This file handles the display of user-created pages
-import time,os,threading,traceback
+import time,os,threading,traceback,gc
 from .import kaithemobj,util,pages,directories,messagebus,systasks,modules_state
-import mako, cherrypy
+import mako, cherrypy,sys
 
 from .config import config
 
@@ -35,6 +35,7 @@ class CompiledPage():
 
         template = resource['body']
         self.errors = []
+        self.printoutput=''
         #For compatibility with older versions, we provide defaults
         #In case some attributes are missing
         if 'require-permissions' in resource:
@@ -74,10 +75,16 @@ class CompiledPage():
             if resource['auto-reload']:
                 header += '<meta http-equiv="refresh" content="%d">' % resource['auto-reload-interval']
 
-        footer = util.readfile(os.path.join(directories.htmldir,'pagefooter.html'))
-
+        if not ('no-header' in resource) or not (resource['no-header']):
+            footer = util.readfile(os.path.join(directories.htmldir,'pagefooter.html'))
+        else:
+            footer = ""
         templatesource = header + template + footer
         self.template = mako.template.Template(templatesource, uri="Template"+m+'_'+r)
+
+    def new_print(self,d):
+        self.printoutput+=str(d)+"\n"
+        self.printoutput = self.printoutput[-2500:]
 
 
 def getPageErrors(module,resource):
@@ -86,6 +93,11 @@ def getPageErrors(module,resource):
     except KeyError:
         return((0,"No Error list available for page that was not compiled or loaded","Page has not been compiled or loaded and does not exist in compiled page list"))
 
+def getPageOutput(module,resource):
+    try:
+        return _Pages[module][resource].printoutput
+    except KeyError:
+        return((0,"No Error list available for page that was not compiled or loaded","Page has not been compiled or loaded and does not exist in compiled page list"))
 
 _Pages = {}
 _page_list_lock = threading.Lock()
@@ -103,6 +115,8 @@ def removeOnePage(module,resource):
         if module in _Pages:
             if resource in _Pages[module]:
                     del _Pages[module][resource]
+    gc.collect()
+
 
 #Delete all __events in a module from the cache
 def removeModulePages(module):
@@ -249,8 +263,9 @@ class KaithemPage():
                 request = cherrypy.request,
                 module = modules_state.scopes[module],
                 path = args,
-                kwargs = kwargs
+                kwargs = kwargs,
                 )
+
         except Exception as e:
             #The HTTPRedirect is NOT an error, and should not be handled like one.
             #So we just reraise it unchanged

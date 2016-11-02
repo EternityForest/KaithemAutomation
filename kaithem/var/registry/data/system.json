@@ -1,0 +1,12 @@
+{
+    "data": {
+        "keys": {
+            "system/module_locations": {
+                "data": {
+                    "Lighting Scene Manager": "/home/danny/lightscenemanager",
+                    "Test External Modules": "/home/danny/kextm"
+                }
+            }
+        }
+    }
+}

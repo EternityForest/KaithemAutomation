@@ -24,7 +24,7 @@ class ManageAuthorization():
     def index(self):
         pages.require("/admin/users.edit")
         return pages.get_template("auth/index.html").render(auth = auth)
-       
+
     #The actual POST target to delete a user
     @cherrypy.expose
     def deluser(self,**kwargs):
@@ -33,7 +33,7 @@ class ManageAuthorization():
         auth.removeUser(kwargs['user'])
         messagebus.postMessage("/system/auth/user/deleted",{'user':kwargs['user'],'deletedby':pages.getAcessingUser()})
         raise cherrypy.HTTPRedirect("/auth")
-    
+
     #POST target for deleting a group
     @cherrypy.expose
     def delgroup(self,**kwargs):
@@ -42,31 +42,31 @@ class ManageAuthorization():
         auth.removeGroup(kwargs['group'])
         messagebus.postMessage("/system/auth/group/deleted",{'group':kwargs['group'],'deletedby':pages.getAcessingUser()})
         raise cherrypy.HTTPRedirect("/auth")
-    
+
     #INterface to select a user to delete
     @cherrypy.expose
     def deleteuser(self,**kwargs):
         pages.require("/admin/users.edit")
         return pages.get_template("auth/deleteuser.html").render()
-    
+
     #Interface to select a group to delete
     @cherrypy.expose
     def deletegroup(self,**kwargs):
         pages.require("/admin/users.edit")
         return pages.get_template("auth/deletegroup.html").render()
-        
+
     #Add user interface
     @cherrypy.expose
     def newuser(self):
         pages.require("/admin/users.edit")
         return pages.get_template("auth/adduser.html").render()
-        
-    #add group interface       
+
+    #add group interface
     @cherrypy.expose
     def newgroup(self):
         pages.require("/admin/users.edit")
         return pages.get_template("auth/newgroup.html").render()
-        
+
     @cherrypy.expose
     #handler for the POST request to change user settings
     def newusertarget(self,**kwargs):
@@ -82,8 +82,8 @@ class ManageAuthorization():
         messagebus.postMessage("/system/auth/user/added",{'user':kwargs['username'],'addedby':pages.getAcessingUser()})
 
         raise cherrypy.HTTPRedirect("/auth/")
-            
-        
+
+
     @cherrypy.expose
     #handler for the POST request to change user settings
     def newgrouptarget(self,**kwargs):
@@ -98,7 +98,7 @@ class ManageAuthorization():
 
         #Take the user back to the users page
         raise cherrypy.HTTPRedirect("/auth/")
-            
+
     @cherrypy.expose
     #handler for the POST request to change user settings
     def updateuser(self,user,**kwargs):
@@ -107,17 +107,16 @@ class ManageAuthorization():
 
         if not kwargs['password'] == kwargs['password2']:
             raise RuntimeError('passwords must match')
-        
         user=user.encode("latin-1").decode("utf-8")
         #THIS IS A HACK TO PREVENT UNICODE STRINGS IN PY2.XX FROM GETTING THROUGH
         #BECAUSE QUOTE() IS USUALLY WHERE THEY CRASH. #AWFULHACK
         quote(kwargs['username'])
-        
+
         #Remove the user from all groups that the checkbox was not checked for
         for i in auth.Users[user]['groups']:
             if not ('Group'+i) in kwargs:
                 auth.removeUserFromGroup(user,i)
-            
+
         #Add the user to all checked groups
         for i in kwargs:
             if i[:5] == 'Group':
@@ -125,13 +124,13 @@ class ManageAuthorization():
                     auth.addUserToGroup(user,i[5:])
         if not kwargs['password'] =='':
             auth.changePassword(user,kwargs['password'])
-            
+
         auth.changeUsername(user,kwargs['username'])
         auth.setUserSetting(user,"restrict-lan", 'lanonly' in kwargs)
         messagebus.postMessage("/system/auth/user/modified",{'user':user,'modifiedby':pages.getAcessingUser()})
         #Take the user back to the users page
         raise cherrypy.HTTPRedirect("/auth")
-   
+
     @cherrypy.expose
     #handler for the POST request to change user settings
     def updategroup(self,group,**kwargs):
@@ -146,14 +145,14 @@ class ManageAuthorization():
             if i[:10] == 'Permission':
                 if kwargs[i] == 'true':
                     auth.addGroupPermission(group,i[10:])
-                    
+
         #Take the user back to the users page
         auth.generateUserPermissions() #update all users to have the new permissions lists
         messagebus.postMessage("/system/auth/group/changed",{'group':group,'changedby':pages.getAcessingUser()})
 
         raise cherrypy.HTTPRedirect("/auth")
-            
-    #Settings page for one individual user    
+
+    #Settings page for one individual user
     @cherrypy.expose
     def user(self,username):
         username=username.encode("latin-1").decode("utf-8")
@@ -162,8 +161,8 @@ class ManageAuthorization():
         usergroups=auth.Users[username]['groups'],
         groups= sorted(auth.Groups.keys()),
         username = username)
-            
-    #Settings page for one individual group    
+
+    #Settings page for one individual group
     @cherrypy.expose
     def group(self,group):
         group=group.encode("latin-1").decode("utf-8")
