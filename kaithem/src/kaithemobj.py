@@ -226,7 +226,7 @@ class Kaithem():
             return pages.webResources[name].url
 
         WebResource = pages.WebResource
-        
+
         @staticmethod
         def unurl(s):
             return util.unurl(s)

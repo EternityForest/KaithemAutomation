@@ -12,7 +12,7 @@ def canIGoToThisPage(page):
     if 'dont-show-in-index' in page:
         if page['dont-show-in-index'] == True:
             return False
-            
+
     if not 'require-permissions' in page:
         return True
     if not page['require-permissions']:
