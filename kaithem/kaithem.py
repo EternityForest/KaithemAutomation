@@ -15,8 +15,8 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #
-__version__ = "0.55 Develpoment"
-__version_info__ = (0,5,5,"dev",0)
+__version__ = "0.55 Production"
+__version_info__ = (0,5,5,"final",0)
 #Library that makes threading and lock operations, which we use a lot of, use native code on linux
 try:
     import pthreading

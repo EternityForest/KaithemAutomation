@@ -5,7 +5,7 @@ Kaithem Help
 Change Log
 ----------
 
-### 0.55(Development)
+### 0.55
 
 -   Fix bug where si formatted numbers were rounded down
 -   Multiple message bus subscribers run simultaneously instead of sequentially
@@ -31,6 +31,11 @@ Change Log
 -   Add jslibs module
 -   Can now manually run any event
 -   Lots of stability improvements
+-   No more widget callbacks running twice
+-   Add six.py to thirdparty library(Cherrypy now depends on it)
+-   Fix bug saving data with unicode in it on some versions
+-   Fix error loading resources with DOS style line endings
+-   Fix spelling error in quotes file
 
 ### 0.54
 
