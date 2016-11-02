@@ -149,6 +149,7 @@ continue
           <p class="resource-docstring">${newevt.getEventInfo((name,i))|h}</p>
 	       <b>Trigger:</b>  <code>${module[i]['trigger']|h}</code><br>
             %try:
+            
     		    <b>Last Ran:</b>
     		    %if newevt.getEventLastRan(name,i):
     		    <code>${unitsofmeasure.strftime(newevt.getEventLastRan(name,i))|h}
@@ -198,7 +199,7 @@ continue
 	  <dd>
           <p class="resource-docstring">${usrpages.getPageInfo(name,i)|h}</p>
 
-        %if 'require-permissions' in module[i] and module[i]['require-permissions']:
+      %if 'require-permissions' in module[i] and module[i]['require-permissions']:
 	  <b>Permissions:</b>
 	  %for x in module[i]['require-permissions']:
 	  ${x|h}
