@@ -16,7 +16,7 @@
 #NOTICE: A LOT OF LOCKS ARE USED IN THIS FILE. WHEN TWO LOCKS ARE USED, ALWAYS GET _event_list_lock LAST
 #IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
-import traceback,threading,sys,time,atexit,collections,os,base64,imp,types,weakref,dateutil,datetime,recurrent,re,pytz,gc
+import traceback,threading,sys,time,atexit,collections,os,base64,imp,types,weakref,dateutil,datetime,recurrent,re,pytz,gc,random
 import dateutil.rrule
 import dateutil.tz
 from . import workers, kaithemobj,messagebus,util,modules_state,scheduling
@@ -161,75 +161,41 @@ def ptim():
     print(time.time()-t)
 #In a background thread, we use the worker pool to check all threads
 
-run = True
-#Acquire a lock on the list of _events(Because we can't really iterate safely without it)
-#And put the check() fuction of each event object into the thread pool
-def __manager():
-    temp = 0;
-    global averageFramesPerSecond
-    lastFrame = 0
-    averageFramesPerSecond = 0
-    #Basically loops for the lief of the app
-    while run:
-        framedelay = 1.0/config['max-frame-rate']
-        mindelay = config['delay-between-frames']
-        #Get the time at the start of the loop
-        temp = time.time()
-        e = threading.Event()
-        def f():
-            e.set()
-        with _event_list_lock:
-            for i in _events:
-                #BAD HACK ALERT
-                #Instead of letting the event do the countdown.
-                # we do it ourselves, because we don't want
-                #To send anything through the slow queue we don't need to.
-                #We rely on the object itself to reset the countdown though.
 
-                #We also check the ratelimit ourselves here.
-                #This should probably be moved into an event.precheck function.
-                if i.countdown <1:
-                    #If there is a ratelimit, we check the ratelimit here also.
-                    if i.ratelimit:
-                        if time.time()-i.lastexecuted > i.ratelimit:
-                            workers.do(i.check)
-                    else:
-                        workers.do(i.check)
-                else:
-                    i.countdown -= 1
+#Yeah yeah, the name isn't the best
+class EventEvent(scheduling.RepeatingEvent):
+    def __init__(self,function,interval,priority="realtime", phase = 0):
+        scheduling.BaseEvent.__init__(self)
+        self.f = function
+        self.interval = float(interval)
+        self.scheduled = False
+        self.errored = False
+        self.lock = threading.Lock()
+        self.lastrun = None
+        self.phaseoffset = (phase%1)%interval
 
-            #Don't spew another round of events until the last one finishes so we don't
-            #fill up the queue. The way we do this, is that after we have finished queueing
-            #up all the events to be polled, we insert a sentry.
-            #Because this sentry comes after the queued up events, when the sentry runs,
-            #We know that all of the events were taked out of the queue.
-            #We do not know that they have all finished running, nor do we want to.
-            #If one event takes several seconds to poll, it will not prevent the next round of
-            #events. We depend on the event objects themselves to enforce the guarantee that only
-            #one copy of the event can run at once.
-        e.clear()
-        workers.do(f)
-
-        #Limit the polling cycles per second to avoid CPU hogging
-        #Subtract the time the loop took from the delay
-        #Allow config to impose a minimum delay
-        time.sleep(max(framedelay-(time.time()-temp),mindelay))
-
-        #On the of chance something odd happens, let's not wait forever.
-        e.wait(5)
-        #smoothing filter
-        averageFramesPerSecond = (averageFramesPerSecond *0.98) +   ((1.0/(time.time()-lastFrame)) *0.02)
-        lastFrame = time.time()
-
-#Start the manager thread as a daemon
-#Kaithem has a system wide worker pool so we don't need to reinvent that
-t = threading.Thread(target = __manager, name="EventPollingManager")
-#This thread never really does anything, it just delegates to the worker threads, so I'm
-#fine with leaving it as a daemon.
-t.daemon = True
-t.start()
+    def run(self):
+        workers.do(self.f)
+        self.scheduled = False
 
 
+insert_phase = 0
+
+def beginPolling(ev):
+    #Note that we randomize the interval by 0.15% to make them not all bunch up at once constantly.
+    #Since they might still occasionally all bunch up we really need a better way of doing this.
+    global insert_phase
+    ev.schedulerobj =EventEvent(ev.check,
+    config['priority-response'].get(ev.priority,0.08)+(random.random()*0.03)-0.015,
+     ev.priority,phase = insert_phase)
+    #Basically we want to spread them out in the phase space from 0 to 1 in a deterministic ish way.
+    #There might be a better algorithm of better constant to use, but this one should be decent.
+    insert_phase += 0.5555555555555555555555555
+    insert_phase = insert_phase % 1
+    ev.schedulerobj.register()
+
+def endPolling(ev):
+    ev.schedulerobj.unregister()
 
 
 def parseTrigger(when):
@@ -444,13 +410,14 @@ class BaseEvent():
         #Some events are really just containers for a callback, so there is no need to poll them
         with _event_list_lock:
             if self.polled:
-                if self not in _events:
-                    _events.append(self)
+                if not hasattr(self,"schedulerobj"):
+                    beginPolling(self)
 
     def unregister(self):
         with _event_list_lock:
-            if self in _events:
-                _events.remove(self)
+            if hasattr(self,"schedulerobj"):
+                endPolling(self)
+                del self.schedulerobj
 
     def check(self):
         """This is the function that the polling system calls to poll the event.
