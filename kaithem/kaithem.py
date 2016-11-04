@@ -16,7 +16,7 @@
 
 #
 __version__ = "0.55 Production"
-__version_info__ = (0,5,5,"final",0)
+__version_info__ = (0,5,6,"development",0)
 #Library that makes threading and lock operations, which we use a lot of, use native code on linux
 try:
     import pthreading
