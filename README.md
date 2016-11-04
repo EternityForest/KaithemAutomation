@@ -1,11 +1,19 @@
-KaithemAutomation
-=================
+![Kaithem Automation](img/logo.jpg)
+(Clipart credit: https://openclipart.org/detail/1337/large-barrel)
 
-Flexible Linux home/commercial automation server written in pure python, HTML, Mako, and CSS. More low level than your average HA system. Runs on python2 and python3, pill likely work on any platform, but it is not tested outside of linux.
+Kaithem is Linux home/commercial automation server written in pure python, HTML, Mako, and CSS. It's more low level than your average HA system. but the web IDE model means you can control anything python can.
 
-You automate things by directly writing python and HTML via a web IDE. Create pages and secure them with SSL and a flexible user/group/permission system!
+It runs on python2 and python3, and will likely work on any platform, but it is not tested outside of Linux.
 
-Create events that run when an expression becomes true! An internal message bus logs events. Write HTML Pages with Mako templates. Automatically generate WebSocket powered widgets without writing any javascript. Built in performance profiling(requires yappi). Play audio using one of several audio backends(mplayer suggested).
+You automate things by directly writing python and HTML via a web IDE.
+
+Create pages and secure them with SSL and a flexible user/group/permission system.
+
+Create events that run when an expression becomes true. An internal message bus logs events.
+
+Write HTML Pages with Mako templates. Automatically generate WebSocket powered widgets without writing any javascript. Built in performance profiling(requires yappi).
+
+Play audio using one of several audio backends(mplayer suggested).
 
 The entire server state is maintained in RAM, and any changes you make to your code never touches the disk unless you explicitly save or configure auto-save. This allows experimentation without wearing out SD cards.
 
