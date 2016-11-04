@@ -342,6 +342,19 @@ cnf={
 
     '/widgets/ws': wscfg
 }
+
+if not config['favicon-png']=="default":
+    cnf['/favicon.png']={
+    'tools.staticfile.on' : True,
+    'tools.staticfile.filename' : os.path.join(directories.datadir,"static",config['favicon-png'])
+    }
+
+if not config['favicon-ico']=="default":
+    cnf['/favicon.ico']={
+    'tools.staticfile.on' : True,
+    'tools.staticfile.filename' : os.path.join(directories.datadir,"static",config['favicon-ico'])
+    }
+
 #Let the user create additional static directories
 for i in config['serve-static']:
     if i not in cnf:

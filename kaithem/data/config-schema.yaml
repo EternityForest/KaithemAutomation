@@ -226,6 +226,10 @@ properties:
     full-time-intervals:
         type: boolean
 
+    favicon-ico:
+        type: string
+    favicon-png:
+        type: string
     get-public-ip:
         type: boolean
 

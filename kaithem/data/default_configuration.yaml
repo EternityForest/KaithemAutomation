@@ -187,6 +187,9 @@ time-format: "%A, %B %d, %Y at %I:%M:%S %p Server Time"
 #If yes, is 1 Minute 29 Seconds instead of 1m 29s
 full-time-intervals: no
 
+#Should be a path. If it is relative, starts in the datadir
+favicon-png: img/favicon.png
+favicon-ico: img/favicon.png
 #This is the file which contains a list of strings for kaithem.lorem and a few other places.
 #Used for the quotes in the login screen
 #Must be a YAML file containing a list of strings.
