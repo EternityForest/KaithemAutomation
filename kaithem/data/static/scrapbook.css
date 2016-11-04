@@ -101,7 +101,7 @@ nav.li:hover
 }
 
 /*These just add icons to links*/
-#topbanner h1::before
+#topbanner h1::before,#topbanner h1::after
 {
  background-image: url(/static/img/logo-mini.png);
  background-size: 1.5em 1.5em;
@@ -111,7 +111,6 @@ nav.li:hover
  height: 1.5em;
  content:"";
  vertical-align:middle;
-
 }
 
 /************************HTML ELEMENTS***********************************/
