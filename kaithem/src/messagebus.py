@@ -202,7 +202,7 @@ class PyMessageBus(object):
             #    self.values[tag] = x
 
     def subscribe(self,topic,callback):
-        """Subscribe function callback(topic, message) to the topic. Function is weak referenced, so you must keep a reference to it around, or else
+        """Subscribe function callback(message) to the topic. Function is weak referenced, so you must keep a reference to it around, or else
         it will be unsubscribed automatically. In some(most? all?), class instance methods aren't good enough I don't think."""
         if topic.startswith('/'):
             if not len(topic)==1:
@@ -251,7 +251,7 @@ class PyMessageBus(object):
                 #Or a type error could because the weakref has been collected
                 #We ignore both of these errors and move on
                 try:
-                    f =ref()(topic,message)
+                    f =ref()(message)
                 except:
                     try:
                         if errors:
@@ -265,14 +265,9 @@ class PyMessageBus(object):
         """
         #Use the executor to run the post message job
         #To allow for the possibility of it running in the background as a thread
-        if save:
-            self.values[topic] = (time.time(),message)
-            if len(self.values)>2000:
-                self.values.popitem(False)
-        def f():
+        def publish_worker():
             self._post(topic,message,errors)
-        f.__name__ = 'Publish_'+topic
-        self.executor(f)
+        self.executor(publish_worker)
 
 
 _pybus = PyMessageBus(workers.do)

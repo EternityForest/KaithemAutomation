@@ -730,11 +730,13 @@ h4 {
         <h3>kaithem.persist</h3>
         <p>Provides easy-to-use functionality for traditional file based persistance.</p>
 
-         <h4>kaithem.persist.load(filename)</h4>
+         <h4>kaithem.persist.load(filename, autorecover=True)</h4>
         <p>
         Load data from a file named filname in a format dictated by the file extension.
         Data will be converted to a python appropriate representation and returned.
         </p>
+
+        <p>If autorecover ==True, and the filename doesn't exists or can't be loaded, then filename+"~" will be tried.</p>
 
         <h4>Supported File Types</h4>
         <dl>
@@ -753,13 +755,18 @@ h4 {
         </dl>
 
 
-        <h4>kaithem.persist.save(data,filename,mode=default,private=False)</h4>
+        <h4>kaithem.persist.save(data,filename,mode=default,private=False,backup=None)</h4>
         <p>
         Saves data to a file named fn in a format dictated by the file extension.
         If the file does it exist, it will be created. If it does, it will be overwritten.
         If mode=='backup', a tilde will be apended to the existig file's name,
         the new file written, and then the backup will be deleted. Compressed filetypes are also supported.
         </p>
+
+        <p>
+            Setting this backup to true is an alias for mode="backup"
+        </p>
+
 
         <p>If private is True, file will have the mode 700(Only owner or admin/root can read or write the file).
         The mode is changed before the file is written so there is no race condition attack.</p>

@@ -324,7 +324,7 @@ class Kaithem():
 
     class persist():
         @staticmethod
-        def save(data,fn,mode="default", private=False):
+        def save(data,fn,mode="default", private=False,backup=None, md5=False):
             """Save data to file. Filename must end in .json, .yaml, .txt, or .bin. Data will be encoded appropriately.
                 Also supports compressed versions via filenames ending in .gz or .bz2.
                 Args:
@@ -337,15 +337,24 @@ class Kaithem():
                     private:
                         If True, file created with mode 700(Full access to root and owner but not even read to anyone else)
                         If False(the default), file created with default mode
+                    backup:
+                        Setting this to true is an alias for mode="backup"
             """
 
             if os.path.isdir(fn):
                 raise RuntimeError("Filename is already present as a directory, refusing to overwrite directory")
             #create the directory if it does not exist.
             util.ensure_dir(os.path.split(fn)[0])
+            if backup==True:
+                mode="backup"
             if mode=="backup":
+                if not os.path.exists(fn+'~'):
+                    buf = fn+'~'
+                else:
+                    buf = fn+"~"+str(time.time())
+
                 if os.path.isfile(fn):
-                    os.rename(fn, fn+'~')
+                    os.rename(fn, buf)
             try:
                 if fn.endswith(".gz"):
                     f = gzip.GzipFile(fn,mode='wb')
@@ -360,24 +369,28 @@ class Kaithem():
                 if private:
                     util.chmod_private_try(fn)
                 if x.endswith(".json"):
-                    f.write(json.dumps(data).encode('utf8'))
+                    data = json.dumps(data).encode('utf8')
                 elif x.endswith(".yaml"):
-                    f.write(yaml.dump(data).encode('utf8'))
+                    data = yaml.dump(data).encode('utf8')
                 elif x.endswith(".txt"):
-                    f.write(str(data).encode())
+                    data = (str(data).encode('utf8'))
                 elif x.endswith(".bin"):
-                    f.write(data)
+                    data = (data)
                 else:
                     raise ValueError('Unsupported File Extension')
+                f.write(f)
+
+                if md5:
+                    with open(x+ ".md5" , "w") as md5f:
+                        md5f.write(hashlib.md5(data).hexdigest())
             finally:
                 f.close()
 
             if mode=="backup":
-                if os.path.isfile(fn+'~'):
-                    os.remove(fn+'~')
+                os.remove(buf)
 
         @staticmethod
-        def load(filename,autorecover = True):
+        def load(filename, autorecover = True):
             """Load a file. Return str if file extension is .txt, bytes on .bin, dict on .yaml or .json.
 
             After that may be a .bz2 or a .gz for compression.
