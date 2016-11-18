@@ -85,16 +85,22 @@ def get_next_run(s,start = None, after=None,rr=None):
         start = datetime.datetime.now().replace(minute=0,second=0,microsecond=0)
     r = recurrent.RecurringEvent()
     dt = r.parse(s)
+
     if 'DTSTART' in r.get_RFC_rrule():
        raise ValueError("Values containing DSTART are likely to misbehave, consume CPU time, or work unpredictably and are not allowed. Avoid time specifiers that have a specific beginning date.")
     if isinstance(dt,str):
         if not rr:
             rr = dateutil.rrule.rrulestr(r.get_RFC_rrule(),dtstart=start)
+
         if after:
             dt=rr.after(datetime.datetime.fromtimestamp(after))
+
         else:
             dt=rr.after(datetime.datetime.now())
+
+
     tz = re.search(r"(\w\w+/\w+)",s)
+
     if dt == None:
         return None
     if tz:

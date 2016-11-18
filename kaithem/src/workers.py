@@ -61,11 +61,13 @@ def __workerloop():
         try:
             #We need the timeout othewise it could block forever
             #and thus not notice if run was False
+            f=None
             try:
                 f=__queue.get(timeout = 5)
             except queue.Empty:
                 pass
-            f()
+            if f:
+                f()
 
         except Exception as e:
             try:

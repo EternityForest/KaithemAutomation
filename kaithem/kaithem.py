@@ -132,6 +132,8 @@ from src import directories
 
 #Initialize the authorization module
 auth.initializeAuthentication()
+print("Loaded auth data")
+
 if cfg.argcmd.initialpackagesetup:
     util.drop_perms(cfg.config['run-as-user'], cfg.config['run-as-group'])
     auth.dumpDatabase()
@@ -148,7 +150,7 @@ from src import settings
 from src import usrpages
 from src import systasks
 from src import widgets
-
+print("Loaded core python code")
 from src.config import config
 
 if config['local-access-only']:
@@ -158,7 +160,7 @@ else:
 
 cherrypy.process.servers.check_port(bindto, config['http-port'], timeout=1.0)
 cherrypy.process.servers.check_port(bindto, config['https-port'], timeout=1.0)
-
+print("Ports are free")
 
 MyExternalIPAdress = util.updateIP()
 thread.stack_size(256000)
@@ -167,6 +169,7 @@ if config['change-process-title']:
     try:
         import setproctitle
         setproctitle.setproctitle("kaithem")
+        print("setting process title")
     except:
         pass
 
@@ -175,14 +178,14 @@ if config['enable-websockets']:
     from ws4py.websocket import EchoWebSocket
     WebSocketPlugin(cherrypy.engine).subscribe()
     cherrypy.tools.websocket = WebSocketTool()
-
+    print("activated websockets")
 
 
 
 
 #Load all modules from the active modules directory
 modules.initModules()
-
+print("Loaded modules")
 
 
 #This class represents the "/" root of the web app

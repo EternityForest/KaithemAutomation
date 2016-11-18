@@ -16,7 +16,7 @@
 #NOTICE: A LOT OF LOCKS ARE USED IN THIS FILE. WHEN TWO LOCKS ARE USED, ALWAYS GET _event_list_lock LAST
 #IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
-import traceback,threading,sys,time,atexit,collections,os,base64,imp,types,weakref,dateutil,datetime,recurrent,re,pytz,gc,random
+import traceback,threading,sys,time,cherrypy,collections,os,base64,imp,types,weakref,dateutil,datetime,recurrent,re,pytz,gc,random,logging
 import dateutil.rrule
 import dateutil.tz
 from . import workers, kaithemobj,messagebus,util,modules_state,scheduling
@@ -811,7 +811,9 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
         self.handler= self._handler
         self.exact = self.get_exact()
         self.rr = scheduling.get_rrule(self.trigger)
+
         self.nextruntime = scheduling.get_next_run(self.trigger,rr=self.rr)
+
         if self.nextruntime == None:
             return
         self.next=scheduler.schedule(self.handler,self.nextruntime,False)
@@ -835,6 +837,7 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
         self.nextruntime = scheduling.get_next_run(self.trigger, rr=self.rr)
         if self.nextruntime == None:
             return
+        print("about to schedule 1")
         self.next=scheduler.schedule(self.handler,self.nextruntime,False)
 
     def _handler(self):
@@ -853,6 +856,7 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
 
         finally:
             try:
+                print("releasing lock")
                 self.lock.release()
             except Exception as e:
                 print(e)
@@ -863,12 +867,14 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
                 return
 
             if self.nextruntime:
+                print("about to schedule 2")
                 self.next=scheduler.schedule(self.handler, self.nextruntime, False)
                 return
             print("Caught event trying to return None for get next run, time is:", time.time(), " expr is ", self.trigger, " last ran ", self.lastexecuted,"retrying")
             time.sleep(0.179)#A random number unlikely to sync up with anything
 
             if self.nextruntime:
+                print("about to schedule 3")
                 self.next=scheduler.schedule(self.handler, self.nextruntime, False)
                 return
             print("""Caught event trying to return None for get next run
@@ -1052,10 +1058,14 @@ def getEventsFromModules(only = None):
             #retry immediately, but only after trying the remaining list of events.
             #This is because inter-event dependancies are the most common reason for failure.
             for baz in range(0,max(1,config['max-load-attempts'])):
+                logging.debug("Event initialization resolution round "+str(baz))
                 for i in toLoad:
                     try:
+                        logging.debug("Loading "+i.module + ":"+i.resource)
                         i.f()
                         messagebus.postMessage("/system/events/loaded",[i.module,i.resource])
+                        logging.debug("Loaded "+i.module + ":"+i.resource)
+
                         time.sleep(0.005)
                     #If there is an error, add it t the list of things to be retried.
                     except Exception as e:
@@ -1064,6 +1074,8 @@ def getEventsFromModules(only = None):
                         else:
                             i.error = traceback.format_exc(6)
                         nextRound.append(i)
+                        logging.debug("Could not load "+i.module + ":"+i.resource+" in this round, deferring to next round")
+
                         pass
                 toLoad = nextRound
                 nextRound =[]
@@ -1074,6 +1086,7 @@ def getEventsFromModules(only = None):
                 #Add the reason for the error to the actual object so it shows up on the page.
                 __EventReferences[i.module , i.resource].errors.append([time.strftime(config['time-format']),str(i.error)])
                 messagebus.postMessage("/system/notifications/errors","Failed to load event resource: " + i.resource +" module: " + i.module + "\n" +str(i.error)+"\n"+"please edit and reload.")
+    logging.info("Created events from modules")
 
 def make_event_from_resource(module,resource,subst=None):
     """Returns an event object when given a module and resource name pointing to an event resource.

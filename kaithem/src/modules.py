@@ -181,6 +181,9 @@ class ModuleObject(object):
             else:
                 additionalTypes[resourcetype].onload(module,name, value)
 
+class VirtualResource():
+    pass
+
 
 
 
@@ -213,8 +216,11 @@ def loadResource(fn):
     except:
         logging.exception("Error loading resource from file "+fn)
         raise
+    logging.debug("Loaded resource from file "+fn)
 
 def saveResource2(r,fn):
+    logging.debug("Saving resource to"+str(fn))
+
     r = copy.deepcopy(r)
     if r['resource-type'] == 'page':
         b = r['body']
@@ -235,6 +241,7 @@ def saveResource2(r,fn):
         util.chmod_private_try(fn,execute = False)
         f.write(d.encode("utf-8"))
 
+    logging.debug("saved resource to file "+ fn)
 
 def saveResource(r,fn):
     with open(fn,"wb") as f:
@@ -256,9 +263,9 @@ def saveAll():
     #This is an RLock, and we need to use the lock so that someone else doesn't make a change while we are saving that isn't caught by
     #moduleschanged.
     with modulesLock:
-        global moduleschanged
-        if not moduleschanged:
+        if not unsaved_changed_obj:
             return False
+        logging.info("Begin saving all modules")
         if time.time()> util.min_time:
             t = time.time()
         else:
@@ -331,11 +338,13 @@ def initModules():
         cleanupBlobs()
     except:
         logging.exception("Failed to cleanup old blobs. This is normal if kaithem's var dir is not currently writable.")
+    logging.info("Initialized modules")
 
 def saveModule(module, dir,modulename=None):
     "Returns a list of saved module,resource tuples and the saved resource."
     #Iterate over all of the resources in a module and save them as json files
     #under the URL url module name for the filename.
+    logging.debug("Saving module "+str(modulename))
     saved = []
     try:
         #Make sure there is a directory at where/module/
@@ -484,6 +493,7 @@ def saveModules(where):
 
 def loadModules(modulesdir):
     "Load all modules in the given folder to RAM."
+    logging.debug("Loading modules from "+modulesdir)
     for i in util.get_immediate_subdirectories(modulesdir):
         loadModule(os.path.join(modulesdir,i), util.unurl(i))
 
@@ -505,6 +515,7 @@ def loadModules(modulesdir):
 
 def loadModule(folder, modulename):
     "Load a single module but don't bookkeep it . Used by loadModules"
+    logging.debug("Attempting to load module "+modulename)
     with modulesLock:
         #Make an empty dict to hold the module resources
         module = {}
@@ -554,6 +565,7 @@ def loadModule(folder, modulename):
         scopes[modulename] = ModuleObject(modulename)
         ActiveModules[modulename] = module
         messagebus.postMessage("/system/modules/loaded",modulename)
+        logging.info("Loaded module "+modulename)
         #bookkeeponemodule(name)
 
 def getModuleAsZip(module,noFiles=True):
@@ -601,6 +613,7 @@ def load_modules_from_zip(f,replace=False):
     new_modules = {}
     z = zipfile.ZipFile(f)
     newfrpaths = {}
+
     for i in z.namelist():
         #get just the folder, ie the module
         p = util.unurl(i.split('/')[0])
@@ -638,6 +651,7 @@ def load_modules_from_zip(f,replace=False):
             newfrpaths[p,n] = dataname
 
 
+
     with modulesLock:
         backup = {}
         #Precheck if anything is being overwritten
@@ -670,6 +684,12 @@ def load_modules_from_zip(f,replace=False):
                         bookkeeponemodule(i)
                 raise
         fileResourceAbsPaths.update(newfrpaths)
+
+        modulesHaveChanged()
+        for i in new_modules:
+            unsaved_changed_obj[i] = "Changed or created by zip upload"
+            for j in new_modules[i]:
+                unsaved_changed_obj[i,j] ="Changed or created by zip upload"
 
     z.close()
     return new_modules.keys()
@@ -756,6 +776,8 @@ def rmResource(module,resource,message="Resource Deleted"):
 def newModule(name,location=None):
     "Create a new module by the supplied name, throwing an error if one already exists. If location exists, load from there."
     modulesHaveChanged()
+    unsaved_changed_obj[name] = "Module Created"
+
     #If there is no module by that name, create a blank template and the scope obj
     with modulesLock:
         if location:

@@ -19,7 +19,7 @@ import time,random,subprocess,threading,random,gzip,json,yaml,os,ntplib,bz2
 
 
 import cherrypy
-from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry,directories,pages,config
+from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry,directories,pages,config,persist
 from . import astrallibwrapper as sky
 
 #This exception is what we raise from within the page handler to serve a static file
@@ -323,117 +323,11 @@ class Kaithem():
 
 
     class persist():
-        @staticmethod
-        def save(data,fn,mode="default", private=False,backup=None, md5=False):
-            """Save data to file. Filename must end in .json, .yaml, .txt, or .bin. Data will be encoded appropriately.
-                Also supports compressed versions via filenames ending in .gz or .bz2.
-                Args:
-                    data:
-                        the data to be written. if fn is a .json or .yaml, must be serializable. If filename is .txt, must be a string.
-                        If .bin, must be something like bytes.
-                    mode:
-                        If default, just overwrite the file. If backup, rename existing file to file~ then delete it on sucessful write.
-                        Note that load() may not notice all corrupted JSON or YAML files, however gz and bz2 include checksums.
-                    private:
-                        If True, file created with mode 700(Full access to root and owner but not even read to anyone else)
-                        If False(the default), file created with default mode
-                    backup:
-                        Setting this to true is an alias for mode="backup"
-            """
+        def load(*args,**kwargs):
+            return persist.load(*args,**kwargs)
 
-            if os.path.isdir(fn):
-                raise RuntimeError("Filename is already present as a directory, refusing to overwrite directory")
-            #create the directory if it does not exist.
-            util.ensure_dir(os.path.split(fn)[0])
-            if backup==True:
-                mode="backup"
-            if mode=="backup":
-                if not os.path.exists(fn+'~'):
-                    buf = fn+'~'
-                else:
-                    buf = fn+"~"+str(time.time())
-
-                if os.path.isfile(fn):
-                    os.rename(fn, buf)
-            try:
-                if fn.endswith(".gz"):
-                    f = gzip.GzipFile(fn,mode='wb')
-                    x = fn[:-3]
-                elif fn.endswith(".bz2"):
-                    f = bz2.BZ2File(fn,mode='wb')
-                    x = fn[:-4]
-                else:
-                    f = open(fn,'wb')
-                    x=fn
-
-                if private:
-                    util.chmod_private_try(fn)
-                if x.endswith(".json"):
-                    data = json.dumps(data).encode('utf8')
-                elif x.endswith(".yaml"):
-                    data = yaml.dump(data).encode('utf8')
-                elif x.endswith(".txt"):
-                    data = (str(data).encode('utf8'))
-                elif x.endswith(".bin"):
-                    data = (data)
-                else:
-                    raise ValueError('Unsupported File Extension')
-                f.write(f)
-
-                if md5:
-                    with open(x+ ".md5" , "w") as md5f:
-                        md5f.write(hashlib.md5(data).hexdigest())
-            finally:
-                f.close()
-
-            if mode=="backup":
-                os.remove(buf)
-
-        @staticmethod
-        def load(filename, autorecover = True):
-            """Load a file. Return str if file extension is .txt, bytes on .bin, dict on .yaml or .json.
-
-            After that may be a .bz2 or a .gz for compression.
-
-            If autorecover is True, if the file is missing or corrupted(May not catch all corrupted YAML files), looks for a ~ backup before failing.
-            maybe best to use gz if you really care because gz has a checksum"""
-            try:
-                if filename.endswith(".gz"):
-                    f = gzip.GzipFile(filename,mode='rb')
-                    x = filename[:-3]
-                elif filename.endswith(".bz2"):
-                    x = filename[:-4]
-                    f = bz2.BZ2File(filename,mode='rb')
-                else:
-                    f = open(filename,'rb')
-                    x = filename
-
-                if x.endswith(".json"):
-                    r=json.loads(f.read().decode('utf8'))
-                elif x.endswith(".yaml"):
-                    r=yaml.load(f.read().decode('utf8'))
-                elif x.endswith(".txt"):
-                    r=f.read().decode('utf8')
-                elif x.endswith(".bin"):
-                    r=f.read()
-                else:
-                    raise ValueError('Unsupported File Extension')
-            except Exception as e:
-                try:
-                    f.close()
-                except:
-                    pass
-                if not autorecover:
-                    raise e
-                else:
-                    #Avoid a loop, we call ourself but set the param to false
-                    return kaithem.persist.load(filename +'~', False)
-            try:
-                f.close()
-            except:
-                pass
-
-            return r
+        def save(*args,**kwargs):
+            return persist.save(*args,**kwargs)
 
     class string():
         @staticmethod

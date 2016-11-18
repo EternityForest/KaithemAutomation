@@ -53,6 +53,7 @@ fileResourceAbsPaths = {}
 #When a module is saved outside of the var dir, we put the folder in which it is saved in here.
 external_module_locations = {}
 
+unsaved_changed_obj = {}
 class ResourceType():
     def __init__(self):
         self.createButton = None

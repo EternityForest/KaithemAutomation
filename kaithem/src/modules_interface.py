@@ -229,6 +229,10 @@ class WebInterface():
             raise cherrypy.HTTPRedirect("/errors/alreadyexists")
 
         loadModule(os.path.join(directories.datadir,"modules",module),module)
+        modulesHaveChanged()
+        unsaved_changed_obj[module]="Loaded from library by user"
+        for i in ActiveModules[module]:
+            unsaved_changed_obj[module,i]= "Loaded from kibrary by user"
         bookkeeponemodule(module)
         auth.importPermissionsFromModules()
         raise cherrypy.HTTPRedirect('/modules')

@@ -255,6 +255,7 @@ def tryToLoadFrom(d):
         return True
     else:
         raise RuntimeError("No complete marker found")
+    logging.info("Loaded auth data from "+d)
 
 data_bad = False
 def initializeAuthentication():
