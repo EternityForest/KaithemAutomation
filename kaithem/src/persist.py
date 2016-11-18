@@ -14,6 +14,13 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 import sys,os,weakref,threading,gzip,bz2,json
 
+
+###THIS FILE IS INTENDED TO BE USABLE AS A STANDALONE LIBRARY.
+
+#todo: factor out the need filesystem stuff in util.
+from src import util
+
+
 if sys.version_info <(3,0):
     import StringIO
     strio = StringIO.StringIO
@@ -83,9 +90,10 @@ def save(data,fn,mode="default", private=False,backup=None, md5=False):
     #Get base type without compression
     if fn.endswith(".gz"):
         x = fn[:-3]
-    if fn.endswith(".bz2"):
+    elif fn.endswith(".bz2"):
         x = fn[:-4]
-
+    else:
+        x=fn
     #Encode the data into our chosen format
     if x.endswith(".json"):
         data = json.dumps(data).encode('utf8')
@@ -105,24 +113,25 @@ def save(data,fn,mode="default", private=False,backup=None, md5=False):
     #Note that disk access is slow enough the call to  basically makes no difference in speed here if it's already imported
     if fn.endswith(".gz"):
         i = strio()
-        f = gzip.GzipFile(i,mode='wb')
+        f = gzip.GzipFile(fn,mode='wb',fileobj=i)
         f.write(data)
-        data = f.getvalue()
+        f.close()
+        data = i.getvalue()
 
     elif fn.endswith(".bz2"):
-        i = strio()
-        f = bz2.BZ2File(fn,mode='wb')
-        f.write(data)
-        data = f.getvalue()
+        c = bz2.BZ2Compressor()
+        c.compress(data)
+        data = c.flush()
+        del c
 
     #Do a read-before-write. We don't write if we don't have to
     if os.path.exists(fn):
-        with open(fn) as f:
+        with open(fn,"rb") as f:
             if f.read() == data:
                 return
 
     util.ensure_dir(os.path.split(fn)[0])
-    s
+
     if backup==True:
         mode="backup"
 
@@ -145,16 +154,16 @@ def save(data,fn,mode="default", private=False,backup=None, md5=False):
             shutil.copy(fn+".md5", buf+".md5")
 
     #Actually write it
-    with open(fn,'wb'):
+    with open(fn,'wb') as f:
         #Chmod it before we write anything to it.
         if private:
             util.chmod_private_try(fn)
-        f.write(f)
+        f.write(data)
 
     if mode=="backup":
         os.remove(buf)
-    if os.path.exists(buf+".md5"):
-        os.path.remove(buf+'.md5')
+        if os.path.exists(buf+".md5"):
+            os.path.remove(buf+'.md5')
 
     if md5:
         with open(fn+ ".md5" , "w") as md5f:

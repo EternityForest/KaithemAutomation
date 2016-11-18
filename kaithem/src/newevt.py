@@ -105,34 +105,9 @@ def when(trigger,action,priority="interactive"):
 #Trigger takes no arguments and returns a boolean
 def after(delay,action,priority="interactive"):
     #If the time is in the future, then we use the scheduler.
-    if delay > 1.2:
-        scheduling.scheduler.schedule(action, time.time()+delay)
-        return
+    scheduling.scheduler.schedule(action, time.time()+delay)
+    return
 
-
-    module = '<OneTimeEvents>'
-    resource = "after(" +str(delay) +")"+ '>' + action.__name__ + ' ' + 'set at ' + str(time.time()) +'by thread: '   +str(threading.currentThread().ident)+' id='+str(base64.b64encode(os.urandom(16)))
-    start = time.time()
-    def f():
-        if time.time() > start+delay:
-            return True
-        return False
-
-    #We cannot remove the event from within itself because of the lock that
-    #We do not want to make into an RLock for speed. So we do it in a different thread.
-    def rm_slf():
-        removeOneEvent(module,resource)
-
-    def g():
-        action()
-        workers.do(rm_slf)
-
-    e = PolledInternalSystemEvent(f,g,priority=priority)
-
-    e.module = module
-    e.resource = resource
-    __EventReferences[module,resource] = e
-    e.register()
 
 
 kaithemobj.kaithem.events.when = when
@@ -172,11 +147,21 @@ class EventEvent(scheduling.RepeatingEvent):
         self.errored = False
         self.lock = threading.Lock()
         self.lastrun = None
-        self.phaseoffset = (phase%1)%interval
+        self.phaseoffset = (phase%1)*interval
 
     def run(self):
-        workers.do(self.f)
+        workers.do(self._run)
+
+    def _run(self):
+        self.lastrun = time.time()
+        #We must have been pulled out of the event queue or we wouldn't be running
         self.scheduled = False
+        if self.lock.acquire(False):
+            try:
+                self.f()
+            finally:
+                self.lock.release()
+            self._schedule()
 
 
 insert_phase = 0
@@ -186,13 +171,15 @@ def beginPolling(ev):
     #Since they might still occasionally all bunch up we really need a better way of doing this.
     global insert_phase
     ev.schedulerobj =EventEvent(ev.check,
-    config['priority-response'].get(ev.priority,0.08)+(random.random()*0.03)-0.015,
-     ev.priority,phase = insert_phase)
+    config['priority-response'].get(ev.symbolicpriority,0.08)+(random.random()*0.03)-0.015,
+     ev.symbolicpriority,phase = insert_phase)
     #Basically we want to spread them out in the phase space from 0 to 1 in a deterministic ish way.
     #There might be a better algorithm of better constant to use, but this one should be decent.
     insert_phase += 0.5555555555555555555555555
     insert_phase = insert_phase % 1
     ev.schedulerobj.register()
+    ev.schedulerobj.schedule()
+
 
 def endPolling(ev):
     ev.schedulerobj.unregister()
@@ -218,7 +205,7 @@ def parseTrigger(when):
 
 
 #Factory function that examines the type of trigger and chooses a class to handle it.
-def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setup = None,priority=2,**kwargs):
+def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setup = None,priority=1,**kwargs):
     trigger = parseTrigger(when)
 
     if scope == None:
@@ -264,7 +251,7 @@ def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setu
 
 #The BaseEvent wraps the _check function in such a way that only one event will be polled at a time
 #And errors in _check will be logged.
-
+fps= config['max-frame-rate']
 class BaseEvent():
     """Base Class representing one event.
     scope must be a dict representing the scope in which both the trigger and action will be executed.
@@ -286,7 +273,6 @@ class BaseEvent():
         self.continual = continual
         self.countdown = 0
         self.printoutput = ""
-        fps= config['max-frame-rate']
         #symbolic prioity os a rd like high,realtime, etc
         #Actual priority is a number that causes polling to occur every nth frame
         #Legacy events have numeric priorities
@@ -297,14 +283,14 @@ class BaseEvent():
 
         #try to look up the numeric priority from the symbolic
         try:
-            self.priority = int(fps*config['priority-response'][priority])
+            self.poll_interval = config['priority-response'][priority]
         except KeyError:
             #Should that fail, attempt to use the priority directly
             try:
-                self.priority = max(1,int(priority))
+                self.poll_interval  = fps/int(priority)
             #If even that fails, use interactive priority.
             except ValueError:
-                self.priority = config['priority-response']['interactive']
+                self.poll_interval  = config['priority-response']['interactive']
 
         self.runTimes = []
         self.module = m if m else "<unknown>"
@@ -325,7 +311,7 @@ class BaseEvent():
             time.sleep(0.1)
             if not self.lock.acquire(False):
                 time.sleep(0.7)
-                if not self.lock.acquire():
+                if not self.lock.acquire(False):
                     raise WouldBlockError("Could not acquire lock while event already running or polling. Trying again may work.")
         try:
             self._on_trigger()
@@ -399,7 +385,7 @@ class BaseEvent():
             backoff = max(1/(config['max-frame-rate']/self.priority), backoff)
 
             #Calculate backoff time in terms of frames
-            backoff = (averageFramesPerSecond*backoff)
+            backoff = (config['max-frame-rate']*backoff)
 
             self.countdown = int(backoff)
             #If this is the first error since th module was last saved raise a notification
@@ -430,15 +416,6 @@ class BaseEvent():
             return
 
         try:
-            #This is how we handle priority for now. The passing things between threads
-            #Is what really takes time polling so the few instructions extra should be well worth it
-            #Basically a countdown timer in frames that polls at zero and resets (P0 is as fast as possible)
-            if self.countdown <= 0:
-                self.countdown = self.priority
-            else:
-                self.countdown -= 1
-                return
-
             try:
                 self._check()
             except Exception as e:
@@ -776,6 +753,56 @@ class PolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
             #The eval was false, so the previous state was False
             self._prevstate = False
 
+class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
+    def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
+        BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
+        self.runthread = True
+
+        def f():
+            d = config['priority-response'].get(self.symbolicpriority,1/60.0)
+            #Run is the global run flag used to shutdown
+            while(run and self.runthread):
+                try:
+                    self.check()
+                    time.sleep(d)
+                except Exception as e:
+                    if not (run and self.runthread):
+                        print(e)
+                        return
+                    self._handle_exception(e)
+                    time.sleep(config['error-backoff'].get(self.symbolicpriority,5))
+
+        self.thread = threading.Thread(target=f,name="Event_"+self.module+'_'+self.resource)
+        self.polled = True
+
+        #Sometimes an event is used for its setup action and never runs.
+        #If the trigger is False, it will never trigger, so we don't poll it.
+        if when == 'False':
+            self.polled = False
+        #Compile the trigger
+        x = compile("def _event_trigger():\n    return "+when,"Event_"+self.module+'_'+self.resource,'exec')
+        exec(x,self.pymodule.__dict__)
+
+        self._init_setup_and_action(setup,do)
+
+    def register(self):
+        self.thread.start()
+
+    def unregister(self):
+        self.runthread = False
+
+    def _check(self):
+        """Check if the trigger is true and if so do the action."""
+        #Eval the condition in the local event scope
+        if self.pymodule._event_trigger():
+            #Only execute once on false to true change unless continual was set
+            if (self.continual or self._prevstate == False):
+                self._prevstate = True
+                self._on_trigger()
+        else:
+            #The eval was false, so the previous state was False
+            self._prevstate = False
+
 
 class PolledInternalSystemEvent(BaseEvent,DirectFunctionsMixin):
     def __init__(self,when,do,scope = None ,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
@@ -784,9 +811,10 @@ class PolledInternalSystemEvent(BaseEvent,DirectFunctionsMixin):
         #Compile the trigger
         self.trigger = when
         self._init_setup_and_action(setup,do)
-
+        self._prevstate
 
     def _check(self):
+        print(self.resource)
         """Check if the trigger is true and if so do the action."""
         #Eval the condition in the local event scope
         if self.trigger():
@@ -837,7 +865,6 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
         self.nextruntime = scheduling.get_next_run(self.trigger, rr=self.rr)
         if self.nextruntime == None:
             return
-        print("about to schedule 1")
         self.next=scheduler.schedule(self.handler,self.nextruntime,False)
 
     def _handler(self):
@@ -856,7 +883,6 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
 
         finally:
             try:
-                print("releasing lock")
                 self.lock.release()
             except Exception as e:
                 print(e)
@@ -867,14 +893,12 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
                 return
 
             if self.nextruntime:
-                print("about to schedule 2")
                 self.next=scheduler.schedule(self.handler, self.nextruntime, False)
                 return
             print("Caught event trying to return None for get next run, time is:", time.time(), " expr is ", self.trigger, " last ran ", self.lastexecuted,"retrying")
             time.sleep(0.179)#A random number unlikely to sync up with anything
 
             if self.nextruntime:
-                print("about to schedule 3")
                 self.next=scheduler.schedule(self.handler, self.nextruntime, False)
                 return
             print("""Caught event trying to return None for get next run
@@ -1074,7 +1098,7 @@ def getEventsFromModules(only = None):
                         else:
                             i.error = traceback.format_exc(6)
                         nextRound.append(i)
-                        logging.debug("Could not load "+i.module + ":"+i.resource+" in this round, deferring to next round")
+                        logging.debug("Could not load "+i.module + ":"+i.resource+" in this round, deferring to next round"+traceback.format_exc(6))
 
                         pass
                 toLoad = nextRound

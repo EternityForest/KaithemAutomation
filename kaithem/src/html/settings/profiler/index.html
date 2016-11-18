@@ -14,7 +14,7 @@ except:
     _yappi = False
 %>
 
-%if False:
+%if _yappi:
     <dl>
     %if not yappi.is_running():
         <dt><form method="post" action="/settings/profiler/start">

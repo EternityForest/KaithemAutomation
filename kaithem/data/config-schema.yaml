@@ -66,6 +66,9 @@ properties:
     priority-response:
         type: object
         properties:
+            realtime:
+                type: number
+                required: yes
             interactive:
                 type: number
                 required: yes

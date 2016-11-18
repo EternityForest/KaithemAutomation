@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import threading,sys,re,time,datetime,weakref,os,traceback, collections,random
+import threading,sys,re,time,datetime,weakref,os,traceback, collections,random,logging
 from . import messagebus,workers
 from .repeatingevents import *
 
@@ -68,44 +68,54 @@ class RepeatingEvent(BaseEvent):
         self.errored = False
         self.lock = threading.Lock()
         self.lastrun = None
-        self.phaseoffset = (phase%1)%interval
+        self.phaseoffset = (phase%1)*interval
         del function
 
     def schedule(self):
-        "Insert self into the scheduler. "
+        """Insert self into the scheduler.
+        Note for subclassing: The responsibility of this function to check if it is already scheduled, return if so,
+        if not, if must reschedule itself by setting self.time to some time in the future.
+        It must then call scheduler.insert(self)
+
+        This must happen in a threadsafe and atomic way because the scheduler thread will call this every once in a while,
+        just to be sure, in case an error occurred in the reschedule process
+
+        We implement this at the moment by having a separate _schedule functinon for when we are already under self.lock
+        """
         with self.lock:
             if self.scheduled:
                 return
             if not self.lastrun:
                 self.lastrun = time.time()
-            """Calculate next runtime and put self into the queue.
-            Currently should only every be called from the loop in the scheduler."""
-            #We want to schedule to the multiple of local time.
-            #Things on the hour should be on the local hour.
+            self._schedule()
 
-            #adapted from J.F. Sebastian of Stack Overflow
-            #We should really just recheck the schedule every n seconds
-            millis = 1288483950000
-            ts = millis * 1e-3
-            # local time == (utc time + utc offset)
-            offset =(datetime.datetime.fromtimestamp(ts) - datetime.datetime.utcfromtimestamp(ts)).total_seconds()
+    def _schedule(self):
+        """Calculate next runtime and put self into the queue.
+        Currently should only every be called from the loop in the scheduler."""
+        #We want to schedule to the multiple of local time.
+        #Things on the hour should be on the local hour.
 
-            #Convert to local time
-            t = self.lastrun+offset
-            #This is important in the next step. Here we add a fraction of the interval to pust times like 59.95 over
-            #otherwise it will schedule it for 60 when clearly a minute in the future should be 120
-            t += self.interval/10.0
-            #Calculate the last modulo of the interval. We do this by doing the module to see how far past it we are
-            #then subtracting.
-            last = t-(t%self.interval)
+        #adapted from J.F. Sebastian of Stack Overflow
+        millis = 1288483950000
+        ts = millis * 1e-3
+        # local time == (utc time + utc offset)
+        offset =(datetime.datetime.fromtimestamp(ts) - datetime.datetime.utcfromtimestamp(ts)).total_seconds()+self.phaseoffset
 
-            #Get the time after last
-            t = last+ self.interval
-            #Convert back to UTC/UNIX and add the phase offset
-            self.time = (t-offset)+self.phaseoffset
+        #Convert to local time
+        t = self.lastrun+offset
+        #This is important in the next step. Here we add a fraction of the interval to pust times like 59.95 over
+        #otherwise it will schedule it for 60 when clearly a minute in the future should be 120
+        t += self.interval/10.0
+        #Calculate the last modulo of the interval. We do this by doing the module to see how far past it we are
+        #then subtracting.
+        last = t-(t%self.interval)
 
-            scheduler.insert(self)
-            self.scheduled = True
+        #Get the time after last
+        t = last+ self.interval
+        #Convert back to UTC/UNIX and add the phase offset
+        self.time = (t-offset)
+        scheduler.insert(self)
+        self.scheduled = True
 
 
     def register(self):
@@ -128,68 +138,19 @@ class RepeatingEvent(BaseEvent):
     def _run(self):
 
         self.lastrun = time.time()
-        try:
-            if self.lock.acquire(False):
-                try:
-                    f = self.f()
-                    if not f:
-                        self.unregister()
-                    else:
-                        f()
-                finally:
-                    self.lock.release()
-                    del f
-        finally:
-            self.scheduled = False
-
-
-class SelfSchedulingEvent():
-    "Does function every interval seconds, and stops if you don't keep a reference to function"
-    def __init__(self,function,interval):
-        self.f = weakref.ref(function, self.unregister)
-        self.interval = float(interval)
+        #We must have been pulled out of the event queue or we wouldn't be running
         self.scheduled = False
-        self.errored = False
-        self.lock = threading.Lock()
-
-    def schedule(self):
-        """Put self in queue based on the time already calculated by the function"""
-        scheduler.insert(self)
-        self.scheduled = True
-
-
-    def register(self):
-        scheduler.register_repeating(self)
-
-    def _unregister(self):
-        scheduler.unregister(self)
-
-    def unregister(self,dummy=None):
-        try:
-            workers.do(self._unregister)
-        #Catch nuisiance errors on interpreter shutdown
-        except:
-            pass
-
-    def run(self):
-        workers.do(self._run)
-
-    def _run(self):
-        try:
-            if self.lock.acquire(False):
-                try:
-                    f = self.f()
-                    if not f:
-                        self._unregister()
-                    else:
-                        self.time = f()
-                finally:
-                    self.lock.release()
-        finally:
-            self.scheduled = False
-
-
-
+        if self.lock.acquire(False):
+            try:
+                f = self.f()
+                if not f:
+                    self.unregister()
+                else:
+                    f()
+            finally:
+                self.lock.release()
+                del f
+            self._schedule()
 
 class RepeatWhileEvent(RepeatingEvent):
     "Does function every interval seconds, and stops if you don't keep a reference to function"
@@ -237,7 +198,9 @@ class NewScheduler(threading.Thread):
         self.lock = threading.RLock()
         self.repeatingtasks= []
         self.daemon = True
-        self.name = 'SchedulerThread2'
+        self.name = 'SchedulerThread'
+        self.lastrecheckedschedules = time.time()
+        self.lf = time.time()
 
     def everySecond(self,f):
         e = RepeatingEvent(f,1)
@@ -269,8 +232,12 @@ class NewScheduler(threading.Thread):
     def insert(self, event):
         "Insert something that has a time and a _run property that wants its _run called at time"
         with self.lock:
-            self.tasks.append(event)
-            self.tasks = sorted(self.tasks, key=lambda x: x.time or -1)
+            self.tasks.insert(0,event)
+            if self.tasks[1:] and event.time<self.tasks[1].time:
+                pass
+                #No need to sort if our insert does't disturb the order
+            else:
+                self.tasks = sorted(self.tasks, key=lambda x: x.time or -1)
 
     def remove(self, event):
         "Remove something that has a time and a _run property that wants its _run to not be called at time"
@@ -301,17 +268,16 @@ class NewScheduler(threading.Thread):
 
     def run(self):
         while 1:
-
             #Caculate the time until the next UNIX timestamp whole number, with 0.0011s offset to compensate
             #for the time it takes to process 0.9989
-            time_till_next_second = max(0, 0.9989-(time.time()%1) )
+            time_till_next = max(0, 0.1-(time.time()%0.1) )
             if self.tasks:
-                time.sleep(max(min((self.tasks[0].time-time.time()),time_till_next_second),0))
+                time.sleep(max(min((self.tasks[0].time-time.time()),time_till_next),0))
             else:
-                time.sleep(time_till_next_second)
-
+                time.sleep(time_till_next)
             #Run tasks until all remaining ones are in the future
             while self.tasks and (self.tasks[0].time <time.time()):
+
                 i = self.tasks.pop(False)
                 overdueby = time.time()-i.time
                 if i.exact and overdueby > i.exact:
@@ -334,11 +300,20 @@ class NewScheduler(threading.Thread):
                     del f
 
             #Take all the repeating tasks that aren't already scheduled to happen and schedule them.
-            #Normally tasks would just reschedule themselves, but this way prevents any errors in
+            #Normally tasks  just reschedule themselves, but this check prevents any errors in
             #the chain of run>reschedule>run>etc
-            for i in self.repeatingtasks:
-                if not i.scheduled:
-                    i.schedule()
+
+            #We have to run in a try block because we don't want a bad schedule function to take out the whole thread.
+
+            #We only need to do this every 5 seconds or so, because it's only an error recovery thing.
+            if time.time()-self.lastrecheckedschedules>5:
+                for i in self.repeatingtasks:
+                    try:
+                        if not i.scheduled:
+                            i.schedule()
+                    except:
+                            logging.exception("Exception while scheduling event")
+                self.lastrecheckedschedules = time.time()
 
 
 

@@ -77,6 +77,28 @@ import time,signal
 import cherrypy,validictory
 from cherrypy import _cperror
 from src import util
+
+from src import config as cfg
+
+#WE have to get the workers set up early because a lot of things depend on it.
+from src import workers
+def handleError(f,exc):
+        from src import messagebus
+        try:
+            messagebus.postMessage('system/errors/workers',
+                                          {"function":f.__name__,
+                                        "module":f.__module__,
+                                        "traceback":traceback.format_exception(*exc, 6)})
+
+        except:
+            messagebus.postMessage('system/errors/workers',{
+                               "traceback":traceback.format_exception(*exc, 6)})
+workers.handleError = handleError
+qsize = cfg.config['task-queue-size']
+count = cfg.config['worker-threads']
+wait =  cfg.config['wait-for-workers']
+workers.start(count,qsize,wait)
+
 from src import messagebus
 from src import pylogginghandler
 from src import messagelogging
@@ -123,12 +145,17 @@ def installThreadExcepthook():
 
 installThreadExcepthook()
 
+
+
+
 from src import notifications
 from src import pages
 from src import weblogin
 from src import auth
-from src import config as cfg
 from src import directories
+
+
+
 
 #Initialize the authorization module
 auth.initializeAuthentication()

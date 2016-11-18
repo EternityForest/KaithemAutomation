@@ -58,7 +58,7 @@ save-before-shutdown: no
 
 #How fast to poll for events of specific priorities. Times in seconds
 priority-response:
-    #realtime is always every frame
+    realtime: 0.0166
     interactive: 0.085
     high: 0.8
     medium: 2.5

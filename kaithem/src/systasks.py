@@ -35,7 +35,7 @@ def getcfg():
 getcfg()
 
 lastgotip = time.time()
-lastfpd=0
+
 lastram=0
 lastpageviews =0
 pageviewsthisminute = 0
@@ -52,7 +52,6 @@ def aPageJustLoaded():
 #Acessed by stuff outide this file
 pageviewcountsmoother = util.LowPassFiter(0.3)
 
-frameRateWasTooLowLastMinute = False
 MemUseWasTooHigh = False
 firstrun = True
 checked = False
@@ -82,10 +81,8 @@ def check_time_set():
 def logstats():
     global pageviewsthisminute,firstrun,checked
     global pageviewpublishcountdown,lastpageviews
-    global frameRateWasTooLowLastMinute
     global MemUseWasTooHigh
-    global lastfpd,lastram,tenminutepagecount,lastfpd
-
+    global lastram,tenminutepagecount
     pass
     #Do the page count
     tenminutepagecount += pageviewsthisminute
@@ -98,19 +95,6 @@ def logstats():
         lastpageviews = time.time()
         tenminutepagecount = 0
 
-#Frame rate and mem
- #The frame rate is not valid for the first few seconds because of the average
-    if not firstrun:
-        #Hysteresis to avoid flooding
-        if newevt.averageFramesPerSecond < config['max-frame-rate']*0.50:
-            if not frameRateWasTooLowLastMinute:
-                messagebus.postMessage("/system/notifications/warnings" , "Warning: Frame rate below 50% of maximum")
-                frameRateWasTooLowLastMinute = True
-
-        if newevt.averageFramesPerSecond < config['max-frame-rate']*0.8:
-            frameRateWasTooLowLastMinute = False
-
-    firstrun == False
     if platform.system()=="Linux":
             try:
                 f = util.readfile("/proc/meminfo")
@@ -135,9 +119,6 @@ def logstats():
             except Exception as e:
                 raise e
 
-    if (newevt.averageFramesPerSecond < config['max-frame-rate']*0.95) or time.time()>lastfpd+(60*10):
-        messagebus.postMessage("/system/perf/FPS" , round(newevt.averageFramesPerSecond,2))
-        lastfpd = time.time()
 
 
 @scheduling.scheduler.everyMinute
