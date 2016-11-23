@@ -152,6 +152,16 @@ class RepeatingEvent(BaseEvent):
                 del f
             self._schedule()
 
+class UnsynchronizedRepeatingEvent(RepeatingEvent):
+    def _schedule(self):
+        """Calculate next runtime and put self into the queue.
+        Currently should only every be called from the loop in the scheduler."""
+
+        t = self.lastrun+self.interval
+        self.time = (t)
+        scheduler.insert(self)
+        self.scheduled = True
+
 class RepeatWhileEvent(RepeatingEvent):
     "Does function every interval seconds, and stops if you don't keep a reference to function"
     def __init__(self,function,interval):
@@ -205,22 +215,26 @@ class NewScheduler(threading.Thread):
     def everySecond(self,f):
         e = RepeatingEvent(f,1)
         e.register()
+        e.schedule()
         return f
 
     def everyMinute(self,f):
         e = RepeatingEvent(f,60)
         e.register()
+        e.schedule()
         return f
 
     def everyHour(self,f):
         e = RepeatingEvent(f,3600)
         e.register()
+        e.schedule()
         return f
 
     def every(self,f, interval):
         interval = float(interval)
         e = RepeatingEvent(f,interval)
         e.register()
+        e.schedule()
         return f
 
     def schedule(self, f, t, exact=False):
@@ -231,13 +245,22 @@ class NewScheduler(threading.Thread):
 
     def insert(self, event):
         "Insert something that has a time and a _run property that wants its _run called at time"
+
         with self.lock:
+            for i,v in enumerate(self.tasks):
+                if v.time>event.time:
+                    self.tasks.insert(i,event)
+                    return
+
             self.tasks.insert(0,event)
-            if self.tasks[1:] and event.time<self.tasks[1].time:
-                pass
-                #No need to sort if our insert does't disturb the order
-            else:
-                self.tasks = sorted(self.tasks, key=lambda x: x.time or -1)
+            self.tasks = sorted(self.tasks, key=lambda x: x.time or -1)
+
+            # self.tasks.insert(0,event)
+            # if self.tasks[1:] and event.time<self.tasks[1].time:
+            #     pass
+            #     #No need to sort if our insert does't disturb the order
+            # else:
+            #     self.tasks = sorted(self.tasks, key=lambda x: x.time or -1)
 
     def remove(self, event):
         "Remove something that has a time and a _run property that wants its _run to not be called at time"

@@ -323,9 +323,11 @@ class Kaithem():
 
 
     class persist():
+        @staticmethod
         def load(*args,**kwargs):
             return persist.load(*args,**kwargs)
 
+        @staticmethod
         def save(*args,**kwargs):
             return persist.save(*args,**kwargs)
 

@@ -138,7 +138,7 @@ def ptim():
 
 
 #Yeah yeah, the name isn't the best
-class EventEvent(scheduling.RepeatingEvent):
+class EventEvent(scheduling.UnsynchronizedRepeatingEvent):
     def __init__(self,function,interval,priority="realtime", phase = 0):
         scheduling.BaseEvent.__init__(self)
         self.f = function

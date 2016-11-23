@@ -21,7 +21,7 @@
 #Tasks will be performed on a best effort basis and errors will be caught and ignored.
 import threading,sys,cherrypy,traceback, logging
 import atexit,time
-
+import random
 def inWaiting():
     return len(__queue)
 
@@ -57,30 +57,52 @@ def EXIT():
 atexit.register(EXIT)
 cherrypy.engine.subscribe("exit",EXIT)
 
-#one worker that just pulls tasks from the queue and does them. Errors are caught and
-#We assume the tasks have their own error stuff
-def __workerloop():
-    while(run):
-        try:
-            #We need the timeout othewise it could block forever
-            #and thus not notice if run was False
-            f=None
+def makeWorker(e,q):
+    #one worker that just pulls tasks from the queue and does them. Errors are caught and
+    #We assume the tasks have their own error stuff
+    e.on=True
+    def workerloop():
+        f=None
+        while(run):
             try:
-                f=__queue.get(timeout = 5)
-            except queue.Empty:
-                pass
-            if f:
-                f()
+                #We need the timeout othewise it could block forever
+                #and thus not notice if run was False
+                # try:
+                #     e.on = True
+                #     f=__queue.get(block=False)
+                # except queue.Empty:
+                #     e.clear()
+                #     e.on = False
+                #     e.wait(timeout=5)
+                e.on=True
+                #While either our direct  queue or the overflow queue has things in it we do them.
+                while(q or overflow_q):
+                    if q:
+                        f=q.pop(False)
 
-        except Exception as e:
-            try:
-                handleError(f,sys.exc_info())
-            except:
-                print("Failed to handle error: "+traceback.format_exc(6))
-        finally:
-            #We do not want f staying around, if might hold references that should be GCed away immediatly
-            del f
+                    elif overflow_q:
+                        f=overflow_q.pop(False)
+                    if f:
+                        #That pass statement is important. Things break if it goes away.
+                        pass
+                        f()
+                e.on=False
+                if not len(ready_threads)>1000:
+                    ready_threads.append((q,e))
+                e.clear()
+                e.wait(timeout=5)
+            except Exception:
+                try:
+                    handleError(f,sys.exc_info())
+                except:
+                    print("Failed to handle error: "+traceback.format_exc(6))
+            finally:
+                #We do not want f staying around, if might hold references that should be GCed away immediatly
+                f=None
+    return workerloop
 
+
+ready_threads = []
 
 def do(func):
     """Run a function in the background
@@ -88,7 +110,40 @@ def do(func):
     funct(function):
         A function of 0 arguments to be ran in the background in another thread immediatly,
     """
+    # try:
+    #     __queue.put(func,block=False)
+    # except:
+    #     time.sleep(random.random()/100)
+    #     __queue.put(func)
+
+
+    if ready_threads:
+        try:
+            t = ready_threads.pop()
+            t[0].append(func)
+            t[1].set()
+            return
+        except IndexError:
+            pass
+
+    #No unbusy threads? It must go in the overflow queue.
+    while len(overflow_q)>500:
+        time.sleep(0.05)
+    overflow_q.append(func)
+
+    #Be sure there is an awake thread to deal with our overflow entry.
+    for i in queues:
+        if not i[0].on:
+            i[0].set()
+            return
+def do_try(func):
+    """Run a function in the background
+
+    funct(function):
+        A function of 0 arguments to be ran in the background in another thread immediatly,
+    """
     __queue.put(func)
+
 
 def waitingtasks():
     "Return the number of tasks in the task queue"
@@ -102,9 +157,9 @@ def async(f):
             f(*args,**kwargs)
         __queue.put(h)
     return g
-
+overflow_q =[]
 workers = []
-
+queues = []
 def start(count=8, qsize=64, shutdown_wait=60):
     #Start a number of threads as determined by the config file
 
@@ -113,7 +168,10 @@ def start(count=8, qsize=64, shutdown_wait=60):
     worker_wait = shutdown_wait
     __queue = queue.Queue(qsize)
     for i in range(0,count):
-        t = threading.Thread(target = __workerloop, name = "ThreadPoolWorker-"+str(i))
+        q = []
+        e = threading.Event()
+        t = threading.Thread(target = makeWorker(e,q), name = "ThreadPoolWorker-"+str(i))
         workers.append(t)
+        queues.append((e,q))
         t.start()
     logging.info("Started worker threads")

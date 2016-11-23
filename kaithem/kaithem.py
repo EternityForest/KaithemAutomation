@@ -88,11 +88,11 @@ def handleError(f,exc):
             messagebus.postMessage('system/errors/workers',
                                           {"function":f.__name__,
                                         "module":f.__module__,
-                                        "traceback":traceback.format_exception(*exc, 6)})
+                                        "traceback":traceback.format_exception(*exc, limit=6)})
 
         except:
             messagebus.postMessage('system/errors/workers',{
-                               "traceback":traceback.format_exception(*exc, 6)})
+                               "traceback":traceback.format_exception(*exc, limit=s6)})
 workers.handleError = handleError
 qsize = cfg.config['task-queue-size']
 count = cfg.config['worker-threads']

@@ -12,7 +12,7 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import cherrypy,base64,os,time,subprocess,time,shutil,sys
+import cherrypy,base64,os,time,subprocess,time,shutil,sys,logging
 from cherrypy.lib.static import serve_file
 from . import pages, util,messagebus,config,auth,registry,mail,kaithemobj, config
 
@@ -361,6 +361,11 @@ class Settings():
             import yappi
             if not yappi.is_running():
                 yappi.start()
+                try:
+                    yappi.set_clock_type("cpu")
+                except:
+                    logging.exception("CPU time profiling not supported")
+
             time.sleep(0.5)
             messagebus.postMessage("/system/settings/activatedprofiler",pages.getAcessingUser())
             raise cherrypy.HTTPRedirect("/settings/profiler")
