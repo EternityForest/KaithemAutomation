@@ -1,7 +1,7 @@
 continual: false
 enable: true
 once: true
-priority: realtime
+priority: interactive
 rate-limit: 0.0
 resource-type: event
 trigger: '!onchange kaithem.time.second()'
@@ -13,12 +13,19 @@ versions: {}
 #and may run multiple times when kaithem boots due to dependancy resolution
 __doc__="Raises an error if it detects kaithem's response time is too slow to an onchange event"
 import time
-last = time.time()+10
+last = time.time()
+
+
 lastposted = 0
 
+firstrun = True
 ---
-global last,lastposted
+global last,lastposted,firstrun
 if time.time()-last>1.2:
+    if firstrun:
+        firstrun = False
+        #suppress messages for 60s after it starts up for real
+        last = time.time()+60
     if time.time()-lastposted>5*60:
         kaithem.message.post("/system/notifications/errors", "Frame rate dropped, onchange second fired more than 1s since last. May happen once at boot because of CPU loadActual Delay: "+str(time.time()-last)+"s")
         lastposted = time.time()

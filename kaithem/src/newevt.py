@@ -22,6 +22,8 @@ import dateutil.tz
 from . import workers, kaithemobj,messagebus,util,modules_state,scheduling
 from .config import config
 from .scheduling import scheduler
+ctime =time.time
+do = workers.do
 
 #Use this lock whenever you access _events or __EventReferences in any way.
 #Most of the time it should be held by the event manager that continually iterates it.
@@ -149,11 +151,12 @@ class EventEvent(scheduling.UnsynchronizedRepeatingEvent):
         self.lastrun = None
         self.phaseoffset = (phase%1)*interval
 
+
     def run(self):
-        workers.do(self._run)
+        do(self._run)
 
     def _run(self):
-        self.lastrun = time.time()
+        self.lastrun = ctime()
         #We must have been pulled out of the event queue or we wouldn't be running
         self.scheduled = False
         if self.lock.acquire(False):
@@ -299,8 +302,11 @@ class BaseEvent():
         self.pymodule.__file__ = str("Event_"+self.module +"_"+self.resource)
         #This lock makes sure that only one copy of the event executes at once.
         self.lock = threading.Lock()
+
         #This keeps track of the last time the event was triggered  so we can rate limit
         self.lastexecuted = 0
+
+        self.backoff_until = 0
 
         #A place to put errors
         self.errors = []
@@ -380,14 +386,7 @@ class BaseEvent():
                 except KeyError:
                     backoff = config['error-backoff']['interactive']
 
-            #Make sure backoff slows, not speeds
-            #Figure out the normal poll time,backoff not less than that
-            backoff = max(1/(config['max-frame-rate']/self.priority), backoff)
-
-            #Calculate backoff time in terms of frames
-            backoff = (config['max-frame-rate']*backoff)
-
-            self.countdown = int(backoff)
+            self.backoff_until=time.time()+backoff
             #If this is the first error since th module was last saved raise a notification
             if len(self.errors)==1:
                 messagebus.postMessage('/system/notifications/errors',"Event \""+self.resource+"\" of module \""+self.module+ "\" may need attention")
@@ -405,6 +404,7 @@ class BaseEvent():
                 endPolling(self)
                 del self.schedulerobj
 
+
     def check(self):
         """This is the function that the polling system calls to poll the event.
         It calls a _check() function which must be defined by a subclass."""
@@ -412,6 +412,10 @@ class BaseEvent():
         #just sit around and wait. That would mean one slow event could queue up many
         #copies of itself and cause odd performance issues.
         #so, if another thread is already handling this, just return and move on.
+
+        #Easy way of doing error backoffs
+        if time.time()<self.backoff_until:
+            return
         if not self.lock.acquire(False):
             return
 
@@ -538,15 +542,21 @@ class FunctionEvent(BaseEvent):
         exec(initializer,self.pymodule.__dict__,self.pymodule.__dict__)
 
     def register(self):
-        self.active = True
+        with _event_list_lock:
+            x = compile(self.fname+" = _kaithem_temp_event_function","Event_"+self.module+'_'+self.resource,'exec')
+            exec(x,self.pymodule.__dict__)
+            self.active = True
 
     def unregister(self):
-        self.active = False
-        try:
-            x = compile("del "+ self.fname,"Event_"+self.module+'_'+self.resource,'exec')
-            exec(x,self.pymodule.__dict__)
-        except Exception as e:
-            print(e)
+        with _event_list_lock:
+            self.active = False
+            #Use a try accept block because that function could have wound up anywhere,
+            #Including having been already deleted.
+            try:
+                x = compile("del "+ self.fname,"Event_"+self.module+'_'+self.resource,'exec')
+                exec(x,self.pymodule.__dict__)
+            except Exception as e:
+                print(e)
 
     #The only difference between this and the base class version is
     #That this version propagates exceptions
@@ -576,78 +586,6 @@ class FunctionEvent(BaseEvent):
     def _do_action(self):
         self.pymodule.kaithem_event_action()
 
-##Note: this class does things itself instead of using that CompileCodeStringsMixin
-##I'm not sure that was the best idea to use that actually....
-#class ManualEvent(BaseEvent):
-    #def run(self):
-        #for i in self.permissions:
-            #pages.require(i)
-        #pages.postOnly()
-        #self.f()
-
-        ##Return user to the module page. If name has a folder, return the user to it;s containing folder.
-        #x = util.split_escape(self.resource,"/")
-        #if len(x)>1:
-            #raise cherrypy.HTTPRedirect("/modules/module/"+util.url(self.module)+'/resource/'+'/'.join([util.url(i) for i in x[:-1]])+"#resources")
-        #else:
-            #raise cherrypy.HTTPRedirect("/modules/module/"+util.url(self.module)+"#resources")#+'/resource/'+util.url(resource))
-
-    #def __init__(self,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
-        #BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
-        #self.polled = False
-        #self.pymodule.__dict__['kaithem']=kaithemobj.kaithem
-        #self.pymodule.__dict__['module'] =modules_state.scopes[self.module]
-        #def f():
-            #with self.lock:
-                #self._on_trigger()
-        #self.f =f()
-
-        ##compile the body
-        #body = "def kaithem_event_action():\n"
-        #for line in do.split('\n'):
-            #body+=("    "+line+'\n')
-
-        #body = compile(body,"Event_"+self.module+'_'+self.resource,'exec')
-        #exec(body,self.pymodule.__dict__)
-
-        ##this lets you do things like !function module.foo
-        #self.pymodule.__dict__["_kaithem_temp_event_function"] = f
-        #x = compile(fname+" = _kaithem_temp_event_function","Event_"+self.module+'_'+self.resource,'exec')
-        #exec(x,self.pymodule.__dict__)
-        #del self.pymodule.__dict__["_kaithem_temp_event_function"]
-
-        ##initialize the module scope with the kaithem object and the module thing.
-        #initializer = compile(setup,"Event_"+self.module+'_'+self.resource+"setup","exec")
-        #exec(initializer,self.pymodule.__dict__,self.pymodule.__dict__)
-
-    ##The only difference between this and the base class version is
-    ##That this version propagates exceptions
-    #def _on_trigger(self):
-        ##This function gets called when whatever the event's trigger condition is.
-        ##it provides common stuff to all trigger types like logging and rate limiting
-
-        ##Check the current time minus the last time against the rate limit
-        ##Don't execute more often than ratelimit
-        #if not self.active:
-            #raise RuntimeError("Cannot run deleted FunctionEvent")
-
-        #if (time.time() -self.lastexecuted >self.ratelimit):
-            ##Set the varible so we know when the last time the body actually ran
-            #self.lastexecuted = time.time()
-            #try:
-                ##Action could be any number of things, so this method mut be implemented by
-                ##A derived class or inherited from a mixin.
-                #self._do_action()
-                #messagebus.postMessage('/system/events/ran',[self.module, self.resource])
-            #except Exception as e:
-                #if self.active:
-                    #self._handle_exception(e)
-                #raise
-
-
-    #def _do_action(self):
-        #self.pymodule.kaithem_event_action()
-
 class MessageEvent(BaseEvent,CompileCodeStringsMixin):
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
 
@@ -655,6 +593,19 @@ class MessageEvent(BaseEvent,CompileCodeStringsMixin):
         self.polled = False
         BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
         self.lastran = 0
+
+        #Handle whatever stupid whitespace someone puts in
+        #What this does is to eliminate leading whitespace, split on first space,
+        #Then get rid of any extra spaces in between the command and argument.
+        t = when.strip().split(' ',1)[1].strip()
+        self.topic = t
+
+        #No idea why this is done last, actually, but I'm not changing it if it works without looking into it first.
+        self._init_setup_and_action(setup,do)
+
+    def register(self):
+        if hasattr(self,"action_wrapper_because_we_need_to_keep_a_reference"):
+            return
         def action_wrapper(topic,message):
             #Since we aren't under the BaseEvent.check() lock, we need to get it ourselves.
             with self.lock:
@@ -673,20 +624,16 @@ class MessageEvent(BaseEvent,CompileCodeStringsMixin):
                 self._on_trigger()
 
 
-        #When the object is deleted so will this reference and the message bus's auto unsubscribe will handle it
+        #When the object is deleted so will this reference and the message bus's auto unsubscribe will handle it,
+        #even if we don't do an unregister call, which we should.
         self.action_wrapper_because_we_need_to_keep_a_reference = action_wrapper
-
-        #Handle whatever stupid whitespace someone puts in
-        #What this does is to eliminate leading whitespace, split on first space,
-        #Then get rid of any extra spaces in between the command and argument.
-        t = when.strip().split(' ',1)[1].strip()
         #Subscribe our new function to the topic we want
-        messagebus.subscribe(t,action_wrapper)
-        self._init_setup_and_action(setup,do)
+        messagebus.subscribe(self.topic,action_wrapper)
 
-    #This is the real solution for the circular reference nonsense, until the messagebus has a real unsubscribe feature.
+    #This is the solution for the circular reference nonsense, until the messagebus has a real unsubscribe feature.
     def unregister(self):
-        del self.action_wrapper_because_we_need_to_keep_a_reference
+        if hasattr(self,"action_wrapper_because_we_need_to_keep_a_reference"):
+            del self.action_wrapper_because_we_need_to_keep_a_reference
 
 class ChangedEvalEvent(BaseEvent,CompileCodeStringsMixin):
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
@@ -708,6 +655,7 @@ class ChangedEvalEvent(BaseEvent,CompileCodeStringsMixin):
         #This flag indicates that we have never had a reading
         self.at_least_one_reading = False
         self.polled = True
+
 
     def _check(self):
         #Evaluate the function that gives us the values we are looking for changes in
@@ -740,11 +688,13 @@ class PolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
         exec(x,self.pymodule.__dict__)
 
         self._init_setup_and_action(setup,do)
+        self.ev_trig =  self.pymodule._event_trigger
+
 
     def _check(self):
         """Check if the trigger is true and if so do the action."""
         #Eval the condition in the local event scope
-        if self.pymodule._event_trigger():
+        if self.ev_trig():
             #Only execute once on false to true change unless continual was set
             if (self.continual or self._prevstate == False):
                 self._prevstate = True
@@ -757,20 +707,22 @@ class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
         BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
         self.runthread = True
-
+        self.lock = threading.RLock()
         def f():
             d = config['priority-response'].get(self.symbolicpriority,1/60.0)
             #Run is the global run flag used to shutdown
-            while(run and self.runthread):
-                try:
-                    self.check()
-                    time.sleep(d)
-                except Exception as e:
-                    if not (run and self.runthread):
-                        print(e)
-                        return
-                    self._handle_exception(e)
-                    time.sleep(config['error-backoff'].get(self.symbolicpriority,5))
+            with self.lock:
+                while(run and self.runthread):
+                    try:
+                        self.check()
+                        time.sleep(d)
+                    except Exception as e:
+                        if not (run and self.runthread):
+                            print(e)
+                            return
+                        self._handle_exception(e)
+                        time.sleep(config['error-backoff'].get(self.symbolicpriority,5))
+
 
         self.thread = threading.Thread(target=f,name="Event_"+self.module+'_'+self.resource)
         self.polled = True
@@ -786,10 +738,37 @@ class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
         self._init_setup_and_action(setup,do)
 
     def register(self):
-        self.thread.start()
+        #Our entire thing runs under self.lock, so that keeps us from accidentally starting 2 threads
+        #However, the self.runthread = True run regardless of the lock. A previous call to unregister could have set it False,
+        #But the thread might not notice for maybe minutes or seconds.
+        #In that case, if a register() call happens in that time, we want to prevent the thread stopping in the first place.
+
+        #Note that this is not 100% threadsafe. Calling register() 0.1ms after unregister()
+        #could still result in a stopped thread in theory.
+
+        #This is because the process of stopping may take a bit of time. Calls to register() during the stopping time
+        #Will 99.9% of the time prevent the stopping from happening, but 0.001% of the time might do nothing.
+        #No matter what, calling them in any order from any number of threads should not deadlock.
+        self.runthread = True
+        if self.lock.acquire(False):
+            try:
+                self.thread.start()
+            finally:
+                self.lock.release()
+        else:
+            #Try again. This is to catch it in the "stopping" state.
+
+            time.sleep(0.001)
+            if self.lock.acquire(False):
+                try:
+                    self.thread.start()
+                finally:
+                    self.lock.release()
+
 
     def unregister(self):
         self.runthread = False
+
 
     def _check(self):
         """Check if the trigger is true and if so do the action."""
@@ -812,6 +791,7 @@ class PolledInternalSystemEvent(BaseEvent,DirectFunctionsMixin):
         self.trigger = when
         self._init_setup_and_action(setup,do)
         self._prevstate
+
 
     def _check(self):
         print(self.resource)
@@ -869,6 +849,7 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
 
     def _handler(self):
         if not 'allow_overlap' in self.trigger:
+            #If already running, just schedule the next one and go home.
             if not self.lock.acquire(False):
                 self.nextruntime = scheduling.get_next_run(self.trigger)
                 self.next=scheduler.schedule(self.handler, self.nextruntime , False)
@@ -923,6 +904,19 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
             self.next.unregister()
         except AttributeError:
             pass
+
+    def register(self):
+        #Use the event list lock as a general purpose Rlock for changing the state of anything to do with
+        #The state of the events, otherwise lots of events would need to haul around an rlock they would only use once.
+        #Which might actually be a better idea....
+        with _event_list_lock:
+            self.nextruntime = scheduling.get_next_run(self.trigger)
+            if self.nextruntime == None:
+                return
+
+            if self.nextruntime:
+                self.next=scheduler.schedule(self.handler, self.nextruntime, False)
+                return
 
     def unregister(self):
         try:

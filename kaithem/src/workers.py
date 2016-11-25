@@ -16,9 +16,6 @@
 #This file manages a work queue that feeds a threadpool
 #Tasks will be performed on a best effort basis and errors will be caught and ignored.
 
-
-#This file manages a work queue that feeds a threadpool
-#Tasks will be performed on a best effort basis and errors will be caught and ignored.
 import threading,sys,cherrypy,traceback, logging
 import atexit,time
 import random
@@ -61,8 +58,12 @@ def makeWorker(e,q):
     #one worker that just pulls tasks from the queue and does them. Errors are caught and
     #We assume the tasks have their own error stuff
     e.on=True
+
+
     def workerloop():
         f=None
+
+
         while(run):
             try:
                 #We need the timeout othewise it could block forever
@@ -104,45 +105,7 @@ def makeWorker(e,q):
 
 ready_threads = []
 
-def do(func):
-    """Run a function in the background
 
-    funct(function):
-        A function of 0 arguments to be ran in the background in another thread immediatly,
-    """
-    # try:
-    #     __queue.put(func,block=False)
-    # except:
-    #     time.sleep(random.random()/100)
-    #     __queue.put(func)
-
-
-    if ready_threads:
-        try:
-            t = ready_threads.pop()
-            t[0].append(func)
-            t[1].set()
-            return
-        except IndexError:
-            pass
-
-    #No unbusy threads? It must go in the overflow queue.
-    while len(overflow_q)>500:
-        time.sleep(0.05)
-    overflow_q.append(func)
-
-    #Be sure there is an awake thread to deal with our overflow entry.
-    for i in queues:
-        if not i[0].on:
-            i[0].set()
-            return
-def do_try(func):
-    """Run a function in the background
-
-    funct(function):
-        A function of 0 arguments to be ran in the background in another thread immediatly,
-    """
-    __queue.put(func)
 
 
 def waitingtasks():
@@ -160,9 +123,58 @@ def async(f):
 overflow_q =[]
 workers = []
 queues = []
-def start(count=8, qsize=64, shutdown_wait=60):
-    #Start a number of threads as determined by the config file
 
+def startDummy():
+    "Start the worker pool in dummy mode, that is, don't actually use threads, and have do() run things right in the calling thread"
+    global do, do_try
+
+    def do(func):
+        func()
+    do_try = do
+
+def start(count=8, qsize=64, shutdown_wait=60):
+    global do, do_try
+    #Start a number of threads as determined by the config file
+    def do(func):
+        """Run a function in the background
+
+        funct(function):
+            A function of 0 arguments to be ran in the background in another thread immediatly,
+        """
+        # try:
+        #     __queue.put(func,block=False)
+        # except:
+        #     time.sleep(random.random()/100)
+        #     __queue.put(func)
+
+
+        if ready_threads:
+            try:
+                t = ready_threads.pop()
+                t[0].append(func)
+                t[1].set()
+                return
+            except IndexError:
+                pass
+
+        #No unbusy threads? It must go in the overflow queue.
+        while len(overflow_q)>500:
+            time.sleep(0.05)
+        overflow_q.append(func)
+
+        #Be sure there is an awake thread to deal with our overflow entry.
+        for i in queues:
+            if not i[0].on:
+                i[0].set()
+                return
+
+    def do_try(func):
+        """Run a function in the background
+
+        funct(function):
+            A function of 0 arguments to be ran in the background in another thread immediatly,
+        """
+        __queue.put(func)
     global __queue, run,worker_wait
     run = True
     worker_wait = shutdown_wait

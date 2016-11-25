@@ -736,18 +736,36 @@ h4 {
         Data will be converted to a python appropriate representation and returned.
         </p>
 
-        <p>If autorecover ==True, and the filename doesn't exists or can't be loaded, then filename+"~" will be tried.</p>
+        <p>If autorecover ==True, and the filename doesn't exist or can't be loaded, then filename+"~"
+            will be used instead. If both the original file and a tilde backup file exist, the tilde backup file will be used if a filename~!
+            marker file exists to indicate that the backup file is valid.</p>
+
+        <p>If no  marker file exists but a backup file does(Such as might be the case if an external editor was involved),
+            the tilde file is used only if it is older or longer than the main file,
+            because generally a program does not write to the main file until finished writing the backup, and therefore if the main file is newer,
+            the backup likely finished sucessfully, allowing the code to move on to the main file.</p>
+
+        <p>Similarly, since a tilde file never contains additional data beyond what was in the original, so if the tilde file is longer,
+            that means the main file was truncated, which should only ever happen after a complete backup was made</p>
+
+        <p>Both of these are just heuristics and cannot guarantee detection of a valid tilde file. However, due to persist.save using ~! markers(or tempfiles
+            and atomic rename if available), the save and load process should be fully atomic so long as no other programs access the save files while kaithem is
+            using them.</p>
+
 
         <h4>Supported File Types</h4>
         <dl>
         <dt>.json</dt>
-        <dd>Values may be list, dict, string, int, bool, or None</dd>
+        <dd>Values may any JSON serializable object</dd>
         <dt>.yaml</dt>
-        <dd>Values may be list, dict, string, int, bool, or None</dd>
+        <dd>Values may any YAML serializable object</dd>
         <dt>.txt</dt>
-        <dd>Values may be anything. str() will be used on it prior to saving.</dd>
+        <dd>Values must be a sting or unicode string. Any other object will be converted to a string in some undefined manner
+            Text will be saved as UTF-8, but no BOM will be added.</dd>
+
         <dt>.bin</dt>
-        <dd>Bytes and bytearrays.</dl>
+        <dd>Bytes and bytearrays may be directly saved with this.</dl>
+
         <dt>*.gz</dt>
         <dd>Any other type may be compressed with gzip compresssion(e.g. "foo.txt.gz")</dd>
         <dt>*.bz2</dt>
@@ -759,12 +777,17 @@ h4 {
         <p>
         Saves data to a file named fn in a format dictated by the file extension.
         If the file does it exist, it will be created. If it does, it will be overwritten.
-        If mode=='backup', a tilde will be apended to the existig file's name,
-        the new file written, and then the backup will be deleted. Compressed filetypes are also supported.
+        If mode=='backup', the file will first be copied to filename~ ,
+        then an empty marker file will be created at filename~! to show that the backup was completed correctly,
+        the file written or overwritten, and then the backup and marker file will both be deleted will be deleted.
         </p>
 
         <p>
-            Setting this backup to true is an alias for mode="backup"
+            The affect of this is that if a write fails, the loader can fall back to an old version.
+        </p>
+
+        <p>
+            Setting backup to true is an alias for mode="backup", which should be used instead as the mode parameter may be removed.
         </p>
 
 

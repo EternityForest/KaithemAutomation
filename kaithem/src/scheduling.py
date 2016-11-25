@@ -17,6 +17,7 @@ import threading,sys,re,time,datetime,weakref,os,traceback, collections,random,l
 from . import messagebus,workers
 from .repeatingevents import *
 
+enumerate = enumerate
 class BaseEvent():
     def __init__(self):
         self.exact = 0
@@ -158,7 +159,7 @@ class UnsynchronizedRepeatingEvent(RepeatingEvent):
         Currently should only every be called from the loop in the scheduler."""
 
         t = self.lastrun+self.interval
-        self.time = (t)
+        self.time = t
         scheduler.insert(self)
         self.scheduled = True
 
@@ -243,6 +244,7 @@ class NewScheduler(threading.Thread):
         e.schedule()
         return e
 
+
     def insert(self, event):
         "Insert something that has a time and a _run property that wants its _run called at time"
 
@@ -290,14 +292,18 @@ class NewScheduler(threading.Thread):
 
 
     def run(self):
+        lmin = min
+        lmax = max
+        lhasattr = hasattr
+        ltime = time
         while 1:
             #Caculate the time until the next UNIX timestamp whole number, with 0.0011s offset to compensate
             #for the time it takes to process 0.9989
-            time_till_next = max(0, 0.1-(time.time()%0.1) )
+            time_till_next = lmax(0, 0.1-(time.time()%0.1) )
             if self.tasks:
-                time.sleep(max(min((self.tasks[0].time-time.time()),time_till_next),0))
+                ltime.sleep(lmax(lmin((self.tasks[0].time-time.time()),time_till_next),0))
             else:
-                time.sleep(time_till_next)
+                ltime.sleep(time_till_next)
             #Run tasks until all remaining ones are in the future
             while self.tasks and (self.tasks[0].time <time.time()):
 
@@ -309,7 +315,7 @@ class NewScheduler(threading.Thread):
                     i.run()
                 except:
                     f = i.f()
-                    if hasattr(f,"__name__") and hasattr(f,"__module__"):
+                    if lhasattr(f,"__name__") and lhasattr(f,"__module__"):
                         messagebus.postMessage('system/errors/scheduler/time',
                                             {"function":f.__name__,
                                             "module":f.__module__,

@@ -28,7 +28,7 @@ def theTest():
         #Set y to 1
         x.pymodule.y = 1
 
-        time.sleep(0.1)
+        time.sleep(2)
         #y should immediately be set back to 0 at the next polling cycle
         if x.pymodule.y == 1:
                 raise RuntimeError("Edge-Triggered Event did nothing")
@@ -48,7 +48,7 @@ def theTest():
             x.pymodule.y = False
 
         newevt.when(f,g)
-        time.sleep(0.1)
+        time.sleep(0.5)
         x.pymodule.y = True
         time.sleep(0.5)
         if x.pymodule.y:
@@ -80,11 +80,11 @@ def theTest():
         #Give it a value to change from
         x.pymodule.y = 0
         #Let it notice the old value
-        time.sleep(0.10)
+        time.sleep(0.5)
         #Set y to 1
         x.pymodule.y = 1
 
-        time.sleep(0.10)
+        time.sleep(0.5)
         #y should immediately be set back to 0 at the next polling cycle
         if x.pymodule.y == 1:
                 raise RuntimeError("Onchange Event did nothing")
@@ -137,5 +137,6 @@ def runtest():
         messagebus.postMessage("/system/notifications/errors",    traceback.format_exc(6))
 
 ---
-#Uncomment this an it might deadlock.
+#Uncomment this an it might deadlock....
+time.sleep(10)
 kaithem.misc.do(runtest)

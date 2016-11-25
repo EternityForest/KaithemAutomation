@@ -19,12 +19,13 @@ import weakref,threading,time,os,random,json,traceback,cherrypy
 from . import workers
 from collections import defaultdict, OrderedDict
 
-
 _subscribers_list_modify_lock = threading.RLock()
 
 #OrderedDict doesn't seem as fast as dict. So I have a cache of the cache
 parsecache = OrderedDict()
 parsecachecache = {}
+
+
 def normalize_topic(topic):
     """"Because some topics are equivalent("/foo" and "foo"), this lets us convert them to the canonical "/foo" representation.
     Note that "/foo/" is not the same as "/foo", because a trailing slash indicates a "directory"."""
@@ -114,9 +115,11 @@ class MessageBus(object):
         parsecachecache = dict(parsecache)
         return matchingtopics
 
+
     def make_poster(self,f,topic,message,errors):
         """return function g that calls f with (topic,message) and if errors is true posts another
         message should an error occur running f"""
+
         def g():
             try:
                 f(topic,message)
@@ -127,6 +130,7 @@ class MessageBus(object):
                 except:
                         pass
         return g
+
 
     def _post(self, topic,message,errors):
         matchingtopics = self.parseTopic(topic)
@@ -168,111 +172,55 @@ class MessageBus(object):
         self._post(topic,message,errors)
 
 
-class PyMessageBus(object):
-    def __init__(self,executor = None):
-        """
-        Represents the entirety of the fast message bus
+# class PyMessageBus():
+#     "Represents one messagebus for virtual resources "
+#     def __init__(self):
+#         self.topics = {}
+#         self.lock = threading.Lock()
+#         #How many subscriptions since we last collected the garbage?
+#         self.sub_count = 0
+#
+#     def gc(self):
+#         with self.lock:
+#             temp = copy.deepcopy(self._topics)
+#             for i in temp:
+#                 torm = []
+#                 for j in temp[i]:
+#                     if not j():
+#                         torm.append(j)
+#                 for j in torm:
+#                     temp[i].remove(j)
+#                 if not temp[i]:
+#                     temp.pop(i)
+#             self.topics = temp
+#
+#     def moveSubscribers(self,old,new):
+#         with self.lock:
+#             temp = copy.deepcopy(self._topics)
+#             temp[new]=temp.pop(old)
+#             self.topics = temp
+#
+#     def subscribe(self,t,f):
+#         if self.sub_count>100:
+#             self.gc()
+#             self.sub_count = 0
+#         with self.lock:
+#             if not t in temp:
+#                 temp[t] =[]
+#             temp[t].append(util.universal_weakref(f))
+#             self.topics = temp
+#             self.sub_count+=1
+#
+#     def unsubscribe(self,t,f):
+#         with self.lock:
+#             temp = copy.deepcopy(topics)
+#
+#             for i in temp[t].keys():
+#                 if temp[t][i]() == f:
+#                     temp[t].pop(i)
+#             self.topics=temp
 
-        You pass this construct a function of one argument that just calls its argument. That allows you to
-        always run message bus posting in a background thread. Defaults to calling in
-        same thread and ignoring errors.
-        """
-        self.values = OrderedDict()
-        self.lock= threading.Lock()
-        if executor==None:
-            def do(self, f):
-                try:
-                    f()
-                except:
-                    pass
-            self.executor = do
-        else:
-            self.executor = executor
-
-        self.subscribers = defaultdict(list)
-        self.subscribers_immutable =self.subscribers.copy()
-
-    def last(self,tag,default):
-        if tag in self.values:
-            return self.values[tag]
-            #Move value to end, so that the most often used ones migrate to the end and don't get deleted.
-            #with self.lock:
-            #    x = self.values[tag]
-            #    del self.values[tag]
-            #    self.values[tag] = x
-
-    def subscribe(self,topic,callback):
-        """Subscribe function callback(message) to the topic. Function is weak referenced, so you must keep a reference to it around, or else
-        it will be unsubscribed automatically. In some(most? all?), class instance methods aren't good enough I don't think."""
-        if topic.startswith('/'):
-            if not len(topic)==1:
-                topic = topic[1:]
-        #Allright, here is how this works.
-        #We have to deal with the possibility that, at any time,
-        #The callback will cease to exist. That, in fact, is how one unsubscribes.
-        #So, we make this here closure that knows the topic, and
-        #When the GC goes Om Nom Nom on the function, we get passed the weakref to it.
-        #Then we get rid of the empty weakref and if that causes the entire topic
-        #To have no subscribers, delete that too in case of memory leak.
-        def delsubscription(weakrefobject):
-            try:
-                self.subscribers[topic].remove(weakrefobject)
-            except:
-                pass
-            #There is a very slight chance someone will
-            #Add something to topic before we delete it but after the test.
-            #That would result in a canceled subscription
-            #So we use this lock.
-            try:
-                with _subscribers_list_modify_lock:
-                    if not self.subscribers[topic]:
-                        self.subscribers.pop(topic)
-            except AttributeError as e:
-                #This try and if statement are supposed to catch nuisiance errors when shutting down.
-                try:
-                    if cherrypy.engine.state == cherrypy.engine.states.STARTED:
-
-                        raise e
-                except:
-                        pass
-        self.subscribers[topic].append(weakref.ref(callback,delsubscription))
-        self.subscribers_immutable =self.subscribers.copy()
-
-    def _post(self, topic,message,errors):
-        #We can't iterate on anything that could possibly change so we make copies
-        d = self.subscribers_immutable
-        if topic in d:
-            #When we find a match, we make a copy of that subscriber list. #TODO maybe make this not depend on [:] being atomic?
-            x = d[topic][:]
-            #And iterate the copy
-            for ref in x:
-                #we call the ref to get its refferent
-                #An error could happen in the subscriber
-                #Or a type error could because the weakref has been collected
-                #We ignore both of these errors and move on
-                try:
-                    f =ref()(message)
-                except:
-                    try:
-                        if errors:
-                            self.postMessage("/system/pymessagebus/errors","Error in subscribed function handling topic: " + topic+"\n"+traceback.format_exc(6),False)
-                    except:
-                                pass
-
-    def postMessage(self, topic, message,errors=True,save=True):
-        """This is the main public interface way to post a message. It will post message(Which may be any JSON object type, to topic(Which must be string)
-        It returns almost imediately and delegates actually posting the message to the background thread pool.
-        """
-        #Use the executor to run the post message job
-        #To allow for the possibility of it running in the background as a thread
-        def publish_worker():
-            self._post(topic,message,errors)
-        self.executor(publish_worker)
-
-
-_pybus = PyMessageBus(workers.do)
+#Setup the default system messagebus
 _bus = MessageBus(workers.do)
 subscribe = _bus.subscribe
 postMessage = _bus.postMessage
-pySubscribe = _pybus.subscribe
-pyPostMessage = _pybus.postMessage
