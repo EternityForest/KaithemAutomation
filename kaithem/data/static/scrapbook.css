@@ -17,7 +17,7 @@
 ::-moz-selection {background: rgba(0, 0, 250, 0.25);}
 
 /*These can be applied to jus about anything for highlighting and emphasis*/
-.error
+.error, .danger
 {
 	color: 	#900000;
     background-color: rgba(255,200,0,0.2);
@@ -43,6 +43,10 @@ background-color: rgba(100,150,50,0.2);
 text-shadow: rgb(120, 255, 100) 0px 0px 10px;
 }
 
+.virtual, .computed, .inactive
+{
+    color:rgb(80,80,80);
+}
 /*************************Navigation and headers************************************************************/
 
 #nav li

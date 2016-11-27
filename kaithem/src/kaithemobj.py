@@ -50,7 +50,9 @@ class Kaithem():
                 return e
             return None
 
-
+    class resource(object):
+        pass
+        #VirtualResource = VirtualResource(Happens in modules.py)
     class time(object):
         @staticmethod
         def strftime(*args):

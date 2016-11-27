@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #File for keeping track of and editing kaithem modules(not python modules)
-import threading,urllib,shutil,sys,time,os,json,traceback,copy,hashlib,logging,uuid, gc,re
+import threading,urllib,shutil,sys,time,os,json,traceback,copy,hashlib,logging,uuid, gc,re,weakref
 import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling,modules_state,registry
 from .modules_state import ActiveModules,modulesLock,scopes,additionalTypes,fileResourceAbsPaths
@@ -56,6 +56,8 @@ def hashModules():
             for i in sorted(ActiveModules.keys()):
                 m.update(i.encode('utf-8'))
                 for j in sorted(ActiveModules[i].keys()):
+                    if isinstance(ActiveModules[i][j],weakref.ref):
+                        continue
                     m.update(j.encode('utf-8'))
                     m.update(json.dumps(ActiveModules[i][j],sort_keys=True,separators=(',',':')).encode('utf-8'))
         return m.hexdigest().upper()
@@ -67,7 +69,7 @@ def hashModule(module):
     try:
         m=hashlib.md5()
         with modulesLock:
-            m.update(json.dumps(ActiveModules[module],sort_keys=True,separators=(',',':')).encode('utf-8'))
+            m.update(json.dumps({i:ActiveModules[module][i] for i in ActiveModules[module] if not isinstance(ActiveModules[module][i],weakref.ref)} ,sort_keys=True,separators=(',',':')).encode('utf-8'))
         return m.hexdigest()
     except:
         logging.exception("Could not hash module")
@@ -85,17 +87,32 @@ def modulesHaveChanged():
     modulehashes = {}
     modules_state.ls_folder.invalidate_cache()
 
-class ResourceObject(dict):
-    def __init__(self, m,r,o):
+class ResourceObject():
+    def __init__(self, m=None,r=None,o=None):
         self.resource =r
         self.module = m
-        dict.__init__(self,o)
 
-    def getData():
-        return copy.deepcopy(self)
 
 class Event(ResourceObject):
     resourceType = "event"
+
+    def __init__(self, m,r,o):
+        ResourceObject.__init__(self,m,r,o)
+
+
+    def run(self):
+        newevt.EventReferences[m,r].manualRun()
+
+    @property
+    def scope(self):
+        return newevt.EventReferences[m,r].pymodule
+
+    #Allow people to start and stop events at runtime.
+    def start(self):
+        newevt.EventReferences[m,r].register()
+
+    def stop(self):
+        newevt.EventReferences[m,r].unregister()
 
 class Page(ResourceObject):
     resourceType = "page"
@@ -110,6 +127,14 @@ class InternalFileRef(ResourceObject):
         "Return the actual path on the filesystem of things"
         return fileResourceAbsPaths[self.module, self.resource]
 
+
+class VirtualResourceReference(weakref.ref):
+    def __getitem__(self,name):
+        if name == "resource-type":
+            return "virtual-resource"
+        else:
+            raise KeyError(name)
+
 class ModuleObject(object):
     """
     These are the objects acessible as 'module' within pages, events, etc.
@@ -123,6 +148,10 @@ class ModuleObject(object):
     def __getitem__(self,name):
         "When someone acesses a key, return an interface to that module."
         x= ActiveModules[self.__kaithem_modulename__][name]
+
+        if isinstance(x,weakref.ref):
+            return VirtualResourceInterface(x())
+
         module= self.__kaithem_modulename__
 
         resourcetype = x['resource-type']
@@ -145,47 +174,133 @@ class ModuleObject(object):
     def __setitem__(self,name, value):
         "When someone sets an item, validate it, then do any required bookkeeping"
 
-        #Raise an exception on anything non-serializable or without a resource-type,
-        #As those could break something.
-        json.dumps({name:value})
 
-        if not 'resource-type' in value:
-            raise ValueError("Supplied dict has no resource-type")
-
+        module = self.__kaithem_modulename__
 
         with modulesLock:
-            resourcetype= value['resource-type']
-            module = self.__kaithem_modulename__
-
-            unsaved_changed_obj[(module,name)] = "User code inserted or modified module"
-            #Insert the new item into the global modules thing
-            ActiveModules[module][name]=value
-            modulesHaveChanged()
-
-            #Make sure we recognize the resource-type, or else we can't load it.
-            if (not resourcetype in ['event','page','permission','directory']) and (not resourcetype in additionalTypes):
-                raise ValueError("Unknown resource-type")
-
-            #Do the type-specific init action
-            if resourcetype == 'event':
-                e = newevt.make_event_from_resource(module,name)
-                newevt.updateOneEvent(module,name,e)
-
-            elif resourcetype == 'page':
-                #Yes, module and resource really are backwards, and no, it wasn't a good idea to do that.
-                usrpages.updateOnePage(name,module)
-
-            elif resourcetype == 'permission':
-                auth.importPermissionsFromModules()
-
+            #Delete dead weakrefs
+            if isinstance(value, VirtualResource):
+                insertVirtualResource(module,name,value)
+                return
             else:
-                additionalTypes[resourcetype].onload(module,name, value)
+                if not 'resource-type' in value:
+                    raise ValueError("Supplied dict has no resource-type")
+                resourcetype= value['resource-type']
+                #Raise an exception on anything non-serializable or without a resource-type,
+                #As those could break something.
+                json.dumps({name:value})
+                unsaved_changed_obj[(module,name)] = "User code inserted or modified module"
+                #Insert the new item into the global modules thing
+                ActiveModules[module][name]=value
+                modulesHaveChanged()
 
-class VirtualResource():
-    pass
+                #Make sure we recognize the resource-type, or else we can't load it.
+                if (not resourcetype in ['event','page','permission','directory']) and (not resourcetype in additionalTypes):
+                    raise ValueError("Unknown resource-type")
 
+                #Do the type-specific init action
+                if resourcetype == 'event':
+                    e = newevt.make_event_from_resource(module,name)
+                    newevt.updateOneEvent(module,name,e)
 
+                elif resourcetype == 'page':
+                    #Yes, module and resource really are backwards, and no, it wasn't a good idea to do that.
+                    usrpages.updateOnePage(name,module)
 
+                elif resourcetype == 'permission':
+                    auth.importPermissionsFromModules()
+
+                else:
+                    additionalTypes[resourcetype].onload(module,name, value)
+
+def insertVirtualResource(modulename,name,value):
+    with modulesLock:
+        module=ActiveModules[modulename]
+        rmlist = []
+        for i in module:
+            if isinstance( module[i], weakref.ref):
+                if not module[i]():
+                    rmlist.append(i)
+        for i in rmlist:
+            del  module[i]
+
+        if name in module:
+            if not isinstance(module[name], weakref.ref):
+                raise RuntimeError("Cannot overwrite real resource with virtual. You must delete old resource first")
+            if not isinstance(value, module[name]().__class__):
+                raise RuntimeError("Can only overwrite virtual resource with same class. Delete old resource first.")
+            module[name]().handoff(value)
+
+        module[name]=VirtualResourceReference(value)
+
+        #Set the value's "name". A virtual resource may only have one "hard link". The rest of the links, if you insert under multiple
+        #names, will work, but won't be the "real" name, and subscriptions and things like that are always to the real name.
+        if not value.name:
+            value.name="x-module:"+ util.url(modulename)+"/"+ "/".join([util.url(i) for i in util.split_escape(name,"/","\\")])
+
+class VirtualResource(object):
+    def __init__(self):
+        self.__interfaces = []
+        self.__lock=threading.Lock()
+        self.replacement =None
+        self.name = None
+
+    def __repr__(self):
+        return "<VirtualResource at "+str(id(self))+" of class"+str(self.__class__)+">"
+
+    def __html_repr__(self):
+        return "VirtualResource at "+str(id(self))+" of class"+str(self.__class__.__name__)+""
+
+    def interface(self,name):
+        if not self.replacement:
+
+            with self.__lock:
+                x= VirtualResourceInterface(self,name)
+                self.__interfaces.append(weakref.ref(x))
+                #Make a list of all interfaces that need removing
+                torm = []
+                for i in self.interfaces:
+                    if not i():
+                        torm.append(i)
+
+                #remove them
+                for i in torm:
+                    self.__interfaces.remove()
+        else:
+            return self.replacement.interface(self.name)
+
+    def handoff(self,other):
+        with self.__lock:
+            #Change all interfaces to this object to point to the new object.
+            for i in self.__interfaces:
+                try:
+                    i()._resource_object = other
+                except:
+                    pass
+
+            self.replacement = other
+
+class VirtualResourceInterface(object):
+    def __init__(self,resource):
+        self._resource_object = resource
+    def __repr__(self):
+        return self._resource_object.__repr__()
+    def __html_repr__(self):
+        return self._resource_object.__html_repr__()
+    def __call__(self,*args,**kwargs):
+        return self._resource_object.__repr__()
+    @property
+    def __doc__(self):
+        return self._resource_object.__doc__
+
+    def __getattr__(self,attr):
+        return getattr(self._resource_object, attr)
+
+    def __setattr__(self,k,v):
+        if not k == "_resource_object":
+            setattr(self._resource_object, k,v)
+        else:
+            object.__setattr__(self,k,v)
 
 #Backwards compatible resource loader.
 def loadResource(fn):
@@ -219,6 +334,10 @@ def loadResource(fn):
     logging.debug("Loaded resource from file "+fn)
 
 def saveResource2(r,fn):
+    #Don't save VResources
+    if isinstance(r,weakref.ref):
+        logging.debug("Did not save resource because it is virtual")
+        return
     logging.debug("Saving resource to"+str(fn))
 
     r = copy.deepcopy(r)
@@ -812,7 +931,8 @@ def rmModule(module,message="deleted"):
     modulesHaveChanged()
     unsaved_changed_obj[module]=message
     with modulesLock:
-       j = copy.deepcopy(ActiveModules.pop(module))
+       x =ActiveModules.pop(module)
+       j = {i:copy.deepcopy(x[i])  for i in x if not(isinstance(x[i], weakref.ref))}
        scopes.pop(module)
 
     #Delete any custom resource types hanging around.
@@ -837,3 +957,5 @@ def rmModule(module,message="deleted"):
 
 class KaithemEvent(dict):
     pass
+
+kaithemobj.kaithem.resource.VirtualResource = VirtualResource

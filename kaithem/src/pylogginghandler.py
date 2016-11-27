@@ -18,6 +18,5 @@ from . import messagebus
 logging.getLogger().setLevel(0)
 class MessageBusHandler(logging.Handler):
     def emit(self,r):
-        print(self.format(r))
         messagebus.postMessage("system/pylogging/"+r.levelname, self.format(r))
 logging.getLogger().addHandler(MessageBusHandler())
