@@ -3,7 +3,7 @@ from src.unitsofmeasure import siFormatNumber
 from src.util import url
 from src.modules import getModuleHash,fileResourceAbsPaths, external_module_locations
 from src import pages,newevt,usrpages,unitsofmeasure,util,scheduling,modules_state,registry,modules
-import time,os,weakref
+import time,os
 %>
 
 <%include file="/pageheader.html"/>
@@ -121,40 +121,12 @@ def in_folder(r,f,n):
 %for i in sorted(sorted(modules_state.ls_folder(name,'/'.join(path))), key=lambda x: module[x]['resource-type']):
 %if in_folder(i,fullpath,name):
 
-
-%if isinstance(module[i],weakref.ref):
-    <%
-        x=module[i]()
-    %>
-    %if x:
-        %try:
-        <dt><b><span class="virtual">${util.split_escape(i,'/','\\')[-1]|h}(Virtual)</span></b></dt>
-        <dd>${module[i]().__html_repr__()}</dd>
-        %except Exception as e :
-        <dt></b><span class="virtual">${util.split_escape(i,'/','\\')[-1]|h}(Virtual)</span></b></dt>
-        <dd>ERROR:${e|h}</dd>
-        %endtry
-    %else:
-        <dt></b><span class="virtual">${util.split_escape(i,'/','\\')[-1]|h}(Virtual)</span></b></dt>
-        <dd>Deleted VirtualResource</dd>
-    %endif
-
-    <hr>
-
-<%
-continue
-%>
-%endif
-
-
 %if not 'resource-type' in module[i]:
 <p class=error>OBJECT ${i|h} MISSING resource-type</p>
 <%
 continue
 %>
 %endif
-
-
 %if module[i]['resource-type'] == 'event':
 	  <dt>
 	       <span class="event-icon"></span><b>\
@@ -177,7 +149,7 @@ continue
           <p class="resource-docstring">${newevt.getEventInfo((name,i))|h}</p>
 	       <b>Trigger:</b>  <code>${module[i]['trigger']|h}</code><br>
             %try:
-
+            
     		    <b>Last Ran:</b>
     		    %if newevt.getEventLastRan(name,i):
     		    <code>${unitsofmeasure.strftime(newevt.getEventLastRan(name,i))|h}

@@ -1,531 +1,80 @@
-
-
-
-/*Layout*/
-
-
-/*****************************General***********************************************************************************/
-
-#topbanner {
+#topbanner {  
   width: 100%;
   background: rgba(255, 255, 230, 0.25);
   border-radius: 12px;
   margin:5px;
 }
 
-#page {
-  background-repeat: no-repeat;
+#page {  
+  background-repeat: no-repeat;  
   background-image: url("/static/img/parchment.jpg");
   background-size: cover;
-  color: rgb(60,20,0);
 }
 
+/*a:link {background-color:#80FF80;}    /* unvisited link */
+/*a:hover {background-color:#0066FF;}   /* mouse over link */
+div.sectionbox {border-style:solid; 
+background: rgba(255, 255, 230, 0.25);
+border-width:2px;
+border-radius: 7px;
 
-/*These can be applied to jus about anything for highlighting and emphasis*/
-.error
-{
-	color: 	#900000;
-    text-shadow: 0px 0px 6px rgba(255, 100, 100, 0.9);
-
-}
-.warning
-{
-	color: 	#806600;
-	background-color: rgba(255,255,0,0.2);
-
-}
-.specialentry
-{
-	color:rgba(70, 90, 100, 1);
-	text-shadow: 0px 0px 8px rgba(70, 100, 255, 1);
-}
-/*This is used for /important notifications*/
-.highlight
-{
-color: rgb(20, 50, 20);
-text-shadow: rgb(140, 220, 120) 0px 0px 10px;
-}
-
-/*************************Navigation and headers************************************************************/
-
-#nav li
-{
-	display:inline;
-	border-width:1px;
-	border-style: none solid none none;
-    display: table-cell;
-    text-align:center;
-    border-color: grey;
-    font-size:125%;
+padding-top:5px;
+padding-bottom:5px;
+padding-right:5px;
+padding-left:5px;
+margin:5px;
 }
 
 #nav {
-    border-radius:9px;
-
-	border-style:solid;
-	border-width: 2px;
-	margin-top: 1px;
-    margin-bottom: 0.3em;
-    margin-left: auto;
-    margin-right: auto;
-	width:98%;
-	list-style-type:none;
-	display: table;
-	border-color:grey;
-	padding:2px;
+border-style:solid; 
+background: rgba(255, 255, 230, 0.25);
+border-width: 2px;
+border-radius:7px;
 }
-#nav li:last-child
-{
-	display:inline;
-	border-style: none ;
-    display: table-cell;
+
+#nav tr{
+border-style:solid;
 
 }
 
-
-#topbanner {
-  width: 100%;
-  margin:1px;
+#nav td{
+border-style:none solid none solid; 
+text-align: center;
+border-color: grey;
 }
 
-#topbanner h1
-{
-        margin-bottom: 0.2em;
-        margin-top: 0.1em;
+input {background-color: #E6E6B8;}
+input.modulename {width:70%}
+textarea.description {background-color: #E6E6B8;width:70%;}
 
-}
-
-/************************HTML ELEMENTS***********************************/
-div
-{
-    border-radius:9px;
-
-}
-input{
-    border-radius:5px;
-    border-style:solid;
-    border-color: grey;
-
-}
-
-dl
-{
-	padding:2px;
-	margin:2px;
-}
-
-dt
-{
-	margin: 0.2em;
-}
-
-
-
-p{
-	margin:0.5%;
-    border-radius:9px;
-
-}
-
-    p::first-letter {
-        font-size: 105%;
-        color: rgb(50,20,0);
-    }
 
 hr {
-	border: none;
-	border-top: 1px solid #bbb;
-	background-color: #ddd; color: #ddd;
-	height: 1px;
-}
-h1{}
-
-    h1::first-letter {
-        font-size: 105%;
-        color: rgb(50,20,0);
-    }
-h2{margin-top:0.3em;margin-bottom: 0.3em}
-h2::first-letter {
-    font-size: 105%;
-    color: rgb(50,20,0);
-}
-h3{margin-top:0.3em;margin-bottom: 0.3em}
-h3::first-letter {
-    font-size: 105%;
-    color: rgb(50,20,0);
-}
-h4{margin-top:0.3em; margin-bottom: 0.3em}
-h5{margin:8px;}
-
-a
-	{
-		padding: 1px 3px 1px 3px;
-        border-radius:9px;
-	}
-
-button{
-    border-radius:9px;
-
+border: none;
+border-top: 1px solid red;
+background-color: red; color: red;
+height: 1px;
+*height: 2px; /* IE6+7 need the total height */
 }
 
+h3{margin:3px;}
+h4{margin:3px;}
+h5{margin:3px;}
+
+a{
+background-color:rgba(255,255,255,0.2); 
+border-radius:5px;
+padding: 1px 3px 1px 3px;
+}
+ 
+a:hover{background-color:rgba(255,150,150,0.33);}
 ul{line-height:128%;}
 
-tr.header
-{
-	font-weight:bold;
+h1:first-letter{
+color:#FF0E00;
 }
-
-/*Tables*/
-table
-	{
-		border-style: solid;
-		border-width:3px;
-		border-collapse:collapse;
-        border-radius:9px;
-
-	}
-
-/*This makes tables easier to read by coloring alternate rows differently.*/
-table tr:nth-child(odd) td
-	{
-		background-color: rgba(255,255,255,0.1);
-	}
-table tr:nth-child(even) td
-	{
-		background-color: rgba(0,0,0,0.1);
-	}
-
-/*And also we highlight the row you hover on*/
-tr:hover
-	{
-		background-color: rgba(170,170,170,0.45);
-	}
-
-pre
-	{
-		margin: 0.2em;
-	    background-color: rgba(255,255,255,0.3);
-	}
-
-div.kmainpagebody
-{
+h2:first-letter{
+color:#FF0E00;
 }
-
-/*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
-div.sectionbox, main>section{
-	border-style:solid;
-	background: rgba(245, 245, 245, 0.57);
-    border-color: grey;
-	border-width:2px;
-	padding-top:0.2%;
-	padding-bottom:0.5%;
-	padding-right:1%;
-	padding-left:0.5%;
-	margin:2px;
-    border-radius:9px;
-
+h3:first-letter{
+color:#FF0E00;
 }
-
-/*I forgot what this is for. Probably to unscrewup the font or something*/
-.ace_editor div {
-    font: inherit!important
-}
-
-/* A scrollable div */
-div.scrollbox {
-	border-style:solid;
-	border-width:2px;
-	max-height:10em;
-	overflow:auto;
-	padding-top:0.5%;
-	padding-bottom:0.5%;
-	padding-right:1%;
-	padding-left:0.5%;
-	margin:3px;
-}
-
-
-
-
-input.modulename {width:70%}
-input.pythoncode {width:100%}
-
-/*A text area meant for describing something*/
-textarea.description {}
-textarea.pythoncode {overflow:"scroll";font-size:125%;}
-textarea.htmlcode {width:100%; overflow:"scroll";font-size:125%;}
-
-textarea.code {
-	 width:100%;
-	 overflow:"scroll";
-	 font-size:125%;
-	 }
-
-/*This is a help paragraph usually shown at the top or a sectionbox*/
-p.help{
-margin-bottom:5px;
-margin-top:5px;
-border-style:solid;
-border-width:1px;
-padding:3px;
-cursor:help;
-}
-
-/*This is a paragraph serving a similar funtion to the menu bars at the top of desktop application windows*/
-p.menubar div.menubar{
-margin:2px;
-border-style:solid;
-border-width:1px;
-padding:4px;
-}
-
-/*A link styled to look like a button*/
-a.button{
-border-radius:9px;
-border-width:2px;
-text-decoration: none;
-border-style:solid;
-padding:0em 0.2em 0em 0.2em;
-display: inline-block;
-border-color: grey;
-
-}
-
-/*A button link while being clicked*/
-a.button:active
-{
-border-style:inset;
-}
-
-
-/* A span meant to look like a pre*/
-span.pre
-{
-    background-color: rgba(255,255,255,0.3);
-}
-
-p.pathnav
-
-{
-    border-radius:9px;
-
-margin-bottom:5px;
-margin-top:5px;
-border-style:solid;
-border-width:1px;
-padding:3px;
-cursor:help;
-}
-
-p.resource-docstring{
-color:rgb(55,55,55);
-background-color:rgba(255,255,255,0.2);
-
-}
-
-/*Tab panel stuff*/
-
-/*The tab that is actively selected*/
-.selected-tab
-{
-font-size: 135%;
-color:black;
-border-width: 3px;
-}
-
-/*The pane containing the content of a tab*/
-tab-panel tab-pane
-{
-    padding: 0.25em;
-    border-style:solid;
-    border-width: 1px;
-    border-color: grey;
-}
-
-/*The div at the top of the panel that contains the tabs you click on. We can select it like this because the only children of tab panels should be tab-pane and this
-div*/
-tab-panel div
-    {
-        border-style:solid;
-        margin-bottom:  0.4em ;
-        list-style-type:none;
-        display: table;
-        border-color:grey;
-    }
-
-/*one of the tabs in the tab strip. No, I'm not sure what's really going on here. I copied and pasted from the code that does the navigation bar.*/
-tab-panel div span
-    {
-        font-weight: bold;
-        padding: 0.05em;
-        color: grey;
-        display:inline;
-        border-width:1px;
-        border-style: none solid none none;
-        display: table-cell;
-        text-align:center;
-        border-color: grey;
-        cursor: pointer;
-    }
-
-/*Widget Styles*/
-
-/*This div is the container for most of the built in widgets. */
-div.widgetcontainer
-{
-	display:inline-block;
-	padding-top: 0px;
-	border-style:inset;
-	border-width:2px;
-	padding: 0px;
-	margin:2px;
-	vertical-align:text-top;
-}
-
-
-/*Numeric Process Value. These spans are intended for displays of changing numbers.*/
-span.numericpv
-{
-	cursor:crosshair;
-}
-span.numericpv:hover
-{
-	cursor:crosshair;
-}
-
-
-div.sliderwidget
-{
-	min-width:3.5em;
-	text-align:center;
-	font-size:90%;
-}
-
-div.meterwidget
-{
-	text-align:center;
-}
-
-button.triggerbuttonwidget
-{
-	min-height:6em;
-}
-
-input.verticalslider
-{
-	-webkit-appearance: slider-vertical;
-     writing-mode: bt-lr;
-     height:9.2em;
-     width:1em;
-     margin: auto 0;
-}
-
-input.horizontalslider
-{
-     height:0.5em;
-     width:12em;
-
-}
-
-
-/*These just add icons to links*/
-.createbutton::before
-{
- content: url(/static/img/icons/silk/add.png);
-}
-
-.editbutton::before
-{
-content: url(/static/img/icons/silk/pencil.png);
-}
-
-.gobutton::before
-{
-content: url(/static/img/icons/silk/arrow_right.png);
-}
-
-.playbutton::before
-{
-content: url(/static/img/icons/silk/control_play.png);
-}
-
-.deletebutton::before
-{
- content: url(/static/img/icons/silk/cross.png);
-}
-
-a.settingslink::before
-{
- content: url(/static/img/icons/silk/cog.png);
-}
-
-a.helplink::before
-{
- content: url(/static/img/icons/silk/book_open.png);
-}
-
-a.loginlink::before
-{
- content: url(/static/img/icons/silk/key.png);
-}
-
-/* These spans are mostly just used to put things before*/
-span.page-icon::before
-{
- content: url(/static/img/icons/silk/page.png);
-}
-
-span.permission-icon::before
-{
- content: url(/static/img/icons/silk/key.png);
-}
-
-span.event-icon::before
-{
- content: url(/static/img/icons/silk/script.png);
-}
-
-span.directory-icon::before
-{
- content: url(/static/img/icons/silk/folder.png);
-}
-
-span.settings-icon::before
-{
- content: url(/static/img/icons/silk/cog.png);
-}
-
-a.modules-library-link::before
-{
-  content: url(/static/img/icons/silk/lorry.png);
-}
-
-a.upload-module-button::before
-{
-  content: url(/static/img/icons/silk/arrow_up.png);
-}
-
-a.pageslink::before
-{
-  content: url(/static/img/icons/silk/page_white_stack.png);
-}
-
-a:hover
-{
-    background-color:rgb(200,240,180);
-    color:black;
-}
-
-a:visited {
-    color: rgb(200,50,50);
-}
-
-a {
-    color: rgb(60,130,220);
-    text-shadow: white;
-}
-
-
-.cm-s-codemirror-scrapbook.CodeMirror { background:rgba(250,250,240,0.95) !important;
-      border-style: solid; }
-.cm-s-codemirror-scrapbook .CodeMirror-gutters { background:rgba(220,220,200,0.75);  }
