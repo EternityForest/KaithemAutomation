@@ -101,18 +101,18 @@ class Event(ResourceObject):
 
 
     def run(self):
-        newevt.EventReferences[m,r].manualRun()
+        newevt.EventReferences[self.module,self.resource].manualRun()
 
     @property
     def scope(self):
-        return newevt.EventReferences[m,r].pymodule
+        return newevt.EventReferences[self.module,self.resource].pymodule
 
     #Allow people to start and stop events at runtime.
     def start(self):
-        newevt.EventReferences[m,r].register()
+        newevt.EventReferences[self.module,self.resource].register()
 
     def stop(self):
-        newevt.EventReferences[m,r].unregister()
+        newevt.EventReferences[self.module,self.resource].unregister()
 
 class Page(ResourceObject):
     resourceType = "page"

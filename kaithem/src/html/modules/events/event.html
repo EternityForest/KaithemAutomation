@@ -106,7 +106,13 @@ editor.setSize("99%","35em")
 </script>
 %endif
 
-<h3>Trigger</h3>
+<h3>Trigger\
+%try:
+(Currently ${newevt.EventReferences[module,name]._prevstate|h})\
+%except Exception as e:
+${e}
+%endtry
+</h3>
 <p class="help">Enter the trigger here. The trigger may either be a python expression. Only one copy of each event will poll at a time.
 (by default, event runs when trigger goes from false to true), or a <a href="/docs#trigger">special trigger expression</a>
 </p>

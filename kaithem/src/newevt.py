@@ -88,16 +88,22 @@ def when(trigger,action,priority="interactive"):
     module = '<OneTimeEvents>'
     resource = trigger.__name__ + '>' + action.__name__ + ' ' + 'set at ' + str(time.time()) + 'by thread: '+str(threading.currentThread().ident)+' id='+str(base64.b64encode(os.urandom(16)))
 
+    #This is a hacky flag to let us turn the thing off immediately
+    enable = [True]
+
     #We cannot remove the event from within itself because of the lock that
     #We do not want to make into an RLock for speed. So we do it in a different thread.
     def rm_slf():
+        enable.pop()
         removeOneEvent(module,resource)
 
     def f():
+        if not enable:
+            return
         action()
         workers.do(rm_slf)
 
-    e = PolledInternalSystemEvent(trigger,f,priority=priority,m=module,r=resource)
+    e = PolledInternalSystemEvent(lambda: False if not enable else trigger(),f,priority=priority,m=module,r=resource)
     e.module = module
     e.resource = resource
     __EventReferences[module,resource] = e
@@ -163,8 +169,8 @@ class EventEvent(scheduling.UnsynchronizedRepeatingEvent):
             try:
                 self.f()
             finally:
+                self._schedule()
                 self.lock.release()
-            self._schedule()
 
 
 insert_phase = 0
@@ -178,10 +184,11 @@ def beginPolling(ev):
      ev.symbolicpriority,phase = insert_phase)
     #Basically we want to spread them out in the phase space from 0 to 1 in a deterministic ish way.
     #There might be a better algorithm of better constant to use, but this one should be decent.
-    insert_phase += 0.5555555555555555555555555
+    insert_phase += 0.555555
     insert_phase = insert_phase % 1
     ev.schedulerobj.register()
     ev.schedulerobj.schedule()
+    print(ev.resource,ev.schedulerobj.time, time.time())
 
 
 def endPolling(ev):
@@ -303,6 +310,12 @@ class BaseEvent():
         #This lock makes sure that only one copy of the event executes at once.
         self.lock = threading.Lock()
 
+        #This is a lock used for making modifications to the event itself,
+        #Like registering and unregistering.
+        #We use a separate lock so the event can start and stop itself, without having
+        #To use an RLock for the main lock.
+        self.register_lock = threading.Lock()
+
         #This keeps track of the last time the event was triggered  so we can rate limit
         self.lastexecuted = 0
 
@@ -359,6 +372,7 @@ class BaseEvent():
             except Exception as e:
                 self._handle_exception(e)
 
+
     def _handle_exception(self, e):
             if sys.version_info>(3,0):
                 tb = traceback.format_exc(6, chain=True)
@@ -393,13 +407,14 @@ class BaseEvent():
 
     def register(self):
         #Some events are really just containers for a callback, so there is no need to poll them
-        with _event_list_lock:
+        with self.register_lock:
             if self.polled:
                 if not hasattr(self,"schedulerobj"):
+                    self._prevstate = False
                     beginPolling(self)
 
     def unregister(self):
-        with _event_list_lock:
+        with self.register_lock:
             if hasattr(self,"schedulerobj"):
                 endPolling(self)
                 del self.schedulerobj
@@ -462,7 +477,11 @@ class CompileCodeStringsMixin():
 
 
     def _do_action(self):
-        self.pymodule._event_action()
+        if hasattr(self.pymodule,"_event_action"):
+            self.pymodule._event_action()
+        else:
+            raise RuntimeError(self.resource+" has no _event_action")
+
 
 class DirectFunctionsMixin():
         def _init_setup_and_action(self,setup,action):
@@ -542,13 +561,13 @@ class FunctionEvent(BaseEvent):
         exec(initializer,self.pymodule.__dict__,self.pymodule.__dict__)
 
     def register(self):
-        with _event_list_lock:
+        with self.register_lock:
             x = compile(self.fname+" = _kaithem_temp_event_function","Event_"+self.module+'_'+self.resource,'exec')
             exec(x,self.pymodule.__dict__)
             self.active = True
 
     def unregister(self):
-        with _event_list_lock:
+        with self.register_lock:
             self.active = False
             #Use a try accept block because that function could have wound up anywhere,
             #Including having been already deleted.
@@ -690,7 +709,6 @@ class PolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
         self._init_setup_and_action(setup,do)
         self.ev_trig =  self.pymodule._event_trigger
 
-
     def _check(self):
         """Check if the trigger is true and if so do the action."""
         #Eval the condition in the local event scope
@@ -722,15 +740,17 @@ class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
                             return
                         self._handle_exception(e)
                         time.sleep(config['error-backoff'].get(self.symbolicpriority,5))
+        self.loop = f
 
 
-        self.thread = threading.Thread(target=f,name="Event_"+self.module+'_'+self.resource)
-        self.polled = True
+
 
         #Sometimes an event is used for its setup action and never runs.
         #If the trigger is False, it will never trigger, so we don't poll it.
         if when == 'False':
             self.polled = False
+        else:
+            self.polled = True
         #Compile the trigger
         x = compile("def _event_trigger():\n    return "+when,"Event_"+self.module+'_'+self.resource,'exec')
         exec(x,self.pymodule.__dict__)
@@ -749,9 +769,13 @@ class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
         #This is because the process of stopping may take a bit of time. Calls to register() during the stopping time
         #Will 99.9% of the time prevent the stopping from happening, but 0.001% of the time might do nothing.
         #No matter what, calling them in any order from any number of threads should not deadlock.
+        if not self.polled:
+            return
+
         self.runthread = True
         if self.lock.acquire(False):
             try:
+                self.thread = threading.Thread(target=self.loop,name="Event_"+self.module+'_'+self.resource)
                 self.thread.start()
             finally:
                 self.lock.release()
@@ -761,6 +785,8 @@ class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
             time.sleep(0.001)
             if self.lock.acquire(False):
                 try:
+                    self.thread = threading.Thread(target=self.loop,name="Event_"+self.module+'_'+self.resource)
+
                     self.thread.start()
                 finally:
                     self.lock.release()
@@ -794,7 +820,6 @@ class PolledInternalSystemEvent(BaseEvent,DirectFunctionsMixin):
 
 
     def _check(self):
-        print(self.resource)
         """Check if the trigger is true and if so do the action."""
         #Eval the condition in the local event scope
         if self.trigger():
@@ -906,10 +931,7 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
             pass
 
     def register(self):
-        #Use the event list lock as a general purpose Rlock for changing the state of anything to do with
-        #The state of the events, otherwise lots of events would need to haul around an rlock they would only use once.
-        #Which might actually be a better idea....
-        with _event_list_lock:
+        with self.register_lock:
             self.nextruntime = scheduling.get_next_run(self.trigger)
             if self.nextruntime == None:
                 return

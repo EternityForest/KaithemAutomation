@@ -1,4 +1,4 @@
-continual: false
+continual: true
 disabled: false
 enable: true
 once: true

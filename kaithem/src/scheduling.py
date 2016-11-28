@@ -246,8 +246,7 @@ class NewScheduler(threading.Thread):
 
 
     def insert(self, event):
-        "Insert something that has a time and a _run property that wants its _run called at time"
-
+        "Insert something that has a time and a run property that wants its run called at time"
         with self.lock:
             for i,v in enumerate(self.tasks):
                 if v.time>event.time:
@@ -265,7 +264,7 @@ class NewScheduler(threading.Thread):
             #     self.tasks = sorted(self.tasks, key=lambda x: x.time or -1)
 
     def remove(self, event):
-        "Remove something that has a time and a _run property that wants its _run to not be called at time"
+        "Remove something that has a time and a run property that wants its run to be called at time"
         with self.lock:
             try:
                 if event in self.tasks:
@@ -296,25 +295,32 @@ class NewScheduler(threading.Thread):
         lmax = max
         lhasattr = hasattr
         ltime = time
+        global lastframe
         while 1:
             #Caculate the time until the next UNIX timestamp whole number, with 0.0011s offset to compensate
             #for the time it takes to process 0.9989
+            lastframe = time.time()
+
             time_till_next = lmax(0, 0.1-(time.time()%0.1) )
             if self.tasks:
                 ltime.sleep(lmax(lmin((self.tasks[0].time-time.time()),time_till_next),0))
             else:
                 ltime.sleep(time_till_next)
+
             #Run tasks until all remaining ones are in the future
             while self.tasks and (self.tasks[0].time <time.time()):
-
                 i = self.tasks.pop(False)
                 overdueby = time.time()-i.time
                 if i.exact and overdueby > i.exact:
                     continue
                 try:
                     i.run()
+
                 except:
-                    f = i.f()
+                    if isinstance(f, weakref.ref):
+                        f = i.f()
+                    else:
+                        f = i.f
                     if lhasattr(f,"__name__") and lhasattr(f,"__module__"):
                         messagebus.postMessage('system/errors/scheduler/time',
                                             {"function":f.__name__,
@@ -339,7 +345,12 @@ class NewScheduler(threading.Thread):
                 for i in self.repeatingtasks:
                     try:
                         if not i.scheduled:
-                            i.schedule()
+                            xyz = time.time()
+                            #Let's maybe not block the entire scheduling thread
+                            #If one event takes a long time to schedule or if it
+                            #Is already running and can't schedule yet.
+                            workers.do(i.schedule)
+                            messagebus.postMessage('system/errors/scheduler/warning',"rescheduled "+str(i)+"using error recovery")
                     except:
                             logging.exception("Exception while scheduling event")
                 self.lastrecheckedschedules = time.time()

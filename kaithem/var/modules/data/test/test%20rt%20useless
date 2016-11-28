@@ -1,0 +1,40 @@
+continual: true
+enable: true
+once: true
+priority: interactive
+rate-limit: 0.0
+resource-type: event
+trigger: 'True'
+versions: {}
+
+#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
+---
+#This code runs once when the event loads. It also runs when you save the event during the test compile
+#and may run multiple times when kaithem boots due to dependancy resolution
+__doc__=''
+import time
+depend = module.rt_useless
+---
+module['uselessmachine_rt'].start()
+module.rt_useless =  time.time()
+
+time.sleep(0.5)
+if module.rt_useless:
+    raise RuntimeError("Useless machine rt didn't work")
+
+module['uselessmachine_rt'].stop()
+time.sleep(0.2)
+
+module.rt_useless =  time.time()
+time.sleep(0.2)
+if not module.rt_useless:
+    raise RuntimeError("Useless machine rt didn't turn off")
+
+
+module['uselessmachine_rt'].start()
+
+module.rt_useless =  time.time()
+time.sleep(0.2)
+if module.rt_useless:
+    raise RuntimeError("Useless machine rt didn't turn back on")
+print("success")
