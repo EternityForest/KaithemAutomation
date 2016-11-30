@@ -283,6 +283,8 @@ class BaseEvent():
         self.continual = continual
         self.countdown = 0
         self.printoutput = ""
+        #Although we usually disable events by removing them from subscr
+        self.disable = False
         #symbolic prioity os a rd like high,realtime, etc
         #Actual priority is a number that causes polling to occur every nth frame
         #Legacy events have numeric priorities
@@ -406,14 +408,19 @@ class BaseEvent():
                 messagebus.postMessage('/system/notifications/errors',"Event \""+self.resource+"\" of module \""+self.module+ "\" may need attention")
 
     def register(self):
-        #Some events are really just containers for a callback, so there is no need to poll them
+        #Note: The whole self.disabled thing is really laregly a hack to get instant response
+        #To things if an event is based on some external thing with a callback that takes time to unregister.
+        self.disable = False
+
         with self.register_lock:
+            #Some events are really just containers for a callback, so there is no need to poll them
             if self.polled:
                 if not hasattr(self,"schedulerobj"):
                     self._prevstate = False
                     beginPolling(self)
 
     def unregister(self):
+        self.disable = True
         with self.register_lock:
             if hasattr(self,"schedulerobj"):
                 endPolling(self)
@@ -627,6 +634,8 @@ class MessageEvent(BaseEvent,CompileCodeStringsMixin):
             return
         def action_wrapper(topic,message):
             #Since we aren't under the BaseEvent.check() lock, we need to get it ourselves.
+            if self.disable:
+                return
             with self.lock:
                 if self.ratelimit > time.time()-self.lastran:
                     return
@@ -677,6 +686,9 @@ class ChangedEvalEvent(BaseEvent,CompileCodeStringsMixin):
 
 
     def _check(self):
+
+        if self.disable:
+            return
         #Evaluate the function that gives us the values we are looking for changes in
         self.latest = self.pymodule._event_trigger()
         #If this is the very first reading,
@@ -712,6 +724,8 @@ class PolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
     def _check(self):
         """Check if the trigger is true and if so do the action."""
         #Eval the condition in the local event scope
+        if self.disable:
+            return
         if self.ev_trig():
             #Only execute once on false to true change unless continual was set
             if (self.continual or self._prevstate == False):

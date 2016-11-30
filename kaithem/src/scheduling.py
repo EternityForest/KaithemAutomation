@@ -128,10 +128,8 @@ class RepeatingEvent(BaseEvent):
     #We want to use the worker pool to unregister so that we know which thread the scheduler.unregister call is
     #going to be in to prevent deadlocks. Also, we take a dummy var so we can use this as a weakref callback
     def unregister(self,dummy=None):
-        try:
-            workers.do(self._unregister)
-        except:
-            pass
+        workers.do(self._unregister)
+
 
     def run(self):
         workers.do(self._run)
