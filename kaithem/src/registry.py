@@ -81,9 +81,14 @@ class PersistanceArea():
                 #Take all the json files and make PersistanceDicts, and mark them clean.
                 self.files = {}
                 for i in util.get_files(os.path.join(folder,f)):
-                    if i.endswith('.json'):
+                    #YAML takes precedence
+                    if i.endswith('.json') and not os.path.exists(os.path.join(folder,f,i[:-5]+".yaml")):
                         with open(os.path.join(folder,f,i)) as x:
                             self.files[i[:-5]] = self.PersistanceDict(json.load(x)['data'])
+                            self.files[i[:-5]].markClean()
+                    if i.endswith('.yaml'):
+                        with open(os.path.join(folder,f,i)) as x:
+                            self.files[i[:-5]] = self.PersistanceDict(yaml.load(x)['data'])
                             self.files[i[:-5]].markClean()
 
 
@@ -125,9 +130,9 @@ class PersistanceArea():
             #iterate over files and dump each to a json, set error flag if there are any errors
             for i in self.files.copy():
                 try:
-                        with open(os.path.join(self.folder,"data",url(i)+".json"),'w') as x:
-                            util.chmod_private_try(os.path.join(self.folder,"data",url(i)+".json"), execute=False)
-                            json.dump({'data':copy.deepcopy(self.files[i])},x,sort_keys=True,indent=4, separators=(',', ': '))
+                        with open(os.path.join(self.folder,"data",url(i)+".yaml"),'w') as x:
+                            util.chmod_private_try(os.path.join(self.folder,"data",url(i)+".yaml"), execute=False)
+                            yaml.safe_dump({'data':dict(copy.deepcopy(self.files[i]))},x)
                 except Exception as e:
                     error =1
                     try:

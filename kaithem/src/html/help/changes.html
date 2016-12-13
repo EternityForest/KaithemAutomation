@@ -1,6 +1,15 @@
 <%include file="/pageheader.html"/>
 <title>Kaithem Help</title>
 <h2>Change Log</h2>
+<h3>0.56(Development)</h3>
+<div class="sectionbox">
+<ul>
+<li>Eliminate the frame-based polling system, polled events are now scheduled using the scheduler,
+    which should improve performance when there no events used that poll quickly.<li>
+<li>Events with priority of realtime now run in their own threads</li>
+<li>Registry now uses YAML instead of JSON, but remains backwards compatible</li>
+</ul>
+
 
 <h3>0.55</h3>
 <div class="sectionbox">
