@@ -26,6 +26,13 @@ if sys.platform.startswith('darwin'):
     posix_rename =True
 
 
+
+def resolvePath(fn,expand=False):
+    if expand and( not fn.startswith(os.pathsep)):
+        fn = os.path.join(directories.moduledatadir,fn)
+
+    return (os.path.expandvars(os.path.expanduser(fn)))
+
 #todo: factor out the need filesystem stuff in util.
 from src import util
 
@@ -77,7 +84,7 @@ class Persister():
         if os.path.exists(self.fn):
             self.value = load(self.fn)
 
-def save(data,fn,mode="default", private=False,backup=None, md5=False):
+def save(data,fn,mode="default", private=False,backup=None, expand=False md5=False):
     """Save data to file. Filename must end in .json, .yaml, .txt, or .bin. Data will be encoded appropriately.
         Also supports compressed versions via filenames ending in .gz or .bz2.
         Args:
@@ -94,7 +101,19 @@ def save(data,fn,mode="default", private=False,backup=None, md5=False):
             backup:
                 Setting this to true is an alias for mode="backup"
     """
+    fn = resolvePath(fn, expand)
     with lock:
+
+        #Make sure we don't overwrite a file when we create our dirs, because that behavior is undocumented in makedirs.
+        x = os.path.split(fn)[0]
+        while x:
+            if os.path.isfile(x):
+                raise RuntimeError("Required intermediate directory is already present as a file, refusing to overwrite file")
+            x = os.path.split(fn)[0]
+
+        if not os.path.exists(os.path.dirname(fn)):
+            os.makedirs(os.makedirs(fn), mode=0o700 if private else 0o777)
+
         if os.path.isdir(fn):
             raise RuntimeError("Filename is already present as a directory, refusing to overwrite directory")
         #Get base type without compression
@@ -224,13 +243,15 @@ def save(data,fn,mode="default", private=False,backup=None, md5=False):
 
 
 
-def load(filename, autorecover = True):
+def load(filename, autorecover = True,expand=False):
     """Load a file. Return str if file extension is .txt, bytes on .bin, dict on .yaml or .json.
 
     After that may be a .bz2 or a .gz for compression.
 
     If autorecover is True, if the file is missing or corrupted(May not catch all corrupted YAML files), looks for a ~ backup before failing.
     maybe best to use gz if you really care because gz has a checksum"""
+    fn = resolvePath(fn, expand)
+
     with lock:
         if autorecover:
             if os.path.isfile(filename+"~"):

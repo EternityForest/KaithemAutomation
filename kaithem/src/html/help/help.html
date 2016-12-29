@@ -728,9 +728,15 @@ h4 {
         deletes the event, the temporary events will remain until triggered or until the server is restarted.</p>
 
         <h3>kaithem.persist</h3>
-        <p>Provides easy-to-use functionality for traditional file based persistance.</p>
+        <p>Provides easy-to-use functionality for traditional file based persistance.
+            relative filenames provided to these functions will use kaithem's vardir/data as the working directory.
+            $envars and ~ will be expanded if expand is set to true. </p>
 
-         <h4>kaithem.persist.load(filename, autorecover=True)</h4>
+        <p>Each module should in general have it's own subfolder in this data directory unless the data will be shared between modules</p>
+
+        <p>Note that you may want to use the registry instead to save SD card wear by keeping changes in RAM until explicitly saved.<p>
+
+         <h4>kaithem.persist.load(filename, autorecover=True, expand=False)</h4>
         <p>
         Load data from a file named filname in a format dictated by the file extension.
         Data will be converted to a python appropriate representation and returned.
@@ -773,7 +779,7 @@ h4 {
         </dl>
 
 
-        <h4>kaithem.persist.save(data,filename,mode=default,private=False,backup=None)</h4>
+        <h4>kaithem.persist.save(data,filename,mode=default,private=False,backup=None,expand=False)</h4>
         <p>
         Saves data to a file named fn in a format dictated by the file extension.
         If the file does it exist, it will be created. If it does, it will be overwritten.
@@ -781,6 +787,8 @@ h4 {
         then an empty marker file will be created at filename~! to show that the backup was completed correctly,
         the file written or overwritten, and then the backup and marker file will both be deleted will be deleted.
         </p>
+
+        <p>If the directory you try to save into does not exist, it will be created along with any higher level directories needed.</p>
 
         <p>
             The affect of this is that if a write fails, the loader can fall back to an old version.

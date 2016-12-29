@@ -36,6 +36,8 @@ else:
 
 
 
+moduledatadir = os.path.join(vardir,'moduledata')
+
 usersdir = os.path.join(vardir,'users')
 regdir = os.path.join(vardir,'registry')
 moduledir = os.path.join(vardir,'modules')
