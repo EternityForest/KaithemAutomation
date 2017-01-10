@@ -12,7 +12,7 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import sys,os,weakref,threading,gzip,bz2,json, time
+import sys,os,weakref,threading,gzip,bz2,json, time,logging
 
 
 ###THIS FILE IS INTENDED TO BE USABLE AS A STANDALONE LIBRARY. DON'T ADD DEPENDANCIES
@@ -84,7 +84,7 @@ class Persister():
         if os.path.exists(self.fn):
             self.value = load(self.fn)
 
-def save(data,fn,mode="default", private=False,backup=None, expand=False md5=False):
+def save(data,fn,mode="default", private=False,backup=None, expand=False, md5=False):
     """Save data to file. Filename must end in .json, .yaml, .txt, or .bin. Data will be encoded appropriately.
         Also supports compressed versions via filenames ending in .gz or .bz2.
         Args:
@@ -102,14 +102,23 @@ def save(data,fn,mode="default", private=False,backup=None, expand=False md5=Fal
                 Setting this to true is an alias for mode="backup"
     """
     fn = resolvePath(fn, expand)
+    logging.debug("Persist module file save requested at "+fn)
     with lock:
 
         #Make sure we don't overwrite a file when we create our dirs, because that behavior is undocumented in makedirs.
         x = os.path.split(fn)[0]
-        while x:
+        already = {}
+
+        #Safety counter to stop really wierd loops
+        for i in range(64):
+            print(x)
             if os.path.isfile(x):
                 raise RuntimeError("Required intermediate directory is already present as a file, refusing to overwrite file")
             x = os.path.split(fn)[0]
+            #Loop prevention
+            if x in already:
+                break
+            already[x] = True
 
         if not os.path.exists(os.path.dirname(fn)):
             os.makedirs(os.makedirs(fn), mode=0o700 if private else 0o777)
@@ -250,7 +259,7 @@ def load(filename, autorecover = True,expand=False):
 
     If autorecover is True, if the file is missing or corrupted(May not catch all corrupted YAML files), looks for a ~ backup before failing.
     maybe best to use gz if you really care because gz has a checksum"""
-    fn = resolvePath(fn, expand)
+    filename = resolvePath(filename, expand)
 
     with lock:
         if autorecover:
