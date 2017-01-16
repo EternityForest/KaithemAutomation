@@ -45,6 +45,11 @@ temp_p+= i+'/'
 %endif
 <b>${path[-1]|h}</b>
 </p>
+%try:
+<small>(Loaded in ${round(newevt.EventReferences[module,name].timeTakenToLoad,2)|h}s)</small>\
+%except Exception as e:
+(Load time unknown)
+%endtry
 %if not (module,name) in newevt.EventReferences:
 <span class="error">Event not active, An error prevented this event from loading.</span>
 %endif
@@ -105,6 +110,8 @@ var editor = CodeMirror.fromTextArea(document.getElementById("setupbox"), {
 editor.setSize("99%","35em")
 </script>
 %endif
+
+
 
 <h3>Trigger\
 %try:

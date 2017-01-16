@@ -104,7 +104,7 @@ class RepeatingEvent(BaseEvent):
 
         #Convert to local time
         t = self.lastrun+offset
-        #This is important in the next step. Here we add a fraction of the interval to pust times like 59.95 over
+        #This is important in the next step. Here we add a fraction of the interval to push times like 59.95 over
         #otherwise it will schedule it for 60 when clearly a minute in the future should be 120
         t += self.interval/10.0
         #Calculate the last modulo of the interval. We do this by doing the module to see how far past it we are
@@ -146,10 +146,10 @@ class RepeatingEvent(BaseEvent):
                     self.unregister()
                 else:
                     f()
+                self._schedule()
             finally:
                 self.lock.release()
                 del f
-            self._schedule()
 
 class UnsynchronizedRepeatingEvent(RepeatingEvent):
     def _schedule(self):

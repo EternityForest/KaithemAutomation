@@ -162,14 +162,14 @@ class EventEvent(scheduling.UnsynchronizedRepeatingEvent):
         do(self._run)
 
     def _run(self):
-        self.lastrun = ctime()
         #We must have been pulled out of the event queue or we wouldn't be running
-        self.scheduled = False
         if self.lock.acquire(False):
+            self.lastrun = ctime()
+            self.scheduled = False
             try:
                 self.f()
-            finally:
                 self._schedule()
+            finally:
                 self.lock.release()
 
 
@@ -1085,6 +1085,7 @@ def getEventsFromModules(only = None):
             x.register()
             #Now we update the references
             globals()['__EventReferences'][self.module,self.resource] = x
+            self.evt = x
 
     with modules_state.modulesLock:
         with _event_list_lock:
@@ -1116,10 +1117,10 @@ def getEventsFromModules(only = None):
                 for i in toLoad:
                     try:
                         logging.debug("Loading "+i.module + ":"+i.resource)
+                        slt = time.time()
                         i.f()
                         messagebus.postMessage("/system/events/loaded",[i.module,i.resource])
-                        logging.debug("Loaded "+i.module + ":"+i.resource)
-
+                        logging.debug("Loaded "+i.module + ":"+i.resource +" in "+str(round(time.time()-slt, 2))+"s")
                         time.sleep(0.005)
                     #If there is an error, add it t the list of things to be retried.
                     except Exception as e:
@@ -1128,7 +1129,7 @@ def getEventsFromModules(only = None):
                         else:
                             i.error = traceback.format_exc(6)
                         nextRound.append(i)
-                        logging.debug("Could not load "+i.module + ":"+i.resource+" in this round, deferring to next round"+traceback.format_exc(6))
+                        logging.debug("Could not load "+i.module + ":"+i.resource+" in this round, deferring to next round\n"+"failed after"+str(round(time.time()-slt, 2))+"s\n"+traceback.format_exc(6))
 
                         pass
                 toLoad = nextRound
@@ -1148,6 +1149,7 @@ def make_event_from_resource(module,resource,subst=None):
 
     The reason for this is so that you can try test compiling without having to actually change the resource.
     """
+    t=time.time()
     if not subst:
         r = modules_state.ActiveModules[module][resource]
     else:
@@ -1194,5 +1196,5 @@ def make_event_from_resource(module,resource,subst=None):
               priority=priority,
               m=module,
               r=resource)
-
+    x.timeTakenToLoad = time.time()-t
     return x
