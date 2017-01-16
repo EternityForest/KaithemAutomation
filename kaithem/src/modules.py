@@ -49,6 +49,8 @@ external_module_locations = {}
 moduleshash= "000000000000000000000000"
 modulehashes = {}
 
+
+
 def hashModules():
     try:
         m=hashlib.md5()
@@ -301,6 +303,21 @@ class VirtualResourceInterface(object):
             setattr(self._resource_object, k,v)
         else:
             object.__setattr__(self,k,v)
+
+#This is used for the kaithem object.
+class ResourceAPI(object):
+    VirtualResource = VirtualResource
+
+    def __getitem__(self,name):
+        if isinstance(name,tuple):
+            x= ActiveModules[name[0]][name[1]]
+            if isinstance(x,weakref.ref):
+                return x
+            else:
+                raise ValueError("Name refers to a non-virtual resource")
+
+kaithemobj.kaithem.resource = ResourceAPI()
+
 
 #Backwards compatible resource loader.
 def loadResource(fn):

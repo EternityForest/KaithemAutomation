@@ -300,58 +300,64 @@ class NewScheduler(threading.Thread):
             lastframe = time.time()
 
             time_till_next = lmax(0, 0.1-(time.time()%0.1) )
-            if self.tasks:
-                ltime.sleep(lmax(lmin((self.tasks[0].time-time.time()),time_till_next),0))
-            else:
-                ltime.sleep(time_till_next)
-
-            #Run tasks until all remaining ones are in the future
-            while self.tasks and (self.tasks[0].time <time.time()):
-                i = self.tasks.pop(False)
-                overdueby = time.time()-i.time
-                if i.exact and overdueby > i.exact:
-                    continue
+            with self.lock:
                 try:
-                    i.run()
-
-                except:
-                    if isinstance(f, weakref.ref):
-                        f = i.f()
+                    if self.tasks:
+                        x = lmax(lmin((self.tasks[0].time-time.time()),time_till_next),0)
                     else:
-                        f = i.f
-                    if lhasattr(f,"__name__") and lhasattr(f,"__module__"):
-                        messagebus.postMessage('system/errors/scheduler/time',
-                                            {"function":f.__name__,
-                                            "module":f.__module__,
-                                            "traceback":traceback.format_exc(6)})
-                        if not i.errored:
-                            m = f.__module__
-                            messagebus.postMessage("/system/notifications/errors",
-                            "Problem in scheduled event function: "+repr(f)+" in module: "+ m
-                                    +", check logs for more info.")
-                            i.errored = True
-                    del f
+                        x=time_till_next
+                except:
+                    x = 0.01
 
-            #Take all the repeating tasks that aren't already scheduled to happen and schedule them.
-            #Normally tasks  just reschedule themselves, but this check prevents any errors in
-            #the chain of run>reschedule>run>etc
-
-            #We have to run in a try block because we don't want a bad schedule function to take out the whole thread.
-
-            #We only need to do this every 5 seconds or so, because it's only an error recovery thing.
-            if time.time()-self.lastrecheckedschedules>5:
-                for i in self.repeatingtasks:
+            time.sleep(x)
+            with self.lock:
+                #Run tasks until all remaining ones are in the future
+                while self.tasks and (self.tasks[0].time <time.time()):
+                    i = self.tasks.pop(False)
+                    overdueby = time.time()-i.time
+                    if i.exact and overdueby > i.exact:
+                        continue
                     try:
-                        if not i.scheduled:
-                            xyz = time.time()
-                            #Let's maybe not block the entire scheduling thread
-                            #If one event takes a long time to schedule or if it
-                            #Is already running and can't schedule yet.
-                            workers.do(i.schedule)
-                            messagebus.postMessage('system/errors/scheduler/warning',"rescheduled "+str(i)+"using error recovery")
+                        i.run()
+
                     except:
-                            logging.exception("Exception while scheduling event")
-                self.lastrecheckedschedules = time.time()
+                        if isinstance(f, weakref.ref):
+                            f = i.f()
+                        else:
+                            f = i.f
+                        if lhasattr(f,"__name__") and lhasattr(f,"__module__"):
+                            messagebus.postMessage('system/errors/scheduler/time',
+                                                {"function":f.__name__,
+                                                "module":f.__module__,
+                                                "traceback":traceback.format_exc(6)})
+                            if not i.errored:
+                                m = f.__module__
+                                messagebus.postMessage("/system/notifications/errors",
+                                "Problem in scheduled event function: "+repr(f)+" in module: "+ m
+                                        +", check logs for more info.")
+                                i.errored = True
+                        del f
+
+                #Take all the repeating tasks that aren't already scheduled to happen and schedule them.
+                #Normally tasks  just reschedule themselves, but this check prevents any errors in
+                #the chain of run>reschedule>run>etc
+
+                #We have to run in a try block because we don't want a bad schedule function to take out the whole thread.
+
+                #We only need to do this every 5 seconds or so, because it's only an error recovery thing.
+                if time.time()-self.lastrecheckedschedules>5:
+                    for i in self.repeatingtasks:
+                        try:
+                            if not i.scheduled:
+                                xyz = time.time()
+                                #Let's maybe not block the entire scheduling thread
+                                #If one event takes a long time to schedule or if it
+                                #Is already running and can't schedule yet.
+                                workers.do(i.schedule)
+                                messagebus.postMessage('system/errors/scheduler/warning',"rescheduled "+str(i)+"using error recovery")
+                        except:
+                                logging.exception("Exception while scheduling event")
+                    self.lastrecheckedschedules = time.time()
 
 
 

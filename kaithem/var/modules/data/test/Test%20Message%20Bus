@@ -1,5 +1,5 @@
-{continual: false, disabled: false, once: true, priority: interactive, rate-limit: 0.0,
-  resource-type: event, trigger: 'True'}
+{continual: true, disabled: false, enable: true, once: true, priority: interactive,
+  rate-limit: 1.0, resource-type: event, trigger: 'True'}
 
 #End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
 ---
@@ -16,6 +16,6 @@ def f(m,v):
 kaithem.message.subscribe("/testtopic", f)
 kaithem.message.post("/testtopic","Test")
 
-time.sleep(1)
+time.sleep(0.1)
 if not suceed:
-    raise RuntimeError("Message not delivered within 1 second")
+    raise RuntimeError("Message not delivered within 0.1 second. This may happen occasionally if CPU load is high but otherwise should not occur.")

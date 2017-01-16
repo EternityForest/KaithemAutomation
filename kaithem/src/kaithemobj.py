@@ -15,7 +15,7 @@
 
 """This is the global general purpose utility thing that is accesable from almost anywhere in user code."""
 
-import time,random,subprocess,threading,random,gzip,json,yaml,os,ntplib,bz2
+import time,random,subprocess,threading,random,gzip,json,yaml,os,ntplib,bz2,weakref
 
 
 import cherrypy
@@ -28,6 +28,9 @@ class ServeFileInsteadOfRenderingPageException(Exception):
 
 
 class Kaithem():
+    def __getattr__(self,name):
+        return pluginInterface(plugins[name])
+
     class misc(object):
         @staticmethod
         def lorem():
@@ -50,9 +53,9 @@ class Kaithem():
                 return e
             return None
 
-    class resource(object):
-        pass
-        #VirtualResource = VirtualResource(Happens in modules.py)
+    #In modules.py, we insert a resource API object.
+    #kaithemobj.kaithem.resource = ResourceAPI()
+
     class time(object):
         @staticmethod
         def strftime(*args):
