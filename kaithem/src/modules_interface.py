@@ -621,13 +621,21 @@ def resourceUpdateTarget(module,resource,kwargs):
         elif t == 'event':
             evt = None
             #Test compile, throw error on fail.
+
+            if 'tabtospace' in kwargs:
+                actioncode =  kwargs['action'].replace("\t","    ")
+                setupcode =  kwargs['setup'].replace("\t","    ")
+            else:
+                actioncode =  kwargs['action']
+                setupcode =  kwargs['setup']
+
             if 'enable' in kwargs:
                 try:
                     #Make a copy of the old resource object and modify it
                     r2= resourceobj.copy()
                     r2['trigger'] = kwargs['trigger']
-                    r2['action'] = kwargs['action']
-                    r2['setup'] = kwargs['setup']
+                    r2['action'] = actioncode
+                    r2['setup'] = setupcode
                     r2['priority'] = kwargs['priority']
                     r2['continual'] = 'continual' in kwargs
                     r2['rate-limit'] = float(kwargs['ratelimit'])
@@ -658,8 +666,8 @@ def resourceUpdateTarget(module,resource,kwargs):
                 #Make a copy of the old resource object and modify it
                 r2= resourceobj.copy()
                 r2['trigger'] = kwargs['trigger']
-                r2['action'] = kwargs['action']
-                r2['setup'] = kwargs['setup']
+                r2['action'] = actioncode
+                r2['setup'] = setupcode
                 r2['priority'] = kwargs['priority']
                 r2['continual'] = 'continual' in kwargs
                 r2['rate-limit'] = float(kwargs['ratelimit'])
@@ -689,7 +697,13 @@ def resourceUpdateTarget(module,resource,kwargs):
             newevt.updateOneEvent(resource,module,evt)
 
         elif t == 'page':
-            resourceobj['body'] = kwargs['body']
+
+            if 'tabtospace' in kwargs:
+                body =  kwargs['body'].replace("\t","    ")
+            else:
+                body =  kwargs['body']
+
+            resourceobj['body'] = body
             resourceobj['no-navheader'] = 'no-navheader' in kwargs
             resourceobj['no-header'] = 'no-header' in kwargs
             resourceobj['dont-show-in-index'] = 'dont-show-in-index' in kwargs

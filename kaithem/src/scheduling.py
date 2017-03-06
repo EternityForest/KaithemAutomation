@@ -321,22 +321,26 @@ class NewScheduler(threading.Thread):
                         i.run()
 
                     except:
-                        if isinstance(f, weakref.ref):
-                            f = i.f()
-                        else:
-                            f = i.f
-                        if lhasattr(f,"__name__") and lhasattr(f,"__module__"):
-                            messagebus.postMessage('system/errors/scheduler/time',
-                                                {"function":f.__name__,
-                                                "module":f.__module__,
-                                                "traceback":traceback.format_exc(6)})
-                            if not i.errored:
-                                m = f.__module__
-                                messagebus.postMessage("/system/notifications/errors",
-                                "Problem in scheduled event function: "+repr(f)+" in module: "+ m
-                                        +", check logs for more info.")
-                                i.errored = True
-                        del f
+                        try:
+                            logging.exception("error in scheduler\n"+traceback.format_exc(6))
+                            if isinstance(i.f, weakref.ref):
+                                f = i.f()
+                            else:
+                                f = i.f
+                            if lhasattr(f,"__name__") and lhasattr(f,"__module__"):
+                                messagebus.postMessage('system/errors/scheduler/time',
+                                                    {"function":f.__name__,
+                                                    "module":f.__module__,
+                                                    "traceback":traceback.format_exc(6)})
+                                if not i.errored:
+                                    m = f.__module__
+                                    messagebus.postMessage("/system/notifications/errors",
+                                    "Problem in scheduled event function: "+repr(f)+" in module: "+ m
+                                            +", check logs for more info.")
+                                    i.errored = True
+                            del f
+                        except:
+                            pass
 
                 #Take all the repeating tasks that aren't already scheduled to happen and schedule them.
                 #Normally tasks  just reschedule themselves, but this check prevents any errors in

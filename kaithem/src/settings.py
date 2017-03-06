@@ -132,6 +132,11 @@ class Settings():
         pages.require("/users/accountsettings.edit")
         pages.postOnly()
         lists = []
+        if "tabtospace" in kwargs:
+            auth.setUserSetting(pages.getAcessingUser(),"tabtospace",True)
+        else:
+            auth.setUserSetting(pages.getAcessingUser(),"tabtospace",False)
+
         for i in kwargs:
             if i.startswith("pref_"):
                 #Filter out non sane preferences

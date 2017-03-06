@@ -91,7 +91,19 @@ Restricted to LAN IP addresses(Only admin can change): ${auth.getUserSetting(pag
     checked="on"
     %endif
 
-></input>
+></input></td>
+
+
+<tr>
+<td>Convert tabs to 4 spaces when saving resource by default(Workaround for editor and copy-paste issues)</td>
+<td>
+<input type="checkbox" name="tabtospace" value="true"
+    %if auth.getUserSetting(pages.getAcessingUser(),'tabtospace'):
+    checked="on"
+    %endif
+></input></td>
+
+
 </table>
 <input type ="submit" value="Save"></input>
 

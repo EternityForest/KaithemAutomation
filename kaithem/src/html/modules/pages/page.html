@@ -210,6 +210,11 @@ Saving this module will cause it to be immediately acessable from the web.
 </p>
 %if pages.canUserDoThis("/admin/modules.edit"):
 <input type="submit" value="Save Changes and go back">
+<label><input type="checkbox"  name="tabtospace"
+     %if auth.getUserSetting(pages.getAcessingUser(),'tabtospace'):
+        checked="yes"
+     %endif
+   ></input>Convert tabs to spaces on saving</label>
 </input>
 %else:
 <p class="warning">You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>

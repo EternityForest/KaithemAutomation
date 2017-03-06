@@ -282,6 +282,11 @@ Saving this module will case it to completely reload, including its local scope.
 %if pages.canUserDoThis("/admin/modules.edit"):
 <a href="/modules/module/${url(module)}/obj/event/${url(name)}">View the event's namespace(requires edit permission, beware shoulder surfers)</a></br>
 <input type="submit" value="Save Changes"></input>
+<label><input type="checkbox"  name="tabtospace"
+     %if auth.getUserSetting(pages.getAcessingUser(),'tabtospace'):
+        checked="yes"
+     %endif
+   ></input>Convert tabs to spaces on saving</label>
 %else:
 <p>You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
 %endif
