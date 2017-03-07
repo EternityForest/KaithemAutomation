@@ -163,6 +163,11 @@ continue
 	       %if not module[i].get('enable',"True"):
 	       (disabled)
 	       %endif
+           %try:
+           <span class=error title="This event has loaded normally, but has been stopped, likely by calling stop() on it's interface.">${"(stopped)" if (newevt.EventReferences[name,i].disable) else ""}</span>\
+           %except Exception as e:
+           ${e|h}
+           %endtry
        </b>
 
 <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>

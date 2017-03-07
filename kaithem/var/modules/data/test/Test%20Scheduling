@@ -1,29 +1,22 @@
-continual: false
+continual: true
 enable: true
 once: true
 priority: interactive
-rate-limit: 0.0
+rate-limit: 5.0
 resource-type: event
 trigger: 'True'
 versions: {}
 
 #End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
 ---
-pass
----
-#This code runs once when the event loads. It also runs when you save the event during the test compile
-#and may run multiple times when kaithem boots due to dependancy resolution
-__doc__=''
-global func,evt
 from src import scheduling
 import time,logging,math
-print("begin")
 class ScheduleTester():
     def __init__(self,i):
         self.last = 0
         self.interval = i
         def f():
-        	self._go()
+            self._go()
         self.go =f
         self.go()
         self.id2 = id
@@ -43,6 +36,13 @@ class ScheduleTester():
 
 module.scheduledEvent = ScheduleTester(5)
 scheduling.scheduler.every(module.scheduledEvent.go,5)
+---
+#This code runs once when the event loads. It also runs when you save the event during the test compile
+#and may run multiple times when kaithem boots due to dependancy resolution
+__doc__=''
+global func,evt
+print("begin")
+
 
 def f():
     module.scheduleVar = 5

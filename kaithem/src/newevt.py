@@ -283,6 +283,7 @@ class BaseEvent():
         self.continual = continual
         self.countdown = 0
         self.printoutput = ""
+        self.active = False
         #Although we usually disable events by removing them from subscr
         self.disable = False
         #symbolic prioity os a rd like high,realtime, etc
@@ -571,11 +572,11 @@ class FunctionEvent(BaseEvent):
         with self.register_lock:
             x = compile(self.fname+" = _kaithem_temp_event_function","Event_"+self.module+'_'+self.resource,'exec')
             exec(x,self.pymodule.__dict__)
-            self.active = True
+            self.disable = False
 
     def unregister(self):
         with self.register_lock:
-            self.active = False
+            self.disable = True
             #Use a try accept block because that function could have wound up anywhere,
             #Including having been already deleted.
             try:
@@ -657,11 +658,13 @@ class MessageEvent(BaseEvent,CompileCodeStringsMixin):
         self.action_wrapper_because_we_need_to_keep_a_reference = action_wrapper
         #Subscribe our new function to the topic we want
         messagebus.subscribe(self.topic,action_wrapper)
+        self.disable = False
 
     #This is the solution for the circular reference nonsense, until the messagebus has a real unsubscribe feature.
     def unregister(self):
         if hasattr(self,"action_wrapper_because_we_need_to_keep_a_reference"):
             del self.action_wrapper_because_we_need_to_keep_a_reference
+        self.disable = True
 
 class ChangedEvalEvent(BaseEvent,CompileCodeStringsMixin):
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
@@ -804,10 +807,11 @@ class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
                     self.thread.start()
                 finally:
                     self.lock.release()
-
+        self.disable = False
 
     def unregister(self):
         self.runthread = False
+        self.disable = True
 
 
     def _check(self):
@@ -953,13 +957,13 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
             if self.nextruntime:
                 self.next=scheduler.schedule(self.handler, self.nextruntime, False)
                 return
-
+        self.disable = False
     def unregister(self):
         try:
             self.next.unregister()
         except AttributeError:
             pass
-
+        self.disable = True
 
 #If the system time has been set, we may want to recalculate all of the events.
 #Work in progress

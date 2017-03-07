@@ -147,7 +147,6 @@ def start(count=8, qsize=64, shutdown_wait=60):
         #     time.sleep(random.random()/100)
         #     __queue.put(func)
 
-
         if ready_threads:
             try:
                 t = ready_threads.pop()
@@ -158,8 +157,13 @@ def start(count=8, qsize=64, shutdown_wait=60):
                 pass
 
         #No unbusy threads? It must go in the overflow queue.
-        while len(overflow_q)>500:
-            time.sleep(0.05)
+        #Soft rate limit here should work a bit better than the old hard limit at keeping away
+        #the deadlocks.
+
+        if len(overflow_q)>1000:
+            #ratelimit if the queue gets over
+            time.sleep(max(0,(len(overflow_q)-1000)/2000.0))
+            print("rate limiting engaged for function")
         overflow_q.append(func)
 
         #Be sure there is an awake thread to deal with our overflow entry.

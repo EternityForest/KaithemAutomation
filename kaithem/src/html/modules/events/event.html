@@ -28,7 +28,12 @@ from src import util
 %endif
 %endif
 </title>
-<h2>Event ${util.split_escape(name,'/','\\')[-1] | h} of module <a href="/modules/module/${url(module)}">${module|h}</a></h2>
+<h2>Event ${util.split_escape(name,'/','\\')[-1] | h} of module <a href="/modules/module/${url(module)}">${module|h}</a>
+%try:
+<span class=error>${"(stopped)" if (newevt.EventReferences[module,name].disable) else ""}</span>\
+%except Exception as e:
+%endtry
+</h2>
 <p class=pathnav>Path:
 <%
 temp_p = ""

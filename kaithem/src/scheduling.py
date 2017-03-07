@@ -201,9 +201,16 @@ class RepeatWhileEvent(RepeatingEvent):
             #s
 
 class NewScheduler(threading.Thread):
+    """
+    represents a thread that constantly runs tasks which are objects having a time property that determins when
+    their run method gets called. Inserted tasks use a lockless double buffered scheme.
+    """
     def __init__(self):
         threading.Thread.__init__(self)
         self.tasks = []
+        #Input buffer for lock free task insert. Depends
+        #on pop and append being atomic operations.
+        self.task_queue = []
         self.lock = threading.RLock()
         self.repeatingtasks= []
         self.daemon = True
@@ -245,21 +252,13 @@ class NewScheduler(threading.Thread):
 
     def insert(self, event):
         "Insert something that has a time and a run property that wants its run called at time"
-        with self.lock:
-            for i,v in enumerate(self.tasks):
-                if v.time>event.time:
-                    self.tasks.insert(i,event)
-                    return
 
-            self.tasks.insert(0,event)
-            self.tasks = sorted(self.tasks, key=lambda x: x.time or -1)
+        #Soft rate limit to prevent filling memory in really bizzare cases.
+        if len(self.task_queue)>3000:
+            time.sleep(max(0,(len(self.task_queue)-3000)/2000.0))
+            print("rate limiting engaged for function")
+        self.task_queue.append(event)
 
-            # self.tasks.insert(0,event)
-            # if self.tasks[1:] and event.time<self.tasks[1].time:
-            #     pass
-            #     #No need to sort if our insert does't disturb the order
-            # else:
-            #     self.tasks = sorted(self.tasks, key=lambda x: x.time or -1)
 
     def remove(self, event):
         "Remove something that has a time and a run property that wants its run to be called at time"
@@ -293,6 +292,7 @@ class NewScheduler(threading.Thread):
         lmax = max
         lhasattr = hasattr
         ltime = time
+        need_sort = False
         global lastframe
         while 1:
             #Caculate the time until the next UNIX timestamp whole number, with 0.0011s offset to compensate
@@ -300,8 +300,23 @@ class NewScheduler(threading.Thread):
             lastframe = time.time()
 
             time_till_next = lmax(0, 0.1-(time.time()%0.1) )
+
+            #Transfer the contents of one list to the other without using a lock or
+            #replacing lists which might let something get lost.
+
+            #We use the double buffer to avoid using a lock when we insert tasks.
+
+            while self.task_queue:
+                need_sort=True
+                self.tasks.append(self.task_queue.pop())
+
             with self.lock:
                 try:
+                    #Sort our list of tasks which should be mostly already sorted except the new stuff.
+                    #If no new tasks have been inserted there;s no need to do a sort.
+                    if need_sort:
+                        self.tasks = sorted(self.tasks, key=lambda x: x.time or -1)
+                        need_sort=False
                     if self.tasks:
                         x = lmax(lmin((self.tasks[0].time-time.time()),time_till_next),0)
                     else:

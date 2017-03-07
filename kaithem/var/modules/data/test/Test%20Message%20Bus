@@ -1,11 +1,11 @@
 {continual: true, disabled: false, enable: true, once: true, priority: interactive,
-  rate-limit: 1.0, resource-type: event, trigger: 'True'}
+  rate-limit: 0.0, resource-type: event, trigger: 'True'}
 
 #End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
 ---
 #This code runs once when the event loads. It also runs when you save the event during the test compile
 #and may run multiple times when kaithem boots due to dependancy resolution
-__doc__=''
+__doc__='This checks if th'
 import time
 
 suceed = 0
@@ -18,4 +18,8 @@ kaithem.message.post("/testtopic","Test")
 
 time.sleep(0.1)
 if not suceed:
-    raise RuntimeError("Message not delivered within 0.1 second. This may happen occasionally if CPU load is high but otherwise should not occur.")
+    time.sleep(0.5)
+    if suceed:
+        raise RuntimeError("Message not delivered within 0.1 second. This may happen occasionally if CPU load is high but otherwise should not occur.")
+    else:
+        raise RuntimeError("Message not delivered within 0.6s")

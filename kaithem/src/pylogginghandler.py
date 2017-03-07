@@ -15,7 +15,7 @@
 import logging
 
 from . import messagebus
-logging.getLogger().setLevel(0)
+logging.getLogger().setLevel(20)
 class MessageBusHandler(logging.Handler):
     def emit(self,r):
         messagebus.postMessage("system/pylogging/"+r.levelname, self.format(r))
