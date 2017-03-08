@@ -41,8 +41,6 @@ scheduling.scheduler.every(module.scheduledEvent.go,5)
 #and may run multiple times when kaithem boots due to dependancy resolution
 __doc__=''
 global func,evt
-print("begin")
-
 
 def f():
     module.scheduleVar = 5

@@ -437,16 +437,19 @@ class WebInterface():
                         ActiveModules[root]['__description']['text'] = kwargs['description']
                     else:
                         ActiveModules[root]['__description'] = {'resource-type':'module-description','text':kwargs['description']}
-                    ActiveModules[kwargs['name']] = ActiveModules.pop(root)
 
-                    #UHHG. So very much code tht just syncs data structures.
-                    #This gets rid of the cache under the old name
-                    newevt.removeModuleEvents(root)
-                    usrpages.removeModulePages(root)
-                    #And calls this function the generate the new cache
-                    bookkeeponemodule(kwargs['name'],update=True)
-                    #Just for fun, we should probably also sync the permissions
-                    auth.importPermissionsFromModules()
+                    #Renaming reloads the entire module.
+                    #TODO This needs to handle custom resource types if we ever implement them.
+                    if not kwargs['name'] == root:
+                        ActiveModules[kwargs['name']] = ActiveModules.pop(root)
+                        #UHHG. So very much code tht just syncs data structures.
+                        #This gets rid of the cache under the old name
+                        newevt.removeModuleEvents(root)
+                        usrpages.removeModulePages(root)
+                        #And calls this function the generate the new cache
+                        bookkeeponemodule(kwargs['name'],update=True)
+                        #Just for fun, we should probably also sync the permissions
+                        auth.importPermissionsFromModules()
                 raise cherrypy.HTTPRedirect('/modules/module/'+util.url(kwargs['name']))
 
 #Return a CRUD screen to create a new resource taking into the type of resource the user wants to create

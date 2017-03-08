@@ -4,6 +4,8 @@
 # This module is part of Mako and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
+#This file has been modified by Daniel Dunn for the Kaithem Project
+
 """Provides the Template class, a facade for parsing, generating and executing
 template strings, as well as template runtime operations."""
 
@@ -242,7 +244,8 @@ class Template(object):
                     future_imports=None,
                     enable_loop=True,
                     preprocessor=None,
-                    lexer_cls=None):
+                    lexer_cls=None,
+                    global_vars={}):
         if uri:
             self.module_id = re.sub(r'\W', "_", uri)
             self.uri = uri
@@ -300,7 +303,7 @@ class Template(object):
 
         # if plain text, compile code in memory only
         if text is not None:
-            (code, module) = _compile_text(self, text, filename)
+            (code, module) = _compile_text(self, text, filename,global_vars=global_vars)
             self._code = code
             self._source = text
             ModuleInfo(module, None, self, filename, code, text)
@@ -660,7 +663,7 @@ def _compile(template, text, filename, generate_magic_comment):
                             reserved_names=template.reserved_names)
     return source, lexer
 
-def _compile_text(template, text, filename):
+def _compile_text(template, text, filename, global_vars={}):
     identifier = template.module_id
     source, lexer = _compile(template, text, filename,
                         generate_magic_comment=template.disable_unicode)
@@ -669,6 +672,7 @@ def _compile_text(template, text, filename):
     if not compat.py3k and isinstance(cid, compat.text_type):
         cid = cid.encode()
     module = types.ModuleType(cid)
+    module.__dict__.update(global_vars)
     code = compile(source, cid, 'exec')
 
     # this exec() works for 2.4->3.3.
@@ -702,4 +706,3 @@ def _get_module_info_from_callable(callable_):
 
 def _get_module_info(filename):
     return ModuleInfo._modules[filename]
-

@@ -273,6 +273,17 @@ This event last ran:
 <b>${unitsofmeasure.strftime(newevt.getEventLastRan(module,name))|h}
 (about ${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(module,name),2)} ago)
 </b>
+
+%try:
+%if newevt.EventReferences[module,name].lastcompleted>newevt.EventReferences[module,name].lastran:
+<br>Completed in ${round(newevt.EventReferences[module,name].lastcompleted-newevt.EventReferences[module,name].lastran,3)|h}s
+%else:
+<span class="highlight">Still Running</span>
+%endif
+%except Exception as e:
+%endtry
+
+
 %else:
 <b>This event has not ran since it loaded.</b>
 %endif

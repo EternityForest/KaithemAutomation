@@ -94,13 +94,13 @@ def when(trigger,action,priority="interactive"):
     #We cannot remove the event from within itself because of the lock that
     #We do not want to make into an RLock for speed. So we do it in a different thread.
     def rm_slf():
-        enable.pop()
         removeOneEvent(module,resource)
 
     def f():
         if not enable:
             return
         action()
+        enable.pop()
         workers.do(rm_slf)
 
     e = PolledInternalSystemEvent(lambda: False if not enable else trigger(),f,priority=priority,m=module,r=resource)
@@ -147,7 +147,7 @@ def ptim():
 
 #Yeah yeah, the name isn't the best
 class EventEvent(scheduling.UnsynchronizedRepeatingEvent):
-    def __init__(self,function,interval,priority="realtime", phase = 0):
+    def __init__(self,function,interval,priority="realtime", phase = 0,module=None,resource=None):
         scheduling.BaseEvent.__init__(self)
         self.f = function
         self.interval = float(interval)
@@ -156,8 +156,11 @@ class EventEvent(scheduling.UnsynchronizedRepeatingEvent):
         self.lock = threading.Lock()
         self.lastrun = None
         self.phaseoffset = (phase%1)*interval
+        self.module=module
+        self.resource=resource
 
-
+    def __repr__(self):
+        return "<newevt.EventEvent object for event at "+str((self.module,self.resource))+ "with id "+ str(id(self))+">"
     def run(self):
         do(self._run)
 
@@ -165,10 +168,13 @@ class EventEvent(scheduling.UnsynchronizedRepeatingEvent):
         #We must have been pulled out of the event queue or we wouldn't be running
         if self.lock.acquire(False):
             self.lastrun = ctime()
-            self.scheduled = False
             try:
                 self.f()
                 self._schedule()
+
+            except Exception as e:
+                print(e)
+                raise
             finally:
                 self.lock.release()
 
@@ -176,19 +182,23 @@ class EventEvent(scheduling.UnsynchronizedRepeatingEvent):
 insert_phase = 0
 
 def beginPolling(ev):
-    #Note that we randomize the interval by 0.15% to make them not all bunch up at once constantly.
-    #Since they might still occasionally all bunch up we really need a better way of doing this.
+    #Note that we spread out the intervals by 0.15% to make them not all bunch up at once constantly.
     global insert_phase
     ev.schedulerobj =EventEvent(ev.check,
-    config['priority-response'].get(ev.symbolicpriority,0.08)+(random.random()*0.03)-0.015,
-     ev.symbolicpriority,phase = insert_phase)
+    config['priority-response'].get(ev.symbolicpriority,0.08)+(insert_phase*0.03)-0.015,
+     ev.symbolicpriority)
+    try:
+        ev.schedulerobj.module = ev.module
+        ev.schedulerobj.resource = ev.resource
+    except:
+        pass
     #Basically we want to spread them out in the phase space from 0 to 1 in a deterministic ish way.
     #There might be a better algorithm of better constant to use, but this one should be decent.
+    #The phase of this wave determines the frequency offset applied
     insert_phase += 0.555555
     insert_phase = insert_phase % 1
     ev.schedulerobj.register()
     ev.schedulerobj.schedule()
-    print(ev.resource,ev.schedulerobj.time, time.time())
 
 
 def endPolling(ev):
@@ -304,7 +314,6 @@ class BaseEvent():
             #If even that fails, use interactive priority.
             except ValueError:
                 self.poll_interval  = config['priority-response']['interactive']
-
         self.runTimes = []
         self.module = m if m else "<unknown>"
         self.resource = r if r else str(util.unique_number())
@@ -321,6 +330,9 @@ class BaseEvent():
 
         #This keeps track of the last time the event was triggered  so we can rate limit
         self.lastexecuted = 0
+        #Keep track of the last time the event finished running. Used to detect if it's still
+        #going and how long it took
+        self.lastcompleted = 0
 
         self.backoff_until = 0
 
@@ -371,6 +383,7 @@ class BaseEvent():
                 #Action could be any number of things, so this method mut be implemented by
                 #A derived class or inherited from a mixin.
                 self._do_action()
+                self.lastcompleted = time.time()
                 messagebus.postMessage('/system/events/ran',[self.module, self.resource])
             except Exception as e:
                 self._handle_exception(e)
@@ -437,6 +450,8 @@ class BaseEvent():
         #so, if another thread is already handling this, just return and move on.
 
         #Easy way of doing error backoffs
+        if self.disable:
+            return
         if time.time()<self.backoff_until:
             return
         if not self.lock.acquire(False):
@@ -603,6 +618,7 @@ class FunctionEvent(BaseEvent):
                 #Action could be any number of things, so this method must be implemented by
                 #A derived class or inherited from a mixin.
                 self._do_action()
+                self.lastcompleted = time.time()
                 messagebus.postMessage('/system/events/ran',[self.module, self.resource])
             except Exception as e:
                 if self.active:
@@ -743,24 +759,26 @@ class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
         BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
         self.runthread = True
         self.lock = threading.RLock()
+        self.pauseflag = threading.Event()
+        self.pauseflag.set()
+
         def f():
             d = config['priority-response'].get(self.symbolicpriority,1/60.0)
             #Run is the global run flag used to shutdown
-            with self.lock:
-                while(run and self.runthread):
+            while(run and self.runthread):
+                #The sleep comes before the check of the condition because
+                #we want the fastest response when turning the event back on.
+                time.sleep(d)
+                self.pauseflag.wait()
+                with self.lock:
                     try:
                         self.check()
-                        time.sleep(d)
                     except Exception as e:
                         if not (run and self.runthread):
-                            print(e)
                             return
                         self._handle_exception(e)
                         time.sleep(config['error-backoff'].get(self.symbolicpriority,5))
         self.loop = f
-
-
-
 
         #Sometimes an event is used for its setup action and never runs.
         #If the trigger is False, it will never trigger, so we don't poll it.
@@ -773,6 +791,15 @@ class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
         exec(x,self.pymodule.__dict__)
 
         self._init_setup_and_action(setup,do)
+
+
+    #Because of the not so perfect register/unregister mechanism here
+    #We have a separate pause and unpause feature.
+    def pause(self):
+        self.pauseflag.clear()
+
+    def unpause(self):
+        self.pauseflag.set()
 
     def register(self):
         #Our entire thing runs under self.lock, so that keeps us from accidentally starting 2 threads
@@ -788,6 +815,7 @@ class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
         #No matter what, calling them in any order from any number of threads should not deadlock.
         if not self.polled:
             return
+        self.unpause()
 
         self.runthread = True
         if self.lock.acquire(False):
@@ -812,6 +840,8 @@ class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
     def unregister(self):
         self.runthread = False
         self.disable = True
+        self.pauseflag.clear()
+        time.sleep(1/60)
 
 
     def _check(self):

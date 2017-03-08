@@ -11,11 +11,13 @@ versions: {}
 ---
 #This code runs once when the event loads. It also runs when you save the event during the test compile
 #and may run multiple times when kaithem boots due to dependancy resolution
-__doc__=''
+__doc__='''This depends on fairly tight timing. One or two errors here every ten minutes or so is not an issue considering the amount of load and 
+lock contention the test module can create.'''
 import time
 depend = module.rt_useless
 ---
 module['uselessmachine_rt'].start()
+time.sleep(0.5)
 module.rt_useless =  time.time()
 
 time.sleep(0.5)
@@ -32,7 +34,7 @@ if not module.rt_useless:
 
 
 module['uselessmachine_rt'].start()
-
+time.sleep(0.5)
 module.rt_useless =  time.time()
 time.sleep(0.2)
 if module.rt_useless:

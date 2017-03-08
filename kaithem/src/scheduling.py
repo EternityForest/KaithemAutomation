@@ -138,7 +138,6 @@ class RepeatingEvent(BaseEvent):
 
         self.lastrun = time.time()
         #We must have been pulled out of the event queue or we wouldn't be running
-        self.scheduled = False
         if self.lock.acquire(False):
             try:
                 f = self.f()
@@ -170,22 +169,20 @@ class RepeatWhileEvent(RepeatingEvent):
     def _run(self):
         if self.ended:
             return
-        try:
-            if self.lock.acquire(False):
-                try:
-                    f = self.f()
-                    if not f:
+        if self.lock.acquire(False):
+            try:
+                f = self.f()
+                if not f:
+                    self.unregister()
+                else:
+                    r =f()
+                    if not r:
                         self.unregister()
-                    else:
-                        r =f()
-                        if not r:
-                            self.unregister()
-                            self.ended = True
-                finally:
-                    self.lock.release()
-                    del f
-        finally:
-            self.scheduled = False
+                        self.ended = True
+            finally:
+                self.lock.release()
+                del f
+
 
 #class ComplexRecurringEvent():
     #def schedule(self):
@@ -266,6 +263,8 @@ class NewScheduler(threading.Thread):
             try:
                 if event in self.tasks:
                     self.tasks.remove(event)
+                if event in self.task_queue:
+                    self.task_queue.remove(event)
             except:
                 logging.exception("failed to remove event")
 
@@ -329,6 +328,9 @@ class NewScheduler(threading.Thread):
                 #Run tasks until all remaining ones are in the future
                 while self.tasks and (self.tasks[0].time <time.time()):
                     i = self.tasks.pop(False)
+                    #Set this flag immediatly, otherwise an error somewhere could
+                    #Cause lost repeating events
+                    i.scheduled = False
                     overdueby = time.time()-i.time
                     if i.exact and overdueby > i.exact:
                         continue
@@ -342,20 +344,22 @@ class NewScheduler(threading.Thread):
                                 f = i.f()
                             else:
                                 f = i.f
-                            if lhasattr(f,"__name__") and lhasattr(f,"__module__"):
-                                messagebus.postMessage('system/errors/scheduler/time',
-                                                    {"function":f.__name__,
-                                                    "module":f.__module__,
-                                                    "traceback":traceback.format_exc(6)})
-                                if not i.errored:
-                                    m = f.__module__
-                                    messagebus.postMessage("/system/notifications/errors",
-                                    "Problem in scheduled event function: "+repr(f)+" in module: "+ m
-                                            +", check logs for more info.")
-                                    i.errored = True
-                            del f
+                            try:
+                                if lhasattr(f,"__name__") and lhasattr(f,"__module__"):
+                                    messagebus.postMessage('system/errors/scheduler/time',
+                                                        {"function":f.__name__,
+                                                        "module":f.__module__,
+                                                        "traceback":traceback.format_exc(6)})
+                                    if not i.errored:
+                                        m = f.__module__
+                                        messagebus.postMessage("/system/notifications/errors",
+                                        "Problem in scheduled event function: "+repr(f)+" in module: "+ m
+                                                +", check logs for more info.")
+                                        i.errored = True
+                            finally:
+                                del f
                         except:
-                            pass
+                            print(traceback.format_exc(6))
 
                 #Take all the repeating tasks that aren't already scheduled to happen and schedule them.
                 #Normally tasks  just reschedule themselves, but this check prevents any errors in

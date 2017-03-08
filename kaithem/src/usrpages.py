@@ -80,7 +80,11 @@ class CompiledPage():
         else:
             footer = ""
         templatesource = header + template + footer
-        self.template = mako.template.Template(templatesource, uri="Template"+m+'_'+r)
+
+        d={'kaithem': kaithemobj.kaithem}
+        if m in modules_state.scopes:
+            d['module']= modules_state.scopes[m]
+        self.template = mako.template.Template(templatesource, uri="Template"+m+'_'+r, global_vars=d)
 
     def new_print(self,d):
         self.printoutput+=str(d)+"\n"

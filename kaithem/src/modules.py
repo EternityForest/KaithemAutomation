@@ -110,12 +110,24 @@ class Event(ResourceObject):
         return newevt.EventReferences[self.module,self.resource].pymodule
 
     #Allow people to start and stop events at runtime.
+    #Some events support a separate new pause/unpause api, otherwise use register
+    #and unregister. It might not be safe to re-register events that
+    #have a pause api.
+
     def start(self):
-        newevt.EventReferences[self.module,self.resource].register()
+        ev = newevt.EventReferences[self.module,self.resource]
+        if hasattr(ev,"unpause"):
+            ev.unpause()
+        else:
+            ev.register()
 
     def stop(self):
-        newevt.EventReferences[self.module,self.resource].unregister()
-
+        ev = newevt.EventReferences[self.module,self.resource]
+        if hasattr(ev,"pause"):
+            ev.pause()
+        else:
+            ev.unregister()
+            
 class Page(ResourceObject):
     resourceType = "page"
 

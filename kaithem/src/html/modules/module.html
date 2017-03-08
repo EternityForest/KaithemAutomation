@@ -28,7 +28,8 @@ MD5 Sum: <b>${getModuleHash(name)}</b></br>
 <h3>Basic Information</h3>
 <div class="sectionbox">
 
-<p class="help">Changing the name of a module will invalidate all external references to the module by its old name. Also, if the name is in use it will be overwritten. Be Careful.</p><hr>
+<p class="help">Changing the name of a module will invalidate all external references to the module by its old name,
+    and will reload all events in the module. Also, if the name is in use it will be overwritten. Be Careful.</p><hr>
 <h4>Name:</h4>
 <input required="required" class="modulename" name="name" type="text" value="${name|h}">
 <h4>Info:</h4>
@@ -185,6 +186,17 @@ continue
     		    %if newevt.getEventLastRan(name,i):
     		    <code>${unitsofmeasure.strftime(newevt.getEventLastRan(name,i))|h}
     		    (${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(name,i),2)} ago)</code>
+
+                %try:
+                %if newevt.EventReferences[name,i].lastcompleted>newevt.EventReferences[name,i].lastexecuted:
+                <code>Completed in ${round(newevt.EventReferences[name,i].lastcompleted-newevt.EventReferences[name,i].lastexecuted,3)|h}s</code>
+                %else:
+                <span class="highlight">Still Running</span>
+                %endif
+                %except Exception as e:
+                ${e|h}
+                %endtry
+
     		    %else:
     		    This event has not ran since it loaded.
     		    %endif
