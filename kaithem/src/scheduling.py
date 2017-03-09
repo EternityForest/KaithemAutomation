@@ -152,9 +152,14 @@ class RepeatingEvent(BaseEvent):
 
 class UnsynchronizedRepeatingEvent(RepeatingEvent):
     def _schedule(self):
-        """Calculate next runtime and put self into the queue.
-        Currently should only every be called from the loop in the scheduler."""
+        """Calculate next runtime and put self into the queue."""
 
+        #The main reason this class exists is as a base class for
+        #EventEvent. So normally this method gets called directly
+        #instead of via schedule. That's why this method has the
+        #check in it.
+        if self.scheduled:
+            return
         t = self.lastrun+self.interval
         self.time = t
         scheduler.insert(self)
@@ -261,10 +266,17 @@ class NewScheduler(threading.Thread):
         "Remove something that has a time and a run property that wants its run to be called at time"
         with self.lock:
             try:
-                if event in self.tasks:
-                    self.tasks.remove(event)
-                if event in self.task_queue:
-                    self.task_queue.remove(event)
+                try:
+                    if event in self.tasks:
+                        self.tasks.remove(event)
+                except KeyError:
+                    pass
+
+                try:
+                    if event in self.tasks:
+                        self.task_queue.remove(event)
+                except KeyError:
+                    pass
             except:
                 logging.exception("failed to remove event")
 
@@ -277,10 +289,23 @@ class NewScheduler(threading.Thread):
         "unregister a RepeatingEvent"
         with self.lock:
             try:
-                if event in self.repeatingtasks:
-                    self.repeatingtasks.remove(event)
-                if event in self.tasks:
-                    self.tasks.remove(event)
+                try:
+                    if event in self.repeatingtasks:
+                        self.repeatingtasks.remove(event)
+                except KeyError:
+                    pass
+
+                try:
+                    if event in self.tasks:
+                        self.tasks.remove(event)
+                except KeyError:
+                    pass
+
+                try:
+                    if event in self.tasks:
+                        self.task_queue.remove(event)
+                except KeyError:
+                    pass
             except:
                 logging.exception("failed to unregister event")
 

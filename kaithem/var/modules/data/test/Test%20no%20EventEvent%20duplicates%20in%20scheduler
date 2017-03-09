@@ -1,0 +1,29 @@
+{continual: true, enable: true, once: true, priority: interactive, rate-limit: 5.0,
+  resource-type: event, trigger: 'True'}
+
+#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
+---
+#This code runs once when the event loads. It also runs when you save the event during the test compile
+#and may run multiple times when kaithem boots due to dependancy resolution
+__doc__='''
+There was an error where the internal scheduler somehow had multiple copies of events that were meant to only have one.
+This test makes sure that error doesn't come back.
+
+The premise is that repeating events are scheduled, they run, then they get scheduled again. If it gets scheduled twice before it
+runs and is removed from the queue there is an issue.
+'''
+from src import scheduling,newevt
+---
+for i in scheduling.scheduler.tasks:
+    if isinstance(i, newevt.EventEvent):
+        if i in scheduling.scheduler.task_queue:
+            fail = 1
+        if scheduling.scheduler.tasks.count(i)>1:
+            raise RuntimeError("Duplicate found of EventEvent")
+for i in scheduling.scheduler.task_queue:
+        if isinstance(i, newevt.EventEvent):
+            if i in scheduling.scheduler.tasks:
+                raise RuntimeError("Duplicate found of EventEvent")
+            if scheduling.scheduler.task_queue.count(i)>1:
+                raise RuntimeError("Duplicate found of EventEvent")
+print("success")
