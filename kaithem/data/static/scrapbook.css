@@ -249,20 +249,26 @@ div.scrollbox {
 
 
 button {background-color: #E6E6B8;border-radius:7px;}
+button:disabled {background-color: #D0D0D0;border-radius:7px;}
+
 input {background-color: #E6E6B8;border-radius:7px;}
+input:disabled {background-color: #D0D0D0;}
+
 input.modulename {width:70%}
 input.pythoncode {width:100%}
 
+textarea{background-color: #E6E6B8;}
 /*A text area meant for describing something*/
-textarea.description {background-color: #E6E6B8;width:70%;}
-textarea.pythoncode {background-color: #E6E6B8; width:100%; overflow:"scroll";font-size:125%;}
-textarea.htmlcode {background-color: #E6E6B8; width:100%; overflow:"scroll";font-size:125%;}
+textarea.description {width:70%;}
+textarea.pythoncode { width:100%; overflow:"scroll";font-size:125%;}
+textarea.htmlcode {width:100%; overflow:"scroll";font-size:125%;}
 textarea.code {
 	background-color: #E6E6B8;
 	 width:100%;
 	 overflow:"scroll";
 	 font-size:125%;
 	 }
+textarea:disabled {background-color: #D0D0D0}
 
 /*This is a help paragraph usually shown at the top or a sectionbox*/
 p.help{

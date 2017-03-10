@@ -70,6 +70,11 @@ class RepeatingEvent(BaseEvent):
         self.lock = threading.Lock()
         self.lastrun = None
         self.phaseoffset = (phase%1)*interval
+        #This flag is here to slove a really annoying problem.
+        #If you unregister just before the reschedule function acquires the lock,
+        #The object just gets rescheduled like nothing happened.
+        #This stop function ensures they actually stop.
+        self.stop = False
         del function
 
     def schedule(self):
@@ -120,6 +125,7 @@ class RepeatingEvent(BaseEvent):
 
 
     def register(self):
+        self.stop=False
         scheduler.register_repeating(self)
 
     def _unregister(self):
@@ -128,6 +134,7 @@ class RepeatingEvent(BaseEvent):
     #We want to use the worker pool to unregister so that we know which thread the scheduler.unregister call is
     #going to be in to prevent deadlocks. Also, we take a dummy var so we can use this as a weakref callback
     def unregister(self,dummy=None):
+        self.stop = True
         workers.do(self._unregister)
 
 
@@ -135,7 +142,8 @@ class RepeatingEvent(BaseEvent):
         workers.do(self._run)
 
     def _run(self):
-
+        if self.stop:
+            return
         self.lastrun = time.time()
         #We must have been pulled out of the event queue or we wouldn't be running
         if self.lock.acquire(False):
@@ -302,7 +310,7 @@ class NewScheduler(threading.Thread):
                     pass
 
                 try:
-                    if event in self.tasks:
+                    if event in self.task_queue:
                         self.task_queue.remove(event)
                 except KeyError:
                     pass

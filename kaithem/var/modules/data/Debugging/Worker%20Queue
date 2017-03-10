@@ -13,18 +13,12 @@ resource-type: page
 ---
 <%!
 #Code Here runs once when page is first rendered. Good place for import statements.
-__doc__= "Shows all unsaved objects listed in unsaved_changed_obj"
-from src.modules import unsaved_changed_obj
+__doc__= "Shows functios in the overflow task queue for the worker thread pool"
+from src import workers
 %>
 <%
 #Python Code here runs every page load
 %>
-<h2>Unsaved Changes(from modules.unsaved_changed_obj)</h2>
+<h2>Title</h2>
 <div class="sectionbox">
-    <dl>
-    %for i in unsaved_changed_obj:
-        <dt>${i|h}</dt>
-        <dd>${unsaved_changed_obj[i]|h}</dd>
-    %endfor
-    </dl>
-</div>
+    <code>${workers.overflow_q|h}</code></div>

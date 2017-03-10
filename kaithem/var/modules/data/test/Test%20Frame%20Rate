@@ -1,5 +1,5 @@
 continual: false
-enable: true
+enable: false
 once: true
 priority: interactive
 rate-limit: 0.0
@@ -26,7 +26,6 @@ if time.time()-last>1.15:
         firstrun = False
         #suppress messages for 60s after it starts up for real
         last = time.time()+60
-    print(time.time())
     if time.time()-lastposted>5*60:
         kaithem.message.post("/system/notifications/errors", "Frame rate dropped, onchange second fired more than 1.15s since last. May happen once at boot because of CPU loadActual Delay: "+str(time.time()-last)+"s")
         lastposted = time.time()

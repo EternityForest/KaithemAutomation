@@ -12,10 +12,9 @@ resource-type: page
 #End YAML metadata, page body mako code begins on first line after ---
 ---
 
-
 <%!
 #Code Here runs once when page is first rendered. Good place for import statements.
-__doc__= "Show the state of the scheduler in scheduling.py"
+__doc__= "Show the state of the list of events in newevt"
 from src import newevt
 import yaml
 %>

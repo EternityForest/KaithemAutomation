@@ -46,6 +46,7 @@ def getPrintOutput(event):
     except:
         return ""
 
+
 def getEventInfo(event):
     "Given a tuple of (module, resource),  return the doc string of an event if it exists, else return '' "
     return EventReferences[event].__doc__ if event in EventReferences and EventReferences[event].__doc__  else ""
@@ -161,17 +162,20 @@ class EventEvent(scheduling.UnsynchronizedRepeatingEvent):
 
     def __repr__(self):
         return "<newevt.EventEvent object for event at "+str((self.module,self.resource))+ "with id "+ str(id(self))+">"
+
     def run(self):
         do(self._run)
 
     def _run(self):
         #We must have been pulled out of the event queue or we wouldn't be running
+        #So we can reschedule ourself.
+        if self.stop:
+            return
         if self.lock.acquire(False):
             self.lastrun = ctime()
             try:
                 self.f()
                 self._schedule()
-
             except Exception as e:
                 print(e)
                 raise
@@ -294,7 +298,9 @@ class BaseEvent():
         self.countdown = 0
         self.printoutput = ""
         self.active = False
-        #Although we usually disable events by removing them from subscr
+        #Although we usually disable events by removing them from polling/subscriptions
+        #This seems like duplicated effort with the new stop flag in the scheduling though.
+        #Might be worth a closer look, or might be better to be defensive and have two stop flags.
         self.disable = False
         #symbolic prioity os a rd like high,realtime, etc
         #Actual priority is a number that causes polling to occur every nth frame
