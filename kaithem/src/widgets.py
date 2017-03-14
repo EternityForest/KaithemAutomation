@@ -81,13 +81,17 @@ if config['enable-websockets']:
         def __init__(self,*args,**kwargs):
             self.subscriptions = []
             self.lastPushedNewData = 0
+            self.uuid = "id"+base64.b64encode(os.urandom(16)).decode().replace("/",'').replace("-",'').replace('+','')[:-2]
+
             WebSocket.__init__(self,*args,**kwargs)
 
         def closed(self,code,reason):
+            messagebus.postMessage("system/errors/widgets/websocket/closed",repr(self))
             with subscriptionLock:
                 for i in self.subscriptions:
                     try:
-                        widgets[i].subscriptions.pop(self.user)
+                        widgets[i].subscriptions.pop(self.uuid)
+
                         widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
                     except:
                         pass
@@ -114,7 +118,7 @@ if config['enable-websockets']:
                             continue
 
                         with subscriptionLock:
-                            widgets[i].subscriptions[self.user] = subsc_closure(self,i)
+                            widgets[i].subscriptions[self.uuid] = subsc_closure(self,i)
                             widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
                         self.subscriptions.append(i)
                         resp.append([i, widgets[i]._onRequest(user)])
@@ -238,8 +242,7 @@ class Widget():
     def push(self,value,users=None):
         #Is this the right behavior?
         self.doCallback("__SERVER__",value)
-        for i in self.subscriptions_atomic:
-            self.subscriptions_atomic[i](value)
+        self.send(value)
 
     def send(self,value):
         "Send a value to all subscribers without invoking the local callback"

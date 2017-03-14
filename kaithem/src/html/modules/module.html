@@ -178,6 +178,7 @@ continue
 	       %endif
 	  </dt>
 	  <dd>
+
           <p class="resource-docstring">${newevt.getEventInfo((name,i))|h}</p>
 	       <b>Trigger:</b>  <code>${module[i]['trigger']|h}</code><br>
             %try:
@@ -240,8 +241,8 @@ continue
 		Edit Page</a><a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
     </dt>
 	  <dd>
-          <p class="resource-docstring">${usrpages.getPageInfo(name,i)|h}</p>
 
+          <p class="resource-docstring">${usrpages.getPageInfo(name,i)|h}</p>
       %if 'require-permissions' in module[i] and module[i]['require-permissions']:
 	  <b>Permissions:</b>
 	  %for x in module[i]['require-permissions']:
