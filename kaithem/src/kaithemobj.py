@@ -57,6 +57,11 @@ class Kaithem():
     #kaithemobj.kaithem.resource = ResourceAPI()
 
     class time(object):
+
+        @staticmethod
+        def uptime():
+            return time.time()-systasks.systemStarted
+
         @staticmethod
         def strftime(*args):
             return unitsofmeasure.strftime(*args)
@@ -243,7 +248,7 @@ class Kaithem():
         @staticmethod
         def goBack():
             raise cherrypy.HTTPRedirect(cherrypy.request.headers['Referer'])
-            
+
         @staticmethod
         def goto(url):
             raise cherrypy.HTTPRedirect(url)
