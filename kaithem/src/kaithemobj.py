@@ -243,6 +243,10 @@ class Kaithem():
         @staticmethod
         def goBack():
             raise cherrypy.HTTPRedirect(cherrypy.request.headers['Referer'])
+            
+        @staticmethod
+        def goto(url):
+            raise cherrypy.HTTPRedirect(url)
 
         @staticmethod
         def serveFile(path, contenttype = "",name = None):
