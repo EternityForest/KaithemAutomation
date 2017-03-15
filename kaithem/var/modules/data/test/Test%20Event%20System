@@ -171,5 +171,5 @@ def runtest():
 
 ---
 #Uncomment this an it might deadlock....
-time.sleep(10)
+time.sleep(3)
 kaithem.misc.do(runtest)

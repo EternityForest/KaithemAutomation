@@ -154,6 +154,12 @@ class RepeatingEvent(BaseEvent):
                 else:
                     f()
                 self._schedule()
+            except:
+                if hasattr(f,"__name__") and hasattr(f,"__module__"):
+                    messagebus.postMessage('system/errors/scheduler/',
+                                        {"function":f.__name__,
+                                        "module":f.__module__,
+                                        "traceback":traceback.format_exc(6)})
             finally:
                 self.lock.release()
                 del f

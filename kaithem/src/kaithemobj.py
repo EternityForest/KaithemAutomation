@@ -220,6 +220,9 @@ class Kaithem():
         def get(*args,**kwargs):
             return registry.get(*args,**kwargs)
 
+    class states(object):
+        #statemachines_d inserts stuff here
+        pass
 
     class mail(object):
         @staticmethod

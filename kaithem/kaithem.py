@@ -169,6 +169,7 @@ if cfg.argcmd.initialpackagesetup:
     sys.exit()
 
 from src import ManageUsers
+from src import statemachines_d
 from src import newevt
 from src import registry
 from src import modules
@@ -177,6 +178,7 @@ from src import settings
 from src import usrpages
 from src import systasks
 from src import widgets
+
 print("Loaded core python code")
 from src.config import config
 
