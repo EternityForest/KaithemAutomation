@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 import threading,sys,re,time,datetime,weakref,os,traceback, collections,random,logging
-from . import messagebus,workers
+from . import messagebus,workers,config
 from .repeatingevents import *
 
 enumerate = enumerate
@@ -287,13 +287,37 @@ class NewScheduler(threading.Thread):
                     pass
 
                 try:
-                    if event in self.tasks:
+                    if event in self.task_queue:
                         self.task_queue.remove(event)
                 except KeyError:
                     pass
             except:
                 logging.exception("failed to remove event")
 
+    # def remove_function(self, f):
+    #     "Remove any events that trigger the given function"
+    #     with self.lock:
+    #         torm = []
+    #         try:
+    #             try:
+    #                 for i in self.tasks:
+    #                     if isinstance(i,weakref.ref):
+    #                         if i()==f:
+    #                             torm.append(i)
+    #                     else:
+    #                         if i==f:
+    #                             torm.append(i)
+    #             except KeyError:
+    #                 pass
+    #
+    #             try:
+    #                 if event in self.tasks:
+    #
+    #
+    #             except KeyError:
+    #                 pass
+    #         except:
+    #             logging.exception("failed to remove event")
     def register_repeating(self, event):
         "Register a RepeatingEvent class"
         with self.lock:

@@ -389,6 +389,81 @@ h4 {
         <h3>kaithem.resource</h3>
         <p>This is both a namespace containing the API for <a href="vresources.html"> VirtualResources</a>,
             and a dict-like object allowing you to access resources by module, resource tuple.</p>
+        <h3>kaithem.states</h3>
+
+        <p>This namespace deals with kaithem's state machine library.</p>
+
+        <h4>sm=kaithem.states.StateMachine(start="start")</h4>
+        <p>Creates a state machine that starts in the given state. State machines are VirtualResources, and their subscribers
+            transfer when handing off. State machines are fully threadsafe. Machines start with no states, so they are in
+            a nonexistant state to begin with.<p>
+
+
+        <h4>sm.addState(name, enter=None, exit=None)</h4>
+        <p>Add a new state. Enter and exit can be functions taking no arguments. They will run when that state is entered or exited.
+            states are identified by a string name, but values beginning with __ are reserved
+        </p>
+
+        <h4>sm.removeState(name)</h4>
+        <p>Remove a state.</p>
+
+        <h4>sm.addRule(start, event, dest)</h4>
+        <p>Add a rule to an existing state that triggers when event(which can be any string,
+            but values beginning with __ are reserved) happens.</p>
+
+        <p>Dest can be the name of a state, or else it can be a function that takes one parameter, the machine
+            itself, and returns either None or a string.</p>
+
+        <p>This function will be called anytime the rule is triggered. If it returns None, nothing happens. If it returns a string,
+            the machine will enter the state named by that string</p>
+
+
+        <h4>sm.setTimer(state, length, dest)</h4>
+        <p>Attach a timer to a state. The timer starts when you enter the state. If you remain there for more than
+            length seconds, it goes to the dest. You can only have one timer per state, the new one replaces the old if one
+            already exists.</p>
+
+        <p>re-entering a state resets the timer.</p>
+
+        <h4>sm(event)</h4>
+        <p>Calling the machine triggers an event. The event can be any string, but values beginning with __ are reserved. If there is a maching rule, the rule is activated.
+            Otherwise nothing happens. May raise an exception if there is an error in the enter or exit function.
+        </p>
+
+        <p>This does nothing if the machine is in a nonexistant state.</p>
+
+        <p>State machine enter and exit actions occur synchronously in the thread that triggers the event, so this function
+            will block until they return. Events and transitions are fully atomic. Any other thread that triggers an event
+            during a transition will block until the original transition is complete, as will any modifications to the states, timers,
+            or rules</p>
+
+        <h4>sm.jump(state, condition=None)</h4>
+        <p>Jump immediately to the given state, doing the proper exit and enter actions. If condition is not None, it will only
+            jump if the condition matches the current state.
+        </p>
+
+        <p>Jumping to a nonexistant state is an error.</p>
+
+        <h4>sm.seek(t)</h4>
+        <p>Seeks to a given position on the state's timeline. If you seek to any point past the timer length for this state,
+        the timer rule will simply occur immediatly. Seeking to a negative position is also valid, and will have the effect of
+        extending the duration as expected.</p>
+
+
+        <h4>sm.state</h4>
+        <p>The current state as a string.</p>
+
+        <h4>sm.enteredstate</h4>
+        <p>The time.time() value when this state was entered.</p>
+
+        <h4>sm.age</h4>
+        <p>A property that returns the time in seconds since entering the current state.</p>
+
+        <h4>sm.stateage</h4>
+        <p>A property that returns a tuple of the (current state, time in seconds since entering the current state.)</p>
+
+        <p>Both values are guaranteed to match, the state will not change after checking one but before checking the other.
+            Use this value any time you want to test if something has been in a state for a certain time</p>
 
         <h3>kaithem.time</h3>
 
@@ -649,11 +724,10 @@ h4 {
 
         <p>TextBox.render() takes an optional parameter label to provide a label for the box.</p>
 
-        <h4>kaithem.widgets.APIWidget</h4>
+        <h4>kaithem.widgets.APIWidget(echo=True)</h4>
         <p>This widget exists to allow you to create custom widgets easily. When you render() it, you pass a parameter htmlid.
         The render function returns a script that places an object into a global javascript variable of that name.
         You can use obj.set(x) to set the widget's value to x, and retrieve the widget's value with obj.value.</p>\
-
         <p>
         You can also use obj.send(x), to ensure that all values and not just the latest are transmitted. obj.send is more like a message
         oriented pipe than a shared variable, although for simplicity set may be implemented similarly to send.</p>
@@ -665,7 +739,7 @@ h4 {
 
         <p>On the python side, <a href="#widgetattach">attach()</a>, read(), and write() all work as expected.</p>
 
-
+        <p>If echo is true(the default), any messges send from a client will be echoed back to all clients</p>
         <h3>kaithem.web</h3>
 
         <h4>kaithem.web.url(url)</h4>

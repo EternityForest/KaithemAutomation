@@ -56,7 +56,11 @@ if not module.sm_lamp:
 time.sleep(2)
 
 if module.sm_lamp:
-    raise RuntimeError("state machine imaginary lamp didn't turn itself off")
+    time.sleep(8)
+    if module.sm_lamp:
+        raise RuntimeError("state machine imaginary lamp didn't turn itself off within 10s")
+    else:
+          raise RuntimeError("state machine imaginary lamp didn't turn itself off within 2s")
 
 #Turn it on before deleting so we can make sure the timer won't trigger after it's gone
 sm.event('motion')

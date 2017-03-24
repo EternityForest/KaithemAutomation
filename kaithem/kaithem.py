@@ -169,7 +169,7 @@ if cfg.argcmd.initialpackagesetup:
     sys.exit()
 
 from src import ManageUsers
-from src import statemachines_d
+from src import statemachines
 from src import newevt
 from src import registry
 from src import modules
@@ -210,7 +210,11 @@ if config['enable-websockets']:
     print("activated websockets")
 
 
-
+sys.modules['kaithem'] = sys.modules['__main__']
+from src import kaithemobj
+kaithemobj.kaithem.states.StateMachine = statemachines.StateMachine
+kaithemobj.kaithem.misc.version      = __version__
+kaithemobj.kaithem.misc.version_info = __version_info__
 
 #Load all modules from the active modules directory
 modules.initModules()
@@ -433,10 +437,7 @@ if time.time() < 1420070400:
 if time.time() < util.min_time:
         messagebus.postMessage('/system/notifications/errors',"System Clock may be wrong, or time has been set backwards at some point. If system clock is correct and this error does not go away, you can fix it manually be correcting folder name timestamps in the var dir.")
 
-sys.modules['kaithem'] = sys.modules['__main__']
-from src import kaithemobj
-kaithemobj.kaithem.misc.version      = __version__
-kaithemobj.kaithem.misc.version_info = __version_info__
+
 cherrypy.engine.start()
 #If configured that way on unix, check if we are root and drop root.
 util.drop_perms(config['run-as-user'], config['run-as-group'])

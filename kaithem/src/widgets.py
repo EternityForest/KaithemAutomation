@@ -122,7 +122,10 @@ if config['enable-websockets']:
                             widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
                         self.subscriptions.append(i)
                         resp.append([i, widgets[i]._onRequest(user)])
-                        self.send(json.dumps(resp))
+                        #Turning off echo is useful for APIWidgets that might not want to make
+                        #the extra traffic.
+                        if self.echo:
+                            self.send(json.dumps(resp))
 
             except Exception as e:
                 messagebus.postMessage("system/errors/widgets/websocket", traceback.format_exc(6))
@@ -137,6 +140,7 @@ class Widget():
         self.errored_getter = None
         self.subscriptions = {}
         self.subscriptions_atomic = {}
+        self.echo = True
 
         def f(u,v):
             pass
@@ -708,9 +712,10 @@ class TextBox(Widget):
         </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self.value, 'label':label}
 
 class APIWidget(Widget):
-        def __init__(self,*args,**kwargs):
+        def __init__(self,echo=True,*args,**kwargs):
             Widget.__init__(self,*args,**kwargs)
             self.value = None
+            self.echo=echo
 
         def render(self,htmlid):
             return """

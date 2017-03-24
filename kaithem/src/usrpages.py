@@ -106,7 +106,17 @@ def getPageOutput(module,resource):
 _Pages = {}
 _page_list_lock = threading.Lock()
 
+
+def getPageHTMLDoc(m,r):
+    try:
+        if hasattr(_Pages[module][resource].template.module,"__html_doc__"):
+            return str(_Pages[module][resource].template.module.__html_doc__)
+    except:
+        pass
+
 def getPageInfo(module,resource):
+    #There's enough possible trouble with new kinds of events and users stuffing bizzare things
+    #in there that i'm Putting this in a try block.
     try:
         return _Pages[module][resource].template.module.__doc__ or ""
     except:
