@@ -1,11 +1,11 @@
-continual: false
+continual: true
 disabled: false
 enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
 resource-type: event
-trigger: 'True'
+trigger: not running_tests
 versions: {}
 
 #End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
@@ -16,126 +16,160 @@ __doc__=''
 from src import newevt,messagebus,modules_state
 import time,traceback
 
+running_tests=[]
 def theTest():
-    with modules_state.modulesLock:
-        modules_state.scopes['x'] = {}
-        #Create an event that sets y to 0 if it is 1
+    running_tests.append(1)
+    modules_state.scopes['x'] = {}
+    #Create an event that sets y to 0 if it is 1
+    with newevt._event_list_lock:
         x = newevt.Event("y==1","global y\ny=0",locals(),setup="y=0")
-        x.module=x.resource="TEST"
+        x.module=x.resource="testevt"
+        newevt.EventReferences[x.module,x.resource] = x
 
         #Register event with polling.
         x.register()
-        #Set y to 1
-        x.pymodule.y = 1
+    #Set y to 1
+    x.pymodule.y = 1
 
-        time.sleep(0.1)
+    time.sleep(2)
+    
+
+
+    try:    
         #y should immediately be set back to 0 at the next polling cycle
         if x.pymodule.y == 1:
                 raise RuntimeError("Edge-Triggered Event did nothing")
-
-        #Unregister event and make sure it really goes away
+    except:
+        print(x.pymodule.__dict__)
+        raise
+    finally:
         x.unregister()
-        x.pymodule.y =1
-        if not x.pymodule.y == 1:
-                raise RuntimeError("Edge-Triggered Event did not go away when unregistered")
 
-        ##Testing one time events
-        x.pymodule.y = False
-        def f():
-            return x.pymodule.y
 
-        def g():
-            x.pymodule.y = False
 
-        newevt.when(f,g)
-        time.sleep(0.1)
-        x.pymodule.y = True
-        time.sleep(0.5)
-        if x.pymodule.y:
+    x.pymodule.y =1
+    if not x.pymodule.y == 1:
+            raise RuntimeError("Edge-Triggered Event did not go away when unregistered")
+
+    blah = [False]
+
+    def f():
+        return blah[0]
+
+    def g():
+        blah[0]=False
+
+    newevt.when(f,g)
+    time.sleep(0.5)
+    blah[0]=True
+
+    time.sleep(0.5)
+    if blah[0]:
+        time.sleep(2)
+        if blah[0]:
             raise RuntimeError("One time event did not trigger")
 
-        x.pymodule.y = True
-        time.sleep(0.5)
-        if not x.pymodule.y:
-            raise RuntimeError("One time event did not delete itself properly")
-        newevt.after(1,g)
+    blah[0]=True
+    time.sleep(1)
+    if not blah[0]:
+        raise RuntimeError("One time event did not delete itself properly")
 
-        x.pymodule.y = True
-        time.sleep(1.2)
-        if x.pymodule.y:
-            raise RuntimeError("Time delay event did not trigger")
+    newevt.after(1,g)
+    blah[0]=True
+    time.sleep(1.5)
+    if blah[0]:
+        raise RuntimeError("Time delay event did not trigger")
 
-        x.pymodule.y = True
-        time.sleep(1.2)
-        if not x.pymodule.y:
-            raise RuntimeError("Time delay event did not delete itself properly")
+    blah[0] = True
+    time.sleep(2)
+    if not blah[0]:
+        raise RuntimeError("Time delay event did not delete itself properly")
 
+    with newevt._event_list_lock:
         #Same exact thing exept we use the onchange
         x = newevt.Event("!onchange y","global y\ny=5")
-        x.module=x.resource="TEST"
-
+         #Give it a value to change from
+        x.pymodule.y = 0
+        
+        x.module=x.resource="TEST1"
+        newevt.EventReferences[x.module,x.resource] = x
 
         #Register event with polling.
         x.register()
-        #Give it a value to change from
-        x.pymodule.y = 0
-        #Let it notice the old value
-        time.sleep(0.10)
-        #Set y to 1
-        x.pymodule.y = 1
+   
+    #Let it notice the old value
+    time.sleep(1)
+    #Set y to 1
+    x.pymodule.y = 1
 
-        time.sleep(0.10)
-        #y should immediately be set back to 0 at the next polling cycle
-        if x.pymodule.y == 1:
-                raise RuntimeError("Onchange Event did nothing")
+    time.sleep(1)
+    #y should immediately be set back to 0 at the next polling cycle
+    x.unregister()
 
-        #Unregister event and make sure it really goes away
-        x.unregister()
-        x.pymodule.y =1
-        if not x.pymodule.y == 1:
-                raise RuntimeError("Onchange Event did not go away when unregistered")
+    if x.pymodule.y == 1:
+            raise RuntimeError("Onchange Event did nothing")
 
-        #Now we test the message bus event
-        x = newevt.Event("!onmsg /test","global y\ny='test'")
-        #There is a weird old feature where message events don't work if not in EventReferences
-        #It was an old thing to caths a circular reference bug.
-        with newevt._event_list_lock: #Make sure nobody is iterating the eventlist
-            #Add new event
-            x.register()
-            #Update index
-            newevt.EventReferences[x.module,x.resource] = x
-        time.sleep(0.25)
-        #Give it a value to change from
-        messagebus.postMessage("/test",'foo')
-        #Let it notice the old value
-
-        time.sleep(0.25)
-        print(x.action_wrapper_because_we_need_to_keep_a_reference)
-        #y should immediately be set back to 0 at the next polling cycle
-        if not hasattr(x.pymodule,'y'):
-                time.sleep(5)
-                if not hasattr(x.pymodule,'y'):
-                    raise RuntimeError("Message Event did nothing or took longer than 5s")
-                else:
-                    raise RuntimeError("Message Event had slow performance, delivery took more than 0.25s")
  
 
-        #Unregister event and make sure it really goes away
-        x.unregister()
-        x.pymodule.y =1
+    x.pymodule.y =1
+    if not x.pymodule.y == 1:
+            raise RuntimeError("Onchange Event did not go away when unregistered")
 
-        messagebus.postMessage('foo',"/test")
+
+    #There is a weird old feature where message events don't work if not in EventReferences
+    #It was an old thing to caths a circular reference bug.
+    with newevt._event_list_lock:
+        #Now we test the message bus event
+        x = newevt.Event("!onmsg /test","global y\ny='test'")
+        x.module=x.resource = 'TEST2'
+        #Make sure nobody is iterating the eventlist
+        #Add new event
+        x.register()
+        #Update index
+        newevt.EventReferences[x.module,x.resource] = x
+    time.sleep(0.25)
+    #Give it a value to change from
+    messagebus.postMessage("/test",'foo')
+    #Let it notice the old value
+
+    time.sleep(0.25)
+    x.unregister()
+    #y should immediately be set back to 0 at the next polling cycle
+    if not hasattr(x.pymodule,'y'):
+            time.sleep(5)
+            if not hasattr(x.pymodule,'y'):
+                raise RuntimeError("Message Event did nothing or took longer than 5s")
+            else:
+                raise RuntimeError("Message Event had slow performance, delivery took more than 0.25s")
+
+    try:
+           x.pymodule.y =1
+    except:
+        #This might fail if the implementatino makes pymodule not exist anymore
+        pass
+
+    messagebus.postMessage('foo',"/test")
+    #If there is no y or pymodule, this test won't work but we can probably assume it unregistered correctly.
+    #Maybe we should add a real test that works either way?
+    if hasattr(x, 'pymodule') and hasattr(x.pymodule,'y'):            
         if x.pymodule.y == 'test':
                 raise RuntimeError("Message Event did not go away when unregistered")
 
 
-        print("Sucess in testing event module")
+    print("Success in testing event system")
+    running_tests.pop()
 def runtest():
     try:
         theTest()
     except:
         messagebus.postMessage("/system/notifications/errors",    traceback.format_exc(6))
+    finally:
+        newevt.removeOneEvent('testevt','testevt')
+        newevt.removeOneEvent('TEST1','TEST1')
+        newevt.removeOneEvent('TEST2','TEST2')
+
 
 ---
-#Uncomment this an it might deadlock.
+#Uncomment this an it might deadlock....
+time.sleep(3)
 kaithem.misc.do(runtest)

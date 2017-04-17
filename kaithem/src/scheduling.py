@@ -291,6 +291,7 @@ class NewScheduler(threading.Thread):
                         self.task_queue.remove(event)
                 except KeyError:
                     pass
+
             except:
                 logging.exception("failed to remove event")
 
@@ -322,6 +323,7 @@ class NewScheduler(threading.Thread):
         "Register a RepeatingEvent class"
         with self.lock:
             self.repeatingtasks.append(event)
+
 
     def unregister(self, event):
         "unregister a RepeatingEvent"
@@ -388,6 +390,9 @@ class NewScheduler(threading.Thread):
 
             time.sleep(x)
             with self.lock:
+
+
+
                 #Run tasks until all remaining ones are in the future
                 while self.tasks and (self.tasks[0].time <time.time()):
                     i = self.tasks.pop(False)

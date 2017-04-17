@@ -18,7 +18,7 @@ site-data-dir: var
 worker-threads: 12
 
 #How many threads cherrypy should use for the web server to serve unencrypted pages
-http-thread-pool: 3
+http-thread-pool: 2
 
 #How many threads cherrypy should use for the web server to serve encrypted pages
 https-thread-pool: 10
@@ -86,7 +86,7 @@ audio-backends:
 #How many times to retry loading an event before marking it as a failure and moving on
 max-load-attempts: 25
 
-#allow websocket connections? they may be unstable.
+#allow websocket connections? This is now the only non-deprecated widget interface
 enable-websockets: true
 
 #Enable optional javascript effects.

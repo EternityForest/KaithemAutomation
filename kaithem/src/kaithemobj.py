@@ -22,6 +22,9 @@ import cherrypy
 from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry,directories,pages,config,persist
 from . import astrallibwrapper as sky
 
+bootTime = time.time()
+
+
 #This exception is what we raise from within the page handler to serve a static file
 class ServeFileInsteadOfRenderingPageException(Exception):
     pass
@@ -43,7 +46,7 @@ class Kaithem():
 
         @staticmethod
         def uptime():
-            return time.time()-systasks.systemStarted
+            return time.time()-bootTime
 
         @staticmethod
         def errors(f):
@@ -60,7 +63,7 @@ class Kaithem():
 
         @staticmethod
         def uptime():
-            return time.time()-systasks.systemStarted
+            return time.time()-bootTime
 
         @staticmethod
         def strftime(*args):
@@ -221,7 +224,6 @@ class Kaithem():
             return registry.get(*args,**kwargs)
 
     class states(object):
-        #statemachines_d inserts stuff here
         pass
 
     class mail(object):

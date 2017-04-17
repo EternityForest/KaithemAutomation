@@ -25,6 +25,7 @@ systemStarted = time.time()
 
 lastsaved = time.time()
 def getcfg():
+    global saveinterval,dumplogsinterval,lastdumpedlogs
     if not config['autosave-state'] == 'never':
         saveinterval = unitsofmeasure.timeIntervalFromString(config['autosave-state'])
 

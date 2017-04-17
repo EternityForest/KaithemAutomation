@@ -412,6 +412,9 @@ class WebInterface():
                     if not kwargs['name'] == root:
                         unsaved_changed_obj[kwargs['name']] = "New name of module. "+ pages.getAcessingUser()+ " old name was "+root
                         unsaved_changed_obj[root] = "Old name of module that was renamed by "+ pages.getAcessingUser()+" new name is "+kwargs['name']
+                    else:
+                        unsaved_changed_obj[root] = "Module metadata changed"
+
                     if "location" in kwargs and kwargs['location']:
                         external_module_locations[kwargs['name']]= kwargs['location']
                         #We can't just do a delete and then set, what if something odd happens between?

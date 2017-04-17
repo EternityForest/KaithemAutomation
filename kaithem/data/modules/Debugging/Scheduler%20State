@@ -11,7 +11,6 @@ resource-type: page
 
 #End YAML metadata, page body mako code begins on first line after ---
 ---
-
 <%!
 #Code Here runs once when page is first rendered. Good place for import statements.
 __doc__= "Show the state of the scheduler in scheduling.py"
@@ -23,6 +22,6 @@ import yaml
 %>
 <h2>Title</h2>
 <div class="sectionbox">
-Current Tasks(function, module, runtime):<br><pre>${yaml.dump([[i.f().__name__,i.f().__module__, kaithem.string.usrstrftime(i.time)] for i in scheduling.scheduler.tasks])|h}</pre><br><br>
-Recurring Tasks(function, module, interval):<br><pre>${yaml.dump([[i.f().__name__,i.f().__module__, i.interval] for i in scheduling.scheduler.repeatingtasks])|h}</pre>
+Current Tasks(function, module, runtime):<br><pre>${yaml.dump([repr(i) for i in scheduling.scheduler.tasks])|h}</pre><br><br>
+Recurring Tasks(function, module, interval):<br><pre>${yaml.dump([repr(i) for i in scheduling.scheduler.repeatingtasks])|h}</pre>
 </div>

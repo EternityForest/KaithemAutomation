@@ -1,4 +1,4 @@
-allow-origins: [!!python/unicode '*']
+allow-origins: ['*']
 allow-xss: false
 auto-reload: false
 auto-reload-interval: 5.0

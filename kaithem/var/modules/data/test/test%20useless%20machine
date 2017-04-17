@@ -1,5 +1,5 @@
 {continual: true, enable: true, once: true, priority: interactive, rate-limit: 0.0,
-  resource-type: event, trigger: 'True'}
+  resource-type: event, trigger: kaithem.misc.uptime()>90}
 
 #End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
 ---
@@ -14,7 +14,7 @@ depend = module.uselessmachine
 module['UselessMachine'].start()
 time.sleep(1)
 module.uselessmachine =  time.time()
-time.sleep(0.3)
+time.sleep(0.5)
 if module.uselessmachine:
     raise RuntimeError("Useless machine didn't work")
 
@@ -30,7 +30,7 @@ if not module.uselessmachine:
 module['UselessMachine'].start()
 time.sleep(1)
 module.uselessmachine =  time.time()
-time.sleep(0.3)
+time.sleep(0.5)
 if module.uselessmachine:
     raise RuntimeError("Useless machine didn't turn back on")
 print("success")

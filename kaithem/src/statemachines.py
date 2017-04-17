@@ -13,8 +13,12 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
+
+
 import time, weakref,types,threading
 
+
+#Lets keep dependancies on things within kaithem to a minimum, as eventually this might be spun off to a standalone thing
 from . import scheduling,modules,unitsofmeasure
 
 
@@ -84,7 +88,7 @@ class StateMachine(modules.VirtualResource):
     def __init__(self,start="start",name="Untitled",description=""):
         self.states = {}
         self.state = start
-        self.enteredstate = time.time()
+        self.enteredState = time.time()
         #Used to ensure that if one leaves and reenters a state just as a timer is firing it does not trigger anything.
         self._transiton_count = 0
         self.lock= threading.RLock()
@@ -108,13 +112,13 @@ class StateMachine(modules.VirtualResource):
         return self.state
 
     def __repr__(self):
-        return "<State machine at %d in state %s, entered %d ago>"%(id(self),self.state,time.time()-self.enteredstate)
+        return "<State machine at %d in state %s, entered %d ago>"%(id(self),self.state,time.time()-self.enteredState)
 
     def __html_repr__(self):
         return "State machine at %d in state %s, entered %s ago%s"%(
         id(self),
         self.state,
-        unitsofmeasure.formatTimeInterval(time.time()-self.enteredstate,2),
+        unitsofmeasure.formatTimeInterval(time.time()-self.enteredState,2),
         ('\n' if self.description else '')+self.description
         )
 
@@ -137,12 +141,12 @@ class StateMachine(modules.VirtualResource):
 
     @property
     def age(self):
-        return time.time()-self.enteredstate
+        return time.time()-self.enteredState
 
     @property
     def stateage(self):
         with self.lock:
-            return (self.state,time.time()-self.enteredstate)
+            return (self.state,time.time()-self.enteredState)
 
     def handoff(self,other):
         "pushes all subscribers to the new one"
@@ -156,21 +160,23 @@ class StateMachine(modules.VirtualResource):
                     return self.replacement.handoff(name)
 
                 if other.keepSubscribers:
-                    #Import all the old subscribers
-                    for j in other.subscribers[i]:
+                    #export all the old subscribers
+                    for i in self.subscribers:
                         #duplicate detection
-                        if not j in self.subscribers:
-                            self.subscribers[j]= []
-                        self.subscribers[j].append(j)
+                        if not i in other.subscribers:
+                            other.subscribers[j]= []
+                        other.subscribers[j].extend(self.subscribers[i])
 
                 if other.keepState:
                     #Carry over the state and the time at which that state was entered.
                     other.state = self.state
-                    other.enteredstate = self.enteredstate
+                    other.prevState = self.prevState
+                    other.enteredState = self.enteredState
                     other.time_offset = self.time_offset
+
                 other.lock = self.lock
 
-                VirtualResource.handoff(self,other)
+                modules.VirtualResource.handoff(self,other)
 
 
     def checkTimer(self):
@@ -180,7 +186,7 @@ class StateMachine(modules.VirtualResource):
                     return
 
                 if self.states[self.state].get('timer'):
-                    if ((time.time()+self.time_offset)-self.enteredstate) > self.states[self.state]['timer'][0]:
+                    if ((time.time()+self.time_offset)-self.enteredState) > self.states[self.state]['timer'][0]:
 
                         #Get the destination
                         x = self.states[self.state]['timer'][1]
@@ -197,8 +203,7 @@ class StateMachine(modules.VirtualResource):
 
     def _configureTimer(self):
         "Sets up the timer. Needs to be called under lock"
-        if not timersEnabled:
-            return True
+
         if hasattr(self,'schedulerobj'):
             self.schedulerobj.unregister()
             del self.schedulerobj
@@ -206,7 +211,7 @@ class StateMachine(modules.VirtualResource):
         #If for any reason we get here too early, let's just keep rescheduling
         if self.states[self.state].get('timer'):
             #If we haven't already passed the time of the timer
-            if ((time.time()+self.time_offset)-self.enteredstate)<self.states[self.state]['timer'][0]:
+            if ((time.time()+self.time_offset)-self.enteredState)<self.states[self.state]['timer'][0]:
                 f = makechecker(weakref.ref(self))
                 self.schedulerobj = scheduling.scheduler.schedule(f, time.time()+0.08)
                 self.schedulerobj.func_ref = f
@@ -221,7 +226,7 @@ class StateMachine(modules.VirtualResource):
         with self.lock:
             if condition and (not condition==self.state):
                 return
-            pos = (time.time()-self.enteredstate)
+            pos = (time.time()-self.enteredState)
             self.time_offset = t-pos
             self._configureTimer()
 
@@ -293,10 +298,12 @@ class StateMachine(modules.VirtualResource):
         if s['exit']:
             s['exit']()
 
+        self.prevState = self.state
         self.state=state
-
         #Record the time that we entered the new state
-        self.enteredstate = time.time()
+        self.enteredState = time.time()
+        self._configureTimer()
+
         self.time_offset = 0
         if hasattr(self,'schedulerobj'):
             self.schedulerobj.unregister()
