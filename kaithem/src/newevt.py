@@ -390,7 +390,7 @@ class BaseEvent():
                 #A derived class or inherited from a mixin.
                 self._do_action()
                 self.lastcompleted = time.time()
-                messagebus.postMessage('/system/events/ran',[self.module, self.resource])
+                #messagebus.postMessage('/system/events/ran',[self.module, self.resource])
             except Exception as e:
                 self._handle_exception(e)
 
@@ -625,7 +625,7 @@ class FunctionEvent(BaseEvent):
                 #A derived class or inherited from a mixin.
                 self._do_action()
                 self.lastcompleted = time.time()
-                messagebus.postMessage('/system/events/ran',[self.module, self.resource])
+                #messagebus.postMessage('/system/events/ran',[self.module, self.resource])
             except Exception as e:
                 if self.active:
                     self._handle_exception(e)
