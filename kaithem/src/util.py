@@ -15,8 +15,9 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 "This file ideally should only depend on sdtilb stuff and import the rest as needed. We don't want this to drag in threads and everything"
-import  os,threading,copy,sys,shutil,difflib,time,json,traceback,stat,subprocess,copy,collections,types,weakref
+import  os,threading,copy,sys,shutil,difflib,time,json,traceback,stat,subprocess,copy,collections,types,weakref,logging
 import yaml
+logger = logging.getLogger("system")
 #2 and 3 have basically the same module with diferent names
 if sys.version_info < (3,0):
     from urllib import quote
@@ -80,7 +81,8 @@ def SaveAllState():
                 x=True
             if registry.sync():
                 x=True
-            messagelogging.dumpLogFile(silent=True)
+            messagelogging.saveLogList()
+            pylogginghandler.syslogger.flush()
             #Always send the message, because there is almost always going to be at least some log entries saved
             messagebus.postMessage("/system/notifications/important","Global server state was saved to disk")
             return x
@@ -97,6 +99,7 @@ def SaveAllStateExceptLogs():
             x = x or auth.dumpDatabase()
             x = x or modules.saveAll()
             x = x or registry.sync()
+            messagelogging.saveLogList()
             if x:
                 #Send the message only if something was actually saved.
                 messagebus.postMessage("/system/notifications/important","Global server state was saved to disk")

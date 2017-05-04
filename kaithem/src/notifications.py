@@ -13,11 +13,14 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import time,json
+import time,json,logging
 import cherrypy
 from . import messagebus,pages
 from .unitsofmeasure import strftime
 from .config import config
+
+logger = logging.getLogger("system.notifications")
+ilogger = logging.getLogger("system.notifications.important")
 
 notificationslog =   []
 
@@ -26,7 +29,7 @@ def makenotifier():
         t = float(cherrypy.request.cookie["LastSawMainPage"].value)
     else:
         t = float(cherrypy.response.cookie["LastSawMainPage"].value)
-        
+
     b = countnew(t)
     if b[2]:
         c = 'warning'
@@ -34,7 +37,7 @@ def makenotifier():
         c = 'error'
     else:
          c = ""
-         
+
     if b[0]:
         s = "<span class='%s'>(%d)</span>" %(c,b[0])
     else:
@@ -61,29 +64,36 @@ def countnew(since):
                     normal += 1
                 total +=1
         return [total,normal,warnings,errors]
-    
+
 class WI():
     @cherrypy.expose
     def countnew(self,**kwargs):
         pages.require('/admin/mainpage.view')
         return json.dumps(countnew(float(kwargs['since'])))
-    
+
     @cherrypy.expose
     def mostrecent(self,**kwargs):
         pages.require('/admin/mainpage.view')
         return json.dumps(notificationslog[-int(kwargs['count']):])
 
-    
+
 def subscriber(topic,message):
     global notificationslog
     notificationslog.append((time.time(),topic,message))
     #Delete all but the most recent N notifications, where N is from the config file.
-    notificationslog = notificationslog[-config['notifications-to-keep']:] 
-    
+    notificationslog = notificationslog[-config['notifications-to-keep']:]
+
 messagebus.subscribe('/system/notifications/',subscriber)
 
 def printer(t,m):
-        print("\n"+ strftime() + ":\n" +"On Topic: "+t+"\n"+ m+"\n")
+        if 'error' in t:
+            logger.error(m)
+        elif 'warning' in t:
+            logger.warning(m)
+        elif 'important' in t:
+            ilogger.info(m)
+        else:
+            logger.info(m)
 
 for i in config['print-topics']:
     messagebus.subscribe(i,printer)

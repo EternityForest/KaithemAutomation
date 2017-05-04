@@ -12,7 +12,7 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import time, threading,json, os,bz2, gzip, re, collections,traceback
+import time, threading,json, os,bz2, gzip, re, collections,traceback,logging
 import cherrypy
 from . import unitsofmeasure,messagebus,directories,workers,util,pages, config
 from .messagebus import normalize_topic
@@ -43,119 +43,16 @@ except:
 
 log = defaultdict(deque)
 
-def dumpLogFile(silent=False):
-    try:
-        _dumpLogFile()
-        if not silent:
-            messagebus.postMessage("/system/notifications/", "Dumped log file")
-    except Exception as e:
-        messagebus.postMessage("/system/errors/saving-logs/",traceback.format_exc(6))
-        messagebus.postMessage("/system/notifications/errors/","Error saving log file")
 
-def _dumpLogFile():
-    """Flush all log entires that belong to topics that are in the list of things to save, and clear the staging area"""
-    if config['log-format'] == 'normal':
-        def dump(j,f):
-            f.write(json.dumps(j,sort_keys=True,indent=1).encode())
-
-    elif config['log-format'] == 'tiny':
-        def dump(j,f):
-            f.write(json.dumps(j,sort_keys=True,separators=(',',':')).encode())
-
-    elif config['log-format'] == 'pretty':
-        def dump(j,f):
-            f.write(json.dumps(j,sort_keys=True,indent=4, separators=(',', ': ')).encode())
-
-    else:
-        def dump(j,f):
-            f.write(json.dumps(j,sort_keys=True,indent=1).encode())
-            messagebus.postMessage("system/notifications","Invalid config option for 'log-format' so defaulting to normal")
-
-    if config['log-compress'] == 'bz2':
-        openlog=  bz2.BZ2File
-        ext = '.json.bz2'
-
-    elif config['log-compress'] == 'gzip':
-        openlog = gzip.GzipFile
-        ext = '.json.gz'
-
-    elif config['log-compress'] == 'none':
-        openlog = open
-        ext = '.json'
-
-    else:
-        openlog = open
-        messagebus.postMessage("system/notifications","Invalid config option for 'log-compress' so defaulting to no compression")
-
-
-    global log,loglistchanged
-    global approxtotallogentries
-
-    with savelock:
-        temp = dict(log)
-        log = defaultdict(deque)
-        approxtotallogentries = 0
-
-        if loglistchanged:
-            #Save the list of things to dump
-            with open(os.path.join(directories.logdir,"whattosave.txt"),'w') as f:
-                util.chmod_private_try(os.path.join(directories.logdir,"whattosave.txt"))
-                for i in toSave:
-                    f.write(i+'\n')
-            loglistchanged = False
-
-        #Get rid of anything that is not in the list of things to dump to the log
-        temp2 = {}
-        for i in temp:
-            #Parsetopic is a function that returns all subscriptions that would match a topic
-            if not set(messagebus.MessageBus.parseTopic(i)).isdisjoint(toSave):
-                temp2[i] = list(temp[i])
-        temp = temp2
-
-        #If there is no log entries to save, don't dump an empty file.
-        if not temp:
-            return
-
-
-
-        where =os.path.join(directories.logdir,'dumps')
-        if not os.path.exists(where):
-            os.makedirs(where)
-
-        if not config['log-format'] == 'null':
-            #Actually dump the log.
-            t = time.time()
-            with openlog(os.path.join(where,str(t)+ext),'wb') as f:
-                util.chmod_private_try(os.path.join(where,str(t)+ext))
-                dump(temp,f)
-                f.close()
-
-
-        asnumbers = {}
-        for i in util.get_files(where):
-                try:
-                    #Remove extensions
-                    if i.endswith(".json"):
-                        asnumbers[float(i[:-5])] = i
-                    elif i.endswith(".json.gz"):
-                        asnumbers[float(i[:-8])] = i
-                    elif i.endswith(".json.bz2"):
-                        asnumbers[float(i[:-9])] = i
-                except ValueError:
-                    pass
-
-        maxsize = unitsofmeasure.strToIntWithSIMultipliers(config['keep-log-files'])
-        size = 0
-        #Loop over all the old log dumps and add up the sizes
-        for i in util.get_files(where):
-            size = size + os.path.getsize(os.path.join(where,i))
-
-        #Get rid of oldest log dumps until the total size is within the limit
-        for i in sorted(asnumbers.keys()):
-            if size <= maxsize:
-                break
-            size = size - os.path.getsize(os.path.join(where,i))
-            os.remove(os.path.join(where,asnumbers[i]))
+def saveLogList():
+    if loglistchanged:
+        #Save the list of things to dump
+        with open(os.path.join(directories.logdir,"whattosave.txt"),'w') as f:
+            util.chmod_private_try(os.path.join(directories.logdir,"whattosave.txt"))
+            for i in toSave:
+                f.write(i+'\n')
+        loglistchanged = False
+        
 
 #Dict beieng used as ordered set, it's a cache of topics that are known not to be logged.
 known_unsaved = collections.OrderedDict()
@@ -172,30 +69,30 @@ def isSaved(topic):
     else:
         return True
 
+logger = logging.getLogger("system.msgbus")
+
 def messagelistener(topic,message):
     global log
     global approxtotallogentries
-
+    
+    if isSaved(topic):
+        if 'error' in topic:
+            logger.error(topic+" "+str(message))
+        elif 'warning' in topic:
+            logger.warning(topic+" "+str(message))
+        else:
+            logger.info(topic+" "+str(message))
     #Default dicts are good.
     log[topic].append((time.time(),message))
 
-    #Unless a topic is in our list of things that we are saving,
-    #We only want to keep around the most recent couple of messages.
-    #So, if we have too many messages in one topic, than we must discard one
+    #Only keep recent messages.
     try:
-        if not isSaved(topic):
-            if len(log[topic]) > config['non-logged-topic-limit']:
-                log[topic].popleft()
-                approxtotallogentries -=1
+        if len(log[topic]) > config['non-logged-topic-limit']:
+            log[topic].popleft()
+            approxtotallogentries -=1
     except Exception as e:
         print (e)
 
-
-    #This is not threadsafe. Hence the approx.
-    #I'm assuming i had a good reason to set this back to 0 in dumpLogFile() not right here.
-    approxtotallogentries +=1
-    if approxtotallogentries > config['log-dump-size']:
-        workers.do(dumpLogFile)
 
 
 messagebus.subscribe('/',messagelistener)

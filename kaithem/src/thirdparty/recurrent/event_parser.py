@@ -14,6 +14,9 @@ from .constants import *
 log = logging.getLogger('recurrent')
 #log.setLevel(logging.DEBUG)
 
+#Modified by kaithem project to reduce the amount of noise in the log
+log.setLevel(logging.WARNING)
+
 RE_TIME = re.compile(r'(?P<hour>\d{1,2}):?(?P<minute>\d{2})?\s?(?P<mod>am|pm)?(oclock)?')
 RE_AT_TIME = re.compile(r'at\s%s' % RE_TIME.pattern)
 RE_AT_TIME_END = re.compile(r'at\s%s$' % RE_TIME.pattern)

@@ -306,7 +306,7 @@ else:
 
 def strToIntWithSIMultipliers(s):
     """Take a string of the form number[k|m|g] or just number and convert to an actual number
-    '0'-> 0, '5k'->5000 etc"""
+    '0'-> 0, '5k'->5000 etc. Does not do division!!!! m is mega not milli!!!"""
     s = s.lower()
     #This piece of code interprets a string like 89m or 50k as a number like 89 millon or 50,000
     if s.endswith('k'):

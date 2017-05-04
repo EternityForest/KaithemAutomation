@@ -28,7 +28,10 @@ except:
 #sets up and starts the server, and contains page handlers for the main page.
 
 
-import sys,os,threading,traceback
+import sys,os,threading,traceback,logging
+
+logger = logging.getLogger("system")
+logger.setLevel(0)
 
 #There are some libraries that are actually different for 3 and 2, so we use the appropriate one
 #By changing the pathe to include the proper ones.
@@ -75,10 +78,14 @@ else:
 
 import time,signal
 import cherrypy,validictory
+
 from cherrypy import _cperror
 from src import util
 
 from src import config as cfg
+
+logging.getLogger("cherrypy.access").propagate = False
+
 
 #WE have to get the workers set up early because a lot of things depend on it.
 from src import workers
@@ -102,7 +109,10 @@ workers.start(count,qsize,wait)
 from src import messagebus
 from src import pylogginghandler
 from src import messagelogging
+from src import logviewer
 
+
+threadlogger = logging.getLogger("system.threading")
 
 def installThreadExcepthook():
     """
@@ -123,10 +133,13 @@ def installThreadExcepthook():
         run_old = self.run
         def run_with_except_hook(*args, **kw):
             try:
+                threadlogger.info("Thread starting: "+self.name)
                 messagebus.postMessage("/system/threads/start",self.name)
                 run_old(*args, **kw)
+                threadlogger.info("Thread stopping: "+self.name)
                 messagebus.postMessage("/system/threads/stop",self.name)
             except Exception as e:
+                threadlogger.exception("Thread stopping due to exception: "+self.name)
                 messagebus.postMessage("/system/notifications/errors","Exception in thread %s, thread stopped. More details in logs."%self.name)
                 messagebus.postMessage("/system/threads/errors","Exception in thread %s:\n%s"%(self.name, traceback.format_exc(6)))
                 raise e
@@ -159,12 +172,12 @@ from src import directories
 
 #Initialize the authorization module
 auth.initializeAuthentication()
-print("Loaded auth data")
+logger.info("Loaded auth data")
 
 if cfg.argcmd.initialpackagesetup:
     util.drop_perms(cfg.config['run-as-user'], cfg.config['run-as-group'])
     auth.dumpDatabase()
-    print("Kaithem users set up. Now exiting(May take a few seconds. You may start the service manually or via systemd/init")
+    logger.info("Kaithem users set up. Now exiting(May take a few seconds. You may start the service manually or via systemd/init")
     cherrypy.engine.exit()
     sys.exit()
 
@@ -179,7 +192,7 @@ from src import usrpages
 from src import systasks
 from src import widgets
 
-print("Loaded core python code")
+logger.info("Loaded core python code")
 from src.config import config
 
 if config['local-access-only']:
@@ -189,7 +202,7 @@ else:
 
 cherrypy.process.servers.check_port(bindto, config['http-port'], timeout=1.0)
 cherrypy.process.servers.check_port(bindto, config['https-port'], timeout=1.0)
-print("Ports are free")
+logger.info("Ports are free")
 
 MyExternalIPAdress = util.updateIP()
 thread.stack_size(256000)
@@ -198,7 +211,7 @@ if config['change-process-title']:
     try:
         import setproctitle
         setproctitle.setproctitle("kaithem")
-        print("setting process title")
+        logger.info("setting process title")
     except:
         pass
 
@@ -207,7 +220,7 @@ if config['enable-websockets']:
     from ws4py.websocket import EchoWebSocket
     WebSocketPlugin(cherrypy.engine).subscribe()
     cherrypy.tools.websocket = WebSocketTool()
-    print("activated websockets")
+    logger.info("activated websockets")
 
 
 sys.modules['kaithem'] = sys.modules['__main__']
@@ -218,7 +231,7 @@ kaithemobj.kaithem.misc.version_info = __version_info__
 
 #Load all modules from the active modules directory
 modules.initModules()
-print("Loaded modules")
+logger.info("Loaded modules")
 
 
 #This class represents the "/" root of the web app
@@ -316,6 +329,7 @@ root.pages = usrpages.KaithemPage()
 root.logs = messagelogging.WebInterface()
 root.notifications = notifications.WI()
 root.widgets = widgets.WebInterface()
+root.syslog = logviewer.WebInterface()
 
 
 if not linuxpackage:
@@ -449,7 +463,7 @@ cherrypy.engine.block()
 # cherrypy.engine.exit()
 # time.sleep(1)
 # cherrypy.engine.exit()
-print("Cherrypy engine stopped")
+logger.info("Cherrypy engine stopped")
 #
 # #Partial workaround for a bug where it won't exit in python3. This probably won't work on windows
 # if sys.version_info > (3,0):

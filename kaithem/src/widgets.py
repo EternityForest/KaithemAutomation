@@ -122,10 +122,7 @@ if config['enable-websockets']:
                             widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
                         self.subscriptions.append(i)
                         resp.append([i, widgets[i]._onRequest(user)])
-                        #Turning off echo is useful for APIWidgets that might not want to make
-                        #the extra traffic.
-                        if self.echo:
-                            self.send(json.dumps(resp))
+
 
             except Exception as e:
                 messagebus.postMessage("system/errors/widgets/websocket", traceback.format_exc(6))
@@ -233,7 +230,9 @@ class Widget():
     #meant to be overridden or used as is
     def onUpdate(self,user,value):
         self.value = value
-        self.push(value)
+        self.doCallback(user,value)
+        if self.echo:
+            self.send(value)
 
     #Read and write are called by code on the server
     def read(self):
@@ -241,10 +240,11 @@ class Widget():
 
     def write(self,value):
         self.value = value
-        self.push(value)
-
-    def push(self,value,users=None):
-        #Is this the right behavior?
+        self.doCallback("__SERVER__",value)
+        self.send(value)
+        
+    def push(self,value):
+        """Pretty sure this is undocumented, deprecated, and should never be used"""
         self.doCallback("__SERVER__",value)
         self.send(value)
 
@@ -252,6 +252,7 @@ class Widget():
         "Send a value to all subscribers without invoking the local callback"
         for i in self.subscriptions_atomic:
             self.subscriptions_atomic[i](value)
+            
     #Lets you add permissions that are required to read or write the widget.
     def require(self,permission):
         self._read_perms.append(permission)
@@ -710,6 +711,62 @@ class TextBox(Widget):
         KWidget_subscribe("%(id)s",upd);
         </script>
         </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self.value, 'label':label}
+
+
+class ScrollingWindow(Widget):
+    """A widget used for chatroom style scrolling text. 
+       Only the new changes are ever pushed over the net. To use, just write the HTML to it, it will
+       go into a nev div in the log, old entries automatically go away, use the length param to decide
+       how many to keep"""
+       
+    def __init__(self,length=250,*args,**kwargs):
+        Widget.__init__(self,*args,**kwargs)
+        self.value = []
+        self.maxlen = length
+        self.lock = threading.Lock()
+        
+    def write(self,value):
+        with self.lock:
+            self.value.append(str(value))
+            self.value = self.value[-self.maxlen:]
+            self.send(value)
+            self._callback("__SERVER__",value)
+
+    def render(self,cssclass='',style=''):
+        
+        content = ''.join(["<div>"+i+"</div>" for i in self.value])
+        
+        return """<div class="widgetcontainer">
+        <div id=%(htmlid)s class ="scrollbox %(cssclass)s" style="%(style)s">
+        %(content)s
+        </div>
+        <script type="text/javascript">
+        var upd=function(val){
+            var d=document.getElementById('%(htmlid)s');
+            //Detect end of scroll, so we can keep it there if that's where we are at
+            var isscrolled =d.scrollHeight - d.scrollTop === d.clientHeight;
+
+            if (d.childNodes.length>%(maxlen)d)
+            {
+                d.removeChild(childNodes[0])
+            }
+            var n = document.createElement("div");
+            n.innerHTML= val;
+            d.appendChild(n);
+            //Scroll to bottom if user was already there.
+            if (isscrolled)
+            {
+            d.scrollTop = d.scrollHeight-d.clientHeight;
+            }
+        }
+        KWidget_subscribe("%(id)s",upd);
+        </script>
+        </div>"""%{'htmlid':mkid(), 'maxlen':self.maxlen, 'content':content, 
+                    'cssclass':cssclass, 'style':style, 'id':self.uuid}
+
+
+
+
 
 class APIWidget(Widget):
         def __init__(self,echo=True,*args,**kwargs):

@@ -829,7 +829,7 @@ h4 {
 
         <p>Note that you may want to use the registry instead to save SD card wear by keeping changes in RAM until explicitly saved.<p>
 
-         <h4>kaithem.persist.load(filename, autorecover=True, expand=False)</h4>
+         <h4>kaithem.persist.load(filename, autorecover=True, expand=True)</h4>
         <p>
         Load data from a file named filname in a format dictated by the file extension.
         Data will be converted to a python appropriate representation and returned.
@@ -1069,8 +1069,7 @@ h4 {
         <p>Every minute, a message will be posted to this topic containing the number of HTTP requests made to
         the server in the last minute.</p>
 
-        <h3>system/events/ran</h3>
-        <p>When any event runs, a message will be posted here, the message being a list with two items, the first being the module name and the second being the event name</p>
+
         <p>NOTE: the message logging system means that anyone with the /users/logs.view permission
         can see all traffic on the message bus, because even topics not set up to be logged are kept in ram and shown on
         the logs page for a short time. Be careful to either not send any private data on the message bus,

@@ -240,14 +240,21 @@ def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setu
             triggeraction = when.split(';',1)[1].strip()
         else:
             triggeraction = None
+
         if 'nolock' in trigger:
             l = False
         else:
             l = True
 
-        return FunctionEvent(trigger[1].split(';')[0], triggeraction, l ,do,scope,continual,ratelimit,setup,priority,**kwargs)
+        if 'async' in trigger:
+            a= False
+        else:
+            a = True
 
-    if trigger[0] == '!onmsg':
+        return FunctionEvent(trigger[1].split(';')[0], triggeraction, l ,do,scope,continual,ratelimit,setup,priority,run_async=a,**kwargs)
+
+
+    elif trigger[0] == '!onmsg':
         return MessageEvent(when,do,scope,continual,ratelimit,setup,priority,**kwargs)
 
     elif trigger[0] == '!onchange':
@@ -536,7 +543,7 @@ class FunctionWrapper():
 #Note: this class does things itself instead of using that CompileCodeStringsMixin
 #I'm not sure that was the best idea to use that actually....
 class FunctionEvent(BaseEvent):
-    def __init__(self,fname,trigaction,l,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
+    def __init__(self,fname,trigaction,l,do,scope,continual=False,ratelimit=0,setup = "pass",run_async=False,*args,**kwargs):
         BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
         self.polled = False
         self.pymodule.__dict__['kaithem']=kaithemobj.kaithem
@@ -546,18 +553,32 @@ class FunctionEvent(BaseEvent):
             dummy = kwargs['dummy']
         else:
             dummy = False
+
+
+
         self.fname = fname
         if not dummy:
+            #The l parameter tells us if we should use a lock to call the function.
             if l:
-                def f():
+                def f(*args,**kwargs):
                     with self.lock:
-                        self._on_trigger()
+                        self._on_trigger(*args,**kwargs)
             else:
                 f = self._on_trigger
         else:
             def f():
                 pass
-        self.f = FunctionWrapper(f)
+
+        if run_async:
+            def g(*args,**kwargs):
+                def h():
+                    f(*args,**kwargs)
+                workers.do(h)
+            self.f = FunctionWrapper(g)
+
+        else:
+            #FunctionWrappers are mutable functions that call their f property
+            self.f = FunctionWrapper(f)
         self.xyz(do, trigaction, setup)
 
     def handoff(self, evt):
@@ -568,7 +589,7 @@ class FunctionEvent(BaseEvent):
     #This was the fastest way to deal with weird exec in nested function with import star buisiness.
     def xyz(self,do, trigaction,setup):
         #compile the body
-        body = "def kaithem_event_action():\n"
+        body = "def kaithem_event_action(*):\n"
         for line in do.split('\n'):
             body+=("    "+line+'\n')
 
@@ -577,11 +598,14 @@ class FunctionEvent(BaseEvent):
         exec(body , self.pymodule.__dict__)
 
         #this lets you do things like !function module.foo
+        #Basically we use self.fname as a target and assign the function to that
         self.pymodule.__dict__["_kaithem_temp_event_function"] = self.f
         x = compile(self.fname+" = _kaithem_temp_event_function","Event_"+self.module+'_'+self.resource,'exec')
         exec(x,self.pymodule.__dict__)
         del self.pymodule.__dict__["_kaithem_temp_event_function"]
 
+        #Trigger actions let us do stuff immediately with the function, like subscribe it
+        #to a weakref callback or something.
         if trigaction:
             trigaction = compile(trigaction,"Event_"+self.module+'_'+self.resource+'trigaction','exec')
             exec(trigaction,self.pymodule.__dict__)
@@ -594,10 +618,12 @@ class FunctionEvent(BaseEvent):
             x = compile(self.fname+" = _kaithem_temp_event_function","Event_"+self.module+'_'+self.resource,'exec')
             exec(x,self.pymodule.__dict__)
             self.disable = False
+            self.active = True
 
     def unregister(self):
         with self.register_lock:
             self.disable = True
+            self.active = False
             #Use a try accept block because that function could have wound up anywhere,
             #Including having been already deleted.
             try:
@@ -608,7 +634,7 @@ class FunctionEvent(BaseEvent):
 
     #The only difference between this and the base class version is
     #That this version propagates exceptions
-    def _on_trigger(self):
+    def _on_trigger(self,*args,**kwargs):
         #This function gets called when whatever the event's trigger condition is.
         #it provides common stuff to all trigger types like logging and rate limiting
 
@@ -623,7 +649,7 @@ class FunctionEvent(BaseEvent):
             try:
                 #Action could be any number of things, so this method must be implemented by
                 #A derived class or inherited from a mixin.
-                self._do_action()
+                self._do_action(*args,**kwargs)
                 self.lastcompleted = time.time()
                 #messagebus.postMessage('/system/events/ran',[self.module, self.resource])
             except Exception as e:
@@ -633,7 +659,7 @@ class FunctionEvent(BaseEvent):
 
 
     def _do_action(self):
-        self.pymodule.kaithem_event_action()
+        return self.pymodule.kaithem_event_action(*args,**kwargs)
 
 class MessageEvent(BaseEvent,CompileCodeStringsMixin):
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):

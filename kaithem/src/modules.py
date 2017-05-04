@@ -19,6 +19,7 @@ import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling,modules_state,registry
 from .modules_state import ActiveModules,modulesLock,scopes,additionalTypes,fileResourceAbsPaths
 
+logger = logging.getLogger("system")
 
 def new_empty_module():
     return {"__description":
@@ -64,7 +65,7 @@ def hashModules():
                     m.update(json.dumps(ActiveModules[i][j],sort_keys=True,separators=(',',':')).encode('utf-8'))
         return m.hexdigest().upper()
     except:
-        logging.exception("Could not hash modules")
+        logger.exception("Could not hash modules")
         return("ERRORHASHINGMODULES")
 
 def hashModule(module):
@@ -74,7 +75,7 @@ def hashModule(module):
             m.update(json.dumps({i:ActiveModules[module][i] for i in ActiveModules[module] if not isinstance(ActiveModules[module][i],weakref.ref)} ,sort_keys=True,separators=(',',':')).encode('utf-8'))
         return m.hexdigest()
     except:
-        logging.exception("Could not hash module")
+        logger.exception("Could not hash module")
         return("ERRORHASHINGMODULE")
 
 def getModuleHash(m):
@@ -358,16 +359,16 @@ def loadResource(fn):
                 r['action'] = f[2]
         return r
     except:
-        logging.exception("Error loading resource from file "+fn)
+        logger.exception("Error loading resource from file "+fn)
         raise
-    logging.debug("Loaded resource from file "+fn)
+    logger.debug("Loaded resource from file "+fn)
 
 def saveResource2(r,fn):
     #Don't save VResources
     if isinstance(r,weakref.ref):
-        logging.debug("Did not save resource because it is virtual")
+        logger.debug("Did not save resource because it is virtual")
         return
-    logging.debug("Saving resource to"+str(fn))
+    logger.debug("Saving resource to"+str(fn))
 
     r = copy.deepcopy(r)
     if r['resource-type'] == 'page':
@@ -389,7 +390,7 @@ def saveResource2(r,fn):
         util.chmod_private_try(fn,execute = False)
         f.write(d.encode("utf-8"))
 
-    logging.debug("saved resource to file "+ fn)
+    logger.debug("saved resource to file "+ fn)
 
 def saveResource(r,fn):
     with open(fn,"wb") as f:
@@ -413,7 +414,7 @@ def saveAll():
     with modulesLock:
         if not unsaved_changed_obj:
             return False
-        logging.info("Begin saving all modules")
+        logger.info("Begin saving all modules")
         if time.time()> util.min_time:
             t = time.time()
         else:
@@ -473,7 +474,7 @@ def initModules():
                         if not possibledir == os.path.join(directories.moduledir,"data"):
                             shutil.rmtree(possibledir)
                     except:
-                        logging.exception("Failed to rename corrupted data. This is normal if kaithem's var dir is not currently writable.")
+                        loggger.exception("Failed to rename corrupted data. This is normal if kaithem's var dir is not currently writable.")
 
     except:
         messagebus.postMessage("/system/notifications/errors" ," Error loading modules: "+ traceback.format_exc(4))
@@ -485,14 +486,14 @@ def initModules():
     try:
         cleanupBlobs()
     except:
-        logging.exception("Failed to cleanup old blobs. This is normal if kaithem's var dir is not currently writable.")
-    logging.info("Initialized modules")
+        logger.exception("Failed to cleanup old blobs. This is normal if kaithem's var dir is not currently writable.")
+    logger.info("Initialized modules")
 
 def saveModule(module, dir,modulename=None):
     "Returns a list of saved module,resource tuples and the saved resource."
     #Iterate over all of the resources in a module and save them as json files
     #under the URL url module name for the filename.
-    logging.debug("Saving module "+str(modulename))
+    logger.debug("Saving module "+str(modulename))
     saved = []
     try:
         #Make sure there is a directory at where/module/
@@ -545,7 +546,7 @@ def saveModule(module, dir,modulename=None):
                             fileResourceAbsPaths[modulename,resource] = newpath
                 #broken target
                 else:
-                    logging.error("File reference resource has nonexistant target, igonring.")
+                    logger.error("File reference resource has nonexistant target, igonring.")
 
         #Now we iterate over the existing resource files in the filesystem and delete those that correspond to
         #resources that have been deleted in the ActiveModules workspace thing.
@@ -641,7 +642,7 @@ def saveModules(where):
 
 def loadModules(modulesdir):
     "Load all modules in the given folder to RAM."
-    logging.debug("Loading modules from "+modulesdir)
+    logger.debug("Loading modules from "+modulesdir)
     for i in util.get_immediate_subdirectories(modulesdir):
         loadModule(os.path.join(modulesdir,i), util.unurl(i))
 
@@ -663,7 +664,7 @@ def loadModules(modulesdir):
 
 def loadModule(folder, modulename):
     "Load a single module but don't bookkeep it . Used by loadModules"
-    logging.debug("Attempting to load module "+modulename)
+    logger.debug("Attempting to load module "+modulename)
     with modulesLock:
         #Make an empty dict to hold the module resources
         module = {}
@@ -684,7 +685,7 @@ def loadModule(folder, modulename):
                         continue
                     module[resourcename] = r
                     if not 'resource-type' in r:
-                        logging.warning("No resource type found for "+resourcename)
+                        logger.warning("No resource type found for "+resourcename)
                         continue
                     if r['resource-type'] == "internal-fileref":
                         #Handle two separate ways of handling these file resources.
@@ -713,7 +714,7 @@ def loadModule(folder, modulename):
         scopes[modulename] = ModuleObject(modulename)
         ActiveModules[modulename] = module
         messagebus.postMessage("/system/modules/loaded",modulename)
-        logging.info("Loaded module "+modulename)
+        logger.info("Loaded module "+modulename)
         #bookkeeponemodule(name)
 
 def getModuleAsZip(module,noFiles=True):
@@ -856,7 +857,7 @@ def bookkeeponemodule(module,update=False):
                 usrpages.updateOnePage(i,module)
             except Exception as e:
                 usrpages.makeDummyPage(i,module)
-                logging.exception("failed to load resource")
+                logger.exception("failed to load resource")
                 messagebus.postMessage("/system/notifications/errors","Failed to load page resource: " + i +" module: " + module + "\n" +str(e)+"\n"+"please edit and reload.")
 
     newevt.getEventsFromModules([module])

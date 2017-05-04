@@ -24,6 +24,14 @@ from . import astrallibwrapper as sky
 
 bootTime = time.time()
 
+#Persist is one of the ones that we want to be usable outside of kaithem, so we add our path resolution stuff here.
+def resolvePath(fn,expand=False):
+    if not fn.startswith(os.pathsep) or fn.startswith("~") or fn.startswith("$"):
+        fn = os.path.join(directories.moduledatadir,fn)
+
+    return (os.path.expandvars(os.path.expanduser(fn))) if expand else fn
+
+persist.resolvePath = resolvePath
 
 #This exception is what we raise from within the page handler to serve a static file
 class ServeFileInsteadOfRenderingPageException(Exception):

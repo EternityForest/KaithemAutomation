@@ -19,6 +19,12 @@
 import threading,sys,cherrypy,traceback, logging
 import atexit,time
 import random
+
+#I'm reserving the system log for a reasonable low-rate log.
+#So this is in a separate namespace that shows up elsewhere.
+logger = logging.getLogger("workers")
+
+syslogger = logging.getLogger("system")
 def inWaiting():
     return len(__queue)
 
@@ -29,9 +35,6 @@ if sys.version_info < (3,0):
 else:
     import queue
 
-def handleError(f,exc):
-        import logging
-        logging.exception("Error in function running in thread pool "+f.__name__ +" from " + f.__module__)
 
 def stop():
     global run
@@ -94,7 +97,7 @@ def makeWorker(e,q):
                 e.wait(timeout=5)
             except Exception:
                 try:
-                    handleError(f,sys.exc_info())
+                    logger.exception("Error in function running in thread pool "+f.__name__ +" from " + f.__module__)
                 except:
                     print("Failed to handle error: "+traceback.format_exc(6))
             finally:
@@ -189,4 +192,4 @@ def start(count=8, qsize=64, shutdown_wait=60):
         workers.append(t)
         queues.append((e,q))
         t.start()
-    logging.info("Started worker threads")
+    syslogger.info("Started worker threads")

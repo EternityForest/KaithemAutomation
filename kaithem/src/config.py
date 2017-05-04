@@ -15,7 +15,9 @@
 
 """This file handles the big configuration file, provides access to it, and handles default settings"""
 
-import yaml,argparse,sys,os, validictory
+import yaml,argparse,sys,os, validictory,logging
+logger = logging.getLogger('system')
+
 ##########################################################
 #Modified code from ibt of stackoverflow. Uses literal style for scalars instead of ugly folded.
 def should_use_block(value):
@@ -44,12 +46,12 @@ if os.path.realpath(__file__).startswith('/usr/'):
     _dn = "/usr/share/kaithem"
 else:
     _dn = os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","data")
-    
+
 #################################################################
 def load():
     global argcmd
     _argp = argparse.ArgumentParser()
-    
+
     #Manually specify a confifuration file, or else there must be one in /etc/kaithem
     _argp.add_argument("-c")
     _argp.add_argument("-p")
@@ -57,28 +59,28 @@ def load():
 
     argcmd = _argp.parse_args(sys.argv[1:])
 
-    
+
     #This can't bw gotten from directories or wed get a circular import
     with open(os.path.join(_dn,"default_configuration.yaml")) as f:
         _defconfig = yaml.load(f)
-    
+
     #Attempt to open any manually specified config file
     if argcmd.c:
         with open(argcmd.c) as f:
             _usr_config = yaml.load(f)
-            print ("Loaded configuration from "+ argcmd.c)
+            logger.info ("Loaded configuration from "+ argcmd.c)
     else:
         _usr_config ={}
-        print ("No CFG File Specified. Using Defaults.")
-            
-    
+        logger.info("No CFG File Specified. Using Defaults.")
+
+
     #Config starts out as the default but individual options
     #Can be added or overridden by the user's settings.
     config = _defconfig.copy()
-    
+
     for i in _usr_config:
         config[i] = _usr_config[i]
-        
+
     if argcmd.p:
         config['https-port'] = int(argcmd.p)
     return config

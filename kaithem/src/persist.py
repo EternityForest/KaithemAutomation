@@ -26,12 +26,13 @@ if sys.platform.startswith('darwin'):
     posix_rename =True
 
 
-
-def resolvePath(fn,expand=False):
-    if expand and( not fn.startswith(os.pathsep)):
-        fn = os.path.join(directories.moduledatadir,fn)
-
+def resolvePath(fn,expand=True):
+    if not expand:
+        return fn
     return (os.path.expandvars(os.path.expanduser(fn)))
+
+
+
 
 #todo: factor out the need filesystem stuff in util.
 from src import util
@@ -84,7 +85,7 @@ class Persister():
         if os.path.exists(self.fn):
             self.value = load(self.fn)
 
-def save(data,fn,mode="default", private=False,backup=None, expand=False, md5=False):
+def save(data,fn,mode="default", private=False,backup=None, expand=True, md5=False):
     """Save data to file. Filename must end in .json, .yaml, .txt, or .bin. Data will be encoded appropriately.
         Also supports compressed versions via filenames ending in .gz or .bz2.
         Args:
@@ -252,7 +253,7 @@ def save(data,fn,mode="default", private=False,backup=None, expand=False, md5=Fa
 
 
 
-def load(filename, autorecover = True,expand=False):
+def load(filename, autorecover = True,expand=True):
     """Load a file. Return str if file extension is .txt, bytes on .bin, dict on .yaml or .json.
 
     After that may be a .bz2 or a .gz for compression.

@@ -112,8 +112,13 @@ change-process-title: yes
 log-topics:
     - /system/notifications/
 
-#How many entires to log before flushing to disk or deleting
+#How many log entries per file
 log-dump-size: 33000
+
+#How many log entries to buffer before dumping all at once to reduce SD wear.
+#If using an HDD, you almost certainly want this to be exactly 1
+log-buffer: 33000
+
 
 #How many bytes of log files to keep before deleting the oldest until the total filesize is under the limit
 #Size is in bytes but you can use k,m,g for thousand million and billion

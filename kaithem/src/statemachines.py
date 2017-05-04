@@ -21,23 +21,6 @@ import time, weakref,types,threading
 #Lets keep dependancies on things within kaithem to a minimum, as eventually this might be spun off to a standalone thing
 from . import scheduling,modules,unitsofmeasure
 
-
-def sm_test():
-    def on():
-        print("Turning light on")
-    def off():
-        print("Turning light off")
-
-    sm = StateMachine(start="off")
-
-    on = sm.addState("on", enter=on)
-    on.addTimer(60, "off")
-
-    off = sm.addState("off")
-    sm.addTransition('off', "motion","on")
-
-    sm("motion")
-
 #
 # StateMachine API
 #
@@ -125,7 +108,7 @@ class StateMachine(modules.VirtualResource):
     def subscribe(self,f, state="__all__"):
         """
         Cause function f to be called when the machine enters the given state. If the state is __all__, causes
-        f to be called whenever the state changes at all.
+        f to be called whenever the state changes at all. Uses weak refs, so you must maintain a reference to f
         """
         with self.lock:
             #First clean up old subscribers. This is slow to do thi every time, but it should be infrequent.

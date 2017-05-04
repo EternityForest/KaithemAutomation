@@ -146,11 +146,16 @@ properties:
     log-dump-size:
         type: integer
         minimum: 1
-
+        
+    log-buffer:
+        type: integer
+        minimum: 1
+        
     keep-log-files:
         type: string
         pattern: "[0-9]*(k|m|g|K|M|G)"
 
+    #Everything excrpt null and normal is deprecated
     log-format:
         type: string
         enum:

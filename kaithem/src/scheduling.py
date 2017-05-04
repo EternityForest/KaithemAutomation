@@ -17,6 +17,8 @@ import threading,sys,re,time,datetime,weakref,os,traceback, collections,random,l
 from . import messagebus,workers,config
 from .repeatingevents import *
 
+logger = logging.getLogger("system.scheduling")
+
 enumerate = enumerate
 class BaseEvent():
     def __init__(self):
@@ -293,7 +295,7 @@ class NewScheduler(threading.Thread):
                     pass
 
             except:
-                logging.exception("failed to remove event")
+                logger.exception("failed to remove event")
 
     # def remove_function(self, f):
     #     "Remove any events that trigger the given function"
@@ -318,7 +320,7 @@ class NewScheduler(threading.Thread):
     #             except KeyError:
     #                 pass
     #         except:
-    #             logging.exception("failed to remove event")
+    #             logger.exception("failed to remove event")
     def register_repeating(self, event):
         "Register a RepeatingEvent class"
         with self.lock:
@@ -347,7 +349,7 @@ class NewScheduler(threading.Thread):
                 except KeyError:
                     pass
             except:
-                logging.exception("failed to unregister event")
+                logger.exception("failed to unregister event")
 
 
 
@@ -407,7 +409,7 @@ class NewScheduler(threading.Thread):
 
                     except:
                         try:
-                            logging.exception("error in scheduler\n"+traceback.format_exc(6))
+                            logger.exception("error in scheduler\n"+traceback.format_exc(6))
                             if isinstance(i.f, weakref.ref):
                                 f = i.f()
                             else:
@@ -447,7 +449,7 @@ class NewScheduler(threading.Thread):
                                 workers.do(i.schedule)
                                 messagebus.postMessage('system/errors/scheduler/warning',"rescheduled "+str(i)+"using error recovery")
                         except:
-                                logging.exception("Exception while scheduling event")
+                                logger.exception("Exception while scheduling event")
                     self.lastrecheckedschedules = time.time()
 
 
