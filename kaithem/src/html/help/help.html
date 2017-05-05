@@ -729,6 +729,12 @@ h4 {
         <p>On the server, you can call read() to get it's contents or write(s) to set it's contents</p>
 
         <p>TextBox.render() takes an optional parameter label to provide a label for the box.</p>
+        
+        <h4>kaithem.widgets.ScrollBox(length=250)</h4>
+        
+        <p>A scrolling widget used for things like logging. Whatever HTML you write() will be appended to
+        the end of a log on all the browsers in a div tag. The last length entries are kept. Even without websocket support,
+        you can refresh to get the most recent entries.</p>
 
         <h4>kaithem.widgets.APIWidget(echo=True)</h4>
         <p>This widget exists to allow you to create custom widgets easily. When you render() it, you pass a parameter htmlid.

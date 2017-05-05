@@ -14,9 +14,9 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import logging,threading,os, time, gzip, bz2,atexit,weakref,random
+import logging,threading,os, time, gzip, bz2,atexit,weakref,random,re,textwrap
 
-from . import messagebus, registry, directories,unitsofmeasure
+from . import messagebus, registry, directories,unitsofmeasure,util
 from .config import config 
 
 
@@ -42,6 +42,10 @@ def at_exit():
         pass
 atexit.register(at_exit)
 
+
+class KFormatter(logging.Formatter):
+    def formatException(self,exc_info):
+        return textwrap.fill(logging.Formatter.formatException(self,exc_info),initial_indent="  ",subsequent_indent="  ")
 
 class LoggingHandler(logging.Handler):
     def __init__(self,name,folder, fn, bufferlen=25000,
@@ -88,7 +92,7 @@ class LoggingHandler(logging.Handler):
         #This callback is for when we want to use this handler as a filter.
         self.callback = lambda x: x
         logging.getLogger().addHandler(self)
-        formatter = logging.Formatter('%(levelname)s:%(asctime)s %(name)s %(message)s',"%Y%b%d %H:%M:%S %Z")
+        formatter = KFormatter('%(levelname)s:%(asctime)s %(name)s %(message)s',"%Y%b%d %H:%M:%S %Z")
         self.setFormatter(formatter)
         all_handlers[(time.time(),random.random(),self.name)] = self
     def close(self):
@@ -224,7 +228,7 @@ class LoggingHandler(logging.Handler):
 
 
                      
-syslogger = LoggingHandler("system",fn="system",folder=directories.logdir,level=20,
+syslogger = LoggingHandler("system",fn="system",folder=os.path.join(directories.logdir,"dumps"),level=20,
                         entries_per_file=config['log-dump-size'], 
                         bufferlen =config['log-buffer'],
                          keep=unitsofmeasure.strToIntWithSIMultipliers(config['keep-log-files']),

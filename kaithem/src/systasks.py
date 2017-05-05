@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import time,atexit,sys,platform,re,datetime,threading,weakref,signal
+import time,atexit,sys,platform,re,datetime,threading,weakref,signal,logging
 import cherrypy
 from . import newevt,messagebus,unitsofmeasure,util,messagelogging,mail,scheduling
 from .kaithemobj import kaithem
@@ -22,6 +22,7 @@ from .config import config
 #Can't think of anywhere else to put this thing.
 systemStarted = time.time()
 
+logger = logging.getLogger("system")
 
 lastsaved = time.time()
 def getcfg():
@@ -92,6 +93,7 @@ def logstats():
     pageviewsthisminute = 0
 
     if (time.time()>lastpageviews+600) and tenminutepagecount>0:
+        logger.info("Requests per minute: "+ round(tenminutepagecount/10,2))
         messagebus.postMessage("/system/perf/requestsperminute" , tenminutepagecount/10)
         lastpageviews = time.time()
         tenminutepagecount = 0
@@ -106,8 +108,8 @@ def logstats():
                 used = round(((total - (free+cache))/1000.0),2)
                 usedp = round((1-(free+cache)/float(total)),3)
                 total = round(total/1024.0,2)
-                if (time.time()-lastram>600) or usedp>0.8:
-                    messagebus.postMessage("/system/perf/memuse",usedp)
+                if (time.time()-lastram>600) or ((time.time()-lastram>300) and usedp>0.8):
+                    logger.info("Total ram usage: "+ round(usedp*100,1))
                     lastram=time.time()
 
                 if usedp > config['mem-use-warn']:

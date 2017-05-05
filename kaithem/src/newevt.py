@@ -35,6 +35,9 @@ _events = []
 __EventReferences = {}
 EventReferences = __EventReferences
 
+logger = logging.getLogger("system_event_errors")
+syslogger = logging.getLogger("system.events")
+
 def manualRun(event):
     "Run an event manually"
     return EventReferences[event].manualRun()
@@ -399,6 +402,7 @@ class BaseEvent():
                 self.lastcompleted = time.time()
                 #messagebus.postMessage('/system/events/ran',[self.module, self.resource])
             except Exception as e:
+                logger.exception("Error running event "+self.resource+" of "+ self.module)
                 self._handle_exception(e)
 
 
@@ -432,6 +436,7 @@ class BaseEvent():
             self.backoff_until=time.time()+backoff
             #If this is the first error since th module was last saved raise a notification
             if len(self.errors)==1:
+                syslogger.exception("Error running event "+self.resource+" of "+ self.module)
                 messagebus.postMessage('/system/notifications/errors',"Event \""+self.resource+"\" of module \""+self.module+ "\" may need attention")
 
     def register(self):
@@ -474,6 +479,7 @@ class BaseEvent():
             try:
                 self._check()
             except Exception as e:
+                logger.exception("Error in event "+self.resource+" of "+ self.module)
                 self._handle_exception(e)
         finally:
             self.lock.release()
@@ -630,7 +636,7 @@ class FunctionEvent(BaseEvent):
                 x = compile("del "+ self.fname,"Event_"+self.module+'_'+self.resource,'exec')
                 exec(x,self.pymodule.__dict__)
             except Exception as e:
-                print(e)
+                logger.exception("Error unregistering event "+self.resource+" of "+ self.module)
 
     #The only difference between this and the base class version is
     #That this version propagates exceptions
@@ -653,6 +659,7 @@ class FunctionEvent(BaseEvent):
                 self.lastcompleted = time.time()
                 #messagebus.postMessage('/system/events/ran',[self.module, self.resource])
             except Exception as e:
+                logger.exception("Error in event "+self.resource+" of "+ self.module)
                 if self.active:
                     self._handle_exception(e)
                 raise
@@ -808,6 +815,7 @@ class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
                     except Exception as e:
                         if not (run and self.runthread):
                             return
+                        logger.exception("Error unregistering event "+self.resource+" of "+ self.module)
                         self._handle_exception(e)
                         time.sleep(config['error-backoff'].get(self.symbolicpriority,5))
         self.loop = f

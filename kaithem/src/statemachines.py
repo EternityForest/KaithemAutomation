@@ -182,7 +182,7 @@ class StateMachine(modules.VirtualResource):
                             if x:
                                 self._goto(x)
                     else:
-                        _configureTimer()
+                        self._configureTimer()
 
     def _configureTimer(self):
         "Sets up the timer. Needs to be called under lock"

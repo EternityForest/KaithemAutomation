@@ -16,7 +16,6 @@ import time, threading,json, os,bz2, gzip, re, collections,traceback,logging
 import cherrypy
 from . import unitsofmeasure,messagebus,directories,workers,util,pages, config
 from .messagebus import normalize_topic
-from cherrypy.lib.static import serve_file
 
 from .config import config
 from collections import defaultdict,deque,OrderedDict
@@ -97,16 +96,6 @@ def messagelistener(topic,message):
 
 messagebus.subscribe('/',messagelistener)
 
-def listlogdumps():
-    where =os.path.join(directories.logdir,'dumps')
-    logz = []
-    r = re.compile(r'^([0-9]*\.[0-9]*)\.json(\.gz|\.bz2)?$')
-    for i in util.get_files(where):
-        m = r.match(i)
-        if not m == None:
-            #Make time,fn,ext,size tuple
-            logz.append((float(m.groups('')[0]), os.path.join(where,i),m.groups('Uncompressed')[1],os.path.getsize(os.path.join(where,i))))
-    return logz
 
 
 class WebInterface(object):
@@ -157,40 +146,10 @@ class WebInterface(object):
         known_unsaved = OrderedDict()
         return pages.get_template('logging/index.html').render()
 
-    @cherrypy.expose
-    def flushlogs(self):
-        pages.require('/admin/logging.edit')
-        return pages.get_template('logging/dump.html').render()
 
-    @cherrypy.expose
-    def dumpfiletarget(self):
-        pages.require('/admin/logging.edit')
-        pages.postOnly()
-        dumpLogFile()
-        return pages.get_template('logging/index.html').render()
-
-    @cherrypy.expose
-    def archive(self):
-        pages.require('/users/logs.view')
-        return pages.get_template('logging/archive.html').render(files = listlogdumps())
 
     @cherrypy.expose
     def viewall(self, topic,page=1):
         pages.require('/users/logs.view')
         return pages.get_template('logging/topic.html').render(topicname=normalize_topic(topic), page=int(page))
 
-    @cherrypy.expose
-    def clearall(self,topic):
-        topic=topic.encode("latin-1").decode("utf-8")
-        pages.require('/admin/logging.edit')
-        pages.postOnly()
-        log.pop(normalize_topic(topic))
-        return pages.get_template('logging/index.html').render()
-
-    @cherrypy.expose
-    def servelog(self,filename):
-        pages.require('/users/logs.view')
-        #Make sure the user can't acess any file on the server like this
-        if not filename.startswith(os.path.join(directories.logdir,'dumps')):
-            raise RuntimeError("Security Violation")
-        return serve_file(filename, "application/x-download",os.path.split(filename)[1])

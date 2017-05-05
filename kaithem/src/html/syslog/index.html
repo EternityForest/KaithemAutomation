@@ -8,6 +8,7 @@ from src import logviewer
 
 <h2>System Logs</h2>
 <section>
+<p class="menubar"><a href="/syslog/archive" class="button">Archives</a> | <a href="/syslog/flushlogs" class="button">Flush Logs to File</a>
 <p class="help">This shows the realtime output of the logger named "system" and any child loggers of it.
 these logs are kept in ram and wil be dumped to a file based on the settings in the configuration file.</br>
 This new system of logging replaces the old json messagebus based logs. You can still log mesagebus topics, but they
@@ -15,13 +16,13 @@ just go to the system.msgbus logger.</br></p>
 
 
 </p>
-${logviewer.syslogwidget.render(style="height:70%; width:90%;")}
+${logviewer.syslogwidget.render(style="max-height:30em;")}
 </section>
 
 <h2>Debug Logs</h2>
 <section>
 <p class="help">This shows the entire output of the root logger.</p>
 </p>
-${logviewer.dbg.widget.render(style="height:70%; width:90%;")}
+${logviewer.dbg.widget.render(style="max-height:30em;width:100%;")}
 </section>
 <%include file="/pagefooter.html"/>
