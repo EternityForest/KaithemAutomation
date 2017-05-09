@@ -41,7 +41,14 @@ class ServeFileInsteadOfRenderingPageException(Exception):
 class Kaithem():
     def __getattr__(self,name):
         return pluginInterface(plugins[name])
-
+        
+    class logging(object):
+        
+        @staticmethod
+        def flushsyslog():
+            import pylogginghandler
+            pylogginghandler.syslogger.flush()
+            
     class misc(object):
         @staticmethod
         def lorem():

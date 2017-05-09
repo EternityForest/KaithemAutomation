@@ -748,7 +748,7 @@ class ScrollingWindow(Widget):
 
             if (d.childNodes.length>%(maxlen)d)
             {
-                d.removeChild(childNodes[0])
+                d.removeChild(d.childNodes[0])
             }
             var n = document.createElement("div");
             n.innerHTML= val;

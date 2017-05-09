@@ -49,7 +49,7 @@ class KFormatter(logging.Formatter):
 
 class LoggingHandler(logging.Handler):
     def __init__(self,name,folder, fn, bufferlen=25000,
-                level=30,contextlevel=10,contextbuffer=10,
+                level=30,contextlevel=10,contextbuffer=0,
                  entries_per_file=25000, keep=10, compress='none'):
         """Implements a memory-buffered context logger with automatic log rotation.
            Log entries are kept in memory until the in memory buffer exceeds bufferlen entries.
@@ -67,6 +67,9 @@ class LoggingHandler(logging.Handler):
            always cause a new file to be opened.
         """
         logging.Handler.__init__(self)
+        if not compress =='none':
+            if not bufferlen==entries_per_file:
+                raise ValueError("entries_per_file must == bufferlen when using compression as compressed files cannot be efficiently appended")
         self.name = name
         self.fn = fn
         self.folder=folder
@@ -122,28 +125,35 @@ class LoggingHandler(logging.Handler):
                 self.logbuffer.extend(self.contextbuffer)
                 self.contextbuffer=[]
                 self.logbuffer.append(record)
-            else:
+            #That truncation operation will actulally do nothing if the contextlen is 0
+            elif self.contextlen:
                 self.contextbuffer.append(record)
-                self.contextbuffer = self.contextbuffer[-self.contextlen]
+                self.contextbuffer = self.contextbuffer[-self.contextlen:]
                 
-        if len(self.logbuffer)>self.bufferlen:
-            self.flush()
-                
+        if len(self.logbuffer)>=self.bufferlen:
+            try:
+                self.flush()
+            except Exception as e:
+                print("Log flush error "+repr(e))
+                logging.exception("error flushing logs with handler "+repr(self))
+    
     def flush(self):
         """Flush all log entires that belong to topics that are in the list of things to save, and clear the staging area"""
         with self.savelock:
             #Allow null logging handlers that are only used for realtime displays
             if self.fn == None:
-                print(self.logbuffer)
                 self.logbuffer = []
                 return
                 
+            #If there is no log entries to save, don't dump an empty file.
+            if not self.logbuffer:
+                return
                 
             if self.compress == 'bz2':
                 openlog=  bz2.BZ2File
                 ext = '.log.bz2'
 
-            elif self.compress == 'gzip':
+            elif self.compress == 'gzip' or self.compress == 'gz':
                 openlog = gzip.GzipFile
                 ext = '.log.gz'
 
@@ -153,16 +163,9 @@ class LoggingHandler(logging.Handler):
 
             else:
                 openlog = open
+                ext = '.log'
                 logging.error("Invalid config option for 'log-compress' so defaulting to no compression")
 
-
-            global log,loglistchanged
-            global approxtotallogentries
-
-            #If there is no log entries to save, don't dump an empty file.
-            if not self.logbuffer:
-                return
-            
             #Swap out the log buffers so we can work with an immutable copy
             #That way we don't block anything that tries to write a log for the entirety of
             #the formatting process.
@@ -180,8 +183,9 @@ class LoggingHandler(logging.Handler):
                     fn = os.path.join(self.folder,self.fn+"_"+str(t)+ext)
                     self.current_file=fn
     
-            
-                with openlog(self.current_file,'wb') as f:
+                #We can't append to gz and bz2 files efficiently, so we dissalow using those for anything
+                #except one file buffered dumps
+                with openlog(self.current_file,'ba' if self.compress =="none" else "wb") as f:
                     #util.chmod_private_try(fn)
                     for i in logbuffer:
                         f.write((self.format(i)+"\r\n").encode("utf8"))
@@ -191,8 +195,10 @@ class LoggingHandler(logging.Handler):
                 
                 #If we have filled up one file, we close it, and let the logic
                 #for the next dump decide what to do about it.
-                if self.counter >= self.entries_per_file:
-                    self.currentfile=None
+                #Always start a new file after a compressed dump.
+                if (self.counter >= self.entries_per_file) or not self.compress=='none':
+                    self.current_file=None
+                    self.counter = 0
                     
                 
             #Make a list of our log dump files.
@@ -226,9 +232,11 @@ class LoggingHandler(logging.Handler):
                 size = size - os.path.getsize(os.path.join(where,i))
                 os.remove(os.path.join(where,asnumbers[i]))
 
-
+        
                      
-syslogger = LoggingHandler("system",fn="system",folder=os.path.join(directories.logdir,"dumps"),level=20,
+syslogger = LoggingHandler("system",fn="system" if not config['log-format']=='null' else None,
+
+                        folder=os.path.join(directories.logdir,"dumps"),level=20,
                         entries_per_file=config['log-dump-size'], 
                         bufferlen =config['log-buffer'],
                          keep=unitsofmeasure.strToIntWithSIMultipliers(config['keep-log-files']),

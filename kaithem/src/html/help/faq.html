@@ -57,9 +57,9 @@ an-option-with-a-list-as-a-value:
     NOTE: Kaithem will <b>only</b> load the configuration file on startup and you must reload kaithem for the
     changes to take effect.
 </p>
-<h3>My data is not being saved to the log files! Help!</h3>
+<h3>My message bus data is not being saved to the log files! Help!</h3>
 <p>Kaithem only saves topics to the hard drive if they are in the list of things to save. Go to the logging
-    page and select the channels you are interested in.</p>
+    page and select the channels you are interested in. This</p>
 
 <h3>What is with these security certificate errors?</h3>
 <p>
@@ -116,28 +116,39 @@ dumps before shutting down.
 <p>The modules directory within that dir uses a format designed to work well with git.</p>
 
 <h3>How exactly does logging work?</h3>
-<p>the
+<p>Logging is now disabled by default. To enable it, set log-format to 'normal' in the configuration. We
+now use python's standard logging module. You can view all output of the root logger from the logging page,
+but only log output from the logger named "system" at INFO and above will be logged to file, to avoid issues with libraries that spam
+large amounts to the log files.</p>
+
+<p>A disadvantage of python's logging module is that you cannot really delete a logger in an officially supported way.
+As loggers are reasonably lightweight this should not be an issue, but don't create huge amounts of loggers.
+</p>
+
+<p>Until a better solution is implemented, Using one or two loggers per module will likely not cause any problems.</p>
+
+<p>In general, traffic to kaithem's system log should remain low. HTTP acesses, normal things that happen more than
+once a minute, etc should not be logged there. Even when errors are occuring, only the first few in a minute should be logged.</p>
+
+<p>Try not to create too much traffic on the root logger either in normal use. Posting a debug message
+to root for every error is fine, because normally there should not be dozens of errors a second. But
+don't just spam it all the time, the root logger's debug output should be readable and reasonably 
+understandable in real time.</p>
+
 <pre>keep-log-files</pre> configuration option deterimines how much space log files will consume before the
 oldest are deleted. The default is <pre>256m</pre> or 256 Megabytes. You can use the suffixes k,m,and g, and if
 you don't supply a suffix, the number will be interpreted as bytes(!)
 </p>
 
-<p>Log files are kept in ram until the total number of log entries across all topics (even if the topics are
-    not set up to be flushed to file) exceeds
-<pre>log-dump-size</pre>
+<p>Log files are kept in ram until manually dumped, automatically dumped by the autosave-logs timer, or the total number of log entries exceeds the log-buffer value in the config,
+at which point they are dumped to logging/dumps in the kaithem vardir. It is 25000 by default. Set it to 1
+to write all logs immediately to the file, but only if you are using a hard disk or high endurance SSD.</p>
+
+<p> log-dump-size determines how many entries to log to each file before starting a new one. It is also 25000 
+by default.</p>
 </p>
 
-<p>Logs are stored in JSON files, and the level of formatting is determined by
-<pre>log-format</pre> Log format can be any of:
-<ul>
-    <li>normal</li>
-    <li>tiny</li>
-    <li>pretty</li>
-</ul> Normal is the defaut, tiny is the smallest JSON possible, and pretty indents with 4 spaces among other things.
-All are equivalent valid JSON.
-</p>
-
-<p>To save space, logs can also be compressed with the option
+Logs can also be compressed with the option
 <pre>log-compress</pre> This option can take any of:
 <ul>
     <li>none</li>
@@ -145,6 +156,10 @@ All are equivalent valid JSON.
     <li>bz2</li>
 </ul> Compressed files will have the extension <pre>.json.gz or .json.bz2</pre>
 </p>
+
+
+<p>The old JSON direct logging of message bus topics is no longer supported. </p>
+
 
 <h3>Can I customize Kaithem's appearance for my specific deployment?</h3>
 <p>Certainly! Kaithem was designed with theming and customization in mind from the start. You will probably
