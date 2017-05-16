@@ -44,6 +44,7 @@ log = defaultdict(deque)
 
 
 def saveLogList():
+    global loglistchanged
     if loglistchanged:
         #Save the list of things to dump
         with open(os.path.join(directories.logdir,"whattosave.txt"),'w') as f:

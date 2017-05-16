@@ -1,5 +1,5 @@
-if [ ! -f /var/lib/kaithem/users/data/users.json ]
-then
+#!/bin/sh
+if [ ! -f /var/lib/kaithem/users/data/users.json ] ; then
     adduser --system --no-create-home kaithem
     usermod -a -G serial kaithem
     usermod -a -G dialout kaithem
@@ -10,20 +10,24 @@ then
     usermod -a -G spi kaithem
     groupadd -r kaithem
     usermod -a -G kaithem kaithem
-    mkdir /var/log/kaithem
-    chmod 700 /var/log/kaithem
-    chown kaithem /var/log/kaithem
-    mkdir /var/lib/kaithem
-    chown kaithem /var/lib/kaithem
-    chmod 700 /var/lib/kaithem/
-    mkdir /var/lib/kaithem/ssl
-    chown kaithem /var/lib/kaithem/ssl
-    chmod 700 /var/lib/kaithem/ssl
     #Look at this race condition here! Someone could steal that private key before we chmod it!
     openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /var/lib/kaithem/ssl/certificate.key  -out  /var/lib/kaithem/ssl/certificate.cert -subj '/CN=localhost'
     chmod 600 /var/lib/kaithem/ssl/certificate.key
     chown kaithem /var/lib/kaithem/ssl/certificate.key
-    systemctl enable kaithem.service
-    kaithem --initialpackagesetup x
-    systemctl start kaithem.service
+
 fi
+
+chmod -R 700 /usr/share/kaithem/
+chown -R kaithem /usr/share/kaithem/
+mkdir /var/log/kaithem
+chmod -R 700 /var/log/kaithem
+chown -R kaithem /var/log/kaithem
+mkdir /var/lib/kaithem
+chown -R kaithem /var/lib/kaithem
+chmod -R 700 /var/lib/kaithem/
+mkdir /var/lib/kaithem/ssl
+chown -R  kaithem /var/lib/kaithem/ssl
+chmod -R 700 /var/lib/kaithem/ssl
+systemctl enable kaithem.service
+kaithem --initialpackagesetup x
+systemctl start kaithem.service

@@ -400,6 +400,9 @@ def saveResource(r,fn):
 def cleanupBlobs():
     fddir = os.path.join(directories.vardir,"modules","filedata")
     inUseFiles = [os.path.basename(i) for i in fileResourceAbsPaths.values()]
+    #Defensive programming against nonexistant file dumps directory
+    if not os.path.exists(fddir):
+        return
     for i in os.listdir(fddir):
         if not i in inUseFiles:
             fn = os.path.join(fddir,i )
@@ -675,6 +678,8 @@ def loadModule(folder, modulename):
                     fn = os.path.join(folder , relfn)
                     #Copy stuff from anything called filedata to handle library modules with filedata
                     if os.path.basename(root) == "__filedata__":
+                        if not os.path.exists(os.path.join(directories.vardir,"modules","filedata")):
+                            os.makedirs(os.path.join(directories.vardir,"modules","filedata"),700)
                         if util.in_directory(fn, directories.datadir):
                             shutil.copy(fn, os.path.join(directories.vardir,"modules","filedata"))
                         continue
