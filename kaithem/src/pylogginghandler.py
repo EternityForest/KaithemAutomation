@@ -185,8 +185,10 @@ class LoggingHandler(logging.Handler):
     
                 #We can't append to gz and bz2 files efficiently, so we dissalow using those for anything
                 #except one file buffered dumps
+                chmodflag= not os.path.exists(self.current_file)
                 with openlog(self.current_file,'ba' if self.compress =="none" else "wb") as f:
-                    #util.chmod_private_try(fn)
+                    if chmodflag:
+                        util.chmod_private_try(fn)
                     for i in logbuffer:
                         f.write((self.format(i)+"\r\n").encode("utf8"))
                     

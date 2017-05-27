@@ -175,6 +175,8 @@ def addVirtualResource(m,n,o):
 
 
 def in_folder(r,f):
+    """Return true if name r represents a kaihem resource in folder f"""
+    #Note: this is about kaithem resources and folders, not actual filesystem dirs.
     if not r.startswith(f):
         return False
     #Get the path as a list
@@ -188,6 +190,7 @@ def in_folder(r,f):
 
 @util.lrucache(800)
 def ls_folder(m,d):
+    "List a kaithem resource folder's direct children"
     o = []
     x = ActiveModules[m]
     for i in x:

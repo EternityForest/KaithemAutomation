@@ -19,10 +19,18 @@ from .repeatingevents import *
 
 logger = logging.getLogger("system.scheduling")
 
+
+#If we don't have a monotonic clock, make do with the one we have
+try:
+    monotonic_if_available = time.monotonic
+except:
+    monotonic_if_available = time.time
+
 enumerate = enumerate
 class BaseEvent():
     def __init__(self):
         self.exact = 0
+        self.monotonic = False
 
 #unused, unfinished
 class Event(BaseEvent):
@@ -225,10 +233,19 @@ class NewScheduler(threading.Thread):
     """
     def __init__(self):
         threading.Thread.__init__(self)
+
+        #Task lists that can only be manipulated under the lock.
         self.tasks = []
+        self.monotasks = []
+
         #Input buffer for lock free task insert. Depends
         #on pop and append being atomic operations.
         self.task_queue = []
+        #This is the same as task queue but for events
+        #that should be scheduled according to monotonic time and
+        #not system time.
+        self.monotonic_queue = []
+
         self.lock = threading.RLock()
         self.repeatingtasks= []
         self.daemon = True
@@ -269,15 +286,24 @@ class NewScheduler(threading.Thread):
 
 
     def insert(self, event):
-        "Insert something that has a time and a run property that wants its run called at time"
-
-        #Soft rate limit to prevent filling memory in really bizzare cases.
-        if len(self.task_queue)>3000:
-            time.sleep(max(0,(len(self.task_queue)-3000)/2000.0))
-            print("rate limiting engaged for function")
-        self.task_queue.append(event)
-
-
+        """Insert something that has a time, a monotonic and a run
+        property that wants its run called at time
+        
+        If it has  monotonic set to true, the time will be interpreteted
+        according to the monotonic scale
+        """
+        
+        if not event.monotonic:
+            #Soft rate limit to prevent filling memory in really bizzare cases.
+            if len(self.task_queue)>3000:
+                time.sleep(max(0,(len(self.task_queue)-3000)/2000.0))
+            self.task_queue.append(event)
+        else:
+            #Soft rate limit to prevent filling memory in really bizzare cases.
+            if len(self.monotonic)>3000:
+                time.sleep(max(0,(len(self.monotonic_queue)-3000)/2000.0))
+            self.monotonic_queue.append(event)
+            
     def remove(self, event):
         "Remove something that has a time and a run property that wants its run to be called at time"
         with self.lock:
@@ -291,6 +317,12 @@ class NewScheduler(threading.Thread):
                 try:
                     if event in self.task_queue:
                         self.task_queue.remove(event)
+                except KeyError:
+                    pass
+
+                try:
+                    if event in self.monotonic_queue:
+                        self.monotonic_queue.remove(event)
                 except KeyError:
                     pass
 
@@ -365,7 +397,6 @@ class NewScheduler(threading.Thread):
             #for the time it takes to process 0.9989
             lastframe = time.time()
 
-            time_till_next = lmax(0, 0.1-(time.time()%0.1) )
 
             #Transfer the contents of one list to the other without using a lock or
             #replacing lists which might let something get lost.
@@ -375,6 +406,9 @@ class NewScheduler(threading.Thread):
             while self.task_queue:
                 need_sort=True
                 self.tasks.append(self.task_queue.pop())
+            while self.monotonic_queue:
+                need_sort=True
+                self.monotasks.append(self.monotonic_queue.pop())
 
             with self.lock:
                 try:
@@ -382,9 +416,17 @@ class NewScheduler(threading.Thread):
                     #If no new tasks have been inserted there;s no need to do a sort.
                     if need_sort:
                         self.tasks = sorted(self.tasks, key=lambda x: x.time or -1)
+                        self.monotasks = sorted(self.monotasks, key=lambda x: x.time or -1)
                         need_sort=False
+
+                    #Get the time to sleep. If there's an event that wants to be run
+                    #really soon, sleep that long, otherwise sync frames
+                    #to 1/10th of a second
+                    time_till_next = lmax(0, 0.1-(time.time()%0.1) )
                     if self.tasks:
                         x = lmax(lmin((self.tasks[0].time-time.time()),time_till_next),0)
+                    if monotasks:
+                        x = lmin(self.monotasks[0].time-monotonic_if_available(), x)
                     else:
                         x=time_till_next
                 except:
@@ -393,43 +435,45 @@ class NewScheduler(threading.Thread):
             time.sleep(x)
             with self.lock:
 
-
-
-                #Run tasks until all remaining ones are in the future
-                while self.tasks and (self.tasks[0].time <time.time()):
-                    i = self.tasks.pop(False)
-                    #Set this flag immediatly, otherwise an error somewhere could
-                    #Cause lost repeating events
-                    i.scheduled = False
-                    overdueby = time.time()-i.time
-                    if i.exact and overdueby > i.exact:
-                        continue
-                    try:
-                        i.run()
-
-                    except:
+                #These are tuples of (tasklist, time function)
+                for xyz in ((self.tasks,time.time), (self.monotasks,monotonic_if_available)):
+                    #Run tasks until all remaining ones are in the future
+                    tasks = xyz[0]
+                    timescale = xyz[1]
+                    while tasks and (tasks[0].time <timescale()):
+                        i = tasks.pop(False)
+                        #Set this flag immediatly, otherwise an error somewhere could
+                        #Cause lost repeating events
+                        i.scheduled = False
+                        overdueby = timescale()-i.time
+                        if i.exact and overdueby > i.exact:
+                            continue
                         try:
-                            logger.exception("error in scheduler\n"+traceback.format_exc(6))
-                            if isinstance(i.f, weakref.ref):
-                                f = i.f()
-                            else:
-                                f = i.f
-                            try:
-                                if lhasattr(f,"__name__") and lhasattr(f,"__module__"):
-                                    messagebus.postMessage('system/errors/scheduler/time',
-                                                        {"function":f.__name__,
-                                                        "module":f.__module__,
-                                                        "traceback":traceback.format_exc(6)})
-                                    if not i.errored:
-                                        m = f.__module__
-                                        messagebus.postMessage("/system/notifications/errors",
-                                        "Problem in scheduled event function: "+repr(f)+" in module: "+ m
-                                                +", check logs for more info.")
-                                        i.errored = True
-                            finally:
-                                del f
+                            i.run()
+
                         except:
-                            print(traceback.format_exc(6))
+                            try:
+                                logger.exception("error in scheduler\n"+traceback.format_exc(6))
+                                if isinstance(i.f, weakref.ref):
+                                    f = i.f()
+                                else:
+                                    f = i.f
+                                try:
+                                    if lhasattr(f,"__name__") and lhasattr(f,"__module__"):
+                                        messagebus.postMessage('system/errors/scheduler/time',
+                                                            {"function":f.__name__,
+                                                            "module":f.__module__,
+                                                            "traceback":traceback.format_exc(6)})
+                                        if not i.errored:
+                                            m = f.__module__
+                                            messagebus.postMessage("/system/notifications/errors",
+                                            "Problem in scheduled event function: "+repr(f)+" in module: "+ m
+                                                    +", check logs for more info.")
+                                            i.errored = True
+                                finally:
+                                    del f
+                            except:
+                                print(traceback.format_exc(6))
 
                 #Take all the repeating tasks that aren't already scheduled to happen and schedule them.
                 #Normally tasks  just reschedule themselves, but this check prevents any errors in
