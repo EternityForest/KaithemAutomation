@@ -70,7 +70,8 @@ def shouldSkip(priority,interval,lateby,lastran):
             return True
 
 class RepeatingEvent(BaseEvent):
-    "Does function every interval seconds, and stops if you don't keep a reference to function"
+    """Does function every interval seconds in real time,
+    and stops if you don't keep a reference to function"""
     def __init__(self,function,interval,priority="realtime", phase = 0):
         BaseEvent.__init__(self)
         self.f = weakref.ref(function, self.unregister)
@@ -175,6 +176,17 @@ class RepeatingEvent(BaseEvent):
                 del f
 
 class UnsynchronizedRepeatingEvent(RepeatingEvent):
+    """Represents a repeating event that is not synced to real time,
+    instead, it repeats every interval on the monotonic scale
+    """
+    def __init__(self,*args,**kwargs):
+        RepeatingEvent.__init__(self,*args,**kwargs)
+        self.monotonic = True
+
+        #we set this here so that schedule()
+        #doesn't set it to use non-monotonic time.
+        self.lastrun = monotonic_if_available()
+
     def _schedule(self):
         """Calculate next runtime and put self into the queue."""
 
@@ -234,18 +246,13 @@ class NewScheduler(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
 
-        #Task lists that can only be manipulated under the lock.
+        #Task list that can only be manipulated under the lock.
         self.tasks = []
-        self.monotasks = []
 
         #Input buffer for lock free task insert. Depends
         #on pop and append being atomic operations.
         self.task_queue = []
-        #This is the same as task queue but for events
-        #that should be scheduled according to monotonic time and
-        #not system time.
-        self.monotonic_queue = []
-
+        
         self.lock = threading.RLock()
         self.repeatingtasks= []
         self.daemon = True
@@ -277,6 +284,7 @@ class NewScheduler(threading.Thread):
         e.register()
         e.schedule()
         return f
+
 
     def schedule(self, f, t, exact=False):
         t = float(t)
@@ -406,17 +414,12 @@ class NewScheduler(threading.Thread):
             while self.task_queue:
                 need_sort=True
                 self.tasks.append(self.task_queue.pop())
-            while self.monotonic_queue:
-                need_sort=True
-                self.monotasks.append(self.monotonic_queue.pop())
-
             with self.lock:
                 try:
                     #Sort our list of tasks which should be mostly already sorted except the new stuff.
                     #If no new tasks have been inserted there;s no need to do a sort.
                     if need_sort:
                         self.tasks = sorted(self.tasks, key=lambda x: x.time or -1)
-                        self.monotasks = sorted(self.monotasks, key=lambda x: x.time or -1)
                         need_sort=False
 
                     #Get the time to sleep. If there's an event that wants to be run
@@ -425,8 +428,6 @@ class NewScheduler(threading.Thread):
                     time_till_next = lmax(0, 0.1-(time.time()%0.1) )
                     if self.tasks:
                         x = lmax(lmin((self.tasks[0].time-time.time()),time_till_next),0)
-                    if monotasks:
-                        x = lmin(self.monotasks[0].time-monotonic_if_available(), x)
                     else:
                         x=time_till_next
                 except:
@@ -434,46 +435,41 @@ class NewScheduler(threading.Thread):
 
             time.sleep(x)
             with self.lock:
+                #Run tasks until all remaining ones are in the future
+                while self.tasks and (self.tasks[0].time <time.time()):
+                    i = self.tasks.pop(False)
+                    #Set this flag immediatly, otherwise an error somewhere could
+                    #Cause lost repeating events
+                    i.scheduled = False
+                    overdueby = time.time()-i.time
+                    if i.exact and overdueby > i.exact:
+                        continue
+                    try:
+                        i.run()
 
-                #These are tuples of (tasklist, time function)
-                for xyz in ((self.tasks,time.time), (self.monotasks,monotonic_if_available)):
-                    #Run tasks until all remaining ones are in the future
-                    tasks = xyz[0]
-                    timescale = xyz[1]
-                    while tasks and (tasks[0].time <timescale()):
-                        i = tasks.pop(False)
-                        #Set this flag immediatly, otherwise an error somewhere could
-                        #Cause lost repeating events
-                        i.scheduled = False
-                        overdueby = timescale()-i.time
-                        if i.exact and overdueby > i.exact:
-                            continue
+                    except:
                         try:
-                            i.run()
-
-                        except:
+                            logger.exception("error in scheduler\n"+traceback.format_exc(6))
+                            if isinstance(i.f, weakref.ref):
+                                f = i.f()
+                            else:
+                                f = i.f
                             try:
-                                logger.exception("error in scheduler\n"+traceback.format_exc(6))
-                                if isinstance(i.f, weakref.ref):
-                                    f = i.f()
-                                else:
-                                    f = i.f
-                                try:
-                                    if lhasattr(f,"__name__") and lhasattr(f,"__module__"):
-                                        messagebus.postMessage('system/errors/scheduler/time',
-                                                            {"function":f.__name__,
-                                                            "module":f.__module__,
-                                                            "traceback":traceback.format_exc(6)})
-                                        if not i.errored:
-                                            m = f.__module__
-                                            messagebus.postMessage("/system/notifications/errors",
-                                            "Problem in scheduled event function: "+repr(f)+" in module: "+ m
-                                                    +", check logs for more info.")
-                                            i.errored = True
-                                finally:
-                                    del f
-                            except:
-                                print(traceback.format_exc(6))
+                                if lhasattr(f,"__name__") and lhasattr(f,"__module__"):
+                                    messagebus.postMessage('system/errors/scheduler/time',
+                                                        {"function":f.__name__,
+                                                        "module":f.__module__,
+                                                        "traceback":traceback.format_exc(6)})
+                                    if not i.errored:
+                                        m = f.__module__
+                                        messagebus.postMessage("/system/notifications/errors",
+                                        "Problem in scheduled event function: "+repr(f)+" in module: "+ m
+                                                +", check logs for more info.")
+                                        i.errored = True
+                            finally:
+                                del f
+                        except:
+                            print(traceback.format_exc(6))
 
                 #Take all the repeating tasks that aren't already scheduled to happen and schedule them.
                 #Normally tasks  just reschedule themselves, but this check prevents any errors in
