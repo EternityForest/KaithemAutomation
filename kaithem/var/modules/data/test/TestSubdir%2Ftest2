@@ -1,2 +1,0 @@
-{description: Test actually storing a resource in a subdirectory on the filesystem
-    instead of just a naming convention, resource-type: permission}

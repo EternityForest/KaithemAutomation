@@ -25,17 +25,28 @@ class ScheduleTester():
     def _go(self):
         if self.last:
             if (abs((time.time()-self.last)-self.interval) > self.interval*1.5):
-                logging.error("Scheduler testing failed, interval was "+str(self.interval)+" actual delay " (str(time.time()-self.last)))
+                logging.error("Scheduler testing failed, interval was "+str(self.interval)+" actual delay "+ str(time.time()-self.last))
         self.last = time.time()
 
     def check(self):
         if self.last:
             if (abs((time.time()-self.last)-self.interval) > self.interval*1.5):
-                logging.error("Scheduler testing failed, interval was "+str(self.interval)+" actual delay " (str(time.time()-self.last)))
+                logging.error("Scheduler testing failed, interval was "+str(self.interval)+" actual delay " +str(time.time()-self.last))
         return((time.time()-self.last)-self.interval)
 
 module.scheduledEvent = ScheduleTester(5)
 scheduling.scheduler.every(module.scheduledEvent.go,5)
+
+
+def test_error_in_scheduled_func():
+    x = nonexistant123
+
+evt2=scheduling.scheduler.schedule(test_error_in_scheduled_func,time.time()+1)
+
+def test_error_in_repeating_func():
+    x = nonexistant1234
+
+evt3=scheduling.scheduler.every(test_error_in_repeating_func,5)
 ---
 #This code runs once when the event loads. It also runs when you save the event during the test compile
 #and may run multiple times when kaithem boots due to dependancy resolution
@@ -55,3 +66,4 @@ del f
 module.scheduleVar =3
 if not module.scheduleVar ==3:
     raise RuntimeError("Scheduled event did not stop when function deleted.")
+

@@ -1,11 +1,39 @@
-{
-    "action": "module.meter.write(random.random()*100)\r\nmodule.textdisplay.write(kaithem.misc.lorem())",
-    "continual": true,
-    "disabled": false,
-    "once": true,
-    "priority": "interactive",
-    "rate-limit": 2.5,
-    "resource-type": "event",
-    "setup": "import time, random\r\nmodule.span = kaithem.widget.DynamicSpan()\r\nmodule.button = kaithem.widget.Button()\r\n\r\ndef f(user,value):\r\n    if 'pushed' in value:\r\n        module.span.write(\"Button Last Pushed at Timestamp: \"+str(time.time()))\r\n        \r\nmodule.button.attach(f)\r\nmodule.span.write(\"Button not pressed\")\r\n\r\nmodule.timewidget = kaithem.widget.TimeWidget()\r\n\r\nmodule.meter = kaithem.widget.Meter(high_warn=70,high=80)\r\nmodule.slider = kaithem.widget.Slider(min=0,max=255,step=1)\r\nmodule.switch = kaithem.widget.Switch()\r\nmodule.switchspan = kaithem.widget.DynamicSpan()\r\n\r\ndef f(usr,value):\r\n    module.switchspan.write(str(value))\r\nmodule.switch.attach(f)\r\n\r\n\r\nmodule.mass= []\r\nfor i in range(0,24):\r\n    module.mass.append(kaithem.widget.Slider(min=0,max=255,step=1))\r\nmodule.textdisplay = kaithem.widget.TextDisplay()\r\nmodule.textdisplay.write(kaithem.misc.lorem())",
-    "trigger": "True"
-}
+{continual: true, disabled: false, enable: true, once: true, priority: interactive,
+  rate-limit: 2.5, resource-type: event, trigger: 'True'}
+
+#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
+---
+import time, random
+module.span = kaithem.widget.DynamicSpan()
+module.button = kaithem.widget.Button()
+
+def f(user,value):
+    if 'pushed' in value:
+        module.span.write("Button Last Pushed at Timestamp: "+str(time.time()))
+        
+module.button.attach(f)
+module.span.write("Button not pressed")
+
+module.timewidget = kaithem.widget.TimeWidget()
+
+module.meter = kaithem.widget.Meter(high_warn=70,high=80)
+module.slider = kaithem.widget.Slider(min=0,max=255,step=1)
+module.switch = kaithem.widget.Switch()
+module.switchspan = kaithem.widget.DynamicSpan()
+
+def f(usr,value):
+    module.switchspan.write(str(value))
+module.switch.attach(f)
+
+
+module.mass= []
+for i in range(0,24):
+    module.mass.append(kaithem.widget.Slider(min=0,max=255,step=1))
+module.textdisplay = kaithem.widget.TextDisplay()
+module.textdisplay.write(kaithem.misc.lorem())
+
+module.scroll = kaithem.widget.ScrollingWindow()
+---
+module.meter.write(random.random()*100)
+module.textdisplay.write(kaithem.misc.lorem())
+module.scroll.write(kaithem.misc.lorem())
