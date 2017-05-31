@@ -1,6 +1,8 @@
 type:  object
 
 properties:
+
+
     http-port:
         type: integer
         minimum: 0

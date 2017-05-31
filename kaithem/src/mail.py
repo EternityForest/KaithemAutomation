@@ -18,7 +18,7 @@ import smtplib,email,socket
 from collections import deque
 
 q = deque()
- 
+
 # Import the email modules we'll need
 from email.mime.text import MIMEText
 

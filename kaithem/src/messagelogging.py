@@ -108,22 +108,22 @@ class WebInterface(object):
     @cherrypy.expose
     def startlogging(self,topic):
         global known_unsaved
+        global loglistchanged
         pages.require('/admin/logging.edit')
         #Invalidate the cache of non-logged topics
         known_unsaved = OrderedDict()
         topic=topic.encode("latin-1").decode("utf-8")
         topic = topic[:]
-        global loglistchanged
         loglistchanged = True
         toSave.add(normalize_topic(topic))
         return pages.get_template('logging/index.html').render()
 
     @cherrypy.expose
     def stoplogging(self,topic):
+        global loglistchanged
         pages.require('/admin/logging.edit')
         topic=topic.encode("latin-1").decode("utf-8")
         topic = topic[1:]
-        global loglistchanged
         loglistchanged = True
         toSave.discard(normalize_topic(topic))
         return pages.get_template('logging/index.html').render()

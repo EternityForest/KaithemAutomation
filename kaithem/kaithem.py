@@ -28,7 +28,7 @@ except:
 #sets up and starts the server, and contains page handlers for the main page.
 
 
-import sys,os,threading,traceback,logging
+import sys,os,threading,traceback,logging,time
 
 logger = logging.getLogger("system")
 logger.setLevel(0)
@@ -93,13 +93,13 @@ def handleError(f,exc):
         from src import messagebus
         try:
             messagebus.postMessage('system/errors/workers',
-                                          {"function":f.__name__,
+                                        {"function":f.__name__,
                                         "module":f.__module__,
                                         "traceback":traceback.format_exception(*exc, limit=6)})
 
         except:
             messagebus.postMessage('system/errors/workers',{
-                               "traceback":traceback.format_exception(*exc, limit=s6)})
+                                "traceback":traceback.format_exception(*exc, limit=s6)})
 workers.handleError = handleError
 qsize = cfg.config['task-queue-size']
 count = cfg.config['worker-threads']
