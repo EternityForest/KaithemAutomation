@@ -15,8 +15,8 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #
-__version__ = "0.55 Production"
-__version_info__ = (0,5,6,"development",0)
+__version__ = "0.56 Testing"
+__version_info__ = (0,5,6,"beta",0)
 #Library that makes threading and lock operations, which we use a lot of, use native code on linux
 try:
     import pthreading
@@ -100,7 +100,19 @@ def handleError(f,exc):
         except:
             messagebus.postMessage('system/errors/workers',{
                                 "traceback":traceback.format_exception(*exc, limit=s6)})
+
 workers.handleError = handleError
+
+#We want a notification anytime every first error in a scheduled event
+from src import scheduling
+def handleFirstError(f):
+    "Callback to deal with the first error from any given event"
+    m = f.__module__
+    messagebus.postMessage("/system/notifications/errors",
+    "Problem in scheduled event function: "+repr(f)+" in module: "+ m
+            +", check logs for more info.")
+scheduling.handleFirstError = handleFirstError
+
 qsize = cfg.config['task-queue-size']
 count = cfg.config['worker-threads']
 wait =  cfg.config['wait-for-workers']

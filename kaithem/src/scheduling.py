@@ -14,23 +14,19 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 import threading,sys,re,time,datetime,weakref,os,traceback, collections,random,logging
-from . import messagebus,workers,config
+from . import workers
 from .repeatingevents import *
 
 logger = logging.getLogger("system.scheduling")
 
-
-#If we don't have a monotonic clock, make do with the one we have
-try:
-    monotonic_if_available = time.monotonic
-except:
-    monotonic_if_available = time.time
+def handleFirstError(f):
+    "Callback that you can swap for something else, test first error in a repeating event"
+    pass
 
 enumerate = enumerate
 class BaseEvent():
     def __init__(self):
         self.exact = 0
-        self.monotonic = False
 
 #unused, unfinished
 class Event(BaseEvent):
@@ -48,11 +44,21 @@ class Event(BaseEvent):
         workers.do(self._run)
 
     def _run(self):
-        f = self.f()
-        if not f:
-            self.unregister()
-        else:
-            f()
+        try:
+            f = self.f()
+            if not f:
+                self.unregister()
+            else:
+                f()
+        except:
+            try:
+                if hasattr(f,"__name__") and hasattr(f,"__module__"):
+                    logger.exception("Exception in scheduled function "+f.__name__+" of module "+f.__module__)
+            except:
+                logger.exception("Exception in scheduled function "+f.__name__+" of module "+f.__module__)
+
+        finally:
+            del f
 
     def _unregister(self):
         scheduler.remove(self)
@@ -166,26 +172,28 @@ class RepeatingEvent(BaseEvent):
                     f()
                 self._schedule()
             except:
-                if hasattr(f,"__name__") and hasattr(f,"__module__"):
-                    messagebus.postMessage('system/errors/scheduler/',
-                                        {"function":f.__name__,
-                                        "module":f.__module__,
-                                        "traceback":traceback.format_exc(6)})
+                try:
+                    if hasattr(f,"__name__") and hasattr(f,"__module__"):
+                        logger.exception("Exception in scheduled function "+f.__name__+" of module "+f.__module__)
+
+                except:
+                        logger.exception("Exception in scheduled function")
+
+                if not self.errored:
+                    try:
+                        handleFirstError(f)
+                    except:
+                        logging.exception("Error handling first error in repeating event")
+                self.errored = True
             finally:
                 self.lock.release()
                 del f
 
 class UnsynchronizedRepeatingEvent(RepeatingEvent):
-    """Represents a repeating event that is not synced to real time,
-    instead, it repeats every interval on the monotonic scale
+    """Represents a repeating event that is not synced to the real time exactly
     """
     def __init__(self,*args,**kwargs):
         RepeatingEvent.__init__(self,*args,**kwargs)
-        self.monotonic = True
-
-        #we set this here so that schedule()
-        #doesn't set it to use non-monotonic time.
-        self.lastrun = monotonic_if_available()
 
     def _schedule(self):
         """Calculate next runtime and put self into the queue."""
@@ -294,23 +302,15 @@ class NewScheduler(threading.Thread):
 
 
     def insert(self, event):
-        """Insert something that has a time, a monotonic and a run
+        """Insert something that has a time  and a run
         property that wants its run called at time
-        
-        If it has  monotonic set to true, the time will be interpreteted
-        according to the monotonic scale
         """
         
-        if not event.monotonic:
-            #Soft rate limit to prevent filling memory in really bizzare cases.
-            if len(self.task_queue)>3000:
-                time.sleep(max(0,(len(self.task_queue)-3000)/2000.0))
-            self.task_queue.append(event)
-        else:
-            #Soft rate limit to prevent filling memory in really bizzare cases.
-            if len(self.monotonic)>3000:
-                time.sleep(max(0,(len(self.monotonic_queue)-3000)/2000.0))
-            self.monotonic_queue.append(event)
+        #Soft rate limit to prevent filling memory in really bizzare cases.
+        if len(self.task_queue)>3000:
+            time.sleep(max(0,(len(self.task_queue)-3000)/2000.0))
+        self.task_queue.append(event)
+    
             
     def remove(self, event):
         "Remove something that has a time and a run property that wants its run to be called at time"
@@ -325,12 +325,6 @@ class NewScheduler(threading.Thread):
                 try:
                     if event in self.task_queue:
                         self.task_queue.remove(event)
-                except KeyError:
-                    pass
-
-                try:
-                    if event in self.monotonic_queue:
-                        self.monotonic_queue.remove(event)
                 except KeyError:
                     pass
 
@@ -396,7 +390,6 @@ class NewScheduler(threading.Thread):
     def run(self):
         lmin = min
         lmax = max
-        lhasattr = hasattr
         ltime = time
         need_sort = False
         global lastframe
@@ -446,28 +439,9 @@ class NewScheduler(threading.Thread):
                         continue
                     try:
                         i.run()
-
                     except:
                         try:
-                            logger.exception("error in scheduler\n"+traceback.format_exc(6))
-                            if isinstance(i.f, weakref.ref):
-                                f = i.f()
-                            else:
-                                f = i.f
-                            try:
-                                if lhasattr(f,"__name__") and lhasattr(f,"__module__"):
-                                    messagebus.postMessage('system/errors/scheduler/time',
-                                                        {"function":f.__name__,
-                                                        "module":f.__module__,
-                                                        "traceback":traceback.format_exc(6)})
-                                    if not i.errored:
-                                        m = f.__module__
-                                        messagebus.postMessage("/system/notifications/errors",
-                                        "Problem in scheduled event function: "+repr(f)+" in module: "+ m
-                                                +", check logs for more info.")
-                                        i.errored = True
-                            finally:
-                                del f
+                            logger.exception("Error in scheduler")
                         except:
                             print(traceback.format_exc(6))
 
@@ -487,7 +461,7 @@ class NewScheduler(threading.Thread):
                                 #If one event takes a long time to schedule or if it
                                 #Is already running and can't schedule yet.
                                 workers.do(i.schedule)
-                                messagebus.postMessage('system/errors/scheduler/warning',"rescheduled "+str(i)+"using error recovery")
+                                logger.debug("Rescheduled "+str(i)+"using error recovery, could indicate a bug somewhere")
                         except:
                                 logger.exception("Exception while scheduling event")
                     self.lastrecheckedschedules = time.time()

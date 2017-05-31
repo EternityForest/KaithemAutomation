@@ -71,7 +71,7 @@ def url(string):
 
 def SaveAllState():
     #fix circular import by putting it here
-    from . import  auth,modules,messagelogging,messagebus,registry
+    from . import  auth,modules,messagelogging,messagebus,registry,pylogginghandler
     with savelock:
         try:
             x = False

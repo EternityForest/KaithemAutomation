@@ -1096,24 +1096,27 @@ h4 {
         <h2>
             <a id="logging" name="logging"></a>Logging
         </h2>
-        <p>Kaithem's native logging support is based on the message bus. Anytime a message is posted to the message
-            bus, it gets stored in a "staging area". If a topic is not configured to be logged, than by default only the 50
-            most recent messages on that topic will be kept before discarding the oldest</p>
+        <p>Kaithem's logging was formerly based on JSON dumps of filtered message bus traffic,
+            but now uses python's native logging module. A special logger called "system" is used,
+            and anything logged to that logger will be logged to the output file.</p>
 
+        <p>This new method allows you to view realtime streaming logs.</p>
 
-            </p> Once the total  number of messages in the staging area exceeds a
-            threshold, The messages in the staging area will be filtered by topic then dumped to a file.
-            </p>
-
-
-            <p>
-             What specific get logged is configurable from the logs page, which also allows you to see the
+        <p>You can still configure topics to be forwarded from the message bus to the logger
+            What specific get logged is configurable from the logs page, which also allows you to see the
             messages in the staging area. Log dumps are in JSON format as one big dict of lists of messages indexed by
             topic, where each message is an array of (timestamp,message)</p>
 
+       <p>Configuration options like log-format still work, although only normal(semi-normal python log file output),
+           and null(no logging to disk) work</p>
 
+        <p>The new option log-buffer determines how many entries to buffer before dumping to file.
+            A new file is started after log-dump-size entries. With log-buffer==1, you can append each
+            entry to the file in real time, similar to other programs.</p>
+        
+        </p>If using compression, log-buffer must == log-dump-size, because we don't support appending compressed files yet.</p>
 
-        <p>Log dumps will be found in kaithem/var/logs/dumps while the list of topics to save will be in
+        <p>Log dumps will be found in kaithem/var/logs/dumps while the list of messagebus topics to forward will be in
             kaithem/var/logs</p>
 
 <h2><a id="email"></a>Email Alerts</h2>
