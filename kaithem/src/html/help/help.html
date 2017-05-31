@@ -1022,14 +1022,6 @@ h4 {
         <p>When an error occurs in Kaithem's background worker pool, it will be logged here.
         There could possibly be a lot of traffic here if a realtime event decides to spew a bunch.</p>
 
-        <h3>system/errors/scheduler/second</h3>
-        <p>When an event occurs in kaithem's internal time scheduler it will be posted here.
-        Nothing currently uses this except a few system tasks.</p>
-
-        <h3>system/errors/scheduler/minute</h3>
-        <p>When an event occurs in kaithem's internal time scheduler it will be posted here.
-        Nothing currently uses this except a few system tasks.</p>
-
         <h3>/system/notifications</h3>
         <p>All messages broadcasted to this topic will appear on the front page. They should be normal text strings,
             and should not contain any time information as they will be listed by time on the front page anyway. Care
@@ -1063,19 +1055,6 @@ h4 {
         <h3>/system/modules/events/loaded</h3>
         <p>The module and resource of any event that loads or reloads gets posted here.</p>
 
-        <h3>/sytem/perf/FPS</h3>
-        <p>Every ten minutes, a message will be posted to this topic containing only the current frame rate that
-         the event polling runs at. Messages are posted every minute if the frame rate is below 95% of full.</p>
-
-        <h3>/sytem/perf/memuse</h3>
-        <p>Every ten minutes, a message will be posted to this topic containing the current total memory usage of the system (0= none, 1=all available memory).
-        Messages are posted every minute if the ram use is greater than 0.8</p>
-
-        <h3>/sytem/perf/requestsperminute</h3>
-        <p>Every minute, a message will be posted to this topic containing the number of HTTP requests made to
-        the server in the last minute.</p>
-
-
         <p>NOTE: the message logging system means that anyone with the /users/logs.view permission
         can see all traffic on the message bus, because even topics not set up to be logged are kept in ram and shown on
         the logs page for a short time. Be careful to either not send any private data on the message bus,
@@ -1100,7 +1079,9 @@ h4 {
             but now uses python's native logging module. A special logger called "system" is used,
             and anything logged to that logger will be logged to the output file.</p>
 
-        <p>This new method allows you to view realtime streaming logs.</p>
+        <p>This new method allows you to view realtime streaming logs. Note that some things are still be logged to 
+            the message bus for now, like event errors, for conveinence.
+        </p>
 
         <p>You can still configure topics to be forwarded from the message bus to the logger
             What specific get logged is configurable from the logs page, which also allows you to see the

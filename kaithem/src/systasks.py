@@ -39,6 +39,7 @@ getcfg()
 lastgotip = time.time()
 
 lastram=0
+lastramwarn = 0
 lastpageviews =0
 pageviewsthisminute = 0
 pageviewpublishcountdown = 1
@@ -85,6 +86,7 @@ def logstats():
     global pageviewpublishcountdown,lastpageviews
     global MemUseWasTooHigh
     global lastram,tenminutepagecount
+    global lastramwarn
     pass
     #Do the page count
     tenminutepagecount += pageviewsthisminute
@@ -92,9 +94,9 @@ def logstats():
     pageviewcountsmoother.sample(pageviewsthisminute)
     pageviewsthisminute = 0
 
+    #Only log page views every ten minutes
     if (time.time()>lastpageviews+600) and tenminutepagecount>0:
-        logger.info("Requests per minute: "+ round(tenminutepagecount/10,2))
-        messagebus.postMessage("/system/perf/requestsperminute" , tenminutepagecount/10)
+        logger.info("Requests per minute: "+ str(round(tenminutepagecount/10,2)))
         lastpageviews = time.time()
         tenminutepagecount = 0
 
@@ -109,13 +111,15 @@ def logstats():
                 usedp = round((1-(free+cache)/float(total)),3)
                 total = round(total/1024.0,2)
                 if (time.time()-lastram>600) or ((time.time()-lastram>300) and usedp>0.8):
-                    logger.info("Total ram usage: "+ round(usedp*100,1))
+                    logger.info("Total ram usage: "+ str(round(usedp*100,1)))
                     lastram=time.time()
 
                 if usedp > config['mem-use-warn']:
                     if not MemUseWasTooHigh:
                         MemUseWasTooHigh = True
-                        messagebus.postMessage("/system/notifications/warnings" , "Total System Memory Use rose above "+str(int(config['mem-use-warn']*100))+"%")
+                        if (time.time()-lastramwarn>600):
+                            messagebus.postMessage("/system/notifications/warnings" , "Total System Memory Use rose above "+str(int(config['mem-use-warn']*100))+"%")
+                            lastramwarn = time.time()
 
                 if usedp < (config['mem-use-warn']-0.08):
                     MemUseWasTooHigh = False
