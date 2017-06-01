@@ -1,21 +1,76 @@
 <%include file="/pageheader.html"/>
 <title>Kaithem Help</title>
 <h2>Change Log</h2>
-
 <<<<<<< HEAD
-<h3>0.53</h3>
+<h3>0.56(Development)</h3>
+=======
+<h3>0.56</h3>
+>>>>>>> master
 <div class="sectionbox">
-<p class="warning">
-    This version differs by only a single line from 0.52 and fixes a critical security flaw. All users of the previous version should upgrade immediately.
-</p>
 <ul>
-<li>Fix bug that let anyone, even an unregistered user change the settings for any user.</li>
+<li>Eliminate the frame-based polling system, polled events are now scheduled using the scheduler,
+    which should improve performance when there no events used that poll quickly.<li>
+<li>Events with priority of realtime now run in their own threads</li>
+<li>Kaithem.persist now assumes relative paths are relative to vardir/moduledata, which is a new folder defined for modules to store large
+amounts of variable data without cluttering the registry.</li>
+<li>Add kaithem.web.goto(url) function</li>
+<li>New Virtual Resource mechanism for updatable objects</li>
+<li>Option not to have APIWidgets echo back messages sent to server</li>
+<li>New state machines API</li>
+<li>Fix the uptime function</li>
+<li>No longer log every event run, it was causing a performance hit with realtime events and wasn't that useful</li>
+<li>Logging is now based on python's builtin logging module, meaning log dumps are readable now.</li>
+<li>Realtime scrolling log feeds powered by the new scrollbox widget.</li>
+<<<<<<< HEAD
+
+=======
+<li>Logging format defaults to null</li>
+<li>Fix security error in viewing logs</li>
+>>>>>>> master
+</ul>
+
+
+<h3>0.55</h3>
+<div class="sectionbox">
+<ul>
+<li>Fix bug where si formatted numbers were rounded down</li>
+<li>Multiple message bus subscribers run simultaneously instead of sequentially</li>
+<li>Events now have an enable option</li>
+<li>Message events can now be ratelimited, additional messages are simply ignored</li>
+<li>Slight theming improvements</li>
+<li>Sound search path feature, added built in sounds</li>
+<li>Modules now display MD5 sums(Calculated by dumping to UTF-8 JSON in the most compact way with sorted keys.
+    Module and resource names are also hashed, but the locations of external modules are ignored)</li>
+<li>Use of the print function in an event under python3 will print both to the console and to the event's editing page(only most recent 2500 bytes kept)</li>
+<li>Change the way the scheduler works</li>
+<li>Setup actions no longer run twice when saving! (However, setup actions may run and retry any number of times due to dependancy resolution at bootup)</li>
+<li>Fix bug where references in the locals of deleted or modified events sometimes still hung around and messed up APIs based on __del__</li>
+<li>Stable initial event loading attempt order(Sorted by (module,resource) tuple.) Failed events will be retried up to the max attempts in the same order.</li>
+<li>Kaithem now appears to shut down properly without the old workaround</li>
+<li>Ship with the requests library included, but prefer the installed version if possible</li>
+<li>Add ability to store individual modules outside of kaithem's directory, useful for develpoment</li>
+<li>Support for embedded file resources in modules</li>
+<li>Eliminate polling from all builtin widgets. Switched to a pure push model.
+    THIS IS A POSSIBLE BREAKING CHANGE FOR CUSTOM WIDGETS,
+    although since those were never really properly documented it will likely be fine,
+    and only minor changes will be required to accomodate this new behavior. All default widgets are exactly the same from a user perspective,
+    only faster and more efficient.</li>
+<li>Can now inspect event scopes just like module objects. Inspectors have been greatly improved.</li>
+<li>Run a garbage collection sweep after deleting events or modules.</li>
+<li>Fix bug where "don't add aditional content" still added a footer.</li>
+<li>kaithem.web.resource lookups</li>
+<li>Add jslibs module</li>
+<li>Can now manually run any event</li>
+<li>Lots of stability improvements</li>
+<li>No more widget callbacks running twice</li>
+<li>Add six.py to thirdparty library(Cherrypy now depends on it)</li>
+<li>Fix bug saving data with unicode in it on some versions</li>
+<li>Fix error loading resources with DOS style line endings</li>
+<li>Fix spelling error in quotes file</li>
 </ul>
 </div>
 
-
-=======
-<h3>Development</h3>
+<h3>0.54</h3>
 <div class="sectionbox">
 <ul>
 <li>New file browser like module view</li>
@@ -59,10 +114,21 @@
 <li>Fix security hole in loading library module that allowed any user to do so.</li>
 <li>Increase stack size to 256K per thread, preventing segfaults</li>
 <li>Fix bug where all accesses to user pages had to use the same lock which meant that accessing a page could actually cause a deadlock if accessing that page caused an HTTP to another page</li>
+<li>Lots of misc changes</li>
 </ul>
 </div>
 
->>>>>>> develop
+<h3>0.53</h3>
+<div class="sectionbox">
+<p class="warning">
+This version differs by only a single line from 0.52 and fixes a critical security flaw. All users of the previous version should upgrade immediately.
+</p>
+<ul>
+<li>Fix bug that let anyone, even an unregistered user change the settings for any user.</li>
+</ul>
+</div>
+
+
 <h3>0.52(Minor Bugfix Release)</h3>
 <div class="sectionbox">
 <ul>
@@ -119,6 +185,7 @@
 <li>Fix bug where the registry entries were the same object as what you set instead of a copy.</li>
 <li>Fix Bug where some pages were not showing up in the pagelisting even if the user had permissions</li>
 <li>Fix bug where trying to render a widget with write permissions crashed if a __guest__ tried</li>
+
 </ul>
 </div>
 
