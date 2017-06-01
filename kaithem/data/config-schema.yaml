@@ -164,7 +164,7 @@ properties:
             -tiny
             -normal
             -pretty
-            -null
+            -none
 
     log-compress:
         type: string

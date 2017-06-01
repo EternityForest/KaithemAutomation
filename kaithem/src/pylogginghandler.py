@@ -117,6 +117,7 @@ class LoggingHandler(logging.Handler):
         
     def emit(self,record):
         #We handle all logs that make it to the root logger, and do the filtering ourselves
+        print(self.format(record))
         if not (record.name == self.name or record.name.startswith(self.name+".")) and not self.name=='':
             return
         self.callback(record)
@@ -236,7 +237,7 @@ class LoggingHandler(logging.Handler):
 
         
                      
-syslogger = LoggingHandler("system",fn="system" if not config['log-format']=='null' else None,
+syslogger = LoggingHandler("system",fn="system" if not config['log-format']=='none' else None,
 
                         folder=os.path.join(directories.logdir,"dumps"),level=20,
                         entries_per_file=config['log-dump-size'], 

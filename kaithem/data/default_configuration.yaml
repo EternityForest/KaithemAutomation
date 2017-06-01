@@ -124,9 +124,9 @@ log-buffer: 25000
 #Size is in bytes but you can use k,m,g for thousand million and billion
 keep-log-files: 256m
 
-#Level of prettyprinting vs filsize for logs. Can be: tiny, normal, pretty, null
-#Everything but normal and null is now deprecated
-log-format: null
+#Level of prettyprinting vs filsize for logs. Can be: tiny, normal, pretty, none
+#Everything but normal and none is now deprecated
+log-format: none
 
 #Type of data compression for log files. Can be: bz2, gzip, or none
 log-compress: none
