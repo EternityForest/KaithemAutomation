@@ -135,9 +135,16 @@ def countEvents():
     #Why bother with the lock. The event count is not critical at all.
     return len(_events)
 
+#Used for interpreter shutdown
+run = [True]
 def STOP():
     global run
-    run = False
+    run.pop()
+    print("Threads should be stopping")
+
+cherrypy.engine.subscribe("stop",STOP)
+
+
 t=0
 def stim():
     global t
@@ -264,7 +271,10 @@ def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setu
         return ChangedEvalEvent(when,do,scope,continual,ratelimit,setup,priority,**kwargs)
 
     elif trigger[0] == '!edgetrigger':
-        return PolledEvalEvent(when,do,scope,continual,ratelimit,setup,priority,**kwargs)
+        if priority=='realtime':
+            return ThreadPolledEvalEvent(when,do,scope,continual,ratelimit,setup,priority,**kwargs)
+        else:
+            return PolledEvalEvent(when,do,scope,continual,ratelimit,setup,priority,**kwargs)
 
     elif trigger[0] == '!time':
         return RecurringEvent(' '.join(trigger[1:]),do,scope,continual,ratelimit,setup,priority,**kwargs)
