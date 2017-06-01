@@ -1,7 +1,7 @@
 <%include file="/pageheader.html"/>
 <title>Kaithem Help</title>
 <h2>Change Log</h2>
-<h3>0.56(Development)</h3>
+<h3>0.56</h3>
 <div class="sectionbox">
 <ul>
 <li>Eliminate the frame-based polling system, polled events are now scheduled using the scheduler,
@@ -17,7 +17,8 @@ amounts of variable data without cluttering the registry.</li>
 <li>No longer log every event run, it was causing a performance hit with realtime events and wasn't that useful</li>
 <li>Logging is now based on python's builtin logging module, meaning log dumps are readable now.</li>
 <li>Realtime scrolling log feeds powered by the new scrollbox widget.</li>
-
+<li>Logging format defaults to null</li>
+<li>Fix security error in viewing logs</li>
 </ul>
 
 

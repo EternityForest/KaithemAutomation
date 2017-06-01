@@ -24,6 +24,8 @@ This includes errors such as cables being unplugged and then plugged back in, et
 
 Any unexpected condition should be reported or logged in some way(Keeping in mind rule #1 about not writing to disk without just cause)
 
+This draft coding standards document covers the general idea, but it is a work in progress early draft and subject to change: https://github.com/EternityForest/standards/blob/master/drafts/open_project_guidelines.md
+
 ## Relicensing
 
 The project is currently reserving the right to create proprietary forks or this project. Such forks will likely be special-purpose and

@@ -51,11 +51,11 @@ This trigger expression causes the event to occur when a message is posted to th
 
 #### !onchange \[expression\]
 
-This trigger expression causes the event to occur when the value of expression changes. the most recent value of expression is available as \_\_value.
+This trigger expression causes the event to occur when the value of expression changes. the most recent value of expression is availible as \_\_value.
 
 #### !time \[expression\]
 
-This causes the event to occur at a specific time, such as "every Friday" or "every hour on Monday". This is powered by the recurrent library and supports any expression that library does. Events will occur near the start of a second. Specific time zones are supported with Olson format time zones, e.g. "!time Every day at 8:30pm Etc/UTC". If no time zone is provided, the local time zone will be used.
+This causes the event to occur at a specific time, such as "every Friday" or "every hour on Monday". This is powered by the recurrent library and supports any expression that library does. Events will occur near the start of a second. Specific time zones are supported with olson format time zones, e.g. "!time Every day at 8:30pm Etc/UTC". If no time zone is provided, the local time zone will be used.
 
 By default, if an event is late it will be run as soon as possible, but if more than one event is missed it will not run multiple times to make up. If the string "exact &ltnumber&gt;" appears, then events more than number seconds late will just be skipped(Events after run as usual).
 
@@ -63,7 +63,7 @@ Examples: "!time every minute exact 2.5", "Every day at 8:30pm".
 
 Some preprocessing occurs before the recurrent library parses it, so that any expression of the form blah/blah will be interpreted as a timezone. Timezone names must be in the Olson TZ list("US/Central","Etc/UTC", etc) If the time expression does not contain a time zone, it will be assumed to be in the server's local time.
 
-If a time event is still running by the next occurrence, it will be skipped unless allow\_overlap is present somewhere in the string.
+If a time event is still running by the next occurrance, it will be skipped unless allow\_overlap is present somewhere in the string.
 
 If you delete the event but something else still has a reference to the function, calling it will raise an error
 
@@ -120,14 +120,14 @@ A user may belong to any number of groups.<span style="font-style: italic;"> </s
 
 To create new users or groups, change group memberships or permissions, or delete users, you must have the<span style="font-style: italic;"> /admin/users.edit </span>permission. Keep in mind a user with this permission can give himself any other permission and so has full access. Do not give this permission to an untrusted user.
 
-Permissions are generally of the form  "/&lt;path&gt;/&lt;item&gt;.&lt;action&gt;" without quotes. The path describes the general category, the item specifies a resource, and the action specifies an action that may be performed on the resource. Modules may define their own permissions, and user-defined pages may be configured to require one or more permissions to access. For consistency, You should always use the above permission format.
+Permissions are generally of the form  "/&lt;path&gt;/&lt;item&gt;.&lt;action&gt;" without quotes. The path describes the general catergory, the item specifies a resource, and the action specifies an action that may be performed on the resource. Modules may define their own permissions, and user-defined pages may be configured to require one or more permissions to access. For consistancy, You should always use the above permission format.
 
 Upon creating a new permission, you will immediately be able to assign it to groups by selecting the checkbox in the group page.
 
 <a href="" id="fileref"></a>File Reference Resources
 ----------------------------------------------------
 
-Beginning in version 0.55, modules may contain arbitrary files as resources. To preserve kaithem's atomic save functionality, files are stored in one large pool with names that have long strings of characters after them, and the modules themselves only contain references to them. The exception is in external modules and zip files. Saving to an external module will populate a special \_\_filedata\_\_ folder in that module, likewise with zip files. However, due to potential performance and memory constraints, users without the edit permission will not be able to download copies of modules that include files. You should still not make your modules publicly viewable unless you have good reason.
+Beginning in version 0.55, modules may contain arbitrary files as resources. To preserve kaithem's atomic save functionality, files are stored in one large pool with names that have long strings of characters after them, and the modules themselves only contain references to them. The exception is in external modules and zip files. Saving to an external module will populate a special \_\_filedata\_\_ folder in that module, likewise with zip files. However, due to potential performance and memory constraints, users without the edit permission will not be able to download copies of modules that include files. You should still not make your modules publically viewable unless you have good reason.
 
 You can always get the real disk path of a file resource from within the same module via the code: module\['name'\].getPath()
 
@@ -155,7 +155,7 @@ Widgets may take parameters in their render() function on a widget specific basi
 
 You must maintain a reference to all widget objects you create to prevent them from being garbage collected.
 
-Most widget objects will have write(value) and read() functions. For example, a calling read() on a slider widget would return whatever slider position the user entered. If there are multiple users, all sliders rendered from the same object will move in sync.
+Most widget objects will have write(value) and read() functions. For example, a calling read() on a slider widget would return whatever slider position the user entered. If there are multiple users, all sliders rendered from the same object will move in synch
 
 ### The Widget() Base Class
 
@@ -163,7 +163,7 @@ All Kaithem widgets inherit from Widget. Widget provides security, polling handl
 
 ### Widget.render(\*args,\*\*kwargs)
 
-Returns an HTML representation of the widget, including all javascript needed, and suitable for direct inclusion in HTML code as you would a div or img. Widgets are usually inline-block elements. Many numeric widgets will take an optional keyword argument label and unit.
+Returns an HTML representation of the widget, including all javascript needed, and suitable for direct inclusion in HTML code as you would a div or img. Widgets are usually inline-block elements. Many numeric widgets will take an optional kewyword argument label and unit.
 
 ### Widget.uuid (Always available)
 
@@ -191,7 +191,7 @@ Returns the current "value" of the widget, an is available for all readable widg
 
 ### Widget.write(value) (Usually Available)
 
-sets the current "value" of the widget, an is available for all writable widgets where the idea of "value" makes sense. Unless overridden, this will set self.value, invoke any callback set for the widget(with user \_\_SERVER\_\_), and send the value to all subscribed clients.
+sets the current "value" of the widget, an is available for all writable widgets where the idea of "value" makes sense. Unless overridded, this will set self.value, invoke any callback set for the widget(with user \_\_SERVER\_\_), and send the value to all subscribed clients.
 
 This should not be used from within the callback or overridden message handler due to the possibility of creating loops. To send a value to all clients without invoking any local callbacks or setting the local value, use send.
 
@@ -201,7 +201,7 @@ Send value to all subscribed clients.
 
 ### []()Widget.attach(f)
 
-Set a callback that fires when new data comes in from the widget. It will fire when write() is called or when the client sends new data The function must take two values, user, and data. User is the username of the user that loaded the page that sent the data the widget, and data is it's new value. user will be set to \_\_SERVER\_\_ if write() is called.
+Set a callback that fires when new data comes in from the widget. It will fire when write() is called or when the client sends new data The function must take two values, user, and data. User is the username of the user that loaded the page that sent the data the widget, and data is it's new value. user wil be set to \_\_SERVER\_\_ if write() is called.
 
 You should not call self.write from within the callback to avoid an infinite loop, although you can call write on other widgets without issue. If you wish to send replies from a callback, use self.send() instead which does not set self.value or trigger the callback.
 
@@ -214,7 +214,7 @@ The Kaithem object is one object available in almost all user defined code. It h
 
 #### kaithem.globals
 
-An instance of object() who's only purpose is so that the user can assign it attributes. Be careful, as the kaithem namespace is truly global.
+An instance of object() who's only purpose is so that the user can asign it attributes. Be careful, as the kaithem namespace is truly global.
 
 ### kaithem.misc
 
@@ -232,7 +232,7 @@ Returns about a sentence to a paragraph of placeholder text that may change betw
 
 #### Kaithem.misc.uptime()
 
-Returns uptime in seconds of the kaithem server(not of the machine itself)
+Returns uptime in seconds of the kaithem server(not of the machine itself). Deprecated in favor of kaithem.time.uptime.
 
 #### kaithem.misc.version()
 
@@ -246,7 +246,85 @@ releaselevel may be any of dev, alpha, beta, candidate, final
 
 Serial is not guaranteed to actually do anything
 
+### kaithem.resource
+
+This is both a namespace containing the API for [VirtualResources](vresources.html), and a dict-like object allowing you to access resources by module, resource tuple.
+
+### kaithem.states
+
+This namespace deals with kaithem's state machine library.
+
+#### sm=kaithem.states.StateMachine(start="start")
+
+Creates a state machine that starts in the given state. State machines are VirtualResources, and their current state, previous state, timers, and subscribers transfer when handing off. State machines are fully threadsafe. Machines start with no states, so they are in a nonexistant state to begin with.
+
+#### sm.addState(name, enter=None, exit=None)
+
+Add a new state. Enter and exit can be functions taking no arguments. They will run when that state is entered or exited. states are identified by a string name, but values beginning with \_\_ are reserved
+
+#### sm.removeState(name)
+
+Remove a state.
+
+#### sm.addRule(start, event, dest)
+
+Add a rule to an existing state that triggers when event(which can be any string, but values beginning with \_\_ are reserved) happens.
+
+Dest can be the name of a state, or else it can be a function that takes one parameter, the machine itself, and returns either None or a string.
+
+This function will be called anytime the rule is triggered. If it returns None, nothing happens. If it returns a string, the machine will enter the state named by that string
+
+#### sm.setTimer(state, length, dest)
+
+Attach a timer to a state. The timer starts when you enter the state. If you remain there for more than length seconds, it goes to the dest. You can only have one timer per state, the new one replaces the old if one already exists.
+
+re-entering a state resets the timer. Timers start immediately upon entering a state, after the exit function of the old state but before the exit function of the new state.
+
+#### sm(event)
+
+Calling the machine triggers an event. The event can be any string, but values beginning with \_\_ are reserved. If there is a maching rule, the rule is activated. Otherwise nothing happens. May raise an exception if there is an error in the enter or exit function.
+
+This does nothing if the machine is in a nonexistant state.
+
+State machine enter and exit actions occur synchronously in the thread that triggers the event, so this function will block until they return. Events and transitions are fully atomic. Any other thread that triggers an event during a transition will block until the original transition is complete, as will any modifications to the states, timers, or rules
+
+#### sm.jump(state, condition=None)
+
+Jump immediately to the given state, doing the proper exit and enter actions. If condition is not None, it will only jump if the condition matches the current state.
+
+Jumping to a nonexistant state is an error.
+
+#### sm.seek(t)
+
+Seeks to a given position on the state's timeline. If you seek to any point past the timer length for this state, the timer rule will simply occur immediatly. Seeking to a negative position is also valid, and will have the effect of extending the duration as expected.
+
+#### sm.state
+
+The current state as a string.
+
+#### sm.enteredState
+
+The time.time() value when this state was entered.
+
+#### sm.age
+
+A property that returns the time in seconds since entering the current state.
+
+#### sm.stateage
+
+A property that returns a tuple of the (current state, time in seconds since entering the current state.)
+
+Both values are guaranteed to match, the state will not change after checking one but before checking the other. Use this value any time you want to test if something has been in a state for a certain time
+
+#### sm.prevState
+
+The previous state of the machine. May be the same as the current state if re-entry occurs. The initial value is None before any transitions have occured.
+
 ### kaithem.time
+
+#### kaithem.time.uptime()
+
+Return the number of seconds as a float that kaithem has been running for. Useful for event triggers if you want to do something a certain number of seconds after kaithem loads.
 
 #### kaithem.time.strftime(timestamp)
 
@@ -417,7 +495,7 @@ Creates a dynamic span widget. When rendered, A dynamic span widget looks like a
 
 #### kaithem.widgets.TimeWidget()
 
-All this does is display the current time in his or her preferred format. use like an HTML span or an image. Render takes a parameter type which defaults to widget. If type is 'inline', will render as simple text without special styling.
+All this does is display the current time in his or her prefered format. use like an HTML span or an image. Render takes a parameter type which defaults to widget. If type is 'inline', will render as simple text without special styling.
 
 Unlike other widgets, the TimeWidget is purely client side and uses the system clock of the client, and as such will even work if /static/widget.js is not included.
 
@@ -427,7 +505,7 @@ This is a button. Data points from it are in the form of lists of states. Normal
 
 The sugessted pattern for dealing with these is to use [attach()](#widgetattach) to set a callback, then use a line like "if 'pushed' in value:" to detect button presses. Directly reading the value is not reccomended.
 
-Mobile devices may not be able to register press-and-hold, but should handle normal presses correctly.
+Mobile devices may not be able to register press-and-hold, but should handle normall presses correctly.
 
 render() takes a **required** first argument content which is is usually a short string such as "submit" which will appear as the contents of the HTML button. render() also takes the optional keyword element type. If type is "trigger", it will render as a larger button that is disabled by default, with a smaller arm/disarm button above it, that one must use in order to enable the button. However, as far as the server knows, it acts as a normal button. Good for things you don't want to press accidentally.
 
@@ -461,7 +539,11 @@ On the server, you can call read() to get it's contents or write(s) to set it's 
 
 TextBox.render() takes an optional parameter label to provide a label for the box.
 
-#### kaithem.widgets.APIWidget
+#### kaithem.widgets.ScrollBox(length=250)
+
+A scrolling widget used for things like logging. Whatever HTML you write() will be appended to the end of a log on all the browsers in a div tag. The last length entries are kept. Even without websocket support, you can refresh to get the most recent entries.
+
+#### kaithem.widgets.APIWidget(echo=True)
 
 This widget exists to allow you to create custom widgets easily. When you render() it, you pass a parameter htmlid. The render function returns a script that places an object into a global javascript variable of that name. You can use obj.set(x) to set the widget's value to x, and retrieve the widget's value with obj.value.
 
@@ -470,9 +552,11 @@ You can also use obj.send(x), to ensure that all values and not just the latest 
 
 You may transmit any value that can be represented as JSON.
 
-If you would rather receive a callback after every polling cycle with the current value, just redefine the objects upd(val) method.
+If you would rather recieve a callback after every pollingcycle with the current value, just redefine the objects upd(val) method.
 
 On the python side, [attach()](#widgetattach), read(), and write() all work as expected.
+
+If echo is true(the default), any messges send from a client will be echoed back to all clients
 
 ### kaithem.web
 
@@ -487,6 +571,10 @@ Decode an URL enoded string.
 #### kaithem.web.goBack()
 
 When called from code embedded in an HTML page, raises an interrupt causing an HTTP redirect to the previous page to be sent. Useful for when you have a page that is only used for it's side effects.
+
+#### kaithem.web.goto(url)
+
+When called from code embedded in an HTML page, raises an interrupt causing an HTTP redirect to the previous specified url to be sent.
 
 #### kaithem.web.user()
 
@@ -510,13 +598,13 @@ When a WebResource gets replaced, the old one is discarded, so if you want to ch
 
 #### <a href="" id="servefile"></a>kaithem.web.serveFile(path,contenttype,name = path)
 
-When called from code embedded in an HTML page,raises an interrupt causing the server to skip rendering the current page and instead serve a static file. Useful when you need to serve a static file and also need to restrict access to it with permissions.
+When called from code embedded in an HTML page,raises an interrupt causing the server to skip rendering the current page and instead serve a static file. Useful when you need to serve a static file and also need to restrict acess to it with permissions.
 
 #### kaithem.web.hasPermission(permission)
 
-####
+#### 
 
-When called from within a mako template, returns true if the acessing user has the given permission.
+When clled from within a mako template, returns true if the acessing user has the given permission.
 
 ### <a href="" id="kdotmail"></a>kaithem.mail
 
@@ -536,45 +624,63 @@ The kaithem.events namespace provides facilities for programmatically creating e
 
 #### kaithem.events.when(trigger,action,priority="interactive")
 
-This lets you create an event that will fire exactly once and then disappear. Trigger must be a function that returns true when you want it to fire, and action must be a function
+This lets you create an event that will fire exactly once and then dissapear. Trigger must be a function that returns true when you want it to fire, and action must be a function
 
 #### kaithem.events.after(delay,action,priority)
 
-Same as when(), but creates an event that will fire after *delay* seconds. Useful for things like turning lights on for set lengths of time. This will only be accurate to within a tenth of a second normally, or within one frame if you set priority to 'realtime'
+Same as when(), but creates an event that will fire after *delay* seconds. Usful for things like turning lights on for set lengths of time. This will only be accurate to within a tenth of a second normally, or within one frame if you set priority to 'realtime'
 
 Note that as both these functions create real(through temporary) events, they have the capability to outlast the creating code. If one set up a event that creates temporary events, then deletes the event, the temporary events will remain until triggered or until the server is restarted.
 
 ### kaithem.persist
 
-Provides easy-to-use functionality for traditional file based persistence.
+Provides easy-to-use functionality for traditional file based persistance. relative filenames provided to these functions will use kaithem's vardir/data as the working directory. $envars and ~ will be expanded if expand is set to true.
 
-#### kaithem.persist.load(filename)
+Each module should in general have it's own subfolder in this data directory unless the data will be shared between modules
 
-Load data from a file named filename in a format dictated by the file extension. Data will be converted to a python appropriate representation and returned.
+Note that you may want to use the registry instead to save SD card wear by keeping changes in RAM until explicitly saved.
+
+#### kaithem.persist.load(filename, autorecover=True, expand=True)
+
+Load data from a file named filname in a format dictated by the file extension. Data will be converted to a python appropriate representation and returned.
+
+If autorecover ==True, and the filename doesn't exist or can't be loaded, then filename+"~" will be used instead. If both the original file and a tilde backup file exist, the tilde backup file will be used if a filename~! marker file exists to indicate that the backup file is valid.
+
+If no marker file exists but a backup file does(Such as might be the case if an external editor was involved), the tilde file is used only if it is older or longer than the main file, because generally a program does not write to the main file until finished writing the backup, and therefore if the main file is newer, the backup likely finished sucessfully, allowing the code to move on to the main file.
+
+Similarly, since a tilde file never contains additional data beyond what was in the original, so if the tilde file is longer, that means the main file was truncated, which should only ever happen after a complete backup was made
+
+Both of these are just heuristics and cannot guarantee detection of a valid tilde file. However, due to persist.save using ~! markers(or tempfiles and atomic rename if available), the save and load process should be fully atomic so long as no other programs access the save files while kaithem is using them.
 
 #### Supported File Types
 
 .json  
-Values may be list, dict, string, int, bool, or None
+Values may any JSON serializable object
 
 .yaml  
-Values may be list, dict, string, int, bool, or None
+Values may any YAML serializable object
 
 .txt  
-Values may be anything. str() will be used on it prior to saving.
+Values must be a sting or unicode string. Any other object will be converted to a string in some undefined manner Text will be saved as UTF-8, but no BOM will be added.
 
 .bin  
-Bytes and bytearrays.
+Bytes and bytearrays may be directly saved with this.
 
 \*.gz  
-Any other type may be compressed with gzip compression(e.g. "foo.txt.gz")
+Any other type may be compressed with gzip compresssion(e.g. "foo.txt.gz")
 
 \*.bz2  
 Any other type may be compressed with bz2 compression(e.g. "bar.json.bz2")
 
-#### kaithem.persist.save(data,filename,mode=default,private=False)
+#### kaithem.persist.save(data,filename,mode=default,private=False,backup=None,expand=False)
 
-Saves data to a file named fn in a format dictated by the file extension. If the file does it exist, it will be created. If it does, it will be overwritten. If mode=='backup', a tilde will be appended to the existing file's name, the new file written, and then the backup will be deleted. Compressed filetypes are also supported.
+Saves data to a file named fn in a format dictated by the file extension. If the file does it exist, it will be created. If it does, it will be overwritten. If mode=='backup', the file will first be copied to filename~ , then an empty marker file will be created at filename~! to show that the backup was completed correctly, the file written or overwritten, and then the backup and marker file will both be deleted will be deleted.
+
+If the directory you try to save into does not exist, it will be created along with any higher level directories needed.
+
+The affect of this is that if a write fails, the loader can fall back to an old version.
+
+Setting backup to true is an alias for mode="backup", which should be used instead as the mode parameter may be removed.
 
 If private is True, file will have the mode 700(Only owner or admin/root can read or write the file). The mode is changed before the file is written so there is no race condition attack.
 
@@ -610,7 +716,7 @@ Takes a number and formats it with suffixes. 1000 becomes 1K, 1,000,000 becomes 
 
 #### kaithem.string.formatTimeInterval(n,places=2,clock=False)
 
-Takes a length of time in seconds and formats it. Places is the mx units to use. formatTimeInterval(5,1) becomes ""5 seconds", formatTimeInterval(65,2) returns "1 minute 5 seconds"
+Takes a length of time in secons and formats it. Places is the mx units to use. formatTimeInterval(5,1) becomes ""5 seconds", formatTimeInterval(65,2) returns "1 minute 5 seconds"
 
 If clock==True, places is ignored and output is in HH:MM format. If places is 3 or 4 format will be HH:MM:SS or HH:MM:SS:mmm where mmmm is milliseconds.
 
@@ -634,11 +740,11 @@ By referencing this file, you can enable a custom HTML element tab-panel. Basica
 <a href="" id="theming"></a>Theming
 -----------------------------------
 
-The following conventions are used for consistency in kaithem CSS. If you want your custom pages to be consistent with the rest of Kaithem's theming, you can use the following CSS classes in your user-created pages.
+The following conventions are used for consistancy in kaithem CSS. If you want your custom pages to be consistant with the rest of Kaithem's theming, you can use the following CSS classes in your user-created pages.
 
 ### Section Boxes
 
-Almost everything that is not a large heading should be in a div with class="sectionbox" or a child thereof. Kaithem backgrounds may not have enough contrast with text to be easily readable outside of sectionboxes.
+Almost everything that is not a large heading should be in a div with class="sectionbox" or a child therof. Kaithem backgrounds may not have enough contrast with text to be easily readable outside of sectionboxes.
 
 ### Scrolling Boxes
 
@@ -693,14 +799,6 @@ Mhen an error occurs in a module, A message will be broadcast on this topic,wher
 
 When an error occurs in Kaithem's background worker pool, it will be logged here. There could possibly be a lot of traffic here if a realtime event decides to spew a bunch.
 
-### system/errors/scheduler/second
-
-When an event occurs in kaithem's internal time scheduler it will be posted here. Nothing currently uses this except a few system tasks.
-
-### system/errors/scheduler/minute
-
-When an event occurs in kaithem's internal time scheduler it will be posted here. Nothing currently uses this except a few system tasks.
-
 ### /system/notifications
 
 All messages broadcasted to this topic will appear on the front page. They should be normal text strings, and should not contain any time information as they will be listed by time on the front page anyway. Care must be taken not to flood the front page and thereby hide important messages. Only system-wide or major events should be logged here. One should subscribe to "/system/notifications/" with the trailing slash, as many messages are posted to subtopics.
@@ -716,7 +814,7 @@ These messages show in yellow in the front page and the logs. Use for generic wa
 
 ### /system/notifications/important
 
-Messages show highlighted in logs. Use for things that you want to be noticed, but don't necessarily require immediate action, like when a connection has been established or restored with a server, The system boots up, or to notify of important events, store opening hours, etc. Routine things that happen frequently such as "main battery fully charged" shouldn't be put here.
+Messages show highlighted in logs. Use for things that you want to be noticed, but don't neccesarily require immediate action, like when a connection has been established or restored with a server, The system boots up, or to notify of important events, store opening hours, etc. Routine things that happen frequently such as "main battery fully charged" shouldn't be put here.
 
 ### /system/modules/loaded
 
@@ -729,22 +827,6 @@ When a module has been deleted, it's name is posted here.
 ### /system/modules/events/loaded
 
 The module and resource of any event that loads or reloads gets posted here.
-
-### /sytem/perf/FPS
-
-Every ten minutes, a message will be posted to this topic containing only the current frame rate that the event polling runs at. Messages are posted every minute if the frame rate is below 95% of full.
-
-### /sytem/perf/memuse
-
-Every ten minutes, a message will be posted to this topic containing the current total memory usage of the system (0= none, 1=all available memory). Messages are posted every minute if the ram use is greater than 0.8
-
-### /sytem/perf/requestsperminute
-
-Every minute, a message will be posted to this topic containing the number of HTTP requests made to the server in the last minute.
-
-### system/events/ran
-
-When any event runs, a message will be posted here, the message being a list with two items, the first being the module name and the second being the event name
 
 NOTE: the message logging system means that anyone with the /users/logs.view permission can see all traffic on the message bus, because even topics not set up to be logged are kept in ram and shown on the logs page for a short time. Be careful to either not send any private data on the message bus, or be very careful who you give permission to see the logs.
 
@@ -763,14 +845,20 @@ When a user fails to logs in, his username and IP are posted here as a two eleme
 <a href="" id="logging"></a>Logging
 -----------------------------------
 
-Kaithem's native logging support is based on the message bus. Anytime a message is posted to the message bus, it gets stored in a "staging area". If a topic is not configured to be logged, than by default only the 50 most recent messages on that topic will be kept before discarding the oldest
+Kaithem's logging was formerly based on JSON dumps of filtered message bus traffic, but now uses python's native logging module. A special logger called "system" is used, and anything logged to that logger will be logged to the output file.
 
-Once the total number of messages in the staging area exceeds a threshold, The messages in the staging area will be filtered by topic then dumped to a file.
-What specific get logged is configurable from the logs page, which also allows you to see the messages in the staging area. Log dumps are in JSON format as one big dict of lists of messages indexed by topic, where each message is an array of (timestamp,message)
+This new method allows you to view realtime streaming logs. Note that some things are still be logged to the message bus for now, like event errors, for conveinence.
 
-Log dumps will be found in kaithem/var/logs/dumps while the list of topics to save will be in kaithem/var/logs
+You can still configure topics to be forwarded from the message bus to the logger What specific get logged is configurable from the logs page, which also allows you to see the messages in the staging area. Log dumps are in JSON format as one big dict of lists of messages indexed by topic, where each message is an array of (timestamp,message)
+
+Configuration options like log-format still work, although only normal(semi-normal python log file output), and null(no logging to disk) work
+
+The new option log-buffer determines how many entries to buffer before dumping to file. A new file is started after log-dump-size entries. With log-buffer==1, you can append each entry to the file in real time, similar to other programs.
+
+If using compression, log-buffer must == log-dump-size, because we don't support appending compressed files yet.
+Log dumps will be found in kaithem/var/logs/dumps while the list of messagebus topics to forward will be in kaithem/var/logs
 
 <a href="" id="email"></a>Email Alerts
 --------------------------------------
 
-Kaithem can be configured to [send email](#kdotmail) through an SMTP server. Go to the settings page to configure this. You can also create mailing lists, to make mail alerting easier to manage. You create these on the settings page. Mailing lists are uniquely identified by a base64 string called a UUID that ends in two equals signs. For every list you create, a corresponding permission will be created containing the UUID. You must have that permission to subscribe to a list. Every user can enter an email address and receive alerts from any list he has the correct permissions to subscribe to.
+Kaithem can be configured to [send email](#kdotmail) through an SMTP server. Go to the settings page to configure this. You can also create mailing lists, to make mail alerting easier to manage. You create these on the settings page. Mailing lists are uniquely identified by a base64 string called a UUID that ends in two equals signs. For every list you create, a corresponding permission will be created containing the UUID. You must have that permission to subscribe to a list. Every user can enter an email address and recieve alerts from any list he has the correct permissions to subscribe to.

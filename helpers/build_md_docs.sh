@@ -9,5 +9,7 @@
 #set working dir
 cd $(dirname $(realpath $0))
 pandoc ../kaithem/src/html/help/help.html -t markdown_github -s -o  ../help.md
+pandoc ../kaithem/src/html/help/faq.html -t markdown_github -s -o  ../faq.md
+pandoc ../kaithem/src/html/help/vresources.html -t markdown_github -s -o  ../vresources.md
 pandoc ../kaithem/src/html/help/changes.html -t markdown_github -s -o  ../changes.md
 pandoc ../kaithem/src/html/help/license.html -t markdown_github -s -o  ../license.md

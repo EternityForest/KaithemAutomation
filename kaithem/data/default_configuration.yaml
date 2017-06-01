@@ -126,7 +126,7 @@ keep-log-files: 256m
 
 #Level of prettyprinting vs filsize for logs. Can be: tiny, normal, pretty, null
 #Everything but normal and null is now deprecated
-log-format: normal
+log-format: null
 
 #Type of data compression for log files. Can be: bz2, gzip, or none
 log-compress: none
