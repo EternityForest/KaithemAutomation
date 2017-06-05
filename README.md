@@ -65,8 +65,25 @@ If you are really going to use this you must change the ssl keys in /ssl to some
 If you stop the process with ctrl-C, it might take a few seconds to stop normally.
 If you force stop it it might leave behind a lingering process that you have to kill-9 because it holds onto the port so you can't restart kaithem.
 
-Change Log(See changes.md for full change info)
+Recent Changes(See changes.md for full change info)
 =============
+
+### 0.56
+
+-   Eliminate the frame-based polling system, polled events are now scheduled using the scheduler, which should improve performance when there no events used that poll quickly.
+-   -   Events with priority of realtime now run in their own threads
+-   Kaithem.persist now assumes relative paths are relative to vardir/moduledata, which is a new folder defined for modules to store large amounts of variable data without cluttering the registry.
+-   Add kaithem.web.goto(url) function
+-   New Virtual Resource mechanism for updatable objects
+-   Option not to have APIWidgets echo back messages sent to server
+-   New state machines API
+-   Fix the uptime function
+-   No longer log every event run, it was causing a performance hit with realtime events and wasn't that useful
+-   Logging is now based on python's builtin logging module, meaning log dumps are readable now.
+-   Realtime scrolling log feeds powered by the new scrollbox widget.
+-   Logging format defaults to null
+-   Fix security error in viewing logs
+
 
 ### 0.55
 
