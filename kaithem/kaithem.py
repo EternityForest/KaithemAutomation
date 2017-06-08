@@ -15,12 +15,19 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #
-__version__ = "0.56 Production"
-__version_info__ = (0,5,6,"final",0)
+__version__ = "0.57 Development"
+__version_info__ = (0,5,7,"dev",0)
 #Library that makes threading and lock operations, which we use a lot of, use native code on linux
 try:
     import pthreading
     pthreading.monkey_patch()
+except:
+    pass
+
+#Dump stuff to stderr when we get a segfault
+try:
+    import faulthandler
+    faulthandler.enable()
 except:
     pass
 
