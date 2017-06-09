@@ -309,7 +309,6 @@ class BaseEvent():
     """
 
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = None,priority = 2,m=None,r=None):
-
         #Copy in the data from args
         self.scope = scope
         self._prevstate = False
@@ -429,8 +428,8 @@ class BaseEvent():
             #The mesagebus is largely untested and we don't want to kill the thread.
             try:
                 messagebus.postMessage('/system/errors/events/'+
-                                       self.module+'/'+
-                                       self.resource,str(tb))
+                                        self.module+'/'+
+                                        self.resource,str(tb))
             except Exception as e:
                 print (e)
 
@@ -818,14 +817,21 @@ class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
                 #The sleep comes before the check of the condition because
                 #we want the fastest response when turning the event back on.
                 time.sleep(d)
-                self.pauseflag.wait()
+
+                #We want to wait if paused. There may be performance
+                #Issues on python2 using this lock,
+                #But otherwise a paused event would just wait
+                #and not be deleted.
+                while not self.pauseflag.wait(5):
+                    if not run and self.runthread:
+                        return
                 with self.lock:
                     try:
                         self.check()
                     except Exception as e:
                         if not (run and self.runthread):
                             return
-                        logger.exception("Error unregistering event "+self.resource+" of "+ self.module)
+                        logger.exception("Error in event "+self.resource+" of "+ self.module)
                         self._handle_exception(e)
                         time.sleep(config['error-backoff'].get(self.symbolicpriority,5))
         self.loop = f
@@ -891,7 +897,7 @@ class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
         self.runthread = False
         self.disable = True
         self.pauseflag.clear()
-        time.sleep(1/60)
+        time.sleep(1/60.0)
 
 
     def _check(self):
@@ -1007,9 +1013,9 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
                 return
             print("""Caught event trying to return None for get next run
                 (might be an event that only runs for a period that already expired), and retry 1 failed time is:""",
-                  time.time(), " expr is ",
-                  self.trigger, " last ran ",
-                  self.lastexecuted,"retrying")
+                    time.time(), " expr is ",
+                    self.trigger, " last ran ",
+                    self.lastexecuted,"retrying")
             time.sleep(1.353)#A random number unlikely to sync up with anything
 
             if self.nextruntime:
@@ -1076,6 +1082,7 @@ def removeModuleEvents(module):
                 __EventReferences[i].unregister()
                 __EventReferences[i].cleanup()
                 del __EventReferences[i]
+        gc.collect()
 
 #Every event has it's own local scope that it uses, this creates the dict to represent it
 def make_eventscope(module = None):
@@ -1265,20 +1272,20 @@ def make_event_from_resource(module,resource,subst=None):
             if not parseTrigger(r['trigger'][0]) == '!function':
                 return Event(m=module,r=resource)
             else:
-               return Event(r['trigger'],r['action'],make_eventscope(module),
-              setup = setupcode,
-              continual = continual,
-              ratelimit=ratelimit,
-              priority=priority,
-              m=module,
-              r=resource,dummy=True)
+                return Event(r['trigger'],r['action'],make_eventscope(module),
+                setup = setupcode,
+                continual = continual,
+                ratelimit=ratelimit,
+                priority=priority,
+                m=module,
+                r=resource,dummy=True)
 
     x = Event(r['trigger'],r['action'],make_eventscope(module),
-              setup = setupcode,
-              continual = continual,
-              ratelimit=ratelimit,
-              priority=priority,
-              m=module,
-              r=resource)
+                setup = setupcode,
+                continual = continual,
+                ratelimit=ratelimit,
+                priority=priority,
+                m=module,
+                r=resource)
     x.timeTakenToLoad = time.time()-t
     return x

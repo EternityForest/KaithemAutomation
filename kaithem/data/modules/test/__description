@@ -1,5 +1,12 @@
 resource-type: module-description
-text: "This is a basic self test module. Warning: this will write to /tmp if it can\
-  \ and the /tmp exists.\r\n\r\nWe put off time sensitive tests for 90s after boot\
-  \ so that the cpu intensive stuff gets out of the way,\r\nhowever under high cpu\
-  \ load a few errors may occur due to missed deadlines."
+text: |-
+    This is a basic self test module. Warning: this will write to /tmp if it can
+    and the /tmp exists.
+    
+    We put off time sensitive tests for 90s after boot
+    so that the cpu intensive stuff gets out of the way,
+    
+    however under high cpu
+    load a few errors may occur due to missed deadlines.
+    WARNING: May leave behind things that use CPU even when deleted. You should probably
+    restart kaithem to get rid of it.

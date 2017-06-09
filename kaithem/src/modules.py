@@ -928,7 +928,7 @@ def rmResource(module,resource,message="Resource Deleted"):
         else:
             additionalTypes[r['resource-type']].ondelete(module,resource,r)
     except:
-           messagebus.postMessage("/system/modules/errors/unloading","Error deleting resource: "+str((module,resource)))
+            messagebus.postMessage("/system/modules/errors/unloading","Error deleting resource: "+str((module,resource)))
 
 def newModule(name,location=None):
     "Create a new module by the supplied name, throwing an error if one already exists. If location exists, load from there."
@@ -969,17 +969,17 @@ def rmModule(module,message="deleted"):
     modulesHaveChanged()
     unsaved_changed_obj[module]=message
     with modulesLock:
-       x =ActiveModules.pop(module)
-       j = {i:copy.deepcopy(x[i])  for i in x if not(isinstance(x[i], weakref.ref))}
-       scopes.pop(module)
+        x =ActiveModules.pop(module)
+        j = {i:copy.deepcopy(x[i])  for i in x if not(isinstance(x[i], weakref.ref))}
+        scopes.pop(module)
 
     #Delete any custom resource types hanging around.
     for k in j:
         if j.get('resource-type',None) in additionalTypes:
             try:
-               additionalTypes[j['resource-type']].ondelete(i,k,j[k])
+                additionalTypes[j['resource-type']].ondelete(i,k,j[k])
             except:
-               messagebus.postMessage("/system/modules/errors/unloading","Error deleting resource: "+str(i,k))
+                messagebus.postMessage("/system/modules/errors/unloading","Error deleting resource: "+str(i,k))
     #Get rid of any lingering cached events
     newevt.removeModuleEvents(module)
     #Get rid of any permissions defined in the modules.
