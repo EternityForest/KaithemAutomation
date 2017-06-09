@@ -680,7 +680,7 @@ def loadModules(modulesdir):
 def detect_ignorable(path):
     "Recursive detect paths that should be ignored and left alone when loading and saving"
     #Safety counter, this seems like it might need it.
-    for i in(0,40):
+    for i in range(64):
         if _detect_ignorable(path):
             return True
         path = os.path.dirname(path)
