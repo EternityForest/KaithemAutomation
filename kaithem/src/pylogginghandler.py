@@ -52,19 +52,19 @@ class LoggingHandler(logging.Handler):
                 level=30,contextlevel=10,contextbuffer=0,
                  entries_per_file=25000, keep=10, compress='none'):
         """Implements a memory-buffered context logger with automatic log rotation.
-           Log entries are kept in memory until the in memory buffer exceeds bufferlen entries.
-           When that happens,logs are dumped to a file named fn_TIMESTAMP.FRACTIONALPART.log,
-           fn_TIMESTAMP.FRACTIONALPART.log.gz, or fn_TIMESTAMP.FRACTIONALPART.log.bz2.
-           
-           Log records below level are normally ignored, however in they are 
-           above contextlevel the most recent contextbuffer logs are kept in memory,
-           and are flushed to the main logging buffer just before writing the next
-           log record that is above level. In this way more important log messages
-           will record a bit of "context".
-           
-           The program will continue writing to the same file until it writes entries_per_file
-           to it, after which point it will move to a new file. Restarting the program will
-           always cause a new file to be opened.
+        Log entries are kept in memory until the in memory buffer exceeds bufferlen entries.
+        When that happens,logs are dumped to a file named fn_TIMESTAMP.FRACTIONALPART.log,
+        fn_TIMESTAMP.FRACTIONALPART.log.gz, or fn_TIMESTAMP.FRACTIONALPART.log.bz2.
+        
+        Log records below level are normally ignored, however in they are 
+        above contextlevel the most recent contextbuffer logs are kept in memory,
+        and are flushed to the main logging buffer just before writing the next
+        log record that is above level. In this way more important log messages
+        will record a bit of "context".
+        
+        The program will continue writing to the same file until it writes entries_per_file
+        to it, after which point it will move to a new file. Restarting the program will
+        always cause a new file to be opened.
         """
         logging.Handler.__init__(self)
         if not compress =='none':
@@ -125,10 +125,10 @@ class LoggingHandler(logging.Handler):
             if record.levelno >= self.contextlevel:
                 self.logbuffer.extend(self.contextbuffer)
                 self.contextbuffer=[]
-                self.logbuffer.append(record)
+                self.logbuffer.append(self.format(record))
             #That truncation operation will actulally do nothing if the contextlen is 0
             elif self.contextlen:
-                self.contextbuffer.append(record)
+                self.contextbuffer.append(self.format(record))
                 self.contextbuffer = self.contextbuffer[-self.contextlen:]
                 
         if len(self.logbuffer)>=self.bufferlen:
@@ -191,7 +191,7 @@ class LoggingHandler(logging.Handler):
                     if chmodflag:
                         util.chmod_private_try(fn)
                     for i in logbuffer:
-                        f.write((self.format(i)+"\r\n").encode("utf8"))
+                        f.write((i+"\r\n").encode("utf8"))
                     
                 #Keep track of how many we have written to the file
                 self.counter+= len(self.logbuffer)
@@ -236,15 +236,11 @@ class LoggingHandler(logging.Handler):
                 os.remove(os.path.join(where,asnumbers[i]))
 
         
-                     
 syslogger = LoggingHandler("system",fn="system" if not config['log-format']=='none' else None,
 
                         folder=os.path.join(directories.logdir,"dumps"),level=20,
                         entries_per_file=config['log-dump-size'], 
                         bufferlen =config['log-buffer'],
-                         keep=unitsofmeasure.strToIntWithSIMultipliers(config['keep-log-files']),
-                         compress= config['log-compress'])
-                         
-
-                    
+                        keep=unitsofmeasure.strToIntWithSIMultipliers(config['keep-log-files']),
+                        compress= config['log-compress'])
 

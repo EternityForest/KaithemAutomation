@@ -15,8 +15,10 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #
+
 __version__ = "0.57 Development"
-__version_info__ = (0,5,7,"dev",0)
+__version_info__ = (0,57,0,"dev",0)
+
 #Library that makes threading and lock operations, which we use a lot of, use native code on linux
 try:
     import pthreading
@@ -255,7 +257,7 @@ logger.info("Loaded modules")
 
 #This class represents the "/" root of the web app
 class webapproot():
-   #"/" is mapped to this
+    #"/" is mapped to this
     @cherrypy.expose
     def index(self,*path,**data):
         pages.require("/admin/mainpage.view")
@@ -376,7 +378,7 @@ site_config={
 }
 if config['enable-websockets']:
     wscfg={'tools.websocket.on': True,
-           'tools.websocket.handler_cls': widgets.websocket}
+            'tools.websocket.handler_cls': widgets.websocket}
 else:
     wscfg = {}
 
@@ -404,9 +406,9 @@ cnf={
         "tools.addheader.on": True
         },
 
-     '/pages':
+    '/pages':
         {
-         'request.dispatch': cherrypy.dispatch.MethodDispatcher()
+        'request.dispatch': cherrypy.dispatch.MethodDispatcher()
         },
 
     '/widgets/ws': wscfg

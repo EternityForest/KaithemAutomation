@@ -55,11 +55,10 @@ class Event(BaseEvent):
                 if hasattr(f,"__name__") and hasattr(f,"__module__"):
                     logger.exception("Exception in scheduled function "+f.__name__+" of module "+f.__module__)
             except:
-                logger.exception("Exception in scheduled function "+f.__name__+" of module "+f.__module__)
+                logger.exception("Exception in scheduled function "+repr(f))
 
         finally:
             del f
-
     def _unregister(self):
         scheduler.remove(self)
 
@@ -188,6 +187,8 @@ class RepeatingEvent(BaseEvent):
             finally:
                 self.lock.release()
                 del f
+                sys.last_traceback=None
+                
 
 class UnsynchronizedRepeatingEvent(RepeatingEvent):
     """Represents a repeating event that is not synced to the real time exactly
@@ -440,6 +441,7 @@ class NewScheduler(threading.Thread):
                     try:
                         i.run()
                     except:
+                        sys.last_traceback = None
                         try:
                             logger.exception("Error in scheduler")
                         except:
