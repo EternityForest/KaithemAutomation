@@ -144,7 +144,6 @@ KWidget_connect = function()
 		KWidget_connection.onmessage = function(e){
 			try{
 		        var resp = JSON.parse(e.data);
-				console.log(resp);
 			}
 			catch(err)
 			{

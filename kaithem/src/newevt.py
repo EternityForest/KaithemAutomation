@@ -179,6 +179,7 @@ class EventEvent(scheduling.UnsynchronizedRepeatingEvent):
     def _run(self):
         #We must have been pulled out of the event queue or we wouldn't be running
         #So we can reschedule ourself.
+        self.scheduled = False
         if self.stop:
             return
         if self.lock.acquire(False):

@@ -47,6 +47,56 @@ def test_error_in_repeating_func():
     x = nonexistant1234
 
 evt3=scheduling.scheduler.every(test_error_in_repeating_func,5)
+
+
+
+time_last_second = 0
+rhistory=[]
+@scheduling.scheduler.everySecond
+def check_scheduler():
+    "Detect events running more frequently than one second if that's what they are scheduled for"
+    global rhistory
+    rhistory.append((time.time(),))
+    rhistory = rhistory[-10:]
+    global time_last_second
+    if time_last_second:
+        #Because things are snapped to the nearest second, they can be pretty close together without being an
+        #error if there's some high CPU load. But if two events have the same integer second,
+        #unless the last one is right on the edge it's probably an error.
+        if time.time() - (time_last_second) < 0.1 or int(time.time()+0.08)==int(time_last_second):
+            kaithem.message.post("/system/notifications/errors" , "Kaithem has detected a scheduled event running too soon? History:"+repr(rhistory))
+    time_last_second = time.time()
+
+    
+time_last_second2 = 0
+rhistory2=[]
+@scheduling.scheduler.everySecond
+def check_scheduler2():
+    "Detect events running more frequently than one second if that's what they are scheduled for"
+    global rhistory2
+    rhistory2.append((time.time(),))
+    rhistory2 = rhistory2[-10:]
+    global time_last_second2
+    if time_last_second2:
+        if time.time() - (time_last_second2) < 0.1 or int(time.time()+0.08)==int(time_last_second2):
+            kaithem.message.post("/system/notifications/errors" , "Kaithem has detected a scheduled event running too soon? History:"+repr(rhistory2))
+    time_last_second2 = time.time()
+ 
+time_last_second3 = 0
+rhistory3=[]
+def check_scheduler3():
+    "Detect events running more frequently than one second if that's what they are scheduled for"
+    global rhistory3
+    rhistory3.append((time.time(),))
+    rhistory3 = rhistory3[-10:]
+    global time_last_second3
+    if time_last_second3:
+        #This is unsynchronized and not snapped to the second, so they should really not be more than 0.8s apart.
+        if time.time() - (time_last_second3) < 0.8:
+            kaithem.message.post("/system/notifications/errors" , "Kaithem has detected a unsynced scheduled event running too soon? History:"+repr(rhistory3))
+    time_last_second3 = time.time()
+evt1 = scheduling.UnsynchronizedRepeatingEvent(check_scheduler3,1)
+evt1.register()
 ---
 #This code runs once when the event loads. It also runs when you save the event during the test compile
 #and may run multiple times when kaithem boots due to dependancy resolution

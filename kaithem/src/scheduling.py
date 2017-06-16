@@ -81,7 +81,11 @@ class RepeatingEvent(BaseEvent):
         BaseEvent.__init__(self)
         self.f = weakref.ref(function, self.unregister)
         self.interval = float(interval)
+
+        #True if the event is in the scheduler queue or the worker queue,
+        #And should only be set under lock
         self.scheduled = False
+
         self.errored = False
         self.lock = threading.Lock()
         self.lastrun = None
@@ -158,6 +162,10 @@ class RepeatingEvent(BaseEvent):
         workers.do(self._run)
 
     def _run(self):
+        #Safe to set outside lock I think. If there is 
+        #more than one scheduled copy there's a problem anyway.
+        self.scheduled = False
+
         if self.stop:
             return
         self.lastrun = time.time()
@@ -197,12 +205,8 @@ class UnsynchronizedRepeatingEvent(RepeatingEvent):
         RepeatingEvent.__init__(self,*args,**kwargs)
 
     def _schedule(self):
-        """Calculate next runtime and put self into the queue."""
-
-        #The main reason this class exists is as a base class for
-        #EventEvent. So normally this method gets called directly
-        #instead of via schedule. That's why this method has the
-        #check in it.
+        """Calculate next runtime and put self into the queue. 
+        Should only ever be called under lock"""
         if self.scheduled:
             return
         t = self.lastrun+self.interval
@@ -432,9 +436,6 @@ class NewScheduler(threading.Thread):
                 #Run tasks until all remaining ones are in the future
                 while self.tasks and (self.tasks[0].time <time.time()):
                     i = self.tasks.pop(False)
-                    #Set this flag immediatly, otherwise an error somewhere could
-                    #Cause lost repeating events
-                    i.scheduled = False
                     overdueby = time.time()-i.time
                     if i.exact and overdueby > i.exact:
                         continue

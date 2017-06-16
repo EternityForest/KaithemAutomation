@@ -12,7 +12,7 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import weakref,time,json,base64,cherrypy,os, traceback,random,threading,logging
+import weakref,time,json,base64,cherrypy,os, traceback,random,threading,logging,socket
 from . import auth,pages,unitsofmeasure,config,util,messagebus
 from src.config import config
 

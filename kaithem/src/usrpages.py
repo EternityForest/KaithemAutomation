@@ -39,12 +39,12 @@ class CompiledPage():
         #For compatibility with older versions, we provide defaults
         #In case some attributes are missing
         if 'require-permissions' in resource:
-             self.permissions = resource["require-permissions"]
+            self.permissions = resource["require-permissions"]
         else:
             self.permissions = []
 
         if 'allow-xss' in resource:
-             self.xss = resource["allow-xss"]
+            self.xss = resource["allow-xss"]
         else:
             self.xss = False
 
@@ -186,8 +186,8 @@ def getPagesFromModules():
                             _Pages[i][m].errors.append([time.strftime(config['time-format']),tb])
                             try:
                                 messagebus.postMessage('system/errors/pages/'+
-                                                   i+'/'+
-                                                   m,str(tb))
+                                                i+'/'+
+                                                m,str(tb))
                             except Exception as e:
                                 print (e)
                             #Keep only the most recent 25 errors
@@ -196,8 +196,8 @@ def getPagesFromModules():
                             #send a global system messsage that will go to the front page.
                             if len(_Pages[i][m].errors)==1:
                                 messagebus.postMessage('/system/notifications/errors',
-                                                       "Page \""+m+"\" of module \""+i+
-                                                       "\" may need attention")
+                                                    "Page \""+m+"\" of module \""+i+
+                                                    "\" may need attention")
 
 #kaithem.py has come config option that cause this file to use the method dispatcher.
 class KaithemPage():
