@@ -1,0 +1,25 @@
+<%include file="/pageheader.html"/>
+<%
+from src import unitsofmeasure
+%>
+<style>
+    .hide{color: rgba(255, 255, 255, 0);}
+    .hide:hover{color: rgba(0, 0, 0, 1);}
+</style>
+<h1>Authentication Failures</h1>
+<main>
+    <section>
+        <p class="help">The failure count is reset when the application
+            restarts, or when the record for that IP gets pushed out by other records</p>
+        <table border=1>
+            <tr><th>IP Address</th><th>Number Of Login Failures</th><th>Most Recent</th><th>Most Recent Targeted Account(Hover)</tr>
+            %for i in sorted(history,key=lambda i:i[1]):
+            <tr><td>${i[0]|h}</td><td>${i[1][1]}</td><td>${unitsofmeasure.strftime(i[1][0])}</td>
+            <td class="hide">${i[1][2]}</td>
+            
+            </tr>
+            %endfor
+        </table>
+    </section>
+</main>
+<%include file="/pagefooter.html"/>

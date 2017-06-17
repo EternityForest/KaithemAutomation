@@ -9,7 +9,11 @@
     <li>Raise error if you try to send non-serializable widget value</li>
     <li>Add raw pages that aren't processed through Mako's templating</li>
     <li>Live logs now properly escaped</li>
-
+    <li>Rate limit login attempts with passwords under 32 chars to 1 per 3s</li>
+    <li>Auth tokens don't expire for 3 years</li>
+    <li>New page to view login failures</li>
+    <li>Support for IPv4/IPv6 dual stack</li>
+    <li>Host config option to bind to a specific IP(overrides local-access-only if specified)</li>
 </ul>
 
 

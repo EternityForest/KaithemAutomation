@@ -216,11 +216,13 @@ from src import widgets
 logger.info("Loaded core python code")
 from src.config import config
 
-if config['local-access-only']:
-    bindto = '127.0.0.1'
+if not config['host'] == 'default':    
+    bindto = config['host']
 else:
-    bindto = '0.0.0.0'
-
+    if config['local-access-only']:
+        bindto = '127.0.0.1'
+    else:
+        bindto = '::'
 cherrypy.process.servers.check_port(bindto, config['http-port'], timeout=1.0)
 cherrypy.process.servers.check_port(bindto, config['https-port'], timeout=1.0)
 logger.info("Ports are free")
@@ -443,7 +445,7 @@ def addheader(*args,**kwargs):
 
 def pageloadnotify(*args,**kwargs):
     systasks.aPageJustLoaded()
-    
+
 cherrypy.config.update(site_config)
 cherrypy.tools.pageloadnotify = cherrypy.Tool('on_start_resource', pageloadnotify)
 cherrypy.config['tools.pageloadnotify.on'] = True
