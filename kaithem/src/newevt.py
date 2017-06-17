@@ -364,6 +364,11 @@ class BaseEvent():
 
         #A place to put errors
         self.errors = []
+    def __repr__(self):
+        try:
+            return "<"+type(self).__name__ +"object at"+hex(id(self))+" for module,resource "+repr((self.module,self.resource))+">"
+        except:
+            return "<error in repr for event object at "+hex(id(self))+">"
 
     def manualRun(self):
         #J.F. Sebastian of stackoverflow's post was helpful for this
@@ -412,6 +417,7 @@ class BaseEvent():
                 self.lastcompleted = time.time()
                 #messagebus.postMessage('/system/events/ran',[self.module, self.resource])
             except Exception as e:
+                #This is not a child of system
                 logger.exception("Error running event "+self.resource+" of "+ self.module)
                 self._handle_exception(e)
 
@@ -426,7 +432,6 @@ class BaseEvent():
             self.errors.append([time.strftime(config['time-format']),tb])
             #Keep only the most recent errors
             self.errors = self.errors[-(config['errors-to-keep']):]
-            #The mesagebus is largely untested and we don't want to kill the thread.
             try:
                 messagebus.postMessage('/system/errors/events/'+
                                         self.module+'/'+
@@ -453,15 +458,23 @@ class BaseEvent():
         #Note: The whole self.disabled thing is really laregly a hack to get instant response
         #To things if an event is based on some external thing with a callback that takes time to unregister.
         self.disable = False
-
         with self.register_lock:
             #Some events are really just containers for a callback, so there is no need to poll them
             if self.polled:
                 if not hasattr(self,"schedulerobj"):
                     self._prevstate = False
                     beginPolling(self)
+    def unpause(self):
+        self.register()
+
+    def pause(self):
+        self.disable = True
+        with self.register_lock:
+            if hasattr(self,"schedulerobj"):
+                endPolling(self)
 
     def unregister(self):
+        logging.debug("Unregistering event "+repr(self))
         self.disable = True
         with self.register_lock:
             if hasattr(self,"schedulerobj"):
@@ -532,7 +545,7 @@ class CompileCodeStringsMixin():
         if hasattr(self.pymodule,"_event_action"):
             self.pymodule._event_action()
         else:
-            raise RuntimeError(self.resource+" has no _event_action")
+            raise RuntimeError(self.resource+" has no _event_action.")
 
 
 class DirectFunctionsMixin():
@@ -597,6 +610,7 @@ class FunctionEvent(BaseEvent):
             self.f = FunctionWrapper(f)
         self.xyz(do, trigaction, setup)
 
+
     def handoff(self, evt):
         """Handoff to new event. Calls to old function get routed to new function.
         Works even of you unregister old event."""
@@ -637,6 +651,7 @@ class FunctionEvent(BaseEvent):
             self.active = True
 
     def unregister(self):
+        logging.debug("Unregistering event "+repr(self))
         with self.register_lock:
             self.disable = True
             self.active = False
@@ -727,6 +742,7 @@ class MessageEvent(BaseEvent,CompileCodeStringsMixin):
 
     #This is the solution for the circular reference nonsense, until the messagebus has a real unsubscribe feature.
     def unregister(self):
+        logging.debug("Unregistering event "+repr(self))
         if hasattr(self,"action_wrapper_because_we_need_to_keep_a_reference"):
             del self.action_wrapper_because_we_need_to_keep_a_reference
         self.disable = True
@@ -823,7 +839,7 @@ class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
                 #Issues on python2 using this lock,
                 #But otherwise a paused event would just wait
                 #and not be deleted.
-                while not self.pauseflag.wait(5):
+                while not self.pauseflag.wait(5.0):
                     if not run and self.runthread:
                         return
                 with self.lock:
@@ -895,6 +911,7 @@ class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
         self.disable = False
 
     def unregister(self):
+        logging.debug("Unregistering event "+repr(self))
         self.runthread = False
         self.disable = True
         self.pauseflag.clear()

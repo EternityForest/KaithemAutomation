@@ -64,15 +64,17 @@ checked = False
 def check_mail_credentials():
         mail.check_credentials()
 
-time_last_minute = 0
-rhistory=[]
+
 try: 
     monotonic = time.monotonic()
 except:
     monotonic=lambda: "monotonic time not available"
 
+time_last_minute = 0
+rhistory=[]
 @scheduling.scheduler.everyMinute
 def check_scheduler():
+    "This is a continual built in self test for the scheduler"
     global rhistory
     rhistory.append((time.time(),))
     rhistory = rhistory[-10:]

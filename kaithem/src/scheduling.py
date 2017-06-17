@@ -28,7 +28,21 @@ class BaseEvent():
     def __init__(self):
         self.exact = 0
 
-#unused, unfinished
+
+
+#Event API(not public):
+#_schedule: if schedule is false calculate next runtime, insert self, set scheduled flag to true.
+#only call under lock
+
+#schedule: acquire lock, if so call _schedule
+
+#_run: acquire lock(or do nothing if already running)
+#do the actual action, and reschedule self if it's a repeating event
+
+#run: use the worker pool to run an event, or run directly if fast enough(under 1ms)
+
+
+
 class Event(BaseEvent):
     "Does function at time provided there is a strong referemce to f still by then"
     def __init__(self,function,time):
@@ -450,13 +464,19 @@ class NewScheduler(threading.Thread):
 
                 #Take all the repeating tasks that aren't already scheduled to happen and schedule them.
                 #Normally tasks  just reschedule themselves, but this check prevents any errors in
-                #the chain of run>reschedule>run>etc
+                #the chain of run>reschedule>run>etc.
+
+                #the schedule() method checks if it's already scheduled.
 
                 #We have to run in a try block because we don't want a bad schedule function to take out the whole thread.
 
                 #We only need to do this every 5 seconds or so, because it's only an error recovery thing.
                 if time.time()-self.lastrecheckedschedules>5:
-                    for i in self.repeatingtasks:
+                    self._dorErrorRecovery()
+                    self.lastrecheckedschedules = time.time()
+
+    def _dorErrorRecovery(self):
+        for i in self.repeatingtasks:
                         try:
                             if not i.scheduled:
                                 xyz = time.time()
@@ -464,11 +484,9 @@ class NewScheduler(threading.Thread):
                                 #If one event takes a long time to schedule or if it
                                 #Is already running and can't schedule yet.
                                 workers.do(i.schedule)
-                                logger.debug("Rescheduled "+str(i)+"using error recovery, could indicate a bug somewhere")
+                                logger.debug("Rescheduled "+str(i)+"using error recovery, could indicate a bug somewhere, or just a long running event.")
                         except:
                                 logger.exception("Exception while scheduling event")
-                    self.lastrecheckedschedules = time.time()
-
 
 
 

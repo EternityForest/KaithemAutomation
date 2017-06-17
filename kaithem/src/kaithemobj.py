@@ -37,13 +37,18 @@ persist.resolvePath = resolvePath
 class ServeFileInsteadOfRenderingPageException(Exception):
     pass
 
+plugins = weakref.WeakValueDictionary()
 
 class Kaithem():
     def __getattr__(self,name):
-        return pluginInterface(plugins[name])
-        
+        if name in plugins:
+            return pluginInterface(plugins[name])
+        else:
+            raise AttributeError()
+
+
+    
     class logging(object):
-        
         @staticmethod
         def flushsyslog():
             import pylogginghandler
@@ -215,9 +220,9 @@ class Kaithem():
         def sensors():
             try:
                 if util.which('sensors'):
-                     return (subprocess.check_output('sensors').decode('utf8'))
+                    return (subprocess.check_output('sensors').decode('utf8'))
                 else:
-                     return('"sensors" command failed(lm_sensors not available)')
+                    return('"sensors" command failed(lm_sensors not available)')
             except:
                 return('sensors call failed')
 

@@ -443,6 +443,7 @@ def addheader(*args,**kwargs):
 
 def pageloadnotify(*args,**kwargs):
     systasks.aPageJustLoaded()
+    
 cherrypy.config.update(site_config)
 cherrypy.tools.pageloadnotify = cherrypy.Tool('on_start_resource', pageloadnotify)
 cherrypy.config['tools.pageloadnotify.on'] = True

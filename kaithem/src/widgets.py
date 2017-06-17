@@ -724,12 +724,12 @@ class TextBox(Widget):
         </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self.value, 'label':label}
 
 
+
 class ScrollingWindow(Widget):
     """A widget used for chatroom style scrolling text. 
        Only the new changes are ever pushed over the net. To use, just write the HTML to it, it will
        go into a nev div in the log, old entries automatically go away, use the length param to decide
        how many to keep"""
-       
     def __init__(self,length=250,*args,**kwargs):
         Widget.__init__(self,*args,**kwargs)
         self.value = []

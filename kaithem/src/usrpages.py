@@ -36,6 +36,7 @@ class CompiledPage():
         template = resource['body']
         self.errors = []
         self.printoutput=''
+        self.mime = resource.get("mimetype","text/html")
         #For compatibility with older versions, we provide defaults
         #In case some attributes are missing
         if 'require-permissions' in resource:
@@ -84,7 +85,10 @@ class CompiledPage():
         d={'kaithem': kaithemobj.kaithem}
         if m in modules_state.scopes:
             d['module']= modules_state.scopes[m]
-        self.template = mako.template.Template(templatesource, uri="Template"+m+'_'+r, global_vars=d)
+        if not 'template-engine' in resource or resource['template-engine']=='mako':
+            self.template = mako.template.Template(templatesource, uri="Template"+m+'_'+r, global_vars=d)
+        else:
+            self.text = template
 
     def new_print(self,d):
         self.printoutput+=str(d)+"\n"
@@ -272,13 +276,17 @@ class KaithemPage():
             #Raise a redirect the the wrongmethod error page
             raise cherrypy.HTTPRedirect('/errors/wrongmethod')
         try:
-            return page.template.render(
-                kaithem = kaithemobj.kaithem,
-                request = cherrypy.request,
-                module = modules_state.scopes[module],
-                path = args,
-                kwargs = kwargs,
-                )
+            cherrypy.response.headers['Content-Type'] = page.mime
+            if hasattr(page,"template"):
+                return page.template.render(
+                    kaithem = kaithemobj.kaithem,
+                    request = cherrypy.request,
+                    module = modules_state.scopes[module],
+                    path = args,
+                    kwargs = kwargs,
+                    )
+            else:
+                return page.text
 
         except Exception as e:
             #The HTTPRedirect is NOT an error, and should not be handled like one.

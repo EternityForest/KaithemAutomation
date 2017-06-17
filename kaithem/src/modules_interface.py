@@ -710,6 +710,8 @@ def resourceUpdateTarget(module,resource,kwargs):
                 body =  kwargs['body']
 
             resourceobj['body'] = body
+            resourceobj['mimetype'] = kwargs['mimetype']
+            resourceobj['template-engine'] = 'mako' if 'use-mako' in kwargs else 'none'
             resourceobj['no-navheader'] = 'no-navheader' in kwargs
             resourceobj['no-header'] = 'no-header' in kwargs
             resourceobj['dont-show-in-index'] = 'dont-show-in-index' in kwargs
