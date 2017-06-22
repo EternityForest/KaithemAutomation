@@ -61,10 +61,10 @@ def searchModuleResources(modulename,search,max_results=100,start=0):
 
 
 def followAttributes(root, path):
-    l = util.split_escape(path,",",escape=None)
+    l = util.split_escape(path,",",escape="\\")
     for i in l:
         if i.startswith("t"):
-            root = getattr(root, tuple(json.loads(i[1:])))
+            root =root[tuple(json.loads(i[1:]))]
         elif i.startswith("a"):
             root = getattr(root, i[1:])
         elif i.startswith("i"):
