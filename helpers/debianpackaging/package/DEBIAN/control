@@ -1,5 +1,5 @@
 Package: kaithem
-Version: 0.56
+Version: 0.57
 Architecture: all
 Essential: no
 Section: web
@@ -7,5 +7,5 @@ Priority: optional
 Depends: python3, systemd
 Recommends: mplayer, pulseaudio, python3-pyserial, python3-pytz, python3-dateutil, lm-sensors
 Maintainer: Daniel Dunn
-Installed-Size: 20000
+Installed-Size: 25000
 Description: The KaithemAutomation Web GUI based automation platform. By default this package will run  as a new user "kaithem" with access to almost all hardware but not sudo.

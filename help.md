@@ -847,14 +847,13 @@ When a user fails to logs in, his username and IP are posted here as a two eleme
 
 Kaithem's logging was formerly based on JSON dumps of filtered message bus traffic, but now uses python's native logging module. A special logger called "system" is used, and anything logged to that logger will be logged to the output file.
 
-Logging defaults to disabled, so if you want to use logging you will need to set log-format
-to normal.
+Logging defaults to disabled, so if you want to use logging you will need to set log-format to normal.
 
 This new method allows you to view realtime streaming logs. Note that some things are still be logged to the message bus for now, like event errors, for conveinence.
 
 You can still configure topics to be forwarded from the message bus to the logger What specific get logged is configurable from the logs page, which also allows you to see the messages in the staging area. Log dumps are in JSON format as one big dict of lists of messages indexed by topic, where each message is an array of (timestamp,message)
 
-Configuration options like log-format still work, although only normal(semi-normal python log file output), and none(no logging to disk) work.
+Configuration options like log-format still work, although only normal(semi-normal python log file output), and none(no logging to disk) work
 
 The new option log-buffer determines how many entries to buffer before dumping to file. A new file is started after log-dump-size entries. With log-buffer==1, you can append each entry to the file in real time, similar to other programs.
 

@@ -69,7 +69,7 @@
     <h1>About Kaithem Automation</h1>
 	<div class="sectionbox" style="text-align:center">
     <img src="/static/img/logo-alt.jpg" height="200px"></img><br>
-    <b>Copyright 2013-2016 Daniel Dunn. </b></br>Available under the terms of the <a href="/license">GNU general public license</a>.
+    <b>Copyright 2013-2017 Daniel Dunn. </b></br>Available under the terms of the <a href="/license">GNU general public license</a>.
     Includes external open-source libraries by third parties.
     </div>
     <div class="sectionbox">${config['about-box-banner']}</div>
@@ -245,12 +245,14 @@ def module_version(m):
                         <th>Module</th>
                         <th>Version</th>
                     </tr>
-                    %for i in sorted(sys.modules): %if module_version(sys.modules[i]):
+                    %for i in sorted(sys.modules):
+                    %if module_version(sys.modules[i]):
                     <tr>
                         <td>${i|h}</td>
                         <td>${module_version(sys.modules[i])|h}</td>
                     </tr>
-                    %endif %endfor
+                    %endif
+                    %endfor
                 </table>
                 </div>
 

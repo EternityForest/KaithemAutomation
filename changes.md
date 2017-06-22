@@ -1,5 +1,27 @@
+&lt;%include file="/pageheader.html"/&gt;
+
+Kaithem Help
+
 Change Log
 ----------
+
+### 0.57
+
+-   Dump traceback in the event of a segfault.
+-   Raise error if you try to send non-serializable widget value
+-   Add raw pages that aren't processed through Mako's templating
+-   Live logs now properly escaped
+-   Rate limit login attempts with passwords under 32 chars to 1 per 3s
+-   Auth tokens don't expire for 3 years
+-   New page to view login failures
+-   Support for IPv4/IPv6 dual stack
+-   Host config option to bind to a specific IP(overrides local-access-only if specified)
+-   Scheduler error handling no longer spams the logs
+
+### 0.56.1
+
+-   Fix bug when deleting realtime events
+-   Format log records immediately instead of keeping record objects around
 
 ### 0.56
 

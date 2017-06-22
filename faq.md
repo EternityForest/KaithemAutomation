@@ -7,6 +7,10 @@ By default, kaithem stores all variable data in kaithem/var(inside it's director
 
 To avoid this, we recommend that you copy kaithem/var someplace else, and use the site-data-dir config option to point to the new location. If you copy var to /home/juan/ then site-data-dir should equal /home/juan/var
 
+### How do I let users upload to a a page
+
+Use kwargs\['myfileinputname'\].file.read()
+
 ### How do I use custom configuration files?
 
 Create your file, then, when you start Kaithem, use the -c command line argument to point to it. Example:
