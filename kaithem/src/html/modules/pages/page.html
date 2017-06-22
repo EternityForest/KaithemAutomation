@@ -105,7 +105,18 @@ editor.setSize("99%","45em")
             checked="yes"
             %endif
          %endif
+
        ></input>Don't show this page in the page index<br>
+
+<input type="checkbox"  name="use-mako" value="true"
+         %if 'template-engine' in page:
+            %if page['template-engine']=="mako":
+            checked="yes"
+            %endif
+         %else:
+            checked="yes"
+         %endif
+       ></input>Enable Mako templates(Uncheck to serve raw text as-is)<br>
 
 <input type="checkbox"  name="allow-GET" value="true"
          %if 'require-method' in page:
@@ -143,6 +154,16 @@ editor.setSize("99%","45em")
         %endif
        ></input> seconds. (this could create a lot of server traffic. don't DDoS yourself!)<br>
 
+
+MIME type:<input step=0.1 name="mimetype" size=6em
+        %if 'mimetype' in page:
+                value= ${page['mimetype']|h}
+        %else:
+                value= "text/html"
+        %endif
+       ></input><br>
+
+
 <input type="checkbox" name="allow-xss"
          %if 'allow-xss' in page:
             %if page['allow-xss']:
@@ -163,6 +184,7 @@ else:
         value= "${origins|h}"
        ></input>
  </div>
+
 <p class="help"><span class="permission-icon"></span>Require the following permissions to access this page</p>
 <div class="scrollbox">
 <ul>

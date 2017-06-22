@@ -61,9 +61,11 @@ def searchModuleResources(modulename,search,max_results=100,start=0):
 
 
 def followAttributes(root, path):
-    l = path.split(",")
+    l = util.split_escape(path,",",escape="\\")
     for i in l:
-        if i.startswith("a"):
+        if i.startswith("t"):
+            root =root[tuple(json.loads(i[1:]))]
+        elif i.startswith("a"):
             root = getattr(root, i[1:])
         elif i.startswith("i"):
             root = root[int(i[1:])]
@@ -710,6 +712,8 @@ def resourceUpdateTarget(module,resource,kwargs):
                 body =  kwargs['body']
 
             resourceobj['body'] = body
+            resourceobj['mimetype'] = kwargs['mimetype']
+            resourceobj['template-engine'] = 'mako' if 'use-mako' in kwargs else 'none'
             resourceobj['no-navheader'] = 'no-navheader' in kwargs
             resourceobj['no-header'] = 'no-header' in kwargs
             resourceobj['dont-show-in-index'] = 'dont-show-in-index' in kwargs

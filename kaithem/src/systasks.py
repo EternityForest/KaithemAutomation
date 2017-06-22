@@ -1,4 +1,4 @@
-#Copyright Daniel Dunn 2013
+#Copyright Daniel Dunn 2013,2017
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify
@@ -64,19 +64,24 @@ checked = False
 def check_mail_credentials():
         mail.check_credentials()
 
+
+try: 
+    monotonic = time.monotonic()
+except:
+    monotonic=lambda: "monotonic time not available"
+
 time_last_minute = 0
+rhistory=[]
 @scheduling.scheduler.everyMinute
-def check_time_set():
+def check_scheduler():
+    "This is a continual built in self test for the scheduler"
+    global rhistory
+    rhistory.append((time.time(),))
+    rhistory = rhistory[-10:]
     global time_last_minute
     if time_last_minute:
-        #This event is supposed to run every minute. So we add 60 to the last run's time. If the current time is more than 7 seconds off from that.
-        #assume the time has been set. Use 30 seconds because maybe high CPU load could make it take longer than a minute.
-        if abs(time.time() - (time_last_minute+60)) >   1000:
-            messagebus.postMessage("/system/notifications/warnings" , "Kaithem has detected the system time may have been set by " + str(time.time() - (time_last_minute+60)) +'s. This message will sometimes also show when the system resumes from suspend.')
-
-        elif abs(time.time() - (time_last_minute+60)) >   30:
-            messagebus.postMessage("/system/notifications/important" , "Kaithem has detected the system time may have been set by " + str(time.time() - (time_last_minute+60)) +'s. This message will sometimes also show when the system resumes from suspend.')
-
+        if time.time() - (time_last_minute) < 58:
+            messagebus.postMessage("/system/notifications/warnings" , "Kaithem has detected a scheduled event running too soon? History:"+repr(rhistory))
     time_last_minute = time.time()
 
 

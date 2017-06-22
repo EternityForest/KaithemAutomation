@@ -12,9 +12,11 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import weakref,time,json,base64,cherrypy,os, traceback,random,threading
+import weakref,time,json,base64,cherrypy,os, traceback,random,threading,logging,socket
 from . import auth,pages,unitsofmeasure,config,util,messagebus
 from src.config import config
+
+logger = logging.getLogger("system.widgets")
 
 #Modify lock for any websocket's subscriptions
 subscriptionLock = threading.Lock()
@@ -68,12 +70,21 @@ class WebInterface():
     def session_id(self):
         return server_session_ID
 
-def subsc_closure(self,i):
+def subsc_closure(self,i, widget):
     def f(msg):
         try:
-            self.send(json.dumps([[i,msg]]))
+            self.send(msg)
+        except socket.error:
+            #These happen sometimes when things are disconnecting it seems,
+            #And there's no need to waste log space or send a notification.
+            pass
         except:
-            messagebus.postMessage("system/errors/widgets/websocket", traceback.format_exc(6))
+            if not widget.errored_send:
+                widget.errored_send = True
+                messagebus.postMessage("/system/notifications/errors","Problem in widget "+repr(widget)+", see logs")
+                logger.exception("Error sending data from widget "+repr(widget)+" via websocket")
+            else:
+                logging.exception("Error sending data from websocket")
     return f
 
 if config['enable-websockets']:
@@ -86,7 +97,6 @@ if config['enable-websockets']:
             WebSocket.__init__(self,*args,**kwargs)
 
         def closed(self,code,reason):
-            messagebus.postMessage("system/errors/widgets/websocket/closed",repr(self))
             with subscriptionLock:
                 for i in self.subscriptions:
                     try:
@@ -118,7 +128,7 @@ if config['enable-websockets']:
                             continue
 
                         with subscriptionLock:
-                            widgets[i].subscriptions[self.uuid] = subsc_closure(self,i)
+                            widgets[i].subscriptions[self.uuid] = subsc_closure(self,i,widgets[i])
                             widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
                         self.subscriptions.append(i)
                         resp.append([i, widgets[i]._onRequest(user)])
@@ -135,6 +145,7 @@ class Widget():
         self._write_perms=[]
         self.errored_function = None
         self.errored_getter = None
+        self.errored_send = None
         self.subscriptions = {}
         self.subscriptions_atomic = {}
         self.echo = True
@@ -174,7 +185,7 @@ class Widget():
         try:
             return self.onRequest(user)
         except Exception as e:
-            messagebus.postMessage("/system/errors/widgets", traceback.format_exc(6))
+            logger.exception("Error in widget request to "+repr(self))
             if not (self.errored_getter == id(self._callback)):
                 messagebus.postMessage("/system/notifications/errors", "Error in widget getter function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
                                         %(self._callback.__name__, self._callback.__module__))
@@ -208,10 +219,10 @@ class Widget():
         try:
             self._callback(user,value)
         except Exception as e:
-            messagebus.postMessage("/system/errors/widgets", traceback.format_exc(6))
+            logger.exception("Error in widget callback for "+repr(self))
             if not (self.errored_function == id(self._callback)):
                 messagebus.postMessage("/system/notifications/errors", "Error in widget callback function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
-                                       %(self._callback.__name__, self._callback.__module__))
+                                    %(self._callback.__name__, self._callback.__module__))
                 self.errored_function = id(self._callback)
             raise e
 
@@ -250,8 +261,9 @@ class Widget():
 
     def send(self,value):
         "Send a value to all subscribers without invoking the local callback"
+        d = json.dumps([[self.uuid,value]])
         for i in self.subscriptions_atomic:
-            self.subscriptions_atomic[i](value)
+            self.subscriptions_atomic[i](d)
             
     #Lets you add permissions that are required to read or write the widget.
     def require(self,permission):
@@ -408,9 +420,8 @@ class Meter(Widget):
         <meter id="%s_m" value="%d" min="%d" max="%d" high="%d" low="%d"></meter>
 
         </div>"""%(label,self.uuid,
-                          self.uuid,unit,self.uuid,self.uuid,self.uuid,self.value[0],
+            self.uuid,unit,self.uuid,self.uuid,self.uuid,self.value[0],
                           self.uuid,self.value[0], self.k['min'],self.k['max'],self.k['high_warn'],self.k['low_warn']
-
                           ))
 
 class Button(Widget):
@@ -482,29 +493,29 @@ class Slider(Widget):
             <b><p>%(label)s</p></b>
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
             %(orient)s
-           onchange="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));"
-           oninput="
-           %(htmlid)s_clean=%(htmlid)s_cleannext=false;
-           KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
-           document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s';
-           setTimeout(function(){%(htmlid)s_cleannext=true},150);"
-           ><br>
-           <span
-           class="numericpv"
-           id="%(htmlid)s_l">%(value)f%(unit)s</span>
-           <script type="text/javascript">
-           %(htmlid)s_clean =%(htmlid)s_cleannext= true;
-           var upd=function(val){
-           if(%(htmlid)s_clean)
-           {
+            onchange="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));"
+            oninput="
+            %(htmlid)s_clean=%(htmlid)s_cleannext=false;
+            KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
+            document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s';
+            setTimeout(function(){%(htmlid)s_cleannext=true},150);"
+            ><br>
+            <span
+            class="numericpv"
+            id="%(htmlid)s_l">%(value)f%(unit)s</span>
+            <script type="text/javascript">
+            %(htmlid)s_clean =%(htmlid)s_cleannext= true;
+            var upd=function(val){
+            if(%(htmlid)s_clean)
+            {
             document.getElementById('%(htmlid)s').value= val;
             document.getElementById('%(htmlid)s_l').innerHTML= (Math.round(val*1000)/1000)+"%(unit)s";
             }
             %(htmlid)s_clean =%(htmlid)s_cleannext;
-           }
+            }
 
-           KWidget_subscribe("%(id)s",upd);
-           </script>
+            KWidget_subscribe("%(id)s",upd);
+            </script>
 
             </div>"""%{'label':label, 'orient':orient,'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self.value, 'unit':unit}
 
@@ -597,20 +608,20 @@ class TagPoint(Widget):
             sl= """<div class="widgetcontainer sliderwidget" ontouchmove = function(e) {e.preventDefault()};>
             <b><p>%(label)s</p></b>
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
-           oninput="
-           %(htmlid)s_clean=%(htmlid)s_cleannext=false;
-           KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
-           document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s';
-           setTimeout(function(){%(htmlid)s_cleannext=true},150);"
-           ><br>
-           <span
-           class="numericpv"
-           id="%(htmlid)s_l">%(value)f%(unit)s</span>
-           <script type="text/javascript">
-           %(htmlid)s_clean =%(htmlid)s_cleannext= true;
-           var upd=function(val){
-           if(%(htmlid)s_clean)
-           {
+            oninput="
+            %(htmlid)s_clean=%(htmlid)s_cleannext=false;
+            KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
+            document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s';
+            setTimeout(function(){%(htmlid)s_cleannext=true},150);"
+            ><br>
+            <span
+            class="numericpv"
+            id="%(htmlid)s_l">%(value)f%(unit)s</span>
+            <script type="text/javascript">
+            %(htmlid)s_clean =%(htmlid)s_cleannext= true;
+            var upd=function(val){
+            if(%(htmlid)s_clean)
+            {
             document.getElementById('%(htmlid)s').value= val;
             document.getElementById('%(htmlid)s_l').innerHTML= (Math.round(val*1000)/1000)+"%(unit)s";
             }
@@ -713,12 +724,12 @@ class TextBox(Widget):
         </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self.value, 'label':label}
 
 
+
 class ScrollingWindow(Widget):
     """A widget used for chatroom style scrolling text. 
        Only the new changes are ever pushed over the net. To use, just write the HTML to it, it will
        go into a nev div in the log, old entries automatically go away, use the length param to decide
        how many to keep"""
-       
     def __init__(self,length=250,*args,**kwargs):
         Widget.__init__(self,*args,**kwargs)
         self.value = []

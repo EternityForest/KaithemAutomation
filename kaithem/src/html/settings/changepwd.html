@@ -5,9 +5,18 @@
 <%include file="/pageheader.html"/>
 <h2>Change Own Password</h2>
 <title>Change Password</title>
-
-
     <div class="sectionbox">
+    <p class="help">Password attempts will be rate limited for passwords under 32 chars(which
+        are assumed to be strong enough to resist attacks without limiting).
+        This rate limiting is standard practice on many systems, but also makes it very
+        easy for an attacker to lock you out.</br>
+        For DoS protection, consider using a five-word diceware style passwords</p>
+
+        <p>Passwords are currently stored on the server using SHA256 and a 16-byte salt.
+            The password file is currently not designed to be secure against attackers with physical
+            access to the server unless you use an extremely strong password(80-100 bits or more).
+        </p>
+
     <form action="/modules/newmoduletarget" method="POST" name="new">
         Your Current Password:<input required="required" name="current" type="text"></input>
         <br>

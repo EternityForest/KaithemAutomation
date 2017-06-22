@@ -64,7 +64,7 @@
 
 %>
 
-<%include file="/pageheader.html"/>
+    <%include file="/pageheader.html"/>
 	<title>About Kaithem </title>
     <h1>About Kaithem Automation</h1>
 	<div class="sectionbox" style="text-align:center">
@@ -154,9 +154,7 @@
         <tr>
             <td>System Load Average(UNIX only)</td>
             <td>
-            1 min: <span ${makecpuspan(load[0])}><b>${load[0]}</b></span>
-            5 min: <span ${makecpuspan(load[1])}><b>${load[1]}</b></span>
-            15 min: <span ${makecpuspan(load[2])}><b>${load[2]}</b></span>
+                1 min: <span ${makecpuspan(load[0])}><b>${load[0]}</b></span> 5 min: <span ${makecpuspan(load[1])}><b>${load[1]}</b></span> 15 min: <span ${makecpuspan(load[2])}><b>${load[2]}</b></span>
             </td>
         </tr>
 
@@ -168,66 +166,66 @@
             <td>Tasks in thread pool queue</td>
             <td>${workers.waitingtasks()}</td>
         </tr>
-    </table>
+        </table>
 
-</p>
-<p>
-<h3>System Info</h3>
-<table border=1>
-    <tr>
-        <td>CPU Type</td>
-        <td>${platform.machine()|h}
-    </tr>
+        </p>
+        <p>
+            <h3>System Info</h3>
+            <table border=1>
+                <tr>
+                    <td>CPU Type</td>
+                    <td>${platform.machine()|h}
+                </tr>
 
-    <tr>
-        <td>CPU Count</td>
-        <td>${multiprocessing.cpu_count()|h}
-    </tr>
-    <tr>
-        <td>CPU</td>
-        <td>${platform.processor()|h}</td>
-    </tr>
+                <tr>
+                    <td>CPU Count</td>
+                    <td>${multiprocessing.cpu_count()|h}
+                </tr>
+                <tr>
+                    <td>CPU</td>
+                    <td>${platform.processor()|h}</td>
+                </tr>
 
-    <tr>
-        <td>Total Availible RAM(UNIX Only)</td>
-        <td>${total|h} MB</td>
-    </tr>
-    <tr>
-        <td>OS Type</td>
-        <td>${platform.system()|h}</td>
-    </tr>
+                <tr>
+                    <td>Total Availible RAM(UNIX Only)</td>
+                    <td>${total|h} MB</td>
+                </tr>
+                <tr>
+                    <td>OS Type</td>
+                    <td>${platform.system()|h}</td>
+                </tr>
 
-    <tr>
-        <td>OS Version</td>
-        <td>${platform.release()|h}</td>
-    </tr>
-    <tr>
-        <td>Python Version</td>
-        <td>${platform.python_version()|h}</td>
-    </tr>
+                <tr>
+                    <td>OS Version</td>
+                    <td>${platform.release()|h}</td>
+                </tr>
+                <tr>
+                    <td>Python Version</td>
+                    <td>${platform.python_version()|h}</td>
+                </tr>
 
-     <tr>
-        <td>CherryPy Version</td>
-        <td>${cherrypy.__version__|h}</td>
-    </tr>
+                <tr>
+                    <td>CherryPy Version</td>
+                    <td>${cherrypy.__version__|h}</td>
+                </tr>
 
-    <tr>
-        <td>Audio Backend</td>
-        <td>${sound.backend.backendname|h}</td>
-    </tr>
+                <tr>
+                    <td>Audio Backend</td>
+                    <td>${sound.backend.backendname|h}</td>
+                </tr>
 
-    <tr>
-        <td>System Time Zone</td>
-        <td>${time.tzname[0]|h}</td>
-    </tr>
-</table>
+                <tr>
+                    <td>System Time Zone</td>
+                    <td>${time.tzname[0]|h}</td>
+                </tr>
+            </table>
 
-<h3>lm_sensors output(Requires lm_sensors to be installed)</h3>
-<pre>
+            <h3>lm_sensors output(Requires lm_sensors to be installed)</h3>
+            <pre>
 
 ${kaithemobj.kaithem.sys.sensors()|h}
 </pre>
-<%
+            <%
 def module_version(m):
     if hasattr(m,"__version__"):
         return m.__version__
@@ -241,24 +239,28 @@ def module_version(m):
     return None
 %>
 
-<h2>Imported Module Versions</h2>
-<table border =1>
-<tr><th>Module</th><th>Version</th></tr>
-%for i in sorted(sys.modules):
-%if module_version(sys.modules[i]):
-<tr><td>${i|h}</td><td>${module_version(sys.modules[i])|h}</td></tr>
-%endif
-%endfor
-</table>
-</div>
+                <h2>Imported Module Versions</h2>
+                <table border=1>
+                    <tr>
+                        <th>Module</th>
+                        <th>Version</th>
+                    </tr>
+                    %for i in sorted(sys.modules): %if module_version(sys.modules[i]):
+                    <tr>
+                        <td>${i|h}</td>
+                        <td>${module_version(sys.modules[i])|h}</td>
+                    </tr>
+                    %endif %endfor
+                </table>
+                </div>
 
 
-<h2>Acknowledgements</h2>
-<div class="sectionbox">
-<h3>Python Libraries Used(License info not guaranteed)</h3>
-<dl>
-<dt><a href="http://www.cherrypy.org/">CherryPy(Web Framework)</a>(BSD License)</dt>
-    <dd><pre>
+                <h2>Acknowledgements</h2>
+                <div class="sectionbox">
+                    <h3>Python Libraries Used(License info not guaranteed)</h3>
+                    <dl>
+                        <dt><a href="http://www.cherrypy.org/">CherryPy(Web Framework)</a>(BSD License)</dt>
+                        <dd><pre>
     Copyright (c) 2004-2011, CherryPy Team (team@cherrypy.org)
     All rights reserved.
 
@@ -285,8 +287,8 @@ def module_version(m):
     OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     </pre></dd>
-<dt><a href="http://www.makotemplates.org/">Mako(HTML Template Engine)</a>(MIT License)</dt>
-<dd><pre>
+                        <dt><a href="http://www.makotemplates.org/">Mako(HTML Template Engine)</a>(MIT License)</dt>
+                        <dd><pre>
 This is the MIT license: http://www.opensource.org/licenses/mit-license.php
 
 Copyright (C) 2006-2012 the Mako authors and contributors <see AUTHORS file>.
@@ -309,8 +311,8 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 DEALINGS IN THE SOFTWARE.
 </pre></dd>
 
-<dt><a href="http://www.pyyaml.org/">PyYAML(YAML Parser)</a>(MIT License)</dt>
-<dd><pre>
+                        <dt><a href="http://www.pyyaml.org/">PyYAML(YAML Parser)</a>(MIT License)</dt>
+                        <dd><pre>
 Copyright (c) 2006 Kirill Simonov
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -332,8 +334,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 </pre></dd>
 
-<dt><a href="https://pypi.python.org/pypi/astral">Astral(Astronomical calculations)</a>(Apache 2.0)</dt>
-<dd><pre>
+                        <dt><a href="https://pypi.python.org/pypi/astral">Astral(Astronomical calculations)</a>(Apache 2.0)</dt>
+                        <dd><pre>
 Copyright 2009-2012, Simon Kennedy, code@sffjunkie.co.uk
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -348,8 +350,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 </pre></dd>
-<dt><a href="http://pytz.sourceforge.net/">pytz(Time Zones)</a>(MIT)</dt>
-<dd><pre>
+                        <dt><a href="http://pytz.sourceforge.net/">pytz(Time Zones)</a>(MIT)</dt>
+                        <dd><pre>
 Copyright (c) 2003-2009 Stuart Bishop <stuart@stuartbishop.net>
 
 Permission is hereby granted, free of charge, to any person obtaining a
@@ -370,8 +372,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 </pre></dd>
-<dt><a href="https://labix.org/python-dateutil">dateutil</a>(BSD)</dt>
-<dd><pre>
+                        <dt><a href="https://labix.org/python-dateutil">dateutil</a>(BSD)</dt>
+                        <dd><pre>
 dateutil - Extensions to the standard python 2.3+ datetime module.
 
 Copyright (c) 2003-2011 - Gustavo Niemeyer <gustavo@niemeyer.net>
@@ -403,8 +405,8 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 </pre></dd>
 
-<dt><a href="http://hacks.bluesmoon.info/strftime/index.html#intro_sec">strftime for javascript</a>(MIT)</dt>
-<dd><pre>
+                        <dt><a href="http://hacks.bluesmoon.info/strftime/index.html#intro_sec">strftime for javascript</a>(MIT)</dt>
+                        <dd><pre>
 Copyright (c) 2008, Philip S Tellis &ltphilip@bluesmoon.info&gt
 All rights reserved.
 
@@ -430,8 +432,8 @@ INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT
 TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 </pre></dd>
-<dt><a href= "https://github.com/sunlightlabs/validictory">Validictory(Config file validation)</a>(MIT)</dt>
-<dd><pre>
+                        <dt><a href= "https://github.com/sunlightlabs/validictory">Validictory(Config file validation)</a>(MIT)</dt>
+                        <dd><pre>
 Copyright (c) 2013 Sunlight Labs, James Turk
 Contains code from jsonschema 0.2, copyright 2008 Ian Lewis, Yusuke Muraoka
 Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -450,8 +452,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 </pre></dd>
-<dt><a href= "http://code.google.com/p/yappi/">Yappi(Performance Profiler, must be installed separately to enable profiling)</a>(MIT)</dt>
-<dd><pre>
+                        <dt><a href= "http://code.google.com/p/yappi/">Yappi(Performance Profiler, must be installed separately to enable profiling)</a>(MIT)</dt>
+                        <dd><pre>
 Copyright (c) 2009-2014 Sumer Cip
 
 Permission is hereby granted, free of charge, to any person
@@ -475,8 +477,8 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 </pre></dd>
-<dt><a href= "http://code.google.com/p/ntplib/">ntplib(Network time protocol stuff)</a>(LGPL)</dt>
-<dd><pre>
+                        <dt><a href= "http://code.google.com/p/ntplib/">ntplib(Network time protocol stuff)</a>(LGPL)</dt>
+                        <dd><pre>
 ntplib - Python NTP library.
 Copyright (C) 2009 Charles-Francois Natali <neologix@free.fr>
 
@@ -494,8 +496,8 @@ You should have received a copy of the GNU Lesser General Public License along
 with this program; if not, write to the Free Software Foundation, Inc., 59
 Temple Place, Suite 330, Boston, MA 0.1.2-1307 USA
 </pre></dd>
-<dt><a href= "https://ws4py.readthedocs.org/en/latest/">ws4py(Websocket Support)</a>(BSD License)</dt>
-<dd><pre>
+                        <dt><a href= "https://ws4py.readthedocs.org/en/latest/">ws4py(Websocket Support)</a>(BSD License)</dt>
+                        <dd><pre>
 NOTICE: The version of ws4py included with kaithem has been modified by the author of kaithem.
 
 
@@ -526,8 +528,8 @@ CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 </pre></dd>
-<dt><a href="https://github.com/kvh/recurrent">recurrent(Natural language datetime)</a>(MIT License)</dt>
-<dd><pre>
+                        <dt><a href="https://github.com/kvh/recurrent">recurrent(Natural language datetime)</a>(MIT License)</dt>
+                        <dd><pre>
 Copyright (c) 2012 Ken Van Haren
 
 Permission is hereby granted, free of charge, to any person obtaining
@@ -550,8 +552,8 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 </dt></pre>
 
-<dt><a href="https://github.com/bear/parsedatetime">parsedatetime(Natural language datetime)</a>(Apache 2.0)</dt>
-<dd><pre>
+                            <dt><a href="https://github.com/bear/parsedatetime">parsedatetime(Natural language datetime)</a>(Apache 2.0)</dt>
+                            <dd><pre>
 Copyright 2004-2014 Mike Taylor
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -567,8 +569,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 </pre></dd>
 
-<dt><a href="https://codemirror.net/">CodeMirror</a>(MIT)</dt>
-<dd><pre>
+                            <dt><a href="https://codemirror.net/">CodeMirror</a>(MIT)</dt>
+                            <dd><pre>
 Copyright (C) 2015 by Marijn Haverbeke <marijnh@gmail.com> and others
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -589,10 +591,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 </pre>
-</dd>
+                            </dd>
 
-<dt><a href="http://docs.python-requests.org/en/master/">Requests</a>(Apache)</dt>
-<dd><pre>
+                            <dt><a href="http://docs.python-requests.org/en/master/">Requests</a>(Apache)</dt>
+                            <dd><pre>
 Copyright 2016 Kenneth Reitz
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -608,8 +610,8 @@ Copyright 2016 Kenneth Reitz
    limitations under the License.
 </pre>
 
-<dt><a href="http://pythonhosted.org/six/">Six</a>(MIT)</dt>
-<dd><pre>
+                                <dt><a href="http://pythonhosted.org/six/">Six</a>(MIT)</dt>
+                                <dd><pre>
     Copyright (c) 2010-2015 Benjamin Peterson
 
     Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -631,42 +633,44 @@ Copyright 2016 Kenneth Reitz
 
 </pre>
 
-</dd>
+                                </dd>
 
-</ul>
-<h3>Command Line Utilities</h3>
-<ul>
-<li><a href="http://www.mplayerhq.hu/design7/news.html">mplayer(Default audio backend)</a></li>
-<li><a href="http://www.lm-sensors.org/">lm-sensors(Used for about box temperature display if availible</a></li>
-</ul>
+                                </ul>
+                                <h3>Command Line Utilities</h3>
+                                <ul>
+                                    <li><a href="http://www.mplayerhq.hu/design7/news.html">mplayer(Default audio backend)</a></li>
+                                    <li><a href="http://www.lm-sensors.org/">lm-sensors(Used for about box temperature display if availible</a></li>
+                                    <li><a href="https://piware.de/2012/02/fatrace-report-system-wide-file-access-events/">fatrace(Monitor filesystem access)</a></li>
+                                </ul>
 
-<h3>Graphics</h3>
-<ul>
-<li><a href="http://webtreats.mysitemyway.com/">Webtreats ETC</a></li>
-<li><a href="http://www.famfamfam.com/lab/icons/silk/">Silk Icon Pack(Almost all icons used in kaithem)</a></li>
-<li><a href="https://openclipart.org/detail/1337/large-barrel">kevie at openclipart.org</a></li>
+                                <h3>Graphics</h3>
+                                <ul>
+                                    <li><a href="http://webtreats.mysitemyway.com/">Webtreats ETC(Main background in the default scrapbook theme)</a></li>
+                                    <li><a href="http://www.famfamfam.com/lab/icons/silk/">Silk Icon Pack(Almost all icons used in kaithem)</a></li>
+                                    <li><a href="https://openclipart.org/detail/1337/large-barrel">kevie at openclipart.org</a></li>
 
-</ul>
-<h3>Tools</h3>
-<ul>
-<li><a href="http://www.gimp.org/">GIMP(Image Editor)</a></li>
-<li><a href="http://www.eclipse.org/">Eclipse (IDE)</a></li>
-<li><a href="https://www.python.org/">Python (Language)</a></li>
-<li><a href="https://www.debian.org/">Debian (Linux Distro)</a></li>
-<li><a href="http://www.linuxmint.com/index.php">Linux Mint (Linux Distro)</a></li>
-<li><a href="http://bluegriffon.org/">BlueGriffon (Web Editor, UI Prototyping)</a></li>
-<li><a href="https://github.com/alonho/pystuck">pystuck(Python debugging tool)</a></li>
-<li><a href="http://winpdb.org/">winpdb</a></li>
-</ul>
-<h3>Other</h3>
-<ul>
-<li><a href="http://www.jigsawrenaissance.org/">Jigsaw Renaissance</a></li>
-<li><a href="http://stackoverflow.com/">Stack Overflow</a></li>
-<li><a href="http://www.raspberrypi.org/">Raspberry Pi</a></li>
-<li><a href="https://github.com/">GitHub</a></li>
-<li><a href="http://en.wikipedia.org/wiki/Harvard_sentences">The Harvard Sentences(Some of the quotes in the login screen)</a></li>
-<li><a href="https://freesound.org/people/fins/">fins</a> and <a href="https://freesound.org/people/KIZILSUNGUR"/>KIZILSUNGUR</a> of  <a href="https://freesound.org/">freesound.org</a></li>
-</ul>
+                                </ul>
+                                <h3>Tools</h3>
+                                <ul>
+                                    <li><a href="http://www.gimp.org/">GIMP(Image Editor)</a></li>
+                                    <li><a href="http://www.eclipse.org/">Eclipse (IDE)</a></li>
+                                    <li><a href="https://code.visualstudio.com/">Visual Studio Code</a></li>
+                                    <li><a href="https://www.python.org/">Python (Language)</a></li>
+                                    <li><a href="https://www.debian.org/">Debian (Linux Distro)</a></li>
+                                    <li><a href="http://www.linuxmint.com/index.php">Linux Mint (Linux Distro)</a></li>
+                                    <li><a href="http://bluegriffon.org/">BlueGriffon (Web Editor, UI Prototyping)</a></li>
+                                    <li><a href="https://github.com/alonho/pystuck">pystuck(Python debugging tool)</a></li>
+                                    <li><a href="http://winpdb.org/">winpdb</a></li>
+                                </ul>
+                                <h3>Other</h3>
+                                <ul>
+                                    <li><a href="http://www.jigsawrenaissance.org/">Jigsaw Renaissance</a></li>
+                                    <li><a href="http://stackoverflow.com/">Stack Overflow</a></li>
+                                    <li><a href="http://www.raspberrypi.org/">Raspberry Pi</a></li>
+                                    <li><a href="https://github.com/">GitHub</a></li>
+                                    <li><a href="http://en.wikipedia.org/wiki/Harvard_sentences">The Harvard Sentences(Some of the quotes in the login screen)</a></li>
+                                    <li><a href="https://freesound.org/people/fins/">fins</a> and <a href="https://freesound.org/people/KIZILSUNGUR" />KIZILSUNGUR</a> of <a href="https://freesound.org/">freesound.org</a></li>
+                                </ul>
 
-</div>
-<%include file="/pagefooter.html"/>
+                </div>
+                <%include file="/pagefooter.html"/>

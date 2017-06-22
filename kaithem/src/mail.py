@@ -52,7 +52,7 @@ def raw_send(msg,to,subject,recipientName=None):
     else:
         tolist = to
     sub = subject
-   
+
     msg = MIMEText(msg)
     # me == the sender's email address
     # you == the recipient's email address

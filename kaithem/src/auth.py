@@ -25,7 +25,7 @@ of a valid token"""
 #of not using the filesystem much to save any SD cards.
 
 from . import util,directories,modules_state,registry,messagebus
-import json,base64,os,time,shutil,hashlib,base64,sys,yaml
+import json,base64,os,time,shutil,hashlib,base64,sys,yaml,hmac,struct
 
 Tokens = {}
 
@@ -81,6 +81,21 @@ Permissions=BasePermissions
 YOU MUST SET THIS EVERY TIME YOU CHANGE THE STATE AND WANT IT TO BE PERSISTANT"""
 authchanged = False
 
+#This __local_secret is really important, otherwise
+#the timing attack might be even worse.
+__local_secret= os.urandom(24)
+
+def resist_timing_attack(data, maxdelay=0.0001):
+    """Input dependant deterministic pseudorandom delay. Use to make sure delay
+        is constant for a given user input, so that averaging won't work.
+        Theory: http://blog.ircmaxell.com/2014/11/its-all-about-time.html
+    """
+    #Note the very high timing resolution.
+    #Attackers can determine nanosecond level timings.
+    h =hashlib.sha256(data+__local_secret).digest()
+    t = struct.unpack("<Q", h[:8])[0]
+    time.sleep(maxdelay*(t/2**64))
+
 def importPermissionsFromModules():
     "Import all user defined permissions that are module resources into the global list of modules that can be assigned, and delete any that are no loger defined in modules."
     Permissions=BasePermissions
@@ -114,6 +129,8 @@ def changeUsername(old,new):
 def changePassword(user,newpassword):
     "Change a user's password"
     global authchanged
+    if len(newpassword)>256:
+        raise ValueError("Password cannot be longer than 256 bytes")
     authchanged = True
     salt = os.urandom(16)
     salt64 = base64.b64encode(salt)
@@ -211,7 +228,7 @@ def promptGenerateUser(username="admin"):
                 }
             },
             "users": {
-               username: {
+                username: {
                     "groups": [
                         "Administrators"
                     ],
@@ -313,7 +330,7 @@ def userLogin(username,password):
         m.update(usr_bytes(password,'utf8'))
         m.update(base64.b64decode(Users[username]['salt'].encode('utf8')  ))
         m = m.digest()
-        if base64.b64decode(Users[username]['password'].encode('utf8')) == m:
+        if hmac.compare_digest(base64.b64decode(Users[username]['password'].encode('utf8')), m):
             #We can't just always assign a new token because that would break multiple
             #Logins as same user
             if not hasattr(Users[username],'token'):
@@ -353,12 +370,14 @@ def dumpDatabase():
     global authchanged
     if not authchanged:
         return False
-
+    x = Users.copy()
+    for i in x:
+        #Don't save the login history.
+        if 'loginhistory' in x[i]:
+            del x[i]['loginhistory']
     #Assemble the users and groups data and save it back where we found it
-    temp = {"users":Users.copy(),"groups":Groups.copy()}
-    #Don't save the login history.
-    if 'loginhistory' in temp['users']:
-        del temp['users']['loginhistory']
+    temp = {"users":x,"groups":Groups.copy()}
+
     if time.time()> util.min_time:
         t = time.time()
     else:

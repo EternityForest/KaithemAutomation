@@ -121,7 +121,6 @@ class StateMachine(modules.VirtualResource):
                 self.subscribers[state] = []
             self.subscribers[state].append(weakref.ref(f))
 
-
     @property
     def age(self):
         return time.time()-self.enteredState

@@ -8,6 +8,18 @@ from cherrypy.lib.static import serve_file
 syslogwidget = widgets.ScrollingWindow(2500)
 syslogwidget.require('/users/logs.view')
 
+
+try:
+    try:
+        import html
+        esc= html.escape
+    except:
+        import cgi
+        esc=cgi.escape
+except:
+    esc = lambda t:t
+
+
 class WidgetHandler(logging.Handler):
     def __init__(self):
         logging.Handler.__init__(self)
@@ -20,6 +32,7 @@ class WidgetHandler(logging.Handler):
         return r
     def emit(self,r):
         t = textwrap.fill(pylogginghandler.syslogger.format(r),80)
+        t = esc(t)
         if r.levelname in ["ERROR", "CRITICAL"]:
             self.widget.write('<pre class="error">'+t+"</pre>")
         elif r.levelname in ["WARNING"]:

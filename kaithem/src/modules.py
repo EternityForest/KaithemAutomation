@@ -492,8 +492,11 @@ def initModules():
         logger.exception("Failed to cleanup old blobs. This is normal if kaithem's var dir is not currently writable.")
     logger.info("Initialized modules")
 
-def saveModule(module, dir,modulename=None):
-    "Returns a list of saved module,resource tuples and the saved resource."
+def saveModule(module, dir,modulename=None, ignore_func=None):
+    """Returns a list of saved module,resource tuples and the saved resource.
+    ignore_func if present must take an abs path and return true if that path should be
+    left alone. It's meant for external modules and version control systems.
+    """
     #Iterate over all of the resources in a module and save them as json files
     #under the URL url module name for the filename.
     logger.debug("Saving module "+str(modulename))
@@ -556,8 +559,11 @@ def saveModule(module, dir,modulename=None):
         #If there were no resources in module, and we never made a dir, don't do anything.
         if os.path.isdir(dir):
             for j in util.get_files(dir):
+                p = os.path.join(dir,j)
+                if ignore_func and ignore_func(p):
+                    continue
                 if util.unurl(j) not in module:
-                    os.remove(os.path.join(dir,j))
+                    os.remove(p)
                     #Remove them from the list of unsaved changed things.
                     if (modulename,util.unurl(j)) in unsaved_changed_obj:
                         saved.append((modulename,util.unurl(j)))
@@ -588,8 +594,12 @@ def saveModules(where):
 
             for i in [i for i in ActiveModules if i in external_module_locations]:
                 try:
-                    saved.extend(saveModule(ActiveModules[i],external_module_locations[i],modulename=i))
+                    saved.extend(saveModule(ActiveModules[i],external_module_locations[i],modulename=i,ignore_func=detect_ignorable))
                 except:
+                    try:
+                        logger.exception("Failed to save external module to"+str(external_module_locations[i]))
+                    except:
+                        pass
                     messagebus.postMessage("/system/notifications/errors",'Failed to save external module:' + traceback.format_exc(8))
 
             for i in util.get_immediate_subdirectories(where):
@@ -661,11 +671,38 @@ def loadModules(modulesdir):
             #Get rid of the __ and .location, then set the location in the dict
             with modulesLock:
                 external_module_locations[util.unurl(i[2:-9])] = s
-            loadModule(s, util.unurl(i[2:-9]))
+            #We use the ignore func when loading ext modules
+            loadModule(s, util.unurl(i[2:-9]),detect_ignorable)
         except:
             messagebus.postMessage("/system/notifications/errors" ," Error loading external module: "+ traceback.format_exc(4))
 
-def loadModule(folder, modulename):
+
+def detect_ignorable(path):
+    "Recursive detect paths that should be ignored and left alone when loading and saving"
+    #Safety counter, this seems like it might need it.
+    for i in range(64):
+        if _detect_ignorable(path):
+            return True
+        path = os.path.dirname(path)
+        #Detect end of path
+        if not os.path.split(path)[1]:
+            return
+
+def _detect_ignorable(path):
+    "Detect paths that should be ignored when loading a module"
+    #Detect .git
+    if os.path.basename(path) == ".git":
+        #Double check, because we can, on the off chance something else is named .git
+        if os.path.exists(os.path.join(path,"HEAD")) or os.path.exists(os.path.join(path,"branches")):
+            return True
+    #I think that's how you detect hg repos?
+    if os.path.basename(path) == ".hg" and os.path.isdir(path):
+        return True
+    if os.path.basename(path) in [".gitignore",".gitconfig"]:
+        return True
+
+
+def loadModule(folder, modulename, ignore_func=None):
     "Load a single module but don't bookkeep it . Used by loadModules"
     logger.debug("Attempting to load module "+modulename)
     with modulesLock:
@@ -673,7 +710,12 @@ def loadModule(folder, modulename):
         module = {}
         #Iterate over all resource files and load them
         for root, dirs, files in os.walk(folder):
+                #Function used to ignore things like VCS folders and such
+                if ignore_func and ignore_func(root):
+                    continue
                 for i in files:
+                    if ignore_func and ignore_func(i):
+                        continue
                     relfn = os.path.relpath(os.path.join(root,i),folder)
                     fn = os.path.join(folder , relfn)
                     #Copy stuff from anything called filedata to handle library modules with filedata
@@ -709,6 +751,8 @@ def loadModule(folder, modulename):
 
                 for i in dirs:
                     if i == "__filedata__":
+                        continue
+                    if ignore_func and ignore_func(i):
                         continue
                     relfn = os.path.relpath(os.path.join(root,i),folder)
                     fn = os.path.join(folder , relfn)

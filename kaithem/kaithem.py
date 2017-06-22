@@ -16,12 +16,20 @@
 
 #
 
-__version__ = "0.56.1 Production"
-__version_info__ = (0,56,1,"final",0)
+__version__ = "0.57 Development"
+__version_info__ = (0,57,0,"dev",0)
+
 #Library that makes threading and lock operations, which we use a lot of, use native code on linux
 try:
     import pthreading
     pthreading.monkey_patch()
+except:
+    pass
+
+#Dump stuff to stderr when we get a segfault
+try:
+    import faulthandler
+    faulthandler.enable()
 except:
     pass
 
@@ -208,11 +216,13 @@ from src import widgets
 logger.info("Loaded core python code")
 from src.config import config
 
-if config['local-access-only']:
-    bindto = '127.0.0.1'
+if not config['host'] == 'default':    
+    bindto = config['host']
 else:
-    bindto = '0.0.0.0'
-
+    if config['local-access-only']:
+        bindto = '127.0.0.1'
+    else:
+        bindto = '::'
 cherrypy.process.servers.check_port(bindto, config['http-port'], timeout=1.0)
 cherrypy.process.servers.check_port(bindto, config['https-port'], timeout=1.0)
 logger.info("Ports are free")
@@ -249,7 +259,7 @@ logger.info("Loaded modules")
 
 #This class represents the "/" root of the web app
 class webapproot():
-   #"/" is mapped to this
+    #"/" is mapped to this
     @cherrypy.expose
     def index(self,*path,**data):
         pages.require("/admin/mainpage.view")
@@ -258,9 +268,10 @@ class webapproot():
 
     @cherrypy.expose
     def pagelisting(self,*path,**data):
+        #Pagelisting knows to only show pages if you have permissions
         return pages.get_template('pagelisting.html').render_unicode(modules = modules.ActiveModules)
 
-    #docs,about,helpmenu, and license are just static pages
+    #docs, helpmenu, and license are just static pages.
     @cherrypy.expose
     def docs(self,*path,**data):
         if path:
@@ -274,6 +285,7 @@ class webapproot():
     @cherrypy.expose
     def about(self,*path,**data):
         return pages.get_template('help/about.html').render(myip = MyExternalIPAdress)
+        
     @cherrypy.expose
     def changelog(self,*path,**data):
         return pages.get_template('help/changes.html').render(myip = MyExternalIPAdress)
@@ -370,7 +382,7 @@ site_config={
 }
 if config['enable-websockets']:
     wscfg={'tools.websocket.on': True,
-           'tools.websocket.handler_cls': widgets.websocket}
+            'tools.websocket.handler_cls': widgets.websocket}
 else:
     wscfg = {}
 
@@ -435,6 +447,7 @@ def addheader(*args,**kwargs):
 
 def pageloadnotify(*args,**kwargs):
     systasks.aPageJustLoaded()
+
 cherrypy.config.update(site_config)
 cherrypy.tools.pageloadnotify = cherrypy.Tool('on_start_resource', pageloadnotify)
 cherrypy.config['tools.pageloadnotify.on'] = True

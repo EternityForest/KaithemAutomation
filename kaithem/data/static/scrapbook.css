@@ -217,7 +217,7 @@ div.kmainpagebody
 }
 
 /*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
-div.sectionbox, main>section{
+div.sectionbox,section{
 	border-style:solid;
 	background: rgba(235, 230, 210, 0.67);
 	border-width:2px;
@@ -228,7 +228,6 @@ div.sectionbox, main>section{
 	padding-left:0.5%;
 	margin:2px;
 }
-
 /*I forgot what this is for. Probably to unscrewup the font or something*/
 .ace_editor div {
     font: inherit!important

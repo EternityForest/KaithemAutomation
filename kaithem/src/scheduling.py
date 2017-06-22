@@ -28,7 +28,21 @@ class BaseEvent():
     def __init__(self):
         self.exact = 0
 
-#unused, unfinished
+
+
+#Event API(not public):
+#_schedule: if schedule is false calculate next runtime, insert self, set scheduled flag to true.
+#only call under lock
+
+#schedule: acquire lock, if so call _schedule
+
+#_run: acquire lock(or do nothing if already running)
+#do the actual action, and reschedule self if it's a repeating event
+
+#run: use the worker pool to run an event, or run directly if fast enough(under 1ms)
+
+
+
 class Event(BaseEvent):
     "Does function at time provided there is a strong referemce to f still by then"
     def __init__(self,function,time):
@@ -81,7 +95,11 @@ class RepeatingEvent(BaseEvent):
         BaseEvent.__init__(self)
         self.f = weakref.ref(function, self.unregister)
         self.interval = float(interval)
+
+        #True if the event is in the scheduler queue or the worker queue,
+        #And should only be set under lock
         self.scheduled = False
+
         self.errored = False
         self.lock = threading.Lock()
         self.lastrun = None
@@ -158,6 +176,10 @@ class RepeatingEvent(BaseEvent):
         workers.do(self._run)
 
     def _run(self):
+        #Safe to set outside lock I think. If there is 
+        #more than one scheduled copy there's a problem anyway.
+        self.scheduled = False
+
         if self.stop:
             return
         self.lastrun = time.time()
@@ -173,13 +195,17 @@ class RepeatingEvent(BaseEvent):
             except:
                 try:
                     if hasattr(f,"__name__") and hasattr(f,"__module__"):
-                        logger.exception("Exception in scheduled function "+f.__name__+" of module "+f.__module__)
+                        logging.exception("Exception in scheduled function "+f.__name__+" of module "+f.__module__)
 
                 except:
-                        logger.exception("Exception in scheduled function")
+                        logging.exception("Exception in scheduled function")
 
                 if not self.errored:
                     try:
+                        try:
+                            logger.exception("Exception in scheduled function "+f.__name__+" of module "+f.__module__)
+                        except:
+                            logger.exception("Exception in scheduled function")                        
                         handleFirstError(f)
                     except:
                         logging.exception("Error handling first error in repeating event")
@@ -197,12 +223,8 @@ class UnsynchronizedRepeatingEvent(RepeatingEvent):
         RepeatingEvent.__init__(self,*args,**kwargs)
 
     def _schedule(self):
-        """Calculate next runtime and put self into the queue."""
-
-        #The main reason this class exists is as a base class for
-        #EventEvent. So normally this method gets called directly
-        #instead of via schedule. That's why this method has the
-        #check in it.
+        """Calculate next runtime and put self into the queue. 
+        Should only ever be called under lock"""
         if self.scheduled:
             return
         t = self.lastrun+self.interval
@@ -432,9 +454,6 @@ class NewScheduler(threading.Thread):
                 #Run tasks until all remaining ones are in the future
                 while self.tasks and (self.tasks[0].time <time.time()):
                     i = self.tasks.pop(False)
-                    #Set this flag immediatly, otherwise an error somewhere could
-                    #Cause lost repeating events
-                    i.scheduled = False
                     overdueby = time.time()-i.time
                     if i.exact and overdueby > i.exact:
                         continue
@@ -449,13 +468,19 @@ class NewScheduler(threading.Thread):
 
                 #Take all the repeating tasks that aren't already scheduled to happen and schedule them.
                 #Normally tasks  just reschedule themselves, but this check prevents any errors in
-                #the chain of run>reschedule>run>etc
+                #the chain of run>reschedule>run>etc.
+
+                #the schedule() method checks if it's already scheduled.
 
                 #We have to run in a try block because we don't want a bad schedule function to take out the whole thread.
 
                 #We only need to do this every 5 seconds or so, because it's only an error recovery thing.
                 if time.time()-self.lastrecheckedschedules>5:
-                    for i in self.repeatingtasks:
+                    self._dorErrorRecovery()
+                    self.lastrecheckedschedules = time.time()
+
+    def _dorErrorRecovery(self):
+        for i in self.repeatingtasks:
                         try:
                             if not i.scheduled:
                                 xyz = time.time()
@@ -463,11 +488,9 @@ class NewScheduler(threading.Thread):
                                 #If one event takes a long time to schedule or if it
                                 #Is already running and can't schedule yet.
                                 workers.do(i.schedule)
-                                logger.debug("Rescheduled "+str(i)+"using error recovery, could indicate a bug somewhere")
+                                logger.debug("Rescheduled "+str(i)+"using error recovery, could indicate a bug somewhere, or just a long running event.")
                         except:
                                 logger.exception("Exception while scheduling event")
-                    self.lastrecheckedschedules = time.time()
-
 
 
 

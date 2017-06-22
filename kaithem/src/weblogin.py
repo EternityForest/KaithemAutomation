@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import cherrypy, time
+import cherrypy, time,collections,threading,logging
 from . import pages, auth,util,messagebus
 
 
@@ -23,6 +23,15 @@ lastCleared = time.time()
 recentAttempts = 0
 alreadySent = 0
 
+logger = logging.getLogger("system.auth")
+failureRecords = collections.OrderedDict()
+recordslock = threading.Lock()
+
+#indexed by username, they are numbers of what time to lock out logins until
+lockouts = {}
+
+
+
 def onAttempt():
     if time.time()-lastCleared > 60*30:
         lastCleared = time.time()
@@ -31,6 +40,7 @@ def onAttempt():
         recentAttempts = 0
     recentAttempts += 1
     if recentAttempts > 150 and not alreadysent:
+        logging.warning("Many failed login attempts have occurred")
         messagebus.postMessage("/system/notifications/warnings","Excessive number of failed attempts in the last 30 minutes.")
 
 def onLogin():
@@ -41,7 +51,19 @@ def onLogin():
         recentAttempts = 0
     recentAttempts -= 1.5
 
+def onFail(ip,user,lockout=True):
+    with recordslock:
+        if ip in failureRecords:
+            r = failureRecords[ip]
+            failureRecords[ip] = (time.time(), r[1]+1,user)
+        else:
+            failureRecords[ip] = (time.time(), 1,user)
 
+        if len(failureRecords)> 1000:
+            failureRecords.popitem(last=False)
+    if lockout:
+        if user in auth.Users:
+            lockouts[user]=time.time()+3
 class LoginScreen():
 
     @cherrypy.expose
@@ -52,14 +74,28 @@ class LoginScreen():
 
     @cherrypy.expose
     def login(self,**kwargs):
+        #Handle some nuisiance errors.
+        if not 'username' in kwargs:
+            raise cherrypy.HTTPRedirect("/")
+
         if auth.getUserSetting(pages.getAcessingUser(),"restrict-lan"):
             if not util.iis_private_ip(cherrypy.request.remote.ip):
                 raise cherrypy.HTTPRedirect("/errors/localonly")
 
         if not cherrypy.request.scheme == 'https':
             raise cherrypy.HTTPRedirect("/errors/gosecure")
-        time.sleep(0.005)
+        #Insert a delay that has a random component of up to 256us that is derived from the username
+        #and password, to prevent anyone from being able to average it out, as it is the same per
+        #query
+        auth.resist_timing_attack(kwargs['username'].encode("utf8")+kwargs['password'].encode("utf8"))
         x = auth.userLogin(kwargs['username'],kwargs['password'])
+        #Don't ratelimit very long passwords, we'll just assume they are secure
+        #Someone might still make a very long insecure password, but
+        #for now lets assume that people with long passwords know what they're doing.
+        if len(kwargs['password'])<32:
+            if kwargs['username'] in lockouts:
+                if time.time()<lockouts[kwargs['username']]:
+                    raise RuntimeError("Maximum 1 login attempt per 3 seconds per account.")
         if not x=='failure':
             #Give the user the security token.
             #AFAIK this is and should at least for now be the
@@ -71,6 +107,8 @@ class LoginScreen():
             #Always test, folks!
             cherrypy.response.cookie['auth']['secure'] = ' '
             cherrypy.response.cookie['auth']['httponly'] = ' '
+            #tokens are good for 90 days
+            cherrypy.response.cookie['auth']['expires'] = 24*60*60*90
             x = auth.Users[kwargs['username']]
             if not 'loginhistory' in x:
                 x['loginhistory'] = [(time.time(), cherrypy.request.remote.ip)]
@@ -84,6 +122,7 @@ class LoginScreen():
             else:
                 raise cherrypy.HTTPRedirect("/")
         else:
+            onFail(cherrypy.request.remote.ip,kwargs['username'])
             messagebus.postMessage("/system/auth/loginfail",[kwargs['username'],cherrypy.request.remote.ip])
             raise cherrypy.HTTPRedirect("/errors/loginerror")
 
