@@ -201,7 +201,7 @@ def beginPolling(ev):
     global insert_phase
     ev.schedulerobj =EventEvent(ev.check,
     config['priority-response'].get(ev.symbolicpriority,0.08)+(insert_phase*0.03)-0.015,
-     ev.symbolicpriority)
+        ev.symbolicpriority)
     try:
         ev.schedulerobj.module = ev.module
         ev.schedulerobj.resource = ev.resource
@@ -461,9 +461,13 @@ class BaseEvent():
         with self.register_lock:
             #Some events are really just containers for a callback, so there is no need to poll them
             if self.polled:
-                if not hasattr(self,"schedulerobj"):
-                    self._prevstate = False
-                    beginPolling(self)
+                #Ensure we don't have 2 objects going.
+                #This is defensive, we still delete schedulerobj when unregistering
+                if hasattr(self,"schedulerobj"):
+                    endPolling(self)
+                self._prevstate = False
+                beginPolling(self)
+
     def unpause(self):
         self.register()
 
@@ -472,6 +476,7 @@ class BaseEvent():
         with self.register_lock:
             if hasattr(self,"schedulerobj"):
                 endPolling(self)
+                del self.schedulerobj
 
     def unregister(self):
         logging.debug("Unregistering event "+repr(self))
@@ -840,7 +845,7 @@ class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
                 #But otherwise a paused event would just wait
                 #and not be deleted.
                 while not self.pauseflag.wait(5.0):
-                    if not run and self.runthread:
+                    if not (run and self.runthread):
                         return
                 with self.lock:
                     try:
@@ -911,11 +916,12 @@ class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
         self.disable = False
 
     def unregister(self):
-        logging.debug("Unregistering event "+repr(self))
-        self.runthread = False
-        self.disable = True
-        self.pauseflag.clear()
-        time.sleep(1/60.0)
+        with self.lock:
+            logging.debug("Unregistering event "+repr(self))
+            self.runthread = False
+            self.disable = True
+            self.pauseflag.clear()
+            time.sleep(1/60.0)
 
 
     def _check(self):

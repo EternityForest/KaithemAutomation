@@ -30,6 +30,8 @@ recordslock = threading.Lock()
 #indexed by username, they are numbers of what time to lock out logins until
 lockouts = {}
 
+
+
 def onAttempt():
     if time.time()-lastCleared > 60*30:
         lastCleared = time.time()
@@ -82,7 +84,10 @@ class LoginScreen():
 
         if not cherrypy.request.scheme == 'https':
             raise cherrypy.HTTPRedirect("/errors/gosecure")
-        time.sleep(0.005)
+        #Insert a delay that has a random component of up to 256us that is derived from the username
+        #and password, to prevent anyone from being able to average it out, as it is the same per
+        #query
+        auth.resist_timing_attack(kwargs['username'].encode("utf8")+kwargs['password'].encode("utf8"))
         x = auth.userLogin(kwargs['username'],kwargs['password'])
         #Don't ratelimit very long passwords, we'll just assume they are secure
         #Someone might still make a very long insecure password, but

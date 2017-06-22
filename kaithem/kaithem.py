@@ -268,9 +268,10 @@ class webapproot():
 
     @cherrypy.expose
     def pagelisting(self,*path,**data):
+        #Pagelisting knows to only show pages if you have permissions
         return pages.get_template('pagelisting.html').render_unicode(modules = modules.ActiveModules)
 
-    #docs,about,helpmenu, and license are just static pages
+    #docs, helpmenu, and license are just static pages.
     @cherrypy.expose
     def docs(self,*path,**data):
         if path:
@@ -284,6 +285,7 @@ class webapproot():
     @cherrypy.expose
     def about(self,*path,**data):
         return pages.get_template('help/about.html').render(myip = MyExternalIPAdress)
+        
     @cherrypy.expose
     def changelog(self,*path,**data):
         return pages.get_template('help/changes.html').render(myip = MyExternalIPAdress)

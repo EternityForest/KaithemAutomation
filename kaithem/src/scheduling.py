@@ -195,13 +195,17 @@ class RepeatingEvent(BaseEvent):
             except:
                 try:
                     if hasattr(f,"__name__") and hasattr(f,"__module__"):
-                        logger.exception("Exception in scheduled function "+f.__name__+" of module "+f.__module__)
+                        logging.exception("Exception in scheduled function "+f.__name__+" of module "+f.__module__)
 
                 except:
-                        logger.exception("Exception in scheduled function")
+                        logging.exception("Exception in scheduled function")
 
                 if not self.errored:
                     try:
+                        try:
+                            logger.exception("Exception in scheduled function "+f.__name__+" of module "+f.__module__)
+                        except:
+                            logger.exception("Exception in scheduled function")                        
                         handleFirstError(f)
                     except:
                         logging.exception("Error handling first error in repeating event")

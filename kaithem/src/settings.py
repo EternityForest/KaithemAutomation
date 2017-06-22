@@ -1,4 +1,4 @@
-#Copyright Daniel Dunn 2013
+#Copyright Daniel Dunn 2013,2017
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify
@@ -146,13 +146,17 @@ class Settings():
 
         for i in kwargs:
             if i.startswith("pref_"):
-                #Filter out non sane preferences
-                if i[5:] in ['pref', 'timezone', 'strftime']:
+                if not i in ['pref_strftime',"pref_timezone","email"]:
+                    continue
                 #Filter too long values
                     auth.setUserSetting(pages.getAcessingUser(),i[5:],kwargs[i][:200])
+
+
+            m = registry.get('system/mail/lists')
             if i.startswith("list_"):
                 if kwargs[i] == "subscribe":
-                    lists.append(i[5:][:100])
+                    if i[5:][:100] in m:
+                        lists.append(i[5:][:100])
         auth.setUserSetting(pages.getAcessingUser(),'mailinglists',lists)
 
         auth.setUserSetting(pages.getAcessingUser(),'useace','useace' in kwargs)
@@ -178,6 +182,7 @@ class Settings():
         u = auth.whoHasToken(t)
         if len(kwargs['new'])> 100:
             raise RuntimeError("Limit 100 chars for password")
+        auth.resist_timing_attack((u+kwargs['old']).encode('utf8'))
         if not auth.userLogin(u,kwargs['old']) == "failure":
             if kwargs['new']==kwargs['new2']:
                 auth.changePassword(u,kwargs['new'])
