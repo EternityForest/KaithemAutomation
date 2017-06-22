@@ -1,4 +1,5 @@
 ![Kaithem Automation](img/logo.jpg)
+
 (Clipart credit: https://openclipart.org/detail/1337/large-barrel)
 
 Kaithem is Linux home/commercial automation server written in pure python, HTML, Mako, and CSS. It's more low level than your average HA system. but the web IDE model means you can control anything python can.
