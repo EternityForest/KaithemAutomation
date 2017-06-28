@@ -390,13 +390,19 @@ class BaseEvent():
         except:
             raise
 
-    def new_print(self,*args):
+    def new_print(self,*args,**kwargs):
         #No, we cannot just do print(*args), because it breaks on python2
+        if 'local' in kwargs and kwargs[local]:
+            local = True
+        else:
+            local=False
         if len(args)==1:
-            print(args[0])
+            if not local:
+                print(args[0])
             self.printoutput+=str(args[0])+"\n"
         else:
-            print(args)
+            if not local:
+                print(args)
             self.printoutput+=str(args)+"\n"
         self.printoutput = self.printoutput[-2500:]
 

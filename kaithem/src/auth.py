@@ -1,4 +1,4 @@
-#Copyright Daniel Dunn 2013, 2015
+#Copyright Daniel Dunn 2013, 2015,2017
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify
@@ -25,9 +25,23 @@ of a valid token"""
 #of not using the filesystem much to save any SD cards.
 
 from . import util,directories,modules_state,registry,messagebus
-import json,base64,os,time,shutil,hashlib,base64,sys,yaml,hmac,struct
+import json,base64,os,time,shutil,hashlib,base64,sys,yaml,hmac,struct,logging
 
+logger = logging.getLogger("system.auth")
+#This maps raw tokens to users
 Tokens = {}
+
+#This maps hashed tokens to users. There's an easy timing attack I'd imagine
+#with looking up tokens literally in a dict.
+#So instead we hash them, with a salt.
+
+#For discussion of similar things, see:
+#https://crypto.stackexchange.com/questions/25607/practical-uses-for-timing-attacks-on-hash-comparisons-e-g-md5
+#https://security.stackexchange.com/questions/9192/timing-attacks-on-password-hashes
+
+#This post discusses token auth directly:
+#https://stackoverflow.com/questions/18605294/is-devises-token-authenticatable-secure
+tokenHashes = {}
 
 with open(os.path.join(directories.datadir,"defaultusersettings.yaml")) as f:
     defaultusersettings = yaml.load(f)
@@ -165,6 +179,10 @@ def removeUser(user):
     if hasattr(x,'token'):
         if x.token in Tokens:
             Tokens.pop(x.token)
+            try:
+                tokenHashes.pop(hashToken(x.token))
+            except:
+                raise
 
 def removeGroup(group):
     global authchanged
@@ -244,6 +262,7 @@ def promptGenerateUser(username="admin"):
     Groups = temp['groups']
     global Tokens
     Tokens = {}
+    tokenHashes = {}
     for user in Users:
         #What an unreadable line! It turs all the dicts in Users into User() instances
         Users[user] = User(Users[user])
@@ -264,6 +283,7 @@ def tryToLoadFrom(d):
         Groups = temp['groups']
         global Tokens
         Tokens = {}
+        tokenHashes = {}
         for user in Users:
             #What an unreadable line! It turs all the dicts in Users into User() instances
             Users[user] = User(Users[user])
@@ -272,7 +292,7 @@ def tryToLoadFrom(d):
         return True
     else:
         raise RuntimeError("No complete marker found")
-    logging.info("Loaded auth data from "+d)
+    logger.info("Loaded auth data from "+d)
 
 data_bad = False
 def initializeAuthentication():
@@ -284,6 +304,7 @@ def initializeAuthentication():
         tryToLoadFrom(os.path.join(directories.usersdir,"data"))
         loaded = True
     except Exception as e:
+        logger.exception("Error loading auth data, may be able to continue from old state")
         messagebus.postMessage("/system/notifications/errors","Error loading auth data, may be able to continue from old state:\n"+str(e))
         data_bad=True
         try:
@@ -322,6 +343,7 @@ def generateUserPermissions(username = None):
         #If the user has a token, update the stored copy of user in the tokens dict too
         if hasattr(Users[i],'token'):
             Tokens[Users[i].token] = Users[i]
+            tokenHashes[hashToken(Users[i].token)] = Users[i]
 
 def userLogin(username,password):
     """return a base64 authentication token on sucess or return False on failure"""
@@ -342,11 +364,12 @@ def userLogin(username,password):
 
 def checkTokenPermission(token,permission):
     """return true if the user associated with token has the permission"""
-    if token in Tokens:
-        if permission in Tokens[token].permissions:
+    token = hashToken(token)
+    if token in tokenHashes:
+        if permission in tokenHashes[token].permissions:
             return True
         else:
-            if '__all_permissions__' in Tokens[token].permissions:
+            if '__all_permissions__' in tokenHashes[token].permissions:
                 return True
             else:
                 return False
@@ -433,9 +456,22 @@ def removeGroupPermission(group,permission):
     authchanged = True
     Groups[group]['permissions'].remove(permission)
 
-def whoHasToken(token):
-    return Tokens[token]['username']
+#This is a salt for the token hint. The idea being that we look
+#up the tokens by hashing them, not by actually looking them up.
+#The attacker has no information about the token hashes or the token secret,
+#so it should be safe to compare them and look them in dicts.
+#due to them being completely secret 
+#and random
 
+#TODO: Someone who knows more about crypto should look this over.
+
+
+def whoHasToken(token):
+    return tokenHashes[hashToken(token)]['username']
+
+tokenHashSecret = os.urandom(24)
+def hashToken(token):
+    return hashlib.sha256(bytes(token,"utf8")+tokenHashSecret).digest()
 
 def assignNewToken(user):
     """Log user out by defining a new token"""
@@ -445,8 +481,14 @@ def assignNewToken(user):
     if hasattr(Users[user],'token'):
         oldtoken = Users[user].token
         del Tokens[oldtoken]
+        try:
+            del tokenHashes[hashToken(oldtoken)]
+        except:
+            #Not there?
+            pass
     Users[user].token = x
     Tokens[x] = Users[user]
+    tokenHashes[hashToken(x)] = Users[user]
 
 class UnsetSettingException:
     pass

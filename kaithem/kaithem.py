@@ -228,7 +228,6 @@ cherrypy.process.servers.check_port(bindto, config['https-port'], timeout=1.0)
 logger.info("Ports are free")
 
 MyExternalIPAdress = util.updateIP()
-thread.stack_size(256000)
 
 if config['change-process-title']:
     try:

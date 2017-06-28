@@ -102,13 +102,15 @@ def getAcessingUser():
             #Get token using username and password
             t = userLogin(b[0],b[1])
             #Check the credentials of that token
-            if t not in auth.Tokens:
+            try:
+                return auth.whoHasToken(cherrypy.request.cookie['auth'].value)
+            except:
                 return "<unknown>"
-            else:
-                return b[0]
-
+                
     #Handle token based auth
-    if (not 'auth' in cherrypy.request.cookie) or cherrypy.request.cookie['auth'].value not in auth.Tokens:
-       return "<unknown>"
-
-    return auth.whoHasToken(cherrypy.request.cookie['auth'].value)
+    if not 'auth' in cherrypy.request.cookie or (not cherrypy.request.cookie['auth'].value):
+        return "<unknown>"
+    try:
+        return auth.whoHasToken(cherrypy.request.cookie['auth'].value)
+    except:
+        return "<unknown>"
