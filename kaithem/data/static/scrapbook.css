@@ -1,4 +1,19 @@
-/*Layout*/
+/*********************Code editing************************/
+
+@font-face {
+    font-family: hack;
+    src: url(/static/hack.ttf);
+}
+.monaco-editor, .monaco-editor-background {
+	background: rgb(253,255,240);
+	font-family: hack;
+}
+
+/* Line Numbers */
+.monaco-editor .line-numbers {
+	background-color:lightgrey;
+	color: black;
+}
 
 
 /*****************************General***********************************************************************************/
@@ -227,10 +242,6 @@ div.sectionbox,section{
 	padding-right:1%;
 	padding-left:0.5%;
 	margin:2px;
-}
-/*I forgot what this is for. Probably to unscrewup the font or something*/
-.ace_editor div {
-    font: inherit!important
 }
 
 /* A scrollable div */

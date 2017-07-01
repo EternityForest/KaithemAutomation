@@ -7,20 +7,19 @@ from src.config import config
 from src import util
 %>
 
+
 <%include file="/pageheader.html"/>
-%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
-<link rel=stylesheet href="/static/js/codemirror/lib/codemirror.css">
-<link rel=stylesheet href="/static/js/codemirror/addon/dialog/dialog.css">
-<link rel=stylesheet href="${config['cm-theme-url']}">
-<script src="/static/js/codemirror/lib/codemirror.js"></script>
-<script src="/static/js/codemirror/mode/python/python.js"></script>
-<script src="/static/js/codemirror/addon/edit/matchbrackets.js"></script>
-<script src="/static/js/codemirror/addon/search/search.js"></script>
-<script src="/static/js/codemirror/addon/search/searchcursor.js"></script>
-<script src="/static/js/codemirror/addon/dialog/dialog.js"></script>
-<script src="/static/js/codemirror/addon/scroll/annotatescrollbar.js"></script>
-<script src="/static/js/codemirror/addon/search/matchesonscrollbar.js"></script>
+<%
+using_js_editor = config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace')
+%>
+
+%if using_js_editor:
+<script src="/static/js/vs/loader.js"></script>
+<script>
+    	require.config({ paths: { 'vs': '/static/js/vs' }});
+</script>
 %endif
+
 <title>Kaithem Event\
 %if 'enable' in event:
 %if not event['enable'] == True:
@@ -67,7 +66,18 @@ or go to the working copy and save that to delete this draft.</p>
 <p>
 %endif
 <section>
-<form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
+<script>
+    presubmit =function()
+    {
+    document.getElementById('setupbox').value = setupeditor.getValue();
+    document.getElementById('actionbox').value = actioneditor.getValue();
+    }
+</script>
+<form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST"
+%if using_js_editor:
+onsubmit="presubmit()"
+%endif
+>
 <h3>Basic</h3>
 <label><b>Path:</b><input title="Backslashes are escapes and / is the path separator. You can move this resource to another directory by renaming." name="name" value="${name|h}" style="width:90%;"></input></label><br>
  <label><input type="checkbox"  name="enable" value="false"
@@ -97,25 +107,23 @@ else:
 %>
 <textarea rows=3 class="pythoncode" name="setup" id="setupbox">${xyz|h}</textarea>
 
-
-%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
+%if using_js_editor:
+<div id="monacosetupbox" style="width:100%;height:30em;border:1px solid grey"></div>
 <script>
-var editor = CodeMirror.fromTextArea(document.getElementById("setupbox"), {
-    lineNumbers: true,
-    mode: "python",
-    matchBrackets: true,
-    theme: "${config['cm-theme']}",
-    indentUnit:4,
-    tabMode: 'spaces',
-    extraKeys: {
-   "Ctrl-F": "findPersistent",
-   "Cmd-F": "findPersistent"
-   }
-  });
-editor.setSize("99%","35em")
+	require(['vs/editor/editor.main'], function() {
+		setupeditor = monaco.editor.create(document.getElementById('monacosetupbox'), {
+			value: document.getElementById("setupbox").value,
+			language: 'python',
+            insertSpaces: true,
+            renderIndentGuides: true,
+	        fontSize: 12,
+            scrollBeyondLastLine: false,
+		});
+	});
+//Hide the box, it's jut there to subit the data from the actual editor
+document.getElementById("setupbox").style="display:none;";
 </script>
 %endif
-
 
 
 <h3>Trigger\
@@ -131,26 +139,6 @@ ${e}
 
 
 <input class="pythoncode" id="triggerbox" type="text" name="trigger" value="${event['trigger']|h}"></input>
-
-%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
-<script>
-var triggereditor = CodeMirror.fromTextArea(document.getElementById("triggerbox"), {
-    lineNumbers: true,
-    mode: "python",
-    matchBrackets: true,
-    theme: "${config['cm-theme']}",
-
-  });
-triggereditor.setSize("99%","2.5ex");
-
-//Limit to one line, thanks Tigran Saluev of Stack Overflow for the code
-triggereditor.on("beforeChange", function(instance, change) {
-    var newtext = change.text.join("").replace(/\n/g, ""); // remove ALL \n !
-    change.update(change.from, change.to, [newtext]);
-    return true;
-});
-</script>
-%endif
 
 <%!
 def get_time(t):
@@ -219,23 +207,21 @@ you may need to use the global keyword. You may also need to use the global keyw
 
 <textarea id="actionbox" name="action" rows=50 class="pythoncode">${event["action"]|h}</textarea>
 
-%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
+%if using_js_editor:
+<div id="monacoactionbox" style="width:100%;height:30em;border:1px solid grey"></div>
 <script>
-var editor = CodeMirror.fromTextArea(document.getElementById("actionbox"), {
-    lineNumbers: true,
-    mode: "python",
-    matchBrackets: true,
-    theme: "${config['cm-theme']}",
-  indentUnit:4,
-  tabMode: 'spaces',
-  extraKeys: {
- "Ctrl-F": "findPersistent",
- "Cmd-F": "findPersistent"
- }
-  }
-
-  );
-editor.setSize("99%","40em")
+	require(['vs/editor/editor.main'], function() {
+		actioneditor = monaco.editor.create(document.getElementById('monacoactionbox'), {
+			value: document.getElementById("actionbox").value,
+			language: 'python',
+            insertSpaces: true,
+            renderIndentGuides: true,
+	        fontSize: 12,
+            scrollBeyondLastLine: false,
+		});
+	});
+//Hide the box, it's jut there to subit the data from the actual editor
+document.getElementById("actionbox").style="display:none;";
 </script>
 %endif
 
