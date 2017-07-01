@@ -90,7 +90,7 @@ function poll()
     }
 	catch(err)
 	{
-      KWidget_usual_delay = 250;
+        KWidget_usual_delay = 250;
 	}
 			for(var j in KWidget_serverMsgCallbacks[i])
 			{
@@ -137,7 +137,7 @@ KWidget_connect = function()
 			{
 				KWidget_reconnect_timeout = Math.min(KWidget_reconnect_timeout*2, 20000);
 				setTimeout( KWidget_connect , KWidget_reconnect_timeout);
-	     	}
+	    }
 		};
 
 
@@ -154,7 +154,7 @@ KWidget_connect = function()
 		for (var n=0;n<resp.length; n++)
 			{
 				i=resp[n]
-				for(var j=0; j<KWidget_serverMsgCallbacks[i[0]].length; j++)
+				for(j in KWidget_serverMsgCallbacks[i[0]])
 					{
 						KWidget_serverMsgCallbacks[i[0]][j](resp[n][1]);
 					}
@@ -192,10 +192,10 @@ KWidget_connect = function()
 		KWidget_lastSend =0
 		KWidget_pollWaiting =false
 
-      //Check if wpoll has ran in the last 44ms. If not run it.
-	  //If it has, set a timeout to check again.
-	  //This code is only possible because of the JS single threadedness.
-	  KWidget_poll_ratelimited = function()
+        //Check if wpoll has ran in the last 44ms. If not run it.
+	    //If it has, set a timeout to check again.
+	    //This code is only possible because of the JS single threadedness.
+	    KWidget_poll_ratelimited = function()
 		{
 			var d = new Date();
 			var n = d.getTime();
