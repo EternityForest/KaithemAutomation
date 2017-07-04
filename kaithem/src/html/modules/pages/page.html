@@ -3,10 +3,13 @@ from src.util import url
 from src import auth,pages
 from src import usrpages,pages,util
 from src.config import config
+import cherrypy
 %>
 
 <%
-using_js_editor = config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace')
+#I really am not a fan of having separate mobile and desktop versions. It's really often garbage
+#Here we don't have much of an option, monaco only supports desktop.
+using_js_editor = config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace') and not "Mobile" in cherrypy.request.headers['User-Agent']
 %>
 
 <%include file="/pageheader.html"/>
@@ -44,7 +47,11 @@ onsubmit="document.getElementById('box').value = editor.getValue()"\
 %endif
 >
 <h3>Path</h3>
-<input title="Backslashes are escapes and / is the path separator. You can move this resource to another directory by renaming." name="name" value="${name|h}" style="width:90%"></input>
+<input title="Backslashes are escapes and / is the path separator. You can move this resource to another directory by renaming." name="name" value="${name|h}" style="width:90%"
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
+></input>
 <h3>Page Body</h3>
 
 %if pages.canUserDoThis("/admin/modules.edit"):
@@ -63,12 +70,18 @@ Information about the actual HTTP request is availble by acessing the cherrypy.r
 Please see cherrypy's documentation for more info.
 </p>
 
-<textarea id="box" name="body" rows=25 class="htmlcode">${page["body"]|h}</textarea>
+<textarea id="box" name="body" rows=25 class="htmlcode"
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
+>${page["body"]|h}</textarea>
 
 %if using_js_editor:
 <div id="monacobox" style="width:100%;height:30em;border:1px solid grey"></div>
+<script src="${config['monaco-theme-url']}"></script>
+<script src="/static/js/monaco-actions.js"></script>
 <script>
-	require(['vs/editor/editor.main'], function() {
+	require(['vs/editor/editor.main'], function() {      
 		editor = monaco.editor.create(document.getElementById('monacobox'), {
 			value: document.getElementById("box").value,
 			language: 'html',
@@ -76,7 +89,12 @@ Please see cherrypy's documentation for more info.
             renderIndentGuides: true,
 	        fontSize: 12,
             scrollBeyondLastLine: false,
+            theme:'kaithem',
+%if not pages.canUserDoThis("/admin/modules.edit"):
+            readOnly:true
+%endif
 		});
+        add_actions(editor);
 	});
 
 
@@ -95,7 +113,10 @@ document.getElementById("box").style="display:none;";
             %if page['no-navheader'] == True:
             checked="yes"
             %endif
-         %endif
+        %endif
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
        ></input>Don't show the navigation header on this page<br>
 
 <input type="checkbox"  name="no-header" value="true"
@@ -104,6 +125,9 @@ document.getElementById("box").style="display:none;";
             checked="yes"
             %endif
          %endif
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
        ></input>Don't add any additional content(raw plaintext/webservice mode)<br>
 
 <input type="checkbox"  name="dont-show-in-index" value="true"
@@ -112,7 +136,9 @@ document.getElementById("box").style="display:none;";
             checked="yes"
             %endif
          %endif
-
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
        ></input>Don't show this page in the page index<br>
 
 <input type="checkbox"  name="use-mako" value="true"
@@ -123,6 +149,9 @@ document.getElementById("box").style="display:none;";
          %else:
             checked="yes"
          %endif
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
        ></input>Enable Mako templates(Uncheck to serve raw text as-is)<br>
 
 <input type="checkbox"  name="allow-GET" value="true"
@@ -133,6 +162,9 @@ document.getElementById("box").style="display:none;";
          %else:
             checked="yes"
          %endif
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
        ></input>Make this page acessable by GET requests<br>
 
 <input type="checkbox"  name="allow-POST" value="true"
@@ -143,6 +175,9 @@ document.getElementById("box").style="display:none;";
          %else:
             checked="yes"
          %endif
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
        ></input>Make this page acessable by POST requests<br>
 
 <input type="checkbox"  name="autoreload" value="true"
@@ -151,6 +186,9 @@ document.getElementById("box").style="display:none;";
                 checked="yes"
             %endif
          %endif
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
        ></input>This page should auto-refresh every
 
 <input type="number" step=0.1 name="autoreloadinterval" size=6em
@@ -158,6 +196,9 @@ document.getElementById("box").style="display:none;";
                 value= ${page['auto-reload-interval']}
         %else:
                 value= 5.0
+        %endif
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
         %endif
        ></input> seconds. (this could create a lot of server traffic. don't DDoS yourself!)<br>
 
@@ -168,15 +209,21 @@ MIME type:<input step=0.1 name="mimetype" size=6em
         %else:
                 value= "text/html"
         %endif
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
        ></input><br>
 
 
 <input type="checkbox" name="allow-xss"
-         %if 'allow-xss' in page:
+        %if 'allow-xss' in page:
             %if page['allow-xss']:
                 checked="yes"
             %endif
-         %endif
+        %endif
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
        ></input>Allow cross-origin requests from(comma separated, * means any)<
 <%
 origins = ""
@@ -189,18 +236,24 @@ else:
 %>
 <input type="text"  name="allow-origins"
         value= "${origins|h}"
-       ></input>
- </div>
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
+        ></input>
+</div>
 
 <p class="help"><span class="permission-icon"></span>Require the following permissions to access this page</p>
 <div class="scrollbox">
 <ul>
 %for i in sorted(auth.Permissions.keys()):
-   <li> <input type="checkbox"  name="Permission${i}" value="true"
-         %if i in requiredpermissions:
+    <li> <input type="checkbox"  name="Permission${i}" value="true"
+        %if i in requiredpermissions:
             checked="yes"
-         %endif
-       ></input>${i|h}</li>
+        %endif
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
+        ></input>${i|h}</li>
 %endfor
 </ul>
 </div>
@@ -243,6 +296,9 @@ Saving this module will cause it to be immediately acessable from the web.
      %if auth.getUserSetting(pages.getAcessingUser(),'tabtospace'):
         checked="yes"
      %endif
+    %if not pages.canUserDoThis("/admin/modules.edit"):
+        disabled=1\
+    %endif
    ></input>Convert tabs to spaces on saving</label>
 </input>
 %else:
