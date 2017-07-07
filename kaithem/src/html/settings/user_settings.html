@@ -124,6 +124,8 @@ class="specialentry"\
     "Unknown"
 %endif
 %endfor
+<h3>My Upload Limit</h3>
+You can currently make HTTP requests containing up to ${unitsofmeasure.siFormatNumber(auth.getUserLimit(pages.getAcessingUser(),"web.maxbytes"))}b
 </div>
 
 %try:

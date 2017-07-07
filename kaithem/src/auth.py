@@ -332,14 +332,24 @@ def initializeAuthentication():
 
 def generateUserPermissions(username = None):
     #TODO let you do one user at a time
-    """Generate the list of permissions for each user from their groups"""
+    """Generate the list of permissions for each user from their groups plus __guest__"""
     #Give each user all of the permissions that his or her groups have
     global Users
     for i in Users:
+        limits = {}
         Users[i].permissions = []
         for j in Users[i]['groups']:
+            #Handle nonexistant groups
+            if not j in Groups:
+                logger.warning("User "+i+" is member of nonexistant group "+ j)
+
             for k in Groups[j]['permissions']:
                 Users[i].permissions.append(k)
+
+            #A user has access to the highest limit of all the groups he's in
+            for k in Groups[j].get('limits',{}):
+                limits[k] = max( Groups[j].get('limits',{})[k],limits.get(k,0))
+        Users[i].limits = limits
         #If the user has a token, update the stored copy of user in the tokens dict too
         if hasattr(Users[i],'token'):
             Tokens[Users[i].token] = Users[i]
@@ -443,6 +453,20 @@ def dumpDatabase():
     authchanged = False
     return True
 
+def setGroupLimit(group,limit,val):
+    global authchanged
+    authchanged = True
+    if val == 0:
+        try:
+            Groups[group].get('limits',{}).pop(limit)
+        except:
+            pass
+    else:
+        #TODO unlikely race condition here
+        gr = Groups[group]
+        if not 'limits' in gr:
+            gr['limits'] = {}
+        gr['limits'][limit] = val
 
 def addGroupPermission(group,permission):
     """Add a permission to a group"""
@@ -520,22 +544,36 @@ def getUserSetting(user,setting):
         else:
             return defaultusersettings[setting]
 
+def getUserLimit(user,limit,maximum=2**64):
+    """Return the user's limit for any limit category, or 0 if not set. Limit to maximum. 
+        If user has __all_permissions__, limit _is_ maximum.
+    """
+    if user in Users:
+        if not '__all_permissions__' in  Users[user].permissions:
+            val = min(Users[user].limits.get(limit,0),maximum)
+        else:
+            val = maximum
+        return min(val,maximum)
+    else:
+        if '__guest__' in Users:
+            return min(Users['__guest__'].limits.get(limit,0),maximum)
+    return 0
+
 def canUserDoThis(user,permission):
     """Return True if given user(by username) has access to the given permission"""
-        #If the special __guest__ user can do it, anybody can.
-    if '__guest__' in Users:
-        if permission in Users['__guest__'].permissions:
-            return True
 
-    #If guests can't do the thing and the user is unknown, the answer should be no.
-    if user in ("<unknown>", "__unknown__"):
-        return False
+    if not user in Users:
+        if '__guest__' in Users and permission in Users["__guest__"].permissions:
+            return True
+        else:
+            return False
+
+    if permission in Users[user].permissions:
+        return True
 
     if '__all_permissions__' in Users[user].permissions:
         return True
 
-    if permission in Users[user].permissions:
-        return True
     return False
 
 

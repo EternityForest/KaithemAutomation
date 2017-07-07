@@ -446,6 +446,9 @@ def lrucache(n=10):
 
 
         def fargs(self, a,kw):
+            "Serialize kwargs as (k,v) pairs so we can use the args as a key"
+            #This has the issue of undefined ordering. But a few duplicate 
+            #cache entries won't be too much of a performance hit I don't think
             k = []
             for i in kw.items():
                 k.append(i)

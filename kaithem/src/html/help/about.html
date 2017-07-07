@@ -245,12 +245,14 @@ def module_version(m):
                         <th>Module</th>
                         <th>Version</th>
                     </tr>
-                    %for i in sorted(sys.modules): %if module_version(sys.modules[i]):
+                    %for i in sorted(sys.modules): 
+                    %if module_version(sys.modules[i]):
                     <tr>
                         <td>${i|h}</td>
                         <td>${module_version(sys.modules[i])|h}</td>
                     </tr>
-                    %endif %endfor
+                    %endif
+                    %endfor
                 </table>
                 </div>
 

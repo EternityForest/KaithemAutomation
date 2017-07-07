@@ -5,10 +5,14 @@
 <div class="sectionbox">
 <h3>0.58(dev)</h3>
 <ul>
-    <li>Safer handling of tokens to resist  timing attacks</li>
+    <li>Safer handling of tokens to resist timing attacks</li>
     <li>Get rid of excessively tiny stack size that caused ocassional segfaults</li>
     <li>Fix bug that caused annoying widget.js error messages</li>
     <li>Switch to microsoft's monaco editor instead of CodeMirror</li>
+    <li>(SOMEWHAT BREAKING CHANGE) Users are now limited by default to 64k request HTTP bodies. You can allow users
+        a larger limit on a per-group basis. Users with __all_permissions__ have no such limit, and the limit is
+        4Gb in certain contexts for users with the permissions to edit pages or settings.</li>
+    <li>Increase maxrambytes in cherrypy. It should work slightly better on embedded systems now.</li>
 </ul>
 </div>
 

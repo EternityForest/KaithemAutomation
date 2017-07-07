@@ -35,6 +35,19 @@ class="specialentry"\
 %endfor
 </div>
 
+<h3>Limits</h3>
+<p class="help">A user has access to the highest value from any of their groups</p>
+<table border="1">
+	<tr>
+		<th>Name</th><th>Value</th>
+	</tr>
+	<tr>
+		<td title="The maximum number of bytes a user can include in an HTTP request body. There is a small default applied even if this is 0">web.maxbytes</td>
+		<td><input type=numeric name="maxbytes" value="${auth.Groups[name].get('limits',{}).get('web.maxbytes',0)}">
+		</td>
+	</tr>
+</table>
+
 <br><input value="Save Changes" type="submit">
 </form>
 <%include file="/pagefooter.html"/>

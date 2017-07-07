@@ -23,6 +23,23 @@ from .config import config
 
 errors = {}
 
+
+@util.lrucache(50)
+def lookup(module,args):
+    resource_path = [i.replace("\\","\\\\").replace("/","\\/") for i in args]
+    m = _Pages[module]
+    if "/".join(resource_path) in m:
+        return _Pages[module]["/".join(resource_path)]
+
+    if "/".join(resource_path+['__index__']) in m:
+        return _Pages[module][ "/".join(resource_path+['__index__'])]
+
+    while resource_path:
+        resource_path.pop()
+        if "/".join(resource_path+['__default__']) in m:
+            return m["/".join(resource_path+['__default__']) ]
+    return None
+
 def url_for_resource(module,resource):
     s = "/pages/"
     s += util.url(module)
@@ -227,7 +244,7 @@ class KaithemPage():
         #Because of some bizzare wsgi thing i think.
         module=module.encode("latin-1").decode("utf-8")
         args = [i.encode("latin-1").decode("utf-8") for i in args]
-        self._headers(self.lookup(module,args))
+        self._headers(lookup(module,args))
         return ""
 
     def _headers(self,page):
@@ -242,26 +259,10 @@ class KaithemPage():
                 if cherrypy.request.headers['Origin'] in page.origins or '*' in page.origins:
                     cherrypy.response.headers['Access-Control-Allow-Origin'] = cherrypy.request.headers['Origin']
                 cherrypy.response.headers['Access-Control-Allow-Methods'] = x
-
-    def lookup(self,module,args):
-        resource_path = [i.replace("\\","\\\\").replace("/","\\/") for i in args]
-        m = _Pages[module]
-        if "/".join(resource_path) in m:
-            return _Pages[module]["/".join(resource_path)]
-
-        if "/".join(resource_path+['__index__']) in m:
-            return _Pages[module][ "/".join(resource_path+['__index__'])]
-
-        while resource_path:
-            resource_path.pop()
-            if "/".join(resource_path+['__default__']) in m:
-                return m["/".join(resource_path+['__default__']) ]
-
-        return None
-
+    
 
     def _serve(self,module,*args,**kwargs):
-        page = self.lookup(module,args)
+        page = lookup(module,args)
         if None==page:
             messagebus.postMessage("/system/errors/http/nonexistant", "Someone tried to access a page that did not exist in module %s with path %s"%(module,args))
             raise cherrypy.NotFound()

@@ -187,8 +187,7 @@ from src import pages
 from src import weblogin
 from src import auth
 from src import directories
-
-
+from src import pages
 
 
 #Initialize the authorization module
@@ -364,6 +363,7 @@ else:
     ddn = "/usr/share/kaithem"
 
 site_config={
+        "request.body.maxbytes": 64*1024,
         "tools.encode.on" :True,
         "tools.encode.encoding":'utf-8',
         "tools.decode.on": True,
@@ -411,6 +411,8 @@ cnf={
 
     '/pages':
         {
+        'tools.allow_upload.on':True,
+        'tools.allow_upload.f': lambda: auth.getUserLimit(pages.getAcessingUser(),"web.maxbytes") or 64*1024,
         'request.dispatch': cherrypy.dispatch.MethodDispatcher()
         },
 
@@ -446,6 +448,13 @@ def addheader(*args,**kwargs):
 
 def pageloadnotify(*args,**kwargs):
     systasks.aPageJustLoaded()
+
+def allow_upload(*args,**kwargs):
+    #Only do the callback if needed. Assume ot's really big if no header.
+    if int(cherrypy.request.headers.get("Content-Length",2**32))> cherrypy.request.body.maxbytes:
+        cherrypy.request.body.maxbytes = cherrypy.request.config['tools.allow_upload.f']()
+
+cherrypy.tools.allow_upload = cherrypy.Tool('before_request_body', allow_upload)
 
 cherrypy.config.update(site_config)
 cherrypy.tools.pageloadnotify = cherrypy.Tool('on_start_resource', pageloadnotify)

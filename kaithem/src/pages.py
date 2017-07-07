@@ -1,4 +1,4 @@
-#Copyright Daniel Dunn 2013. 2015
+#Copyright Daniel Dunn 2013. 2015,2017
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify
@@ -23,6 +23,7 @@ _Lookup = TemplateLookup(directories=[directories.htmldir])
 get_template = _Lookup.get_template
 
 webResources = weakref.WeakValueDictionary()
+
 
 
 class WebResource():
@@ -87,7 +88,7 @@ def canUserDoThis(permission):
 
 def getAcessingUser():
     """Return the username of the user making the request bound to this thread or <UNKNOWN> if not logged in.
-       The result of this function can be trusted because it uses the authentication token.
+        The result of this function can be trusted because it uses the authentication token.
     """
     #Handle HTTP Basic Auth
     if "Authorization" in cherrypy.request.headers:

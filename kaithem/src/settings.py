@@ -21,6 +21,10 @@ if sys.version_info < (3,0):
 else:
     import io
 
+def validate_upload():
+    #Allow 4gb uploads for admin users, otherwise only allow 64k 
+    return 64*1024 if not pages.canUserDoThis("/admin/settings.edit") else 1024*1024*4096
+
 class Settings():
     @cherrypy.expose
     def index(self):
@@ -55,6 +59,7 @@ class Settings():
         raise cherrypy.HTTPRedirect("/settings")
 
     @cherrypy.expose
+    @cherrypy.config(**{'tools.allow_upload.on':True, 'tools.allow_upload.f':validate_upload})
     def files(self,*args,**kwargs):
         """Return a file manager. Kwargs may contain del=file to delete a file. The rest of the path is the directory to look in."""
         pages.require("/admin/settings.edit")

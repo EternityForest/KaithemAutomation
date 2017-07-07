@@ -1,4 +1,4 @@
-#Copyright Daniel Dunn 2015
+#Copyright Daniel Dunn 2015, 2017
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify
@@ -22,6 +22,10 @@ from src.config import config
 from cherrypy.lib.static import serve_file
 
 searchable = {'event': ['setup', 'trigger', 'action'], 'page':['body']}
+
+def validate_upload():
+    #Allow 4gb uploads for admin users, otherwise only allow 64k 
+    return 64*1024 if not pages.canUserDoThis("/admin/modules.edit") else 1024*1024*4096
 
 def searchModules(search,max_results=100,start=0,mstart=0):
     pointer =mstart
@@ -134,7 +138,9 @@ class WebInterface():
         return pages.get_template("modules/upload.html").render()
         #This lets the user upload modules
 
+
     @cherrypy.expose
+    @cherrypy.config(**{'tools.allow_upload.on':True, 'tools.allow_upload.f':validate_upload})
     def uploadtarget(self,modulesfile,**kwargs):
         pages.require('/admin/modules.edit')
         pages.postOnly()
@@ -239,8 +245,10 @@ class WebInterface():
         auth.importPermissionsFromModules()
         raise cherrypy.HTTPRedirect('/modules')
 
+    
 
     @cherrypy.expose
+    @cherrypy.config(**{'tools.allow_upload.on':True, 'tools.allow_upload.f':validate_upload})
     #This function handles HTTP requests of or relating to one specific already existing module.
     #The URLs that this function handles are of the form /modules/module/<modulename>[something?]
     def module(self,module,*path,**kwargs):
@@ -249,7 +257,7 @@ class WebInterface():
         modulepath = util.split_escape(module,"/")[1:]
         fullpath = module
         if len(path)>2:
-         fullpath += "/" + path[2]
+            fullpath += "/" + path[2]
         #If we are not performing an action on a module just going to its page
         if not path:
             pages.require("/admin/modules.view")
@@ -290,18 +298,18 @@ class WebInterface():
             #This gets the interface to add a page
             if path[0] == 'addresource':
                 if len(path)>2:
-                  x = path[2]
+                    x = path[2]
                 else:
-                  x =""
+                    x =""
                 #path[1] tells what type of resource is being created and addResourceDispatcher returns the appropriate crud screen
                 return addResourceDispatcher(module,path[1],x)
 
             #This case handles the POST request from the new resource target
             if path[0] == 'addresourcetarget':
                 if len(path)>2:
-                  x = path[2]
+                    x = path[2]
                 else:
-                  x =""
+                    x =""
                 return addResourceTarget(module,path[1],kwargs['name'],kwargs,x)
 
             #This case shows the information and editing page for one resource
@@ -332,9 +340,9 @@ class WebInterface():
             if path[0] == 'addfileresource':
                 pages.require("/admin/modules.edit")
                 if len(path)>1:
-                  x = path[1]
+                    x = path[1]
                 else:
-                  x =""
+                    x =""
                 #path[1] tells what type of resource is being created and addResourceDispatcher returns the appropriate crud screen
                 return pages.get_template("modules/uploadfileresource.html").render(module=module,path=x)
 
@@ -366,7 +374,7 @@ class WebInterface():
                     #Wow is this code ever ugly. Bascially we are going to pack the path and the module together.
                     escapedName = (kwargs['name'].replace("\\","\\\\").replace("/",'\\/'))
                     if len(path)>1:
-                      escapedName = path[1]+ "/" + escapedName
+                        escapedName = path[1]+ "/" + escapedName
                     x = util.split_escape(module,"/","\\")
                     escapedName = "/".join(x[1:]+[escapedName])
                     root = x[0]
@@ -398,7 +406,7 @@ class WebInterface():
                 rmResource(module,kwargs['name'],"Resource Deleted by " + pages.getAcessingUser())
 
                 messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " deleted resource " +
-                           kwargs['name'] + " from module " + module)
+                            kwargs['name'] + " from module " + module)
                 messagebus.postMessage("/system/modules/deletedresource",{'ip':cherrypy.request.remote.ip,'user':pages.getAcessingUser(),'module':module,'resource':kwargs['name']})
                 if len(util.split_escape(kwargs['name'],'/','\\'))>1:
                     raise cherrypy.HTTPRedirect('/modules/module/'+util.url(module)+'/resource/'+util.url(util.module_onelevelup(kwargs['name'])))
@@ -489,7 +497,7 @@ def addResourceTarget(module,type,name,kwargs,path):
     #Wow is this code ever ugly. Bascially we are going to pack the path and the module together.
     escapedName = (kwargs['name'].replace("\\","\\\\").replace("/",'\\/'))
     if path:
-      escapedName = path+ "/" + escapedName
+        escapedName = path+ "/" + escapedName
     x = util.split_escape(module,"/","\\")
     escapedName = "/".join(x[1:]+[escapedName])
     root = x[0]
@@ -526,9 +534,7 @@ def addResourceTarget(module,type,name,kwargs,path):
                 "action":"pass",
                 "once":True,
                 "enable":True
-                }
-
-                           )
+                })
             #newevt maintains a cache of precompiled events that must be kept in sync with
             #the modules
             newevt.updateOneEvent(escapedName,root)
