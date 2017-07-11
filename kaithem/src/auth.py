@@ -26,6 +26,7 @@ of a valid token"""
 
 from . import util,directories,modules_state,registry,messagebus
 import json,base64,os,time,shutil,hashlib,base64,sys,yaml,hmac,struct,logging
+from src import config as cfg
 
 logger = logging.getLogger("system.auth")
 #This maps raw tokens to users
@@ -576,6 +577,9 @@ def canUserDoThis(user,permission):
 
     return False
 
+if cfg.argcmd.nosecurity:
+    def canUserDoThis(user,permission):
+        return True
 
 def sys_login(username, password):
     return subprocess.check_output('echo "'+ shellquote(password[:40]) +'" | sudo  -S -u ' + shellquote(username[:25]) +' groups', shell=True)[:-1]

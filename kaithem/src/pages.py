@@ -16,8 +16,8 @@
 from mako.template import Template
 from mako.lookup import TemplateLookup
 import cherrypy,base64,weakref
-from . import auth
-from . import directories,auth,util
+from . import auth,config
+from . import directories,util
 
 _Lookup = TemplateLookup(directories=[directories.htmldir])
 get_template = _Lookup.get_template
@@ -82,6 +82,12 @@ def require(permission, noautoreturn = False):
 
     if not auth.canUserDoThis(user,permission):
         raise cherrypy.HTTPRedirect("/errors/permissionerror?")
+
+
+if config.argcmd.nosecurity:
+    def require(*args,**kwargs):
+        return
+
 
 def canUserDoThis(permission):
     return auth.canUserDoThis(getAcessingUser(),permission)
