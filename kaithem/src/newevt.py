@@ -16,7 +16,7 @@
 #NOTICE: A LOT OF LOCKS ARE USED IN THIS FILE. WHEN TWO LOCKS ARE USED, ALWAYS GET _event_list_lock LAST
 #IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
-import traceback,threading,sys,time,cherrypy,collections,os,base64,imp,types,weakref,dateutil,datetime,recurrent,re,pytz,gc,random,logging
+import traceback,threading,sys,time,cherrypy,collections,os,base64,imp,types,weakref,dateutil,datetime,recur,recur,re,pytz,gc,random,logging
 import dateutil.rrule
 import dateutil.tz
 from . import workers, kaithemobj,messagebus,util,modules_state,scheduling
@@ -242,7 +242,6 @@ def parseTrigger(when):
 #Factory function that examines the type of trigger and chooses a class to handle it.
 def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setup = None,priority=1,**kwargs):
     trigger = parseTrigger(when)
-
     if scope == None:
         scope = make_eventscope()
 
@@ -966,24 +965,48 @@ class PolledInternalSystemEvent(BaseEvent,DirectFunctionsMixin):
             self._prevstate = False
 
 
+def dt_to_ts(dt,tz=None):
+    "Given a datetime in tz, return unix timestamp"
+    utc = pytz.timezone('UTC')
+
+    if tz:
+        #Thanks to Art of Stack Overflow
+        #https://stackoverflow.com/questions/1357711/pytz-utc-conversion
+        d_tz = tz.normalize(tz.localize(d))
+        d_utc = d_tz.astimezone(utc)
+
+    else:
+        ts = time.time()
+        offset = (datetime.datetime.fromtimestamp(ts) - datetime.datetime.utcfromtimestamp(ts)).total_seconds()
+        return ((dt - datetime.datetime(1970,1,1)) / datetime.timedelta(seconds=1))-offset
+
 class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
     "This represents an event that happens on a schedule"
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = "pass",*args,**kwargs):
         self.polled = False
         self.trigger = when
+        self.register_lock = threading.Lock()
         BaseEvent.__init__(self,when,do,scope,continual,ratelimit,setup,*args,**kwargs)
         self._init_setup_and_action(setup,do)
         #Bound methods aren't enough to stop GC
         #TODO, Maybe this method should be asyncified?
         self.handler= self._handler
         self.exact = self.get_exact()
-        self.rr = scheduling.get_rrule(self.trigger)
+        
+        x = re.search(r"[A-z0-9]+\/[A-z0-9]+",when)
+        if x:
+            self.tz = pytz.timezone(x.group(0))
+            #Recur doesn't handle timezones
+            when=when.replace(x.group(0),'')
+        else:
+            #Assume local time
+            self.tz = None
+        
+        
+        self.selector = recur.getConstraint(when)
 
-        self.nextruntime = scheduling.get_next_run(self.trigger,rr=self.rr)
-
-        if self.nextruntime == None:
-            return
-        self.next=scheduler.schedule(self.handler,self.nextruntime,False)
+        self.nextruntime = None
+        self.next = None
 
     def get_exact(self):
         r = re.match(r"exact( ([0-9]*\.?[0-9]))?" , self.trigger)
@@ -1001,7 +1024,11 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
             self.next.unregister()
         except AttributeError:
             pass
-        self.nextruntime = scheduling.get_next_run(self.trigger, rr=self.rr)
+        if not self.nextruntime:
+            return
+
+        self.nextruntime = self.selector.after(self.nextruntime,False)
+
         if self.nextruntime == None:
             return
         self.next=scheduler.schedule(self.handler,self.nextruntime,False)
@@ -1010,8 +1037,9 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
         if not 'allow_overlap' in self.trigger:
             #If already running, just schedule the next one and go home.
             if not self.lock.acquire(False):
-                self.nextruntime = scheduling.get_next_run(self.trigger)
-                self.next=scheduler.schedule(self.handler, self.nextruntime , False)
+                self.nextruntime = self.selector.after(self.nextruntime,False)
+
+                self.next=scheduler.schedule(self.handler, dt_to_ts(self.nextruntime,self.tz) , False)
                 return
         try:
             #If the scheduler misses it and we have exact configured, then we just don't do the
@@ -1028,12 +1056,13 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
                 print(e)
                 pass
             nextrun = 0
-            self.nextruntime = scheduling.get_next_run(self.trigger)
+            self.nextruntime = self.selector.after(self.nextruntime,False)
+
             if self.nextruntime == None:
                 return
 
             if self.nextruntime:
-                self.next=scheduler.schedule(self.handler, self.nextruntime, False)
+                self.next=scheduler.schedule(self.handler, dt_to_ts(self.nextruntime,self.tz), False)
                 return
             print("Caught event trying to return None for get next run, time is:", time.time(), " expr is ", self.trigger, " last ran ", self.lastexecuted,"retrying")
             time.sleep(0.179)#A random number unlikely to sync up with anything
@@ -1049,13 +1078,13 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
             time.sleep(1.353)#A random number unlikely to sync up with anything
 
             if self.nextruntime:
-                self.next=scheduler.schedule(self.handler, self.nextruntime, False)
+                self.next=scheduler.schedule(self.handler, dt_to_ts(self.nextruntime,self.tz), False)
                 return
             print("""Caught event trying to return None for get next run
                 (might be an event that only runs for a period that already expired), and retry 1 failed time is:""",
-                  time.time(), " expr is ",
-                  self.trigger, " last ran ",
-                  self.lastexecuted,"NOT retrying")
+                    time.time(), " expr is ",
+                    self.trigger, " last ran ",
+                    self.lastexecuted,"NOT retrying")
 
 
     def __del__(self):
@@ -1065,16 +1094,20 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
             pass
 
     def register(self):
+        logging.debug("registered")
         with self.register_lock:
-            self.nextruntime = scheduling.get_next_run(self.trigger)
+            if self.nextruntime:
+                return
+            self.nextruntime = self.selector.after(datetime.datetime.now(),False)
             if self.nextruntime == None:
                 return
 
-            if self.nextruntime:
-                self.next=scheduler.schedule(self.handler, self.nextruntime, False)
-                return
-        self.disable = False
+            self.next=scheduler.schedule(self.handler,dt_to_ts(self.nextruntime,self.tz), False)
+            logging.debug("scheduled"+repr(self.next)+str(self.nextruntime))
+            self.disable = False
+
     def unregister(self):
+        self.nextruntime = None
         try:
             self.next.unregister()
         except AttributeError:
@@ -1169,8 +1202,10 @@ def updateOneEvent(resource,module, o=None):
                 x.register()
                 #Update index
                 __EventReferences[module,resource] = x
-        except:
-            mak
+        except Exception as e:
+            if not(module,resource) in  __EventReferences:
+                d = makeDummyEvent(module,resource)
+                d._handle_exception(e)
 
 #makes a dummy event for when there is an error loading and puts it in the right place
 #The dummy does nothing but is in the right place
@@ -1188,7 +1223,7 @@ def makeDummyEvent(module,resource):
             x.register()
             #Update index
             __EventReferences[module,resource] = x
-
+        return x
 #look in the modules and compile all the event code
 #if only is supplied, must be a set and will only look in those modules
 def getEventsFromModules(only = None):

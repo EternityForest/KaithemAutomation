@@ -165,22 +165,15 @@ ${e}
             disabled=1\
 %endif
 ></input>
-<%!
-def get_time(t):
-  try:
-      return scheduling.get_next_run(t) or 0
-  except Exception as e:
-      return 0
 
-def get_rrule(t):
-  try:
-      return scheduling.get_schedule_string_info(t)
-  except Exception as e:
-      return ""
-%>
 %if event['trigger'].startswith("!time"):
-<p style="font-size:90%">Next Run for "${event['trigger'][5:]|h}" (After ${unitsofmeasure.strftime(time.time())|h}):
-${unitsofmeasure.strftime(get_time(event['trigger']))|h}<br>RRule string: ${get_rrule(event['trigger'])|h}</p>
+%try:
+<p style="font-size:90%">Next Run for "${event['trigger'][5:]|h}":
+${unitsofmeasure.strftime(newevent.dt_to_ts(newevt.EventReferences[module,name].nextruntime,
+newevt.EventReferences[module,name].tz))|h}</p>
+%except Exception as e:
+${e}
+%endtry
 %endif
 <p style="display:none" id="rrule">Next Run: <span id="rrulespan"></span></p>
 
