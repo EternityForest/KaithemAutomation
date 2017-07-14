@@ -209,8 +209,6 @@ KWidget_connect = function()
 			else{
 				if(KWidget_pollWaiting)
 				{
-					console.log("Already waiting");
-					console.log(n);
 					return
 				}
 				KWidget_pollWaiting = true;

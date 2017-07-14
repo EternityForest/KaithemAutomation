@@ -151,6 +151,8 @@ def removeOnePage(module,resource):
             if resource in _Pages[module]:
                     del _Pages[module][resource]
     gc.collect()
+    lookup.invalidate_cache()
+
 
 
 #Delete all __events in a module from the cache
@@ -158,6 +160,9 @@ def removeModulePages(module):
     #There might not be any pages, so we use the if
     if module in _Pages:
         del _Pages[module]
+    gc.collect()
+    lookup.invalidate_cache()
+
 
 #This piece of code will update the actual event object based on the event resource definition in the module
 #Also can add a new page
@@ -170,6 +175,7 @@ def updateOnePage(resource,module):
         #Get the page resource in question
         j = modules_state.ActiveModules[module][resource]
         _Pages[module][resource] = CompiledPage(j)
+        lookup.invalidate_cache()
 
 def makeDummyPage(resource,module):
         if module not in _Pages:
@@ -219,6 +225,8 @@ def getPagesFromModules():
                                 messagebus.postMessage('/system/notifications/errors',
                                                     "Page \""+m+"\" of module \""+i+
                                                     "\" may need attention")
+    lookup.invalidate_cache()
+
 
 #kaithem.py has come config option that cause this file to use the method dispatcher.
 class KaithemPage():

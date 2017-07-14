@@ -32,6 +32,11 @@ def mkid():
     return('id'+str(n))
 
 
+class ClientInfo():
+    def __init__(self,user,cookie):
+        self.user = user
+        self.cookie=cookie
+
 class WebInterface():
 
     #This index is entirely for AJAX calls
@@ -59,8 +64,12 @@ class WebInterface():
         handler = cherrypy.request.ws_handler
         if cherrypy.request.scheme == 'https':
             handler.user = pages.getAcessingUser()
+            handler.cookie = cherrypy.request.cookie
         else:
             handler.user = "__guest__"
+        handler.clientinfo = ClientInfo(handler.user, handler.cookie)
+        clients_info[handler.uuid] =  handler.clientinfo
+
 
     @cherrypy.expose
     def ws_allowed(self):
@@ -87,13 +96,14 @@ def subsc_closure(self,i, widget):
                 logging.exception("Error sending data from websocket")
     return f
 
+clients_info = weakref.WeakValueDictionary()
+
 if config['enable-websockets']:
     class websocket(WebSocket):
         def __init__(self,*args,**kwargs):
             self.subscriptions = []
             self.lastPushedNewData = 0
             self.uuid = "id"+base64.b64encode(os.urandom(16)).decode().replace("/",'').replace("-",'').replace('+','')[:-2]
-
             WebSocket.__init__(self,*args,**kwargs)
 
         def closed(self,code,reason):
@@ -101,7 +111,6 @@ if config['enable-websockets']:
                 for i in self.subscriptions:
                     try:
                         widgets[i].subscriptions.pop(self.uuid)
-
                         widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
                     except:
                         pass
@@ -163,6 +172,11 @@ class Widget():
 
         #Insert self into the widgets list
         widgets[self.uuid] = self
+
+    def forEach(self,callback):
+        "For each client currently subscribed, call callback with a clientinfo object"
+        for i in self.subscriptions:
+            callback(clients_info[i])
 
     #This function is called by the web interface code
     def _onRequest(self,user):
