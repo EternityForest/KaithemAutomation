@@ -17,7 +17,7 @@ from cherrypy.lib.static import serve_file
 from . import pages, util,messagebus,config,auth,registry,mail,kaithemobj, config,weblogin
 
 if sys.version_info < (3,0):
-    import StringIO as io
+    import StringIO as io 
 else:
     import io
 
@@ -154,7 +154,7 @@ class Settings():
                 if not i in ['pref_strftime',"pref_timezone","email"]:
                     continue
                 #Filter too long values
-                    auth.setUserSetting(pages.getAcessingUser(),i[5:],kwargs[i][:200])
+                auth.setUserSetting(pages.getAcessingUser(),i[5:],kwargs[i][:200])
 
 
             m = registry.get('system/mail/lists')
