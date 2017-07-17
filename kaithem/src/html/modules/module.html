@@ -91,10 +91,10 @@ temp_p+= i+'/'
 
 <%!
 def get_time(ev):
-  try:
-      return newevt.EventReferences[ev].nextruntime or 0
-  except Exception as e:
-      return -1
+    try:
+        return newevt.EventReferences[ev].nextruntime or 0
+    except Exception as e:
+        return -1
 
 #n is the module name
 #f is the folder we are checking if it is in, including the module name
