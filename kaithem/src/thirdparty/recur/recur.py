@@ -77,19 +77,20 @@ def daysInMonth(dt):
     return [31, 29 if y%4==0 and not y%400==0 else 28,31,30,31,30,31,31,30,31,30,31][m-1]
 
 class Selector():
-    def __init__(self,constraint, align=None):
+    def __init__(self,constraint, align=None,tz=None):
         "Encapsulates both a selector and it's start time alignments"
         self.constraint=constraint
         self.align = align
+        self.tz = tz
 
     def before(self,dt):
-        return self.constraint.before(dt,self.align)
+        return self.constraint.before(dt,self.align).replace(tzinfo=self.tz)
 
     def after(self,dt, inclusive=True):
-        return self.constraint.after(dt,inclusive,self.align)
+        return self.constraint.after(dt,inclusive,self.align).replace(tzinfo=self.tz)
 
     def end(self,dt, inclusive=True):
-        return self.constraint.end(dt,self.align)
+        return self.constraint.end(dt,self.align).replace(tzinfo=self.tz)
 
 class BaseConstraint():
     "This is the base class for all constraints and constraint systems"

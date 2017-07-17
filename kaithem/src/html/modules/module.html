@@ -91,8 +91,11 @@ temp_p+= i+'/'
 
 <%!
 def get_time(ev):
+
   try:
-      return newevt.dt_to_ts(newevt.EventReferences[ev].nextruntime or 0, newevt.EventReferences[ev].tz)
+      if not newevt.EventReferences[ev].nextruntime:
+          return 0
+      return newevt.dt_to_ts(newevt.EventReferences[ev].nextruntime or 0,newevt.EventReferences[ev].tz)
   except Exception as e:
       return -1
 

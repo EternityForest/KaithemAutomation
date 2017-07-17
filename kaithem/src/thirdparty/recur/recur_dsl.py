@@ -17,7 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from . import recur,recur_parser
-import datetime
+import datetime,pytz
 
 p = recur_parser.parser
 
@@ -64,6 +64,10 @@ intervals = {
 }
 def parseTime(s):
     "Given the AST for a strng like 4:45pm, return a datetime.time"
+    if s == "midnight":
+      return datetime.time(0,0,0)
+    if s== "noon":
+      return datetime.time(12,0,0)
     return datetime.time(
     int(s.hour)+ (12 if s.ampm =="pm" else 0), int(s.minute) if s.minute else 0, int(s.second) if s.second else 0, s.ms*1000 if s.ms else 0)
 
@@ -173,28 +177,39 @@ class semantics():
             raise ValueError("Cannot have multiple alignment points in a string, already set to "+str(self.align))
         self.align = x
         return recur.startingat(self.align)
+        
+    def timezone(self,ast):
+        #Hack, I don't know why this is running twice for only one starting at statement.
+        if hasattr(self,'tz') and not self.align == ast:
+            raise ValueError("Cannot have multiple timezones, already set to "+str(self.tz))
+        self.tz = ast
+
 
     def constraint_list(self, ast):
         x = ast
         c = x.pop()
         while x:
-            c = c & x.pop()
+            y = x.pop()
+            if y:
+                c = c & y
         return c
         
     def for_statements(self, ast):
         x = ast['and']
         c = x.pop()
         while x:
-            c = c | x.pop()
-            print(c)
+            y = x.pop()
+            if y:
+                c = c | y
         return c
         
     def and_constraint(self, ast):
         x = ast['allof']
         c = x.pop()
         while x:
-            c = c | x.pop()
-            print(c)
+            y = x.pop()
+            if y:
+                c = c | y
         return c
 
     def betweentimesofdayconstraint(self,ast):
@@ -242,4 +257,7 @@ def getConstraint(c):
     c= p.parse(c, rule_name="start",semantics =s)
     print(c)
     a = s.align if hasattr(s,"align") else None
-    return recur.Selector(c, a)
+    if s.tz:
+        import pytz
+    tz = pytz.timezone(s.tz) if s.tz else None
+    return recur.Selector(c, a,tz)

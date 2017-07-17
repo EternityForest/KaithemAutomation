@@ -967,15 +967,12 @@ class PolledInternalSystemEvent(BaseEvent,DirectFunctionsMixin):
 
 def dt_to_ts(dt,tz=None):
     "Given a datetime in tz, return unix timestamp"
-    utc = pytz.timezone('UTC')
-
     if tz:
-        #Thanks to Art of Stack Overflow
-        #https://stackoverflow.com/questions/1357711/pytz-utc-conversion
-        d_tz = tz.normalize(tz.localize(d))
-        d_utc = d_tz.astimezone(utc)
+        utc = pytz.timezone('UTC')
+        return ((tz.localize(dt.replace(tzinfo=None)) - datetime.datetime(1970,1,1,tzinfo=utc)) / datetime.timedelta(seconds=1))
 
     else:
+        #Local Time
         ts = time.time()
         offset = (datetime.datetime.fromtimestamp(ts) - datetime.datetime.utcfromtimestamp(ts)).total_seconds()
         return ((dt - datetime.datetime(1970,1,1)) / datetime.timedelta(seconds=1))-offset
@@ -993,17 +990,8 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
         self.handler= self._handler
         self.exact = self.get_exact()
         
-        x = re.search(r"[A-z0-9]+\/[A-z0-9]+",when)
-        if x:
-            self.tz = pytz.timezone(x.group(0))
-            #Recur doesn't handle timezones
-            when=when.replace(x.group(0),'')
-        else:
-            #Assume local time
-            self.tz = None
-        
-        
         self.selector = recur.getConstraint(when)
+        self.tz=self.selector.tz
 
         self.nextruntime = None
         self.next = None
@@ -1102,7 +1090,7 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
             if self.nextruntime == None:
                 return
 
-            self.next=scheduler.schedule(self.handler,dt_to_ts(self.nextruntime,self.tz), False)
+            self.next=scheduler.schedule(self.handler, dt_to_ts(self.nextruntime,self.tz), False)
             logging.debug("scheduled"+repr(self.next)+str(self.nextruntime))
             self.disable = False
 

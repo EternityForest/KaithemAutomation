@@ -20,7 +20,7 @@ grammar = """
 @@left_recursion :: False
 start =for_statements [syntax_error];
 #Basic stuff to do with how constraints are combined
-atomic_constraint = intervalconstraint|nintervalconstraint|startingat|nthweekdayconstraint|weekdayconstraint|
+atomic_constraint = timezone|intervalconstraint|nintervalconstraint|startingat|nthweekdayconstraint|weekdayconstraint|
                     monthdayconstraint|betweentimesofdayconstraint|yeardayconstraint|
                     timeofdayconstraint|aftertimeofdayconstraint|beforetimeofdayconstraint
                     ('(' and_constraint ')')|except_constraint;
@@ -42,7 +42,7 @@ integer = /\d+/;
 ordinal = 'first'|'second'|'third'|'1st'|'2nd'|'3rd'|'other'|/\d\d?th/;
 
 #If it looks like 02:45, assume 24 hour time.
-time = (hour:hour [[(':' minute:minute) [(':' second:second) [(':' ms:millisecond)]]]] ampm:('am'|'pm'))|(hour:hour ':' minute:minute [[(':' second:second) [(':' ms:millisecond)]]]);
+time = predefinedtime|((hour:hour [[(':' minute:minute) [(':' second:second) [(':' ms:millisecond)]]]] ampm:('am'|'pm'))|(hour:hour ':' minute:minute [[(':' second:second) [(':' ms:millisecond)]]]));
 times = {times+:time [',']['and']}+;
 hour = /\d\d?/;
 minute = /\d\d/;
@@ -61,6 +61,7 @@ timeofdayrange = ('between' time 'and' time)| ('from' time 'to' time)| (time 'to
 interval = 'week'|'month'|'year'|'day'|'hour'|'minute'|'second'|'ms'|'millisecond';
 intervals = 'weeks'|'months'|'years'|'days'|'hours'|'minutes'|'seconds'|'ms'|'milliseconds';
 weekday = 'mon'|'monday'|'tue'|'tuesday'|'wed'|'wednesday'|'thu'|'thursday'|'fri'|'friday'|'sat'|'saturday'|'sun'|'sunday';
+timezone = /[A-z0-9]+\/[A-z0-9]+/;
 
 #actual constraints
 timeofdayconstraint = ['at'] timeofdayconstraint:times;
@@ -73,7 +74,7 @@ dateconstraint = (["on"] dates) | ('every year on') date;
 datewithyearconstraint = (["on"] datewithyear);
 yeardayconstraint = "on the " ordinal "day of the year";
 monthdayconstraint = "on the"  @+:ordinal {[','] @+:ordinal} [[',']'and'  @+:ordinal] ["day of the month"];
-weekdayconstraint  = ['every'] @+:weekday {[','] @+:weekday} [[',']'and'  @+:weekday];
+weekdayconstraint  = ['every'|'on'] @+:weekday {[','] @+:weekday} [[',']'and'  @+:weekday];
 nthweekdayconstraint = ('the'|'on the'|'every') @+:ordinal @+:weekday 'of the month';
 
 #Directives

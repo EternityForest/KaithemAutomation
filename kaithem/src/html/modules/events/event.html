@@ -169,8 +169,7 @@ ${e}
 %if event['trigger'].startswith("!time"):
 %try:
 <p style="font-size:90%">Next Run for "${event['trigger'][5:]|h}":
-${unitsofmeasure.strftime(newevent.dt_to_ts(newevt.EventReferences[module,name].nextruntime,
-newevt.EventReferences[module,name].tz))|h}</p>
+${unitsofmeasure.strftime(newevt.dt_to_ts(newevt.EventReferences[module,name].nextruntime,newevt.EventReferences[module,name].tz))|h}</p>
 %except Exception as e:
 ${e}
 %endtry
