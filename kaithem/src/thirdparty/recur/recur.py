@@ -84,13 +84,13 @@ class Selector():
         self.tz = tz
 
     def before(self,dt):
-        return self.constraint.before(dt,self.align).replace(tzinfo=self.tz)
+        return self.constraint.before(dt,self.align)
 
     def after(self,dt, inclusive=True):
-        return self.constraint.after(dt,inclusive,self.align).replace(tzinfo=self.tz)
+        return self.constraint.after(dt,inclusive,self.align)
 
     def end(self,dt, inclusive=True):
-        return self.constraint.end(dt,self.align).replace(tzinfo=self.tz)
+        return self.constraint.end(dt,self.align)
 
 class BaseConstraint():
     "This is the base class for all constraints and constraint systems"

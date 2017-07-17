@@ -42,7 +42,7 @@ integer = /\d+/;
 ordinal = 'first'|'second'|'third'|'1st'|'2nd'|'3rd'|'other'|/\d\d?th/;
 
 #If it looks like 02:45, assume 24 hour time.
-time = predefinedtime|((hour:hour [[(':' minute:minute) [(':' second:second) [(':' ms:millisecond)]]]] ampm:('am'|'pm'))|(hour:hour ':' minute:minute [[(':' second:second) [(':' ms:millisecond)]]]));
+time = predefinedtime|((hour:hour [[(':' minute:minute) [(':' second:second) [(':' ms:millisecond)]]]] ampm:('am'|'pm'|'AM'|'PM'))|(hour:hour ':' minute:minute [[(':' second:second) [(':' ms:millisecond)]]]));
 times = {times+:time [',']['and']}+;
 hour = /\d\d?/;
 minute = /\d\d/;

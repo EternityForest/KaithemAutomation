@@ -69,7 +69,7 @@ def parseTime(s):
     if s== "noon":
       return datetime.time(12,0,0)
     return datetime.time(
-    int(s.hour)+ (12 if s.ampm =="pm" else 0), int(s.minute) if s.minute else 0, int(s.second) if s.second else 0, s.ms*1000 if s.ms else 0)
+    int(s.hour)+ (12 if s.ampm in ['PM',"pm"] else 0), int(s.minute) if s.minute else 0, int(s.second) if s.second else 0, s.ms*1000 if s.ms else 0)
 
 def parseTimes(s):
     return [parseTime(time) for time in s['times']]
@@ -179,9 +179,6 @@ class semantics():
         return recur.startingat(self.align)
         
     def timezone(self,ast):
-        #Hack, I don't know why this is running twice for only one starting at statement.
-        if hasattr(self,'tz') and not self.align == ast:
-            raise ValueError("Cannot have multiple timezones, already set to "+str(self.tz))
         self.tz = ast
 
 
@@ -254,6 +251,7 @@ d = datetime.datetime(2016,9,26)
 
 def getConstraint(c):
     s = semantics()
+    s.tz = None
     c= p.parse(c, rule_name="start",semantics =s)
     print(c)
     a = s.align if hasattr(s,"align") else None
