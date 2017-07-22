@@ -78,7 +78,7 @@ def require(permission, noautoreturn = False):
             url = util.url("/")
         else:
             url = util.url(cherrypy.url())
-        raise cherrypy.HTTPRedirect("/login?"+url)
+        raise cherrypy.HTTPRedirect("/login?go="+url)
 
     if not auth.canUserDoThis(user,permission):
         raise cherrypy.HTTPRedirect("/errors/permissionerror?")
