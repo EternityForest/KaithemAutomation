@@ -36,15 +36,15 @@ function unescws(s)
 
 String.prototype.replaceAll = function(search, replacement) {
     var target = this;
-    return target.replace(new RegExp(search, 'g'), replacement);
+    return target.replace(new RegExp(search, 'gm'), replacement);
 };
 
 function add_mako_format(e)
 {
     e.addAction({
-	id: 'formatDocument2',
-	label: 'Format Document(Preserve Mako Syntax, experimental, no undo)',
-	contextMenuGroupId: 'edit',
+	id: 'mako-format',
+	label: 'Format Document(Preserve Mako Formatting, experimental)',
+	contextMenuGroupId: '1_modification',
     contextMenuOrder: 1.9,
     
 	run: function(ed) {
@@ -55,23 +55,27 @@ function add_mako_format(e)
             hide.push(c)
             return("<mako-block-reference>"+hide.length+"</mako-block-reference>")
         }
-        x = x.replaceAll(/\n[\t ]*(\<\%(.|\w|\n)*?\%\>)\w*\n/g,r)
+        x = x.replaceAll(/^[\t ]*(\<\%(.|\w|\n)*?\%\>)\w*$/gm,r)
 
-        x = x.replaceAll(/\n[\t ]*(\%[\t ]*.*)\n/g,"<mako-literal>$1</mako-literal>")
+        x = x.replaceAll(/^[\t ]*(\%[\t ]*.*)$/gm,"<mako-literal>$1</mako-literal>")
 
-        ed.setValue(x)
-        ed.getAction('editor.action.formatDocument').run()
-
-        setTimeout(function(){
-        setTimeout(function(){
-        x2 = ed.getValue()
-        x2 = x2.replaceAll(/\n?\<mako\-literal\>(.*?)\<\/mako-literal\>\n?/g,"\n$1\n")
-        x2 = x2.replaceAll(/\n?\<mako\-literal\>(.*?)\<\/mako-literal\>\n?/g,"\n$1\n")
-        x2=x2.replaceAll(/\<mako\-block\-reference\>(\d*)\<\/mako\-block\-reference\>/g,
+        x=window.html_beautify(x,{
+            "html": {
+            "end_with_newline": true,
+            "js": {
+                "indent_size": 4
+            },
+            "css": {
+                "indent_size": 4
+            },
+            "brace_style": "expand preserve-inline",
+            "wrap_line_length":120,
+        }})
+        x = x.replaceAll(/\n?\<mako\-literal\>(.*?)\<\/mako-literal\>\n?/g,"\n$1\n")
+        x = x.replaceAll(/\n?\<mako\-literal\>(.*?)\<\/mako-literal\>\n?/g,"\n$1\n")
+        x = x.replaceAll(/\<mako\-block\-reference\>[\n\t\r ]*(\d*)[\n\t\r ]*\<\/mako\-block\-reference\>/g,
         (m,n)=> hide[parseInt(n)-1])
-        ed.setValue(x2)
-        },100)
-        ,50})
+        ed.executeEdits('beautifier', [{ identifier: 'insert', range: new monaco.Range(1, 1, 10000000, 1), text: x, forceMoveMarkers: false }]);
 
         return null;
 	}
