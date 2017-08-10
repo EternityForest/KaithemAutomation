@@ -34,22 +34,46 @@ function unescws(s)
             var s=s.replace("``","`")
         }
 
+String.prototype.replaceAll = function(search, replacement) {
+    var target = this;
+    return target.replace(new RegExp(search, 'g'), replacement);
+};
+
 function add_mako_format(e)
 {
     e.addAction({
-	id: 'format-id',
-	label: 'Format',
+	id: 'formatDocument2',
+	label: 'Format Document(Preserve Mako Syntax, experimental, no undo)',
 	contextMenuGroupId: 'edit',
-	contextMenuOrder: 1.9,
-
+    contextMenuOrder: 1.9,
+    
 	run: function(ed) {
-		var x = ed.getValue();
-        x = x.replace(/\n(\%[\t ]*.*)\n/g,"<mako-literal>$1</mako-literal>")
-        x = tidy_html5(x,{"indent":true,"show-body-only":true,"wrap-asp":false, "new-inline-tags":"mako-literal"})
-        x = x.replace(/(.)\<mako\-literal\>/g,"$1\n<mako-literal>")
-        x = x.replace(/\<mako\-literal\>(.*?)\<\/mako-literal\>/g,"$1\n")
+        var x = "\n"+ed.getValue()+"\n"
+        var hide=[]
+        var r = function(match, c)
+        {
+            hide.push(c)
+            return("<mako-block-reference>"+hide.length+"</mako-block-reference>")
+        }
+        x = x.replaceAll(/\n[\t ]*(\<\%(.|\w|\n)*?\%\>)\w*\n/g,r)
+
+        x = x.replaceAll(/\n[\t ]*(\%[\t ]*.*)\n/g,"<mako-literal>$1</mako-literal>")
+
         ed.setValue(x)
-		return null;
+        ed.getAction('editor.action.formatDocument').run()
+
+        setTimeout(function(){
+        setTimeout(function(){
+        x2 = ed.getValue()
+        x2 = x2.replaceAll(/\n?\<mako\-literal\>(.*?)\<\/mako-literal\>\n?/g,"\n$1\n")
+        x2 = x2.replaceAll(/\n?\<mako\-literal\>(.*?)\<\/mako-literal\>\n?/g,"\n$1\n")
+        x2=x2.replaceAll(/\<mako\-block\-reference\>(\d*)\<\/mako\-block\-reference\>/g,
+        (m,n)=> hide[parseInt(n)-1])
+        ed.setValue(x2)
+        },100)
+        ,50})
+
+        return null;
 	}
 });
 
