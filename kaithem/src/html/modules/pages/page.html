@@ -20,7 +20,7 @@ using_js_editor = config['enable-js'] and auth.getUserSetting(pages.getAcessingU
 </script>
 %endif
 
-<title>Kaithem Page</title>
+<title>Edit: ${util.split_escape(name,'/','\\')[-1] | h}</title>
 <h2>Editing page: ${util.split_escape(name,'/','\\')[-1] | h}</h2>
 <p class=pathnav>Path:
 <%

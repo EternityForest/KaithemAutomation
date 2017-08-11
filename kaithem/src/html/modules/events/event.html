@@ -21,12 +21,7 @@ using_js_editor = config['enable-js'] and auth.getUserSetting(pages.getAcessingU
 </script>
 %endif
 
-<title>Kaithem Event\
-%if 'enable' in event:
-%if not event['enable'] == True:
-(disabled)\
-%endif
-%endif
+<title>Event: ${util.split_escape(name,'/','\\')[-1] | h}
 </title>
 <h2>Event ${util.split_escape(name,'/','\\')[-1] | h} of module <a href="/modules/module/${url(module)}">${module|h}</a>
 %try:

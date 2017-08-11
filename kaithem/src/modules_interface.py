@@ -165,6 +165,11 @@ class WebInterface():
         pages.require("/admin/modules.view")
         return pages.get_template("modules/library.html").render()
 
+    @cherrypy.expose
+    def editlibrary(self):
+        pages.require("/admin/modules.edit")
+        return pages.get_template("modules/library_edit.html").render()
+
 
     @cherrypy.expose
     def newmodule(self):
@@ -245,7 +250,28 @@ class WebInterface():
         auth.importPermissionsFromModules()
         raise cherrypy.HTTPRedirect('/modules')
 
-    
+    @cherrypy.expose
+    def editlibmodule(self,module):
+        "Load a module from the library"
+        pages.require("/admin/modules.edit")
+        pages.postOnly()
+        if module  in ActiveModules:
+            raise cherrypy.HTTPRedirect("/errors/alreadyexists")
+
+        #This is the only difference. In edit mode we can load a library module
+        #And save it back to the library. At the moment this is pretty much entirely
+        #For developers
+        external_module_locations[kwargs['name']]= kwargs['location']
+
+        loadModule(os.path.join(directories.datadir,"modules",module),module)
+        modulesHaveChanged()
+        unsaved_changed_obj[module]="Loaded from library by user"
+        for i in ActiveModules[module]:
+            unsaved_changed_obj[module,i]= "Loaded from kibrary by user"
+        bookkeeponemodule(module)
+        auth.importPermissionsFromModules()
+        raise cherrypy.HTTPRedirect('/modules')
+
 
     @cherrypy.expose
     @cherrypy.config(**{'tools.allow_upload.on':True, 'tools.allow_upload.f':validate_upload})
@@ -540,9 +566,10 @@ def addResourceTarget(module,type,name,kwargs,path):
             newevt.updateOneEvent(escapedName,root)
 
         elif type == 'page':
+                basename=util.split_escape(name,'/','\\')[-1]
                 insertResource({
                     "resource-type":"page",
-                    "body":'<%!\n#Code Here runs once when page is first rendered. Good place for import statements.\n__doc__= ""\n%>\n<%\n#Python Code here runs every page load\n%>\n<h2>Title</h2>\n<div class="sectionbox">\nContent here\n</div>',
+                    "body":'<%!\n#Code Here runs once when page is first rendered. Good place for import statements.\n__doc__= ""\n%>\n<%\n#Python Code here runs every page load\n%>\n<h2>'+basename+'</h2>\n'+'<title>'+basename+'</title>\n\n<div class="sectionbox">\nContent here\n</div>',
                     'no-navheader':True})
                 usrpages.updateOnePage(escapedName,root)
 

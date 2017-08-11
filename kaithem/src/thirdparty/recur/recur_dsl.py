@@ -250,6 +250,7 @@ class semantics():
 d = datetime.datetime(2016,9,26)
 
 def getConstraint(c):
+    c = c.lower()
     s = semantics()
     s.tz = None
     c= p.parse(c, rule_name="start",semantics =s)
