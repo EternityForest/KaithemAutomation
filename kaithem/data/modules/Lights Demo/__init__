@@ -20,7 +20,9 @@ class u(kaithem.lights.Universe):
         module.link.send([int(i) for i in self.values[1:4]])
 
 f = kaithem.lights.fixture("DemoFixture",[('red','red'),('green','green'),('blue','blue')])
-f.assign('TestUniverse', 1)
 module.universe = u("TestUniverse",5)
+f.assign('TestUniverse', 1)
+
+
 ---
 pass

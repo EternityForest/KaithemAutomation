@@ -159,14 +159,16 @@ class Universe():
         #flag to apply all scenes, even ones not marked as neding rerender
         self.full_rerender = False
         
-        #This is the priority, started of the "highest" layer that has ever been applied to the universe
-        #since resetting it to 0. It allows us to not re-layer a scene if we don't have to, saving a bit of power
-        #self.layer = (0,0)     
+        #The priority, started of the top layer layer that's been applied to this scene.
+        self.top_layer= (0,0)
+
+        #This is the priority, started of the "saved" layer that's been cached so we don't
+        #Have to rerender it or anything below it.
         self.prerendered_layer= (0,0)
+
 
         #A copy of the state of the universe just after prerendered_layer was rendered, so we can go back
         #and start from there without rerendering lower layers.
-
         self.prerendered_data= [0.0]*count
         
         #Maybe there might be an iteration error. But it's just a GUI convienence that
@@ -199,6 +201,7 @@ class Universe():
     def reset_to_cache(self):
         "Remove all changes since the prerendered layer."
         self.values = self.prerendered_data[:]
+        self.top_layer = self.prerendered_layer
     
     def save_prerendered(self, p, s):
         self.prerendered_layer = (p,s)
@@ -207,6 +210,7 @@ class Universe():
     def reset(self):
         self.prerendered_layer = (0,0)
         self.values = array.array("f",[0.0]*self.count)
+        self.top_layer = (0,0)
 
     
     def preFrame(self):
@@ -645,13 +649,14 @@ def render(t=None):
                 if not u in module.universes:
                     continue
                 
-                if rerender_this_frame or ((i.priority,i.started) >= module.universes[u].prerendered_layer) or module.universes[u].full_rerender:
+                if rerender_this_frame or ((i.priority,i.started) > module.universes[u].top_layer) or module.universes[u].full_rerender:
                     changedUniverses[u]=(i.priority, i.started)
                     if not u in module.universes:
                         continue
                     
                     universe = module.universes[u]
                     applyLayer(u, universe.values, i)
+                    universe.top_layer = (i.priority, i.started)
                     
                     #If we aren't going to rerender something, we can save the current position as that universe's
                     #Background state.
