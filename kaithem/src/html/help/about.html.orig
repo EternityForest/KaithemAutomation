@@ -1,3 +1,4 @@
+## -*- coding: utf-8 -*-
 <%!
     import socket
     import time
@@ -69,7 +70,7 @@
     <h1>About Kaithem Automation</h1>
 	<div class="sectionbox" style="text-align:center">
     <img src="/static/img/logo-alt.jpg" height="200px"></img><br>
-    <b>Copyright 2013-2016 Daniel Dunn. </b></br>Available under the terms of the <a href="/license">GNU general public license</a>.
+    <b>Copyright 2013-2017 Daniel Dunn. </b></br>Available under the terms of the <a href="/license">GNU general public license</a>.
     Includes external open-source libraries by third parties.
     </div>
     <div class="sectionbox">${config['about-box-banner']}</div>
@@ -245,7 +246,11 @@ def module_version(m):
                         <th>Module</th>
                         <th>Version</th>
                     </tr>
+<<<<<<< HEAD
+                    %for i in sorted(sys.modules):
+=======
                     %for i in sorted(sys.modules): 
+>>>>>>> develop
                     %if module_version(sys.modules[i]):
                     <tr>
                         <td>${i|h}</td>
@@ -664,7 +669,6 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
                                 </dd>
 
-<<<<<<< HEAD
 <dt><a href="https://github.com/neogeny/tatsu">TatSu</a>(BSD-Style)</dt>                    
 <dd><pre>
 TATSU - A PEG/Packrat parser generator for Python
@@ -694,42 +698,6 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 </pre></dd>
 
-=======
-<dt><a href="https://github.com/beautify-web/js-beautify">JS Beautify</a></dt>
-
-<dd>
-
-<pre>
-The MIT License (MIT)
-
-  Copyright (c) 2007-2017 Einar Lielmanis, Liam Newman, and contributors.
-
-  MODIFIED FOR THE KAITHEM PROJECT
-
-
-  Permission is hereby granted, free of charge, to any person
-  obtaining a copy of this software and associated documentation files
-  (the "Software"), to deal in the Software without restriction,
-  including without limitation the rights to use, copy, modify, merge,
-  publish, distribute, sublicense, and/or sell copies of the Software,
-  and to permit persons to whom the Software is furnished to do so,
-  subject to the following conditions:
-
-  The above copyright notice and this permission notice shall be
-  included in all copies or substantial portions of the Software.
-
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
-  BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
-  ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
-</pre>
-
-</dl>
->>>>>>> makoformat
                                 </ul>
                                 <h3>Command Line Utilities</h3>
                                 <ul>

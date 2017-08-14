@@ -55,25 +55,13 @@ This trigger expression causes the event to occur when the value of expression c
 
 #### !time \[expression\]
 
-This causes the event to occur at a specific time, such as "every Friday" or "every hour on Monday". This is powered by the recurrent library and supports any expression that library does. Events will occur near the start of a second. Specific time zones are supported with olson format time zones, e.g. "!time Every day at 8:30pm Etc/UTC". If no time zone is provided, the local time zone will be used.
+This causes the event to occur at a specific time, such as "every Friday" or "every hour on Monday". This is powered by the recur library and supports any expression that library does. Events will occur near the start of a second. Specific time zones are supported with olson format time zones, e.g. "!time Every day at 8:30pm Etc/UTC". If no time zone is provided, the local time zone will be used.
 
-By default, if an event is late it will be run as soon as possible, but if more than one event is missed it will not run multiple times to make up. If the string "exact &ltnumber&gt;" appears, then events more than number seconds late will just be skipped(Events after run as usual).
+By default, if an event is late it will be run as soon as possible, but if more than one event is missed it will not run multiple times to make up.
 
-Examples: "!time every minute exact 2.5", "Every day at 8:30pm".
+Examples: "!time every minute", "Every day at 8:30pm".
 
-Some preprocessing occurs before the recurrent library parses it, so that any expression of the form blah/blah will be interpreted as a timezone. Timezone names must be in the Olson TZ list("US/Central","Etc/UTC", etc) If the time expression does not contain a time zone, it will be assumed to be in the server's local time.
-
-If a time event is still running by the next occurrance, it will be skipped unless allow\_overlap is present somewhere in the string.
-
-If you delete the event but something else still has a reference to the function, calling it will raise an error
-
-Be careful with this one. Some input values might just not work, others may crash the system when they are entered, in a bad way where everything just hangs. Mostly the problem is with things that specify a specific range of time like "every day between 2010 and 2012". If the date is in the distance past it will hang. You should strongly consider using standard polled edge triggers, kaithem.time, or rate limit triggers instead.
-
-Other issues are things like "Between april and june". It seems to think you mean april of next year to next june. However "april-june" seems to work as expected.
-
-Another thing to watch out for is that it does not store time reference points. So something like "every month" might run every time kaithem reboots, and then a month on from there, etc. Since you probably want the first of the month, you need to be explicit "on the first of each month".
-
-In general recurrent appears to be a great library but natural language is hard for computers and you should always verify it is doing what you want.
+This feature previously used a library called recurrent, but now uses a custom library called recur that solves some performance issues.
 
 #### !function \[name\]
 
@@ -123,6 +111,12 @@ To create new users or groups, change group memberships or permissions, or delet
 Permissions are generally of the form  "/&lt;path&gt;/&lt;item&gt;.&lt;action&gt;" without quotes. The path describes the general catergory, the item specifies a resource, and the action specifies an action that may be performed on the resource. Modules may define their own permissions, and user-defined pages may be configured to require one or more permissions to access. For consistancy, You should always use the above permission format.
 
 Upon creating a new permission, you will immediately be able to assign it to groups by selecting the checkbox in the group page.
+
+New in 0.58, groups also have "limits". A limit is simply a numeric key-value pair associated with group. A user has access to the highest limit of any group he is a member of, including \_\_guest\_\_, if it exists.
+
+At the moment, there is only one limit catergory, web.maxbytes, which is used to allow members of certain groups to upload large files to the server. You can set limits from the group pages.
+
+Users with \_\_all\_permissions\_\_ have no practical upload limit. Users with /admin/modules.edit can upload up to 4Gb file resources and modules. Users with /admin/settings.edit can upload up to 4Gb files in the file manager
 
 <a href="" id="fileref"></a>File Reference Resources
 ----------------------------------------------------

@@ -1,38 +1,36 @@
 ![Logo (Credit: https://openclipart.org/detail/1337/large-barrel)](img/logo.jpg)
 
-Kaithem is Linux home/commercial automation server written in pure python, HTML, Mako, and CSS. It's more low level than your average HA system. but the web IDE model means you can control anything python can.
+Kaithem is Linux home/commercial automation server written in pure python, HTML, Mako, and CSS. It's more low level than your average HA system, but it allows you to control anything python can.
 
-It runs on python2 and python3, and will likely work on any platform, but it is not tested outside of Linux.
+Kaithem uses a user/group/permission system with SSL support, and is designed to be fairly secured.
+I'm not a security researcher, but it should at the very least keep casual snoopers on the LAN out.
+![Login page](screenshots/login.png)
+
+
+It runs on python2 and python3, and will likely work on any platform(Windows/mac/etc), but it is not tested outside of Linux. Resource usage is low enough to run well on the raspberry pi.
 
 You automate things by directly writing python and HTML via a web IDE.
+![Editing an event](screenshots/edit-event.jpg)
 
-Create pages and secure them with SSL and a flexible user/group/permission system.
+Almost the entire server state is maintained in RAM, and any changes you make to your code never touches the disk unless you explicitly save or configure auto-save. Even log files get buffered in RAM for a configurable duration before being saved. This allows experimentation without wearing out SD cards.
 
-Create events that run when an expression becomes true. An internal message bus logs events.
-
-Write HTML Pages with Mako templates. Automatically generate WebSocket powered widgets without writing any javascript. Built in performance profiling(requires yappi).
-
-Play audio using one of several audio backends(mplayer suggested).
-
-The entire server state is maintained in RAM, and any changes you make to your code never touches the disk unless you explicitly save or configure auto-save. This allows experimentation without wearing out SD cards.
-
-Saving occurs transactionally, so a copy of the state of the server is made before changing the new one. The save format is a simple YAML format that can be hand edited if needed.
+Saving occurs transactionally, so a copy of the state of the server is made before changing the new one. The save formats for most things are simple text file with a YAML that can be hand edited if needed, and can be version controlled.
 
 You can store small amounts of data in the registry which will be persisted to disk the next time the state is saved, or there are built in libraries for YAML or JSON based persistence with atomic file updates(The old file is renamed to file~ and only deleted after the new file is created)
 
-Logs are maintained in ram and then dumped all at once at configurable intervals.
-
 Pages and events are types of resources that can be grouped into "modules" and uploaded and downloaded as zip files. This makes it relatively easy to manage multiple servers that need to run similar code.
 
+There's a built in realtime websocket-based log viewer to assist with debugging, and several features to
+make detecting intrusions and errors easier.
+![Settings](screenshots/settings.jpg)
 
-Kaithem includes a library for common automation tasks such as file IO, timing, executing functions in the background, formatting numbers, and more.
+Kaithem includes a library for common automation tasks such as file IO, timing, executing functions in the background, formatting numbers, and more. It also includes a library of basic example modules, including a
+web-based ligthing console.
 
-Kaithem is still beta, but has been used in production applications running for months at a time.
+![Lighting control](screenshots/lighting.jpg)
 
-KAITHEM WAS NOT DESIGNED FOR MILITARY, AEROSPACE, IDUSTRIAL,
-MEDICAL, NUCLEAR, SAFETY OF LIFE OR ANY OTHER CRITICAL APPLICATION
-ESPECIALLY THE CURRENT STILL-IN-DEVELOPMENT VERSION. YOU PROBABLY SHOULDN'T TRUST IT FOR
-A SECURITY SYSTEM FOR A BAG OF FUNYUNS(tm) AT THIS POINT!
+Kaithem is still beta, but I've used it in production applications running for months at a time. It wasn't
+designed for any kind of safety-critical application, but it is meant to be reliable enough for most home and commercial applications.
 
 Installation
 ============
@@ -69,6 +67,18 @@ If you install using the debian package helper, you will be prompted for an admi
 
 Recent Changes(See changes.md for full change info)
 =============
+### 0.58
+
+-   Safer handling of tokens to resist timing attacks
+-   Get rid of excessively tiny stack size that caused ocassional segfaults
+-   Fix bug that caused annoying widget.js error messages
+-   Switch to microsoft's monaco editor instead of CodeMirror
+-   (SOMEWHAT BREAKING CHANGE) Users are now limited by default to 64k request HTTP bodies. You can allow users a larger limit on a per-group basis. Users with \_\_all\_permissions\_\_ have no such limit, and the limit is 4Gb in certain contexts for users with the permissions to edit pages or settings.
+-   Increase maxrambytes in cherrypy. It should work slightly better on embedded systems now.
+-   Add command line option --nosecurity 1 to disable all security(For testing and localhost only use)
+-   Better template when creating new pages
+-   (SOMEWHAT BREAKING CHANGE)Use Recur instead of recurrent to handle !times, greatly improving performance.
+-   Add lighting control features in the modules library.
 
 ### 0.57
 
@@ -87,56 +97,6 @@ Recent Changes(See changes.md for full change info)
 
 -   Fix bug when deleting realtime events
 -   Format log records immediately instead of keeping record objects around
-
-
-### 0.56
-
--   Eliminate the frame-based polling system, polled events are now scheduled using the scheduler, which should improve performance when there no events used that poll quickly.
--   -   Events with priority of realtime now run in their own threads
--   Kaithem.persist now assumes relative paths are relative to vardir/moduledata, which is a new folder defined for modules to store large amounts of variable data without cluttering the registry.
--   Add kaithem.web.goto(url) function
--   New Virtual Resource mechanism for updatable objects
--   Option not to have APIWidgets echo back messages sent to server
--   New state machines API
--   Fix the uptime function
--   No longer log every event run, it was causing a performance hit with realtime events and wasn't that useful
--   Logging is now based on python's builtin logging module, meaning log dumps are readable now.
--   Realtime scrolling log feeds powered by the new scrollbox widget.
--   Logging format defaults to null
--   Fix security error in viewing logs
-
-
-### 0.55
-
--   Fix bug where SI formatted numbers were rounded down
--   Multiple message bus subscribers run simultaneously instead of sequentially
--   Events now have an enable option
--   Message events can now be ratelimited, additional messages are simply ignored
--   Slight theming improvements
--   Sound search path feature, added built in sounds
--   Modules now display MD5 sums(Calculated by dumping to UTF-8 JSON in the most compact way with sorted keys. Module and resource names are also hashed, but the locations of external modules are ignored)
--   Use of the print function in an event under python3 will print both to the console and to the event's editing page(only most recent 2500 bytes kept)
--   Change the way the scheduler works
--   Setup actions no longer run twice when saving! (However, setup actions may run and retry any number of times due to dependency resolution at bootup)
--   Fix bug where references in the locals of deleted or modified events sometimes still hung around and messed up APIs based on \_\_del\_\_
--   Stable initial event loading attempt order(Sorted by (module,resource) tuple.) Failed events will be retried up to the max attempts in the same order.
--   Kaithem now appears to shut down properly without the old workaround
--   Ship with the requests library included, but prefer the installed version if possible
--   Add ability to store individual modules outside of kaithem's directory, useful for development
--   Support for embedded file resources in modules
--   Eliminate polling from all builtin widgets. Switched to a pure push model. THIS IS A POSSIBLE BREAKING CHANGE FOR CUSTOM WIDGETS, although since those were never really properly documented it will likely be fine, and only minor changes will be required to accommodate this new behavior. All default widgets are exactly the same from a user perspective, only faster and more efficient.
--   Can now inspect event scopes just like module objects. Inspectors have been greatly improved.
--   Run a garbage collection sweep after deleting events or modules.
--   Fix bug where "don't add additional content" still added a footer.
--   kaithem.web.resource lookups
--   Add jslibs module
--   Can now manually run any event
--   Lots of stability improvements
--   No more widget callbacks running twice
--   Add six.py to thirdparty library(Cherrypy now depends on it)
--   Fix bug saving data with unicode in it on some versions
--   Fix error loading resources with DOS style line endings
--   Fix spelling error in quotes file
 
 License Terms
 =============

@@ -1,9 +1,18 @@
-&lt;%include file="/pageheader.html"/&gt;
-
-Kaithem Help
-
 Change Log
 ----------
+
+### 0.58
+
+-   Safer handling of tokens to resist timing attacks
+-   Get rid of excessively tiny stack size that caused ocassional segfaults
+-   Fix bug that caused annoying widget.js error messages
+-   Switch to microsoft's monaco editor instead of CodeMirror
+-   (SOMEWHAT BREAKING CHANGE) Users are now limited by default to 64k request HTTP bodies. You can allow users a larger limit on a per-group basis. Users with \_\_all\_permissions\_\_ have no such limit, and the limit is 4Gb in certain contexts for users with the permissions to edit pages or settings.
+-   Increase maxrambytes in cherrypy. It should work slightly better on embedded systems now.
+-   Add command line option --nosecurity 1 to disable all security(For testing and localhost only use)
+-   Better template when creating new pages
+-   (SOMEWHAT BREAKING CHANGE)Use Recur instead of recurrent to handle !times, greatly improving performance.
+-   Add lighting control features in the modules library.
 
 ### 0.57
 
