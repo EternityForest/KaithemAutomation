@@ -1,0 +1,34 @@
+<%include file="/pageheader.html"/>
+<title>Strftime Specifiers</title>
+
+<section>
+<h2 id="recur-dsl">The Recur DSL</h2>
+<title>The Recur DSL</title>
+
+<p>The expression creation syntax is fairly simple. Generally you can enter plain English expressions and they will usually just work.</p>
+<p>Example expressions that should work: "every day", "every 5 minutes", 
+    "every 10 minutes on Tuesday", "Every hour on the 3rd day of the month", "every 8 seconds",
+    "every Tuesday, Thursday, and Sunday", "every 3rd Tuesday of the month", "In January", "between 5:30PM and 10AM",etc</p>
+
+<p>Statements can be arbitrarily combined. Events will occur at the start of the matched period. Intervals like
+    "every 3 days" are presumed to start on 1/1/0001 at midnight. To change the "alignment" of intervals, use the "starting at"
+    directive, as in "every 5 days starting Jun 10th". This will select a set of times with the first being Jun 10 0001 at midnight.
+</p>
+
+<p>Recur supports several ways of specifying date and time, but the suggested way is "4:30PM Jun 7 2017" and similar.
+    all times without AM or PM are assumed to be 24 hour time.</p>
+
+<p>There may be bugs in Recur regarding upper and lower case. If something doesn't work in uppercase it may be of the case sensitive constructs.
+    This should be resolved in the future.</p>
+
+<p>Recur is a new library and does not yet support
+    all common ways of describing time, and is also english only at the moment. For more info, or to file any bugs 
+    or pull requests, check out the <a href="https://github.com/EternityForest/recur">recur repo</a> at github.</p>
+
+
+
+    
+
+</section>
+
+<%include file="/pagefooter.html"/>

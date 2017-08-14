@@ -207,6 +207,7 @@ class Universe():
     def reset(self):
         self.prerendered_layer = (0,0)
         self.values = array.array("f",[0.0]*self.count)
+
     
     def preFrame(self):
         "Frame preprocessor, uses fixture-specific info, generally only called under lock"
@@ -585,6 +586,7 @@ def applyLayer(universe, uvalues,scene):
 def pre_render():
     "Reset all universes to either the all 0s background or the cached layer, depending on if the cache layer is still valid"
     #Here we find out what universes can be reset to a cached layer and which need to be fully rerendered.
+    changedUniverses = {}
     to_reset ={}
     universes = module.universes
     #Important to reverse, that way scenes that need a full reset come after and don't get overwritten
@@ -595,26 +597,33 @@ def pre_render():
                     universe = universes[u]
                     universe.highest_static_layer_this_frame = (0,0)
                     if i.rerender:
-                        if ((i.priority,i.started) <= universe.prerendered_layer) and not  universe.full_rerender:
+                        if ((i.priority,i.started) <= universe.prerendered_layer):
                             to_reset[u]=1
                         else:
                             #We are stacking on another layer or changing the top layer. We don't need
                             #To rerender the entire stack, we just start from the prerendered_layer
                             #Set the universe to the state it was in just after the prerendered layer was rendered.
                             #Since the values are mutable, we need to set this back every frame
-                            universe.full_rerender = True
-                            to_reset[u]=2
-    for i in to_reset:
-        if to_reset[i]==1:
-            universes[i].reset()
-        else:
-            universes[i].reset_to_cache()         
 
+                            #Don't overwrite a request to reset the entire thing
+                            if not to_reset.get(u,0)==1:
+                                to_reset[u]=2
+    for u in universes:
+        if universes[u].full_rerender:
+            to_reset[u]=1
+
+    for u in to_reset:
+        if to_reset[u]==1:
+            universes[u].reset()
+            changedUniverses[u]=(0,0)
+        else:
+            universes[u].reset_to_cache()         
+    return changedUniverses
 def render(t=None):
-    changedUniverses = {}  
+    changedUniverses = pre_render()
+  
     t = t or time.time()
   
-    pre_render()
     #Remember that scenes get rendered in ascending priority order here
     for i in module.activeScenes:
         if i.visible:
@@ -636,7 +645,7 @@ def render(t=None):
                 if not u in module.universes:
                     continue
                 
-                if rerender_this_frame or ((i.priority,i.started) > module.universes[u].prerendered_layer) or module.universes[u].full_rerender:
+                if rerender_this_frame or ((i.priority,i.started) >= module.universes[u].prerendered_layer) or module.universes[u].full_rerender:
                     changedUniverses[u]=(i.priority, i.started)
                     if not u in module.universes:
                         continue
@@ -1109,7 +1118,7 @@ kaithem.lights.scenes = module.scenes
 kaithem.lights.scenesByName = module.scenes_by_name
 kaithem.lights.Universe = Universe
 kaithem.lights.blendmodes = blendmodes
-
+kaithem.lights.fixture = Fixture
 module.controluniverse = Universe("control")
 
 render()

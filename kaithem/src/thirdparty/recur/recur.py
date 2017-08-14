@@ -559,6 +559,37 @@ class yearly(BaseConstraint):
     def end(self,dt,align=None):
         aligndt = align if align else day1
         return self.after(dt,True,align).replace(year=dt.year+1)
+        
+class month(BaseConstraint):
+    "Matches a list of months in the year"
+    def __init__(self,months):
+        "Match every nth month"
+        self.months = months
+        self.sort = (60*60*24*30)/len(months)
+
+    def after(self,dt, inclusive=True, align = None):
+        if inclusive:
+            if dt.month in self.months:
+                return dt
+
+        while not dt.month in self.months:
+            dt = monthdelta(dt,1)
+        return dt.replace(microsecond=0,second=0,minute=0,hour=0,day=1)
+
+    def before(self, dt, align=None):
+        dt = monthdelta(dt,-1)
+        while not dt.month in self.months:
+            dt = monthdelta(dt,-1)
+        return dt.replace(microsecond=0,second=0,minute=0,hour=0,day=1)
+    def end(self,dt,align=None):
+        while dt.month in self.months:
+            dt = monthdelta(dt,1)
+        return dt.replace(microsecond=0,second=0,minute=0,hour=0,day=1)
+    def end(self,dt,align=None):
+        while dt.month in self.months:
+            dt = monthdelta(dt,1)
+        return dt.replace(microsecond=0,second=0,minute=0,hour=0,day=1)
+
 
 ##Warning: all of  these -ly constraints are copy-pasted variants of one another, using not very clean code that was developed incrementally
 ##With a lot of trial and error. The only way these can be trusted in any way is with tons of unit tests.

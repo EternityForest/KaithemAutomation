@@ -234,7 +234,9 @@ class semantics():
         
     def yeardayconstraint(self, ast):
         return recur.yearday(parseOrdinal(ast[1]))
-
+    def monthconstraint(self, ast):
+        return recur.month([parseMonth(i) for i in ast])
+        
     def monthdayconstraint(self,ast):
         l = []
         for i in ast:
@@ -250,7 +252,8 @@ class semantics():
 d = datetime.datetime(2016,9,26)
 
 def getConstraint(c):
-    c = c.lower()
+    c0 = c[0].lower()
+    c = c0+c[1:]
     s = semantics()
     s.tz = None
     c= p.parse(c, rule_name="start",semantics =s)
