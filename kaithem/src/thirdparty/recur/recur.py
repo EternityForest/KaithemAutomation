@@ -225,6 +225,8 @@ class ConstraintSystem(BaseConstraint):
             for i in self.constraints:
                 #Get either next occurance or start of this occurance
                 t = i.after(time,inclusive=True,align=align)
+                if t==None:
+                    return None
                 #We check if time is less than or equal to t because constraints return the start of
                 #A time period if the time given is within an occurance if inclusive is true
                 if not t<=time:
@@ -498,6 +500,34 @@ class startingat(BaseConstraint):
             else:
                 return None
         return self.time
+
+    def before(self,dt,align=None):
+        #If it is after the time return current if we are inclusive
+        if dt >= self.time:
+            return self.time
+        else:
+            return None
+
+    def end(self,dt,align=None):
+        return datetime.datetime.max
+
+class endingat(BaseConstraint):
+    "Match a range of time that ends at a specific moment"
+    def __init__(self,dt):
+        self.time = dt
+        #Arbitrary large sort value
+        self.sort = 24*60*60*356*10
+
+    def __repr__(self):
+        return "<endingat "+str(self.time)+">"
+
+    def after(self,dt, inclusive=True,align=None):
+        if not inclusive:
+            return None
+        if dt > self.time:
+            return None
+ 
+        return dt
 
     def before(self,dt,align=None):
         #If it is after the time return current if we are inclusive

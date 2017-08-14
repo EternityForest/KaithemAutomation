@@ -23,7 +23,7 @@ start =for_statements [syntax_error];
 #Basic stuff to do with how constraints are combined
 atomic_constraint = timezone|intervalconstraint|nintervalconstraint|startingat|nthweekdayconstraint|weekdayconstraint|
                     monthdayconstraint|betweentimesofdayconstraint|yeardayconstraint|
-                    timeofdayconstraint|aftertimeofdayconstraint|beforetimeofdayconstraint|monthconstraint|
+                    timeofdayconstraint|aftertimeofdayconstraint|beforetimeconstraint|beforetimeofdayconstraint|monthconstraint|
                     ('(' and_constraint ')')|except_constraint;
 
 syntax_error = /[.\w]+/;
@@ -49,7 +49,7 @@ hour = /\d\d?/;
 minute = /\d\d/;
 second = /\d\d/;
 millisecond = /\d\d\d\d/;
-year = /\d\d\d\d/;
+year = /\d\d\d\d\d*/;
 month = 'jan'|'january'|'feb'|'february'|'mar'|'march'|'apr'|'april'|'may'|'jun'|'june'|'jul'|'july'|'aug'|'august'|'sep'|
         'september'| 'nov'| 'november'|'dec'|'december'|'Jan'|'January'|'Feb'|'February'|'Mar'|'March'|'Apr'|'April'|'May'|'Jun'|'June'|'Jul'|'July'|'Aug'|'August'|'Sep'|
         'September'| 'Nov'| 'November'|'Dec'|'December';
@@ -68,14 +68,16 @@ timezone = /[A-z0-9]+\/[A-z0-9]+/;
 #actual constraints
 timeofdayconstraint = ['at'] timeofdayconstraint:times;
 aftertimeofdayconstraint = 'after' aftertimeofdayconstraint:time;
-beforetimeofdayconstraint = 'before' aftertimeofdayconstraint:time;
+beforetimeofdayconstraint = 'before' beforetimeofdayconstraint:time;
+beforetimeconstraint = ('before'|'until') before:datetimewithyear;
+
 betweentimesofdayconstraint = ('between' @+:time 'and' @+:time)| ('from' @+:time 'to' @+:time);
 nintervalconstraint = ('every' integer intervals) | ('every' ordinal interval);
 intervalconstraint = ('every' interval);
 dateconstraint = (["on"] dates) | ('every year on') date;
 datewithyearconstraint = (["on"] datewithyear);
 yeardayconstraint = "on the " ordinal "day of the year";
-monthdayconstraint = "on the"  @+:ordinal {[','] @+:ordinal} [[',']'and'  @+:ordinal] ["day of the month"];
+monthdayconstraint = "on the"  @+:ordinal {[','] @+:ordinal} [[',']'and'  @+:ordinal] [["day"] "of the month"];
 weekdayconstraint  = ['every'|'on'] @+:weekday {[','] @+:weekday} [[',']'and'  @+:weekday];
 nthweekdayconstraint = ('the'|'on the'|'every') @+:ordinal @+:weekday 'of the month';
 monthconstraint = [('during'|'in'|'in the month of'|'in the months of')] @+:month{[','] @+:month} [[',']'and' @+:month];

@@ -225,8 +225,12 @@ class semantics():
         
     def beforetimeofdayconstraint(self,ast):
         s = parseTime(ast[0])
-        return recur.aftertime(*s)  
+        return recur.aftertime(*s)
         
+    def beforetimeconstraint(self,ast):
+        s = parseDateTimeWithYearWithDefaults(ast['before'])
+        return recur.endingat(s)  
+           
     def timeofdayconstraint(self,ast):
         print(ast,"sdfghjkljhgfdsaxdcvjkjhgfdsghj")
         s = parseTimes(ast['timeofdayconstraint'])

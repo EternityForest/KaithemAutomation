@@ -1,5 +1,11 @@
-{continual: false, enable: true, once: true, priority: interactive, rate-limit: 0.0,
-  resource-type: event, trigger: '!time every 15th of the month'}
+continual: false
+enable: true
+once: true
+priority: interactive
+rate-limit: 0.0
+resource-type: event
+trigger: '!time on the 15th day of the month'
+versions: {}
 
 #End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
 ---
