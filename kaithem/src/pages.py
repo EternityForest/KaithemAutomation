@@ -1,4 +1,4 @@
-#Copyright Daniel Dunn 2013. 2015
+#Copyright Daniel Dunn 2013. 2015,2017
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify
@@ -16,13 +16,14 @@
 from mako.template import Template
 from mako.lookup import TemplateLookup
 import cherrypy,base64,weakref
-from . import auth
-from . import directories,auth,util
+from . import auth,config
+from . import directories,util
 
 _Lookup = TemplateLookup(directories=[directories.htmldir])
 get_template = _Lookup.get_template
 
 webResources = weakref.WeakValueDictionary()
+
 
 
 class WebResource():
@@ -77,17 +78,23 @@ def require(permission, noautoreturn = False):
             url = util.url("/")
         else:
             url = util.url(cherrypy.url())
-        raise cherrypy.HTTPRedirect("/login?"+url)
+        raise cherrypy.HTTPRedirect("/login?go="+url)
 
     if not auth.canUserDoThis(user,permission):
         raise cherrypy.HTTPRedirect("/errors/permissionerror?")
+
+
+if config.argcmd.nosecurity:
+    def require(*args,**kwargs):
+        return
+
 
 def canUserDoThis(permission):
     return auth.canUserDoThis(getAcessingUser(),permission)
 
 def getAcessingUser():
     """Return the username of the user making the request bound to this thread or <UNKNOWN> if not logged in.
-       The result of this function can be trusted because it uses the authentication token.
+        The result of this function can be trusted because it uses the authentication token.
     """
     #Handle HTTP Basic Auth
     if "Authorization" in cherrypy.request.headers:
@@ -102,13 +109,15 @@ def getAcessingUser():
             #Get token using username and password
             t = userLogin(b[0],b[1])
             #Check the credentials of that token
-            if t not in auth.Tokens:
+            try:
+                return auth.whoHasToken(cherrypy.request.cookie['auth'].value)
+            except:
                 return "<unknown>"
-            else:
-                return b[0]
-
+                
     #Handle token based auth
-    if (not 'auth' in cherrypy.request.cookie) or cherrypy.request.cookie['auth'].value not in auth.Tokens:
-       return "<unknown>"
-
-    return auth.whoHasToken(cherrypy.request.cookie['auth'].value)
+    if not 'auth' in cherrypy.request.cookie or (not cherrypy.request.cookie['auth'].value):
+        return "<unknown>"
+    try:
+        return auth.whoHasToken(cherrypy.request.cookie['auth'].value)
+    except:
+        return "<unknown>"

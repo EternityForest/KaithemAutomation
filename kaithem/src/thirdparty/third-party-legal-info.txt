@@ -1,3 +1,5 @@
-Kaithem depends on cherrypy, Mako, and pyyaml. For convenience the libraries are included, unmodifed,
-with their respective licence files.
-No changes besides moving folders around and getting rid of some unused stuff like installers have been made.
+Kaithem depends on several libraries, which are included. They remain under their respective licenses
+Some changes have been made:
+
+* increase cherrypy maxrambytes
+* shuffle folders around so license fies are in the source dir and each lib gets it's own folder

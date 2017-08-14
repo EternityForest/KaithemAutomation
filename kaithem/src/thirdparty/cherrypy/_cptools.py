@@ -149,8 +149,7 @@ class Tool(object):
         p = conf.pop('priority', None)
         if p is None:
             p = getattr(self.callable, 'priority', self._priority)
-        cherrypy.serving.request.hooks.attach(self._point, self.callable,
-                                              priority=p, **conf)
+        cherrypy.serving.request.hooks.attach(self._point, self.callable, priority=p, **conf)
 
 
 class HandlerTool(Tool):

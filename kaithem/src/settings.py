@@ -17,9 +17,13 @@ from cherrypy.lib.static import serve_file
 from . import pages, util,messagebus,config,auth,registry,mail,kaithemobj, config,weblogin
 
 if sys.version_info < (3,0):
-    import StringIO as io
+    import StringIO as io 
 else:
     import io
+
+def validate_upload():
+    #Allow 4gb uploads for admin users, otherwise only allow 64k 
+    return 64*1024 if not pages.canUserDoThis("/admin/settings.edit") else 1024*1024*4096
 
 class Settings():
     @cherrypy.expose
@@ -55,6 +59,7 @@ class Settings():
         raise cherrypy.HTTPRedirect("/settings")
 
     @cherrypy.expose
+    @cherrypy.config(**{'tools.allow_upload.on':True, 'tools.allow_upload.f':validate_upload})
     def files(self,*args,**kwargs):
         """Return a file manager. Kwargs may contain del=file to delete a file. The rest of the path is the directory to look in."""
         pages.require("/admin/settings.edit")
@@ -149,7 +154,7 @@ class Settings():
                 if not i in ['pref_strftime',"pref_timezone","email"]:
                     continue
                 #Filter too long values
-                    auth.setUserSetting(pages.getAcessingUser(),i[5:],kwargs[i][:200])
+                auth.setUserSetting(pages.getAcessingUser(),i[5:],kwargs[i][:200])
 
 
             m = registry.get('system/mail/lists')

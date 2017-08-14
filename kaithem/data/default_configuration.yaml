@@ -186,10 +186,14 @@ about-box-banner: "This space can be customized with site specific data in the c
 #The URL from which to retrieve the CSS theme file
 theme-url: /static/scrapbook.css
 
-#The URL from which to retrieve the CSS theme file for codemirror, or else no to use a codemirror builtin theme.
-cm-theme-url: /static/css/codemirror-scrapbook.css
-cm-theme: codemirror-scrapbook
+#Deprecated codemirror stuff. We no longer use that.
+cm-theme-url: deprecated
+cm-theme: deprecated
 
+#URL of a monaco theme to use
+monaco-theme-url: /static/js/monaco-theme.js
+
+        
 #How to format times and dates
 time-format: "%A, %B %d, %Y at %I:%M:%S %p Server Time"
 

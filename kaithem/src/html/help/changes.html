@@ -2,6 +2,25 @@
 <title>Kaithem Help</title>
 <h2>Change Log</h2>
 
+<div class="sectionbox">
+<h3>0.58(dev)</h3>
+<ul>
+    <li>Safer handling of tokens to resist timing attacks</li>
+    <li>Get rid of excessively tiny stack size that caused ocassional segfaults</li>
+    <li>Fix bug that caused annoying widget.js error messages</li>
+    <li>Switch to microsoft's monaco editor instead of CodeMirror</li>
+    <li>(SOMEWHAT BREAKING CHANGE) Users are now limited by default to 64k request HTTP bodies. You can allow users
+        a larger limit on a per-group basis. Users with __all_permissions__ have no such limit, and the limit is
+        4Gb in certain contexts for users with the permissions to edit pages or settings.</li>
+    <li>Increase maxrambytes in cherrypy. It should work slightly better on embedded systems now.</li>
+    <li>Add command line option --nosecurity 1 to disable all security(For testing and localhost only use)</li>
+    <li>Better template when creating new pages</li>
+    <li>Use Recur instead of recurrent to handle !times, greatly improving performance.</li>
+    <li>Add lighting control features in the modules library.</li>
+</ul>
+</div>
+
+
 <h3>0.57</h3>
 <div class="sectionbox">
 <ul>
@@ -16,7 +35,7 @@
     <li>Host config option to bind to a specific IP(overrides local-access-only if specified)</li>
     <li>Scheduler error handling no longer spams the logs</li>
 </ul>
-
+</div>
 
 <h3>0.56.1</h3>
 <div class="sectionbox">
@@ -24,6 +43,7 @@
     <li>Fix bug when deleting realtime events</li>
     <li>Format log records immediately instead of keeping record objects around</li>
 </ul>
+</div>
 
 <h3>0.56</h3>
 <div class="sectionbox">
@@ -44,7 +64,7 @@ amounts of variable data without cluttering the registry.</li>
 <li>Logging format defaults to null</li>
 <li>Fix security error in viewing logs</li>
 </ul>
-
+</div>
 
 <h3>0.55</h3>
 <div class="sectionbox">

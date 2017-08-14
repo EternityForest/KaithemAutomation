@@ -1,4 +1,4 @@
-#Copyright Daniel Dunn 2013
+#Copyright Daniel Dunn 2013,2017
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify
@@ -145,6 +145,8 @@ class ManageAuthorization():
             if i[:10] == 'Permission':
                 if kwargs[i] == 'true':
                     auth.addGroupPermission(group,i[10:])
+
+        auth.setGroupLimit(group,'web.maxbytes',int(kwargs['maxbytes']))
 
         #Take the user back to the users page
         auth.generateUserPermissions() #update all users to have the new permissions lists

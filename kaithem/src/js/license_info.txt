@@ -1,2 +1,0 @@
-Note from the kaithem project:
-CodeMirror has been modified slightly in the form of removing unused features but remains under it's respective license.

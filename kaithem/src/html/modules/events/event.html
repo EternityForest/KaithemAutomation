@@ -5,28 +5,23 @@ from collections import defaultdict
 import traceback,time
 from src.config import config
 from src import util
+import cherrypy
 %>
 
+
 <%include file="/pageheader.html"/>
-%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
-<link rel=stylesheet href="/static/js/codemirror/lib/codemirror.css">
-<link rel=stylesheet href="/static/js/codemirror/addon/dialog/dialog.css">
-<link rel=stylesheet href="${config['cm-theme-url']}">
-<script src="/static/js/codemirror/lib/codemirror.js"></script>
-<script src="/static/js/codemirror/mode/python/python.js"></script>
-<script src="/static/js/codemirror/addon/edit/matchbrackets.js"></script>
-<script src="/static/js/codemirror/addon/search/search.js"></script>
-<script src="/static/js/codemirror/addon/search/searchcursor.js"></script>
-<script src="/static/js/codemirror/addon/dialog/dialog.js"></script>
-<script src="/static/js/codemirror/addon/scroll/annotatescrollbar.js"></script>
-<script src="/static/js/codemirror/addon/search/matchesonscrollbar.js"></script>
+<%
+using_js_editor = config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace') and not "Mobile" in cherrypy.request.headers['User-Agent']
+%>
+
+%if using_js_editor:
+<script src="/static/js/vs/loader.js"></script>
+<script>
+    	require.config({ paths: { 'vs': '/static/js/vs' }});
+</script>
 %endif
-<title>Kaithem Event\
-%if 'enable' in event:
-%if not event['enable'] == True:
-(disabled)\
-%endif
-%endif
+
+<title>Event: ${util.split_escape(name,'/','\\')[-1] | h}
 </title>
 <h2>Event ${util.split_escape(name,'/','\\')[-1] | h} of module <a href="/modules/module/${url(module)}">${module|h}</a>
 %try:
@@ -67,10 +62,28 @@ or go to the working copy and save that to delete this draft.</p>
 <p>
 %endif
 <section>
-<form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST">
+<script>
+    presubmit =function()
+    {
+    document.getElementById('setupbox').value = setupeditor.getValue();
+    document.getElementById('actionbox').value = actioneditor.getValue();
+    }
+</script>
+<form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST"
+%if using_js_editor:
+onsubmit="presubmit()"
+%endif
+>
 <h3>Basic</h3>
-<label><b>Path:</b><input title="Backslashes are escapes and / is the path separator. You can move this resource to another directory by renaming." name="name" value="${name|h}" style="width:90%;"></input></label><br>
+<label><b>Path:</b><input title="Backslashes are escapes and / is the path separator. You can move this resource to another directory by renaming." name="name" value="${name|h}" style="width:90%;"
+%if not pages.canUserDoThis("/admin/modules.edit"):
+            disabled=1\
+%endif
+></input></label><br>
  <label><input type="checkbox"  name="enable" value="false"
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
          %if 'enable' in event:
             %if event['enable'] == True:
             checked="yes"
@@ -95,27 +108,39 @@ if 'setup' in event:
 else:
     xyz = "pass"
 %>
-<textarea rows=3 class="pythoncode" name="setup" id="setupbox">${xyz|h}</textarea>
+<textarea rows=3 class="pythoncode" name="setup" id="setupbox"
+%if not pages.canUserDoThis("/admin/modules.edit"):
+            disabled=1\
+%endif
+>${xyz|h}</textarea>
 
-
-%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
+%if using_js_editor:
+<div id="monacosetupbox" style="width:100%;height:30em;border:1px solid grey"></div>
+<script src="${config['monaco-theme-url']}"></script>
+<script src="/static/js/monaco-actions.js"></script>
 <script>
-var editor = CodeMirror.fromTextArea(document.getElementById("setupbox"), {
-    lineNumbers: true,
-    mode: "python",
-    matchBrackets: true,
-    theme: "${config['cm-theme']}",
-    indentUnit:4,
-    tabMode: 'spaces',
-    extraKeys: {
-   "Ctrl-F": "findPersistent",
-   "Cmd-F": "findPersistent"
-   }
-  });
-editor.setSize("99%","35em")
-</script>
+	require(['vs/editor/editor.main'], function() {
+		setupeditor = monaco.editor.create(document.getElementById('monacosetupbox'), {
+			value: document.getElementById("setupbox").value,
+			language: 'python',
+            insertSpaces: true,
+            renderIndentGuides: true,
+	        fontSize: 12,
+            scrollBeyondLastLine: false,
+            theme:'kaithem',
+%if not pages.canUserDoThis("/admin/modules.edit"):
+            readOnly:true
 %endif
 
+		});
+        add_actions(setupeditor);
+
+	});
+
+//Hide the box, it's jut there to subit the data from the actual editor
+document.getElementById("setupbox").style="display:none;";
+</script>
+%endif
 
 
 <h3>Trigger\
@@ -130,44 +155,19 @@ ${e}
 </p>
 
 
-<input class="pythoncode" id="triggerbox" type="text" name="trigger" value="${event['trigger']|h}"></input>
-
-%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
-<script>
-var triggereditor = CodeMirror.fromTextArea(document.getElementById("triggerbox"), {
-    lineNumbers: true,
-    mode: "python",
-    matchBrackets: true,
-    theme: "${config['cm-theme']}",
-
-  });
-triggereditor.setSize("99%","2.5ex");
-
-//Limit to one line, thanks Tigran Saluev of Stack Overflow for the code
-triggereditor.on("beforeChange", function(instance, change) {
-    var newtext = change.text.join("").replace(/\n/g, ""); // remove ALL \n !
-    change.update(change.from, change.to, [newtext]);
-    return true;
-});
-</script>
+<input class="pythoncode event-trigger-edit-box" id="triggerbox" type="text" name="trigger" value="${event['trigger']|h}"
+%if not pages.canUserDoThis("/admin/modules.edit"):
+            disabled=1\
 %endif
+></input>
 
-<%!
-def get_time(t):
-  try:
-      return scheduling.get_next_run(t) or 0
-  except Exception as e:
-      return 0
-
-def get_rrule(t):
-  try:
-      return scheduling.get_schedule_string_info(t)
-  except Exception as e:
-      return ""
-%>
 %if event['trigger'].startswith("!time"):
-<p style="font-size:90%">Next Run for "${event['trigger'][5:]|h}" (After ${unitsofmeasure.strftime(time.time())|h}):
-${unitsofmeasure.strftime(get_time(event['trigger']))|h}<br>RRule string: ${get_rrule(event['trigger'])|h}</p>
+%try:
+<p style="font-size:90%">Next Run for "${event['trigger'][5:]|h}":
+${unitsofmeasure.strftime(newevt.dt_to_ts(newevt.EventReferences[module,name].nextruntime,newevt.EventReferences[module,name].tz))|h}</p>
+%except Exception as e:
+${e}
+%endtry
 %endif
 <p style="display:none" id="rrule">Next Run: <span id="rrulespan"></span></p>
 
@@ -180,6 +180,9 @@ ${unitsofmeasure.strftime(get_time(event['trigger']))|h}<br>RRule string: ${get_
             checked="yes"
             %endif
          %endif
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
        ></input>Do the action repeatedly while the trigger is true<br>
        Do the action at most every:
            <input type="number"  name="ratelimit" step=0.01
@@ -188,6 +191,9 @@ ${unitsofmeasure.strftime(get_time(event['trigger']))|h}<br>RRule string: ${get_
          %else:
             value="0"
          %endif
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
        ></input>seconds. Does not affect poll rate(To avoid missing short events). <br>
         <%
         priority = defaultdict(str)
@@ -197,7 +203,11 @@ ${unitsofmeasure.strftime(get_time(event['trigger']))|h}<br>RRule string: ${get_
         else:
             priority["interactive"] = 'selected="selected"'
         %>
-       Polling Priority(to reduce CPU usage, use the lowest possible rate):<select name="priority">
+       Polling Priority(to reduce CPU usage, use the lowest possible rate):<select name="priority"
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
+        >
         <option value="realtime" ${priority['realtime']}>Realtime(as fast as possible)</option>
         <option value="interactive" ${priority['interactive']}>Interactive(no noticable delay in response)</option>
         <option value="high" ${priority["high"]}>High(response within a second)</option>
@@ -217,25 +227,33 @@ you may need to use the global keyword. You may also need to use the global keyw
 </b>
 </p>
 
-<textarea id="actionbox" name="action" rows=50 class="pythoncode">${event["action"]|h}</textarea>
+<textarea id="actionbox" name="action" rows=50 class="pythoncode"
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
+>${event["action"]|h}</textarea>
 
-%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
+%if using_js_editor:
+<div id="monacoactionbox" style="width:100%;height:30em;border:1px solid grey"></div>
 <script>
-var editor = CodeMirror.fromTextArea(document.getElementById("actionbox"), {
-    lineNumbers: true,
-    mode: "python",
-    matchBrackets: true,
-    theme: "${config['cm-theme']}",
-  indentUnit:4,
-  tabMode: 'spaces',
-  extraKeys: {
- "Ctrl-F": "findPersistent",
- "Cmd-F": "findPersistent"
- }
-  }
+	require(['vs/editor/editor.main'], function() {
+		actioneditor = monaco.editor.create(document.getElementById('monacoactionbox'), {
+			value: document.getElementById("actionbox").value,
+			language: 'python',
+            insertSpaces: true,
+            renderIndentGuides: true,
+	        fontSize: 12,
+            scrollBeyondLastLine: false,
+%if not pages.canUserDoThis("/admin/modules.edit"):
+            readOnly:true
+%endif
+		});
+        add_actions(actioneditor);
 
-  );
-editor.setSize("99%","40em")
+	});
+
+//Hide the box, it's jut there to subit the data from the actual editor
+document.getElementById("actionbox").style="display:none;";
 </script>
 %endif
 

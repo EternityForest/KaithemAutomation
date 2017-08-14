@@ -359,8 +359,3 @@ def strftime(*arg):
         d = datetime.datetime.utcfromtimestamp(time.time()).replace(tzinfo=pytz.utc)
 
     return tz.normalize(d.astimezone(tz)).strftime(auth.getUserSetting(pages.getAcessingUser(),'strftime'))
-    try:
-        "Format a time according to the time-format option in the configuration file"
-        return time.strftime(config['time-format'], *arg)
-    except:
-         return time.strftime("%A, %B %d, %Y at %I:%M:%S %p %Z", *arg)

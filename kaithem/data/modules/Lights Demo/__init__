@@ -1,0 +1,26 @@
+continual: true
+enable: true
+once: true
+priority: interactive
+rate-limit: 0.0
+resource-type: event
+trigger: 'True'
+versions: {}
+
+#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
+---
+#This code runs once when the event loads. It also runs when you save the event during the test compile
+#and may run multiple times when kaithem boots due to dependancy resolution
+__doc__=''
+
+module.link = kaithem.widget.APIWidget()
+
+class u(kaithem.lights.Universe):
+    def onFrame(self):
+        module.link.send([int(i) for i in self.values[1:4]])
+
+f = kaithem.lights.fixture("DemoFixture",[('red','red'),('green','green'),('blue','blue')])
+f.assign('TestUniverse', 1)
+module.universe = u("TestUniverse",5)
+---
+pass

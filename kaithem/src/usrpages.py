@@ -23,6 +23,23 @@ from .config import config
 
 errors = {}
 
+
+@util.lrucache(50)
+def lookup(module,args):
+    resource_path = [i.replace("\\","\\\\").replace("/","\\/") for i in args]
+    m = _Pages[module]
+    if "/".join(resource_path) in m:
+        return _Pages[module]["/".join(resource_path)]
+
+    if "/".join(resource_path+['__index__']) in m:
+        return _Pages[module][ "/".join(resource_path+['__index__'])]
+
+    while resource_path:
+        resource_path.pop()
+        if "/".join(resource_path+['__default__']) in m:
+            return m["/".join(resource_path+['__default__']) ]
+    return None
+
 def url_for_resource(module,resource):
     s = "/pages/"
     s += util.url(module)
@@ -134,6 +151,8 @@ def removeOnePage(module,resource):
             if resource in _Pages[module]:
                     del _Pages[module][resource]
     gc.collect()
+    lookup.invalidate_cache()
+
 
 
 #Delete all __events in a module from the cache
@@ -141,6 +160,9 @@ def removeModulePages(module):
     #There might not be any pages, so we use the if
     if module in _Pages:
         del _Pages[module]
+    gc.collect()
+    lookup.invalidate_cache()
+
 
 #This piece of code will update the actual event object based on the event resource definition in the module
 #Also can add a new page
@@ -153,6 +175,7 @@ def updateOnePage(resource,module):
         #Get the page resource in question
         j = modules_state.ActiveModules[module][resource]
         _Pages[module][resource] = CompiledPage(j)
+        lookup.invalidate_cache()
 
 def makeDummyPage(resource,module):
         if module not in _Pages:
@@ -202,6 +225,8 @@ def getPagesFromModules():
                                 messagebus.postMessage('/system/notifications/errors',
                                                     "Page \""+m+"\" of module \""+i+
                                                     "\" may need attention")
+    lookup.invalidate_cache()
+
 
 #kaithem.py has come config option that cause this file to use the method dispatcher.
 class KaithemPage():
@@ -227,7 +252,7 @@ class KaithemPage():
         #Because of some bizzare wsgi thing i think.
         module=module.encode("latin-1").decode("utf-8")
         args = [i.encode("latin-1").decode("utf-8") for i in args]
-        self._headers(self.lookup(module,args))
+        self._headers(lookup(module,args))
         return ""
 
     def _headers(self,page):
@@ -242,26 +267,10 @@ class KaithemPage():
                 if cherrypy.request.headers['Origin'] in page.origins or '*' in page.origins:
                     cherrypy.response.headers['Access-Control-Allow-Origin'] = cherrypy.request.headers['Origin']
                 cherrypy.response.headers['Access-Control-Allow-Methods'] = x
-
-    def lookup(self,module,args):
-        resource_path = [i.replace("\\","\\\\").replace("/","\\/") for i in args]
-        m = _Pages[module]
-        if "/".join(resource_path) in m:
-            return _Pages[module]["/".join(resource_path)]
-
-        if "/".join(resource_path+['__index__']) in m:
-            return _Pages[module][ "/".join(resource_path+['__index__'])]
-
-        while resource_path:
-            resource_path.pop()
-            if "/".join(resource_path+['__default__']) in m:
-                return m["/".join(resource_path+['__default__']) ]
-
-        return None
-
+    
 
     def _serve(self,module,*args,**kwargs):
-        page = self.lookup(module,args)
+        page = lookup(module,args)
         if None==page:
             messagebus.postMessage("/system/errors/http/nonexistant", "Someone tried to access a page that did not exist in module %s with path %s"%(module,args))
             raise cherrypy.NotFound()

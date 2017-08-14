@@ -78,46 +78,6 @@ def get_rrule(s,start = None, after=None):
     if dt == None:
         return None
 
-def get_next_run(s,start = None, after=None,rr=None):
-    s = s.replace("every second",'every 1 seconds')
-    after = after or time.time()
-    if start==None:
-        start = datetime.datetime.now().replace(minute=0,second=0,microsecond=0)
-    r = recurrent.RecurringEvent()
-    dt = r.parse(s)
-
-    if 'DTSTART' in r.get_RFC_rrule():
-       raise ValueError("Values containing DSTART are likely to misbehave, consume CPU time, or work unpredictably and are not allowed. Avoid time specifiers that have a specific beginning date.")
-    if isinstance(dt,str):
-        if not rr:
-            rr = dateutil.rrule.rrulestr(r.get_RFC_rrule(),dtstart=start)
-
-        if after:
-            dt=rr.after(datetime.datetime.fromtimestamp(after))
-
-        else:
-            dt=rr.after(datetime.datetime.now())
 
 
-    tz = re.search(r"(\w\w+/\w+)",s)
 
-    if dt == None:
-        return None
-    if tz:
-        tz = dateutil.tz.gettz(tz.groups()[0])
-        if not tz:
-            raise ValueError("Invalid Time Zone")
-        EPOCH = datetime.datetime(1970, 1, 1, tzinfo=dateutil.tz.tzutc())
-        dt= dt.replace(tzinfo = tz)
-        offset = datetime.timedelta(seconds=0)
-
-    else:
-        EPOCH = datetime.datetime(1970, 1, 1)
-        offset = dateutil.tz.tzlocal().utcoffset(dt)
-
-    if sys.version_info < (3,0):
-        x= ((dt-EPOCH)-offset).total_seconds()
-    else:
-        x= ((dt-EPOCH)-offset)/datetime.timedelta(seconds=1)
-
-    return x

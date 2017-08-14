@@ -1,0 +1,1137 @@
+continual: true
+disabled: false
+enable: true
+once: true
+priority: realtime
+rate-limit: 0.0
+resource-type: event
+trigger: 'True'
+versions: {}
+
+#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
+---
+#This code runs once when the event loads. It also runs when you save the event during the test compile
+#and may run multiple times when kaithem boots due to dependancy resolution
+__doc__=''
+import time,array,random,weakref, os,threading,uuid,logging,serial,traceback,yaml,copy,json
+
+module.scenes = weakref.WeakValueDictionary()
+ 
+module.scenes_by_name = weakref.WeakValueDictionary()
+
+module.boards = []
+
+module.universes= weakref.WeakValueDictionary()
+module.lock = threading.RLock()
+boardsListLock = threading.Lock()
+
+module._activeScenes = []
+module.activeScenes = []
+
+module.runningTracks = weakref.WeakValueDictionary()
+
+class ObjPlugin():
+    pass
+kaithem.lights = ObjPlugin()
+
+module.controlValues = weakref.WeakValueDictionary()
+
+
+blendmodes = weakref.WeakValueDictionary()
+
+module.blendmodes = blendmodes
+
+class exp_blendmode():
+    "Ads random variation, basically a random time varying gel"
+    default_channel_value = 165
+    def __init__(self,scene):
+        self.scene = scene
+        self.affect = {}
+        self.ntt = 0
+        for i in self.scene.values:
+            self.affect[i] = sorted(self.scene.values[i].keys())
+        self.last = time.time()
+
+    
+    def frame(self,u,values):
+      for k,v in enumerate(self.affect[u]):
+          values[v] = ((values[v]**(self.scene.values[u][v]/100.0))/255.0**(self.scene.values[u][v]/100.0))*255
+blendmodes['gamma'] = exp_blendmode
+
+
+def getControlValue(cv,default=None):
+    "Return numbers as is, or resolve values in the form of Universe:3 to the current value from that universe "
+    if isinstance(cv,(float,int)):
+        return cv
+    else:
+        try:
+            cv = cv.split(":")
+            x = cv[1].split("*")
+            if len(x)> 1:
+                multiplier = float(x[1])
+            else:
+                multiplier = 1.0
+            return module.universes[cv[0]].values[int(x[0])]*multiplier
+        except Exception as e:
+            if not default is None:
+                return default
+            raise
+
+module.fixtures = weakref.WeakValueDictionary()
+fixtureschanged = {}
+
+class Fixture():
+    def __init__(self,name,channels=None):
+        """Represents a contiguous range of channels each with a defined role in one universe.
+           Each channel must be described by a (name, type, [arguments]) tuple, where type is one of:
+
+           red
+           green
+           blue
+           value
+           X 
+           Y
+           enum
+           bool
+           fine
+
+           The name must be unique per-fixture.
+           If a channel has the type "fine" it will be interpreted as the fine value of
+           the immediately preceding coarse channel, and should automatically get its value from the fractional part.
+           If the coarse channel is not the immediate preceding channel, use the first argument to specify a name of the coarse channel.
+
+           If the channel is enum, the first argument must be a list of (option_name, DMX_value) tuples.
+           If the channel is Bool, the first argument may be a (trueval,falseval) tuple, or else 0,255 is used.
+
+        
+        """
+        self.channels = channels or []
+        self.universe = None
+        self.startAddress = 0
+        with module.lock:
+            if name in module.fixtures:
+                raise ValueError("Name in Use")
+            else:
+                    module.fixtures[name]=self
+                    self.name=name
+
+    def assign(self,universe, channel):
+        with module.lock:
+            if self.universe and self.startAddress:
+                #Delete current assignments
+                for i in range(self.startAddress,self.startAddress+len(self.channels)):
+                    if i in module.universes[self.universe].channels:
+                        if module.universes[self.universe].channels[i] is self:
+                            del module.universes[self.universe].channels[i]
+
+            if not universe in module.universes:
+                    return
+            #2 separate loops, first is just to check, so that we don't have half-completed stuff
+            for i in range(channel,channel+len(self.channels)):
+                if i in module.universes[universe].channels:
+                    if module.universes[universe].channels[i]:
+                        raise ValueError("channels would overlap with "+module.universes[universe].channels[i].name)
+
+            for i in range(channel,channel+len(self.channels)):
+                module.universes[universe].channels[i]= self
+            self.universe = universe
+            self.startAddress= channel
+            global fixtureschanged
+            module.universes[universe].channelsChanged()
+            fixtureschanged = {}
+
+class Universe():
+    def __init__(self, name,count=512):
+        for i in ":/[]()*\\`~!@#$%^&*=+|{}'\";<>.,":
+            if i in name:
+                raise ValueError("Name cannot contain special characters except _")
+        self.name = name
+        self.channels = {}
+        self.groups ={}
+        self.values = [0.0]*count
+        self.count = count
+        #Maps fine channel numbers to coarse channel numbers
+        self.fine_channels = {}
+        #Used for the caching
+        self.highest_static_layer_last_frame = (0,0)
+        module.universes[name] =self
+
+        #flag to apply all scenes, even ones not marked as neding rerender
+        self.full_rerender = False
+        
+        #This is the priority, started of the "highest" layer that has ever been applied to the universe
+        #since resetting it to 0. It allows us to not re-layer a scene if we don't have to, saving a bit of power
+        #self.layer = (0,0)     
+        self.prerendered_layer= (0,0)
+
+        #A copy of the state of the universe just after prerendered_layer was rendered, so we can go back
+        #and start from there without rerendering lower layers.
+
+        self.prerendered_data= [0.0]*count
+        
+        #Maybe there might be an iteration error. But it's just a GUI convienence that
+        #A simple refresh solves, so ignore it.
+        try:
+            for i in module.boards:
+                module.boards[i].pushUniverses()
+        except Exception as e:
+            print(e)
+        
+        #Deal with fixtures in this universe that aren't actually attached to this object yet.
+        for i in range(0,5):
+            try:
+                for i in module.fixtures:
+                    if module.fixtures[i].universe==self.name:
+                        module.fixtures[i].assign(module.fixtures[i].universe,module.fixtures[i].startAddress)
+            except RuntimeError:
+                #Should there be some kind of dict changed size problem, retry
+                time.sleep(0.1)
+                    
+    def channelsChanged(self):
+        with module.lock:
+            self.fine_channels = {}
+            for i in self.channels:
+                fixture = self.channels[i]
+                data = fixture.channels[i-fixture.startAddress]
+                if data[1]== "fine" and i>1:
+                    self.fine_channels[i]= i-1
+    
+    def reset_to_cache(self):
+        "Remove all changes since the prerendered layer."
+        self.values = self.prerendered_data[:]
+    
+    def save_prerendered(self, p, s):
+        self.prerendered_layer = (p,s)
+        self.prerendered_data  = self.values[:]
+    
+    def reset(self):
+        self.prerendered_layer = (0,0)
+        self.values = array.array("f",[0.0]*self.count)
+
+    
+    def preFrame(self):
+        "Frame preprocessor, uses fixture-specific info, generally only called under lock"
+        #Assign fine channels their value based on the coarse channel
+        for i in self.fine_channels:
+            self.values[i] = (self.values[self.fine_channels[i]]%1)*255
+
+
+    def onFrame(self):
+        pass
+
+class LightBoard():
+    def __init__(self, count=65536):
+        self.id = uuid.uuid4().hex
+        self.link = kaithem.widget.APIWidget("api_link")
+        self.link.require("lights/lightboard.admin")
+        self.link.echo=False
+        #mutable and immutable versions of the active scenes list.
+        self._activeScenes = []
+        self.activeScenes = []
+        
+        #This light board's scene memory, or the set of scenes 'owned' by this board.
+        self.scenememory = {}
+        
+        self.ext_scenes = {}          
+        
+        self.count = count
+        #Bound method weakref nonsense prevention
+        self.onmsg = lambda x,y: self._onmsg(x,y)
+        self.link.attach(self.onmsg)
+        self.lock = threading.Lock()
+        
+        sd = kaithem.registry.get("lightboard/scenes",{})
+        for i in sd:
+            self.scenememory[i] = Scene(id=i,**sd[i])
+
+    def loadSceneFile(self,data):
+        data = yaml.load(data)
+        with self.lock:
+            x = list(self.scenememory.keys())
+            for i in x:
+                try:
+                    self.scenememory[i].stop()
+                    try:
+                        del self.scenememory[i]
+                    except:
+                        pass
+                except:
+                    pass
+            for i in data:
+                self.scenememory[i] = Scene(id=i,**data[i])
+            
+            
+    def addScene(self,scene):
+        self.scenememory[scene.id] = scene
+    def rmScene(self,scene):
+        try:
+            del self.scenememory[scene.id]
+        except:
+            pass
+    def pushUniverses(self):
+        self.link.send(["universes",{i:len(module.universes[i].values) for i in module.universes}])   
+
+    def getScenes(self):
+        "Return serializable version of scenes list"
+        with self.lock:
+            sd = {}
+            for i in self.scenememory:
+                sd[i] = {   
+                             'name':self.scenememory[i].name,
+                             'alpha':self.scenememory[i].defaultalpha,
+                             'values':self.scenememory[i].values,
+                             'fadeout':self.scenememory[i].fadeout,
+                             'length':self.scenememory[i].length,
+                             'fadein':self.scenememory[i].fadein,
+                             'overlap':self.scenememory[i].overlap,
+                             'nextScene':self.scenememory[i].nextScene,
+                             'priority'  : self.scenememory[i].priority,
+                             'defaultActive': self.scenememory[i].defaultActive,
+                             'track':  self.scenememory[i].track,
+                             'blend':  self.scenememory[i].blend,
+                             'blendArgs': self.scenememory[i].blendArgs
+
+                            }
+            return sd
+    
+    def save(self):
+        sd = self.getScenes()
+        with self.lock:                               
+            kaithem.registry.set("lightboard/scenes",sd)
+    
+    def pushTracks(self):
+        self.link.send(['tracks',{i:module.runningTracks[i].name for i in module.runningTracks}])
+
+    def pushChannelNames(self,u):
+        if u in module.universes:
+            d = {}
+            for i in module.universes[u].channels:
+                fixture = module.universes[u].channels[i]
+                data= (fixture.name,)+fixture.channels[i-fixture.startAddress]
+                d[i]=data
+
+            self.link.send(['cnames',u,d])
+
+    def pushMeta(self,scene):
+        self.link.send(["scenemeta",scene,     
+                         {
+                          'ext':not scene in self.scenememory ,
+                          'fadeout':module.scenes[scene].fadeout, 
+                          'fadein':module.scenes[scene].fadein, 
+                          'dalpha':module.scenes[scene].defaultalpha,
+                          'alpha':module.scenes[scene].alpha,
+                          'length':module.scenes[scene].length,
+                          'nextScene':module.scenes[scene].nextScene,
+                          'overlap':module.scenes[scene].overlap,
+                          'active': module.scenes[scene].isActive(),
+                          'defaultActive': module.scenes[scene].defaultActive,
+                          'name': module.scenes[scene].name,
+                          'track': module.scenes[scene].track,
+                          'blend': module.scenes[scene].blend,
+                          'blendArgs': module.scenes[scene].blendArgs,
+                          'blendParams': module.scenes[scene].blendClass.parameters if hasattr(module.scenes[scene].blendClass,"parameters") else {},
+                          'priority': module.scenes[scene].priority,
+                          'doingHandoff': bool(module.scenes[scene].doingHandoff),
+                          'started':  module.scenes[scene].started
+
+
+                }
+
+                        ]
+                       )
+
+    def _onmsg(self,user,msg):
+        #Adds a light to a scene
+        try:
+            if msg[0] == "addscene":
+                s = Scene(msg[1])
+                self.scenememory[s.id]=s
+                self.link.send(["newscene",msg[1],s.id])
+
+            if msg[0] == "addmonitor":
+                s = Scene(msg[1],blend="monitor",priority=100)
+                self.scenememory[s.id]=s
+                self.link.send(["newscene",msg[1],s.id])   
+
+            if msg[0] == "clonescene":
+                s = Scene(msg[2])
+                self.scenememory[s.id]=s
+                s0 =module.scenes[msg[1]]
+                s.values = copy.deepcopy(s0.values)
+                s.fadein = s0.fadein
+                s.length = s0.length
+                s.defaultalpha = s0.defaultalpha
+                s.track = s0.track
+                s.setBlend(s0.blend)
+                s.blendArgs = s0.blendArgs.copy()
+
+                self.link.send(["newscene",msg[1],s.id])
+
+            if msg[0] == "getcnames":
+                self.pushChannelNames(msg[1])
+
+            if msg[0] == "namechannel":
+                if msg[3]:
+                    module.universes[msg[1]].channels[msg[2]] = msg[3]
+                else:
+                    del module.universes[msg[1]].channels[msg[2]]
+
+                
+            if msg[0] == "addsceneval":
+
+                if hasattr(module.scenes[msg[1]].blendClass,'default_channel_value'):
+                    val = module.scenes[msg[1]].blendClass.default_channel_value
+                else:
+                    val = 0
+                module.scenes[msg[1]].setValue(msg[2],msg[3],val)
+                s = self.scenememory[msg[1]]
+                self.link.send(["scenedata",msg[1],s.values])
+
+            if msg[0] == "rmsceneval":
+                del module.scenes[msg[1]].values[msg[2]][msg[3]]
+                s = self.scenememory[msg[1]]
+                self.link.send(["scenedata",msg[1],s.values])  
+
+            if msg[0] == "setscenelight":
+                module.universes[msg[1]][msg[2]]=float(msg[3])
+
+            if msg[0] == "gsd":
+                s = module.scenes[msg[1]]
+                self.link.send(["scenedata",msg[1],s.values])
+                self.pushMeta(msg[1])
+
+            if msg[0] == "gasd":
+                with self.lock:
+                    self.pushUniverses()
+                    for i in self.scenememory:
+                        s = self.scenememory[i]
+                        self.link.send(["scenedata",i,s.values])
+                        self.pushMeta(i)
+                    for i in self.ext_scenes:
+                        s = self.ext_scenes[i]
+                        self.link.send(["scenedata",i,s.values])
+                        self.pushMeta(i)
+
+                    for i in module.activeScenes:
+                        #Tell clients about any changed alpha values and stuff.
+                        if not i.id in self.scenememory:
+                            self.pushMeta(i.id)
+
+
+            #There's such a possibility for an iteration error if universes changes.
+            #I'm not going to worry about it, this is only for the GUI list of universes.
+            if msg[0] == "getuniverses":
+                self.pushUniverses()
+            if msg[0] == "ssv":
+                module.scenes[msg[1]].setValue(msg[2],msg[3],msg[4])
+                self.link.send(["ssv",msg[1],msg[2],msg[3],msg[4]])
+
+            if msg[0] == "setalpha":
+                module.scenes[msg[1]].setAlpha(msg[2])
+                
+            if msg[0] == "setdalpha":
+                module.scenes[msg[1]].setAlpha(msg[2],sd=True)
+                
+            if msg[0] == "setfadein":
+                try:
+                    v=float(msg[2])
+                except:
+                    v=msg[2]
+                module.scenes[msg[1]].fadein=v
+                self.pushMeta(msg[1])
+                
+            if msg[0] == "setdefaultactive":
+                module.scenes[msg[1]].defaultActive=bool(msg[2])
+                self.pushMeta(msg[1])
+                
+            if msg[0] == "setlength":
+                try:
+                    v=float(msg[2])
+                except:
+                    v=msg[2][:256]
+                module.scenes[msg[1]].length=v
+                self.pushMeta(msg[1])
+                               
+            if msg[0] == "setoverlap":
+                module.scenes[msg[1]].overlap=msg[2]
+                self.pushMeta(msg[1])
+
+            if msg[0] == "setnext":
+                module.scenes[msg[1]].nextScene= msg[2][:1024]
+                self.pushMeta(msg[1])
+            if msg[0] == "settrack":
+                module.scenes[msg[1]].setTrack(msg[2][:256])
+                self.pushMeta(msg[1])
+            if msg[0] == "setblend":
+                module.scenes[msg[1]].setBlend(msg[2])
+            if msg[0] == "setblendarg":
+                module.scenes[msg[1]].setBlendArg(msg[2],msg[3])
+            if msg[0] == "setfadeout":
+                try:
+                    v=float(msg[2])
+                except:
+                    v=msg[2][:256]
+                module.scenes[msg[1]].fadeout = v
+                self.pushMeta(msg[1])
+                
+            if msg[0] == "setpriority":
+                module.scenes[msg[1]].setPriority(msg[2])  
+
+            if msg[0] == "setscenename":
+                module.scenes[msg[1]].setName(msg[2])  
+                   
+            if msg[0] == "del":
+                module.scenes[msg[1]].stop()
+                self.delscene(msg[1])
+                
+            if msg[0] == "go":
+                module.scenes[msg[1]].go()
+                self.pushMeta(msg[1])
+                
+            if msg[0] == "gobyname":
+                module.scenes_by_name[msg[1]].go()
+                self.pushMeta(module.scenes_by_name[msg[1]].id)
+                
+            if msg[0] == "stopbyname":
+                module.scenes_by_name[msg[1]].stop()
+                self.pushMeta(msg[1])
+                
+            if msg[0] == "togglebyname":
+                if module.scenes_by_name[msg[1]].isActive():
+                    module.scenes_by_name[msg[1]].stop()
+                else:
+                    module.scenes_by_name[msg[1]].go()
+                self.pushMeta(msg[1])
+                
+            if msg[0] == "stop":
+                module.scenes[msg[1]].stop()
+                self.pushMeta(msg[1])
+
+                
+            if msg[0] == "end":
+                module.scenes[msg[1]].end()
+            if msg[0] == "next":
+                try:
+                    module.runningTracks[msg[1]].end()
+                except:
+                    pass
+
+            if msg[0] == "stoptrack":
+                try:
+                    module.runningTracks[msg[1]].stop()
+                except:
+                    pass                   
+        except Exception as e:
+            print(msg,traceback.format_exc(8))
+            
+    def setChannelName(self,id,name="Untitled"):
+        self.channelNames[id]=name
+        
+    def delscene(self,sc):
+        i=None
+        with self.lock:
+            if sc in self.scenememory:
+                i = self.scenememory.pop(sc)
+        if i:   
+             self.link.send(["del",i.id])  
+
+
+    def guiPush(self):
+        with self.lock:
+            for i in self.scenememory:
+                #Tell clients about any changed alpha values and stuff.
+                if not self.id in self.scenememory[i].hasNewInfo:
+                    self.pushMeta(i)
+                    self.scenememory[i].hasNewInfo[self.id]=False
+
+                #special case the monitor scenes.
+                if self.scenememory[i].blend=="monitor" and self.id not in self.scenememory[i].valueschanged:
+                    self.scenememory[i].valueschanged[self.id]=True
+                    self.link.send(["scenedata",i,self.scenememory[i].values])
+                    
+            for i in module.activeScenes:
+                #Tell clients about any changed alpha values and stuff.
+                if not self.id in i.hasNewInfo:
+                    self.pushMeta(i.id)
+                    i.hasNewInfo[self.id]=False
+
+def applyLayer(universe, uvalues,scene):
+    data = scene.effectiveValues or scene.values
+    sceneuniverse = data[universe]
+    if scene.blend =="normal":
+        for k,v in sceneuniverse.items():
+            uvalues[k] = (uvalues[k]*(1-scene.alpha)) +  (v*(scene.alpha))
+    elif scene.blend == "HTP":
+            for k,v in sceneuniverse.items():
+                uvalues[k] = max(uvalues[k], v*(scene.alpha))
+    elif scene.blend == "inhibit":
+            for k,v in sceneuniverse.items():
+                uvalues[k] = min(uvalues[k], v*(scene.alpha))
+    elif scene.blend == "gel" or scene.blend=="multiply":
+            for k,v in sceneuniverse.items():
+                if scene.alpha:
+                    #precompute constants
+                    c= 255/scene.alpha
+                    uvalues[k] = (uvalues[k]*(1-scene.alpha)) + (uvalues[k]*v)/c
+    elif scene.blend == "monitor":
+        for k,v in sceneuniverse.items():
+            sceneuniverse[k] = uvalues[k]
+        scene.valueschanged = {}
+
+    elif scene._blend:
+        #Values is mutable, the function mutates it
+        scene._blend.frame(universe,uvalues)
+
+
+def pre_render():
+    "Reset all universes to either the all 0s background or the cached layer, depending on if the cache layer is still valid"
+    #Here we find out what universes can be reset to a cached layer and which need to be fully rerendered.
+    changedUniverses = {}
+    to_reset ={}
+    universes = module.universes
+    #Important to reverse, that way scenes that need a full reset come after and don't get overwritten
+    for i in reversed(module.activeScenes):
+        if i.visible:
+            for u in i.values:
+                if u in universes:
+                    universe = universes[u]
+                    universe.highest_static_layer_this_frame = (0,0)
+                    if i.rerender:
+                        if ((i.priority,i.started) <= universe.prerendered_layer):
+                            to_reset[u]=1
+                        else:
+                            #We are stacking on another layer or changing the top layer. We don't need
+                            #To rerender the entire stack, we just start from the prerendered_layer
+                            #Set the universe to the state it was in just after the prerendered layer was rendered.
+                            #Since the values are mutable, we need to set this back every frame
+
+                            #Don't overwrite a request to reset the entire thing
+                            if not to_reset.get(u,0)==1:
+                                to_reset[u]=2
+    for u in universes:
+        if universes[u].full_rerender:
+            to_reset[u]=1
+
+    for u in to_reset:
+        if to_reset[u]==1:
+            universes[u].reset()
+            changedUniverses[u]=(0,0)
+        else:
+            universes[u].reset_to_cache()         
+    return changedUniverses
+def render(t=None):
+    changedUniverses = pre_render()
+  
+    t = t or time.time()
+  
+    #Remember that scenes get rendered in ascending priority order here
+    for i in module.activeScenes:
+        if i.visible:
+            #We want to set this False early because a lot of things
+            #can set it back to true, but also a lot of things need to check it
+            #so we copy it.
+            rerender_this_frame = i.rerender
+            data =i.effectiveValues or i.values
+
+            i.rerender = False
+
+            #We don't need to call render() if the frame is a static scene and the opacity
+            #and all that is the same, we can just re-layer it on top of the values
+            if rerender_this_frame or (time.time()-i.started)>i.length:
+                i.render()
+
+            #Loop over universes the scene affects
+            for u in data:
+                if not u in module.universes:
+                    continue
+                
+                if rerender_this_frame or ((i.priority,i.started) >= module.universes[u].prerendered_layer) or module.universes[u].full_rerender:
+                    changedUniverses[u]=(i.priority, i.started)
+                    if not u in module.universes:
+                        continue
+                    
+                    universe = module.universes[u]
+                    applyLayer(u, universe.values, i)
+                    
+                    #If we aren't going to rerender something, we can save the current position as that universe's
+                    #Background state.
+
+                    #We don't use rerender_this_frame, because what we're interested in is if anything set it to True,
+                    #making us have to rerender it next frame, defeating the entire purpose of the cache.
+
+                    #This is a bizzare runtime optimization that takes the data from last frame about what the highest
+                    #cacheable layer is, and saves that exact layer if it's still around, but only of it doesn't need rerendering.
+                    if not i.rerender and module.universes[u].highest_static_layer_last_frame==(i.priority,i.started):
+                        module.universes[u].save_prerendered(*changedUniverses[u])
+
+
+                    if i.rerender:
+                        if module.universes[u].highest_static_layer_this_frame:
+                            #Copy it and set to none as a flag that we already found it
+                            module.universes[u].highest_static_layer_last_frame = module.universes[u].highest_static_layer_this_frame
+                            module.universes[u].highest_static_layer_this_frame = None
+                    else:
+                        #If we're still looking for the highest purely static layer that we can cache
+                        if module.universes[u].highest_static_layer_this_frame:
+                            module.universes[u].highest_static_layer_this_frame = max((i.priority,i.started), module.universes[u].highest_static_layer_this_frame)
+
+    for i in changedUniverses:
+        try:
+            if i in module.universes:
+                module.universes[i].preFrame()
+                module.universes[i].onFrame()
+   
+        except:
+            raise
+    for i in module.universes:
+        module.universes[i].full_rerender  =False
+    changedUniverses={}
+
+    
+class Scene():
+    "An objecting representing one scene"
+    def __init__(self,name=None, values=None, active=False, length=0, alpha=1, fadein=0,fadeout=0,priority= 50,
+                 visible=True, blend="normal",id=None,overlap=0, nextScene=None,track=None,defaultActive=False,blendArgs=None):
+        if name and name in module.scenes_by_name:
+            raise RuntimeError("Cannot have 2 scenes sharing a name")
+
+        #Place to stash a blend object for new blending modes
+        self._blend = None
+        self.blendClass = None
+        self.alpha = alpha if defaultActive else 0
+        self.active = False
+        self.defaultalpha = alpha
+        self._value_changelog = []
+        self.name = name
+        self.values = values or {}
+        self.effectiveValues = None
+        #This time will be used until the end of the fade in when it gets set to None as the
+        #effective sort time.      
+        self.effective_start = None
+        self.fadein = fadein
+        self.length = length
+        self.fadein = fadein
+        self.fadeout = fadeout
+        self.priority = priority
+        self.visible = visible
+        #Used by blend modes
+        self.blendArgs = blendArgs or {}
+        self.setBlend(blend)
+        self.defaultActive = False
+        self.launchedNext = False
+        #True if we are still "active" but only to be a background for another scene coming in
+        self.doingHandoff = False
+        #weakref to scene we are taking over from if any
+        self.takingOverFrom=None
+        #This determines when to start the next scene, if there is one.
+        #It is how many seconds before the end of this scene to start it
+        self.overlap = overlap
+        #Only one scene with any one track that isn't None can be active at once
+        self.track = track
+        #Allows specifying another scene to happen when this one ends, but not if it is
+        #stopped manually.
+        self.nextScene = nextScene
+
+        #Used to indicate that the most recent frame has changed something about the scene
+        #Metadata that GUI clients need to know about.
+        self.hasNewInfo = {}
+        self.valueschanged = {}
+        self.useSmoothFade = True
+        
+        #Set to true every time the alpha value changes or a scene value changes
+        #set to false at end of rendering
+        self.rerender = False
+        
+        #Last time the scene was started. Not reset when stopped
+        self.started = 0
+        
+        self.id = id or uuid.uuid4().hex
+        if name:
+               module.scenes_by_name[self.name] = self
+        if not name:
+            name = self.id
+        module.scenes[self.id] = self
+
+        if active:
+            self.go()
+            if isinstance(active, float):
+                self.started = time.time()-active
+    
+    def setupBlendArgs(self):
+        if hasattr(self.blendClass,"parameters"):
+            for i in self.blendClass.parameters:
+                if not i in self.blendArgs:
+                    self.blendArgs[i] = self.blendClass.parameters[i][3]
+                
+    def flatten(self,v1,a1,v2,a2,a3):
+        """Given the old value and opacity fo reach of two layer channels, plus the new opacity, return new value
+           in the flattened layer
+        """
+        l1 =(v1*a1)
+        return l1*(1-a2) + v2*a2
+
+    def freezeEffectiveState(self,prevScene):
+        "If we are ading in from another scene, create the effective values and set alpha to create the same effect as the combination of us and the old"
+        
+        #Stack opacities. All of these were derived using wxmaxima, and I don't really understand them.
+        #The starting point was two scenes on a black background, how to make one scene equivalent to the combination.
+        #new_opacity = self.alpha+prevScene.alpha*(1-self.alpha)
+        self.rerender = True
+        new_opacity = 1-(1-self.alpha)*(1-prevScene.alpha)
+        opacity_divisor= (self.alpha+prevScene.alpha)*new_opacity
+        ev = {}
+        prevdata = prevScene.values or prevScene.effectiveValues    
+
+        for u in self.values:
+            ev[u] = ev.get(u,{})
+            for i in self.values[u]:
+                if u in prevdata and i in prevdata[u]:
+                    ev[u][i]= self.flatten(prevdata[u][i],prevScene.alpha, self.values[u][i],self.alpha,new_opacity)
+                else:
+                    ev[u][i]= (self.alpha *prevdata[u][i])/new_opacity
+        for u in prevdata:
+            ev[u] = ev.get(u,{})
+            for i in prevdata[u]:
+                if u in self.values and i in self.values[u]:
+                    pass
+                else:
+                    ev[u][i]= (prevScene.alpha *self.values[u][i])/new_opacity
+        self.alpha = new_opacity
+        self.effectiveValues = ev
+
+    def go(self,t=None,nohandoff=False):
+        with module.lock:
+            if self in module.activeScenes and not self.doingHandoff:
+                return
+            if self.blend in blendmodes:
+                self._blend = blendmodes[self.blend](self)
+            self.rerender = True
+            self.effectiveValues = None
+            if self.doingHandoff:
+                self.effective_start = self.effective_start or self.started
+            self.takingOverFrom = None
+            try:
+                if self.track and self.track in module.runningTracks:
+                    if not nohandoff and getControlValue(self.fadein,0):
+                        #Note: their handoff may change our alpha
+                        module.runningTracks[self.track].doHandoff(self)
+                    else:
+                        module.runningTracks[self.track].stop()
+                if self.track:
+                    module.runningTracks[self.track] = self
+            except Exception as e:
+                print(e)
+            self.startingAlpha = self.alpha
+            self.doingHandoff = None
+            self.hasNewInfo = {}
+            t =t or time.time()
+            self.started = t
+
+            self.manualAlpha = False
+            if not getControlValue(self.fadein,0):
+                self.alpha = self.defaultalpha
+            if not self in module._activeScenes:
+                module._activeScenes.append(self)
+            module._activeScenes = sorted(module._activeScenes,key=lambda k: (k.priority,k.effective_start or k.started))
+            module.activeScenes = module._activeScenes[:]
+            self.launchedNext = False
+            self.active =True
+        
+        
+    def isActive(self):
+        return self.active
+    
+    def setPriority(self,p):
+        self.hasNewInfo = {}
+        self.priority = p
+        with module.lock:
+            module._activeScenes = sorted(module._activeScenes,key=lambda k: (k.priority,k.effective_start or k.started))
+            module.activeScenes = module._activeScenes[:] 
+ 
+    def setName(self,name):
+        if self.name=="":
+            raise ValueError("Cannot name scene an empty string")
+        if not isinstance(name, str):
+            raise TypeError("Name must be str")
+        with module.lock:
+            if name in module.scenes_by_name:
+                raise ValueError("Name in use")
+            if self.name in module.scenes_by_name:
+                del module.scenes_by_name[self.name]
+            self.name = name
+            module.scenes_by_name[name]=self
+            self.hasNewInfo = {}
+
+    def stop(self):
+        with module.lock:
+            #No need to set rerender
+            self._blend =None
+            self.hasNewInfo = {}
+            self.doingHandoff = None
+            self.effectiveValues = None
+            self.takingOverFrom = None
+
+            #The renderer needs some way to know something has changed
+            for i in self.values:
+                if i in module.universes:
+                    module.universes[i].full_rerender = True
+                
+            if self in module._activeScenes:
+                if self.track:
+                    try:
+                        if module.runningTracks[self.track] == self:
+                            del module.runningTracks[self.track]
+                    except:
+                        pass
+
+                module._activeScenes.remove(self)
+                module.activeScenes = module._activeScenes[:]
+
+            self.alpha = 0
+            self.active = False
+    def end(self):
+        "This function ends the current scene by skipping ahead to either the start of the next scene or the start of the fadeout"
+        l = getControlValue(self.length,0)-max(self.overlap, getControlValue(getControlValue(self.fadeout,0),0))
+        self.started = time.time()-l
+        
+    def setAlpha(self,val,sd=False):
+        self.rerender = True
+        if val<=0:
+            self.stop()
+        else:
+            if not self.isActive():
+                self.go()
+            self.manualAlpha = True
+            self.alpha = val
+            if sd:
+                self.defaultalpha = val
+        self.hasNewInfo = {}
+
+    def setTrack(self,track):
+        with module.lock:
+            #Remove listing under old track         
+            if self.track in module.runningTracks:   
+                try:
+                    x = module.runningTracks.pop(self.track)
+                    #Put back in case if was a race condition thing?
+                    if not x == self:
+                        module.runningTracks[self.track]=x
+                except Exception as e:
+                    print (e)
+            self.track = track
+
+
+            #Stop one of the tracks if there's already a track by that name running and we are also running.
+            #Whichever one is newer wins.
+            if self.isActive:
+                if module.runningTracks[self.track]:
+                    x = module.runningTracks[self.track]
+                    if not x==self:
+                        if not (self.priority, self.started)>(x.priority,x.started):
+                            self.stop()
+                        else:
+                            x.stop()
+                            module.runningTracks[self.track] = self
+
+
+    def setBlend(self,blend):
+        blend=str(blend)[:256]
+        self.blend= blend
+        if blend in blendmodes:
+            if self.isActive():
+                self._blend = blendmodes[blend](self)
+            self.blendClass = blendmodes[blend]
+            self.setupBlendArgs()
+        else:
+            self.blendArgs  ={}
+            self._blend = None
+            self.blendClass = None
+        self.rerender = True
+        self.hasNewInfo = {}
+
+    def setBlendArg(self,key,val):
+        #serializableness check
+        json.dumps(val)
+        if not hasattr(self.blendClass,"parameters") or not key in self.blendClass.parameters:
+            raise KeyError("No such param")
+
+        if val is None:
+            del self.blendArgs[key]
+        else:
+            if self.blendClass.parameters[key][1] == "number":
+                val= float(val)
+            self.blendArgs[key] = val
+        self.rerender = True
+        self.hasNewInfo = {}
+
+    def setValue(self,universe,channel,value):
+        self.rerender = True
+        reset = False
+        #TODO: threadsafe?
+        if not universe in self.values:
+            self.values[universe] = {}
+            reset = True
+        if not channel in self.values[universe]:
+            reset = True
+
+        self.values[universe][channel] = value
+        self.valueschanged = {}
+        #For blend modes that don't like it when you
+        #change the list of values without resetting
+        if reset:
+            self.setBlend(self.blend)
+        
+    def clearValue(self,universe,channel):
+        self.rerender = True
+        try:
+            del self.values[universe][channel]
+            if not self.values[universe]:
+                x = self.values[universe]
+                del self.values[universe]
+                #Put it back if there was a write from another thread. Prob
+                #still not totally threadsafe
+                if x:
+                    self.values[universe] =x
+        except:
+            pass
+        self.valueschanged = {}
+        
+    def doHandoff(self,sceneObj):
+        self.rerender= True
+        if self.doingHandoff:
+            raise RuntimeError("Already handing off")
+        sceneObj.takingOverFrom = weakref.ref(self)
+        if self.takingOverFrom:
+            try:
+                #Don't stop the scene we are supposed to hand off to
+                if not self.takingOverFrom() is sceneObj: 
+                    self.freezeEffectiveState(self.takingOverFrom())
+                    self.takingOverFrom().stop()
+                else:
+                    #If their alpha was 1, the current fade algorithm would think that it
+                    #was already complete. The tiny difference is a hack to make it work
+                    if sceneObj.alpha >0.999:
+                        sceneObj.setAlpha(0.99)
+
+            except Exception as e:
+                print("Handoff err",e)            
+        self.takingOverFrom = None
+        self.doingHandoff = (time.time(), sceneObj,1-((1-self.alpha)*(1-sceneObj.alpha)))
+        self.hasNewInfo = {}
+
+    
+    def render(self,t=None):
+        "Calculate the current alpha value, handle stopping the scene and spawning the next one"
+        t =t or time.time()
+        effectiveLength = getControlValue(self.length,0)
+        if self.doingHandoff:
+            self.rerender = True
+            #nextscene = module.scenes_by_name[self.doingHandoff[1]]
+            nextscene = self.doingHandoff[1]
+            
+            if not nextscene.isActive():
+                self.stop()
+                return
+     
+            if not nextscene.manualAlpha:
+                #The current timeline position normalized to 0 to 1 where 1 is the end of the transition
+                relposition = (t-self.doingHandoff[0])/getControlValue(nextscene.fadein,0)
+            else:
+                relposition = nextscene.alpha/nextscene.defaultalpha
+            #Calculate the opacity we+the next scene should be at. That's a fade between our and their opacity
+            #over the period of their fade in.
+            combinedStartingOpacity = self.doingHandoff[2]
+         
+            #Bad awful hack alert to avoid an edge case od fading in a scene already at 1
+            opacity = (combinedStartingOpacity*(1-relposition)) + (nextscene.defaultalpha*relposition)
+            #We want opacity = 1-((1-ourOpacity)*(1-theirOpacity))?
+            try:
+                self.alpha = -((opacity-nextscene.alpha)/(nextscene.alpha-1))
+                self.hasNewInfo = {}
+            except Exception as e:
+                self.alpha =0
+                self.hasNewInfo = {}
+
+            if self.alpha == 0 or (not nextscene.manualAlpha and (t-nextscene.started)>getControlValue(nextscene.fadein,0)):
+                self.stop()
+                
+
+            
+        else:
+            t = t-self.started
+            #Do the overlap thing.
+            if self.nextScene and t>(effectiveLength-self.overlap) and effectiveLength:
+                if self.nextScene in module.scenes_by_name and not self.launchedNext:
+                    module.scenes_by_name[self.nextScene].go()
+                    self.launchedNext =True
+                    if self.useSmoothFade:
+                        if getControlValue(module.scenes_by_name[self.nextScene].fadein,0):
+                            self.doingHandoff = (t+self.started, module.scenes_by_name[self.nextScene],self.alpha)
+                        else:
+                            self.doingHandoff[1].takingOverFrom = None
+                            self.stop()
+                            
+            if t>getControlValue(self.fadein,0):
+                self.effective_start = None
+                
+            if not self.doingHandoff:   
+                if effectiveLength>0 and effectiveLength<t:
+                    self.stop()
+
+                if not self.manualAlpha:
+                    #We do the actual full stop elsewhere.
+                    if t>effectiveLength and effectiveLength:
+                        self.alpha = 0
+                        self.hasNewInfo = {}
+                        return
+                        
+                    fadein = getControlValue(self.fadein,0)
+                    if t<fadein:
+                        self.rerender = True
+                        self.alpha = (t/fadein)*self.defaultalpha + (1-(t/fadein))*self.startingAlpha
+                        if getControlValue(self.fadein,0):
+                            self.hasNewInfo = {}
+                        return
+                    else:
+                        self.effective_start = None
+                        if not self.alpha==self.defaultalpha:
+                            self.rerender = True
+                            self.alpha = self.defaultalpha
+
+                    if t>(effectiveLength-getControlValue(self.fadeout,0)) and effectiveLength:
+                        self.rerender = True
+                        self.alpha = (1-((t-(effectiveLength-getControlValue(self.fadeout,0)))/getControlValue(self.fadeout,0))) *self.defaultalpha
+                        self.hasNewInfo = {}
+                        return
+
+
+
+lastrendered = 0   
+module.board = LightBoard()
+module.boards.append(weakref.ref(module.board))
+
+module.Scene = Scene
+
+kaithem.lights.board = module.board
+kaithem.lights.Scene = module.Scene
+kaithem.lights.scenes = module.scenes
+kaithem.lights.scenesByName = module.scenes_by_name
+kaithem.lights.Universe = Universe
+kaithem.lights.blendmodes = blendmodes
+kaithem.lights.fixture = Fixture
+module.controluniverse = Universe("control")
+
+render()
+---
+render()
+global lastrendered
+if time.time() -lastrendered > 1/24.0:
+    with boardsListLock:
+        for i in module.boards:
+            b = i()
+            if b:
+                b.guiPush()
+            del b
+    lastrendered = time.time()
+        
+

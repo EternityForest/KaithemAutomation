@@ -98,10 +98,14 @@ class StateMachine(modules.VirtualResource):
         return "<State machine at %d in state %s, entered %d ago>"%(id(self),self.state,time.time()-self.enteredState)
 
     def __html_repr__(self):
-        return "State machine at %d in state %s, entered %s ago%s"%(
-        id(self),
+        return """<small>State machine object at %s<br></small>
+            <b>State:</b> %s<br>
+            <b>Entered</b> %s ago at %s<br>
+            %s"""%(
+        hex(id(self)),
         self.state,
         unitsofmeasure.formatTimeInterval(time.time()-self.enteredState,2),
+        unitsofmeasure.strftime(self.enteredState),
         ('\n' if self.description else '')+self.description
         )
 
@@ -212,9 +216,9 @@ class StateMachine(modules.VirtualResource):
             self.time_offset = t-pos
             self._configureTimer()
 
-    def addState(self,name, rules = {}, enter=None, exit=None):
+    def addState(self,name, rules = None, enter=None, exit=None):
         with self.lock:
-            self.states[name] = {"rules": rules, 'enter':enter, 'exit':exit}
+            self.states[name] = {"rules": rules or {}, 'enter':enter, 'exit':exit}
 
     def setTimer(self,state,time, dest):
         with self.lock:
