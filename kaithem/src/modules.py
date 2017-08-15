@@ -336,18 +336,27 @@ kaithemobj.kaithem.resource = ResourceAPI()
 def loadResource(fn):
     try:
         with open(fn,"rb") as f:
-            d = f.read().decode("utf-8")
+            try:
+                d = f.read().decode("utf-8")
+                #This regex is meant to handle any combination of cr, lf, and trailing whitespaces
+                f = re.split("\r?\n---[ |\t]*?\r?\n",d)
+                r = yaml.load(f[0])
+            except:
+                #This is a workaround for when dolphin puts .directory files in directories and gitignore files
+                #and things like that. Also ignore attempts to load from filedata
+                #I'd like to add more workarounds if there are other programs that insert similar crap files.
+                if "/.git" in fn or "/.gitignore" in fn or "__filedata__" in fn or fn.endswith(".directory"):
+                    return None
+                else:
+                    raise
+            if not r or not 'resource-type' in r:
+                if "/.git" in fn or "/.gitignore" in fn or "__filedata__" in fn or fn.endswith(".directory"):
+                    return None
+                else:
+                    print(fn)
 
-        #This is a workaround for when dolphin puts .directory files in directories and gitignore files
-        #and things like that. Also ignore attempts to load from filedata
-        #I'd like to add more workarounds if there are other programs that insert similar crap files.
-        if not "resource-type" in d:
-            if "/.git" in fn or "/.gitignore" in fn or "__filedata__" in fn or fn.endswith(".directory"):
-                return None
 
-        #This regex is meant to handle any combination of cr, lf, and trailing whitespaces
-        f = re.split("\r?\n---[ |\t]*?\r?\n",d)
-        r = yaml.load(f[0])
+
 
         #Catch new style save files
         if len(f)>1:

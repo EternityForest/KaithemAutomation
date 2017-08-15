@@ -214,7 +214,7 @@ from src import widgets
 
 logger.info("Loaded core python code")
 from src.config import config
-
+import src.config as cfgmodule
 if not config['host'] == 'default':    
     bindto = config['host']
 else:
@@ -222,6 +222,11 @@ else:
         bindto = '127.0.0.1'
     else:
         bindto = '::'
+
+#limit nosecurity to localhost
+if cfgmodule.argcmd.nosecurity == 1:
+    bindto = '127.0.0.1'
+
 cherrypy.process.servers.check_port(bindto, config['http-port'], timeout=1.0)
 cherrypy.process.servers.check_port(bindto, config['https-port'], timeout=1.0)
 logger.info("Ports are free")

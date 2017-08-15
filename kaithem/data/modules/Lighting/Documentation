@@ -22,154 +22,185 @@ __doc__= ""
 %>
 <h2>Kaithem Lighting System Help</h2>
 <div class="sectionbox">
-    <p>The Kaithem lighting system provides convenient abstractions for lights, scenes, fading and related concepts,
-        plus a very basic websocket based light board. Right now it re-renders constantly, and assumes that
-        your lights are constantly changing, but will be optimized for low CPU in the future and is already pretty reasonable.</p>
-    
+    <p>The Kaithem lighting system provides convenient abstractions for lights, scenes, fading and related concepts, plus a
+        very basic websocket based light board. Right now it re-renders constantly, and assumes that your lights are constantly
+        changing, but will be optimized for low CPU in the future and is already pretty reasonable.</p>
+
     <p>This is beta software, usable but may have interface changes in the future.</p>
 
     <h3>Universes</h3>
 
-    <p>A universe is a set of lighting channels with values represented as 32 bit floats from 0 to 255.
-        They have more or less the same meaning as DMX values, however you can use any transport you 
-    want to actually transmit them to lights.</p>
+    <p>A universe is a set of lighting channels with values represented as 32 bit floats from 0 to 255. They have more or less
+        the same meaning as DMX values, however you can use any transport you want to actually transmit them to lights.</p>
 
 
     <h3>Scenes</h3>
-    <p>You don't set the values in a universe directly. Instead, you use a "scene", which is more like a Layer in
-        an image editing program than a traditional lighting scene. There is no limit to the number of scenes you can have running at once.</p>
-    
-    <p>Scenes have a list of "channels" they affect, that can be from any number of universes, a priority, and an opacity.
-     Higher priority scenes "cover up" lower priority scenes, and their opacity is used to specify how "transparent" they are.</p>
+    <p>You don't set the values in a universe directly. Instead, you use a "scene", which is more like a Layer in an image editing
+        program than a traditional lighting scene. There is no limit to the number of scenes you can have running at once.</p>
 
-     <p>Scenes have a "blending mode" that controls how they mix with scenes below them. The default is "normal" for alpha blending, but HTP
-         (Similar to traditional highest-takes-priority on standard lighting consoles), and "gel"(a multiply effect that simulates a virtual color filter), and
-         "flicker"(The higher a value in this scene, the more flickering is applied. Flickering uses an algorithm designed to look like real candle flickering) is available.
-     </p>
+    <p>Scenes have a list of "channels" they affect, that can be from any number of universes, a priority, and an opacity. Higher
+        priority scenes "cover up" lower priority scenes, and their opacity is used to specify how "transparent" they are.</p>
 
-     
+    <p>Scenes have a "blending mode" that controls how they mix with scenes below them. The default is "normal" for alpha blending,
+        but HTP (Similar to traditional highest-takes-priority on standard lighting consoles), and "gel"(a multiply effect
+        that simulates a virtual color filter), and "flicker"(The higher a value in this scene, the more flickering is applied).
+        Flickering uses an algorithm designed to look like real candle flickering.
+    </p>
+
+
 
     <p>If two scenes have the same priority, the scene started most recently goes "on top".</p>
 
     <p>Scenes are fully transparent to all channels they don't affect.</p>
 
-    <p>Scenes support fading in and out, and automatically triggering another scene. When activated, a scene will fade in from 0 opacity up to it's "default"
-        opacity over a number of seconds controlled by fadein.</p>
-        
-    <p>Every scene will stop itself after it's length parameter in seconds, 
-        unless length is 0. If the fadeout parameter is not 0, the scene will smoothly fade out starting before it's end time by a duration in seconds controlled
-        by fadeout.</p>
+    <p>Scenes support fading in and out, and automatically triggering another scene. When activated, a scene will fade in from
+        0 opacity up to it's "default" opacity over a number of seconds controlled by fadein.</p>
 
-    <p>A scene will automatically activate it's "next scene" when it ends, if it has one. If this next scene has a fadein time, the renderer will make a smooth
-        transition by keeping the previous scene active in a "handoff" state until the next scene is fully faded in. There's a bit more to the algorithm
-        than that, which is explained below.</p>
+    <p>Every scene will stop itself after it's length parameter in seconds, unless length is 0. If the fadeout parameter is
+        not 0, the scene will smoothly fade out starting before it's end time by a duration in seconds controlled by fadeout.</p>
 
-    <p>Because of the rendering algorithm, you may notice some glitches when fading in an out from scenes with different priorities if you trigger a new fade before the
-        old one is complete.</p>
+    <p>A scene will automatically activate it's "next scene" when it ends, if it has one. If this next scene has a fadein time,
+        the renderer will make a smooth transition by keeping the previous scene active in a "handoff" state until the next
+        scene is fully faded in. There's a bit more to the algorithm than that, which is explained below.</p>
 
-    
-    <p>Some parameters of scenes can be "control values", that are controlled by a value of a universe. For example, you can set fadein to ControlUniverse:5*0.2,
-        and the fade period will be 0.2* whatever value ControlUniverse:3 currently has. Only fadein, fadeout, and length can be used this way.</p>
+    <p>Because of the rendering algorithm, you may notice some glitches when fading in an out from scenes with different priorities
+        if you trigger a new fade before the old one is complete.</p>
+
+
+    <p>Some parameters of scenes can be "control values", that are controlled by a value of a universe. For example, you can
+        set fadein to ControlUniverse:5*0.2, and the fade period will be 0.2* whatever value ControlUniverse:3 currently
+        has. Only fadein, fadeout, and length can be used this way.</p>
 
     <p>This feature allows you to adjust the speed on the fly to match the BPM of music and the like.</p>
 
-    <p>A universe called control with 512 channels is created by default for this purpose. It doesn't do anything, but you can use it to control parameters of scenes.</p>
+    <p>A universe called control with 512 channels is created by default for this purpose. It doesn't do anything, but you can
+        use it to control parameters of scenes.</p>
 
 
     <h3>Tracks</h3>
 
-    <p>Scenes can have a "track" parameter. If a scene has a track, any other scene with that same track value will be stopped as soon as it is activated. If
-        the new scene has a fadein parameter, a the same handoff algorithm will be used as for the nextScene parameter.</p>
+    <p>Scenes can have a "track" parameter. If a scene has a track, any other scene with that same track value will be stopped
+        as soon as it is activated. If the new scene has a fadein parameter, a the same handoff algorithm will be used as
+        for the nextScene parameter.</p>
 
     <p>The combination of tracks and fades allows you to create shows in a similar manner to traditional light board.</p>
 
 
     <h3>Blending Modes</h3>
-    <p>This module supports multiple "blend modes" which have the same meaining as in image editing. HTP blendmode takes the highest value, simulating traditional
-        lighting consoles.
+    <p>This module supports multiple "blend modes" which have the same meaining as in image editing. HTP blendmode takes the
+        highest value, simulating traditional lighting consoles.
     </p>
 
-    <p>Gamma allows you to gamma-correct the output for linear fading on cheap DMX lights</p>
+    <p>Gamma allows you to gamma-correct the output for linear fading on cheap DMX lights.</p>
+
+    <p>Flicker simulates a candle or flame type flicker across all the channels in the scene. The higher the value, the more
+        flicker. Flicker is an effect that modifies the colors applied by scenes below it(Set the priority higher), so if
+        there are no other scenes affecting a channel the value is 0.</p>
+
+    <p> Flicker attempts to detect RGB triples(Consecutive channels), and they will all flicker together although possibly by
+        different amounts.</p>
+
+    <p>You can control the parameters of the flicker algorithm, such as windiness, gustiness, lowpass filtering, etc, from the
+        web UI.</p>
+
+    <p>Vary adds a random variation to layers. Think of it as a randomly varying gel effect. You can control the interval and
+        amount of variation. As with flicker, only channels added to the scene are affected, the higher the value, the more
+        variation. RGB triples are not detected, all channels are independant.</p>
 
     <h3>Monitor Scenes</h3>
-    <p>A monitor scene is a special scene used in the web UI lightboard to see the current state of a set of channels. Whatever channels you add to it will be updated
-        in realtime. They only show contributions from layers below themselves, and only update while running.</p>
+    <p>A monitor scene is a special scene used in the web UI lightboard to see the current state of a set of channels. Whatever
+        channels you add to it will be updated in realtime. They only show contributions from layers below themselves, and
+        only update while running.</p>
 
     <h3>The Light Board</h3>
-    <p>The module provides a GUI light board based on websockes that allows you to create scenes, start and stop them, and bind them to keypresses.</p>
+    <p>The module provides a GUI light board based on websockes that allows you to create scenes, start and stop them, and bind
+        them to keypresses.</p>
 
-    <p>Only actively running scenes and scenes created via the board will be shown in the list. Only scenes created via the board can be edited.</p>
+    <p>Only actively running scenes and scenes created via the board will be shown in the list. Only scenes created via the
+        board can be edited.</p>
+
+    <p>The light board depends on a web resource provided by the jslibs module, and won't load unless you have a compatible
+        version loaded. jslibs uses semantic versioning. The light board is tested with v0.56.0</p>
 
     <h3>Scenes API</h3>
-    <p>To create a scene, simply use kaithem.lights.Scene(name,*a,**kw). If there are duplicates, all references by name will point to the new scene, but the old
-        scene will still be usable. Scenes stop existing if you don't keep a reference to them.
+    <p>To create a scene, simply use kaithem.lights.Scene(name,*a,**kw). If there are duplicates, all references by name will
+        point to the new scene, but the old scene will still be usable. Scenes stop existing if you don't keep a reference
+        to them.
     </p>
-    
-    <p>Every scene has a dict  of dicts called values, indexed by universe and then by individual value number.</p>
-    
+
+    <p>Every scene has a dict of dicts called values, indexed by universe and then by individual value number.</p>
+
     <p>To set a value, use scene.setValue(universe, channel, value), for example ssetValue("DMX", 45, 235).</p>
-    
+
     <p>To make a channel stop affecting a value, use scene.clearValue(universe, channel)</p>
-    
+
     <p>To activate and stop scenes, use scene.go() and scene.stop()</p>
-    
+
     <h3>Fixtures</h3>
-    <p>To show more information in the GUI besides just channel names, you can use the Fixture API. Fixtures are very simple. The kaithem.lights.fixure constructor takes
-        two parameters. name, which must be a unique string, and channels, which must be a list of tuples. The first tuple represents whatever channel is at the start address.</p>
+    <p>To show more information in the GUI besides just channel names, you can use the Fixture API. Fixtures are very simple.
+        The kaithem.lights.fixure constructor takes two parameters. name, which must be a unique string, and channels, which
+        must be a list of tuples. The first tuple represents whatever channel is at the start address.</p>
 
-    <p>Tuples must be (name, type,*args), where name is unique per-fixture and type is one of (red, green, blue, value fine, X, Y)</p>
+    <p>Tuples must be (name, type,*args), where name is unique per-fixture and type is one of (red, green, blue, value fine,
+        X, Y)</p>
 
-    <p>Fine values indicate that they should recieve a value based on the fractional part of the preceding value. This happens automatically, at the end of rendering
-        each frame, overriding any value that may have been assigned in a scene. It therefore might not show up in monitor scenes.</p>
+    <p>Fine values indicate that they should recieve a value based on the fractional part of the preceding value. This happens
+        automatically, at the end of rendering each frame, overriding any value that may have been assigned in a scene. It
+        therefore might not show up in monitor scenes.</p>
 
-    <p>To actually use a fixture, you must assign it a start address in a universe with fixture.assign("universe", addr).
-        After doing so, the GUI will show the appropriate information if you add the channels to a universe.</p>
+    <p>To actually use a fixture, you must assign it a start address in a universe with fixture.assign("universe", addr). After
+        doing so, the GUI will show the appropriate information if you add the channels to a universe.</p>
 
-    
+
     <h3>Fading Algorithm</h3>
-    <p>Scenes can have a "next scene" that is automatically triggered at the end of a scene(the property scene.nextScene may be the name of another scene).
-        Scenes may also have a "track". Only one scene per track can be active. Starting a new scene ends the previous scene on that track</p>
-    
-    <p>In either case, a smooth fade algorithm will be used that simulates a traditional "one scene at a time" console. The fade algorithm
-        correctly handles triggering a new scene while a fade is in progress. The math for this was derived using wxmaxima.</p>
+    <p>Scenes can have a "next scene" that is automatically triggered at the end of a scene(the property scene.nextScene may
+        be the name of another scene). Scenes may also have a "track". Only one scene per track can be active. Starting a
+        new scene ends the previous scene on that track</p>
 
-    <p>The way it works is we calculate a linear gradient of opacity from the previous scene to the new scene, and we linearly fade in the new
-        scene while changing the opacity of the old scene so that the combined opacity of the two follows that gradient.</p>
-    
-    <p>If we try to fade from scene b to c when b is already fading in from a, we freeze the state of a+b into a combined virtual scene that looks the same as both
-        of them, and until the fade completes, scene b will act as that virtual scene</p>
+    <p>In either case, a smooth fade algorithm will be used that simulates a traditional "one scene at a time" console. The
+        fade algorithm correctly handles triggering a new scene while a fade is in progress. The math for this was derived
+        using wxmaxima.</p>
 
-    <p>If we try to fade back from b to a while b is fading in from b, we temporarily lower the priority of a, which would normally jump to the top and cause 
-        a visible jump, to match it's old position.</p>
-    
-    
+    <p>The way it works is we calculate a linear gradient of opacity from the previous scene to the new scene, and we linearly
+        fade in the new scene while changing the opacity of the old scene so that the combined opacity of the two follows
+        that gradient.</p>
+
+    <p>If we try to fade from scene b to c when b is already fading in from a, we freeze the state of a+b into a combined virtual
+        scene that looks the same as both of them, and until the fade completes, scene b will act as that virtual scene</p>
+
+    <p>If we try to fade back from b to a while b is fading in from b, we temporarily lower the priority of a, which would normally
+        jump to the top and cause a visible jump, to match it's old position.</p>
+
+
     <h3>Light Boards</h3>
-    <p>The module provides a GUI light board that is fairly self documenting. It allows creating, editing, and triggering scenes via the web.</p>
-    
-    <p>Keybindings can only be saved to the browsers localstorage, or copied and pasted directly. Scenes themselves may be saved either by uploading and downloading
-        or by making the current state the default on boot.</p>
-    
-    <p>Note that the the save and the make default functions only affect scenes "owned" by the light board, i.e. those created via the web interface and
-        not via code.</p>
-        
-    
-    
-    
+    <p>The module provides a GUI light board that is fairly self documenting. It allows creating, editing, and triggering scenes
+        via the web.</p>
+
+    <p>Keybindings can only be saved to the browsers localstorage, or copied and pasted directly. Scenes themselves may be saved
+        either by uploading and downloading or by making the current state the default on boot.</p>
+
+    <p>Note that the the save and the make default functions only affect scenes "owned" by the light board, i.e. those created
+        via the web interface and not via code.</p>
+
+
     <h3>Sending Data to Hardware</h3>
 
-     <p>To use the lighting subsystem, you'll want to subclass kaithem.lights.Universe. Your universe subclass must handle onFrame, which takes no arguments, but should trigger the object
-        to transmit the new values. Frames will happen at the kaithem max frame rate, which by default is 60fps.</p>
+    <p>To use the lighting subsystem, you'll want to subclass kaithem.lights.Universe. Your universe subclass must handle onFrame,
+        which takes no arguments, but should trigger the object to transmit the new values. Frames will happen at the kaithem
+        max frame rate, which by default is 60fps. Rendering happens in its own thread via a realtime event.</p>
+
+    <p>Rendering is totally synchronous, and assumes that whatever code you use to handle new values returns quickly.</p>
 
 
-        <p>Values are found in universe.values and will either be an array of floats, or in the future numpy arrays may be auto-detected and 
-    used if available. Assume that universe.values is an iterable of N values.</p>
+    <p>Values are found in universe.values and will either be an array of floats, or in the future numpy arrays may be auto-detected
+        and used if available. Assume that universe.values is an iterable of N floating point values.</p>
 
     <p>Universes are 0 indexed, however the first channel in the DMX protocol is referred to as one. To avoid any confusion,
         When transmitting DMX, universe value 1 should map to DMX channel 1 and Universe 0 should be unused.</p>
-    
-    
+
+
     <p>The constructor for a universe is universe(name,count=65536,channelNames={}), however the constructor may ignore count.</p>
-    
+
     <p>channelNames can be an dict mapping channel numbers to friendly names that will be shown in the GUI.</p>
 
 

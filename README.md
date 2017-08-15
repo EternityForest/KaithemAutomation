@@ -25,7 +25,7 @@ make detecting intrusions and errors easier.
 ![Settings](screenshots/settings.jpg)
 
 Kaithem includes a library for common automation tasks such as file IO, timing, executing functions in the background, formatting numbers, and more. It also includes a library of basic example modules, including a
-web-based ligthing console.
+web-based lighting console.
 
 ![Lighting control](screenshots/lighting.jpg)
 
@@ -37,8 +37,24 @@ Installation
 
 All dependancies should already be included. Huge thanks to the developers of all the great libraries used!!!
 
-git clone or download somewhere and run python3 kaithem/kaithem.py
+git clone or download somewhere and run `python3 kaithem/kaithem.py`
 You can also use python2 if you really want.
+
+If you want to build a debian package, install fakeroot, go to helpers/debianpackaging and do
+`fakeroot sh build.sh`
+
+The resulting package will be in helpers/debianpackaging/build and should run on any architecture.
+The package will create a new user kaithem that belongs to i2c, spi, video, serial, audio, and a few other
+groups. The reason for those permissions is to access hardware on the raspberry pi, but you can
+modify helpers/debianpackaging/package/postinst to change this pretty easily.
+
+It will also generate a self signed certificate at /var/lib/kaithem/ssl. You can either follow the trust-on-first-use principle and add an exception, or replace /var/lib/kaithem/ssl/certificate.cert and
+certificate.key with your own trusted certificate.
+
+You will be prompted to create an admin password when installing.
+
+If installing, you might want to look through kaithem/data/default-configuration.yaml, it contains
+comments explaining the various config options.
 
 Command line options:
     "-c"
@@ -48,6 +64,20 @@ Command line options:
     "-p"
         Specify a port. Overrides all config stuff.
 
+    "--nosecurity 1"
+        Disables all security.Any user can do anything even over plain HTTP. 
+        Since 0.58.1, Also causes the server process to bind to 127.0.0.1, 
+        preventing access from other machines.
+
+        Because kaithem lets admin users run arbitrary python code,
+        processes running as other users on the same machine
+        essentially have full ability to impersonate you. This is really
+        only useful for development on fully trusted machines, or for lost
+        password recovery in secure environments.
+
+    "--nosecurity 2"
+        Similar, except allows access from other machines on the network. Not
+        recommended outside of a virtual machine.
 
 Then point your browser to https://localhost:<yourport> (default port is 8001)
 and log in with Username:admin Password:password
