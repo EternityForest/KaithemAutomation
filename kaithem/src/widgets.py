@@ -275,7 +275,7 @@ class Widget():
 
     def send(self,value):
         "Send a value to all subscribers without invoking the local callback"
-        d = json.dumps([[self.uuid,value]])
+        d = json.dumps([[self.uuid,value]], separators=(',',':'))
         for i in self.subscriptions_atomic:
             self.subscriptions_atomic[i](d)
             

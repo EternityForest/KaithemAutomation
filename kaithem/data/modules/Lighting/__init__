@@ -225,6 +225,9 @@ class Universe():
 
 class LightBoard():
     def __init__(self, count=65536):
+
+        self.newDataFunctions = []
+
         self.id = uuid.uuid4().hex
         self.link = kaithem.widget.APIWidget("api_link")
         self.link.require("lights/lightboard.admin")
@@ -244,7 +247,7 @@ class LightBoard():
         self.link.attach(self.onmsg)
         self.lock = threading.Lock()
         
-        sd = kaithem.registry.get("lightboard/scenes",{})
+        sd = kaithem.registry.get("lightboard/default_setupV2",{})
         for i in sd:
             self.scenememory[i] = Scene(id=i,**sd[i])
 
@@ -316,33 +319,40 @@ class LightBoard():
 
             self.link.send(['cnames',u,d])
 
-    def pushMeta(self,scene):
-        self.link.send(["scenemeta",scene,     
+    def pushMeta(self,sceneid):
+        scene = module.scenes[sceneid]
+        self.link.send(["scenemeta",sceneid,     
                          {
-                          'ext':not scene in self.scenememory ,
-                          'fadeout':module.scenes[scene].fadeout, 
-                          'fadein':module.scenes[scene].fadein, 
-                          'dalpha':module.scenes[scene].defaultalpha,
-                          'alpha':module.scenes[scene].alpha,
-                          'length':module.scenes[scene].length,
-                          'nextScene':module.scenes[scene].nextScene,
-                          'overlap':module.scenes[scene].overlap,
-                          'active': module.scenes[scene].isActive(),
-                          'defaultActive': module.scenes[scene].defaultActive,
-                          'name': module.scenes[scene].name,
-                          'track': module.scenes[scene].track,
-                          'blend': module.scenes[scene].blend,
-                          'blendArgs': module.scenes[scene].blendArgs,
-                          'blendParams': module.scenes[scene].blendClass.parameters if hasattr(module.scenes[scene].blendClass,"parameters") else {},
-                          'priority': module.scenes[scene].priority,
-                          'doingHandoff': bool(module.scenes[scene].doingHandoff),
-                          'started':  module.scenes[scene].started
+                          'ext':not sceneid in self.scenememory ,
+                          'dalpha':scene.defaultalpha,
+                          'alpha':scene.alpha,
+                          'active': scene.isActive(),
+                          'defaultActive': scene.defaultActive,
+                          'name':scene.name,
+                          'blend':scene.blend,
+                          'blendArgs': scene.blendArgs,
+                          'blendParams': scene.blendClass.parameters if hasattr(scene.blendClass,"parameters") else {},
+                          'priority': scene.priority,
+                          'started':  scene.started
+                }])
+                
+    def pushCueMeta(self,cueid):
+        cue = cues[cueid]
+        self.link.send(["cuemeta",cueid,     
+                         {'fadeout':cue.fadeout, 
+                          'fadein':cue.fadein, 
+                          'alpha':cue.alpha,
+                          'length':cue.length,
+                          'next':cue.nextCue,
+                          'name': cue.name,
+                          'scene': cue.scene().id                          
+                          }])
+    def pushCueData(self, cueid):
+        self.link.send(["cuedata",cues[cueid].id,cues[cueid].values])
 
-
-                }
-
-                        ]
-                       )
+    def pushCueList(self,scene):
+        s = module.scenes[msg[1]]
+        self.link.send(["scenecues",scene,{i:s.cues[i].id for i in s.cues.keys()}])
 
     def _onmsg(self,user,msg):
         #Adds a light to a scene
@@ -381,15 +391,13 @@ class LightBoard():
                     del module.universes[msg[1]].channels[msg[2]]
 
                 
-            if msg[0] == "addsceneval":
-
-                if hasattr(module.scenes[msg[1]].blendClass,'default_channel_value'):
-                    val = module.scenes[msg[1]].blendClass.default_channel_value
+            if msg[0] == "addcueval":
+                if hasattr(cues[msg[1]].scene().blendClass,'default_channel_value'):
+                    val = cues[msg[1]].scene().blendClass.default_channel_value
                 else:
                     val = 0
-                module.scenes[msg[1]].setValue(msg[2],msg[3],val)
-                s = self.scenememory[msg[1]]
-                self.link.send(["scenedata",msg[1],s.values])
+                cues[msg[1]].setValue(msg[2],msg[3],val)
+                self.pushCueData(msg[1])
 
             if msg[0] == "rmsceneval":
                 del module.scenes[msg[1]].values[msg[2]][msg[3]]
@@ -401,20 +409,28 @@ class LightBoard():
 
             if msg[0] == "gsd":
                 s = module.scenes[msg[1]]
-                self.link.send(["scenedata",msg[1],s.values])
+                self.link.send(["scenecues",msg[1],{i:s.cues[i].id for i in s.cues.keys()}])
                 self.pushMeta(msg[1])
+                for i in s.cues:
+                    self.pushCueMeta(s.cues[i].id)
+                    self.link.send(["cuedata",s.cues[i].id,s.cues[i].values])
+
+            if msg[0] == "getcuedata":
+                s = cues[msg[1]]
+                self.link.send(["cuedata",msg[1],s.values])
+                self.pushCueMeta(msg[1])
 
             if msg[0] == "gasd":
                 with self.lock:
                     self.pushUniverses()
                     for i in self.scenememory:
                         s = self.scenememory[i]
-                        self.link.send(["scenedata",i,s.values])
+                        self.link.send(["scenecues",i,{i:s.cues[i].id for i in s.cues.keys()}])
                         self.pushMeta(i)
-                    for i in self.ext_scenes:
-                        s = self.ext_scenes[i]
-                        self.link.send(["scenedata",i,s.values])
-                        self.pushMeta(i)
+                        for i in s.cues:
+                            self.pushCueMeta(s.cues[i].id)
+                            self.link.send(["cuedata",i,s.values])
+
 
                     for i in module.activeScenes:
                         #Tell clients about any changed alpha values and stuff.
@@ -426,8 +442,8 @@ class LightBoard():
             #I'm not going to worry about it, this is only for the GUI list of universes.
             if msg[0] == "getuniverses":
                 self.pushUniverses()
-            if msg[0] == "ssv":
-                module.scenes[msg[1]].setValue(msg[2],msg[3],msg[4])
+            if msg[0] == "scv":
+                cues[msg[1]].setValue(msg[2],msg[3],msg[4])
                 self.link.send(["ssv",msg[1],msg[2],msg[3],msg[4]])
 
             if msg[0] == "setalpha":
@@ -435,14 +451,21 @@ class LightBoard():
                 
             if msg[0] == "setdalpha":
                 module.scenes[msg[1]].setAlpha(msg[2],sd=True)
-                
+
+            if msg[0] == "addcue":
+                module.scenes[msg[1]].addCue(msg[2])
+
+            if msg[0] == "rmcue":
+                c = cues[msg[1]]
+                c.scene().rmCue(c.id)
+                         
             if msg[0] == "setfadein":
                 try:
                     v=float(msg[2])
                 except:
                     v=msg[2]
-                module.scenes[msg[1]].fadein=v
-                self.pushMeta(msg[1])
+                cues[msg[1]].fadein=v
+                self.pushCueMeta(msg[1])
                 
             if msg[0] == "setdefaultactive":
                 module.scenes[msg[1]].defaultActive=bool(msg[2])
@@ -453,30 +476,29 @@ class LightBoard():
                     v=float(msg[2])
                 except:
                     v=msg[2][:256]
-                module.scenes[msg[1]].length=v
-                self.pushMeta(msg[1])
+                cues[msg[1]].length=v
+                self.pushCueMeta(msg[1])
                                
             if msg[0] == "setoverlap":
                 module.scenes[msg[1]].overlap=msg[2]
                 self.pushMeta(msg[1])
 
             if msg[0] == "setnext":
-                module.scenes[msg[1]].nextScene= msg[2][:1024]
-                self.pushMeta(msg[1])
-            if msg[0] == "settrack":
-                module.scenes[msg[1]].setTrack(msg[2][:256])
-                self.pushMeta(msg[1])
+                cues[msg[1]].nextCue= msg[2][:1024]
+                self.pushCueMeta(msg[1])
+
             if msg[0] == "setblend":
                 module.scenes[msg[1]].setBlend(msg[2])
             if msg[0] == "setblendarg":
                 module.scenes[msg[1]].setBlendArg(msg[2],msg[3])
+
             if msg[0] == "setfadeout":
                 try:
                     v=float(msg[2])
                 except:
                     v=msg[2][:256]
-                module.scenes[msg[1]].fadeout = v
-                self.pushMeta(msg[1])
+                cues[msg[1]].fadeout = v
+                self.pushCueMeta(msg[1])
                 
             if msg[0] == "setpriority":
                 module.scenes[msg[1]].setPriority(msg[2])  
@@ -518,13 +540,7 @@ class LightBoard():
                 try:
                     module.runningTracks[msg[1]].end()
                 except:
-                    pass
-
-            if msg[0] == "stoptrack":
-                try:
-                    module.runningTracks[msg[1]].stop()
-                except:
-                    pass                   
+                    pass                
         except Exception as e:
             print(msg,traceback.format_exc(8))
             
@@ -542,6 +558,10 @@ class LightBoard():
 
     def guiPush(self):
         with self.lock:
+            for i in self.newDataFunctions:
+                i(self)
+            self.newDataFunctions = []
+
             for i in self.scenememory:
                 #Tell clients about any changed alpha values and stuff.
                 if not self.id in self.scenememory[i].hasNewInfo:
@@ -549,9 +569,9 @@ class LightBoard():
                     self.scenememory[i].hasNewInfo[self.id]=False
 
                 #special case the monitor scenes.
-                if self.scenememory[i].blend=="monitor" and self.id not in self.scenememory[i].valueschanged:
+                if self.scenememory[i].blend=="monitor" and self.scenememory[i].isActive() and self.id not in self.scenememory[i].valueschanged:
                     self.scenememory[i].valueschanged[self.id]=True
-                    self.link.send(["scenedata",i,self.scenememory[i].values])
+                    self.link.send(["cuedata",self.scenememory[i].cue.id, self.scenememory[i].cue.values])
                     
             for i in module.activeScenes:
                 #Tell clients about any changed alpha values and stuff.
@@ -562,21 +582,28 @@ class LightBoard():
 def applyLayer(universe, uvalues,scene):
     data = scene.effectiveValues or scene.values
     sceneuniverse = data[universe]
+
+    vals = scene.canvas.v2[universe]
+    alphas = scene.canvas.a2[universe]
+
     if scene.blend =="normal":
-        for k,v in sceneuniverse.items():
-            uvalues[k] = (uvalues[k]*(1-scene.alpha)) +  (v*(scene.alpha))
+        for k,v in enumerate(vals):
+            uvalues[k] = (uvalues[k]*(1-alphas[k]*scene.alpha)) +  (v*(scene.alpha))
+
     elif scene.blend == "HTP":
-            for k,v in sceneuniverse.items():
-                uvalues[k] = max(uvalues[k], v*(scene.alpha))
+        for k,v in enumerate(vals):
+            uvalues[k] = max(uvalues[k], v*(alphas[k]*scene.alpha))
+
     elif scene.blend == "inhibit":
-            for k,v in sceneuniverse.items():
-                uvalues[k] = min(uvalues[k], v*(scene.alpha))
+        for k,v in enumerate(vals):
+            uvalues[k] = min(uvalues[k], v*(alphas[k]*scene.alpha))
     elif scene.blend == "gel" or scene.blend=="multiply":
-            for k,v in sceneuniverse.items():
-                if scene.alpha:
-                    #precompute constants
-                    c= 255/scene.alpha
-                    uvalues[k] = (uvalues[k]*(1-scene.alpha)) + (uvalues[k]*v)/c
+        for k,v in enumerate(vals):
+            if scene.alpha:
+                #precompute constants
+                c= 255/scene.alpha
+                uvalues[k] = (uvalues[k]*(1-alphas[k]*scene.alpha)) + (uvalues[k]*v)/c
+                
     elif scene.blend == "monitor":
         for k,v in sceneuniverse.items():
             sceneuniverse[k] = uvalues[k]
@@ -623,6 +650,7 @@ def pre_render():
         else:
             universes[u].reset_to_cache()         
     return changedUniverses
+
 def render(t=None):
     changedUniverses = pre_render()
   
@@ -641,7 +669,7 @@ def render(t=None):
 
             #We don't need to call render() if the frame is a static scene and the opacity
             #and all that is the same, we can just re-layer it on top of the values
-            if rerender_this_frame or (time.time()-i.started)>i.length:
+            if rerender_this_frame or (i.cue.length and ((time.time()-i.enteredCue)>i.cue.length)):
                 i.render()
 
             #Loop over universes the scene affects
@@ -692,56 +720,106 @@ def render(t=None):
         module.universes[i].full_rerender  =False
     changedUniverses={}
 
+class FadeCanvas():
+    def __init__(self):
+        "Handles calculating the effect of one scene over a background. This doesn't do blend modes, it just interpolates."
+        self.v = {}
+        self.a = {}
+        self.v2 = {}
+        self.a2 = {}
+
+        for u in module.universes:
+            self.v[u] = [0]* len(module.universes[u].values)
+            self.a[u] = [0]* len(module.universes[u].values)
+            self.v2[u] = [0]* len(module.universes[u].values)
+            self.a2[u] = [0]* len(module.universes[u].values)
     
+    def paint(self,scene,fade):
+        for i in scene.values:
+            if i in self.v:
+                for j in scene.values[i]:
+                    self.v2[i][j]= self.v[i][j]*(1-fade) + fade*scene.values[i][j]
+                    self.a2[i][j]= self.a[i][j]*(1-fade) + fade*scene.alpha
+
+    def save(self):
+        self.v = self.v2
+        self.a = self.a2
+        self.v = {}
+        self.a = {}
+        for i in module.universes:
+            self.v[u] = [0]* len(module.universes[i].values)
+            self.a[u] = [0]* len(module.universes[i].values)
+
+cues =weakref.WeakValueDictionary()
+
+class Cue():
+    "A static set of values with a fade in and out duration"
+    def push(self):
+        for i in module.boards:
+            if len(i().newDataFunctions)<100:
+                i().newDataFunctions.append(lambda s:s.pushCueMeta(self.id))
+
+    def __init__(self,parent,name=None, values={}, alpha=1,fadein=0, fadeout=0, length=0,nextCue = None):
+        #This is so we can loop through them and push to gui
+        self.id = random.random()+time.time()
+        cues[self.id] =self
+        self.changed= {}
+        self.alpha = alpha
+        self.fadein =fadein
+        self.fadeout= fadeout
+        self.length = length
+        self.name = name
+        self.values = values
+        self.scene = weakref.ref(parent)
+        self.nextCue = nextCue
+        self.push()
+
+    def setValue(self,universe,channel,value):
+            self.scene().rerender = True
+            reset = False
+            #TODO: threadsafe?
+            if not universe in self.values:
+                self.values[universe] = {}
+                reset = True
+            if not channel in self.values[universe]:
+                reset = True
+            self.values[universe][channel] = value
+            #For blend modes that don't like it when you
+            #change the list of values without resetting
+            if reset:
+                self.scene().setBlend(self.scene().blend)
+
 class Scene():
     "An objecting representing one scene"
-    def __init__(self,name=None, values=None, active=False, length=0, alpha=1, fadein=0,fadeout=0,priority= 50,
-                 visible=True, blend="normal",id=None,overlap=0, nextScene=None,track=None,defaultActive=False,blendArgs=None):
+    def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50,
+                 visible=True, blend="normal",id=None, defaultActive=False,blendArgs=None):
+
         if name and name in module.scenes_by_name:
             raise RuntimeError("Cannot have 2 scenes sharing a name")
 
-        #Place to stash a blend object for new blending modes
+        #Only used for monitor scenes
+        self.valueschanged = {}
+        #Place to stash a blend object for new blending mode
         self._blend = None
         self.blendClass = None
         self.alpha = alpha if defaultActive else 0
         self.active = False
         self.defaultalpha = alpha
-        self._value_changelog = []
         self.name = name
         self.values = values or {}
-        self.effectiveValues = None
-        #This time will be used until the end of the fade in when it gets set to None as the
-        #effective sort time.      
-        self.effective_start = None
-        self.fadein = fadein
-        self.length = length
-        self.fadein = fadein
-        self.fadeout = fadeout
+        self.cues = {'default': Cue(self,"default",self.values)}
+        self.enteredCue = 0
+
         self.priority = priority
         self.visible = visible
         #Used by blend modes
         self.blendArgs = blendArgs or {}
         self.setBlend(blend)
         self.defaultActive = False
-        self.launchedNext = False
-        #True if we are still "active" but only to be a background for another scene coming in
-        self.doingHandoff = False
-        #weakref to scene we are taking over from if any
-        self.takingOverFrom=None
-        #This determines when to start the next scene, if there is one.
-        #It is how many seconds before the end of this scene to start it
-        self.overlap = overlap
-        #Only one scene with any one track that isn't None can be active at once
-        self.track = track
-        #Allows specifying another scene to happen when this one ends, but not if it is
-        #stopped manually.
-        self.nextScene = nextScene
 
         #Used to indicate that the most recent frame has changed something about the scene
         #Metadata that GUI clients need to know about.
         self.hasNewInfo = {}
-        self.valueschanged = {}
-        self.useSmoothFade = True
         
         #Set to true every time the alpha value changes or a scene value changes
         #set to false at end of rendering
@@ -761,85 +839,75 @@ class Scene():
             self.go()
             if isinstance(active, float):
                 self.started = time.time()-active
-    
+
+    def rmCue(self,cue):
+        if cue in cues:
+            id = cue
+            del self.cues[cues[cue].name]
+        elif cue in self.cues:
+            id = self.cues[cue].id
+            del self.cues[cue]
+        for i in module.boards:
+            if len(i().newDataFunctions)<100:
+                i().newDataFunctions.append(lambda s:s.link.send(["delcue",id]))
+
+    def pushCues(self):
+        for i in module.boards:
+            if len(i().newDataFunctions)<100:
+                i().newDataFunctions.append(lambda s:pushCueList(i.id))
+
+    def addCue(self,name,prev=None):
+        if name in self.cues:
+            raise RuntimeError("Cue would overwrite existing.")
+        self.cues[name]= Cue(self,name)
+        if prev and prev in self.cues:
+            self.cues[prev].nextCue= self.cues[name]
+
+        for i in module.boards:
+            if len(i().newDataFunctions)<100:
+                i().newDataFunctions.append(lambda s:s.pushCueMeta(self.cues[name].id))      
+
+    def gotoCue(self, cue):
+        self.cue = self.cues[cue]
+        self.enteredCue = time.time()
+
     def setupBlendArgs(self):
         if hasattr(self.blendClass,"parameters"):
             for i in self.blendClass.parameters:
                 if not i in self.blendArgs:
                     self.blendArgs[i] = self.blendClass.parameters[i][3]
                 
-    def flatten(self,v1,a1,v2,a2,a3):
-        """Given the old value and opacity fo reach of two layer channels, plus the new opacity, return new value
-           in the flattened layer
-        """
-        l1 =(v1*a1)
-        return l1*(1-a2) + v2*a2
-
-    def freezeEffectiveState(self,prevScene):
-        "If we are ading in from another scene, create the effective values and set alpha to create the same effect as the combination of us and the old"
-        
-        #Stack opacities. All of these were derived using wxmaxima, and I don't really understand them.
-        #The starting point was two scenes on a black background, how to make one scene equivalent to the combination.
-        #new_opacity = self.alpha+prevScene.alpha*(1-self.alpha)
-        self.rerender = True
-        new_opacity = 1-(1-self.alpha)*(1-prevScene.alpha)
-        opacity_divisor= (self.alpha+prevScene.alpha)*new_opacity
-        ev = {}
-        prevdata = prevScene.values or prevScene.effectiveValues    
-
-        for u in self.values:
-            ev[u] = ev.get(u,{})
-            for i in self.values[u]:
-                if u in prevdata and i in prevdata[u]:
-                    ev[u][i]= self.flatten(prevdata[u][i],prevScene.alpha, self.values[u][i],self.alpha,new_opacity)
-                else:
-                    ev[u][i]= (self.alpha *prevdata[u][i])/new_opacity
-        for u in prevdata:
-            ev[u] = ev.get(u,{})
-            for i in prevdata[u]:
-                if u in self.values and i in self.values[u]:
-                    pass
-                else:
-                    ev[u][i]= (prevScene.alpha *self.values[u][i])/new_opacity
-        self.alpha = new_opacity
-        self.effectiveValues = ev
 
     def go(self,t=None,nohandoff=False):
         with module.lock:
             if self in module.activeScenes and not self.doingHandoff:
                 return
+
+            self.canvas = FadeCanvas()
+            self.cue = self.cues['default']
+            if not self.cue.fadein:
+                self.fadePosition =1
+            else:
+                self.fadePosition =0
+
             if self.blend in blendmodes:
                 self._blend = blendmodes[self.blend](self)
+
             self.rerender = True
+
             self.effectiveValues = None
-            if self.doingHandoff:
-                self.effective_start = self.effective_start or self.started
-            self.takingOverFrom = None
-            try:
-                if self.track and self.track in module.runningTracks:
-                    if not nohandoff and getControlValue(self.fadein,0):
-                        #Note: their handoff may change our alpha
-                        module.runningTracks[self.track].doHandoff(self)
-                    else:
-                        module.runningTracks[self.track].stop()
-                if self.track:
-                    module.runningTracks[self.track] = self
-            except Exception as e:
-                print(e)
-            self.startingAlpha = self.alpha
-            self.doingHandoff = None
+
             self.hasNewInfo = {}
             t =t or time.time()
             self.started = t
 
             self.manualAlpha = False
-            if not getControlValue(self.fadein,0):
-                self.alpha = self.defaultalpha
+            self.alpha = self.defaultalpha
+
             if not self in module._activeScenes:
                 module._activeScenes.append(self)
-            module._activeScenes = sorted(module._activeScenes,key=lambda k: (k.priority,k.effective_start or k.started))
+            module._activeScenes = sorted(module._activeScenes,key=lambda k: (k.priority, k.started))
             module.activeScenes = module._activeScenes[:]
-            self.launchedNext = False
             self.active =True
         
         
@@ -850,7 +918,7 @@ class Scene():
         self.hasNewInfo = {}
         self.priority = p
         with module.lock:
-            module._activeScenes = sorted(module._activeScenes,key=lambda k: (k.priority,k.effective_start or k.started))
+            module._activeScenes = sorted(module._activeScenes,key=lambda k: (k.priority, k.started))
             module.activeScenes = module._activeScenes[:] 
  
     def setName(self,name):
@@ -872,28 +940,19 @@ class Scene():
             #No need to set rerender
             self._blend =None
             self.hasNewInfo = {}
-            self.doingHandoff = None
-            self.effectiveValues = None
-            self.takingOverFrom = None
+            self.canvas = None
 
             #The renderer needs some way to know something has changed
             for i in self.values:
                 if i in module.universes:
                     module.universes[i].full_rerender = True
-                
-            if self in module._activeScenes:
-                if self.track:
-                    try:
-                        if module.runningTracks[self.track] == self:
-                            del module.runningTracks[self.track]
-                    except:
-                        pass
 
-                module._activeScenes.remove(self)
-                module.activeScenes = module._activeScenes[:]
+            module._activeScenes.remove(self)
+            module.activeScenes = module._activeScenes[:]
 
             self.alpha = 0
             self.active = False
+
     def end(self):
         "This function ends the current scene by skipping ahead to either the start of the next scene or the start of the fadeout"
         l = getControlValue(self.length,0)-max(self.overlap, getControlValue(getControlValue(self.fadeout,0),0))
@@ -911,33 +970,6 @@ class Scene():
             if sd:
                 self.defaultalpha = val
         self.hasNewInfo = {}
-
-    def setTrack(self,track):
-        with module.lock:
-            #Remove listing under old track         
-            if self.track in module.runningTracks:   
-                try:
-                    x = module.runningTracks.pop(self.track)
-                    #Put back in case if was a race condition thing?
-                    if not x == self:
-                        module.runningTracks[self.track]=x
-                except Exception as e:
-                    print (e)
-            self.track = track
-
-
-            #Stop one of the tracks if there's already a track by that name running and we are also running.
-            #Whichever one is newer wins.
-            if self.isActive:
-                if module.runningTracks[self.track]:
-                    x = module.runningTracks[self.track]
-                    if not x==self:
-                        if not (self.priority, self.started)>(x.priority,x.started):
-                            self.stop()
-                        else:
-                            x.stop()
-                            module.runningTracks[self.track] = self
-
 
     def setBlend(self,blend):
         blend=str(blend)[:256]
@@ -969,22 +1001,6 @@ class Scene():
         self.rerender = True
         self.hasNewInfo = {}
 
-    def setValue(self,universe,channel,value):
-        self.rerender = True
-        reset = False
-        #TODO: threadsafe?
-        if not universe in self.values:
-            self.values[universe] = {}
-            reset = True
-        if not channel in self.values[universe]:
-            reset = True
-
-        self.values[universe][channel] = value
-        self.valueschanged = {}
-        #For blend modes that don't like it when you
-        #change the list of values without resetting
-        if reset:
-            self.setBlend(self.blend)
         
     def clearValue(self,universe,channel):
         self.rerender = True
@@ -1027,88 +1043,19 @@ class Scene():
     
     def render(self,t=None):
         "Calculate the current alpha value, handle stopping the scene and spawning the next one"
-        t =t or time.time()
-        effectiveLength = getControlValue(self.length,0)
-        if self.doingHandoff:
-            self.rerender = True
-            #nextscene = module.scenes_by_name[self.doingHandoff[1]]
-            nextscene = self.doingHandoff[1]
-            
-            if not nextscene.isActive():
-                self.stop()
-                return
-     
-            if not nextscene.manualAlpha:
-                #The current timeline position normalized to 0 to 1 where 1 is the end of the transition
-                relposition = (t-self.doingHandoff[0])/getControlValue(nextscene.fadein,0)
-            else:
-                relposition = nextscene.alpha/nextscene.defaultalpha
-            #Calculate the opacity we+the next scene should be at. That's a fade between our and their opacity
-            #over the period of their fade in.
-            combinedStartingOpacity = self.doingHandoff[2]
-         
-            #Bad awful hack alert to avoid an edge case od fading in a scene already at 1
-            opacity = (combinedStartingOpacity*(1-relposition)) + (nextscene.defaultalpha*relposition)
-            #We want opacity = 1-((1-ourOpacity)*(1-theirOpacity))?
-            try:
-                self.alpha = -((opacity-nextscene.alpha)/(nextscene.alpha-1))
-                self.hasNewInfo = {}
-            except Exception as e:
-                self.alpha =0
-                self.hasNewInfo = {}
-
-            if self.alpha == 0 or (not nextscene.manualAlpha and (t-nextscene.started)>getControlValue(nextscene.fadein,0)):
-                self.stop()
-                
-
-            
+        if self.cue.fadein:
+            fadePosition = (time.time()-self.enteredCue)/self.cue.fadein
         else:
-            t = t-self.started
-            #Do the overlap thing.
-            if self.nextScene and t>(effectiveLength-self.overlap) and effectiveLength:
-                if self.nextScene in module.scenes_by_name and not self.launchedNext:
-                    module.scenes_by_name[self.nextScene].go()
-                    self.launchedNext =True
-                    if self.useSmoothFade:
-                        if getControlValue(module.scenes_by_name[self.nextScene].fadein,0):
-                            self.doingHandoff = (t+self.started, module.scenes_by_name[self.nextScene],self.alpha)
-                        else:
-                            self.doingHandoff[1].takingOverFrom = None
-                            self.stop()
-                            
-            if t>getControlValue(self.fadein,0):
-                self.effective_start = None
-                
-            if not self.doingHandoff:   
-                if effectiveLength>0 and effectiveLength<t:
-                    self.stop()
+            fadePosition = 1
 
-                if not self.manualAlpha:
-                    #We do the actual full stop elsewhere.
-                    if t>effectiveLength and effectiveLength:
-                        self.alpha = 0
-                        self.hasNewInfo = {}
-                        return
-                        
-                    fadein = getControlValue(self.fadein,0)
-                    if t<fadein:
-                        self.rerender = True
-                        self.alpha = (t/fadein)*self.defaultalpha + (1-(t/fadein))*self.startingAlpha
-                        if getControlValue(self.fadein,0):
-                            self.hasNewInfo = {}
-                        return
-                    else:
-                        self.effective_start = None
-                        if not self.alpha==self.defaultalpha:
-                            self.rerender = True
-                            self.alpha = self.defaultalpha
+        if fadePosition<1:
+            self.rerender = True
 
-                    if t>(effectiveLength-getControlValue(self.fadeout,0)) and effectiveLength:
-                        self.rerender = True
-                        self.alpha = (1-((t-(effectiveLength-getControlValue(self.fadeout,0)))/getControlValue(self.fadeout,0))) *self.defaultalpha
-                        self.hasNewInfo = {}
-                        return
+        self.canvas.paint(self.cue, self.fadePosition)
 
+        if self.cue.length and(time.time()-self.enteredCue)> self.cue.length:
+            self.gotoCue(self.cue.nextCue)
+            self.rerender = True
 
 
 lastrendered = 0   
@@ -1126,6 +1073,7 @@ kaithem.lights.blendmodes = blendmodes
 kaithem.lights.fixture = Fixture
 module.controluniverse = Universe("control")
 
+s = Scene("testingScene")
 render()
 ---
 render()

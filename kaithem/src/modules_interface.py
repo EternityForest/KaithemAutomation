@@ -73,6 +73,9 @@ def followAttributes(root, path):
             root = getattr(root, i[1:])
         elif i.startswith("i"):
             root = root[int(i[1:])]
+        #This one is mostly for weak refs. Watch out we don't make any refs stick around that shouldn't
+        elif i.startswith("c"):
+            root = root()
         else:
             root = root[util.unurl(i[1:])]
     return root

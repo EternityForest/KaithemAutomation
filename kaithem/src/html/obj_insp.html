@@ -1,7 +1,7 @@
 <%!
 from src.util import url
 from src import pages,newevt,usrpages,unitsofmeasure,util,widgets,kaithemobj
-import json,re,cherrypy,inspect
+import json,re,cherrypy,inspect,weakref,collections
 %>
 <%
 try:
@@ -67,7 +67,7 @@ ${getsource(obj)|h}
 %endif
 </pre>
 
-%if isinstance(obj, (list)):
+%if isinstance(obj, (list, collections.deque,set)):
 <h3>List Contents (${len(obj)} items)</h3>
 <ol start=0>
 %for n, i in enumerate(obj):
@@ -76,7 +76,7 @@ ${getsource(obj)|h}
 </ol>
 %endif
 
-%if isinstance(obj, (dict)):
+%if isinstance(obj, (dict,weakref.WeakValueDictionary, weakref.WeakKeyDictionary)):
 <h3>Dict Contents (${len(obj)} items)</h3>
 <div class="sectionbox">
 <dl>
@@ -94,5 +94,13 @@ ${getsource(obj)|h}
 %endfor
 </div>
 %endif
+
+%if isinstance(obj, (weakref.ref)):
+<h3>Weak Reference</h3>
+<div class="sectionbox">
+<a href="?objname=${objname}()&objpath=${objpath},c">Referrent</a>
+</div>
+%endif
+
 
 </article>
