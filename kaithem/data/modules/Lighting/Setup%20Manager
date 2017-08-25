@@ -17,7 +17,9 @@ template-engine: mako
 #Code Here runs once when page is first rendered. Good place for import statements.
 __doc__= ""
 boardname = "default"
+
 %>
+
 <style>
     .grey {
         color: grey;
@@ -125,6 +127,11 @@ boardname = "default"
 <div id="app">
 
     <div v class="sectionbox" style="float:left;overflow: auto; width:20%; height:90%; resize:both;">
+        <label>
+            <input size=8 title="Enter a cue's shortcut code here to activate it'" placeholder="Shortcut"
+                v-model="sc_code" v-on:keydown.enter="shortcut()"></input>
+        </label>
+        <button v-on:click="shortcut()">Go!</button>
 
         <h3 title="All currently active scenes and all scenes that were created through the light board ar shown">Scenes</h3>
 
@@ -136,165 +143,203 @@ boardname = "default"
         <div id="scene" style="overflow: scroll; max-height:450px;">
             <p v-for="i in formatScenes()" v-bind:class="{'scene':1, 'grey':i[1].doingHandoff, run:i[1].active &(!i[1].doingHandoff)}"
                 style="border-style:solid; border-width:1px;">
-                <b v-if="i[1].active">^</b>
                 <button v-bind:class="{specialentry:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])"><b>{{i[1].name}}</b><span v-if="i[1].ext" class="grey"> (external)</span></button>
+                <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</span><br>
+                <br>
                 <button class="gobutton" v-on:click="go(i[0])">Go!</button>
+                <button v-on:click="nextcue(i[0])">&gt&gt</button>
                 <button class="stopbutton" v-on:click="stop(i[0])">Stop!</button>
-                <button class="deletebutton" v-on:click="delscene(i[0])">del</button><br>
-                <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));" :value="alphas[i[0]]"><br>
-                <small>Priority:<b>{{i[1].priority}}</b></small> <small v-if="i[1].blend!=='normal'">Blend:<b>{{i[1].blend}}</b></small>
-                
+                <button class="deletebutton" v-on:click="delscene(i[0])">del</button>
+                <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));"
+                    :value="alphas[i[0]]"><br>
+                <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
+                <span v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext)">Next Cue: {{cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext}}<br></span>
+                <small>Priority:<b>{{i[1].priority}}</b></small>
+                <small v-if="i[1].blend!=='normal'">Blend:<b>{{i[1].blend}}</b></small>
             </p>
         </div>
 
 
         <hr>
-        <input id="newscenename" placeholder="New scene name"> <button v-on:click="addScene()">Add</button>
-        <button v-on:click="cloneScene()">Clone Selected</button><button v-on:click="addMonitorScene()">Add Monitor</button>
+        <input id="newscenename" placeholder="New scene name">
+        <button v-on:click="addScene()">Add</button>
+        <button v-on:click="addMonitorScene()">Add Monitor</button>
 
     </div>
 
 
     <div class="sectionbox" v-if="editingScene" style="display:inline-block; width:75%; resize:both;">
         <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name"><span v-if="editingScene.blend=='monitor'">Monitor</span>            Scene: {{editingScene.name}}</span> <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
+            <span>{{cuemeta[editingScene.cue].name}}</span>
+            <meter v-if="editingScene.active && cuemeta[editingScene.cue].length" min=0 max=1
+                v-bind:value="(unixtime-editingScene.enteredCue)/cuemeta[editingScene.cue].length"></meter>
+            <button v-on:click="nextcue(scenename)">Next</button>
+
+
             <span class="virtual" v-if="editingScene.doingHandoff">(fading out)</span>
         </h3>
-        <label>Cue Select:
-            <select v-model="selectedCues[scenename]" v-on:change="Vue.set(selectedCues,scenename,$event.value)">
-                <option v-for="(v,i) in scenecues[scenename]">{{i}}</option>
+        <label v-if="scenecues[scenename]">Cue Select:
+            <select v-model="selectedCues[scenename]" v-on:change="getcuedata(scenecues[scenename][$event.target.value])">
+                <option v-for="i in formatCues()" v-bind:value="i[1].name">{{i[1].name}} ({{i[1].number}})</small>
+                </option>
             </select>
-            <input v-model="newcuename" placeholder="New cue name">
-            <button v-on:click="addcue(scenename,newcuename)">Add Cue</button>
-            <button v-on:click="rmcue(scenecues[scenename][selectedCues[scenename]])">Delete Current</button>
-
-        </label><br>
-
-                <label>Fadein:
-            <input size="16" v-on:input="setfadein(scenecues[scenename][selectedCues[scenename]],$event.target.value)" 
-                    v-model="cuefadein" >
         </label>
+        <input v-model="newcuename" placeholder="New cue name">
+        <button v-on:click="addcue(scenename,newcuename)">Add Cue</button>
+        <button v-on:click="clonecue(scenename,currentcueid,newcuename)">Clone Cue</button>
+        <button v-on:click="rmcue(currentcueid)">Delete Selected</button>
+        <button v-on:click="jumptocue(currentcueid)">Jump to Selected</button>
 
-        </label>
-                <label>Length: <input size=15
-                          v-on:input="setlength(scenecues[scenename][selectedCues[scenename]],$event.target.value)"
-                         v-model="cuemeta[scenecues[scenename][selectedCues[scenename]]].length"
-                          ></input>
-        </label>
-                <label>Fadeout:
-            <input size="16" v-on:input="setfadeout(scenecues[scenename][selectedCues[scenename]],$event.target.value)" 
-                 v-model="cuemeta[scenecues[scenename][selectedCues[scenename]]].fadeout" > 
-        </label>
-
-                <label>Next Cue:
-                    <input title="Select a scene to activate when this one ends, or before then if overlap>0"
-                                    v-on:input="setnext(scenecues[scenename][selectedCues[scenename]],$event.target.value)"
-                                    v-model="cuemeta[scenecues[scenename][selectedCues[scenename]]].nextCue"
-                    ></input>
-                </label>
         <hr>
+        <div v-if="currentcue">
+            <label>Number:
+                <input type="number" title="Cue number" style="width:6em" v-on:input="setnumber(currentcueid,$event.target.value)"
+                    v-model="currentcue.number">
+            </label>
 
-        <span class="help" v-if="editingScene.ext">This is an external scene that is defined somewhere in code. Any changed made here may be overwritten by the code at any time.</span>
+            <label>Code:
+                <input title="Shortcut code used to quickly activate a cue" size="8" v-on:input="setshortcut(currentcueid,$event.target.value)"
+                    v-model="currentcue.shortcut">
+            </label>
 
-        <div float="right" style="overflow: scroll; max-height:30em;">
-            <div class="universe" v-for="i in cuevals[scenecues[scenename][selectedCues[scenename]]]">
-                <b v-if="chnamelookup(i.u,i.ch)==undefined">{{i.u}}:{{i.ch}}</b>
-                <b v-if="chnamelookup(i.u,i.ch)" v-bind:title="'Actual channel:'+i.u+':'+i.ch">{{channelNames[i.u][i.ch][0]}}.{{channelNames[i.u][i.ch][1]}}</b>
-                <small v-if="chnamelookup(i.u,i.ch)">({{channelNames[i.u][i.ch][2]}})</small>
-                <input v-bind:disabled="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine'" v-if="editingScene.blend!=='monitor'"
-                    type="range" v-bind:step="(chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine')? 0.01:1" max=255 v-on:input="setCueVal(scenecues[scenename][selectedCues[scenename]],i.u,parseInt(i.ch),parseFloat($event.target.value))"
-                    v-model="i.v">
-                <meter v-if="editingScene.blend=='monitor'" type="range" max=255 v-bind:value="i.v"></meter>
+            <label>Track:
+                <input type="checkbox" v-on:change="settrack(currentcueid,currentcue.track)" v-model="currentcue.track"
+                    title="Track values from previous cue? If false, values not present are always transparent">
+            </label>
 
-                <span v-if="!(channelNames[i.u]&&channelNames[i.u][i.ch]&&channelNames[i.u][i.ch][2]=='fine')" title="Double click to set exact value"
-                    v-on:dblclick="promptExactVal(scenename,i.u,parseInt(i.ch))" style="font-size:80%">{{String(i.v).slice(0,6)}}</span>
-                <span class=grey title="Double click to set exact value" v-if="channelNames[i.u]&&channelNames[i.u][i.ch]&&channelNames[i.u][i.ch][2]=='fine'"
-                    v-on:dblclick="promptExactVal(scenename,i.u,parseInt(i.ch))">auto</span>
+            <label>Fadein:
+                <input type="number" v-on:input="setfadein(currentcueid,$event.target.value)" style="width:3em"
+                    min=0 v-model="currentcue.fadein">
+            </label> {{scenemeta[scenename].bpm?"beats":"s"}}
 
-                <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='red'" v-bind:style="{'background-color': 'rgb('+i.v+ ',0,0)' , 'border-color':'red'}"
-                    class="indicator"></span>
-                <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='green'" v-bind:style="{'background-color': 'rgb(0,'+i.v+',0)' , 'border-color':'green'}"
-                    class="indicator"></span>
-                <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='blue'" v-bind:style="{'background-color': 'rgb(0,0,'+i.v+')'  , 'border-color':'blue'}"
-                    class="indicator"></span>
+            </label>
+            <label>Length:
+                <input type="number" v-on:input="setlength(currentcueid,$event.target.value)" v-model="cuemeta[currentcueid].length"
+                    style="width:4em" min=0></input>
+            </label> {{scenemeta[scenename].bpm?"beats":"s"}}
 
-                <span v-if="chnamelookup(i.u,i.ch)==undefined" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}" class="indicator"></span>
+            <label>Fadeout:
+                <input type="number" v-on:input="setfadeout(scenecues[scenename][selectedCues[scenename]],$event.target.value)"
+                    v-model="cuemeta[currentcueid].fadeout" style="width:3em" min=0>
+            </label><br> {{scenemeta[scenename].bpm?"beats":"s"}}
+            </span>
+
+
+            <label>Next Cue:
+                <input list="cues_in_scene" title="Select a cue to activate when this one ends" v-on:input="setnext(currentcueid,$event.target.value)"
+                    v-model="cuemeta[currentcueid].next" v-bind:placeholder="currentcue.defaultnext"></input>
+            </label>
+            <button v-on:click="gotonext(currentcueid)">Edit Next</button>
+            <button v-on:click="clonecue(scenename,currentcueid,currentcue.next)">Clone to Next</button>
+
+            <datalist id="cues_in_scene" v-if="scenecues[scenename].length<50">
+                <option v-for="i in Object.keys(scenecues[scenename]).sort()" v-bind:value="i"></option>
+            </datalist>
+
+            <label>Wait for manual advance:
+                <input type="checkbox" size="16" v-on:change="setwait(currentcueid,currentcue.wait)"
+                    v-model="currentcue.wait" title="Prevents automatically triggering to the next cue">
+            </label>
+            <hr>
+
+            <span class="help" v-if="editingScene.ext">This is an external scene that is defined somewhere in code. Any changed made here may be overwritten by the code at any time.</span>
+
+            <div float="right" style="overflow: scroll; max-height:30em;">
+                <div class="universe" v-for="i in cuevals[currentcueid]">
+                    <span v-on:dblclick="toggleTransparent(currentcueid,i.u,parseInt(i.ch),i.v)" title="Double click to toggle released">
+                        <b v-if="chnamelookup(i.u,i.ch)==undefined">{{i.u}}:{{i.ch}}</b>
+                        <b v-if="chnamelookup(i.u,i.ch)" v-bind:title="'Actual channel:'+i.u+':'+i.ch">{{channelNames[i.u][i.ch][0]}}.{{channelNames[i.u][i.ch][1]}}</b>
+                        <small v-if="chnamelookup(i.u,i.ch)">({{channelNames[i.u][i.ch][2]}})</small>
+                    </span>
+                    <span v-if="i.v !== null">
+                    <input v-bind:disabled="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine'" v-if="editingScene.blend!=='monitor'"
+                        type="range" v-bind:step="(chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine')? 0.01:1" max=255
+                        v-on:input="setCueVal(currentcueid,i.u,parseInt(i.ch),parseFloat($event.target.value))" v-model="i.v">
+                    <meter v-if="editingScene.blend=='monitor'" type="range" max=255 v-bind:value="i.v"></meter>
+                    </span>
+                    <span v-if="i.v== null" class=grey>Released</span>
+
+
+
+                    <span v-if="!(channelNames[i.u]&&channelNames[i.u][i.ch]&&channelNames[i.u][i.ch][2]=='fine')"
+                        title="Double click to set exact value" v-on:dblclick="promptExactVal(currentcueid,i.u,parseInt(i.ch))"
+                        style="font-size:80%">{{String(i.v).slice(0,6)}}</span>
+                    <span class=grey title="Double click to set exact value" v-if="channelNames[i.u]&&channelNames[i.u][i.ch]&&channelNames[i.u][i.ch][2]=='fine'"
+                        v-on:dblclick="promptExactVal(currentcueid,i.u,parseInt(i.ch))">auto</span>
+
+                    <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='red'" v-bind:style="{'background-color': 'rgb('+i.v+ ',0,0)' , 'border-color':'red'}"
+                        class="indicator"></span>
+                    <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='green'" v-bind:style="{'background-color': 'rgb(0,'+i.v+',0)' , 'border-color':'green'}"
+                        class="indicator"></span>
+                    <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='blue'" v-bind:style="{'background-color': 'rgb(0,0,'+i.v+')'  , 'border-color':'blue'}"
+                        class="indicator"></span>
+
+                    <span v-if="chnamelookup(i.u,i.ch)==undefined" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
+                        class="indicator"></span>
+                </div>
             </div>
-        </div>
-        <div style="clear:both">
-            <input list="universes" id="newcueu" placeholder="Universe">
-            <datalist id="universes">
+            <div style="clear:both">
+                <input list="universes" id="newcueu" placeholder="Universe">
+                <datalist id="universes">
                     <option v-for="(v,i) of universes" v-bind:value="i">({{v}} values)</option>
                 </datalist>
-            <input type="number" id="newcuevnumber" title="Channel Number" style="width:5em" value="1">
-            <button v-on:click="addValToCue()">Add Channel to Scene</button>
-            <button v-on:click="rmValFromCue()">Remove</button>
-            <label v-if="editingScene.blend=='monitor'">Priority:<input type='number' min=0 max=100
-                     style="width:3em"
-                          v-on:input="setpriority(scenename,parseFloat($event.target.value))"
-                          v-model="editingScene.priority"
-                                            ></label>
+                <input type="number" id="newcuevnumber" title="Channel Number" style="width:5em"
+                    value="1">
+                <button v-on:click="addValToCue()">Add Channel to Scene</button>
+                <button v-on:click="rmValFromCue()">Remove</button>
+                <label v-if="editingScene.blend=='monitor'">Priority:
+                    <input type='number' min=0 max=100 style="width:3em" v-on:input="setpriority(scenename,parseFloat($event.target.value))"
+                        v-model="editingScene.priority">
+                </label>
 
-            <br><br>
-            <div v-if="editingScene.blend!=='monitor'" style="border-style:solid; border-radius:5px;border-color:grey;">
-
-
-                <label>Default Alpha:
- <input type="number"  style="width:4em"
-                          max=1 step=0.01 min=0
-                          v-on:input="setdalpha(scenename,parseFloat($event.target.value))"
-                          v-model="editingScene.dalpha"
-        ></input></label>
-                <label>Blend Mode:
- <select title="This setting controls blending multiple scenes together"
-                          v-on:input="setblend(scenename,$event.target.value)"
-                          v-model="editingScene.blend"
-        >
-
-        <option title="Alpha blend with scenes below">normal</option>
-        <option title="Highest Takes Priority, only affect lights if the value is higher than the others">HTP</option>
-        <option title="Limit maximum level">inhibit</option>
-        <option v-for="i in ${[i for i in module.blendmodes.keys()]}">{{i}}</option>
-
-            
-        </select>
-    
+                <br><br>
+                <div v-if="editingScene.blend!=='monitor'" style="border-style:solid; border-radius:5px;border-color:grey;">
 
 
+                    <label>Default Alpha:
+                        <input type="number" style="width:4em" max=1 step=0.01 min=0 v-on:input="setdalpha(scenename,parseFloat($event.target.value))"
+                            v-model="editingScene.dalpha"></input>
+                    </label>
+                    <label>Blend Mode:
+                        <select title="This setting controls blending multiple scenes together" v-on:input="setblend(scenename,$event.target.value)"
+                            v-model="editingScene.blend">
+
+                            <option title="Alpha blend with scenes below">normal</option>
+                            <option title="Highest Takes Priority, only affect lights if the value is higher than the others">HTP</option>
+                            <option title="Limit maximum level">inhibit</option>
+                            <option v-for="i in ${[i for i in module.blendmodes.keys()]}">{{i}}</option>
+
+                        </select>
+                        <label>Priority:
+                            <input type='number' min=0 max=100 style="width:3em" v-on:input="setpriority(scenename,parseFloat($event.target.value))"
+                                v-model="editingScene.priority">
+                        </label><br>
 
 
-                <label>Overlap:
- <input type="number" 
-  style="width:5em"
-                          max=30 step=0.05 min=0
-                          v-on:input="setoverlap(scenename,parseFloat($event.target.value))"
-                          v-model="editingScene.overlap"
-        ></input></label>
+                        <label title="Check this box to make the scene active at startup">Active By Default:
+                            <input type="checkbox" v-on:change="setdactive(scenename,$event.target.checked)"
+                                v-model="editingScene.defaultActive"></input>
+                        </label>
 
+                        <label title="Scenes inherit from previous scenes even if you jump directly to them">Backtrack:
+                            <input type="checkbox" v-on:change="setbacktrack(scenename,$event.target.checked)"
+                                v-model="editingScene.backtrack"></input>
+                        </label>
 
+                        </br>
 
-                <label>Priority:<input type='number' min=0 max=100
-                     style="width:3em"
-                          v-on:input="setpriority(scenename,parseFloat($event.target.value))"
-                          v-model="editingScene.priority"
-                                            ></label><br>
+                        <hr v-if="editingScene.blendParams !== {}" style="border-style:solid;border-width:1px;border-color:grey;">
+                        <label v-for="(j,k) in editingScene.blendParams">{{j[0]}}:
+                            <input type="number" style="width:5em" step=0.01 v-bind:title="j[2]" v-on:input="setblendparam(scenename,k,parseFloat($event.target.value))"
+                                v-model="editingScene.blendArgs[k]"></input>
 
+                        </label>
 
-                <label title="Check this box to make the scene active at startup">Active By Default:
-         <input type="checkbox" 
-                          
-                          v-on:change="setdactive(scenename,$event.target.checked)"
-                          v-model="editingScene.defaultActive"
-        ></input></label></br>
-                <hr v-if="editingScene.blendArgs.length" style="border-style:solid;border-width:1px;border-color:grey;">
-                <label v-for="(j,k) in editingScene.blendParams">{{j[0]}}:
-                        <input type="number"  style="width:5em" step=0.01 v-bind:title="j[2]"
-                          v-on:input="setblendparam(scenename,k,parseFloat($event.target.value))"
-                          v-model="editingScene.blendArgs[k]"
-                        ></input>
-        
-        </label>
-
+                </div>
             </div>
+        </div>
+        <div v-if="scenecues[scenename][selectedCues[scenename]]==undefined || cuemeta[scenecues[scenename][selectedCues[scenename]]]==undefined">
+            Cue data not found...
         </div>
 
     </div>
@@ -304,9 +349,13 @@ boardname = "default"
         <button v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}">Edit Mode</button>
         <button v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}">Run Mode</button>
         <p class=meubar>Current Bank: {{currentBindingBank}}</p>
-        <p class=help>One keybinding per line, as in space+x: go scene<br> Valid commands: <br>go [scene]<br> stop [scene]<br> next [track]<br>            stoptrack [track]<br> toggle [scene].<br><br> To organize bindings into banks, <br>put the bank's name in square
-            brackets on a line.<br> when the page loads, the bank is 'default'.<br> To switch banks, use the bank [name]
-            command.
+        <p class=help>One keybinding per line, as in space+x: go scene<br> Valid commands: <br>sc
+            [shortcutcode]
+            <br>go [scene]<br> stop [scene]
+            <br> next [track]<br> stoptrack [track]<br> toggle [scene].<br><br> To
+            organize bindings into banks, <br>put the bank's name in square brackets
+            on a line.<br> when the page loads, the bank is 'default'.<br> To switch
+            banks, use the bank [name] command.
             <p>
                 <textarea rows=20 cols=20 v-model="keybindscript" v-on:focus="editMode"></textarea>
             </p>
@@ -319,13 +368,54 @@ boardname = "default"
 </div>
 
 
+<template id="cue-cd">
+    <span>
+    <meter v-bind:high=" (cue.length>30)?cue.length-10:cue.length" v-if="scene.active && cue && cue.length" min=0 v-bind:max="cue.length"
+    v-bind:value="unixtime-scene.enteredCue"></meter><br>
+    <span v-if="scene.active && cue && cue.length">
+     Next cue in: {{formatInterval(cue.length-(unixtime-scene.enteredCue))}}
+     <br>
+     </span></span>
+</template>
 <div>
 
     ${module.board.link.render('api_link')}
 
     <script>
+
+        formatInterval= function(seconds)
+            {
+                var hours = Math.floor(seconds / 3600);
+                var minutes = Math.floor((seconds - (hours * 3600)) /
+                    60);
+                var seconds = seconds - (hours * 3600) - (minutes * 60);
+                var tenths = Math.floor((seconds - Math.floor(seconds)) *
+                    10);
+                seconds = Math.floor(seconds);
+
+                var time = "";
+
+                time = hours + "h " + minutes + "m " + seconds + "." +
+                    tenths + "s"
+                return time;
+            }
+        Vue.component('cue-countdown',
+        {
+            template: '#cue-cd',
+            props: ['unixtime', 'cue', 'scene'],
+            data: function(){
+                return({'formatInterval':formatInterval})
+                }
+        });
+
+        //# sourceURL=appcode.js 
         appData = {
-            'dictView': function(dict, sorts)
+            //https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
+            'formatInterval':formatInterval,
+            'console': console,
+            'sc_code': "",
+            'unixtime': 0,
+            'dictView': function(dict,sorts)
             {
                 //Given a dict  and a list of sort keys sorts,
                 //return a list of [key,value] pairs sorted by the sort 
@@ -364,7 +454,8 @@ boardname = "default"
                         var rev = i[0]
                         if (!(d[key] == d2[key]))
                         {
-                            return (d[key] > d2[key] ? 1 : -1) * rev
+                            return (d[key] > d2[key] ? 1 : -1) *
+                                rev
                         }
 
                     }
@@ -377,10 +468,13 @@ boardname = "default"
             {
                 if (!appData.showAll)
                 {
-                    return appData.dictView(appData.scenemeta, ['!priority', '!started', 'name']).filter(
+                    return appData.dictView(appData.scenemeta, [
+                        '!priority', '!started', 'name'
+                    ]).filter(
                         function(x)
                         {
-                            return (x[1].name && x[1].name.includes(appData.scenefilter))
+                            return (x[1].name && x[1].name.includes(
+                                appData.scenefilter))
                         }).filter(
                         function(x)
                         {
@@ -389,14 +483,34 @@ boardname = "default"
                 }
                 else
                 {
-                    return appData.dictView(appData.scenemeta, ['!priority', 'name']).filter(function(x)
+                    return appData.dictView(appData.scenemeta, [
+                        '!priority', 'name'
+                    ]).filter(function(x)
                     {
-                        return ((!x[1].ext) && ((x[1].name && x[1].name.includes(appData.scenefilter))))
+                        return ((!x[1].ext) && ((x[1].name && x[
+                            1].name.includes(
+                            appData.scenefilter
+                        ))))
                     })
                 }
 
             },
-            'promptExactVal': function(s, u, v)
+            'formatCues': function()
+            {
+                z = {}
+                //list cue objects
+                for (i in appData.scenecues[appData.scenename])
+                {
+                    m = appData.cuemeta[appData.scenecues[appData.scenename]
+                        [i]]
+                    if (m !== undefined)
+                    {
+                        z[i] = m
+                    }
+                }
+                return appData.dictView(z, ['number'])
+            },
+            'promptExactVal': function(cue, u, v)
             {
                 var x = prompt("Enter new value for scene")
 
@@ -404,13 +518,28 @@ boardname = "default"
                 {
                     if (parseFloat(x))
                     {
-                        appData.setSceneVal(s, u, v, Math.max(0, Math.min(parseFloat(x), 255)))
+                        appData.setCueVal(cue, u, v, Math.max(0, Math.min(
+                            parseFloat(x), 255)))
                     }
+                }
+            },
+
+            'toggleTransparent': function(cue, u, c, v)
+            {
+                if (v != null)
+                {
+                    appData.setCueVal(cue, u, c, null)
+                }
+                else
+                {
+                    appData.setCueVal(cie, u, c, null)
                 }
             },
             'promptRename' (s)
             {
-                var x = prompt("Enter new name for scene(May break existing references to scene)")
+                var x = prompt(
+                    "Enter new name for scene(May break existing references to scene)"
+                )
 
                 if (x != null)
                 {
@@ -441,7 +570,7 @@ boardname = "default"
             'universes': {},
             'allScenes': [],
             'cues': {},
-            'newcuename':'',
+            'newcuename': '',
             'cuemeta': {},
 
             'selectedCues': {},
@@ -468,6 +597,7 @@ boardname = "default"
 
             'selectscene': function(sc, sn)
             {
+                this.getcuedata(this.scenecues[sn]['default'])
                 this.editingScene = sc;
                 this.scenename = sn;
                 api_link.send(['gsd', sn]);
@@ -481,7 +611,7 @@ boardname = "default"
                 }
             },
 
-            'go': function(sc, sn)
+            'go': function(sc)
             {
 
                 api_link.send(['go', sc]);
@@ -505,7 +635,12 @@ boardname = "default"
                 api_link.send(['stopbyname', sn]);
             },
 
+            'shortcut': function(sc)
+            {
+                api_link.send(['shortcut', appData.sc_code]);
+                appData.sc_code = ''
 
+            },
 
             'stop': function(sc, sn)
             {
@@ -527,40 +662,117 @@ boardname = "default"
             'setalpha': function(sc, v)
             {
                 api_link.send(['setalpha', sc, v]);
-                appData.alphas[sc]=v
+                appData.alphas[sc] = v
             },
             'setfade': function(sc, v)
             {
 
                 api_link.send(['setfade', sc, v]);
             },
+            'nextcue': function(sc)
+            {
+                api_link.send(['nextcue', sc]);
+            },
 
             'addcue': function(sc, v)
             {
                 api_link.send(['addcue', sc, v]);
+                //There's a difference between "not there" undefined and actually set to undefined....
+                if (appData.scenecues[sc][v] == undefined)
+                {
+                    //Placeholder so we can at least show a no cue found message till it arrives
+                    Vue.set(appData.scenecues[sc], v, undefined);
+                };
+                setTimeout(function()
+                {
+                    Vue.set(appData.selectedCues,
+                        sc, v)
+                }, 70)
+            },
+
+            'clonecue': function(sc, cue, v)
+            {
+                api_link.send(['clonecue', cue, v]);
+                //There's a difference between "not there" undefined and actually set to undefined....
+                if (appData.scenecues[sc][v] == undefined)
+                {
+                    //Placeholder so we can at least show a no cue found message till it arrives
+                    Vue.set(appData.scenecues[sc], v, undefined);
+                };
+                setTimeout(function()
+                {
+                    Vue.set(appData.selectedCues,
+                        sc, v)
+                }, 70)
+
+            },
+            'gotonext': function(currentcueid)
+            {
+                nextcue = appData.cuemeta[currentcueid].next
+
+                cue = nextcue || (appData.cuemeta[currentcueid].defaultnext)
+                if (!cue)
+                {
+                    return
+                }
+                api_link.send(['gotonext', currentcueid]);
+                api_link.send(['getcuedata', cue]);
+
+                //There's a difference between "not there" undefined and actually set to undefined....
+                if (appData.scenecues[cue] == undefined)
+                {
+                    //Placeholder so we can at least show a no cue found message till it arrives
+                    set(appData.scenecues[appData.scenename], cue,
+                        undefined);
+                }
+                setTimeout(function()
+                    {
+                        Vue.set(appData.selectedCues,
+                            appData.scenename, cue)
+                    },
+                    30)
             },
             'rmcue': function(cue)
             {
-                appData.selectedCues[appData.scenename]='default'
+                appData.selectedCues[appData.scenename] = 'default'
                 api_link.send(['rmcue', cue]);
             },
-            'setoverlap': function(sc, v)
+            'jumptocue': function(cue)
+            {
+                api_link.send(['jumptocue', cue]);
+            },
+            'getcuedata': function(c)
             {
 
-                api_link.send(['setoverlap', sc, v]);
+                api_link.send(['getcuedata', c]);
             },
+            'getcuemeta': function(c)
+            {
 
-            'setnext': function(sc,cue, v)
+                api_link.send(['getcuemeta', c]);
+            },
+            'setnext': function(sc, cue, v)
             {
                 api_link.send(['setnext', sc, cue, v]);
             },
- 
-          
-            'setfadein': function(cue,v)
+            'setshortcut': function(cue, v)
             {
-                api_link.send(['setfadein',cue, v]);
+                api_link.send(['setshortcut', cue, v]);
             },
-            'setfadeout': function(sc, cue,v)
+            'setnumber': function(cue, v)
+            {
+                api_link.send(['setnumber', cue, v]);
+            },
+
+            'setfadein': function(cue, v)
+            {
+                api_link.send(['setfadein', cue, v]);
+            },
+            'settrack': function(cue, v)
+            {
+                api_link.send(['settrack', cue, v]);
+            },
+            'setfadeout': function(cue, v)
             {
 
                 api_link.send(['setfadeout', cue, v]);
@@ -583,12 +795,18 @@ boardname = "default"
 
                 api_link.send(['setdefaultactive', sc, v]);
             },
+
+            'setbacktrack': function(sc, v)
+            {
+
+                api_link.send(['setbacktrack', sc, v]);
+            },
             'setlength': function(sc, v)
             {
 
                 api_link.send(['setlength', sc, v]);
             },
-    
+
             'setdalpha': function(sc, v)
             {
 
@@ -609,20 +827,28 @@ boardname = "default"
             {
                 api_link.send(['addmonitor', $('#newscenename').val()]);
             },
-
-            'cloneScene': function()
-            {
-                api_link.send(['clonescene', appData.scenename, $('#newscenename').val()]);
-            },
             'addValToCue': function()
             {
-                api_link.send(['addcueval', appData.scenecues[appData.scenename][appData.selectedCues[appData.scenename]], $('#newcueu').val(), parseInt($(
-                    '#newcuevnumber').val())]);
+                if (!$('#newcueu').val())
+                {
+                    return
+                }
+                api_link.send(['addcueval', appData.scenecues[appData.scenename]
+                    [appData.selectedCues[appData.scenename]],
+                    $('#newcueu').val(), parseInt($(
+                        '#newcuevnumber').val())
+                ]);
+                $('#newcuevnumber').val(parseInt($('#newcuevnumber').val()) +
+                    1)
+
             },
             'rmValFromCue': function()
             {
-                api_link.send(['rmcueval', appData.selectedCues[appData.scenename], $('#newcueu').val(), parseInt($(
-                    '#newcuevnumber').val())]);
+                api_link.send(['rmcueval', appData.selectedCues[appData
+                        .scenename], $('#newcueu').val(),
+                    parseInt($(
+                        '#newcuevnumber').val())
+                ]);
             },
             'sortscenes': function()
             {
@@ -658,9 +884,18 @@ boardname = "default"
             data: appData,
             computed:
             {
-                "cuefadein": function(){
-                    return(this.cuemeta[this.scenecues[this.scenename][this.selectedCues[this.scenename]]].fadein)
-                    }
+                "currentcue": function()
+                {
+                    return (this.cuemeta[this.scenecues[this.scenename]
+                        [this.selectedCues[this.scenename]]
+                    ])
+                },
+                "currentcueid": function()
+                {
+                    return (this.scenecues[this.scenename][this.selectedCues[
+                        this.scenename]])
+                }
+
             }
         })
 
@@ -670,17 +905,31 @@ boardname = "default"
 
             if (c == "scenemeta")
             {
-                //Vue.set(appData.alphas, v[1], v[2].alpha);
+                if (appData.cuemeta[v[2].cue] == undefined)
+                {
+                    appData.getcuemeta(v[2].cue)
+                }
+                Vue.set(appData.alphas, v[1], v[2].alpha);
                 set(appData.scenemeta, v[1], v[2]);
                 if (appData.selectedCues[v[1]] == undefined)
                 {
-                    Vue.set(appData.selectedCues,v[1],'default')
+                    Vue.set(appData.selectedCues, v[1], 'default')
                 }
+                //Make an empty list of cues as a placeholder till the real data arrives
+                if (appData.scenecues[v[1]] == undefined)
+                {
+                    Vue.set(appData.scenecues, v[1], {});
+                };
             }
 
             if (c == "cuemeta")
             {
-                set(appData.scenecues[v[2].scene],v[2].name, v[1]);
+                //Make an empty list of cues if it's not there yet
+                if (appData.scenecues[v[2].scene] == undefined)
+                {
+                    Vue.set(appData.scenecues, v[2].scene, {});
+                };
+                Vue.set(appData.scenecues[v[2].scene], v[2].name, v[1]);
                 set(appData.cuemeta, v[1], v[2]);
             }
 
@@ -689,16 +938,17 @@ boardname = "default"
                 set(appData.cues, v[1], v[2]);
             }
             if (c == "delcue")
-                {
-                    Vue.delete(appData.cues, v[1]);
-                    Vue.delete(appData.cuemeta, v[1]);
-                    Vue.delete(appData.cuevals, v[1]);
-                    Vue.delete(appData.scenecues[v[2].scene],v[2].name);
-                }
-
-            if (c == "ssv")
             {
-                Vue.set(appData.scenedata[v[1]][v[2]][v[3]], 'v', v[4])
+                c = appData.cuemeta[v[1]]
+                Vue.delete(appData.cues, v[1]);
+                Vue.delete(appData.cuemeta, v[1]);
+                Vue.delete(appData.cuevals, v[1]);
+                Vue.delete(appData.scenecues[c.scene], c.name);
+            }
+
+            if (c == "scv")
+            {
+                Vue.set(appData.cuevals[v[1]][v[2]][v[3]], 'v', v[4])
             }
             if (c == "cnames")
             {
@@ -710,7 +960,22 @@ boardname = "default"
             }
             if (c == 'scenecues')
             {
-                Vue.set(appData.scenecues, v[1], v[2])
+                //Scenecues only gives us cue number and id info.
+                //So if the data isn't in cuemeta, fill in what we can
+                d = v[2]
+                for (i in v[2])
+                {
+                    if (appData.cuemeta[d[i][0]] == undefined)
+                    {
+                        Vue.set(appData.cuemeta, d[i][0],
+                        {
+                            'name': i,
+                            'number': d[
+                                i][1]
+                        })
+                    }
+                    Vue.set(appData.scenecues[v[1]], i, d[i][0])
+                }
             }
             if (c == "cuedata")
             {
@@ -735,7 +1000,6 @@ boardname = "default"
                     }
                 }
                 Vue.set(appData.cuevals, v[1], x)
-                Vue.set(appData.cuedata, v[1], d)
             }
 
             if (c == "go")
@@ -748,12 +1012,6 @@ boardname = "default"
             {
 
                 Vue.set(appData.scenemeta[v[1]], 'active', false)
-
-            }
-            if (c == "tracks")
-            {
-
-                Vue.set(appData.tracks, 'tracks', v[1])
 
             }
 
@@ -782,6 +1040,19 @@ boardname = "default"
     </script>
 
     <script>
+        setInterval(function()
+        {
+            appData.unixtime = ((new Date()).getTime() /
+                1000)
+        }, 1000 / 14)
+        var shortcut = function(sc)
+        {
+            return function()
+            {
+                api_link.send(['shortcut', sc]);
+
+            }
+        }
         var goScene = function(sc)
         {
             return function()
@@ -849,17 +1120,24 @@ boardname = "default"
                             {
                                 keyboardJS.bind(binding, goScene(command[1]))
                             }
+                            if (command[0] == 'sc')
+                            {
+                                keyboardJS.bind(binding, shortcut(command[1]))
+                            }
                             if (command[0] == 'toggle')
                             {
-                                keyboardJS.bind(binding, toggleScene(command[1]))
+                                keyboardJS.bind(binding, toggleScene(
+                                    command[1]))
                             }
                             if (command[0] == 'stop')
                             {
-                                keyboardJS.bind(binding, stopScene(command[1]))
+                                keyboardJS.bind(binding, stopScene(command[
+                                    1]))
                             }
                             if (command[0] == 'bank')
                             {
-                                keyboardJS.bind(binding, switchBank(command[1]))
+                                keyboardJS.bind(binding, switchBank(command[
+                                    1]))
                             }
                         }
                         catch (e)

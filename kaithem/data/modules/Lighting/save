@@ -3,11 +3,13 @@ allow-xss: false
 auto-reload: false
 auto-reload-interval: 5.0
 dont-show-in-index: false
+mimetype: text/html
 no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [lights/lightboard.admin]
 resource-type: page
+template-engine: mako
 
 #End YAML metadata, page body mako code begins on first line after ---
 ---
@@ -22,7 +24,7 @@ if 'save' in kwargs:
 <h2>Title</h2>
 <div class="sectionbox">
     <form method=POST>
-        <label>Confirm making current state the default on boot?<input name="save" type="checkbox"></input></label>
+        <label>Confirm making current state the default on boot? It is not suggested you save shows with more than 2k or so cues like this.<input name="save" type="checkbox"></input></label>
         <input type=submit></input>
      </form>
 </div>

@@ -496,7 +496,7 @@ def whoHasToken(token):
 
 tokenHashSecret = os.urandom(24)
 def hashToken(token):
-    return hashlib.sha256(bytes(token,"utf8")+tokenHashSecret).digest()
+    return hashlib.sha256(usr_bytes(token,"utf8")+tokenHashSecret).digest()
 
 def assignNewToken(user):
     """Log user out by defining a new token"""

@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+
+### 0.59
+-  Object inspector supports weak references and deques, and weak value dictionaries
+-  Lighting module is now a similar cue-based system no longer compatible with the original.
+-  Minify JSON sent to browser for widgets
+
 ### 0.58
 
 -   Safer handling of tokens to resist timing attacks

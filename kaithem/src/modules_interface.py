@@ -316,6 +316,12 @@ class WebInterface():
                     obj = newevt.EventReferences[root,path[2]].pymodule
                     objname = "Event: " +path[2]
 
+                #Inspector should prob be its own module since it does all this.
+                if path[1] == "sys":
+                    import kaithem
+                    obj = kaithem
+                    objname = "PythonRoot"
+
                 if 'objname' in kwargs:
                     objname = kwargs['objname']
 

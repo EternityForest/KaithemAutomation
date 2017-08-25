@@ -22,7 +22,7 @@ __doc__= ""
 %>
 <h2>Kaithem Lighting System Help</h2>
 <div class="sectionbox">
-    <p>The Kaithem lighting system provides convenient abstractions for lights, scenes, fading and related concepts, plus a
+    <p>The Kaithem lighting system provides convenient abstractions for lights, scenes, cues, fading and related concepts, plus a
         very basic websocket based light board. Right now it re-renders constantly, and assumes that your lights are constantly
         changing, but will be optimized for low CPU in the future and is already pretty reasonable.</p>
 
@@ -38,57 +38,60 @@ __doc__= ""
     <p>You don't set the values in a universe directly. Instead, you use a "scene", which is more like a Layer in an image editing
         program than a traditional lighting scene. There is no limit to the number of scenes you can have running at once.</p>
 
-    <p>Scenes have a list of "channels" they affect, that can be from any number of universes, a priority, and an opacity. Higher
-        priority scenes "cover up" lower priority scenes, and their opacity is used to specify how "transparent" they are.</p>
+    <p>A scene has an alpha blend slider that affects how much of an affect the scene has on the overall look. By default,
+        scenes blend in "normal" mode, which is true alpha blending as might be found in an image editor.</p>
+    
+    <p>In other blend modes(notably inhibit), the alpha channel might not behave as a true alpha, but will still be reffered to as the alpha setting.</p>
 
-    <p>Scenes have a "blending mode" that controls how they mix with scenes below them. The default is "normal" for alpha blending,
-        but HTP (Similar to traditional highest-takes-priority on standard lighting consoles), and "gel"(a multiply effect
-        that simulates a virtual color filter), and "flicker"(The higher a value in this scene, the more flickering is applied).
-        Flickering uses an algorithm designed to look like real candle flickering.
+    <p>Setting the alpha slider to 0 generally stops the scene, and setting it to a nonzero value starts it if it is not already started. Scenes restart at the
+        beginning the same cue they were at when stopped, or at default.</p>
+    
+    <p>When using blend modes like inhibit that still have an affect at alpha 0, the scene will not be automatically stopped at 0 alpha.</p>
+
+    <p>Scenes are generally fully transparent to all channels the current cue does not affect(Except if they are not fully faded in and the previous cue affects them).</p>
+
+
+    <h3>Cues</h3>
+    <p>A scene is a list of "cues", each of which has a set of lighting values for channels in it. A scene can only have one
+        active cue at at time. Cues have a fade in time that controls how long it takes to fully fade in from the last cue,
+        a fade out time that will cause them to become fully transparent over the last N seconds before ending, a length,
+        and a next cue.</p>
+
+    <p>Newly created cues are numbered by 5, with the first cue at 5, the second at 10, etc. You can use decimal cues down to 0.001. A cue's number may
+        be changed at any time to move it around.
     </p>
 
+    <p>Unlike some lighting solutions, cues are also identified by name, and you can freely select the "next" cue that comes
+        after any given cue. This allows you to create loops, and even to have multiple selectable loops within one scene. Names and numbers only need
+        to be unique within each scene, not globally.</p>
 
+    <p>When you don't explicitly set a next cue, it defaults to whatever comes next in the list, but if you do want to explicitly set the next cue, you do it
+        by name not number.</p>
+
+    <p>Cues automatically go to the next one after the length is up if the length is not 0.</p>
+
+    <p>Every cue can have a "shortcut code", a brief string of characters use to quickly jumped to a cue. Typing this
+        code in the shortcut box will instantly trigger that cue, and activate it's scene if it is not already active. 
+        Multiple cues, in different scenes can have the same shortcut code and will all be activated when the code is entered.</p>
+
+    <p>This shortcut code defaults to the cue's number.</p>
+
+    <p>Scenes all have a special cue called "default" that is entered when activating a scene.</p>
+
+    <p>Cues have a list of "channels" they affect, that can be from any number of universes, a priority, and an opacity. Higher
+        priority scenes "cover up" lower priority scenes, and their opacity is used to specify how "transparent" they are.</p>
 
     <p>If two scenes have the same priority, the scene started most recently goes "on top".</p>
 
-    <p>Scenes are fully transparent to all channels they don't affect.</p>
-
-    <p>Scenes support fading in and out, and automatically triggering another scene. When activated, a scene will fade in from
-        0 opacity up to it's "default" opacity over a number of seconds controlled by fadein.</p>
-
-    <p>Every scene will stop itself after it's length parameter in seconds, unless length is 0. If the fadeout parameter is
-        not 0, the scene will smoothly fade out starting before it's end time by a duration in seconds controlled by fadeout.</p>
-
-    <p>A scene will automatically activate it's "next scene" when it ends, if it has one. If this next scene has a fadein time,
-        the renderer will make a smooth transition by keeping the previous scene active in a "handoff" state until the next
-        scene is fully faded in. There's a bit more to the algorithm than that, which is explained below.</p>
-
-    <p>Because of the rendering algorithm, you may notice some glitches when fading in an out from scenes with different priorities
-        if you trigger a new fade before the old one is complete.</p>
-
-
-    <p>Some parameters of scenes can be "control values", that are controlled by a value of a universe. For example, you can
-        set fadein to ControlUniverse:5*0.2, and the fade period will be 0.2* whatever value ControlUniverse:3 currently
-        has. Only fadein, fadeout, and length can be used this way.</p>
-
-    <p>This feature allows you to adjust the speed on the fly to match the BPM of music and the like.</p>
-
-    <p>A universe called control with 512 channels is created by default for this purpose. It doesn't do anything, but you can
-        use it to control parameters of scenes.</p>
-
-
-    <h3>Tracks</h3>
-
-    <p>Scenes can have a "track" parameter. If a scene has a track, any other scene with that same track value will be stopped
-        as soon as it is activated. If the new scene has a fadein parameter, a the same handoff algorithm will be used as
-        for the nextScene parameter.</p>
-
-    <p>The combination of tracks and fades allows you to create shows in a similar manner to traditional light board.</p>
-
 
     <h3>Blending Modes</h3>
-    <p>This module supports multiple "blend modes" which have the same meaining as in image editing. HTP blendmode takes the
-        highest value, simulating traditional lighting consoles.
+    <p>This module supports multiple "blend modes" which have the same meaining as in image editing. Each scene has a specified blending mode.
+        Some modes are purely effects, that modify layers below. If the values below are 0, the result will generally also be 0.</p>
+
+    <p>
+        HTP blendmode takes the highest value, simulating traditional lighting consoles. Inhibit multiplies the scene's alpha by all the channel values,
+        and restricts the channels to that value. Scenes with a blend mode of Inhibit don't automatically stop at alpha 0. Note that in this
+        case "alpha" is being used more as a generic control input than a true alpha.
     </p>
 
     <p>Gamma allows you to gamma-correct the output for linear fading on cheap DMX lights.</p>
@@ -122,19 +125,25 @@ __doc__= ""
     <p>The light board depends on a web resource provided by the jslibs module, and won't load unless you have a compatible
         version loaded. jslibs uses semantic versioning. The light board is tested with v0.56.0</p>
 
-    <h3>Scenes API</h3>
+    <h3>Scenes and Cue API</h3>
     <p>To create a scene, simply use kaithem.lights.Scene(name,*a,**kw). If there are duplicates, all references by name will
         point to the new scene, but the old scene will still be usable. Scenes stop existing if you don't keep a reference
         to them.
     </p>
 
-    <p>Every scene has a dict of dicts called values, indexed by universe and then by individual value number.</p>
+    <p>Every scene has a dict of cues called cues, that contains "cue objects"</p>
 
-    <p>To set a value, use scene.setValue(universe, channel, value), for example ssetValue("DMX", 45, 235).</p>
+    <p>Add a cue to a scene simply by passing the scene to the cue constructor, as in:
+         cue = scene.Cue(name,**kwargs), and remove it with rmCue(name)</p>
+    
+    <p>cue.setLength(l), setFadein(l), and setNext(cuename) can be used. setNext(None) returns a cue to the default of having the next numbered cue as the next one</p>
+    <p>To set a value, use cue.setValue(universe, channel, value), for example setValue("DMX", 45, 235).</p>
 
-    <p>To make a channel stop affecting a value, use scene.clearValue(universe, channel)</p>
+    <p>To make a channel stop affecting a value, use cue.clearValue(universe, channel)</p>
 
     <p>To activate and stop scenes, use scene.go() and scene.stop()</p>
+
+    <p>To go to a new cue, use scene.gotoCue(cuename)</p>
 
     <h3>Fixtures</h3>
     <p>To show more information in the GUI besides just channel names, you can use the Fixture API. Fixtures are very simple.
@@ -151,25 +160,6 @@ __doc__= ""
     <p>To actually use a fixture, you must assign it a start address in a universe with fixture.assign("universe", addr). After
         doing so, the GUI will show the appropriate information if you add the channels to a universe.</p>
 
-
-    <h3>Fading Algorithm</h3>
-    <p>Scenes can have a "next scene" that is automatically triggered at the end of a scene(the property scene.nextScene may
-        be the name of another scene). Scenes may also have a "track". Only one scene per track can be active. Starting a
-        new scene ends the previous scene on that track</p>
-
-    <p>In either case, a smooth fade algorithm will be used that simulates a traditional "one scene at a time" console. The
-        fade algorithm correctly handles triggering a new scene while a fade is in progress. The math for this was derived
-        using wxmaxima.</p>
-
-    <p>The way it works is we calculate a linear gradient of opacity from the previous scene to the new scene, and we linearly
-        fade in the new scene while changing the opacity of the old scene so that the combined opacity of the two follows
-        that gradient.</p>
-
-    <p>If we try to fade from scene b to c when b is already fading in from a, we freeze the state of a+b into a combined virtual
-        scene that looks the same as both of them, and until the fade completes, scene b will act as that virtual scene</p>
-
-    <p>If we try to fade back from b to a while b is fading in from b, we temporarily lower the priority of a, which would normally
-        jump to the top and cause a visible jump, to match it's old position.</p>
 
 
     <h3>Light Boards</h3>

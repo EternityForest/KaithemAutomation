@@ -17,6 +17,13 @@ ${obj.__class__|h}
 <pre>${util.saferepr(obj)|h}</pre>
 <article>
 
+%if isinstance(obj, (weakref.ref)):
+<h3>Weak Reference</h3>
+<div class="sectionbox">
+<a href="?objname=${objname}()&objpath=${objpath},c">Referrent</a>
+</div>
+%endif
+
 %if hasattr(obj,'__dict__'):
 <h3>Object Attributes</h3>
 <div class="sectionbox">
@@ -36,10 +43,33 @@ ${obj.__class__|h}
 <dd>${util.saferepr(getattr(obj,i))|h}</dd>
 %endif
 %endfor
-
-
 </div>
 %endif
+
+
+%if hasattr(obj,'__slots__') and obj.__slots__:
+<h3>Object Attributes</h3>
+<div class="sectionbox">
+<dl>
+%for i in obj.__slots__:
+<dt><a href="?objname=${objname}.${i}&objpath=${objpath},a${i}">${i|h}</a></dt>
+<dd>${util.saferepr(getattr(obj,i))|h}<br>
+    %if hasattr(getattr(obj,i),'__doc__'):
+    <pre>${getattr(obj,i).__doc__}</pre>
+    %endif
+</dd>
+%endfor
+
+%for i in['__class__','__getattr__','__setattr__', '__getattribute__',"__del__","__init__","__str__","__repr__"]:
+%if hasattr(obj,i):
+<dt><a href="?objname=${objname}.${i}&objpath=${objpath},a${i}">${i|h}</a></dt>
+<dd>${util.saferepr(getattr(obj,i))|h}</dd>
+%endif
+%endfor
+</div>
+%endif
+
+
 
 %if hasattr(obj,'__doc__'):
 <h3>Documentation String</h3>
@@ -82,25 +112,20 @@ ${getsource(obj)|h}
 <dl>
 %for i in obj:
 %if isinstance(i,str):
-<dt><a href="?objname=${objname}['${i}']&objpath=${objpath},s${i.replace(",","\\,")|u}">${i|h}</a></dt>
+<dt><a href="?objname=${objname}['${i}']&objpath=${objpath|u},s${i.replace(",","\\,")|u}">${i|h}</a></dt>
 %elif isinstance(i,tuple):
-<dt><a href="?objname=${objname}['${i}']&objpath=${objpath},t${util.url(json.dumps(i).replace(",","\\,"))}">${i|h}</a></dt>
+<dt><a href="?objname=${objname}['${i}']&objpath=${objpath|u},t${util.url(json.dumps(i).replace(",","\\,"))}">${i|h}</a></dt>
 %elif isinstance(i,float):
-<dt><a href="?objname=${objname}['${i}']&objpath=${objpath},f${i}">${i|h}</a></dt>
+<dt><a href="?objname=${objname}['${i}']&objpath=${objpath|u},f${i}">${i|h}</a></dt>
 %elif isinstance(i,int):
-<dt><a href="?objname=${objname}['${i}']&objpath=${objpath},i${i}">${i|h}</a></dt>
+<dt><a href="?objname=${objname}['${i}']&objpath=${objpath|u},i${i}">${i|h}</a></dt>
 %endif
 <dd>${util.saferepr(obj[i])|h}</dd>
 %endfor
 </div>
 %endif
 
-%if isinstance(obj, (weakref.ref)):
-<h3>Weak Reference</h3>
-<div class="sectionbox">
-<a href="?objname=${objname}()&objpath=${objpath},c">Referrent</a>
-</div>
-%endif
+
 
 
 </article>

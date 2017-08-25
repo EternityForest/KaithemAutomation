@@ -69,7 +69,8 @@ function add_mako_format(e)
                 "indent_size": 4
             },
             "brace_style": "expand preserve-inline",
-            "wrap_line_length":120,
+            "wrap_line_length":80,
+            "unformatted":['b','span','s','i','u','del','small','em','mark','ins','sub','sup','strong','br']
         }})
         x = x.replaceAll(/\n?\<mako\-literal\>(.*?)\<\/mako-literal\>\n?/g,"\n$1\n")
         x = x.replaceAll(/\n?\<mako\-literal\>(.*?)\<\/mako-literal\>\n?/g,"\n$1\n")

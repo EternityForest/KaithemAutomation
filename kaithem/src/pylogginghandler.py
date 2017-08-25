@@ -45,12 +45,12 @@ atexit.register(at_exit)
 
 class KFormatter(logging.Formatter):
     def formatException(self,exc_info):
-        return textwrap.fill(logging.Formatter.formatException(self,exc_info),initial_indent="  ",subsequent_indent="  ")
+        return textwrap.fill(logging.Formatter.formatException(self,exc_info),initial_indent="  ",subsequent_indent="  ",width=120)
 
 class LoggingHandler(logging.Handler):
     def __init__(self,name,folder, fn, bufferlen=25000,
-                level=30,contextlevel=10,contextbuffer=0,
-                 entries_per_file=25000, keep=10, compress='none'):
+                    level=30,contextlevel=10,contextbuffer=0,
+                    entries_per_file=25000, keep=10, compress='none'):
         """Implements a memory-buffered context logger with automatic log rotation.
         Log entries are kept in memory until the in memory buffer exceeds bufferlen entries.
         When that happens,logs are dumped to a file named fn_TIMESTAMP.FRACTIONALPART.log,

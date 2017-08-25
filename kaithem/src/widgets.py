@@ -275,7 +275,10 @@ class Widget():
 
     def send(self,value):
         "Send a value to all subscribers without invoking the local callback"
-        d = json.dumps([[self.uuid,value]], separators=(',',':'))
+        d = json.dumps([[self.uuid,value]])
+        #Not sure what the actual cause of the ssl segfault is, but maybe it's this?
+        if (len(d)>128*1024):
+            raise ValueError("Data is too large, refusing to send")
         for i in self.subscriptions_atomic:
             self.subscriptions_atomic[i](d)
             

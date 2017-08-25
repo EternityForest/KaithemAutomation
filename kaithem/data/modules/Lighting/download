@@ -3,11 +3,13 @@ allow-xss: false
 auto-reload: false
 auto-reload-interval: 5.0
 dont-show-in-index: false
+mimetype: text/html
 no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [lights/lightboard.admin]
 resource-type: page
+template-engine: mako
 
 #End YAML metadata, page body mako code begins on first line after ---
 ---

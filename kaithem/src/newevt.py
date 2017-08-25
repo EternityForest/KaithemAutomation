@@ -539,7 +539,7 @@ class CompileCodeStringsMixin():
             self.pymodule.__dict__.update(params)
         except KeyError as e:
             raise e
-        exec(initializer,self.pymodule.__dict__,self.pymodule.__dict__)
+        exec(initializer,self.pymodule.__dict__)
 
         body = "def _event_action():\n"
         for line in action.split('\n'):
@@ -651,7 +651,7 @@ class FunctionEvent(BaseEvent):
             exec(trigaction,self.pymodule.__dict__)
         #initialize the module scope with the kaithem object and the module thing.
         initializer = compile(setup,"Event_"+self.module+'_'+self.resource+"setup","exec")
-        exec(initializer,self.pymodule.__dict__,self.pymodule.__dict__)
+        exec(initializer,self.pymodule.__dict__)
 
     def register(self):
         with self.register_lock:
