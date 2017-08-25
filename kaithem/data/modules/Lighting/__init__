@@ -13,7 +13,7 @@ versions: {}
 #This code runs once when the event loads. It also runs when you save the event during the test compile
 #and may run multiple times when kaithem boots due to dependancy resolution
 __doc__=''
-import time,array,random,weakref, os,threading,uuid,logging,serial,traceback,yaml,copy,json
+import time,array,random,weakref, os,threading,uuid,logging,serial,traceback,yaml,copy,json,math
 from decimal import Decimal
 
 import numpy
@@ -115,6 +115,8 @@ class flicker_blendmode(BlendMode):
                     "lowpass": ("Lowpass","number","",0.2),
                     "topple_chance": ("Windiness","number","",0.1),
                     "agility": ("Flame agility","number","",0.15),
+                    "group": ("Group","number","Detect groups of channels to connect, e.g. to make RGB look right",3),
+
                  }
     def __init__(self,scene):
         self.scene = scene
@@ -135,11 +137,12 @@ class flicker_blendmode(BlendMode):
             if u in module.universes:
                 self.heights[u] = makeBlankArray(len(module.universes[u].values))
                 self.heights_lp[u] = makeBlankArray(len(module.universes[u].values))
-
+            else:
+                return
+                
         #Time in 60ths of a second since last frame, so we can keep a consistant frame rate
         t60 = (time.time()-self.last)*60
         self.last = time.time()
-
         lp = t60*0.05
         self.wind =1*lp + self.wind*(1-lp)
 
@@ -162,11 +165,12 @@ class flicker_blendmode(BlendMode):
         heights = self.heights[u]
         heights_lp = self.heights_lp[u]
 
+        group = int(self.scene.blendArgs['group'])
         for k in numpy.nonzero(alphas)[0]:
             k=int(k)
-            #Detect RGB groups of 3, put them all together.
+            #Detect RGB groups of N, put them all together.
             #Reset group on finding a gap to account for typical DMX layouts
-            if((not (ctr%3)) or k-lastk>1):
+            if((not (ctr%group)) or k-lastk>1):
                 t = random.random()
                 ctr=0
                 nv = random.triangular(0,1,0.2)
@@ -186,7 +190,7 @@ class flicker_blendmode(BlendMode):
 
             heights_lp[k] = heights_lp[k]*(1-lp) +heights[k]*(lp)
 
-        old *= numpy.minimum((alpha*heights_lp[k]),1) + 1-(alpha*alphas)
+        old *= (alphas*alpha*numpy.minimum(heights_lp,1)) + 1-(alpha*alphas)
         return old
 
 
@@ -211,7 +215,7 @@ class vary_blendmode_np(BlendMode):
                 self.vals[u] = makeBlankArray(len(module.universes[u].values))
                 self.vals_lp[u] = makeBlankArray(len(module.universes[u].values))
             else:
-                return
+                return old
 
         #Time in 60ths of a second since last frame, so we can keep a consistant frame rate
         t60 = (time.time()-self.last)*60
@@ -239,8 +243,6 @@ class exp_blendmode_np(BlendMode):
     default_channel_value = 165
     def __init__(self,scene):
         self.scene = scene
-        self.affect = {}
-        self.ntt = 0
         for i in self.scene.values:
             self.affect[i] = sorted(self.scene.values[i].keys())
         self.last = time.time()
@@ -250,6 +252,70 @@ class exp_blendmode_np(BlendMode):
 
 blendmodes['gamma'] = exp_blendmode_np
 
+class sparks_blendmode(BlendMode):
+    "Randomly jump to some of the values in this scene then fade back to what they were. Works in groups of 3 channels"
+    parameters = {
+                    "fadetime": ("Fade Time","number","How fast to fade out again.",1),
+                    "interval": ("Interval","number","How often to do a spark",3),
+                    "variation": ("Variation","number","How much to vary the spark intensity",0.3),
+                    "group": ("Group","number","Detect groups of channels to connect, e.g. to make RGB look right",3),
+
+                }
+    def __init__(self,scene):
+        self.vals_lp = {}
+        self.sparktimes = {}
+        self.scene = scene
+        self.last = time.time()
+
+    
+    def frame(self,u,old,values,alphas,alpha):
+        if not u in self.vals_lp:
+            if u in module.universes:
+                self.sparktimes[u] = makeBlankArray(len(module.universes[u].values))
+                self.vals_lp[u] = makeBlankArray(len(module.universes[u].values))
+            else:
+                return old
+
+
+        #It's always changing so always rerender
+        self.scene.rerender = True
+
+        lastk=ctr =0
+        x = False
+        t=time.time()
+        group = self.scene.blendArgs['group']
+        #Groups of 3 are supposed to come on at the same time because of RGB triples.
+        for k in numpy.nonzero(alphas)[0]:
+            if((not (ctr%group)) or k-lastk>1):
+                ctr=0
+                nv = random.triangular(1-self.scene.blendArgs['variation'],1)
+                if t>self.sparktimes.get(k,0):
+                    c = self.scene.blendArgs['interval']
+                    x = True
+                    self.sparktimes[k]= t+random.uniform(max(c/3.0,0.35),c*2)
+                else:
+                    x=False
+            if x:
+                self.vals_lp[u][k] = max(nv,self.vals_lp[u][k])
+            ctr+=1
+            lastk=k
+
+        #Supposed to be a first order lowpass filter to handle the fade out
+        t = (time.time()-self.last)
+        self.last = time.time()
+        #Calculate the decay constant
+        k = 1/self.scene.blendArgs['fadetime']
+        y = math.e**-(k*t)
+        #Exponential decay equation.
+        self.vals_lp[u] *= y
+
+
+        #The vals_lp are actually alphas that spark up and then fade out and control how much of the scene shows up
+        #in that channel
+        return values*(self.vals_lp[u]*alpha*alphas) + old*(1-(self.vals_lp[u]*alpha*alphas))
+
+ 
+blendmodes['sparks'] = sparks_blendmode
 
 def getControlValue(cv,default=None):
     "Return numbers as is, or resolve values in the form of Universe:3 to the current value from that universe "
@@ -336,6 +402,7 @@ class Fixture():
             module.universes[universe].channelsChanged()
             fixtureschanged = {}
 
+
 class Universe():
     def __init__(self, name,count=512):
         for i in ":/[]()*\\`~!@#$%^&*=+|{}'\";<>.,":
@@ -348,9 +415,12 @@ class Universe():
         self.count = count
         #Maps fine channel numbers to coarse channel numbers
         self.fine_channels = {}
-        #Used for the caching
-        self.highest_static_layer_last_frame = (0,0)
-        self.highest_static_layer_this_frame = (0,0)
+        #Used for the caching. It's the layer we want to save as the background state before we apply.
+        #Calculated as either the last scene rendered in the stack or the first scene that requests a rerender that affects the universe
+        self.save_before_layer = (0,0)
+        #Reset in pre_render, indicates if we've not rendered a layer that we think is going to change soon
+        #so far in this frame
+        self.all_static = True
         module.universes[name] =self
 
         #flag to apply all scenes, even ones not marked as neding rerender
@@ -385,7 +455,27 @@ class Universe():
             except RuntimeError:
                 #Should there be some kind of dict changed size problem, retry
                 time.sleep(0.1)
-                    
+
+            self.refresh_scenes()
+
+    def refresh_scenes(self):
+        with module.lock:
+            for i in module.activeScenes:
+                #Attempt to restart all scenes.
+                #Try to put them back in the same state
+                #A lot of things are written assuming the list stays constant,
+                #this is needed for refreshing.
+                x = i.started
+                y = i.enteredCue
+                i.stop()
+                i.go()
+                i.started = x
+                i.enteredCue = y
+
+    def __del__(self):
+        #Do as little as possible in the undefined __del__ thread
+        kaithem.misc.do(self.refresh_scenes)
+
     def channelsChanged(self):
         with module.lock:
             self.fine_channels = {}
@@ -457,14 +547,25 @@ class LightBoard():
                         #supported
                         cues = data[i]['cues']
                         del data[i]['cues']
-                        s=Scene(id=i,defaultCue=False,**data[i])
+                        x = False
+                        if 'defaultActive' in data[i]:
+                            x =  data[i]['defaultActive']
+                            del data[i]['defaultActive']
+                        if 'active' in data[i]:
+                            x =  data[i]['active']
+                            del data[i]['active']
+
+                        s=Scene(id=i,defaultCue=False,defaultActive=x,**data[i])
                         for j in cues:
                             Cue(s,f=True,name=j,**cues[j])
                         s.cue = s.cues['default']
                         s.gotoCue("default")
                         self.scenememory[i] = s
-                    except:
-                        print("Failed to load scene "+str(i))
+                        if x:
+                            s.go()
+                            s.rerender=True
+                    except Exception as e:
+                        print("Failed to load scene "+str(i)+": "+traceback.format_exc(3))
             
     def addScene(self,scene):
         self.scenememory[scene.id] = scene
@@ -487,7 +588,7 @@ class LightBoard():
                              'alpha':self.scenememory[i].defaultalpha,
                              'cues': {j:self.scenememory[i].cues[j].serialize() for j in self.scenememory[i].cues},
                              'priority'  : self.scenememory[i].priority,
-                             'defaultActive': self.scenememory[i].defaultActive,
+                             'active': self.scenememory[i].defaultActive,
                              'blend':  self.scenememory[i].blend,
                              'blendArgs': self.scenememory[i].blendArgs,
                              'backtrack': self.scenememory[i].backtrack
@@ -583,6 +684,8 @@ class LightBoard():
                 
             if msg[0] == "nextcue":
                 module.scenes[msg[1]].nextCue()
+            if msg[0] == "nextcuebyname":
+                module.scenes_by_name[msg[1]].nextCue()
 
             if msg[0] == "shortcut":
                 shortcutCode(msg[1])
@@ -874,6 +977,7 @@ def pre_render():
         for u in i.affect:
             if u in universes:
                 universe = universes[u]
+                universe.all_static = True
                 universe.highest_static_layer_this_frame = (0,0)
                 if i.rerender:
                     if ((i.priority,i.started) <= universe.prerendered_layer):
@@ -903,22 +1007,30 @@ def render(t=None):
     changedUniverses = pre_render()
   
     t = t or time.time()
-  
+    
     #Remember that scenes get rendered in ascending priority order here
     for i in module.activeScenes:
+
         data =i.affect
 
         #We don't need to call render() if the frame is a static scene and the opacity
         #and all that is the same, we can just re-layer it on top of the values
         if i.rerender or (i.cue.length and ((time.time()-i.enteredCue)>i.cue.length)):
+            i.rerender = False
             i.render()
-        i.rerender = False
+
 
         #Loop over universes the scene affects
         for u in data:
             if not u in module.universes:
                 continue
-            if (i.priority,i.started) > module.universes[u].top_layer :
+            if (i.priority,i.started) > module.universes[u].top_layer:
+
+                #If this layer we are about to render was found to be the highest layer that won't need rerendering,
+                #Save the state just befor we apply that layer.
+                if (module.universes[u].save_before_layer==(i.priority,i.started)) and not((i.priority,i.started)==(0,0)):
+                    module.universes[u].save_prerendered(i.priority, i.started)
+
                 changedUniverses[u]=(i.priority, i.started)
                 if not u in module.universes:
                     continue
@@ -926,28 +1038,15 @@ def render(t=None):
                 universe = module.universes[u]
                 universe.values = applyLayer(u, universe.values, i)
                 universe.top_layer = (i.priority, i.started)
-                
-                #If we aren't going to rerender something, we can save the current position as that universe's
-                #Background state.
 
-                #We don't use rerender_this_frame, because what we're interested in is if anything set it to True,
-                #making us have to rerender it next frame, defeating the entire purpose of the cache.
-
-                #This is a bizzare runtime optimization that takes the data from last frame about what the highest
-                #cacheable layer is, and saves that exact layer if it's still around, but only of it doesn't need rerendering.
-                if not i.rerender and module.universes[u].highest_static_layer_last_frame==(i.priority,i.started) and not(i.priority,i.started)==(0,0):
-                    module.universes[u].save_prerendered(i.priority, i.started)
-
-
-                if i.rerender:
-                    if module.universes[u].highest_static_layer_this_frame:
+                #If this is the first nonstatic layer, meaning it's render function requested a rerender next frame
+                #or if this is the last one, mark it as the one we should save just before
+                if i.rerender or i is module.activeScenes[-1]:
+                    if module.universes[u].all_static:
                         #Copy it and set to none as a flag that we already found it
-                        module.universes[u].highest_static_layer_last_frame = module.universes[u].highest_static_layer_this_frame
-                        module.universes[u].highest_static_layer_this_frame = None
-                else:
-                    #If we're still looking for the highest purely static layer that we can cache
-                    if module.universes[u].highest_static_layer_this_frame:
-                        module.universes[u].highest_static_layer_this_frame = max((i.priority,i.started), module.universes[u].highest_static_layer_this_frame)
+                        module.universes[u].all_static = False
+                        module.universes[u].save_before_layer = module.universes[u].top_layer
+        
 
     for i in changedUniverses:
         try:
@@ -1155,21 +1254,25 @@ class Cue():
         with module.lock:
             self.scene().rerender = True
             reset = False
-            #TODO: threadsafe?
-            if not universe in self.values:
-                self.values[universe] = {}
-                reset = True
-            if not channel in self.values[universe]:
-                reset = True
-            self.values[universe][channel] = value
+            if not value is None:
+                if not universe in self.values:
+                    self.values[universe] = {}
+                    reset = True
+                if not channel in self.values[universe]:
+                    reset = True
+                self.values[universe][channel] = value
+            else:
+                if channel in self.values[universe]:
+                    del self.values[universe][channel]
 
             if self.scene().cue==self:
-                if not universe in self.scene().cue_cached_alphas_as_arrays and universe in module.universes:
+                self.scene().rerender=True
+                if (not universe in self.scene().cue_cached_alphas_as_arrays) and universe in module.universes and not value is None:
                     self.scene().cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
                     self.scene().cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
                 if universe in self.scene().cue_cached_alphas_as_arrays:
-                    self.scene().cue_cached_alphas_as_arrays[universe][channel] = 1 if not value==None else 0
-                    self.scene().cue_cached_vals_as_arrays[universe][channel] =  0 if not value==None else 0
+                    self.scene().cue_cached_alphas_as_arrays[universe][channel] = 1 if not value is None else 0
+                    self.scene().cue_cached_vals_as_arrays[universe][channel] =  value if not value is None else 0
             #For blend modes that don't like it when you
             #change the list of values without resetting
             if reset:
@@ -1228,7 +1331,7 @@ class Scene():
         #Used by blend modes
         self.blendArgs = blendArgs or {}
         self.setBlend(blend)
-        self.defaultActive = False
+        self.defaultActive = defaultActive
 
         #Used to indicate that the most recent frame has changed something about the scene
         #Metadata that GUI clients need to know about.
@@ -1513,7 +1616,13 @@ class Scene():
         self.priority = p
         with module.lock:
             module._activeScenes = sorted(module._activeScenes,key=lambda k: (k.priority, k.started))
-            module.activeScenes = module._activeScenes[:] 
+            module.activeScenes = module._activeScenes[:]
+            try:
+                for i in self.affect:
+                    if i in module.universes:
+                        module.universes[i].full_rerender = True
+            except:
+                pass
  
     def setName(self,name):
         disallow_special(name)
@@ -1548,10 +1657,14 @@ class Scene():
             self._blend =None
             self.hasNewInfo = {}
             self.canvas = None
-
-            for i in self.affect:
-                if i in module.universes:
-                    module.universes[i].full_rerender = True
+            
+            try:
+                for i in self.affect:
+                    if i in module.universes:
+                        module.universes[i].full_rerender = True
+            except:
+                pass
+ 
             self.affect = []
             if self in module._activeScenes:
                 module._activeScenes.remove(self)
@@ -1661,10 +1774,10 @@ class Scene():
 
 
 
-lastrendered = 0   
+lastrendered = 0
+
 module.board = LightBoard()
 module.boards.append(weakref.ref(module.board))
-
 module.Scene = Scene
 
 kaithem.lights.board = module.board
@@ -1674,6 +1787,7 @@ kaithem.lights.scenesByName = module.scenes_by_name
 kaithem.lights.Universe = Universe
 kaithem.lights.blendmodes = blendmodes
 kaithem.lights.fixture = Fixture
+
 module.controluniverse = Universe("control")
 
 render()
