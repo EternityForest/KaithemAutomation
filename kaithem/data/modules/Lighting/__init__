@@ -162,7 +162,8 @@ class flicker_blendmode(BlendMode):
         heights = self.heights[u]
         heights_lp = self.heights_lp[u]
 
-        for k in numpy.nonzero(alphas):
+        for k in numpy.nonzero(alphas)[0]:
+            k=int(k)
             #Detect RGB groups of 3, put them all together.
             #Reset group on finding a gap to account for typical DMX layouts
             if((not (ctr%3)) or k-lastk>1):
@@ -836,19 +837,16 @@ def applyLayer(universe, uvalues,scene):
         uvalues = composite(uvalues,vals,alphas,scene.alpha)
 
     elif scene.blend == "HTP":
-        for k,v in enumerate(vals):
-            uvalues[k] = max(uvalues[k], v*(alphas[k]*scene.alpha))
+        uvalues = numpy.maximum(uvalues, v*(alphas*scene.alpha))
 
     elif scene.blend == "inhibit":
-        for k,v in enumerate(vals):
-            uvalues[k] = min(uvalues[k], v*(alphas[k]*scene.alpha))
+        uvalues = numpy.minimum(uvalues, v*(alphas*scene.alpha))
 
     elif scene.blend == "gel" or scene.blend=="multiply":
-        for k,v in enumerate(vals):
-            if scene.alpha:
-                #precompute constants
-                c= 255/scene.alpha
-                uvalues[k] = (uvalues[k]*(1-alphas[k]*scene.alpha)) + (uvalues[k]*v)/c
+        if scene.alpha:
+            #precompute constants
+            c= 255/scene.alpha
+            uvalues = (uvalues*(1-alphas*scene.alpha)) + (uvalues*v)/c
                 
     elif scene.blend == "monitor":
         data =  scene.cue.values
@@ -1164,17 +1162,18 @@ class Cue():
             if not channel in self.values[universe]:
                 reset = True
             self.values[universe][channel] = value
-            #For blend modes that don't like it when you
-            #change the list of values without resetting
-            if reset:
-                self.scene().setBlend(self.scene().blend)
+
             if self.scene().cue==self:
                 if not universe in self.scene().cue_cached_alphas_as_arrays and universe in module.universes:
                     self.scene().cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
                     self.scene().cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
-                self.scene().cue_cached_alphas_as_arrays[universe][channel] = 1 if not value==None else 0
-                self.scene().cue_cached_vals_as_arrays[universe][channel] =  0 if not value==None else 0
-
+                if universe in self.scene().cue_cached_alphas_as_arrays:
+                    self.scene().cue_cached_alphas_as_arrays[universe][channel] = 1 if not value==None else 0
+                    self.scene().cue_cached_vals_as_arrays[universe][channel] =  0 if not value==None else 0
+            #For blend modes that don't like it when you
+            #change the list of values without resetting
+            if reset:
+                self.scene().setBlend(self.scene().blend)
                 
 
 
