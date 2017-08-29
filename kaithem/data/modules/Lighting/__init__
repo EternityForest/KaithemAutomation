@@ -11,17 +11,12 @@ versions: {}
 #End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
 ---
 #This code runs once when the event loads. It also runs when you save the event during the test compile
-#and may run multiple times when kaithem boots due to dependancy resolution
+#and may run multiple times when kaithem boots due to dependancy resolutio n
 __doc__=''
-import time,array,random,weakref, os,threading,uuid,logging,serial,traceback,yaml,copy,json,math
+import time,array,random,weakref, os,threading,uuid,logging,serial,traceback,yaml,copy,json,math,struct
 from decimal import Decimal
 
 import numpy
-
-
-module.scenes = weakref.WeakValueDictionary()
-
-module.scenes_by_name = weakref.WeakValueDictionary()
 
 module.boards = []
 
@@ -36,6 +31,25 @@ module.activeScenes = []
 shortcut_codes = {}
 
 module.runningTracks = weakref.WeakValueDictionary()
+
+module.scenes = weakref.WeakValueDictionary()
+module.scenes_by_name = weakref.WeakValueDictionary()
+
+
+
+def getSerPorts():
+    try:
+        import serial.tools.list_ports
+        if os.path.exists("/dev/serial/by-id"):
+            return [os.path.join('/dev/serial/by-id',i) for i in os.listdir("/dev/serial/by-id")]
+        else:
+            return [i.device for i in serial.tools.list_ports.comports()]
+    except Exception as e:
+        return [str(e)]
+
+
+
+
 
 
 
@@ -370,37 +384,57 @@ class Fixture():
         self.channels = channels or []
         self.universe = None
         self.startAddress = 0
+        disallow_special(name)
         with module.lock:
             if name in module.fixtures:
                 raise ValueError("Name in Use")
             else:
-                    module.fixtures[name]=self
-                    self.name=name
+                module.fixtures[name]=self
+                self.name=name
+                    
+    def __del__(self):
+        def f():
+            self.assign(None,None)
+            self.rm()
+        kaithem.misc.do(f)
+
+    def rm(self):
+        try:
+            del module.fixtures[self.name]
+        except:
+            pass
 
     def assign(self,universe, channel):
         with module.lock:
-            if self.universe and self.startAddress:
+            if self.universe and self.startAddress and (self.universe in module.universes):
                 #Delete current assignments
                 for i in range(self.startAddress,self.startAddress+len(self.channels)):
                     if i in module.universes[self.universe].channels:
                         if module.universes[self.universe].channels[i] is self:
                             del module.universes[self.universe].channels[i]
+                        else:
+                            print("Unexpected channel data corruption",universe, i, module.universes[self.universe].channels[i])
+
+            self.universe = universe
+            self.startAddress= channel
+
+            global fixtureschanged
+            fixtureschanged = {}
 
             if not universe in module.universes:
                     return
+            module.universes[universe].channelsChanged()
+
+            if not channel:
+                return
             #2 separate loops, first is just to check, so that we don't have half-completed stuff
             for i in range(channel,channel+len(self.channels)):
                 if i in module.universes[universe].channels:
                     if module.universes[universe].channels[i]:
-                        raise ValueError("channels would overlap with "+module.universes[universe].channels[i].name)
+                        raise ValueError("channel " +str(i)+ " of " +self.name+ " would overlap with "+module.universes[universe].channels[i].name)
 
             for i in range(channel,channel+len(self.channels)):
                 module.universes[universe].channels[i]= self
-            self.universe = universe
-            self.startAddress= channel
-            global fixtureschanged
-            module.universes[universe].channelsChanged()
-            fixtureschanged = {}
 
 
 class Universe():
@@ -409,6 +443,15 @@ class Universe():
             if i in name:
                 raise ValueError("Name cannot contain special characters except _")
         self.name = name
+
+        #Let subclasses set these
+        if not hasattr(self,"status"):
+            self.status = "normal"
+        if not hasattr(self,"ok"):
+            self.ok = True
+            
+        #Dict of all board ids that have already pushed a status update
+        self.statusChanged = {}
         self.channels = {}
         self.groups ={}
         self.values = numpy.array([0.0]*count,dtype="f4")
@@ -457,6 +500,13 @@ class Universe():
                 time.sleep(0.1)
 
             self.refresh_scenes()
+    def setStatus(self,s,ok):
+        #avoid pushing unneded statuses
+        if (self.status == s) and (self.ok == ok):
+            return
+        self.status = s
+        self.ok = ok
+        self.statusChanged = {}
 
     def refresh_scenes(self):
         with module.lock:
@@ -469,6 +519,7 @@ class Universe():
                 y = i.enteredCue
                 i.stop()
                 i.go()
+                i.render()
                 i.started = x
                 i.enteredCue = y
 
@@ -481,8 +532,10 @@ class Universe():
             self.fine_channels = {}
             for i in self.channels:
                 fixture = self.channels[i]
+                if not fixture.startAddress:
+                    continue
                 data = fixture.channels[i-fixture.startAddress]
-                if data[1]== "fine" and i>1:
+                if (data[1]== "fine") and (i>1):
                     self.fine_channels[i]= i-1
     
     def reset_to_cache(self):
@@ -510,6 +563,139 @@ class Universe():
     def onFrame(self):
         pass
 
+def message(data):
+    data = numpy.maximum(numpy.minimum(data,255),0)
+    data = data.astype(numpy.uint8)
+    data = data.tobytes()[:512]
+    return (b'\x7e\x06'+struct.pack('<H',len(data))+data+b'\xe7')
+
+
+
+class EnttecUniverse(Universe):
+    #Thanks to https://github.com/c0z3n/pySimpleDMX
+    #I didn't actually use the code, but it was a very useful resouurce
+    #For protocol documentation.
+    def __init__(self,name,channels=128,portname="",framerate=44):
+        self.ok = False
+        self.status = "Disconnect"
+        #Sender needs the values to be there for setup
+        self.values = numpy.array([0.0]*channels,dtype="f4")
+        self.sender = DMXSender(self,portname,framerate)
+        self.sender.connect()
+        self.statusChanged = {}
+        Universe.__init__(self,name,channels)
+
+
+    def onFrame(self):
+        data = message(self.values)
+        self.sender.onFrame(data)
+
+    def __del__(self):
+        #Stop the thread when this gets deleted
+        self.sender.onFrame(None)
+
+module.EnttecUniverse_dbg= weakref.WeakValueDictionary()
+
+class DMXSender():
+    def __init__(self,universe,port,framerate):
+        module.EnttecUniverse_dbg[str(time.time())]= self
+        self.frame = threading.Event()
+        self.thread = threading.Thread(target =self.run)
+        self.thread.daemon = True
+        self.connect()
+        self.thread.start()
+        self.portname = port
+        self.framerate = float(framerate)
+        self.universe= weakref.ref(universe)
+        self.lock = threading.Lock()
+        self.port = None
+        self.data = message(self.universe().values)
+
+    def setStatus(self,s,ok):
+        try:
+            self.universe().setStatus(s,ok)
+        except:
+            pass
+            
+    def connect(self):
+        #Different status message first time
+        try:
+            self.reconnect()
+        except Exception as e:
+            self.setStatus('Could not connect, '+str(e)[:100]+'...',False)
+
+
+    def reconnect(self):
+        try:
+            import serial
+            if not self.portname:
+                p = serial.tools.list_ports.comports()
+                if p:
+                    p =p[0].device
+                else:
+                    self.setStatus('No device found',False)
+                    return
+            else:
+                p = self.portname
+            time.sleep(0.1)
+            self.port = serial.Serial(p,57600)
+            #self.port.write(bytes(bytearray((126,3,2,0,0,0,231))))
+            #This is a flush to try to re-sync recievers that don't have any kind of time out detection
+            #We do this by sending a frame where each value is the packet end code,
+            #Hoping that it lines up with the end of whatever unfinished data we don't know about.
+            self.setStatus('Found port, writing sync data',True)
+
+            for i in range(0,8):
+                self.port.write(message(numpy.array([231]*120)))
+                time.sleep(0.1)
+            self.port.write(message(numpy.zeros(max(128,len(self.universe().values)))))
+            self.port.write(self.data)
+            self.setStatus('connected to '+p,True)
+        except Exception as e:
+             self.setStatus('disconnected, '+str(e)[:100]+'...',False)
+
+    def run(self):
+        while 1:
+            try:
+                s = time.time()
+                self.port.inWaiting()
+                x =self.frame.wait(1)
+                if not x:
+                    continue
+                with self.lock:
+                    if self.data is None:
+                        try:
+                            self.port.close()
+                        except:
+                            pass
+                        return
+                    self.port.write(self.data)
+                    self.frame.clear()
+                time.sleep(max(((1.0/self.framerate)-(time.time()-s)), 0))
+            except Exception as e:
+                try:
+                    self.port.close()
+                except:
+                    pass
+
+                if self.data is None:
+                    return
+
+                if self.port:
+                    self.setStatus('disconnected, '+str(e)[:100]+'...',False)
+                self.port=None
+                time.sleep(1)
+                self.reconnect()
+                time.sleep(1)
+                self.reconnect()
+                time.sleep(1)
+
+
+    def onFrame(self,data):
+        with self.lock:
+            self.data = data
+            self.frame.set()
+
 class LightBoard():
     def __init__(self, count=65536):
 
@@ -534,13 +720,71 @@ class LightBoard():
         self.link.attach(self.onmsg)
         self.lock = threading.Lock()
         
+        self.configuredUniverses = kaithem.registry.get("lighting/universes",{})
+        self.universeObjs = {}
+
+        self.fixtureClasses =kaithem.registry.get("lighting/fixturetypes",{})
+        self.fixtureAssignments = {}
+        self.fixtures ={}
+        
+        #This is a list of [name, fixturetype, startAddress] triples
+        self.fixtureAssignments = kaithem.registry.get("lighting/fixtures",[])
+        try:
+            self.createUniverses()
+        except Exception as e:
+            print(traceback.format_exc(6))
+
         self.loadDict(kaithem.registry.get("lighting/scenes",{}))
+
+    
+    def refreshFixtures(self):
+        with module.lock:
+            self.ferrs=''
+            try:
+                for i in self.fixtures:
+                    self.fixtures[i].assign(None,None)
+                    self.fixtures[i].rm()
+            except:
+               self.ferrs+= 'Error deleting old assignments:\n'+traceback.format_exc(2)
+            try:
+                del i
+            except:
+                pass
+                
+            self.fixtures = {}
+            for i in self.fixtureAssignments:
+                if i == [''] or i ==[]:
+                    continue
+                try:
+                    if not len(i)==4:
+                        raise ValueError('Syntax error')
+                    self.fixtures[i[0]] = Fixture(i[0],self.fixtureClasses[i[1]])
+                    self.fixtures[i[0]].assign(i[2],int(i[3]))
+                except:
+                    self.ferrs += str(i)+'\n'+traceback.format_exc(2)
+
+            for u in module.universes:
+                self.pushChannelNames(u)
+
+            self.ferrs = self.ferrs or 'No Errors!'
+            self.pushferrs()
+
+        
+    def createUniverses(self):
+        l ={}
+        u = self.configuredUniverses
+        for i in u:
+            if u[i]['type'] == 'enttec':
+                l[i] = EnttecUniverse(i,channels=int(u[i].get('channels',128)),portname=u[i].get('interface',None),framerate=float(u[i].get('framerate',44)))
+        self.universeObjs = l
+        self.pushUniverses()
+
 
     def loadSceneFile(self,data):
         self.loadDict(yaml.load(data))
     
     def loadDict(self,data):
-        with self.lock:
+        with module.lock:
             for i in data:
                     try:
                         #Kinda brittle and hacky, because loadinga new default scene isn't well
@@ -565,7 +809,7 @@ class LightBoard():
                             s.go()
                             s.rerender=True
                     except Exception as e:
-                        print("Failed to load scene "+str(i)+": "+traceback.format_exc(3))
+                        print("Failed to load scene "+str(i)+" "+str(data[i].get('name',''))+": "+traceback.format_exc(3))
             
     def addScene(self,scene):
         self.scenememory[scene.id] = scene
@@ -575,12 +819,20 @@ class LightBoard():
             del self.scenememory[scene.id]
         except:
             pass
+            
+    def pushferrs(self):
+        "Errors in fixture list"
+        self.link.send(["ferrs",self.ferrs])   
+
+            
     def pushUniverses(self):
-        self.link.send(["universes",{i:len(module.universes[i].values) for i in module.universes}])   
+        self.link.send(["universes",{i:{'count':len(module.universes[i].values), 
+                    'status':module.universes[i].status, 
+                    'ok':module.universes[i].ok} for i in module.universes}])   
 
     def getScenes(self):
         "Return serializable version of scenes list"
-        with self.lock:
+        with module.lock:
             sd = {}
             for i in self.scenememory:
                 sd[i] = {   
@@ -597,7 +849,7 @@ class LightBoard():
     
     def save(self):
         sd = self.getScenes()
-        with self.lock:                               
+        with module.lock:                               
             kaithem.registry.set("lighting/scenes",sd)
     
     def pushTracks(self):
@@ -608,9 +860,10 @@ class LightBoard():
             d = {}
             for i in module.universes[u].channels:
                 fixture = module.universes[u].channels[i]
-                data= (fixture.name,)+fixture.channels[i-fixture.startAddress]
+                if not fixture.startAddress:
+                    return
+                data= [fixture.name]+fixture.channels[i-fixture.startAddress]
                 d[i]=data
-            print('cnames',u,d)
             self.link.send(['cnames',u,d])
 
     def pushMeta(self,sceneid):
@@ -652,8 +905,12 @@ class LightBoard():
                             }])
         except:
             print("cue data push error", cueid)
+
     def pushCueData(self, cueid):
         self.link.send(["cuedata",cues[cueid].id,cues[cueid].values])
+
+    def pushConfiguredUniverses(self):
+        self.link.send(["confuniverses",self.configuredUniverses])
 
     def pushCueList(self,scene):
         s = module.scenes[scene]
@@ -676,12 +933,39 @@ class LightBoard():
                 self.scenememory[s.id]=s
                 self.link.send(["newscene",msg[1],s.id])   
 
+            if msg[0] == "getserports":
+                self.link.send(["serports",getSerPorts()])   
+
+            if msg[0] == "getconfuniverses":
+                self.pushConfiguredUniverses()
+
+            if msg[0] == "setconfuniverses":
+                self.configuredUniverses = msg[1]
+                kaithem.registry.set("lighting/universes",msg[1])
+                self.createUniverses()
+
+            if msg[0] == "setfixtureclass":
+                self.fixtureClasses[msg[1]] = msg[2]
+                kaithem.registry.set("lighting/fixturetypes", self.fixtureClasses)
+                self.refreshFixtures()
+
+            if msg[0] == "setfixtureassg":
+                self.fixtureAssignments = [[j.strip() for j in i.split(',')] for i in msg[1].split("\n")]
+                kaithem.registry.set("lighting/fixtures", self.fixtureAssignments)
+                self.refreshFixtures()
+
+            if msg[0] == "getfixtureassg":
+                self.link.send(['fixtureassg','\n'.join([', '.join(i) for  i in self.fixtureAssignments])])
+                
             if msg[0] == "clonecue":
                 cues[msg[1]].clone(msg[2])
 
             if msg[0] == "jumptocue":
                 cues[msg[1]].scene().gotoCue(cues[msg[1]].name)
-                
+
+            if msg[0] == "jumpbyname":
+               module.scenes_by_name[msg[1]].gotoCue(msg[2])
+                               
             if msg[0] == "nextcue":
                 module.scenes[msg[1]].nextCue()
             if msg[0] == "nextcuebyname":
@@ -725,12 +1009,10 @@ class LightBoard():
                 else:
                     val = 0
                 cues[msg[1]].setValue(msg[2],msg[3],val)
-                self.pushCueData(msg[1])
 
             if msg[0] == "rmsceneval":
-                del module.scenes[msg[1]].values[msg[2]][msg[3]]
-                s = self.scenememory[msg[1]]
-                self.link.send(["scenedata",msg[1],s.values])  
+                s = scenes[msg[1]]
+                s.setValue(msg[2],None)
 
             if msg[0] == "setscenelight":
                 module.universes[msg[1]][msg[2]]=float(msg[3])
@@ -747,13 +1029,20 @@ class LightBoard():
                 s = cues[msg[1]]
                 self.link.send(["cuedata",msg[1],s.values])
                 self.pushCueMeta(msg[1])
+
+            if msg[0] == "getfixtureclass":
+                self.link.send(["fixtureclass",msg[1],self.fixtureClasses[msg[1]]])
                 
+            if msg[0] == "getfixtureclasses":
+                #Send placeholder lists
+                self.link.send(["fixtureclasses",{i:[] for i in self.fixtureClasses.keys()}])
+
             if msg[0] == "getcuemeta":
                 s = cues[msg[1]]
                 self.pushCueMeta(msg[1])
 
             if msg[0] == "gasd":
-                with self.lock:
+                with module.lock:
                     self.pushUniverses()
                     for i in self.scenememory:
                         s = self.scenememory[i]
@@ -768,6 +1057,9 @@ class LightBoard():
                         #Tell clients about any changed alpha values and stuff.
                         if not i.id in self.scenememory:
                             self.pushMeta(i.id)
+                    self.pushConfiguredUniverses()
+                self.link.send(["serports",getSerPorts()])   
+
 
 
             #There's such a possibility for an iteration error if universes changes.
@@ -893,7 +1185,7 @@ class LightBoard():
         
     def delscene(self,sc):
         i=None
-        with self.lock:
+        with module.lock:
             if sc in self.scenememory:
                 i = self.scenememory.pop(sc)
         if i:   
@@ -901,10 +1193,14 @@ class LightBoard():
 
 
     def guiPush(self):
-        with self.lock:
+        with module.lock:
             for i in self.newDataFunctions:
                 i(self)
             self.newDataFunctions = []
+            for i in module.universes:
+                if not self.id in module.universes[i].statusChanged:
+                    self.link.send(["universe_status",i,module.universes[i].status,module.universes[i].ok])
+                    module.universes[i].statusChanged[self.id]=True
 
             for i in self.scenememory:
                 #Tell clients about any changed alpha values and stuff.
@@ -933,6 +1229,8 @@ def composite(background,values,alphas,alpha):
 
 def applyLayer(universe, uvalues,scene):
     "May happen in place, or not, but always returns the new version"
+    if not universe in scene.canvas.v2:
+        return uvalues
     vals = scene.canvas.v2[universe]
     alphas = scene.canvas.a2[universe]
 
@@ -940,16 +1238,16 @@ def applyLayer(universe, uvalues,scene):
         uvalues = composite(uvalues,vals,alphas,scene.alpha)
 
     elif scene.blend == "HTP":
-        uvalues = numpy.maximum(uvalues, v*(alphas*scene.alpha))
+        uvalues = numpy.maximum(uvalues, vals*(alphas*scene.alpha))
 
     elif scene.blend == "inhibit":
-        uvalues = numpy.minimum(uvalues, v*(alphas*scene.alpha))
+        uvalues = numpy.minimum(uvalues, vals*(alphas*scene.alpha))
 
     elif scene.blend == "gel" or scene.blend=="multiply":
         if scene.alpha:
             #precompute constants
             c= 255/scene.alpha
-            uvalues = (uvalues*(1-alphas*scene.alpha)) + (uvalues*v)/c
+            uvalues = (uvalues*(1-alphas*scene.alpha)) + (uvalues*vals)/c
                 
     elif scene.blend == "monitor":
         data =  scene.cue.values
@@ -1160,6 +1458,9 @@ class Cue():
         self.id = random.random()+time.time()
         self.name = name
         disallow_special(name)
+        if name[0] in '1234567890 \t_':
+            name = 'x'+name
+
         if id:
             disallow_special(id)
         self.inherit = None
@@ -1197,7 +1498,13 @@ class Cue():
         for i in module.boards:
             if len(i().newDataFunctions)<100:
                 i().newDataFunctions.append(lambda s:s.pushCueMeta(self.id))
-    
+
+    def pushoneval(self,u,ch,v):
+        for i in module.boards:
+            if len(i().newDataFunctions)<100:
+                i().newDataFunctions.append(lambda s:s.link.send(["scv",self.id,u,ch,v]))
+
+      
     def clone(self,name):
         if name in self.scene().cues:
             raise RuntimeError("Cannot duplicate cue names in one scene")
@@ -1264,19 +1571,28 @@ class Cue():
             else:
                 if channel in self.values[universe]:
                     del self.values[universe][channel]
-
-            if self.scene().cue==self:
-                self.scene().rerender=True
+                if not self.values[universe]:
+                    del self.values[universe]
+            
+            if self.scene().cue==self and self.scene().isActive():
+                self.scene().rerender=True    
                 if (not universe in self.scene().cue_cached_alphas_as_arrays) and universe in module.universes and not value is None:
                     self.scene().cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
                     self.scene().cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
                 if universe in self.scene().cue_cached_alphas_as_arrays:
                     self.scene().cue_cached_alphas_as_arrays[universe][channel] = 1 if not value is None else 0
                     self.scene().cue_cached_vals_as_arrays[universe][channel] =  value if not value is None else 0
+                if not universe in self.scene().affect:
+                    self.scene().affect.append(universe)
+
+                #The FadeCanvas needs to know about this change
+                self.scene().render(force_repaint=True)
+
             #For blend modes that don't like it when you
             #change the list of values without resetting
             if reset:
                 self.scene().setBlend(self.scene().blend)
+            self.pushoneval(universe,channel,value)
                 
 
 
@@ -1306,7 +1622,8 @@ class Scene():
         self.backtrack = backtrack
         #The list of cues as an actual list that is maintained sorted by number
         self.cues_ordered = []
-
+        #This flag is used to avoid having to repaint the canvas if we don't need to
+        self.fadeInCompleted = False
         #A pointer into that list pointing at the current cue. We have to update all this
         #every time we change the lists
         self.cuePointer = 0
@@ -1468,10 +1785,12 @@ class Scene():
 
     
     def gotoCue(self, cue):
+        "Goto cue by name, number, or string repr of number"
         with module.lock:
             if self.canvas:
                 self.canvas.save()
 
+            self.fadeInCompleted = False
             #There might be universes we affect that we don't anymore,
             #We need to rerender those because otherwise the system might think absolutely nothing has changed.
             #A full rerender on every cue change isn't the most efficient, but it shouldn't be too bad
@@ -1488,6 +1807,12 @@ class Scene():
                 for i in range(0,100 if len(self.cues)>2 else 1):
                     cue = random.choice(self.cues_ordered).name
                     if not cue == self.cue.name:
+                        break
+            
+            if not cue in self.cues:
+                for i in self.cues_ordered:
+                    if i.number-(float(cue)*1000)<0.001:
+                        cue = i.name
                         break
 
             #Handle random selection option cues
@@ -1552,7 +1877,8 @@ class Scene():
                     for j in self.cue.values[i]:
                         self.cue_cached_alphas_as_arrays[i][j] = 1.0 if not self.cue.values[i][j]==None else 0
                         self.cue_cached_vals_as_arrays[i][j] = self.cue.values[i][j] if not self.cue.values[i][j]==None else 0
-                        
+
+    
             self.rerender = True
             self.pushMeta(cue=True)
 
@@ -1582,6 +1908,9 @@ class Scene():
             else:
                 #Re-enter cue to create the cache
                 self.gotoCue(self.cue.name)
+            #Bug workaround for bug where scenes do nothing when first activated
+            self.canvas.paint(self.cue, 0,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays,track=self.cue.track)
+
             self.enteredCue = time.time()
 
             if self.blend in blendmodes:
@@ -1604,7 +1933,7 @@ class Scene():
             self.active =True
             #Minor inefficiency rendering twice the first frame
             self.rerender = True
-            self.render()
+            #self.render()
 
         
         
@@ -1749,7 +2078,7 @@ class Scene():
             self.rerender = True
 
     
-    def render(self,t=None):
+    def render(self,force_repaint=False):
         "Calculate the current alpha value, handle stopping the scene and spawning the next one"
         if self.cue.fadein:
             fadePosition = min((time.time()-self.enteredCue)/self.cue.fadein,1)
@@ -1770,7 +2099,10 @@ class Scene():
                 self.rerender = True
                 return
         else:
-            self.canvas.paint(self.cue, fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays,track=self.cue.track)
+            if force_repaint or not self.fadeInCompleted:
+                self.canvas.paint(self.cue, fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays,track=self.cue.track)
+                if fadePosition == 1:
+                    self.fadeInCompleted = True
 
 
 
@@ -1791,18 +2123,6 @@ kaithem.lights.fixture = Fixture
 module.controluniverse = Universe("control")
 
 render()
-
-
-s = Scene("test")
-s.go()
-
-for i in range(0,150):
-    s = Scene("test"+str(i))
-    for i in range(0,50):
-        c = Cue(s,str(i)+"x"+str(i),values={'control':{j:random.random() for j in range(100)}},length=random.random(),fadein=random.random())
-    c = Cue(s,'stop',values={'control':{j:random.random() for j in range(100)}},length=random.random(),fadein=random.random(),nextCue='default')
-
-    s.go()
 ---
 with module.lock:
     render()
