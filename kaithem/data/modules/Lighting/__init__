@@ -359,29 +359,24 @@ def unpack_np_vals(v):
 class Fixture():
     def __init__(self,name,channels=None):
         """Represents a contiguous range of channels each with a defined role in one universe.
-           Each channel must be described by a (name, type, [arguments]) tuple, where type is one of:
+           Each channel must be described by a [name, type, [arguments]] list, where type is one of:
 
            red
            green
            blue
            value
-           X 
-           Y
-           enum
-           bool
+           dim
+           custom
            fine
 
            The name must be unique per-fixture.
            If a channel has the type "fine" it will be interpreted as the fine value of
            the immediately preceding coarse channel, and should automatically get its value from the fractional part.
-           If the coarse channel is not the immediate preceding channel, use the first argument to specify a name of the coarse channel.
-
-           If the channel is enum, the first argument must be a list of (option_name, DMX_value) tuples.
-           If the channel is Bool, the first argument may be a (trueval,falseval) tuple, or else 0,255 is used.
-
-        
+           If the coarse channel is not the immediate preceding channel, use the first argument to specify the number of the coarse channel,
+           with 0 being the fixture's first channel.        
         """
         self.channels = channels or []
+        self.channels = json.loads(json.dumps(channels))
         self.universe = None
         self.startAddress = 0
         disallow_special(name)
@@ -536,7 +531,10 @@ class Universe():
                     continue
                 data = fixture.channels[i-fixture.startAddress]
                 if (data[1]== "fine") and (i>1):
-                    self.fine_channels[i]= i-1
+                    if len(data==2):
+                        self.fine_channels[i]= i-1
+                    else:
+                        self.fine_channels[i]= fixture.startAddress+data[2]
     
     def reset_to_cache(self):
         "Remove all changes since the prerendered layer."
@@ -658,7 +656,7 @@ class DMXSender():
         while 1:
             try:
                 s = time.time()
-                self.port.inWaiting()
+                self.port.read(self.port.inWaiting())
                 x =self.frame.wait(1)
                 if not x:
                     continue
@@ -735,7 +733,7 @@ class LightBoard():
             print(traceback.format_exc(6))
 
         self.loadDict(kaithem.registry.get("lighting/scenes",{}))
-
+        self.refreshFixtures()
     
     def refreshFixtures(self):
         with module.lock:
@@ -903,8 +901,8 @@ class LightBoard():
                             'defaultnext': cue.scene().getAfter(cue.name),
                             'prev': cue.scene().getParent(cue.name),
                             }])
-        except:
-            print("cue data push error", cueid)
+        except Exception as e:
+            print("cue data push error", cueid,e)
 
     def pushCueData(self, cueid):
         self.link.send(["cuedata",cues[cueid].id,cues[cueid].values])
@@ -956,6 +954,7 @@ class LightBoard():
 
             if msg[0] == "getfixtureassg":
                 self.link.send(['fixtureassg','\n'.join([', '.join(i) for  i in self.fixtureAssignments])])
+                self.pushferrs()
                 
             if msg[0] == "clonecue":
                 cues[msg[1]].clone(msg[2])
@@ -968,6 +967,7 @@ class LightBoard():
                                
             if msg[0] == "nextcue":
                 module.scenes[msg[1]].nextCue()
+
             if msg[0] == "nextcuebyname":
                 module.scenes_by_name[msg[1]].nextCue()
 
@@ -1052,6 +1052,10 @@ class LightBoard():
                             self.pushCueMeta(self.scenememory[i].cue.id)
                         except:
                             pass
+                        try:
+                            self.pushCueMeta(self.scenememory[i].cues['default'].id)
+                        except:
+                            pass
 
                     for i in module.activeScenes:
                         #Tell clients about any changed alpha values and stuff.
@@ -1077,7 +1081,8 @@ class LightBoard():
                 module.scenes[msg[1]].setAlpha(msg[2],sd=True)
 
             if msg[0] == "addcue":
-                module.scenes[msg[1]].addCue(msg[2])
+                if not msg[2] in module.scenes[msg[1]].cues:
+                    module.scenes[msg[1]].addCue(msg[2])
 
             if msg[0] == "gotonext":
                 if cues[msg[1]].nextCue:
@@ -1276,7 +1281,6 @@ def pre_render():
             if u in universes:
                 universe = universes[u]
                 universe.all_static = True
-                universe.highest_static_layer_this_frame = (0,0)
                 if i.rerender:
                     if ((i.priority,i.started) <= universe.prerendered_layer):
                         to_reset[u]=1
@@ -1298,7 +1302,8 @@ def pre_render():
             universes[u].reset()
             changedUniverses[u]=(0,0)
         else:
-            universes[u].reset_to_cache()         
+            universes[u].reset_to_cache()
+            changedUniverses[u]=(0,0)        
     return changedUniverses
 
 def render(t=None):
@@ -1309,7 +1314,6 @@ def render(t=None):
     #Remember that scenes get rendered in ascending priority order here
     for i in module.activeScenes:
 
-        data =i.affect
 
         #We don't need to call render() if the frame is a static scene and the opacity
         #and all that is the same, we can just re-layer it on top of the values
@@ -1317,17 +1321,17 @@ def render(t=None):
             i.rerender = False
             i.render()
 
+        data =i.affect
 
         #Loop over universes the scene affects
         for u in data:
             if not u in module.universes:
                 continue
             if (i.priority,i.started) > module.universes[u].top_layer:
-
                 #If this layer we are about to render was found to be the highest layer that won't need rerendering,
                 #Save the state just befor we apply that layer.
                 if (module.universes[u].save_before_layer==(i.priority,i.started)) and not((i.priority,i.started)==(0,0)):
-                    module.universes[u].save_prerendered(i.priority, i.started)
+                    module.universes[u].save_prerendered(module.universes[u].top_layer[0], module.universes[u].top_layer[1])
 
                 changedUniverses[u]=(i.priority, i.started)
                 if not u in module.universes:
@@ -1339,7 +1343,7 @@ def render(t=None):
 
                 #If this is the first nonstatic layer, meaning it's render function requested a rerender next frame
                 #or if this is the last one, mark it as the one we should save just before
-                if i.rerender or i is module.activeScenes[-1]:
+                if i.rerender or (i is module.activeScenes[-1]):
                     if module.universes[u].all_static:
                         #Copy it and set to none as a flag that we already found it
                         module.universes[u].all_static = False
@@ -1351,7 +1355,6 @@ def render(t=None):
             if i in module.universes:
                 module.universes[i].preFrame()
                 module.universes[i].onFrame()
-   
         except:
             raise
     for i in module.universes:
@@ -1509,7 +1512,7 @@ class Cue():
         if name in self.scene().cues:
             raise RuntimeError("Cannot duplicate cue names in one scene")
         
-        c = Cue(self.scene(), name, fadein=self.fadein, length=self.length, fadeout=self.fadeout,values=copy.deepcopy(self.values))
+        c = Cue(self.scene(), name, fadein=self.fadein, length=self.length, fadeout=self.fadeout,values=copy.deepcopy(self.values),nextCue=self.nextCue)
         for i in module.boards:
             if len(i().newDataFunctions)<100:
                 i().newDataFunctions.append(lambda s:s.pushCueData(c.id))
@@ -1824,12 +1827,19 @@ class Scene():
 
             self.cue_cached_vals_as_arrays = {}
             self.cue_cached_alphas_as_arrays = {}
-            self.affect = []
+
             #When jumping to a cue that isn't directly the next one, apply and "parent" cues.
             #We go backwards until we find a cue that has no parent. A cue has a parent if and only if it has either
             #an explicit parent or the previous cue in the numbered list either has the default next cue or explicitly
             #references this cue.
             cobj = self.cues[cue]
+
+            #We don't fully reset until after we are done fading in and have rendered.
+            #Until then, the affect list has to stay because it has stuff that prev cues affected.
+            #Even if we are't tracking, we still need to know to rerender them without the old effects,
+            #And the fade means we might still affect them for a brief time.
+
+
             if self.backtrack and not cue == self.cue.nextCue and cobj.track:
                 l = []
                 safety = 10000
@@ -1883,12 +1893,13 @@ class Scene():
             self.pushMeta(cue=True)
 
     def nextCue(self):
-        if self.cue.nextCue and self.cue.nextCue in self.cues:
-            self.gotoCue(self.cue.nextCue)
-        elif not self.cue.nextCue:
-            x= self.getDefaultNext()
-            if x:
-                self.gotoCue(x)
+        with module.lock:
+            if self.cue.nextCue and self.cue.nextCue in self.cues:
+                self.gotoCue(self.cue.nextCue)
+            elif not self.cue.nextCue:
+                x= self.getDefaultNext()
+                if x:
+                    self.gotoCue(x)
 
     def setupBlendArgs(self):
         if hasattr(self.blendClass,"parameters"):
@@ -2070,12 +2081,13 @@ class Scene():
         self.valueschanged = {}
         
     def gotoNext(self):
-        if self.cue.nextCue:
-            self.gotoCue(self.cue.nextCue)
-            self.rerender = True
-        elif self.getDefaultNext():
-            self.gotoCue(self.getDefaultNext())
-            self.rerender = True
+        with self.lock:
+            if self.cue.nextCue:
+                self.gotoCue(self.cue.nextCue)
+                self.rerender = True
+            elif self.getDefaultNext():
+                self.gotoCue(self.getDefaultNext())
+                self.rerender = True
 
     
     def render(self,force_repaint=False):
@@ -2100,10 +2112,15 @@ class Scene():
                 return
         else:
             if force_repaint or not self.fadeInCompleted:
-                self.canvas.paint(self.cue, fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays,track=self.cue.track)
                 if fadePosition == 1:
+                    #We no longer affect universes from anything else
+                    self.affect = []
+                    for i in self.cue.values:
+                        if i in module.universes:
+                            if not i in self.affect:
+                                self.affect.append(i)
                     self.fadeInCompleted = True
-
+                self.canvas.paint(self.cue, fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays,track=self.cue.track)
 
 
 lastrendered = 0

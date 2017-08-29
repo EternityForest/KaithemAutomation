@@ -221,9 +221,7 @@ boardname = "default"
             </textarea>
             <div v-if="ferrs">
             <h4>Errors:</h4>
-            <pre>
-            {{ferrs}}
-            </pre>
+<pre>{{ferrs}}</pre>
             </div><br>
 
             <button v-on:click="pushfixtureassg">Update</button>
@@ -321,10 +319,7 @@ boardname = "default"
                     style="width:4em" min=0></input>
             </label> {{scenemeta[scenename].bpm?"beats":"s"}}
 
-            <label>Fadeout:
-                <input type="number" v-on:input="setfadeout(scenecues[scenename][selectedCues[scenename]],$event.target.value)"
-                    v-model="cuemeta[currentcueid].fadeout" style="width:3em" min=0>
-            </label><br> {{scenemeta[scenename].bpm?"beats":"s"}}
+    
             </span>
 
 
@@ -387,6 +382,7 @@ boardname = "default"
 
                     <span v-if="chnamelookup(i.u,i.ch)==undefined" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
                         class="indicator"></span>
+                    <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='custom'">{{getValueRange(chnamelookup(i.u,i.ch),i.v)[2]}}</span>
                 </div>
             </div>
             <div style="clear:both">
@@ -542,7 +538,7 @@ boardname = "default"
             //Fixture error info str
             'ferrs':'',
             'showkeybindhelp': false,
-            'showFixtureassg': false,
+            'showfixtureassg': false,
             'fixtureassg': '',
 
             'refreshPorts': function()
@@ -553,6 +549,7 @@ boardname = "default"
             {
                 api_link.send(['setconfuniverses', appData.configuredUniverses])
             },
+
             'showDMXSetup': false,
             'configuredUniverses':
             {
@@ -576,6 +573,22 @@ boardname = "default"
 
                 }
                 appData.pushfixture(i)
+            },
+            'getValueRange':function(d,v)
+            {
+                c = 0
+                for (i in d)
+                {
+                    if(c>2)
+                    {
+                        if(i[0]<=v)
+                        {
+                            return(i)
+                        }
+                    }
+                    c+=1
+                }
+                return([0,255,"Unknown"])
             },
             'pushfixture':function(i)
             {
@@ -916,7 +929,7 @@ boardname = "default"
                 {
                     return
                 }
-                api_link.send(['gotonext', currentcueid]);
+                api_link.send(['addcue', appData.scenename, nextcue]);
                 api_link.send(['getcuedata', cue]);
 
                 //There's a difference between "not there" undefined and actually set to undefined....
@@ -973,13 +986,6 @@ boardname = "default"
             {
                 api_link.send(['settrack', cue, v]);
             },
-            'setfadeout': function(cue, v)
-            {
-
-                api_link.send(['setfadeout', cue, v]);
-            },
-
-
 
             'setblend': function(sc, v)
             {
