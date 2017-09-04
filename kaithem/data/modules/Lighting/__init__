@@ -375,8 +375,10 @@ class Fixture():
            If the coarse channel is not the immediate preceding channel, use the first argument to specify the number of the coarse channel,
            with 0 being the fixture's first channel.        
         """
-        self.channels = channels or []
-        self.channels = json.loads(json.dumps(channels))
+        if channels:
+            self.channels = json.loads(json.dumps(channels))
+        else:
+            self.channels = None
         self.universe = None
         self.startAddress = 0
         disallow_special(name)
@@ -433,6 +435,7 @@ class Fixture():
 
 
 class Universe():
+    "Represents a lighting universe, similar to a DMX universe, but is not limited to DMX. "
     def __init__(self, name,count=512):
         for i in ":/[]()*\\`~!@#$%^&*=+|{}'\";<>.,":
             if i in name:
@@ -495,7 +498,9 @@ class Universe():
                 time.sleep(0.1)
 
             self.refresh_scenes()
+
     def setStatus(self,s,ok):
+        "Set the status shown in the gui. ok is a bool value that indicates if the object is able to transmit data to the fixtures"
         #avoid pushing unneded statuses
         if (self.status == s) and (self.ok == ok):
             return
@@ -504,6 +509,9 @@ class Universe():
         self.statusChanged = {}
 
     def refresh_scenes(self):
+        """Stop and restart all active scenes, because some caches might need to be updated
+            when a new universes is added
+        """
         with module.lock:
             for i in module.activeScenes:
                 #Attempt to restart all scenes.
@@ -523,6 +531,7 @@ class Universe():
         kaithem.misc.do(self.refresh_scenes)
 
     def channelsChanged(self):
+        "Call this when fixtures are added, moved, or modified."
         with module.lock:
             self.fine_channels = {}
             for i in self.channels:
@@ -542,10 +551,12 @@ class Universe():
         self.top_layer = self.prerendered_layer
     
     def save_prerendered(self, p, s):
+        "Save this layer as the cached layer. Called in the render functions"
         self.prerendered_layer = (p,s)
         self.prerendered_data  = copy.deepcopy(self.values)
     
     def reset(self):
+        "Reset all values to 0 including the prerendered data"
         self.prerendered_layer = (0,0)
         self.values = numpy.array([0.0]*self.count,dtype="f4")
         self.top_layer = (0,0)
@@ -562,6 +573,7 @@ class Universe():
         pass
 
 def message(data):
+    "An enttec DMX message from a set of values"
     data = numpy.maximum(numpy.minimum(data,255),0)
     data = data.astype(numpy.uint8)
     data = data.tobytes()[:512]
@@ -595,19 +607,23 @@ class EnttecUniverse(Universe):
 module.EnttecUniverse_dbg= weakref.WeakValueDictionary()
 
 class DMXSender():
+    """This object is used by the universe object to send data to the enttec adapter.
+        It runs in it's own thread because the frame rate might have nothing to do with
+        the rate at which the data actually gets rendered.
+    """
     def __init__(self,universe,port,framerate):
         module.EnttecUniverse_dbg[str(time.time())]= self
         self.frame = threading.Event()
+        self.universe= weakref.ref(universe)
+        self.data = message(universe.values)
         self.thread = threading.Thread(target =self.run)
         self.thread.daemon = True
         self.connect()
         self.thread.start()
         self.portname = port
         self.framerate = float(framerate)
-        self.universe= weakref.ref(universe)
         self.lock = threading.Lock()
         self.port = None
-        self.data = message(self.universe().values)
 
     def setStatus(self,s,ok):
         try:
@@ -624,9 +640,12 @@ class DMXSender():
 
 
     def reconnect(self):
+        "Try to reconnect to the adapter"
         try:
             import serial
             if not self.portname:
+                import serial.tools.list_ports
+
                 p = serial.tools.list_ports.comports()
                 if p:
                     if len(p)>1:
@@ -640,8 +659,12 @@ class DMXSender():
             else:
                 p = self.portname
             time.sleep(0.1)
+            try:
+                self.port.close()
+            except:
+                pass
             self.port = serial.Serial(p,57600)
-            #self.port.write(bytes(bytearray((126,3,2,0,0,0,231))))
+
             #This is a flush to try to re-sync recievers that don't have any kind of time out detection
             #We do this by sending a frame where each value is the packet end code,
             #Hoping that it lines up with the end of whatever unfinished data we don't know about.
@@ -652,9 +675,13 @@ class DMXSender():
                 time.sleep(0.1)
             self.port.write(message(numpy.zeros(max(128,len(self.universe().values)))))
             self.port.write(self.data)
+            self.port.read(self.port.inWaiting())
             self.setStatus('connected to '+p,True)
         except Exception as e:
-             self.setStatus('disconnected, '+str(e)[:100]+'...',False)
+            try:
+                self.setStatus('disconnected, '+str(e)[:100]+'...',False)
+            except:
+                pass
 
     def run(self):
         while 1:
@@ -679,18 +706,22 @@ class DMXSender():
                     self.port.close()
                 except:
                     pass
+                try:
+                    if self.data is None:
+                        return
 
-                if self.data is None:
+                    if self.port:
+                        self.setStatus('disconnected, '+str(e)[:100]+'...',False)
+                    self.port=None
+                    #reconnect is designed not to raise Exceptions, so if there's0
+                    #an error here it's probably because the whole scope is being cleaned
+                    time.sleep(1)
+                    self.reconnect()
+                    time.sleep(1)
+                    self.reconnect()
+                    time.sleep(1)
+                except:
                     return
-
-                if self.port:
-                    self.setStatus('disconnected, '+str(e)[:100]+'...',False)
-                self.port=None
-                time.sleep(1)
-                self.reconnect()
-                time.sleep(1)
-                self.reconnect()
-                time.sleep(1)
 
 
     def onFrame(self,data):
@@ -699,6 +730,7 @@ class DMXSender():
             self.frame.set()
 
 class LightBoard():
+    "Represents a web GUI light board. Pretty much the whole GUI app is part of this class"
     def __init__(self, count=65536):
 
         self.newDataFunctions = []
@@ -1311,6 +1343,7 @@ def pre_render():
     return changedUniverses
 
 def render(t=None):
+    "This is the primary rendering function"
     changedUniverses = pre_render()
   
     t = t or time.time()
@@ -1447,6 +1480,7 @@ class FadeCanvas():
         
 
 def shortcutCode(code):
+    "API to activate a cue by it's shortcut code"
     with module.lock:
         if code in shortcut_codes:
             for i in shortcut_codes[code]:
@@ -1515,8 +1549,12 @@ class Cue():
     def clone(self,name):
         if name in self.scene().cues:
             raise RuntimeError("Cannot duplicate cue names in one scene")
-        
+
         c = Cue(self.scene(), name, fadein=self.fadein, length=self.length, fadeout=self.fadeout,values=copy.deepcopy(self.values),nextCue=self.nextCue)
+        
+        for i in module.boards:
+            if len(i().newDataFunctions)<100:
+                i().newDataFunctions.append(lambda s:s.pushCueMeta(self.cues[name].id))
         for i in module.boards:
             if len(i().newDataFunctions)<100:
                 i().newDataFunctions.append(lambda s:s.pushCueData(c.id))
@@ -1534,7 +1572,7 @@ class Cue():
         self.push()
 
     def setShortcut(self,code):
-        disallow_special(code)
+        disallow_special(code,allow=".")
         with module.lock:
             if self.shortcut in shortcut_codes:
                 try:
@@ -1638,6 +1676,9 @@ class Scene():
         self.cues = {}
         if defaultCue:
             self.cue = Cue(self,"default",self.values)
+        
+        #Used to avoid an excessive number of repeats in random cues
+        self.cueHistory = []
 
         #List of universes we should be affecting.
         #Based on what values are in the cue and what values are inherited
@@ -1786,6 +1827,9 @@ class Scene():
         for i in module.boards:
             if len(i().newDataFunctions)<100:
                 i().newDataFunctions.append(lambda s:s.pushCueMeta(self.cues[name].id))
+        for i in module.boards:
+            if len(i().newDataFunctions)<100:
+                i().newDataFunctions.append(lambda s:s.pushCueData(cue.id))
 
     def pushMeta(self,cue=False):
         #Push cue first so the client already has that data when we jump to the new display
@@ -1820,19 +1864,34 @@ class Scene():
 
             if cue == "__random__":
                 for i in range(0,100 if len(self.cues)>2 else 1):
-                    cue = random.choice(self.cues_ordered).name
+                    x = [i.name for i in self.cues_ordered]
+                    for i in reversed(self.cueHistory):
+                        if len(x)<3:
+                            break
+                        elif i in x:
+                            x.remove(i)
+                    cue = random.choice(x)
                     if not cue == self.cue.name:
                         break
-            
+
+            #Handle random selection option cues
+            if "|" in cue:
+                x = cue.split("|")
+                for i in reversed(self.cueHistory):
+                    if len(x)<3:
+                        break
+                    elif i in x:
+                        x.remove(i)
+                cue = random.choice(x).strip()
+                       
             if not cue in self.cues:
                 for i in self.cues_ordered:
                     if i.number-(float(cue)*1000)<0.001:
                         cue = i.name
                         break
 
-            #Handle random selection option cues
-            if "|" in cue:
-                cue = random.choice(cue.split("|")).strip()
+            self.cueHistory.append(cue)
+            self.cueHistory = self.cueHistory[-100:]
                 
             self.enteredCue = time.time()
             self.fadeout_start =False

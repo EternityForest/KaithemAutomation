@@ -63,12 +63,12 @@ __doc__= ""
 
     <p>Unlike some lighting solutions, cues are also identified by name, and you can freely select the "next" cue that comes
         after any given cue. This allows you to create loops, and even to have multiple selectable loops within one scene. Names and numbers only need
-        to be unique within each scene, not globally.</p>
+        to be unique within each scene, not globally. Names can't contain special chars.</p>
 
     <p>When you don't explicitly set a next cue, it defaults to whatever comes next in the list, but if you do want to explicitly set the next cue, you do it
         by name not number.</p>
 
-    <p>Cues automatically go to the next one after the length is up if the length is not 0.</p>
+    <p>If you set a nonzero length, the cue will automatically fade or jump to the next cue when it ends.</p>
 
     <p>Every cue can have a "shortcut code", a brief string of characters use to quickly jumped to a cue. Typing this
         code in the shortcut box will instantly trigger that cue, and activate it's scene if it is not already active. 
@@ -82,6 +82,12 @@ __doc__= ""
         priority scenes "cover up" lower priority scenes, and their opacity is used to specify how "transparent" they are.</p>
 
     <p>If two scenes have the same priority, the scene started most recently goes "on top".</p>
+
+    <p>You can randomize the cue order in several ways. One is to set the next cue to the "special cue" __random__ which randomly selects a cue in the scene.
+        Another is to specify a pipe-delimited list of cues, as in cue1|cue2|cue3|cue4.</p>
+
+    <p>In both these cases the next cue chosen is not truly random, it uses an algorithm to avoid repeats. It will exclude the most recently used cues,
+        but will never exclude so many as to reduce the remaining possibilites to less than 2. The </p>
 
 
     <h3>Blending Modes</h3>
@@ -145,12 +151,14 @@ __doc__= ""
 
     <p>To go to a new cue, use scene.gotoCue(cuename)</p>
 
+    <p>kaithem.lights.shortcutCode(code) has the same effect as manually typing that shortcut code in the web GUI</p>
+
     <h3>Fixtures</h3>
     <p>To show more information in the GUI besides just channel names, you can use the Fixture API. Fixtures are very simple.
         The kaithem.lights.fixure constructor takes two parameters. name, which must be a unique string, and channels, which
         must be a list of tuples. The first tuple represents whatever channel is at the start address.</p>
 
-    <p>Tuples must be (name, type,*args), where name is unique per-fixture and type is one of (red, green, blue, value fine,
+    <p>Lists must be [name, type,*args], where name is unique per-fixture and type is one of (red, green, blue, value fine,
         X, Y)</p>
 
     <p>Fine values indicate that they should recieve a value based on the fractional part of the preceding value. This happens
@@ -172,6 +180,7 @@ __doc__= ""
     <p>Note that the the save and the make default functions only affect scenes "owned" by the light board, i.e. those created
         via the web interface and not via code.</p>
 
+    <p>You can configure fixtures, enttec DMX adapters, and many other functions entirely from the GUI light board</p>
 
     <h3>Sending Data to Hardware</h3>
 

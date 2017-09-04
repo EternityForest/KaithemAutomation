@@ -296,7 +296,7 @@ boardname = "default"
 
     <div class="sectionbox" v-if="editingScene && cuemeta[editingScene.cue]" style="display:inline-block; width:75%; resize:both;">
         <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name"><span v-if="editingScene.blend=='monitor'">Monitor</span>            Scene: {{editingScene.name}}</span> <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
-            Current Cue:<button v-on:click="selectedCues[scenename]=cuemeta[editingScene.cue].name">{{cuemeta[editingScene.cue].name}}</span>
+            Current Cue:<button v-on:click="selectcue(scenename,cuemeta[editingScene.cue].name)">{{cuemeta[editingScene.cue].name}}</span>
             <meter v-if="editingScene.active && cuemeta[editingScene.cue].length" min=0 max=1
                 v-bind:value="(unixtime-editingScene.enteredCue)/cuemeta[editingScene.cue].length"></meter>
             <button v-on:click="nextcue(scenename)">Next</button>
@@ -319,7 +319,7 @@ boardname = "default"
         <hr>
         <div v-if="currentcue">
             <label>Number:
-                <input type="number" title="Cue number" style="width:6em" v-on:input="setnumber(currentcueid,$event.target.value)"
+                <input type="number" title="Cue number" style="width:6em" v-on:input="setnumber(currentcueid,$event.target.value)" min=0 step=0.1
                     v-model="currentcue.number">
             </label>
 
@@ -507,7 +507,7 @@ boardname = "default"
         </p>
         </div>
             <p>
-                <textarea rows=20 cols=20 v-model="keybindscript" v-on:focus="editMode"></textarea>
+                <textarea rows=30 cols=80 v-model="keybindscript" v-on:focus="editMode"></textarea>
             </p>
             <button v-on:click="localStorage.setItem('keybind-script',keybindscript)">Save these keybindings to my browser as the defaults</button>
 
@@ -882,9 +882,14 @@ boardname = "default"
 
             },
 
+            'selectcue':function(sc,cue)
+            {
+                this.selectedCues[sc]=cue
+                this.getcuedata(this.scenecues[sc][cue])
+            },
             'selectscene': function(sc, sn)
             {
-                this.getcuedata(this.scenecues[sn]['default'])
+                this.getcuedata(this.scenecues[sn][this.selectedCues[sc] || 'default'])
                 this.editingScene = sc;
                 this.scenename = sn;
                 api_link.send(['gsd', sn]);
@@ -1481,7 +1486,7 @@ boardname = "default"
                             }
                             if (command[0] == 'goto')
                             {
-                                keyboardJS.bind(binding, goto(command[1],command[2]))
+                                keyboardJS.bind(binding, goto(command[1],command.slice(2).join('').trim()))
                             }
                             if (command[0] == 'toggle')
                             {

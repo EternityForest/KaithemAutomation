@@ -1,4 +1,4 @@
 resource-type: module-description
 text: "Lighting control library and JS virtual light board. Requires numpy.\r\nYou\
   \ have to load the jslibs module(Should work with any jslibs-0.xx.x) to use the\
-  \ light board.\r\n"
+  \ light board.\r\npyserial is required to use enttec DMX adapters.\r\n"

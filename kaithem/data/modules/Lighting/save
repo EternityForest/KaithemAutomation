@@ -23,6 +23,10 @@ if 'save' in kwargs:
 %>
 <h2>Title</h2>
 <div class="sectionbox">
+    <p class="warning">This only saves the scene data to the Kaithem registry.
+        To actually save the registry to disk you must go to Settings and Tools>Save server state to disk.<br>
+        Also note that keybindings are saved locally in your browser with a separate save button.</p>
+
     <form method=POST>
         <label>Confirm making current state the default on boot? It is not suggested you save shows with more than 2k or so cues like this.<input name="save" type="checkbox"></input></label>
         <input type=submit></input>
