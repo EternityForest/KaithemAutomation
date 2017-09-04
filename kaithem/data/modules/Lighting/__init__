@@ -629,7 +629,11 @@ class DMXSender():
             if not self.portname:
                 p = serial.tools.list_ports.comports()
                 if p:
-                    p =p[0].device
+                    if len(p)>1:
+                        self.setStatus('More than one device found, refusing to guess. Please specify a device.',False)
+                        return
+                    else:
+                        p =p[0].device
                 else:
                     self.setStatus('No device found',False)
                     return
@@ -1524,8 +1528,8 @@ class Cue():
     def setNumber(self,n):
         "Can take a string representing a decimal number for best accuracy, saves as *1000 fixed point"
         if self.shortcut ==number_to_shortcut(self.number):
-            self.setShortcut(number_to_shortcut(int(Decimal(n)*Decimal(1000).quantize(1))))
-        self.number = int(Decimal(n)*Decimal(1000).quantize(1))
+            self.setShortcut(number_to_shortcut(int((Decimal(n)*Decimal(1000)).quantize(1))))
+        self.number = int((Decimal(n)*Decimal(1000)).quantize(1))
 
         self.push()
 
@@ -1728,6 +1732,14 @@ class Scene():
 
     def rmCue(self,cue):
         with module.lock:
+            if not len(self.cues)>1:
+                raise RuntimeError("Cannot have scene with no cues")
+            if self.cue and self.name == cue:
+                try:
+                    self.gotoCue("default")
+                except:
+                    self.gotoCue(self.cues_ordered[0].name)
+
             if cue in cues:
                 id = cue
                 name = cues[id].name
