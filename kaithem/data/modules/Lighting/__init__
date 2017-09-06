@@ -917,7 +917,8 @@ class LightBoard():
                           'started':  scene.started,
                           'enteredCue':  scene.enteredCue,
                           'backtrack': scene.backtrack,
-                          'cue': scene.cue.id
+                          'cue': scene.cue.id,
+                          'cuelen': scene.cuelen
                 }])
                 
     def pushCueMeta(self,cueid):
@@ -928,6 +929,7 @@ class LightBoard():
                             'fadein':cue.fadein, 
                             'alpha':cue.alpha,
                             'length':cue.length,
+                            'lengthRandomize':cue.lengthRandomize,
                             'next':cue.nextCue,
                             'name': cue.name,
                             'track': cue.track,
@@ -1158,6 +1160,14 @@ class LightBoard():
                 cues[msg[1]].length=v
                 self.pushCueMeta(msg[1])
 
+            if msg[0] == "setrandomize":
+                try:
+                    v=float(msg[2])
+                except:
+                    v=msg[2][:256]
+                cues[msg[1]].lengthRandomize=v
+                self.pushCueMeta(msg[1])
+
             if msg[0] == "setnext":
                 disallow_special( msg[2][:1024],allow="_")
                 cues[msg[1]].nextCue= msg[2][:1024]
@@ -1354,7 +1364,7 @@ def render(t=None):
 
         #We don't need to call render() if the frame is a static scene and the opacity
         #and all that is the same, we can just re-layer it on top of the values
-        if i.rerender or (i.cue.length and ((time.time()-i.enteredCue)>i.cue.length)):
+        if i.rerender or (i.cue.length and ((time.time()-i.enteredCue)>i.cuelen)):
             i.rerender = False
             i.render()
 
@@ -1493,8 +1503,9 @@ cues =weakref.WeakValueDictionary()
 
 class Cue():
     "A static set of values with a fade in and out duration"
-    __slots__=['id','changed','next_ll','alpha','fadein','fadeout','length','name','values','scene','nextCue','track','shortcut','number','inherit','__weakref__']
-    def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, fadeout=0, length=0,track=True, nextCue = None,shortcut=None,id=None,number=None):
+    __slots__=['id','changed','next_ll','alpha','fadein','fadeout','length','lengthRandomize','name','values','scene','nextCue','track','shortcut','number','inherit','__weakref__']
+    def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, fadeout=0, length=0,track=True, nextCue = None,shortcut=None,id=None,number=None,
+        lengthRandomize=0):
         #This is so we can loop through them and push to gui
         self.id = random.random()+time.time()
         self.name = name
@@ -1518,6 +1529,7 @@ class Cue():
         self.fadein =fadein
         self.fadeout= fadeout
         self.length = length
+        self.lengthRandomize = lengthRandomize
         self.values = values or {}
         self.scene = weakref.ref(parent)
         self.nextCue = nextCue
@@ -1532,7 +1544,7 @@ class Cue():
         self.push()
 
     def serialize(self):
-            return {"fadein":self.fadein,"fadeout":self.fadeout,"length":self.length,"shortcut":self.shortcut,"values":self.values,
+            return {"fadein":self.fadein,"fadeout":self.fadeout,"length":self.length,'lengthRandomize':self.lengthRandomize,"shortcut":self.shortcut,"values":self.values,
             "nextCue":self.nextCue,"track":self.track,"number":self.number}
     
     def push(self):
@@ -1550,7 +1562,8 @@ class Cue():
         if name in self.scene().cues:
             raise RuntimeError("Cannot duplicate cue names in one scene")
 
-        c = Cue(self.scene(), name, fadein=self.fadein, length=self.length, fadeout=self.fadeout,values=copy.deepcopy(self.values),nextCue=self.nextCue)
+        c = Cue(self.scene(), name, fadein=self.fadein, length=self.length,  lengthRandomize=self.lengthRandomize
+        ,fadeout=self.fadeout,values=copy.deepcopy(self.values),nextCue=self.nextCue)
         
         for i in module.boards:
             if len(i().newDataFunctions)<100:
@@ -1894,6 +1907,7 @@ class Scene():
             self.cueHistory = self.cueHistory[-100:]
                 
             self.enteredCue = time.time()
+
             self.fadeout_start =False
 
             self.cue_cached_vals_as_arrays = {}
@@ -1904,6 +1918,7 @@ class Scene():
             #an explicit parent or the previous cue in the numbered list either has the default next cue or explicitly
             #references this cue.
             cobj = self.cues[cue]
+            self.cuelen = max(0,random.triangular(cobj.length-cobj.lengthRandomize, cobj.length+cobj.lengthRandomize))
 
             #We don't fully reset until after we are done fading in and have rendered.
             #Until then, the affect list has to stay because it has stuff that prev cues affected.
@@ -2171,7 +2186,7 @@ class Scene():
         if fadePosition<1:
             self.rerender = True
 
-        if self.cue.length and(time.time()-self.enteredCue)> self.cue.length:
+        if self.cue.length and(time.time()-self.enteredCue)> self.cuelen:
             if self.cue.nextCue:
                 if self.cue.nextCue in self.cues or self.cue.nextCue.startswith('__'):
                     self.gotoCue(self.cue.nextCue)

@@ -298,7 +298,7 @@ boardname = "default"
         <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name"><span v-if="editingScene.blend=='monitor'">Monitor</span>            Scene: {{editingScene.name}}</span> <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
             Current Cue:<button v-on:click="selectcue(scenename,cuemeta[editingScene.cue].name)">{{cuemeta[editingScene.cue].name}}</span>
             <meter v-if="editingScene.active && cuemeta[editingScene.cue].length" min=0 max=1
-                v-bind:value="(unixtime-editingScene.enteredCue)/cuemeta[editingScene.cue].length"></meter>
+                v-bind:value="(unixtime-editingScene.enteredCue)/editingScene.cuelen"></meter>
             <button v-on:click="nextcue(scenename)">Next</button>
 
 
@@ -342,6 +342,10 @@ boardname = "default"
             <label>Length:
                 <input type="number" v-on:input="setlength(currentcueid,$event.target.value)" v-model="cuemeta[currentcueid].length"
                     style="width:4em" min=0></input>
+            </label> {{scenemeta[scenename].bpm?"beats":"s"}}
+            <label>Length Randomize:
+                <input type="number" v-on:input="setrandomize(currentcueid,$event.target.value)" v-model="cuemeta[currentcueid].lengthRandomize"
+                    style="width:4em" min=0 step=0.25></input>
             </label> {{scenemeta[scenename].bpm?"beats":"s"}}
 
     
@@ -389,7 +393,7 @@ boardname = "default"
 
                     <span v-if="!(channelNames[i.u]&&channelNames[i.u][i.ch]&&channelNames[i.u][i.ch][2]=='fine')"
                         title="Double click to set exact value" v-on:dblclick="promptExactVal(currentcueid,i.u,parseInt(i.ch))"
-                        style="font-size:80%">{{String(i.v).slice(0,6)}}</span>
+                        style="font-size:80%">{{i.v.toPrecision(4)}}</span>
                     <span class=grey title="Double click to set exact value" v-if="channelNames[i.u]&&channelNames[i.u][i.ch]&&channelNames[i.u][i.ch][2]=='fine'"
                         v-on:dblclick="promptExactVal(currentcueid,i.u,parseInt(i.ch))">auto</span>
 
@@ -520,10 +524,10 @@ boardname = "default"
 
 <template id="cue-cd">
     <span>
-    <meter v-bind:high=" (cue.length>30)?cue.length-10:cue.length" v-if="scene.active && cue && cue.length" min=0 v-bind:max="cue.length"
+    <meter v-bind:high=" (cue.length>30)?scene.cuelen-10:scene.cuelen" v-if="scene.active && cue && cue.length" min=0 v-bind:max="scene.cuelen"
     v-bind:value="unixtime-scene.enteredCue"></meter><br>
     <span v-if="scene.active && cue && cue.length">
-     Next cue in: {{formatInterval(cue.length-(unixtime-scene.enteredCue))}}
+     Next cue in: {{formatInterval(scene.cuelen-(unixtime-scene.enteredCue))}}
      <br>
      </span></span>
 </template>
@@ -1090,6 +1094,11 @@ boardname = "default"
             {
 
                 api_link.send(['setlength', sc, v]);
+            },
+           'setrandomize': function(sc, v)
+            {
+
+                api_link.send(['setrandomize', sc, v]);
             },
 
             'setdalpha': function(sc, v)
