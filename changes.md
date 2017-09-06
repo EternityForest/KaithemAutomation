@@ -1,11 +1,12 @@
 Change Log
 ----------
 
-
 ### 0.59
--  Object inspector supports weak references and deques, and weak value dictionaries
--  Lighting module is now a similar cue-based system no longer compatible with the original.
--  Minify JSON sent to browser for widgets
+
+-   Object inspector now handles weak references, weakvaluedicts, and objects with \_\_slots\_\_
+-   Lighting module has changed to a new cue based system(Not compatible with the old one)
+-   Fix python2 bug that prevented booting
+-   Tweak mako autoformat options and log formatting
 
 ### 0.58
 

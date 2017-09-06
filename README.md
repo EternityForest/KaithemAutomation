@@ -9,12 +9,19 @@ I'm not a security researcher, but it should at the very least keep casual snoop
 
 It runs on python2 and python3, and will likely work on any platform(Windows/mac/etc), but it is not tested outside of Linux. Resource usage is low enough to run well on the raspberry pi.
 
-You automate things by directly writing python and HTML via a web IDE.
+You automate things by directly writing python and HTML via a web IDE. "Events" are sections of code that run when a trigger condition happens. Trigger conditions can be polled expressions, internal message bus
+events, or time-based triggers using a custom semi-natural language parser.
+
 ![Editing an event](screenshots/edit-event.jpg)
+
+You can edit all this via the web GUI using the Monaco editor, the same open-source component that powers
+VS Code.
 
 Almost the entire server state is maintained in RAM, and any changes you make to your code never touches the disk unless you explicitly save or configure auto-save. Even log files get buffered in RAM for a configurable duration before being saved. This allows experimentation without wearing out SD cards.
 
 Saving occurs transactionally, so a copy of the state of the server is made before changing the new one. The save formats for most things are simple text file with a YAML that can be hand edited if needed, and can be version controlled.
+
+
 
 You can store small amounts of data in the registry which will be persisted to disk the next time the state is saved, or there are built in libraries for YAML or JSON based persistence with atomic file updates(The old file is renamed to file~ and only deleted after the new file is created)
 
@@ -25,7 +32,11 @@ make detecting intrusions and errors easier.
 ![Settings](screenshots/settings.jpg)
 
 Kaithem includes a library for common automation tasks such as file IO, timing, executing functions in the background, formatting numbers, and more. It also includes a library of basic example modules, including a
-web-based lighting console.
+web-based lighting console that can be used without needing to write any code(With Enttec-type USB DMX adapters, tested on an Arduino emulation, other may be added via the API).
+
+The lighting console supports cue lists, multiple layers with selectable blend mode, flickering candle effects, keybindings, tracking, cue only cues, backtracking, HTP,inhibit, alpha blending, and many other features.
+
+At the moment blend modes are per-scene, selecting one channel to use LTP for gobo selection, etc is not yet supported, but you can work around this by putting things like that on a separate layer with 100% opacity.
 
 ![Lighting control](screenshots/lighting.jpg)
 
@@ -97,6 +108,13 @@ If you install using the debian package helper, you will be prompted for an admi
 
 Recent Changes(See changes.md for full change info)
 =============
+### 0.59
+
+-   Object inspector now handles weak references, weakvaluedicts, and objects with \_\_slots\_\_
+-   Lighting module has changed to a new cue based system(Not compatible with the old one)
+-   Fix python2 bug that prevented booting
+-   Tweak mako autoformat options and log formatting
+
 ### 0.58
 
 -   Safer handling of tokens to resist timing attacks
@@ -122,11 +140,6 @@ Recent Changes(See changes.md for full change info)
 -   Support for IPv4/IPv6 dual stack
 -   Host config option to bind to a specific IP(overrides local-access-only if specified)
 -   Scheduler error handling no longer spams the logs
-
-### 0.56.1
-
--   Fix bug when deleting realtime events
--   Format log records immediately instead of keeping record objects around
 
 License Terms
 =============
