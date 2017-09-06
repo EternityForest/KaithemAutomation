@@ -497,7 +497,7 @@ class Universe():
                 #Should there be some kind of dict changed size problem, retry
                 time.sleep(0.1)
 
-            self.refresh_scenes()
+        self.refresh_scenes()
 
     def setStatus(self,s,ok):
         "Set the status shown in the gui. ok is a bool value that indicates if the object is able to transmit data to the fixtures"
@@ -588,11 +588,11 @@ class EnttecUniverse(Universe):
     def __init__(self,name,channels=128,portname="",framerate=44):
         self.ok = False
         self.status = "Disconnect"
+        self.statusChanged = {}
         #Sender needs the values to be there for setup
         self.values = numpy.array([0.0]*channels,dtype="f4")
         self.sender = DMXSender(self,portname,framerate)
         self.sender.connect()
-        self.statusChanged = {}
         Universe.__init__(self,name,channels)
 
 
@@ -618,12 +618,13 @@ class DMXSender():
         self.data = message(universe.values)
         self.thread = threading.Thread(target =self.run)
         self.thread.daemon = True
-        self.connect()
-        self.thread.start()
         self.portname = port
         self.framerate = float(framerate)
         self.lock = threading.Lock()
         self.port = None
+        self.connect()
+        self.thread.start()
+
 
     def setStatus(self,s,ok):
         try:
@@ -672,10 +673,12 @@ class DMXSender():
 
             for i in range(0,8):
                 self.port.write(message(numpy.array([231]*120)))
-                time.sleep(0.1)
+                time.sleep(0.05)
             self.port.write(message(numpy.zeros(max(128,len(self.universe().values)))))
-            self.port.write(self.data)
+            time.sleep(0.1)
             self.port.read(self.port.inWaiting())
+            time.sleep(0.05)
+            self.port.write(self.data)
             self.setStatus('connected to '+p,True)
         except Exception as e:
             try:
@@ -709,7 +712,6 @@ class DMXSender():
                 try:
                     if self.data is None:
                         return
-
                     if self.port:
                         self.setStatus('disconnected, '+str(e)[:100]+'...',False)
                     self.port=None
