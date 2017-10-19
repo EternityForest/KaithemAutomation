@@ -367,6 +367,13 @@ else:
     sdn = "/usr/lib/kaithem/src"
     ddn = "/usr/share/kaithem"
 
+def allow_upload(*args,**kwargs):
+    #Only do the callback if needed. Assume it's really big if no header.
+    if int(cherrypy.request.headers.get("Content-Length",2**32))> cherrypy.request.body.maxbytes:
+        cherrypy.request.body.maxbytes = cherrypy.request.config['tools.allow_upload.f']()
+
+cherrypy.tools.allow_upload = cherrypy.Tool('before_request_body', allow_upload)
+
 site_config={
         "request.body.maxbytes": 64*1024,
         "tools.encode.on" :True,
@@ -382,8 +389,10 @@ site_config={
         'server.ssl_private_key':os.path.join(directories.ssldir,'certificate.key'),
         'server.thread_pool':config['https-thread-pool'],
         'engine.autoreload.frequency' : 5,
-
+        'tools.allow_upload.on':True,
+        'tools.allow_upload.f': lambda: auth.getUserLimit(pages.getAcessingUser(),"web.maxbytes") or 64*1024,
 }
+
 if config['enable-websockets']:
     wscfg={'tools.websocket.on': True,
             'tools.websocket.handler_cls': widgets.websocket}
@@ -454,12 +463,16 @@ def addheader(*args,**kwargs):
 def pageloadnotify(*args,**kwargs):
     systasks.aPageJustLoaded()
 
-def allow_upload(*args,**kwargs):
-    #Only do the callback if needed. Assume ot's really big if no header.
-    if int(cherrypy.request.headers.get("Content-Length",2**32))> cherrypy.request.body.maxbytes:
-        cherrypy.request.body.maxbytes = cherrypy.request.config['tools.allow_upload.f']()
 
-cherrypy.tools.allow_upload = cherrypy.Tool('before_request_body', allow_upload)
+#As far as I can tell, this second server inherits everything from the "implicit" server
+#except what we override.
+server2 = cherrypy._cpserver.Server()
+server2.socket_port= config['http-port']
+server2._socket_host= bindto
+server2.thread_pool=config['http-thread-pool']
+server2.subscribe()
+
+
 
 cherrypy.config.update(site_config)
 cherrypy.tools.pageloadnotify = cherrypy.Tool('on_start_resource', pageloadnotify)
@@ -471,15 +484,6 @@ if hasattr(cherrypy.engine, 'signal_handler'):
     cherrypy.engine.signal_handler.subscribe()
 
 cherrypy.tree.mount(root,config=cnf)
-
-
-#As far as I can tell, this second server inherits everything from the "implicit" server
-#except what we override.
-server2 = cherrypy._cpserver.Server()
-server2.socket_port= config['http-port']
-server2._socket_host= bindto
-server2.thread_pool=config['http-thread-pool']
-server2.subscribe()
 
 
 

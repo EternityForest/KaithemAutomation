@@ -590,7 +590,7 @@ def addResourceTarget(module,type,name,kwargs,path):
                 f(module,name, r)
 
         messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + " added resource " +
-                           escapedName + " of type " + type+" to module " + root)
+                            escapedName + " of type " + type+" to module " + root)
 
         #Take the user straight to the resource page
         raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+util.url(escapedName))
@@ -793,7 +793,7 @@ def resourceUpdateTarget(module,resource,kwargs):
     if 'GoNow' in kwargs:
         raise cherrypy.HTTPRedirect(usrpages.url_for_resource(module,r))
     #Return user to the module page. If name has a folder, return the user to it;s containing folder.
-    x = util.split_escape(r,"/")
+    x = util.split_escape(r,"/","\\")
     if len(x)>1:
         raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+'/'.join([util.url(i) for i in x[:-1]])+"#resources")
     else:

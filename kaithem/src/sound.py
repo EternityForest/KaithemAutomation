@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 import subprocess,os,math,time,sys,threading
-from . import  util, scheduling,directories
+from . import  util, scheduling,directories,workers
 from .config import config
 
 sound_paths = [""]
@@ -378,7 +378,7 @@ class MPlayerWrapper(SoundWrapper):
 
             if "output" in kw and pulseaudio:
                 cmd.extend(["-ao",kw['output']])
-                           
+
 
             if "video_output" in kw:
                 cmd.extend(["-vo",kw['output']])
@@ -419,6 +419,11 @@ class MPlayerWrapper(SoundWrapper):
                 self.process.terminate()
             except:
                 pass
+        def stop(self):
+            try:
+                self.process.terminate()
+            except:
+                pass
 
         def isPlaying(self):
             self.process.poll()
@@ -427,9 +432,14 @@ class MPlayerWrapper(SoundWrapper):
         def position(self):
             return time.time() - self.started
 
+        def wait(self):
+            #Block until sound is finished playing.
+            self.process.wait()
+
+
         def seek(self,position):
-               with self.lock:
-                   if self.isPlaying():
+            with self.lock:
+                if self.isPlaying():
                     try:
                         if sys.version_info < (3,0):
                             self.process.stdin.write(bytes("pausing_keep seek "+str(position)+" 2\n"))
@@ -487,8 +497,6 @@ class MPlayerWrapper(SoundWrapper):
                     pass
 
     def playSound(self,filename,handle="PRIMARY",**kwargs):
-
-
         if 'volume' in kwargs:
             #odd way of throwing errors on non-numbers
             v  = float(kwargs['volume'])
@@ -555,6 +563,12 @@ class MPlayerWrapper(SoundWrapper):
         except KeyError:
             return False
 
+    def wait(self,channel = "PRIMARY"):
+        "Block until any sound playing on a channel is finished"
+        try:
+            self.runningSounds[channel].wait()
+        except KeyError:
+            return False
 
     def setVolume(self,vol,channel = "PRIMARY"):
         "Return true if a sound is playing on channel"
@@ -590,7 +604,36 @@ class MPlayerWrapper(SoundWrapper):
             return self.runningSounds[channel].resume()
         except KeyError:
             pass
-    
+
+    def fadeTo(self,file,length=1.0, block=False, handle="PRIMARY",**kwargs):
+        try:
+            x = self.runningSounds[channel]
+        except KeyError:
+            x = None
+        if x and not length:
+            x.stop()
+            return
+        self.playSound(file,handle=handle,**kwargs)
+        if not x:
+            return
+        def f():
+            t = time.time()
+            try:
+                v = x.volume
+            except:
+                pass
+            while x and time.time()-t<length:
+                x.setVol(max(0,v*  (1-(time.time()-t)/length)))
+                self.setVolume(min(1,kwargs.get('volume',1)*((time.time()-t)/length)),handle)
+                time.sleep(1/30.0)
+            if x:
+                x.stop()
+        if block:
+            f()
+        else:
+            workers.do(f)
+
+
 
 
 l = {'sox':SOXWrapper, 'mpg123':Mpg123Wrapper, "mplayer":MPlayerWrapper, "madplay":MadPlayWrapper}
@@ -619,4 +662,5 @@ stopAllSounds = backend.stopAllSounds
 setvol = backend.setVolume
 setEQ = backend.setEQ
 position = backend.getPosition
+fadeTo = backend.fadeTo
 
