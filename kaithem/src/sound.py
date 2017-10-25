@@ -376,7 +376,7 @@ class MPlayerWrapper(SoundWrapper):
             if end:
                 cmd.extend(["-endpos",str(end)])
 
-            if "output" in kw and pulseaudio:
+            if "output" in kw and kw['output']:
                 cmd.extend(["-ao",kw['output']])
 
 
