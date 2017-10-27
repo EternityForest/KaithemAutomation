@@ -429,8 +429,10 @@ boardname = "default"
             <label>Use Length:
                 <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rellen)"
                     v-model="currentcue.rellen" title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
-            </label>
-
+            </label><br>
+            Script Bindings:</br>
+             <textarea rows=3 cols=35 title="Enter script bindings here that can trigger at the start and end of the cue" v-on:input="setscript(currentcueid,$event.target.value)"
+                    v-model="cuemeta[currentcueid].script"></textarea>
             <div v-if="showsoundoptions">
                 <h3>Sound Cues</h3>
 
@@ -1172,6 +1174,10 @@ boardname = "default"
             'setnext': function(sc, cue, v)
             {
                 api_link.send(['setnext', sc, cue, v]);
+            },
+            'setscript': function(sc, cue, v)
+            {
+                api_link.send(['setscript', sc, cue, v]);
             },
             'setshortcut': function(cue, v)
             {

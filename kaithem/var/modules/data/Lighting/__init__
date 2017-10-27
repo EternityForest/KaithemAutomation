@@ -54,6 +54,13 @@ def parseCommandBindings(cmd):
             l[b].append(x[1].strip())
     return l
 
+def runCommand(cmd):
+    cmd = [i.strip() for i in cmd.split(' ')]
+    if cmd[0] == "goto":
+        module.scenes_by_name[cmd[1]].gotoCue(cmd[2])
+    if cmd[0] == "setalpha":
+        module.scenes_by_name[cmd[1]].setAlpha(float(cmd[2]))
+
 def listsoundfolder(path):
     soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
 
@@ -994,6 +1001,7 @@ class LightBoard():
                             'number': cue.number/1000.0,
                             'defaultnext': cue.scene().getAfter(cue.name),
                             'prev': cue.scene().getParent(cue.name),
+                            'script': cue.script
                             }])
         except Exception as e:
             print("cue data push error", cueid,e)
@@ -1246,6 +1254,10 @@ class LightBoard():
             if msg[0] == "setnext":
                 disallow_special( msg[2][:1024],allow="_")
                 cues[msg[1]].nextCue= msg[2][:1024]
+                self.pushCueMeta(msg[1])
+
+            if msg[0] == "setscript":
+                cues[msg[1]].script= msg[2][:2048]
                 self.pushCueMeta(msg[1])
 
             if msg[0] == "setblend":
@@ -1578,12 +1590,13 @@ cues =weakref.WeakValueDictionary()
 
 class Cue():
     "A static set of values with a fade in and out duration"
-    __slots__=['id','changed','next_ll','alpha','fadein','fadeout','length','lengthRandomize','name','values','scene','nextCue','track','shortcut','number','inherit','sound','rel_length','soundOutput','__weakref__']
+    __slots__=['id','changed','next_ll','alpha','fadein','fadeout','length','lengthRandomize','name','values','scene','nextCue','track','shortcut','number','inherit','sound','rel_length','script','soundOutput','__weakref__']
     def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, fadeout=0, length=0,track=True, nextCue = None,shortcut=None,sound='',soundOutput=None,rel_length=False, id=None,number=None,
-        lengthRandomize=0,**kw):
+        lengthRandomize=0,script='',**kw):
         #This is so we can loop through them and push to gui
         self.id = random.random()+time.time()
         self.name = name
+        self.script = script
         disallow_special(name)
         if name[0] in '1234567890 \t_':
             name = 'x'+name
@@ -1623,7 +1636,7 @@ class Cue():
 
     def serialize(self):
             return {"fadein":self.fadein,"fadeout":self.fadeout,"length":self.length,'lengthRandomize':self.lengthRandomize,"shortcut":self.shortcut,"values":self.values,
-            "nextCue":self.nextCue,"track":self.track,"number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,'rel_length':self.rel_length}
+            "nextCue":self.nextCue,"track":self.track,"number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,'rel_length':self.rel_length, 'script':self.script}
     
     def push(self):
         for i in module.boards:
@@ -1803,6 +1816,9 @@ class Scene():
         
         #Last time the scene was started. Not reset when stopped
         self.started = 0
+
+        #The bindings for script commands that might be in the cue metadata
+        self.commandBindings = {}
         
         if name:
                module.scenes_by_name[self.name] = self
@@ -1985,7 +2001,14 @@ class Scene():
                     if i.number-(float(cue)*1000)<0.001:
                         cue = i.name
                         break
-
+            
+            if not (cue==self.cue.name) and "cue.exit" in self.commandBindings:
+                for i in self.commandBindings['cue.exit']:
+                    try:
+                        runCommand(i)
+                    except Exception as e:
+                        print(traceback.format_exc(6))
+    
             self.cueHistory.append(cue)
             self.cueHistory = self.cueHistory[-100:]
             self.sound_end = 0
@@ -2001,6 +2024,18 @@ class Scene():
             #an explicit parent or the previous cue in the numbered list either has the default next cue or explicitly
             #references this cue.
             cobj = self.cues[cue]
+            try:
+                self.commandBindings= parseCommandBindings(cobj.script)
+            except:
+                print(traceback.format_exc(6))
+
+            if "cue.enter" in self.commandBindings:
+                for i in self.commandBindings['cue.enter']:
+                    try:
+                        runCommand(i)
+                    except Exception as e:
+                        print(traceback.format_exc(6))
+
             self.cuelen = max(0,random.triangular(cobj.length-cobj.lengthRandomize, cobj.length+cobj.lengthRandomize))
 
             #We don't fully reset until after we are done fading in and have rendered.
