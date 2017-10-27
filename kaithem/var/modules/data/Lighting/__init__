@@ -35,10 +35,28 @@ module.runningTracks = weakref.WeakValueDictionary()
 module.scenes = weakref.WeakValueDictionary()
 module.scenes_by_name = weakref.WeakValueDictionary()
 
-soundfolders = kaithem.registry.get("lighting/soundfolders",['/home/danny/Music/MP3s'])
 
+
+def parseCommandBindings(cmd):
+    l = {}
+    for i in cmd.split("\n"):
+        if not i:
+            continue
+        x = i.split(':',1)
+        if len(x)==1:
+            if not '' in l:
+                l['']=[]
+            l[''].append(x[0])
+        else:
+            b = x[0].strip()
+            if not b in l:
+                l[b]=[]
+            l[b].append(x[1].strip())
+    return l
 
 def listsoundfolder(path):
+    soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
+
     if not path.endswith("/"):
         path = path+"/"
         
@@ -55,6 +73,7 @@ def listsoundfolder(path):
         return [[i+('/' if not i.endswith('/') else '') for i in soundfolders],[]]
         
     if not os.path.exists(path):
+        print(path,0)
         return [[],[]]
     x = os.listdir(path)
     return(
@@ -131,9 +150,9 @@ def writeScene(fobj, scene):
 def pollsounds():
     for i in module.activeScenes:
         if i.cue.sound and i.cue.rel_length:
-            if not kaithem.sound.isPlaying(i.id) and not i.sound_end:
+            if not kaithem.sound.isPlaying(str(i.id)) and not i.sound_end:
                 i.sound_end = time.time()
-            if time.time()-i.sound_end<i.cue.length:
+            if i.sound_end and (time.time()-i.sound_end>i.cue.length):
                 i.nextCue()
 
 class ObjPlugin():
@@ -2026,7 +2045,7 @@ class Scene():
             c = 0
             while c<50 and kaithem.sound.isPlaying(str(self.id)):
                 c+=1
-                time.sleep(1.7)
+                time.sleep(0.017)
             if self.cue.sound and os.path.isfile(self.cue.sound):
                 kaithem.sound.play(self.cue.sound,handle=str(self.id),volume=self.alpha,output=self.cue.soundOutput)
                         
@@ -2179,9 +2198,9 @@ class Scene():
     def setAlpha(self,val,sd=False):
         kaithem.sound.setvol(val, str(self.id))
         self.rerender = True
-        if val<=0 and(not (self.blend =="inhibit" or (self._blend and not self._blend.autoStop)) ):
-            #Don't auto-stop if a sound is playing, that would just be annoying to anyone using it for volume control
-            if not kaithem.sound.isPlaying(str(self.id)):
+        #Don't auto-stop if a sound is playing, that would just be annoying to anyone using it for volume control
+        #Also allow blend modes like inhibit to disable auto-stop, because 0 has a different effect than off.
+        if val<=0 and(not (self.blend =="inhibit" or (self._blend and not self._blend.autoStop)) ) and  not kaithem.sound.isPlaying(str(self.id)) :
                 self.stop()
         else:
             if not self.isActive():

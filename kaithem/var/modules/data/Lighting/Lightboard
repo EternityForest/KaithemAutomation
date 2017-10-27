@@ -437,14 +437,14 @@ boardname = "default"
                 <div style="max-height:25em; overflow:scroll; background-color:rgba(255,255,255,0.4);">
                     <h4>{{soundfilesdir}}</h4>
                     <ul>
-                        <li v-on:dblclick="setSoundfileDir('')">&ltTOP&gt</li>
-                        <li v-on:dblclick="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">..</li>
-                        <li v-on:dblclick="setSoundfileDir(soundfilesdir+i)" v-for="i in soundfileslisting[0]">{{i}}</li>
+                        <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir('')">&ltTOP&gt</li>
+                        <li v-if="soundfilesdir" style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">..</li>
+                        <li style="color:blue; text-decoration:underline;"  v-on:click="setSoundfileDir(soundfilesdir+i)" v-for="i in soundfileslisting[0]">{{i}}</li>
 
                     </ul>
 
                     <ul>
-                        <li v-on:dblclick="setSoundfile(currentcueid,soundfilesdir+i)" v-for="i in soundfileslisting[1]">{{i}}</li>
+                        <li title="Double click to select" v-on:dblclick="setSoundfile(currentcueid,soundfilesdir+i)" v-for="i in soundfileslisting[1]">{{i}}</li>
                     </ul>
                 </div>
             </div>
