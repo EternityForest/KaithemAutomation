@@ -550,7 +550,9 @@ def getUserLimit(user,limit,maximum=2**64):
         If user has __all_permissions__, limit _is_ maximum.
     """
     if '__guest__' in Users:
-            guestlimit = min(Users['__guest__'].limits.get(limit,0),maximum) 
+            guestlimit = min(Users['__guest__'].limits.get(limit,0),maximum)
+    else:
+        guestlimit = 0 
     if user in Users:
         if not '__all_permissions__' in  Users[user].permissions:
             val = max(min(Users[user].limits.get(limit,0),maximum),guestlimit)

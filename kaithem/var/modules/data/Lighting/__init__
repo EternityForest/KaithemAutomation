@@ -1658,7 +1658,7 @@ class Cue():
         
         for i in module.boards:
             if len(i().newDataFunctions)<100:
-                i().newDataFunctions.append(lambda s:s.pushCueMeta(self.cues[name].id))
+                i().newDataFunctions.append(lambda s:s.pushCueMeta(c.id))
         for i in module.boards:
             if len(i().newDataFunctions)<100:
                 i().newDataFunctions.append(lambda s:s.pushCueData(c.id))

@@ -73,7 +73,6 @@ boardname = "default"
         border-style: dashed;
         border-width: 1.5px;
     }
-    
 
 </style>
 <script>
@@ -89,6 +88,7 @@ boardname = "default"
     }
 
 </script>
+<script src="gamepad.js"></script>
 <script src="${kaithem.web.resource('jquery-3.1.0')}"></script>
 <script src="${kaithem.web.resource('vue-2.3.4')}"></script>
 <script type="text/javascript" src="/static/widget.js"></script>
@@ -124,21 +124,23 @@ boardname = "default"
     <a href="download" title="Download your scenes as a file">Save</a>
     <a href="upload" title="Upload a scenes file">Load</a>
     <a href="save" title="Save to the kaithem registry as the default state at boot">Make Current State the Default</a>
-    <p style="background-color:rgba(255,255,255,0.3);"><b>Show Windows:</b>    <label>DMX Setup:
-        <input type="checkbox" v-model="showDMXSetup">
-    </label>
+    <p style="background-color:rgba(255,255,255,0.3);"><b>Show Windows:</b>
+        <label>DMX Setup:
+            <input type="checkbox" v-model="showDMXSetup">
+        </label>
 
-    <label>Fixture Types:
-        <input v-on:change="showhidefixtures" type="checkbox" v-model="showFixtureSetup">
-    </label>|
+        <label>Fixture Types:
+            <input v-on:change="showhidefixtures" type="checkbox" v-model="showFixtureSetup">
+        </label>|
 
-    <label>Fixture Assignments:
-        <input type="checkbox" v-model="showfixtureassg" v-on:change="getfixtureassg">
-    </label>|
+        <label>Fixture Assignments:
+            <input type="checkbox" v-model="showfixtureassg" v-on:change="getfixtureassg">
+        </label>|
 
-    <label>Sound Browser</label>
-    <input type="checkbox" v-model="showsoundoptions">
-    </label></p>
+        <label>Sound Browser</label>
+        <input type="checkbox" v-model="showsoundoptions">
+        </label>
+    </p>
 
     <datalist id="serports">
         <option v-for="i of serports" v-bind:value="i"></option>
@@ -371,37 +373,37 @@ boardname = "default"
         <button v-on:click="jumptocue(currentcueid)">Jump to Selected</button>
 
         <hr>
-        <div v-if="currentcue" >
-            <div >
-            <label >Number:
-                <input type="number" title="Cue number" style="width:6em" v-on:input="setnumber(currentcueid,$event.target.value)"
-                    min=0 step=0.1 v-model="currentcue.number">
-            </label>
-            <label>Code:
-                <input title="Shortcut code used to quickly activate a cue" size="8" v-on:input="setshortcut(currentcueid,$event.target.value)"
-                    v-model="currentcue.shortcut">
-            </label>
-            <label >Track:
-                <input type="checkbox" v-on:change="settrack(currentcueid,currentcue.track)" v-model="currentcue.track"
-                    title="Track values from previous cue? If false, values not present are always transparent">
-            </label>
-            <label>Fadein:
-                <input type="number" v-on:input="setfadein(currentcueid,$event.target.value)" style="width:3em"
-                    min=0 v-model="currentcue.fadein">{{scenemeta[scenename].bpm?"beats":"s"}}
-            </label>
-            <label>Length:
-                <input type="number" v-on:input="setlength(currentcueid,$event.target.value)" v-model="cuemeta[currentcueid].length"
-                    style="width:4em" min=0></input>{{scenemeta[scenename].bpm?"beats":"s"}}
-            </label>
-            <label>Randomize:
-                <input type="number" v-on:input="setrandomize(currentcueid,$event.target.value)"
-                    title="Randomize the cue length +- this amount" v-model="cuemeta[currentcueid].lengthRandomize"
-                    style="width:4em" min=0 step=0.25></input>{{scenemeta[scenename].bpm?"beats":"s"}}
-            </label>
+        <div v-if="currentcue">
+            <div>
+                <label>Number:
+                    <input type="number" title="Cue number" style="width:6em" v-on:input="setnumber(currentcueid,$event.target.value)"
+                        min=0 step=0.1 v-model="currentcue.number">
+                </label>
+                <label>Code:
+                    <input title="Shortcut code used to quickly activate a cue" size="8" v-on:input="setshortcut(currentcueid,$event.target.value)"
+                        v-model="currentcue.shortcut">
+                </label>
+                <label>Track:
+                    <input type="checkbox" v-on:change="settrack(currentcueid,currentcue.track)" v-model="currentcue.track"
+                        title="Track values from previous cue? If false, values not present are always transparent">
+                </label>
+                <label>Fadein:
+                    <input type="number" v-on:input="setfadein(currentcueid,$event.target.value)" style="width:3em"
+                        min=0 v-model="currentcue.fadein">{{scenemeta[scenename].bpm?"beats":"s"}}
+                </label>
+                <label>Length:
+                    <input type="number" v-on:input="setlength(currentcueid,$event.target.value)" v-model="cuemeta[currentcueid].length"
+                        style="width:4em" min=0></input>{{scenemeta[scenename].bpm?"beats":"s"}}
+                </label>
+                <label>Randomize:
+                    <input type="number" v-on:input="setrandomize(currentcueid,$event.target.value)"
+                        title="Randomize the cue length +- this amount" v-model="cuemeta[currentcueid].lengthRandomize"
+                        style="width:4em" min=0 step=0.25></input>{{scenemeta[scenename].bpm?"beats":"s"}}
+                </label>
 
             </div>
 
-        <label>Next Cue:
+            <label>Next Cue:
                 <input list="cues_in_scene" title="Select a cue to activate when this one ends" v-on:input="setnext(currentcueid,$event.target.value)"
                     v-model="cuemeta[currentcueid].next" v-bind:placeholder="currentcue.defaultnext"></input>
             </label>
@@ -418,21 +420,19 @@ boardname = "default"
             </label><br>
             <label>Sound:
                 <input placeholder="No sound file" v-model="currentcue.sound" style="width:32em;"
-                v-on:change="setSoundfile(currentcueid,currentcue.sound)">
+                    v-on:change="setSoundfile(currentcueid,currentcue.sound)">
             </label>
             <label>Device:
-                <input title="Using mplayer -ao syntax, set the output device"
-                    v-on:input="setSoundOutput(currentcueid,$event.target.value)" v-model="cuemeta[currentcueid].soundOutput"
-                    placeholder="default"></input>
+                <input title="Using mplayer -ao syntax, set the output device" v-on:input="setSoundOutput(currentcueid,$event.target.value)"
+                    v-model="cuemeta[currentcueid].soundOutput" placeholder="default"></input>
             </label>
 
             <label>Use Length:
-                <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rellen)"
-                    v-model="currentcue.rellen" title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
-            </label><br>
-            Script Bindings:</br>
-             <textarea rows=3 cols=35 title="Enter script bindings here that can trigger at the start and end of the cue" v-on:input="setscript(currentcueid,$event.target.value)"
-                    v-model="cuemeta[currentcueid].script"></textarea>
+                <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rellen)" v-model="currentcue.rellen"
+                    title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
+            </label><br> Script Bindings:</br>
+            <textarea rows=3 cols=35 title="Enter script bindings here that can trigger at the start and end of the cue"
+                v-on:input="setscript(currentcueid,$event.target.value)" v-model="cuemeta[currentcueid].script"></textarea>
             <div v-if="showsoundoptions">
                 <h3>Sound Cues</h3>
 
@@ -441,12 +441,14 @@ boardname = "default"
                     <ul>
                         <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir('')">&ltTOP&gt</li>
                         <li v-if="soundfilesdir" style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">..</li>
-                        <li style="color:blue; text-decoration:underline;"  v-on:click="setSoundfileDir(soundfilesdir+i)" v-for="i in soundfileslisting[0]">{{i}}</li>
+                        <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(soundfilesdir+i)"
+                            v-for="i in soundfileslisting[0]">{{i}}</li>
 
                     </ul>
 
                     <ul>
-                        <li title="Double click to select" v-on:dblclick="setSoundfile(currentcueid,soundfilesdir+i)" v-for="i in soundfileslisting[1]">{{i}}</li>
+                        <li title="Double click to select" v-on:dblclick="setSoundfile(currentcueid,soundfilesdir+i)"
+                            v-for="i in soundfileslisting[1]">{{i}}</li>
                     </ul>
                 </div>
             </div>
@@ -675,6 +677,7 @@ boardname = "default"
             {
                 'blah': { 'type': 'enttec', 'interface': 'xyz' }
             },
+            'gamepad':false,
             'newuniversename': "",
             'fixtureClasses': { 'dfjlkdjf': [] },
             'selectedFixtureClass': '',
@@ -1542,15 +1545,6 @@ boardname = "default"
             appData.unixtime = ((new Date()).getTime() /
                 1000)
         }, 1000 / 14)
-        setInterval(function()
-            {
-                if ("getGamepads" in navigator)
-                {
-                    appData.gamepads = navigator.getGamepads();
-
-                }
-            },
-            1000)
         var shortcut = function(sc)
         {
             return function()
@@ -1608,6 +1602,19 @@ boardname = "default"
 
         rebind = function(data)
         {
+            try 
+            {
+                gamepad.destroy()
+            }
+            catch (e)
+            {
+                pass = 1
+            }
+            gamepad = new Gamepad();
+            gamepad.on('connect', x, function(){appData.gamepad = true;console.log("gamepad")})
+            gamepad.on('disconnect', x, function(){appData.gamepad = false})
+
+            
             var banks = data.split("[")
             keyboardJS.reset()
             for (var bank in banks)
@@ -1638,6 +1645,23 @@ boardname = "default"
                             binding = line[0].trim()
                             command = line[1].trim()
                             command = command.split(" ")
+
+
+
+                            if (binding.startsWith('gamepad'))
+                            {
+                                var x = { 'a': 'button_1', 'A': 'button_1', 'b': 'button_2', 'B': 'button_2' }[binding.split('.')[1]]
+                                if (command[0] == 'goto')
+                                {
+
+                                }
+                                gamepad.on('press', x, goto(command[1],
+                                    command.slice(2).join('').trim()
+                                ))
+                        
+                            }
+                            else{
+
                             if (command[0] == 'go')
                             {
                                 keyboardJS.bind(binding, goScene(
@@ -1676,6 +1700,7 @@ boardname = "default"
                             {
                                 keyboardJS.bind(binding, next(command[
                                     1]))
+                            }
                             }
                         }
                         catch (e)
