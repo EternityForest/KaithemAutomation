@@ -81,6 +81,7 @@ error-backoff:
 
 #List of possible audio backend players in order of preference. Support sox and mpg123.
 audio-backends:
+    - mpv
     - mplayer
     - sox
     - mpg123

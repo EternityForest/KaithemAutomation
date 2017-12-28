@@ -123,6 +123,7 @@ properties:
                 -sox
                 -mplayer
                 -madplay
+                -mpv
 
     audio-paths:
         type: array

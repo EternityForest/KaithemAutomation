@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import subprocess,os,math,time,sys,threading
+import subprocess,os,math,time,sys,threading, collections
 from . import  util, scheduling,directories,workers
 from .config import config
 
@@ -37,8 +37,15 @@ def soundPath(fn):
 #This class provides some infrastructure to play sounds but if you use it directly it is a dummy.
 class SoundWrapper(object):
 
-    runningSounds = {}
     backendname = "Dummy Sound Driver(No real sound player found)"
+    def __init__(self):
+        #Prefetch cache for preloadng sound effects
+        self.cache = collections.OrderedDict()
+        self.runningSounds = {}
+
+    def readySound(self, *args,**kwargs):
+        pass
+
     #little known fact: Kaithem is actually a large collection of
     #mini garbage collectors and bookkeeping code...
     def deleteStoppedSounds(self):
@@ -355,6 +362,309 @@ class SOXWrapper(SoundWrapper):
         except KeyError:
             return False
 
+class MPVWrapper(SoundWrapper):
+    backendname = "mpv"
+
+    #What this does is it keeps a reference to the sound player process and
+    #If the object is destroyed it destroys the process stopping the sound
+    #It also abstracts checking if its playing or not.
+    class MPVSoundContainer(object):
+        def __init__(self,filename,vol,start,end,extras,**kw):
+            self.lock = threading.RLock()
+            f = open(os.devnull,"w")
+            g = open(os.devnull,"w")
+            self.nocallback = False
+            self.paused = False
+            self.volume = vol
+
+            self.sound = mpv.player()
+            self.sound['audio-display'] = False
+
+            if '__pause' in kw:
+                self.sound['pause']=True
+
+            self.sound['volume']=10*math.log10(vol or 10**-30)
+
+            if end:
+                cmd.extend(["-endpos",str(end)])
+
+            if "output" in kw and kw['output']:
+                self.sound['audio-device']= kw['output']
+
+
+          
+            if "video-output" in kw and kw['video-output']:
+                self.sound['vo']= kw['video-output']
+
+            if 'eq' in extras:
+                if extras['eq'] == 'party':
+                   self.sound['af']= 'equalizer=0:1.5:2:-7:-10:-5:-10:-10:1:1'
+                else:
+                   self.sound['af']= 'equalizer=' +":".join(extras['eq'])
+
+            if 'loop' in kw:
+                cmd.extend(["-loop", str(0 if kw['loop'] is True else int(kw['loop']))])
+
+            self.started = time.time()
+
+            x= kw.get('callback',False)
+            if x:
+                @player.property_observer('eof-reached')
+                def f(_name, value):
+                    if not self.sound['loop'] in ('yes',True):
+                        workers.do(x)
+                self.callback = x
+                        
+                    
+
+        def __del__(self):
+            try:
+                self.callback()
+                self.sound.terminate()
+            except:
+                pass
+        def stop(self):
+            try:
+                workers.do(self.callback)
+                self.sound.terminate()
+            except:
+                pass
+
+        def isPlaying(self):
+            return not self.sound['eof-reached']
+
+        def position(self):
+            return self.sound['time-pos']
+
+        def wait(self):
+            #Block until sound is finished playing.
+            self.sound.wait_for_playback()
+
+
+        def seek(self,position):
+            with self.lock:
+                self.sound['time-pos'] = positiion
+
+
+
+        def setVol(self,volume):
+            self.volume = volume
+            self.sound['volume']=10*math.log10(vol or 10**-30)
+
+
+        def setEQ(self,eq):
+            if eq == 'party':
+                self.sound['af']='equalizer=0:1.5:2:-7:-10:-5:-10:-10:1:1'
+            else:
+                self.sound['af']='equalizer=' +":".join(eq)
+
+        def pause(self):
+            self.sound['pause'] = True 
+
+        def resume(self):
+            self.sound['pause'] = False
+
+
+
+
+    def playSound(self,filename,handle="PRIMARY",**kwargs):
+        if 'volume' in kwargs:
+            #odd way of throwing errors on non-numbers
+            v  = float(kwargs['volume'])
+        else:
+            v =1;
+
+        if 'start' in kwargs:
+            #odd way of throwing errors on non-numbers
+            start  = float(kwargs['start'])
+        else:
+            start =0
+
+        if 'end' in kwargs:
+            #odd way of throwing errors on non-numbers
+            end  = float(kwargs['end'])
+        else:
+            end = None
+
+        if 'output' in kwargs:
+            e = {"output":kwargs['output']}
+        else:
+            e = {}
+
+        if 'fs' in kwargs:
+            e['fs'] = kwargs['fs']
+            
+        if 'loop' in kwargs:
+            e['loop'] = kwargs['loop']
+            
+        if 'novideo' in kwargs:
+            e['novideo'] = kwargs['novideo']
+
+        if 'eq' in kwargs:
+            extras={'eq':kwargs['eq']}
+        else:
+            extras={}
+        #Those old sound handles won't garbage collect themselves
+        self.deleteStoppedSounds()
+        #Raise an error if the file doesn't exist
+        fn = util.search_paths(filename, sound_paths)
+        #Raise an error if the file doesn't exist
+        if not fn or not os.path.isfile(fn):
+            raise ValueError("Specified audio file'"+filename+"' not found")
+
+        with self.lock:
+            if filename in self.cache:
+                self.runningSounds[handle] = self.cache.pop(filename)
+                self.runningSounds[handle].setVol(v)
+                self.runningSounds[handle].play()
+
+                
+        #Play the sound with a background process and keep a reference to it
+        self.runningSounds[handle] = self.MPVSoundContainer(fn,v,start,end,extras,**e)
+
+    def readySound(self,filename,**kwargs):
+        if 'volume' in kwargs:
+            #odd way of throwing errors on non-numbers
+            v  = float(kwargs['volume'])
+        else:
+            v =1;
+
+        if 'start' in kwargs:
+            #odd way of throwing errors on non-numbers
+            start  = float(kwargs['start'])
+        else:
+            start =0
+
+        if 'end' in kwargs:
+            #odd way of throwing errors on non-numbers
+            end  = float(kwargs['end'])
+        else:
+            end = None
+
+        if 'output' in kwargs:
+            e = {"output":kwargs['output']}
+        else:
+            e = {}
+
+        if 'fs' in kwargs:
+            e['fs'] = kwargs['fs']
+            
+        if 'loop' in kwargs:
+            e['loop'] = kwargs['loop']
+            
+        if 'novideo' in kwargs:
+            e['novideo'] = kwargs['novideo']
+
+        if 'eq' in kwargs:
+            extras={'eq':kwargs['eq']}
+        else:
+            extras={}
+        #Those old sound handles won't garbage collect themselves
+        self.deleteStoppedSounds()
+        #Raise an error if the file doesn't exist
+        fn = util.search_paths(filename, sound_paths)
+        #Raise an error if the file doesn't exist
+        if not fn or not os.path.isfile(fn):
+            raise ValueError("Specified audio file'"+filename+"' not found")
+        #Let's assume that large files aren't fast sound effects anyway and don't really need prefetch.
+        if os.path.getsize(fn)>300*1000:
+            return
+        with self.lock:
+            #Play the sound with a background process and keep a reference to it
+            self.cache[handle] = self.MPVSoundContainer(fn,v,start,end,extras,__pause=True,**e)
+            if len(self.cache)>25:
+                self.cache.popitem(False)
+
+    def stopSound(self, handle ="PRIMARY"):
+        #Delete the sound player reference object and its destructor will stop the sound
+            if handle in self.runningSounds:
+                #Instead of using a lock lets just catch the error is someone else got there first.
+                try:
+                    x= self.runningSounds[handle]
+                    del self.runningSounds[handle]
+                    x.nocallback = True
+                    del x
+                except KeyError:
+                    pass
+
+    def isPlaying(self,channel = "PRIMARY"):
+        "Return true if a sound is playing on channel"
+        try:
+            return self.runningSounds[channel].isPlaying()
+        except KeyError:
+            return False
+
+    def wait(self,channel = "PRIMARY"):
+        "Block until any sound playing on a channel is finished"
+        try:
+            self.runningSounds[channel].wait()
+        except KeyError:
+            return False
+
+    def setVolume(self,vol,channel = "PRIMARY"):
+        "Return true if a sound is playing on channel"
+        try:
+            return self.runningSounds[channel].setVol(vol)
+        except KeyError:
+            pass
+
+    def seek(self,position,channel = "PRIMARY"):
+        "Return true if a sound is playing on channel"
+        try:
+            return self.runningSounds[channel].seek(position)
+        except KeyError:
+            pass
+
+    def setEQ(self,eq,channel = "PRIMARY"):
+        "Return true if a sound is playing on channel"
+        try:
+            return self.runningSounds[channel].setEQ(eq)
+        except KeyError:
+            pass
+
+    def pause(self,channel = "PRIMARY"):
+        "Return true if a sound is playing on channel"
+        try:
+            return self.runningSounds[channel].pause()
+        except KeyError:
+            pass
+
+    def resume(self,channel = "PRIMARY"):
+        "Return true if a sound is playing on channel"
+        try:
+            return self.runningSounds[channel].resume()
+        except KeyError:
+            pass
+
+    def fadeTo(self,file,length=1.0, block=False, handle="PRIMARY",**kwargs):
+        try:
+            x = self.runningSounds[channel]
+        except KeyError:
+            x = None
+        if x and not length:
+            x.stop()
+            return
+        self.playSound(file,handle=handle,**kwargs)
+        if not x:
+            return
+        def f():
+            t = time.time()
+            try:
+                v = x.volume
+            except:
+                pass
+            while x and time.time()-t<length:
+                x.setVol(max(0,v*  (1-(time.time()-t)/length)))
+                self.setVolume(min(1,kwargs.get('volume',1)*((time.time()-t)/length)),handle)
+                time.sleep(1/30.0)
+            if x:
+                x.stop()
+        if block:
+            f()
+        else:
+            workers.do(f)
+
+
 class MPlayerWrapper(SoundWrapper):
     backendname = "MPlayer"
 
@@ -634,9 +944,7 @@ class MPlayerWrapper(SoundWrapper):
             workers.do(f)
 
 
-
-
-l = {'sox':SOXWrapper, 'mpg123':Mpg123Wrapper, "mplayer":MPlayerWrapper, "madplay":MadPlayWrapper}
+l = {'sox':SOXWrapper, 'mpg123':Mpg123Wrapper, "mplayer":MPlayerWrapper, "madplay":MadPlayWrapper,'mpv':MPVWrapper}
 
 
 backend = SoundWrapper()
@@ -663,4 +971,5 @@ setvol = backend.setVolume
 setEQ = backend.setEQ
 position = backend.getPosition
 fadeTo = backend.fadeTo
+readySound = backend.readySound
 
