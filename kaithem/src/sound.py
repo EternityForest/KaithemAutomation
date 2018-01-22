@@ -362,8 +362,24 @@ class SOXWrapper(SoundWrapper):
         except KeyError:
             return False
 
+
+
+import mpv
+class MPV(mpv.MPV):
+    
+    def __init__(self):
+        mpv.MPV.__init__(self,nogui=True)
+        self.callback = None
+
+    def on_end_file(self):
+        if self.callback:
+            self.callback()
+
+
+
 class MPVWrapper(SoundWrapper):
     backendname = "mpv"
+    lock = threading.RLock()
 
     #What this does is it keeps a reference to the sound player process and
     #If the object is destroyed it destroys the process stopping the sound
@@ -371,36 +387,38 @@ class MPVWrapper(SoundWrapper):
     class MPVSoundContainer(object):
         def __init__(self,filename,vol,start,end,extras,**kw):
             self.lock = threading.RLock()
-            f = open(os.devnull,"w")
-            g = open(os.devnull,"w")
             self.nocallback = False
             self.paused = False
             self.volume = vol
+            self.stopped=False
 
-            self.sound = mpv.player()
-            self.sound['audio-display'] = False
+            self.sound = MPV()
+
 
             if '__pause' in kw:
-                self.sound['pause']=True
+                self.sound.set_property('pause',True)
+            if not filename or os.path.exists(filename):
+                raise RuntimeError("File not found: "+filename)
+            self.sound.command("loadfile",filename)
 
-            self.sound['volume']=10*math.log10(vol or 10**-30)
+            self.sound.set_property('volume',10*math.log10(vol or 10**-30))
 
             if end:
                 cmd.extend(["-endpos",str(end)])
 
             if "output" in kw and kw['output']:
-                self.sound['audio-device']= kw['output']
+                self.sound.set_property('audio-device',kw['output'])
 
 
-          
+
             if "video-output" in kw and kw['video-output']:
-                self.sound['vo']= kw['video-output']
+                self.sound.set_property('vo',kw['video-output'])
 
             if 'eq' in extras:
                 if extras['eq'] == 'party':
-                   self.sound['af']= 'equalizer=0:1.5:2:-7:-10:-5:-10:-10:1:1'
+                    self.sound.set_property('af', 'equalizer=0:1.5:2:-7:-10:-5:-10:-10:1:1')
                 else:
-                   self.sound['af']= 'equalizer=' +":".join(extras['eq'])
+                    self.sound.set_property('af' 'equalizer=' +":".join(extras['eq']))
 
             if 'loop' in kw:
                 cmd.extend(["-loop", str(0 if kw['loop'] is True else int(kw['loop']))])
@@ -409,60 +427,62 @@ class MPVWrapper(SoundWrapper):
 
             x= kw.get('callback',False)
             if x:
-                @player.property_observer('eof-reached')
                 def f(_name, value):
-                    if not self.sound['loop'] in ('yes',True):
+                    if not self.sound.get_property('loop') in ('yes',True):
                         workers.do(x)
                 self.callback = x
+                self.sound.callback = f
                         
                     
 
         def __del__(self):
             try:
                 self.callback()
-                self.sound.terminate()
+                self.sound.command("quit")
             except:
                 pass
+
         def stop(self):
             try:
+                self.stopped=True
                 workers.do(self.callback)
-                self.sound.terminate()
+                self.sound.command("quit")
             except:
                 pass
 
         def isPlaying(self):
-            return not self.sound['eof-reached']
+            return not self.sound.get_property('eof-reached')
 
         def position(self):
-            return self.sound['time-pos']
+            return self.sound.get_property('time-pos')
 
         def wait(self):
             #Block until sound is finished playing.
-            self.sound.wait_for_playback()
-
+            while (not self.sound.get_property("eof-reached")) and not self.stopped:
+                time.sleep(1 if self.sound.get_property('time-remaining')>2.5 else 0.05)
 
         def seek(self,position):
             with self.lock:
-                self.sound['time-pos'] = positiion
+                self.sound.set_property('time-pos', positiion)
 
 
 
         def setVol(self,volume):
             self.volume = volume
-            self.sound['volume']=10*math.log10(vol or 10**-30)
+            self.sound.set_property('volume',10*math.log10(vol or 10**-30))
 
 
         def setEQ(self,eq):
             if eq == 'party':
-                self.sound['af']='equalizer=0:1.5:2:-7:-10:-5:-10:-10:1:1'
+                self.sound.set_property('af','equalizer=0:1.5:2:-7:-10:-5:-10:-10:1:1')
             else:
-                self.sound['af']='equalizer=' +":".join(eq)
+                self.sound.set_property('af','equalizer=' +":".join(eq))
 
         def pause(self):
-            self.sound['pause'] = True 
+            self.sound.set_property('pause',True )
 
         def resume(self):
-            self.sound['pause'] = False
+            self.sound.set_property('pause',False)
 
 
 
@@ -572,7 +592,7 @@ class MPVWrapper(SoundWrapper):
         with self.lock:
             #Play the sound with a background process and keep a reference to it
             self.cache[handle] = self.MPVSoundContainer(fn,v,start,end,extras,__pause=True,**e)
-            if len(self.cache)>25:
+            if len(self.cache)>35:
                 self.cache.popitem(False)
 
     def stopSound(self, handle ="PRIMARY"):
