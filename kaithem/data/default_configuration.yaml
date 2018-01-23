@@ -81,11 +81,11 @@ error-backoff:
 
 #List of possible audio backend players in order of preference. Support sox and mpg123.
 audio-backends:
-    - mpv
     - mplayer
     - sox
     - mpg123
     - madplay
+    - mpv #Not actually  supported
 
 #How many times to retry loading an event before marking it as a failure and moving on
 max-load-attempts: 25

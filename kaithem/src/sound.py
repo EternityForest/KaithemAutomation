@@ -363,12 +363,12 @@ class SOXWrapper(SoundWrapper):
             return False
 
 
-
-import mpv
+#DON'T ACTUALLY USE MPV HERE IT DOESN'T WORK
 class MPV(mpv.MPV):
     
     def __init__(self):
-        mpv.MPV.__init__(self,nogui=True)
+        import mpv
+        mpv.MPV.__init__(self,audio_display=False)
         self.callback = None
 
     def on_end_file(self):
@@ -397,11 +397,10 @@ class MPVWrapper(SoundWrapper):
 
             if '__pause' in kw:
                 self.sound.set_property('pause',True)
-            if not filename or os.path.exists(filename):
+            if not filename or not  os.path.exists(filename):
                 raise RuntimeError("File not found: "+filename)
             self.sound.command("loadfile",filename)
 
-            self.sound.set_property('volume',10*math.log10(vol or 10**-30))
 
             if end:
                 cmd.extend(["-endpos",str(end)])
@@ -422,6 +421,11 @@ class MPVWrapper(SoundWrapper):
 
             if 'loop' in kw:
                 cmd.extend(["-loop", str(0 if kw['loop'] is True else int(kw['loop']))])
+                
+            try:
+                self.sound.set_property('volume',10*math.log10(vol or 10**-30))
+            except:
+                pass
 
             self.started = time.time()
 
@@ -993,3 +997,4 @@ position = backend.getPosition
 fadeTo = backend.fadeTo
 readySound = backend.readySound
 
+playSound("/home/daniel/Sounds/OOT_Fanfare/OOT_Fanfare_SmallItem.wav")
