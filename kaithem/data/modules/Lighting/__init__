@@ -37,6 +37,57 @@ module.scenes_by_name = weakref.WeakValueDictionary()
 
 
 
+def parseCommandBindings(cmd):
+    l = {}
+    for i in cmd.split("\n"):
+        if not i:
+            continue
+        x = i.split(':',1)
+        if len(x)==1:
+            if not '' in l:
+                l['']=[]
+            l[''].append(x[0])
+        else:
+            b = x[0].strip()
+            if not b in l:
+                l[b]=[]
+            l[b].append(x[1].strip())
+    return l
+
+def runCommand(cmd):
+    cmd = [i.strip() for i in cmd.split(' ')]
+    if cmd[0] == "goto":
+        module.scenes_by_name[cmd[1]].gotoCue(cmd[2])
+    if cmd[0] == "setalpha":
+        module.scenes_by_name[cmd[1]].setAlpha(float(cmd[2]))
+
+def listsoundfolder(path):
+    soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
+
+    if not path.endswith("/"):
+        path = path+"/"
+        
+    if not path and not name:
+        return [[i+('/' if not i.endswith('/') else '') for i in soundfolders],[]]
+
+    match = False
+    for i in soundfolders:
+        if not i.endswith("/"):
+            i = i+"/"
+        if path.startswith(i):
+            match =True
+    if not match:
+        return [[i+('/' if not i.endswith('/') else '') for i in soundfolders],[]]
+        
+    if not os.path.exists(path):
+        print(path,0)
+        return [[],[]]
+    x = os.listdir(path)
+    return(
+        sorted([i+'/' for i in x if os.path.isdir(os.path.join(path,i))]),
+        sorted([i for i in x if os.path.isfile(os.path.join(path,i))])
+    ) 
+    
 def getSerPorts():
     try:
         import serial.tools.list_ports
@@ -103,6 +154,13 @@ def writeScene(fobj, scene):
 
 
 
+def pollsounds():
+    for i in module.activeScenes:
+        if i.cue.sound and i.cue.rel_length:
+            if not kaithem.sound.isPlaying(str(i.id)) and not i.sound_end:
+                i.sound_end = time.time()
+            if i.sound_end and (time.time()-i.sound_end>i.cue.length):
+                i.nextCue()
 
 class ObjPlugin():
     pass
@@ -113,6 +171,24 @@ module.controlValues = weakref.WeakValueDictionary()
 
 blendmodes = weakref.WeakValueDictionary()
 
+def getblenddesc(mode):
+    if mode == "gel" or mode=="multiply":
+        return "Values in this scene act as a virtual gel filter over the layers below it, the final value is produced by multiplying the values together"
+    if mode == "inhibit":
+        return "Values in this scene act to limit the max value, the final value is the lower of the value in this scene and the rendered value below it"
+    if mode == "HTP":
+        return "The highest of the this scene's values and the values below it take effect, as in a traditional HTP lighting console"
+    if mode == "monitor":
+        return "This scene's values are set to the value just below it, to assist with debugging."
+
+    try:
+        return blendmodes[mode].description
+    except:
+        try:
+            return blendmodes[mode].__doc__
+        except:
+            return ""
+    
 class BlendMode():
     autoStop=True
 
@@ -129,9 +205,11 @@ class flicker_blendmode(BlendMode):
                     "lowpass": ("Lowpass","number","",0.2),
                     "topple_chance": ("Windiness","number","",0.1),
                     "agility": ("Flame agility","number","",0.15),
-                    "group": ("Group","number","Detect groups of channels to connect, e.g. to make RGB look right",3),
+                    "group": ("Group","number","Groups of this many channels flicker together, e.g. to make RGB look right",3),
 
                  }
+    description="""Effects layer that simulate a natural flame-like flickering effect. Channel value determines how much flicker to apply to that channel.
+To use this, add a layer below containing the base colors. The flicker layer will randomly darken them according to it's simulation algorithm."""
     def __init__(self,scene):
         self.scene = scene
 
@@ -914,6 +992,7 @@ class LightBoard():
                           'name':scene.name,
                           'blend':scene.blend,
                           'blendArgs': scene.blendArgs,
+                          'blendDesc':getblenddesc(scene.blend),
                           'blendParams': scene.blendClass.parameters if hasattr(scene.blendClass,"parameters") else {},
                           'priority': scene.priority,
                           'started':  scene.started,
@@ -934,12 +1013,17 @@ class LightBoard():
                             'lengthRandomize':cue.lengthRandomize,
                             'next':cue.nextCue,
                             'name': cue.name,
+                            'id':cueid,
+                            'sound': cue.sound,
+                            'soundOutput': cue.soundOutput,
+                            'rel_len': cue.rel_length,
                             'track': cue.track,
                             'scene': cue.scene().id,
                             'shortcut': cue.shortcut,
                             'number': cue.number/1000.0,
                             'defaultnext': cue.scene().getAfter(cue.name),
                             'prev': cue.scene().getParent(cue.name),
+                            'script': cue.script
                             }])
         except Exception as e:
             print("cue data push error", cueid,e)
@@ -1019,6 +1103,14 @@ class LightBoard():
             if msg[0] == "setnumber":
                 cues[msg[1]].setNumber(msg[2])
 
+            if msg[0] == "setrellen":
+                cues[msg[1]].rel_length=msg[2]
+                self.pushCueMeta(msg[1])
+            
+            if msg[0] == "setsoundout":
+                cues[msg[1]].soundOutput=msg[2]
+                self.pushCueMeta(msg[1])
+
             if msg[0] == "clonescene":
                 s = Scene(msg[2])
                 self.scenememory[s.id]=s
@@ -1064,6 +1156,12 @@ class LightBoard():
                     self.pushCueList(s.id)
                     self.pushMeta(msg[1])
                 kaithem.misc.do(f)
+            
+            if msg[0] == "getallcuemeta":
+                def f():
+                    for i in module.scenes[msg[1]].cues:
+                        self.pushCueMeta(module.scenes[msg[1]].cues[i].id)
+                kaithem.misc.do(f)
 
             if msg[0] == "getcuedata":
                 s = cues[msg[1]]
@@ -1076,6 +1174,9 @@ class LightBoard():
             if msg[0] == "getfixtureclasses":
                 #Send placeholder lists
                 self.link.send(["fixtureclasses",{i:[] for i in self.fixtureClasses.keys()}])
+
+            if msg[0] == 'listsoundfolder':
+                self.link.send(["soundfolderlisting",msg[1],listsoundfolder(msg[1])])
 
             if msg[0] == "getcuemeta":
                 s = cues[msg[1]]
@@ -1143,6 +1244,14 @@ class LightBoard():
                     v=msg[2]
                 cues[msg[1]].fadein=v
                 self.pushCueMeta(msg[1])
+            if msg[0]=="setcuesound":
+                cues[msg[1]].sound=msg[2]
+                self.pushCueMeta(msg[1])
+
+            if msg[0]=="setcuesoundoutput":
+                cues[msg[1]].soundOutput=msg[2]
+                self.pushCueMeta(msg[1])
+
             if msg[0] == "settrack":
                 cues[msg[1]].setTrack(msg[2])
                 self.pushCueMeta(msg[1])              
@@ -1173,6 +1282,10 @@ class LightBoard():
             if msg[0] == "setnext":
                 disallow_special( msg[2][:1024],allow="_")
                 cues[msg[1]].nextCue= msg[2][:1024]
+                self.pushCueMeta(msg[1])
+
+            if msg[0] == "setscript":
+                cues[msg[1]].script= msg[2][:2048]
                 self.pushCueMeta(msg[1])
 
             if msg[0] == "setblend":
@@ -1505,12 +1618,13 @@ cues =weakref.WeakValueDictionary()
 
 class Cue():
     "A static set of values with a fade in and out duration"
-    __slots__=['id','changed','next_ll','alpha','fadein','fadeout','length','lengthRandomize','name','values','scene','nextCue','track','shortcut','number','inherit','__weakref__']
-    def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, fadeout=0, length=0,track=True, nextCue = None,shortcut=None,id=None,number=None,
-        lengthRandomize=0):
+    __slots__=['id','changed','next_ll','alpha','fadein','fadeout','length','lengthRandomize','name','values','scene','nextCue','track','shortcut','number','inherit','sound','rel_length','script','soundOutput','__weakref__']
+    def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, fadeout=0, length=0,track=True, nextCue = None,shortcut=None,sound='',soundOutput=None,rel_length=False, id=None,number=None,
+        lengthRandomize=0,script='',**kw):
         #This is so we can loop through them and push to gui
         self.id = random.random()+time.time()
         self.name = name
+        self.script = script
         disallow_special(name)
         if name[0] in '1234567890 \t_':
             name = 'x'+name
@@ -1531,6 +1645,7 @@ class Cue():
         self.fadein =fadein
         self.fadeout= fadeout
         self.length = length
+        self.rel_length = rel_length
         self.lengthRandomize = lengthRandomize
         self.values = values or {}
         self.scene = weakref.ref(parent)
@@ -1539,6 +1654,8 @@ class Cue():
         #the first version
         self.track = track
         self.shortcut= None
+        self.sound = sound
+        self.soundOutput = soundOutput
         s = number_to_shortcut(self.number)
         shortcut = shortcut or s
         self.setShortcut(shortcut)
@@ -1547,7 +1664,7 @@ class Cue():
 
     def serialize(self):
             return {"fadein":self.fadein,"fadeout":self.fadeout,"length":self.length,'lengthRandomize':self.lengthRandomize,"shortcut":self.shortcut,"values":self.values,
-            "nextCue":self.nextCue,"track":self.track,"number":self.number}
+            "nextCue":self.nextCue,"track":self.track,"number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,'rel_length':self.rel_length, 'script':self.script}
     
     def push(self):
         for i in module.boards:
@@ -1569,7 +1686,7 @@ class Cue():
         
         for i in module.boards:
             if len(i().newDataFunctions)<100:
-                i().newDataFunctions.append(lambda s:s.pushCueMeta(self.cues[name].id))
+                i().newDataFunctions.append(lambda s:s.pushCueMeta(c.id))
         for i in module.boards:
             if len(i().newDataFunctions)<100:
                 i().newDataFunctions.append(lambda s:s.pushCueData(c.id))
@@ -1688,6 +1805,10 @@ class Scene():
         #every time we change the lists
         self.cuePointer = 0
 
+        #Used for storing when the sound file ended. 0 indicates a sound file end event hasn't
+        #happened since the cue started
+        self.sound_end = 0
+
         self.cues = {}
         if defaultCue:
             self.cue = Cue(self,"default",self.values)
@@ -1723,6 +1844,9 @@ class Scene():
         
         #Last time the scene was started. Not reset when stopped
         self.started = 0
+
+        #The bindings for script commands that might be in the cue metadata
+        self.commandBindings = {}
         
         if name:
                module.scenes_by_name[self.name] = self
@@ -1864,6 +1988,7 @@ class Scene():
             if self.canvas:
                 self.canvas.save()
 
+
             self.fadeInCompleted = False
             #There might be universes we affect that we don't anymore,
             #We need to rerender those because otherwise the system might think absolutely nothing has changed.
@@ -1904,10 +2029,17 @@ class Scene():
                     if i.number-(float(cue)*1000)<0.001:
                         cue = i.name
                         break
-
+            
+            if not (cue==self.cue.name) and "cue.exit" in self.commandBindings:
+                for i in self.commandBindings['cue.exit']:
+                    try:
+                        runCommand(i)
+                    except Exception as e:
+                        print(traceback.format_exc(6))
+    
             self.cueHistory.append(cue)
             self.cueHistory = self.cueHistory[-100:]
-                
+            self.sound_end = 0
             self.enteredCue = time.time()
 
             self.fadeout_start =False
@@ -1920,6 +2052,18 @@ class Scene():
             #an explicit parent or the previous cue in the numbered list either has the default next cue or explicitly
             #references this cue.
             cobj = self.cues[cue]
+            try:
+                self.commandBindings= parseCommandBindings(cobj.script)
+            except:
+                print(traceback.format_exc(6))
+
+            if "cue.enter" in self.commandBindings:
+                for i in self.commandBindings['cue.enter']:
+                    try:
+                        runCommand(i)
+                    except Exception as e:
+                        print(traceback.format_exc(6))
+
             self.cuelen = max(0,random.triangular(cobj.length-cobj.lengthRandomize, cobj.length+cobj.lengthRandomize))
 
             #We don't fully reset until after we are done fading in and have rendered.
@@ -1959,7 +2103,14 @@ class Scene():
             else:
                 self.cuePointer = self.cues_ordered.index(self.cues[cue])
             self.cue = self.cues[cue]
-
+            
+            kaithem.sound.stop(str(self.id))
+            c = 0
+            while c<50 and kaithem.sound.isPlaying(str(self.id)):
+                c+=1
+                time.sleep(0.017)
+            if self.cue.sound and os.path.isfile(self.cue.sound):
+                kaithem.sound.play(self.cue.sound,handle=str(self.id),volume=self.alpha,output=self.cue.soundOutput)
                         
             #Loop over universes in the cue
             for i in self.cue.values:
@@ -2001,7 +2152,10 @@ class Scene():
             if self in module.activeScenes:
                 return
             self.canvas = FadeCanvas()
-            #Defensive programming
+
+            self.manualAlpha = False
+            self.alpha = self.defaultalpha
+
             if not self.cue:
                 self.gotoCue('default')
             else:
@@ -2022,8 +2176,6 @@ class Scene():
             self.started = time.time()
 
 
-            self.manualAlpha = False
-            self.alpha = self.defaultalpha
 
             if not self in module._activeScenes:
                 module._activeScenes.append(self)
@@ -2102,12 +2254,17 @@ class Scene():
             self.active = False
             self.cue_cached_vals_as_arrays = None
             self.cue_cached_alphas_as_arrays = None
+            kaithem.sound.stop(str(self.id))
+
 
         
     def setAlpha(self,val,sd=False):
+        kaithem.sound.setvol(val, str(self.id))
         self.rerender = True
-        if val<=0 and(not (self.blend =="inhibit" or (self._blend and not self._blend.autoStop)) ):
-            self.stop()
+        #Don't auto-stop if a sound is playing, that would just be annoying to anyone using it for volume control
+        #Also allow blend modes like inhibit to disable auto-stop, because 0 has a different effect than off.
+        if val<=0 and(not (self.blend =="inhibit" or (self._blend and not self._blend.autoStop)) ) and  not kaithem.sound.isPlaying(str(self.id)) :
+                self.stop()
         else:
             if not self.isActive():
                 self.go()
@@ -2137,7 +2294,7 @@ class Scene():
         self.hasNewInfo = {}
 
     def setBlendArg(self,key,val):
-        disallow_special(key)
+        disallow_special(key,"_")
         #serializableness check
         json.dumps(val)
         if not hasattr(self.blendClass,"parameters") or not key in self.blendClass.parameters:
@@ -2171,11 +2328,12 @@ class Scene():
     def gotoNext(self):
         with self.lock:
             if self.cue.nextCue:
-                self.gotoCue(self.cue.nextCue)
-                self.rerender = True
+                if self.cue.nextCue in self.cues or self.cue.nextCue.startswith('__'):
+                    self.gotoCue(self.cue.nextCue)
+                    return
             elif self.getDefaultNext():
                 self.gotoCue(self.getDefaultNext())
-                self.rerender = True
+                return
 
     
     def render(self,force_repaint=False):
@@ -2189,15 +2347,9 @@ class Scene():
             self.rerender = True
 
         if self.cue.length and(time.time()-self.enteredCue)> self.cuelen:
-            if self.cue.nextCue:
-                if self.cue.nextCue in self.cues or self.cue.nextCue.startswith('__'):
-                    self.gotoCue(self.cue.nextCue)
-                    self.rerender = True
-                    return
-            elif self.getDefaultNext():
-                self.gotoCue(self.getDefaultNext())
-                self.rerender = True
-                return
+            #rel_length cues end after the sound in a totally different part of code
+            if not self.cue.rel_length:
+                self.nextCue()
         else:
             if force_repaint or not self.fadeInCompleted:
                 if fadePosition == 1:
@@ -2233,6 +2385,8 @@ with module.lock:
     render()
 global lastrendered
 if time.time() -lastrendered > 1/14.0:
+    with module.lock:
+        pollsounds()
     with boardsListLock:
         for i in module.boards:
             b = i()

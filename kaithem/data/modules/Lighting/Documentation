@@ -121,6 +121,16 @@ __doc__= ""
         channels you add to it will be updated in realtime. They only show contributions from layers below themselves, and
         only update while running.</p>
 
+    <h3>Script Bindings</h3>
+    <p>A cue may have a script that defines a set of event responses while that cue is active. Cue scripts follow the same general format as 
+        Keybindings, with each line mapping an event to an action. Currently, there are 2 events that can be responded to, cue.enter, and cue.exit.</p>
+
+    <p>The cue.enter event fires when entering a cue, and the cue.exit event fires when exiting.</p>
+
+    <p>Currently, only the goto [scene] [cue] and setalpha [scene] [alpha] commands are supported. For example, the line "cue.enter: setalpha scene4 0.8" sets the alpha of scene4 to 0.8 whenever that cue begins.</p>
+
+    
+
     <h3>The Light Board</h3>
     <p>The module provides a GUI light board based on websockes that allows you to create scenes, start and stop them, and bind
         them to keypresses.</p>
