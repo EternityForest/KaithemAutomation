@@ -171,6 +171,24 @@ module.controlValues = weakref.WeakValueDictionary()
 
 blendmodes = weakref.WeakValueDictionary()
 
+def getblenddesc(mode):
+    if mode == "gel" or mode=="multiply":
+        return "Values in this scene act as a virtual gel filter over the layers below it, the final value is produced by multiplying the values together"
+    if mode == "inhibit":
+        return "Values in this scene act to limit the max value, the final value is the lower of the value in this scene and the rendered value below it"
+    if mode == "HTP":
+        return "The highest of the this scene's values and the values below it take effect, as in a traditional HTP lighting console"
+    if mode == "monitor":
+        return "This scene's values are set to the value just below it, to assist with debugging."
+
+    try:
+        return blendmodes[mode].description
+    except:
+        try:
+            return blendmodes[mode].__doc__
+        except:
+            return ""
+    
 class BlendMode():
     autoStop=True
 
@@ -187,9 +205,11 @@ class flicker_blendmode(BlendMode):
                     "lowpass": ("Lowpass","number","",0.2),
                     "topple_chance": ("Windiness","number","",0.1),
                     "agility": ("Flame agility","number","",0.15),
-                    "group": ("Group","number","Detect groups of channels to connect, e.g. to make RGB look right",3),
+                    "group": ("Group","number","Groups of this many channels flicker together, e.g. to make RGB look right",3),
 
                  }
+    description="""Effects layer that simulate a natural flame-like flickering effect. Channel value determines how much flicker to apply to that channel.
+To use this, add a layer below containing the base colors. The flicker layer will randomly darken them according to it's simulation algorithm."""
     def __init__(self,scene):
         self.scene = scene
 
@@ -972,6 +992,7 @@ class LightBoard():
                           'name':scene.name,
                           'blend':scene.blend,
                           'blendArgs': scene.blendArgs,
+                          'blendDesc':getblenddesc(scene.blend),
                           'blendParams': scene.blendClass.parameters if hasattr(scene.blendClass,"parameters") else {},
                           'priority': scene.priority,
                           'started':  scene.started,
@@ -992,6 +1013,7 @@ class LightBoard():
                             'lengthRandomize':cue.lengthRandomize,
                             'next':cue.nextCue,
                             'name': cue.name,
+                            'id':cueid,
                             'sound': cue.sound,
                             'soundOutput': cue.soundOutput,
                             'rel_len': cue.rel_length,
@@ -1133,6 +1155,12 @@ class LightBoard():
                     s = module.scenes[msg[1]]
                     self.pushCueList(s.id)
                     self.pushMeta(msg[1])
+                kaithem.misc.do(f)
+            
+            if msg[0] == "getallcuemeta":
+                def f():
+                    for i in module.scenes[msg[1]].cues:
+                        self.pushCueMeta(module.scenes[msg[1]].cues[i].id)
                 kaithem.misc.do(f)
 
             if msg[0] == "getcuedata":
@@ -2104,8 +2132,9 @@ class Scene():
             self.pushMeta(cue=True)
 
     def nextCue(self):
+        print("Next cue")
         with module.lock:
-            if self.cue.nextCue and self.cue.nextCue in self.cues:
+            if self.cue.nextCue and ((self.cue.nextCue in self.cues) or self.cue.nextCue.startswith("__")):
                 self.gotoCue(self.cue.nextCue)
             elif not self.cue.nextCue:
                 x= self.getDefaultNext()

@@ -359,6 +359,7 @@ class BaseEvent():
         #going and how long it took
         self.lastcompleted = 0
 
+        self.history = []
         self.backoff_until = 0
 
         #A place to put errors
@@ -420,6 +421,9 @@ class BaseEvent():
                 #A derived class or inherited from a mixin.
                 self._do_action()
                 self.lastcompleted = time.time()
+                self.history.append((self.lastexecuted,self.lastcompleted))
+                if len(self.history)>250:
+                    self.history.pop(0)
                 #messagebus.postMessage('/system/events/ran',[self.module, self.resource])
             except Exception as e:
                 #This is not a child of system

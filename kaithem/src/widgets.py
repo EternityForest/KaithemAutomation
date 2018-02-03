@@ -519,14 +519,14 @@ class Slider(Widget):
             ><br>
             <span
             class="numericpv"
-            id="%(htmlid)s_l">%(value)f%(unit)s</span>
+            id="%(htmlid)s_l">%(value)g%(unit)s</span>
             <script type="text/javascript">
             %(htmlid)s_clean =%(htmlid)s_cleannext= true;
             var upd=function(val){
             if(%(htmlid)s_clean)
             {
             document.getElementById('%(htmlid)s').value= val;
-            document.getElementById('%(htmlid)s_l').innerHTML= (Math.round(val*1000)/1000)+"%(unit)s";
+            document.getElementById('%(htmlid)s_l').innerHTML= (Math.round(val*1000)/1000).toPrecision(5).replace(/\.?0*$$/, "")+"%(unit)s";
             }
             %(htmlid)s_clean =%(htmlid)s_cleannext;
             }
@@ -534,7 +534,7 @@ class Slider(Widget):
             KWidget_subscribe("%(id)s",upd);
             </script>
 
-            </div>"""%{'label':label, 'orient':orient,'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self.value, 'unit':unit}
+            </div>"""%{'label':label, 'orient':orient,'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self.value,  'value':self.value,'unit':unit}
 
         if type=='onrelease':
             return """<div class="widgetcontainer sliderwidget">

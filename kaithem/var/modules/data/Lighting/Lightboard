@@ -140,6 +140,10 @@ boardname = "default"
         <label>Sound Browser</label>
         <input type="checkbox" v-model="showsoundoptions">
         </label>
+
+      <label>Show Cue Table</label>
+        <input type="checkbox" v-model="showcuetable" v-on:change="cond_getcuemeta($event.target.value)">
+        </label>
     </p>
 
     <datalist id="serports">
@@ -360,21 +364,62 @@ boardname = "default"
 
                 <span class="virtual" v-if="editingScene.doingHandoff">(fading out)</span>
         </h3>
-        <label v-if="scenecues[scenename]">Cue Select:
+        <table border="1" v-if="showcuetable">
+            <thead>
+            <tr><th title="Click the cue name to edit that cue" >Cue Name</th><th>Number</th><th>Shortcut</th><th>Fadein</th><th title="Length, 0 indicates until stopped">Length</th><th title="The next cue, after this one ends">Next</th><th>Randomize</th><th>Track</th><th>Jump to</th></tr>
+            </thead>
+            <tbody style="overflow-y: scroll; height:10em">
+            <tr v-for="i in formatCues()" v-if="i[1].id" v-bind:style="{'background-color':((selectedCues[scenename]==i[1].name)?'lightblue':'')}">
+                <td title="Click the cue name to edit that cue" v-on:click="selectedCues[scenename]=i[1].name"><b>{{cuemeta[editingScene.cue].name==i[1].name?"*":""}}{{i[1].name}}</b></td>
+                <td><input type="number" title="Cue number" style="width:6em" v-on:change="setnumber(i[1].id,$event.target.value)"
+                        min=0 step=0.1 v-model="i[1].number"></td>
+
+                <td><input title="Shortcut code" style="width:6em" v-on:change="setshortcut(i[1].id,$event.target.value)"
+                        min=0 step=0.1 v-model="i[1].shortcut"></td>
+
+                <td><input type="number" v-on:input="setfadein(i[1].id,$event.target.value)" style="width:3em"
+                        min=0 v-model="i[1].fadein">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
+
+                <td><input type="number" v-on:input="setlength(i[1].id,$event.target.value)" style="width:3em"
+                        min=0 v-model="i[1].length">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
+
+                <td><input list="cues_in_scene" title="Select a cue to activate when this one ends" v-on:input="setnext(i[1].id,$event.target.value)"
+                    v-model="i[1].next" v-bind:placeholder="i[1].defaultnext"></input></td>
+
+
+                <td><input type="number" v-on:input="setrandomize(i[1].id,$event.target.value)" style="width:3em"
+                        min=0 v-model="i[1].lengthRandomize">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
+                <td><input type="checkbox" v-on:change="settrack(i[1].id,currentcue.track)" v-model="i[1].track"
+                        title="Track values from previous cue? If false, values not present are always transparent"></td>
+                <td><button v-on:click="jumptocue(i[1].id)">Go</button></td>
+
+            </tr>
+            </tbody>
+        
+        </table>
+
+
+
+
+        <label v-if="scenecues[scenename] & (!showcuetable)">Cue Select:
             <select v-model="selectedCues[scenename]" v-on:change="getcuedata(scenecues[scenename][$event.target.value])">
                 <option v-for="i in formatCues()" v-bind:value="i[1].name">{{i[1].name}} ({{i[1].number}})</small>
                 </option>
             </select>
         </label>
+
         <input v-model="newcuename" placeholder="New cue name">
         <button v-on:click="addcue(scenename,newcuename)">Add Cue</button>
         <button v-on:click="clonecue(scenename,currentcueid,newcuename)">Clone Cue</button>
-        <button v-on:click="rmcue(currentcueid)">Delete Selected</button>
-        <button v-on:click="jumptocue(currentcueid)">Jump to Selected</button>
+        <button v-on:click="rmcue(currentcueid)">Delete Current</button>
+        <button v-on:click="jumptocue(currentcueid)">Goto Selected</button>
+        <button v-on:click="gotonext(currentcueid)">Edit Next Cue</button>
+        <button  title="If this cue's next does not exist, clone the current cue to be the next, and edit that cue" v-on:click="clonecue(scenename,currentcueid,currentcue.next)">Clone to Next</button>
+
 
         <hr>
         <div v-if="currentcue">
-            <div>
+            <div v-if="showcuetable==false">
                 <label>Number:
                     <input type="number" title="Cue number" style="width:6em" v-on:input="setnumber(currentcueid,$event.target.value)"
                         min=0 step=0.1 v-model="currentcue.number">
@@ -410,14 +455,10 @@ boardname = "default"
             <button v-on:click="gotonext(currentcueid)">Edit Next</button>
             <button v-on:click="clonecue(scenename,currentcueid,currentcue.next)">Clone to Next</button>
 
-            <datalist id="cues_in_scene" v-if="scenecues[scenename].length<50">
+            <datalist id="cues_in_scene" v-if="Object.keys(scenecues[scenename]).length<50">
                 <option v-for="i in Object.keys(scenecues[scenename]).sort()" v-bind:value="i"></option>
             </datalist>
 
-            <label>Wait for manual advance:
-                <input type="checkbox" size="16" v-on:change="setwait(currentcueid,currentcue.wait)"
-                    v-model="currentcue.wait" title="Prevents automatically triggering to the next cue">
-            </label><br>
             <label>Sound:
                 <input placeholder="No sound file" v-model="currentcue.sound" style="width:32em;"
                     v-on:change="setSoundfile(currentcueid,currentcue.sound)">
@@ -523,7 +564,7 @@ boardname = "default"
                 <br><br>
                 <div v-if="editingScene.blend!=='monitor'" style="border-style:solid; border-radius:5px;border-color:grey;">
 
-
+                    <h4 title="These properties are fixed per-scene and don't change between cues">Scene Properties</h4>
                     <label>Default Alpha:
                         <input type="number" style="width:4em" max=1 step=0.01 min=0 v-on:input="setdalpha(scenename,parseFloat($event.target.value))"
                             v-model="editingScene.dalpha"></input>
@@ -556,7 +597,8 @@ boardname = "default"
 
                         </br>
 
-                        <hr v-if="editingScene.blendParams !== {}" style="border-style:solid;border-width:1px;border-color:grey;">
+                        <hr v-if="editingScene.blend!='normal'" style="border-style:solid;border-width:1px;border-color:grey;">
+                        <p>{{editingScene.blendDesc}}</p>
                         <label v-for="(j,k) in editingScene.blendParams">{{j[0]}}:
                             <input type="number" style="width:5em" step=0.01 v-bind:title="j[2]" v-on:input="setblendparam(scenename,k,parseFloat($event.target.value))"
                                 v-model="editingScene.blendArgs[k]"></input>
@@ -659,6 +701,7 @@ boardname = "default"
             //Fixture error info str
             'ferrs': '',
             'showkeybindhelp': false,
+            'showcuetable':true,
             'showfixtureassg': false,
             'fixtureassg': '',
             'showsoundoptions': false,
@@ -1004,6 +1047,10 @@ boardname = "default"
 
                 return appData.channelNames[u][c]
             },
+            "getcueid": function(sceneid,cuename)
+                            {
+                                return (this.scenecues[sceneid][cuename])
+                            },
             'scenedata': {},
             'setCueVal': function(sc, u, ch, val)
             {
@@ -1017,6 +1064,18 @@ boardname = "default"
                 this.selectedCues[sc] = cue
                 this.getcuedata(this.scenecues[sc][cue])
             },
+            'getallcuemeta': function(sn)
+            {
+             api_link.send(['getallcuemeta', sn]);
+
+            },
+            'cond_getcuemeta' : function(b)
+            {
+                if (b)
+                        {
+                        api_link.send(['getallcuemeta', this.scenename]);
+                        }
+            },
             'selectscene': function(sc, sn)
             {
                 this.getcuedata(this.scenecues[sn][this.selectedCues[
@@ -1024,6 +1083,11 @@ boardname = "default"
                 this.editingScene = sc;
                 this.scenename = sn;
                 api_link.send(['gsd', sn]);
+                if (this.showcuetable)
+                {
+                   api_link.send(['getallcuemeta', sn]);
+                }
+
             },
             'delscene': function(sc)
             {
