@@ -383,8 +383,16 @@ boardname = "default"
                 <td><input type="number" v-on:input="setlength(i[1].id,$event.target.value)" style="width:3em"
                         min=0 v-model="i[1].length">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
 
-                <td><input list="cues_in_scene" title="Select a cue to activate when this one ends" v-on:input="setnext(i[1].id,$event.target.value)"
-                    v-model="i[1].next" v-bind:placeholder="i[1].defaultnext"></input></td>
+                <td><select v-if="Object.keys(scenecues[scenename]).length<40" autocomplete=off title="Select a cue to activate when this one ends" v-on:input="setnext(i[1].id,$event.target.value)">
+                    <option value="">&gt&gt&gt</option>
+
+                    <option v-for="i in Object.keys(scenecues[scenename]).sort()" v-bind:value="i">{{i}}</option>
+                </select>
+
+                <input v-if="Object.keys(scenecues[scenename]).length>40" autocomplete=off list="cues_in_scene" title="Select a cue to activate when this one ends" v-on:input="setnext(i[1].id,$event.target.value)"
+                    v-model="i[1].next" v-bind:placeholder="i[1].defaultnext">
+                    </input></td>
+
 
 
                 <td><input type="number" v-on:input="setrandomize(i[1].id,$event.target.value)" style="width:3em"
@@ -414,7 +422,6 @@ boardname = "default"
         <button v-on:click="rmcue(currentcueid)">Delete Current</button>
         <button v-on:click="jumptocue(currentcueid)">Goto Selected</button>
         <button v-on:click="gotonext(currentcueid)">Edit Next Cue</button>
-        <button  title="If this cue's next does not exist, clone the current cue to be the next, and edit that cue" v-on:click="clonecue(scenename,currentcueid,currentcue.next)">Clone to Next</button>
 
 
         <hr>
@@ -453,10 +460,10 @@ boardname = "default"
                     v-model="cuemeta[currentcueid].next" v-bind:placeholder="currentcue.defaultnext"></input>
             </label>
             <button v-on:click="gotonext(currentcueid)">Edit Next</button>
-            <button v-on:click="clonecue(scenename,currentcueid,currentcue.next)">Clone to Next</button>
+            <button  title="If this cue's next does not exist, clone the current cue to be the next, and edit that cue" v-on:click="clonecue(scenename,currentcueid,currentcue.next)">Clone to Next</button>
 
             <datalist id="cues_in_scene" v-if="Object.keys(scenecues[scenename]).length<50">
-                <option v-for="i in Object.keys(scenecues[scenename]).sort()" v-bind:value="i"></option>
+                <option v-for="i in Object.keys(scenecues[scenename]).sort()" v-bind:value="i">{{i}}</option>
             </datalist>
 
             <label>Sound:
@@ -679,6 +686,8 @@ boardname = "default"
                 tenths + "s"
             return time;
         }
+
+
         Vue.component('cue-countdown',
         {
             template: '#cue-cd',

@@ -19,7 +19,7 @@ import time,random,subprocess,threading,random,gzip,json,yaml,os,ntplib,bz2,weak
 
 
 import cherrypy
-from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry,directories,pages,config,persist,auth
+from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry,directories,pages,config,persist,auth,breakpoint
 from . import astrallibwrapper as sky
 
 bootTime = time.time()
@@ -86,6 +86,9 @@ class Kaithem():
             except Exception as e:
                 return e
             return None
+        
+        def breakpoint():
+            breakpoint.breakpoint()
 
     #In modules.py, we insert a resource API object.
     #kaithemobj.kaithem.resource = ResourceAPI()
