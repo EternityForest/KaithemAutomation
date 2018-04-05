@@ -465,6 +465,32 @@ h4 {
 
         <h3>kaithem.time</h3>
 
+        <h4>kaithem.time.lantime()<h4>
+        <p>Return a number of seconds since the epoch like time.time, except this function
+            automatically syncs across all kaithem instances across the local network.</p>
+
+            <p>The intended application here is when you want to keep machines
+                in relative sync but aren't as concerned with absolute time,
+                or when you have a machine on the LAN with a GPS reciever and
+                want to sync to that.
+            </p>
+            <p>
+            This function only works on python 3.3+ only, and requires netifaces. If these 
+            conditions are not met, it is equivalent to time.time(). Similar to plain NTP,
+            it provides no security beyond that of your wifi router.</p>
+
+           <p>Specifically, it uses MDNS to find an NTP server, choosing the first one when
+            sorted asciibetically. Kaithem has an embedded NTP server on a random port,
+            which has the MDNS service name "ntp5500_123456789-kaithem" where 5500 is the
+            ntpserver-priority from the config file, and 123456799 is the boot time in microseconds,
+            or a random value.</p>
+
+            <p>If you want to sync to a specific dedicated NTP server, 
+            it is suggested that you simply advertise that server using the same naming convention
+            and a lower priority.</p>
+
+        </p>
+
         <h4>kaithem.time.uptime()</h4>
         <p>Return the number of seconds as a float that kaithem has been running for. Useful for event triggers if you want to
         do something a certain number of seconds after kaithem loads.</p>

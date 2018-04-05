@@ -20,6 +20,8 @@ import time,random,subprocess,threading,random,gzip,json,yaml,os,ntplib,bz2,weak
 
 import cherrypy
 from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry,directories,pages,config,persist,auth,breakpoint
+from . import timesync
+
 from . import astrallibwrapper as sky
 
 bootTime = time.time()
@@ -94,6 +96,17 @@ class Kaithem():
     #kaithemobj.kaithem.resource = ResourceAPI()
 
     class time(object):
+
+        @staticmethod
+        def lantime():
+            #Returns the time from an auto-selected NTP server on the local
+            #network, provided that you're using python 3.3+
+            #and netifaces is installed. Should be mostly 
+            #interchangable with time.time()
+            try:
+                return timesync.getTime()
+            except:
+                return time.time()
 
         @staticmethod
         def uptime():

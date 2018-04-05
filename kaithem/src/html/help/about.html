@@ -20,6 +20,7 @@
     from src import util
     from src import kaithemobj
     from src import workers
+    from src import timesync
     from src.config import config
     if os.name != "nt":
         import fcntl
@@ -125,7 +126,10 @@
             <td>
                 ${unitsofmeasure.formatTimeInterval(time.time()-systasks.systemStarted,4)}
             </td>
+
+
         </tr>
+     
         <%
             try:
                 load = os.getloadavg()
@@ -214,6 +218,14 @@
                     <td>Audio Backend</td>
                     <td>${sound.backend.backendname|h}</td>
                 </tr>
+                
+                %try:
+                <tr>
+                        <td>kaithem.time.lantime synced to: </td>
+                        <td>${timesync.selected_server[2] if timesync.selected_server else "Local server is master" |h}</td>
+                </tr>
+                %except:
+                %endtry
 
                 <tr>
                     <td>System Time Zone</td>
@@ -716,6 +728,28 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.</pre></dd>
+
+<dt><a href="https://github.com/jstasiak/python-zeroconf">python-zeroconf</a></dt>
+<dd><pre>Multicast DNS Service Discovery for Python, v0.14-wmcbrine
+        Copyright 2003 Paul Scott-Murphy, 2014 William McBrine
+
+        This module provides a framework for the use of DNS Service Discovery
+        using IP multicast.
+
+        This library is free software; you can redistribute it and/or
+        modify it under the terms of the GNU Lesser General Public
+        License as published by the Free Software Foundation; either
+        version 2.1 of the License, or (at your option) any later version.
+
+        This library is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+        Lesser General Public License for more details.
+
+        You should have received a copy of the GNU Lesser General Public
+        License along with this library; if not, write to the Free Software
+        Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301
+        USA</pre></dd>
 
                                 </ul>
                                 <h3>Command Line Utilities</h3>

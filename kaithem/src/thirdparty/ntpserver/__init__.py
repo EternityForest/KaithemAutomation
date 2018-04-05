@@ -35,7 +35,7 @@ class RecvThread(threading.Thread):
                         recvTimestamp = ntplib.system_to_ntp_time(time.time())
                         self.taskQueue.put((data, addr, recvTimestamp))
                     except socket.error as msg:
-                        logging.exception("Error in NTP server")
+                        logger.exception("Error in NTP server")
 
 
 class WorkThread(threading.Thread):
@@ -79,7 +79,7 @@ def runServer(addr = "0.0.0.0", port=123):
     taskQueue = queue.Queue()
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind((addr, port))
-    print("NTP listening on local socket: ", sock.getsockname())
+    logger.info("NTP listening on local socket: "+str(sock.getsockname()))
     recvThread = RecvThread(sock, taskQueue)
     recvThread.daemon = True
     recvThread.start()

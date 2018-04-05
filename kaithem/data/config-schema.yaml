@@ -140,6 +140,11 @@ properties:
     run-as-group:
         type: string
 
+    ntpserver-priority:
+        type: integer
+        minimum: 1000
+        maximum: 9999
+
     change-process-title:
         type: boolean
 

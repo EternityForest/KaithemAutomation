@@ -27,10 +27,11 @@ import sys
 import collections
 import time
 import ntplib
+import re
 import ntpserver
 
 from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf
-from . import workers
+from . import workers,config
 
 r = zeroconf.Zeroconf()
 
@@ -38,8 +39,9 @@ ntp_port = ntpserver.runServer(port=0)[1]
 
 #Register an NTP service
 desc = {}
+localserver_name = "ntp"+str(config.config['ntpserver-priority'])+"_"+str(int(time.time()*1000000))+"-kaithem._ntp._udp.local."
 info = zeroconf.ServiceInfo("_ntp._udp.local.",
-        "ntp5000_"+str(int(time.time()*10000))+"-kaithem._ntp._udp.local.",
+        localserver_name,
         socket.inet_aton("127.0.0.1"), ntp_port, 0, 0, desc)
 r.register_service(info)
 
@@ -52,24 +54,32 @@ time_ref = time.time()-time.monotonic()
 ref_ts = time.time()
 c = ntplib.NTPClient()
 
+#Prioritize NTP servers in "ntp5500_1234567890-kaithem" style format.
+#Otherwise sorting becomes less meaningful.
+def sortkey(i):
+   return (not re.match(r"ntp\d\d\d\d_\d*\-.*",i),i)
 
 def on_service_state_change(zeroconf, service_type, name, state_change):
     global selected_server
     if state_change is ServiceStateChange.Added:
         info = zeroconf.get_service_info(service_type, name)
-        if info:
-            try:
+
+        #Don't sync to servers that are lower priority than us,
+        #we'll just continue using our local time.
+        try:
+            if info and sortkey(name)<sortkey(localserver_name):
                 #No excessive cache sizes
                 if len(local_ntp_servers)>8192:
                     local_ntp_servers.popitem(False)
-                local_ntp_servers[name]=(info.address,info.port)
-                s = local_ntp_servers[sorted(local_ntp_servers.keys())[0]]
+                local_ntp_servers[name]=(info.address,info.port,name)
+                s = local_ntp_servers[sorted(local_ntp_servers.keys(),key=sortkey)[0]]
                 selected_server = s
-            except:
-                logging.exception("")
+        except:
+            logging.exception("")
 
 
 browser = ServiceBrowser(r, "_ntp._udp.local.", handlers=[on_service_state_change])
+
 
 
 #Is using MDNS like this secure? Nope. Is it a whole lot worse than what you can already do by spoofing
@@ -93,7 +103,31 @@ def sync(f = 0.1):
         return time.monotonic()+time_ref
         
 def getTime():
-    return time.monotonic()+time_ref
+    "Gets the current network consenseus time."
+    #If our time value is old, do a sync right away,
+    #but do it in a background thread.
+    if selected_server:
+        if ref_point<time.time()-600:
+            workers.do(sync)
+        return time.monotonic()+time_ref
+    else:
+        #If no selected server, use time.time() directly
+        #for the best accuracy.
+        return time.time()
+
+def getTimeOrLocal():
+    #Try to use LAN time. But if that for some reason is off, then we use
+    #local time
+    t = getTime()
+    tl = time.time()
+
+    if abs(tl-t)>100:
+        return t
+    else:
+        return tl
+
+
+
 
 def initial_sync():
     for i in range(1,10):
