@@ -1,4 +1,4 @@
-#Copyright Daniel Dunn 2014-2015
+#Copyright Daniel Dunn 2014-2015, 2018
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify
@@ -808,6 +808,26 @@ class APIWidget(Widget):
                 %(htmlid)s = {};
                 %(htmlid)s.value = "Waiting..."
                 %(htmlid)s.clean = 0;
+                %(htmlid)s._maxsyncdelay = 250;
+
+                var onTimeResponse = function (val)
+                {
+                    if(val[0]==%(htmlid)s._timeSyncKey)
+                        {
+                            var t = performance.now();
+                            if(t-%(htmlid)s._txtime<%(htmlid)s._maxsyncdelay)
+                                {
+                            %(htmlid)s._time_ref = [(t+%(htmlid)s._txtime)/2, val[1]]
+
+                            %(htmlid)s._maxsyncdelay = (t-%(htmlid)s._txtime)*1.2;
+                            }
+                            else
+                                {
+
+                                    %(htmlid)s._maxsyncdelay= %(htmlid)s._maxsyncdelay*2;
+                                }
+                        }
+                }
 
                 var _upd = function(val)
                     {
@@ -825,7 +845,23 @@ class APIWidget(Widget):
                 %(htmlid)s.upd = function(val)
                         {
                         }
+                %(htmlid)s.getTime = function()
+                    {
+                        var x = performance.now()
+                        this._txtime =x;
+                        KWidget_sendValue("%(id)s",x)
+                    }
 
+
+                %(htmlid)s.now = function(val)
+                        {
+                            var t=performance.now()
+                            if(this._timeref[0]<t-this.timeSyncInterval)
+                                {
+                                    setTimeout(function(){this.getTime()},10);
+                                }
+                            return(t-this._timeref[0]+this._timeref[1])
+                        }
 
                 %(htmlid)s.set = function(val)
                     {

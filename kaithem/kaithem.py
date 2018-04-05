@@ -182,6 +182,17 @@ installThreadExcepthook()
 
 
 
+try:
+    from src import timesync
+except:
+    logger.exception("Could not start time sync module")
+    messagebus.postMessage('/system/notifications/errors',
+    """Failed to initialize the time sync module or zeroconf discovery
+    This may be because you are using a python version older than 3.3, or because
+    netifaces is not installed. Some features may not work correctly.
+    """)
+
+
 from src import notifications
 from src import pages
 from src import weblogin

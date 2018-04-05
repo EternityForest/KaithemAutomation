@@ -46,7 +46,9 @@ designed for any kind of safety-critical application, but it is meant to be reli
 Installation
 ============
 
-All dependancies should already be included. Huge thanks to the developers of all the great libraries used!!!
+All required dependancies should already be included. Huge thanks to the developers of all the great libraries used!!!
+
+There's a few optional dependancies though. Auto time synchronization and MDNS depends on netifaces, and sound requires mplayer, madplay, or sox, with all but mplayer not recommended.
 
 git clone or download somewhere and run `python3 kaithem/kaithem.py`
 You can also use python2 if you really want.

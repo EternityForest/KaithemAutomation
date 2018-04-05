@@ -1,0 +1,15 @@
+language: python
+python:
+    - "3.4"
+    - "3.5"
+    - "3.6"
+    - "pypy3.5-5.8.0"
+matrix:
+    fast_finish: true
+install:
+    - pip install -r requirements-dev.txt
+script:
+    - make test_coverage
+    - make flake8
+after_success:
+    - coveralls
