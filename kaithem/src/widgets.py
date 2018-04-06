@@ -49,10 +49,10 @@ class WebInterface():
         upd = j['upd']
 
         for i in j['upd']:
-            widgets[i]._onUpdate(user,upd[i])
+            widgets[i]._onUpdate(user,upd[i],"HTMLTEMPORARY")
 
         for i in req:
-            resp[i] = widgets[i]._onRequest(user)
+            resp[i] = widgets[i]._onRequest(user,"HTMLTEMPORARY")
 
         return json.dumps(resp)
 
@@ -124,10 +124,10 @@ if config['enable-websockets']:
                 upd = o['upd']
 
                 for i in upd:
-                    widgets[i[0]]._onUpdate(user,i[1])
+                    widgets[i[0]]._onUpdate(user,i[1],self.uuid)
 
                 for i in req:
-                    resp.append([i, widgets[i]._onRequest(user)])
+                    resp.append([i, widgets[i]._onRequest(user,self.uuid)])
 
                 if 'subsc' in o:
                     for i in o['subsc']:
@@ -140,7 +140,7 @@ if config['enable-websockets']:
                             widgets[i].subscriptions[self.uuid] = subsc_closure(self,i,widgets[i])
                             widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
                         self.subscriptions.append(i)
-                        resp.append([i, widgets[i]._onRequest(user)])
+                        resp.append([i, widgets[i]._onRequest(user,self.uuid)])
 
 
             except Exception as e:
@@ -162,7 +162,12 @@ class Widget():
         def f(u,v):
             pass
 
+        def f2(u,v,id):
+            pass
+
         self._callback = f
+        self._callback2 = f2
+
 
         #Give the widget an ID for the client to refer to it by
         if not 'id' in kwargs:
@@ -179,7 +184,7 @@ class Widget():
             callback(clients_info[i])
 
     #This function is called by the web interface code
-    def _onRequest(self,user):
+    def _onRequest(self,user,uuid):
         """Widgets on the client side send AJAX requests for the new value. This function must
         return the value for the widget. For example a slider might request the newest value.
 
@@ -197,7 +202,7 @@ class Widget():
             if not auth.canUserDoThis(user,i):
                 return
         try:
-            return self.onRequest(user)
+            return self.onRequest(user,uuid)
         except Exception as e:
             logger.exception("Error in widget request to "+repr(self))
             if not (self.errored_getter == id(self._callback)):
@@ -206,7 +211,7 @@ class Widget():
                 self.errored_getter = id(self._callback)
 
     #This function is meant to be overridden or used as is
-    def onRequest(self,user):
+    def onRequest(self,user,uuid):
         """This function is called after permissions have been verified when a client requests the current value. Usually just returns self.value
 
         Args:
@@ -216,7 +221,7 @@ class Widget():
         return self.value
 
     #This function is called by the web interface whenever this widget is written to
-    def _onUpdate(self,user,value):
+    def _onUpdate(self,user,value,uuid):
         """Called internally to write a value to the widget. Responisble for verifying permissions. Returns if user does not have permission"""
         for i in self._read_perms:
             if not auth.canUserDoThis(user,i):
@@ -226,12 +231,13 @@ class Widget():
             if not auth.canUserDoThis(user,i):
                 return
 
-        self.onUpdate(user,value)
+        self.onUpdate(user,value,uuid)
 
-    def doCallback(self,user,value):
+    def doCallback(self,user,value,uuid):
         "Run the callback, and if said callback fails, post a message about it."
         try:
             self._callback(user,value)
+            self._callback2(user,value,uuid)
         except Exception as e:
             logger.exception("Error in widget callback for "+repr(self))
             if not (self.errored_function == id(self._callback)):
@@ -252,10 +258,15 @@ class Widget():
     def attach(self,f):
         self._callback = f
 
+    #Set a callback if it ever changes.
+    #This version also gives you the connection ID
+    def attach2(self,f):
+        self._callback2 = f
+
     #meant to be overridden or used as is
-    def onUpdate(self,user,value):
+    def onUpdate(self,user,value,uuid):
         self.value = value
-        self.doCallback(user,value)
+        self.doCallback(user,value,uuid)
         if self.echo:
             self.send(value)
 
@@ -265,13 +276,9 @@ class Widget():
 
     def write(self,value):
         self.value = value
-        self.doCallback("__SERVER__",value)
+        self.doCallback("__SERVER__",value,"__SERVER__")
         self.send(value)
         
-    def push(self,value):
-        """Pretty sure this is undocumented, deprecated, and should never be used"""
-        self.doCallback("__SERVER__",value)
-        self.send(value)
 
     def send(self,value):
         "Send a value to all subscribers without invoking the local callback"
@@ -281,7 +288,15 @@ class Widget():
             raise ValueError("Data is too large, refusing to send")
         for i in self.subscriptions_atomic:
             self.subscriptions_atomic[i](d)
-            
+
+    def sendTo(self,value,target):
+        "Send a value to one subscriber by the connection ID"
+        d = json.dumps([[self.uuid,value]])
+        #Not sure what the actual cause of the ssl segfault is, but maybe it's this?
+        if (len(d)>128*1024):
+            raise ValueError("Data is too large, refusing to send")
+        self.subscriptions_atomic[target](d)
+
     #Lets you add permissions that are required to read or write the widget.
     def require(self,permission):
         self._read_perms.append(permission)
@@ -292,7 +307,7 @@ class Widget():
 
 #This widget is just a time display, it doesn't really talk to the server, but it's useful to keep the same interface.
 class TimeWidget(Widget):
-    def onRequest(self,user):
+    def onRequest(self,user,uuid):
         return str(unitsofmeasure.strftime())
 
     def render(self,type='widget'):
@@ -808,11 +823,13 @@ class APIWidget(Widget):
                 %(htmlid)s = {};
                 %(htmlid)s.value = "Waiting..."
                 %(htmlid)s.clean = 0;
-                %(htmlid)s._maxsyncdelay = 250;
+                %(htmlid)s._maxsyncdelay = 250
+                 %(htmlid)s.timeSyncInterval = 600*1000;
 
+                %(htmlid)s._timeref = [performance.now()-1000000,%(loadtime)f-1000000]
                 var onTimeResponse = function (val)
                 {
-                    if(val[0]==%(htmlid)s._timeSyncKey)
+                    if(Math.abs(val[0]-%(htmlid)s._txtime)<0.1)
                         {
                             var t = performance.now();
                             if(t-%(htmlid)s._txtime<%(htmlid)s._maxsyncdelay)
@@ -848,19 +865,19 @@ class APIWidget(Widget):
                 %(htmlid)s.getTime = function()
                     {
                         var x = performance.now()
-                        this._txtime =x;
-                        KWidget_sendValue("%(id)s",x)
+                        %(htmlid)s._txtime =x;
+                        KWidget_sendValue("_ws_timesync_channel",x)
                     }
 
 
                 %(htmlid)s.now = function(val)
                         {
                             var t=performance.now()
-                            if(this._timeref[0]<t-this.timeSyncInterval)
+                            if(%(htmlid)s._timeref[0]<t-%(htmlid)s.timeSyncInterval)
                                 {
-                                    setTimeout(function(){this.getTime()},10);
+                                    setTimeout(function(){%(htmlid)s.getTime()},10);
                                 }
-                            return(t-this._timeref[0]+this._timeref[1])
+                            return(t-%(htmlid)s._timeref[0]+%(htmlid)s._timeref[1])
                         }
 
                 %(htmlid)s.set = function(val)
@@ -875,6 +892,13 @@ class APIWidget(Widget):
                          %(htmlid)s.clean = 2;
                     }
 
+                    KWidget_subscribe("_ws_timesync_channel",onTimeResponse)
                     KWidget_subscribe("%(id)s",_upd);
             </script>
-            """%{'htmlid':htmlid, 'id' :self.uuid, 'value': json.dumps(self.value)}
+            """%{'htmlid':htmlid, 'id' :self.uuid, 'value': json.dumps(self.value),'loadtime':time.time()*1000}
+
+
+t = APIWidget(echo=False,id='_ws_timesync_channel')
+def f(s,v,id):
+    t.sendTo([v,time.time()],id)
+t.attach2(f)

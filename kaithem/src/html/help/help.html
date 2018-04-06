@@ -283,18 +283,21 @@ h4 {
         <p>Causes the object to reject AJAX write requests from any device that does not have the permissions.
         You can apply as many permissions as you want.</p>
 
-        <h3>Widget.onRequest(user) (Always Available)</h3>
+        <h3>Widget.onRequest(user,uuid) (Always Available)</h3>
         <p>
         This function is automatically called when an authorized client requests the latest value.
         It must return None for unknown/no change or else a JSON serializable value specific to the widget type.
         You only need to know about this function when creating custom widgets.
+
+        uuid is the connection ID.
         </p>
 
-        <h3>Widget.onUpdate(user,value) (Always Available)</h3>
+        <h3>Widget.onUpdate(user,value,uuid) (Always Available)</h3>
         <p>
         This function is automatically called when an authorized client requests to set a new value.
         value will be specific to the widget. You only need to know about this function when creating custom widgets.
 
+        uuid is the connection ID.
         </p>
 
         <h3>Widget.read() (Usually Available)</h3>
@@ -316,12 +319,20 @@ h4 {
         <h3>Widget.send(value)</h3>
         <p>Send value to all subscribed clients.</p>
 
+
+        <h3>Widget.sendTo(value,connectionID)</h3>
+        <p>Send only to one client by it's connection ID</p>
         <h3><a name="widgetattach"></a>Widget.attach(f)</h3>
         <p>Set a callback that fires when new data comes in from the widget.
             It will fire when write() is called or when the client sends new data
              The function must take two values, user, and data.
             User is the username of the user that loaded the page that sent the data the widget,
             and data is it's new value. user wil be set to __SERVER__ if write() is called.
+    </p>
+
+    <h3>Widget.attach2(f)</h3>
+    <p>Same as above, but takes a 3 parameter callback, user,data, and connection ID. allows
+        distinguishing different connections by the same user.
     </p>
     <p>
         You should not call self.write from within the callback to avoid an infinite loop,
@@ -774,6 +785,14 @@ h4 {
 
         <p>If you would rather recieve a callback after every pollingcycle with the current value,
         just redefine the objects upd(val) method.</p>
+
+
+        <p>You can also use obj.now() to get a time in milliseconds since the epoch(As in Date.now())
+            that represents what the server thinks is the current time. The precision may only be 100ms
+            due to browsers degrading performance.now().
+
+            It may take a few seconds to stabilize.
+        </p>
 
         <p>On the python side, <a href="#widgetattach">attach()</a>, read(), and write() all work as expected.</p>
 

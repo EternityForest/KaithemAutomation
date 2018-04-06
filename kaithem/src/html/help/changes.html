@@ -13,6 +13,10 @@
     <li>UTF-8 encoding in page responses</li>
     <li>kaithem.time.lantime() for a time value automatically synced across the LAN
         (py3.3 only, netifaces required)</li>
+    <li><b>BREAKING CHANGE</b> Widget.doCallback,onRequest, and onUpdate now expect a connection ID parameter.</li>
+    <li>New Widget.attach2(f) function for 3 parameter callbacks, username,value, and connection ID</li>
+    <li>New widget.sendTo(val,target) function to send to a specific connection ID</li>
+    <li>apiwidget.now() function added on javascript side to get the currenct server time.</li>
 </ul>
 <h3>0.59</h3>
 <ul>
