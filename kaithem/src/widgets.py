@@ -900,5 +900,5 @@ class APIWidget(Widget):
 
 t = APIWidget(echo=False,id='_ws_timesync_channel')
 def f(s,v,id):
-    t.sendTo([v,time.time()],id)
+    t.sendTo([v,time.time()*1000],id)
 t.attach2(f)
