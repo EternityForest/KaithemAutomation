@@ -1,7 +1,4 @@
 
-
-
-
 import weakref, types, collections, struct, time, socket,threading,random,os,logging,traceback,queue
 
 from .common import nonce_from_number,pavillion_logger,DEFAULT_PORT,DEFAULT_MCAST_ADDR,ciphers,MAX_RETRIES
@@ -80,10 +77,10 @@ class _RemoteServer():
         #Or activity from the server that is encrypted.
         self.secure_lastused = time.time()
 
-    def sendSetup(self, counter, opcode, data):
+    def sendSetup(self, counter, opcode, data,addr=None):
         "Send an unsecured packet"
         m = struct.pack("<Q",counter)+struct.pack("<B",opcode)+data
-        self.clientObject.sock.sendto(b"PavillionS0"+m,self.clientObject.server_address)
+        self.clientObject.sock.sendto(b"PavillionS0"+m, self.clientObject.server_address)
 
     def onRawMessage(self, msg,addr):
         self.lastused = time.time()
@@ -114,7 +111,7 @@ class _RemoteServer():
                 #a nonce request to the server
                 else:
                     pavillion_logger.warning("Recieved packet from unknown server, attempting setup")
-                    self.sendSetup(0, 1, struct.pack("<B",self.clientObject.cipher.id)+self.clientObject.clientID+self.challenge)
+                    self.sendSetup(0, 1, struct.pack("<B",self.clientObject.cipher.id)+self.clientObject.clientID+self.challenge,addr = addr)
 
             #Counter 0 indicates protocol setup messages
             else:
@@ -153,7 +150,7 @@ class _RemoteServer():
                                 self.clientObject.counter +=3
                                 v = self.clientObject.cipher.keyedhash(m,self.clientObject.psk)
                                 self.skey = self.clientObject.cipher.keyedhash(servernonce+self.clientObject.nonce,self.clientObject.psk)
-                                self.sendSetup(0, 3, m+v)
+                                self.sendSetup(0, 3, m+v,addr=addr)
 
                         else:
                             logging.debug("Client recieved bad challenge response")
@@ -172,7 +169,7 @@ class _RemoteServer():
                         #Send an ECC Client Info
                         p = struct.pack("<32s32s32sQ",servernonce, self.clientObject.key, self.skey,self.clientObject.counter)
                         p = self.clientObject.cipher.pubkey_encrypt(p, n,self.clientObject.server_pubkey,self.clientObject.keypair[1])
-                        self.sendSetup(0, 12, self.clientObject.clientID+m+n+p)
+                        self.sendSetup(0, 12, self.clientObject.clientID+m+n+p,addr=addr)
 
 
 
@@ -261,6 +258,7 @@ class _Client():
         if is_multicast(address[0]):
             # Create the socket
             self.msock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.msock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)  
             self.msock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  
             self.msock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1) 
             # Bind to the server address
@@ -292,10 +290,13 @@ class _Client():
 
 
         t = threading.Thread(target=self.loop)
+        t.name+=":PavillionClient"
+
         t.start()
 
         if is_multicast(address[0]):
             t = threading.Thread(target=self.mcast_loop)
+            t.name+=":PavillionClient"
             t.start()
 
 
@@ -333,7 +334,7 @@ class _Client():
     def sendSetup(self, counter, opcode, data,addr=None):
         "Send an unsecured packet"
         m = struct.pack("<Q",counter)+struct.pack("<B",opcode)+data
-        self.sock.sendto(b"PavillionS0"+m,addr or self.server_address)
+        self.sock.sendto(b"PavillionS0"+m,self.server_address)
 
     def sendSecure(self, counter, opcode, data,addr=None):
         "Send a secured packet"

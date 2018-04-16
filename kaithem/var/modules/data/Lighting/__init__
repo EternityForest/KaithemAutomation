@@ -954,15 +954,17 @@ class LightBoard():
         with module.lock:
             sd = {}
             for i in self.scenememory:
+                x = self.scenememory[i]
                 sd[i] = {   
-                             'name':self.scenememory[i].name,
-                             'alpha':self.scenememory[i].defaultalpha,
-                             'cues': {j:self.scenememory[i].cues[j].serialize() for j in self.scenememory[i].cues},
-                             'priority'  : self.scenememory[i].priority,
-                             'active': self.scenememory[i].defaultActive,
-                             'blend':  self.scenememory[i].blend,
-                             'blendArgs': self.scenememory[i].blendArgs,
-                             'backtrack': self.scenememory[i].backtrack
+                             'name':x.name,
+                             'alpha':x.defaultalpha,
+                             'cues': {j:x.cues[j].serialize() for j in x.cues},
+                             'priority'  : x.priority,
+                             'active': x.defaultActive,
+                             'blend':  x.blend,
+                             'blendArgs': x.blendArgs,
+                             'backtrack': x.backtrack,
+                             'syncKey':x.syncKey, 'syncPort': x.syncPort, 'syncAddr':x.syncAddr                            
                             }
             return sd
     
@@ -1692,7 +1694,7 @@ class Cue():
     def serialize(self):
             return {"fadein":self.fadein,"fadeout":self.fadeout,"length":self.length,'lengthRandomize':self.lengthRandomize,"shortcut":self.shortcut,"values":self.values,
             "nextCue":self.nextCue,"track":self.track,"number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,'rel_length':self.rel_length, 'script':self.script, 
-            'syncKey':self.syncKey, 'syncPort': self.syncPort, 'syncAddr':self.syncAddr}
+            }
     
     def push(self):
         for i in module.boards:
@@ -1919,6 +1921,7 @@ class Scene():
             bsynckey = self.syncKey
         else:
             raise ValueError("Key must be 32 bytes, or 32 base64 encoded bytes")
+        self.bsynckey = bsynckey
 
         #Generate target from sync key, so you don't have to do it yourself
         msgtarget = hashlib.sha256(bsynckey).hexdigest()
@@ -1929,6 +1932,7 @@ class Scene():
         
 
         def f(name,data, client):
+            print(data, client)
             if name =="cue":
                 data=data.decode("utf-8")
                 data = data.split("\n")

@@ -177,9 +177,6 @@ class _ServerClient():
                     m = n+ciphers[cipher].pubkey_encrypt(m,n,clientkey,self.server.ecc_keypair[1])
                     self.sendSetup(0, 11,m)
 
-            #In the ignore state, we will ignore messages aside from Nonce requests.
-            if self.ignore >time.time():
-                return
 
 
             if opcode==3:
@@ -263,7 +260,8 @@ class _Server():
     
         # Create the socket
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)  
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1) 
         # Bind to the server address
         self.sock.bind(self.address)
@@ -283,6 +281,7 @@ class _Server():
         self.ecc_keypair = ecc_keypair
         self.running = True
         t = threading.Thread(target=self.loop)
+        t.name+=":PavillionServer"
         t.start()
 
 
