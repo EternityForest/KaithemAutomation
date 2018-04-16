@@ -824,7 +824,7 @@ class APIWidget(Widget):
                 %(htmlid)s.value = "Waiting..."
                 %(htmlid)s.clean = 0;
                 %(htmlid)s._maxsyncdelay = 250
-                 %(htmlid)s.timeSyncInterval = 600*1000;
+                %(htmlid)s.timeSyncInterval = 600*1000;
 
                 %(htmlid)s._timeref = [performance.now()-1000000,%(loadtime)f-1000000]
                 var onTimeResponse = function (val)
@@ -834,7 +834,7 @@ class APIWidget(Widget):
                             var t = performance.now();
                             if(t-%(htmlid)s._txtime<%(htmlid)s._maxsyncdelay)
                                 {
-                            %(htmlid)s._time_ref = [(t+%(htmlid)s._txtime)/2, val[1]]
+                            %(htmlid)s._timeref = [(t+%(htmlid)s._txtime)/2, val[1]]
 
                             %(htmlid)s._maxsyncdelay = (t-%(htmlid)s._txtime)*1.2;
                             }
@@ -873,11 +873,11 @@ class APIWidget(Widget):
                 %(htmlid)s.now = function(val)
                         {
                             var t=performance.now()
-                            if(%(htmlid)s._timeref[0]<t-%(htmlid)s.timeSyncInterval)
+                            if(t-%(htmlid)s._txtime>%(htmlid)s.timeSyncInterval)
                                 {
-                                    setTimeout(function(){%(htmlid)s.getTime()},10);
+                                    %(htmlid)s.getTime();
                                 }
-                            return(t-%(htmlid)s._timeref[0]+%(htmlid)s._timeref[1])
+                            return((t-%(htmlid)s._timeref[0])+%(htmlid)s._timeref[1])
                         }
 
                 %(htmlid)s.set = function(val)
@@ -894,6 +894,12 @@ class APIWidget(Widget):
 
                     KWidget_subscribe("_ws_timesync_channel",onTimeResponse)
                     KWidget_subscribe("%(id)s",_upd);
+                    setTimeout(%(htmlid)s.getTime,500)
+                    setTimeout(%(htmlid)s.getTime,1500)
+                    setTimeout(%(htmlid)s.getTime,3000)
+                    setTimeout(%(htmlid)s.getTime,10000)
+
+
             </script>
             """%{'htmlid':htmlid, 'id' :self.uuid, 'value': json.dumps(self.value),'loadtime':time.time()*1000}
 

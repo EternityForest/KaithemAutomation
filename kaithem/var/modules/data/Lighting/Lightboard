@@ -144,6 +144,10 @@ boardname = "default"
       <label>Show Cue Table</label>
         <input type="checkbox" v-model="showcuetable" v-on:change="cond_getcuemeta($event.target.value)">
         </label>
+
+     <label>Show Scene OPtions</label>
+        <input type="checkbox" v-model="showsceneoptions">
+        </label>
     </p>
 
     <datalist id="serports">
@@ -364,12 +368,15 @@ boardname = "default"
 
                 <span class="virtual" v-if="editingScene.doingHandoff">(fading out)</span>
         </h3>
+            
+        <input v-model="cuefilter" placeholder="Search Cues"/><button v-on:click="cuefilter=''">X</button>
         <table border="1" v-if="showcuetable">
             <thead>
-            <tr><th title="Click the cue name to edit that cue" >Cue Name</th><th>Number</th><th>Shortcut</th><th>Fadein</th><th title="Length, 0 indicates until stopped">Length</th><th title="The next cue, after this one ends">Next</th><th>Randomize</th><th>Track</th><th>Jump to</th></tr>
             </thead>
-            <tbody style="overflow-y: scroll; height:10em">
-            <tr v-for="i in formatCues()" v-if="i[1].id" v-bind:style="{'background-color':((selectedCues[scenename]==i[1].name)?'lightblue':'')}">
+            <tbody style="overflow-y: auto; width:100%; height:12em;display:block;">
+                        <tr><th title="Click the cue name to edit that cue" >Cue Name</th><th>Number</th><th>Shortcut</th><th>Fadein</th><th title="Length, 0 indicates until stopped">Length</th><th title="The next cue, after this one ends">Next</th><th>Randomize</th><th>Track</th><th>Jump to</th></tr>
+
+            <tr v-for="i in formatCues(1)" v-if="i[1].id" v-bind:style="{'background-color':((selectedCues[scenename]==i[1].name)?'lightblue':'')}">
                 <td title="Click the cue name to edit that cue" v-on:click="selectedCues[scenename]=i[1].name"><b>{{cuemeta[editingScene.cue].name==i[1].name?"*":""}}{{i[1].name}}</b></td>
                 <td><input type="number" title="Cue number" style="width:6em" v-on:change="setnumber(i[1].id,$event.target.value)"
                         min=0 step=0.1 v-model="i[1].number"></td>
@@ -383,11 +390,12 @@ boardname = "default"
                 <td><input type="number" v-on:input="setlength(i[1].id,$event.target.value)" style="width:3em"
                         min=0 v-model="i[1].length">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
 
-                <td><select v-if="Object.keys(scenecues[scenename]).length<40" autocomplete=off title="Select a cue to activate when this one ends" v-on:input="setnext(i[1].id,$event.target.value)">
+                <td><select v-model="i[1].next" v-if="Object.keys(scenecues[scenename]).length<40" autocomplete=off title="Select a cue to activate when this one ends" v-on:input="setnext(i[1].id,$event.target.value)">
                     <option value="">&gt&gt&gt</option>
-
                     <option v-for="i in Object.keys(scenecues[scenename]).sort()" v-bind:value="i">{{i}}</option>
-                </select>
+                    <option v-if="(!(i[1].next in Object.keys(scenecues[scenename]))) &&(i[1].next !== '')  &&(i[1].next !== null) &&(i[1].next!==undefined)" v-bind:value="i[1].next">{{i.next}}</option>
+
+                </select>{{i[1].next}}
 
                 <input v-if="Object.keys(scenecues[scenename]).length>40" autocomplete=off list="cues_in_scene" title="Select a cue to activate when this one ends" v-on:input="setnext(i[1].id,$event.target.value)"
                     v-model="i[1].next" v-bind:placeholder="i[1].defaultnext">
@@ -425,6 +433,7 @@ boardname = "default"
 
 
         <hr>
+
         <div v-if="currentcue">
             <div v-if="showcuetable==false">
                 <label>Number:
@@ -455,6 +464,30 @@ boardname = "default"
 
             </div>
 
+            <div v-if="showsceneoptions">
+                <h3>Sync Options</h3>
+                <p class="help">
+                    Sync allows cue transitions to be transmitted across the LAN. Set theese parameters to be the same for 2 scenes, and the system will try to sync the states.
+                </p>
+                 <label>Sync Address:
+                            <input style="width:20em" v-on:change="setsyncaddr(scenename,$event.target.value)"
+                                v-model="editingScene.syncAddr">
+                        </label><br>
+               <label>Sync Port:
+                            <input type='number' min=0 max=65535 style="width:6em" v-on:change="setsyncport(scenename,parseFloat($event.target.value))"
+                                v-model="editingScene.syncPort">
+                        </label><br>
+                
+                <label>Sync Key(Blank to disable sync):
+                            <input type="password" style="width:30em" v-on:change="setsynckey(scenename,$event.target.value)"
+                                v-model="editingScene.syncKey" v-on:focus="$event.target.type='text'" v-on:blur="$event.target.type='password'" title="Must be a base64 string representing 32 bytes">
+                        </label>
+                <button v-on:click="generateSyncKey(scenename,editingScene.name)">Create Key</button>
+                <hr>
+            </div>
+    
+
+
             <label>Next Cue:
                 <input list="cues_in_scene" title="Select a cue to activate when this one ends" v-on:input="setnext(currentcueid,$event.target.value)"
                     v-model="cuemeta[currentcueid].next" v-bind:placeholder="currentcue.defaultnext"></input>
@@ -466,21 +499,30 @@ boardname = "default"
                 <option v-for="i in Object.keys(scenecues[scenename]).sort()" v-bind:value="i">{{i}}</option>
             </datalist>
 
-            <label>Sound:
-                <input placeholder="No sound file" v-model="currentcue.sound" style="width:32em;"
-                    v-on:change="setSoundfile(currentcueid,currentcue.sound)">
-            </label>
-            <label>Device:
-                <input title="Using mplayer -ao syntax, set the output device" v-on:input="setSoundOutput(currentcueid,$event.target.value)"
-                    v-model="cuemeta[currentcueid].soundOutput" placeholder="default"></input>
-            </label>
+            <div style="clear:both">
+                <div style="display:inline-block;">
+                    Script Bindings:</br>
+                    <textarea rows=3 cols=40 title="Enter script bindings here that can trigger at the start and end of the cue"
+                        v-on:input="setscript(currentcueid,$event.target.value)" v-model="cuemeta[currentcueid].script"></textarea>
+                </div>
+            
+                <div style="display:inline-block;">
+                    <label>Sound:
+                        <input placeholder="No sound file" v-model="currentcue.sound" style="width:32em;"
+                            v-on:change="setSoundfile(currentcueid,currentcue.sound)">
+                    </label><br>
+                    <label>Device:
+                        <input title="Using mplayer -ao syntax, set the output device" v-on:input="setSoundOutput(currentcueid,$event.target.value)"
+                            v-model="cuemeta[currentcueid].soundOutput" placeholder="default"></input>
+                    </label><br>
 
-            <label>Use Length:
-                <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rellen)" v-model="currentcue.rellen"
-                    title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
-            </label><br> Script Bindings:</br>
-            <textarea rows=3 cols=35 title="Enter script bindings here that can trigger at the start and end of the cue"
-                v-on:input="setscript(currentcueid,$event.target.value)" v-model="cuemeta[currentcueid].script"></textarea>
+                    <label>Use Length:
+                        <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rellen)" v-model="currentcue.rellen"
+                            title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
+                    </label><br>
+                </div>
+            </div>
+
             <div v-if="showsoundoptions">
                 <h3>Sound Cues</h3>
 
@@ -504,7 +546,7 @@ boardname = "default"
 
             <span class="help" v-if="editingScene.ext">This is an external scene that is defined somewhere in code. Any changed made here may be overwritten by the code at any time.</span>
 
-            <div float="right" style="overflow: scroll; max-height:30em;">
+            <div style="overflow: scroll; max-height:30em;">
                 <div class="universe" v-for="i in cuevals[currentcueid]">
                     <span title="Double click to toggle released">
                         <b v-if="chnamelookup(i.u,i.ch)==undefined">{{i.u}}:{{i.ch}}</b>
@@ -725,6 +767,7 @@ boardname = "default"
             },
 
             'showDMXSetup': false,
+            'showsceneoptions': false,
             'configuredUniverses':
             {
                 'blah': { 'type': 'enttec', 'interface': 'xyz' }
@@ -957,7 +1000,7 @@ boardname = "default"
                 }
 
             },
-            'formatCues': function()
+            'formatCues': function(filt)
             {
                 z = {}
                 //list cue objects
@@ -967,7 +1010,10 @@ boardname = "default"
                         [i]]
                     if (m !== undefined)
                     {
+                        if((!filt) | i.includes(this.cuefilter))
+                        {
                         z[i] = m
+                        }
                     }
                 }
                 return appData.dictView(z, ['number'])
@@ -1021,6 +1067,7 @@ boardname = "default"
             },
             //Filter which scenes are shown in the list
             'scenefilter': '',
+            'cuefilter':'',
             'currentBindingBank': 'default',
             'localStorage': localStorage,
             'keybindscript': localStorage.getItem("keybind-script"),
@@ -1155,11 +1202,43 @@ boardname = "default"
                     api_link.send(['stop', sc]);
                 }
             },
+
+          'setsynckey': function(sc, v)
+            {
+                api_link.send(['setsynckey', sc, v]);
+            },
+ 
+
+          'setsyncport': function(sc, v)
+            {
+                api_link.send(['setsyncport', sc, v]);
+            },
+ 
+          'setsyncaddr': function(sc, v)
+            {
+                api_link.send(['setsyncaddr', sc, v]);
+            },
+
+        'generateSyncKey' :function(sc,n)
+        {
+             var x = confirm(
+                        "Do you want to assign a new sync key to " +n+"?"
+                    )
+            if (x)
+            {
+                api_link.send(['generatesynckey', sc]);
+
+            }
+        },
+ 
+
             'setalpha': function(sc, v)
             {
                 api_link.send(['setalpha', sc, v]);
                 appData.alphas[sc] = v
             },
+
+
             'setfade': function(sc, v)
             {
 
@@ -1615,8 +1694,7 @@ boardname = "default"
     <script>
         setInterval(function()
         {
-            appData.unixtime = ((new Date()).getTime() /
-                1000)
+            appData.unixtime = api_link.now()/1000
         }, 1000 / 14)
         var shortcut = function(sc)
         {
