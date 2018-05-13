@@ -54,6 +54,10 @@ fileResourceAbsPaths = {}
 external_module_locations = {}
 
 unsaved_changed_obj = {}
+
+
+
+
 class ResourceType():
     def __init__(self):
         self.createButton = None

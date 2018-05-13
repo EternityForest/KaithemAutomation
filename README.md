@@ -1,4 +1,4 @@
-![Logo (Credit: https://openclipart.org/detail/1337/large-barrel)](img/logo.jpg)
+![Logo](kaithem/data/static/img/klogoapr22.jpg)
 
 Kaithem is Linux home/commercial automation server written in pure python, HTML, Mako, and CSS. It's more low level than your average HA system, but it allows you to control anything python can.
 
@@ -34,9 +34,7 @@ make detecting intrusions and errors easier.
 Kaithem includes a library for common automation tasks such as file IO, timing, executing functions in the background, formatting numbers, and more. It also includes a library of basic example modules, including a
 web-based lighting console that can be used without needing to write any code(With Enttec-type USB DMX adapters, tested on an Arduino emulation, other may be added via the API).
 
-The lighting console supports cue lists, multiple layers with selectable blend mode, flickering candle effects, keybindings, tracking, cue only cues, backtracking, HTP,inhibit, alpha blending, and many other features.
-
-At the moment blend modes are per-scene, selecting one channel to use LTP for gobo selection, etc is not yet supported, but you can work around this by putting things like that on a separate layer with 100% opacity.
+The lighting console supports cue lists, multiple layers with selectable blend mode, flickering candle effects, keybindings, tracking, cue only cues, backtracking, HTP,inhibit, alpha blending, network sync(beta), and many other features.
 
 ![Lighting control](screenshots/lighting.jpg)
 

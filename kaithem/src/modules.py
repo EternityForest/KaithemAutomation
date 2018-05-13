@@ -94,9 +94,9 @@ class ResourceObject():
     def __init__(self, m=None,r=None,o=None):
         self.resource =r
         self.module = m
+        self._object = o
 
-
-class Event(ResourceObject):
+class EventAPI(ResourceObject):
     resourceType = "event"
 
     def __init__(self, m,r,o):
@@ -109,6 +109,10 @@ class Event(ResourceObject):
     @property
     def scope(self):
         return newevt.EventReferences[self.module,self.resource].pymodule
+    
+    @property
+    def data(self):
+        return newevt.EventReferences[self.module,self.resource].data
 
     #Allow people to start and stop events at runtime.
     #Some events support a separate new pause/unpause api, otherwise use register
@@ -128,6 +132,11 @@ class Event(ResourceObject):
             ev.pause()
         else:
             ev.unregister()
+    
+    def reportException(self):
+        """Call in an exception handler to handle the exception as if it came from the given event"""
+        newevt.EventReferences[self.module,self.resource]._handle_exception()
+
 
 class Page(ResourceObject):
     resourceType = "page"
@@ -175,7 +184,8 @@ class ModuleObject(object):
             x = Page(module,name,x)
 
         elif resourcetype == 'event':
-            x = Event(module,name,x)
+            x = newevt.EventReferences[self.module,self.resource].api_obj
+            #x = Event(module,name,x)
 
         elif resourcetype == 'permission':
             x = Permission(module,name,x)
@@ -186,6 +196,7 @@ class ModuleObject(object):
         return x
 
         raise KeyError(name)
+
     def __setitem__(self,name, value):
         "When someone sets an item, validate it, then do any required bookkeeping"
 

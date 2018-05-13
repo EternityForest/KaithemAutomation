@@ -15,12 +15,35 @@
 #along with Pavillion.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import hashlib,logging,struct
+import hashlib,logging,struct,threading,atexit
 
 DEFAULT_PORT=1783
 DEFAULT_MCAST_ADDR="239.255.28.12"
 
 MAX_RETRIES=8
+
+lock = threading.RLock()
+
+allow_new = True
+
+cleanup_refs = []
+
+
+
+
+def cleanup():
+    global allow_new
+    allow_new = False
+    with lock:
+        #Close function mutates the list, copy first
+        c = cleanup_refs[:]
+        for i in c:
+            try:
+                i().close()
+            except:
+                pass
+
+atexit.register(cleanup)
 
 pavillion_logger = logging.getLogger("pavillion")
 

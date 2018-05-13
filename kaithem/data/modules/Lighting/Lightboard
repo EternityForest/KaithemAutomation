@@ -123,6 +123,7 @@ boardname = "default"
 
 </script>
 <link rel="stylesheet" href="/static/img/icons/iconicss/iconicss.min.css">
+<link rel="stylesheet" href="/static/img/icons/fontawesome/css/fontawesome-all.min.css">
 
 
 <div id="app">
@@ -141,17 +142,8 @@ boardname = "default"
         <label>Fixture Assignments:
             <input type="checkbox" v-model="showfixtureassg" v-on:change="getfixtureassg">
         </label>|
-
-        <label>Sound Browser</label>
-        <input type="checkbox" v-model="showsoundoptions">
-        </label>
-
       <label>Show Cue Table</label>
         <input type="checkbox" v-model="showcuetable" v-on:change="cond_getcuemeta($event.target.value)">
-        </label>
-
-     <label>Show Scene Options</label>
-        <input type="checkbox" v-model="showsceneoptions">
         </label>
     </p>
 
@@ -230,8 +222,11 @@ boardname = "default"
         <button v-on:click="addfixturetype">Add fixture type</button>
         <button v-on:click="delfixturetype">Delete Selected</button>
 
-        <button>Rename</button>
-
+        <button>Rename</button><br>
+        Code(Click to edit or copy):
+        <input v-on:focus="$event.target.value=JSON.stringify(fixtureClasses[selectedFixtureClass])" 
+        v-on:input="fixtureClasses[selectedFixtureClass]=JSON.parse($event.target.value)"
+        v-on:blur="pushfixture(selectedFixtureClass)">
         <h3>Channels in Fixture Type</h3>
         <div v-for="(v,i) in fixtureClasses[selectedFixtureClass]">
             <h4>{{i}}.</h4>
@@ -336,13 +331,16 @@ boardname = "default"
         <div id="scene" style="overflow: scroll; max-height:450px;">
             <p v-for="i in formatScenes()" v-bind:class="{'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                 style="border-style:solid; border-width:1px;">
-                <button v-bind:class="{specialentry:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])"><i v-if="i[1].syncKey" class="icss-wifi" style="color:blue;"></i> <b>{{i[1].name}}</b><span v-if="i[1].ext" class="grey"> (external)</span></button>
+                <button v-bind:class="{specialentry:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])"><i v-if="i[1].syncKey" class="icss-wifi" style="color:blue;"> </i>
+                    
+                    <span v-if="(i[1].subs!==-1)" title="Scene is synced with external servers">({{i[1].subs}})</span>
+                    <b>{{i[1].name}}</b><span v-if="i[1].ext" class="grey"> (external)</span></button>
                 <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</span><br>
                 <br>
-                <button class="gobutton" v-on:click="go(i[0])">Go!</button>
-                <button v-on:click="nextcue(i[0])">&gt&gt</button>
-                <button class="stopbutton" v-on:click="stop(i[0])">Stop!</button>
-                <button class="deletebutton" v-on:click="delscene(i[0])">del</button>
+                <button v-on:click="go(i[0])"><i class="icss-arrow-right" style="color:green;"></i>Go!</button>
+                <button v-on:click="nextcue(i[0])"><i class="fas fa-forward" style="color:lightgreen"></i>Next</button>
+                <button class="stopbutton" v-on:click="stop(i[0])"><i class="fas fa-stop"  style="color:darkgrey"></i> Stop</button>
+                <button class="deletebutton" v-on:click="delscene(i[0])"></i>del</button>
                 <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));"
                     :value="alphas[i[0]]"><br>
                 <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
@@ -382,9 +380,10 @@ boardname = "default"
                         <tr><th title="Click the cue name to edit that cue" >Cue Name</th><th>Number</th><th>Shortcut</th><th>Fadein</th><th title="Length, 0 indicates until stopped">Length</th><th title="The next cue, after this one ends">Next</th><th>Randomize</th><th>Track</th><th>Jump to</th></tr>
 
             <tr v-for="i in formatCues(1)" v-if="i[1].id" v-bind:style="{'background-color':((selectedCues[scenename]==i[1].name)?'lightblue':'')}">
-                <td title="Click the cue name to edit that cue" v-on:click="selectedCues[scenename]=i[1].name"><b>{{cuemeta[editingScene.cue].name==i[1].name?"*":""}}{{i[1].name}}</b></td>
-                <td><input type="number" title="Cue number" style="width:6em" v-on:change="setnumber(i[1].id,$event.target.value)"
-                        min=0 step=0.1 v-model="i[1].number"></td>
+                <td title="Click the cue name to edit that cue" v-on:click="selectcue(scenename,i[1].name)"><i v-if="cuemeta[editingScene.cue].name==i[1].name" class="fas fa-play-circle" style="color:green;"></i>
+                <i v-if="selectedCues[scenename]==i[1].name" class="icss-pencil-b"></i>
+                <b>{{i[1].name}}</b></td>
+                <td><b title="Cue number, double click to change." style="width:6em"  v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</b></td>
 
                 <td><input title="Shortcut code" style="width:6em" v-on:change="setshortcut(i[1].id,$event.target.value)"
                         min=0 step=0.1 v-model="i[1].shortcut"></td>
@@ -392,7 +391,7 @@ boardname = "default"
                 <td><input type="number" v-on:input="setfadein(i[1].id,$event.target.value)" style="width:3em"
                         min=0 v-model="i[1].fadein">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
 
-                <td><input type="number" v-on:input="setlength(i[1].id,$event.target.value)" style="width:3em"
+                <td><input type="number" v-on:change="setlength(i[1].id,$event.target.value)" style="width:3em"
                         min=0 v-model="i[1].length">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
 
                 <td><select v-model="i[1].next" v-if="Object.keys(scenecues[scenename]).length<40" autocomplete=off title="Select a cue to activate when this one ends" v-on:input="setnext(i[1].id,$event.target.value)">
@@ -469,27 +468,6 @@ boardname = "default"
 
             </div>
 
-            <div v-if="showsceneoptions">
-                <h3>Sync Options</h3>
-                <p class="help">
-                    Sync allows cue transitions to be transmitted across the LAN. Set theese parameters to be the same for 2 scenes, and the system will try to sync the states.
-                </p>
-                 <label>Sync Address:
-                            <input style="width:20em" v-on:change="setsyncaddr(scenename,$event.target.value)"
-                                v-model="editingScene.syncAddr">
-                        </label><br>
-               <label>Sync Port:
-                            <input type='number' min=0 max=65535 style="width:6em" v-on:change="setsyncport(scenename,parseFloat($event.target.value))"
-                                v-model="editingScene.syncPort">
-                        </label><br>
-                
-                <label>Sync Key(Blank to disable sync):
-                            <input type="password" style="width:30em" v-on:change="setsynckey(scenename,$event.target.value)"
-                                v-model="editingScene.syncKey" v-on:focus="$event.target.type='text'" v-on:blur="$event.target.type='password'" title="Must be a base64 string representing 32 bytes">
-                        </label>
-                <button v-on:click="generateSyncKey(scenename,editingScene.name)">Create Key</button>
-                <hr>
-            </div>
     
 
 
@@ -511,48 +489,19 @@ boardname = "default"
                         v-on:input="setscript(currentcueid,$event.target.value)" v-model="cuemeta[currentcueid].script"></textarea>
                 </div>
             
-                <div style="display:inline-block;">
-                    <label>Sound:
-                        <input placeholder="No sound file" v-model="currentcue.sound" style="width:32em;"
-                            v-on:change="setSoundfile(currentcueid,currentcue.sound)">
-                    </label><br>
-                    <label>Device:
-                        <input title="Using mplayer -ao syntax, set the output device" v-on:input="setSoundOutput(currentcueid,$event.target.value)"
-                            v-model="cuemeta[currentcueid].soundOutput" placeholder="default"></input>
-                    </label><br>
-
-                    <label>Use Length:
-                        <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rellen)" v-model="currentcue.rellen"
-                            title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
-                    </label><br>
-                </div>
+              
             </div>
 
-            <div v-if="showsoundoptions">
-                <h3>Sound Cues</h3>
 
-                <div style="max-height:25em; overflow:scroll; background-color:rgba(255,255,255,0.4);">
-                    <h4>{{soundfilesdir}}</h4>
-                    <ul>
-                        <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir('')">&ltTOP&gt</li>
-                        <li v-if="soundfilesdir" style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">..</li>
-                        <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(soundfilesdir+i)"
-                            v-for="i in soundfileslisting[0]">{{i}}</li>
 
-                    </ul>
 
-                    <ul>
-                        <li title="Double click to select" v-on:dblclick="setSoundfile(currentcueid,soundfilesdir+i)"
-                            v-for="i in soundfileslisting[1]">{{i}}</li>
-                    </ul>
-                </div>
-            </div>
-            <hr>
 
             <span class="help" v-if="editingScene.ext">This is an external scene that is defined somewhere in code. Any changed made here may be overwritten by the code at any time.</span>
 
             <div style="overflow: scroll; max-height:30em;">
-                <div class="universe" v-for="i in cuevals[currentcueid]">
+                <div class="universe" v-for="(h,uname) in cuevals[currentcueid]" style="border-style:solid">
+                    <div class="universe" v-for="(i,ch) in h">
+
                     <span title="Double click to toggle released">
                         <b v-if="chnamelookup(i.u,i.ch)==undefined">{{i.u}}:{{i.ch}}</b>
                         <b v-if="chnamelookup(i.u,i.ch)" v-bind:title="'Actual channel:'+i.u+':'+i.ch">{{channelNames[i.u][i.ch][0]}}.{{channelNames[i.u][i.ch][1]}}</b>                    </span>
@@ -573,15 +522,15 @@ boardname = "default"
 
                     <span v-if="!(channelNames[i.u]&&channelNames[i.u][i.ch]&&channelNames[i.u][i.ch][2]=='fine')"
                         title="Double click to set exact value" v-on:dblclick="promptExactVal(currentcueid,i.u,parseInt(i.ch))"
-                        style="font-size:80%">{{i.v.toPrecision(4)}}</span>
+                        style="font-size:80%">{{Number(i.v).toPrecision(4)}}</span>
                     <span class=grey title="Double click to set exact value" v-if="channelNames[i.u]&&channelNames[i.u][i.ch]&&channelNames[i.u][i.ch][2]=='fine'"
                         v-on:dblclick="promptExactVal(currentcueid,i.u,parseInt(i.ch))">auto</span>
 
-                    <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='red'" v-bind:style="{'background-color': 'rgb('+i.v+ ',0,0)' , 'border-color':'red'}"
+                    <span v-if="chnamelookup(i.u,i.ch)&&(chnamelookup(i.u,i.ch)[2]=='red')" v-bind:style="{'background-color': 'rgb('+i.v+ ',0,0)' , 'border-color':'red'}"
                         class="indicator"></span>
-                    <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='green'" v-bind:style="{'background-color': 'rgb(0,'+i.v+',0)' , 'border-color':'green'}"
+                    <span v-if="chnamelookup(i.u,i.ch)&&(chnamelookup(i.u,i.ch)[2]=='green')" v-bind:style="{'background-color': 'rgb(0,'+i.v+',0)' , 'border-color':'green'}"
                         class="indicator"></span>
-                    <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='blue'" v-bind:style="{'background-color': 'rgb(0,0,'+i.v+')'  , 'border-color':'blue'}"
+                    <span v-if="chnamelookup(i.u,i.ch)&&(chnamelookup(i.u,i.ch)[2]=='blue')" v-bind:style="{'background-color': 'rgb(0,0,'+i.v+')'  , 'border-color':'blue'}"
                         class="indicator"></span>
                     <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='uv'" v-bind:style="{'background-color': 'rgb(i.v,0,'+i.v+')'  , 'border-color':'blue'}"
                         class="indicator"></span>
@@ -599,9 +548,10 @@ boardname = "default"
                         <option v-for="i of chnamelookup(i.u,i.ch).slice(3)" :value="i[2]">{{i[2]}}({{i[0]}} to {{i[1]}})</option>
                     </select>
                     </span>
+                    </div>
                 </div>
             </div>
-            <div style="clear:both">
+           <div style="clear:both">
                 <input list="universes" id="newcueu" placeholder="Universe">
                 <datalist id="universes">
                     <option v-for="(v,i) of universes" v-bind:value="i">({{v.count}} values)</option>
@@ -615,9 +565,78 @@ boardname = "default"
                         v-model="editingScene.priority">
                 </label>
 
-                <br><br>
-                <div v-if="editingScene.blend!=='monitor'" style="border-style:solid; border-radius:5px;border-color:grey;">
+            </div>
 
+            <div>
+                <p style="background-color:rgba(250,250,250,0.5)">
+                    <button v-on:click="scenetab='blend'">Basic</button>
+                    <button v-on:click="scenetab='sound'">Sound</button>
+                    <button v-on:click="scenetab='sync'"> Sync</button>
+                </p>
+                <div v-if="scenetab=='sync'">
+                    <h3>Sync Options</h3>
+                    <p class="help">
+                        Sync allows cue transitions to be transmitted across the LAN. Set theese parameters to be the same for 2 scenes, and the system will try to sync the states.
+                    </p>
+                    <label>Sync Address:
+                                <input style="width:20em" v-on:change="setsyncaddr(scenename,$event.target.value)"
+                                    v-model="editingScene.syncAddr">
+                            </label><br>
+                <label>Sync Port:
+                                <input type='number' min=0 max=65535 style="width:6em" v-on:change="setsyncport(scenename,parseFloat($event.target.value))"
+                                    v-model="editingScene.syncPort">
+                            </label><br>
+                    
+                    <label>Sync Key(Blank to disable sync):
+                                <input type="password" style="width:30em" v-on:change="setsynckey(scenename,$event.target.value)"
+                                    v-model="editingScene.syncKey" v-on:focus="$event.target.type='text'" v-on:blur="$event.target.type='password'" title="Must be a base64 string representing 32 bytes">
+                            </label><br>
+                    <button v-on:click="generateSyncKey(scenename,editingScene.name)">Create Key</button>
+                    <hr>
+                    <h4>Peers</h4>
+                    <p class="help">Instances on one machine may show as one address</p>
+                    <ul>
+                        <li v-for="i in editingScene.subslist">{{i}}</li>
+                    </ul>
+                    <hr>
+                </div>
+
+                <div v-if="scenetab=='sound'">
+                    <h3>Sound</h3>
+                     <div style="display:inline-block;">
+                    <label>Sound:
+                        <input placeholder="No sound file" v-model="currentcue.sound" style="width:32em;"
+                            v-on:change="setSoundfile(currentcueid,currentcue.sound)">
+                    </label><br>
+                    <label>Device:
+                        <input title="Using mplayer -ao syntax, set the output device" v-on:input="setSoundOutput(currentcueid,$event.target.value)"
+                            v-model="cuemeta[currentcueid].soundOutput" placeholder="default"></input>
+                    </label><br>
+
+                    <label>Use Length:
+                        <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_len)" v-model="currentcue.rel_len"
+                            title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
+                    </label><br>
+                      </div>
+                    <div style="max-height:25em; overflow:scroll; background-color:rgba(255,255,255,0.4);">
+                        <h4>{{soundfilesdir}}</h4>
+                        <ul>
+                            <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir('')">&ltTOP&gt</li>
+                            <li v-if="soundfilesdir" style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">..</li>
+                            <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(soundfilesdir+i)"
+                                v-for="i in soundfileslisting[0]">{{i}}</li>
+
+                        </ul>
+
+                        <ul>
+                            <li title="Double click to select" v-on:dblclick="setSoundfile(currentcueid,soundfilesdir+i)"
+                                v-for="i in soundfileslisting[1]">{{i}}</li>
+                        </ul>
+                    </div>
+                </div>
+            
+ 
+                <div v-if="scenetab=='blend'">
                     <h4 title="These properties are fixed per-scene and don't change between cues">Scene Properties</h4>
                     <label>Default Alpha:
                         <input type="number" style="width:4em" max=1 step=0.01 min=0 v-on:input="setdalpha(scenename,parseFloat($event.target.value))"
@@ -636,8 +655,21 @@ boardname = "default"
                         <label>Priority:
                             <input type='number' min=0 max=100 style="width:3em" v-on:input="setpriority(scenename,parseFloat($event.target.value))"
                                 v-model="editingScene.priority">
-                        </label><br>
+                        </label>
+                        <label>BPM:
+                            <input type='number' min=0 max=100 style="width:3em" v-on:input="setbpm(scenename,parseFloat($event.target.value))"
+                                v-model="editingScene.bpm">
+                        </label><button v-on:click="tap(scenename)">TAP</button><br>
 
+                        
+                        <br>
+                      <label>Soundfile:<input placeholder="No sound file" v-model="currentcue.sound" style="width:32em;"
+                            v-on:change="setSoundfile(currentcueid,currentcue.sound)">
+                    </label>
+                    <label>Device:
+                        <input title="Using mplayer -ao syntax, set the output device" v-on:input="setSoundOutput(currentcueid,$event.target.value)"
+                            v-model="cuemeta[currentcueid].soundOutput" placeholder="default"></input>
+                    </label><br>
 
                         <label title="Check this box to make the scene active at startup">Active By Default:
                             <input type="checkbox" v-on:change="setdactive(scenename,$event.target.checked)"
@@ -773,6 +805,7 @@ boardname = "default"
 
             'showDMXSetup': false,
             'showsceneoptions': false,
+            'scenetab':'blend',
             'configuredUniverses':
             {
                 'blah': { 'type': 'enttec', 'interface': 'xyz' }
@@ -1117,7 +1150,6 @@ boardname = "default"
             {
                 api_link.send(['scv', sc, u, ch, val]);
                 appData.cues[sc][u][ch] = val
-
             },
 
             'selectcue': function(sc, cue)
@@ -1144,10 +1176,7 @@ boardname = "default"
                 this.editingScene = sc;
                 this.scenename = sn;
                 api_link.send(['gsd', sn]);
-                if (this.showcuetable)
-                {
-                   api_link.send(['getallcuemeta', sn]);
-                }
+                api_link.send(['getallcuemeta', sn]);
 
             },
             'delscene': function(sc)
@@ -1343,6 +1372,12 @@ boardname = "default"
             {
                 api_link.send(['setshortcut', cue, v]);
             },
+
+            'promptsetnumber': function(cue)
+            {
+                api_link.send(['setnumber', cue, Number(prompt("Enter new number for this cue:"))]);
+            },
+
             'setnumber': function(cue, v)
             {
                 api_link.send(['setnumber', cue, v]);
@@ -1402,6 +1437,15 @@ boardname = "default"
             {
                 api_link.send(['setpriority', sc, v]);
             },
+            'setbpm': function(sc, v)
+            {
+                api_link.send(['setbpm', sc, v]);
+            },
+            'tap': function(sc)
+            {
+                api_link.send(['tap', sc, api_link.now()/1000]);
+            },
+
 
             'addScene': function()
             {
@@ -1437,6 +1481,7 @@ boardname = "default"
                     parseInt($('#newcuevnumber').val()),
                     null
                 ])
+                Vue.delete(appData.cuevals[appData.selectedCues[appData.scenename]][$('#newcueu').val()],parseInt($('#newcuevnumber').val()))
             },
             'sortscenes': function()
             {
@@ -1576,15 +1621,18 @@ boardname = "default"
             if (c == "cuedata")
             {
                 set(appData.cues, v[1], v[2]);
-                x = []
                 d = {}
+                Vue.set(appData.cuevals, v[1], d)
+
                 for (i in v[2])
                 {
+
                     if (!(i in appData.channelNames))
                     {
                         api_link.send(['getcnames', i])
                     }
-                    d[i] = {}
+                    Vue.set(appData.cuevals[v[1]],i, {})
+
                     for (j in v[2][i])
                     {
                         y = {
@@ -1592,12 +1640,12 @@ boardname = "default"
                             'ch': j,
                             "v": v[2][i][j]
                         }
-                        d[i][j] = y
-                        x.push(y)
+                    Vue.set(appData.cuevals[v[1]][i],j,y)
+
                     }
                 }
-                Vue.set(appData.cuevals, v[1], x)
             }
+
             if (c == "scv")
             {
                 if (v[4] == null)
@@ -1628,7 +1676,21 @@ boardname = "default"
                         x.push(y)
                     }
                 }
-                set(appData.cuevals, v[1], x)
+                    if(!appData.cuevals[v[1]][i])
+                    {
+                    
+                        Vue.set(appData.cuevals[v[1]],i,{})            
+
+                        
+                    }
+                        
+                        y = {
+                            "u": v[2],
+                            'ch': v[3],
+                            "v": v[4]
+                        }
+                    Vue.set(appData.cuevals[v[1]][v[2]],v[3],y)          
+                    
             }
 
 
@@ -1758,17 +1820,6 @@ boardname = "default"
 
         rebind = function(data)
         {
-            try 
-            {
-                gamepad.destroy()
-            }
-            catch (e)
-            {
-                pass = 1
-            }
-            gamepad = new Gamepad();
-            gamepad.on('connect', x, function(){appData.gamepad = true;console.log("gamepad")})
-            gamepad.on('disconnect', x, function(){appData.gamepad = false})
 
             
             var banks = data.split("[")

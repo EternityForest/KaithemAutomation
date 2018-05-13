@@ -299,9 +299,13 @@ This event last ran:
     for i in newevt.EventReferences[module,name].history:
         x+= i[1]-i[0]
         c+=1
-    avg_time =x/c
+    if c:
+        avg_time =x/c
 %>
-<br>Average Time(Last ${c} runs): ${unitsofmeasure.formatTimeInterval(avg_time,2)}<br>
+%if c:
+    <br>Average Time(Last ${c} runs): ${unitsofmeasure.formatTimeInterval(avg_time,2)}<br>
+%endif
+
 
 %try:
 %if newevt.EventReferences[module,name].lastcompleted>newevt.EventReferences[module,name].lastran:

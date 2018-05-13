@@ -70,6 +70,7 @@ __doc__= ""
 
     <p>If you set a nonzero length, the cue will automatically fade or jump to the next cue when it ends.</p>
 
+    <h4>Shortcut Codes</h4>
     <p>Every cue can have a "shortcut code", a brief string of characters use to quickly jumped to a cue. Typing this
         code in the shortcut box will instantly trigger that cue, and activate it's scene if it is not already active. 
         Multiple cues, in different scenes can have the same shortcut code and will all be activated when the code is entered.</p>
@@ -78,11 +79,13 @@ __doc__= ""
 
     <p>Scenes all have a special cue called "default" that is entered when activating a scene.</p>
 
+    <h4>Channels and layering</h4>
     <p>Cues have a list of "channels" they affect, that can be from any number of universes, a priority, and an opacity. Higher
         priority scenes "cover up" lower priority scenes, and their opacity is used to specify how "transparent" they are.</p>
 
     <p>If two scenes have the same priority, the scene started most recently goes "on top".</p>
 
+    <h4>Randomization</h4>
     <p>You can randomize the cue order in several ways. One is to set the next cue to the "special cue" __random__ which randomly selects a cue in the scene.
         Another is to specify a pipe-delimited list of cues, as in cue1|cue2|cue3|cue4.</p>
 
@@ -123,11 +126,22 @@ __doc__= ""
 
     <h3>Script Bindings</h3>
     <p>A cue may have a script that defines a set of event responses while that cue is active. Cue scripts follow the same general format as 
-        Keybindings, with each line mapping an event to an action. Currently, there are 2 events that can be responded to, cue.enter, and cue.exit.</p>
+        Keybindings, with each line mapping an event to an action. Currently, there are 2 builtin events that can be responded to, cue.enter, and cue.exit, however
+        you can set up bindings to arbitrary event names and trigger them in code.</p>
+
+    <p>Special characters in general are reserved. Spaces delimit arguments(except when escaped or between quotes), and backslashes escape.</p>
+
+    <p>You can trigger an event by calling the .event(s) method of a Scene object, where s is the name you want to trigger. kaithem.lights.event(s) will trigger an event for all active scenes.</p>
+
+    <p>Note that the set of commands and triggers is slightly different from the in-browser Keybindings.</p>
 
     <p>The cue.enter event fires when entering a cue, and the cue.exit event fires when exiting.</p>
 
     <p>Currently, only the goto [scene] [cue] and setalpha [scene] [alpha] commands are supported. For example, the line "cue.enter: setalpha scene4 0.8" sets the alpha of scene4 to 0.8 whenever that cue begins.</p>
+
+    <p>If a binding does not contain a colon, it is assumed to be for cue.enter. Example: "setalpha scene4 0.8"</p>
+
+    <p>Arguments are delimited by spaces, however quote marks and backslashes override this behavior and work much as they do in a UNIX command line. To use a literal quote of backslash you must escape it.</p>
 
     
 
@@ -149,8 +163,11 @@ __doc__= ""
 
     <p>Every scene has a dict of cues called cues, that contains "cue objects"</p>
 
-    <p>Add a cue to a scene simply by passing the scene to the cue constructor, as in:
-         cue = scene.Cue(name,**kwargs), and remove it with rmCue(name)</p>
+    <p>Add a cue to a scene simply by calling scene.Cue, as in:
+         cue = scene.Cue(name,**kwargs), and remove it with scene.rmCue(name)</p>
+    
+    <p>You may pass onEnter and onExit options to Cue, which must be functions of one argument, which will be the exact time the cue entered or exited, in seconds, using
+        a timebase that is not guaranteed to be the same as time.time(). They will be called when the cue enters or exits, respectively.</p>
     
     <p>cue.setLength(l), setFadein(l), and setNext(cuename) can be used. setNext(None) returns a cue to the default of having the next numbered cue as the next one</p>
     <p>To set a value, use cue.setValue(universe, channel, value), for example setValue("DMX", 45, 235).</p>
@@ -159,9 +176,19 @@ __doc__= ""
 
     <p>To activate and stop scenes, use scene.go() and scene.stop()</p>
 
+    <p>For network synchronization of two scenes, to cause cue transitions to match, use scene.setSyncKey(key), where key is a 32 byte binary string that must be the same on all scenes you want to sync</p>
+
+    <p>You can set the port and address with setSyncAddress and setSyncAddress, but the default multicast address and port should be fine.</p>
+
     <p>To go to a new cue, use scene.gotoCue(cuename)</p>
 
     <p>kaithem.lights.shortcutCode(code) has the same effect as manually typing that shortcut code in the web GUI</p>
+
+    <h3>General API</h3>
+
+    <h4>Scripting</h4>
+    <p>You can add a command to the script bindings using kaithem.lights.scriptActions, which is a weak value dict of command names. The first word in a script binding is
+        the command name, the rest will be split by spaces(double quotes and backslashes work as they do on a Linux command line) and passed as positional arguments to the function.</p>
 
     <h3>Fixtures</h3>
     <p>To show more information in the GUI besides just channel names, you can use the Fixture API. Fixtures are very simple.

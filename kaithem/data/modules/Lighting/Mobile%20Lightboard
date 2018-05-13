@@ -7,7 +7,7 @@ mimetype: text/html
 no-header: false
 no-navheader: true
 require-method: [GET, POST]
-require-permissions: []
+require-permissions: [lights/lightboard.admin]
 resource-type: page
 template-engine: mako
 
@@ -19,6 +19,7 @@ __doc__= ""
 boardname = "default"
 
 %>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lightboard</title>
 <style>
     .grey {
@@ -74,6 +75,14 @@ boardname = "default"
         border-width: 1.5px;
     }
 
+    button
+    {
+        font-size: 7mm;
+    }
+    input
+    {
+        font-size: 5mm;
+    }
 </style>
 <script>
     function findMatching(l, k, v)
@@ -119,6 +128,10 @@ boardname = "default"
 
 </script>
 
+
+<link rel="stylesheet" href="/static/img/icons/iconicss/iconicss.min.css">
+
+
 <div id="app">
 
     <div v class="sectionbox" style="float:left;overflow: auto; width:100%; height:90%; resize:both;" v-if="uimode=='scenes'">
@@ -127,7 +140,7 @@ boardname = "default"
                 v-model="sc_code" v-on:keydown.enter="shortcut()"></input>
         </label>
         <button v-on:click="shortcut()">Go!</button><br>
-        <button v-on:click="uimode='keybindings'">Keybindings</button>
+        <button v-on:click="uimode='keybindings'"><i class="icss-gears"></i>Keybindings</button>
         <button v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}">Off</button>
         <button v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}">On</button><br>
         <h3 title="All currently active scenes and all scenes that were created through the light board ar shown">Scenes</h3>
@@ -145,7 +158,7 @@ boardname = "default"
                 <br>
                 <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));"
                     :value="alphas[i[0]]" style="width:85%;height:2em;"><br>
-                <button class="gobutton" v-on:click="go(i[0])"  style="width:22%;height:2em;">Go!</button>
+                <button v-on:touchstart="go(i[0])"  style="width:22%;height:2em;">Go! <i class="icss-arrow-right" style="color:green;"></i></button>
                 <button v-on:click="nextcue(i[0])"  style="width:20%;height:2em;">&gt&gt</button>
                 <button class="stopbutton" v-on:click="stop(i[0])"  style="width:18%;height:2em;">Stop!</button>
     <br>
@@ -203,7 +216,7 @@ boardname = "default"
                 <br>
                   <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(scenename,parseFloat($event.target.value));"
                     :value="alphas[scenename]"  style="width:85%;height:2em;"><br>
-                <button class="gobutton" v-on:click="go(scenename)"  style="width:25%;height:2em;">Go!</button>
+                <button class="gobutton" v-on:touchstart="go(scenename)"  style="width:25%;height:2em;">Go!</button>
                 <button v-on:click="nextcue(scenename)"  style="width:15%;height:2em;">&gt&gt</button>
                 <button class="stopbutton" v-on:click="stop(scenename)"  style="width:15%;height:2em;">Stop!</button>
               <br>

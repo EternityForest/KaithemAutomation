@@ -42,29 +42,65 @@ try:
 except:
     pass
 
+
+def parseBinding(b):
+    """
+    Parse a binding like foo: bar, baz, "baz bar" into (foo,(bar,baz,baz bar))
+    Quote marks and escapes work like unix shell.
+    """
+    b=b.replace("\t"," ")
+    trigger, binding = b.split(":",1)
+    c =''
+    x = []
+    esc = False
+    q = False
+    for i in binding:
+        if esc:
+            esc = False
+            c+=i
+        elif i=='\\':
+            esc = True
+        elif q and not i=='"':
+            c+=i
+        elif i==' ':
+            x.append(c)
+            c = ''
+        elif i=='"':
+            q = not q
+        else:
+            c+=i
+    z = [i for i in x if i]
+    return trigger.strip(), z+([c] if c else [])
+
+
 def parseCommandBindings(cmd):
     l = {}
     for i in cmd.split("\n"):
         if not i:
             continue
-        x = i.split(':',1)
-        if len(x)==1:
-            if not '' in l:
-                l['']=[]
-            l[''].append(x[0])
-        else:
-            b = x[0].strip()
-            if not b in l:
-                l[b]=[]
-            l[b].append(x[1].strip())
+        x = parseBinding(i)
+        if not b in l:
+            l[b]=[]
+        l[b].append(x[1].strip())
     return l
 
+
+
+
+
 def runCommand(cmd):
+    cmdraw = cmd
     cmd = [i.strip() for i in cmd.split(' ')]
     if cmd[0] == "goto":
         module.scenes_by_name[cmd[1]].gotoCue(cmd[2])
-    if cmd[0] == "setalpha":
+    elif cmd[0] == "setalpha":
         module.scenes_by_name[cmd[1]].setAlpha(float(cmd[2]))
+    else:
+        f = kaithem.lights.scriptActions[cmd[0]]
+        if hasattr(f,'raw') and f.raw:
+            f(cmdraw)
+        else:
+            f(*cmd[1:])
 
 def listsoundfolder(path):
     soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
@@ -164,7 +200,7 @@ def pollsounds():
         if i.cue.sound and i.cue.rel_length:
             if not kaithem.sound.isPlaying(str(i.id)) and not i.sound_end:
                 i.sound_end = time.time()
-            if i.sound_end and (time.time()-i.sound_end>i.cue.length):
+            if i.sound_end and (time.time()-i.sound_end>(i.cue.length*i.bpm)):
                 i.nextCue()
 
 class ObjPlugin():
@@ -957,6 +993,7 @@ class LightBoard():
                 x = self.scenememory[i]
                 sd[i] = {   
                              'name':x.name,
+                             'bpm':x.bpm,
                              'alpha':x.defaultalpha,
                              'cues': {j:x.cues[j].serialize() for j in x.cues},
                              'priority'  : x.priority,
@@ -989,6 +1026,20 @@ class LightBoard():
 
     def pushMeta(self,sceneid):
         scene = module.scenes[sceneid]
+        
+        try:
+            if not scene.pavillionc:
+                subs=-1
+            else:
+                subs=0
+
+            subslist = []
+            if scene.pavillionc and scene.messagetargetstr in scene.pavillionc.client.knownSubscribers:
+                subs = len(scene.pavillionc.client.knownSubscribers[scene.messagetargetstr])
+                subslist = [str(i) for i in scene.pavillionc.client.knownSubscribers[scene.messagetargetstr]] if subs else []
+        except:
+            subs = -1
+            print(traceback.format_exc())
         self.link.send(["scenemeta",sceneid,     
                          {
                           'ext':not sceneid in self.scenememory ,
@@ -997,6 +1048,7 @@ class LightBoard():
                           'active': scene.isActive(),
                           'defaultActive': scene.defaultActive,
                           'name':scene.name,
+                          'bpm': round(scene.bpm,6),
                           'blend':scene.blend,
                           'blendArgs': scene.blendArgs,
                           'blendDesc':getblenddesc(scene.blend),
@@ -1009,7 +1061,9 @@ class LightBoard():
                           'cuelen': scene.cuelen,
                           'syncKey': scene.syncKey,
                           'syncAddr': scene.syncAddr,
-                          'syncPort': scene.syncPort
+                          'syncPort': scene.syncPort,
+                          'subs': subs,
+                          'subslist': subslist
                 }])
                 
     def pushCueMeta(self,cueid):
@@ -1237,9 +1291,15 @@ class LightBoard():
             
             if msg[0] == "setsyncport":
                 module.scenes[msg[1]].setSyncPort(int(msg[2]))
-            
+
+            if msg[0] == "tap":
+                module.scenes[msg[1]].tap(msg[2])
+            if msg[0] == "setbpm":
+                module.scenes[msg[1]].setBPM(msg[2])
+
             if msg[0] == "setalpha":
                 module.scenes[msg[1]].setAlpha(msg[2])
+
                 
             if msg[0] == "setdalpha":
                 module.scenes[msg[1]].setAlpha(msg[2],sd=True)
@@ -1508,7 +1568,7 @@ def render(t=None):
 
         #We don't need to call render() if the frame is a static scene and the opacity
         #and all that is the same, we can just re-layer it on top of the values
-        if i.rerender or (i.cue.length and ((time.time()-i.enteredCue)>i.cuelen)):
+        if i.rerender or (i.cue.length and ((time.time()-i.enteredCue)>i.cuelen*(60/i.bpm))):
             i.rerender = False
             i.render()
 
@@ -1647,13 +1707,15 @@ cues =weakref.WeakValueDictionary()
 
 class Cue():
     "A static set of values with a fade in and out duration"
-    __slots__=['id','changed','next_ll','alpha','fadein','fadeout','length','lengthRandomize','name','values','scene','nextCue','track','shortcut','number','inherit','sound','rel_length','script','soundOutput','__weakref__']
+    __slots__=['id','changed','next_ll','alpha','fadein','fadeout','length','lengthRandomize','name','values','scene','nextCue','track','shortcut','number','inherit','sound','rel_length','script','soundOutput','onEnter','onExit','__weakref__']
     def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, fadeout=0, length=0,track=True, nextCue = None,shortcut=None,sound='',soundOutput=None,rel_length=False, id=None,number=None,
-        lengthRandomize=0,script='',**kw):
+        lengthRandomize=0,script='',onEnter=None,onExit=None,**kw):
         #This is so we can loop through them and push to gui
         self.id = random.random()+time.time()
         self.name = name
         self.script = script
+        self.onEnter = onEnter
+        self.onExit = onExit
         disallow_special(name)
         if name[0] in '1234567890 \t_':
             name = 'x'+name
@@ -1807,7 +1869,7 @@ class Cue():
 
 class Scene():
     "An objecting representing one scene"
-    def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,blendArgs=None,backtrack=True,defaultCue=True, syncKey=None, syncAddr="239.255.28.12", syncPort=1783):
+    def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,blendArgs=None,backtrack=True,defaultCue=True, syncKey=None, bpm=60, syncAddr="239.255.28.12", syncPort=1783):
 
 
        
@@ -1833,6 +1895,12 @@ class Scene():
         self.values = values or {}
         self.canvas = None
         self.backtrack = backtrack
+        self.bpm = bpm
+
+        #Used for the tap tempo algorithm
+        self.lastTap = 0
+        self.tapSequence = 0
+        
         #The list of cues as an actual list that is maintained sorted by number
         self.cues_ordered = []
         #This flag is used to avoid having to repaint the canvas if we don't need to
@@ -1927,12 +1995,19 @@ class Scene():
         msgtarget = hashlib.sha256(bsynckey).hexdigest()
         self.messagetargetstr = msgtarget
 
+        try:
+            self.pavillionc.close()
+            self.pavillions.close()
+        except:
+            pass
+
         self.pavillions = pavillion.Server(keys={b'0'*16:bsynckey},port=self.syncPort,multicast=self.syncAddr)
         self.pavillionc = pavillion.Client(psk=bsynckey, clientID=b'0'*16,address=(self.syncAddr, self.syncPort))
-        
+        self.pavillions.ignore[self.pavillionc.address]=True
+        print(self.pavillionc.address)
+
 
         def f(name,data, client):
-            print(data, client)
             if name =="cue":
                 data=data.decode("utf-8")
                 data = data.split("\n")
@@ -2076,6 +2151,15 @@ class Scene():
                 i().newDataFunctions.append(lambda s:s.pushMeta(self.id))
 
     
+    def event(self, s):
+        "Manually trigger any script bindings on an event"
+        with self.event:
+            for i in self.commandBindings[s]:
+                            try:
+                                runCommand(i)
+                            except Exception as e:
+                                print(traceback.format_exc(6))
+
     def gotoCue(self, cue,t=None, sendSync=True):
         "Goto cue by name, number, or string repr of number"
         with module.lock:
@@ -2159,6 +2243,12 @@ class Scene():
                 self.commandBindings= parseCommandBindings(cobj.script)
             except:
                 print(traceback.format_exc(6))
+            
+            if self.cue.onExit:
+                self.cue.onExit(t)
+
+            if cobj.onEnter:
+                cobj.onEnter(t)
 
             if "cue.enter" in self.commandBindings:
                 for i in self.commandBindings['cue.enter']:
@@ -2235,7 +2325,6 @@ class Scene():
             self.pushMeta(cue=True)
 
     def nextCue(self,t=None):
-        print("Next cue")
         with module.lock:
             if self.cue.nextCue and ((self.cue.nextCue in self.cues) or self.cue.nextCue.startswith("__")):
                 self.gotoCue(self.cue.nextCue,t)
@@ -2333,6 +2422,60 @@ class Scene():
             self.gotoCue(self.cue.name)
             self.enteredCue = x
             self.rerender=True
+        self.hasNewInfo = {}
+
+    def setBPM(self,b):
+        b =float(b)
+        if self.bpm == b:
+            return
+        else:
+            self.bpm = b
+            self.rerender=True
+        self.hasNewInfo = {}
+
+    def tap(self, t=None):
+        "Do a tap tempo tap. If the tap happened earlier, use t to enter that time"
+        t = t or time.time()
+
+        x= t-self.lastTap
+
+        self.lastTap = t
+
+        l = 60/self.bpm
+        
+        
+        if x> 8:
+            self.tapSequence = 0
+
+        if self.tapSequence> 1:
+            if abs(x-l)> l*0.05:
+                self.tapSequence = 0
+
+        if self.tapSequence:
+            f = max(1/self.tapSequence,0.06)
+            self.bpm = self.bpm*(1-f) + (60/(x))*f
+        self.tapSequence+= 1
+
+        l= 60/self.bpm
+        ts = t-self.enteredCue
+        beats =  ts/l
+
+        fbeat = beats%1
+        #We are almost right on where a beat would be, make a small phase adjustment
+
+        #Back project N beats into the past finding the closest beat to when we entered the cue
+        new_ts = round(beats)*l
+        x = t-new_ts
+
+        if (fbeat<0.1 or fbeat>0.90) and self.tapSequence:
+            #Filter between that backprojected time and the real time
+            #Yes I know we already incremented tapSequence
+            f = 1/self.tapSequence**1.2
+            self.enteredCue = self.enteredCue*(1-f) + x*f
+        elif self.tapSequence:
+            #Just change enteredCue to match the phase.
+            self.enteredCue = x
+        self.hasNewInfo = {}
 
 
     def stop(self):
@@ -2477,19 +2620,19 @@ class Scene():
     def render(self,force_repaint=False):
         "Calculate the current alpha value, handle stopping the scene and spawning the next one"
         if self.cue.fadein:
-            fadePosition = min((time.time()-self.enteredCue)/self.cue.fadein,1)
+            fadePosition = min((time.time()-self.enteredCue)/(self.cue.fadein*(60/self.bpm)),1)
         else:
             fadePosition = 1
 
         if fadePosition<1:
             self.rerender = True
 
-        if self.cue.length and(time.time()-self.enteredCue)> self.cuelen:
+        if self.cue.length and(time.time()-self.enteredCue)> self.cuelen*(60/self.bpm):
             #rel_length cues end after the sound in a totally different part of code
             if not self.cue.rel_length:
                 #Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
                 #Then round to the nearest millisecond to prevent long term drift due to floating point issues.
-                self.nextCue(round(self.enteredCue+self.cuelen,3))
+                self.nextCue(round(self.enteredCue+self.cuelen*(60/self.bpm),3))
         else:
             if force_repaint or not self.fadeInCompleted:
                 if fadePosition == 1:
@@ -2501,6 +2644,12 @@ class Scene():
                                 self.affect.append(i)
                     self.fadeInCompleted = True
                 self.canvas.paint(self.cue, fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays,track=self.cue.track)
+
+
+def event(s):
+    with module.lock:
+        for i in module.activeScenes:
+            i.event(s)
 
 
 lastrendered = 0
@@ -2516,6 +2665,10 @@ kaithem.lights.scenesByName = module.scenes_by_name
 kaithem.lights.Universe = Universe
 kaithem.lights.blendmodes = blendmodes
 kaithem.lights.fixture = Fixture
+kaithem.lights.shortcut = shortcutCode
+kaithem.lights.scriptActions = weakref.WeakValueDictionary()
+kaithem.lights.event = event
+
 
 module.controluniverse = Universe("control")
 

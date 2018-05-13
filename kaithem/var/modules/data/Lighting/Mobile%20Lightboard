@@ -7,7 +7,7 @@ mimetype: text/html
 no-header: false
 no-navheader: true
 require-method: [GET, POST]
-require-permissions: []
+require-permissions: [lights/lightboard.admin]
 resource-type: page
 template-engine: mako
 
@@ -19,6 +19,7 @@ __doc__= ""
 boardname = "default"
 
 %>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lightboard</title>
 <style>
     .grey {
@@ -46,7 +47,7 @@ boardname = "default"
         !important
     }
 
-    div.run {
+    .run {
         background-color: rgba(128, 190, 128, 0.4);
         !important
     }
@@ -74,6 +75,14 @@ boardname = "default"
         border-width: 1.5px;
     }
 
+    button
+    {
+        font-size: 7mm;
+    }
+    input
+    {
+        font-size: 5mm;
+    }
 </style>
 <script>
     function findMatching(l, k, v)
@@ -88,7 +97,6 @@ boardname = "default"
     }
 
 </script>
-<script src="gamepad.js"></script>
 <script src="${kaithem.web.resource('jquery-3.1.0')}"></script>
 <script src="${kaithem.web.resource('vue-2.3.4')}"></script>
 <script type="text/javascript" src="/static/widget.js"></script>
@@ -120,6 +128,10 @@ boardname = "default"
 
 </script>
 
+
+<link rel="stylesheet" href="/static/img/icons/iconicss/iconicss.min.css">
+
+
 <div id="app">
 
     <div v class="sectionbox" style="float:left;overflow: auto; width:100%; height:90%; resize:both;" v-if="uimode=='scenes'">
@@ -127,8 +139,10 @@ boardname = "default"
             <input size=8 title="Enter a cue's shortcut code here to activate it'" placeholder="Shortcut"
                 v-model="sc_code" v-on:keydown.enter="shortcut()"></input>
         </label>
-        <button v-on:click="shortcut()">Go!</button>
-
+        <button v-on:click="shortcut()">Go!</button><br>
+        <button v-on:click="uimode='keybindings'"><i class="icss-gears"></i>Keybindings</button>
+        <button v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}">Off</button>
+        <button v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}">On</button><br>
         <h3 title="All currently active scenes and all scenes that were created through the light board ar shown">Scenes</h3>
 
         <button v-on:click="scenefilter=''">X</button>
@@ -137,14 +151,14 @@ boardname = "default"
         <button v-bind:class="{highlight:showAll}" v-on:click="showAll=true" title="Show all scenes owned by this board">Board</button>
         <br/>
         <div id="scene" style="overflow: scroll; max-height:450px;">
-            <p v-for="i in formatScenes()" v-bind:class="{'scene':1, 'grey':i[1].doingHandoff, run:i[1].active &(!i[1].doingHandoff)}"
+            <p v-for="i in formatScenes()" v-bind:class="{'scene':1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                 style="border-style:solid; border-width:1px;">
                 <button v-bind:class="{specialentry:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])" style="font-size:130%"><b>{{i[1].name}}</b><span v-if="i[1].ext" class="grey"> (external)</span></button>
                 <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</span><br>
                 <br>
                 <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));"
                     :value="alphas[i[0]]" style="width:85%;height:2em;"><br>
-                <button class="gobutton" v-on:click="go(i[0])"  style="width:22%;height:2em;">Go!</button>
+                <button v-on:touchstart="go(i[0])"  style="width:22%;height:2em;">Go! <i class="icss-arrow-right" style="color:green;"></i></button>
                 <button v-on:click="nextcue(i[0])"  style="width:20%;height:2em;">&gt&gt</button>
                 <button class="stopbutton" v-on:click="stop(i[0])"  style="width:18%;height:2em;">Stop!</button>
     <br>
@@ -158,20 +172,51 @@ boardname = "default"
         </div>
     </div>
 
+    <div  class="sectionbox" style="float:left;overflow: auto; width:100%; height:90%; resize:both;" v-if="uimode=='keybindings'">
+        <h3>Key Bindings</h3>
+       <button v-on:click="uimode='scenes'" width="30%">Back</button>
+        <button v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}">Edit</button>
+        <button v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}">Run</button>
+        Show Help:
+        <input type="checkbox" v-model="showkeybindhelp">
+        <p class=meubar>Current Bank: {{currentBindingBank}}</p>
+        <div v-if="showkeybindhelp">
+            <p class="help">
+                One keybinding per line, as in space+x: go scene<br> Valid commands:
+                <br>sc [shortcutcode]
+                <br>go [scene]<br> stop [scene]<br>goto [scene] [cue]
+                <br>next [scene]<br> toggle [scene].<br><br> To organize bindings
+                into banks, <br>put the bank's name in square brackets on a line.<br>                when the page loads, the bank is 'default'.<br> To switch banks,
+                use the bank [name] command.
+                <br><br> Use the goto command to make a scene jump to a cue. Example
+                "a: goto scenename cuename". You can use either the cue number or
+                the cue name in a binding.</br><br> Use sc to trigger all cues attached
+                to a given shortcut code. Example: "a: sc code"</br>
+                Use go to activate a scene, stop to stop it, and toggle to toggle it.
 
-    <div v class="sectionbox" style="float:left;overflow: auto; width:100%; height:90%; resize:both;" v-if="uimode=='cues'">
+            </p>
+        </div>
+        <p>
+            <textarea style="width:80%;" v-model="keybindscript" v-on:focus="editMode"></textarea>
+        </p>
+        <button v-on:click="localStorage.setItem('keybind-script',keybindscript)">Save these keybindings to my browser as the defaults.</button>
+
+
+    </div>
+
+    <div class="sectionbox" style="float:left;overflow: auto; width:100%; height:90%; resize:both;" v-if="uimode=='cues'">
         <button v-on:click="uimode='scenes'" width="90%">Back to scenes listing</button><br>
 
         <h3>{{editingScene.name}}</h3>
          <div>
-            <div v-bind:class="{'scene':1, 'grey':editingScene.doingHandoff, run:editingScene.active &(!editingScene.doingHandoff)}"
+            <div v-bind:class="{'scene':1, 'grey':editingScene.doingHandoff, 'run':editingScene.active &(!editingScene.doingHandoff)}"
                 style="border-style:solid; border-width:1px;">
                 <span v-if="editingScene.ext" class="grey"> (external)</span></button>
                 <span v-if="editingScene.active && cuemeta[editingScene.cue]">Current Cue: {{cuemeta[editingScene.cue].name}}</span><br>
                 <br>
                   <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(scenename,parseFloat($event.target.value));"
                     :value="alphas[scenename]"  style="width:85%;height:2em;"><br>
-                <button class="gobutton" v-on:click="go(scenename)"  style="width:25%;height:2em;">Go!</button>
+                <button class="gobutton" v-on:touchstart="go(scenename)"  style="width:25%;height:2em;">Go!</button>
                 <button v-on:click="nextcue(scenename)"  style="width:15%;height:2em;">&gt&gt</button>
                 <button class="stopbutton" v-on:click="stop(scenename)"  style="width:15%;height:2em;">Stop!</button>
               <br>
@@ -276,7 +321,6 @@ boardname = "default"
             {
                 'blah': { 'type': 'enttec', 'interface': 'xyz' }
             },
-            'gamepad':false,
             'newuniversename': "",
             'fixtureClasses': { 'dfjlkdjf': [] },
             'selectedFixtureClass': '',
@@ -944,8 +988,8 @@ boardname = "default"
             },
             'editMode': function()
             {
-                keyboardJS.reset();
                 appData.keybindmode = "edit";
+                keyboardJS.reset();
             },
             'runMode': function()
             {
@@ -1254,19 +1298,7 @@ boardname = "default"
 
         rebind = function(data)
         {
-            try 
-            {
-                gamepad.destroy()
-            }
-            catch (e)
-            {
-                pass = 1
-            }
-            gamepad = new Gamepad();
-            gamepad.on('connect', x, function(){appData.gamepad = true;console.log("gamepad")})
-            gamepad.on('disconnect', x, function(){appData.gamepad = false})
-
-            
+      
             var banks = data.split("[")
             keyboardJS.reset()
             for (var bank in banks)
@@ -1299,20 +1331,6 @@ boardname = "default"
                             command = command.split(" ")
 
 
-
-                            if (binding.startsWith('gamepad'))
-                            {
-                                var x = { 'a': 'button_1', 'A': 'button_1', 'b': 'button_2', 'B': 'button_2' }[binding.split('.')[1]]
-                                if (command[0] == 'goto')
-                                {
-
-                                }
-                                gamepad.on('press', x, goto(command[1],
-                                    command.slice(2).join('').trim()
-                                ))
-                        
-                            }
-                            else{
 
                             if (command[0] == 'go')
                             {
@@ -1354,7 +1372,7 @@ boardname = "default"
                                     1]))
                             }
                             }
-                        }
+                        
                         catch (e)
                         {
                             alert("Bad binding script line:" + lines[i] +

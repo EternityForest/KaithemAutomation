@@ -16,7 +16,7 @@
 import weakref, types, collections, struct, time, socket,threading,random,os,logging,traceback
 
 from .common import ciphers,DEFAULT_MCAST_ADDR,DEFAULT_PORT,nonce_from_number,pavillion_logger
-
+from . import common
 
 
 SESSION_TIMEOUT = 300
@@ -54,7 +54,7 @@ class _ServerClient():
         self.server = server
         self.client_counter =0
         self.clientID = None
-
+        self.guest_key = None
         #ServerChallenge in the docs
         self.challenge = os.urandom(16)
         self.plaintext = plaintext
@@ -145,7 +145,17 @@ class _ServerClient():
             if opcode==1:
                 cipher = msg[0]
                 clientID = msg[1:17]
-                challenge = msg[17:]
+                challenge = msg[17:17+17]
+
+                client_pubkey = msg[17+16:]
+
+                if self.server.allow_guest and not clientID in self.server.pubkeys:
+                    #Don't let someone else mess up the connection
+                    if self.guest_key and not self.guest_key == client_pubkey:
+                        return
+
+                    self.guest_key = client_pubkey
+                    self.guest_id = clientID
 
 
                 if not ciphers[cipher].asym_setup:
@@ -163,7 +173,7 @@ class _ServerClient():
                     self.sendSetup(0, 2,m)
                 
                 else:
-                    if not clientID in self.server.pubkeys:
+                    if (not clientID in self.server.pubkeys) and not self.guest_key:
                         if self.ignore<time.time():
                             #Send the invalid message
                             self.sendSetup(0, 6,challenge)
@@ -171,7 +181,7 @@ class _ServerClient():
                         self.ignore = time.time()+10*60
                         return
 
-                    clientkey = self.server.pubkeys[clientID]
+                    clientkey = self.guest_key or self.server.pubkeys[clientID]
                     m = self.nonce+challenge
                     n= os.urandom(24)
                     m = n+ciphers[cipher].pubkey_encrypt(m,n,clientkey,self.server.ecc_keypair[1])
@@ -182,7 +192,6 @@ class _ServerClient():
             if opcode==3:
                 ciphernumber,clientid,clientnonce,servernonce,clientcounter,h = struct.unpack("<B16s32s32sQ32s",msg)
                 if not servernonce == self.nonce:
-                    logging.warning("Non matching nonce in client info packet"+str(servernonce)+'||'+str(self.nonce))
                     return
 
                 cipher = ciphers[ciphernumber]
@@ -213,7 +222,10 @@ class _ServerClient():
                 cipher = msg[16]
 
                 decrypt = ciphers[cipher].pubkey_decrypt
-                msg= decrypt(msg[17+24:],msg[17:17+24],self.server.pubkeys[clientID],self.server.ecc_keypair[1])
+
+                cpubkey = self.guest_key or self.server.pubkeys[clientID]
+
+                msg= decrypt(msg[17+24:],msg[17:17+24],cpubkey,self.server.ecc_keypair[1])
 
                 nonce, ckey,skey, counter= struct.unpack("<32s32s32sQ",msg)
                 if nonce==self.nonce:
@@ -223,10 +235,14 @@ class _ServerClient():
                     self.ckey, self.skey, self.client_counter = ckey,skey,counter
                     self.decrypt = ciphers[cipher].decrypt
                     self.encrypt = ciphers[cipher].encrypt
+
+                    #If we used a guest key, report the hash of said guest key
+                    if self.guest_key:
+                        self.clientID = common.libnacl.generic_hash(self.guest_key)
                     logging.info("Setup connection with client via ECC")
 
 class _Server():
-    def __init__(self,port=DEFAULT_PORT,keys=None,pubkeys=None,address='',multicast=None, ecc_keypair=None, handle=None):
+    def __init__(self,port=DEFAULT_PORT,keys=None,pubkeys=None,address='',multicast=None, ecc_keypair=None, handle=None, allow_guest=False):
         """The private server object that the user should not see except via the interface.
            This is because we don't want to
         
@@ -242,14 +258,19 @@ class _Server():
 
         #Not implemented yet
         self.broker=False
+        self.ignore = {}
 
 
         self.keys = keys or {}
         self.pubkeys= pubkeys or {}
 
         self.port = port
-
         self.address = (address, port)
+
+
+        self.guest_key = None
+        self.allow_guest = allow_guest
+
 
         def cl(*args):
             self.close()
@@ -258,6 +279,8 @@ class _Server():
         if handle:
             self.handle = weakref.ref(handle,cl)
     
+     
+
         # Create the socket
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -266,6 +289,8 @@ class _Server():
         # Bind to the server address
         self.sock.bind(self.address)
         self.sock.settimeout(1)
+
+        self.sendsock = self.sock
 
         self.mcastgroup = multicast
         #Subscribe to any requested mcast group
@@ -280,10 +305,7 @@ class _Server():
 
         self.ecc_keypair = ecc_keypair
         self.running = True
-        t = threading.Thread(target=self.loop)
-        t.name+=":PavillionServer"
-        t.start()
-
+     
 
         self.knownclients = collections.OrderedDict()
 
@@ -294,15 +316,41 @@ class _Server():
         self.targetslock = threading.Lock()
         self.lock = threading.Lock()
 
-        #Max number of clients we keep track of, icluding ignored ones
+        with common.lock:
+            if not common.allow_new:
+                raise RuntimeError("System shutting down")
+            common.cleanup_refs.append(weakref.ref(self))
+
+
+        #Max number of clients we keep track of, including ignored ones
         self.maxclients = 512
+        t = threading.Thread(target=self.loop)
+        t.name+=":PavillionServer"
+        t.start()
+
+
+
 
     def onRPCCall(self, f, data,clientID):
         pass
 
     def close(self):
-        pavillion_logger.info("Closing server "+str(self))
-        self.running=False
+        with self.lock:
+            pavillion_logger.info("Closing server "+str(self))
+
+            if self.running:
+                try:
+                    for i in self.knownclients:
+                        if self.knownclients[i].encrypt:
+                            self.knownclients[i].sendSecure(self.knownclients[i].counter+1,12,b'')
+                except:
+                    pavillion_logger.exception("Error sending close message")
+            self.running=False
+
+            with common.lock:
+                if self in common.cleanup_refs:
+                    common.cleanup_refs.append(self)
+
 
     def messageTarget(self,target,callback):
         m = MessageTarget(target,callback)
@@ -388,8 +436,21 @@ class _Server():
                 print(traceback.format_exc())
                 self.counter += 1
                 self.knownclients[addr].send(self.counter,5,struct.pack("<Q",counter)+b'\x01\x01Exception on remote server\r\n'+traceback.format_exc(6).encode('utf-8'))
-                
 
+        elif opcode==12:
+            try:
+                del self.knownclients[addr]
+            except:
+                logging.exception("error closing connection")
+                    
+    def _cleanupSessions():
+        torm=[]
+        for i in sorted(list(self.knownclients.items()),key=lambda x: x[1].created):
+            if i[1].lastSeen < time.time()-SESSION_TIMEOUT:
+                torm.append(i[1].address)
+        for i in torm:
+            del self.knownclients[i]
+            break
 
     def loop(self):
         while(self.running):
@@ -397,22 +458,17 @@ class _Server():
                 m,addr = self.sock.recvfrom(4096)
             except socket.timeout:
                 continue
-         
+            if addr in self.ignore:
+                continue
             try:
                 if addr==self.address:
                     continue
                 if not addr in self.knownclients:
                     #If we're out of space for new clients, go through and find one we haven't seen in a while.
                     if len(self.knownclients)>self.maxclients:
-                        torm=False
-                        for i in sorted(list(self.knownclients.items()),key=lambda x: x[1].created):
-                            if i[1].lastSeen < time.time()-SESSION_TIMEOUT:
-                                torm=i[0]
-                        if torm:
-                            del self.knownclients[torm]
-                        else:
-                            #Don't drop old sessions for new ones
-                            continue
+                        self._cleanupSessions()
+                    if len(self.knownclients)>self.maxclients:
+                        continue
 
                     self.knownclients[addr] = _ServerClient(self, addr)
                 self.knownclients[addr].onRawMessage(addr,m)
@@ -423,16 +479,17 @@ class _Server():
         self.sock.close()
 
 
-
 class Server():
     """The public interface object that a user might interact with for a Server object"""
-    def __init__(self,port=DEFAULT_PORT, keys=None,pubkeys=None, address='',multicast=None,ecc_keypair=None):
+    def __init__(self,port=DEFAULT_PORT, keys=None,pubkeys=None, address='',multicast=None,ecc_keypair=None,allow_guest=False):
         keys = keys or {}
         #Yes, we want the objects to share the mutable dict, 
         self.keys = keys
         self.pubkeys = pubkeys
-        self.server = _Server(port=port,keys=keys,pubkeys=pubkeys,address=address,multicast=multicast,ecc_keypair=ecc_keypair,handle=self)
+        self.server = _Server(port=port,keys=keys,pubkeys=pubkeys,address=address,multicast=multicast,ecc_keypair=ecc_keypair,handle=self,allow_guest=allow_guest)
         self.registers = self.server.registers
+        self.ignore = self.server.ignore
+
     def messageTarget(self,target,function):
         "Subscibe function to target, and return a messageTarget object that you must retain in order to keep the subscription alive"
         return self.server.messageTarget(target,function)
