@@ -922,7 +922,7 @@ class LightBoard():
                 self.pushChannelNames(u)
 
             self.ferrs = self.ferrs or 'No Errors!'
-            self.pushferrs()
+            self.pushfixtures()
 
         
     def createUniverses(self):
@@ -975,10 +975,13 @@ class LightBoard():
         except:
             pass
             
-    def pushferrs(self):
+    def pushfixtures(self):
         "Errors in fixture list"
         self.link.send(["ferrs",self.ferrs])   
-
+        try:
+            self.link.send(['fixtures', [[i,module.fixtures[i].universe,module.fixtures[i].startAddress] for i in sorted(list(module.fixtures.keys()))]])
+        except:
+            pass
             
     def pushUniverses(self):
         self.link.send(["universes",{i:{'count':len(module.universes[i].values), 
@@ -1142,7 +1145,7 @@ class LightBoard():
 
             if msg[0] == "getfixtureassg":
                 self.link.send(['fixtureassg','\n'.join([', '.join(i) for  i in self.fixtureAssignments])])
-                self.pushferrs()
+                self.pushfixtures()
                 
             if msg[0] == "clonecue":
                 cues[msg[1]].clone(msg[2])
@@ -1206,6 +1209,42 @@ class LightBoard():
                     val = 0
                 cues[msg[1]].setValue(msg[2],msg[3],val)
 
+            if msg[0] == "addcuef":
+                x = module.fixtures[msg[2]]
+                ch = x.startAddress
+                u = x.universe
+                if not ch:
+                    return
+                if not u:
+                    return
+
+                for i in x.channels:
+                    if not i[1]=="unused":
+                        if hasattr(cues[msg[1]].scene().blendClass,'default_channel_value'):
+                            val = cues[msg[1]].scene().blendClass.default_channel_value
+                        else:
+                            val = 0
+                        cues[msg[1]].setValue(u,ch,val)
+                    ch+=1
+                s = cues[msg[1]]
+                self.link.send(["cuedata",msg[1],s.values])
+
+            if msg[0] == "rmcuef":
+                x = module.fixtures[msg[2]]
+                ch = x.startAddress
+                u = x.universe
+                if not ch:
+                    return
+                if not u:
+                    return
+
+                for i in x.channels:
+                    cues[msg[1]].setValue(u,ch,None)
+                    ch+=1
+                s = cues[msg[1]]
+                self.link.send(["cuedata",msg[1],s.values])
+
+
             if msg[0] == "rmsceneval":
                 s = scenes[msg[1]]
                 s.setValue(msg[2],None)
@@ -1249,6 +1288,7 @@ class LightBoard():
             if msg[0] == "gasd":
                 with module.lock:
                     self.pushUniverses()
+                    self.pushfixtures()
                     for i in self.scenememory:
                         s = self.scenememory[i]
                         self.pushCueList(s.id)
@@ -1830,7 +1870,7 @@ class Cue():
         with module.lock:
             self.scene().rerender = True
             reset = False
-            if not value is None:
+            if not (value is None):
                 if not universe in self.values:
                     self.values[universe] = {}
                     reset = True

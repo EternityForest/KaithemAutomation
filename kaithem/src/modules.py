@@ -343,8 +343,52 @@ class ResourceAPI(object):
 kaithemobj.kaithem.resource = ResourceAPI()
 
 
+
+def parsePyModule(s):
+    "Unused at the moment"
+    md =''
+    tr = ''
+    act =''
+    mode = 'setup'
+
+    for i in s.split(lines):
+
+        if not( i.startswith(' ') or i.startswith('\t')):
+            if 'kaithem_event_trigger' in i:
+                mode='trig'
+            if 'kaithem_event_act' in i:
+                mode='act'
+            if '#---BEGIN_METADATA---' in i:
+                mode = 'meta'
+            if '#---END_METADATA---' in i:
+                mode = 'setup'
+            continue
+
+        if mode=='trig':
+            if not i.strip():
+                continue
+            if i.strip().startswith("#"):
+                continue
+            if tr:
+                raise ValueError("Multiline trigger")
+            i = i.strip()
+            if i.startswith('return'):
+                tr = i[6:]
+
+        if mode=='act':
+            i = i.strip()
+            act+=i+'\n'
+                    
+        if mode=='meta':
+            i = i.strip()
+            md+=i+'\n'
+
+        if mode=='setup':
+            i = i.strip()
+            setup+=i+'\n'
+                   
 #Backwards compatible resource loader.
-def loadResource(fn):
+def loadResource(fn,ver=1):
     try:
         with open(fn,"rb") as f:
             try:

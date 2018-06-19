@@ -270,7 +270,7 @@ kaithemobj.kaithem.misc.version_info = __version_info__
 modules.initModules()
 logger.info("Loaded modules")
 
-
+import mimetypes
 #This class represents the "/" root of the web app
 class webapproot():
     #"/" is mapped to this
@@ -279,6 +279,22 @@ class webapproot():
         pages.require("/admin/mainpage.view")
         cherrypy.response.cookie['LastSawMainPage'] = time.time()
         return pages.get_template('index.html').render()
+
+
+    @cherrypy.expose
+    def zipstatic(self,*path,**data):
+        """
+        take everything but the last path element, use it as a path relative to static dir
+        open as a zip, use the last as filename in the zip, return it.
+        """
+        if ".." in path:
+            return
+        m =mimetypes.guess_type(path[-1])
+        cherrypy.response.headers['Content-Type'] = m[0]
+        p = os.path.join(ddn,'static',*path[:-1])
+        with zipfile.ZipFile(p) as f:
+            d = f.read(path[-1])
+        return d
 
     @cherrypy.expose
     def pagelisting(self,*path,**data):
@@ -354,6 +370,8 @@ def cpexception():
     else:
         cherrypy.response.body= bytes(pages.get_template('errors/cperror.html').render(e=_cperror.format_exc()),'utf8')
 
+
+import zipfile
 
 
 
@@ -434,6 +452,10 @@ cnf={
         "tools.addheader.on": True
         },
 
+    '/static/zip':
+        {
+        'request.dispatch': cherrypy.dispatch.MethodDispatcher()
+        },
     '/pages':
         {
         'tools.allow_upload.on':True,

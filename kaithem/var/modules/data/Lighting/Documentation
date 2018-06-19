@@ -241,4 +241,8 @@ __doc__= ""
 
 
     <p>You must call __init__ of the superclass in your init, and names must be unique. Duplicates replace the old one.</p>
+
+    <h3>LAN Time</h3>
+    <p>From the setup page, you can configure the lighting system to use an auto-discovered MDNS server if available.</p>
+    
 </div>

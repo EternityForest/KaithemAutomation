@@ -207,7 +207,7 @@ class _ServerClient():
                     self.ckey= keyedhash(clientnonce,psk)
                     self.lastseen = time.time()
                     #Server to client session key
-                    self.skey= keyedhash(servernonce+clientnonce,psk)
+                    self.skey= keyedhash(clientnonce+servernonce,psk)
 
                     self.client_counter = clientcounter
 
@@ -349,7 +349,7 @@ class _Server():
 
             with common.lock:
                 if self in common.cleanup_refs:
-                    common.cleanup_refs.append(self)
+                    common.cleanup_refs.remove(self)
 
 
     def messageTarget(self,target,callback):
@@ -390,14 +390,15 @@ class _Server():
 
                 #Repeat messages to all the other clients if broker mode is enabled.
                 if self.broker:
-                    try:
-                        for i in self.knownclients:
-                            if not i == addr:
-                                if d[0] in self.knownclients[i].subscriptions:
-                                    self.counter+=1
-                                    self.knownclients[addr].send(self.counter,i,data)
-                    except:
-                        pass
+                    with self.lock:
+                        try:
+                            for i in self.knownclients:
+                                if not i == addr:
+                                    if d[0] in self.knownclients[i].subscriptions:
+                                        self.counter+=1
+                                        self.knownclients[addr].send(self.counter,i,data)
+                        except:
+                            pass
 
                 s = self.messageTargets[d[0].decode('utf-8')]
                 with self.targetslock:
@@ -439,7 +440,8 @@ class _Server():
 
         elif opcode==12:
             try:
-                del self.knownclients[addr]
+                with self.lock:
+                    del self.knownclients[addr]
             except:
                 logging.exception("error closing connection")
                     
@@ -460,13 +462,17 @@ class _Server():
                 continue
             if addr in self.ignore:
                 continue
+
+            #There's a possibility of dropped packets in a race condition between getting rid of
+            #and remaking a server. It doesn't matter, UDP is unreliable anyway
             try:
                 if addr==self.address:
                     continue
                 if not addr in self.knownclients:
                     #If we're out of space for new clients, go through and find one we haven't seen in a while.
                     if len(self.knownclients)>self.maxclients:
-                        self._cleanupSessions()
+                        with self.lock:
+                            self._cleanupSessions()
                     if len(self.knownclients)>self.maxclients:
                         continue
 

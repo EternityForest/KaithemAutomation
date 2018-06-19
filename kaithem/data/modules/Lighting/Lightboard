@@ -31,12 +31,10 @@ boardname = "default"
     div.hfader {
         border-style: solid;
         border-radius: 5px;
-        float: left;
         overflow: auto;
         border-width: 1px;
         border-color: grey;
         margin: 3px;
-        display: inline-block;
     }
 
     p.scene {
@@ -54,6 +52,19 @@ boardname = "default"
     }
 
     div.universe {
+        border-style: solid;
+        border-radius: 5px;
+        float: left;
+        overflow: auto;
+        border-width: 1px;
+        border-color: grey;
+        margin: 3px;
+        display: inline-block;
+        //background-color: rgba(128, 128, 128, 0.4);
+        !important
+    }
+
+        div.fixture {
         border-style: solid;
         border-radius: 5px;
         float: left;
@@ -244,6 +255,8 @@ boardname = "default"
                     <option>intensity</option>
                     <option>custom</option>
                     <option>fine</option>
+                    <option>unused</option>
+
                 </select>
             </label>
 
@@ -335,7 +348,7 @@ boardname = "default"
                     
                     <span v-if="(i[1].subs!==-1)" title="Scene is synced with external servers">({{i[1].subs}})</span>
                     <b>{{i[1].name}}</b><span v-if="i[1].ext" class="grey"> (external)</span></button>
-                <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}</span><br>
+                <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}<img v-if="cuemeta[i[1].cue].script" src="/zipstatic/img/icons/fugue.zip/script-text.png"></img></span><br>
                 <br>
                 <button v-on:click="go(i[0])"><i class="icss-arrow-right" style="color:green;"></i>Go!</button>
                 <button v-on:click="nextcue(i[0])"><i class="fas fa-forward" style="color:lightgreen"></i>Next</button>
@@ -344,7 +357,8 @@ boardname = "default"
                 <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));"
                     :value="alphas[i[0]]"><br>
                 <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
-                <span v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext)">Next Cue: {{cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext}}<br></span>
+                <span v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext)">Next Cue: {{cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext}}
+                    <br></span>
                 <small>Priority:<b>{{i[1].priority}}</b></small>
                 <small v-if="i[1].blend!=='normal'">Blend:<b>{{i[1].blend}}</b></small>
                 <small v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].sound)"><br>Sound:<b>{{cuemeta[i[1].cue].sound.match(/([^\/]+)$/)[1]}}</b></small>
@@ -381,7 +395,7 @@ boardname = "default"
 
             <tr v-for="i in formatCues(1)" v-if="i[1].id" v-bind:style="{'background-color':((selectedCues[scenename]==i[1].name)?'lightblue':'')}">
                 <td title="Click the cue name to edit that cue" v-on:click="selectcue(scenename,i[1].name)"><i v-if="cuemeta[editingScene.cue].name==i[1].name" class="fas fa-play-circle" style="color:green;"></i>
-                <i v-if="selectedCues[scenename]==i[1].name" class="icss-pencil-b"></i>
+                <img v-if="selectedCues[scenename]==i[1].name" src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>
                 <b>{{i[1].name}}</b></td>
                 <td><b title="Cue number, double click to change." style="width:6em"  v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</b></td>
 
@@ -394,12 +408,12 @@ boardname = "default"
                 <td><input type="number" v-on:change="setlength(i[1].id,$event.target.value)" style="width:3em"
                         min=0 v-model="i[1].length">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
 
-                <td><select v-model="i[1].next" v-if="Object.keys(scenecues[scenename]).length<40" autocomplete=off title="Select a cue to activate when this one ends" v-on:input="setnext(i[1].id,$event.target.value)">
+                <td><select v-model="i[1].next" v-if="Object.keys(scenecues[scenename]).length<600" autocomplete=off title="Select a cue to activate when this one ends" v-on:input="setnext(i[1].id,$event.target.value)">
                     <option value="">&gt&gt&gt</option>
-                    <option v-for="i in Object.keys(scenecues[scenename]).sort()" v-bind:value="i">{{i}}</option>
-                    <option v-if="(!(i[1].next in Object.keys(scenecues[scenename]))) &&(i[1].next !== '')  &&(i[1].next !== null) &&(i[1].next!==undefined)" v-bind:value="i[1].next">{{i.next}}</option>
+                    <option v-for="j in formatCues(1)" v-bind:value="j[1].name">{{j[1].number}}: {{j[1].name}}</option>
+                    <option v-bind:value="i[1].next">Current: {{i[1].next}}</option>
 
-                </select>{{i[1].next}}
+                </select>
 
                 <input v-if="Object.keys(scenecues[scenename]).length>40" autocomplete=off list="cues_in_scene" title="Select a cue to activate when this one ends" v-on:input="setnext(i[1].id,$event.target.value)"
                     v-model="i[1].next" v-bind:placeholder="i[1].defaultnext">
@@ -429,10 +443,10 @@ boardname = "default"
         </label>
 
         <input v-model="newcuename" placeholder="New cue name">
-        <button v-on:click="addcue(scenename,newcuename)">Add Cue</button>
-        <button v-on:click="clonecue(scenename,currentcueid,newcuename)">Clone Cue</button>
-        <button v-on:click="rmcue(currentcueid)">Delete Current</button>
-        <button v-on:click="jumptocue(currentcueid)">Goto Selected</button>
+        <button v-on:click="addcue(scenename,newcuename)"><img src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>Add Cue</button>
+        <button v-on:click="clonecue(scenename,currentcueid,newcuename)"> <img src="/zipstatic/img/icons/fugue.zip/document-copy.png"></img>Clone Cue</button>
+        <button v-on:click="rmcue(currentcueid)"><img src="/zipstatic/img/icons/fugue.zip/minus-circle.png"></img>Delete Current</button>
+        <button v-on:click="jumptocue(currentcueid)"><img src="/zipstatic/img/icons/fugue.zip/arrow.png"></img>Goto Selected</button>
         <button v-on:click="gotonext(currentcueid)">Edit Next Cue</button>
 
 
@@ -475,8 +489,8 @@ boardname = "default"
                 <input list="cues_in_scene" title="Select a cue to activate when this one ends" v-on:input="setnext(currentcueid,$event.target.value)"
                     v-model="cuemeta[currentcueid].next" v-bind:placeholder="currentcue.defaultnext"></input>
             </label>
-            <button v-on:click="gotonext(currentcueid)">Edit Next</button>
-            <button  title="If this cue's next does not exist, clone the current cue to be the next, and edit that cue" v-on:click="clonecue(scenename,currentcueid,currentcue.next)">Clone to Next</button>
+            <button v-on:click="gotonext(currentcueid)"> <img src="/zipstatic/img/icons/fugue.zip/book-open-next.png"></img>Edit Next</button>
+            <button  title="If this cue's next does not exist, clone the current cue to be the next, and edit that cue" v-on:click="clonecue(scenename,currentcueid,currentcue.next)"><img src="/zipstatic/img/icons/fugue.zip/document-copy.png"></img>Clone to Next</button>
 
             <datalist id="cues_in_scene" v-if="Object.keys(scenecues[scenename]).length<50">
                 <option v-for="i in Object.keys(scenecues[scenename]).sort()" v-bind:value="i">{{i}}</option>
@@ -500,11 +514,20 @@ boardname = "default"
 
             <div style="overflow: scroll; max-height:30em;">
                 <div class="universe" v-for="(h,uname) in cuevals[currentcueid]" style="border-style:solid">
-                    <div class="universe" v-for="(i,ch) in h">
+                    <div class="fixture" v-for="h in groupByFixture(h)" style="display:inline-block">
+
+
+
+
+                    <b style="font-size: 150%;" v-if="chnamelookup(uname,h[0].ch)">{{uname}}:{{channelNames[uname][h[0].ch][0]}}</b>
+                    <button   v-if="chnamelookup(uname,h[0].ch)" v-on:click="rmFixCue(channelNames[uname][h[0].ch][0])"><img src="/zipstatic/img/icons/fugue.zip/minus-circle.png"></button>
+
+
+                    <div class="hfader" v-for="i in h">
 
                     <span title="Double click to toggle released">
                         <b v-if="chnamelookup(i.u,i.ch)==undefined">{{i.u}}:{{i.ch}}</b>
-                        <b v-if="chnamelookup(i.u,i.ch)" v-bind:title="'Actual channel:'+i.u+':'+i.ch">{{channelNames[i.u][i.ch][0]}}.{{channelNames[i.u][i.ch][1]}}</b>                    </span>
+                        <b v-if="chnamelookup(i.u,i.ch)" v-bind:title="'Actual channel:'+i.u+':'+i.ch">{{channelNames[i.u][i.ch][1]}}</b>                    </span>
                     <span v-if="i.v !== null">
                     <input v-bind:disabled="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine'" 
                         v-if="(editingScene.blend!=='monitor')"
@@ -548,6 +571,8 @@ boardname = "default"
                         <option v-for="i of chnamelookup(i.u,i.ch).slice(3)" :value="i[2]">{{i[2]}}({{i[0]}} to {{i[1]}})</option>
                     </select>
                     </span>
+
+                    </div>
                     </div>
                 </div>
             </div>
@@ -558,8 +583,14 @@ boardname = "default"
                 </datalist>
                 <input type="number" id="newcuevnumber" title="Channel Number" style="width:5em"
                     value="1">
-                <button v-on:click="addValToCue()">Add Channel to Scene</button>
+                <button v-on:click="addValToCue()">Add Channel to Cue</button>
                 <button v-on:click="rmValFromCue()">Remove</button>
+                    <br>
+                               <select id="newcuefix" title="Channel Number" style="width:10em">   
+                                   <option v-for="i in fixtures" :value="i[0]">{{i[1]}}:{{i[0]}} at {{i[2]}}</option>
+                               </select>
+                <button v-on:click="addFixToCue()">Add Fixture to Cue</button>
+
                 <label v-if="editingScene.blend=='monitor'">Priority:
                     <input type='number' min=0 max=100 style="width:3em" v-on:input="setpriority(scenename,parseFloat($event.target.value))"
                         v-model="editingScene.priority">
@@ -657,9 +688,9 @@ boardname = "default"
                                 v-model="editingScene.priority">
                         </label>
                         <label>BPM:
-                            <input type='number' min=0 max=100 style="width:3em" v-on:input="setbpm(scenename,parseFloat($event.target.value))"
+                            <input type='number' min=0 max=100 style="width:5em" v-on:input="setbpm(scenename,parseFloat($event.target.value))"
                                 v-model="editingScene.bpm">
-                        </label><button v-on:click="tap(scenename)">TAP</button><br>
+                        </label><button v-on:click="tap(scenename)"><img src="/zipstatic/img/icons/fugue.zip/hand-finger.png"></img>Tap</button><br>
 
                         
                         <br>
@@ -788,6 +819,8 @@ boardname = "default"
             'fixtureassg': '',
             //Fixture error info str
             'ferrs': '',
+            'fixtures': '',
+
             'showkeybindhelp': false,
             'showcuetable':true,
             'showfixtureassg': false,
@@ -1112,6 +1145,50 @@ boardname = "default"
             'keybindmode': 'edit',
             //Formatted for display
             'cuevals': {},
+
+            'groupByFixture': function(l)
+            {
+                var o = [];
+                var c = []
+                var x = null;
+
+                for(n in l)
+                { 
+                    var i=l[n]
+                    if(appData.chnamelookup(i.u,i.ch))
+                    {
+                        var f = appData.channelNames[i.u][i.ch][0]
+                    }
+                    else
+                    {
+                        var f=i.ch;
+                    }
+                    console.log(f)
+                    console.log(x)
+                    if (f==x)
+                    {
+                
+                        c.push(i)
+                    }
+                    else
+                    {
+                        if(x)
+                        {
+                            o.push(c)
+                        }
+                        x = f
+                        c =[]
+                        c.push(i)
+                    }
+
+                }
+                if(c)
+                {
+                    o.push(c)
+                }
+                return(o)
+
+            },
             //Current per scene alpha channel
             'alphas': {},
             //Used only for autocompletion, it's a list of all known tracks that we've seen so far.
@@ -1456,6 +1533,25 @@ boardname = "default"
             {
                 api_link.send(['addmonitor', $('#newscenename').val()]);
             },
+            
+            'addFixToCue': function()
+            {
+                        api_link.send(['addcuef', appData.scenecues[
+                        appData.scenename]
+                    [appData.selectedCues[appData.scenename]],
+                $('#newcuefix').val()
+                ]);
+        
+            },
+                       'rmFixCue': function(f)
+            {
+                        api_link.send(['rmcuef', appData.scenecues[
+                        appData.scenename]
+                    [appData.selectedCues[appData.scenename]],f
+                ]);
+        
+            },
+
             'addValToCue': function()
             {
                 if (!$('#newcueu').val())
@@ -1683,13 +1779,22 @@ boardname = "default"
 
                         
                     }
+
+                    if(v[4]!==null)
+                    {
                         
                         y = {
                             "u": v[2],
                             'ch': v[3],
                             "v": v[4]
                         }
-                    Vue.set(appData.cuevals[v[1]][v[2]],v[3],y)          
+                    Vue.set(appData.cuevals[v[1]][v[2]],v[3],y)
+                    }
+                    else
+                    {
+                    Vue.delete(appData.cuevals[v[1]][v[2]],v[3])
+
+                    }   
                     
             }
 
@@ -1710,6 +1815,12 @@ boardname = "default"
             {
 
                 appData.ferrs = v[1]
+
+            }
+        if (c == "fixtures")
+            {
+
+                appData.fixtures = v[1]
 
             }
             if (c == "fixtureclasses")

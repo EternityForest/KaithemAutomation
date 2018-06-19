@@ -5,7 +5,10 @@ from .common import nonce_from_number,pavillion_logger,DEFAULT_PORT,DEFAULT_MCAS
 from . import common
 
 
-
+debug_mode = False
+def dbg(*a):
+    if debug_mode:
+        print (a)
 
 def is_multicast(addr):
     if not ":" in addr:
@@ -86,6 +89,7 @@ class _RemoteServer():
         if self.clientObject.keypair:
             self.sendSetup(0, 1, struct.pack("<B",self.clientObject.cipher.id)+self.clientObject.clientID+self.challenge+self.clientObject.keypair[1])
         else:
+            dbg("challenge", self.challenge)
             self.sendSetup(0, 1, struct.pack("<B",self.clientObject.cipher.id)+self.clientObject.clientID+self.challenge)
 
 
@@ -102,7 +106,7 @@ class _RemoteServer():
                 if self.skey:
                     try:
                         msg2 = self.clientObject.cipher.decrypt(msg[8:], self.skey,nonce_from_number(counter))
-                    except:
+                    except Exception as e:
                         #MOst of the time this is going to be not something we can do anything about.
                         return
 
@@ -116,13 +120,13 @@ class _RemoteServer():
                                 
                     opcode =msg2[0]
                     data=msg2[1:]
-
                     self.secure_lastused = time.time()
                     self.clientObject.onMessage(addr,counter,opcode,data)
 
                 #We don't know how to process this message. So we send
                 #a nonce request to the server
                 else:
+                    pavillion_logger.debug("uks")
                     pavillion_logger.warning("Recieved packet from unknown server, attempting setup")
                     self.sendNonceRequest()
 
@@ -150,8 +154,9 @@ class _RemoteServer():
                     if self.clientObject.psk:
                         servernonce,challenge,h = struct.unpack("<32s16s32s",data)
                         if not challenge==self.challenge:
+                            dbg("client recieved bad challenge response", challenge, self.challenge)
                             logging.debug("Client recieved bad challenge response")
-
+                        dbg("Valid response")
                         #Ensure the nonce we get is real, or else someone could DoS us with bad nonces.
                         if self.clientObject.cipher.keyedhash(servernonce+challenge,self.clientObject.psk)==h:
                         
@@ -162,10 +167,13 @@ class _RemoteServer():
                                 m = struct.pack("<B16s32s32sQ",self.clientObject.cipher.id,self.clientObject.clientID,self.clientObject.nonce,servernonce,self.clientObject.counter)
                                 self.clientObject.counter +=3
                                 v = self.clientObject.cipher.keyedhash(m,self.clientObject.psk)
-                                self.skey = self.clientObject.cipher.keyedhash(servernonce+self.clientObject.nonce,self.clientObject.psk)
+                                self.skey = self.clientObject.cipher.keyedhash(self.clientObject.nonce+servernonce,self.clientObject.psk)
                                 self.sendSetup(0, 3, m+v,addr=addr)
 
                         else:
+                            dbg(servernonce+challenge,self.clientObject.psk)
+                            dbg("client recieved bad challenge response hash",  self.clientObject.cipher.keyedhash(servernonce+challenge,self.clientObject.psk), h)
+
                             logging.debug("Client recieved bad challenge response")
                             
                 if opcode == 11:
@@ -487,6 +495,8 @@ class _Client():
 
     def onMessage(self,addr,counter,opcode,data):
         #If we've recieved an ack or a call response
+        if opcode==0:
+            print(data)
         if opcode==2 or opcode==5:
             #Get the message number it's an ack for
             d = struct.unpack("<Q",data[:8])[0]
@@ -606,6 +616,8 @@ class Client():
         self.client= _Client(address,clientID,psk,cipher=cipher, server=server,keypair=keypair,serverkey=serverkey,handle=self)
         self.clientID = clientID
         self.knownSubscribers = self.client.knownSubscribers
+        if psk and not isinstance(psk,bytes):
+            raise TypeError("PSK must be bytes")
         
       
 
