@@ -549,15 +549,18 @@ def getUserLimit(user,limit,maximum=2**64):
     """Return the user's limit for any limit category, or 0 if not set. Limit to maximum. 
         If user has __all_permissions__, limit _is_ maximum.
     """
+    if '__guest__' in Users:
+            guestlimit = min(Users['__guest__'].limits.get(limit,0),maximum)
+    else:
+        guestlimit = 0 
     if user in Users:
         if not '__all_permissions__' in  Users[user].permissions:
-            val = min(Users[user].limits.get(limit,0),maximum)
+            val = max(min(Users[user].limits.get(limit,0),maximum),guestlimit)
         else:
             val = maximum
         return min(val,maximum)
     else:
-        if '__guest__' in Users:
-            return min(Users['__guest__'].limits.get(limit,0),maximum)
+        return guestlimit
     return 0
 
 def canUserDoThis(user,permission):
@@ -567,13 +570,23 @@ def canUserDoThis(user,permission):
         if '__guest__' in Users and permission in Users["__guest__"].permissions:
             return True
         else:
+            if '__guest__' in Users and "__all_permissions__" in Users["__guest__"].permissions:
+                return True
             return False
+
 
     if permission in Users[user].permissions:
         return True
 
     if '__all_permissions__' in Users[user].permissions:
         return True
+
+    if '__guest__' in Users and "__all_permissions__" in Users["__guest__"].permissions:
+        return True
+    
+    if '__guest__' in Users and "__all_permissions__" in Users["__guest__"].permissions:
+        return True
+
 
     return False
 

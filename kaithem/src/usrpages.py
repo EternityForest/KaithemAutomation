@@ -293,9 +293,9 @@ class KaithemPage():
                     module = modules_state.scopes[module],
                     path = args,
                     kwargs = kwargs,
-                    )
+                    ).encode("utf-8")
             else:
-                return page.text
+                return page.text.encode('utf-8')
 
         except Exception as e:
             #The HTTPRedirect is NOT an error, and should not be handled like one.

@@ -94,9 +94,9 @@ class ResourceObject():
     def __init__(self, m=None,r=None,o=None):
         self.resource =r
         self.module = m
+        self._object = o
 
-
-class Event(ResourceObject):
+class EventAPI(ResourceObject):
     resourceType = "event"
 
     def __init__(self, m,r,o):
@@ -109,6 +109,10 @@ class Event(ResourceObject):
     @property
     def scope(self):
         return newevt.EventReferences[self.module,self.resource].pymodule
+    
+    @property
+    def data(self):
+        return newevt.EventReferences[self.module,self.resource].data
 
     #Allow people to start and stop events at runtime.
     #Some events support a separate new pause/unpause api, otherwise use register
@@ -128,6 +132,11 @@ class Event(ResourceObject):
             ev.pause()
         else:
             ev.unregister()
+    
+    def reportException(self):
+        """Call in an exception handler to handle the exception as if it came from the given event"""
+        newevt.EventReferences[self.module,self.resource]._handle_exception()
+
 
 class Page(ResourceObject):
     resourceType = "page"
@@ -175,7 +184,7 @@ class ModuleObject(object):
             x = Page(module,name,x)
 
         elif resourcetype == 'event':
-            x = Event(module,name,x)
+            x = EventAPI(module,name,x)
 
         elif resourcetype == 'permission':
             x = Permission(module,name,x)
@@ -186,6 +195,7 @@ class ModuleObject(object):
         return x
 
         raise KeyError(name)
+
     def __setitem__(self,name, value):
         "When someone sets an item, validate it, then do any required bookkeeping"
 
@@ -332,8 +342,52 @@ class ResourceAPI(object):
 kaithemobj.kaithem.resource = ResourceAPI()
 
 
+
+def parsePyModule(s):
+    "Unused at the moment"
+    md =''
+    tr = ''
+    act =''
+    mode = 'setup'
+
+    for i in s.split(lines):
+
+        if not( i.startswith(' ') or i.startswith('\t')):
+            if 'kaithem_event_trigger' in i:
+                mode='trig'
+            if 'kaithem_event_act' in i:
+                mode='act'
+            if '#---BEGIN_METADATA---' in i:
+                mode = 'meta'
+            if '#---END_METADATA---' in i:
+                mode = 'setup'
+            continue
+
+        if mode=='trig':
+            if not i.strip():
+                continue
+            if i.strip().startswith("#"):
+                continue
+            if tr:
+                raise ValueError("Multiline trigger")
+            i = i.strip()
+            if i.startswith('return'):
+                tr = i[6:]
+
+        if mode=='act':
+            i = i.strip()
+            act+=i+'\n'
+                    
+        if mode=='meta':
+            i = i.strip()
+            md+=i+'\n'
+
+        if mode=='setup':
+            i = i.strip()
+            setup+=i+'\n'
+                   
 #Backwards compatible resource loader.
-def loadResource(fn):
+def loadResource(fn,ver=1):
     try:
         with open(fn,"rb") as f:
             try:

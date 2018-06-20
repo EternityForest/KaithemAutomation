@@ -292,6 +292,21 @@ This event last ran:
 (about ${unitsofmeasure.formatTimeInterval(time.time()-newevt.getEventLastRan(module,name),2)} ago)
 </b>
 
+
+<%
+    x = 0
+    c=0
+    for i in newevt.EventReferences[module,name].history:
+        x+= i[1]-i[0]
+        c+=1
+    if c:
+        avg_time =x/c
+%>
+%if c:
+    <br>Average Time(Last ${c} runs): ${unitsofmeasure.formatTimeInterval(avg_time,2)}<br>
+%endif
+
+
 %try:
 %if newevt.EventReferences[module,name].lastcompleted>newevt.EventReferences[module,name].lastran:
 <br>Completed in ${round(newevt.EventReferences[module,name].lastcompleted-newevt.EventReferences[module,name].lastran,3)|h}s
@@ -301,14 +316,28 @@ This event last ran:
 %except Exception as e:
 %endtry
 
-
 %else:
 <b>This event has not ran since it loaded.</b>
 %endif
+<a onclick="document.getElementById('history').style.display='block'">Show history</button>
+<a onclick="document.getElementById('history').style.display='none'">Hide history</button>
+
+<div id="history" style="display:none">
+<table border=1>
+%try:
+<tr><th>Started at</th><th>Completed in</th></tr>
+%for i in newevt.EventReferences[module,name].history:
+<tr>
+    <td>${unitsofmeasure.strftime(i[0])}</td>
+    <td>${unitsofmeasure.formatTimeInterval(i[1]-i[0],2)}</td>
+</tr>
+%endfor
+%except Exception as e:
+%endtry
+</table>
+</div>
 
 
-
-</p>
 <hr>
 <p class="help">
 Saving this module will case it to completely reload, including its local scope. Other resources will not be affected.

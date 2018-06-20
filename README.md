@@ -1,4 +1,4 @@
-![Logo (Credit: https://openclipart.org/detail/1337/large-barrel)](img/logo.jpg)
+![Logo](kaithem/data/static/img/klogoapr22.jpg)
 
 Kaithem is Linux home/commercial automation server written in pure python, HTML, Mako, and CSS. It's more low level than your average HA system, but it allows you to control anything python can.
 
@@ -7,7 +7,7 @@ I'm not a security researcher, but it should at the very least keep casual snoop
 ![Login page](screenshots/login.png)
 
 
-It runs on python2 and python3, and will likely work on any platform(Windows/mac/etc), but it is not tested outside of Linux. Resource usage is low enough to run well on the raspberry pi.
+It runs on python2 and python3, and will likely work on any platform(Windows/mac/etc), but it is not tested outside of Linux. Resource usage is low enough to run well on the Raspberry Pi, and in fact the RPi is the primary platform Kaithem is intended for.
 
 You automate things by directly writing python and HTML via a web IDE. "Events" are sections of code that run when a trigger condition happens. Trigger conditions can be polled expressions, internal message bus
 events, or time-based triggers using a custom semi-natural language parser.
@@ -34,9 +34,7 @@ make detecting intrusions and errors easier.
 Kaithem includes a library for common automation tasks such as file IO, timing, executing functions in the background, formatting numbers, and more. It also includes a library of basic example modules, including a
 web-based lighting console that can be used without needing to write any code(With Enttec-type USB DMX adapters, tested on an Arduino emulation, other may be added via the API).
 
-The lighting console supports cue lists, multiple layers with selectable blend mode, flickering candle effects, keybindings, tracking, cue only cues, backtracking, HTP,inhibit, alpha blending, and many other features.
-
-At the moment blend modes are per-scene, selecting one channel to use LTP for gobo selection, etc is not yet supported, but you can work around this by putting things like that on a separate layer with 100% opacity.
+The lighting console supports cue lists, multiple layers with selectable blend mode, flickering candle effects, keybindings, tracking, cue only cues, backtracking, HTP,inhibit, alpha blending, network sync(beta), and many other features.
 
 ![Lighting control](screenshots/lighting.jpg)
 
@@ -46,7 +44,9 @@ designed for any kind of safety-critical application, but it is meant to be reli
 Installation
 ============
 
-All dependancies should already be included. Huge thanks to the developers of all the great libraries used!!!
+All required dependancies should already be included. Huge thanks to the developers of all the great libraries used!!!
+
+There's a few optional dependancies though. Auto time synchronization and MDNS depends on netifaces, and sound requires mplayer, madplay, or sox, with all but mplayer not recommended. Pavillion-based net sync requires libnacl.
 
 git clone or download somewhere and run `python3 kaithem/kaithem.py`
 You can also use python2 if you really want.
@@ -71,9 +71,6 @@ Command line options:
     "-c"
         Supply a specific configuration file. Otherwise uses default. Any option not found in supplied file
         Reverts to default the files are YAML, see kaithem/data/default_configuration.txt for info on options.
-
-    "-p"
-        Specify a port. Overrides all config stuff.
 
     "--nosecurity 1"
         Disables all security.Any user can do anything even over plain HTTP. 
@@ -108,6 +105,22 @@ If you install using the debian package helper, you will be prompted for an admi
 
 Recent Changes(See changes.md for full change info)
 =============
+
+### 0.60
+
+-   Can now view event history
+-   Lighting module cue matrix view, and many other lighting improvements.
+-   Add breakpoint function
+-   UTF-8 encoding in page responses
+-   kaithem.time.lantime() for a time value automatically synced across the LAN (py3.3 only, netifaces required)
+-   **BREAKING CHANGE** Widget.doCallback,onRequest, and onUpdate now expect a connection ID parameter.
+-   New Widget.attach2(f) function for 3 parameter callbacks, username,value, and connection ID
+-   New widget.sendTo(val,target) function to send to a specific connection ID
+-   apiwidget.now() function added on javascript side to get the current server time.
+-   Correctly attribute "And ninety-nine are with dreams content..." to a Ted Olson poem, not to Poe as the internet claims.
+-   FontAwesome and Fugue icon packs included
+-   Misc bugfixes
+
 ### 0.59
 
 -   Object inspector now handles weak references, weakvaluedicts, and objects with \_\_slots\_\_
@@ -128,18 +141,6 @@ Recent Changes(See changes.md for full change info)
 -   (SOMEWHAT BREAKING CHANGE)Use Recur instead of recurrent to handle !times, greatly improving performance.
 -   Add lighting control features in the modules library.
 
-### 0.57
-
--   Dump traceback in the event of a segfault.
--   Raise error if you try to send non-serializable widget value
--   Add raw pages that aren't processed through Mako's templating
--   Live logs now properly escaped
--   Rate limit login attempts with passwords under 32 chars to 1 per 3s
--   Auth tokens don't expire for 3 years
--   New page to view login failures
--   Support for IPv4/IPv6 dual stack
--   Host config option to bind to a specific IP(overrides local-access-only if specified)
--   Scheduler error handling no longer spams the logs
 
 License Terms
 =============

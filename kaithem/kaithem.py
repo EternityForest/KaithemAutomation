@@ -16,8 +16,8 @@
 
 #
 
-__version__ = "0.59 Production"
-__version_info__ = (0,59,0,"release",0)
+__version__ = "0.60 Production"
+__version_info__ = (0,60,0,"release",0)
 
 #Library that makes threading and lock operations, which we use a lot of, use native code on linux
 try:
@@ -182,6 +182,17 @@ installThreadExcepthook()
 
 
 
+try:
+    from src import timesync
+except:
+    logger.exception("Could not start time sync module")
+    messagebus.postMessage('/system/notifications/errors',
+    """Failed to initialize the time sync module or zeroconf discovery
+    This may be because you are using a python version older than 3.3, or because
+    netifaces is not installed. Some features may not work correctly.
+    """)
+
+
 from src import notifications
 from src import pages
 from src import weblogin
@@ -259,7 +270,7 @@ kaithemobj.kaithem.misc.version_info = __version_info__
 modules.initModules()
 logger.info("Loaded modules")
 
-
+import mimetypes
 #This class represents the "/" root of the web app
 class webapproot():
     #"/" is mapped to this
@@ -268,6 +279,22 @@ class webapproot():
         pages.require("/admin/mainpage.view")
         cherrypy.response.cookie['LastSawMainPage'] = time.time()
         return pages.get_template('index.html').render()
+
+
+    @cherrypy.expose
+    def zipstatic(self,*path,**data):
+        """
+        take everything but the last path element, use it as a path relative to static dir
+        open as a zip, use the last as filename in the zip, return it.
+        """
+        if ".." in path:
+            return
+        m =mimetypes.guess_type(path[-1])
+        cherrypy.response.headers['Content-Type'] = m[0]
+        p = os.path.join(ddn,'static',*path[:-1])
+        with zipfile.ZipFile(p) as f:
+            d = f.read(path[-1])
+        return d
 
     @cherrypy.expose
     def pagelisting(self,*path,**data):
@@ -344,6 +371,8 @@ def cpexception():
         cherrypy.response.body= bytes(pages.get_template('errors/cperror.html').render(e=_cperror.format_exc()),'utf8')
 
 
+import zipfile
+
 
 
 #There are lots of other objects ad classes represeting subfolders of the website so we attatch them
@@ -367,6 +396,13 @@ else:
     sdn = "/usr/lib/kaithem/src"
     ddn = "/usr/share/kaithem"
 
+def allow_upload(*args,**kwargs):
+    #Only do the callback if needed. Assume it's really big if no header.
+    if int(cherrypy.request.headers.get("Content-Length",2**32))> cherrypy.request.body.maxbytes:
+        cherrypy.request.body.maxbytes = cherrypy.request.config['tools.allow_upload.f']()
+
+cherrypy.tools.allow_upload = cherrypy.Tool('before_request_body', allow_upload)
+
 site_config={
         "request.body.maxbytes": 64*1024,
         "tools.encode.on" :True,
@@ -382,8 +418,10 @@ site_config={
         'server.ssl_private_key':os.path.join(directories.ssldir,'certificate.key'),
         'server.thread_pool':config['https-thread-pool'],
         'engine.autoreload.frequency' : 5,
-
+        'tools.allow_upload.on':True,
+        'tools.allow_upload.f': lambda: auth.getUserLimit(pages.getAcessingUser(),"web.maxbytes") or 64*1024,
 }
+
 if config['enable-websockets']:
     wscfg={'tools.websocket.on': True,
             'tools.websocket.handler_cls': widgets.websocket}
@@ -414,6 +452,10 @@ cnf={
         "tools.addheader.on": True
         },
 
+    '/static/zip':
+        {
+        'request.dispatch': cherrypy.dispatch.MethodDispatcher()
+        },
     '/pages':
         {
         'tools.allow_upload.on':True,
@@ -454,12 +496,16 @@ def addheader(*args,**kwargs):
 def pageloadnotify(*args,**kwargs):
     systasks.aPageJustLoaded()
 
-def allow_upload(*args,**kwargs):
-    #Only do the callback if needed. Assume ot's really big if no header.
-    if int(cherrypy.request.headers.get("Content-Length",2**32))> cherrypy.request.body.maxbytes:
-        cherrypy.request.body.maxbytes = cherrypy.request.config['tools.allow_upload.f']()
 
-cherrypy.tools.allow_upload = cherrypy.Tool('before_request_body', allow_upload)
+#As far as I can tell, this second server inherits everything from the "implicit" server
+#except what we override.
+server2 = cherrypy._cpserver.Server()
+server2.socket_port= config['http-port']
+server2._socket_host= bindto
+server2.thread_pool=config['http-thread-pool']
+server2.subscribe()
+
+
 
 cherrypy.config.update(site_config)
 cherrypy.tools.pageloadnotify = cherrypy.Tool('on_start_resource', pageloadnotify)
@@ -471,15 +517,6 @@ if hasattr(cherrypy.engine, 'signal_handler'):
     cherrypy.engine.signal_handler.subscribe()
 
 cherrypy.tree.mount(root,config=cnf)
-
-
-#As far as I can tell, this second server inherits everything from the "implicit" server
-#except what we override.
-server2 = cherrypy._cpserver.Server()
-server2.socket_port= config['http-port']
-server2._socket_host= bindto
-server2.thread_pool=config['http-thread-pool']
-server2.subscribe()
 
 
 

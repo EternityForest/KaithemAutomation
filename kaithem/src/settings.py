@@ -59,6 +59,7 @@ class Settings():
         raise cherrypy.HTTPRedirect("/settings")
 
     @cherrypy.expose
+    @cherrypy.config(**{'response.timeout': 7200})
     @cherrypy.config(**{'tools.allow_upload.on':True, 'tools.allow_upload.f':validate_upload})
     def files(self,*args,**kwargs):
         """Return a file manager. Kwargs may contain del=file to delete a file. The rest of the path is the directory to look in."""
@@ -72,6 +73,7 @@ class Settings():
             else:
                 shutil.rmtree(node)
             raise cherrypy.HTTPRedirect(cherrypy.request.path_info.split('?')[0])
+
 
         if 'file' in kwargs:
             if os.path.exists(os.path.join(dir,kwargs['file'].filename)):

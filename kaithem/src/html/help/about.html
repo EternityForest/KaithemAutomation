@@ -20,6 +20,7 @@
     from src import util
     from src import kaithemobj
     from src import workers
+    from src import timesync
     from src.config import config
     if os.name != "nt":
         import fcntl
@@ -69,8 +70,8 @@
 	<title>About Kaithem </title>
     <h1>About Kaithem Automation</h1>
 	<div class="sectionbox" style="text-align:center">
-    <img src="/static/img/logo-alt.jpg" height="200px"></img><br>
-    <b>Copyright 2013-2017 Daniel Dunn. </b></br>Available under the terms of the <a href="/license">GNU general public license</a>.
+    <img src="/static/img/klogoapr22.jpg" height="400px"></img><br>
+    <b>Copyright 2013-2018 Daniel Dunn. </b></br>Available under the terms of the <a href="/license">GNU general public license</a>.
     Includes external open-source libraries by third parties.
     </div>
     <div class="sectionbox">${config['about-box-banner']}</div>
@@ -125,7 +126,10 @@
             <td>
                 ${unitsofmeasure.formatTimeInterval(time.time()-systasks.systemStarted,4)}
             </td>
+
+
         </tr>
+     
         <%
             try:
                 load = os.getloadavg()
@@ -214,6 +218,14 @@
                     <td>Audio Backend</td>
                     <td>${sound.backend.backendname|h}</td>
                 </tr>
+                
+                %try:
+                <tr>
+                        <td>kaithem.time.lantime synced to: </td>
+                        <td>${timesync.selected_server[2] if timesync.selected_server else "Local server is master" |h}</td>
+                </tr>
+                %except:
+                %endtry
 
                 <tr>
                     <td>System Time Zone</td>
@@ -694,6 +706,51 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 </pre></dd>
 
+<dt><a href="https://github.com/cillian64/ntpserver">ntpserver</a>(Pure python NTP server)</dt>
+<dd><pre>The MIT License (MIT)
+
+Copyright (c) {{{2014}}} {{{ChenLi}}}
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</pre></dd>
+
+<dt><a href="https://github.com/jstasiak/python-zeroconf">python-zeroconf</a></dt>
+<dd><pre>Multicast DNS Service Discovery for Python, v0.14-wmcbrine
+        Copyright 2003 Paul Scott-Murphy, 2014 William McBrine
+
+        This module provides a framework for the use of DNS Service Discovery
+        using IP multicast.
+
+        This library is free software; you can redistribute it and/or
+        modify it under the terms of the GNU Lesser General Public
+        License as published by the Free Software Foundation; either
+        version 2.1 of the License, or (at your option) any later version.
+
+        This library is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+        Lesser General Public License for more details.
+
+        You should have received a copy of the GNU Lesser General Public
+        License along with this library; if not, write to the Free Software
+        Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301
+        USA</pre></dd>
+
                                 </ul>
                                 <h3>Command Line Utilities</h3>
                                 <ul>
@@ -705,19 +762,23 @@ POSSIBILITY OF SUCH DAMAGE.
                                 <h3>Graphics</h3>
                                 <ul>
                                     <li><a href="http://webtreats.mysitemyway.com/">Webtreats ETC(Main background in the default scrapbook theme)</a></li>
-                                    <li><a href="http://www.famfamfam.com/lab/icons/silk/">Silk Icon Pack(Almost all icons used in kaithem)</a></li>
+                                    <li><a href="http://www.famfamfam.com/lab/icons/silk/">Silk Icon Pack( Creative Commons Attribution 2.5)</a></li>
                                     <li><a href="https://openclipart.org/detail/1337/large-barrel">kevie at openclipart.org</a></li>
                                     <li><a href="http://sourcefoundry.org/hack/">Hack</a>(Font for source code)</a>
-
+                                    <li><a href="https://viglino.github.io/iconicss/?icon=circle&page=license">iconicss</a>(Another icon pack)</li>
+                                    <li><a href="https://fontawesome.com/">Font Awesome</a>(More icons)</li>
+                                    <li><a href="http://p.yusukekamiyamane.com/">Fuge Icons</a> by Yusuke Kamiyamane. Licensed under a Creative Commons Attribution 3.0 License.</li>
                                 </ul>
                                 <h3>Tools</h3>
+                                <p>Kaithem is developed using open source tools.></p>
                                 <ul>
                                     <li><a href="http://www.gimp.org/">GIMP(Image Editor)</a></li>
-                                    <li><a href="http://www.eclipse.org/">Eclipse (IDE)</a></li>
+                                    <li><a href="https://krita.org/">Krita(Photo editing and digital painting)</a></li>
                                     <li><a href="https://code.visualstudio.com/">Visual Studio Code</a></li>
                                     <li><a href="https://www.python.org/">Python (Language)</a></li>
                                     <li><a href="https://www.debian.org/">Debian (Linux Distro)</a></li>
                                     <li><a href="http://www.linuxmint.com/index.php">Linux Mint (Linux Distro)</a></li>
+                                    <li><a href="https://www.kde.org/plasma-desktop">KDE Plasma(Linux desktop environment)</a></li>
                                     <li><a href="http://bluegriffon.org/">BlueGriffon (Web Editor, UI Prototyping)</a></li>
                                     <li><a href="https://github.com/alonho/pystuck">pystuck(Python debugging tool)</a></li>
                                     <li><a href="http://winpdb.org/">winpdb</a></li>

@@ -85,6 +85,7 @@ audio-backends:
     - sox
     - mpg123
     - madplay
+    - mpv #Not actually  supported
 
 #How many times to retry loading an event before marking it as a failure and moving on
 max-load-attempts: 25
@@ -104,6 +105,11 @@ run-as-user: root
 
 #If this is not default, and run as user is not root, and the user starts the process as root, then we use this group.
 run-as-group: __default__
+
+
+#The priority to advertise the embedded ntp server with.
+#Should be between 5000 and 6000, lower ones are preferred.
+ntpserver-priority: 5500
 
 #If set to yes and setproctitle is installed, changes process title to kaithem instead of python.
 change-process-title: yes

@@ -19,7 +19,9 @@ import time,random,subprocess,threading,random,gzip,json,yaml,os,ntplib,bz2,weak
 
 
 import cherrypy
-from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry,directories,pages,config,persist
+from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry,directories,pages,config,persist,auth,breakpoint
+from . import timesync
+
 from . import astrallibwrapper as sky
 
 bootTime = time.time()
@@ -39,6 +41,8 @@ class ServeFileInsteadOfRenderingPageException(Exception):
 
 plugins = weakref.WeakValueDictionary()
 
+
+        
 class Kaithem():
     def __getattr__(self,name):
         if name in plugins:
@@ -46,8 +50,17 @@ class Kaithem():
         else:
             raise AttributeError()
 
-
-    
+    class Users(object):
+        @staticmethod
+        def checkPermission(user,permission):
+            try:
+                if auth.canUserDoThis(username, permission):
+                    return True
+                else:
+                    return False
+            except KeyError:
+                return False
+            
     class logging(object):
         @staticmethod
         def flushsyslog():
@@ -75,11 +88,25 @@ class Kaithem():
             except Exception as e:
                 return e
             return None
+        
+        def breakpoint():
+            breakpoint.breakpoint()
 
     #In modules.py, we insert a resource API object.
     #kaithemobj.kaithem.resource = ResourceAPI()
 
     class time(object):
+
+        @staticmethod
+        def lantime():
+            #Returns the time from an auto-selected NTP server on the local
+            #network, provided that you're using python 3.3+
+            #and netifaces is installed. Should be mostly 
+            #interchangable with time.time()
+            try:
+                return timesync.getTime()
+            except:
+                return time.time()
 
         @staticmethod
         def uptime():
@@ -340,6 +367,10 @@ class Kaithem():
         @staticmethod
         def setEQ(*args,**kwargs):
             return sound.setEQ(*args,**kwargs)
+
+        @staticmethod
+        def fadeTo(*args,**kwargs):
+            return sound.fadeTo(*args,**kwargs)
 
 
     class message():

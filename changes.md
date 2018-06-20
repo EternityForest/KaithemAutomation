@@ -1,6 +1,21 @@
 Change Log
 ----------
 
+### 0.60
+
+-   Can now view event history
+-   Lighting module cue matrix view, and many other lighting improvements.
+-   Add breakpoint function
+-   UTF-8 encoding in page responses
+-   kaithem.time.lantime() for a time value automatically synced across the LAN (py3.3 only, netifaces required)
+-   **BREAKING CHANGE** Widget.doCallback,onRequest, and onUpdate now expect a connection ID parameter.
+-   New Widget.attach2(f) function for 3 parameter callbacks, username,value, and connection ID
+-   New widget.sendTo(val,target) function to send to a specific connection ID
+-   apiwidget.now() function added on javascript side to get the current server time.
+-   Correctly attribute "And ninety-nine are with dreams content..." to a Ted Olson poem, not to Poe as the internet claims.
+-   FontAwesome and Fugue icon packs included
+-   Misc bugfixes
+
 ### 0.59
 
 -   Object inspector now handles weak references, weakvaluedicts, and objects with \_\_slots\_\_

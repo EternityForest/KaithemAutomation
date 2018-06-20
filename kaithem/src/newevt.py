@@ -38,6 +38,11 @@ EventReferences = __EventReferences
 logger = logging.getLogger("system_event_errors")
 syslogger = logging.getLogger("system.events")
 
+
+
+
+
+
 def manualRun(event):
     "Run an event manually"
     return EventReferences[event].manualRun()
@@ -295,6 +300,12 @@ def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setu
 
 #The BaseEvent wraps the _check function in such a way that only one event will be polled at a time
 #And errors in _check will be logged.
+
+class PersistentData():
+    "Used to persist small amounts of data that remain when an event is re-saved"
+    pass
+
+
 fps= config['max-frame-rate']
 class BaseEvent():
     """Base Class representing one event.
@@ -310,6 +321,7 @@ class BaseEvent():
 
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = None,priority = 2,m=None,r=None):
         #Copy in the data from args
+        self.persistant_data = PersistentData()
         self.scope = scope
         self._prevstate = False
         self.ratelimit = ratelimit
@@ -359,6 +371,7 @@ class BaseEvent():
         #going and how long it took
         self.lastcompleted = 0
 
+        self.history = []
         self.backoff_until = 0
 
         #A place to put errors
@@ -420,6 +433,9 @@ class BaseEvent():
                 #A derived class or inherited from a mixin.
                 self._do_action()
                 self.lastcompleted = time.time()
+                self.history.append((self.lastexecuted,self.lastcompleted))
+                if len(self.history)>250:
+                    self.history.pop(0)
                 #messagebus.postMessage('/system/events/ran',[self.module, self.resource])
             except Exception as e:
                 #This is not a child of system
@@ -427,7 +443,7 @@ class BaseEvent():
                 self._handle_exception(e)
 
 
-    def _handle_exception(self, e):
+    def _handle_exception(self, e=None):
             if sys.version_info>(3,0):
                 tb = traceback.format_exc(6, chain=True)
             else:
@@ -1136,9 +1152,13 @@ def removeModuleEvents(module):
         gc.collect()
 
 #Every event has it's own local scope that it uses, this creates the dict to represent it
-def make_eventscope(module = None):
+def make_eventscope(module = None, resource=None):
     if module:
-        return {'module':modules_state.scopes[module],'kaithem':kaithemobj.kaithem}
+        if resource:
+
+            return {'event':modules_state.scopes[module][resource],'module':modules_state.scopes[module],'kaithem':kaithemobj.kaithem}
+        else:
+             return {'module':modules_state.scopes[module],'kaithem':kaithemobj.kaithem}
     else:
         return {'module':None, 'kaithem':kaithemobj.kaithem}
 
@@ -1154,6 +1174,7 @@ def updateOneEvent(resource,module, o=None):
                 old = EventReferences[module,resource]
             else:
                 old = None
+
 
             #We want to destroy the old event before making a new one but we also want seamless handoff
             #So what we do is we tell the old one to block if anyone calls it until we are done
@@ -1173,6 +1194,9 @@ def updateOneEvent(resource,module, o=None):
                 x = make_event_from_resource(module,resource)
             else:
                 x = o
+
+            if old:
+                x.persistent_data = old.persistent_data
 
             #Special case for functionevents, we do a handoff. This means that any references to the old
             #event now call the new one.

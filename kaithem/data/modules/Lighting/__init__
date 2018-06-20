@@ -17,6 +17,8 @@ import time,array,random,weakref, os,threading,uuid,logging,serial,traceback,yam
 from decimal import Decimal
 
 import numpy
+import hashlib
+import base64
 
 module.boards = []
 
@@ -35,8 +37,105 @@ module.runningTracks = weakref.WeakValueDictionary()
 module.scenes = weakref.WeakValueDictionary()
 module.scenes_by_name = weakref.WeakValueDictionary()
 
+try:
+    import pavillion
+except:
+    pass
+
+def maketimefunc():
+    global timefunc
+    if kaithem.registry.get("lighting/nettime",False):
+        timefunc = kaithem.time.lantime
+    else:
+        timefunc = time.time
+module.maketimefunc = maketimefunc
+maketimefunc()
+
+def parseBinding(b):
+    """
+    Parse a binding like foo: bar, baz, "baz bar" into (foo,(bar,baz,baz bar))
+    Quote marks and escapes work like unix shell.
+    """
+    b=b.replace("\t"," ")
+    trigger, binding = b.split(":",1)
+    c =''
+    x = []
+    esc = False
+    q = False
+    for i in binding:
+        if esc:
+            esc = False
+            c+=i
+        elif i=='\\':
+            esc = True
+        elif q and not i=='"':
+            c+=i
+        elif i==' ':
+            x.append(c)
+            c = ''
+        elif i=='"':
+            q = not q
+        else:
+            c+=i
+    z = [i for i in x if i]
+    return trigger.strip(), [i.strip() for i in (z+([c] if c else []))]
 
 
+def parseCommandBindings(cmd):
+    l = {}
+    for i in cmd.split("\n"):
+        if not i:
+            continue
+        x = parseBinding(i)
+        if not x[0] in l:
+            l[x[0]]=[]
+        l[x[0]].append(x[1])
+    return l
+
+
+
+
+
+def runCommand(cmd):
+    cmdraw = cmd
+    if cmd[0] == "goto":
+        module.scenes_by_name[cmd[1]].gotoCue(cmd[2])
+    elif cmd[0] == "setalpha":
+        module.scenes_by_name[cmd[1]].setAlpha(float(cmd[2]))
+    else:
+        f = kaithem.lights.scriptActions[cmd[0]]
+        if hasattr(f,'raw') and f.raw:
+            f(cmdraw)
+        else:
+            f(*cmd[1:])
+
+def listsoundfolder(path):
+    soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
+
+    if not path.endswith("/"):
+        path = path+"/"
+        
+    if not path and not name:
+        return [[i+('/' if not i.endswith('/') else '') for i in soundfolders],[]]
+
+    match = False
+    for i in soundfolders:
+        if not i.endswith("/"):
+            i = i+"/"
+        if path.startswith(i):
+            match =True
+    if not match:
+        return [[i+('/' if not i.endswith('/') else '') for i in soundfolders],[]]
+        
+    if not os.path.exists(path):
+        print(path,0)
+        return [[],[]]
+    x = os.listdir(path)
+    return(
+        sorted([i+'/' for i in x if os.path.isdir(os.path.join(path,i))]),
+        sorted([i for i in x if os.path.isfile(os.path.join(path,i))])
+    ) 
+    
 def getSerPorts():
     try:
         import serial.tools.list_ports
@@ -103,6 +202,13 @@ def writeScene(fobj, scene):
 
 
 
+def pollsounds():
+    for i in module.activeScenes:
+        if i.cue.sound and i.cue.rel_length:
+            if not kaithem.sound.isPlaying(str(i.id)) and not i.sound_end:
+                i.sound_end = timefunc()
+            if i.sound_end and (timefunc()-i.sound_end>(i.cue.length*i.bpm)):
+                i.nextCue()
 
 class ObjPlugin():
     pass
@@ -113,6 +219,24 @@ module.controlValues = weakref.WeakValueDictionary()
 
 blendmodes = weakref.WeakValueDictionary()
 
+def getblenddesc(mode):
+    if mode == "gel" or mode=="multiply":
+        return "Values in this scene act as a virtual gel filter over the layers below it, the final value is produced by multiplying the values together"
+    if mode == "inhibit":
+        return "Values in this scene act to limit the max value, the final value is the lower of the value in this scene and the rendered value below it"
+    if mode == "HTP":
+        return "The highest of the this scene's values and the values below it take effect, as in a traditional HTP lighting console"
+    if mode == "monitor":
+        return "This scene's values are set to the value just below it, to assist with debugging."
+
+    try:
+        return blendmodes[mode].description
+    except:
+        try:
+            return blendmodes[mode].__doc__
+        except:
+            return ""
+    
 class BlendMode():
     autoStop=True
 
@@ -129,9 +253,11 @@ class flicker_blendmode(BlendMode):
                     "lowpass": ("Lowpass","number","",0.2),
                     "topple_chance": ("Windiness","number","",0.1),
                     "agility": ("Flame agility","number","",0.15),
-                    "group": ("Group","number","Detect groups of channels to connect, e.g. to make RGB look right",3),
+                    "group": ("Group","number","Groups of this many channels flicker together, e.g. to make RGB look right",3),
 
                  }
+    description="""Effects layer that simulate a natural flame-like flickering effect. Channel value determines how much flicker to apply to that channel.
+To use this, add a layer below containing the base colors. The flicker layer will randomly darken them according to it's simulation algorithm."""
     def __init__(self,scene):
         self.scene = scene
 
@@ -139,7 +265,7 @@ class flicker_blendmode(BlendMode):
         self.wind_gust_chance = 0.01
         self.topple_chance = 0.1
         self.riserate = 0.04
-        self.last = time.time()
+        self.last = timefunc()
         
         #dicts of np arrays by universe name
         #Don't worry about garbage collection, this all gets reset when a scene is stopped and started
@@ -155,8 +281,8 @@ class flicker_blendmode(BlendMode):
                 return
                 
         #Time in 60ths of a second since last frame, so we can keep a consistant frame rate
-        t60 = (time.time()-self.last)*60
-        self.last = time.time()
+        t60 = (timefunc()-self.last)*60
+        self.last = timefunc()
         lp = t60*0.05
         self.wind =1*lp + self.wind*(1-lp)
 
@@ -221,7 +347,7 @@ class vary_blendmode_np(BlendMode):
         self.vals_lp = {}
         self.scene = scene
         self.ntt = 0
-        self.last = time.time()
+        self.last = timefunc()
     
     def frame(self,u,old,values,alphas,alpha):
         if not u in self.vals:
@@ -232,18 +358,18 @@ class vary_blendmode_np(BlendMode):
                 return old
 
         #Time in 60ths of a second since last frame, so we can keep a consistant frame rate
-        t60 = (time.time()-self.last)*60
-        self.last = time.time()
+        t60 = (timefunc()-self.last)*60
+        self.last = timefunc()
 
         #It's always changing so always rerender
         self.scene.rerender = True
-        if time.time()>self.ntt:
+        if timefunc()>self.ntt:
             interval= self.scene.blendArgs['interval']
             rnd=self.scene.blendArgs['rinterval']
             avg=self.scene.blendArgs['mode']
             nv = numpy.random.triangular(0,avg,1)
             self.vals[u] = 1-(nv*(values/255.0))
-            self.ntt = time.time()+random.triangular(interval-rnd,interval+rnd,interval)
+            self.ntt = timefunc()+random.triangular(interval-rnd,interval+rnd,interval)
 
         lp = t60*self.scene.blendArgs['speed']
         self.vals_lp[u] = self.vals_lp[u]*(1-lp) + self.vals[u]*lp
@@ -259,7 +385,7 @@ class exp_blendmode_np(BlendMode):
         self.scene = scene
         for i in self.scene.values:
             self.affect[i] = sorted(self.scene.values[i].keys())
-        self.last = time.time()
+        self.last = timefunc()
 
     def frame(self,u, below, values, alphas, alpha):
       return (((below**(values/100.0))/255.0**(values/100.0))*255)*(alphas*alpha) + below*(1-alphas*alpha)
@@ -279,7 +405,7 @@ class sparks_blendmode(BlendMode):
         self.vals_lp = {}
         self.sparktimes = {}
         self.scene = scene
-        self.last = time.time()
+        self.last = timefunc()
 
     
     def frame(self,u,old,values,alphas,alpha):
@@ -296,7 +422,7 @@ class sparks_blendmode(BlendMode):
 
         lastk=ctr =0
         x = False
-        t=time.time()
+        t=timefunc()
         group = self.scene.blendArgs['group']
         #Groups of 3 are supposed to come on at the same time because of RGB triples.
         for k in numpy.nonzero(alphas)[0]:
@@ -315,8 +441,8 @@ class sparks_blendmode(BlendMode):
             lastk=k
 
         #Supposed to be a first order lowpass filter to handle the fade out
-        t = (time.time()-self.last)
-        self.last = time.time()
+        t = (timefunc()-self.last)
+        self.last = timefunc()
         #Calculate the decay constant
         k = 1/self.scene.blendArgs['fadetime']
         y = math.e**-(k*t)
@@ -390,9 +516,14 @@ class Fixture():
                 self.name=name
                     
     def __del__(self):
+        ID=id(self)
         def f():
-            self.assign(None,None)
-            self.rm()
+            try:
+                if id(module.fixtures[self.name])==id(ID):
+                    self.assign(None,None)
+                    self.rm()
+            except:
+                pass
         kaithem.misc.do(f)
 
     def rm(self):
@@ -612,7 +743,7 @@ class DMXSender():
         the rate at which the data actually gets rendered.
     """
     def __init__(self,universe,port,framerate):
-        module.EnttecUniverse_dbg[str(time.time())]= self
+        module.EnttecUniverse_dbg[str(timefunc())]= self
         self.frame = threading.Event()
         self.universe= weakref.ref(universe)
         self.data = message(universe.values)
@@ -689,7 +820,7 @@ class DMXSender():
     def run(self):
         while 1:
             try:
-                s = time.time()
+                s = timefunc()
                 self.port.read(self.port.inWaiting())
                 x =self.frame.wait(1)
                 if not x:
@@ -703,7 +834,7 @@ class DMXSender():
                         return
                     self.port.write(self.data)
                     self.frame.clear()
-                time.sleep(max(((1.0/self.framerate)-(time.time()-s)), 0))
+                time.sleep(max(((1.0/self.framerate)-(timefunc()-s)), 0))
             except Exception as e:
                 try:
                     self.port.close()
@@ -794,16 +925,20 @@ class LightBoard():
                 try:
                     if not len(i)==4:
                         raise ValueError('Syntax error')
-                    self.fixtures[i[0]] = Fixture(i[0],self.fixtureClasses[i[1]])
+                    x = Fixture(i[0],self.fixtureClasses[i[1]])
+                    self.fixtures[i[0]] = x
                     self.fixtures[i[0]].assign(i[2],int(i[3]))
+                    module.fixtures[i[0]]= x
+                    print(module.fixtures[i[0]], self.fixtures)
+                    
                 except:
+                    print(traceback.format_exc(4))
                     self.ferrs += str(i)+'\n'+traceback.format_exc(2)
 
             for u in module.universes:
                 self.pushChannelNames(u)
-
             self.ferrs = self.ferrs or 'No Errors!'
-            self.pushferrs()
+            self.pushfixtures()
 
         
     def createUniverses(self):
@@ -855,11 +990,18 @@ class LightBoard():
             del self.scenememory[scene.id]
         except:
             pass
+
+        
+    def pushEv(self,event,target,time):
+        self.link.send(['event',[event, target,kaithem.time.strftime(time)]])
             
-    def pushferrs(self):
+    def pushfixtures(self):
         "Errors in fixture list"
         self.link.send(["ferrs",self.ferrs])   
-
+        try:
+            self.link.send(['fixtures', [[i,module.fixtures[i].universe,module.fixtures[i].startAddress] for i in sorted(list(module.fixtures.keys()))]])
+        except:
+            pass
             
     def pushUniverses(self):
         self.link.send(["universes",{i:{'count':len(module.universes[i].values), 
@@ -871,15 +1013,18 @@ class LightBoard():
         with module.lock:
             sd = {}
             for i in self.scenememory:
+                x = self.scenememory[i]
                 sd[i] = {   
-                             'name':self.scenememory[i].name,
-                             'alpha':self.scenememory[i].defaultalpha,
-                             'cues': {j:self.scenememory[i].cues[j].serialize() for j in self.scenememory[i].cues},
-                             'priority'  : self.scenememory[i].priority,
-                             'active': self.scenememory[i].defaultActive,
-                             'blend':  self.scenememory[i].blend,
-                             'blendArgs': self.scenememory[i].blendArgs,
-                             'backtrack': self.scenememory[i].backtrack
+                             'name':x.name,
+                             'bpm':x.bpm,
+                             'alpha':x.defaultalpha,
+                             'cues': {j:x.cues[j].serialize() for j in x.cues},
+                             'priority'  : x.priority,
+                             'active': x.defaultActive,
+                             'blend':  x.blend,
+                             'blendArgs': x.blendArgs,
+                             'backtrack': x.backtrack,
+                             'syncKey':x.syncKey, 'syncPort': x.syncPort, 'syncAddr':x.syncAddr                            
                             }
             return sd
     
@@ -904,6 +1049,20 @@ class LightBoard():
 
     def pushMeta(self,sceneid):
         scene = module.scenes[sceneid]
+        
+        try:
+            if not scene.pavillionc:
+                subs=-1
+            else:
+                subs=0
+
+            subslist = []
+            if scene.pavillionc and scene.messagetargetstr in scene.pavillionc.client.knownSubscribers:
+                subs = len(scene.pavillionc.client.knownSubscribers[scene.messagetargetstr])
+                subslist = [str(i) for i in scene.pavillionc.client.knownSubscribers[scene.messagetargetstr]] if subs else []
+        except:
+            subs = -1
+            print(traceback.format_exc())
         self.link.send(["scenemeta",sceneid,     
                          {
                           'ext':not sceneid in self.scenememory ,
@@ -912,15 +1071,22 @@ class LightBoard():
                           'active': scene.isActive(),
                           'defaultActive': scene.defaultActive,
                           'name':scene.name,
+                          'bpm': round(scene.bpm,6),
                           'blend':scene.blend,
                           'blendArgs': scene.blendArgs,
+                          'blendDesc':getblenddesc(scene.blend),
                           'blendParams': scene.blendClass.parameters if hasattr(scene.blendClass,"parameters") else {},
                           'priority': scene.priority,
                           'started':  scene.started,
                           'enteredCue':  scene.enteredCue,
                           'backtrack': scene.backtrack,
                           'cue': scene.cue.id,
-                          'cuelen': scene.cuelen
+                          'cuelen': scene.cuelen,
+                          'syncKey': scene.syncKey,
+                          'syncAddr': scene.syncAddr,
+                          'syncPort': scene.syncPort,
+                          'subs': subs,
+                          'subslist': subslist
                 }])
                 
     def pushCueMeta(self,cueid):
@@ -932,14 +1098,19 @@ class LightBoard():
                             'alpha':cue.alpha,
                             'length':cue.length,
                             'lengthRandomize':cue.lengthRandomize,
-                            'next':cue.nextCue,
+                            'next':cue.nextCue if cue.nextCue else '',
                             'name': cue.name,
+                            'id':cueid,
+                            'sound': cue.sound,
+                            'soundOutput': cue.soundOutput,
+                            'rel_len': cue.rel_length,
                             'track': cue.track,
                             'scene': cue.scene().id,
                             'shortcut': cue.shortcut,
                             'number': cue.number/1000.0,
                             'defaultnext': cue.scene().getAfter(cue.name),
                             'prev': cue.scene().getParent(cue.name),
+                            'script': cue.script
                             }])
         except Exception as e:
             print("cue data push error", cueid,e)
@@ -983,7 +1154,13 @@ class LightBoard():
                 self.createUniverses()
 
             if msg[0] == "setfixtureclass":
-                self.fixtureClasses[msg[1]] = msg[2]
+                l =[]
+                for i in msg[2]:
+                    if i[1] not in ['custom', 'fine']:
+                        l.append(i[:2])
+                    else:
+                        l.append(i)
+                self.fixtureClasses[msg[1]] =l
                 kaithem.registry.set("lighting/fixturetypes", self.fixtureClasses)
                 self.refreshFixtures()
 
@@ -994,7 +1171,7 @@ class LightBoard():
 
             if msg[0] == "getfixtureassg":
                 self.link.send(['fixtureassg','\n'.join([', '.join(i) for  i in self.fixtureAssignments])])
-                self.pushferrs()
+                self.pushfixtures()
                 
             if msg[0] == "clonecue":
                 cues[msg[1]].clone(msg[2])
@@ -1014,10 +1191,21 @@ class LightBoard():
             if msg[0] == "shortcut":
                 shortcutCode(msg[1])
 
+            if msg[0]=="event":
+                event(msg[1])
+                
             if msg[0] == "setshortcut":
                 cues[msg[1]].setShortcut(msg[2][:128])      
             if msg[0] == "setnumber":
                 cues[msg[1]].setNumber(msg[2])
+
+            if msg[0] == "setrellen":
+                cues[msg[1]].rel_length=msg[2]
+                self.pushCueMeta(msg[1])
+            
+            if msg[0] == "setsoundout":
+                cues[msg[1]].soundOutput=msg[2]
+                self.pushCueMeta(msg[1])
 
             if msg[0] == "clonescene":
                 s = Scene(msg[2])
@@ -1050,6 +1238,42 @@ class LightBoard():
                     val = 0
                 cues[msg[1]].setValue(msg[2],msg[3],val)
 
+            if msg[0] == "addcuef":
+                x = module.fixtures[msg[2]]
+                ch = x.startAddress
+                u = x.universe
+                if not ch:
+                    return
+                if not u:
+                    return
+
+                for i in x.channels:
+                    if not i[1]=="unused":
+                        if hasattr(cues[msg[1]].scene().blendClass,'default_channel_value'):
+                            val = cues[msg[1]].scene().blendClass.default_channel_value
+                        else:
+                            val = 0
+                        cues[msg[1]].setValue(u,ch,val)
+                    ch+=1
+                s = cues[msg[1]]
+                self.link.send(["cuedata",msg[1],s.values])
+
+            if msg[0] == "rmcuef":
+                x = module.fixtures[msg[2]]
+                ch = x.startAddress
+                u = x.universe
+                if not ch:
+                    return
+                if not u:
+                    return
+
+                for i in x.channels:
+                    cues[msg[1]].setValue(u,ch,None)
+                    ch+=1
+                s = cues[msg[1]]
+                self.link.send(["cuedata",msg[1],s.values])
+
+
             if msg[0] == "rmsceneval":
                 s = scenes[msg[1]]
                 s.setValue(msg[2],None)
@@ -1064,6 +1288,12 @@ class LightBoard():
                     self.pushCueList(s.id)
                     self.pushMeta(msg[1])
                 kaithem.misc.do(f)
+            
+            if msg[0] == "getallcuemeta":
+                def f():
+                    for i in module.scenes[msg[1]].cues:
+                        self.pushCueMeta(module.scenes[msg[1]].cues[i].id)
+                kaithem.misc.do(f)
 
             if msg[0] == "getcuedata":
                 s = cues[msg[1]]
@@ -1077,6 +1307,9 @@ class LightBoard():
                 #Send placeholder lists
                 self.link.send(["fixtureclasses",{i:[] for i in self.fixtureClasses.keys()}])
 
+            if msg[0] == 'listsoundfolder':
+                self.link.send(["soundfolderlisting",msg[1],listsoundfolder(msg[1])])
+
             if msg[0] == "getcuemeta":
                 s = cues[msg[1]]
                 self.pushCueMeta(msg[1])
@@ -1084,6 +1317,7 @@ class LightBoard():
             if msg[0] == "gasd":
                 with module.lock:
                     self.pushUniverses()
+                    self.pushfixtures()
                     for i in self.scenememory:
                         s = self.scenememory[i]
                         self.pushCueList(s.id)
@@ -1114,8 +1348,27 @@ class LightBoard():
                 cues[msg[1]].setValue(msg[2],msg[3],msg[4])
                 self.link.send(["scv",msg[1],msg[2],msg[3],msg[4]])
 
+            
+            if msg[0]=="generatesynckey":
+                module.scenes[msg[1]].setSyncKey(base64.b64encode(os.urandom(32)).decode("utf8"))
+                
+            if msg[0] == "setsynckey":
+                module.scenes[msg[1]].setSyncKey(msg[2])
+            
+            if msg[0] == "setsyncaddr":
+                module.scenes[msg[1]].setSyncAddress(msg[2])
+            
+            if msg[0] == "setsyncport":
+                module.scenes[msg[1]].setSyncPort(int(msg[2]))
+
+            if msg[0] == "tap":
+                module.scenes[msg[1]].tap(msg[2])
+            if msg[0] == "setbpm":
+                module.scenes[msg[1]].setBPM(msg[2])
+
             if msg[0] == "setalpha":
                 module.scenes[msg[1]].setAlpha(msg[2])
+
                 
             if msg[0] == "setdalpha":
                 module.scenes[msg[1]].setAlpha(msg[2],sd=True)
@@ -1143,9 +1396,19 @@ class LightBoard():
                     v=msg[2]
                 cues[msg[1]].fadein=v
                 self.pushCueMeta(msg[1])
+            if msg[0]=="setcuesound":
+                cues[msg[1]].sound=msg[2]
+                self.pushCueMeta(msg[1])
+
+            if msg[0]=="setcuesoundoutput":
+                cues[msg[1]].soundOutput=msg[2]
+                self.pushCueMeta(msg[1])
+
             if msg[0] == "settrack":
                 cues[msg[1]].setTrack(msg[2])
-                self.pushCueMeta(msg[1])              
+                self.pushCueMeta(msg[1])
+
+
             if msg[0] == "setdefaultactive":
                 module.scenes[msg[1]].defaultActive=bool(msg[2])
                 self.pushMeta(msg[1])
@@ -1172,7 +1435,15 @@ class LightBoard():
 
             if msg[0] == "setnext":
                 disallow_special( msg[2][:1024],allow="_")
-                cues[msg[1]].nextCue= msg[2][:1024]
+                if msg[2][:1024]:
+                    c = msg[2][:1024]
+                else:
+                    c = None
+                cues[msg[1]].nextCue= c
+                self.pushCueMeta(msg[1])
+
+            if msg[0] == "setscript":
+                cues[msg[1]].setScript(msg[2][:2048])
                 self.pushCueMeta(msg[1])
 
             if msg[0] == "setblend":
@@ -1358,7 +1629,7 @@ def render(t=None):
     "This is the primary rendering function"
     changedUniverses = pre_render()
   
-    t = t or time.time()
+    t = t or timefunc()
     
     #Remember that scenes get rendered in ascending priority order here
     for i in module.activeScenes:
@@ -1366,7 +1637,7 @@ def render(t=None):
 
         #We don't need to call render() if the frame is a static scene and the opacity
         #and all that is the same, we can just re-layer it on top of the values
-        if i.rerender or (i.cue.length and ((time.time()-i.enteredCue)>i.cuelen)):
+        if i.rerender or (i.cue.length and ((timefunc()-i.enteredCue)>i.cuelen*(60/i.bpm))):
             i.rerender = False
             i.render()
 
@@ -1505,12 +1776,15 @@ cues =weakref.WeakValueDictionary()
 
 class Cue():
     "A static set of values with a fade in and out duration"
-    __slots__=['id','changed','next_ll','alpha','fadein','fadeout','length','lengthRandomize','name','values','scene','nextCue','track','shortcut','number','inherit','__weakref__']
-    def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, fadeout=0, length=0,track=True, nextCue = None,shortcut=None,id=None,number=None,
-        lengthRandomize=0):
+    __slots__=['id','changed','next_ll','alpha','fadein','fadeout','length','lengthRandomize','name','values','scene','nextCue','track','shortcut','number','inherit','sound','rel_length','script','soundOutput','onEnter','onExit','__weakref__']
+    def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, fadeout=0, length=0,track=True, nextCue = None,shortcut=None,sound='',soundOutput=None,rel_length=False, id=None,number=None,
+        lengthRandomize=0,script='',onEnter=None,onExit=None,**kw):
         #This is so we can loop through them and push to gui
-        self.id = random.random()+time.time()
+        self.id = random.random()+timefunc()
         self.name = name
+        self.script = script
+        self.onEnter = onEnter
+        self.onExit = onExit
         disallow_special(name)
         if name[0] in '1234567890 \t_':
             name = 'x'+name
@@ -1531,6 +1805,7 @@ class Cue():
         self.fadein =fadein
         self.fadeout= fadeout
         self.length = length
+        self.rel_length = rel_length
         self.lengthRandomize = lengthRandomize
         self.values = values or {}
         self.scene = weakref.ref(parent)
@@ -1539,6 +1814,8 @@ class Cue():
         #the first version
         self.track = track
         self.shortcut= None
+        self.sound = sound
+        self.soundOutput = soundOutput
         s = number_to_shortcut(self.number)
         shortcut = shortcut or s
         self.setShortcut(shortcut)
@@ -1547,7 +1824,15 @@ class Cue():
 
     def serialize(self):
             return {"fadein":self.fadein,"fadeout":self.fadeout,"length":self.length,'lengthRandomize':self.lengthRandomize,"shortcut":self.shortcut,"values":self.values,
-            "nextCue":self.nextCue,"track":self.track,"number":self.number}
+            "nextCue":self.nextCue,"track":self.track,"number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,'rel_length':self.rel_length, 'script':self.script, 
+            }
+
+    def setScript(self,script):
+        self.script = script
+        try:
+            self.scene().commandBindings= parseCommandBindings(script)
+        except:
+            print(traceback.format_exc(6))
     
     def push(self):
         for i in module.boards:
@@ -1569,7 +1854,7 @@ class Cue():
         
         for i in module.boards:
             if len(i().newDataFunctions)<100:
-                i().newDataFunctions.append(lambda s:s.pushCueMeta(self.cues[name].id))
+                i().newDataFunctions.append(lambda s:s.pushCueMeta(c.id))
         for i in module.boards:
             if len(i().newDataFunctions)<100:
                 i().newDataFunctions.append(lambda s:s.pushCueData(c.id))
@@ -1621,7 +1906,7 @@ class Cue():
         with module.lock:
             self.scene().rerender = True
             reset = False
-            if not value is None:
+            if not (value is None):
                 if not universe in self.values:
                     self.values[universe] = {}
                     reset = True
@@ -1660,11 +1945,17 @@ class Cue():
 
 class Scene():
     "An objecting representing one scene"
-    def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,blendArgs=None,backtrack=True,defaultCue=True):
+    def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,blendArgs=None,backtrack=True,defaultCue=True, syncKey=None, bpm=60, syncAddr="239.255.28.12", syncPort=1783):
+
+
+       
+
         "Not suggested to defaultCue==False, it's only there to avoid conflicts when loading saved cues"
         if name and name in module.scenes_by_name:
             raise RuntimeError("Cannot have 2 scenes sharing a name")
         disallow_special(name)
+        self.lock = threading.Lock()
+
         self.id = id or uuid.uuid4().hex
         #Used to determine the numbering of added cues
         self.topCueNumber = 0
@@ -1680,6 +1971,12 @@ class Scene():
         self.values = values or {}
         self.canvas = None
         self.backtrack = backtrack
+        self.bpm = bpm
+
+        #Used for the tap tempo algorithm
+        self.lastTap = 0
+        self.tapSequence = 0
+        
         #The list of cues as an actual list that is maintained sorted by number
         self.cues_ordered = []
         #This flag is used to avoid having to repaint the canvas if we don't need to
@@ -1687,6 +1984,10 @@ class Scene():
         #A pointer into that list pointing at the current cue. We have to update all this
         #every time we change the lists
         self.cuePointer = 0
+
+        #Used for storing when the sound file ended. 0 indicates a sound file end event hasn't
+        #happened since the cue started
+        self.sound_end = 0
 
         self.cues = {}
         if defaultCue:
@@ -1703,10 +2004,19 @@ class Scene():
         #which are faster that dicts for some operations
         self.cue_cached_vals_as_arrays = None
         self.cue_cached_alphas_as_arrays = None
-        if defaultCue:
-            self.gotoCue('default')
+
+
+        #Set up the multicast synchronization
+        self.pavillionc = None
+        self.syncKey = syncKey
+        self.syncPort = syncPort
+        self.syncAddr = syncAddr
+        if self.syncKey:
+            self.pavillionSetup()
 
         self.enteredCue = 0
+
+
         self.priority = priority
         #Used by blend modes
         self.blendArgs = blendArgs or {}
@@ -1723,6 +2033,13 @@ class Scene():
         
         #Last time the scene was started. Not reset when stopped
         self.started = 0
+
+        #The bindings for script commands that might be in the cue metadata
+        self.commandBindings = {}
+
+
+        import hashlib
+
         
         if name:
                module.scenes_by_name[self.name] = self
@@ -1730,10 +2047,62 @@ class Scene():
             name = self.id
         module.scenes[self.id] = self
 
+        if defaultCue:
+            self.gotoCue('default',sendSync=False)
+
         if active:
             self.go()
             if isinstance(active, float):
-                self.started = time.time()-active
+                self.started = timefunc()-active
+
+
+    def pavillionSetup(self):
+        if self.syncKey and not isinstance(self.syncKey,bytes) and not (len(self.syncKey)==32):
+            bsynckey = base64.b64decode(self.syncKey)
+            if not len(bsynckey)==32:
+                raise ValueError("Key must be 32 bytes, or 32 base64 encoded bytes")
+        elif isinstance(self.syncKey,bytes) and len(self.syncKey)==32:
+            bsynckey = self.syncKey
+        else:
+            raise ValueError("Key must be 32 bytes, or 32 base64 encoded bytes")
+        self.bsynckey = bsynckey
+
+        #Generate target from sync key, so you don't have to do it yourself
+        msgtarget = hashlib.sha256(bsynckey).hexdigest()
+        self.messagetargetstr = msgtarget
+
+        try:
+            self.pavillionc.close()
+            self.pavillions.close()
+        except:
+            pass
+
+        self.pavillions = pavillion.Server(keys={b'0'*16:bsynckey},port=self.syncPort,multicast=self.syncAddr)
+        self.pavillionc = pavillion.Client(psk=bsynckey, clientID=b'0'*16,address=(self.syncAddr, self.syncPort))
+        self.pavillions.ignore[self.pavillionc.address]=True
+        print(self.pavillionc.address)
+
+
+        def f(name,data, client):
+            if name =="cue":
+                data=data.decode("utf-8")
+                data = data.split("\n")
+                t = float(data[1])
+
+                #If the time matches, treat it as the "same" event that we don't need to handle again
+                if abs(t-self.enteredCue)<0.03:
+                    return
+                #If the transition happened more than 5 seconds in the future, that doesn't make any sense
+                if t-timefunc()>5:
+                    return
+                #If the transition happened more than 24h ago, ignore it.
+                if timefunc()-t>(3600*24):
+                    return
+                
+                if data[0] in self.cues:
+                    self.gotoCue(data[0],t,sendSync=False)
+        self.msgtarget = self.pavillions.messageTarget(msgtarget,f)
+
 
     def insertSorted(self,c):
         with module.lock:
@@ -1857,12 +2226,35 @@ class Scene():
             if len(i().newDataFunctions)<100:
                 i().newDataFunctions.append(lambda s:s.pushMeta(self.id))
 
+    def event(self,s):
+        try:
+            for i in module.boards:
+                i().pushEv(s, self.name,timefunc())
+        except:
+            print(traceback.format_exc())
+        self._event(s)
+
     
-    def gotoCue(self, cue):
+    def _event(self, s):
+        "Manually trigger any script bindings on an event"
+        with self.lock:
+            if not s in self.commandBindings:
+                return
+            for i in self.commandBindings[s]:
+                try:
+                    runCommand(i)
+                except Exception as e:
+                    print(traceback.format_exc(6))
+    
+
+    def gotoCue(self, cue,t=None, sendSync=True):
         "Goto cue by name, number, or string repr of number"
         with module.lock:
             if self.canvas:
                 self.canvas.save()
+
+            
+            
 
             self.fadeInCompleted = False
             #There might be universes we affect that we don't anymore,
@@ -1904,11 +2296,25 @@ class Scene():
                     if i.number-(float(cue)*1000)<0.001:
                         cue = i.name
                         break
+            
+            if not (cue==self.cue.name) and "cue.exit" in self.commandBindings:
+                for i in self.commandBindings['cue.exit']:
+                    try:
+                        runCommand(i)
+                    except Exception as e:
+                        print(traceback.format_exc(6))
+            
+            
+            if sendSync:
+                if self.pavillionc:
+                    self.pavillionc.sendMessage(self.messagetargetstr,"cue", (cue+"\n"+str(t or timefunc())).encode("utf-8"))
 
             self.cueHistory.append(cue)
             self.cueHistory = self.cueHistory[-100:]
-                
-            self.enteredCue = time.time()
+            self.sound_end = 0
+
+            #Allow specifying an "Exact" time to enter for zero-drift stuff
+            self.enteredCue = t or timefunc()
 
             self.fadeout_start =False
 
@@ -1920,6 +2326,24 @@ class Scene():
             #an explicit parent or the previous cue in the numbered list either has the default next cue or explicitly
             #references this cue.
             cobj = self.cues[cue]
+            try:
+                self.commandBindings= parseCommandBindings(cobj.script)
+            except:
+                print(traceback.format_exc(6))
+            
+            if self.cue.onExit:
+                self.cue.onExit(t)
+
+            if cobj.onEnter:
+                cobj.onEnter(t)
+
+            if "cue.enter" in self.commandBindings:
+                for i in self.commandBindings['cue.enter']:
+                    try:
+                        runCommand(i)
+                    except Exception as e:
+                        print(traceback.format_exc(6))
+
             self.cuelen = max(0,random.triangular(cobj.length-cobj.lengthRandomize, cobj.length+cobj.lengthRandomize))
 
             #We don't fully reset until after we are done fading in and have rendered.
@@ -1959,7 +2383,14 @@ class Scene():
             else:
                 self.cuePointer = self.cues_ordered.index(self.cues[cue])
             self.cue = self.cues[cue]
-
+            
+            kaithem.sound.stop(str(self.id))
+            c = 0
+            while c<50 and kaithem.sound.isPlaying(str(self.id)):
+                c+=1
+                time.sleep(0.017)
+            if self.cue.sound and os.path.isfile(self.cue.sound):
+                kaithem.sound.play(self.cue.sound,handle=str(self.id),volume=self.alpha,output=self.cue.soundOutput)
                         
             #Loop over universes in the cue
             for i in self.cue.values:
@@ -1980,14 +2411,14 @@ class Scene():
             self.rerender = True
             self.pushMeta(cue=True)
 
-    def nextCue(self):
+    def nextCue(self,t=None):
         with module.lock:
-            if self.cue.nextCue and self.cue.nextCue in self.cues:
-                self.gotoCue(self.cue.nextCue)
+            if self.cue.nextCue and ((self.cue.nextCue in self.cues) or self.cue.nextCue.startswith("__")):
+                self.gotoCue(self.cue.nextCue,t)
             elif not self.cue.nextCue:
                 x= self.getDefaultNext()
                 if x:
-                    self.gotoCue(x)
+                    self.gotoCue(x,t)
 
     def setupBlendArgs(self):
         if hasattr(self.blendClass,"parameters"):
@@ -2001,16 +2432,19 @@ class Scene():
             if self in module.activeScenes:
                 return
             self.canvas = FadeCanvas()
-            #Defensive programming
+
+            self.manualAlpha = False
+            self.alpha = self.defaultalpha
+
             if not self.cue:
-                self.gotoCue('default')
+                self.gotoCue('default',sendSync=False)
             else:
                 #Re-enter cue to create the cache
                 self.gotoCue(self.cue.name)
             #Bug workaround for bug where scenes do nothing when first activated
             self.canvas.paint(self.cue, 0,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays,track=self.cue.track)
 
-            self.enteredCue = time.time()
+            self.enteredCue = timefunc()
 
             if self.blend in blendmodes:
                 self._blend = blendmodes[self.blend](self)
@@ -2019,11 +2453,9 @@ class Scene():
             self.effectiveValues = None
 
             self.hasNewInfo = {}
-            self.started = time.time()
+            self.started = timefunc()
 
 
-            self.manualAlpha = False
-            self.alpha = self.defaultalpha
 
             if not self in module._activeScenes:
                 module._activeScenes.append(self)
@@ -2077,6 +2509,60 @@ class Scene():
             self.gotoCue(self.cue.name)
             self.enteredCue = x
             self.rerender=True
+        self.hasNewInfo = {}
+
+    def setBPM(self,b):
+        b =float(b)
+        if self.bpm == b:
+            return
+        else:
+            self.bpm = b
+            self.rerender=True
+        self.hasNewInfo = {}
+
+    def tap(self, t=None):
+        "Do a tap tempo tap. If the tap happened earlier, use t to enter that time"
+        t = t or timefunc()
+
+        x= t-self.lastTap
+
+        self.lastTap = t
+
+        l = 60/self.bpm
+        
+        
+        if x> 8:
+            self.tapSequence = 0
+
+        if self.tapSequence> 1:
+            if abs(x-l)> l*0.05:
+                self.tapSequence = 0
+
+        if self.tapSequence:
+            f = max(1/self.tapSequence,0.06)
+            self.bpm = self.bpm*(1-f) + (60/(x))*f
+        self.tapSequence+= 1
+
+        l= 60/self.bpm
+        ts = t-self.enteredCue
+        beats =  ts/l
+
+        fbeat = beats%1
+        #We are almost right on where a beat would be, make a small phase adjustment
+
+        #Back project N beats into the past finding the closest beat to when we entered the cue
+        new_ts = round(beats)*l
+        x = t-new_ts
+
+        if (fbeat<0.1 or fbeat>0.90) and self.tapSequence:
+            #Filter between that backprojected time and the real time
+            #Yes I know we already incremented tapSequence
+            f = 1/self.tapSequence**1.2
+            self.enteredCue = self.enteredCue*(1-f) + x*f
+        elif self.tapSequence:
+            #Just change enteredCue to match the phase.
+            self.enteredCue = x
+        self.hasNewInfo = {}
 
 
     def stop(self):
@@ -2102,12 +2588,17 @@ class Scene():
             self.active = False
             self.cue_cached_vals_as_arrays = None
             self.cue_cached_alphas_as_arrays = None
+            kaithem.sound.stop(str(self.id))
+
 
         
     def setAlpha(self,val,sd=False):
+        kaithem.sound.setvol(val, str(self.id))
         self.rerender = True
-        if val<=0 and(not (self.blend =="inhibit" or (self._blend and not self._blend.autoStop)) ):
-            self.stop()
+        #Don't auto-stop if a sound is playing, that would just be annoying to anyone using it for volume control
+        #Also allow blend modes like inhibit to disable auto-stop, because 0 has a different effect than off.
+        if val<=0 and(not (self.blend =="inhibit" or (self._blend and not self._blend.autoStop)) ) and  not kaithem.sound.isPlaying(str(self.id)) :
+                self.stop()
         else:
             if not self.isActive():
                 self.go()
@@ -2117,6 +2608,40 @@ class Scene():
                 self.defaultalpha = val
         self.hasNewInfo = {}
 
+    def setSyncKey(self, key):
+        if key and not isinstance(key,bytes) and not (len(key)==32):
+            bsynckey = base64.b64decode(key)
+            if not len(bsynckey)==32:
+                self.hasNewInfo = {}
+                raise ValueError("Key must be 32 bytes, or 32 base64 encoded bytes")
+
+        elif isinstance(keyy,bytes) and len(key)==32:
+            key = base64.b64encode(key)
+        else:
+            self.hasNewInfo = {}
+            raise ValueError("Key must be 32 bytes, or 32 base64 encoded bytes")
+
+
+        with self.lock:
+            self.syncKey = key
+            self.hasNewInfo = {}
+            self.pavillionSetup()
+            
+
+    def setSyncAddress(self, addr):
+        with self.lock:
+            self.syncAddr = addr
+            self.pavillionSetup()
+            self.hasNewInfo = {}
+    
+    def setSyncPort(self, port):
+        with self.lock:
+            self.syncPort = port
+            self.pavillionSetup()
+            self.hasNewInfo = {}
+
+
+    
     def cue(self,name,**kw):
         return Cue(self,name,**kw)
 
@@ -2137,7 +2662,7 @@ class Scene():
         self.hasNewInfo = {}
 
     def setBlendArg(self,key,val):
-        disallow_special(key)
+        disallow_special(key,"_")
         #serializableness check
         json.dumps(val)
         if not hasattr(self.blendClass,"parameters") or not key in self.blendClass.parameters:
@@ -2168,36 +2693,33 @@ class Scene():
             pass
         self.valueschanged = {}
         
-    def gotoNext(self):
+    def gotoNext(self,t=None):
         with self.lock:
             if self.cue.nextCue:
-                self.gotoCue(self.cue.nextCue)
-                self.rerender = True
+                if self.cue.nextCue in self.cues or self.cue.nextCue.startswith('__'):
+                    self.gotoCue(self.cue.nextCue,t=None)
+                    return
             elif self.getDefaultNext():
-                self.gotoCue(self.getDefaultNext())
-                self.rerender = True
+                self.gotoCue(self.getDefaultNext(),t=None)
+                return
 
     
     def render(self,force_repaint=False):
         "Calculate the current alpha value, handle stopping the scene and spawning the next one"
         if self.cue.fadein:
-            fadePosition = min((time.time()-self.enteredCue)/self.cue.fadein,1)
+            fadePosition = min((timefunc()-self.enteredCue)/(self.cue.fadein*(60/self.bpm)),1)
         else:
             fadePosition = 1
 
         if fadePosition<1:
             self.rerender = True
 
-        if self.cue.length and(time.time()-self.enteredCue)> self.cuelen:
-            if self.cue.nextCue:
-                if self.cue.nextCue in self.cues or self.cue.nextCue.startswith('__'):
-                    self.gotoCue(self.cue.nextCue)
-                    self.rerender = True
-                    return
-            elif self.getDefaultNext():
-                self.gotoCue(self.getDefaultNext())
-                self.rerender = True
-                return
+        if self.cue.length and(timefunc()-self.enteredCue)> self.cuelen*(60/self.bpm):
+            #rel_length cues end after the sound in a totally different part of code
+            if not self.cue.rel_length:
+                #Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
+                #Then round to the nearest millisecond to prevent long term drift due to floating point issues.
+                self.nextCue(round(self.enteredCue+self.cuelen*(60/self.bpm),3))
         else:
             if force_repaint or not self.fadeInCompleted:
                 if fadePosition == 1:
@@ -2209,6 +2731,18 @@ class Scene():
                                 self.affect.append(i)
                     self.fadeInCompleted = True
                 self.canvas.paint(self.cue, fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays,track=self.cue.track)
+
+
+def event(s):
+    with module.lock:
+        try:
+            for i in module.boards:
+                i().pushEv(s, '__global__',timefunc())
+        except:
+            print(traceback.format_exc())
+
+        for i in module.activeScenes:
+            i._event(s)
 
 
 lastrendered = 0
@@ -2224,6 +2758,10 @@ kaithem.lights.scenesByName = module.scenes_by_name
 kaithem.lights.Universe = Universe
 kaithem.lights.blendmodes = blendmodes
 kaithem.lights.fixture = Fixture
+kaithem.lights.shortcut = shortcutCode
+kaithem.lights.scriptActions = weakref.WeakValueDictionary()
+kaithem.lights.event = event
+
 
 module.controluniverse = Universe("control")
 
@@ -2232,13 +2770,14 @@ render()
 with module.lock:
     render()
 global lastrendered
-if time.time() -lastrendered > 1/14.0:
+if timefunc() -lastrendered > 1/48.0:
+    with module.lock:
+        pollsounds()
     with boardsListLock:
         for i in module.boards:
             b = i()
             if b:
                 b.guiPush()
             del b
-    lastrendered = time.time()
-        
+    lastrendered = timefunc()        
 

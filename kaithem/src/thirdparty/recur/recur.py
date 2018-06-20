@@ -210,7 +210,6 @@ class ConstraintSystem(BaseConstraint):
                 #Another constraint that does
                 if not x:
                     continue
-                print("noninc",i,x)
                 smallest = min(smallest, x-time)
 
             #increment time to the first matching constraint
@@ -225,6 +224,7 @@ class ConstraintSystem(BaseConstraint):
             for i in self.constraints:
                 #Get either next occurance or start of this occurance
                 t = i.after(time,inclusive=True,align=align)
+                
                 if t==None:
                     return None
                 #We check if time is less than or equal to t because constraints return the start of
@@ -868,7 +868,7 @@ class minutely(BaseConstraint):
         dt2 = dt - datetime.timedelta(microseconds=aligndt.microsecond,seconds=aligndt.second)
         #Subtract align from minute so that at align minutes we are at 0 in our offset timespace
         dt_offset = asMinutes(dt2) - (align%(self.interval))
-        if inclusive and (dt_offset) % self.interval == 0:
+        if inclusive and (dt_offset % self.interval) == 0:
             #Get aligned start of second. Return the actual time not our offset version
             return dt.replace(microsecond=aligndt.microsecond,second=aligndt.second)
         else:

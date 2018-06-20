@@ -61,6 +61,8 @@ def require(permission, noautoreturn = False):
     if '__guest__' in auth.Users:
         if permission in auth.Users['__guest__'].permissions:
             return
+        if "__all_permissions__" in auth.Users['__guest__'].permissions:
+            return
 
     #Anything guest can't do needs https
     if not cherrypy.request.scheme == 'https':
