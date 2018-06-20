@@ -41,6 +41,7 @@ timeinterval = number ("seconds" | "minutes" |"hours" | "days" | "weeks");
 number = /\d+[\.]\d+/;
 integer = /\d+/;
 ordinal = 'first'|'second'|'third'|'1st'|'2nd'|'3rd'|'other'|/\d\d?th/;
+enumber = 'one'|'two'|'three'|'four'|'five'|'six'|'seven' | 'eight' | 'nine' | 'ten';
 
 #If it looks like 02:45, assume 24 hour time.
 time = predefinedtime|((hour:hour [[(':' minute:minute) [(':' second:second) [(':' ms:millisecond)]]]] ampm:('am'|'pm'|'AM'|'PM'))|(hour:hour ':' minute:minute [[(':' second:second) [(':' ms:millisecond)]]]));
@@ -72,7 +73,7 @@ beforetimeofdayconstraint = 'before' beforetimeofdayconstraint:time;
 beforetimeconstraint = ('before'|'until') before:datetimewithyear;
 
 betweentimesofdayconstraint = ('between' @+:time 'and' @+:time)| ('from' @+:time 'to' @+:time);
-nintervalconstraint = ('every' integer intervals) | ('every' ordinal interval);
+nintervalconstraint = ('every' integer intervals) | ('every' ordinal interval)  | ('every' enumber intervals);
 intervalconstraint = ('every' interval);
 dateconstraint = (["on"] dates) | ('every year on') date;
 datewithyearconstraint = (["on"] datewithyear);

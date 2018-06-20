@@ -88,6 +88,17 @@ Should you go to /pages/foo/bar and bar is a folder, foo/bar/\_\_index\_\_will b
 
 Nonexistant page handling: Should you go to /pages/foo/bar/nonexistant, bar will first be searched for a \_\_default\_\_ page, then foo, then the root. If no default is found, an error will be returned.
 
+### Available Static Resources
+
+Kaithem provides a few static resources that are included with the distribution, notably Font Awesome and iconicss.
+
+    &ltlink rel="stylesheet" href="/static/img/icons/iconicss/iconicss.min.css">
+    &ltlink rel="stylesheet" href="/static/img/icons/fontawesome/css/fontawesome-all.min.css">
+
+Also include is the complete Fugue icon pack, accessible as follows:
+
+    Acorn
+
 <a href="" id="scope"></a>Scoping
 ---------------------------------
 
@@ -97,7 +108,9 @@ Anything defined in the Setup function of an event becomes a part of the global 
 
 Internally, the events are compiled to (in memory, bytecode is not written to disk) python modules and the actions become functions.
 
-Every resource scope(including setup,trigger,action, and Mako pages) however will contain an object called kaithem, which is a global object with some useful utilities, and an object called module, which is shared between all resources within one module (Regardless of where in the nested heirarchy the resoucrce is). The module objects have no special properties beyond the ability to assign objects to them.
+Every resource scope(including setup,trigger,action, and Mako pages) however will contain an object called kaithem, which is a global object with some useful utilities, and an object called module, which is shared between all resources within one module (Regardless of where in the nested heirarchy the resoucrce is). The module objects have no properties beyond the ability to assign properties to share data, and act like dicts of [API objects](#apiobjects) for resources.
+
+New in 0.60, event scopes will contain an object called "event", which is an easier way to access the event's API object.
 
 <a href="" id="auth"></a>Users and access control:
 --------------------------------------------------
@@ -171,13 +184,13 @@ Causes the object to reject AJAX read or write requests from any device that doe
 
 Causes the object to reject AJAX write requests from any device that does not have the permissions. You can apply as many permissions as you want.
 
-### Widget.onRequest(user) (Always Available)
+### Widget.onRequest(user,uuid) (Always Available)
 
-This function is automatically called when an authorized client requests the latest value. It must return None for unknown/no change or else a JSON serializable value specific to the widget type. You only need to know about this function when creating custom widgets.
+This function is automatically called when an authorized client requests the latest value. It must return None for unknown/no change or else a JSON serializable value specific to the widget type. You only need to know about this function when creating custom widgets. uuid is the connection ID.
 
-### Widget.onUpdate(user,value) (Always Available)
+### Widget.onUpdate(user,value,uuid) (Always Available)
 
-This function is automatically called when an authorized client requests to set a new value. value will be specific to the widget. You only need to know about this function when creating custom widgets.
+This function is automatically called when an authorized client requests to set a new value. value will be specific to the widget. You only need to know about this function when creating custom widgets. uuid is the connection ID.
 
 ### Widget.read() (Usually Available)
 
@@ -193,11 +206,46 @@ This should not be used from within the callback or overridden message handler d
 
 Send value to all subscribed clients.
 
+### Widget.sendTo(value,connectionID)
+
+Send only to one client by it's connection ID
+
 ### []()Widget.attach(f)
 
 Set a callback that fires when new data comes in from the widget. It will fire when write() is called or when the client sends new data The function must take two values, user, and data. User is the username of the user that loaded the page that sent the data the widget, and data is it's new value. user wil be set to \_\_SERVER\_\_ if write() is called.
 
+### Widget.attach2(f)
+
+Same as above, but takes a 3 parameter callback, user,data, and connection ID. allows distinguishing different connections by the same user.
+
 You should not call self.write from within the callback to avoid an infinite loop, although you can call write on other widgets without issue. If you wish to send replies from a callback, use self.send() instead which does not set self.value or trigger the callback.
+
+<a href="" id="apiobjects"></a>API Objects
+------------------------------------------
+
+Certain resource types have "API objects" used to access some additional features. These API objects may be accessed within a module as "module\[resourcename\]", or from within an event itself using the name "event".
+
+### Event API Objects
+
+#### event.stop()
+
+Pause execution of the event. It will not poll or run until unpaused, or re-saved/reloaded. The event is not disabled or deleted so no variables are lost.
+
+#### event.start()
+
+Restarts a paused event.
+
+#### event.run()
+
+Manually runs an event if it is not already running.
+
+#### event.reportException()
+
+When called from an exception handler, the traceback will show in that event's page.
+
+#### event.data
+
+A blank object that you can assign properties to, which will persist when the event is modified, but not across reboots.
 
 <a href="" id="kaithemobject"></a>The Kaithem Object:
 -----------------------------------------------------
@@ -239,6 +287,10 @@ Returns the current verson as a 5 element tuple similar to python's sys.version\
 releaselevel may be any of dev, alpha, beta, candidate, final
 
 Serial is not guaranteed to actually do anything
+
+#### kaithem.misc.breakpoint
+
+This does nothing except print a notice. It's there so you can find the function in breakpoint.py, and put a breakpoint there.
 
 ### kaithem.resource
 
@@ -315,6 +367,20 @@ Both values are guaranteed to match, the state will not change after checking on
 The previous state of the machine. May be the same as the current state if re-entry occurs. The initial value is None before any transitions have occured.
 
 ### kaithem.time
+
+#### kaithem.time.lantime()
+
+#### 
+
+Return a number of seconds since the epoch like time.time, except this function automatically syncs across all kaithem instances across the local network.
+
+The intended application here is when you want to keep machines in relative sync but aren't as concerned with absolute time, or when you have a machine on the LAN with a GPS reciever and want to sync to that.
+
+This function only works on python 3.3+ only, and requires netifaces. If these conditions are not met, it is equivalent to time.time(). Similar to plain NTP, it provides no security beyond that of your wifi router.
+
+Specifically, it uses MDNS to find an NTP server, choosing the first one when sorted asciibetically. Kaithem has an embedded NTP server on a random port, which has the MDNS service name "ntp5500\_123456789-kaithem" where 5500 is the ntpserver-priority from the config file, and 123456799 is the boot time in microseconds, or a random value.
+
+If you want to sync to a specific dedicated NTP server, it is suggested that you simply advertise that server using the same naming convention and a lower priority.
 
 #### kaithem.time.uptime()
 
@@ -403,6 +469,14 @@ List all directories under path on the server.
 #### kaithem.sys.which(exe)
 
 Similar to the unix which command. Returns the path to the program that will be called for a given command in the command line, or None if there is no such program
+
+### kaithem.users
+
+This namespace contains features for working with kaithem's user management system.
+
+#### kaithem.users.checkPermission(username, permission)
+
+Returns True is the specified use has the given permission and False otherwise. Also returns False if the user does not exist.
 
 ### kaithem.registry
 
@@ -547,6 +621,8 @@ You can also use obj.send(x), to ensure that all values and not just the latest 
 You may transmit any value that can be represented as JSON.
 
 If you would rather recieve a callback after every pollingcycle with the current value, just redefine the objects upd(val) method.
+
+You can also use obj.now() to get a time in milliseconds since the epoch(As in Date.now()) that represents what the server thinks is the current time. The precision may only be 100ms due to browsers degrading performance.now(). It may take a few seconds to stabilize.
 
 On the python side, [attach()](#widgetattach), read(), and write() all work as expected.
 

@@ -184,8 +184,7 @@ class ModuleObject(object):
             x = Page(module,name,x)
 
         elif resourcetype == 'event':
-            x = newevt.EventReferences[self.module,self.resource].api_obj
-            #x = Event(module,name,x)
+            x = EventAPI(module,name,x)
 
         elif resourcetype == 'permission':
             x = Permission(module,name,x)

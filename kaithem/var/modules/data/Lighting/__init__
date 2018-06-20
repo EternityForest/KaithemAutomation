@@ -516,9 +516,14 @@ class Fixture():
                 self.name=name
                     
     def __del__(self):
+        ID=id(self)
         def f():
-            self.assign(None,None)
-            self.rm()
+            try:
+                if id(module.fixtures[self.name])==id(ID):
+                    self.assign(None,None)
+                    self.rm()
+            except:
+                pass
         kaithem.misc.do(f)
 
     def rm(self):
@@ -920,14 +925,18 @@ class LightBoard():
                 try:
                     if not len(i)==4:
                         raise ValueError('Syntax error')
-                    self.fixtures[i[0]] = Fixture(i[0],self.fixtureClasses[i[1]])
+                    x = Fixture(i[0],self.fixtureClasses[i[1]])
+                    self.fixtures[i[0]] = x
                     self.fixtures[i[0]].assign(i[2],int(i[3]))
+                    module.fixtures[i[0]]= x
+                    print(module.fixtures[i[0]], self.fixtures)
+                    
                 except:
+                    print(traceback.format_exc(4))
                     self.ferrs += str(i)+'\n'+traceback.format_exc(2)
 
             for u in module.universes:
                 self.pushChannelNames(u)
-
             self.ferrs = self.ferrs or 'No Errors!'
             self.pushfixtures()
 

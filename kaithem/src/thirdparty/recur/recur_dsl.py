@@ -39,7 +39,7 @@ def parseDateTimeWithYearWithDefaults(s):
 
 def parseOrdinal(s):
     "Given either an int or a string like '1', '1st','10th', etc; return an int"
-    o = {'other':2,"first":1,"1st":1,"second":2,"2nd":2,"third":3,"3rd":3}
+    o = {'other':2,"first":1,"1st":1,"second":2,"2nd":2,"third":3,"3rd":3, 'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8,'nine':9,'ten':10}
     if s in o:
         return o[s]
     if s.endswith("th"):
@@ -232,7 +232,6 @@ class semantics():
         return recur.endingat(s)  
            
     def timeofdayconstraint(self,ast):
-        print(ast,"sdfghjkljhgfdsaxdcvjkjhgfdsghj")
         s = parseTimes(ast['timeofdayconstraint'])
         return recur.time(*s)       
         
@@ -261,7 +260,6 @@ def getConstraint(c):
     s = semantics()
     s.tz = None
     c= p.parse(c, rule_name="start",semantics =s)
-    print(c)
     a = s.align if hasattr(s,"align") else None
     if s.tz:
         import pytz

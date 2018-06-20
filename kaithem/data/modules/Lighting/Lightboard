@@ -37,6 +37,12 @@ boardname = "default"
         margin: 3px;
     }
 
+    .fadersbox
+    {
+                background-color: rgba(20, 20, 20, 0.1);
+
+    }
+
     p.scene {
         border-style: solid;
         border-radius: 5px;
@@ -69,8 +75,8 @@ boardname = "default"
         border-radius: 5px;
         float: left;
         overflow: auto;
-        border-width: 1px;
-        border-color: grey;
+        border-width: 2px;
+        border-color: darkgrey;
         margin: 3px;
         display: inline-block;
         background-color: rgba(128, 128, 128, 0.4);
@@ -138,13 +144,22 @@ boardname = "default"
 
 
 <div id="app">
+
+    <div v-if="showevents" class="sectionbox" style="position:fixed; bottom:0px; width:80%;background-color:rgba(220,255,240,0.85)">
+    <h2>Event Log</h2>
+    <input v-model="evfilt" placeholder="Filter events"><br>
+    <div class="scrollbox" style="height:6em">
+        <div style="background-color:rgba(180,230,200,0.8)" v-for="i in evlog" v-if="i[1].search(evfilt)>-1 || i[0].search(evfilt)>-1">{{i[2]}}: <b>{{i[0]}}</b> at {{i[1]}}</div>
+    </div>
+    <label>Send Global Event:<input v-model="evtosend" v-on:keydown.enter="sendev"><button v-on:click="sendev">Send</button><label>
+    </div>
     <a href="download" title="Download your scenes as a file">Save</a>
     <a href="upload" title="Upload a scenes file">Load</a>
     <a href="save" title="Save to the kaithem registry as the default state at boot">Make Current State the Default</a>
     <p style="background-color:rgba(255,255,255,0.3);"><b>Show Windows:</b>
         <label>DMX Setup:
             <input type="checkbox" v-model="showDMXSetup">
-        </label>
+        </label>|
 
         <label>Fixture Types:
             <input v-on:change="showhidefixtures" type="checkbox" v-model="showFixtureSetup">
@@ -155,6 +170,10 @@ boardname = "default"
         </label>|
       <label>Show Cue Table</label>
         <input type="checkbox" v-model="showcuetable" v-on:change="cond_getcuemeta($event.target.value)">
+        </label>|
+
+          <label>Events Panel</label>
+        <input type="checkbox" v-model="showevents" v-on:change="cond_getcuemeta($event.target.value)">
         </label>
     </p>
 
@@ -481,7 +500,7 @@ boardname = "default"
                 </label>
 
             </div>
-
+            <h3>{{currentcue.name}}</h3>
     
 
 
@@ -512,7 +531,7 @@ boardname = "default"
 
             <span class="help" v-if="editingScene.ext">This is an external scene that is defined somewhere in code. Any changed made here may be overwritten by the code at any time.</span>
 
-            <div style="overflow: scroll; max-height:30em;">
+            <div style="overflow: scroll; max-height:30em;" class="fadersbox">
                 <div class="universe" v-for="(h,uname) in cuevals[currentcueid]" style="border-style:solid">
                     <div class="fixture" v-for="h in groupByFixture(h)" style="display:inline-block">
 
@@ -600,7 +619,7 @@ boardname = "default"
 
             <div>
                 <p style="background-color:rgba(250,250,250,0.5)">
-                    <button v-on:click="scenetab='blend'">Basic</button>
+                    <button v-on:click="scenetab='blend'">Scene Properties</button>
                     <button v-on:click="scenetab='sound'">Sound</button>
                     <button v-on:click="scenetab='sync'"> Sync</button>
                 </p>
@@ -820,12 +839,23 @@ boardname = "default"
             //Fixture error info str
             'ferrs': '',
             'fixtures': '',
+            'evfilt':'',
+            'evlog': [['item','foo']],
 
             'showkeybindhelp': false,
             'showcuetable':true,
             'showfixtureassg': false,
             'fixtureassg': '',
             'showsoundoptions': false,
+            'showevents': false,
+            'evtosend': '',
+            'evval': '',
+            'sendev' : function()
+            
+            {
+                api_link.send(['event',appData.evtosend, appData.evval])
+            },
+            
             'del': Vue.delete,
             'refreshPorts': function()
             {
@@ -888,9 +918,9 @@ boardname = "default"
                 else
                 {
                     Vue.set(appData.fixtureClasses[appData.selectedFixtureClass]
-                        [i], 2, undefined)
+                        [i], 2, null)
                     Vue.set(appData.fixtureClasses[appData.selectedFixtureClass]
-                        [i], 3, undefined)
+                        [i], 3, null)
 
                 }
                 appData.pushfixture(i)
@@ -1664,6 +1694,14 @@ boardname = "default"
                 set(appData.cuemeta, v[1], v[2]);
             }
 
+            if (c=="event")
+            {
+                appData.evlog.push(v[1])
+                if (appData.evlog.length > 250)
+                {
+                     appData.evlog = appData.evlog.slice(-250)
+                }
+            }
             if (c == "serports")
             {
                 appData.serports = v[1]
