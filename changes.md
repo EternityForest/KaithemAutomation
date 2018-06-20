@@ -1,7 +1,7 @@
 Change Log
 ----------
 
-### 0.60(dev)
+### 0.60
 
 -   Can now view event history
 -   Lighting module cue matrix view, and many other lighting improvements.
