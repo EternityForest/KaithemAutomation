@@ -1,5 +1,5 @@
 <%!
-from src import notifications,auth,unitsofmeasure
+from src import notifications,auth,unitsofmeasure,pages,alerts
 import time
 import cherrypy
 from src.config import config
@@ -20,7 +20,34 @@ from src.unitsofmeasure import formatTimeInterval
     </div>
 %endif
 %endif
-   <h2> System Notifications</h2>
+
+    <h2>Active/Unacknowledged Alarms</h2>
+    <div class="scrollbox sectionbox">
+        <% 
+        toshow = {}
+        l = []
+        for i in alerts.unacknowledged:
+            if pages.canUserDoThis(i.permissions):
+                if not i in toshow:
+                    toshow[i.id]=i
+                    l.append(i)
+
+        for i in alerts.active:
+            if pages.canUserDoThis(i.permissions):
+                if not i in toshow:
+                    toshow[i.id]=i
+                    l.append(i)
+
+        l = sorted(l, key=lambda i: (not i.unacknowledged, i.priority, i.zone, i.name))
+        %>
+    
+        %for i in l:
+        <div><b>{{i.name}}</b></div>
+        %endfor
+    </div>
+
+
+    <h2> System Notifications</h2>
     <div class="scrollbox sectionbox"  style="max-height: 25em">
         %for i in reversed(notifications.notificationslog):
             %if 'important' in i[1]:

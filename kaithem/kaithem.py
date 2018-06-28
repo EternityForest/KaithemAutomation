@@ -223,6 +223,7 @@ from src import usrpages
 from src import systasks
 from src import widgets
 
+from src import alerts
 logger.info("Loaded core python code")
 from src.config import config
 import src.config as cfgmodule
