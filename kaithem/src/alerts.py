@@ -1,4 +1,4 @@
-from src import statemachines, registry, sound,scheduling,workers
+from src import statemachines, registry, sound,scheduling,workers,pages
 import logging,threading,time, random, weakref
 
 logger = logging.getLogger("system.alerts")
@@ -15,6 +15,7 @@ _unacknowledged = {}
 active ={}
 _active ={}
 
+all = weakref.WeakValueDictionary()
 
 priorities  ={
     'debug': 10,
@@ -33,7 +34,7 @@ sfile = "alert.ogg"
 def calcNextBeep():
     global nextbeep
     global sfile
-    x = highestUnacknowledged()
+    x = priorities[_highestUnacknowledged()]
     if x>=30 and x<40:
             nextbeep = registry.get("system/alerts/warning/soundinterval",60*25) +time.time()
             sfile = registry.get("system/alerts/warning/sound","alert.ogg")
@@ -54,6 +55,7 @@ def calcNextBeep():
 #A bit of randomness makes important alerts seem more important
 @scheduling.scheduler.everySecond
 def alarmBeep():
+    print("beepcheck")
     if time.time() > nextbeep:
         calcNextBeep()
         s = sfile
@@ -70,12 +72,25 @@ def highestUnacknowledged():
         return
     with lock:
         l = -1
-        for i in unacknowledged:
+        for i in unacknowledged.values():
             i = i()
             if i:
                 if (priorities[i.priority] if not i.sm.state=="error" else 40) > l:
                     l = i.priority
         return l
+
+
+def _highestUnacknowledged():
+    #Pre check outside lock for efficiency. 
+    if not unacknowledged:
+        return
+    l = -1
+    for i in unacknowledged.values():
+        i = i()
+        if i:
+            if (priorities[i.priority] if not i.sm.state=="error" else 40) > l:
+                l = i.priority
+    return l
 
 
 def cleanup():
@@ -148,35 +163,41 @@ class Alert():
             self.sm.setTimer("cleared",10,"normal")
         
         self.sm.addRule("normal", "trip","tripped")
-        self.sm.addRule("active","acknowledge","acknowledge")
+        self.sm.addRule("active","acknowledge","acknowledged")
         self.sm.addRule("active","release","cleared")
         self.sm.addRule("acknowledged","release","normal")
         self.sm.addRule("error","release","normal")
 
-        self.id = id or time.time()
+        self.id = id or str(time.time())
+        all[self.id]=self
 
+    
+    def API_ack(self):
+        pages.require(self.ackPermissions)
+        self.acknowledge()
     
     @property
     def tripDelay(self):
         return self._tripDelay
 
     #I don't like the undefined thread aspec of __del__. Change this?    
-    def _onActive(self, machine):
+    def _onActive(self):
         global unacknowledged
+        global active
         with lock:
             cleanup()
             _unacknowledged[id(self)] = weakref.ref(self)
             unacknowledged = _unacknowledged.copy()
 
             _active[id(self)] = weakref.ref(self)
-            active = active.copy()
+            active = _active.copy()
             s = calcNextBeep()
         if s:
             sound.playSound(s,handle="kaithem_sys_main_alarm")
 
 
            
-    def _onAck(self, machine):
+    def _onAck(self):
         "Called both when acknowledged, and when released."
         global unacknowledged
         with lock:

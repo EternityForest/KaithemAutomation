@@ -247,7 +247,6 @@ class StateMachine(modules.VirtualResource):
                 return self.state
 
             if not self.state in self.states:
-
                 return self.state
 
             s = self.states[self.state]

@@ -23,27 +23,48 @@ from src.unitsofmeasure import formatTimeInterval
 
     <h2>Active/Unacknowledged Alarms</h2>
     <div class="scrollbox sectionbox">
-        <% 
+        <%
+        if "ackalarm" in cherrypy.request.params:
+            alerts.all[cherrypy.request.params['ackalarm']].API_ack()
         toshow = {}
         l = []
-        for i in alerts.unacknowledged:
+  
+        for i in alerts.unacknowledged.values():
+            i = i()
+            if not i:
+                continue
             if pages.canUserDoThis(i.permissions):
-                if not i in toshow:
-                    toshow[i.id]=i
+                toshow[i.id]=0
+                l.append(i)
+
+        for i in alerts.active.values():
+            i = i()
+            if not i:
+                continue
+            if pages.canUserDoThis(i.permissions):
+                if not i.id in toshow:
+                    toshow[i.id]=0
                     l.append(i)
 
-        for i in alerts.active:
-            if pages.canUserDoThis(i.permissions):
-                if not i in toshow:
-                    toshow[i.id]=i
-                    l.append(i)
-
-        l = sorted(l, key=lambda i: (not i.unacknowledged, i.priority, i.zone, i.name))
+        l = sorted(l, key=lambda i: (i.sm.state=="acknowledged", i.priority, i.zone, i.name))
         %>
     
         %for i in l:
-        <div><b>{{i.name}}</b></div>
+        <div><b>${i.name}</b> Priority: ${i.priority}, Zone: ${i.zone} 
+            
+        %if not i.sm.state=="acknowledged":    
+        <a class="button" href=".?ackalarm=${i.id}">ACK</a>
+        %endif
+        </div>
         %endfor
+
+        <%
+            try:
+                del i
+                del l
+            except:
+                pass
+        %>
     </div>
 
 
