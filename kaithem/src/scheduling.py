@@ -323,6 +323,12 @@ class NewScheduler(threading.Thread):
         e.schedule()
         return e
 
+    def scheduleRepeating(self, f, t):
+        e = RepeatingEvent(f,float(t))
+        e.register()
+        e.schedule()
+        return e
+
 
     def insert(self, event):
         """Insert something that has a time  and a run
