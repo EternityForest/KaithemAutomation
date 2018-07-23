@@ -286,8 +286,12 @@ class Widget():
         #Not sure what the actual cause of the ssl segfault is, but maybe it's this?
         if (len(d)>128*1024):
             raise ValueError("Data is too large, refusing to send")
-        for i in self.subscriptions_atomic:
-            self.subscriptions_atomic[i](d)
+
+        #Yes, I really had a KeyError here. Somehow the dict was replaced with the new version in the middle of iteration
+        #So we use an intermediate value so we know it won't change
+        x = self.subscriptions_atomic
+        for i in x:
+            x[i](d)
 
     def sendTo(self,value,target):
         "Send a value to one subscriber by the connection ID"

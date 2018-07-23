@@ -41,6 +41,9 @@ class WebResource():
         except:
             webResources[name] = self
 
+vue = WebResource("vue-2.5.16","/static/js/vue-2.5.16.js")
+vue2 = WebResource("vue-default","/static/js/vue-2.5.16.js")
+
 
 def postOnly():
     """Redirect user to main page if the request is anything but POST"""

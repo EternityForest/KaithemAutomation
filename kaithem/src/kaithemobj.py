@@ -17,10 +17,10 @@
 
 import time,random,subprocess,threading,random,gzip,json,yaml,os,ntplib,bz2,weakref
 
-
 import cherrypy
 from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry,directories,pages,config,persist,auth,breakpoint
-from . import timesync
+from . import timesync, remotedevices
+
 
 from . import astrallibwrapper as sky
 
@@ -44,6 +44,9 @@ plugins = weakref.WeakValueDictionary()
 
         
 class Kaithem():
+
+    devices= remotedevices.DeviceNamespace()
+
     def __getattr__(self,name):
         if name in plugins:
             return pluginInterface(plugins[name])

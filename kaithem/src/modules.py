@@ -19,6 +19,8 @@ import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling,modules_state,registry
 from .modules_state import ActiveModules,modulesLock,scopes,additionalTypes,fileResourceAbsPaths
 
+
+
 logger = logging.getLogger("system")
 
 def new_empty_module():
@@ -34,6 +36,7 @@ if sys.version_info < (3,0):
    from StringIO import StringIO
 else:
     from io import BytesIO as StringIO
+    from typing import Optional, Tuple
 
 import zipfile
 
@@ -68,7 +71,7 @@ def hashModules():
         logger.exception("Could not hash modules")
         return("ERRORHASHINGMODULES")
 
-def hashModule(module):
+def hashModule(module: str):
     try:
         m=hashlib.md5()
         with modulesLock:
@@ -78,7 +81,7 @@ def hashModule(module):
         logger.exception("Could not hash module")
         return("ERRORHASHINGMODULE")
 
-def getModuleHash(m):
+def getModuleHash(m: str):
     if not m in modulehashes:
         modulehashes[m] = hashModule(m)
     return modulehashes[m].upper()
@@ -91,7 +94,7 @@ def modulesHaveChanged():
     modules_state.ls_folder.invalidate_cache()
 
 class ResourceObject():
-    def __init__(self, m=None,r=None,o=None):
+    def __init__(self, m:str=None,r:str=None,o=None):
         self.resource =r
         self.module = m
         self._object = o
@@ -166,7 +169,7 @@ class ModuleObject(object):
     For acting as an API for user code to acess or modify the resources, which could be useful if you want to be able to
     dynamically create resources, or more likely just acess file resource contents or metadata about the module.
     """
-    def __init__(self,modulename):
+    def __init__(self,modulename:str):
         self.__kaithem_modulename__ = modulename
 
     def __getitem__(self,name):
@@ -238,30 +241,6 @@ class ModuleObject(object):
                 else:
                     additionalTypes[resourcetype].onload(module,name, value)
 
-def insertVirtualResource(modulename,name,value):
-    with modulesLock:
-        module=ActiveModules[modulename]
-        rmlist = []
-        for i in module:
-            if isinstance( module[i], weakref.ref):
-                if not module[i]():
-                    rmlist.append(i)
-        for i in rmlist:
-            del  module[i]
-
-        if name in module:
-            if not isinstance(module[name], weakref.ref):
-                raise RuntimeError("Cannot overwrite real resource with virtual. You must delete old resource first")
-            if not isinstance(value, module[name]().__class__):
-                raise RuntimeError("Can only overwrite virtual resource with same class. Delete old resource first.")
-            module[name]().handoff(value)
-
-        module[name]=VirtualResourceReference(value)
-
-        #Set the value's "name". A virtual resource may only have one "hard link". The rest of the links, if you insert under multiple
-        #names, will work, but won't be the "real" name, and subscriptions and things like that are always to the real name.
-        if not value.name:
-            value.name="x-module:"+ util.url(modulename)+"/"+ "/".join([util.url(i) for i in util.split_escape(name,"/","\\")])
 
 class VirtualResource(object):
     def __init__(self):
@@ -342,6 +321,30 @@ class ResourceAPI(object):
 kaithemobj.kaithem.resource = ResourceAPI()
 
 
+def insertVirtualResource(modulename:str,name:str,value:VirtualResource):
+    with modulesLock:
+        module=ActiveModules[modulename]
+        rmlist = []
+        for i in module:
+            if isinstance( module[i], weakref.ref):
+                if not module[i]():
+                    rmlist.append(i)
+        for i in rmlist:
+            del  module[i]
+
+        if name in module:
+            if not isinstance(module[name], weakref.ref):
+                raise RuntimeError("Cannot overwrite real resource with virtual. You must delete old resource first")
+            if not isinstance(value, module[name]().__class__):
+                raise RuntimeError("Can only overwrite virtual resource with same class. Delete old resource first.")
+            module[name]().handoff(value)
+
+        module[name]=VirtualResourceReference(value)
+
+        #Set the value's "name". A virtual resource may only have one "hard link". The rest of the links, if you insert under multiple
+        #names, will work, but won't be the "real" name, and subscriptions and things like that are always to the real name.
+        if not value.name:
+            value.name="x-module:"+ util.url(modulename)+"/"+ "/".join([util.url(i) for i in util.split_escape(name,"/","\\")])
 
 def parsePyModule(s):
     "Unused at the moment"
@@ -387,14 +390,14 @@ def parsePyModule(s):
             setup+=i+'\n'
                    
 #Backwards compatible resource loader.
-def loadResource(fn,ver=1):
+def loadResource(fn:str,ver:int=1):
     try:
         with open(fn,"rb") as f:
             try:
                 d = f.read().decode("utf-8")
                 #This regex is meant to handle any combination of cr, lf, and trailing whitespaces
-                f = re.split("\r?\n---[ |\t]*?\r?\n",d)
-                r = yaml.load(f[0])
+                sections = re.split("\r?\n---[ |\t]*?\r?\n",d)
+                r = yaml.load(sections[0])
             except:
                 #This is a workaround for when dolphin puts .directory files in directories and gitignore files
                 #and things like that. Also ignore attempts to load from filedata
@@ -413,20 +416,20 @@ def loadResource(fn,ver=1):
 
 
         #Catch new style save files
-        if len(f)>1:
+        if len(sections)>1:
             if r['resource-type'] == 'page':
-                r['body'] = f[1]
+                r['body'] = sections[1]
 
             if r['resource-type'] == 'event':
-                r['setup'] = f[1]
-                r['action'] = f[2]
+                r['setup'] = sections[1]
+                r['action'] = sections[2]
         return r
     except:
         logger.exception("Error loading resource from file "+fn)
         raise
     logger.debug("Loaded resource from file "+fn)
 
-def saveResource2(r,fn):
+def saveResource2(r,fn:str):
     #Don't save VResources
     if isinstance(r,weakref.ref):
         logger.debug("Did not save resource because it is virtual")
@@ -455,7 +458,7 @@ def saveResource2(r,fn):
 
     logger.debug("saved resource to file "+ fn)
 
-def saveResource(r,fn):
+def saveResource(r,fn:str):
     with open(fn,"wb") as f:
         util.chmod_private_try(fn, execute=False)
         f.write(yaml.dump(r).encode("utf-8"))
@@ -555,7 +558,7 @@ def initModules():
         logger.exception("Failed to cleanup old blobs. This is normal if kaithem's var dir is not currently writable.")
     logger.info("Initialized modules")
 
-def saveModule(module, dir,modulename=None, ignore_func=None):
+def saveModule(module, dir:str,modulename:Optional[str]=None, ignore_func=None):
     """Returns a list of saved module,resource tuples and the saved resource.
     ignore_func if present must take an abs path and return true if that path should be
     left alone. It's meant for external modules and version control systems.
@@ -635,7 +638,7 @@ def saveModule(module, dir,modulename=None, ignore_func=None):
     except:
         raise
 
-def saveModules(where):
+def saveModules(where:str):
     """Save the modules in a directory as JSON files. Low level and does not handle the timestamp directories, etc."""
     global unsaved_changed_obj
     #List to keep track of saved modules and resources
@@ -716,7 +719,7 @@ def saveModules(where):
             raise
 
 
-def loadModules(modulesdir):
+def loadModules(modulesdir:str):
     "Load all modules in the given folder to RAM."
     logger.debug("Loading modules from "+modulesdir)
     for i in util.get_immediate_subdirectories(modulesdir):
@@ -740,7 +743,7 @@ def loadModules(modulesdir):
             messagebus.postMessage("/system/notifications/errors" ," Error loading external module: "+ traceback.format_exc(4))
 
 
-def detect_ignorable(path):
+def detect_ignorable(path:str):
     "Recursive detect paths that should be ignored and left alone when loading and saving"
     #Safety counter, this seems like it might need it.
     for i in range(64):
@@ -751,7 +754,7 @@ def detect_ignorable(path):
         if not os.path.split(path)[1]:
             return
 
-def _detect_ignorable(path):
+def _detect_ignorable(path:str):
     "Detect paths that should be ignored when loading a module"
     #Detect .git
     if os.path.basename(path) == ".git":
@@ -765,7 +768,7 @@ def _detect_ignorable(path):
         return True
 
 
-def loadModule(folder, modulename, ignore_func=None):
+def loadModule(folder:str, modulename:str, ignore_func=None):
     "Load a single module but don't bookkeep it . Used by loadModules"
     logger.debug("Attempting to load module "+modulename)
     with modulesLock:
@@ -829,7 +832,7 @@ def loadModule(folder, modulename, ignore_func=None):
         logger.info("Loaded module "+modulename)
         #bookkeeponemodule(name)
 
-def getModuleAsZip(module,noFiles=True):
+def getModuleAsZip(module:str,noFiles:bool=True):
     with modulesLock:
         #We use a stringIO so we can avoid using a real file.
         ram_file = StringIO()

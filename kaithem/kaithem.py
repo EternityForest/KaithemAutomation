@@ -37,6 +37,7 @@ except:
 #sets up and starts the server, and contains page handlers for the main page.
 
 
+
 import sys,os,threading,traceback,logging,time
 
 logger = logging.getLogger("system")
@@ -84,6 +85,7 @@ if sys.version_info < (3,0):
 else:
     sys.path = sys.path+[os.path.join(x,'thirdparty','lowpriority','python3')]
 
+import src
 
 import time,signal
 import cherrypy,validictory
@@ -374,6 +376,7 @@ def cpexception():
 import zipfile
 
 
+from src import remotedevices
 
 #There are lots of other objects ad classes represeting subfolders of the website so we attatch them
 root = webapproot()
@@ -387,7 +390,7 @@ root.logs = messagelogging.WebInterface()
 root.notifications = notifications.WI()
 root.widgets = widgets.WebInterface()
 root.syslog = logviewer.WebInterface()
-
+root.devices = remotedevices.WebDevices()
 
 if not linuxpackage:
     sdn = os.path.join(os.path.dirname(os.path.realpath(__file__)),"src")

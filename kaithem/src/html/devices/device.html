@@ -1,0 +1,43 @@
+<%include file="/pageheader.html"/>
+<h1>Device Inspector</h1>
+<div class="sectionbox">
+<form method="POST" action="../updateDevice/${name}">
+
+<h2>Editing Pavillion Device: ${name}</h2>
+<table border="1">
+    <tr>
+            <td>Device Type</td>
+            <td><input name="type" value="${data.get('type','')}"></td>
+    </tr>
+
+    <tr>
+            <td>Client ID(Hex)</td>
+            <td><input name="cid" value="${data.get('cid','')}"></td>
+    </tr>
+
+    <tr>
+        <td>IP Address of server:</td>
+        <td><input name="address" value="${data.get('address','')}"></td>
+    </tr>
+
+
+    <tr>
+            <td>Port</td>
+            <td><input name="port" value="${data.get('port','')}"></td>
+    </tr>
+
+    <tr>
+            <td>PSK(Hex)</td>
+            <td><input name="psk" value="${data.get('psk','')}"></td>
+    </tr>
+</table>
+
+<pre class="error">
+%for i in obj.errors:
+${i[1]}
+%endfor 
+</pre>
+<input type="submit">
+</form>
+</div>
+<%include file="/pagefooter.html"/>

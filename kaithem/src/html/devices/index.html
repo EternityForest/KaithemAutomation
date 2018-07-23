@@ -1,0 +1,32 @@
+<%include file="/pageheader.html"/>
+<title>Kaithem Devices</title>
+<h1>Devices</h1>
+<div class="sectionbox">
+<p class="help">
+    This page provides an easy way to configure remote devices that use the Pavillion protocol.
+</p>
+<table border="1">
+<tr>
+    <td>Name</td><td>Edit</td>
+</tr>
+%for i in sorted(devices.keys()):
+<tr>
+    <td>
+        ${i}
+    </td>
+    <td>
+        <a href="device/${i}">Edit</a>
+    </td>
+</tr>
+%endfor
+</table>
+
+<form action="createDevice">
+<Label>Name:<input name="name"></Label>
+<Label>Type:<input name="type" value="pavillion"></Label>
+<input type="submit">
+</form>
+</div>
+
+</dd>
+<%include file="/pagefooter.html"/>
