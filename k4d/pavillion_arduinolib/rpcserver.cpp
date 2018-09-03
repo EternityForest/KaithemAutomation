@@ -240,8 +240,8 @@ int rpcfslist(void * data, unsigned int datalen, KnownClient *client, void *rbuf
     }
 
     //Plus 1 for typecode, plus 1 for null
-    rlen[0] += strlen(f.name()) + 2;
-    rbuffer += strlen(f.name()) + 2;
+    rlen[0] += strlen(f.name()-(dirnamelen+1)) + 2;
+    rbuffer += strlen(f.name()-(dirnamelen+1)) + 2;
     f = d.openNextFile();
 
   }
@@ -299,8 +299,6 @@ void PavillionServer::addRPC(uint16_t number, char *fname, int(*function)(void *
 void PavillionServer::doRPC(uint16_t number, KnownClient *client, void * data, uint16_t datalen, uint64_t callid)
 {
 
-  dbg("rpc call");
-  dbg(number);
 
   //For convenience of accepting strings, the byte after the last char is a null.
   ((uint8_t*)data)[datalen] = 0;
@@ -309,9 +307,6 @@ void PavillionServer::doRPC(uint16_t number, KnownClient *client, void * data, u
   //Builtin test mode returns exactly the data you send it.
   if (number == 0)
   {
-
-    dbg("Echo call");
-    dbg(datalen);
     uint8_t rbuffer[1501];
     unsigned int rlen;
     *((uint16_t *)(rbuffer + 8)) = 0;
@@ -357,11 +352,15 @@ void PavillionServer::doRPC(uint16_t number, KnownClient *client, void * data, u
       unsigned int rlen;
       *((uint16_t *)(rbuffer + 8)) = s->function(data, datalen, client, rbuffer + 10, &rlen);
       *(uint64_t *)rbuffer = callid;
-
       client->sendRawEncrypted(5, (uint8_t*)rbuffer, rlen + 10);
       return;
     }
   }
 
+ char rbuffer[30]= "0000000000NonexistentFunction";
+  unsigned int rlen=19;
+  *((uint16_t *)(rbuffer + 8)) = 2;
+  *(uint64_t *)rbuffer = callid;
+  client->sendRawEncrypted(5, (uint8_t*)rbuffer, rlen + 10);
 }
 

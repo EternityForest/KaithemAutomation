@@ -57,19 +57,55 @@ static int rpc_newProgram(void * data, unsigned int datalen, KnownClient *client
 {
   const char * name = (const char *)data;
 
-  //Load the program with just only that comment line
-  Acorns.loadProgram(0, name);
+  //TODO: race condition between check and action, probably not relevant in practice
+  if(Acorns.isRunning(name)==0)
+  {
+    //Load the program with just only that comment line
+    Acorns.loadProgram(0, name);
+  }
+  else
+  {
+      Acorns.clearInput(name);
+  }
   return 0;
 }
 
-//Takes 2 null term strings,one being the nameand the next being some code yout want to write into the program
+
+//Takes a null term string that is just the name
+static int rpc_forceClose(void * data, unsigned int datalen, KnownClient *client, void *rbuffer, unsigned int * rlen)
+{
+  const char * name = (const char *)data;
+
+  Acorns.closeProgram(name,true);
+  Acorns.closeProgram(name);
+
+  return 0;
+}
+
+
+//Takes a 4 byte position 2 null term strings,one being the nameand the next being some code yout want to write into the program
+//The position is required to make this call idempotent.
 static int rpc_writeToInput(void * data, unsigned int datalen, KnownClient *client, void *rbuffer, unsigned int * rlen)
 {
+  uint32_t position = ((uint32_t *)data)[0];
+  data+= 4;
   const char * name = (const char *)data;
   const char * code = strchr((const char *)data,0)+1;
 
+
   //Load the program with just only that comment line
   Acorns.writeToInput(name, code, strlen(code));
+  return 0;
+}
+//Takes 2 null term strings,one being the nameand the next being the program hash and returns 1 if a program
+//By that id and hash is running
+static int rpc_isRunning(void * data, unsigned int datalen, KnownClient *client, void *rbuffer, unsigned int * rlen)
+{
+  const char * name = (const char *)data;
+  const char * hash = strchr((const char *)data,0)+1;
+
+  //Load the program with just only that comment line
+  *((uint8_t *)rbuffer)= Acorns.isRunning(name, hash);
   return 0;
 }
 
@@ -116,6 +152,8 @@ void _k4d::begin()
     server->addRPC(4097, "newProgram", rpc_newProgram);
     server->addRPC(4098, "writeToProgramInput", rpc_writeToInput);
     server->addRPC(4099, "loadInput", rpc_loadInput);  
+    server->addRPC(4100, "isRunning", rpc_isRunning);  
+    server->addRPC(4105, "forceClose", rpc_forceClose);  
 
 }
 
