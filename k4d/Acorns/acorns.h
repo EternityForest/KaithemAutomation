@@ -61,6 +61,8 @@ class _Acorns
     void addArduino(HSQUIRRELVM);
     void runInputBuffer(const char * id);
     void writeToInput(const char * id, const char * data, int len);
+    void writeToInput(const char * id, const char * data, int len, long position);
+
     void clearInput(const char * id);
 
     int isRunning(const char * id);

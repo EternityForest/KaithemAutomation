@@ -61,7 +61,7 @@ static int rpc_newProgram(void * data, unsigned int datalen, KnownClient *client
   if(Acorns.isRunning(name)==0)
   {
     //Load the program with just only that comment line
-    Acorns.loadProgram(0, name);
+    Acorns.loadProgram("//c", name);
   }
   else
   {
@@ -77,8 +77,6 @@ static int rpc_forceClose(void * data, unsigned int datalen, KnownClient *client
   const char * name = (const char *)data;
 
   Acorns.closeProgram(name,true);
-  Acorns.closeProgram(name);
-
   return 0;
 }
 
@@ -94,7 +92,7 @@ static int rpc_writeToInput(void * data, unsigned int datalen, KnownClient *clie
 
 
   //Load the program with just only that comment line
-  Acorns.writeToInput(name, code, strlen(code));
+  Acorns.writeToInput(name, code, strlen(code),position);
   return 0;
 }
 //Takes 2 null term strings,one being the nameand the next being the program hash and returns 1 if a program
@@ -110,6 +108,7 @@ static int rpc_isRunning(void * data, unsigned int datalen, KnownClient *client,
 }
 
 
+
 static int rpc_loadInput(void * data, unsigned int datalen, KnownClient *client, void *rbuffer, unsigned int * rlen)
 {
   const char * name = (const char *)data;
@@ -119,7 +118,7 @@ static int rpc_loadInput(void * data, unsigned int datalen, KnownClient *client,
   //Load the program with just only that comment line
   Acorns.loadInputBuffer(name);
   return 0;
-  }
+}
 
 
 
@@ -131,6 +130,22 @@ static void acornsprint(loadedProgram * p, const char * c)
 {
     K4D.server->broadcastMessage("k4dprint",p->programID, (uint8_t*)c, strlen(c));
 }
+
+/*
+static void WiFiEvent(WiFiEvent_t event){
+
+    switch(event) {
+      case SYSTEM_EVENT_STA_GOT_IP:
+          if(K4D.server)
+            {
+              K4D.server.broadcastMessage
+            }
+      case SYSTEM_EVENT_STA_DISCONNECTED:
+
+          break;
+    }
+}
+*/
 
 void _k4d::begin()
 {

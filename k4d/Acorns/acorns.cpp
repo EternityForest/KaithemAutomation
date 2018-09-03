@@ -621,7 +621,6 @@ struct CallbackData* _Acorns::acceptCallback(HSQUIRRELVM vm, SQInteger idx,void 
   d->cleanup =cleanup;
 
   struct loadedProgram * prg = ((loadedProgram *)sq_getforeignptr(vm));
-  Serial.println((int)prg);
   //One for the user side, one for the internal side that actually recieves the data.
   d->refcount = 2;
 
@@ -693,6 +692,32 @@ static struct loadedProgram* _programForId(const char * id)
   return 0;
 }
 
+static struct loadedProgram** _programSlotForId(const char * id)
+{
+  if (id == 0)
+  {
+    if (rootInterpreter)
+    {
+      return &rootInterpreter;
+    }
+    else
+    {
+      return 0;
+    }
+  }
+  for (char i = 0; i < ACORNS_MAXPROGRAMS; i++)
+  {
+    if (loadedPrograms[i])
+    {
+      if (strcmp(loadedPrograms[i]->programID, id) == 0)
+      {
+        return &(loadedPrograms[i]);
+      }
+    }
+  }
+  return 0;
+}
+
 
 
 //Only call under gil
@@ -725,42 +750,11 @@ void _Acorns::clearInput(const char * id)
   GIL_UNLOCK;
 }
 
-void _Acorns::writeToInput(const char * id, const char * data, int len, long position)
+
+void _Acorns::writeToInput(const char * id, const char * data, int len)
 {
-  GIL_LOCK;
-  loadedProgram * p = _programForId(id);
-  if (p==0)
-  {
-    GIL_UNLOCK;
-    return;
-  }
-
-  if (len == -1)
-  {
-    len = strlen(data);
-  }
-
-  if(p->inputBuffer ==0)
-  {
-    p->inputBuffer = (char *)malloc(len+2);
-    p->inputBufferLen = 0;
-  }
-  else
-  {
-    //TODO: this is a memory leak if realloc ever fails
-    if((p->inputBuffer = (char *)realloc(p->inputBuffer, p->inputBufferLen+len))==0)
-    {
-      GIL_UNLOCK;
-      return;
-    }
-  }
-
-  memcpy(p->inputBuffer+(p->inputBufferLen), data, len);
-  p->inputBufferLen += len;
-
-  GIL_UNLOCK;
+  writeToInput(id,data,len,-1);
 }
-
 
 ///Position is mostly there to allow for idempotent writes. Set to -1 to append to the end.
 ///But it will fill with garbage if you leave gaps
@@ -784,9 +778,14 @@ void _Acorns::writeToInput(const char * id, const char * data, int len, long pos
     position=p->inputBufferLen;
   }
 
-  //How ,uch extra past the end to malloc
-  long needed = len+position-1;
-  needed-= p->inputBufferLen
+  //How much total len is needed for the contents
+  long needed = len+position;
+
+  char addlen =1;
+  if(len==1)
+  {
+    addlen =0;
+  }
 
   if(p->inputBuffer ==0)
   {
@@ -795,16 +794,19 @@ void _Acorns::writeToInput(const char * id, const char * data, int len, long pos
   }
   else
   {
-    //TODO: this is a memory leak if realloc ever fails
-    if((p->inputBuffer = (char *)realloc(p->inputBuffer, needed)==0)
+    char * x = 0;
+    //add one for safety and to optimize things with 2 writes where the second is a null pointer.
+    //If the len is one, don't add one, because we assume this is the last one.
+    if((x = (char *)realloc(p->inputBuffer, needed+addlen))==0)
     {
       GIL_UNLOCK;
       return;
     }
+    p->inputBuffer = x;
   }
 
   memcpy(p->inputBuffer+position, data, len);
-  p->inputBufferLen += len;
+  p->inputBufferLen = needed;
 
   GIL_UNLOCK;
 }
@@ -817,6 +819,7 @@ static int _closeProgram(const char * id, bool freeInput);
 //Function that the thread pool runs to run whatever program is on the top of an interpreter's stack
 static void runLoaded(loadedProgram * p, void * d)
 {
+  SQInt32 x = sq_gettop(p->vm);
   sq_pushroottable(p->vm);
   if(sq_call(p->vm, 1, SQFalse, SQTrue) == SQ_ERROR)
   {
@@ -828,7 +831,7 @@ static void runLoaded(loadedProgram * p, void * d)
     }
   }
   //Pop the closure itself.
-  sq_pop(p->vm, 1);
+  sq_settop(p->vm, x);
 }
 
 
@@ -851,7 +854,6 @@ static void _runInputBuffer(loadedProgram * p, void *d)
         return;
       }
 
-    runLoaded(p, 0);
     free(p->inputBuffer);
     p->inputBuffer = 0;
     p->inputBufferLen = 0;
@@ -867,39 +869,42 @@ void _Acorns::runInputBuffer(const char * id)
 //Close a running program, waiting till all children are no longer busy.
 static int _closeProgram(const char * id, bool freeInput)
 {
+  Serial.print("Closing Program: ");
+  Serial.println(id);
   entropy += esp_random();
   rng_key += esp_random();
   doRandom();
   
-  loadedProgram * old = _programForId(id);
+  loadedProgram ** old = _programSlotForId(id);
   //Check if programs are the same
 
   if (old)
   {
  
     ///Something can be "busy" without holding the lock if it yields.
-    while (old->busy)
+    while ((*old)->busy)
     {
       GIL_UNLOCK;
-      delay(2500);
+      delay(100);
       GIL_LOCK;
     }
 
-    if(old->inputBuffer)
+    if((*old)->inputBuffer)
     {
       if(freeInput)
       {
-        free(old->inputBuffer);
+        free((*old)->inputBuffer);
       }
     }
     //Close the VM and deref the task handle now that the VM is no longer busy.
     //The way we close the VM is to get rid of references to its thread object.
-    if(old->vm)
+    if((*old)->vm)
     {
-      sq_release(old->vm, &old->threadObj);
-      old->vm = 0;
+      sq_release((*old)->vm, &((*old)->threadObj));
+      (*old)->vm = 0;
     }
-    deref_prog(old);
+    deref_prog(*old);
+    *old =0;
 
   }
 }
@@ -962,9 +967,13 @@ static SQInteger sqcloseProgram(HSQUIRRELVM v)
 //Load a new program from source code with the given ID, replacing any with the same ID if the
 //first 30 bytes are different. The new program will have its own global scope that an inner scope of the root interpreter's.
 //You will be able to use getdelegate to get at the root table directly.
+
+//Passing a null to input tries to load the program's input buffer as the replacement for the program.
+//If there's no old program or no input buffer, does nothing.
 static int _loadProgram(const char * code, const char * id)
 {
 
+  Serial.print("Loading program: ");Serial.println(id);
   //Program load times as another entropy
   //Source
   entropy += esp_random();
@@ -988,12 +997,14 @@ static int _loadProgram(const char * code, const char * id)
         code = old->inputBuffer;
       }
       else{
-         code = "//comment";
+         Serial.println("No code or input buffer, cannot load");
+         return 1;
       }
     }
     else
     {
-    code = "//comment";
+      Serial.println("No code or previous program input buffer, cannot load");
+      return 1;
     }
   }
 
@@ -1005,6 +1016,7 @@ static int _loadProgram(const char * code, const char * id)
     //Check if the versions are the same
     if (memcmp(old->hash, code, PROG_HASH_LEN) == 0)
     {
+      Serial.println("That exact program version is already loaded, doing nothing.");
       return 0;
     }
 
@@ -1093,13 +1105,15 @@ static int _loadProgram(const char * code, const char * id)
       }
       else
       {
+              if(inputBufToFree)
+              {
+                free(inputBufToFree);
+                *inputBufToFreep = 0;
+              }
         //If we can't compile the code, don't load it at all.
         _closeProgram(id,true);
         Serial.println("Failed to compile code");
       }
-
-
-
 
       return 0;
     }
@@ -1110,6 +1124,7 @@ static int _loadProgram(const char * code, const char * id)
     *inputBufToFreep = 0;
   }
   //err, could not find free slot for program
+  Serial.println("No free program slots");
   return 1;
 }
 
@@ -1118,6 +1133,11 @@ int _Acorns::isRunning(const char * id, const char * hash)
 {
   GIL_LOCK;
   struct loadedProgram * x = _programForId(id);
+  if(x==0)
+  {
+    GIL_UNLOCK;
+    return 0;
+  }
   if(hash)
   {
     if(memcmp(x->hash, hash, PROG_HASH_LEN))
@@ -1139,7 +1159,7 @@ int _Acorns::isRunning(const char * id, const char * hash)
 
 int _Acorns::isRunning(const char * id)
 {
-  isRunning(id,0);
+  return isRunning(id,0);
 }
 
 int _Acorns::loadProgram(const char * code, const char * id)
@@ -1222,7 +1242,7 @@ int _Acorns::loadFromDir(const char * dir)
     //Rather absurd hackery just to put a / before the path that seems to lack one.
     strcpy(fnpart, de->d_name);
     GIL_UNLOCK;
-    Serial.print("Loading program:");
+    Serial.print("Loading program from file:");
     Serial.println(buffer);
     loadFromFile(buffer);
     GIL_LOCK;

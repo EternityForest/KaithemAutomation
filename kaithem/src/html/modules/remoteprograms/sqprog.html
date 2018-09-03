@@ -115,12 +115,10 @@ document.getElementById("box").style="display:none;";
 <div class="scrollbox">
 
 </div>
-%if program:
 <h2>Runtime Info</h2>
-%if program.print:
-<h3>Output(${len(program.print)} bytes)</h3>
-<pre>${program.print|h}</pre>
-%endif
+%if printout:
+<h3>Output(${len(printout)} bytes)</h3>
+<pre>${printout|h}</pre>
 %endif
 <p class="help">
 Saving this module will cause kaithem to load the program into RAM on the remote device if possible. It will not be saved to flash memory unless you do so manually.

@@ -51,9 +51,6 @@ int rpcpinmode(void * data, unsigned int datalen, KnownClient *client, void *rbu
 int rpcanalogread(void * data, unsigned int datalen, KnownClient *client, void *rbuffer, unsigned int * rlen)
 {
   *rlen = 4;
-  dbg(((uint8_t* )data)[0]);
-  dbg(analogRead(((uint8_t* )data)[0]));
-
   ((int32_t *)rbuffer)[0] = analogRead(((uint8_t* )data)[0]);
   return 0;
 }
@@ -105,9 +102,6 @@ int rpcfswrite(void * data, unsigned int datalen, KnownClient *client, void *rbu
   unsigned int pos = ((uint32_t *)data)[0];
   unsigned int m = ((uint16_t *)(data + 4))[0];
 
-  dbg((char *)data + 6 + m);
-  dbg(pos);
-  dbg(m);
   File file;
 
   file = SPIFFS.open((char*)data + 6 + m, "w");
@@ -141,19 +135,12 @@ int rpcfswriteinto(void * data, unsigned int datalen, KnownClient *client, void 
   unsigned int pos = ((uint32_t *)data)[0];
   unsigned int m = ((uint16_t *)(data + 4))[0];
 
-  dbg((char *)data + 6 + m);
-  dbg(pos);
-  dbg(m);
-
   File file;
   if (SPIFFS.exists((char*)data + 6 + m))
   {
-
-    dbg("writeto existing");
     file = SPIFFS.open((char*)data + 6 + m, "r+");
     if (file.size() <= pos)
     {
-      dbg("Going to append");
       file.close();
       file = SPIFFS.open((char*)data + 6 + m, "a");
     }
@@ -207,7 +194,6 @@ int rpcfslist(void * data, unsigned int datalen, KnownClient *client, void *rbuf
   {
     ((char *)data+1+dirnamelen)[0]= 0;
   }
-  dbg(d.name());
   if (!d)
   {
     RPC_ERR(3, "Selected dir does not exist");
@@ -220,7 +206,6 @@ int rpcfslist(void * data, unsigned int datalen, KnownClient *client, void *rbuf
 
   while (f && (rlen[0] < 1024))
   {
-    dbg(f.name());
     count += 1;
 
     if (count < m)
@@ -239,9 +224,9 @@ int rpcfslist(void * data, unsigned int datalen, KnownClient *client, void *rbuf
       *(char*) rbuffer = 1;
     }
 
-    //Plus 1 for typecode, plus 1 for null
-    rlen[0] += strlen(f.name()-(dirnamelen+1)) + 2;
-    rbuffer += strlen(f.name()-(dirnamelen+1)) + 2;
+    //Plus 1 for typecode, plus 1 for null, plus 3 for reasons I don't understand
+    rlen[0] += strlen(f.name()-(dirnamelen+1)) + 6;
+    rbuffer += strlen(f.name()-(dirnamelen+1)) + 6;
     f = d.openNextFile();
 
   }
@@ -302,13 +287,13 @@ void PavillionServer::doRPC(uint16_t number, KnownClient *client, void * data, u
 
   //For convenience of accepting strings, the byte after the last char is a null.
   ((uint8_t*)data)[datalen] = 0;
+  unsigned int rlen=0;
+  char rbuffer[1501];
 
 
   //Builtin test mode returns exactly the data you send it.
   if (number == 0)
   {
-    uint8_t rbuffer[1501];
-    unsigned int rlen;
     *((uint16_t *)(rbuffer + 8)) = 0;
     *(uint64_t *)rbuffer = callid;
     client->sendRawEncrypted(5, (uint8_t*)rbuffer, datalen + 10);
@@ -317,16 +302,12 @@ void PavillionServer::doRPC(uint16_t number, KnownClient *client, void * data, u
 
   if (number == 1)
   {
-    struct RpcFunction * s = &fzero;
-    unsigned int rlen = 0;
-    char rbuffer[256];
+    struct RpcFunction * s = &fzero;    
     while (s->next)
     {
       s = s->next;
       if (s->index == interpret(data, uint8_t))
       {
-        char rbuffer[1501];
-        unsigned int rlen;
         *((uint16_t *)(rbuffer + 8)) = s->function(data, datalen, client, rbuffer + 10, &rlen);
         *(uint64_t *)rbuffer = callid;
       }
@@ -348,8 +329,6 @@ void PavillionServer::doRPC(uint16_t number, KnownClient *client, void * data, u
     s = s->next;
     if (s->index == number)
     {
-      char rbuffer[1501];
-      unsigned int rlen;
       *((uint16_t *)(rbuffer + 8)) = s->function(data, datalen, client, rbuffer + 10, &rlen);
       *(uint64_t *)rbuffer = callid;
       client->sendRawEncrypted(5, (uint8_t*)rbuffer, rlen + 10);
@@ -357,10 +336,10 @@ void PavillionServer::doRPC(uint16_t number, KnownClient *client, void * data, u
     }
   }
 
- char rbuffer[30]= "0000000000NonexistentFunction";
-  unsigned int rlen=19;
-  *((uint16_t *)(rbuffer + 8)) = 2;
-  *(uint64_t *)rbuffer = callid;
-  client->sendRawEncrypted(5, (uint8_t*)rbuffer, rlen + 10);
+  char * rbuffer2= "0000000000NonexistentFunction";
+  rlen=19;
+  *((uint16_t *)(rbuffer2 + 8)) = 2;
+  *(uint64_t *)rbuffer2 = callid;
+  client->sendRawEncrypted(5, (uint8_t*)rbuffer2, rlen + 10);
 }
 

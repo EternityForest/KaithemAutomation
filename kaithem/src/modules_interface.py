@@ -641,7 +641,8 @@ def resourceEditPage(module,resource,version='default'):
                     name =resource,
                     data =resourceinquestion,
                     device= weakref.proxy(d) if d else None,
-                    progam= weakref.proxy(p) if p else None
+                    printout= p.print if p else None,
+                    errs= p.errors if p else None
                     )
 
         if resourceinquestion['resource-type'] == 'event':

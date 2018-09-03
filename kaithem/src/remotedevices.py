@@ -15,7 +15,7 @@
 
 
 
-import weakref,pavillion, threading,time,logging,traceback
+import weakref,pavillion, threading,time,logging,traceback,struct
 import cherrypy
 
 from . import virtualresource,pages,registry,modules_state
@@ -235,15 +235,17 @@ class PavillionDevice(RemoteDevice):
 
         def handle_print(name, data, source):
             data= data.decode("utf8")
+            print(source, data)
             with lock:
                 try:
                     self.loaded[name].print+= data
-                    self.loaded[name].print = self.loaded[name].print[4096:]
+                    self.loaded[name].print = self.loaded[name].print[-4096:]
                 except Exception as e:
                     print(e)
 
         def handle_error(name, data, source):
             data= data.decode("utf8")
+            print(source, data)
             with self.recievelock:
                 self.k4derr.append((name, data,time.time()))
                 self.k4derr = self.k4derr[-256:]
@@ -276,13 +278,15 @@ class PavillionDevice(RemoteDevice):
             self.loaded[name]=obj
         c = self.pclient
         c.call(4097, name.encode("utf-8"))
+        pos =0
         while p:
-            x = p[:1024]
+            x = p[:1024].encode("utf8")
             p=p[1024:]
-            c.call(4098, name.encode("utf8")+b"\x00"+x.encode("utf8"))
+            c.call(4098, struct.pack("<L",pos) +name.encode("utf8")+b"\x00"+x)
+            pos+= len(x)
         c.call(4099, name.encode("utf-8"))
 
-        syslogger.info("Loaded porgram:" +p+" to k4d device")
+        syslogger.info("Loaded porgram:" +name+" to k4d device")
 
     
     def readFile(self,*a,**k):

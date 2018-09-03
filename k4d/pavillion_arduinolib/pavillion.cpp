@@ -114,6 +114,13 @@ void KnownClient::sendRawEncrypted(uint8_t opcode, uint8_t* data, uint16_t datal
 
   //Our garbage fake version of libsodium needs 32 extra bytes after the output buffer so it doesn't crash.
   uint8_t * op = (uint8_t *)malloc(datalen + 33 + 11 + 8 + 1 + 32);
+  if(op==0)
+  {
+    dbg("Malloc Fail sending raw encrypted data");
+    dbg(ESP.getFreeHeap());
+    dbg(datalen + 33 + 11 + 8 + 1 + 32);
+    return;
+  }
   uint8_t * encrypted = op + 11 + 8;
 
   this->counter[2]++;
@@ -147,9 +154,7 @@ void PavillionServer::broadcastMessage(const char * target, const char * name, u
   //It is important that sendinglock be the outer lock.
   //Because we release the main lock during the resend loop.
   //And deadlocks suck.
-  Serial.print("gl1");
   xSemaphoreTake(sendinglock,1000000000);
-  Serial.print("Gl2");
   PAV_LOCK();
 
   int d =2;
@@ -157,18 +162,19 @@ void PavillionServer::broadcastMessage(const char * target, const char * name, u
   int tlen = strlen(target);
   int nlen = strlen(name);
 
-  if(opcode==1)
-  {
-
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
       if(knownClients[i])
       {
-        knownClients[i]->ack_watch = knownClients[i]->counter[2];
-        knownClients[i]->ack_responded = false;
+        knownClients[i]->counter[2]+=1;
+        if(opcode==1)
+        {
+          knownClients[i]->ack_watch = knownClients[i]->counter[2];
+          knownClients[i]->ack_responded = false;
+        }
       }
     }
-  }
+  
 
   
   while(d< 513)
@@ -194,8 +200,6 @@ void PavillionServer::broadcastMessage(const char * target, const char * name, u
 
           memcpy((op + 11 + 9), target, tlen);
           op[9+11+tlen]= '\n';
-          Serial.println("naaaame");
-          Serial.println(name);
           memcpy((op + 11 + 9)+tlen+1, name, nlen);
           op[9+11+tlen+1+nlen]= '\n';
 
@@ -217,7 +221,6 @@ void PavillionServer::broadcastMessage(const char * target, const char * name, u
     {
       PAV_UNLOCK();
       delay(d);
-      Serial.print("gl3");
       PAV_LOCK();
       
       char canQuit = 1;
@@ -245,7 +248,6 @@ void PavillionServer::broadcastMessage(const char * target, const char * name, u
       break;
     }
     d=d*2;
-    Serial.println(d);
   }
   PAV_UNLOCK();
   xSemaphoreGive(sendinglock);
@@ -264,6 +266,7 @@ void KnownClient::onMessage(uint8_t * data, uint16_t datalen, IPAddress addr, ui
   uint64_t counter = interpret(data, uint64_t);
 
   data += 8;
+
 
   //If the counter is 0, it's a setup message
   if (counter)
@@ -311,7 +314,7 @@ void KnownClient::onMessage(uint8_t * data, uint16_t datalen, IPAddress addr, ui
 
 
 
-
+    this->lastSeen = millis();
     if(opcode==2)
     {
       if(this->ack_watch == *((uint64_t *) data))
@@ -333,9 +336,6 @@ void KnownClient::onMessage(uint8_t * data, uint16_t datalen, IPAddress addr, ui
   {
     uint8_t opcode = interpret(data, uint8_t);
     data += 1;
-    dbg("setup opcod");
-    dbg(opcode);
-
     if (opcode == 1)
     {
       uint8_t cipher = interpret(data, uint8_t);
@@ -346,10 +346,6 @@ void KnownClient::onMessage(uint8_t * data, uint16_t datalen, IPAddress addr, ui
 
 
       uint8_t * clientChallenge = data;
-      for (char i = 0; i < 16; i++)
-      {
-        Serial.print(clientChallenge[i]);
-      }
       data += 16;
 
 
@@ -419,8 +415,6 @@ void KnownClient::onMessage(uint8_t * data, uint16_t datalen, IPAddress addr, ui
       uint8_t * serverNonceReply = data;
       data += 32;
       uint64_t clientcounter_b = interpret(data, uint64_t);
-      dbg("client ctr is");
-      dbg((unsigned long)clientcounter_b);
       data += 8;
 
       uint8_t * clientPSK = this->server->PSKforClient(clientID);
@@ -440,8 +434,6 @@ void KnownClient::onMessage(uint8_t * data, uint16_t datalen, IPAddress addr, ui
       //Last 32 bytes of the message are a hash, if it doesn't match, ignore.
       if (memcmp(data, hash, 32))
       {
-        dbg((char *)data);
-        dbg((char *)hash);
         return;
       }
 

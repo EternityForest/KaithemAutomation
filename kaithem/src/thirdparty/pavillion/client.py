@@ -558,10 +558,20 @@ class _Client():
                     pass
 
         #Handle S->C messages
-        if  opcode==1:
-            print(data)
+        if  opcode==2:
             d = data.split(b'\n',2)
-            print(d)
+            #If we have a listener for that message target
+            if d[0].decode('utf-8') in self.messageTargets:
+                s = self.messageTargets[d[0].decode('utf-8')]
+                with self.targetslock:
+                    for i in s:
+                        i = i()
+                        if not i:
+                            continue
+                        i.callback(d[1].decode('utf-8') ,d[2],addr)
+        #Handle S->C messages
+        if  opcode==1:
+            d = data.split(b'\n',2)
             #If we have a listener for that message target
             if d[0].decode('utf-8') in self.messageTargets:
 
@@ -744,10 +754,11 @@ class Client():
             self.client.close()
         except:
             pass
+
     def listDir(self, path, start=0):
         "List dir size on remote, starting at the nth file, because of limited message size."
         path = path.encode("utf8")
-        return(self.call(14, struct.pack("<H",start)+path))
+        return[i[1:] for i in (self.call(14, struct.pack("<H",start)+path)).split(b"\x00")]
 
 
 
