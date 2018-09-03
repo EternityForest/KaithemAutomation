@@ -15,7 +15,7 @@
 #along with Pavillion.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import hashlib,logging,struct,threading,atexit
+import hashlib,logging,struct,threading,atexit,base64,queue
 
 DEFAULT_PORT=1783
 DEFAULT_MCAST_ADDR="239.255.28.12"
@@ -29,7 +29,55 @@ allow_new = True
 cleanup_refs = []
 
 
+class ReturnChannel():
+    def __init__(self,q=None):
+        self.queue = q or queue.Queue(64)
+        #It's not a message target thing
+        self.target = None
+    
+    def onResponse(self,data):
+        self.queue.put(data,True,3)
 
+class ExpectedAckCounter():
+    #TODO track specific servers
+    def __init__(self,e,counter):
+        self.e = e
+        self.counter = counter
+        self.target = None
+
+    def onResponse(self, data):
+        self.counter-=1
+        if not self.counter:
+            self.e.set()
+
+class MessageTarget():
+    def __init__(self,target,callback):
+        self.callback = callback
+        self.target = target
+
+
+
+
+
+#Allow use of bin, hex, etc PSKs 
+def preprocessKey(k):
+    #ECC doesn't use psk
+    if k==None:
+        return k
+    if isinstance(k,bytes):
+        if len(k)==32:
+            return k
+    elif isinstance(k,str):
+        if len(k)==64:
+            return bytes.fromhex(k)
+        k = base64.b64decode(k)
+        if len(k)==32:
+            return k
+
+    else:
+        raise TypeError("Key must be bytes or str")
+    
+    raise ValueError("Key must be 32 bytes, or b64/hex encoded 32 bytes")
 
 def cleanup():
     global allow_new

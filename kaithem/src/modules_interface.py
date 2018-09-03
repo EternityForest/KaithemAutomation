@@ -15,7 +15,7 @@
 
 import threading,urllib,shutil,sys,time,os,json,traceback, copy,mimetypes,uuid
 import cherrypy,yaml
-from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling, registry
+from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling, registry,remotedevices
 from .modules import *
 from src import modules
 from src.config import config
@@ -513,6 +513,11 @@ def addResourceDispatcher(module,type,path):
         return pages.get_template("modules/events/new.html").render(module=module,path=path)
 
     #return a crud to add a new event
+    elif type == 'k4dprog_sq':
+        return pages.get_template("modules/remoteprograms/new.html").render(module=module,path=path)
+
+
+    #return a crud to add a new event
     elif type == 'page':
         return pages.get_template("modules/pages/new.html").render(module=module,path=path)
 
@@ -546,14 +551,23 @@ def addResourceTarget(module,type,name,kwargs,path):
         if escapedName in ActiveModules[root]:
             raise cherrypy.HTTPRedirect("/errors/alreadyexists")
 
-        #Create a permission
         if type == 'directory':
             insertResource({
                 "resource-type":"directory"})
             raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module))
 
-
         #Create a permission
+        if type == 'k4dprog_sq':
+            insertResource({
+                "resource-type":"k4dprog_sq",
+                "device": "__none__",
+                "code":"",
+                "prgid":name[-15:].replace("/","_")
+                })
+
+            remotedevices.updateProgram(root, escapedName,None, False)
+            raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module))
+
         elif type == 'permission':
             insertResource({
                 "resource-type":"permission",
@@ -619,6 +633,17 @@ def resourceEditPage(module,resource,version='default'):
         if resourceinquestion['resource-type'] == 'permission':
             return permissionEditPage(module, resource)
 
+        if resourceinquestion['resource-type'] == 'k4dprog_sq':
+                d = remotedevices.remote_devices.get(resourceinquestion['device'], None)
+                p = remotedevices.loadedSquirrelPrograms.get((module,resource),None)
+                return pages.get_template("modules/remoteprograms/sqprog.html").render(
+                    module =module,
+                    name =resource,
+                    data =resourceinquestion,
+                    device= weakref.proxy(d) if d else None,
+                    progam= weakref.proxy(p) if p else None
+                    )
+
         if resourceinquestion['resource-type'] == 'event':
             return pages.get_template("modules/events/event.html").render(
                 module =module,
@@ -667,6 +692,12 @@ def resourceUpdateTarget(module,resource,kwargs):
             resourceobj['description'] = kwargs['description']
             #has its own lock
             auth.importPermissionsFromModules() #sync auth's list of permissions
+        
+        if t=="k4dprog_sq":
+            resourceobj['code'] = kwargs['code']
+            resourceobj['device'] = kwargs['device']
+            resourceobj['prgid'] = kwargs['prgid']
+            remotedevices.updateProgram(module, resource, resourceobj)
 
         elif t == 'event':
             evt = None

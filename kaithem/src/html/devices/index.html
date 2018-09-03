@@ -7,7 +7,7 @@
 </p>
 <table border="1">
 <tr>
-    <td>Name</td><td>Edit</td>
+    <td>Name</td><td>Edit</td><td>Errors</td>
 </tr>
 %for i in sorted(devices.keys()):
 <tr>
@@ -16,6 +16,10 @@
     </td>
     <td>
         <a href="device/${i}">Edit</a>
+    </td>
+
+    <td>
+        ${len(devices[i].errors)}
     </td>
 </tr>
 %endfor

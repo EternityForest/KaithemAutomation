@@ -58,6 +58,8 @@ MD5 Sum: <b>${getModuleHash(name)}</b></br>
 <a class="button createbutton addpagebutton" href="/modules/module/${url(name)}/addresource/page/${url('/'.join(path))}">Page</a>
 <a class="button createbutton addfolderbutton" href="/modules/module/${url(name)}/addresource/directory/${url('/'.join(path))}">Folder</a>
 <a class="button createbutton" href="/modules/module/${url(name)}/addfileresource/${url('/'.join(path))}">File</a>
+<a class="button createbutton" title="A squirrel program that runs on an external embedded device" href="/modules/module/${url(name)}/addresource/k4dprog_sq/${url('/'.join(path))}">K4D Squirrel Program</a>
+
 
 %for i in modules.additionalTypes:
 %if modules.additionalTypes[i].createButton:
@@ -282,6 +284,19 @@ continue
 
      %endif
 
+  %if module[i]['resource-type'] == 'k4dprog_sq':
+
+     <dt>\
+  %if (name,i) in modules.unsaved_changed_obj:
+  *\
+  %endif
+  <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a><br>
+  <b>K4D Program</b></br>
+  <span>Target Device: ${module[i]['device']}|h}</span><br>
+
+  <dt>
+
+   %endif
 
 
     %if module[i]['resource-type'] not in ['event','permission','page','directory','internal-fileref'] and not i.startswith("__"):

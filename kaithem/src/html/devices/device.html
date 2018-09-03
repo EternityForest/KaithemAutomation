@@ -1,17 +1,22 @@
 <%include file="/pageheader.html"/>
-<h1>Device Inspector</h1>
+<h1>Device Inspector: ${name}</h1>
 <div class="sectionbox">
 <form method="POST" action="../updateDevice/${name}">
 
-<h2>Editing Pavillion Device: ${name}</h2>
-<table border="1">
+<%
+import traceback
+%>
+
+
+<h2>Basic Info</h2>
+<table border="1" style="width:80em">
     <tr>
             <td>Device Type</td>
             <td><input name="type" value="${data.get('type','')}"></td>
     </tr>
 
     <tr>
-            <td>Client ID(Hex)</td>
+            <td>Client ID(32 Hex chars or 16 UTF-8 bytes)</td>
             <td><input name="cid" value="${data.get('cid','')}"></td>
     </tr>
 
@@ -20,24 +25,45 @@
         <td><input name="address" value="${data.get('address','')}"></td>
     </tr>
 
-
     <tr>
             <td>Port</td>
             <td><input name="port" value="${data.get('port','')}"></td>
     </tr>
 
     <tr>
-            <td>PSK(Hex)</td>
-            <td><input name="psk" value="${data.get('psk','')}"></td>
+            <td>PSK(64 Hex chars or 32 UTF-8 bytes)</td>
+            <td><input name="psk" value="${data.get('psk','')}" style="width: 65em"></td>
     </tr>
 </table>
 
-<pre class="error">
+<input type="submit" value="Save settings">
+${obj.__dict__|h}
+%if 0:
+%if obj.errors:
+<h2>Errors</h2>
 %for i in obj.errors:
-${i[1]}
-%endfor 
-</pre>
-<input type="submit">
+<p class="error"><pre>${i[1]|}</pre></p>
+%endfor
+%endif
+
+%if obj.k4derr:
+<h2>Kaithem for Devices program errors</h2>
+%for i in obj.k4derr:
+<p class="error">
+        <b>${i[0]} at ${unitsofmeasure.strftime(i[2])}</b><br>
+        <pre>${i[1]|h}</pre>
+</p>
+%endfor
+%endif
+%endif
 </form>
+
+%try:
+${obj.listDir("/spiffs")}
+%except:
+Cannnot list remote folder: ${traceback.format_exc()|h}
+%endtry
+
+
 </div>
 <%include file="/pagefooter.html"/>

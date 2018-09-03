@@ -16,7 +16,7 @@
 #File for keeping track of and editing kaithem modules(not python modules)
 import threading,urllib,shutil,sys,time,os,json,traceback,copy,hashlib,logging,uuid, gc,re,weakref
 import cherrypy,yaml
-from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling,modules_state,registry
+from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling,modules_state,registry,remotedevices
 from .modules_state import ActiveModules,modulesLock,scopes,additionalTypes,fileResourceAbsPaths
 
 
@@ -1026,6 +1026,9 @@ def rmResource(module,resource,message="Resource Deleted"):
 
         elif r['resource-type'] == 'event':
             newevt.removeOneEvent(module,resource)
+
+        elif r['resource-type'] == "k4dprog_sq":
+            remotedevices.removeProgram(module,resource)
 
         elif r['resource-type'] == 'permission':
             auth.importPermissionsFromModules() #sync auth's list of permissions

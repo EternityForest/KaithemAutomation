@@ -15,7 +15,7 @@
 
 import weakref, types, collections, struct, time, socket,threading,random,os,logging,traceback
 
-from .common import ciphers,DEFAULT_MCAST_ADDR,DEFAULT_PORT,nonce_from_number,pavillion_logger
+from .common import ciphers,DEFAULT_MCAST_ADDR,DEFAULT_PORT,nonce_from_number,pavillion_logger,preprocessKey
 from . import common
 
 
@@ -37,12 +37,6 @@ class Register():
     def call(self,client,value):
         self.value = value
         return self.value
-
-
-class MessageTarget():
-    def __init__(self,target,callback):
-        self.callback = callback
-        self.target = target
 
 class _ServerClient():
     "Server uses this class to track clients"
@@ -70,6 +64,11 @@ class _ServerClient():
         self.created = time.time()
         #The last time we actually got a proper message from them
         self.lastSeen =0
+
+
+        #Sessions IDs are initialized to random values.
+        #It's used so that servers can detect if they are still connected
+        self.sessionID = os.urandom(16)
 
 
     def sendSetup(self, counter, opcode, data):
@@ -124,7 +123,13 @@ class _ServerClient():
         if not self.ignore>time.time() and counter:
             ciphertext = msg[8:]
             if self.ckey:
-                plaintext = self.decrypt(ciphertext,  self.ckey, nonce_from_number(counter))
+                try:
+                    plaintext = self.decrypt(ciphertext,  self.ckey, nonce_from_number(counter))
+                except:
+                    self.sendSetup(0, 4, b'')
+                    self.ignore = time.time()+5
+                    return
+                
                 self.lastSeen = time.time()
                 #Duplicate protection
                 if self.client_counter>=counter:
@@ -135,19 +140,21 @@ class _ServerClient():
             #We don't know how to process this message. So we send
             #an unrecognized client
             else:
-                self.sendSetup(0, 5, b'')
+                self.sendSetup(0, 4, b'')
                 self.ignore = time.time()+5
+                return
 
         else:
             opcode=msg[8]
             msg = msg[9:]
             #Nonce request, send a nonce
             if opcode==1:
-                cipher = msg[0]
-                clientID = msg[1:17]
-                challenge = msg[17:17+17]
+                cipher, clientID, challenge, sessionID, client_pubkey= struct.unpack("<B16s16s16s32s", msg)
 
-                client_pubkey = msg[17+16:]
+                if self.sessionID == sessionID:
+                    #We're already connected,
+                    return
+
 
                 if self.server.allow_guest and not clientID in self.server.pubkeys:
                     #Don't let someone else mess up the connection
@@ -168,7 +175,7 @@ class _ServerClient():
                         self.ignore = time.time()+10*60
                         return
 
-                    clientkey = self.server.keys[clientID]
+                    clientkey = preprocessKey(self.server.keys[clientID])
                     m = self.nonce+challenge+ciphers[cipher].keyedhash(self.nonce+challenge,clientkey)
                     self.sendSetup(0, 2,m)
                 
@@ -196,7 +203,7 @@ class _ServerClient():
 
                 cipher = ciphers[ciphernumber]
                 #Validate challenge response
-                psk = self.server.keys[clientid]
+                psk = preprocessKey(self.server.keys[clientid])
                 if cipher.keyedhash(msg[:-32],psk)==h:
                     self.clientID = clientid
 
@@ -205,6 +212,10 @@ class _ServerClient():
                     self.decrypt = cipher.decrypt                  
                     #Client to server session key
                     self.ckey= keyedhash(clientnonce,psk)
+
+                    #Rehash to get the sessoin ID
+                    self.sessionID = keyedhash(self.ckey, psk)[:16]
+
                     self.lastseen = time.time()
                     #Server to client session key
                     self.skey= keyedhash(clientnonce+servernonce,psk)
@@ -213,6 +224,8 @@ class _ServerClient():
 
                     #Make sure that nonce isn't reused
                     self.nonce = os.urandom(32)
+                    self.sendSetup(0, 7, self.sessionID)
+                    self.ignore=0
                 else:
                     raise RuntimeError(str((s)))
             
@@ -220,6 +233,7 @@ class _ServerClient():
             if opcode == 12:
                 clientID = msg[0:16]
                 cipher = msg[16]
+                keyedhash = ciphers[cipher].keyedhash
 
                 decrypt = ciphers[cipher].pubkey_decrypt
 
@@ -230,15 +244,18 @@ class _ServerClient():
                 nonce, ckey,skey, counter= struct.unpack("<32s32s32sQ",msg)
                 if nonce==self.nonce:
                    #Make sure that nonce isn't reused
-                    self.nonce = os.urandom(32)
                     self.clientID = clientID
                     self.ckey, self.skey, self.client_counter = ckey,skey,counter
+                    self.sessionID = keyedhash(self.ckey, nonce)[:16]
+                    self.nonce = os.urandom(32)
+
                     self.decrypt = ciphers[cipher].decrypt
                     self.encrypt = ciphers[cipher].encrypt
 
                     #If we used a guest key, report the hash of said guest key
                     if self.guest_key:
                         self.clientID = common.libnacl.generic_hash(self.guest_key)
+                    self.ignore = 0
                     logging.info("Setup connection with client via ECC")
 
 class _Server():
@@ -280,6 +297,7 @@ class _Server():
             self.handle = weakref.ref(handle,cl)
     
      
+        self.waitingForAck = weakref.WeakValueDictionary()
 
         # Create the socket
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -290,7 +308,8 @@ class _Server():
         self.sock.bind(self.address)
         self.sock.settimeout(1)
 
-        self.sendsock = self.sock
+        self.sendsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sendsock.bind((self.address[0],0))
 
         self.mcastgroup = multicast
         #Subscribe to any requested mcast group
@@ -350,10 +369,13 @@ class _Server():
             with common.lock:
                 if self in common.cleanup_refs:
                     common.cleanup_refs.remove(self)
-
+        try:
+            self.sendsock.close()
+        except:
+            pass
 
     def messageTarget(self,target,callback):
-        m = MessageTarget(target,callback)
+        m = common.MessageTarget(target,callback)
         with self.targetslock:
             self.cleanupTargets()
             if not target in self.messageTargets:
@@ -371,6 +393,51 @@ class _Server():
                 if not self.messageTargets[i]:
                     del self.messageTargets[i]
 
+    def broadcast(self, counter, opcode, data, filt=None):
+        with self.lock:
+            for i in self.knownclients:
+                if time.time()> self.knownclients[i].ignore:
+                    if(filt == None or self.knownclients[i].clientID in filt or self.knownclients[i].addr in filt):
+                        self.knownclients[i].send(counter, opcode, data)
+
+    def sendMessage(self, target, name, data, reliable=True, timeout = 10, filt=None):
+            "Attempt to send the message to all subscribers. Does not raise an error on failure, but will attempt retries"
+            with self.lock:
+                self.counter+=1
+                counter = self.counter
+
+            if reliable:
+                try:
+                    expected = len([i for i in self.knownSubscribers[t] if i>120])
+                except:
+                    expected = 1
+
+                e = threading.Event()
+                w = common.ExpectedAckCounter(e,expected)
+                w.target = target
+                self.waitingForAck[counter] =w
+            
+            self.broadcast(counter, 1 if reliable else 3, target.encode('utf-8')+b"\n"+name.encode('utf-8')+b"\n"+data, filt)
+
+
+            #Resend loop
+            if reliable:
+                x = 0.010
+                ctr = 20
+                if e.wait(x):
+                    return
+                while ctr and (not e.wait(x)):
+                    x=min(1, x*1.1)
+                    ctr-=1
+                    time.sleep(x)
+                    if e.wait(x):
+                        return
+                    self.broadcast(counter, 1 if reliable else 3, target.encode('utf-8')+b"\n"+name.encode('utf-8')+b"\n"+data,filt)
+            if reliable:
+                #Return how many subscribers definitely recieved the message.
+                return max(0,expected-w.counter)
+            else:
+                return
 
 
     def onMessage(self,addr, counter, opcode, data,clientID=None):
@@ -396,7 +463,7 @@ class _Server():
                                 if not i == addr:
                                     if d[0] in self.knownclients[i].subscriptions:
                                         self.counter+=1
-                                        self.knownclients[addr].send(self.counter,i,data)
+                                        self.knownclients[addr].send(self.counter,1,i,data)
                         except:
                             pass
 
@@ -496,6 +563,9 @@ class Server():
         self.registers = self.server.registers
         self.ignore = self.server.ignore
 
+    def sendMessage(self, target, name, data, reliable=True, timeout = 10,addr=None):
+        return self.server.sendMessage(target, name, data, reliable, timeout,addr)
+    
     def messageTarget(self,target,function):
         "Subscibe function to target, and return a messageTarget object that you must retain in order to keep the subscription alive"
         return self.server.messageTarget(target,function)
