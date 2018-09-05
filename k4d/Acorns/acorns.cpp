@@ -498,14 +498,13 @@ static void InterpreterTask(void *)
   while (1)
   {
     xQueueReceive(request_queue, &rq, portMAX_DELAY);
-
     GIL_LOCK;
 
 
     while (rq.program->busy)
     {
       GIL_UNLOCK;
-      vTaskDelay(10);
+      vTaskDelay(100);
       GIL_LOCK;
 
       //If someone stopped the program while we were waiting
@@ -814,7 +813,7 @@ void _Acorns::writeToInput(const char * id, const char * data, int len, long pos
 
 
 
-static int _closeProgram(const char * id, bool freeInput);
+static int _closeProgram(const char * id);
 
 //Function that the thread pool runs to run whatever program is on the top of an interpreter's stack
 static void runLoaded(loadedProgram * p, void * d)
@@ -823,14 +822,26 @@ static void runLoaded(loadedProgram * p, void * d)
   sq_pushroottable(p->vm);
   if(sq_call(p->vm, 1, SQFalse, SQTrue) == SQ_ERROR)
   {
+    Serial.println("err");
     //If the flag saying we should do so is set, close the program on failure.
     if(d==(void *)1)
     {
-      _closeProgram(p->programID, true);
+      Serial.print("stopping");
+      //The fact that we are running sets the busy flag which would deadlock when we close it.
+      _setfree(p);
+      Serial.print(p->busy);
+      _closeProgram(p->programID);
+      Serial.print("stopped");
+      //Undo that
+      _setbusy(p);
       return;
     }
   }
-  //Pop the closure itself.
+  //Pop the closure itself, but don't corrupt the stack
+  if(x>1)
+  {
+    x-=1;
+  }
   sq_settop(p->vm, x);
 }
 
@@ -867,9 +878,8 @@ void _Acorns::runInputBuffer(const char * id)
 
 
 //Close a running program, waiting till all children are no longer busy.
-static int _closeProgram(const char * id, bool freeInput)
+static int _closeProgram(const char * id)
 {
-  Serial.print("Closing Program: ");
   Serial.println(id);
   entropy += esp_random();
   rng_key += esp_random();
@@ -877,6 +887,7 @@ static int _closeProgram(const char * id, bool freeInput)
   
   loadedProgram ** old = _programSlotForId(id);
   //Check if programs are the same
+
 
   if (old)
   {
@@ -887,45 +898,53 @@ static int _closeProgram(const char * id, bool freeInput)
       GIL_UNLOCK;
       delay(100);
       GIL_LOCK;
-    }
-
-    if((*old)->inputBuffer)
-    {
-      if(freeInput)
+      if(*old == 0)
       {
-        free((*old)->inputBuffer);
+        break;
       }
     }
-    //Close the VM and deref the task handle now that the VM is no longer busy.
-    //The way we close the VM is to get rid of references to its thread object.
-    if((*old)->vm)
-    {
-      sq_release((*old)->vm, &((*old)->threadObj));
-      (*old)->vm = 0;
-    }
-    deref_prog(*old);
-    *old =0;
 
+    if(*old)
+    {
+      if((*old)->inputBuffer)
+      {
+          free((*old)->inputBuffer);
+          (*old)->inputBuffer = 0;
+      }
+      //Close the VM and deref the task handle now that the VM is no longer busy.
+      //The way we close the VM is to get rid of references to its thread object.
+      if((*old)->vm)
+      {
+        Serial.println("releasing");Serial.println((long)&((*old)->threadObj));
+        sq_release((*old)->vm, &((*old)->threadObj));
+        (*old)->vm = 0;
+      }
+      deref_prog(*old);
+      *old =0;
+    }
   }
 }
 
 
 //Get a running program to stop whatever it's doing, but don't actually
-//Remove it's process table entry.
+//Remove it's process table entry. This just sends the stop request,
+//so watch out, it might still be busy for 100 VM instructions or so.
 static void _forceclose(const char * id)
 {
     loadedProgram * old = _programForId(id);
+
     if(old==0)
     {
       return;
     }
+
     sq_request_forceclose(old->vm);
 }
 
 int _Acorns::closeProgram(const char * id)
 {
   GIL_LOCK;
-  _closeProgram(id,true);
+  _closeProgram(id);
   GIL_UNLOCK;
 }
 
@@ -936,7 +955,8 @@ int _Acorns::closeProgram(const char * id, char force)
   {
     _forceclose(id);
   }
-  _closeProgram(id,true);
+
+  _closeProgram(id);
   GIL_UNLOCK;
 }
 
@@ -958,7 +978,7 @@ static SQInteger sqcloseProgram(HSQUIRRELVM v)
   id2[sq_getsize(v,2)] = 0;
 
   _forceclose(id2);
-  _closeProgram(id2,true);
+  _closeProgram(id2);
 
   return 0;
 }
@@ -981,8 +1001,6 @@ static int _loadProgram(const char * code, const char * id)
 
  
   void * inputBufToFree = 0;
-  //Pointer to pointer. So we can free the mem, then set pointer to 0
-  void ** inputBufToFreep = 0;
 
   
   struct loadedProgram * old = _programForId(id);
@@ -1010,8 +1028,10 @@ static int _loadProgram(const char * code, const char * id)
 
   if (old)
   {
+       
     inputBufToFree = (void *)(old->inputBuffer);
-    inputBufToFreep = (void **)(&old->inputBuffer);
+    //Mark it as already dealt with, so that it doesn't get garbage collected
+    old->inputBuffer = 0;
 
     //Check if the versions are the same
     if (memcmp(old->hash, code, PROG_HASH_LEN) == 0)
@@ -1025,14 +1045,11 @@ static int _loadProgram(const char * code, const char * id)
     while (old->busy)
     {
       GIL_UNLOCK;
-      delay(2500);
+      delay(250);
       GIL_LOCK;
     }
 
-
-    //We told it not to close the input buffer. We have to do that ourself.
-    _closeProgram(id, false);
-
+    _closeProgram(id);
   }
 
  
@@ -1098,20 +1115,20 @@ static int _loadProgram(const char * code, const char * id)
               if(inputBufToFree)
               {
                 free(inputBufToFree);
-                *inputBufToFreep = 0;
+                inputBufToFree = 0;
               }
          //That 1 is there as a special flag indicating we should close the program if we can't run it.
         _makeRequest(loadedPrograms[i], runLoaded, (void *)1);
       }
       else
       {
-              if(inputBufToFree)
+         if(inputBufToFree)
               {
                 free(inputBufToFree);
-                *inputBufToFreep = 0;
+                inputBufToFree = 0;
               }
         //If we can't compile the code, don't load it at all.
-        _closeProgram(id,true);
+        _closeProgram(id);
         Serial.println("Failed to compile code");
       }
 
@@ -1119,10 +1136,10 @@ static int _loadProgram(const char * code, const char * id)
     }
   }
   if(inputBufToFree)
-  {
-    free(inputBufToFree);
-    *inputBufToFreep = 0;
-  }
+      {
+        free(inputBufToFree);
+        inputBufToFree = 0;
+      }
   //err, could not find free slot for program
   Serial.println("No free program slots");
   return 1;
@@ -1166,6 +1183,20 @@ int _Acorns::loadProgram(const char * code, const char * id)
 {
   GIL_LOCK;
   _loadProgram(code, id);
+  GIL_UNLOCK;
+}
+
+
+//Load whatever is in a program's input buffer as a new program that replaces the old one.
+//Force close the old one if forceClose is true, otherwise, just wait for it.
+int  _Acorns::loadInputBuffer(const char * id, bool forceClose)
+{
+  GIL_LOCK;
+  if(forceClose)
+  {
+    _forceclose(id);
+  }
+  _loadProgram(0,id);
   GIL_UNLOCK;
 }
 int  _Acorns::loadInputBuffer(const char * id)

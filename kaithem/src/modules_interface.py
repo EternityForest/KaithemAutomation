@@ -352,7 +352,7 @@ class WebInterface():
                 version = '__default__'
                 if len(path)>2:
                     version = path[2]
-                return resourceEditPage(module,path[1],version)
+                return resourceEditPage(module,path[1],version,kwargs)
 
             #This goes to a dispatcher that takes into account the type of resource and updates everything about the resource.
             if path[0] == 'updateresource':
@@ -611,7 +611,7 @@ def addResourceTarget(module,type,name,kwargs,path):
 
 
 #show a edit page for a resource. No side effect here so it only requires the view permission
-def resourceEditPage(module,resource,version='default'):
+def resourceEditPage(module,resource,version='default',kwargs=None):
     pages.require("/admin/modules.view")
 
     with modulesLock:
@@ -634,6 +634,7 @@ def resourceEditPage(module,resource,version='default'):
             return permissionEditPage(module, resource)
 
         if resourceinquestion['resource-type'] == 'k4dprog_sq':
+            if not "preview" in kwargs:
                 d = remotedevices.remote_devices.get(resourceinquestion['device'], None)
                 p = remotedevices.loadedSquirrelPrograms.get((module,resource),None)
                 return pages.get_template("modules/remoteprograms/sqprog.html").render(
@@ -644,6 +645,19 @@ def resourceEditPage(module,resource,version='default'):
                     printout= p.print if p else None,
                     errs= p.errors if p else None
                     )
+            d = remotedevices.remote_devices.get(resourceinquestion['device'], None)
+            p = remotedevices.loadedSquirrelPrograms.get((module,resource),None)
+            return pages.get_template("modules/remoteprograms/sqprogprev.html").render(
+                code = p.getPreprocessedCode(kwargs['code'], True if kwargs['preview']=='2' else False),
+                module =module,
+                name =resource,
+                data =resourceinquestion,
+                device= weakref.proxy(d) if d else None,
+                printout= p.print if p else None,
+                errs= p.errors if p else None
+                )
+
+                    
 
         if resourceinquestion['resource-type'] == 'event':
             return pages.get_template("modules/events/event.html").render(

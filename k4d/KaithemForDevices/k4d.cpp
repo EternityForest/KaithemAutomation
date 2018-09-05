@@ -116,7 +116,7 @@ static int rpc_loadInput(void * data, unsigned int datalen, KnownClient *client,
    //Write the null terminator
   Acorns.writeToInput(name, "\0", 1);
   //Load the program with just only that comment line
-  Acorns.loadInputBuffer(name);
+  Acorns.loadInputBuffer(name,true);
   return 0;
 }
 
@@ -160,8 +160,6 @@ void _k4d::begin()
     Acorns.errorfunc = acornserr;
     Acorns.printfunc = acornsprint;
     Acorns.begin();
-    Serial.print("began acorns");
-
 
     //These are the actual K4d calls  
     server->addRPC(4097, "newProgram", rpc_newProgram);

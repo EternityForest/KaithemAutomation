@@ -555,11 +555,25 @@ span.settings-icon::before
  content: url(/static/img/icons/silk/cog.png);
 }
 
+span.sqprog-icon::before
+{
+	content: url(/zipstatic/img/icons/fugue.zip/monitor-network.png);
+}
 a.modules-library-link::before
 {
   content: url(/static/img/icons/silk/lorry.png);
 }
 
+
+a.moduleslink::before
+{
+	content: url(/zipstatic/img/icons/fugue.zip/blue-folder-tree.png);
+}
+
+a.deviceslink::before
+{
+	content: url(/zipstatic/img/icons/fugue.zip/switch-network.png);
+}
 a.upload-module-button::before
 {
   content: url(/static/img/icons/silk/arrow_up.png);

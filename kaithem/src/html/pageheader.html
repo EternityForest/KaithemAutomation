@@ -17,7 +17,7 @@ import cherrypy
     ${config['top-banner-html']}
 
     <ul  border="" id="nav">
-<li><a href="/">Main</a>
+<li><a class="link mainpagelink" href="/">Main</a>
             %if config['enable-js'] and pages.canUserDoThis("/admin/mainpage.view"):
             <span id = "notifications">
                 <script type="text/javascript">
@@ -104,7 +104,7 @@ import cherrypy
             <li><a class="pageslink" href="/pagelisting">Page Index</a></li>
             <li><a class="deviceslink" href="/devices">Devices</a></li>
 
-            <li><a class="helplink" href="/helpmenu">Help</a></li>
+           
 
             <li><a class="settingslink" href="/settings">Settings and Tools</a>
             
@@ -116,7 +116,7 @@ import cherrypy
 %if not registry.is_clean:
 <span title="The kaithem registry has unsaved changes">*</span>
 %endif
-
+<li><a class="helplink" href="/helpmenu">Help</a></li>
 </li>
             %if "auth" in cherrypy.request.cookie:
 

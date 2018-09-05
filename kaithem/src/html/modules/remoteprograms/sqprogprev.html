@@ -20,8 +20,8 @@ using_js_editor = config['enable-js'] and auth.getUserSetting(pages.getAcessingU
 </script>
 %endif
 
-<title>Edit: ${util.split_escape(name,'/','\\')[-1] | h}</title>
-<h2>Editing remote squirrel prog: ${util.split_escape(name,'/','\\')[-1] | h}</h2>
+<title>Preview: ${util.split_escape(name,'/','\\')[-1] | h}</title>
+<h2>Compiled Preview: ${util.split_escape(name,'/','\\')[-1] | h}</h2>
 <p class=pathnav>Path:
 <%
 temp_p = ""
@@ -47,15 +47,11 @@ onsubmit="document.getElementById('box').value = editor.getValue()"\
 >
 <h3>Program ID</h3>
 <input title="The program ID for this squirrel program" name="prgid" value="${data['prgid']|h}" style="width:90%" maxlength="15"
-        %if not pages.canUserDoThis("/admin/modules.edit"):
-                    disabled=1\
-        %endif
+                    disabled=1
 ></input>
 <h3>Target Device</h3>
 <input title="The device(As a configured device name, not the IP addr)" name="device" value="${data['device']|h}" style="width:90%" 
-        %if not pages.canUserDoThis("/admin/modules.edit"):
-                    disabled=1\
-        %endif
+                    disabled=1
 ></input>
 <h3>Squirrel Code</h3>
 %if pages.canUserDoThis("/admin/modules.edit"):
@@ -65,15 +61,12 @@ You have write permissions.
 %endif
 <br>
 <p class="help">
-This is a Squirrel language program meant to run on devices compatible with the Kaithem for Devices protocol. All programs are first preprocessed through Mako, with full
-access to "kaithem" and "module". Devices may have very limited RAM, so programs will be minified.
+This is a Squirrel language program meant to run on devices compatible with the Kaithem for Devices protocol. Devices may have very limited RAM.
 </p>
 
 <textarea id="box" name="code" rows=25 class="htmlcode"
-        %if not pages.canUserDoThis("/admin/modules.edit"):
-                    disabled=1\
-        %endif
->${data["code"]|h}</textarea>
+                    disabled=1
+>${code|h}</textarea>
 
 %if using_js_editor:
 <div id="monacobox" style="width:100%;height:30em;border:1px solid grey"></div>
@@ -96,10 +89,8 @@ access to "kaithem" and "module". Devices may have very limited RAM, so programs
 	        fontSize: 12,
             scrollBeyondLastLine: false,
             theme:'kaithem',
-%if not pages.canUserDoThis("/admin/modules.edit"):
             readOnly:true
-%endif
-		});
+            		});
         add_actions(editor);
         add_mako_format(editor);
 
@@ -122,26 +113,7 @@ document.getElementById("box").style="display:none;";
 <h3>Output(${len(printout)} bytes)</h3>
 <pre>${printout|h}</pre>
 %endif
-<p class="help">
-Saving this module will cause kaithem to load the program into RAM on the remote device if possible. It will not be saved to flash memory unless you do so manually.
-</p>
-<input type="submit" value="Preview Preprocessed code" formaction="?preview=1" formtarget="_blank">
-<input type="submit" value="Preview Preprocessed+Minified code" formaction="?preview=2" formtarget="_blank">
 
-%if pages.canUserDoThis("/admin/modules.edit"):
-<input type="submit" value="Save Changes and go back">
-<label><input type="checkbox"  name="tabtospace"
-     %if auth.getUserSetting(pages.getAcessingUser(),'tabtospace'):
-        checked="yes"
-     %endif
-    %if not pages.canUserDoThis("/admin/modules.edit"):
-        disabled=1\
-    %endif
-   ></input>Convert tabs to spaces on saving</label>
-</input>
-%else:
-<p class="warning">You must have the "/admin/modules.edit" permission to make changes. Are you logged in?</p>
-%endif
 </form>
 </section>
 

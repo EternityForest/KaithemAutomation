@@ -58,7 +58,6 @@ static void pav_WiFiEvent(WiFiEvent_t event) {
       connected = true;
       while(p)
       {
-        Serial.println("Pavillion listening");
         p->listen();
         p = p->next;
       }
@@ -85,6 +84,8 @@ static SemaphoreHandle_t setThingsUp()
 static SemaphoreHandle_t PavilllionLock = setThingsUp();
 
 #define PAV_LOCK()  assert(xSemaphoreTake(PavilllionLock,10000000))
+#define PAV_LOCK()  assert(xSemaphoreTake(PavilllionLock,200))
+
 #define PAV_UNLOCK()  xSemaphoreGive(PavilllionLock)
 
 

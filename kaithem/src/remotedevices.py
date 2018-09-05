@@ -15,10 +15,10 @@
 
 
 
-import weakref,pavillion, threading,time,logging,traceback,struct
-import cherrypy
+import weakref,pavillion, threading,time,logging,traceback,struct,hashlib,base64
+import cherrypy,mako
 
-from . import virtualresource,pages,registry,modules_state
+from . import virtualresource,pages,registry,modules_state,kaithemobj
 
 
 remote_devices = {}
@@ -37,6 +37,34 @@ syslogger = logging.getLogger("system.devices")
 #Indexed by module,resource tuples
 loadedSquirrelPrograms = {}
 
+def sqminify(code):
+    line = ''
+    lines = []
+    quote = False
+    for i in code:
+        if not quote and i=='\n':
+            lines.append(line)
+            line = ''
+        else:
+            line+= i
+        if i=='"':
+            quote = not quote
+    lines+= [line]
+    olines =[]
+    for i in lines:
+        x = i.strip()
+        if x.startswith("\\") or x.startswith("#"):
+            continue
+        if not x:
+            continue
+        
+        #Pretty sure two statements like this can just be put together
+        if olines and olines[-1][-1] in ";}{" and x[-1] in ";}{":
+            olines[-1]+=x
+            continue
+        olines.append(x)
+    return("\n".join(olines))
+
 class RemoteSquirrelProgram():
     def __init__(self, module,resource, data):
         self.target = data['device']
@@ -44,11 +72,25 @@ class RemoteSquirrelProgram():
         self.prgid=data['prgid']
         self.errors = []
         self.print = ""
+        self.module = module
+        self.resource = resource
+
+
+    def getPreprocessedCode(self,code=None,minify=True):
+        code = code or self.code
+        x = {"kaithem":kaithemobj.kaithem, "module":modules_state.scopes[self.module]}
+        code =  mako.template.Template(code, uri="SquirrelTemplate"+self.module+'_'+self.resource, global_vars=x)
+        code = code.render(**x)
+        if minify:
+            code = sqminify(code)
+        code = "//"+(base64.b64encode(hashlib.sha256(code.encode("utf8")).digest()).decode("utf8"))[:14]+"\n"+ code
+        return code
 
     def upload(self):
         if self.target in remote_devices:
             d = remote_devices[self.target]
-            d.loadProgram(self.prgid, self.code,self)
+         
+            d.loadProgram(self.prgid, self.getPreprocessedCode(),self)
 
     def unload(self):
         if self.target in remote_devices:

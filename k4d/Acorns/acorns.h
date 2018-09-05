@@ -48,6 +48,7 @@ class _Acorns
     void begin();
     int loadProgram(const char * code, const char * id);
     int loadInputBuffer(const char * id);
+    int loadInputBuffer(const char * id,bool force);
 
     int closeProgram(const char * id);
     int closeProgram(const char * id, char force);
@@ -154,7 +155,7 @@ extern _Acorns Acorns;
 extern SemaphoreHandle_t _acorns_gil_lock;
 
 //Wait 10 million ticks which is probably days, but still assert it if it fails
-#define GIL_LOCK assert(xSemaphoreTake(_acorns_gil_lock,10000000))
+#define GIL_LOCK assert(xSemaphoreTake(_acorns_gil_lock,200))
 #define GIL_UNLOCK xSemaphoreGive(_acorns_gil_lock)
 
 

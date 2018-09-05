@@ -290,9 +290,13 @@ continue
   %if (name,i) in modules.unsaved_changed_obj:
   *\
   %endif
+  
+  <span class="sqprog-icon"></span><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
+  
   <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a><br>
-  <b>K4D Program</b></br>
-  <span>Target Device: ${module[i]['device']}|h}</span><br>
+  K4D Program<br>
+  <span><b>Program ID:</b> ${module[i]['prgid']|h}</span><br>
+  <span><b>Target Device:</b> ${module[i]['device']|h}</span><br>
 
   <dt>
 
@@ -305,7 +309,6 @@ continue
         %if (name,i) in modules.unsaved_changed_obj:
         *\
         %endif
-        <a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
         <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
         <dt>
 
