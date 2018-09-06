@@ -110,7 +110,22 @@ class _RemoteServer():
                     except Exception as e:
                         #MOst of the time this is going to be not something we can do anything about.
                         return
+                               
+                    opcode =msg2[0]
+                    data=msg2[1:]
 
+
+                    #acknowlegement happens even for old messages, so long as they aren't too old.
+                    #That's why we do them here in this section.
+                    #We do this because if the ack gets lost they shouldn't just resend till it times out.
+                    #TODO: Change the protocol to support ACK as unicast.
+                    if opcode == 1:
+                        if self.server_counter<(counter+250):
+                            #No counter race conditions allowed
+                            with clientobj.lock:
+                                #Do an acknowledgement.
+                                clientobj.counter += 1
+                                clientobj.send(clientobj.counter,2,struct.pack("<Q",counter))
 
                     #Duplicate protection. 
                     if self.server_counter>=counter:
@@ -118,9 +133,7 @@ class _RemoteServer():
                         return
                     self.server_counter = counter
 
-                                
-                    opcode =msg2[0]
-                    data=msg2[1:]
+ 
                     self.secure_lastused = time.time()
                     clientobj.onMessage(addr,counter,opcode,data)
 
@@ -189,6 +202,8 @@ class _RemoteServer():
                                     self.server_counter =0
                                     self.sessionID = clientobj.cipher.keyedhash(clientobj.key, servernonce)[:16]
 
+                                    clientobj.handle().onServerConnect(addr,None)
+
                             else:
                                 dbg(servernonce+challenge,clientobj.psk)
                                 dbg("client recieved bad challenge response hash",  clientobj.cipher.keyedhash(servernonce+challenge,clientobj.psk), h,data)
@@ -205,11 +220,13 @@ class _RemoteServer():
                         self.skey=os.urandom(32)
 
                         n=os.urandom(24)
+                        self.server_counter =0
 
                         #Send an ECC Client Info
                         p = struct.pack("<32s32s32sQ",servernonce, clientobj.key, self.skey,clientobj.counter)
                         p = clientobj.cipher.pubkey_encrypt(p, n,clientobj.server_pubkey,clientobj.keypair[1])
                         self.sendSetup(0, 12, clientobj.clientID+m+n+p,addr=addr)
+                        clientobj.handle().onServerConnect(addr,clientobj.server_pubkey)
 
 
 
@@ -278,8 +295,8 @@ class _Client():
         #Known servers, indexed by (addr,port)
         self.known_servers = {}
 
-        #Last send message to each target that we have subs for
-        self._keepalive_times = {}
+        #Last sent message that was sent to the default address
+        self._keepalive_time = time.time()
 
         self.skey = None
         self.messageTargets = {}
@@ -405,6 +422,18 @@ class _Client():
                 common.cleanup_refs.append(weakref.ref(self))
 
     def send(self, counter, opcode, data,addr=None):
+        
+        ##Experimental optimization to send to the only known server most of the time if there's only one
+        #TODO: decide if this is actually a good idea, and for what opcodes. ATM it doesn't work.
+        try:
+            if 0 and len(self.known_servers)==1:
+                if random.random()<0.85:
+                    for i in self.known_servers:
+                            if self.known_servers[i].secure_lastused>(time.time()-10):
+                                addr = i
+        except:
+            pass
+
         if self.psk or self.keypair:
             self.sendSecure(counter,opcode,data,addr)
         else:
@@ -447,18 +476,16 @@ class _Client():
                         torm_o.append(i)
                 for i in torm_o:
                     del self.knownSubscribers[i]
-                    try:
-                        del self._keepalive_times[i]
-                    except:
-                        pass
             except:
                 pass
 
     def _doKeepAlive(self):
-        for i in self._keepalive_times:
-            if self._keepalive_times[i]<time.time()-30:
-                self.sendMessage(i,'',b'', reliable=False)
-                self._keepalive_times[i]=time.time()
+        if self._keepalive_time<time.time()-30:
+            try:
+                self.sendMessage('','',b'', reliable=False)
+            except:
+                pavillion_logger.exception("Error sending keepalive")
+            self._keepalive_time=time.time()
 
     def countBroadcastSubscribers(self,target):
         with self.subslock:
@@ -482,6 +509,7 @@ class _Client():
                 #responded for 240s, which is probably about 6 packets.
 
                 if time.time()-l>30:
+                    l=time.time()
                     self._doKeepAlive()
                     with self.subslock:
                         self._cleanSubscribers()
@@ -569,17 +597,13 @@ class _Client():
                         if not i:
                             continue
                         i.callback(d[1].decode('utf-8') ,d[2],addr)
-        #Handle S->C messages
+
+        #Handle S->C messages. Note that we send ack even for old messges, 
+        #So we do that at a lower level.
         if  opcode==1:
             d = data.split(b'\n',2)
             #If we have a listener for that message target
             if d[0].decode('utf-8') in self.messageTargets:
-
-                #No counter race conditions allowed
-                with self.lock:
-                    #Do an acknowledgement
-                    self.counter += 1
-                    self.send(self.counter,2,struct.pack("<Q",counter))
 
 
                 s = self.messageTargets[d[0].decode('utf-8')]
@@ -614,13 +638,17 @@ class _Client():
         with self.lock:
             self.counter+=1
             counter = self.counter
-        self._keepalive_times[target]=time.time()
+        #If an address was specified, it doesn't count as a keepalive
+        #Because it might be aimed at only one of many servers on multicast
+        if addr==None:
+            self._keepalive_time=time.time()
 
         if reliable:
-            try:
-                expected = len([i for i in self.knownSubscribers[t] if i>120])
-            except:
-                expected = 1
+            with self.subslock:
+                try:
+                    expected = len([ i for i in self.knownSubscribers[target] if self.knownSubscribers[target][i]>240])
+                except:
+                    expected = 1
 
             e = threading.Event()
             w = common.ExpectedAckCounter(e,expected)
@@ -822,6 +850,13 @@ class Client():
 
     def countBroadcastSubscribers(self,topic):
         return self.client.countBroadcastSubscribers(topic)
+
+    
+    def onServerConnect(self, addr, pubkey):
+        """
+            Meant for subclassing. Used to detect whenever a secure connection to a new server happens.
+            Note that this fires anytime a connection is re established. Pubkey is none if PSK
+        """
 
     def onNewSubscriber(self, target, addr):
         """

@@ -18,7 +18,7 @@
 import weakref,pavillion, threading,time,logging,traceback,struct,hashlib,base64
 import cherrypy,mako
 
-from . import virtualresource,pages,registry,modules_state,kaithemobj
+from . import virtualresource,pages,registry,modules_state,kaithemobj, workers
 
 
 remote_devices = {}
@@ -105,7 +105,12 @@ def removeProgram(module,resource):
             del loadedSquirrelPrograms[module,resource]
 
 
-
+def loadProgramsFromModules():
+    from .modules import ActiveModules
+    for module in ActiveModules:
+        for i in ActiveModules[module]:
+            if ActiveModules[module][i]['resource-type'] == 'k4dprog_sq':
+                updateProgram(module, i, ActiveModules[module][i])
 
 def updateProgram(module,resource, data, upload=True):
     with lock:
@@ -114,14 +119,18 @@ def updateProgram(module,resource, data, upload=True):
             loadedSquirrelPrograms[module,resource].unload()
         loadedSquirrelPrograms[module,resource] = RemoteSquirrelProgram(module,resource, data)
         if upload:
-            try:
-              loadedSquirrelPrograms[module,resource].upload()
-            except:
+            #Networks aren't reliable, do everything in a background thread because it might take time 
+            #And we'll just try again later if it fails
+            def f():
                 try:
-                    loadedSquirrelPrograms[module,resource].errors.append([time.time(),traceback.format_exc()])
+                    loadedSquirrelPrograms[module,resource].upload()
                 except:
-                    pass
-                syslogger.exception("Could not upload program: "+ module+"."+resource)
+                    try:
+                        loadedSquirrelPrograms[module,resource].errors.append([time.time(),traceback.format_exc()])
+                    except:
+                        pass
+                    syslogger.exception("Could not upload program: "+ module+"."+resource)
+            workers.do(f)
 #This is the base class for a remote device of any variety.
 
 class RemoteDevice(virtualresource.VirtualResource):
@@ -213,7 +222,14 @@ class WebDevices():
 
 
 
-
+class Client2(pavillion.Client):
+    def __init__(self, cb, *a,**k):
+        self.connectCB = cb
+        pavillion.Client.__init__(self, *a,**k)
+    def onServerConnect(self, addr, pubkey):
+        time.sleep(0.1)
+        #That lint error is fine
+        workers.do(self.connectCB())
 
 #We're going to put some K4D features in this class, 
 #But keep it compatible with straight non-k4d pavillion stuff.
@@ -272,8 +288,10 @@ class PavillionDevice(RemoteDevice):
         self.server_pubkey = data.get('server_pubkey', None)
 
 
+        self.lock = threading.RLock()
+        #This client is passed a callback to autoload all new code onto the device upon connection
+        self.pclient = Client2(self.loadAll, clientID=self.cid,psk=self.psk, address=self.address)
 
-        self.pclient = pavillion.Client(clientID=self.cid,psk=self.psk, address=self.address)
 
         def handle_print(name, data, source):
             data= data.decode("utf8")
@@ -315,20 +333,40 @@ class PavillionDevice(RemoteDevice):
         c = self.pclient
         c.call(4105, name.encode("utf-8"))
 
-    def loadProgram(self, name, p, obj=None):
-        if obj:
-            self.loaded[name]=obj
+    def isRunning(self, name,hash):
         c = self.pclient
-        c.call(4097, name.encode("utf-8"))
-        pos =0
-        while p:
-            x = p[:1024].encode("utf8")
-            p=p[1024:]
-            c.call(4098, struct.pack("<L",pos) +name.encode("utf8")+b"\x00"+x)
-            pos+= len(x)
-        c.call(4099, name.encode("utf-8"))
+        return c.call(4100, name.encode("utf-8")+b"\0"+hash.encode("utf-8")+b"\0")[0]>0
 
-        syslogger.info("Loaded porgram:" +name+" to k4d device")
+
+    
+    def loadAll(self):
+        with self.lock:
+            for i in self.loaded:
+                self.loadProgram(i, self.loaded[i].code, self.loaded[i])
+
+    def loadProgram(self, name, p, obj=None,errors=False):
+        with self.lock:
+            if obj:
+                self.loaded[name]=obj
+            try:
+                if self.isRunning(name, p[:33]):
+                    return
+
+                c = self.pclient
+                c.call(4097, name.encode("utf-8"))
+                pos =0
+                while p:
+                    x = p[:1024].encode("utf8")
+                    p=p[1024:]
+                    c.call(4098, struct.pack("<L",pos) +name.encode("utf8")+b"\x00"+x)
+                    pos+= len(x)
+                c.call(4099, name.encode("utf-8"))
+
+                syslogger.info("Loaded porgram:" +name+" to k4d device")
+            except:
+                print(traceback.format_exc())
+                if errors:
+                    raise
 
     
     def readFile(self,*a,**k):

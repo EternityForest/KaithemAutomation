@@ -543,14 +543,14 @@ def initModules():
                         if not possibledir == os.path.join(directories.moduledir,"data"):
                             shutil.rmtree(possibledir)
                     except:
-                        loggger.exception("Failed to rename corrupted data. This is normal if kaithem's var dir is not currently writable.")
+                        logger.exception("Failed to rename corrupted data. This is normal if kaithem's var dir is not currently writable.")
 
     except:
         messagebus.postMessage("/system/notifications/errors" ," Error loading modules: "+ traceback.format_exc(4))
-
     auth.importPermissionsFromModules()
     newevt.getEventsFromModules()
     usrpages.getPagesFromModules()
+    remotedevices.loadProgramsFromModules()
     moduleshash = hashModules()
     try:
         cleanupBlobs()
@@ -967,6 +967,11 @@ def bookkeeponemodule(module,update=False):
     if not module in scopes:
         scopes[module] = ModuleObject(module)
     for i in ActiveModules[module]:
+        if ActiveModules[module][i]['resource-type'] == 'k4dprog_sq':
+            remotedevices.updateProgram(module, i, ActiveModules[module][i])
+
+
+
         if ActiveModules[module][i]['resource-type'] == 'page':
             try:
                 usrpages.updateOnePage(i,module)
