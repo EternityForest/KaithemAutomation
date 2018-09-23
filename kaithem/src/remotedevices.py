@@ -62,6 +62,10 @@ def sqminify(code):
         if olines and olines[-1][-1] in ";}{" and x[-1] in ";}{":
             olines[-1]+=x
             continue
+        #Put closing bracket on the line
+        if olines and x[0] =="{":
+            olines[-1]+=x
+            continue
         olines.append(x)
     return("\n".join(olines))
 
@@ -159,7 +163,8 @@ class RemoteDevice(virtualresource.VirtualResource):
         with lock:
             del remote_devices[self.name]
             remote_devices_atomic =remote_devices.copy()
-
+    def status(self):
+        return "norm"
 
 
 
@@ -227,9 +232,8 @@ class Client2(pavillion.Client):
         self.connectCB = cb
         pavillion.Client.__init__(self, *a,**k)
     def onServerConnect(self, addr, pubkey):
-        time.sleep(0.1)
         #That lint error is fine
-        workers.do(self.connectCB())
+        workers.do(self.connectCB)
 
 #We're going to put some K4D features in this class, 
 #But keep it compatible with straight non-k4d pavillion stuff.
@@ -290,7 +294,7 @@ class PavillionDevice(RemoteDevice):
 
         self.lock = threading.RLock()
         #This client is passed a callback to autoload all new code onto the device upon connection
-        self.pclient = Client2(self.loadAll, clientID=self.cid,psk=self.psk, address=self.address)
+        self.pclient = Client2(self._loadAll, clientID=self.cid,psk=self.psk, address=self.address)
 
 
         def handle_print(name, data, source):
@@ -314,7 +318,7 @@ class PavillionDevice(RemoteDevice):
                     self.loaded[name].errors+= [data, time.time()]
                     self.loaded[name].errors = self.loaded[name].errors[4096:]
                 except:
-                    pass
+                    k4dlogger.exception("Error logging the error")
             k4dlogger.error("Error in remote progam "+name+":\r\n"+data)
         
         self._handlerror = handle_error
@@ -335,11 +339,12 @@ class PavillionDevice(RemoteDevice):
 
     def isRunning(self, name,hash):
         c = self.pclient
-        return c.call(4100, name.encode("utf-8")+b"\0"+hash.encode("utf-8")+b"\0")[0]>0
+        return c.call(4100, name.encode("utf-8")+b"\x00"+hash.encode("utf-8")+b"\x00")[0]>0
 
 
     
-    def loadAll(self):
+    def _loadAll(self):
+        time.sleep(3)
         with self.lock:
             for i in self.loaded:
                 self.loadProgram(i, self.loaded[i].code, self.loaded[i])

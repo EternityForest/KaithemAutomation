@@ -122,13 +122,20 @@ document.getElementById("box").style="display:none;";
 <h3>Output(${len(printout)} bytes)</h3>
 <pre>${printout|h}</pre>
 %endif
+%if errs:
+<h3>Errors</h3>
+%for i in errs:
+<pre class="error">${errs[i]|h}</pre>
+%endfor
+%endif
 <p class="help">
 Saving this module will cause kaithem to load the program into RAM on the remote device if possible. It will not be saved to flash memory unless you do so manually.
 </p>
+
+%if pages.canUserDoThis("/admin/modules.edit"):
 <input type="submit" value="Preview Preprocessed code" formaction="?preview=1" formtarget="_blank">
 <input type="submit" value="Preview Preprocessed+Minified code" formaction="?preview=2" formtarget="_blank">
 
-%if pages.canUserDoThis("/admin/modules.edit"):
 <input type="submit" value="Save Changes and go back">
 <label><input type="checkbox"  name="tabtospace"
      %if auth.getUserSetting(pages.getAcessingUser(),'tabtospace'):
