@@ -24,14 +24,14 @@ if request.method=="POST":
         kaithem.registry.set("lighting/nettime",'nettime' in kwargs)
         module.maketimefunc()
 %>
-<h2>Sound Setup</h2>
-<title>Sound Setup</title>
+<h2>Lighting Setup</h2>
+<title>Setup</title>
 
 <div class="sectionbox">
 
     <form method="POST">
     <p class="help">Auto-discover an NTP server for lighting control using MDNS. Note that every kaithem instance acts as an NTP server as well. Changing this with running scenes may
-        cause odd behaviour, but shouldn't cause a crash. If no NTP server is found, uses system time as normal.
+        cause odd behaviour, but shouldn't cause a crash. If no NTP server is found, uses system time as normal. This is a global setting for the entire lighting subsystem.
     </p>
         <label><input name="nettime" type="checkbox"
         %if kaithem.registry.get("lighting/nettime",False):
