@@ -688,11 +688,51 @@ h4 {
         <p>The kaithem.sound API is slightly different depending on which backend has been configured.
         By default mplayer will be used if available and is the recommended backed.<p>
 
-        <h4>kaithem.play(filename,handle="PRIMARY",volume=1,start=0,end=-0.0001, eq=None, output=None,fs=False)</h4>
+        
+        <h4>kaithem.sound.outputs()</h4>
+        <p>
+            (Currently linux ALSA only)
+            Returns a dict of sound device info objects. 
+            
+            The same entry may be present under multiple names.
+            
+          
+            At minimum, each device will have an entry under a "persistent name" which
+            is created from the device type and the PCI address or USB port that it is plugged into, plus the
+            subdevice.
+
+            The names look like: 'HDMI1-dresslunacyantennae-0xef128000irq129:7', or
+            'USBAudio-lushlyroutinearmchair-usb-0000:00:14.0-4:0'
+            and so long as you plug the same device into the same port(On the same hub, if using one), 
+            the name will remain constant.
+
+            The entries are objects. They have the properties mplayerName and alsaName. These are
+            they typical names that other apps use to identify devices.
+
+            You may use any name found here as an argument to the output parameter of kaithem.play,
+            if using mplayer.
+
+            This dict may also contain JACK ports that it discovers. These obviously will not have an alsa name.
+
+            Be patient, it may take 30 seconds for kaithem to discover new cards.
+        </p>
+
+        <h4>kaithem.sound.play(filename,handle="PRIMARY",volume=1,start=0,end=-0.0001, eq=None, output=None,fs=False,extraPaths=[])</h4>
         <p>If you have mpg123 or SOX installed, play the file, otherwise do nothing. The handle
             parameter lets you name the new sound instance to stop it later. If you try to play a sound under the same
             handle as a stil-playing sound, the old one will be stopped. Defaults to PRIMARY.
-            </p><p>
+            </p>
+
+            <p>Relative paths are searched in the configured directories and a default builtin one(Unless you remove it from the config).
+                Searching is not recursive, but relative paths work. If searching for "foo/bar" in "/baz", it will look for "/baz/foo/bar".
+            </p>
+
+            <p>If you want to search paths for relative files other than the default abd the ones in the config, 
+            add them to extraPaths.</p>
+
+
+            
+            <p>
             With the mplayer backend, if you give it a video file, it will likely open a window and play it.
             Passing fs=True may allow you to play fullscreen, but any use of this "hidden feature" is very experimental.
             results may be undefined if you attempt to play a video in an environment that does not support it.
@@ -711,6 +751,13 @@ h4 {
             A typical value on linx would be pulse::n where n is the pulse sink index, see mplayer's -ao option for more details.
             </p>
 
+            <p>You may also use one of kaithem's soundcard aliases found in kaithem.outputs.</p>
+
+        <h4>kaithem.sound.builtinSounds</h4>
+        <p>
+            A list of filenames of sounds included with Kaithem. They are found in the data dir, and cann be drectly passed to play.
+
+        </p>
         <h4>kaithem.sound.stop(handle="PRIMARY"")</h4>
         <p>Stop a sound by handle.</p>
 

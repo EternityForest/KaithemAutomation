@@ -33,6 +33,8 @@ try:
 except:
     pass
 
+
+
 #This file is the main entry point of the app. It imports everything, loads configuration,
 #sets up and starts the server, and contains page handlers for the main page.
 
@@ -113,6 +115,14 @@ def handleError(f,exc):
                                 "traceback":traceback.format_exception(*exc, limit=s6)})
 
 workers.handleError = handleError
+
+#Attempt to make pavillion work in a sane way that takes advantage of the thread pooling
+try:
+    import pavillion
+    pavillion.daemon = True
+    pavillion.execute = workers.do
+except:
+    pass
 
 #We want a notification anytime every first error in a scheduled event
 from src import scheduling

@@ -15,7 +15,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 "This file ideally should only depend on sdtilb stuff and import the rest as needed. We don't want this to drag in threads and everything"
-import  os,threading,copy,sys,shutil,difflib,time,json,traceback,stat,subprocess,copy,collections,types,weakref,logging
+import  os,threading,copy,sys,shutil,difflib,time,json,traceback,stat,subprocess,copy,collections,types,weakref,logging,struct,hashlib
 import yaml
 logger = logging.getLogger("system")
 #2 and 3 have basically the same module with diferent names
@@ -36,6 +36,38 @@ else:
     from urllib.request import urlopen
 
 savelock = threading.RLock()
+
+#Normally we run from one folder. If it's been installed, we change the paths a bit.
+dn = os.path.dirname(os.path.realpath(__file__))
+if "/usr/lib" in dn:
+    datadir = "/usr/share/kaithem"
+else:
+    datadir = os.path.join(dn,'../data')
+
+eff_wordlist = [s.split()[1] for s in open(os.path.join(datadir,'words_eff.txt'))]
+
+def memorableHash(x, num=3, separator=""):
+    "Use the diceware list to encode a hash. Not meant to be secure."
+    o = ""
+
+    if isinstance(x, str):
+        x = x.encode("utf8")
+    for i in range(num):
+        while 1:
+            x = hashlib.sha256(x).digest()
+            n = struct.unpack("<Q",x[:8])[0]%len(eff_wordlist)
+            e = eff_wordlist[n]
+            #Don't have a word that starts with the letter the last one ends with
+            #So it's easier to read
+            if o:
+                if e[0] == o[-1]:
+                    continue
+                o+=separator+e
+            else:
+                o=e
+            break
+    return o
+
 
 
 def universal_weakref(f):

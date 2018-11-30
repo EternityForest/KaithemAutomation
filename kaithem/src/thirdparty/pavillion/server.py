@@ -13,11 +13,12 @@
 #You should have received a copy of the GNU General Public License
 #along with Pavillion.  If not, see <http://www.gnu.org/licenses/>.
 
-import weakref, types, collections, struct, time, socket,threading,random,os,logging,traceback
+import weakref, types, collections, struct, time, socket,threading,random,os,logging,traceback,select
 
 from .common import ciphers,DEFAULT_MCAST_ADDR,DEFAULT_PORT,nonce_from_number,pavillion_logger,preprocessKey
 from . import common
 
+import pavillion
 
 SESSION_TIMEOUT = 300
 
@@ -47,6 +48,9 @@ class _ServerClient():
         self.skey = None
         self.server = server
         self.client_counter =0
+        #Used to keep track of an unused number we can still accept even
+        #If it's lower than the expected counter value
+        self.unusedOutOfOrderCounterValue =None
         self.clientID = None
         self.guest_key = None
         #ServerChallenge in the docs
@@ -65,6 +69,8 @@ class _ServerClient():
         #The last time we actually got a proper message from them
         self.lastSeen =0
 
+        #What topics has this client subscribed to.
+        self.subscriptions = {}
 
         #Sessions IDs are initialized to random values.
         #It's used so that servers can detect if they are still connected
@@ -74,14 +80,14 @@ class _ServerClient():
     def sendSetup(self, counter, opcode, data):
         "Send an unsecured packet"
         m = struct.pack("<Q",counter)+struct.pack("<B",opcode)+data
-        self.server.sock.sendto(b"PavillionS0"+m,self.address)
+        self.server.sendsock.sendto(b"PavillionS0"+m,self.address)
 
     def sendSecure(self, counter, opcode, data):
         "Send a secured packet"
         n = b'\x00'*(24-8)+struct.pack("<Q",counter)
         m = struct.pack("<B",opcode)+data
         m=self.encrypt(m,self.skey,n)
-        self.server.sock.sendto(b"PavillionS0"+struct.pack("<Q",counter)+m,self.address)
+        self.server.sendsock.sendto(b"PavillionS0"+struct.pack("<Q",counter)+m,self.address)
 
     def send(self, counter, opcode, data):
         #No risk of accidentally responding to a secure message with a plaintext one.
@@ -95,7 +101,6 @@ class _ServerClient():
         "Handle a raw UDP packet from the client"
         s = b"PavillionS0"
         unsecure = b"Pavillion0"
-
         #Header checks
         if not msg.startswith(s):
             #A regular message. Check if we're accepting unsecured messages, and if so pass it to
@@ -127,13 +132,31 @@ class _ServerClient():
                     plaintext = self.decrypt(ciphertext,  self.ckey, nonce_from_number(counter))
                 except:
                     self.sendSetup(0, 4, b'')
-                    self.ignore = time.time()+5
+                    #If we have recieved a valid message recently,
+                    #don't ignore just because there's random line garbage,
+                    if self.lastSeen<(time.time()-100):
+                        self.ignore = time.time()+5
                     return
                 
                 self.lastSeen = time.time()
-                #Duplicate protection
+                #Duplicate protection, make sure the counter increments.
+                #Do some minor out-of-order counter value handling.
+                #If we detect that the counter has incremented by more than exactly 1,
+                #The unused value may be accepted.
+                
+                #TODO: Support keeping track of multiple unused values. One
+                #should be much better than none for now.
                 if self.client_counter>=counter:
-                    return
+                    with self.server.lock:
+                        if counter == self.unusedOutOfOrderCounterValue:
+                            self.unusedOutOfOrderCounterValue = None
+                        else:
+                            return
+                
+                if counter > self.client_counter+1:
+                    with self.server.lock:
+                        self.unusedOutOfOrderCounterValue = self.client_counter+1
+                    
                 self.client_counter = counter
                 self.server.onMessage(addr,counter,plaintext[0],plaintext[1:],self.clientID)
 
@@ -256,10 +279,12 @@ class _ServerClient():
                     if self.guest_key:
                         self.clientID = common.libnacl.generic_hash(self.guest_key)
                     self.ignore = 0
+                    self.sendSetup(0, 7, self.sessionID)
                     logging.info("Setup connection with client via ECC")
 
 class _Server():
-    def __init__(self,port=DEFAULT_PORT,keys=None,pubkeys=None,address='',multicast=None, ecc_keypair=None, handle=None, allow_guest=False):
+    def __init__(self,port=DEFAULT_PORT,keys=None,pubkeys=None,address='',multicast=None, 
+    ecc_keypair=None, handle=None, allow_guest=False,daemon=False,execute=None):
         """The private server object that the user should not see except via the interface.
            This is because we don't want to
         
@@ -268,7 +293,11 @@ class _Server():
 
            multicast is a multicast IP address that the server will listen on if specified. Adress is the local IP to bind to.
 
-           ecc_keypair is a tuple of raw binary (public,private) keys. If not supplied, the server is symmetric-only. 
+           ecc_keypair is a tuple of raw binary (public,private) keys. If not supplied, the server is symmetric-only.
+
+           daemon specifies the daemon status of the server's listening thread. Defaults to false,
+           but you might want this to be True if you can accept the server not getting to finish executing a function,
+           or if the handle's execute function already takes care of that.
            
         """
 
@@ -309,7 +338,9 @@ class _Server():
         self.sock.settimeout(1)
 
         self.sendsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sendsock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1) 
         self.sendsock.bind((self.address[0],0))
+        self.sendsock.settimeout(1)
 
         self.mcastgroup = multicast
         #Subscribe to any requested mcast group
@@ -340,12 +371,18 @@ class _Server():
                 raise RuntimeError("System shutting down")
             common.cleanup_refs.append(weakref.ref(self))
 
+        #Function used to execute RPC callbacks and handlers and such
+
+        self.execute = execute or pavillion.execute
 
         #Max number of clients we keep track of, including ignored ones
         self.maxclients = 512
         t = threading.Thread(target=self.loop)
         t.name+=":PavillionServer"
+        t.daemon = daemon
         t.start()
+
+        
 
 
 
@@ -474,6 +511,11 @@ class _Server():
                         if not i:
                             continue
                         i.callback(d[1].decode('utf-8') ,d[2],clientID)
+        
+        elif opcode ==2:
+            d = struct.unpack("<Q",data)[0]
+            if d in self.waitingForAck:
+                self.waitingForAck[d].onResponse(data[8:])
 
         #Unreliable message, don't ack
         elif  opcode==3:
@@ -512,7 +554,7 @@ class _Server():
             except:
                 logging.exception("error closing connection")
                     
-    def _cleanupSessions():
+    def _cleanupSessions(self):
         torm=[]
         for i in sorted(list(self.knownclients.items()),key=lambda x: x[1].created):
             if i[1].lastSeen < time.time()-SESSION_TIMEOUT:
@@ -522,44 +564,80 @@ class _Server():
             break
 
     def loop(self):
+
+        #If we are in multicast mode, when we first start up, send some
+        #unrecognized client announcements in hopes that someone notices us
+        #This is why clients are supposed to listen on any multicast grops they send on.
+
+        #We don't know if anyone is listening so we can't retry, so we send 3 times and hope at least
+        #one gets through.
+
+        #This is just an optimization, the client can also initiate the connection
+        if self.mcastgroup:
+            m = struct.pack("<Q",0)+struct.pack("<B",4)+b''
+            self.sendsock.sendto(b"PavillionS0"+m,(self.mcastgroup,self.port))
+            time.sleep(0.003)
+            self.sendsock.sendto(b"PavillionS0"+m,(self.mcastgroup,self.port))
+            time.sleep(0.025)
+            self.sendsock.sendto(b"PavillionS0"+m,(self.mcastgroup,self.port))
+
         while(self.running):
             try:
-                m,addr = self.sock.recvfrom(4096)
-            except socket.timeout:
-                continue
-            if addr in self.ignore:
-                continue
-
-            #There's a possibility of dropped packets in a race condition between getting rid of
-            #and remaking a server. It doesn't matter, UDP is unreliable anyway
-            try:
-                if addr==self.address:
-                    continue
-                if not addr in self.knownclients:
-                    #If we're out of space for new clients, go through and find one we haven't seen in a while.
-                    if len(self.knownclients)>self.maxclients:
-                        with self.lock:
-                            self._cleanupSessions()
-                    if len(self.knownclients)>self.maxclients:
-                        continue
-
-                    self.knownclients[addr] = _ServerClient(self, addr)
-                self.knownclients[addr].onRawMessage(addr,m)
+                r,w,x= select.select([self.sock,self.sendsock],[],[],5)
             except:
-                pavillion_logger.exception("Exception in server loop")
+                continue
+            for i in r:
+                try:
+                    m,addr = i.recvfrom(4096)
+                except socket.timeout:
+                    continue
+                except:
+                    print(traceback.format_exc())
+                if addr in self.ignore:
+                    continue
+
+                #There's a possibility of dropped packets in a race condition between getting rid of
+                #and remaking a server. It doesn't matter, UDP is unreliable anyway
+                try:
+                    if addr==self.address:
+                        continue
+                    if not addr in self.knownclients:
+                        #If we're out of space for new clients, go through and find one we haven't seen in a while.
+                        if len(self.knownclients)>self.maxclients:
+                            with self.lock:
+                                self._cleanupSessions()
+                        if len(self.knownclients)>self.maxclients:
+                            continue
+
+                        self.knownclients[addr] = _ServerClient(self, addr)
+                    self.knownclients[addr].onRawMessage(addr,m)
+                except OSError:
+                    #Ignore errors if it's just messages recieved while closing but before
+                    #the thread stops
+                    if self.running:
+                        pavillion_logger.exception("Exception in server loop")
+
+                except:
+                    pavillion_logger.exception("Exception in server loop")
 
         #Close sock at end
         self.sock.close()
+        try:
+            self.sendsock.close()
+        except:
+            pass
 
 
 class Server():
     """The public interface object that a user might interact with for a Server object"""
-    def __init__(self,port=DEFAULT_PORT, keys=None,pubkeys=None, address='',multicast=None,ecc_keypair=None,allow_guest=False):
+    def __init__(self,port=DEFAULT_PORT, keys=None,pubkeys=None, address='',multicast=None,ecc_keypair=None,allow_guest=False,daemon=None,execute=None):
         keys = keys or {}
         #Yes, we want the objects to share the mutable dict, 
         self.keys = keys
         self.pubkeys = pubkeys
-        self.server = _Server(port=port,keys=keys,pubkeys=pubkeys,address=address,multicast=multicast,ecc_keypair=ecc_keypair,handle=self,allow_guest=allow_guest)
+        if daemon is None:
+            daemon = pavillion.daemon
+        self.server = _Server(port=port,keys=keys,pubkeys=pubkeys,address=address,multicast=multicast,ecc_keypair=ecc_keypair,handle=self,allow_guest=allow_guest,daemon=daemon,execute=execute)
         self.registers = self.server.registers
         self.ignore = self.server.ignore
 
