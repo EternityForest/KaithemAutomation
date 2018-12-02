@@ -20,7 +20,6 @@ import cherrypy,mako
 
 from . import virtualresource,pages,registry,modules_state,kaithemobj, workers
 
-
 remote_devices = {}
 remote_devices_atomic = {}
 
@@ -143,6 +142,8 @@ class RemoteDevice(virtualresource.VirtualResource):
         pass
 
     def __init__(self,name, data):
+        if not data['type']==self.deviceTypeName:
+            raise ValueError("Incorrect type in info dict")
         virtualresource.VirtualResource.__init__(self)
         global remote_devices_atomic
 
@@ -194,24 +195,29 @@ class WebDevices():
     @cherrypy.expose
     def index(self):
         """Index page for web interface"""
+        pages.require("/admin/settings.edit")
         return pages.get_template("devices/index.html").render(devices=remote_devices_atomic)
     
     @cherrypy.expose
     def device(self,name):
+        pages.require("/admin/settings.edit")
         return pages.get_template("devices/device.html").render(data=device_data[name], obj=remote_devices[name],name=name)
 
     def readFile(self, name, file):
+        pages.require("/admin/settings.edit")
         return remote_devices[name].readFile(file)
 
 
     @cherrypy.expose
     def updateDevice(self,name,**kwargs):
+        pages.require("/admin/settings.edit")
         updateDevice(name,kwargs)
         raise cherrypy.HTTPRedirect("/devices")
 
 
     @cherrypy.expose
     def createDevice(self,name,**kwargs):
+        pages.require("/admin/settings.edit")
         name = name or kwargs['name']
         with lock:
             device_data[name]=kwargs
@@ -235,10 +241,8 @@ class Client2(pavillion.Client):
         #That lint error is fine
         workers.do(self.connectCB)
 
-#We're going to put some K4D features in this class, 
-#But keep it compatible with straight non-k4d pavillion stuff.
 class PavillionDevice(RemoteDevice):
-
+    deviceTypeName="pavillion"
     @staticmethod
     def validateData(data):
         data['port'] = int(data['port'])
@@ -250,8 +254,7 @@ class PavillionDevice(RemoteDevice):
 
 
     def __init__(self, name, data):
-        if not data['type']=='pavillion':
-            raise ValueError("That is not a pavillion device info dict")
+
         RemoteDevice.__init__(self,name,data)
 
         self.recievelock=threading.Lock()
@@ -324,6 +327,7 @@ class PavillionDevice(RemoteDevice):
         self._handlerror = handle_error
         self._handleprint=handle_print
 
+        #Todo: change names
         self.t = self.pclient.messageTarget("k4dprint",handle_print)
         self.t2 = self.pclient.messageTarget("k4derr",handle_error)
 
@@ -333,6 +337,19 @@ class PavillionDevice(RemoteDevice):
         except:
             pass
 
+
+
+    
+    def readFile(self,*a,**k):
+        return self.pclient.readFile(*a,*k)
+
+    def listDir(self, *a,**k):
+        return self.pclient.listDir(*a,*k)
+
+class K4DDevice(PavillionDevice):
+    "Represents a device that supports the full K4D standard, allowing remote code execution"
+
+    deviceTypeName = "k4d"
     def forceClose(self, name):
         c = self.pclient
         c.call(4105, name.encode("utf-8"))
@@ -373,21 +390,14 @@ class PavillionDevice(RemoteDevice):
                 if errors:
                     raise
 
-    
-    def readFile(self,*a,**k):
-        return self.pclient.readFile(*a,*k)
-
-    def listDir(self, *a,**k):
-        return self.pclient.listDir(*a,*k)
-
 class DeviceNamespace():
     def __getattr__(self, name):
         return remote_devices[name].interface
 
-devicetypes = {'pavillion':PavillionDevice}
+devicetypes = {'pavillion':PavillionDevice,"k4d":K4DDevice}
 
 def makeDevice(name, data):
-    return {'pavillion':PavillionDevice}.get(data['type'], RemoteDevice)(name, data)
+    return devicetypes.get(data['type'], RemoteDevice)(name, data)
 
 def init_devices():
         

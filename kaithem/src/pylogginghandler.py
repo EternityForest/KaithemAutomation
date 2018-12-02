@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import logging,threading,os, time, gzip, bz2,atexit,weakref,random,re,textwrap
+import logging,threading,os, time, gzip, bz2,atexit,weakref,random,re,textwrap,shutil
 
 from . import messagebus, registry, directories,unitsofmeasure,util
 from .config import config 
@@ -25,6 +25,7 @@ logging.getLogger().setLevel(10)
 configuredHandlers = {}
 
 all_handlers = weakref.WeakValueDictionary()
+
 
 def at_exit():
     """
@@ -40,6 +41,14 @@ def at_exit():
                 pass
     except:
         pass
+
+    #This lets us tell a clean shutdown from something like a segfault
+    if os.path.exists("/dev/shm"):
+        try:
+            with open("/dev/shm/shutdowntime",w) as f:
+                f.write(str(time.time()))
+        except:
+            pass
 atexit.register(at_exit)
 
 
@@ -244,3 +253,46 @@ syslogger = LoggingHandler("system",fn="system" if not config['log-format']=='no
                         keep=unitsofmeasure.strToIntWithSIMultipliers(config['keep-log-files']),
                         compress= config['log-compress'])
 
+
+
+##Linux only way of recovering backups even if the
+if os.path.exists("/dev/shm/kaithemdbglog"):
+    if not os.path.exists("/dev/shm/shutdowntime"):
+        try:
+            shutil.rmtree("/dev/shm/kaithemdbglog")
+        except:
+            pass
+        try:
+            shutil.copytree("/dev/shm/kaithemdbglog", "/dev/shm/kaithemdbglogbackup")
+        except:
+            pass
+        messagebus.postMessage("/system/notifications/errors", 
+        """Kaithem may have shutdown uncleanly due to a segfault, kill-9, or similar.
+        Recovered logs have been backed up to '/dev/shm/kaithemdbglogbackup'
+        """)
+
+
+#This lets us tell a clean shutdown from something like a segfault.
+#Remove it, and if it's not back by next time, but somehow there's still log files,
+#We know that there was a problem, and we can report that.
+if os.path.exists("/dev/shm"):
+    try:
+       os.remove("/dev/shm/shutdowntime")
+    except:
+        pass
+
+
+##This buffer stores 100K of the most recent of all system logs in /dev/shm.
+##This should be made configurable for people with multiple instances, but for now
+#This is better than nothing, because it gives us a way to find what's going on if there's a segfault.
+
+#We may want to name it after when kaithem booted, and reduce to 10KB, or make it configurable.
+#Or, we may want to read old debug log info at boot, and save it, so we have a chance to look through
+#and diagnose really odd errors.
+if os.path.exists("/dev/shm"):
+    shmhandler = LoggingHandler("",fn="kaithemlog",
+            folder="/dev/shm/kaithemdbglog/",level=0,
+            entries_per_file=5000, 
+            bufferlen= 0,
+            keep=10**5*5,
+            compress= "none")

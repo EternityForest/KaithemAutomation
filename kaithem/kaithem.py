@@ -140,8 +140,8 @@ wait =  cfg.config['wait-for-workers']
 workers.start(count,qsize,wait)
 
 from src import messagebus
-from src import pylogginghandler
 from src import messagelogging
+from src import pylogginghandler
 from src import logviewer
 
 
