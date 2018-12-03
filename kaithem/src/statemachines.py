@@ -142,16 +142,16 @@ class StateMachine(modules.VirtualResource):
             with other.lock:
                 #I don't know what kind of messed up stuff could happen to make these two lines needed
                 #But i'm adding the check just in case. It checks against oe machine being replaced twice
-                if self.replacement and not self.replacement==other:
-                    return self.replacement.handoff(name)
+                if not self.replacement or not self.replacement==other:
+                    return self.replacement.handoff(self)
 
                 if other.keepSubscribers:
                     #export all the old subscribers
                     for i in self.subscribers:
                         #duplicate detection
                         if not i in other.subscribers:
-                            other.subscribers[j]= []
-                        other.subscribers[j].extend(self.subscribers[i])
+                            other.subscribers[i]= []
+                        other.subscribers[i].extend(self.subscribers[i])
 
                 if other.keepState:
                     #Carry over the state and the time at which that state was entered.

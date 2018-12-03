@@ -27,7 +27,6 @@ class VirtualResource(object):
         self.__interfaces = []
         self.__lock=threading.Lock()
         self.replacement =None
-        self.name = None
 
     def __repr__(self):
         return "<VirtualResource at "+str(id(self))+" of class"+str(self.__class__)+">"
@@ -39,11 +38,11 @@ class VirtualResource(object):
         if not self.replacement:
 
             with self.__lock:
-                x= VirtualResourceInterface(self,name)
+                x= VirtualResourceInterface(self)
                 self.__interfaces.append(weakref.ref(x))
                 #Make a list of all interfaces that need removing
                 torm = []
-                for i in self.interfaces:
+                for i in self.__interfaces:
                     if not i():
                         torm.append(i)
 
@@ -51,7 +50,7 @@ class VirtualResource(object):
                 for i in torm:
                     self.__interfaces.remove()
         else:
-            return self.replacement.interface(self.name)
+            return self.replacement.interface(self)
 
     def handoff(self,other):
         with self.__lock:

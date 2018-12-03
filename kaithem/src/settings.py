@@ -332,12 +332,30 @@ class Settings():
         t = int(cherrypy.request.headers['REQUEST_TIME'])
         subprocess.call(["sudo","-S","date","-s","+%Y%m%d%H%M%S",time.strftime("%Y%m%d%H%M%S",time.gmtime(t-0.15))],stdin=s)
         raise cherrypy.HTTPRedirect('/settings/system')
+    
+    @cherrypy.expose
+    def changealertsettingstarget(self,**kwargs):
+        pages.require("/admin/settings.edit",noautoreturn=True)
+        pages.postOnly()
+        registry.set("system/alerts/warning/soundinterval",float(kwargs['warningbeeptime']))
+        registry.set("system/alerts/error/soundinterval",float(kwargs['errorbeeptime']))
+        registry.set("system/alerts/critical/soundinterval",float(kwargs['critbeeptime']))
+
+        registry.set("system/alerts/warning/soundfile", kwargs['warningsound'])
+        registry.set("system/alerts/error/soundfile", kwargs['errorsound'])
+        registry.set("system/alerts/critical/soundfile", kwargs['critsound'])
+
+        if not kwargs['soundcard']=="default":
+            registry.set("system/alerts/soundcard", kwargs['soundcard'])
+
+        raise cherrypy.HTTPRedirect('/settings/system')
 
 
     @cherrypy.expose
     def changesettingstarget(self,**kwargs):
         pages.require("/admin/settings.edit",noautoreturn=True)
         pages.postOnly()
+
         registry.set("system/location/lat",float(kwargs['lat']))
         registry.set("system/location/lon",float(kwargs['lon']))
         messagebus.postMessage("/system/settings/changedelocation",pages.getAcessingUser())

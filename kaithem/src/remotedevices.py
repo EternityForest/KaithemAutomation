@@ -239,7 +239,8 @@ class Client2(pavillion.Client):
         pavillion.Client.__init__(self, *a,**k)
     def onServerConnect(self, addr, pubkey):
         #That lint error is fine
-        workers.do(self.connectCB)
+        if self.connectCB:
+            workers.do(self.connectCB)
 
 class PavillionDevice(RemoteDevice):
     deviceTypeName="pavillion"
@@ -250,8 +251,11 @@ class PavillionDevice(RemoteDevice):
 
     def close(self):
         RemoteDevice.close(self)
-        self.pclient.close()
-
+        try:
+            self.pclient.close()
+        except:
+            pass
+    onPavillionConnect =None
 
     def __init__(self, name, data):
 
@@ -297,7 +301,7 @@ class PavillionDevice(RemoteDevice):
 
         self.lock = threading.RLock()
         #This client is passed a callback to autoload all new code onto the device upon connection
-        self.pclient = Client2(self._loadAll, clientID=self.cid,psk=self.psk, address=self.address)
+        self.pclient = Client2(self.onPavillionConnect, clientID=self.cid,psk=self.psk, address=self.address)
 
 
         def handle_print(name, data, source):
@@ -365,7 +369,7 @@ class K4DDevice(PavillionDevice):
         with self.lock:
             for i in self.loaded:
                 self.loadProgram(i, self.loaded[i].code, self.loaded[i])
-
+    onPavillionConnect = _loadAll
     def loadProgram(self, name, p, obj=None,errors=False):
         with self.lock:
             if obj:

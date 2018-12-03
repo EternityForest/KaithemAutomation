@@ -518,6 +518,55 @@ h4 {
         <p>The previous state of the machine. May be the same as the current state if re-entry occurs.
          The initial value is None before any transitions have occured.</p>
 
+        <h3>kaithem.alerts</h3>
+        <p>Alerts allow you to create notification when unusual events occur, trigger periodic sounds,
+            and allow users to "acknowledge" them to shut them up.
+        </p>
+
+
+        <h4>kaithem.alerts.Alert(name, priority="normal", zone=None, tripDelay=0, autoAck=False,
+                permissions=[], ackPermissions=[], [id])</h4>
+        <p>Create a new alert. Prority can be one of debug, info, warning, error, or critical.</p>
+
+        <p>Zone should be a heirarchal dot-separated locator string if present, telling
+            the physical location being monitored. An example might be "us.md.baltimore.123setterst.shed", but at present
+            you can use whatever format you like.
+        </p>
+        
+        <p>Permissions and ackPermissions are additional permissions besides /users/alerts.view and /users/alerts.acknowledge
+            that are needed to see and ack the alert.
+        </p>
+
+        <p>ID is a unique string ID. What happens if you reuse these is undefined and wil be used to implement features later.
+        </p>
+
+
+        <p>Internally, alarms are state machines that may be in any of the following states:</p>
+
+        <h4>normal</h4>
+
+        <h4>trip</h4>
+        <p>Entered by calling a.trip(). This will be logged, but nothig will actually happen until the trip delay
+            passes, after which the alarm becomes active.
+        </p>
+
+        <h4>active</h4>
+        <p>The alarm will beep periodically from the configured sound devide(In system settings), at an interval depending on
+            the rate. It will be shown on the front page(To users with the correct permissions). It remains such until a clear
+            event happens(by calling a.clear()), which would cause it to enter the cleared state, or an acknowledge happens,
+            causing it to enter the acknowledged state.
+        </p>
+
+        <h4>cleared</h4>
+        <p>This state indicates the undesired condition has stopped, but the alarm has not been acknowledged.
+            Acknowledging an alarm in this state causes it to become normal. The alarm is visible but will not beep.
+        </p>
+
+        <h4>acknowledged</h4>
+        <p>The condition is occuring, but is has been acknowledged. It will not beep, but will show on the main page.
+            Clearing in this state will cause it to become normal.
+        </p>
+
         <h3>kaithem.time</h3>
 
         <h4>kaithem.time.lantime()<h4>

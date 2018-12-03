@@ -1,6 +1,6 @@
 <%include file="/pageheader.html"/>
 <%!
-from src import config,registry
+from src import config,registry,sound
 import yaml
 %>
 <h2>Options</h2>
@@ -48,6 +48,45 @@ This is mostly used for astronomical calculations. Get Location uses <a href="ht
 <button type="submit">Get Location now</button>
 </form>
 </section>
+
+<h2>Alerts</h2>
+<div class="sectionbox">
+<h3>Sound</h3>
+<form action="/settings/changealertsettingstarget" method="POST">
+<table border=1>
+<tr>
+    <td>Beep interval(Warnings)</td><td><input type="number" name="warningbeeptime" value="${registry.get('system/alerts/warning/soundinterval',60*25)}"></input></td>
+</tr>
+<tr>
+    <td>Sound file(Warnings)</td><td><input name="warningsound" value="${registry.get('system/alerts/warning/soundfile','error.ogg')}"></input></td>
+</tr>
+<tr>
+<td>Beep interval(Errors)</td><td><input type="number" name="errorbeeptime" value="${registry.get('system/alerts/error/soundinterval',120)}"></input></td>
+</tr>
+<tr>
+<td>Sound file(Errors)</td><td><input name="errorsound" value="${registry.get('system/alerts/error/soundfile','error.ogg')}"></input></td>
+    </tr>
+<tr>
+<td>Beep interval(Critical)</td><td><input type="number" name="critbeeptime" value="${registry.get('system/alerts/critical/soundinterval',12.6)}"></input></td>
+</tr>
+<td>Sound file(Critical)</td><td><input name="critsound" value="${registry.get('system/alerts/critical/soundfile','error.ogg')}"></input></td>
+    </tr>
+<tr>
+<td>Sound Device(All)</td><td><input list="cards" name="soundcard" value="${registry.get('system/alerts/soundcard','default')}">
+    <datalist id="cards">
+        <option value="defaut"></option>
+        %for i in sound.getAvailableCards():
+        <option value="${i|h}"></option>
+        %endfor
+    </datalist>
+
+</input></td>
+    </tr>
+
+</table>
+<input type="submit" value="Save sound settings">
+</form>
+</div>
 
 <h2>Mailroom</h2>
 <div class="sectionbox">

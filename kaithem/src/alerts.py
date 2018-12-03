@@ -1,4 +1,4 @@
-from src import statemachines, registry, sound,scheduling,workers,pages
+from src import statemachines, registry, sound,scheduling,workers,pages,messagebus,virtualresource
 import logging,threading,time, random, weakref
 
 logger = logging.getLogger("system.alerts")
@@ -34,17 +34,21 @@ sfile = "alert.ogg"
 def calcNextBeep():
     global nextbeep
     global sfile
-    x = priorities[_highestUnacknowledged()]
+    x = _highestUnacknowledged()
+    if not x:
+        x=0
+    else:
+        x = priorities.get(x,40)
     if x>=30 and x<40:
             nextbeep = registry.get("system/alerts/warning/soundinterval",60*25) +time.time()
-            sfile = registry.get("system/alerts/warning/sound","alert.ogg")
+            sfile = registry.get("system/alerts/warning/soundfile","alert.ogg")
     elif x>=40 and x<50:
             nextbeep = registry.get("system/alerts/error/soundinterval",120)* ((random.random()/5.0)+0.9) + time.time()
-            sfile = registry.get("system/alerts/error/sound","error.ogg")
+            sfile = registry.get("system/alerts/error/soundfile","error.ogg")
             
     elif x>=50:
             nextbeep = registry.get("system/alerts/critical/soundinterval",12.6) * ((random.random()/2.0)+0.75) + time.time()
-            sfile = registry.get("system/alerts/error/sound","error.ogg")               
+            sfile = registry.get("system/alerts/critical/soundfile","error.ogg")               
     else:
         nextbeep = 10**10
         sfile = None
@@ -55,12 +59,12 @@ def calcNextBeep():
 #A bit of randomness makes important alerts seem more important
 @scheduling.scheduler.everySecond
 def alarmBeep():
-    print("beepcheck")
     if time.time() > nextbeep:
         calcNextBeep()
         s = sfile
+        beepDevice = registry.get("system/alarms/soundcard",None)
         if s:
-            sound.playSound(s,handle="kaithem_sys_main_alarm")
+            sound.playSound(s,handle="kaithem_sys_main_alarm",output=beepDevice)
 
 
 
@@ -103,8 +107,8 @@ def cleanup():
         if _unacknowledged[i]()==None:
             del _unacknowledged[i]
 
-class Alert():
-    def __init__(self, name, priority="normal", zone=None, tripDelay=0, autoAck=False,
+class Alert(virtualresource.VirtualResource):
+    def __init__(self, name, priority="info", zone=None, tripDelay=0, autoAck=False,
                 permissions=[], ackPermissions=[], id=None
     ):
         """
@@ -135,16 +139,20 @@ class Alert():
         it's physical location.
 
         There is no cleanup action required when deleting an alarm, nor
-        is there any need for unique names.
+        is there any need for unique names. However ID
         """
+        virtualresource.VirtualResource.__init__(self)
 
         self.permissions    = permissions + ['/users/alarms.view']
-        self.ackPermissions = permissions + ['users/alarms.acknowledge']
+        self.ackPermissions = ackPermissions + ['users/alarms.acknowledge']
 
         self.priority = priority
         self.zone = zone
         self.name = name
         self._tripDelay = tripDelay
+    
+        #Last trip time
+        self.trippedAt = 0
         
         self.sm = statemachines.StateMachine("normal")
 
@@ -160,7 +168,9 @@ class Alert():
 
         #Automatic acknowledgement makes an alarm go away when it's cleared.
         if autoAck:
-            self.sm.setTimer("cleared",10,"normal")
+            if autoAck is True:
+                autoAck = 10
+            self.sm.setTimer("cleared",autoAck,"normal")
         
         self.sm.addRule("normal", "trip","tripped")
         self.sm.addRule("active","acknowledge","acknowledged")
@@ -186,14 +196,21 @@ class Alert():
         global active
         with lock:
             cleanup()
-            _unacknowledged[id(self)] = weakref.ref(self)
+            _unacknowledged[self.id] = weakref.ref(self)
             unacknowledged = _unacknowledged.copy()
 
-            _active[id(self)] = weakref.ref(self)
+            _active[self.id] = weakref.ref(self)
             active = _active.copy()
             s = calcNextBeep()
         if s:
             sound.playSound(s,handle="kaithem_sys_main_alarm")
+        if self.priority in ("error, critical"):
+            logger.error("Alarm "+self.name +" ACTIVE")
+            messagebus.postMessage("/sytem/notifications/errors", "Alarm "+self.name+" is active")
+        if self.priority in ("warning"):
+            logger.warning("Alarm "+self.name +" ACTIVE")
+        else:
+            logger.info("Alarm "+self.name +" active")
 
 
            
@@ -209,7 +226,14 @@ class Alert():
 
     def trip(self):
         self.sm.event("trip")
-    
+        self.trippedAt = time.time()
+        if self.priority in ("error, critical"):
+            logger.error("Alarm "+self.name +" tripped")
+        if self.priority in ("warning"):
+            logger.warning("Alarm "+self.name +" tripped")
+        else:
+            logger.info("Alarm "+self.name +" tripped")
+
     def clear(self):
         global active
         with lock:
@@ -218,11 +242,19 @@ class Alert():
                 del _active[self.id]
             active = _active.copy()
         self.sm.event("release")
+        logger.info("Alarm "+self.name +" cleared")
 
+
+    def __del__(self):
+        self.acknowledge()
+        self.clear()
     
-    def acknowledge(self):
+    def acknowledge(self,by="unknown"):
         self.sm.event("acknowledge")
-    
+        logger.info("Alarm "+self.name +" acknowledged by" + by)
+        if self.priority in ("error, critical"):
+            messagebus.postMessage("/sytem/notifications/errors", "Alarm "+self.name+" acknowledged by "+ by)
+
     def error(self):
         global unacknowledged
         self.sm.goto("error")
