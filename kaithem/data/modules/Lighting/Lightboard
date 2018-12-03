@@ -17,6 +17,7 @@ template-engine: mako
 #Code Here runs once when page is first rendered. Good place for import statements.
 __doc__= ""
 boardname = "default"
+import json
 
 %>
 <title>Lightboard</title>
@@ -152,7 +153,7 @@ boardname = "default"
 
 <div id="app">
 
-    <div v-if="showevents" class="sectionbox" style="position:fixed; bottom:0px; width:80%;background-color:rgba(220,255,240,0.85)">
+    <div v-if="showevents" class="sectionbox" style="position:fixed; bottom:0px; width:78%;background-color:rgba(220,255,240,0.85)">
         <h2> <button v-on:click="showevents=0"><img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button>Event Log</h2>
         <input v-model="evfilt" placeholder="Filter events"><br>
         <div class="scrollbox" style="height:6em">
@@ -172,18 +173,34 @@ boardname = "default"
 
             <button v-on:click="sendev('__global__')">Send</button>
     </div>
-    <a href="download" title="Download your scenes as a file">Save</a>
-    <a href="upload" title="Upload a scenes file">Load</a>
-    <a href="save" title="Save to the kaithem registry as the default state at boot">Make Current State the Default</a>
-    <p style="background-color:rgba(255,255,255,0.3);"><b>Show Windows:</b>
 
+
+    <p style="background-color:rgba(255,255,255,0.3);">
+
+        <span style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px"><b>File:</b>
+                <a class="button" href="download" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Download</a>
+                <a class="button" href="upload" title="Upload a scenes file"><img src="/zipstatic/img/icons/fugue.zip/folder-horizontal-open.png"></img>Upload</a>
+                <a class="button" href="save" title="Save to the kaithem registry as the default state at boot"><img src="/zipstatic/img/icons/fugue.zip/quill.png"></img>Make Current State the Default</a>
+        </span>
+
+
+        <span style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px"><b>Windows:</b>
 
         <button v-on:click="showDMXSetup=!showDMXSetup"><img src="/zipstatic/img/icons/fugue.zip/globe-green.png"></img>Universes</button>
         <button v-on:click="showhidefixtures"><img src="/zipstatic/img/icons/fugue.zip/traffic-light--pencil.png"></img> Fixture Types</button>
         <button v-on:click="showhidefixtureassignments"><img src="/zipstatic/img/icons/fugue.zip/light-bulb.png"></img>Fixture Assignments</button>
         <button v-on:click="showevents=!showevents"><img src="/zipstatic/img/icons/fugue.zip/application-terminal.png"></img>Console</button>
+        </span>
+    
+    </span>
+    <span style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px">
+        <b>Keybindings:</b>
+        <button v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}"><img src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>Edit</button>
+        <button v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}"><img src="/zipstatic/img/icons/fugue.zip/tick-octagon.png"></img>Run</button>
+        <button v-on:click="showKeyBindings=!showKeyBindings"><img src="/zipstatic/img/icons/fugue.zip/eye.png"></img>Show/Hide</button>
+    </span>
 
-    </p>
+
 
     <datalist id="serports">
         <option v-for="i of serports" v-bind:value="i"></option>
@@ -721,12 +738,29 @@ boardname = "default"
                             <input placeholder="No sound file" v-model="currentcue.sound" style="width:32em;"
                                 v-on:change="setSoundfile(currentcueid,currentcue.sound)">
                         </label><br>
-                        <label>Device:
-                            <input title="Using mplayer -ao syntax, set the output device" v-on:input="setSoundOutput(currentcueid,$event.target.value)"
-                                v-model="cuemeta[currentcueid].soundOutput" placeholder="default"></input>
-                        </label><br>
+                           <label>Device:
+                                
+                                <datalist id="soundcards">
+                               <option v-for="i of soundCards" v-bind:value="i"></option>
+                                </datalist>
 
-                        <label>Use Length:
+
+                            <input title="Using mplayer -ao syntax, or one of kaithem's device aliases, set the output device" v-on:input="setSoundOutput(currentcueid,$event.target.value)"
+                                v-model="cuemeta[currentcueid].soundOutput" placeholder="default" list="soundcards"></input>
+                        </label><br>
+                        <div class="scrollbox">
+                            <h5>Kaithem Sound Aliases</h5>
+                            <p class="help">Double click to select. These so long as you plug the same device into the same port(on linux), it will be given the same
+                                device alias.</p>
+                            <dl>
+                                <span v-for="i of soundCards">
+                                <dt v-on:dblclick="cuemeta[currentcueid].soundOutput=i">{{i}}</dt>
+                                <dd> <button v-on:click="testSoundCard(i,0,48000)">Test</button>
+                                </span>
+                            </dl>
+                        </div>
+
+                        <label>Length relative to sound:
                             <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_len)" v-model="currentcue.rel_len"
                                 title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
                         </label><br>
@@ -776,7 +810,33 @@ boardname = "default"
                                 v-model="editingScene.bpm">
                         </label>
                         <button v-on:click="tap(scenename)">
-                            <img src="/zipstatic/img/icons/fugue.zip/hand-finger.png"></img>Tap</button><br>
+                        <img src="/zipstatic/img/icons/fugue.zip/hand-finger.png"></img>Tap</button><br>
+                            <label>Number:
+                        <input type="number" title="Cue number" style="width:6em" v-on:input="setnumber(currentcueid,$event.target.value)"
+                            min=0 step=0.1 v-model="currentcue.number">
+                        </label>
+                        <label>Code:
+                            <input title="Shortcut code used to quickly activate a cue" size="8" v-on:input="setshortcut(currentcueid,$event.target.value)"
+                                v-model="currentcue.shortcut">
+                        </label>
+                        <label>Track:
+                            <input type="checkbox" v-on:change="settrack(currentcueid,currentcue.track)" v-model="currentcue.track"
+                                title="Track values from previous cue? If false, values not present are always transparent">
+                        </label>
+                        <label>Fadein:
+                            <input type="number" v-on:input="setfadein(currentcueid,$event.target.value)" style="width:3em"
+                                min=0 v-model="currentcue.fadein">{{scenemeta[scenename].bpm?"beats":"s"}}
+                        </label>
+                        <label>Length:
+                            <input type="number" v-on:input="setlength(currentcueid,$event.target.value)" v-model="cuemeta[currentcueid].length"
+                                style="width:4em" min=0></input>{{scenemeta[scenename].bpm?"beats":"s"}}
+                        </label>
+                        <label>Randomize:
+                            <input type="number" v-on:input="setrandomize(currentcueid,$event.target.value)"
+                                title="Randomize the cue length +- this amount" v-model="cuemeta[currentcueid].lengthRandomize"
+                                style="width:4em" min=0 step=0.25></input>{{scenemeta[scenename].bpm?"beats":"s"}}
+                        </label>
+                        <br>
 
 
                         <br>
@@ -787,7 +847,13 @@ boardname = "default"
                         <label>Device:
                             <input title="Using mplayer -ao syntax, set the output device" v-on:input="setSoundOutput(currentcueid,$event.target.value)"
                                 v-model="cuemeta[currentcueid].soundOutput" placeholder="default"></input>
-                        </label><br>
+                        </label>
+                        
+                        <label>Length From Sound:
+                            <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_len)" v-model="currentcue.rel_len"
+                                title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
+                        </label>
+                        <br>
 
                         <label title="Check this box to make the scene active at startup">Active By Default:
                             <input type="checkbox" v-on:change="setdactive(scenename,$event.target.checked)"
@@ -832,10 +898,12 @@ boardname = "default"
 
     </div>
 
-    <section style="float:left;">
+    <section style="float:left; width:40%;" v-if="showKeyBindings">
         <h3>Key Bindings</h3>
-        <button v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}"><img src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>Edit Mode</button>
-        <button v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}"><img src="/zipstatic/img/icons/fugue.zip/tick-octagon.png"></img>Run Mode</button>
+        <button v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}"><img src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>Off</button>
+        <button v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}"><img src="/zipstatic/img/icons/fugue.zip/tick-octagon.png"></img>On</button>
+        <button v-on:click="showKeyBindings=0"><img src="/zipstatic/img/icons/fugue.zip/eye.png"></img>Hide</button>
+
         Show Help:
         <input type="checkbox" v-model="showkeybindhelp">
         <p class=meubar>Current Bank: {{currentBindingBank}}</p>
@@ -856,7 +924,7 @@ boardname = "default"
             </p>
         </div>
         <p>
-            <textarea rows=30 cols=80 v-model="keybindscript" v-on:focus="editMode"></textarea>
+            <textarea rows=30 style="width: 90%" v-model="keybindscript" v-on:focus="editMode"></textarea>
         </p>
         <button v-on:click="localStorage.setItem('keybind-script',keybindscript)">Save these keybindings to my browser as the defaults</button>
 
@@ -869,10 +937,10 @@ boardname = "default"
 
 <template id="cue-cd">
     <span>
-    <meter v-bind:high=" (cue.length>30)?scene.cuelen-10:scene.cuelen" v-if="scene.active && cue && cue.length" min=0 v-bind:max="scene.cuelen"
+    <meter v-bind:high=" (cue.length>30)?(scene.cuelen*(60/scene.bpm))-10:(scene.cuelen*(60/scene.bpm))" v-if="scene.active && cue && cue.length" min=0 v-bind:max="scene.cuelen*(60/scene.bpm)"
     v-bind:value="unixtime-scene.enteredCue"></meter><br>
     <span v-if="scene.active && cue && cue.length">
-     Next cue in: {{formatInterval(scene.cuelen-(unixtime-scene.enteredCue))}}
+     Next cue in: {{formatInterval((scene.cuelen*(60/scene.bpm))-(unixtime-scene.enteredCue))}}
      <br>
      </span></span>
 </template>
@@ -925,12 +993,14 @@ boardname = "default"
             'evlog': [
                 ['item', 'foo']
             ],
+            'soundCards': ${json.dumps([i for i in kaithem.sound.outputs()])},
 
             'showkeybindhelp': false,
             'showcuetable': true,
             'showfixtureassg': false,
             'fixtureassg': '',
             'showsoundoptions': false,
+            'showKeyBindings': false,
             'showevents': false,
             'evtosend': '',
             'evtypetosend': 'float',
@@ -1645,6 +1715,10 @@ boardname = "default"
             {
                 api_link.send(['tap', sc, api_link.now() / 1000]);
             },
+           'testSoundCard': function(sc,c)
+            {
+                api_link.send(['testSoundCard', sc,c]);
+            },
 
 
             'addScene': function()
@@ -1717,6 +1791,7 @@ boardname = "default"
             {
                 keyboardJS.reset();
                 appData.keybindmode = "edit";
+                appData.showKeyBindings = true;
             },
             'runMode': function()
             {

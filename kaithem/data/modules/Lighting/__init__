@@ -13,12 +13,15 @@ versions: {}
 #This code runs once when the event loads. It also runs when you save the event during the test compile
 #and may run multiple times when kaithem boots due to dependancy resolutio n
 __doc__=''
-import time,array,random,weakref, os,threading,uuid,logging,serial,traceback,yaml,copy,json,math,struct,socket
+import time,array,random,weakref, os,threading,uuid,logging,serial,traceback,yaml,copy,json,math,struct,socket,src
 from decimal import Decimal
+from tinytag import TinyTag
+
 
 import numpy
 import hashlib
 import base64
+
 
 module.boards = []
 
@@ -111,6 +114,7 @@ def runCommand(cmd):
 
 def listsoundfolder(path):
     soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
+    soundfolders.append(os.path.join(src.directories.datadir,"sounds"))
 
     if not path.endswith("/"):
         path = path+"/"
@@ -203,11 +207,14 @@ def writeScene(fobj, scene):
 
 def pollsounds():
     for i in module.activeScenes:
-        if i.cue.sound and i.cue.rel_length:
-            if not kaithem.sound.isPlaying(str(i.id)) and not i.sound_end:
-                i.sound_end = timefunc()
-            if i.sound_end and (timefunc()-i.sound_end>(i.cue.length*i.bpm)):
-                i.nextCue()
+        #If the cuelen isn't 0 it means we are using the newer version that supports randomizing lengths.
+        #We keep this in case we get a sound format we can'r read the length of in advance
+        if i.cuelen == 0:
+            if i.cue.sound and i.cue.rel_length:
+                if not kaithem.sound.isPlaying(str(i.id)) and not i.sound_end:
+                    i.sound_end = timefunc()
+                if i.sound_end and (timefunc()-i.sound_end>(i.cue.length*i.bpm)):
+                    i.nextCue()
 
 class ObjPlugin():
     pass
@@ -322,7 +329,7 @@ To use this, add a layer below containing the base colors. The flicker layer wil
             if t < (tc*self.wind*t60):
                 heights[k] = min(1-(nv*(values[k]/255.0)), heights[k]+0.1)
             else:
-                if heights[k]<1:
+                if heights[k]<1 and values[k]>0:
                     heights[k] += rise/values[k]
                 else:
                     heights[k]=1
@@ -1490,8 +1497,21 @@ class LightBoard():
                     v=msg[2]
                 cues[msg[1]].fadein=v
                 self.pushCueMeta(msg[1])
+
             if msg[0]=="setcuesound":
-                cues[msg[1]].sound=msg[2]
+            
+                soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
+                for i in soundfolders:
+
+                    s = msg[2]
+                    #Make paths relative.
+                    if not i.endswith("/"):
+                        i = i+"/"
+                    if s.startswith(i):
+                        s= s[len(i):]
+                        break
+
+                cues[msg[1]].sound=s
                 self.pushCueMeta(msg[1])
 
             if msg[0]=="setcuesoundoutput":
@@ -1594,7 +1614,12 @@ class LightBoard():
                 try:
                     module.runningTracks[msg[1]].end()
                 except:
-                    pass                
+                    pass           
+
+            if msg[0] == "testSoundCard":
+                kaithem.sound.play("alert.ogg",output=msg[1])
+    
+
         except Exception as e:
             self.pushEv('board.error', "__this_lightboard__",timefunc(), "", traceback.format_exc(1))
             print(msg,traceback.format_exc(8))
@@ -2450,7 +2475,10 @@ class Scene():
             #         except Exception as e:
             #             print(traceback.format_exc(6))
 
-            self.cuelen = max(0,random.triangular(cobj.length-cobj.lengthRandomize, cobj.length+cobj.lengthRandomize))
+
+
+    
+           
 
             #We don't fully reset until after we are done fading in and have rendered.
             #Until then, the affect list has to stay because it has stuff that prev cues affected.
@@ -2506,11 +2534,22 @@ class Scene():
                             sound = os.path.join(i,sound)
 
                 if os.path.isfile(sound):
-                    kaithem.sound.play(self.cue.sound,handle=str(self.id),volume=self.alpha,output=self.cue.soundOutput)
+                    kaithem.sound.play(sound,handle=str(self.id),volume=self.alpha,output=self.cue.soundOutput)
                 else:
                     self.event("error", info="File does not exist")
 
-                        
+            #This doesn't actually determine start/end times, that's polling based if it's relative to a sound.
+            #This just lets us correctly show it.
+            if self.cue.sound and self.cue.rel_length:
+                try:
+                    slen = TinyTag.get(sound).duration+cobj.length
+                    self.cuelen=  max(0,random.triangular(slen-cobj.lengthRandomize, slen+cobj.lengthRandomize))
+                except:
+                    self.cuelen = 0
+
+            else: 
+                self.cuelen = max(0,random.triangular(cobj.length-cobj.lengthRandomize, cobj.length+cobj.lengthRandomize))
+
             #Loop over universes in the cue
             for i in self.cue.values:
                 if i in module.universes:
@@ -2649,16 +2688,19 @@ class Scene():
 
         l = 60/self.bpm
         
-        
+        #More than 8s, we're starting a new tap tapSequence
         if x> 8:
             self.tapSequence = 0
 
+
+        #If we are more than 5 percent off from where the beat is expected,
+        #Start agaon
         if self.tapSequence> 1:
             if abs(x-l)> l*0.05:
                 self.tapSequence = 0
 
         if self.tapSequence:
-            f = max(1/self.tapSequence,0.06)
+            f = max((1/self.tapSequence)**2,0.0025)
             self.bpm = self.bpm*(1-f) + (60/(x))*f
         self.tapSequence+= 1
 
@@ -2835,10 +2877,9 @@ class Scene():
 
         if self.cue.length and(timefunc()-self.enteredCue)> self.cuelen*(60/self.bpm):
             #rel_length cues end after the sound in a totally different part of code
-            if not self.cue.rel_length:
-                #Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
-                #Then round to the nearest millisecond to prevent long term drift due to floating point issues.
-                self.nextCue(round(self.enteredCue+self.cuelen*(60/self.bpm),3))
+            #Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
+            #Then round to the nearest millisecond to prevent long term drift due to floating point issues.
+            self.nextCue(round(self.enteredCue+self.cuelen*(60/self.bpm),3))
         else:
             if force_repaint or not self.fadeInCompleted:
                 if fadePosition == 1:

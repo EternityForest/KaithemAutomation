@@ -29,9 +29,9 @@ if "/usr/lib" in dn:
     datadir = "/usr/share/kaithem"
     logdir = "/var/log/kaithem"
 else:
-    vardir =os.path.join(dn,'..')
+    vardir =os.path.normpath(os.path.join(dn,'..'))
     vardir = os.path.join(vardir,config['site-data-dir'])
-    datadir = os.path.join(dn,'../data')
+    datadir = os.path.normpath(os.path.join(dn,'../data'))
     logdir = os.path.join(vardir,'logs')
 
 
@@ -51,12 +51,12 @@ else:
 def recreate():
     global dn,vardir,usersdir, logdir, regdir, moduledir, datadir, htmldir, ssldir
     dn = os.path.dirname(os.path.realpath(__file__))
-    vd =os.path.join(dn,'..')
+    vd =os.path.normpath(os.path.join(dn,'..'))
     vardir = os.path.join(vd,config['site-data-dir'])
     usersdir = os.path.join(vardir,'users')
     logdir = os.path.join(vardir,'logs')
     regdir = os.path.join(vardir,'registry')
     moduledir = os.path.join(vardir,'modules')
-    datadir = os.path.join(dn,'../data')
+    datadir = os.path.normpath(os.path.join(dn,'../data'))
     htmldir = os.path.join(dn,'html')
     ssldir =  os.path.join(vardir,config['ssl-dir'])
