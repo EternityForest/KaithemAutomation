@@ -60,33 +60,39 @@ def require(permission, noautoreturn = False):
         to take them to the main page on successful login, or set it to a url to take them there instead.
         """
 
-    #If the special __guest__ user can do it, anybody can.
-    if '__guest__' in auth.Users:
-        if permission in auth.Users['__guest__'].permissions:
-            return
-        if "__all_permissions__" in auth.Users['__guest__'].permissions:
-            return
+    if not isinstance(permission,str):
+        p=permission
+    else:
+        p = [permission]
+    for permission in p:
 
-    #Anything guest can't do needs https
-    if not cherrypy.request.scheme == 'https':
-        raise cherrypy.HTTPRedirect("/errors/gosecure")
+        #If the special __guest__ user can do it, anybody can.
+        if '__guest__' in auth.Users:
+            if permission in auth.Users['__guest__'].permissions:
+                return
+            if "__all_permissions__" in auth.Users['__guest__'].permissions:
+                return
 
-    user = getAcessingUser()
+        #Anything guest can't do needs https
+        if not cherrypy.request.scheme == 'https':
+            raise cherrypy.HTTPRedirect("/errors/gosecure")
 
-    if user=="<unknown>":
-        #The login page can auto return people to what they were doing before logging in
-        #Don't autoreturn users that came here from a POST call.
-        if noautoreturn or cherrypy.request.method == 'POST':
-            noautoreturn = True
-        #Default to taking them to the main page.
-        if noautoreturn:
-            url = util.url("/")
-        else:
-            url = util.url(cherrypy.url())
-        raise cherrypy.HTTPRedirect("/login?go="+url)
+        user = getAcessingUser()
 
-    if not auth.canUserDoThis(user,permission):
-        raise cherrypy.HTTPRedirect("/errors/permissionerror?")
+        if user=="<unknown>":
+            #The login page can auto return people to what they were doing before logging in
+            #Don't autoreturn users that came here from a POST call.
+            if noautoreturn or cherrypy.request.method == 'POST':
+                noautoreturn = True
+            #Default to taking them to the main page.
+            if noautoreturn:
+                url = util.url("/")
+            else:
+                url = util.url(cherrypy.url())
+            raise cherrypy.HTTPRedirect("/login?go="+url)
+
+        if not auth.canUserDoThis(user,permission):
+            raise cherrypy.HTTPRedirect("/errors/permissionerror?")
 
 
 if config.argcmd.nosecurity:

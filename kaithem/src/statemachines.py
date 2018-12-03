@@ -19,7 +19,7 @@ import time, weakref,types,threading
 
 
 #Lets keep dependancies on things within kaithem to a minimum, as eventually this might be spun off to a standalone thing
-from . import scheduling,modules,unitsofmeasure
+from . import scheduling,modules,unitsofmeasure,workers
 
 #
 # StateMachine API
@@ -247,7 +247,6 @@ class StateMachine(modules.VirtualResource):
                 return self.state
 
             if not self.state in self.states:
-
                 return self.state
 
             s = self.states[self.state]
