@@ -1362,7 +1362,7 @@ public:
         Expect(_SC('{'));
 
         SQObject table = _fs->CreateTable();
-        SQInteger nval = 0;
+        SQLanguageInteger nval = 0;
         while(_token != _SC('}')) {
             SQObject key = Expect(TK_IDENTIFIER);
             SQObject val;

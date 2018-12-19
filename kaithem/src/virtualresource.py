@@ -15,6 +15,7 @@
 
 import threading,weakref
 
+
 class VirtualResourceReference(weakref.ref):
     def __getitem__(self,name):
         if name == "resource-type":
@@ -54,6 +55,13 @@ class VirtualResource(object):
 
     def handoff(self,other):
         with self.__lock:
+            #Someone thinks this is the current one and wants to replace it,
+            #But actually this has already been replaced and some object is now current.
+            #So that object is the one we actually want to replace
+            x = self.replacement
+            if x and (not x is other):
+                return x.handoff(self)
+
             #Change all interfaces to this object to point to the new object.
             for i in self.__interfaces:
                 try:

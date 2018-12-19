@@ -1,6 +1,6 @@
-from src import statemachines, registry, sound,scheduling,workers,pages,messagebus,virtualresource
-import logging,threading,time, random, weakref
+from src import statemachines, registry, sound,scheduling,workers,pages,messagebus,virtualresource,unitsofmeasure
 
+import logging,threading,time, random, weakref
 logger = logging.getLogger("system.alerts")
 
 lock = threading.Lock()
@@ -62,7 +62,7 @@ def alarmBeep():
     if time.time() > nextbeep:
         calcNextBeep()
         s = sfile
-        beepDevice = registry.get("system/alarms/soundcard",None)
+        beepDevice = registry.get("system/alerts/soundcard",None)
         if s:
             sound.playSound(s,handle="kaithem_sys_main_alarm",output=beepDevice)
 
@@ -92,6 +92,7 @@ def _highestUnacknowledged():
     for i in unacknowledged.values():
         i = i()
         if i:
+            #Handle the priority upgrading
             if (priorities[i.priority] if not i.sm.state=="error" else 40) > l:
                 l = i.priority
     return l
@@ -176,12 +177,30 @@ class Alert(virtualresource.VirtualResource):
         self.sm.addRule("active","acknowledge","acknowledged")
         self.sm.addRule("active","release","cleared")
         self.sm.addRule("acknowledged","release","normal")
-        self.sm.addRule("error","release","normal")
+        self.sm.addRule("error","acknowledge","normal")
+        self.description = ""
 
         self.id = id or str(time.time())
         all[self.id]=self
 
+
+    def __html_repr__(self):
+        return """<small>State machine object at %s<br></small>
+            <b>State:</b> %s<br>
+            <b>Entered</b> %s ago at %s<br>
+            %s"""%(
+        hex(id(self)),
+        self.sm.state,
+        unitsofmeasure.formatTimeInterval(time.time()-self.sm.enteredState,2),
+        unitsofmeasure.strftime(self.sm.enteredState),
+        ('\n' if self.description else '')+self.description
+        )
     
+    def handoff(self,other):
+        #The underlying state machine handles the handoff
+        self.sm.handoff(other.sm)
+        virtualresource.VirtualResource.handoff(self,other)
+
     def API_ack(self):
         pages.require(self.ackPermissions)
         self.acknowledge()
@@ -206,7 +225,7 @@ class Alert(virtualresource.VirtualResource):
             sound.playSound(s,handle="kaithem_sys_main_alarm")
         if self.priority in ("error, critical"):
             logger.error("Alarm "+self.name +" ACTIVE")
-            messagebus.postMessage("/sytem/notifications/errors", "Alarm "+self.name+" is active")
+            messagebus.postMessage("/system/notifications/errors", "Alarm "+self.name+" is active")
         if self.priority in ("warning"):
             logger.warning("Alarm "+self.name +" ACTIVE")
         else:
@@ -252,8 +271,8 @@ class Alert(virtualresource.VirtualResource):
     def acknowledge(self,by="unknown"):
         self.sm.event("acknowledge")
         logger.info("Alarm "+self.name +" acknowledged by" + by)
-        if self.priority in ("error, critical"):
-            messagebus.postMessage("/sytem/notifications/errors", "Alarm "+self.name+" acknowledged by "+ by)
+        if self.priority in ("error, critical","warnings"):
+            messagebus.postMessage("/system/notifications", "Alarm "+self.name+" acknowledged by "+ by)
 
     def error(self):
         global unacknowledged
@@ -264,5 +283,3 @@ class Alert(virtualresource.VirtualResource):
                 unacknowledged = unacknowledged.copy()
 
 
-a = Alert("testalert", priority="error")
-a.trip()

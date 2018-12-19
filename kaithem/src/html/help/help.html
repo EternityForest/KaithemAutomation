@@ -540,8 +540,13 @@ h4 {
         <p>ID is a unique string ID. What happens if you reuse these is undefined and wil be used to implement features later.
         </p>
 
+        <p>tripDelay is the delay in seconds that the alarm remains tripped before becoming active.</p>
 
-        <p>Internally, alarms are state machines that may be in any of the following states:</p>
+
+        <p>Internally, alarms are state machines that may be in any of the listed states. The underlying state machine
+            object can be accessed as alert.sm, and Alerts are VirtualResources in and of themselves. The handoff function
+            correctly calls the handoff of the state machines.
+        </p>
 
         <h4>normal</h4>
 
@@ -567,6 +572,10 @@ h4 {
             Clearing in this state will cause it to become normal.
         </p>
 
+        <h4>error</h4>
+        <p>Entered by calling a.error(), the alarm behaves as if it were an error-priority active alarm,
+            but returns to normal after being acknowledged. Used to indicate an error with the alarm itself.
+        </p>
         <h3>kaithem.time</h3>
 
         <h4>kaithem.time.lantime()<h4>

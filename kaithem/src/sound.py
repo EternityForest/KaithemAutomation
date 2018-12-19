@@ -378,10 +378,8 @@ class SOXWrapper(SoundWrapper):
             self.process = subprocess.Popen(["play",filename,"vol",str(vol),"trim",str(start),str(end)], stdout = f, stderr = g)
             self.loopcounter = -1 if loop is True else loop-1            
             if self.loopcounter:
-                    print(self.loopcounter)
                     self.end = False
                     def loop_play_again():
-                        print(self.loopcounter)
                         self.process.poll()
                         if self.process.returncode ==None:
                             return True

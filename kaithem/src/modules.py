@@ -337,7 +337,9 @@ def insertVirtualResource(modulename:str,name:str,value:VirtualResource):
                 raise RuntimeError("Cannot overwrite real resource with virtual. You must delete old resource first")
             if not isinstance(value, module[name]().__class__):
                 raise RuntimeError("Can only overwrite virtual resource with same class. Delete old resource first.")
-            module[name]().handoff(value)
+            x = module[name]()
+            if x:
+                x.handoff(value)
 
         module[name]=VirtualResourceReference(value)
 
@@ -356,9 +358,9 @@ def parsePyModule(s):
     for i in s.split(lines):
 
         if not( i.startswith(' ') or i.startswith('\t')):
-            if 'kaithem_event_trigger' in i:
+            if 'def trigger' in i:
                 mode='trig'
-            if 'kaithem_event_act' in i:
+            if 'def action' in i:
                 mode='act'
             if '#---BEGIN_METADATA---' in i:
                 mode = 'meta'

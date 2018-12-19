@@ -41,7 +41,7 @@ h4 {
 
     <p>VirtualResources dissapear as soon as there are no references to them.</p>
 
-    <p>Every VirtualResource also has an interface() method, which for the most part is a fully transparent proxy to the VirtualResource</p>
+    <p>Every VirtualResource also has an interface() method, which for the most part returns a fully transparent proxy to the VirtualResource</p>
 
     <p>However, when a VirtualResource is overwritten in a module namespace, any interfaces pointing to the old resource get updated to point to the new one. To best take advantage of this,
     avoid passing direct refernences to a VirtualResource, and pass around the interfaces, or directly look them up.</p>
@@ -49,7 +49,14 @@ h4 {
     <p>Once an object has been replaced, it should no longer be used, but must proxy any important calls,
          and calls that would affect the mutable state of the object through to the new one.</p>
 
-    <p>This is done via the old_one.handoff(new_one) method, which also sets old_one.replacement, which is normally None, to the new one</p>
+    <p> Objects are replaced using the old_one.handoff(new_one) method, which also sets old_one.replacement, 
+        which is normally None, to the new one. If the object has already been replaced, it passes through the call
+        to the replacement.</p>
+    
+    <p>Should you extend handoff(), you must do this same check, as in
+<pre>x = self.replacement
+if x and (not x is other):
+    return x.handoff(self)</pre></p>
 
 
     <p>By subclassing VirtualResource and extending handoff(), you can create objects that allow seamless code modification at runtime without

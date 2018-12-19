@@ -29,7 +29,7 @@ def f():
 
 def g():
     x.pymodule.y = False
-    print('anus')
+    print('xyz')
     
 newevt.when(f,g)
 time.sleep(0.1)

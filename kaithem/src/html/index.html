@@ -51,8 +51,9 @@ from src.unitsofmeasure import formatTimeInterval
         %>
     
         %for i in l:
-        <div style="background-color:rgba(255,240,220,0.2);border-style:solid;"><b>${i.name}</b> Priority: ${i.priority}, Zone: ${i.zone} 
-            
+        <div style="background-color:rgba(255,240,220,0.2);border-style:solid;"><b>${i.name}</b>
+             Priority: ${i.priority}, Zone: ${i.zone}<br>
+             Tripped at:${i.trippedAt}<br>
         %if not i.sm.state=="acknowledged":    
         <a class="button" href=".?ackalarm=${i.id}">ACK</a>
         %endif

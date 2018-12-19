@@ -141,6 +141,8 @@ workers.start(count,qsize,wait)
 
 from src import messagebus
 from src import messagelogging
+from src import notifications
+
 from src import pylogginghandler
 from src import logviewer
 
@@ -205,7 +207,6 @@ except:
     """)
 
 
-from src import notifications
 from src import pages
 from src import weblogin
 from src import auth

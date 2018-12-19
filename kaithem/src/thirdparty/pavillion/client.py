@@ -24,7 +24,7 @@ rerrs = {
     3: BadInput,
     4: NonexistentFile
 }
-debug_mode = False
+debug_mode = 0
 def dbg(*a):
     if debug_mode:
         print (a)
@@ -59,6 +59,10 @@ class _RemoteServer():
         #This is set on the first incoming message.
         #We trust it because we know it could not have been older than the key exchange
         self.server_counter = 0
+        
+        #Keeps track of a missing out of order counter value we can stiill accept
+        self.unusedOutOfOrderCounterValue = None
+
         self.clientObject = clientObject
 
         self.challenge = os.urandom(16)
@@ -79,17 +83,36 @@ class _RemoteServer():
         #Or activity from the server that is encrypted.
         self.secure_lastused = time.time()
 
+        self.lastNonceRequestRateLimitTimestamp=0
+        self.nonceRequestCounter = 0
+
+        #Last time we were known to be connected
+        self.connectedAt =0
+
     def sendSetup(self, counter: int, opcode: int, data: bytes ,addr=None):
         "Send an unsecured packet"
         m = struct.pack("<Q",counter)+struct.pack("<B",opcode)+data
-        self.clientObject.sock.sendto(b"PavillionS0"+m, self.clientObject.server_address)
+        self.clientObject.sock.sendto(b"PavillionS0"+m, addr or self.clientObject.server_address)
 
-    def sendNonceRequest(self):
+    def sendNonceRequest(self,addr):
+        if time.time()-self.lastNonceRequestRateLimitTimestamp >10:
+            self.lastNonceRequestRateLimitTimestamp = time.time()
+            self.nonceRequestCounter = 0
+
+        #Don't send more than 8 in ten seconds
+        if self.nonceRequestCounter> 8:
+            return
+        #Lower limit if we already connected at some point
+        if self.skey and self.nonceRequestCounter > 5:
+            return
+
+        self.nonceRequestCounter +=1
+
         if self.clientObject.keypair:
-            self.sendSetup(0, 1, struct.pack("<B",self.clientObject.cipher.id)+self.clientObject.clientID+self.clientObject.challenge+self.clientObject.sessionID+self.clientObject.keypair[1])
+            self.sendSetup(0, 1, struct.pack("<B",self.clientObject.cipher.id)+self.clientObject.clientID+self.clientObject.challenge+self.clientObject.sessionID+self.clientObject.keypair[1],addr=addr)
         else:
             dbg("challenge", self.challenge)
-            self.sendSetup(0, 1, struct.pack("<B",self.clientObject.cipher.id)+self.clientObject.clientID+self.clientObject.challenge+self.clientObject.sessionID+b'\0'*32)
+            self.sendSetup(0, 1, struct.pack("<B",self.clientObject.cipher.id)+self.clientObject.clientID+self.clientObject.challenge+self.clientObject.sessionID+b'\0'*32,addr=addr)
 
 
     def onRawMessage(self, msg: bytes ,addr: tuple):
@@ -126,21 +149,38 @@ class _RemoteServer():
                                 recievedcounter = clientobj.counter
                             clientobj.send(recievedcounter,2,struct.pack("<Q",counter),addr)
 
-                    #Duplicate protection. 
+                    #Duplicate protection, make sure the counter increments.
+                    #Do some minor out-of-order counter value handling.
+                    #If we detect that the counter has incremented by more than exactly 1,
+                    #The unused value may be accepted.
+                    
+                    #TODO: Support keeping track of multiple unused values. One
+                    #should be much better than none for now.
+                    
+                    #No race conditions here. This is only called from the one client thread
                     if self.server_counter>=counter:
-                        pavillion_logger.debug("Duplicate Pavillion")
-                        return
+                        if counter == self.unusedOutOfOrderCounterValue:
+                            self.unusedOutOfOrderCounterValue = None
+                        else:
+                            return
+                
+                    if counter > self.server_counter+1:
+                        self.unusedOutOfOrderCounter = self.server_counter+1
+
                     self.server_counter = counter
 
- 
+                    #Any message at all that we can decrypt indicates a valid connection
+                    self.connectedAt =time.time()
                     self.secure_lastused = time.time()
+
                     clientobj.onMessage(addr,counter,opcode,data)
 
                 #We don't know how to process this message. So we send
                 #a nonce request to the server
                 else:
                     pavillion_logger.debug("Recieved packet from unknown server, attempting setup")
-                    self.sendNonceRequest()
+                    dbg("Unknown server sent packet", addr)
+                    self.sendNonceRequest(addr)
 
             #Counter 0 indicates protocol setup messages
             else:
@@ -149,12 +189,14 @@ class _RemoteServer():
                 #Message 4 is an "Unrecognized Client" message telling us to redo the whole auth process.
                 #Send a nonce request.
                 if opcode==4:
-                    self.sendNonceRequest()
+                    dbg("Unrecognized client message from", addr)
+                    self.sendNonceRequest(addr)
                 #Message 5 is a "New server join" message, which is sent by a server to the multicast
                 #Address when if first joins. It may also be unicast back to the last known addresses of clients,
                 #To provide for fast reconnection if the server is powered off. Don't wear out flash memory though.
                 if opcode==5:
-                    self.sendNonceRequest()                
+                    dbg("New server join from", addr)
+                    self.sendNonceRequest(addr)                
                 
                 if opcode==7:
                     pass
@@ -205,7 +247,7 @@ class _RemoteServer():
                                     #Any message they send can't have been older than this handshake,
                                     #So we accept all counter values.
                                     self.server_counter =0
-                                    self.sessionID = clientobj.cipher.keyedhash(clientobj.key, servernonce)[:16]
+                                    self.sessionID = clientobj.cipher.keyedhash(clientobj.key, clientobj.psk)[:16]
 
                                     clientobj.handle().onServerConnect(addr,None)
 
@@ -223,6 +265,8 @@ class _RemoteServer():
 
                         m = struct.pack("<B",clientobj.cipher.id)
                         self.skey=os.urandom(32)
+                        self.sessionID = clientobj.cipher.keyedhash(clientobj.key,clientobj.keypair[0])[:16]
+
 
                         n=os.urandom(24)
                         self.server_counter =0
@@ -276,7 +320,7 @@ class _Client():
         #Average response time for each type of call we know about
         #Listed by the RPC number
         self.averageResponseTimes = {}
-
+        self.stdDevResponseTimes = {}
 
         #Used to keeo track of the optimization where some broadcasts are converted to unicasts.
         #We occasionally send real broadcasts for new server discovery.
@@ -325,7 +369,8 @@ class _Client():
         
         if self.psk:
             self.key = self.cipher.keyedhash(self.nonce,psk)
-            self.sessionID = self.cipher.keyedhash(self.key, self.nonce)[:16]
+            self.sessionID = os.urandom(16)
+
 
         
         elif  self.keypair:
@@ -338,7 +383,7 @@ class _Client():
 
         if not self.clientID:
             if self.keypair:
-                self.clientID = libnacl.crypto_generichash(self.keypair[0])
+                self.clientID = libnacl.crypto_generichash(self.keypair[0])[:16]
 
         
         
@@ -382,7 +427,9 @@ class _Client():
             self.handle = weakref.ref(handle,cl)
 
         #lastseen time  dicts indexed by the name of what you are subscribing to, then indexed by subscriber IP
-        #This is a list of *other* machines that are subscribing. All a "subscription" is, is a response to a multicast packet.
+        #This is a list of *other* machines that are subscribing. 
+        # A "subscription" can be implicit, a response to a multicast packet.
+        #Or it can be an explicit subscribe message
         #If we get less responses than usual, we know we should retry.
         self.knownSubscribers = {}
 
@@ -415,11 +462,11 @@ class _Client():
                 counter-=1
 
 
-    def sendNonceRequest(self):
+    def sendNonceRequest(self,addr=None):
         if self.keypair:
-            self.sendSetup(0, 1, struct.pack("<B",self.cipher.id)+self.clientID+self.challenge+self.sessionID+self.keypair[1])
+            self.sendSetup(0, 1, struct.pack("<B",self.cipher.id)+self.clientID+self.challenge+self.sessionID+self.keypair[1],addr=addr)
         else:
-            self.sendSetup(0, 1, struct.pack("<B",self.cipher.id)+self.clientID+self.challenge+self.sessionID+b'\0'*32)
+            self.sendSetup(0, 1, struct.pack("<B",self.cipher.id)+self.clientID+self.challenge+self.sessionID+b'\0'*32,addr=addr)
 
 
 
@@ -470,6 +517,8 @@ class _Client():
 
     def sendSecure(self, counter, opcode, data,addr=None):
         "Send a secured packet"
+        dbg(counter)
+        dbg(self.key[0])
         self.lastSent = time
         q = struct.pack("<Q",counter)
         n = b'\x00'*(24-8)+struct.pack("<Q",counter)
@@ -548,8 +597,18 @@ class _Client():
                             if len(self.known_servers)>self.max_servers:
                                 x = sorted(self.known_servers.values(), key=lambda x:x.secure_lastused)[0]
 
-                                if (x.secure_lastused<time.time()-300) and (x.lastused<time.time()-10):
-                                    self.known_servers.remove(x.machine_addr)
+                                #Delete the oldest client, but don't delete active clients.
+                                #This is a DoS issue. By making many fake clients you can fill the slots
+                                #And it takes 3 seconds to get rid of them.
+                                if (x.secure_lastused<time.time()-300) and (x.lastused<time.time()-3):
+                                    del self.known_servers[x.machine_addr]
+                                
+                                #If the new client is on the LAN and the old one isn't,
+                                #Prioritize it. 
+                                elif (x.secure_lastused<time.time()-60):
+                                    if x.machine_addr.split(".")[0] not in ["127","192","10"]:
+                                        if addr.split(".")[0] in ["127","192","10"]:
+                                            del self.known_servers[x.machine_addr]
 
                             if not len(self.known_servers)>self.max_servers:
                                 self.known_servers[addr] = _RemoteServer(self)
@@ -566,17 +625,26 @@ class _Client():
         #If we've recieved an ack or a call response
         if opcode==0:
             print(data,addr)
+
+
+        #Some stuff is common to messages and RPC calls
         if opcode==2 or opcode==5:
             #Get the message number it's an ack for
             d = struct.unpack("<Q",data[:8])[0]
-            if d in self.waitingForAck:
-                #We've seen a subscriber for that target
-                if self.waitingForAck[d].target:
-                    self._seenSubscriber(addr,self.waitingForAck[d].target)
-
+            
+            #Pubsub specific stuff
+            if opcode ==2:
+                if d in self.waitingForAck:
+                    #We've seen a subscriber for that target
+                    if self.waitingForAck[d].target:
+                        self._seenSubscriber(addr,self.waitingForAck[d].target)
+            #RPC Specific stuff
+            elif opcode==5:
                 try:
                     #Decrement the counter that started at 0
                     self.waitingForAck[d].onResponse(data[8:])
+                except KeyError:
+                    pass
                 except Exception:
                     print(traceback.format_exc(6))
                     pass
@@ -613,13 +681,25 @@ class _Client():
                         def f():
                             i.callback(d[1].decode('utf-8') ,d[2],addr)
                         self.handle().execute(f)
+        #Explicit subscribe         
+        if opcode==13:
+             self._seenSubscriber(addr, data.decode("utf-8"))
+
+        #Explicit unsubscribe         
+        if opcode==14:
+             self._seenSubscriber(addr, data.decode("utf-8"))
+
+
+
 
     #Call this with addr, target when you get an ACK from a packet you sent
     #It uses a lock so it's probably really slow, but that's fine because
     #This protocol isn't meant for high data rate stuff.
+
+    #Also call it when you get a subscribe message
     def _seenSubscriber(self,s, t):
         with self.subslock:
-            if not t in self.knownSubscribers or( not s in self.knownSubscribers[t]):
+            if (not t in self.knownSubscribers) or( not s in self.knownSubscribers[t]):
                 self.handle().onNewSubscriber(t,s)
             if t in self.knownSubscribers:
                 x = self.knownSubscribers[t]
@@ -630,7 +710,14 @@ class _Client():
                 self._cleanSubscribers()
                 self.knownSubscribers[t]={s:time.time()}
 
-
+    #Unsubscribe addr s from topic t.
+    def _unsubscribe(self,s, t):
+            with self.subslock:
+                if t in self.knownSubscribers:
+                    x = self.knownSubscribers[t]
+                    if not s in x:
+                        return
+                    del x[s]
 
     def sendMessage(self, target, name, data, reliable=True, timeout = 10,addr=None):
         "Attempt to send the message to all subscribers. Does not raise an error on failure, but will attempt retries"
@@ -688,6 +775,8 @@ class _Client():
             #The algorithm being to go 2.5 standard deviations above what we expect
             #I believe that stil will result in approximately 
             delay = min(retry,(self.averageResponseTimes[name]+ self.stdDevResponseTimes[name]*2))
+        else:
+            delay = retry
         timeout = timeout or self.timeout
         start = time.time()
         callset = []
@@ -714,6 +803,8 @@ class _Client():
                         self.stdDevResponseTimes[name] = deviation
                 else:
                     self.averageResponseTimes[name] =totaltime
+
+                
                 self.fastestOverallCallResponse = min(self.fastestOverallCallResponse,time.time()-start)
                 #It creeps up if not smashed back down to account for changing delays
                 self.fastestOverallCallResponse += 0.0005
@@ -733,7 +824,7 @@ class _Client():
 
         w = common.ReturnChannel()
         if callset:
-            callset.append(w.queue)
+            callset.append(w)
         self.waitingForAck[counter] =w
         self.send(counter, 4, struct.pack("<H",name)+data)
 
@@ -747,6 +838,7 @@ class _Client():
         except:
             if callset:
                 for i in reversed(callset):
+                    i= i.queue
                     if not i.empty():
                         d = i.get(False)
                         break
@@ -757,7 +849,7 @@ class _Client():
         del self.waitingForAck[counter]
         returncode = struct.unpack("<H",d[:2])[0]
         if  returncode >0:
-            raise rerrs.get(returncode,RemoteError)("Error code "+str(returncode)+d[2:].decode("utf-8","backslashreplace"))
+            raise rerrs.get(returncode,RemoteError)("Error code "+str(returncode)+" "+d[2:].decode("utf-8","backslashreplace"))
         return d[2:]
 
 
@@ -783,6 +875,7 @@ class _Client():
 
 
 class Client():
+    RemoteError = RemoteError
     def __init__(self, address=('255.255.255.255',1783),clientID=None,psk=None,cipher=1,keypair=None, 
     serverkey=None, server=None,execute=None,daemon=None):
         "Represents a public handle for  Pavillion client that can initiate requests"
@@ -863,7 +956,7 @@ class Client():
             if not d:
                 return(r)    
     def getFunctionName(self,idx):
-        return self.call(1,struct.pack("<B",idx)).decode('utf8', errors='ignore')
+        return self.call(1,struct.pack("<H",idx)).decode('utf8', errors='ignore')
 
 
     def analogRead(self,pin):
@@ -881,6 +974,7 @@ class Client():
         return self.client.call(function, data)
 
     def countBroadcastSubscribers(self,topic):
+        "Counts how many servers subscribe to a topic"
         return self.client.countBroadcastSubscribers(topic)
 
     

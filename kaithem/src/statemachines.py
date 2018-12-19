@@ -140,11 +140,9 @@ class StateMachine(modules.VirtualResource):
             return
         with self.lock:
             with other.lock:
-                #I don't know what kind of messed up stuff could happen to make these two lines needed
-                #But i'm adding the check just in case. It checks against oe machine being replaced twice
-                if not self.replacement or not self.replacement==other:
-                    return self.replacement.handoff(self)
-
+                x = self.replacement
+                if x and (not x is other):
+                    return x.handoff(self)
                 if other.keepSubscribers:
                     #export all the old subscribers
                     for i in self.subscribers:

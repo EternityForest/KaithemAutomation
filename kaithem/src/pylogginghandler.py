@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import logging,threading,os, time, gzip, bz2,atexit,weakref,random,re,textwrap,shutil
+import logging,threading,os, time, gzip, bz2,atexit,weakref,random,re,textwrap,shutil,traceback
 
 from . import messagebus, registry, directories,unitsofmeasure,util
 from .config import config 
@@ -45,10 +45,10 @@ def at_exit():
     #This lets us tell a clean shutdown from something like a segfault
     if os.path.exists("/dev/shm"):
         try:
-            with open("/dev/shm/shutdowntime",w) as f:
+            with open("/dev/shm/shutdowntime","w") as f:
                 f.write(str(time.time()))
         except:
-            pass
+            print(traceback.format_exc())
 atexit.register(at_exit)
 
 

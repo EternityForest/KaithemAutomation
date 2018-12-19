@@ -140,7 +140,7 @@ typedef union tagSQObjectValue
     struct SQNativeClosure *pNativeClosure;
     struct SQString *pString;
     struct SQUserData *pUserData;
-    SQInteger nInteger;
+    SQLanguageInteger nInteger;
     SQFloat fFloat;
     SQUserPointer pUserPointer;
     struct SQFunctionProto *pFunctionProto;

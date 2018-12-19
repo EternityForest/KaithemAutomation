@@ -19,7 +19,7 @@ import time,random,subprocess,threading,random,gzip,json,yaml,os,ntplib,bz2,weak
 
 import cherrypy
 from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry,directories,pages,config,persist,auth,breakpoint
-from . import timesync, remotedevices
+from . import timesync, remotedevices, alerts
 
 
 from . import astrallibwrapper as sky
@@ -63,7 +63,10 @@ class Kaithem():
                     return False
             except KeyError:
                 return False
-            
+
+    class alerts(object):
+        Alert = alerts.Alert
+
     class logging(object):
         @staticmethod
         def flushsyslog():

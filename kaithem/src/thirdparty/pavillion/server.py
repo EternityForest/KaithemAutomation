@@ -57,7 +57,10 @@ class _ServerClient():
         self.challenge = os.urandom(16)
         self.plaintext = plaintext
 
-        self.counter = 0
+        #The send counter we use to send stuff to clients.
+        #Note that since we're unicasting stuff to each client,
+        #We have a separate counter for each client
+        self.counter = random.randint(2**63,2**63+1000000000)
 
         #we don't yet know the cipher
         self.decrypt=None
@@ -67,6 +70,8 @@ class _ServerClient():
 
         self.created = time.time()
         #The last time we actually got a proper message from them
+        #This does not count messages that aren't secure
+        self.secureLastSeen =0
         self.lastSeen =0
 
         #What topics has this client subscribed to.
@@ -76,6 +81,8 @@ class _ServerClient():
         #It's used so that servers can detect if they are still connected
         self.sessionID = os.urandom(16)
 
+        #Tells us if we've completed the setup process.
+        self.setupCompleted = False
 
     def sendSetup(self, counter, opcode, data):
         "Send an unsecured packet"
@@ -90,9 +97,8 @@ class _ServerClient():
         self.server.sendsock.sendto(b"PavillionS0"+struct.pack("<Q",counter)+m,self.address)
 
     def send(self, counter, opcode, data):
-        #No risk of accidentally responding to a secure message with a plaintext one.
-        #Servers don't originate messages and we cant recieve messages without ckey
-        if self.ckey:
+        #TODO: Maybe someday have unsecured support?
+        if True:
             self.sendSecure(counter,opcode,data)
         else:
             self.sendPlaintext(counter,opcode,data)
@@ -101,6 +107,8 @@ class _ServerClient():
         "Handle a raw UDP packet from the client"
         s = b"PavillionS0"
         unsecure = b"Pavillion0"
+
+        self.lastSeen = time.time()
         #Header checks
         if not msg.startswith(s):
             #A regular message. Check if we're accepting unsecured messages, and if so pass it to
@@ -131,14 +139,21 @@ class _ServerClient():
                 try:
                     plaintext = self.decrypt(ciphertext,  self.ckey, nonce_from_number(counter))
                 except:
-                    self.sendSetup(0, 4, b'')
+
+                    #If we recieved a valid message from them within 1s, then
+                    #this message is likely just random crap, and we can ignore it.
+                    #This prevents a whole bunch of reconnect attemps when we get older
+                    #messages that used a different key.
+                    if self.secureLastSeen<(time.time()-1):
+                        self.sendSetup(0, 4, b'')
+
                     #If we have recieved a valid message recently,
                     #don't ignore just because there's random line garbage,
-                    if self.lastSeen<(time.time()-100):
+                    if self.secureLastSeen<(time.time()-100):
                         self.ignore = time.time()+5
                     return
                 
-                self.lastSeen = time.time()
+                self.secureLastSeen = time.time()
                 #Duplicate protection, make sure the counter increments.
                 #Do some minor out-of-order counter value handling.
                 #If we detect that the counter has incremented by more than exactly 1,
@@ -177,7 +192,6 @@ class _ServerClient():
                 if self.sessionID == sessionID:
                     #We're already connected,
                     return
-
 
                 if self.server.allow_guest and not clientID in self.server.pubkeys:
                     #Don't let someone else mess up the connection
@@ -236,12 +250,14 @@ class _ServerClient():
                     #Client to server session key
                     self.ckey= keyedhash(clientnonce,psk)
 
-                    #Rehash to get the sessoin ID
-                    self.sessionID = keyedhash(self.ckey, psk)[:16]
 
-                    self.lastseen = time.time()
+
+                    self.secureLastSeen = time.time()
                     #Server to client session key
                     self.skey= keyedhash(clientnonce+servernonce,psk)
+
+                    #Rehash to get the sessoin ID
+                    self.sessionID = keyedhash(self.ckey, psk)[:16]
 
                     self.client_counter = clientcounter
 
@@ -249,6 +265,7 @@ class _ServerClient():
                     self.nonce = os.urandom(32)
                     self.sendSetup(0, 7, self.sessionID)
                     self.ignore=0
+                    self.setupCompleted = True
                 else:
                     raise RuntimeError(str((s)))
             
@@ -266,10 +283,11 @@ class _ServerClient():
 
                 nonce, ckey,skey, counter= struct.unpack("<32s32s32sQ",msg)
                 if nonce==self.nonce:
-                   #Make sure that nonce isn't reused
+                    self.secureLastSeen = time.time()
+                    #Make sure that nonce isn't reused
                     self.clientID = clientID
                     self.ckey, self.skey, self.client_counter = ckey,skey,counter
-                    self.sessionID = keyedhash(self.ckey, nonce)[:16]
+                    self.sessionID = keyedhash(self.ckey, cpubkey)[:16]
                     self.nonce = os.urandom(32)
 
                     self.decrypt = ciphers[cipher].decrypt
@@ -280,6 +298,7 @@ class _ServerClient():
                         self.clientID = common.libnacl.generic_hash(self.guest_key)
                     self.ignore = 0
                     self.sendSetup(0, 7, self.sessionID)
+                    self.setupCompleted = True
                     logging.info("Setup connection with client via ECC")
 
 class _Server():
@@ -359,7 +378,7 @@ class _Server():
 
         self.knownclients = collections.OrderedDict()
 
-        self.counter = random.randint(2**63,2**63+1000000000)
+        self.counter = "don'tusethis"
 
         self.messageTargets = {}
 
@@ -418,6 +437,10 @@ class _Server():
             if not target in self.messageTargets:
                 self.messageTargets[target]=[]
             self.messageTargets[target].append(weakref.ref(m))
+            with self.lock:
+                #Tell clients that the server is interested in that kind of message
+                #Not all that important at the moment, just treat like an optimization
+                self.broadcast(13,target.encode("utf8"))
         return m
 
 
@@ -430,51 +453,52 @@ class _Server():
                 if not self.messageTargets[i]:
                     del self.messageTargets[i]
 
-    def broadcast(self, counter, opcode, data, filt=None):
-        with self.lock:
-            for i in self.knownclients:
+
+    #The way broadcasting works is you broadcast something and then rebriadcast it until
+    #Every server has it's waitingForBroadcastAck cleared. The entire thing must be under lock.
+    #Because nothing else can touch the flags or counters.
+    def broadcast(self, opcode, data, filt=None):
+        for i in self.knownclients:
+            self.knownclients[i].waitingForBroadcastAck = False
+            if self.knownclients[i].setupCompleted:
                 if time.time()> self.knownclients[i].ignore:
                     if(filt == None or self.knownclients[i].clientID in filt or self.knownclients[i].addr in filt):
-                        self.knownclients[i].send(counter, opcode, data)
+                        #We could be blocking for quite a while, so be sure not
+                        #To even bother sending things to untrusted.
+                        if self.knownclients[i].secureLastSeen> time.time()-SESSION_TIMEOUT:
+                            self.knownclients[i].counter+=1
+                            counter = self.knownclients[i].counter
+                            self.knownclients[i].send(counter, opcode, data)
+                            self.knownclients[i].waitingForBroadcastAck = counter
+                       
+
+    #Sends a message to all clients but does not increment counters.
+    def rebroadcast(self, opcode, data, filt=None):
+        for i in self.knownclients:
+            if self.knownclients[i].setupCompleted:
+                if time.time()> self.knownclients[i].ignore:
+                    if(filt == None or self.knownclients[i].clientID in filt or self.knownclients[i].addr in filt):
+                        #No need to send to anyone who isn't waiting for the broadcast ACK
+                        if self.knownclients[i].waitingForBroadcastAck:
+                            counter = self.knownclients[i].counter
+                            self.knownclients[i].send(counter, opcode, data)
 
     def sendMessage(self, target, name, data, reliable=True, timeout = 10, filt=None):
-            "Attempt to send the message to all subscribers. Does not raise an error on failure, but will attempt retries"
+            """
+            Attempt to send the message to all subscribers. Does not raise an error on failure, but will attempt retries.
+            Note that 
+            """
             with self.lock:
-                self.counter+=1
-                counter = self.counter
-
-            if reliable:
-                try:
-                    expected = len([i for i in self.knownSubscribers[t] if i>120])
-                except:
-                    expected = 1
-
-                e = threading.Event()
-                w = common.ExpectedAckCounter(e,expected)
-                w.target = target
-                self.waitingForAck[counter] =w
-            
-            self.broadcast(counter, 1 if reliable else 3, target.encode('utf-8')+b"\n"+name.encode('utf-8')+b"\n"+data, filt)
-
-
-            #Resend loop
+                self.broadcast(1 if reliable else 3, target.encode('utf-8')+b"\n"+name.encode('utf-8')+b"\n"+data, filt)
             if reliable:
                 x = 0.010
                 ctr = 20
-                if e.wait(x):
-                    return
-                while ctr and (not e.wait(x)):
+    
+                while ctr and ([i for i in self.knownclients if  self.knownclients[i].waitingForBroadcastAck ]):
                     x=min(1, x*1.1)
                     ctr-=1
                     time.sleep(x)
-                    if e.wait(x):
-                        return
-                    self.broadcast(counter, 1 if reliable else 3, target.encode('utf-8')+b"\n"+name.encode('utf-8')+b"\n"+data,filt)
-            if reliable:
-                #Return how many subscribers definitely recieved the message.
-                return max(0,expected-w.counter)
-            else:
-                return
+                    self.rebroadcast( 1 if reliable else 3, target.encode('utf-8')+b"\n"+name.encode('utf-8')+b"\n"+data,filt)
 
 
     def onMessage(self,addr, counter, opcode, data,clientID=None):
@@ -482,42 +506,45 @@ class _Server():
         #reliable message
         if  opcode==1:
             d = data.split(b'\n',2)
+            target = d[0].decode('utf-8')
+            name = d[1].decode('utf-8')
+            payload = d[2]
+
             #If we have a listener for that message target
-            if d[0].decode('utf-8') in self.messageTargets:
-
-                #No counter race conditions allowed
-                with self.lock:
-                    #Do an acknowledgement
-                    self.counter += 1
-                    self.knownclients[addr].send(self.counter,2,struct.pack("<Q",counter))
-
-
-                #Repeat messages to all the other clients if broker mode is enabled.
-                if self.broker:
-                    with self.lock:
-                        try:
-                            for i in self.knownclients:
-                                if not i == addr:
-                                    if d[0] in self.knownclients[i].subscriptions:
-                                        self.counter+=1
-                                        self.knownclients[addr].send(self.counter,1,i,data)
-                        except:
-                            pass
-
-                s = self.messageTargets[d[0].decode('utf-8')]
+            if target in self.messageTargets:
+                s = self.messageTargets[target]
                 with self.targetslock:
                     for i in s:
                         i = i()
                         if not i:
                             continue
-                        i.callback(d[1].decode('utf-8') ,d[2],clientID)
+                        i.callback(name ,payload,clientID)
+
+            #No counter race conditions allowed
+            with self.lock:
+                #Do an acknowledgement
+                self.knownclients[addr].counter += 1
+                self.knownclients[addr].send(self.knownclients[addr].counter,2,struct.pack("<Q",counter))
+
+            #Repeat messages to all the other clients if broker mode is enabled.
+            if self.broker:
+                try:
+                    self.sendMessage(target,name,data)
+                except:
+                    pass
         
+        ##This is an ack. It doesn't need a response,
+        ##So we don't need the lock
         elif opcode ==2:
             d = struct.unpack("<Q",data)[0]
             if d in self.waitingForAck:
                 self.waitingForAck[d].onResponse(data[8:])
 
-        #Unreliable message, don't ack
+            if d == self.knownclients[addr].waitingForBroadcastAck:
+                self.knownclients[addr].waitingForBroadcastAck = False
+        
+        #Unreliable message, don't ack. For that reason, we don't need  
+        #To get the lock.
         elif  opcode==3:
             d = data.split(b'\n',2)
             #If we have a listener for that message target
@@ -532,20 +559,24 @@ class _Server():
         
         #RPC Call
         elif  opcode==4:
-            try:
-                r = struct.unpack("<H",data[0:2])[0]
-                f = self.registers[r]
-                if callable(f):
-                    d = f(clientID, data[2:])
-                else:
-                    d = f.call(clientID, data[2:])
-                self.counter +=1
-                self.knownclients[addr].send(self.counter,5,struct.pack("<Q",counter)+b'\x00\x00'+bytes(d))
-            except:
-                #If an exception happens, then send the traceback to the client.
-                print(traceback.format_exc())
-                self.counter += 1
-                self.knownclients[addr].send(self.counter,5,struct.pack("<Q",counter)+b'\x01\x01Exception on remote server\r\n'+traceback.format_exc(6).encode('utf-8'))
+            with self.lock:
+                try:
+                    r = struct.unpack("<H",data[0:2])[0]
+                    f = self.registers[r]
+                    if callable(f):
+                        d = f(clientID, data[2:])
+                    else:
+                        d = f.call(clientID, data[2:])
+                    self.knownclients[addr].counter += 1
+                    self.knownclients[addr].send(self.knownclients[addr].counter,
+                    5,struct.pack("<Q",counter)+b'\x00\x00'+bytes(d))
+                except:
+                    #If an exception happens, then send the traceback to the client.
+                    print(traceback.format_exc())
+                    self.knownclients[addr].counter += 1
+                    self.knownclients[addr].send(self.knownclients[addr].counter,
+                    5,struct.pack("<Q",counter)+b'\x01\x01Exception on remote server\r\n'+
+                    traceback.format_exc(6).encode('utf-8'))
 
         elif opcode==12:
             try:
@@ -554,11 +585,31 @@ class _Server():
             except:
                 logging.exception("error closing connection")
                     
-    def _cleanupSessions(self):
+    def _cleanupSessions(self, who=None):
         torm=[]
+
         for i in sorted(list(self.knownclients.items()),key=lambda x: x[1].created):
-            if i[1].lastSeen < time.time()-SESSION_TIMEOUT:
+            t=time.time()
+
+            #Give new clients five seconds to connect
+            if (i[1].secureLastSeen < t-SESSION_TIMEOUT) and (i[1].lastSeen< t-5):
                 torm.append(i[1].address)
+            
+            #But if the reason we're cleaning is to make room for a LAN client
+            #We can garbage collect any unconnected non-LAN client.
+            #We don't need to do this more than once to make room.
+
+            #This is just a heuristic, we assume that our LAN will have less DDoS
+            #Than the WAN.
+            if not torm:
+                if who and who.split('.') in ['192','10','127']:
+                    if i[1].secureLastSeen < t-SESSION_TIMEOUT:
+                        if not i[0][0].split('.') in ['192','10','127']:
+                            torm.append(i[1].address)
+
+
+
+
         for i in torm:
             del self.knownclients[i]
             break
@@ -605,7 +656,9 @@ class _Server():
                         #If we're out of space for new clients, go through and find one we haven't seen in a while.
                         if len(self.knownclients)>self.maxclients:
                             with self.lock:
-                                self._cleanupSessions()
+                                #The address tells it who it's cleanig up for,
+                                #So we can have anti ddos heuristics
+                                self._cleanupSessions(addr)
                         if len(self.knownclients)>self.maxclients:
                             continue
 
