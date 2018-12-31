@@ -93,3 +93,17 @@ void WiFiEvent(WiFiEvent_t event) {
 
 ### Adding your own functions
 void PavillionServer::addRPC(uint16_t number, char *fname, int(*function)(void * data, unsigned int datalen, KnownClient *client, void *rbuffer, unsigned int * rlen))
+
+### Interpreting Packed Data
+
+Because the ESP8266 doesn't like unaligned reads, if you want to support it, and you need to work with packed structs,
+use these when working with values bigger than a signle byte. They work one byte at a time and so should work no matter
+how the platform handles alignment.
+
+//Interpret i as a pointer to an integer of length len and return the value
+int64_t readSignedNumber(void * i,int len);
+uint64_t readUnsignedNumber(void * i,int len);
+
+//Interpret i as a pointer to an integer of length len and write the value
+void writeSignedNumber(void * i,int len, int64_t val);
+void writeUnsignedNumber(void * i,int len, uint64_t val);

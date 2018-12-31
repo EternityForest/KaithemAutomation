@@ -21,7 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
 #include <iostream>
 #include <string.h>
 
@@ -32,72 +31,156 @@ using namespace std;
 #include "fake_libsodium.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 #include "tweetnacl.h"
 #ifdef __cplusplus
 }
 #endif
 
-#define ip_cmp(a,b) ((a[0]==b[0])&(a[1]==b[1])&(a[2]==b[2])&(a[3]==b[3]))
-
+#define ip_cmp(a, b) ((a[0] == b[0]) & (a[1] == b[1]) & (a[2] == b[2]) & (a[3] == b[3]))
 
 static bool connected = false;
 
 //Root entry of linked list of all PavillionServers
-static PavillionServer * ServersList =0;
+static PavillionServer *ServersList = 0;
 
+//These two functions read len bytes from i and interpret
+//Them as numbers, because pointer casting doesn't work
+//With unaligned.
 
-//TODO: thread safe if we ever implement closing a server
-//wifi event handler lets us automatically all listening servers when disconnected
-static void pav_WiFiEvent(WiFiEvent_t event) {
-  PavillionServer*  p = ServersList;
+//Sigh. Esp8266 aligned addressing crap workaround
+int64_t readSignedNumber(void *i, int len)
+{
+  union {
+    int64_t r = 0;
+    uint8_t b[8];
+  };
+  for (int j = 0; j < len; j++)
+  {
+    b[j] = ((uint8_t *)i)[j];
+  }
+  return r;
+}
 
-  switch (event) {
-    case SYSTEM_EVENT_STA_GOT_IP:
-      connected = true;
-      while(p)
-      {
-        p->listen();
-        p = p->next;
-      }
-    break;
-    case SYSTEM_EVENT_STA_DISCONNECTED:
-    connected = false;
-    break;
+//Sigh. Esp8266 aligned addressing crap workaround
+uint64_t readUnsignedNumber(void *i, int len)
+{
+  union {
+    uint64_t r = 0;
+    uint8_t b[8];
+  };
+  for (int j = 0; j < len; j++)
+  {
+    b[j] = ((uint8_t *)i)[j];
+  }
+  return r;
+}
 
-    default:
-      break;
+void writeSignedNumber(void *i, int len, int64_t val)
+{
+  for (int j = 0; j < len; j++)
+  {
+    ((uint8_t *)i)[j] = ((uint8_t *)&val)[j];
   }
 }
 
-//Basically what this does is let us do this function before main. 
+void writeUnsignedNumber(void *i, int len, uint64_t val)
+{
+  for (int j = 0; j < len; j++)
+  {
+    ((uint8_t *)i)[j] = ((uint8_t *)&val)[j];
+  }
+}
+
+#ifdef ESP32
+//TODO: thread safe if we ever implement closing a server
+//wifi event handler lets us automatically all listening servers when disconnected
+static void pav_WiFiEvent(WiFiEvent_t event)
+{
+  PavillionServer *p = ServersList;
+
+  switch (event)
+  {
+  case SYSTEM_EVENT_STA_GOT_IP:
+    //TODO: We should try to send a message to the last known server we were in contact with?
+    connected = true;
+    while (p)
+    {
+      p->listen();
+      p = p->next;
+    }
+    break;
+  case SYSTEM_EVENT_STA_DISCONNECTED:
+    connected = false;
+    break;
+
+  default:
+    break;
+  }
+}
+
+//ESP8266
+#else
+WiFiEventHandler stationConnectedHandler;
+WiFiEventHandler stationDisconnectedHandler;
+
+static void pav_onconnect(const WiFiEventStationModeConnected &evt)
+{
+  connected = true;
+  PavillionServer *p = ServersList;
+  while (p)
+  {
+    p->listen();
+    p = p->next;
+  }
+}
+
+static void pav_ondisconnect(const WiFiEventStationModeDisconnected &evt)
+{
+  connected = false;
+}
+#endif
+
+#ifdef INC_FREERTOS_H
+//Basically what this does is let us do this function before main.
 static SemaphoreHandle_t setThingsUp()
 {
   SemaphoreHandle_t t;
+#ifdef ESP32
   WiFi.onEvent(pav_WiFiEvent);
-  t= xSemaphoreCreateBinary();
+#else
+  stationConnectedHandler = WiFi.onSoftAPModeStationConnected(&pav_onconnect);
+  stationDisconnectedHandler = WiFi.onSoftAPModeStationDisconnected(&pav_ondisconnect);
+#endif
+  t = xSemaphoreCreateBinary();
   xSemaphoreGive(t);
-  return(t);
+  return (t);
 }
 
 static SemaphoreHandle_t PavilllionLock = setThingsUp();
 
-#define PAV_LOCK()  assert(xSemaphoreTake(PavilllionLock,10000000))
-#define PAV_LOCK()  assert(xSemaphoreTake(PavilllionLock,200))
+#define PAV_LOCK() assert(xSemaphoreTake(PavilllionLock, 1500))
+#define PAV_UNLOCK() xSemaphoreGive(PavilllionLock)
+#endif
 
-#define PAV_UNLOCK()  xSemaphoreGive(PavilllionLock)
-
-
-#define dbg(x) Serial.println(x)
-#define dgb(x)
-
-
-
-
-
-
-
+#ifndef INC_FREERTOS_H
+static char setThingsUp()
+{
+#ifdef ESP32
+  WiFi.onEvent(pav_WiFiEvent);
+#else
+  stationConnectedHandler = WiFi.onStationModeConnected(&pav_onconnect);
+  stationDisconnectedHandler = WiFi.onStationModeDisconnected(&pav_ondisconnect);
+#endif
+}
+static char t = setThingsUp();
+//These are no-ops in a single thread.
+#include <assert.h>
+#define PAV_LOCK() assert(1)
+#define PAV_UNLOCK() assert(1)
+#endif
 
 KnownClient::KnownClient()
 {
@@ -105,141 +188,137 @@ KnownClient::KnownClient()
   //Put random garbage in the key, so it doesn't accidentally get used with a predictable value
   //Before setup.
   randombytes_buf(skey, 32);
-
 }
 
 //Send a Pavillion message to the Known Client. Must be called after setting up a valid connection,
 //Or else garbage will be sent.
-void KnownClient::sendRawEncrypted(uint8_t opcode, uint8_t* data, uint16_t datalen)
+void KnownClient::sendRawEncrypted(uint8_t opcode, uint8_t *data, uint16_t datalen)
 {
 
   //Our garbage fake version of libsodium needs 32 extra bytes after the output buffer so it doesn't crash.
-  uint8_t * op = (uint8_t *)malloc(datalen + 33 + 11 + 8 + 1 + 32);
-  if(op==0)
+  uint8_t *op = (uint8_t *)malloc(datalen + 33 + 11 + 8 + 1 + 32);
+  if (op == 0)
   {
     dbg("Malloc Fail sending raw encrypted data");
     dbg(ESP.getFreeHeap());
     dbg(datalen + 33 + 11 + 8 + 1 + 32);
     return;
   }
-  uint8_t * encrypted = op + 11 + 8;
+  uint8_t *encrypted = op + 11 + 8;
 
   this->counter[2]++;
 
   memcpy(op, "PavillionS0", 11);
 
   //copy
-  memcpy((op + 11), (unsigned char *) (& (this->counter[2])), 8);
+  memcpy((op + 11), (unsigned char *)(&(this->counter[2])), 8);
 
   op[11 + 8] = opcode;
 
   memcpy((op + 11 + 9), data, datalen);
 
-
   crypto_secretbox_easy(encrypted, encrypted,
-                        datalen + 1, (uint8_t *) & (this->counter[0]),
+                        datalen + 1, (uint8_t *)&(this->counter[0]),
                         this->skey);
 
   this->server->sendUDP(op, datalen + 16 + 8 + 1 + 11, this->addr, this->port);
   free(op);
 }
 
-void PavillionServer::broadcastMessage(const char * target, const char * name, uint8_t * data, int len)
+void PavillionServer::broadcastMessage(const char *target, const char *name, uint8_t *data, int len)
 {
-  broadcastMessage(target, name,data, len, 1);
+  broadcastMessage(target, name, data, len, 1);
 }
 
-void PavillionServer::broadcastMessage(const char * target, const char * name, uint8_t * data, int len, char opcode)
+void PavillionServer::broadcastMessage(const char *target, const char *name, uint8_t *data, int len, char opcode)
 {
+//It is important that sendinglock be the outer lock.
+//Because we release the main lock during the resend loop.
+//And deadlocks suck.
+#ifdef INC_FREERTOS_H
+  xSemaphoreTake(sendinglock, 1000000000);
+#endif
 
-  //It is important that sendinglock be the outer lock.
-  //Because we release the main lock during the resend loop.
-  //And deadlocks suck.
-  xSemaphoreTake(sendinglock,1000000000);
   PAV_LOCK();
 
-  int d =2;
+  int d = 2;
 
   int tlen = strlen(target);
   int nlen = strlen(name);
 
-    for (int i = 0; i < MAX_CLIENTS; i++)
+  for (int i = 0; i < MAX_CLIENTS; i++)
+  {
+    if (knownClients[i])
     {
-      if(knownClients[i])
+      knownClients[i]->counter[2] += 1;
+      if (opcode == 1)
       {
-        knownClients[i]->counter[2]+=1;
-        if(opcode==1)
-        {
-          knownClients[i]->ack_watch = knownClients[i]->counter[2];
-          knownClients[i]->ack_responded = false;
-        }
+        knownClients[i]->ack_watch = knownClients[i]->counter[2];
+        knownClients[i]->ack_responded = false;
       }
     }
-  
+  }
 
-  
-  while(d< 513)
+  while (d < 513)
   {
-    for (int i = 0; i < MAX_CLIENTS;i++)
+    for (int i = 0; i < MAX_CLIENTS; i++)
     {
-      if(knownClients[i])
+      if (knownClients[i])
       {
-        if((millis()-knownClients[i]->lastSeen)<300000)
+        if ((millis() - knownClients[i]->lastSeen) < 300000)
         {
           //Our garbage fake version of libsodium needs 32 extra bytes after the output buffer so it doesn't crash.
-          uint8_t * op = (uint8_t *)malloc(len+tlen+nlen+2 + 33 + 11 + 8 + 1 + 32);
-          uint8_t * encrypted = op + 11 + 8;
+          uint8_t *op = (uint8_t *)malloc(len + tlen + nlen + 2 + 33 + 11 + 8 + 1 + 32);
+          uint8_t *encrypted = op + 11 + 8;
 
           memcpy(op, "PavillionS0", 11);
 
           //copy
-          memcpy((op + 11), (unsigned char *) (& (knownClients[i]->counter[2])), 8);
+          memcpy((op + 11), (unsigned char *)(&(knownClients[i]->counter[2])), 8);
 
           //This is the opcode
           op[11 + 8] = opcode;
 
-
           memcpy((op + 11 + 9), target, tlen);
-          op[9+11+tlen]= '\n';
-          memcpy((op + 11 + 9)+tlen+1, name, nlen);
-          op[9+11+tlen+1+nlen]= '\n';
+          op[9 + 11 + tlen] = '\n';
+          memcpy((op + 11 + 9) + tlen + 1, name, nlen);
+          op[9 + 11 + tlen + 1 + nlen] = '\n';
 
-          memcpy((op + 11 + 9 +tlen+1+nlen+1), data, len);
-
+          memcpy((op + 11 + 9 + tlen + 1 + nlen + 1), data, len);
 
           crypto_secretbox_easy(encrypted, encrypted,
-                                len+tlen+nlen+2 + 1, (uint8_t *) & (knownClients[i]->counter[0]),
+                                len + tlen + nlen + 2 + 1, (uint8_t *)&(knownClients[i]->counter[0]),
                                 knownClients[i]->skey);
 
-          sendUDP(op, len+tlen+nlen+2 + 16 + 8 + 1 + 11, knownClients[i]->addr, knownClients[i]->port);
+          sendUDP(op, len + tlen + nlen + 2 + 16 + 8 + 1 + 11, knownClients[i]->addr, knownClients[i]->port);
           free(op);
         }
       }
     }
 
     //If this is an unreliable message only do one loop
-    if(opcode==1)
+    if (opcode == 1)
     {
       PAV_UNLOCK();
       delay(d);
       PAV_LOCK();
-      
+
       char canQuit = 1;
 
       for (int i = 0; i < MAX_CLIENTS; i++)
       {
-        if(knownClients[i])
+        if (knownClients[i])
         {
-          if (millis()-knownClients[i]->lastSeen>300000)
+          if (millis() - knownClients[i]->lastSeen > 300000)
           {
-            if(knownClients[i]->ack_responded ==false)
+            if (knownClients[i]->ack_responded == false)
             {
               canQuit = 0;
             }
           }
         }
       }
-      if(canQuit)
+      if (canQuit)
       {
         break;
       }
@@ -248,14 +327,17 @@ void PavillionServer::broadcastMessage(const char * target, const char * name, u
     {
       break;
     }
-    d=d*2;
+    d = d * 2;
   }
   PAV_UNLOCK();
+
+#ifdef INC_FREERTOS_H
   xSemaphoreGive(sendinglock);
+#endif
 }
 
 //Handle raw UDP Messages
-void KnownClient::onMessage(uint8_t * data, uint16_t datalen, IPAddress addr, uint16_t port)
+void KnownClient::onMessage(uint8_t *data, uint16_t datalen, IPAddress addr, uint16_t port)
 {
 
   //Make sure it has the header
@@ -264,37 +346,38 @@ void KnownClient::onMessage(uint8_t * data, uint16_t datalen, IPAddress addr, ui
     return;
   }
   data += 11;
-  uint64_t counter = interpret(data, uint64_t);
+  uint64_t counter = readUnsignedNumber(data, 8);
 
   data += 8;
-
 
   //If the counter is 0, it's a setup message
   if (counter)
   {
-    uint8_t * nonce = (uint8_t *)malloc(24);
-    ((uint64_t *)nonce)[2] = counter;
-    ((uint64_t *)nonce)[0] = 0;
-    ((uint64_t *)nonce)[1] = 0;
+    uint8_t *nonce = (uint8_t *)malloc(24);
+    writeUnsignedNumber(nonce + 16, 8, counter);
+    writeUnsignedNumber(nonce, 8, 0);
+    writeUnsignedNumber(nonce + 8, 8, 0);
+
     //Attempt to decrypt before checking the counnter.
     //If we can't decrypt we know we aren't actually connected. Otherwise it might just be that
     //There was an actual duplicated packet
-    
+
     int x = crypto_secretbox_open_easy(data, data, datalen - (8 + 11), nonce, ckey);
 
     free(nonce);
 
-
     if (x == -1)
     {
-      Serial.println("Decrypt fail");
-
-      //send an unrecognized client message
-      this->server->sendUDP((uint8_t *)"PavillionS0\0\0\0\0\0\0\0\0\x04", 9 + 11, this->addr, this->port);
-      return;
+      //Eliminate some chattery problems where it's got multiple reconnection
+      //Attempts happening all at once because they're piling up and overlapping
+      if (millis() - this->lastSeen > 500)
+      {
+        dbg("Decrypt fail");
+        //send an unrecognized client message
+        this->server->sendUDP((uint8_t *)"PavillionS0\0\0\0\0\0\0\0\0\x04", 9 + 11, this->addr, this->port);
+        return;
+      }
     }
-
-
 
     //Make sure there's not a duplicate
     if (counter <= clientcounter)
@@ -304,30 +387,25 @@ void KnownClient::onMessage(uint8_t * data, uint16_t datalen, IPAddress addr, ui
 
     clientcounter = counter;
 
-
-
-
     uint8_t opcode = data[0];
     data += 1;
 
     //subtract Header, counter, opcode, auth tag
     datalen -= (11 + 8 + 1 + 16);
 
-
-
     this->lastSeen = millis();
-    if(opcode==2)
+    if (opcode == 2)
     {
-      if(this->ack_watch == *((uint64_t *) data))
+      if (this->ack_watch == readUnsignedNumber(data, 8))
       {
-        this->ack_responded=true;
+        this->ack_responded = true;
       }
     }
     //Yield the lock, because an RPC call may well try to send a message, which would require the lock.
     if (opcode == 4)
     {
       PAV_UNLOCK();
-      this->server->doRPC(((uint16_t *)data)[0], this, data + 2, datalen - 2, counter);
+      this->server->doRPC(readUnsignedNumber(data, 2), this, data + 2, datalen - 2, counter);
       PAV_LOCK();
     }
   }
@@ -342,31 +420,28 @@ void KnownClient::onMessage(uint8_t * data, uint16_t datalen, IPAddress addr, ui
       uint8_t cipher = interpret(data, uint8_t);
       data += 1;
 
-      uint8_t * clientID = data;
+      uint8_t *clientID = data;
       data += 16;
 
-
-      uint8_t * clientChallenge = data;
+      uint8_t *clientChallenge = data;
       data += 16;
 
-
-      uint8_t * clientSessionID = data;
-      data+=16;
-
+      uint8_t *clientSessionID = data;
+      data += 16;
 
       /*If the session ID matches, we are already connected.
         This could happen if we recieve a multicast nonce request actually meant for another server
         or if someone is spoffing our IP to send fake unrecognized client messages.
       
       */
-      if(memcmp(sessionID, clientSessionID, 16)==0)
+      if (memcmp(sessionID, clientSessionID, 16) == 0)
       {
         dbg("Got opcode 1, but already connected");
         return;
       }
-      uint8_t * clientPubkey = data;
+      uint8_t *clientPubkey = data;
 
-      uint8_t * clientPSK = server->PSKforClient(clientID);
+      uint8_t *clientPSK = server->PSKforClient(clientID);
 
       //PSKforClient returns null if you give it a nonexistent client
       if (clientPSK == 0)
@@ -377,12 +452,12 @@ void KnownClient::onMessage(uint8_t * data, uint16_t datalen, IPAddress addr, ui
         return;
       }
 
-      uint8_t * resp = (uint8_t *)malloc(1501);
+      uint8_t *resp = (uint8_t *)malloc(1501);
 
       memcpy(resp, "PavillionS0", 11);
-      uint8_t * head = resp + 11;
+      uint8_t *head = resp + 11;
 
-      interpret(head, uint64_t) = 0;
+      writeUnsignedNumber(head, 8, 0);
       head += 8;
 
       //opcode 2
@@ -409,20 +484,20 @@ void KnownClient::onMessage(uint8_t * data, uint16_t datalen, IPAddress addr, ui
     {
       uint8_t cipher = interpret(data, uint8_t);
       data += 1;
-      uint8_t * clientID = data;
+      uint8_t *clientID = data;
       data += 16;
-      uint8_t * clientNonce = data;
+      uint8_t *clientNonce = data;
       data += 32;
-      uint8_t * serverNonceReply = data;
+      uint8_t *serverNonceReply = data;
       data += 32;
-      uint64_t clientcounter_b = interpret(data, uint64_t);
+      uint64_t clientcounter_b = readUnsignedNumber(data, 8);
       data += 8;
 
-      uint8_t * clientPSK = this->server->PSKforClient(clientID);
+      uint8_t *clientPSK = this->server->PSKforClient(clientID);
 
       uint8_t hash[32];
 
-      if (memcmp(serverNonceReply, serverNonce,32))
+      if (memcmp(serverNonceReply, serverNonce, 32))
       {
         dbg("Client's reply has the wrong nonce");
         return;
@@ -435,8 +510,13 @@ void KnownClient::onMessage(uint8_t * data, uint16_t datalen, IPAddress addr, ui
       //Last 32 bytes of the message are a hash, if it doesn't match, ignore.
       if (memcmp(data, hash, 32))
       {
+                dbg("Client's reply has the wrong hash");
+
         return;
       }
+
+      //This message can't really be spoofed, because it's got the challenge response stuff.
+      this->lastSeen = millis();
 
       this->clientcounter = clientcounter_b;
       //Hash the client nonce to get the key they are using at the moment for sending to us
@@ -444,11 +524,9 @@ void KnownClient::onMessage(uint8_t * data, uint16_t datalen, IPAddress addr, ui
                          clientNonce, 32,
                          clientPSK, 32);
 
-
-      uint8_t toHash [64];
+      uint8_t toHash[64];
       memcpy(toHash, clientNonce, 32);
       memcpy(toHash + 32, serverNonceReply, 32);
-
 
       //Calculate the session key for sending TO them
       crypto_generichash(this->skey, 32,
@@ -457,25 +535,20 @@ void KnownClient::onMessage(uint8_t * data, uint16_t datalen, IPAddress addr, ui
 
       //Calculate the session ID
       crypto_generichash(sessionID, 16,
-                       ckey, 32,
-                       clientPSK, 32);
-      this->sendRawEncrypted(0, (uint8_t*)"This here is a testing message", 25);
+                         ckey, 32,
+                         clientPSK, 32);
+
+      //Send the client accept message
+      this->sendRawEncrypted(16, (uint8_t *)"This here is a testing message", 0);
 
       //No reusing the server nonce is allowed here.
       randombytes_buf(serverNonce, 32);
-
     }
-
-
-
   }
-
 }
 
-
-
 //Get a pointer to the client object, and if there isn't one at that address, make one.
-KnownClient * PavillionServer::clientForAddr(IPAddress addr, uint16_t port)
+KnownClient *PavillionServer::clientForAddr(IPAddress addr, uint16_t port)
 {
   for (int i = 0; i < MAX_CLIENTS; i++)
   {
@@ -488,7 +561,6 @@ KnownClient * PavillionServer::clientForAddr(IPAddress addr, uint16_t port)
           return (this->knownClients[i]);
         }
     }
-
   }
 
   //No known client, make a new one
@@ -509,7 +581,7 @@ KnownClient * PavillionServer::clientForAddr(IPAddress addr, uint16_t port)
 
       if (this->knownClients[i])
       {
-        free(  this->knownClients[i]);
+        free(this->knownClients[i]);
       }
       this->knownClients[i] = new KnownClient();
       this->knownClients[i]->addr = addr;
@@ -523,22 +595,30 @@ KnownClient * PavillionServer::clientForAddr(IPAddress addr, uint16_t port)
   return 0;
 }
 
-
 //Send UDP
-void inline PavillionServer::sendUDP(uint8_t * data, uint16_t datalen, IPAddress udpAddress, uint16_t udpPort)
+void inline PavillionServer::sendUDP(uint8_t *data, uint16_t datalen, IPAddress udpAddress, uint16_t udpPort)
 {
+  /*
+  struct sockaddr_in addr;
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(port);
+
+  memcpy(addr.sin_address, udpAddress, 4);
+
+  sendto(socket, data, datalen, 0,
+               const struct sockaddr *dest_addr, socklen_t addrlen)
+*/
 
   udp.beginPacket(udp.remoteIP(), udp.remotePort());
   udp.write(data, datalen);
   udp.endPacket();
 }
 
-
-static void serverTask(void * t)
+static void serverTask(void *t)
 {
-  while(1)
+  while (1)
   {
-    ((PavillionServer*)t)->poll();
+    ((PavillionServer *)t)->poll();
   }
 }
 
@@ -546,30 +626,30 @@ static void serverTask(void * t)
 PavillionServer::PavillionServer()
 {
   PAV_LOCK();
-  
+
   //Initialize our array of client pointers to 0
   for (int i = 0; i < MAX_CLIENTS; i++)
   {
-    knownClients[i]=0;
+    knownClients[i] = 0;
   }
-  
-  if(ServersList==0)
+
+  if (ServersList == 0)
   {
     ServersList = this;
   }
   else
   {
-    PavillionServer * p = ServersList;
+    PavillionServer *p = ServersList;
 
-    while(p->next)
+    while (p->next)
     {
-      p=p->next;
+      p = p->next;
     }
     p->next = this;
   }
   PAV_UNLOCK();
 
-   /* xTaskCreatePinnedToCore(serverTask,
+  /* xTaskCreatePinnedToCore(serverTask,
                             "PavServ",
                             4096,
                             0,
@@ -578,20 +658,21 @@ PavillionServer::PavillionServer()
                             1
                            );
   */
+#ifdef INC_FREERTOS_H
   sendinglock = xSemaphoreCreateBinary();
   xSemaphoreGive(sendinglock);
+#endif
 }
-
 
 void PavillionServer::onMessage(uint8_t *data, uint16_t len, IPAddress addr, uint16_t port)
 {
 
- if(PSKforClient ==0)
- {
-     Serial.println("Plase define a PSKforClient function");
-     return;
- }
-  KnownClient* x = clientForAddr(addr, port);
+  if (PSKforClient == 0)
+  {
+    Serial.println("Plase define a PSKforClient function");
+    return;
+  }
+  KnownClient *x = clientForAddr(addr, port);
   if (x == 0)
   {
     dbg("fail");
@@ -607,16 +688,16 @@ void PavillionServer::listen(uint16_t port)
 
 void PavillionServer::listen()
 {
-if(port)
+  if (port)
   {
-  udp.begin(port);
+    udp.begin(port);
   }
 }
 
 void PavillionServer::poll()
 {
   PAV_LOCK();
-  if(connected==false)
+  if (connected == false)
   {
     PAV_UNLOCK();
     return;
@@ -626,7 +707,7 @@ void PavillionServer::poll()
   if (x)
   {
     //Once again the extra 32 are for garbage fake libsodium's memory saving tricks
-    uint8_t * incoming = (uint8_t *) malloc(x + 32+1);
+    uint8_t *incoming = (uint8_t *)malloc(x + 32 + 1);
     udp.read(incoming, 1500);
     this->onMessage(incoming, x, udp.remoteIP(), udp.remotePort());
     free(incoming);

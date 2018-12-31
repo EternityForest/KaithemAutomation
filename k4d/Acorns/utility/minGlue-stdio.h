@@ -9,8 +9,7 @@
  */
 
 /* map required file I/O types and functions to the standard C library */
-#include #include "posix_compat.h"
-
+#include "posix_compat.h"
 
 #define INI_FILETYPE                   FILE*
 #define ini_openread(filename,file)    ((*(file) = fopen((filename),"rb")) != NULL)

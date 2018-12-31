@@ -366,6 +366,46 @@ Both values are guaranteed to match, the state will not change after checking on
 
 The previous state of the machine. May be the same as the current state if re-entry occurs. The initial value is None before any transitions have occured.
 
+### kaithem.alerts
+
+Alerts allow you to create notification when unusual events occur, trigger periodic sounds, and allow users to "acknowledge" them to shut them up.
+
+#### kaithem.alerts.Alert(name, priority="normal", zone=None, tripDelay=0, autoAck=False, permissions=\[\], ackPermissions=\[\], \[id\])
+
+Create a new alert. Prority can be one of debug, info, warning, error, or critical.
+
+Zone should be a heirarchal dot-separated locator string if present, telling the physical location being monitored. An example might be "us.md.baltimore.123setterst.shed", but at present you can use whatever format you like.
+
+Permissions and ackPermissions are additional permissions besides /users/alerts.view and /users/alerts.acknowledge that are needed to see and ack the alert.
+
+ID is a unique string ID. What happens if you reuse these is undefined and wil be used to implement features later.
+
+tripDelay is the delay in seconds that the alarm remains tripped before becoming active.
+
+Internally, alarms are state machines that may be in any of the listed states. The underlying state machine object can be accessed as alert.sm, and Alerts are VirtualResources in and of themselves. The handoff function correctly calls the handoff of the state machines.
+
+#### normal
+
+#### trip
+
+Entered by calling a.trip(). This will be logged, but nothig will actually happen until the trip delay passes, after which the alarm becomes active.
+
+#### active
+
+The alarm will beep periodically from the configured sound devide(In system settings), at an interval depending on the rate. It will be shown on the front page(To users with the correct permissions). It remains such until a clear event happens(by calling a.clear()), which would cause it to enter the cleared state, or an acknowledge happens, causing it to enter the acknowledged state.
+
+#### cleared
+
+This state indicates the undesired condition has stopped, but the alarm has not been acknowledged. Acknowledging an alarm in this state causes it to become normal. The alarm is visible but will not beep.
+
+#### acknowledged
+
+The condition is occuring, but is has been acknowledged. It will not beep, but will show on the main page. Clearing in this state will cause it to become normal.
+
+#### error
+
+Entered by calling a.error(), the alarm behaves as if it were an error-priority active alarm, but returns to normal after being acknowledged. Used to indicate an error with the alarm itself.
+
 ### kaithem.time
 
 #### kaithem.time.lantime()
@@ -508,15 +548,29 @@ Delete a key and and data and schema assosiated with it
 
 The kaithem.sound API is slightly different depending on which backend has been configured. By default mplayer will be used if available and is the recommended backed.
 
-#### kaithem.play(filename,handle="PRIMARY",volume=1,start=0,end=-0.0001, eq=None, output=None,fs=False)
+#### kaithem.sound.outputs()
+
+(Currently linux ALSA only) Returns a dict of sound device info objects. The same entry may be present under multiple names. At minimum, each device will have an entry under a "persistent name" which is created from the device type and the PCI address or USB port that it is plugged into, plus the subdevice. The names look like: 'HDMI1-dresslunacyantennae-0xef128000irq129:7', or 'USBAudio-lushlyroutinearmchair-usb-0000:00:14.0-4:0' and so long as you plug the same device into the same port(On the same hub, if using one), the name will remain constant. The entries are objects. They have the properties mplayerName and alsaName. These are they typical names that other apps use to identify devices. You may use any name found here as an argument to the output parameter of kaithem.play, if using mplayer. This dict may also contain JACK ports that it discovers. These obviously will not have an alsa name. Be patient, it may take 30 seconds for kaithem to discover new cards.
+
+#### kaithem.sound.play(filename,handle="PRIMARY",volume=1,start=0,end=-0.0001, eq=None, output=None,fs=False,extraPaths=\[\])
 
 If you have mpg123 or SOX installed, play the file, otherwise do nothing. The handle parameter lets you name the new sound instance to stop it later. If you try to play a sound under the same handle as a stil-playing sound, the old one will be stopped. Defaults to PRIMARY.
+
+Relative paths are searched in the configured directories and a default builtin one(Unless you remove it from the config). Searching is not recursive, but relative paths work. If searching for "foo/bar" in "/baz", it will look for "/baz/foo/bar".
+
+If you want to search paths for relative files other than the default abd the ones in the config, add them to extraPaths.
 
 With the mplayer backend, if you give it a video file, it will likely open a window and play it. Passing fs=True may allow you to play fullscreen, but any use of this "hidden feature" is very experimental. results may be undefined if you attempt to play a video in an environment that does not support it. All the features that work with audio should also work with video.
 
 Volume is a dimensionless multiplier that only works if using SOX or mplayer. Otherwise it is ignored. Start and end times are in seconds, negative means relative to sound end. Start and end times are also SOX/mplayer specific and are ignored(full sound will always play) with other players.
 
 output and eq are mplayer specific and do nothing with other backends. eq if present can take the value 'party' causing the EQ to be set to allow easier conversation. output must be a string that selects an output device. A typical value on linx would be pulse::n where n is the pulse sink index, see mplayer's -ao option for more details.
+
+You may also use one of kaithem's soundcard aliases found in kaithem.outputs.
+
+#### kaithem.sound.builtinSounds
+
+A list of filenames of sounds included with Kaithem. They are found in the data dir, and cann be drectly passed to play.
 
 #### kaithem.sound.stop(handle="PRIMARY"")
 

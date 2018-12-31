@@ -81,7 +81,7 @@ Get an integer in the given range. Might have a tiny bit of bias, so don't use i
 Unlike Arduino, there's no repeatability to this sequence, and the system mixes in a bit of entropy at each call
 to keep it unpredictable enough for games, simulations, etc.
 
-Uses the PCG algorithm, and the micros() value.
+Uses the PCG algorithm, and the micros() value, along ith the hardware RNG.
 
 ### millis()/micros()
 As Arduino's millis()/micros(). Returns time since boot.
@@ -143,6 +143,10 @@ Note that spiffs directories aren't real, so the results may be closer to prefix
 ### lorem()
 Returns a random quote as a string, useful for testing purposes.
 
+### exit()
+Raises an exception that cannot be handled, ending the program. Simply returning and reaching the end of the program is preferred, to avoid spurious
+error messages. This may actually close the program if it was configured to close on errors.
+
 
 
 
@@ -174,6 +178,12 @@ The type of the function must be: void (*f)(loadedProgram *, void *)
 
 Loads some source code into a new program, replacing any old one with that ID, and immediately runs it in a background thread pool thread.
 
+
+### Acorns.runProgram(const char * code, const char * id)
+
+Loads some source code into a new program, replacing any old one with that ID, and immediately runs it synchronously in the calling thread.
+
+
 ### Acorns.loadFromFile(const char * fn)
 Load a file as a new program. The progam ID will be the basename of the file.
 
@@ -201,6 +211,15 @@ This function will first try to read from the table itself, and if the key isn't
 
 If it's not there either, the default is used.
 
+###  SQInteger Acorns.registerFunction(const char* id,SQFUNCTION f,const char *fname)
+
+Register a SQFUNCTION(Of the type you would use to create a closure using the usual C api) to the given program ID(pass NULL for the root, which makes it accessible
+to all apps) with the given name.
+
+Note that the global interpreter lock may crash the entire thing if you take more than a few seconds. If you need more time, release and reaquire the GIL with the
+GIL_UNLOCK() and GIL_LOCK() when it is safe to do so.
+
+This crashing behavior is intentional, as Acorns is meant for responsive interactive applications.
 
 ### CallbackData * Acorns.acceptCallback(HSQUIRRELVM vm, SQInteger idx, void(*cleanup)(CallbackData * p, void * arg), void * cleanupArg )
 

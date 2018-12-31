@@ -51,7 +51,11 @@ void randombytes_buf(void * const buf, const size_t size)
 
   for(uint32_t i = 0;i<size;i++)
   {
+    #ifdef ESP32
     ((uint8_t*)buf)[i]=esp_random();
+    #else
+    ((uint8_t*)buf)[i] = secureRandom(256);
+    #endif
   }
 }
 void crypto_secretbox_easy(unsigned char *c, const unsigned char *m,

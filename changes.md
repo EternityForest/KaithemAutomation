@@ -1,6 +1,15 @@
 Change Log
 ----------
 
+### 0.61
+
+-   Detect unclean shutdown
+-   Lightboard improvements
+-   New alarms feature
+-   Experimental Kaithem for Devices
+-   Improvements to the Pavillion protocol(Possibly breaking)
+-   Better support for multiple soundcards
+
 ### 0.60
 
 -   Can now view event history

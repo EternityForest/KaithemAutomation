@@ -56,13 +56,5 @@ import traceback
 %endif
 </form>
 
-<h2>Device Folder Listing</h2>
-%try:
-${obj.listDir("/spiffs")}
-%except:
-Cannnot list remote folder: ${traceback.format_exc()|h}
-%endtry
-
-
 </div>
 <%include file="/pagefooter.html"/>

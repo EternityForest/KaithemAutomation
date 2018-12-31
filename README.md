@@ -106,6 +106,15 @@ If you install using the debian package helper, you will be prompted for an admi
 Recent Changes(See changes.md for full change info)
 =============
 
+### 0.61
+
+-   Detect unclean shutdown
+-   Lightboard improvements
+-   New alarms feature
+-   Experimental Kaithem for Devices
+-   Improvements to the Pavillion protocol(Possibly breaking)
+-   Better support for multiple soundcards
+
 ### 0.60
 
 -   Can now view event history
@@ -120,27 +129,6 @@ Recent Changes(See changes.md for full change info)
 -   Correctly attribute "And ninety-nine are with dreams content..." to a Ted Olson poem, not to Poe as the internet claims.
 -   FontAwesome and Fugue icon packs included
 -   Misc bugfixes
-
-### 0.59
-
--   Object inspector now handles weak references, weakvaluedicts, and objects with \_\_slots\_\_
--   Lighting module has changed to a new cue based system(Not compatible with the old one)
--   Fix python2 bug that prevented booting
--   Tweak mako autoformat options and log formatting
-
-### 0.58
-
--   Safer handling of tokens to resist timing attacks
--   Get rid of excessively tiny stack size that caused ocassional segfaults
--   Fix bug that caused annoying widget.js error messages
--   Switch to microsoft's monaco editor instead of CodeMirror
--   (SOMEWHAT BREAKING CHANGE) Users are now limited by default to 64k request HTTP bodies. You can allow users a larger limit on a per-group basis. Users with \_\_all\_permissions\_\_ have no such limit, and the limit is 4Gb in certain contexts for users with the permissions to edit pages or settings.
--   Increase maxrambytes in cherrypy. It should work slightly better on embedded systems now.
--   Add command line option --nosecurity 1 to disable all security(For testing and localhost only use)
--   Better template when creating new pages
--   (SOMEWHAT BREAKING CHANGE)Use Recur instead of recurrent to handle !times, greatly improving performance.
--   Add lighting control features in the modules library.
-
 
 License Terms
 =============

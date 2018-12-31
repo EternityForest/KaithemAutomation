@@ -26,13 +26,33 @@ class PavillionServer;
 class KnownClient;
 
 #define MAX_CLIENTS 8
+
 #define interpret(x,type) (*((type *)(x)))
 
+
+
+int64_t readSignedNumber(void * i,int len);
+//Sigh. Esp8266 aligned addressing crap workaround
+uint64_t readUnsignedNumber(void * i,int len);
+void writeSignedNumber(void * i,int len, int64_t val);
+void writeUnsignedNumber(void * i,int len, uint64_t val);
+
+#ifdef ESP32
+
 #include <WiFi.h>
+#else
+#include <ESP8266WiFi.h>
+#endif
+
 #include <WiFiUdp.h>
+
+#ifdef PAVILLIONDEBUG
 #define dbg(x) Serial.println(x)
 #define dbgn(x) Serial.println((long)x)
-
+#else
+#define dbg(x)
+#define dbgn(x)
+#endif
 
 #define RPC_ERR(code, string) *rlen=strlen(string);strcpy((char*)rbuffer, string); return (code)
 struct RpcFunction
@@ -85,11 +105,11 @@ class PavillionServer
     char * inData =0 ;
     int inLen = 0;
     int outLen = 0;
-
+#ifdef INC_FREERTOS_H
     //The lock that must be held to do anything that involves waiting for a reply.
     xSemaphoreHandle sendinglock;
-
     xTaskHandle  serverTaskHandle;
+#endif
 
   public:
     //Servers are in a linked list so we can track all servers

@@ -41,7 +41,7 @@ public:
     SQInteger _lasttokenline;
     SQInteger _currentcolumn;
     const SQChar *_svalue;
-    SQLanguageInteger _nvalue;
+    SQInteger _nvalue;
     SQFloat _fvalue;
     SQLEXREADFUNC _readf;
     SQUserPointer _up;

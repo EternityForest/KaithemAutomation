@@ -4,6 +4,7 @@
 
 #include "sqopcodes.h"
 #include "sqobject.h"
+#include "Arduino.h"
 #define MAX_NATIVE_CALLS 100
 #define MIN_STACK_OVERHEAD 15
 
@@ -85,7 +86,7 @@ public:
     bool ToString(const SQObjectPtr &o,SQObjectPtr &res);
     SQString *PrintObjVal(const SQObjectPtr &o);
 
-
+    void Raise_Error(const __FlashStringHelper * s, ...);
     void Raise_Error(const SQChar *s, ...);
     void Raise_Error(const SQObjectPtr &desc);
     void Raise_IdxError(const SQObjectPtr &o);

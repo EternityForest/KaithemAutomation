@@ -1,3 +1,6 @@
+&lt;%include file="/pageheader.html"/&gt;
+
+Kaithem Help
 
 Virtual Resources
 =================
@@ -15,13 +18,19 @@ If you try to overwrite an existing physical resource in this way, a RuntimeErro
 
 VirtualResources dissapear as soon as there are no references to them.
 
-Every VirtualResource also has an interface() method, which for the most part is a fully transparent proxy to the VirtualResource
+Every VirtualResource also has an interface() method, which for the most part returns a fully transparent proxy to the VirtualResource
 
 However, when a VirtualResource is overwritten in a module namespace, any interfaces pointing to the old resource get updated to point to the new one. To best take advantage of this, avoid passing direct refernences to a VirtualResource, and pass around the interfaces, or directly look them up.
 
 Once an object has been replaced, it should no longer be used, but must proxy any important calls, and calls that would affect the mutable state of the object through to the new one.
 
-This is done via the old\_one.handoff(new\_one) method, which also sets old\_one.replacement, which is normally None, to the new one
+Objects are replaced using the old\_one.handoff(new\_one) method, which also sets old\_one.replacement, which is normally None, to the new one. If the object has already been replaced, it passes through the call to the replacement.
+
+Should you extend handoff(), you must do this same check, as in
+
+    x = self.replacement
+    if x and (not x is other):
+        return x.handoff(self)
 
 By subclassing VirtualResource and extending handoff(), you can create objects that allow seamless code modification at runtime without noticable interruptions. However, there may still be sneaky transient references to the old one around. One example is if the replacement happens just after a method call to the old one, before it has a chance to complete. Another example is if you have a reference to a property of the old object, as the proxying is not recursive.
 
@@ -32,3 +41,5 @@ In general, mutable runtime data should be copied over(Including open sockets, g
 Be sure to clearly document what does and does not get transferred.
 
 Aside from handoff, replacement, name, and interface, VirtualResource does not define any public names and doesn't do much when instantiated, so you can use them just like any other object for the most part.
+
+&lt;%include file="/pagefooter.html"/&gt;

@@ -6,7 +6,7 @@
 #include <sqstdstring.h>
 
 #ifdef _DEBUG
-#include <stdio.h>
+#include "posix_compat.h"
 
 static const SQChar *g_nnames[] =
 {

@@ -7,7 +7,7 @@
 #endif
 
 #include <limits.h>
-#include <stdio.h>
+#include "posix_compat.h"
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>

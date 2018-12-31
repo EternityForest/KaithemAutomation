@@ -7,6 +7,8 @@
 #include "sqfuncproto.h"
 #include "sqclosure.h"
 #include "sqstring.h"
+#include "Arduino.h"
+
 
 SQRESULT sq_getfunctioninfo(HSQUIRRELVM v,SQInteger level,SQFunctionInfo *fi)
 {
@@ -55,6 +57,32 @@ SQRESULT sq_stackinfos(HSQUIRRELVM v, SQInteger level, SQStackInfos *si)
     }
     return SQ_ERROR;
 }
+
+static void Fcopy(char* buf, const __FlashStringHelper *ifsh)
+{
+  const char PROGMEM *p = (const char PROGMEM *)ifsh;
+  int i = 0;
+  uint8_t c  = 0;
+  do
+  {
+    c = pgm_read_byte(p++);
+    buf[i++] = c;
+  } while ( c != 0 );
+}
+
+void SQVM::Raise_Error(const __FlashStringHelper * s, ...)
+{
+    char buf[260];
+    Fcopy(buf,s);
+    SQInteger buffersize = (SQInteger)scstrlen(buf)+(NUMBER_MAX_CHAR*2);
+
+    va_list vl;
+    va_start(vl, buf);
+    scvsprintf(_sp(sq_rsl(buffersize)),buffersize, buf, vl);
+    va_end(vl);
+    _lasterror = SQString::Create(_ss(this),_spval,-1);
+}
+
 
 void SQVM::Raise_Error(const SQChar *s, ...)
 {

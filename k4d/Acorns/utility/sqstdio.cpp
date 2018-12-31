@@ -1,9 +1,10 @@
 /* see copyright notice in squirrel.h */
 #include <new>
-#include <stdio.h>
 #include <squirrel.h>
 #include <sqstdio.h>
 #include "sqstdstream.h"
+#include "posix_compat.h"
+
 
 #define SQSTD_FILE_TYPE_TAG ((SQUnsignedInteger)(SQSTD_STREAM_TYPE_TAG | 0x00000001))
 //basic API
@@ -29,14 +30,14 @@ SQInteger sqstd_fwrite(const SQUserPointer buffer, SQInteger size, SQInteger cou
 
 SQInteger sqstd_fseek(SQFILE file, SQInteger offset, SQInteger origin)
 {
-    SQInteger realorigin;
+    SEEK_ENUM realorigin;
     switch(origin) {
         case SQ_SEEK_CUR: realorigin = SEEK_CUR; break;
         case SQ_SEEK_END: realorigin = SEEK_END; break;
         case SQ_SEEK_SET: realorigin = SEEK_SET; break;
         default: return -1; //failed
     }
-    return fseek((FILE *)file,(long)offset,(int)realorigin);
+    return fseek((FILE *)file,(long)offset, realorigin);
 }
 
 SQInteger sqstd_ftell(SQFILE file)

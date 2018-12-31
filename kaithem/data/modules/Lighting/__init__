@@ -1617,7 +1617,7 @@ class LightBoard():
                     pass           
 
             if msg[0] == "testSoundCard":
-                kaithem.sound.play("alert.ogg",output=msg[1])
+                kaithem.sound.play("alert.ogg",output=msg[1], handle="lightboard_soundtest")
     
 
         except Exception as e:

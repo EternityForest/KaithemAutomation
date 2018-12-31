@@ -1,9 +1,11 @@
 /* see copyright notice in squirrel.h */
 #include <squirrel.h>
-#include <time.h>
+
 #include <stdlib.h>
-#include <stdio.h>
 #include <sqstdsystem.h>
+
+
+#include "posix_compat.h"
 
 #ifdef SQUNICODE
 #include <wchar.h>
@@ -38,9 +40,26 @@ static SQInteger _system_system(HSQUIRRELVM v)
         sq_pushinteger(v,scsystem(s));
         return 1;
     }
-    return sq_throwerror(v,_SC("wrong param"));
+    return sq_throwerror_f(v,F("wrong param"));
 }
 
+static SQInteger _system_remove(HSQUIRRELVM v)
+{
+    const SQChar *s;
+    sq_getstring(v,2,&s);
+    if(scremove(s)==-1)
+        return sq_throwerror_f(v,F("remove() failed"));
+    return 0;
+}
+
+static void _set_integer_slot(HSQUIRRELVM v,const SQChar *name,SQInteger val)
+{
+    sq_pushstring(v,name,-1);
+    sq_pushinteger(v,val);
+    sq_rawset(v,-3);
+}
+
+#ifndef ESP8266
 
 static SQInteger _system_clock(HSQUIRRELVM v)
 {
@@ -53,32 +72,6 @@ static SQInteger _system_time(HSQUIRRELVM v)
     SQInteger t = (SQInteger)time(NULL);
     sq_pushinteger(v,t);
     return 1;
-}
-
-static SQInteger _system_remove(HSQUIRRELVM v)
-{
-    const SQChar *s;
-    sq_getstring(v,2,&s);
-    if(scremove(s)==-1)
-        return sq_throwerror(v,_SC("remove() failed"));
-    return 0;
-}
-
-static SQInteger _system_rename(HSQUIRRELVM v)
-{
-    const SQChar *oldn,*newn;
-    sq_getstring(v,2,&oldn);
-    sq_getstring(v,3,&newn);
-    if(screname(oldn,newn)==-1)
-        return sq_throwerror(v,_SC("rename() failed"));
-    return 0;
-}
-
-static void _set_integer_slot(HSQUIRRELVM v,const SQChar *name,SQInteger val)
-{
-    sq_pushstring(v,name,-1);
-    sq_pushinteger(v,val);
-    sq_rawset(v,-3);
 }
 
 static SQInteger _system_date(HSQUIRRELVM v)
@@ -102,7 +95,7 @@ static SQInteger _system_date(HSQUIRRELVM v)
     else
         date = localtime(&t);
     if(!date)
-        return sq_throwerror(v,_SC("crt api failure"));
+        return sq_throwerror_f(v,F("crt api failure"));
     sq_newtable(v);
     _set_integer_slot(v, _SC("sec"), date->tm_sec);
     _set_integer_slot(v, _SC("min"), date->tm_min);
@@ -115,15 +108,31 @@ static SQInteger _system_date(HSQUIRRELVM v)
     return 1;
 }
 
+#endif
+
+static SQInteger _system_rename(HSQUIRRELVM v)
+{
+    const SQChar *oldn,*newn;
+    sq_getstring(v,2,&oldn);
+    sq_getstring(v,3,&newn);
+    if(screname(oldn,newn)==-1)
+        return sq_throwerror_f(v,F("rename() failed"));
+    return 0;
+}
+
+
+
 
 
 #define _DECL_FUNC(name,nparams,pmask) {_SC(#name),_system_##name,nparams,pmask}
 static const SQRegFunction systemlib_funcs[]={
     _DECL_FUNC(getenv,2,_SC(".s")),
     _DECL_FUNC(system,2,_SC(".s")),
+    #ifndef ESP8266
     _DECL_FUNC(clock,0,NULL),
     _DECL_FUNC(time,1,NULL),
     _DECL_FUNC(date,-1,_SC(".nn")),
+    #endif
     _DECL_FUNC(remove,2,_SC(".s")),
     _DECL_FUNC(rename,3,_SC(".ss")),
     {NULL,(SQFUNCTION)0,0,NULL}
@@ -132,7 +141,7 @@ static const SQRegFunction systemlib_funcs[]={
 
 SQInteger sqstd_register_systemlib(HSQUIRRELVM v)
 {
-    SQInteger i=0;
+   SQInteger i=0;
     while(systemlib_funcs[i].name!=0)
     {
         sq_pushstring(v,systemlib_funcs[i].name,-1);

@@ -517,8 +517,8 @@ class _Client():
 
     def sendSecure(self, counter, opcode, data,addr=None):
         "Send a secured packet"
-        dbg(counter)
-        dbg(self.key[0])
+        dbg("sending",counter)
+        dbg("withkey",self.key[0])
         self.lastSent = time
         q = struct.pack("<Q",counter)
         n = b'\x00'*(24-8)+struct.pack("<Q",counter)
@@ -622,6 +622,7 @@ class _Client():
         self.sock.close()
 
     def onMessage(self,addr,counter,opcode,data):
+        dbg("Got app msg opcode:",opcode)
         #If we've recieved an ack or a call response
         if opcode==0:
             print(data,addr)
@@ -644,6 +645,7 @@ class _Client():
                     #Decrement the counter that started at 0
                     self.waitingForAck[d].onResponse(data[8:])
                 except KeyError:
+                    dbg("Nobody listening for that response counter val", d)
                     pass
                 except Exception:
                     print(traceback.format_exc(6))
@@ -774,7 +776,10 @@ class _Client():
             #We can go to 8x faster than the specified retry time if the algorithm says to retry faster.
             #The algorithm being to go 2.5 standard deviations above what we expect
             #I believe that stil will result in approximately 
-            delay = min(retry,(self.averageResponseTimes[name]+ self.stdDevResponseTimes[name]*2))
+            if name in self.stdDevResponseTimes:
+                delay = min(retry,(self.averageResponseTimes[name]+ self.stdDevResponseTimes[name]*2))
+            else:
+                delay = min(retry,(self.averageResponseTimes[name]*1.5))
         else:
             delay = retry
         timeout = timeout or self.timeout
@@ -782,7 +787,7 @@ class _Client():
         callset = []
         while time.time()-start<timeout:
             try:
-                x= self._call(name,data,retry,callset)
+                x= self._call(name,data,retry,callset=callset)
                 totaltime = time.time()-start
 
                 #Calculate approximate average and std deviation
@@ -812,7 +817,7 @@ class _Client():
             except NoResponseError:
                 delay*=2
                 pass
-        raise NoResponseError("Server did not respond")
+        raise NoResponseError("Server did not respond after "+str(timeout)+"s")
 
 
     def _call(self, name, data, timeout = None, idempotent=True, callset=None):
@@ -823,7 +828,7 @@ class _Client():
         timeout = timeout or self.timeout
 
         w = common.ReturnChannel()
-        if callset:
+        if not callset==None:
             callset.append(w)
         self.waitingForAck[counter] =w
         self.send(counter, 4, struct.pack("<H",name)+data)
@@ -842,7 +847,7 @@ class _Client():
                     if not i.empty():
                         d = i.get(False)
                         break
-        if d==None:
+        if d is None:
             raise NoResponseError("Server did not respond")
 
 
@@ -911,7 +916,8 @@ class Client():
     def listDir(self, path, start=0):
         "List dir size on remote, starting at the nth file, because of limited message size."
         path = path.encode("utf8")
-        return[i[1:] for i in (self.call(14, struct.pack("<H",start)+path)).split(b"\x00")]
+        x = (self.call(14, struct.pack("<H",start)+path, timeout=2)).split(b"\x00")
+        return[i[1:] for i in x if i]
 
 
 
@@ -970,8 +976,8 @@ class Client():
         return self.call(20,struct.pack("<BB",pin,mode))
 
 
-    def call(self,function,data=b''):
-        return self.client.call(function, data)
+    def call(self,function,data=b'',timeout=None):
+        return self.client.call(function, data,timeout=timeout)
 
     def countBroadcastSubscribers(self,topic):
         "Counts how many servers subscribe to a topic"

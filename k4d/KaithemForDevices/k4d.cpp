@@ -102,8 +102,14 @@ static int rpc_isRunning(void * data, unsigned int datalen, KnownClient *client,
   const char * name = (const char *)data;
   const char * hash = strchr((const char *)data,0)+1;
 
+  if(*hash==0)
+  {
+    hash=0;
+  }
   //Load the program with just only that comment line
   *((uint8_t *)rbuffer)= Acorns.isRunning(name, hash);
+  *rlen = 1;
+
   return 0;
 }
 
@@ -131,21 +137,9 @@ static void acornsprint(loadedProgram * p, const char * c)
     K4D.server->broadcastMessage("k4dprint",p->programID, (uint8_t*)c, strlen(c));
 }
 
-/*
-static void WiFiEvent(WiFiEvent_t event){
 
-    switch(event) {
-      case SYSTEM_EVENT_STA_GOT_IP:
-          if(K4D.server)
-            {
-              K4D.server.broadcastMessage
-            }
-      case SYSTEM_EVENT_STA_DISCONNECTED:
 
-          break;
-    }
-}
-*/
+
 
 void _k4d::begin()
 {

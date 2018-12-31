@@ -22,9 +22,9 @@ SOFTWARE.*/
 
 #include "Arduino.h"
 
+#include "utility/squirrel.h"
 extern "C"
 {
-#include "utility/squirrel.h"
 #include "utility/sqstdblob.h"
 #include "utility/sqstdsystem.h"
 #include "utility/sqstdio.h"
@@ -46,12 +46,19 @@ class _Acorns
 
     void replChar(char);
     void begin();
+    void begin(const char *);
+
+
     int loadProgram(const char * code, const char * id);
+    int runProgram(const char * code, const char * id);
+    int runProgram(const char * code, const char * id,  void (*errorfunc)(loadedProgram *, const char *)=NULL, void (*printfunc)(loadedProgram *, const char *)=NULL, const char * workingDir=0);
+
     int loadInputBuffer(const char * id);
     int loadInputBuffer(const char * id,bool force);
 
     int closeProgram(const char * id);
     int closeProgram(const char * id, char force);
+    String joinWorkingDir(HSQUIRRELVM v,char * dir);
 
     struct CallbackData *acceptCallback(HSQUIRRELVM vm, SQInteger idx,void (*cleanup)(struct loadedProgram *, void *));
     void makeRequest(const char *, void (*f)(loadedProgram *, void *), void * arg);
@@ -71,6 +78,9 @@ class _Acorns
     void getConfig(const char * key, const char * d, char * buf, int maxlen );
     int loadFromFile(const char * fn);
     int loadFromDir(const char * dir);
+
+    const char * getQuote();
+
 };
 
 #define PROG_HASH_LEN 24
@@ -86,7 +96,7 @@ struct loadedProgram
   //The first 30 bytes of a file identify its "version" so we don't
   //replace things that don't need replacing.
   char hash[PROG_HASH_LEN];
-
+  char * workingDir;
   //This is the input buffer that gives us an easy way to send things to a program
   //in excess of the 1500 byte limit for UDP. We might also use it for other stuff later.
   char * inputBuffer;
@@ -126,6 +136,12 @@ struct loadedProgram
 
   //linked list of the recievers, or 0 if there are none.
   struct CallbackData * callbackRecievers;
+  
+  //This errorfunc handles errors for that program in addition to reporting to the root.
+  //Same with print.
+
+    void (*printfunc)(loadedProgram *, const char *);
+    void (*errorfunc)(loadedProgram *, const char *);
 
 };
 struct CallbackData
@@ -152,15 +168,20 @@ void deref_cb(CallbackData * p);
 
 extern _Acorns Acorns;
 
-extern SemaphoreHandle_t _acorns_gil_lock;
 
+#ifdef INC_FREERTOS_H
 //Wait 10 million ticks which is probably days, but still assert it if it fails
+extern SemaphoreHandle_t _acorns_gil_lock;
 #define GIL_LOCK assert(xSemaphoreTake(_acorns_gil_lock,200))
 #define GIL_UNLOCK xSemaphoreGive(_acorns_gil_lock)
-
+#else
+#define GIL_LOCK
+#define GIL_UNLOCK
+#endif
 
 //How many threads in the thread pool
 #define  ACORNS_THREADS 4
 
 //How many slots in the process table
 #define ACORNS_MAXPROGRAMS 16
+#define dbg(x) Serial.println(x)
