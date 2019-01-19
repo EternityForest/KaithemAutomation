@@ -23,9 +23,9 @@ SOFTWARE.
 
 #include "pavillion.h"
 #include <FS.h>
-#include <SD.h>
 
 #ifdef ESP32
+#include <SD.h>
 #include <SPIFFS.h>
 #endif
 
@@ -410,30 +410,26 @@ int rpcfslist(void *data, unsigned int datalen, KnownClient *client, void *rbuff
 
 void PavillionServer::enableRemoteAccess()
 {
-  addRPC(10, "readFile", rpcfsread);
-  addRPC(11, "writeFile", rpcfswrite);
-  addRPC(12, "writeInto", rpcfswriteinto);
-  addRPC(13, "deleteFile", rpcfsdelete);
-  addRPC(14, "listDir", rpcfslist);
+  addRPC(10, "readFile", rpcfsread, false);
+  addRPC(11, "writeFile", rpcfswrite,false);
+  addRPC(12, "writeInto", rpcfswriteinto,false);
+  addRPC(13, "deleteFile", rpcfsdelete,false);
+  addRPC(14, "listDir", rpcfslist,false);
 
-  addRPC(20, "pinMode", rpcpinmode);
-  addRPC(23, "analogRead", rpcanalogread);
-  addRPC(21, "digitalRead", rpcdigitalread);
+  addRPC(20, "pinMode", rpcpinmode,false);
+  addRPC(23, "analogRead", rpcanalogread,false);
+  addRPC(21, "digitalRead", rpcdigitalread,false);
 }
 
 /*
    Given a function index, a name, and a function, add a new RPC function to the server.
-   Servers can't be cleaned up, and functions can't be deleted.
+   Servers can't be cleaned up, and functions can't be deleted. However they can be overridden.
 
+   Calling theis function twice for the same number replaces the old one.
 */
-void PavillionServer::addRPC(uint16_t number, char *fname, int (*function)(void *data, unsigned int datalen, KnownClient *client, void *rbuffer, unsigned int *rlen))
+void PavillionServer::addRPC(uint16_t number, char *fname, int (*function)(void *data, unsigned int datalen, KnownClient *client, void *rbuffer, unsigned int *rlen), bool usespavillion)
 {
-  struct RpcFunction *n = new struct RpcFunction;
-  n->function = function;
-  n->index = number;
-  n->fname = fname;
-  n->next = 0;
-
+  struct RpcFunction *n = 0;
   struct RpcFunction *s = &fzero;
 
   while (s->next)
@@ -441,10 +437,32 @@ void PavillionServer::addRPC(uint16_t number, char *fname, int (*function)(void 
     s = s->next;
   }
 
-  s->next = n;
+  //We found the last one, append
+  if(s->next == 0)
+  {
+    n = new struct RpcFunction;
+    s->next = n;
+    n->next = 0;
+  }
+  //We found one with the same number. Overwrite
+  else
+  {
+    n=s;
+  }
+
+  //Fill in the actual data
+  n->function = function;
+  n->index = number;
+  n->fname = fname;
+  n->usespavillion = usespavillion;
 }
 
-void PavillionServer::doRPC(uint16_t number, KnownClient *client, void *data, uint16_t datalen, uint64_t callid)
+void PavillionServer::addRPC(uint16_t number, char *fname, int (*function)(void *data, unsigned int datalen, KnownClient *client, void *rbuffer, unsigned int *rlen))
+{
+  addRPC(number,fname, function, true);
+}
+
+void PavillionServer::doRPC(uint16_t number, KnownClient *client, void *data, uint16_t datalen, uint64_t callid, bool allowPavillion)
 {
   //For convenience of accepting strings, the byte after the last char is a null.
   ((uint8_t *)data)[datalen] = 0;
@@ -457,12 +475,14 @@ void PavillionServer::doRPC(uint16_t number, KnownClient *client, void *data, ui
     writeUnsignedNumber(rbuffer + 8, 2, 0);
     writeUnsignedNumber(rbuffer, 8, callid);
     memcpy(rbuffer + 10, data, datalen);
+    dbg("echo RPC");
     client->sendRawEncrypted(5, (uint8_t *)rbuffer, datalen + 10);
     return;
   }
 
   if (number == 1)
   {
+    dbg("function name requested");
     struct RpcFunction *s = &fzero;
     while (s->next)
     {
@@ -488,17 +508,26 @@ void PavillionServer::doRPC(uint16_t number, KnownClient *client, void *data, ui
     s = s->next;
     if (s->index == number)
     {
+      //Completely ignore RPC calls that can cause a broadcast,
+      //if we're already inside a broadcast loop.
+      if((!allowPavillion) && (s->usespavillion==true))
+      {
+        return;
+      }
       writeUnsignedNumber(rbuffer + 8, 2, s->function(data, datalen, client, rbuffer + 10, &rlen));
       writeUnsignedNumber(rbuffer, 8, callid);
-      dbgn(((uint64_t *)rbuffer)[0]);
+
+      dbg(F("Sending RPC response"));
       client->sendRawEncrypted(5, (uint8_t *)rbuffer, rlen + 10);
       return;
     }
   }
+  dbg(F("No RPC hanfler for that call"));
   char *rbuffer2 = (char *)malloc(32);
   memcpy(rbuffer2, "0000000000NonexistentFunction", 29);
   rlen = 19;
   *((uint16_t *)(rbuffer2 + 8)) = 2;
   *(uint64_t *)rbuffer2 = callid;
   client->sendRawEncrypted(5, (uint8_t *)rbuffer2, rlen + 10);
+  free(rbuffer2);
 }

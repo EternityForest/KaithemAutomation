@@ -104,6 +104,8 @@ static void pav_WiFiEvent(WiFiEvent_t event)
   switch (event)
   {
   case SYSTEM_EVENT_STA_GOT_IP:
+    dbg(F("WiFi connected"));
+
     //TODO: We should try to send a message to the last known server we were in contact with?
     connected = true;
     while (p)
@@ -113,6 +115,7 @@ static void pav_WiFiEvent(WiFiEvent_t event)
     }
     break;
   case SYSTEM_EVENT_STA_DISCONNECTED:
+    dbg(F("WiFi disconnected"));
     connected = false;
     break;
 
@@ -128,6 +131,7 @@ WiFiEventHandler stationDisconnectedHandler;
 
 static void pav_onconnect(const WiFiEventStationModeConnected &evt)
 {
+  dbg(F("WiFi Connected"));
   connected = true;
   PavillionServer *p = ServersList;
   while (p)
@@ -139,6 +143,7 @@ static void pav_onconnect(const WiFiEventStationModeConnected &evt)
 
 static void pav_ondisconnect(const WiFiEventStationModeDisconnected &evt)
 {
+  dbg(F("WiFi disconnected"));
   connected = false;
 }
 #endif
@@ -227,81 +232,183 @@ void KnownClient::sendRawEncrypted(uint8_t opcode, uint8_t *data, uint16_t datal
 
 void PavillionServer::broadcastMessage(const char *target, const char *name, uint8_t *data, int len)
 {
-  broadcastMessage(target, name, data, len, 1);
+  broadcastMessage(target, name, data, len, PAV_OP_RELIABLE);
 }
 
 void PavillionServer::broadcastMessage(const char *target, const char *name, uint8_t *data, int len, char opcode)
 {
+  dbg("Starting to broadcastMessage");
 //It is important that sendinglock be the outer lock.
 //Because we release the main lock during the resend loop.
 //And deadlocks suck.
 #ifdef INC_FREERTOS_H
   xSemaphoreTake(sendinglock, 1000000000);
+#else
+  ignore_except_ack = true;
 #endif
 
   PAV_LOCK();
 
-  int d = 2;
+  //How long to delay before polling if it's time to try again.
+  //We don't do exponential backoff individually.
+  //We do a global exponential, and we try
+  //with individual servers at a rate that is the slower
+  //of that client's specific calculated delay
+  //and the current global delay
+  float d = 10;
 
   int tlen = strlen(target);
   int nlen = strlen(name);
+  if (len == -1)
+  {
+    len = strlen((char *)data);
+  }
 
   for (int i = 0; i < MAX_CLIENTS; i++)
   {
     if (knownClients[i])
     {
+      //Increment the counters
       knownClients[i]->counter[2] += 1;
-      if (opcode == 1)
+      //Tell client objects to watch for acks if it's reliable
+      if (opcode == PAV_OP_RELIABLE)
       {
         knownClients[i]->ack_watch = knownClients[i]->counter[2];
-        knownClients[i]->ack_responded = false;
+        //This constantly falls but each extra retry bumps it back up.
+        knownClients[i]->defaultretrydelay*= 0.97;
+
+
+        //If it's been a long time, assume network conditions could have changed
+        //So we try a little faster if we had been going ultra slowly
+        if((millis()-knownClients[i]->_lastAttempt)>30*1000)
+        {
+          if( knownClients[i]->defaultretrydelay> 250)
+          {
+           knownClients[i]->defaultretrydelay = 250;
+          }
+        }
+        knownClients[i]->_lastAttempt = 0;
       }
+
+      //Even if only doing one round, set it false,
+      //We use it to decide who to sent to
+      knownClients[i]->ack_responded = false;
     }
   }
 
   while (d < 513)
   {
+    dbg("bcast loop iteration");
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
+      dbg("searching");
+      dbg(i);
+      //The array might include null pointers
       if (knownClients[i])
       {
+        dbg("Is a client");
+        //If they've been gone for 300s, consider them disconnected
         if ((millis() - knownClients[i]->lastSeen) < 300000)
         {
-          //Our garbage fake version of libsodium needs 32 extra bytes after the output buffer so it doesn't crash.
-          uint8_t *op = (uint8_t *)malloc(len + tlen + nlen + 2 + 33 + 11 + 8 + 1 + 32);
-          uint8_t *encrypted = op + 11 + 8;
+          //Don't send to clients that already acknowledged
+          //This message
+          if(knownClients[i]->ack_responded==false)
+          {
 
-          memcpy(op, "PavillionS0", 11);
+            if((millis()- knownClients[i]->_lastAttempt)< knownClients[i]->defaultretrydelay)
+            {
+              //Hasn't been long enough to try again with that client
+              continue;
+            }
 
-          //copy
-          memcpy((op + 11), (unsigned char *)(&(knownClients[i]->counter[2])), 8);
 
-          //This is the opcode
-          op[11 + 8] = opcode;
+            //Automatic retransmit delay optimization
+            if (opcode == PAV_OP_RELIABLE)
+            {
+              //Every attempt after the first increases the 
+              //delay, because the goal is to only have one attempt
+              //But still have the min time.
+              //So it slowly creeps down and gets increased by attempts.
 
-          memcpy((op + 11 + 9), target, tlen);
-          op[9 + 11 + tlen] = '\n';
-          memcpy((op + 11 + 9) + tlen + 1, name, nlen);
-          op[9 + 11 + tlen + 1 + nlen] = '\n';
+              //Note that it increases by 3 percent and decreases by 12 They're different
+              //So it doesn't get locked to a set of discrete steps as much.
+              //The numbers after the decimal are arbitrary.
 
-          memcpy((op + 11 + 9 + tlen + 1 + nlen + 1), data, len);
+              //This also has the effect that any time a packet is lost,
+              //We slow down a tiny bit, which may help with congesyion control.
+              //Is ithis the first attempt to send this particular message?
+              if(knownClients[i]->_lastAttempt)
+              {
+                knownClients[i]->defaultretrydelay*= 1.12567565;
+              }
+              if(knownClients[i]->defaultretrydelay>500)
+              {
+                knownClients[i]->defaultretrydelay= 500;
+              }
+              knownClients[i]->_lastAttempt =millis();
+            }
+            dbg("Found client to send bcast to:");
+            dbg(knownClients[i]->addr);
+            dbg(knownClients[i]->port);
+            //Our garbage fake version of libsodium needs 32 extra bytes after the output buffer so it doesn't crash.
+            uint8_t *op = (uint8_t *)malloc(len + tlen + nlen + 2 + 33 + 11 + 8 + 1 + 32);
+            
+            //Can't do much if the malloc fails
+            if (op == 0)
+            {
+              continue;
+            }
+            uint8_t *encrypted = op + 11 + 8;
 
-          crypto_secretbox_easy(encrypted, encrypted,
-                                len + tlen + nlen + 2 + 1, (uint8_t *)&(knownClients[i]->counter[0]),
-                                knownClients[i]->skey);
+            memcpy(op, "PavillionS0", 11);
 
-          sendUDP(op, len + tlen + nlen + 2 + 16 + 8 + 1 + 11, knownClients[i]->addr, knownClients[i]->port);
-          free(op);
+            //copy
+            memcpy((op + 11), (unsigned char *)(&(knownClients[i]->counter[2])), 8);
+
+            //This is the opcode
+            op[11 + 8] = opcode;
+
+            memcpy((op + 11 + 9), target, tlen);
+            op[9 + 11 + tlen] = '\n';
+            memcpy((op + 11 + 9) + tlen + 1, name, nlen);
+            op[9 + 11 + tlen + 1 + nlen] = '\n';
+
+            memcpy((op + 11 + 9 + tlen + 1 + nlen + 1), data, len);
+
+            crypto_secretbox_easy(encrypted, encrypted,
+                                  len + tlen + nlen + 2 + 1, (uint8_t *)&(knownClients[i]->counter[0]),
+                                  knownClients[i]->skey);
+
+            sendUDP(op, len + tlen + nlen + 2 + 16 + 8 + 1 + 11, knownClients[i]->addr, knownClients[i]->port);
+            free(op);
+          }
         }
       }
     }
 
     //If this is an unreliable message only do one loop
-    if (opcode == 1)
+    if (opcode == PAV_OP_RELIABLE)
     {
       PAV_UNLOCK();
-      delay(d);
+      if (yieldFunc)
+      {
+        long long start = millis();
+        while (millis() - start < d)
+        {
+          yieldFunc();
+        }
+      }
+      else
+      {
+        delay(d);
+      }
       PAV_LOCK();
+
+//Without freeRTOS, we have to do a limited form of polling
+//right here, inline.
+#ifndef INC_FREERTOS_H
+      poll();
+#endif
 
       char canQuit = 1;
 
@@ -309,11 +416,16 @@ void PavillionServer::broadcastMessage(const char *target, const char *name, uin
       {
         if (knownClients[i])
         {
-          if (millis() - knownClients[i]->lastSeen > 300000)
+          if ((millis() - knownClients[i]->lastSeen) < 300000)
           {
             if (knownClients[i]->ack_responded == false)
             {
+              dbg("Still waiting on client");
               canQuit = 0;
+            }
+            else
+            {
+              dbg("got ack");
             }
           }
         }
@@ -333,13 +445,79 @@ void PavillionServer::broadcastMessage(const char *target, const char *name, uin
 
 #ifdef INC_FREERTOS_H
   xSemaphoreGive(sendinglock);
+#else
+  ignore_except_ack = false;
 #endif
+}
+
+void PavillionServer::onApplicationMessage(IPAddress addr, uint16_t port, uint64_t counter, uint8_t *data, int datalen, KnownClient *client)
+{
+  //If no client given, find the client
+  if (client == 0)
+  {
+    client = clientForAddr(addr, port);
+  }
+  if (client == 0)
+  {
+    return;
+  }
+
+  uint8_t opcode = data[0];
+  data += 1;
+  //subtract Header, counter, opcode, auth tag
+  datalen -= (11 + 8 + 1 + 16);
+
+  if(opcode== PAV_OP_QUIT)
+  {
+    //Don't actually delete it, we might need it again,
+    //But set the timestamp to 0 so it's marked first in line,
+    //And marked no longer included when sending broadcasts.
+    client->lastSeen=0;
+  }
+
+  if (opcode == PAV_OP_MESSAGEACK)
+  {
+    if (client->ack_watch == readUnsignedNumber(data, 8))
+    {
+      dbg("Recieved message ack");
+      client->ack_responded = true;
+    }
+  }
+
+//This feature is only for non-rtos platforms.
+//This allows a limited degree of polling, to support reliable messages WITHIN
+//The retry loop for message sending.
+//Unfortunately, this means we depend entirely on client retries
+//And the retry period for these reliable messages has to be less than
+//The client timeout for whatever they're trying to do.
+#ifndef INC_FREERTOS_H
+  if (ignore_except_ack)
+  {
+
+    //Ok, maybe it's not JUST acks we accept. TODO: Bettter name for that var
+    //We don't allow functions that can send reliable broadcasts
+    //Because we're already sending one
+    if (opcode == PAV_OP_RPC)
+    {
+      doRPC(readUnsignedNumber(data, 2), client, data + 2, datalen - 2, counter, false);
+    }
+    return;
+  }
+#endif
+
+  //Yield the lock, because an RPC call may well try to send a message, which would require the lock.
+  if (opcode == PAV_OP_RPC)
+  {
+    PAV_UNLOCK();
+    //Allow functions that can broadcast
+    doRPC(readUnsignedNumber(data, 2), client, data + 2, datalen - 2, counter, true);
+    PAV_LOCK();
+  }
 }
 
 //Handle raw UDP Messages
 void KnownClient::onMessage(uint8_t *data, uint16_t datalen, IPAddress addr, uint16_t port)
 {
-
   //Make sure it has the header
   if (memcmp(data, "PavillionS0", 11))
   {
@@ -379,6 +557,18 @@ void KnownClient::onMessage(uint8_t *data, uint16_t datalen, IPAddress addr, uin
       }
     }
 
+
+    //We don't have code to actually understand messages, but we can acknowledge
+    //Them, because that's how keepalives work
+    //Note that this happens *before* the duplicate check.
+    //We do actually want to ack duplicates
+    if (data[0] == PAV_OP_RELIABLE)
+    {
+      dbg("Sending acknowledgement");
+      sendRawEncrypted(2, (uint8_t *)&counter, 8);
+    }
+
+
     //Make sure there's not a duplicate
     if (counter <= clientcounter)
     {
@@ -386,28 +576,8 @@ void KnownClient::onMessage(uint8_t *data, uint16_t datalen, IPAddress addr, uin
     }
 
     clientcounter = counter;
-
-    uint8_t opcode = data[0];
-    data += 1;
-
-    //subtract Header, counter, opcode, auth tag
-    datalen -= (11 + 8 + 1 + 16);
-
     this->lastSeen = millis();
-    if (opcode == 2)
-    {
-      if (this->ack_watch == readUnsignedNumber(data, 8))
-      {
-        this->ack_responded = true;
-      }
-    }
-    //Yield the lock, because an RPC call may well try to send a message, which would require the lock.
-    if (opcode == 4)
-    {
-      PAV_UNLOCK();
-      this->server->doRPC(readUnsignedNumber(data, 2), this, data + 2, datalen - 2, counter);
-      PAV_LOCK();
-    }
+    this->server->onApplicationMessage(addr, port, counter, data, datalen, this);
   }
 
   //Counter is 0, it's a protocol setup message
@@ -510,7 +680,7 @@ void KnownClient::onMessage(uint8_t *data, uint16_t datalen, IPAddress addr, uin
       //Last 32 bytes of the message are a hash, if it doesn't match, ignore.
       if (memcmp(data, hash, 32))
       {
-                dbg("Client's reply has the wrong hash");
+        dbg("Client's reply has the wrong hash");
 
         return;
       }
@@ -539,8 +709,8 @@ void KnownClient::onMessage(uint8_t *data, uint16_t datalen, IPAddress addr, uin
                          clientPSK, 32);
 
       //Send the client accept message
-      this->sendRawEncrypted(16, (uint8_t *)"This here is a testing message", 0);
-
+      dbg("sending cl accept");
+      this->sendRawEncrypted(16, (uint8_t *)"", 30);
       //No reusing the server nonce is allowed here.
       randombytes_buf(serverNonce, 32);
     }
@@ -563,20 +733,25 @@ KnownClient *PavillionServer::clientForAddr(IPAddress addr, uint16_t port)
     }
   }
 
+  dbg("Packet from unknown client, trying to make handler object");
   //No known client, make a new one
   for (int i = 0; i < MAX_CLIENTS; i++)
   {
 
     if (this->knownClients[i] == 0)
     {
+
       this->knownClients[i] = new KnownClient();
       this->knownClients[i]->addr = addr;
       this->knownClients[i]->port = port;
+      this->knownClients[i]->lastSeen = 0;
+
       knownClients[i]->server = this;
+      dbg("Made client using empty slot");
       return (this->knownClients[i]);
     }
 
-    if (millis() - this->knownClients[i]->lastSeen < 120000)
+    if ((millis() - this->knownClients[i]->lastSeen) > 8 * 60 * 1000)
     {
 
       if (this->knownClients[i])
@@ -586,8 +761,10 @@ KnownClient *PavillionServer::clientForAddr(IPAddress addr, uint16_t port)
       this->knownClients[i] = new KnownClient();
       this->knownClients[i]->addr = addr;
       this->knownClients[i]->port = port;
-      knownClients[i]->server = this;
+      this->knownClients[i]->lastSeen = 0;
 
+      knownClients[i]->server = this;
+      dbg("Cleared old client to make room for new");
       return (this->knownClients[i]);
     }
   }
@@ -609,7 +786,7 @@ void inline PavillionServer::sendUDP(uint8_t *data, uint16_t datalen, IPAddress 
                const struct sockaddr *dest_addr, socklen_t addrlen)
 */
 
-  udp.beginPacket(udp.remoteIP(), udp.remotePort());
+  udp.beginPacket(udpAddress, udpPort);
   udp.write(data, datalen);
   udp.endPacket();
 }
@@ -669,7 +846,7 @@ void PavillionServer::onMessage(uint8_t *data, uint16_t len, IPAddress addr, uin
 
   if (PSKforClient == 0)
   {
-    Serial.println("Plase define a PSKforClient function");
+    Serial.println(F("Plase define a PSKforClient function"));
     return;
   }
   KnownClient *x = clientForAddr(addr, port);

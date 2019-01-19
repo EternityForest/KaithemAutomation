@@ -285,6 +285,9 @@ modules.initModules()
 logger.info("Loaded modules")
 
 import mimetypes
+
+import collections
+zipcache = collections.OrderedDict()
 #This class represents the "/" root of the web app
 class webapproot():
     #"/" is mapped to this
@@ -303,11 +306,21 @@ class webapproot():
         """
         if ".." in path:
             return
+        try:
+            if path in zipcache:
+                zipcache.move_to_end(path)
+                return zipcache[path]
+        except:
+            print("err in cache for zip")
+
         m =mimetypes.guess_type(path[-1])
         cherrypy.response.headers['Content-Type'] = m[0]
         p = os.path.join(ddn,'static',*path[:-1])
         with zipfile.ZipFile(p) as f:
             d = f.read(path[-1])
+        zipcache[path]=d
+        if len(zipcache)> 64:
+            zipcache.pop(last=False)
         return d
 
     @cherrypy.expose

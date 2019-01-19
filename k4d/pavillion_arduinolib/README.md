@@ -92,7 +92,35 @@ void WiFiEvent(WiFiEvent_t event) {
 
 
 ### Adding your own functions
-void PavillionServer::addRPC(uint16_t number, char *fname, int(*function)(void * data, unsigned int datalen, KnownClient *client, void *rbuffer, unsigned int * rlen))
+#### void PavillionServer::addRPC(uint16_t number, char *fname, int(*function)(void * data, unsigned int datalen, KnownClient *client, void *rbuffer, unsigned int * rlen), [usesPavillion])
+
+Example: `addRPC(20, "pinMode", rpcpinmode, false);`
+
+The last param, usesPavillion, is optional. It must be true if the function is capable of sending out any
+reliable broadcasts.
+
+If false, clients will be able to call it even while the ESP is waiting for ACKs from a broadcast, even on the 8266.
+
+
+### Broadcasting a message
+#### void PavillionServer::broadcastMessage(const char *target, const char *name, uint8_t *data, int len, uint8_t [opcode]);
+Pass it the target, len, data, and datalen. This function is 100% blocking. It blocks until all clients
+acknowledges, or it gives up in a few seconds.
+
+RPC requests that have usesPavillion==false will still be accepted.
+
+Opcode is optional, defaulting to PAV_OP_RELIABLE. Pass PAV_OP_UNRELIABLE instead to send an unreliable message.
+
+Unreliable messages are non blocking and can be sent almost anywhere but are subject to packet loss and do not retransmit.
+
+##### Doing other things while transmitting
+To avoid utterly locking up the system, if the function pointer server.yieldFunc is not 0, it will be called in
+the inner loop. You may not send reliable broadcasts from that function. It will be called as often as possible,
+like loop().
+
+This must be a function of 0 arguments that returns void.
+
+
 
 ### Interpreting Packed Data
 

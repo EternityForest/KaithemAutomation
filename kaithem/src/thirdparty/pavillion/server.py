@@ -123,7 +123,7 @@ class _ServerClient():
                     self.client_counter = 0
                     self.send(self.counter, 11, b'')
                 else:
-                    self.server.onMessage(addr, counter,opcode,msg,self.clientID)
+                    self.server.onMessage(self, counter,opcode,msg,self.clientID)
                 return
             else:
                  raise ValueError("No valid header")
@@ -166,14 +166,17 @@ class _ServerClient():
                         if counter == self.unusedOutOfOrderCounterValue:
                             self.unusedOutOfOrderCounterValue = None
                         else:
+                            if self.client_counter< counter-250:
+                                self.server.onOldMessage(self,counter,plaintext[0],plaintext[1:],self.clientID)
                             return
-                
-                if counter > self.client_counter+1:
-                    with self.server.lock:
-                        self.unusedOutOfOrderCounterValue = self.client_counter+1
                     
-                self.client_counter = counter
-                self.server.onMessage(addr,counter,plaintext[0],plaintext[1:],self.clientID)
+                    if counter > self.client_counter+1:
+                        with self.server.lock:
+                            self.unusedOutOfOrderCounterValue = self.client_counter+1
+                else:        
+                    self.client_counter = counter
+                
+                self.server.onMessage(self,counter,plaintext[0],plaintext[1:],self.clientID)
 
             #We don't know how to process this message. So we send
             #an unrecognized client
@@ -295,7 +298,7 @@ class _ServerClient():
 
                     #If we used a guest key, report the hash of said guest key
                     if self.guest_key:
-                        self.clientID = common.libnacl.generic_hash(self.guest_key)
+                        self.clientID = common.libnacl.crypto_generichash(self.guest_key, b'')
                     self.ignore = 0
                     self.sendSetup(0, 7, self.sessionID)
                     self.setupCompleted = True
@@ -371,6 +374,9 @@ class _Server():
         #A list of all the registers and functions indexed by number
         self.registers = {}
 
+        #If we should send system info like battery status,
+        #wifi signal, and temperature
+        self.enableStatusReporting = False
 
         self.ecc_keypair = ecc_keypair
         self.running = True
@@ -426,6 +432,7 @@ class _Server():
                 if self in common.cleanup_refs:
                     common.cleanup_refs.remove(self)
         try:
+            self.sock.close()
             self.sendsock.close()
         except:
             pass
@@ -500,9 +507,23 @@ class _Server():
                     time.sleep(x)
                     self.rebroadcast( 1 if reliable else 3, target.encode('utf-8')+b"\n"+name.encode('utf-8')+b"\n"+data,filt)
 
+    def onOldMessage(self,client, counter, opcode, data,clientID=None):
+        addr=client.address
+        if  opcode==1:
+            #No counter race conditions allowed
+            with self.lock:
+                #Do an acknowledgement
+                self.knownclients[addr].counter += 1
+                if self.enableStatusReporting:
+                    sb = common.getStatusBytes()
+                else:
+                    sb = b''
+                self.knownclients[addr].send(self.knownclients[addr].counter,2,struct.pack("<Q",counter)+sb)
 
-    def onMessage(self,addr, counter, opcode, data,clientID=None):
+
+    def onMessage(self,client, counter, opcode, data,clientID=None):
         "Handle a message after decoding"
+        addr = client.address
         #reliable message
         if  opcode==1:
             d = data.split(b'\n',2)
@@ -524,7 +545,11 @@ class _Server():
             with self.lock:
                 #Do an acknowledgement
                 self.knownclients[addr].counter += 1
-                self.knownclients[addr].send(self.knownclients[addr].counter,2,struct.pack("<Q",counter))
+                if self.enableStatusReporting:
+                    sb = common.getStatusBytes()
+                else:
+                    sb = b''
+                self.knownclients[addr].send(self.knownclients[addr].counter,2,struct.pack("<Q",counter)+sb)
 
             #Repeat messages to all the other clients if broker mode is enabled.
             if self.broker:
@@ -643,7 +668,8 @@ class _Server():
                 except socket.timeout:
                     continue
                 except:
-                    print(traceback.format_exc())
+                    if self.running:
+                        print(traceback.format_exc())
                 if addr in self.ignore:
                     continue
 
@@ -673,9 +699,9 @@ class _Server():
                 except:
                     pavillion_logger.exception("Exception in server loop")
 
-        #Close sock at end
-        self.sock.close()
         try:
+            #Close sock at end
+            self.sock.close()
             self.sendsock.close()
         except:
             pass
@@ -694,6 +720,9 @@ class Server():
         self.registers = self.server.registers
         self.ignore = self.server.ignore
 
+    def setStatusReporting(self,s):
+        "Enable or disable sending battery, temperature, and RSSI data to clients"
+        self.server.enableStatusReporting = s
     def sendMessage(self, target, name, data, reliable=True, timeout = 10,addr=None):
         return self.server.sendMessage(target, name, data, reliable, timeout,addr)
     
@@ -703,3 +732,8 @@ class Server():
     
     def close(self):
         self.server.close()
+    def __del__(self):
+        try:
+            self.close()
+        except:
+            pass

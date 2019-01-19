@@ -15,7 +15,7 @@
 #along with Pavillion.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import hashlib,logging,struct,threading,atexit,base64,queue
+import hashlib,logging,struct,threading,atexit,base64,queue,time,subprocess,re,os
 
 DEFAULT_PORT=1783
 DEFAULT_MCAST_ADDR="239.255.28.12"
@@ -28,27 +28,115 @@ allow_new = True
 
 cleanup_refs = []
 
+import traceback
+
+def get_interfaces():
+    interfaces = os.listdir('/sys/class/net')
+    return interfaces
+
+def detect_virtual_interfaces(interfaces):
+    for each in interfaces:
+        real_path = os.path.realpath(os.path.join('/sys/class/net/', each))
+        if '/devices/virtual/net/' in real_path:
+            interfaces.remove(each)
+    return interfaces
+
+def detect_ethernet(clean_interfaces):
+    ethernet_interfaces = []
+    for each in clean_interfaces:
+        try:
+            with open('/sys/class/net/{0}/speed'.format(each), 'r') as speed_file:
+                for line in speed_file:
+                    ethernet_interfaces.append(each)
+        except OSError:
+            pass
+    return ethernet_interfaces
+
+
+
+statusCacheTime = 0;
+statusCache = struct.pack("<BBb",0,255, 0)
+def getStatusBytes():
+    global statusCacheTime, statusCache
+    if time.time()< (statusCacheTime+60):
+        return statusCache
+    statusCacheTime = time.time()
+    bstat = 0
+    nstat = 255
+    temp = 0
+    try:
+        import psutil
+        battery = psutil.sensors_battery()
+        bstat = int((battery.percent/100)*63)
+        if battery.power_plugged:
+            bstat +=128
+        else:
+            bstat+=0
+        temp = 0
+        x = psutil.sensors_temperatures()
+        for i in x:
+            for j in x[i]:
+                if temp< j.current:
+                    temp = j.current
+    except:
+        print(traceback.format_exc())
+    
+    #Linux only
+    #TODO: This assumes that if there's ethernet,
+    #That's what's being used.
+    try:
+        interfaces = get_interfaces()
+        clean_interfaces = detect_virtual_interfaces(interfaces)
+        if not detect_ethernet(clean_interfaces):
+            ##This reports WiFi signal level on
+            p = subprocess.check_output("iwconfig")
+            sig = float(re.search(b"Signal level=(.*?)dBm",p).group(1).decode("utf8"))
+            sig=min(sig, -20)
+            sig=max(sig,-120)
+            nstat= sig+120
+        else:
+            #We're on a wired connection
+            nstat = 202
+    except:
+        print(traceback.format_exc())
+
+    statusCache = struct.pack("<BBb",int(bstat),nstat, max(min(int(temp), 127), -127))
+    return statusCache
+
+
+
 
 class ReturnChannel():
+    """Node is supposed to be a secure ID of the node, preferably the session key they send to
+    us with"""
+
     def __init__(self,q=None):
         self.queue = q or queue.Queue(64)
         #It's not a message target thing
         self.target = None
     
-    def onResponse(self,data):
+    def onResponse(self,data, node=None):
         self.queue.put(data,True,3)
 
-class ExpectedAckCounter():
-    #TODO track specific servers
-    def __init__(self,e,counter):
+class ExpectedAckTracker():
+    def __init__(self,e,nodes):
         self.e = e
-        self.counter = counter
+        self.nodes = nodes.copy()
         self.target = None
 
-    def onResponse(self, data):
-        self.counter-=1
-        if not self.counter:
+    def onResponse(self, data,node):
+        try:
+            if node in self.nodes:
+                del self.nodes[node]
+            #Used to let you specify you want at least one ACK.
+            if 0 in self.nodes:
+                del self.nodes[0]
+        except:
+            pass
+        if  len(self.nodes)==0:
             self.e.set()
+
+
 
 class MessageTarget():
     def __init__(self,target,callback):
