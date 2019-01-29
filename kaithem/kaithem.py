@@ -287,7 +287,11 @@ logger.info("Loaded modules")
 import mimetypes
 
 import collections
+
+#Super simple hacky cache. Maybe we should
+#Just mostly eliminate zips and use files directly?
 zipcache = collections.OrderedDict()
+
 #This class represents the "/" root of the web app
 class webapproot():
     #"/" is mapped to this

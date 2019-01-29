@@ -100,7 +100,8 @@ class LoggingHandler(logging.Handler):
         
         #How many entries have we dumped to the file already?
         self.counter=0
-        
+        #and how many bytes
+        self.bytecounter=0
         #This callback is for when we want to use this handler as a filter.
         self.callback = lambda x: x
         logging.getLogger().addHandler(self)
@@ -144,8 +145,9 @@ class LoggingHandler(logging.Handler):
             try:
                 self.flush()
             except Exception as e:
+                print(traceback.format_exc())
                 print("Log flush error "+repr(e))
-                logging.exception("error flushing logs with handler "+repr(self))
+                #logging.exception("error flushing logs with handler "+repr(self))
     
     def flush(self):
         """Flush all log entires that belong to topics that are in the list of things to save, and clear the staging area"""
@@ -195,15 +197,19 @@ class LoggingHandler(logging.Handler):
     
                 #We can't append to gz and bz2 files efficiently, so we dissalow using those for anything
                 #except one file buffered dumps
+                ###TODO: TOo Many Open Files error
                 chmodflag= not os.path.exists(self.current_file)
                 with openlog(self.current_file,'ba' if self.compress =="none" else "wb") as f:
                     if chmodflag:
                         util.chmod_private_try(fn)
                     for i in logbuffer:
-                        f.write((i+"\r\n").encode("utf8"))
-                    
+                        b =(i+"\r\n").encode("utf8")
+                        self.bytecounter+=len(b)
+                        f.write(b)
+                
+
                 #Keep track of how many we have written to the file
-                self.counter+= len(self.logbuffer)
+                self.counter+= len(logbuffer)
                 
                 #If we have filled up one file, we close it, and let the logic
                 #for the next dump decide what to do about it.
@@ -211,38 +217,46 @@ class LoggingHandler(logging.Handler):
                 if (self.counter >= self.entries_per_file) or not self.compress=='none':
                     self.current_file=None
                     self.counter = 0
-                    
+                    self.bytecounter = 0
+                
+                #We really don't want all the logs in one file because of how we delete them
+                #One file at a time.
+                if self.bytecounter > (self.keep/8):
+                    self.current_file=None
+                    self.counter =0
+                    self.bytecounter=0
+
                 
             #Make a list of our log dump files.
             asnumbers = {}
             for i in util.get_files(self.folder):
-                if not re.match(self.fn+"_[0-9]+(.[0-9]+)?\.log(\..*)?",i):
+                if not re.match(self.fn+r"_[0-9]+(.[0-9]+)?\.log(\..*)?",i):
                     continue
-                    try:
-                        #Our filename format dictates that the last _ comes before the number and ext
-                        j = i.split("_")[-1]
-                        #Remove extensions
-                        if i.endswith(".log"):
-                            asnumbers[float(j[:-4])] = i
-                        elif i.endswith(".log.gz"):
-                            asnumbers[float(j[:-7])] = i
-                        elif i.endswith(".log.bz2"):
-                            asnumbers[float(j[:-8])] = i
-                    except ValueError:
-                        pass
+                try:
+                    #Our filename format dictates that the last _ comes before the number and ext
+                    j = i.split("_")[-1]
+                    #Remove extensions
+                    if i.endswith(".log"):
+                        asnumbers[float(j[:-4])] = i
+                    elif i.endswith(".log.gz"):
+                        asnumbers[float(j[:-7])] = i
+                    elif i.endswith(".log.bz2"):
+                        asnumbers[float(j[:-8])] = i
+                except ValueError:
+                    pass
 
             maxsize = self.keep
             size = 0
             #Loop over all the old log dumps and add up the sizes
             for i in asnumbers.values():
-                size = size + os.path.getsize(os.path.join(where,i))
+                size = size + os.path.getsize(os.path.join(self.folder,i))
 
             #Get rid of oldest log dumps until the total size is within the limit
-            for i in sorted(asnumbers.keys()):
+            for i in sorted(asnumbers.values()):
                 if size <= maxsize:
                     break
-                size = size - os.path.getsize(os.path.join(where,i))
-                os.remove(os.path.join(where,asnumbers[i]))
+                size = size - os.path.getsize(os.path.join(self.folder,i))
+                os.remove(os.path.join(self.folder,i))
 
         
 syslogger = LoggingHandler("system",fn="system" if not config['log-format']=='none' else None,
@@ -252,8 +266,6 @@ syslogger = LoggingHandler("system",fn="system" if not config['log-format']=='no
                         bufferlen =config['log-buffer'],
                         keep=unitsofmeasure.strToIntWithSIMultipliers(config['keep-log-files']),
                         compress= config['log-compress'])
-
-
 
 ##Linux only way of recovering backups even if the
 if os.path.exists("/dev/shm/kaithemdbglog"):
@@ -294,5 +306,5 @@ if os.path.exists("/dev/shm"):
             folder="/dev/shm/kaithemdbglog/",level=0,
             entries_per_file=5000, 
             bufferlen= 0,
-            keep=10**5*5,
+            keep=10**6,
             compress= "none")

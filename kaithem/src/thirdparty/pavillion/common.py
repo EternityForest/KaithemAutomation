@@ -58,7 +58,7 @@ statusCacheTime = 0;
 statusCache = struct.pack("<BBb",0,255, 0)
 def getStatusBytes():
     global statusCacheTime, statusCache
-    if time.time()< (statusCacheTime+60):
+    if time.time()< (statusCacheTime+10):
         return statusCache
     statusCacheTime = time.time()
     bstat = 0
@@ -82,23 +82,19 @@ def getStatusBytes():
         print(traceback.format_exc())
     
     #Linux only
-    #TODO: This assumes that if there's ethernet,
-    #That's what's being used.
+    #TODO: This assumes that if there's wifi,
+    #That's what's being used, otherwise we get unknown.
+    #This inaccurate data is better than nothing I think.
     try:
-        interfaces = get_interfaces()
-        clean_interfaces = detect_virtual_interfaces(interfaces)
-        if not detect_ethernet(clean_interfaces):
-            ##This reports WiFi signal level on
-            p = subprocess.check_output("iwconfig")
-            sig = float(re.search(b"Signal level=(.*?)dBm",p).group(1).decode("utf8"))
-            sig=min(sig, -20)
-            sig=max(sig,-120)
-            nstat= sig+120
-        else:
-            #We're on a wired connection
-            nstat = 202
+
+        ##This reports WiFi signal level on
+        p = subprocess.check_output("iwconfig", stderr=os.devnull)
+        sig = int(re.search(b"Signal level=(.*?)dBm",p).group(1).decode("utf8"))
+        sig=min(sig, -20)
+        sig=max(sig,-120)
+        nstat= sig+120
     except:
-        print(traceback.format_exc())
+       pass
 
     statusCache = struct.pack("<BBb",int(bstat),nstat, max(min(int(temp), 127), -127))
     return statusCache

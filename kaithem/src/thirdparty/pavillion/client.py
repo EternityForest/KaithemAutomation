@@ -729,7 +729,7 @@ class _Client():
             So a single client with a multicast address can be connected to more than one.
         """
         with self.lock:
-            return {i:RemoteServerInterface(i) for i in self.known_servers if self.known_servers[i].connectedAt>(time.time()-240)}
+            return {i:RemoteServerInterface(self.known_servers[i]) for i in self.known_servers if self.known_servers[i].connectedAt>(time.time()-240)}
 
     def getServer(self):
         """Returns a single server interface object representing one connected physical remote server
