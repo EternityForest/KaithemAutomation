@@ -106,6 +106,9 @@ If you install using the debian package helper, you will be prompted for an admi
 Recent Changes(See changes.md for full change info)
 =============
 
+### 0.62
+- Performance and lighting bugfix release
+
 ### 0.61
 
 -   Detect unclean shutdown

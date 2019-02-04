@@ -1,0 +1,18 @@
+resource-type: module-description
+text: "This module provides a few JS libraries. Note that this module may not be stable\
+  \ between versions and is primarily intended for use by future included library\
+  \ modules. However, the each file will not be changed without updating its name,\
+  \ nor will this module change without a name change(Except in cases like the development\
+  \ version). Multiple copies of this module will not conflict.\r\n\r\nThese modules\
+  \ use the web resource lookup API, so the correct way to include them in a page\
+  \ is:\r\n\r\n<script src=\"${kaithem.web.resource('jquery-3.1.0')}\"></script>\r\
+  \n<script src=\"${kaithem.web.resource('vue-1.0.26')}\"></script>\r\n<script src=\"\
+  ${kaithem.web.resource('mustache-2.2.1')}\"></script>\r\n<script src=\"${kaithem.web.resource('keyboardjs-2.3.1')}\"\
+  ></script>\r\n<script src=\"${kaithem.web.resource('snap.svg-0.4.1')}\"></script>\r\
+  \n\r\n<link rel=\"stylesheet\" href=\"${kaithem.web.resource('element-theme')}\"\
+  >\r\n<script src=\"${kaithem.web.resource('elementui-1.3.6')}\"></script>\r\n\r\n\
+  Note: you need to include a 2.xx version of Vue.js if you want to use element UI.\r\
+  \n\r\nBeware that as these are common open source libraries, no permissions are\
+  \ required to access them, which could cause DoS issues if your server is public\
+  \ due to the size of the files. In general DoS attacks are hard to prevent though.\r\
+  \n\r\nYou can of course modify this easily as all the JS files are just pages."
