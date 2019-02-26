@@ -170,6 +170,7 @@ def addUser(username,password):
     authchanged = True
     if not username in Users: #stop overwriting attempts
         Users[username] = User({'username':username,'groups':[]})
+        Users[username].limits = {}
         changePassword(username,password)
 
 def removeUser(user):
