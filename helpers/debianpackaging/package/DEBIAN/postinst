@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 if [ ! -f /var/lib/kaithem/users/data/users.json ] ; then
     adduser --system --no-create-home kaithem
     #Look at this race condition here! Someone could steal that private key before we chmod it!

@@ -48,6 +48,9 @@ All required dependancies should already be included. Huge thanks to the develop
 
 There's a few optional dependancies though. Auto time synchronization and MDNS depends on netifaces, and sound requires mplayer, madplay, or sox, with all but mplayer not recommended. Pavillion-based net sync requires libnacl.
 
+### Extra Dependancy
+The latest version has libnacl as a required dependancy. It's easy to install "python3-libnacl" on Ubuntu, but the next version should have it as optional again for maximum portability.
+
 git clone or download somewhere and run `python3 kaithem/kaithem.py`
 You can also use python2 if you really want.
 
