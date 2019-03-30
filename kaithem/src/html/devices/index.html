@@ -1,5 +1,20 @@
 <%include file="/pageheader.html"/>
 
+<%! 
+from src import remotedevices
+
+def devStatString(d):
+    try:
+        s = ''
+        if 'kaithem.device.rssi' in d.descriptors:
+            s+= "RSSI:" +str(d.rssi())+ " "
+
+        return s.strip()
+    except Exception as e:
+        return ""
+%>
+
+
 
 <title>Kaithem Devices</title>
 <h1>Devices</h1>
@@ -8,11 +23,12 @@
 <h2>Remote Devices</h2>
 <div class="sectionbox">
 <p class="help">
-    This section provides an easy way to configure remote devices that use the Pavillion protocol.
+    This section provides an easy way to configure devices supported
+    by Kaithem's remote device abstraction layer.
 </p>
 <table border="1">
 <tr>
-    <td>Name</td><td>Edit</td><td>Errors</td>
+    <td>Name</td><td>Type</td>  <td>Edit</td> <td>Status</td> <td>Errors</td><td>Delete</td>
 </tr>
 %for i in sorted(devices.keys()):
 <tr>
@@ -20,19 +36,41 @@
         ${i}
     </td>
     <td>
-        <a href="device/${i}">Edit</a>
+            ${devices[i].deviceTypeName}
     </td>
 
     <td>
+        <a href="device/${i}">Edit</a>
+    </td>
+
+    <td>${devStatString(devices[i])|h}</td>
+    
+
+    <td>
         ${len(devices[i].errors)}
+    </td>
+
+
+    <td>
+        <a href="deleteDevice/${i|u}">Delete</a>
     </td>
 </tr>
 %endfor
 </table>
 
+<datalist id="deviceTypes">
+    %for i in remotedevices.builtinDeviceTypes:
+    <option value="${i}" title=${remotedevices.builtinDeviceTypes[i].description} >
+    %endfor
+    %for i in remotedevices.deviceTypes:
+    <option value="${i}" title=${remotedevices.deviceTypes[i].description} >
+    %endfor
+</datalist>
+
+
 <form action="createDevice">
 <Label>Name:<input name="name"></Label>
-<Label>Type:<input name="type" value="pavillion"></Label>
+<Label>Type:<input name="type" placeholder="Click for dropdown" list="deviceTypes"></Label>
 <input type="submit">
 </form>
 </div>

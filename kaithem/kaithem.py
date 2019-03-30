@@ -64,6 +64,14 @@ x = os.path.join(x,'src')
 #Avoid having to rename six.py by treating it's folder as a special case.
 sys.path = [os.path.join(x,'thirdparty','six')] + sys.path
 
+sys.path = [os.path.join(x,'plugins','ondemand')] + sys.path
+sys.path = [os.path.join(x,'plugins','startup')] + sys.path
+
+startupPluginsPath = os.path.join(x,'plugins','startup')
+
+sys.path = sys.path+ [os.path.join(x,'plugins','lowpriority')]
+
+
 if sys.version_info < (3,0):
     sys.path = [os.path.join(x,'thirdparty','python2')] + sys.path
     from gzip import open as opengzip
@@ -91,6 +99,9 @@ import src
 
 import time,signal
 import cherrypy,validictory
+
+#We don't want Cherrypy writing temp files for no reason
+cherrypy._cpreqbody.Part.maxrambytes = 64*1024
 
 from cherrypy import _cperror
 from src import util
@@ -565,6 +576,22 @@ cherrypy.engine.start()
 util.drop_perms(config['run-as-user'], config['run-as-group'])
 messagebus.postMessage('/system/startup','System Initialized')
 messagebus.postMessage('/system/notifications/important','System Initialized')
+
+import importlib
+plugins = {}
+try:
+    for i in os.listdir(startupPluginsPath):
+        try:
+            plugins[i] = importlib.import_module(i)
+        except:
+            logger.exception("Error loading plugin "+i)
+            messagebus.postMessage('/system/notifications/errors',"Error loading plugin "+i)
+except:
+    messagebus.postMessage('/system/notifications/errors',"Error loading plugins")
+
+            
+
+
 cherrypy.engine.block()
 
 #Old workaround for things not stopping on python3 that no longer appears to be needed.

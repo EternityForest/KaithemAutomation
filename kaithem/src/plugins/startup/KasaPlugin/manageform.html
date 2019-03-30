@@ -1,0 +1,40 @@
+
+<%!
+
+import KasaPlugin
+
+%>
+
+<%
+KasaPlugin.maybeRefresh()
+%>
+<h2>Kasa Plug Device Info</h2>
+<table border="1" style="width:80em">
+
+<datalist id="devices">
+%for i in KasaPlugin.lookup:
+<option value="${i}"></option>
+%endfor
+</datalist>
+
+<tr>
+        <td>Device Type</td>
+        <td><input name="type" value="${data.get('type','')}"></td>
+</tr>
+
+
+<tr>
+    <td>Device locator(IP address or device alias)</td>
+    <td><input list="devices" name="locator" value="${data.get('locator','')}"></td>
+</tr>
+<tr>
+    <td>RSSI</td>
+    %try:
+    <td>${obj.rssi()}</td>
+    %except:
+    <td>Could not contact device. Is the locator correct?</td>
+    %endtry
+
+</tr>
+
+</table>

@@ -15,10 +15,12 @@
 
 
 
-import weakref,pavillion, threading,time,logging,traceback,struct,hashlib,base64
+import weakref, threading,time,logging,traceback,struct,hashlib,base64
 import cherrypy,mako
 
 from . import virtualresource,pages,registry,modules_state,kaithemobj, workers
+
+
 
 remote_devices = {}
 remote_devices_atomic = {}
@@ -31,10 +33,17 @@ k4dlogger = logging.getLogger("system_k4d_errors")
 syslogger = logging.getLogger("system.devices")
 
 
-
-
 #Indexed by module,resource tuples
 loadedSquirrelPrograms = {}
+
+def getByDescriptor(d):
+    x = {}
+
+    for i in remote_devices_atomic:
+        if d in remote_devices_atomic[i].descriptors:
+            x[i] = remote_devices_atomic[i]
+
+    return x
 
 def sqminify(code):
     line = ''
@@ -137,6 +146,12 @@ def updateProgram(module,resource, data, upload=True):
 #This is the base class for a remote device of any variety.
 
 class RemoteDevice(virtualresource.VirtualResource):
+    """A Descriptor is something that describes a capability or attribute
+    of a device. They are string names and object values,
+    and names should be globally unique"""
+    descriptors = {}
+
+    description=""
     @staticmethod
     def validateData(data):
         pass
@@ -166,6 +181,16 @@ class RemoteDevice(virtualresource.VirtualResource):
             remote_devices_atomic =remote_devices.copy()
     def status(self):
         return "norm"
+    @staticmethod
+
+    def discoverDevices():
+        """Returns a list of data objectd that could be used to 
+            create a device object of this type, indexed by
+            a string that can be up to a line of description.
+
+            The data should leave out defaults.
+        """
+        return {}
 
 
 
@@ -174,7 +199,7 @@ class RemoteDevice(virtualresource.VirtualResource):
 #is name, and that's optional but can be used to rename a device
 def updateDevice(name, kwargs,saveChanges=True):
     name = name or kwargs['name']
-    devicetypes.get(kwargs['type'],RemoteDevice).validateData(kwargs)
+    getDeviceType(kwargs['type']).validateData(kwargs)
     with lock:
         if name in remote_devices:
             remote_devices[name].close()
@@ -229,18 +254,41 @@ class WebDevices():
 
         raise cherrypy.HTTPRedirect("/devices")
 
+    @cherrypy.expose
+    def deleteDevice(self,name,**kwargs):
+        pages.require("/admin/settings.edit")
+        name = name or kwargs['name']
+        return pages.get_template("devices/confirmdelete.html").render(name=name)
+    
+    @cherrypy.expose
+    def deletetarget(self,**kwargs):
+        pages.require("/admin/settings.edit")
+        name = kwargs['name']
+        with lock:
+            remote_devices[name].close()
+            try:
+              del remote_devices[name]
+            except KeyError:
+                pass
+            try:
+                del device_data[name]
+            except KeyError:
+                pass
+            global remote_devices_atomic
+            remote_devices_atomic =remote_devices.copy()
+            registry.set("system_remotedevices.devices", device_data)
+
+        raise cherrypy.HTTPRedirect("/devices")
 
 
+try:
+    import pavillion
+except:
+    #The re-attempt will raise an error if anyone tries 
+    #To actually use this stuff.
+    pass
 
 
-class Client2(pavillion.Client):
-    def __init__(self, cb, *a,**k):
-        self.connectCB = cb
-        pavillion.Client.__init__(self, *a,**k)
-    def onServerConnect(self, addr, pubkey):
-        #That lint error is fine
-        if self.connectCB:
-            workers.do(self.connectCB)
 
 class PavillionDevice(RemoteDevice):
     deviceTypeName="pavillion"
@@ -258,7 +306,7 @@ class PavillionDevice(RemoteDevice):
     onPavillionConnect =None
 
     def __init__(self, name, data):
-
+        import pavillion
         RemoteDevice.__init__(self,name,data)
 
         self.recievelock=threading.Lock()
@@ -300,6 +348,19 @@ class PavillionDevice(RemoteDevice):
 
 
         self.lock = threading.RLock()
+
+        #Has to be here so it doesn't mess everything else
+        #up if we can't import Pavillion
+        class Client2(pavillion.Client):
+            def __init__(self, cb, *a,**k):
+                self.connectCB = cb
+                import pavillion
+                pavillion.Client.__init__(self, *a,**k)
+            def onServerConnect(self, addr, pubkey):
+                #That lint error is fine
+                if self.connectCB:
+                    workers.do(self.connectCB)
+
         #This client is passed a callback to autoload all new code onto the device upon connection
         self.pclient = Client2(self.onPavillionConnect, clientID=self.cid,psk=self.psk, address=self.address)
 
@@ -388,7 +449,7 @@ class K4DDevice(PavillionDevice):
                     pos+= len(x)
                 c.call(4099, name.encode("utf-8"))
 
-                syslogger.info("Loaded porgram:" +name+" to k4d device")
+                syslogger.info("Loaded program:" +name+" to k4d device")
             except:
                 print(traceback.format_exc())
                 if errors:
@@ -396,12 +457,27 @@ class K4DDevice(PavillionDevice):
 
 class DeviceNamespace():
     def __getattr__(self, name):
-        return remote_devices[name].interface
+        return remote_devices[name].interface()
+    def __getitem__(self, name):
+        return remote_devices[name].interface()
 
-devicetypes = {'pavillion':PavillionDevice,"k4d":K4DDevice}
+builtinDeviceTypes = {'pavillion':PavillionDevice,"k4d":K4DDevice}
+deviceTypes = weakref.WeakValueDictionary()
 
 def makeDevice(name, data):
-    return devicetypes.get(data['type'], RemoteDevice)(name, data)
+    if data['type'] in builtinDeviceTypes:
+        return builtinDeviceTypes.get(data['type'], RemoteDevice)(name, data)
+    else:
+        return deviceTypes.get(data['type'], RemoteDevice)(name, data)
+
+def getDeviceType(t):
+    if t in builtinDeviceTypes:
+        return builtinDeviceTypes[t]
+    elif t in deviceTypes:
+        return deviceTypes[t]
+    else:
+        return RemoteDevice
+
 
 def init_devices():
         

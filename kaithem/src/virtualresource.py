@@ -35,7 +35,7 @@ class VirtualResource(object):
     def __html_repr__(self):
         return "VirtualResource at "+str(id(self))+" of class"+str(self.__class__.__name__)+""
 
-    def interface(self,name):
+    def interface(self):
         if not self.replacement:
 
             with self.__lock:
@@ -50,6 +50,7 @@ class VirtualResource(object):
                 #remove them
                 for i in torm:
                     self.__interfaces.remove()
+                return(x)
         else:
             return self.replacement.interface(self)
 

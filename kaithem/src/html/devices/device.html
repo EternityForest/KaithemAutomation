@@ -7,52 +7,59 @@
 import traceback
 %>
 
-<h2>Device Info</h2>
-<table border="1" style="width:80em">
-    <tr>
-            <td>Device Type</td>
-            <td><input name="type" value="${data.get('type','')}"></td>
-    </tr>
-
-    <tr>
-            <td>Client ID(32 Hex chars or 16 UTF-8 bytes)</td>
-            <td><input name="cid" value="${data.get('cid','')}"></td>
-    </tr>
-
-    <tr>
-        <td>IP Address of server:</td>
-        <td><input name="address" value="${data.get('address','')}"></td>
-    </tr>
-
-    <tr>
-            <td>Port</td>
-            <td><input name="port" value="${data.get('port','')}"></td>
-    </tr>
-
-    <tr>
-            <td>PSK(64 Hex chars or 32 UTF-8 bytes)</td>
-            <td><input name="psk" value="${data.get('psk','')}" style="width: 65em"></td>
-    </tr>
-</table>
-
+%if hasattr(obj,"getManagementForm"):
+${obj.getManagementForm()}
 <input type="submit" value="Save settings">
-%if 0:
-%if obj.errors:
-<h2>Errors</h2>
-%for i in obj.errors:
-<p class="error"><pre>${i[1]|}</pre></p>
-%endfor
 %endif
 
-%if obj.k4derr:
-<h2>Kaithem for Devices program errors</h2>
-%for i in obj.k4derr:
-<p class="error">
-        <b>${i[0]} at ${unitsofmeasure.strftime(i[2])}</b><br>
-        <pre>${i[1]|h}</pre>
-</p>
-%endfor
-%endif
+%if data.get('type','') in ("pavillion", "k4d"):
+        <h2>Device Info</h2>
+        <table border="1" style="width:80em">
+        <tr>
+                <td>Device Type</td>
+                <td><input name="type" value="${data.get('type','')}"></td>
+        </tr>
+
+        <tr>
+                <td>Client ID(32 Hex chars or 16 UTF-8 bytes)</td>
+                <td><input name="cid" value="${data.get('cid','')}"></td>
+        </tr>
+
+        <tr>
+                <td>IP Address of server:</td>
+                <td><input name="address" value="${data.get('address','')}"></td>
+        </tr>
+
+        <tr>
+                <td>Port</td>
+                <td><input name="port" value="${data.get('port','')}"></td>
+        </tr>
+
+        <tr>
+                <td>PSK(64 Hex chars or 32 UTF-8 bytes)</td>
+                <td><input name="psk" value="${data.get('psk','')}" style="width: 65em"></td>
+        </tr>
+        </table>
+
+        <input type="submit" value="Save settings">
+        %if 0:
+        %if obj.errors:
+        <h2>Errors</h2>
+        %for i in obj.errors:
+        <p class="error"><pre>${i[1]|}</pre></p>
+        %endfor
+        %endif
+
+        %if obj.k4derr:
+        <h2>Kaithem for Devices program errors</h2>
+        %for i in obj.k4derr:
+        <p class="error">
+                <b>${i[0]} at ${unitsofmeasure.strftime(i[2])}</b><br>
+                <pre>${i[1]|h}</pre>
+        </p>
+        %endfor
+        %endif
+        %endif
 %endif
 </form>
 
