@@ -156,13 +156,32 @@ class RemoteDevice(virtualresource.VirtualResource):
     def validateData(data):
         pass
 
+    def setAlertPriorities(self):
+        """Sets alert priorites for all alerts in the alerts dict
+            based on the data key alerts.<alert_key>.priority
+        """
+        for i in self.alerts:
+            if "alerts."+i+".priority" in self.data:
+                self.alerts[i].priority =  self.data["alerts."+i+".priority"]
+
     def __init__(self,name, data):
         if not data['type']==self.deviceTypeName:
             raise ValueError("Incorrect type in info dict")
         virtualresource.VirtualResource.__init__(self)
         global remote_devices_atomic
 
+
+        #This data dict represents all persistent configuration
+        #for the alert object.
         self.data = data
+
+        #This dict cannot be changed, only replaced atomically.
+        #It is a list of alert objects. Dict keys
+        #may not include special chars besides underscores.
+
+        #It is a list of all alerts "owned" by the device.
+        self.alerts={}
+
         self.name = data.get('name', None) or name
         self.errors = []
         with lock:

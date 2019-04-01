@@ -174,7 +174,7 @@ class SmartPlug(SmartDevice):
         else:
             self.currentDelay = min(max(0.05, self.currentDelay*1.2),15)
             
-        time.sleep(max(0, self.currentDelay() - time()))
+        time.sleep(max(0, self.currentDelay - time.time()))
             
         self._query_helper("system", "set_relay_state", {"state": 1})
         

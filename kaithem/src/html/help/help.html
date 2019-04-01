@@ -237,7 +237,46 @@ h4 {
             file resources and modules. Users with /admin/settings.edit can upload up to 4Gb files in the file manager</p>
         </p>
             
+        <h2>Devices</h2>
+        <p>
+            Kaithem suports a generic Device API that abstracts common functionality in devices that might be
+            connected, and gives you a central place to manage, list, and configure all your
+            connected devices.
+        </p>
 
+        <p>Devices allow a certain amount of no-code GUI configuration for supported types,
+            by adding them on the devices page.
+        </p>
+
+        <p>Devices are defined by a dict of configuration data and a name. At minimium,
+            the device config data will have a "type" field that determines what class is used to construct the device 
+            object.
+        </p>
+
+        <p>The generated device objects are accessible at kaithem.devices.name or kaithem.devices['name']</p>
+
+        <p>Every device has a set of "descriptors", which are objects indexed by string keys
+            that describe exactly what the device is capable of. String keys can be anything,
+            but domain name based names help avoid collisions.
+        </p>
+
+        <p>To create your own device types, all you have to do is subclass remotedevices.RemoreDevice, and
+            add your subclass to the weak dict remotedevices.deviceTypes.
+        </p>
+
+        <p>Device configuration pages are structured as HTML forms, and the field names
+            map directly to data keys in the configuration. Every device has a getManagementForm()
+            method that returns raw HTML that gets inserted into that form.
+        </p>
+
+        <p>Configuration keys are hierarchially namespaced. To be completely safe,
+            use the "device." namespace for device specific stuff.
+        </p>
+        <p>Config keys of the form alerts.NAME.priority are used to set the priority
+            of the corresponding alert in the device.alerts dict, allowing easy configurable
+            alerting. The config page already has this section, you do not need to include it
+            in your management form.
+        </p>
         <h2>
             <a id="fileref" name="fileref"></a>File Reference Resources
         </h2>
@@ -1128,7 +1167,10 @@ h4 {
 		<p>If clock==True, places is ignored and output is in HH:MM format. If places is 3 or 4 format will be HH:MM:SS or HH:MM:SS:mmm where mmmm is milliseconds.</p>
 
 		<h3>kaithem.plugin</h3>
-		<p>This namespace contains tools for writing plugins for kaithem. A kaithem plugin is just a module meant to extend kaithem's functionality.</p>
+		<p>This namespace contains tools for writing plugins for kaithem.
+            A plugin can be just a module that provides features, or it can be a python
+            file in src/plugins/startup, which will be automatically imported.
+        </p>
 
 		<h4>kaithem.plugin.addPlugin(name,object)</h4>
 		<p>Causes a weak proxy to object to become available at kaithem.name.

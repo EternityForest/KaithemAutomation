@@ -1,4 +1,6 @@
 <%include file="/pageheader.html"/>
+<script type="text/javascript" src="/static/widget.js"></script>
+
 <h1>Device Inspector: ${name}</h1>
 <div class="sectionbox">
 <form method="POST" action="../updateDevice/${name}">
@@ -9,8 +11,32 @@ import traceback
 
 %if hasattr(obj,"getManagementForm"):
 ${obj.getManagementForm()}
-<input type="submit" value="Save settings">
 %endif
+
+<h2>Alerts</h2>
+<p class="help">This section lists all alerts supported by the device and
+        allows you to change the priorities for each.
+</p>
+<table border="1" style="width:40em">
+<tr><td>Name</td><td>Priority</td><td>Status</td></tr>
+
+%for i in obj.alerts:
+<tr><td>${i|h}</td>
+        <td>
+        <select name="alerts.${i}.priority">
+                <option value="debug" ${"selected" if obj.alerts[i].priority=="debug" else ""}>Debug</option>
+                <option value="info" ${"selected" if obj.alerts[i].priority=="info" else ""}>Info</option>
+                <option value="warning" ${"selected" if obj.alerts[i].priority=="warning" else ""}>Warning</option>
+                <option value="error" ${"selected" if obj.alerts[i].priority=="error" else ""} >Error</option>
+                <option value="critical" ${"selected" if obj.alerts[i].priority=="critical" else ""}>Critical</option>
+        </select>
+        </td>
+        <td>${obj.alerts[i].sm.state}</td>
+</tr>
+%endfor
+</table>
+
+<input type="submit" value="Save settings">
 
 %if data.get('type','') in ("pavillion", "k4d"):
         <h2>Device Info</h2>

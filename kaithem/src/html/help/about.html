@@ -52,6 +52,8 @@
                 "wlan0",
                 "wlan1",
                 "wifi0",
+                "wlo0",
+                "wlo1",
                 "ath0",
                 "ath1",
                 "ppp0",
@@ -66,6 +68,7 @@
         return ip
 
 %>
+<script src="/static/qrcode.min.js"></script>
 
     <%include file="/pageheader.html"/>
 	<title>About Kaithem </title>
@@ -79,8 +82,15 @@
     <div class="sectionbox">
     <b>Version:</b> ${kaithem.__version__|h}
     </div>
-    <br>
     <div class="sectionbox">
+        <b>LAN access QR:</b><br>
+        <div id="lanqr"></div>
+        <script>
+        new QRCode(document.getElementById("lanqr"), "https://${get_lan_ip()}:${config['https-port']}");
+        </script>
+    </div>
+    <br>
+<div class="sectionbox">
 <p>
 <h3>IP Data</h3>
     <table border=1>

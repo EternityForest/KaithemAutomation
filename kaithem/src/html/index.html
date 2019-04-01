@@ -37,6 +37,10 @@ from src.unitsofmeasure import formatTimeInterval
             if pages.canUserDoThis(i.permissions):
                 toshow[i.id]=0
                 l.append(i)
+        try:
+            del i
+        except:
+            pass
 
         for i in alerts.active.values():
             i = i()
@@ -44,8 +48,13 @@ from src.unitsofmeasure import formatTimeInterval
                 continue
             if pages.canUserDoThis(i.permissions):
                 if not i.id in toshow:
-                    toshow[i.id]=0
-                    l.append(i)
+                    if not i.priority==debug:
+                        toshow[i.id]=0
+                        l.append(i)
+        try:
+            del i
+        except:
+            pass
 
         l = sorted(l, key=lambda i: (i.sm.state=="acknowledged", i.priority, i.zone, i.name))
         %>
@@ -53,7 +62,7 @@ from src.unitsofmeasure import formatTimeInterval
         %for i in l:
         <div style="background-color:rgba(255,240,220,0.2);border-style:solid;"><b>${i.name}</b>
              Priority: ${i.priority}, Zone: ${i.zone}<br>
-             Tripped at:${i.trippedAt}<br>
+             Tripped at:${unitsofmeasure.strftime(i.trippedAt)}(about ${formatTimeInterval(time.time()-i.trippedAt,2)} ago)<br>
         %if not i.sm.state=="acknowledged":    
         <a class="button" href=".?ackalarm=${i.id}">ACK</a>
         %endif

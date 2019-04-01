@@ -49,7 +49,7 @@ class VirtualResource(object):
 
                 #remove them
                 for i in torm:
-                    self.__interfaces.remove()
+                    self.__interfaces.remove(i)
                 return(x)
         else:
             return self.replacement.interface(self)
