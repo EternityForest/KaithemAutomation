@@ -401,6 +401,7 @@ class BaseEvent():
         try:
             with self.lock:
                 self.pymodule.__dict__.clear()
+                del self.pymodule
         except:
             raise
 
@@ -1189,9 +1190,12 @@ def updateOneEvent(resource,module, o=None):
                 old.unregister()
                 #Now we clean it up and delete any references the user code might have had to things
                 old.cleanup()
-            #Really we should wait a bit longer but this is a compromise, we wait so any cleanup effects can propagate.
-            #120ms is better than nothing I guess.
-            time.sleep(0.120)
+                #Really we should wait a bit longer but this is a compromise, we wait so any cleanup effects can propagate.
+                #120ms is better than nothing I guess. And we garbage collect before and after,
+                #Because we want all the __del__ stuff to get a chance to take effect.
+                gc.collect()
+                time.sleep(0.120)
+                gc.collect()
             if not o:
                 #Now we make the event
                 x = make_event_from_resource(module,resource)

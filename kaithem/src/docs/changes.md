@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.63
+-   New tagpoints(Like SCADA tagpoints)
+-   Kasa smartplug support
+-   Migrate docs to markdown
+
 ### 0.62
 
 -   Major performance bugfixes

@@ -1,7 +1,3 @@
-&lt;%include file="/pageheader.html"/&gt;
-
-Kaithem Help
-
 FAQ
 ===
 
@@ -458,5 +454,3 @@ should be retry tolerant anyway, but this issue may be fixed later
 
 Then you should probably use sqlite, which is built into python, or
 another transactional database.
-
-&lt;%include file="/pagefooter.html"/&gt;

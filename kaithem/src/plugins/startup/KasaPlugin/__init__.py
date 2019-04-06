@@ -1,6 +1,6 @@
 #Plugin that manages TP-Link Kasa devices.
 
-from src import remotedevices,alerts, scheduling
+from src import remotedevices,alerts, scheduling,tagpoints
 import os,mako,time,threading,logging
 
 from src import widgets
@@ -72,12 +72,43 @@ class KasaSmartplug(remotedevices.RemoteDevice):
         self.highCurrentAlert = alerts.Alert(priority='warning', name=name+".highcurrentalert", autoAck=False)
         self.overCurrentAlert = alerts.Alert(priority='error', name=name+".overcurrentalert", autoAck=False)
 
+        #Set it up with a tagpoint
+        self.switchTagPoint = tagpoints.Tag("/devices/"+self.name+".switch")
+        self.switchTagPoint.min=0
+        self.switchTagPoint.max=1
+
+
+        def switchTagHandler(v):
+            self.setSwitch(0,v>=0.5)
+        
+        def switchTagGetter(v):
+            return 1 if self.getSwitch(0) else 0
+
+        self.switchTagPoint.claim(switchTagGetter)
+
+        self.sth = switchTagHandler
+
+        #We use the handler to set this. This means that an error will
+        #Be raised if we try to set the tag with an unreachable device
+        self.switchTagPoint.setHandler(switchTagHandler)
+
+        #We probably don't need to poll this too often
+        self.switchTagPoint.interval= 3600
+
+        self.tagPoints={
+            "switch":self.switchTagPoint()
+        }
+
         self.alerts={
             "unreachableAlert":self.unreachableAlert,
             "lowSignalAlert": self.lowSignalAlert,
             'highCurrentAlert':self.highCurrentAlert,
             'overCurrentAlert':self.overCurrentAlert
         }
+
+       
+
+       
         self.setAlertPriorities()
         try:
             #Check RSSI as soon as we create the obj to trigger any alerts based on it.

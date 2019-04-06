@@ -1,9 +1,14 @@
 
-from . import scheduling,workers, virtualresource
-import time, threading,weakref
-t = time.time()
+from . import scheduling,workers, virtualresource,newevt
+import time, threading,weakref,logging
 
-lock = threading.Lock()
+logger = logging.getLogger("system.tagpoints")
+
+t = time.monotonic
+
+#This is used for messing with the set of tags.
+#We just accept that creating and deleting tags and claims is slow.
+lock = threading.RLock()
 
 allTags = {}
 
@@ -42,6 +47,21 @@ def Tag(name):
 
         return _TagPoint(name)
 
+class Claim():
+    "Represents a claim on a tag point's value"
+    def __init__(self,tag, value, name='default',priority=50):
+        self.name=name
+        self.tag=tag
+        
+    def __del__(self):
+        self.tag.release(self.name)
+    
+    def set(self,value):
+       self.tag.setClaimVal(self.name, value)
+
+    def release(self):
+        self.tag.release(self.name)
+
 class _TagPoint(virtualresource.VirtualResource):
     """
         A Tag Point is a named object that can be chooses from a set of data sources based on priority,
@@ -70,14 +90,20 @@ class _TagPoint(virtualresource.VirtualResource):
         self.cvalue = 0
         self.lastGotValue = 0
         self.interval =1
-        self.activeClaim = (50, t(),"default",50)
+        self.activeClaim =None
         self.claims = {}
         self.lock = threading.Lock()
         self.subscribers = []
         self.poller = None
 
+        self.handler=None
+
         self.min = min
         self.max = max
+        #If we should push the same value twice in a row when it comes in.
+        #If false, only push changed data to subscribers.
+        self.pushOnRepeats = False
+        self.lastPushedValue=None
         with lock:
             allTags[name]=self
             allTagsAtomic= allTags.copy()
@@ -87,6 +113,7 @@ class _TagPoint(virtualresource.VirtualResource):
             self._push(self.value)
 
         self.p = poll
+        self.defaultClaim = self.claim(0)
 
     def __del__(self):
         with lock:
@@ -151,7 +178,27 @@ class _TagPoint(virtualresource.VirtualResource):
             if x:
                 self.subscribers.remove(x)
 
+    def setHandler(self, f):
+        self.handler=weakref.ref(f)
+
     def _push(self,val):
+
+        #This is not threadsafe, but I don't think it matters.
+        #A few unnecessary updates shouldn't affect anything.
+        if val==self.lastPushedValue:
+            if not self.pushOnRepeats:
+                return
+
+        #Note the difference with the handler.
+        #It is called synchronously, right then and there
+        if self.handler:
+            f=self.handler()
+            if f:
+                f(val)
+            else:
+                self.handler=None
+        self.lastPushedValue = val
+
         for i in self.subscribers:
             def f():
                 x=i()
@@ -182,9 +229,23 @@ class _TagPoint(virtualresource.VirtualResource):
         else:
             #Call the function if that's what it is
             if time.time()-self.lastGotValue> self.interval:
-                self.cvalue= self._value()
-                self.lastGotValue = time.time()
+                try:
+                    self.cvalue= self._value()
+                    self.lastGotValue = time.time()
+                except:
+                    logger.exception("Error getting tag value")
+                    #If we can, try to send the exception back whence it came
+                    try:
+                        newevt.eventByModuleName(self._value.__module__)._handle_exception()
+                    except:
+                        pass
+                    raise
+
             return self.processValue(self.cvalue)
+    
+    @value.setter
+    def value(self, v):
+        self.setClaimVal("default",v)
 
     def claim(self, value, name="default", priority=50):
         """Adds a 'claim', a request to set the tag's value either to a literal 
@@ -194,28 +255,53 @@ class _TagPoint(virtualresource.VirtualResource):
             active, or the value returned from the getter if the active claim is
             a function.
         """
+
         with self.lock:
+            #ClaimObj means we're changing the value of an existing claim
+            if name in self.claims:
+                raise ValueError("Cannot have two claims with the same name")
+            
             #Note  that we use the time, so that the most recent claim is
             #Always the winner in case of conflicts
             self.claims[name] = (priority, t(),name, value)
-            
-            if priority >= self.activeClaim.priority:
-                self.activeClaim = (priority, t(), name, value)
-                self._value = value
-                return
-            
-            oldp = self.activeClaim[0]
-            if oldp>priority:
-                self.activeClaim = sorted(list(self.claims.values()))[-1]
-                self._value = self.activeClaim[3]
 
-    
+            if self.activeClaim==None or priority >= self.activeClaim[0]:
+                self.activeClaim = self.claims[name]
+                self._value = value
+
+            self._push(self.value)           
+            return Claim(self, value,name,priority)
+
+    def setClaimVal(self,claim,val):
+        "Set the value of an existing claim"
+        with self.lock:
+            c=self.claims[claim]
+            if c==self.activeClaim:
+                upd=True
+            else:
+                upd=False
+            x= (c[0],t(),c[2], val)
+            self.claims[claim]=x
+            if upd:
+                self.activeClaim=x
+                self._value=val
+                self._push(self.value)
+
     def release(self, name):
         with self.lock:
+            #Ifid lets us filter by ID, so that a claim object that has
+            #Long since been overriden can't delete one with the same name
+            #When it gets GCed
+            if not name in self.claims:
+                return
+            
+            if name=="default":
+                raise ValueError("Cannot delete the default claim")
+
+            if len(self.claims)==1:
+                raise RuntimeError("Tags must maintain at least one claim")
             del self.claims[name]
             self.activeClaim = sorted(list(self.claims.values()))[-1]
             self._value = self.activeClaim[3]
+            self._push(self.value)
 
-
-t=Tag("Blah")
-t.claim(8889,"TestClaim",51)
