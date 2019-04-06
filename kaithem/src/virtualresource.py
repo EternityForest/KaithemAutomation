@@ -37,7 +37,6 @@ class VirtualResource(object):
 
     def interface(self):
         if not self.replacement:
-
             with self.__lock:
                 x= VirtualResourceInterface(self)
                 self.__interfaces.append(weakref.ref(x))
@@ -55,6 +54,10 @@ class VirtualResource(object):
             return self.replacement.interface(self)
 
     def handoff(self,other):
+        #Handle some bizzare edge cases. Don't call the possibly
+        #Slow of buggy function if the same thing gets added twice
+        if self==other:
+            return
         with self.__lock:
             #Someone thinks this is the current one and wants to replace it,
             #But actually this has already been replaced and some object is now current.

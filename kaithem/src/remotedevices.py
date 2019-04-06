@@ -15,12 +15,10 @@
 
 
 
-import weakref, threading,time,logging,traceback,struct,hashlib,base64
+import weakref,pavillion, threading,time,logging,traceback,struct,hashlib,base64
 import cherrypy,mako
 
 from . import virtualresource,pages,registry,modules_state,kaithemobj, workers
-
-
 
 remote_devices = {}
 remote_devices_atomic = {}
@@ -31,6 +29,8 @@ lock = threading.RLock()
 device_data = registry.get("system_remotedevices.devices",{})
 k4dlogger = logging.getLogger("system_k4d_errors")
 syslogger = logging.getLogger("system.devices")
+
+
 
 
 #Indexed by module,resource tuples
@@ -151,7 +151,7 @@ class RemoteDevice(virtualresource.VirtualResource):
     and names should be globally unique"""
     descriptors = {}
 
-    description=""
+    description= "Abstract base class for a device"
     @staticmethod
     def validateData(data):
         pass
@@ -468,7 +468,7 @@ class K4DDevice(PavillionDevice):
                     pos+= len(x)
                 c.call(4099, name.encode("utf-8"))
 
-                syslogger.info("Loaded program:" +name+" to k4d device")
+                syslogger.info("Loaded porgram:" +name+" to k4d device")
             except:
                 print(traceback.format_exc())
                 if errors:

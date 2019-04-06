@@ -345,6 +345,8 @@ def insertVirtualResource(modulename:str,name:str,value:VirtualResource):
 
         #Set the value's "name". A virtual resource may only have one "hard link". The rest of the links, if you insert under multiple
         #names, will work, but won't be the "real" name, and subscriptions and things like that are always to the real name.
+        
+        #VResources can have names set elsewhere, and those are respected
         if not value.name:
             value.name="x-module:"+ util.url(modulename)+"/"+ "/".join([util.url(i) for i in util.split_escape(name,"/","\\")])
 
