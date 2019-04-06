@@ -39,8 +39,7 @@ logger = logging.getLogger("system_event_errors")
 syslogger = logging.getLogger("system.events")
 
 
-
-
+eventsByModuleName=weakref.WeakValueDictionary()
 
 
 def manualRun(event):
@@ -356,6 +355,9 @@ class BaseEvent():
         self.resource = r if r else str(util.unique_number())
         self.pymodule = types.ModuleType(str("Event_"+self.module +"_"+self.resource))
         self.pymodule.__file__ = str("Event_"+self.module +"_"+self.resource)
+        self.pymoduleName="Event_"+self.module+'_'+self.resource
+
+        eventsByModuleName[self.pymoduleName]=self
         #This lock makes sure that only one copy of the event executes at once.
         self.lock = threading.Lock()
 
@@ -443,11 +445,12 @@ class BaseEvent():
                 self._handle_exception(e)
 
 
-    def _handle_exception(self, e=None):
-            if sys.version_info>(3,0):
-                tb = traceback.format_exc(6, chain=True)
-            else:
-                tb = traceback.format_exc(6)
+    def _handle_exception(self, e=None, tb=None):
+            if tb==None:
+                if sys.version_info>(3,0):
+                    tb = traceback.format_exc(6, chain=True)
+                else:
+                    tb = traceback.format_exc(6)
             #When an error happens, log it and save the time
             #Note that we are logging to the compiled event object
             self.errors.append([time.strftime(config['time-format']),tb])
@@ -886,7 +889,7 @@ class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
         else:
             self.polled = True
         #Compile the trigger
-        x = compile("def _event_trigger():\n    return "+when,"Event_"+self.module+'_'+self.resource,'exec')
+        x = compile("def _event_trigger():\n    return "+when,self.pymoduleName,'exec')
         exec(x,self.pymodule.__dict__)
 
         self._init_setup_and_action(setup,do)

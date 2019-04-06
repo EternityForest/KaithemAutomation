@@ -350,6 +350,8 @@ class webapproot():
             return pages.get_template('help/'+path[0]+'.html').render()
         return pages.get_template('help/help.html').render()
 
+
+
     @cherrypy.expose
     def makohelp(self,*path,**data):
         return pages.get_template('help/makoreference.html').render()
@@ -495,6 +497,12 @@ cnf={
         "tools.addheader.on": True
         },
 
+        '/static/docs':
+        {'tools.staticdir.on': True,
+        'tools.staticdir.dir':os.path.join(sdn,'docs'),
+        "tools.sessions.on": False,
+        "tools.addheader.on": True
+        },
     '/static/zip':
         {
         'request.dispatch': cherrypy.dispatch.MethodDispatcher()

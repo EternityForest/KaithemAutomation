@@ -1,0 +1,50 @@
+<style type="text/css">
+h2 {
+	background-color: rgba(200, 255, 220, 0.4);
+}
+
+h3 {
+	margin-top: 1em !important;
+	margin-bottom: 1em !important;
+	background-color: rgba(255, 255, 255, 0.3);
+}
+
+h4 {
+	margin-top: 0.5em !important;
+	margin-bottom: 0.5em !important;
+	background-color: rgba(220, 220, 220, 0.25);
+}
+</style>
+<%include file="/pageheader.html"/>
+<title>Kaithem Help</title>
+
+<script src="/static/showdown.min.js"></script>
+<div class="sectionbox" id="help">
+    Loading markdown
+</div>
+
+<script>
+var url = new URL(window.location.href);
+var c = url.searchParams.get("page");
+
+var xhr = new XMLHttpRequest();
+
+//Whatever the page url param says we need that's what we render from markdown
+xhr.open("GET", "/static/docs/"+c, true);
+xhr.onload = function (e) {
+  if (xhr.readyState === 4) {
+    if (xhr.status === 200) {
+        var conv = new showdown.Converter({metadata: true});
+        var html = conv.makeHtml(xhr.responseText);
+        document.getElementById("help").innerHTML=html;
+    } else {
+      console.error(xhr.statusText);
+    }
+  }
+};
+xhr.onerror = function (e) {
+  console.error(xhr.statusText);
+};
+xhr.send(null);
+</script>
+<%include file="/pagefooter.html"/>

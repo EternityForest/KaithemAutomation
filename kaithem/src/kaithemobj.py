@@ -42,10 +42,17 @@ class ServeFileInsteadOfRenderingPageException(Exception):
 plugins = weakref.WeakValueDictionary()
 
 
-        
+
+from src import tagpoints
+class TagInterface():
+    def __getitem__(self,k):
+        return tagpoints.Tag(k)
+            
 class Kaithem():
 
     devices= remotedevices.DeviceNamespace()
+
+    tags=TagInterface()
 
     def __getattr__(self,name):
         if name in plugins:
