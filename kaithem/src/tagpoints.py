@@ -1,5 +1,5 @@
 
-from . import scheduling,workers, virtualresource,newevt
+from . import scheduling,workers, virtualresource,newevt,widgets
 import time, threading,weakref,logging
 
 logger = logging.getLogger("system.tagpoints")
@@ -85,6 +85,7 @@ class _TagPoint(virtualresource.VirtualResource):
     
     """
     def __init__(self,name, min=None, max=None):
+        global allTagsAtomic
         virtualresource.VirtualResource.__init__(self)
         self._value = 0
         self.cvalue = 0
@@ -104,6 +105,7 @@ class _TagPoint(virtualresource.VirtualResource):
         #If false, only push changed data to subscribers.
         self.pushOnRepeats = False
         self.lastPushedValue=None
+
         with lock:
             allTags[name]=self
             allTagsAtomic= allTags.copy()
@@ -116,6 +118,7 @@ class _TagPoint(virtualresource.VirtualResource):
         self.defaultClaim = self.claim(0)
 
     def __del__(self):
+        global allTagsAtomic
         with lock:
             try:
                 del allTags[self.name]

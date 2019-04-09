@@ -19,6 +19,20 @@ __doc__= ""
 boardname = "default"
 import json
 
+from src import tagpoints
+
+%>
+
+<%
+    #Make a list of all the tags,
+    #Unless there's way too many
+    #Then only list some of them
+
+    limitedTagsListing=[]
+    for i in tagpoints.allTagsAtomic:
+        if len(limitedTagsListing)>250:
+            break
+        limitedTagsListing.append(i)
 %>
     <title>Lightboard</title>
 
@@ -206,6 +220,14 @@ import json
         <option v-for="i of serports" v-bind:value="i"></option>
     </datalist>
 
+
+    <datalist id="tagslisting">
+%for i in limitedTagsListing:
+<option value="${i}"></option>
+%endfor
+</datalist>
+    
+    
     <div v-if="showDMXSetup" class="sectionbox">
         <h3>
             <button v-on:click="showDMXSetup=0">
@@ -246,6 +268,8 @@ import json
                 <th>Channels</th>
                 <th>Number</th>
                 <th>Actions</th>
+                <th>Actions</th>
+
             </tr>
             <tr v-for="(v,i) in configuredUniverses">
                 <td>{{i}}</td>
@@ -261,6 +285,7 @@ import json
                 <td>
                     <input type=number min=0 max=480 step=0.1 v-model="v.framerate" title="The max frame rate">
                 </td>
+                
                 <td>
                     <input type=number min=0 max=512 v-model="v.channels" title="The number of channels to send">
                 </td>
@@ -269,15 +294,55 @@ import json
                     <input type=number min=0 max=65535 v-model="v.number" title="The universe number. Mostly used for ArtNet">
                 </td>
 
+
+
+                <td>
+                    <button v-on:click="universeFullSettings=i">More Options</button>
+                </td>
+
                 <td>
                     <button v-on:click="deleteUniverse(i)">Del</button>
                 </td>
             </tr>
         </table>
         <input placeholder="New Universe Name" v-model="newuniversename">
-        <button v-on:click="configuredUniverses[newuniversename]={type:'enttec',framerate:44,channels:512, number:1}">Add</button>
+        <button v-on:click="configuredUniverses[newuniversename]={type:'enttec',framerate:44,channels:512, number:1, channelConfig:{}}">Add</button>
+
 
     </div>
+
+
+
+    <div v-if="universeFullSettings" class="sectionbox">
+        <h3><button v-on:click="universeFullSettings=0"><img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button>Universe Setup:{{universeFullSettings}}</h3>
+
+        <div v-if="configuredUniverses[universeFullSettings].type=='tagpoints'">
+            <p class="help">
+                Tagpoint universes use a configurable set of tagpoints as the outputs. This table lets you assign tags to channels.
+            </p>
+            <table border="1">
+                <tr><th>Channel Number</th><th>Tagpoint Name</th><th>Action</th></tr>
+                <tr v-for="(v,i) in configuredUniverses[universeFullSettings]['channelConfig'] || {}">
+                    <td><b>{{i}}</b></td>
+                    <td><input v-model="configuredUniverses[universeFullSettings]['channelConfig'][i]" list="tagslisting"></td>
+                    <td><button v-on:click="delete configuredUniverses[universeFullSettings]['channelConfig'][i]">Delete</button></td>
+
+                </tr>
+                
+                <tr><td><input type="number" placeholder="CH #" v-model="newTagPointChannelNumber"></td>
+                    <td><input placeholder="Tagpoint" v-model="newTagPoint" list="tagslisting"></td>
+                    <td><button v-on:click="configuredUniverses[universeFullSettings]['channelConfig'][newTagPointChannelNumber]=newTagPoint">Add</button></td>
+                </tr>
+
+            
+            </table>
+                    <button v-on:click="pushSettings">Update Settings</button><br>
+
+        </div>
+</div>
+
+
+
 
     <div v-if="showFixtureSetup" class="sectionbox">
         <h3><button v-on:click="showhidefixtures()"><img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button>Fixture Setup</h3>
@@ -985,6 +1050,10 @@ import json
                 ['item', 'foo']
             ],
             'soundCards': ${json.dumps([i for i in kaithem.sound.outputs()])},
+            
+            //What universe if any to show the full settings page for
+            'universeFullSettings': false,
+        
 
             'showkeybindhelp': false,
             'showcuetable': true,

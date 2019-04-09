@@ -311,6 +311,12 @@ class webapproot():
         pages.require("/admin/mainpage.view")
         cherrypy.response.cookie['LastSawMainPage'] = time.time()
         return pages.get_template('index.html').render()
+    
+    #"/" is mapped to this
+    @cherrypy.expose
+    def tagpoints(self,*path,**data):
+        pages.require("/admin/settings.view")
+        return pages.get_template('settings/tagpoints.html').render()
 
 
     @cherrypy.expose

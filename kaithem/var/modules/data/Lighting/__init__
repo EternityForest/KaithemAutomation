@@ -914,6 +914,50 @@ class ArtNetUniverse(Universe):
         #Stop the thread when this gets deleted
         self.sender.onFrame(None)
 
+
+
+class TagpointUniverse(Universe):
+    "Used for outputting lighting to Kaithem's internal Tagpoint system"
+    def __init__(self,name,channels=128,tagpoints={},framerate=44,number=0):
+        self.ok = True
+        self.status = "OK"
+        self.number=number
+        self.statusChanged = {}
+        self.tagpoints=tagpoints
+        
+        self.claims = {}
+
+        #Put a claim on all the tags
+        for i in self.tagpoints:
+            #One higher than default
+            self.claims[i]= kaithem.tags[i].claim(0,"LightboardUniverse_"+name, 51)
+            #Might as well configure them here
+            kaithem.tags[i].min=0
+            kaithem.tags[i].max=255
+            
+        #Sender needs the values to be there for setup
+        self.values = numpy.array([0.0]*channels,dtype="f4")
+        
+        Universe.__init__(self,name,channels)
+
+
+    def onFrame(self):
+        for i in range(len(self.values)):
+            if i in self.claims:
+                try:
+                    self.claims[i].set(self.values[i])
+                except:
+                    print(traceback.format_exc())
+
+            
+    def __del__(self):
+        #Stop the thread when this gets deleted
+        self.sender.onFrame(None)
+
+
+
+
+
 module.EnttecUniverse_dbg= weakref.WeakValueDictionary()
 
 class ArtNetSender():
@@ -1073,6 +1117,9 @@ class LightBoard():
                 l[i] = EnttecUniverse(i,channels=int(u[i].get('channels',128)),portname=u[i].get('interface',None),framerate=float(u[i].get('framerate',44)))
             if u[i]['type'] == 'artnet':
                 l[i] = ArtNetUniverse(i,channels=int(u[i].get('channels',128)),address=u[i].get('interface',"255.255.255.255:6454"),framerate=float(u[i].get('framerate',44)),number=int(u[i].get('number',0)))
+            if u[i]['type']=='tagpoints':
+               l[i]=TagpointUniverse(i,channels=int(u[i].get('channels',128)),tagpoints=u[i].get('channelConfig',{}),framerate=float(u[i].get('framerate',44)),number=int(u[i].get('number',0)))
+
         self.universeObjs = l
         self.pushUniverses()
 
