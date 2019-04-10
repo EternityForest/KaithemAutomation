@@ -62,14 +62,15 @@ except:
     <td>${en['voltage']}</td>
 </tr>
 <tr>
-    <td>Power Consumption(W)</td>
-    <td>${en['voltage']*en['current']}</td>
+    <td>Power Consumption</td>
+    <td>${obj.powerWidget.render("W")}</td>
 </tr>
 <tr>
         <td>Control</td>
         <td>${obj.onButton.render("On")} ${obj.offButton.render("Off")}</td>
 </tr>
-%except:
+%except Exception as e:
+<tr>${e}</tr>
 %endtry
     
 

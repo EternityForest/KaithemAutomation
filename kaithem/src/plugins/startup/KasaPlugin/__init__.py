@@ -129,6 +129,8 @@ class KasaSmartplug(remotedevices.RemoteDevice):
         self.onButton.attach(onf)
         self.offButton.attach(offf)
 
+        self.powerWidget = widgets.Meter(high_warn=float(data.get("device.alarmcurrent",1400)), max=1600,min=0)
+
     def getManagementForm(self):
         return templateGetter.get_template("manageform.html").render(data=self.data,obj=self)
 
@@ -212,6 +214,8 @@ class KasaSmartplug(remotedevices.RemoteDevice):
 
     def doOvercurrentHandling(self,x):
         w= x['current']*x['voltage']
+        self.powerWidget.write(w)
+
         limit = float(self.data.get("device.alarmcurrent", 1500))
         hardlimit =float(self.data.get("device.maxcurrent", 1600))
 
