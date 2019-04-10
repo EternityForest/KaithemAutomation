@@ -342,6 +342,8 @@ The rendered HTML will contain a few functions, the ID of the widget
 object that created it, and a piece of code that registers it for
 polling.
 
+
+
 Widgets may take parameters in their render() function on a widget
 specific basis
 
@@ -351,7 +353,9 @@ prevent them from being garbage collected.
 Most widget objects will have write(value) and read() functions. For
 example, a calling read() on a slider widget would return whatever
 slider position the user entered. If there are multiple users, all
-sliders rendered from the same object will move in synch
+sliders rendered from the same object will move in synch.
+
+
 
 ### The Widget() Base Class
 
@@ -382,6 +386,13 @@ you want.
 Causes the object to reject AJAX write requests from any device that
 does not have the permissions. You can apply as many permissions as you
 want.
+
+### Widget.setPermissions(read,write) (Always Available)
+
+Sets the widget's read and write permissions to the two lists specified.
+This is the prefered form when dealing with widgets that may already have permissions
+that you want to replace.
+
 
 ### Widget.onRequest(user,uuid) (Always Available)
 

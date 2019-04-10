@@ -86,6 +86,8 @@ BasePermissions = {
 "/admin/eventoutput.view": "View the message logs.",
 "/users/logs.view": "View the message logs.",
 "/users/accountsettings.edit" : "Edit ones own account preferences",
+"/users/tagpoints.view" : "View tagpoints",
+"/users/tagpoints.edit" : "Override tagpoint values and modify configuration",
 "/admin/errors.view": "View errors in resources. Note that /users/logs.view or /admin/modules.edit will also allow this.",
 "__all_permissions__": "Special universal permission that grants all permissions in the system. Use with care."
 }

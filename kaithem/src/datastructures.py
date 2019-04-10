@@ -73,6 +73,17 @@ class Cache():
         return self.items[key][0]
 
 
+class WeakDictIterator():
+    def __init__(self,l):
+        self.l = l
+    def __next__(self):
+        while self.l:
+            i= self.l.pop()
+            x = i()
+            if x:
+                return x
+        raise StopIteration()
+
 #Incomplete
 class IterableWeakValueDict():
     """It's like a threadsafe weak value dict. You can iterate on it without fear of it changing size."""
@@ -91,19 +102,9 @@ class IterableWeakValueDict():
             except:
                     return False
 
-
-
     def __iter__(self):
         with self.lock:
-            new = {}
-            for i in self.dict:
-                try:
-                    x = self.dict[i]
-                    if not x == None:
-                        new[i] == x
-                except:
-                    pass
-        return new.__iter__
+            return WeakDictIterator(self.dict.keys())
 
 
     def __setitem__(self,key,value):

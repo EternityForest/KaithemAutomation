@@ -307,7 +307,10 @@ class Widget():
 
     def requireToWrite(self,permission):
         self._write_perms.append(permission)
-
+    
+    def setPermissions(self,read,write):
+        self._read_perms= copy.copy(read)
+        self._write_perms= copy.copy(write)
 
 #This widget is just a time display, it doesn't really talk to the server, but it's useful to keep the same interface.
 class TimeWidget(Widget):
@@ -420,6 +423,7 @@ class Meter(Widget):
     def write(self,value):
         #Decide a class so it can show red or yellow with high or low values.
         self.c = "normal"
+
         if 'high_warn' in self.k:
             if value >= self.k['high_warn']:
                 self.c = 'warning'
@@ -435,8 +439,18 @@ class Meter(Widget):
         if 'low' in self.k:
             if value <= self.k['low']:
                 self.c = 'error'
+        self.value = [round(value,3),self.c]
+        Widget.write(self,self.value)
 
-        Widget.write(self,[round(value,3),self.c])
+    def setup(self,min,max,high,low):
+        "On-the-fly change of parameters"
+        d={'high':high,'low':low,"min":min,"max":max}
+        self.k.update(d)
+        Widget.write(self,self.value+[d])
+
+    def onUpdate(self,*a,**k):
+        raise RuntimeError("Only the server can edit this widget")
+
 
     def render(self,unit='',label=''):
         return("""
@@ -449,6 +463,13 @@ class Meter(Widget):
             document.getElementById("%s").innerHTML=val[0]+"%s";
             document.getElementById("%s_m").value=val[0];
             document.getElementById("%s").className=val[1]+" numericpv";
+            if(val[2])
+            {
+                document.getElementById("%s_m").high = val[2].high;
+                document.getElementById("%s_m").high = val[2].low;
+                document.getElementById("%s_m").high = val[2].min;
+                document.getElementById("%s_m").high = val[2].max;
+            }
         }
         KWidget_subscribe('%s',upd);
         </script>%s

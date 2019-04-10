@@ -96,11 +96,16 @@ class _TagPoint(virtualresource.VirtualResource):
         self.lock = threading.Lock()
         self.subscribers = []
         self.poller = None
+        self._hi = 10**10
+        self._lo = -10**10
 
         self.handler=None
 
-        self.min = min
-        self.max = max
+        self._min = min
+        self._max = max
+
+        self.meterWidget= widgets.Meter()
+        self.meterWidget.setPermissions(['/users/tagpoints.view'],['/users/tagpoints.edit'])
         #If we should push the same value twice in a row when it comes in.
         #If false, only push changed data to subscribers.
         self.pushOnRepeats = False
@@ -116,6 +121,32 @@ class _TagPoint(virtualresource.VirtualResource):
 
         self.p = poll
         self.defaultClaim = self.claim(0)
+        
+        #What permissions are needed to 
+        #manually override this tag 
+        self.permissions = []
+
+        #This is where we can put a manual override
+        #claim from the web UI.
+        self.manualOverrideClaim = None
+
+        self._alarms = {}
+
+    def addAlarm(self,name, alarm):
+        with self.lock:
+            self._alarms[name]=weakref.ref(alarm)
+
+            #Do some cleanup here
+            torm = []
+            for i in self._alarms:
+                if self._alarms[i]()==None:
+                    torm.append(i)
+            for i in torm:
+                del self._alarms[i]
+
+    def removeAlarm(self,name):
+        with self.lock:
+            del self._alarms[name]
 
     def __del__(self):
         global allTagsAtomic
@@ -185,7 +216,7 @@ class _TagPoint(virtualresource.VirtualResource):
         self.handler=weakref.ref(f)
 
     def _push(self,val):
-
+        self.meterWidget.write(val)
         #This is not threadsafe, but I don't think it matters.
         #A few unnecessary updates shouldn't affect anything.
         if val==self.lastPushedValue:
@@ -216,14 +247,55 @@ class _TagPoint(virtualresource.VirtualResource):
         if callable(value):
             value = value()
 
-        if self.min !=None:
-            value= max(self.min,value)
+        if self._min !=None:
+            value= max(self._min,value)
 
-        if self.max !=None:
-            value= min(self.max,value)        
+        if self._max !=None:
+            value= min(self._max,value)        
         
         return float(value)
        
+    @property
+    def min(self):
+        return self._min
+    
+    @min.setter
+    def min(self,v):
+        self._min = v
+        self._setupMeter()
+
+    @property
+    def max(self):
+        return self._max
+    
+    @max.setter
+    def max(self,v):
+        self._max = v
+        self._setupMeter()
+
+    @property
+    def hi(self):
+        return self._hi
+    
+    @hi.setter
+    def hi(self,v):
+        self._hi = v
+        self._setupMeter()
+
+    @property
+    def lo(self):
+        return self._lo
+    
+    @lo.setter
+    def lo(self,v):
+        self._lo = v
+        self._setupMeter()
+
+    def _setupMeter(self):
+        self.meterWidget.setup(self._min if not self._min is None else -100,
+        self._max if not self._max is None else 100,
+        self._hi, self._lo
+         )
 
     @property
     def value(self):
