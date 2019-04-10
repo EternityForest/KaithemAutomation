@@ -924,17 +924,19 @@ class TagpointUniverse(Universe):
         self.number=number
         self.statusChanged = {}
         self.tagpoints=tagpoints
+        self.channelCount=channels
         
         self.claims = {}
 
         #Put a claim on all the tags
         for i in self.tagpoints:
             #One higher than default
-            self.claims[i]= kaithem.tags[i].claim(0,"LightboardUniverse_"+name, 51)
+            self.claims[int(i)]= kaithem.tags[self.tagpoints[i]].claim(0,"LightboardUniverse_"+name, 51)
             #Might as well configure them here
-            kaithem.tags[i].min=0
-            kaithem.tags[i].max=255
-            
+            kaithem.tags[self.tagpoints[i]].min=0
+            kaithem.tags[self.tagpoints[i]].max=255
+            kaithem.tags[self.tagpoints[i]].lo=-1
+            kaithem.tags[self.tagpoints[i]].hi=256
         #Sender needs the values to be there for setup
         self.values = numpy.array([0.0]*channels,dtype="f4")
         
@@ -942,18 +944,12 @@ class TagpointUniverse(Universe):
 
 
     def onFrame(self):
-        for i in range(len(self.values)):
+        for i in range(self.channelCount):
             if i in self.claims:
                 try:
-                    self.claims[i].set(self.values[i])
+                    self.claims[i].set(float(self.values[i]))
                 except:
                     print(traceback.format_exc())
-
-            
-    def __del__(self):
-        #Stop the thread when this gets deleted
-        self.sender.onFrame(None)
-
 
 
 

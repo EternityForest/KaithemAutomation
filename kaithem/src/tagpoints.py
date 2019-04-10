@@ -39,7 +39,9 @@ class TagProvider():
 def Tag(name):
     with lock:
         if name in allTags:
-            return allTags[name]
+            x=allTags[name]()
+            if x:
+                return x
         
         for i in providers:
             if name.startswith(i):
@@ -112,7 +114,7 @@ class _TagPoint(virtualresource.VirtualResource):
         self.lastPushedValue=None
 
         with lock:
-            allTags[name]=self
+            allTags[name]=weakref.ref(self)
             allTagsAtomic= allTags.copy()
 
 
@@ -292,8 +294,8 @@ class _TagPoint(virtualresource.VirtualResource):
         self._setupMeter()
 
     def _setupMeter(self):
-        self.meterWidget.setup(self._min if not self._min is None else -100,
-        self._max if not self._max is None else 100,
+        self.meterWidget.setup(self._min if (not (self._min is None)) else -100,
+        self._max if (not (self._max is None)) else 100,
         self._hi, self._lo
          )
 
@@ -330,7 +332,8 @@ class _TagPoint(virtualresource.VirtualResource):
             active, or the value returned from the getter if the active claim is
             a function.
         """
-
+        if not callable(value):
+            value=float(value)
         with self.lock:
             #ClaimObj means we're changing the value of an existing claim
             if name in self.claims:
@@ -348,9 +351,12 @@ class _TagPoint(virtualresource.VirtualResource):
             return Claim(self, value,name,priority)
 
     def setClaimVal(self,claim,val):
+        if not callable(val):
+            val=float(val)
         "Set the value of an existing claim"
         with self.lock:
             c=self.claims[claim]
+            #If we're setting the active claim
             if c==self.activeClaim:
                 upd=True
             else:

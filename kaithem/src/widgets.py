@@ -1,4 +1,4 @@
-#Copyright Daniel Dunn 2014-2015, 2018
+#Copyright Daniel Dunn 2014-2015, 2018,2019
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify
@@ -12,7 +12,7 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import weakref,time,json,base64,cherrypy,os, traceback,random,threading,logging,socket
+import weakref,time,json,base64,cherrypy,os, traceback,random,threading,logging,socket,copy
 from . import auth,pages,unitsofmeasure,config,util,messagebus
 from src.config import config
 
@@ -444,7 +444,7 @@ class Meter(Widget):
 
     def setup(self,min,max,high,low):
         "On-the-fly change of parameters"
-        d={'high':high,'low':low,"min":min,"max":max}
+        d={'high':high,'low':low,'high_warn':high,'low_warn':low,"min":min,"max":max}
         self.k.update(d)
         Widget.write(self,self.value+[d])
 
@@ -455,31 +455,29 @@ class Meter(Widget):
     def render(self,unit='',label=''):
         return("""
         <div class="widgetcontainer meterwidget">
-        <b>%s</b><br>
-        <span class="numericpv" id="%s" style=" margin:0px;">
+        <b>{label}</b><br>
+        <span class="numericpv" id="{uuid}" style=" margin:0px;">
         <script type="text/javascript">
         var upd = function(val)
-        {
-            document.getElementById("%s").innerHTML=val[0]+"%s";
-            document.getElementById("%s_m").value=val[0];
-            document.getElementById("%s").className=val[1]+" numericpv";
+        {{
+            document.getElementById("{uuid}").innerHTML=val[0]+"{unit}";
+            document.getElementById("{uuid}_m").value=val[0];
+            document.getElementById("{uuid}").className=val[1]+" numericpv";
             if(val[2])
-            {
-                document.getElementById("%s_m").high = val[2].high;
-                document.getElementById("%s_m").high = val[2].low;
-                document.getElementById("%s_m").high = val[2].min;
-                document.getElementById("%s_m").high = val[2].max;
-            }
-        }
-        KWidget_subscribe('%s',upd);
-        </script>%s
+            {{
+                document.getElementById("{uuid}_m").high = val[2].high;
+                document.getElementById("{uuid}_m").low = val[2].low;
+                document.getElementById("{uuid}_m").min = val[2].min;
+                document.getElementById("{uuid}_m").max = val[2].max;
+            }}
+        }}
+        KWidget_subscribe('{uuid}',upd);
+        </script>{value:f}
         </span></br>
-        <meter id="%s_m" value="%d" min="%d" max="%d" high="%d" low="%d"></meter>
+        <meter id="{uuid}_m" value="{value:f}" min="{min:f}" max="{max:f}" high="{high:f}" low="{low:f}"></meter>
 
-        </div>"""%(label,self.uuid,
-            self.uuid,unit,self.uuid,self.uuid,self.uuid,self.value[0],
-                          self.uuid,self.value[0], self.k['min'],self.k['max'],self.k['high_warn'],self.k['low_warn']
-                          ))
+        </div>""".format(uuid=self.uuid, value=self.value[0], min=self.k['min'],
+        max=self.k['max'],high=self.k['high_warn'],low=self.k['low_warn'],label=label,unit=unit))
 
 class Button(Widget):
 
