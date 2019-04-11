@@ -891,33 +891,36 @@ def load_modules_from_zip(f,replace=False):
             new_modules[p] = {}
         try:
             if not  "__filedata__" in p:
-                f = z.open(i)
-                r = yaml.load(f.read().decode())
-                if r==None:
-                    raise RuntimeError("Attempting to decode file "+str(i)+" resulted in a value of None")
-                new_modules[p][n] = r
-                if r['resource-type'] == "internal-fileref":
-                    newfrpaths[p,n] = os.path.join(directories.vardir,"modules","filedata",r['target'])
-
-                f.close()
+                try:
+                    f = z.open(i)
+                    r = yaml.load(f.read().decode())
+                    if r==None:
+                        raise RuntimeError("Attempting to decode file "+str(i)+" resulted in a value of None")
+                    new_modules[p][n] = r
+                    if r['resource-type'] == "internal-fileref":
+                        newfrpaths[p,n] = os.path.join(directories.vardir,"modules","filedata",r['target'])
+                finally:
+                    f.close()
             else:
-                inputfile = z.open(i)
-                folder = os.path.join(directories.vardir,"modules","filedata")
-                util.ensure_dir2(folder)
-                data_basename = util.unurl(i.split('/')[1])
-                dataname = os.path.join(folder,data_basename)
+                try:
+                    inputfile = z.open(i)
+                    folder = os.path.join(directories.vardir,"modules","filedata")
+                    util.ensure_dir2(folder)
+                    data_basename = util.unurl(i.split('/')[1])
+                    dataname = os.path.join(folder,data_basename)
 
-                total = 0
-                with open(dataname,"wb") as f:
-                    while True:
-                        d = inputfile.read(8192)
-                        total += len(d)
-                        if total> 8*1024*1024*1024:
-                            raise RuntimeError("Cannot upload resource file bigger than 8GB")
-                        if not d:
-                            break
-                        f.write(d)
-                inputfile.close()
+                    total = 0
+                    with open(dataname,"wb") as f:
+                        while True:
+                            d = inputfile.read(8192)
+                            total += len(d)
+                            if total> 8*1024*1024*1024:
+                                raise RuntimeError("Cannot upload resource file bigger than 8GB")
+                            if not d:
+                                break
+                            f.write(d)
+                finally:
+                    inputfile.close()
                 newfrpaths[p,n] = dataname
         except:
             raise RuntimeError("Could not correctly process "+str(i))

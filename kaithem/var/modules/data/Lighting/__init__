@@ -285,6 +285,10 @@ To use this, add a layer below containing the base colors. The flicker layer wil
         self.heights_lp = {}
 
     def frame(self,u,old,values,alphas,alpha):
+        #It's always changing so always rerender
+        self.scene.rerender = True
+
+
         if not u in self.heights:
             if u in module.universes:
                 self.heights[u] = makeBlankArray(len(module.universes[u].values))
@@ -309,8 +313,6 @@ To use this, add a layer below containing the base colors. The flicker layer wil
         t60 = (timefunc()-self.last_per[u])*60
         self.last_per[u]=timefunc()
 
-        #It's always changing so always rerender
-        self.scene.rerender = True
         ctr = 0
         tc =  self.scene.blendArgs['topple_chance']
         lps =  self.scene.blendArgs['lowpass']
