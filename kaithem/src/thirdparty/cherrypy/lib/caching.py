@@ -39,7 +39,6 @@ import time
 
 import cherrypy
 from cherrypy.lib import cptools, httputil
-from cherrypy._cpcompat import copyitems, ntob, sorted, Event
 
 
 class Cache(object):
@@ -48,19 +47,19 @@ class Cache(object):
 
     def get(self):
         """Return the current variant if in the cache, else None."""
-        raise NotImplemented
+        raise NotImplementedError
 
     def put(self, obj, size):
         """Store the current variant in the cache."""
-        raise NotImplemented
+        raise NotImplementedError
 
     def delete(self):
         """Remove ALL cached variants of the current resource."""
-        raise NotImplemented
+        raise NotImplementedError
 
     def clear(self):
         """Reset the cache to its initial, empty state."""
-        raise NotImplemented
+        raise NotImplementedError
 
 
 # ------------------------------ Memory Cache ------------------------------- #
@@ -80,7 +79,7 @@ class AntiStampedeCache(dict):
         If timeout is None, no waiting is performed nor sentinels used.
         """
         value = self.get(key)
-        if isinstance(value, Event):
+        if isinstance(value, threading.Event):
             if timeout is None:
                 # Ignore the other thread and recalc it ourselves.
                 if debug:
@@ -120,7 +119,7 @@ class AntiStampedeCache(dict):
         """Set the cached value for the given key."""
         existing = self.get(key)
         dict.__setitem__(self, key, value)
-        if isinstance(existing, Event):
+        if isinstance(existing, threading.Event):
             # Set Event.result so other threads waiting on it have
             # immediate access without needing to poll the cache again.
             existing.result = value
@@ -197,7 +196,8 @@ class MemoryCache(Cache):
             now = time.time()
             # Must make a copy of expirations so it doesn't change size
             # during iteration
-            for expiration_time, objects in copyitems(self.expirations):
+            items = list(self.expirations.items())
+            for expiration_time, objects in items:
                 if expiration_time <= now:
                     for obj_size, uri, sel_header_values in objects:
                         try:
@@ -402,10 +402,19 @@ def tee_output():
             output.append(chunk)
             yield chunk
 
-        # save the cache data
-        body = ntob('').join(output)
-        cherrypy._cache.put((response.status, response.headers or {},
-                             body, response.time), len(body))
+        # Save the cache data, but only if the body isn't empty.
+        # e.g. a 304 Not Modified on a static file response will
+        # have an empty body.
+        # If the body is empty, delete the cache because it
+        # contains a stale Threading._Event object that will
+        # stall all consecutive requests until the _Event times
+        # out
+        body = b''.join(output)
+        if not body:
+            cherrypy._cache.delete()
+        else:
+            cherrypy._cache.put((response.status, response.headers or {},
+                                 body, response.time), len(body))
 
     response = cherrypy.serving.response
     response.body = tee(response.body)

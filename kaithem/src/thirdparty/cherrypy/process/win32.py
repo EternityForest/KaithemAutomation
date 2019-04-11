@@ -28,7 +28,7 @@ class ConsoleCtrlHandler(plugins.SimplePlugin):
             self.bus.log('Could not SetConsoleCtrlHandler (error %r)' %
                          win32api.GetLastError(), level=40)
         else:
-            self.bus.log('Set handler for console events.', level=40)
+            self.bus.log('Set handler for console events.', level=20)
             self.is_set = True
 
     def stop(self):
@@ -46,7 +46,7 @@ class ConsoleCtrlHandler(plugins.SimplePlugin):
             self.bus.log('Could not remove SetConsoleCtrlHandler (error %r)' %
                          win32api.GetLastError(), level=40)
         else:
-            self.bus.log('Removed handler for console events.', level=40)
+            self.bus.log('Removed handler for console events.', level=20)
             self.is_set = False
 
     def handle(self, event):
@@ -90,14 +90,15 @@ class Win32Bus(wspbus.Bus):
             self.events[state] = event
             return event
 
-    def _get_state(self):
+    @property
+    def state(self):
         return self._state
 
-    def _set_state(self, value):
+    @state.setter
+    def state(self, value):
         self._state = value
         event = self._get_state_event(value)
         win32event.PulseEvent(event)
-    state = property(_get_state, _set_state)
 
     def wait(self, state, interval=0.1, channel=None):
         """Wait for the given state(s), KeyboardInterrupt or SystemExit.
@@ -137,6 +138,7 @@ class _ControlCodes(dict):
                 return key
         raise ValueError('The given object could not be found: %r' % obj)
 
+
 control_codes = _ControlCodes({'graceful': 138})
 
 
@@ -173,6 +175,7 @@ class PyWebService(win32serviceutil.ServiceFramework):
         process.bus.exit()
 
     def SvcOther(self, control):
+        from cherrypy import process
         process.bus.publish(control_codes.key_for(control))
 
 

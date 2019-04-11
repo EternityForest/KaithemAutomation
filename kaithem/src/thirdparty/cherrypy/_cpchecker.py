@@ -1,12 +1,12 @@
+"""Checker for CherryPy sites and mounted apps."""
 import os
 import warnings
+import builtins
 
 import cherrypy
-from cherrypy._cpcompat import iteritems, copykeys, builtins
 
 
 class Checker(object):
-
     """A checker for CherryPy sites and their mounted applications.
 
     When this object is called at engine startup, it executes each
@@ -24,6 +24,7 @@ class Checker(object):
     """If True (the default), run all checks; if False, turn off all checks."""
 
     def __init__(self):
+        """Initialize Checker instance."""
         self._populate_known_types()
 
     def __call__(self):
@@ -41,15 +42,14 @@ class Checker(object):
                 warnings.formatwarning = oldformatwarning
 
     def formatwarning(self, message, category, filename, lineno, line=None):
-        """Function to format a warning."""
+        """Format a warning."""
         return 'CherryPy Checker:\n%s\n\n' % message
 
     # This value should be set inside _cpconfig.
     global_config_contained_paths = False
 
     def check_app_config_entries_dont_start_with_script_name(self):
-        """Check for Application config with sections that repeat script_name.
-        """
+        """Check for App config with sections that repeat script_name."""
         for sn, app in cherrypy.tree.apps.items():
             if not isinstance(app, cherrypy.Application):
                 continue
@@ -68,14 +68,14 @@ class Checker(object):
 
     def check_site_config_entries_in_app_config(self):
         """Check for mounted Applications that have site-scoped config."""
-        for sn, app in iteritems(cherrypy.tree.apps):
+        for sn, app in cherrypy.tree.apps.items():
             if not isinstance(app, cherrypy.Application):
                 continue
 
             msg = []
-            for section, entries in iteritems(app.config):
+            for section, entries in app.config.items():
                 if section.startswith('/'):
-                    for key, value in iteritems(entries):
+                    for key, value in entries.items():
                         for n in ('engine.', 'server.', 'tree.', 'checker.'):
                             if key.startswith(n):
                                 msg.append('[%s] %s = %s' %
@@ -106,9 +106,7 @@ class Checker(object):
                 return
 
     def check_app_config_brackets(self):
-        """Check for Application config with extraneous brackets in section
-        names.
-        """
+        """Check for App config with extraneous brackets in section names."""
         for sn, app in cherrypy.tree.apps.items():
             if not isinstance(app, cherrypy.Application):
                 continue
@@ -196,7 +194,7 @@ class Checker(object):
         """Process config and warn on each obsolete or deprecated entry."""
         for section, conf in config.items():
             if isinstance(conf, dict):
-                for k, v in conf.items():
+                for k in conf:
                     if k in self.obsolete:
                         warnings.warn('%r is obsolete. Use %r instead.\n'
                                       'section: [%s]' %
@@ -226,16 +224,16 @@ class Checker(object):
 
     def _known_ns(self, app):
         ns = ['wsgi']
-        ns.extend(copykeys(app.toolboxes))
-        ns.extend(copykeys(app.namespaces))
-        ns.extend(copykeys(app.request_class.namespaces))
-        ns.extend(copykeys(cherrypy.config.namespaces))
+        ns.extend(app.toolboxes)
+        ns.extend(app.namespaces)
+        ns.extend(app.request_class.namespaces)
+        ns.extend(cherrypy.config.namespaces)
         ns += self.extra_config_namespaces
 
         for section, conf in app.config.items():
             is_path_section = section.startswith('/')
             if is_path_section and isinstance(conf, dict):
-                for k, v in conf.items():
+                for k in conf:
                     atoms = k.split('.')
                     if len(atoms) > 1:
                         if atoms[0] not in ns:
@@ -295,16 +293,9 @@ class Checker(object):
                'which does not match the expected type %r.')
 
         for section, conf in config.items():
-            if isinstance(conf, dict):
-                for k, v in conf.items():
-                    if v is not None:
-                        expected_type = self.known_config_types.get(k, None)
-                        vtype = type(v)
-                        if expected_type and vtype != expected_type:
-                            warnings.warn(msg % (k, section, vtype.__name__,
-                                                 expected_type.__name__))
-            else:
-                k, v = section, conf
+            if not isinstance(conf, dict):
+                conf = {section: conf}
+            for k, v in conf.items():
                 if v is not None:
                     expected_type = self.known_config_types.get(k, None)
                     vtype = type(v)

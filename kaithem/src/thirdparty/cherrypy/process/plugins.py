@@ -6,9 +6,10 @@ import signal as _signal
 import sys
 import time
 import threading
+import _thread
 
-from cherrypy._cpcompat import text_or_bytes, get_thread_ident
-from cherrypy._cpcompat import ntob, Timer
+from cherrypy._cpcompat import text_or_bytes
+from cherrypy._cpcompat import ntob
 
 # _module__file__base is used by Autoreload to make
 # absolute any filenames retrieved from sys.modules which are not
@@ -112,7 +113,6 @@ class SignalHandler(object):
         # used to determine is the process is a daemon in `self._is_daemonized`
         self._original_pid = os.getpid()
 
-
     def _jython_SIGINT_handler(self, signum=None, frame=None):
         # See http://bugs.jython.org/issue1313
         self.bus.log('Keyboard Interrupt: shutting down bus')
@@ -131,12 +131,10 @@ class SignalHandler(object):
         is executing inside other process like in a CI tool
         (Buildbot, Jenkins).
         """
-        if (self._original_pid != os.getpid() and
-            not os.isatty(sys.stdin.fileno())):
-            return True
-        else:
-            return False
-
+        return (
+            self._original_pid != os.getpid() and
+            not os.isatty(sys.stdin.fileno())
+        )
 
     def subscribe(self):
         """Subscribe self.handlers to signals."""
@@ -223,7 +221,8 @@ class DropPrivileges(SimplePlugin):
 
     """Drop privileges. uid/gid arguments not available on Windows.
 
-    Special thanks to `Gavin Baker <http://antonym.org/2005/12/dropping-privileges-in-python.html>`_
+    Special thanks to `Gavin Baker
+    <http://antonym.org/2005/12/dropping-privileges-in-python.html>`_
     """
 
     def __init__(self, bus, umask=None, uid=None, gid=None):
@@ -233,10 +232,13 @@ class DropPrivileges(SimplePlugin):
         self.gid = gid
         self.umask = umask
 
-    def _get_uid(self):
+    @property
+    def uid(self):
+        """The uid under which to run. Availability: Unix."""
         return self._uid
 
-    def _set_uid(self, val):
+    @uid.setter
+    def uid(self, val):
         if val is not None:
             if pwd is None:
                 self.bus.log('pwd module not available; ignoring uid.',
@@ -245,13 +247,14 @@ class DropPrivileges(SimplePlugin):
             elif isinstance(val, text_or_bytes):
                 val = pwd.getpwnam(val)[2]
         self._uid = val
-    uid = property(_get_uid, _set_uid,
-                   doc='The uid under which to run. Availability: Unix.')
 
-    def _get_gid(self):
+    @property
+    def gid(self):
+        """The gid under which to run. Availability: Unix."""
         return self._gid
 
-    def _set_gid(self, val):
+    @gid.setter
+    def gid(self, val):
         if val is not None:
             if grp is None:
                 self.bus.log('grp module not available; ignoring gid.',
@@ -260,13 +263,18 @@ class DropPrivileges(SimplePlugin):
             elif isinstance(val, text_or_bytes):
                 val = grp.getgrnam(val)[2]
         self._gid = val
-    gid = property(_get_gid, _set_gid,
-                   doc='The gid under which to run. Availability: Unix.')
 
-    def _get_umask(self):
+    @property
+    def umask(self):
+        """The default permission mode for newly created files and directories.
+
+        Usually expressed in octal format, for example, ``0644``.
+        Availability: Unix, Windows.
+        """
         return self._umask
 
-    def _set_umask(self, val):
+    @umask.setter
+    def umask(self, val):
         if val is not None:
             try:
                 os.umask
@@ -275,15 +283,6 @@ class DropPrivileges(SimplePlugin):
                              level=30)
                 val = None
         self._umask = val
-    umask = property(
-        _get_umask,
-        _set_umask,
-        doc="""The default permission mode for newly created files and
-        directories.
-
-        Usually expressed in octal format, for example, ``0644``.
-        Availability: Unix, Windows.
-        """)
 
     def start(self):
         # uid/gid
@@ -347,7 +346,7 @@ class Daemonizer(SimplePlugin):
     process still return proper exit codes. Therefore, if you use this
     plugin to daemonize, don't use the return code as an accurate indicator
     of whether the process fully started. In fact, that return code only
-    indicates if the process succesfully finished the first fork.
+    indicates if the process successfully finished the first fork.
     """
 
     def __init__(self, bus, stdin='/dev/null', stdout='/dev/null',
@@ -372,6 +371,15 @@ class Daemonizer(SimplePlugin):
                          'Daemonizing now may cause strange failures.' %
                          threading.enumerate(), level=30)
 
+        self.daemonize(self.stdin, self.stdout, self.stderr, self.bus.log)
+
+        self.finalized = True
+    start.priority = 65
+
+    @staticmethod
+    def daemonize(
+            stdin='/dev/null', stdout='/dev/null', stderr='/dev/null',
+            logger=lambda msg: None):
         # See http://www.erlenstar.demon.co.uk/unix/faq_2.html#SEC16
         # (or http://www.faqs.org/faqs/unix-faq/programmer/faq/ section 1.7)
         # and http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/66012
@@ -380,40 +388,29 @@ class Daemonizer(SimplePlugin):
         sys.stdout.flush()
         sys.stderr.flush()
 
-        # Do first fork.
-        try:
-            pid = os.fork()
-            if pid == 0:
-                # This is the child process. Continue.
-                pass
-            else:
-                # This is the first parent. Exit, now that we've forked.
-                self.bus.log('Forking once.')
-                os._exit(0)
-        except OSError:
-            # Python raises OSError rather than returning negative numbers.
-            exc = sys.exc_info()[1]
-            sys.exit('%s: fork #1 failed: (%d) %s\n'
-                     % (sys.argv[0], exc.errno, exc.strerror))
+        error_tmpl = (
+            '{sys.argv[0]}: fork #{n} failed: ({exc.errno}) {exc.strerror}\n'
+        )
 
-        os.setsid()
-
-        # Do second fork
-        try:
-            pid = os.fork()
-            if pid > 0:
-                self.bus.log('Forking twice.')
-                os._exit(0)  # Exit second parent
-        except OSError:
-            exc = sys.exc_info()[1]
-            sys.exit('%s: fork #2 failed: (%d) %s\n'
-                     % (sys.argv[0], exc.errno, exc.strerror))
+        for fork in range(2):
+            msg = ['Forking once.', 'Forking twice.'][fork]
+            try:
+                pid = os.fork()
+                if pid > 0:
+                    # This is the parent; exit.
+                    logger(msg)
+                    os._exit(0)
+            except OSError as exc:
+                # Python raises OSError rather than returning negative numbers.
+                sys.exit(error_tmpl.format(sys=sys, exc=exc, n=fork + 1))
+            if fork == 0:
+                os.setsid()
 
         os.umask(0)
 
-        si = open(self.stdin, 'r')
-        so = open(self.stdout, 'a+')
-        se = open(self.stderr, 'a+')
+        si = open(stdin, 'r')
+        so = open(stdout, 'a+')
+        se = open(stderr, 'a+')
 
         # os.dup2(fd, fd2) will close fd2 if necessary,
         # so we don't explicitly close stdin/out/err.
@@ -422,9 +419,7 @@ class Daemonizer(SimplePlugin):
         os.dup2(so.fileno(), sys.stdout.fileno())
         os.dup2(se.fileno(), sys.stderr.fileno())
 
-        self.bus.log('Daemonized to PID: %s' % os.getpid())
-        self.finalized = True
-    start.priority = 65
+        logger('Daemonized to PID: %s' % os.getpid())
 
 
 class PIDFile(SimplePlugin):
@@ -452,11 +447,11 @@ class PIDFile(SimplePlugin):
             self.bus.log('PID file removed: %r.' % self.pidfile)
         except (KeyboardInterrupt, SystemExit):
             raise
-        except:
+        except Exception:
             pass
 
 
-class PerpetualTimer(Timer):
+class PerpetualTimer(threading.Timer):
 
     """A responsive subclass of threading.Timer whose run() method repeats.
 
@@ -631,23 +626,43 @@ class Autoreloader(Monitor):
 
     def sysfiles(self):
         """Return a Set of sys.modules filenames to monitor."""
-        files = set()
-        for k, m in list(sys.modules.items()):
-            if re.match(self.match, k):
-                if (
-                    hasattr(m, '__loader__') and
-                    hasattr(m.__loader__, 'archive')
-                ):
-                    f = m.__loader__.archive
-                else:
-                    f = getattr(m, '__file__', None)
-                    if f is not None and not os.path.isabs(f):
-                        # ensure absolute paths so a os.chdir() in the app
-                        # doesn't break me
-                        f = os.path.normpath(
-                            os.path.join(_module__file__base, f))
-                files.add(f)
-        return files
+        search_mod_names = filter(
+            re.compile(self.match).match,
+            list(sys.modules.keys()),
+        )
+        mods = map(sys.modules.get, search_mod_names)
+        return set(filter(None, map(self._file_for_module, mods)))
+
+    @classmethod
+    def _file_for_module(cls, module):
+        """Return the relevant file for the module."""
+        return (
+            cls._archive_for_zip_module(module)
+            or cls._file_for_file_module(module)
+        )
+
+    @staticmethod
+    def _archive_for_zip_module(module):
+        """Return the archive filename for the module if relevant."""
+        try:
+            return module.__loader__.archive
+        except AttributeError:
+            pass
+
+    @classmethod
+    def _file_for_file_module(cls, module):
+        """Return the file for the module."""
+        try:
+            return module.__file__ and cls._make_absolute(module.__file__)
+        except AttributeError:
+            pass
+
+    @staticmethod
+    def _make_absolute(filename):
+        """Ensure filename is absolute to avoid effect of os.chdir."""
+        return filename if os.path.isabs(filename) else (
+            os.path.normpath(os.path.join(_module__file__base, filename))
+        )
 
     def run(self):
         """Reload the process if registered files have been modified."""
@@ -716,7 +731,7 @@ class ThreadManager(SimplePlugin):
         If the current thread has already been seen, any 'start_thread'
         listeners will not be run again.
         """
-        thread_ident = get_thread_ident()
+        thread_ident = _thread.get_ident()
         if thread_ident not in self.threads:
             # We can't just use get_ident as the thread ID
             # because some platforms reuse thread ID's.
@@ -726,7 +741,7 @@ class ThreadManager(SimplePlugin):
 
     def release_thread(self):
         """Release the current thread and run 'stop_thread' listeners."""
-        thread_ident = get_thread_ident()
+        thread_ident = _thread.get_ident()
         i = self.threads.pop(thread_ident, None)
         if i is not None:
             self.bus.publish('stop_thread', i)

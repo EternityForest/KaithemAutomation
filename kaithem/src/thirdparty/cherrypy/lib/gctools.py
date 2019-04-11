@@ -113,6 +113,8 @@ class RequestCounter(SimplePlugin):
 
     def after_request(self):
         self.count -= 1
+
+
 request_counter = RequestCounter(cherrypy.engine)
 request_counter.subscribe()
 

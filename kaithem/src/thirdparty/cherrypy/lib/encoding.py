@@ -2,10 +2,8 @@ import struct
 import time
 import io
 
-import six
-
 import cherrypy
-from cherrypy._cpcompat import text_or_bytes, ntob
+from cherrypy._cpcompat import text_or_bytes
 from cherrypy.lib import file_generator
 from cherrypy.lib import is_closable_iterator
 from cherrypy.lib import set_vary_header
@@ -37,6 +35,7 @@ def decode(encoding=None, default_encoding='utf-8'):
             default_encoding = [default_encoding]
         body.attempt_charsets = body.attempt_charsets + default_encoding
 
+
 class UTF8StreamEncoder:
     def __init__(self, iterator):
         self._iterator = iterator
@@ -49,7 +48,7 @@ class UTF8StreamEncoder:
 
     def __next__(self):
         res = next(self._iterator)
-        if isinstance(res, six.text_type):
+        if isinstance(res, str):
             res = res.encode('utf-8')
         return res
 
@@ -98,7 +97,7 @@ class ResponseEncoder:
 
         def encoder(body):
             for chunk in body:
-                if isinstance(chunk, six.text_type):
+                if isinstance(chunk, str):
                     chunk = chunk.encode(encoding, self.errors)
                 yield chunk
         self.body = encoder(self.body)
@@ -111,7 +110,7 @@ class ResponseEncoder:
         self.attempted_charsets.add(encoding)
         body = []
         for chunk in self.body:
-            if isinstance(chunk, six.text_type):
+            if isinstance(chunk, str):
                 try:
                     chunk = chunk.encode(encoding, self.errors)
                 except (LookupError, UnicodeError):
@@ -219,19 +218,7 @@ class ResponseEncoder:
         response = cherrypy.serving.response
         self.body = self.oldhandler(*args, **kwargs)
 
-        if isinstance(self.body, text_or_bytes):
-            # strings get wrapped in a list because iterating over a single
-            # item list is much faster than iterating over every character
-            # in a long string.
-            if self.body:
-                self.body = [self.body]
-            else:
-                # [''] doesn't evaluate to False, so replace it with [].
-                self.body = []
-        elif hasattr(self.body, 'read'):
-            self.body = file_generator(self.body)
-        elif self.body is None:
-            self.body = []
+        self.body = prepare_iter(self.body)
 
         ct = response.headers.elements('Content-Type')
         if self.debug:
@@ -268,6 +255,29 @@ class ResponseEncoder:
 
         return self.body
 
+
+def prepare_iter(value):
+    """
+    Ensure response body is iterable and resolves to False when empty.
+    """
+    if isinstance(value, text_or_bytes):
+        # strings get wrapped in a list because iterating over a single
+        # item list is much faster than iterating over every character
+        # in a long string.
+        if value:
+            value = [value]
+        else:
+            # [''] doesn't evaluate to False, so replace it with [].
+            value = []
+    # Don't use isinstance here; io.IOBase which has an ABC takes
+    # 1000 times as long as, say, isinstance(value, str)
+    elif hasattr(value, 'read'):
+        value = file_generator(value)
+    elif value is None:
+        value = []
+    return value
+
+
 # GZIP
 
 
@@ -276,15 +286,15 @@ def compress(body, compress_level):
     import zlib
 
     # See http://www.gzip.org/zlib/rfc-gzip.html
-    yield ntob('\x1f\x8b')       # ID1 and ID2: gzip marker
-    yield ntob('\x08')           # CM: compression method
-    yield ntob('\x00')           # FLG: none set
+    yield b'\x1f\x8b'       # ID1 and ID2: gzip marker
+    yield b'\x08'           # CM: compression method
+    yield b'\x00'           # FLG: none set
     # MTIME: 4 bytes
     yield struct.pack('<L', int(time.time()) & int('FFFFFFFF', 16))
-    yield ntob('\x02')           # XFL: max compression, slowest algo
-    yield ntob('\xff')           # OS: unknown
+    yield b'\x02'           # XFL: max compression, slowest algo
+    yield b'\xff'           # OS: unknown
 
-    crc = zlib.crc32(ntob(''))
+    crc = zlib.crc32(b'')
     size = 0
     zobj = zlib.compressobj(compress_level,
                             zlib.DEFLATED, -zlib.MAX_WBITS,
@@ -321,9 +331,9 @@ def gzip(compress_level=5, mime_types=['text/html', 'text/plain'],
     values in the mime_types arg before calling this function.
 
     The provided list of mime-types must be of one of the following form:
-        * type/subtype
-        * type/*
-        * type/*+subtype
+        * `type/subtype`
+        * `type/*`
+        * `type/*+subtype`
 
     No compression is performed if any of the following hold:
         * The client sends no Accept-Encoding request header

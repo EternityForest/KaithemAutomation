@@ -29,31 +29,25 @@ class PageHandler(object):
         self.args = args
         self.kwargs = kwargs
 
-    def get_args(self):
+    @property
+    def args(self):
+        """The ordered args should be accessible from post dispatch hooks."""
         return cherrypy.serving.request.args
 
-    def set_args(self, args):
+    @args.setter
+    def args(self, args):
         cherrypy.serving.request.args = args
         return cherrypy.serving.request.args
 
-    args = property(
-        get_args,
-        set_args,
-        doc='The ordered args should be accessible from post dispatch hooks'
-    )
-
-    def get_kwargs(self):
+    @property
+    def kwargs(self):
+        """The named kwargs should be accessible from post dispatch hooks."""
         return cherrypy.serving.request.kwargs
 
-    def set_kwargs(self, kwargs):
+    @kwargs.setter
+    def kwargs(self, kwargs):
         cherrypy.serving.request.kwargs = kwargs
         return cherrypy.serving.request.kwargs
-
-    kwargs = property(
-        get_kwargs,
-        set_kwargs,
-        doc='The named kwargs should be accessible from post dispatch hooks'
-    )
 
     def __call__(self):
         try:
@@ -64,7 +58,7 @@ class PageHandler(object):
                 test_callable_spec(self.callable, self.args, self.kwargs)
             except cherrypy.HTTPError:
                 raise sys.exc_info()[1]
-            except:
+            except Exception:
                 raise x
             raise
 
@@ -209,10 +203,12 @@ def test_callable_spec(callable, callable_args, callable_kwargs):
 try:
     import inspect
 except ImportError:
-    test_callable_spec = lambda callable, args, kwargs: None
+    def test_callable_spec(callable, args, kwargs):  # noqa: F811
+        return None
 else:
     getargspec = inspect.getargspec
-    # Python 3 requires using getfullargspec if keyword-only arguments are present
+    # Python 3 requires using getfullargspec if
+    # keyword-only arguments are present
     if hasattr(inspect, 'getfullargspec'):
         def getargspec(callable):
             return inspect.getfullargspec(callable)[:4]
@@ -228,19 +224,18 @@ class LateParamPageHandler(PageHandler):
     (it's more complicated than that, but that's the effect).
     """
 
-    def _get_kwargs(self):
+    @property
+    def kwargs(self):
+        """Page handler kwargs (with cherrypy.request.params copied in)."""
         kwargs = cherrypy.serving.request.params.copy()
         if self._kwargs:
             kwargs.update(self._kwargs)
         return kwargs
 
-    def _set_kwargs(self, kwargs):
+    @kwargs.setter
+    def kwargs(self, kwargs):
         cherrypy.serving.request.kwargs = kwargs
         self._kwargs = kwargs
-
-    kwargs = property(_get_kwargs, _set_kwargs,
-                      doc='page handler kwargs (with '
-                      'cherrypy.request.params copied in)')
 
 
 if sys.version_info < (3, 0):
@@ -368,8 +363,8 @@ class Dispatcher(object):
                 # No path segment was removed.  Raise an error.
                 raise cherrypy.CherryPyException(
                     'A vpath segment was added.  Custom dispatchers may only '
-                    + 'remove elements.  While trying to process '
-                    + '{0} in {1}'.format(name, fullpath)
+                    'remove elements.  While trying to process '
+                    '{0} in {1}'.format(name, fullpath)
                 )
             elif segleft == pre_len:
                 # Assume that the handler used the current path segment, but

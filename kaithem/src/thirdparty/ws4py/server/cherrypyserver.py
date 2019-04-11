@@ -69,7 +69,7 @@ import threading
 import cherrypy
 from cherrypy import Tool
 from cherrypy.process import plugins
-from cherrypy.wsgiserver import HTTPConnection, HTTPRequest
+from cheroot.server import HTTPConnection, HTTPRequest
 
 from ws4py import WS_KEY, WS_VERSION
 from ws4py.exc import HandshakeError

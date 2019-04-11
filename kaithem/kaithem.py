@@ -263,8 +263,8 @@ else:
 if cfgmodule.argcmd.nosecurity == 1:
     bindto = '127.0.0.1'
 
-cherrypy.process.servers.check_port(bindto, config['http-port'], timeout=1.0)
-cherrypy.process.servers.check_port(bindto, config['https-port'], timeout=1.0)
+#cherrypy.process.servers.check_port(bindto, config['http-port'], timeout=1.0)
+#cherrypy.process.servers.check_port(bindto, config['https-port'], timeout=1.0)
 logger.info("Ports are free")
 
 MyExternalIPAdress = util.updateIP()
