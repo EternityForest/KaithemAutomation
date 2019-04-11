@@ -333,6 +333,7 @@ class webapproot():
                 return zipcache[path]
         except:
             print("err in cache for zip")
+        cherrypy.response.headers['Cache-Control'] = "max-age=28800"
 
         m =mimetypes.guess_type(path[-1])
         cherrypy.response.headers['Content-Type'] = m[0]
@@ -511,7 +512,9 @@ cnf={
         },
     '/static/zip':
         {
-        'request.dispatch': cherrypy.dispatch.MethodDispatcher()
+        'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
+        "tools.addheader.on": True
+
         },
     '/pages':
         {
@@ -547,7 +550,7 @@ for i in config['serve-static']:
 
 def addheader(*args,**kwargs):
     "This function's only purpose is to tell the browser to cache requests for an hour"
-    cherrypy.response.headers['Cache-Control'] = "max-age=3600"
+    cherrypy.response.headers['Cache-Control'] = "max-age=28800"
     #del cherrypy.response.headers['Expires']
 
 def pageloadnotify(*args,**kwargs):
