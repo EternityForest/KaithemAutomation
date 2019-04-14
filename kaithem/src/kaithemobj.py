@@ -60,11 +60,11 @@ class Kaithem():
         else:
             raise AttributeError()
 
-    class Users(object):
+    class users(object):
         @staticmethod
         def checkPermission(user,permission):
             try:
-                if auth.canUserDoThis(username, permission):
+                if auth.canUserDoThis(user, permission):
                     return True
                 else:
                     return False

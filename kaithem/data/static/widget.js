@@ -105,22 +105,7 @@ KWidget_reconnect_timeout = 1500;
 
 KWidget_connect = function()
 {
-	xmlhttp=new XMLHttpRequest();
-	xmlhttp.open("GET","/widgets/ws_allowed",false);
-	xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-	try
-	{
-		xmlhttp.send();
-    }
-	catch(err)
-	{
-		console.log(err)
-		KWidget_reconnect_timeout = Math.min(KWidget_reconnect_timeout*2, 20000);
-		setTimeout( KWidget_connect , KWidget_reconnect_timeout);
-		return;
-	}
-	xmlDoc=xmlhttp.responseText;
-	if (xmlDoc == 'True')
+	if (true)
 	{
 
 		KWidget_connection = new WebSocket(window.location.protocol.replace("http","ws")+"//"+window.location.host + '/widgets/ws');
@@ -217,7 +202,6 @@ KWidget_connect = function()
 		}
 
 	}
-
 	else
 	{
 		pollLoop();

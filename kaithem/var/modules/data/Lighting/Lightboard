@@ -236,7 +236,7 @@ from src import tagpoints
             Universe Setup</h3>
         <p class="help">These settings are saved immediately to the Kaithem registry when you click
             "Update Settings". To save them to disk, go to the system settings page
-            and save the server state to disk.</p>
+            and save the server state to disk. Note: Configuring these universes requires /admin/settings.edit, however you do not need that permission to use the lightboard after it's configured.</p>
         <button v-on:click="refreshPorts">Refresh Serial Ports</button>
         <button v-on:click="pushSettings">Update Settings</button><br>
         <br>

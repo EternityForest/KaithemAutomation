@@ -19,8 +19,9 @@ Property that can get the tag's value, or set the value of the default claim
 
 #### TagPoint.claim(value, name, priority)
 Adds a claim to the tag. The claim will dissapear if the returned Claim object ever does.
-
 Value may be a function that can be polled to return a float, or a number.
+
+Should a claim already exist by that name, the exact same claim object as the previous claim is returned.
 
 #### TagPoint.min, TagPoint.max
 Set the range of the tag point. Out of range values are clipped.

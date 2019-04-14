@@ -199,13 +199,17 @@ class LoggingHandler(logging.Handler):
                 #except one file buffered dumps
                 ###TODO: TOo Many Open Files error
                 chmodflag= not os.path.exists(self.current_file)
-                with openlog(self.current_file,'ba' if self.compress =="none" else "wb") as f:
-                    if chmodflag:
-                        util.chmod_private_try(fn)
-                    for i in logbuffer:
-                        b =(i+"\r\n").encode("utf8")
-                        self.bytecounter+=len(b)
-                        f.write(b)
+                try:
+                    with openlog(self.current_file,'ba' if self.compress =="none" else "wb") as f:
+                        if chmodflag:
+                            util.chmod_private_try(fn)
+                        for i in logbuffer:
+                            b =(i+"\r\n").encode("utf8")
+                            self.bytecounter+=len(b)
+                            f.write(b)
+                except OSError:
+                    #Todo some kind of too many open files loop here
+                    raise
                 
 
                 #Keep track of how many we have written to the file

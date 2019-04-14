@@ -1336,9 +1336,12 @@ class LightBoard():
                 self.pushConfiguredUniverses()
 
             if msg[0] == "setconfuniverses":
-                self.configuredUniverses = msg[1]
-                kaithem.registry.set("lighting/universes",msg[1])
-                self.createUniverses()
+                if kaithem.users.checkPermission(user,"/admin/settings.edit"):
+                    self.configuredUniverses = msg[1]
+                    kaithem.registry.set("lighting/universes",msg[1])
+                    self.createUniverses()
+                else:
+                    raise RuntimeError("User does not have permission")
 
             if msg[0] == "setfixtureclass":
                 l =[]

@@ -337,18 +337,23 @@ class _TagPoint(virtualresource.VirtualResource):
         with self.lock:
             #ClaimObj means we're changing the value of an existing claim
             if name in self.claims:
-                raise ValueError("Cannot have two claims with the same name")
-            
+                claim= self.claims[name][4]
+            else:
+                claim = Claim(self, value,name,priority)
             #Note  that we use the time, so that the most recent claim is
             #Always the winner in case of conflicts
-            self.claims[name] = (priority, t(),name, value)
+            self.claims[name] = (priority, t(),name, value,weakref.ref(claim))
 
             if self.activeClaim==None or priority >= self.activeClaim[0]:
                 self.activeClaim = self.claims[name]
                 self._value = value
+            #If priority has been reduced on the existing active claim
+            elif name==self.activeClaim[2]:
+                self.activeClaim=sorted(self.claims.values)[-1]
+                self._value = self.activeClaim[3]
 
             self._push(self.value)           
-            return Claim(self, value,name,priority)
+            return claim
 
     def setClaimVal(self,claim,val):
         if not callable(val):
