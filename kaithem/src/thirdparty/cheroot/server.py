@@ -1983,6 +1983,7 @@ class HTTPServer:
 
     def tick(self):
         """Accept a new connection and put it on the Queue."""
+        global _lastGC
         try:
             s, addr = self.socket.accept()
             if self.stats['Enabled']:
@@ -2080,7 +2081,7 @@ class HTTPServer:
             raise
         #Modified by kaithem
         except OSError:
-            if time.time()-self._lastGC>60:
+            if time.time()-_lastGC>60:
                 _lastGC = time.time()
                 gc.collect()
                 raise

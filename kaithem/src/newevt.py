@@ -25,6 +25,9 @@ from .scheduling import scheduler
 ctime =time.time
 do = workers.do
 
+#Ratelimiter for calling gc.collect automatically when we get OSErrors
+_lastGC=0
+
 #Use this lock whenever you access _events or __EventReferences in any way.
 #Most of the time it should be held by the event manager that continually iterates it.
 #To update the _events, event execution must temporarily pause
@@ -447,6 +450,7 @@ class BaseEvent():
 
 
     def _handle_exception(self, e=None, tb=None):
+            global _lastGC
             if tb==None:
                 if sys.version_info>(3,0):
                     tb = traceback.format_exc(6, chain=True)
@@ -473,12 +477,22 @@ class BaseEvent():
                 except KeyError:
                     backoff = config['error-backoff']['interactive']
 
-            self.backoff_until=time.time()+backoff
+            #Randomize backoff intervals in case there's an error that can
+            #Be fixed by changing the order of events
+            self.backoff_until=time.time()+(backoff*((random.random()/10) +0.95))
+
+            #Try to fix the error by garbage collecting
+            #If there's too many open files
+            if isinstance(e,OSError):
+                 if time.time()-_lastGC>240:
+                    _lastGC = time.time()
+                    gc.collect()
+
             #If this is the first error since th module was last saved raise a notification
             if len(self.errors)==1:
                 syslogger.exception("Error running event "+self.resource+" of "+ self.module)
                 messagebus.postMessage('/system/notifications/errors',"Event \""+self.resource+"\" of module \""+self.module+ "\" may need attention")
-
+            
     def register(self):
         #Note: The whole self.disabled thing is really laregly a hack to get instant response
         #To things if an event is based on some external thing with a callback that takes time to unregister.
