@@ -129,6 +129,9 @@ class Settings():
                 t = p.communicate(b'')
                 x+= t[0]+t[1]
                 p.kill()
+                p.stdout.close()
+                p.stderr.close()
+                p.stdin.close()
             except:
                 pass
             return pages.get_template("settings/console.html").render(output=x)

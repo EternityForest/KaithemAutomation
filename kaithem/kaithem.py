@@ -275,7 +275,7 @@ if config['change-process-title']:
         setproctitle.setproctitle("kaithem")
         logger.info("setting process title")
     except:
-        pass
+        logger.warning("error setting process title")
 
 if config['enable-websockets']:
     from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool

@@ -74,6 +74,8 @@ import time
 import traceback as traceback_
 import logging
 import platform
+#modified by kaithem
+import gc
 
 try:
     from functools import lru_cache
@@ -89,6 +91,9 @@ from ._compat import bton, ntou
 from .workers import threadpool
 from .makefile import MakeFile, StreamWriter
 
+#Kaithem modified patch. Track last time we tried
+#TO use GC to fix too many open files
+_lastGC = 0
 
 __all__ = (
     'HTTPRequest', 'HTTPConnection', 'HTTPServer',
@@ -2046,6 +2051,8 @@ class HTTPServer:
                 # Just drop the conn. TODO: write 503 back?
                 conn.close()
                 return
+
+      
         except socket.timeout:
             # The only reason for the timeout in start() is so we can
             # notice keyboard interrupts on Win32, which don't interrupt
@@ -2071,6 +2078,12 @@ class HTTPServer:
                 # See https://github.com/cherrypy/cherrypy/issues/686.
                 return
             raise
+        #Modified by kaithem
+        except OSError:
+            if time.time()-self._lastGC>60:
+                _lastGC = time.time()
+                gc.collect()
+                raise
 
     @property
     def interrupt(self):
