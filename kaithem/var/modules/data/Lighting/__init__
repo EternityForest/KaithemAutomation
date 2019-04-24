@@ -605,7 +605,10 @@ class Universe():
             self.status = "normal"
         if not hasattr(self,"ok"):
             self.ok = True
-            
+
+        #Represents the telemetry data back from the physical device of this universe.
+        self.telemetry = {}
+
         #Dict of all board ids that have already pushed a status update
         self.statusChanged = {}
         self.channels = {}
@@ -898,12 +901,20 @@ class ArtNetUniverse(Universe):
         self.number=number
         self.statusChanged = {}
 
-        addr,port = address.split(":")
+        x = address.split("://")
+        if len(x)>1:
+            scheme = x[0]
+        else:
+            scheme=''
+        
+        addr,port = x[-1].split(":")
         port = int(port)
+
+       
 
         #Sender needs the values to be there for setup
         self.values = numpy.array([0.0]*channels,dtype="f4")
-        self.sender = ArtNetSender(self,addr,port,framerate)
+        self.sender = ArtNetSender(self,addr,port,framerate,scheme)
         
         Universe.__init__(self,name,channels)
 
@@ -963,15 +974,36 @@ class ArtNetSender():
         It runs in it's own thread because the frame rate might have nothing to do with
         the rate at which the data actually gets rendered.
     """
-    def __init__(self,universe,addr,port,framerate):
+    def __init__(self,universe,addr,port,framerate,scheme):
         module.EnttecUniverse_dbg[str(timefunc())]= self
         self.frame = threading.Event()
+        self.scheme=scheme
 
 
         self.universe= weakref.ref(universe)
         self.data = False
         self.running = 1
+        #The last telemetry we didn't ignore
+        self.lastTelemetry = 0
+        if self.scheme == "pavillion":
+            def onBatteryStatus(v):
+                self.universe().telemetry['battery']=v
+                if self.lastTelemetry<(time.time()-10):
+                    self.universe().statusChanged={}
+            
+            def onConnectionStatus(v):
+                self.universe().telemetry['rssi']=v
+                if self.lastTelemetry<(time.time()-10):
+                    self.universe().statusChanged={}
+            
+            self.connectionTag = kaithem.tags["/devices/"+addr+".rssi"]
+            self._oncs = onConnectionStatus
+            self.connectionTag.subscribe(onConnectionStatus)
 
+            self.batteryTag = kaithem.tags["/devices/"+addr+".battery"]
+            self._onb = onBatteryStatus
+            self.batteryTag.subscribe(onBatteryStatus)
+            
         def run():
             import time, traceback
             interval = 1.1/self.framerate
@@ -989,7 +1021,17 @@ class ArtNetSender():
                     with self.lock:
                         if self.data is None:
                             return
-                        self.sock.sendto(self.data, (self.addr, self.port))
+                        #Here we have the option to use a Pavillion device
+                        if self.scheme=="pavillion":
+                            try:
+                                addr=kaithem.devices[self.addr].data['address']
+                            except:
+                                time.sleep(3)
+                                continue
+                        else:
+                            addr=self.addr
+
+                        self.sock.sendto(self.data, (addr, self.port))
                         self.frame.clear()
                     time.sleep(max(((1.0/self.framerate)-(time.time()-s)), 0))
                 except Exception as e:
@@ -1177,7 +1219,7 @@ class LightBoard():
     def pushUniverses(self):
         self.link.send(["universes",{i:{'count':len(module.universes[i].values), 
                     'status':module.universes[i].status, 
-                    'ok':module.universes[i].ok} for i in module.universes}])   
+                    'ok':module.universes[i].ok,"telemetry":module.universes[i].telemetry} for i in module.universes}])   
 
     def getScenes(self):
         "Return serializable version of scenes list"
@@ -1747,7 +1789,7 @@ class LightBoard():
             self.newDataFunctions = []
             for i in module.universes:
                 if not self.id in module.universes[i].statusChanged:
-                    self.link.send(["universe_status",i,module.universes[i].status,module.universes[i].ok])
+                    self.link.send(["universe_status",i,module.universes[i].status,module.universes[i].ok,module.universes[i].telemetry])
                     module.universes[i].statusChanged[self.id]=True
 
             for i in self.scenememory:

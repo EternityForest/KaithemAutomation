@@ -213,12 +213,28 @@ from src import tagpoints
         <button v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}"><img src="/zipstatic/img/icons/fugue.zip/tick-octagon.png"></img>Run</button>
         <button v-on:click="showKeyBindings=!showKeyBindings"><img src="/zipstatic/img/icons/fugue.zip/eye.png"></img>Show/Hide</button>
     </span>
+    </p>
+
+    <p style="background-color:rgba(255,255,255,0.3);">
+    <span style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px" v-for="v,i in universes">
+        <b v-if="v.ok">{{i}}</b><b v-if="!v.ok" class="error">{{i}}</b>:
+        <span v-for="w,j in v.telemetry">
+            <span v-if="j=='battery'"><img src="/zipstatic/img/icons/fugue.zip/battery.png"></img> <meter min=1 max=100 low=30 v-bind:value="v.telemetry[j]"></meter>{{w}}%</span>
+            <span v-if="j=='rssi'"><img src="/zipstatic/img/icons/fugue.zip/battery.png"></img><meter min=-98 max=0 low=-83 v-bind:value="v.telemetry[j]"></meter>{{w}}dbm</span>
+
+        </span>
+        
+    </span>
+
+    
+    </p>
 
 
 
     <datalist id="serports">
         <option v-for="i of serports" v-bind:value="i"></option>
     </datalist>
+
 
 
     <datalist id="tagslisting">
@@ -259,6 +275,18 @@ from src import tagpoints
         <br>
 
         <h4>Configure Universes</h4>
+
+
+        <datalist id="artnettargets">
+            %if kaithem.web.hasPermission("/admin/settings.edit"):     
+            %for i in kaithem.devices:
+            %if hasattr(kaithem.devices[i],"pclient"):
+            <option value="pavillion://${i}:6454" ></option>
+            %endif
+            %endfor
+            %endif
+        </datalist>
+
         <table border=1>
             <tr>
                 <th>Universe</th>
@@ -274,13 +302,18 @@ from src import tagpoints
             <tr v-for="(v,i) in configuredUniverses">
                 <td>{{i}}</td>
                 <td>
-                    <input v-model="v.type" title="The type of universe. Usually enttec or artnet">
+                    <input list="universetypes" v-model="v.type" title="The type of universe. Usually enttec or artnet">
                 </td>
 
-                <td>
-                    <input list="serports" v-model="v.interface" title="The interface device that describes where to send the data. Usually a serial port, or a destination ip:port in the case of ArtNet"
+                <td v-if="v.type!='artnet'">
+                    <input list="serports" v-model="v.interface" title="The interface device that describes where to send the data. Usually a serial port, or a destination host:port in the case of ArtNet"
                         placeholder="Default">
                 </td>
+                 <td v-if="v.type=='artnet'">
+                    <input list="artnettargets" v-model="v.interface" title="A destination ip:port in the case of ArtNet. A Pavillion device name prefixed with pavillion:// may be used instead of a hostname. The IP will be obtained from the Device config"
+                        placeholder="Default">
+                </td>
+
 
                 <td>
                     <input type=number min=0 max=480 step=0.1 v-model="v.framerate" title="The max frame rate">
@@ -1998,7 +2031,7 @@ from src import tagpoints
             {
                 appData.universes[v[1]].status = v[2]
                 appData.universes[v[1]].ok = v[3]
-
+                appData.universes[v[1]].telemetry = v[4]
             }
             if (c == "delcue")
             {

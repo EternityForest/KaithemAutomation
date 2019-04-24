@@ -32,6 +32,9 @@ def dbg(*a):
         print (a)
 
 def is_multicast(addr):
+    #TODO: Do multicast URLs exist?
+    if isinstance(addr,str):
+        return False
     if not ":" in addr:
         a = addr.split(".")
         if 224<= int(a[0]) <= 239:
@@ -68,7 +71,7 @@ class ServerStatus():
         if blevel == 0:
             self.batteryState="unknown"
 
-        self.battery = (blevel/64)*100
+        self.battery = (blevel/64)*100100
         #Avoid confusion due to low precision
         if self.battery>98:
             self.battery=100
@@ -106,7 +109,7 @@ class RemoteServerInterface():
         return self._getServer().status().battery
     
     def batteryState(self):
-        "Returns bettery in percent, or raises NotConnected"
+        "Returns battery state as one of charging, discharging, generating, slowcharging, unknown"
         return self._getServer().status().batteryState
     
     def temperature(self):
@@ -114,12 +117,17 @@ class RemoteServerInterface():
         return self._getServer().status().temp
 
     def rssi(self):
-        "Returns temperature in C, or raises NotConnected"
+        "Returns RSSI in dbm"
         return self._getServer().status().rssi
 
     def netType(self):
         "Returns temperature in C, or raises NotConnected"
         return self._getServer().status().netType
+
+    def address(self):
+        #Returns the current addr of the server
+        return self._getServer().addr
+    
 
 
 class _RemoteServer():
@@ -576,17 +584,20 @@ class _Client():
     def send(self, counter, opcode, data,addr=None):
         
         ##Experimental optimization to send to the only known server most of the time if there's only one
-        #We want to send a real broadcast if we haven't done one in 3s, this is really just
+        #We want to send a real broadcast if we haven't done one in 30s, this is really just
         #An optimization for if we ever send frequent bursts of data
         
         #Don't override the address setting though, if manually given
 
         #TODO: decide if this is actually a good idea, and for what opcodes.
+        #I'm making this 30s because we already have other ways of discovery.
         try:
             if addr==None and len(self.known_servers)==1:
-                if self.lastActualBroadcast> time.time()-3:
+                if self.lastActualBroadcast> time.time()-30:
                     for i in self.known_servers:
-                        addr = i
+                        #Only do the optimization if we're actually connected
+                        if self.known_servers[i].connectedAt>(time.time()-30):
+                            addr = i
                 else:
                     self.lastActualBroadcast = time.time()
         except:
@@ -1093,6 +1104,15 @@ class Client():
 
     def messageTarget(self,target,callback):
         return self.client.messageTarget(target, callback)
+
+    @property
+    def remoteAddress(self):
+        """Returns the address of the remote device, or None if disconnected.
+           If the client is in multicast mode, return one if them
+        """
+        for i in self.client.known_servers:
+            if self.client.known_servers[i].connectedAt>(time.time()-60):
+                return i
     @property
     def address(self):
         return self.client.sock.getsockname()

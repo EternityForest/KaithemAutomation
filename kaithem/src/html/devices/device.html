@@ -7,6 +7,7 @@
 
 <%
 import traceback
+from src import unitsofmeasure
 %>
 
 %if hasattr(obj,"getManagementForm"):
@@ -39,11 +40,32 @@ ${obj.getManagementForm()}
 <input type="submit" value="Save settings">
 
 %if data.get('type','') in ("pavillion", "k4d"):
+        <%
+        try:
+                obj.pclient.sendMessage("","",b'',timeout=1)
+        except:
+                pass
+        %>
         <h2>Device Info</h2>
         <table border="1" style="width:80em">
         <tr>
                 <td>Device Type</td>
                 <td><input name="type" value="${data.get('type','')}"></td>
+        </tr>
+
+        <tr>
+                <td>Battery info(For one device if multiple)</td>
+                <td>${obj.batteryStatusTag.value if obj.batteryStatusTag else 100}% ${obj.batteryState}</td>
+        </tr>
+
+        <tr>
+                <td>Connection status(For one device if multiple)</td>
+                <td>${obj.connectionTag.value}dbm ${obj.connectionType}</td>
+        </tr>
+
+        <tr>
+                <td>Remote IP(Shows only one if multiple)</td>
+                <td>${obj.pclient.remoteAddress if obj.batteryStatusTag else None}</td>
         </tr>
 
         <tr>

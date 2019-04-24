@@ -241,7 +241,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 if x:
                     x(val)
                 del x
-                workers.do(f)
+            workers.do(f)
 
     def processValue(self,value):
         #Functions are special valid types of value.
@@ -335,30 +335,44 @@ class _TagPoint(virtualresource.VirtualResource):
         if not callable(value):
             value=float(value)
         with self.lock:
-            #ClaimObj means we're changing the value of an existing claim
-            if name in self.claims:
-                claim= self.claims[name][4]
-            else:
+            #we're changing the value of an existing claim,
+            #We need to get the claim object, which we stored by weakref
+            claim=None
+            try:
+                if name in self.claims:
+                    claim= self.claims[name][3]()
+            except:
+                logger.exception("Probably a race condition and safe to ignore this")
+
+            #If the weakref obj disappeared it will be None
+            if claim ==None:
                 claim = Claim(self, value,name,priority)
+        
             #Note  that we use the time, so that the most recent claim is
             #Always the winner in case of conflicts
-            self.claims[name] = (priority, t(),name, value,weakref.ref(claim))
+            self.claims[name] = (priority, t(),name,weakref.ref(claim))
 
             if self.activeClaim==None or priority >= self.activeClaim[0]:
                 self.activeClaim = self.claims[name]
                 self._value = value
             #If priority has been reduced on the existing active claim
             elif name==self.activeClaim[2]:
-                self.activeClaim=sorted(self.claims.values)[-1]
-                self._value = self.activeClaim[3]
-
+                #Defensive programming against weakrefs dissapearing
+                #in some kind of race condition that leaves them in the list.
+                #Basically we find the highest priority valid claim
+                for i in reversed(sorted(self.claims.values)):
+                    x= i[3]()
+                    if x:
+                        self._value=x.value
+                        self.activeClaim=i
+                        break
             self._push(self.value)           
             return claim
 
     def setClaimVal(self,claim,val):
+        "Set the value of an existing claim"
         if not callable(val):
             val=float(val)
-        "Set the value of an existing claim"
         with self.lock:
             c=self.claims[claim]
             #If we're setting the active claim
@@ -366,10 +380,10 @@ class _TagPoint(virtualresource.VirtualResource):
                 upd=True
             else:
                 upd=False
-            x= (c[0],t(),c[2], val)
-            self.claims[claim]=x
+            #Grab the claim obj and set it's val
+            x= c[3]()
+            x.value = val
             if upd:
-                self.activeClaim=x
                 self._value=val
                 self._push(self.value)
 

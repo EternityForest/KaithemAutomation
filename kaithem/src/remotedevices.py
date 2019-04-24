@@ -18,7 +18,7 @@
 import weakref,pavillion, threading,time,logging,traceback,struct,hashlib,base64
 import cherrypy,mako
 
-from . import virtualresource,pages,registry,modules_state,kaithemobj, workers
+from . import virtualresource,pages,registry,modules_state,kaithemobj, workers,tagpoints, alerts
 
 remote_devices = {}
 remote_devices_atomic = {}
@@ -29,7 +29,6 @@ lock = threading.RLock()
 device_data = registry.get("system_remotedevices.devices",{})
 k4dlogger = logging.getLogger("system_k4d_errors")
 syslogger = logging.getLogger("system.devices")
-
 
 
 
@@ -188,6 +187,7 @@ class RemoteDevice(virtualresource.VirtualResource):
             remote_devices[name]=self
             remote_devices_atomic =remote_devices.copy()
 
+
     #Takes an error as a string and handles it
     def handleError(self, s):
         self.errors.append([time.time(), str(s)])
@@ -198,6 +198,7 @@ class RemoteDevice(virtualresource.VirtualResource):
         with lock:
             del remote_devices[self.name]
             remote_devices_atomic =remote_devices.copy()
+
     def status(self):
         return "norm"
     @staticmethod
@@ -327,12 +328,23 @@ class PavillionDevice(RemoteDevice):
     def __init__(self, name, data):
         import pavillion
         RemoteDevice.__init__(self,name,data)
-
+        self.pclient=None
         self.recievelock=threading.Lock()
 
         self.k4dprint = []
         self.k4derr = []
         self.loaded = weakref.WeakValueDictionary()
+        self.lock = threading.RLock()
+
+        self.batteryStatusTag = None
+        connectionTag = tagpoints.Tag("/devices/"+name+".rssi")
+        connectionTag.min =-100
+        connectionTag.max = 20
+
+        self.connectionTag = connectionTag
+        self.connectionType = "error"
+        self.batteryState = "unknown"
+
         if not 'address' in data:
             self.handleError("No address specified")
             return
@@ -349,8 +361,7 @@ class PavillionDevice(RemoteDevice):
             self.handleError("No client ID specified")
             return
 
-
-        self.address = (data['address'],data['port'])
+        self.connectionType = "unknown"
 
 
 
@@ -366,8 +377,25 @@ class PavillionDevice(RemoteDevice):
         self.server_pubkey = data.get('server_pubkey', None)
 
 
-        self.lock = threading.RLock()
+        self.connectionTagClaim = connectionTag.claim(0,"reported",51)
+        
+        self.batteryStatusClaim =None
 
+        #This alert monitors low battery.
+        self.lowBatteryAlert = alerts.Alert("/devices/"+name+".lowsignalalert")
+
+
+        #If the WiFi signal gets crappy.
+        self.lowSignalAlert   = alerts.Alert("/devices/"+name+".lowsignalalert",tripDelay=80,autoAck=True)
+        self.unreachableAlert = alerts.Alert("/devices/"+name+".lowsignalalert",tripDelay=5,autoAck=True)
+
+        self.alerts={
+            "unreachableAlert":self.unreachableAlert,
+            "lowSignalAlert": self.lowSignalAlert,
+            "lowBatteryAlert": self.lowSignalAlert,
+        }
+
+        RemoteDeviceObject = self
         #Has to be here so it doesn't mess everything else
         #up if we can't import Pavillion
         class Client2(pavillion.Client):
@@ -379,14 +407,45 @@ class PavillionDevice(RemoteDevice):
                 #That lint error is fine
                 if self.connectCB:
                     workers.do(self.connectCB)
+            def onServerStatusUpdate(self,server):
+                RemoteDeviceObject.batteryState = server.batteryState()
+                if not server.batteryState() =='unknown':
+                    blevel = server.battery()
+                    if blevel<15:
+                        RemoteDeviceObject.lowBatteryAlert.trip()
+                    elif blevel>35:
+                        RemoteDeviceObject.lowBatteryAlert.clear()
 
+                    #We create it the first time we actually get a battery status report
+                    if not RemoteDeviceObject.batteryStatusTag:
+                        #here's a tagpoint for the battery level
+                        RemoteDeviceObject.batteryStatusTag = tagpoints.Tag("/devices/"+name+".battery")
+                        RemoteDeviceObject.batteryStatusTag.min=1
+                        RemoteDeviceObject.batteryStatusTag.max=100
+                    if not RemoteDeviceObject.batteryStatusClaim:
+                        RemoteDeviceObject.batteryStatusClaim = RemoteDeviceObject.batteryStatusTag.claim(blevel,"reported",51)
+                    RemoteDeviceObject.batteryStatusClaim.set(blevel)
+
+                RemoteDeviceObject.netType =server.netType()
+                if server.netType() in ('wwan','wlan'):
+                    RemoteDeviceObject.connectionTagClaim.set(server.rssi())
+                    if server.rssi()<-89:
+                        RemoteDeviceObject.lowSignalAlert.trip()
+                    else:
+                        RemoteDeviceObject.lowSignalAlert.clear()
+                #Doesn't really apply to non wireless
+                else:
+                    #We have a tag for every pavillion device because we assume they
+                    #Can roam to wireless because some can. On wired we set RSSI to the max
+                    RemoteDeviceObject.connectionTagClaim.set(20)
+                    RemoteDeviceObject.lowSignalAlert.clear()
+                RemoteDeviceObject.unreachableAlert.clear()
         #This client is passed a callback to autoload all new code onto the device upon connection
-        self.pclient = Client2(self.onPavillionConnect, clientID=self.cid,psk=self.psk, address=self.address)
+        self.pclient = Client2(self.onPavillionConnect, clientID=self.cid,psk=self.psk, address=(data['address'],data['port']))
 
 
         def handle_print(name, data, source):
             data= data.decode("utf8")
-            print(source, data)
             with lock:
                 try:
                     self.loaded[name].print+= data
@@ -396,7 +455,6 @@ class PavillionDevice(RemoteDevice):
 
         def handle_error(name, data, source):
             data= data.decode("utf8")
-            print(source, data)
             with self.recievelock:
                 self.k4derr.append((name, data,time.time()))
                 self.k4derr = self.k4derr[-256:]
@@ -414,6 +472,10 @@ class PavillionDevice(RemoteDevice):
         #Todo: change names
         self.t = self.pclient.messageTarget("k4dprint",handle_print)
         self.t2 = self.pclient.messageTarget("k4derr",handle_error)
+    
+    def __getattr__(self,attr):
+        "Transparently pass along things to the pavillion client"
+        return getattr(self.pclient,attr)
 
     def __del__(self):
         try:
@@ -479,6 +541,8 @@ class DeviceNamespace():
         return remote_devices[name].interface()
     def __getitem__(self, name):
         return remote_devices[name].interface()
+    def __iter__(self):
+        return remote_devices_atomic.__iter__()
 
 builtinDeviceTypes = {'pavillion':PavillionDevice,"k4d":K4DDevice}
 deviceTypes = weakref.WeakValueDictionary()

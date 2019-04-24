@@ -1,5 +1,6 @@
 from .client import Client
 from .server import Server, Register
+from .client import is_multicast as isMulticast
 
 #The default daemon status of the threads for newly created server objects
 daemon = False
