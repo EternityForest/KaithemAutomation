@@ -37,6 +37,33 @@ ${obj.getManagementForm()}
 %endfor
 </table>
 
+
+
+<h2>Tag Points</h2>
+<p class="help">This section lists all the tag points owned 
+</p>
+<table border="1" style="width:40em">
+<tr><td>Name</td><td>Value</td><td>Active Claim</td></tr>
+
+%for i in obj.tagPoints:
+<tr><td>${i|h}</td>
+        <td>${obj.tagPoints[i].value}</td>
+        <td>${obj.tagPoints[i].activeClaim[2]|h}</td>
+</tr>
+%endfor
+</table>
+
+
+%if obj.errors:
+<h2>Errors</h2>
+
+<div class="scrollbox">
+        %for i in obj.errors:
+        <h4 class="error">${unitsofmeasure.strftime(i[0])}</h4>
+        <pre  class="error">${i[1]|h}</pre>
+        %endfor
+</div>
+%endif
 <input type="submit" value="Save settings">
 
 %if data.get('type','') in ("pavillion", "k4d"):
@@ -85,18 +112,14 @@ ${obj.getManagementForm()}
 
         <tr>
                 <td>PSK(64 Hex chars or 32 UTF-8 bytes)</td>
-                <td><input name="psk" value="${data.get('psk','')}" style="width: 65em"></td>
+                <td><input name="psk" id="psk" value="${data.get('psk','')}" style="width: 65em">
+                <input type="button" onclick="document.getElementById('psk').value='0000000000000000000000000000000000000000000000000000000000000000'" value="Use Default Key">
+        </td>
         </tr>
         </table>
 
         <input type="submit" value="Save settings">
-        %if 0:
-        %if obj.errors:
-        <h2>Errors</h2>
-        %for i in obj.errors:
-        <p class="error"><pre>${i[1]|}</pre></p>
-        %endfor
-        %endif
+       
 
         %if obj.k4derr:
         <h2>Kaithem for Devices program errors</h2>
@@ -106,7 +129,6 @@ ${obj.getManagementForm()}
                 <pre>${i[1]|h}</pre>
         </p>
         %endfor
-        %endif
         %endif
 %endif
 </form>

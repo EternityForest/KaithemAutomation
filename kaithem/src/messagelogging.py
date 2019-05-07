@@ -12,7 +12,7 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import time, threading,json, os,bz2, gzip, re, collections,traceback,logging
+import time, threading, os,bz2, gzip, re, collections,traceback,logging
 import cherrypy
 from . import unitsofmeasure,messagebus,directories,workers,util,pages, config
 from .messagebus import normalize_topic

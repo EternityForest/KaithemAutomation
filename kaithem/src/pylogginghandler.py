@@ -59,7 +59,7 @@ class KFormatter(logging.Formatter):
 class LoggingHandler(logging.Handler):
     def __init__(self,name,folder, fn, bufferlen=25000,
                     level=30,contextlevel=10,contextbuffer=0,
-                    entries_per_file=25000, keep=10, compress='none'):
+                    entries_per_file=25000, keep=10, compress='none',doprint=True):
         """Implements a memory-buffered context logger with automatic log rotation.
         Log entries are kept in memory until the in memory buffer exceeds bufferlen entries.
         When that happens,logs are dumped to a file named fn_TIMESTAMP.FRACTIONALPART.log,
@@ -81,6 +81,8 @@ class LoggingHandler(logging.Handler):
                 raise ValueError("entries_per_file must == bufferlen when using compression as compressed files cannot be efficiently appended")
         self.name = name
         self.fn = fn
+        self.doprint=doprint
+        
         self.folder=folder
         self.bufferlen = bufferlen
         self.contextlen = contextbuffer
@@ -127,7 +129,8 @@ class LoggingHandler(logging.Handler):
         
     def emit(self,record):
         #We handle all logs that make it to the root logger, and do the filtering ourselves
-        print(self.format(record))
+        if self.doprint:
+            print(self.format(record))
         if not (record.name == self.name or record.name.startswith(self.name+".")) and not self.name=='':
             return
         self.callback(record)
@@ -264,14 +267,14 @@ class LoggingHandler(logging.Handler):
                 size = size - os.path.getsize(os.path.join(self.folder,i))
                 os.remove(os.path.join(self.folder,i))
 
-        
+#Don't print, the root logger does that.        
 syslogger = LoggingHandler("system",fn="system" if not config['log-format']=='none' else None,
 
                         folder=os.path.join(directories.logdir,"dumps"),level=20,
                         entries_per_file=config['log-dump-size'], 
                         bufferlen =config['log-buffer'],
                         keep=unitsofmeasure.strToIntWithSIMultipliers(config['keep-log-files']),
-                        compress= config['log-compress'])
+                        compress= config['log-compress'],doprint=False)
 
 ##Linux only way of recovering backups even if the
 if os.path.exists("/dev/shm/kaithemdbglog"):

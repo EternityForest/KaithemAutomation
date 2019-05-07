@@ -689,8 +689,11 @@ class Universe():
 
     def __del__(self):
         #Do as little as possible in the undefined __del__ thread
-        kaithem.misc.do(self.refresh_scenes)
-
+        try:
+            kaithem.misc.do(self.refresh_scenes)
+        #Eliminate the nuisance error
+        except NameError:
+            pass
     def channelsChanged(self):
         "Call this when fixtures are added, moved, or modified."
         with module.lock:
@@ -781,6 +784,7 @@ class DMXSender():
         self.data = message(universe.values)
         self.thread = threading.Thread(target =self.run)
         self.thread.daemon = True
+        self.thread.name = "DMXSenderThread_"+self.thread.name
         self.portname = port
         self.framerate = float(framerate)
         self.lock = threading.Lock()
@@ -1020,6 +1024,7 @@ class ArtNetSender():
                         continue
                     with self.lock:
                         if self.data is None:
+                            print("Stopping ArtNet Sender for "+self.addr)
                             return
                         #Here we have the option to use a Pavillion device
                         if self.scheme=="pavillion":
@@ -1037,6 +1042,8 @@ class ArtNetSender():
                 except Exception as e:
                     print(traceback.format_exc())
         self.thread = threading.Thread(target =run)
+        self.thread.name = "ArtnetSenderThread_"+self.thread.name
+
         self.thread.daemon = True
         self.framerate = float(framerate)
         self.lock = threading.Lock()
@@ -1068,8 +1075,11 @@ class ArtNetSender():
 
     def onFrame(self,data,physical = None, universe=0):
         with self.lock:
-            p = b'Art-Net\x00\x00\x50\x00\x0E\0' + struct.pack("<BH", physical if not physical is None else universe, universe) +struct.pack(">H",len(data)) + data.astype(numpy.uint8).tobytes()
-            self.data = p
+            if data:
+                p = b'Art-Net\x00\x00\x50\x00\x0E\0' + struct.pack("<BH", physical if not physical is None else universe, universe) +struct.pack(">H",len(data)) + data.astype(numpy.uint8).tobytes()
+                self.data = p
+            else:
+                self.data =data
             self.frame.set()
 
 class LightBoard():

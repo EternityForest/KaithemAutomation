@@ -18,9 +18,9 @@ lastRefreshed = 0
 
 lock = threading.Lock()
 
-def maybeRefresh():
+def maybeRefresh(t=30):
     global lastRefreshed
-    if lastRefreshed<time.time()-30:
+    if lastRefreshed<time.time()-t:
         refresh()
 
 def refresh():
@@ -43,11 +43,11 @@ def getDevice(locator):
     """Since plugs can change name, you should't keep a reference
     to a plug for too long. Instead use this function.
     """
-    if locator in lookup:
-        return lookup[locator]
-    else:
+    if locator in allDevices:
         return allDevices[locator]
-
+    else:
+        maybeRefresh()
+        return allDevices[locator]
 class KasaSmartplug(remotedevices.RemoteDevice):
     deviceTypeName="KasaSmartplug"
     descriptors={
@@ -76,14 +76,23 @@ class KasaSmartplug(remotedevices.RemoteDevice):
         self.switchTagPoint = tagpoints.Tag("/devices/"+self.name+".switch")
         self.switchTagPoint.min=0
         self.switchTagPoint.max=1
+        self.switchTagPoint.owner= "Kasa Smartplug"
 
+        self.tagPoints={
+            "switch": self.switchTagPoint
+        }
 
         def switchTagHandler(v):
-            self.setSwitch(0,v>=0.5)
-        
-        def switchTagGetter(v):
-            return 1 if self.getSwitch(0) else 0
+            try:
+                self.setSwitch(0,v>=0.5)
+            except:
+                pass
 
+        def switchTagGetter():
+            try:
+                return 1 if self.getSwitch(0) else 0
+            except:
+                return None
         self.switchTagPoint.claim(switchTagGetter)
 
         self.sth = switchTagHandler
@@ -96,7 +105,7 @@ class KasaSmartplug(remotedevices.RemoteDevice):
         self.switchTagPoint.interval= 3600
 
         self.tagPoints={
-            "switch":self.switchTagPoint()
+            "switch":self.switchTagPoint
         }
 
         self.alerts={
@@ -135,6 +144,7 @@ class KasaSmartplug(remotedevices.RemoteDevice):
         return templateGetter.get_template("manageform.html").render(data=self.data,obj=self)
 
     def setSwitch(self,channel, state):
+        logger.debug("Setting smartplug "+self.data.get("locator")+ "to state "+str(state))
         with self.lock:
             "Set the state of switch channel N"
             if channel>0:
@@ -147,6 +157,7 @@ class KasaSmartplug(remotedevices.RemoteDevice):
                 else:
                     getDevice(self.data.get("locator")).turn_off()
             except:
+                self.handleError("Device was unreachable")
                 self.unreachableAlert.trip()
                 raise
 
@@ -161,6 +172,7 @@ class KasaSmartplug(remotedevices.RemoteDevice):
             try:
                 s = getDevice(self.data.get("locator")).state=="ON"
             except:
+                self.handleError("Device was unreachable")
                 self.unreachableAlert.trip()
                 raise
 
@@ -243,6 +255,7 @@ class KasaSmartplug(remotedevices.RemoteDevice):
                 #we're getting sysinfo anyway.
                 self._has_emeter = ('model' in info) and ('HS110' in info['model'])
             except:
+                self.handleError("Device was unreachable")
                 self.unreachableAlert.trip()
                 raise
 

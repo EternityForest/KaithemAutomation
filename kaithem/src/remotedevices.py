@@ -15,7 +15,7 @@
 
 
 
-import weakref,pavillion, threading,time,logging,traceback,struct,hashlib,base64
+import weakref,pavillion, threading,time,logging,traceback,struct,hashlib,base64,gc
 import cherrypy,mako
 
 from . import virtualresource,pages,registry,modules_state,kaithemobj, workers,tagpoints, alerts
@@ -30,8 +30,15 @@ device_data = registry.get("system_remotedevices.devices",{})
 k4dlogger = logging.getLogger("system_k4d_errors")
 syslogger = logging.getLogger("system.devices")
 
+dbgd = weakref.WeakValueDictionary()
 
 
+def getZombies():
+    x =[]
+    for i in dbgd:
+        if not i in remote_devices:
+            x.append[i]
+    return x
 #Indexed by module,resource tuples
 loadedSquirrelPrograms = {}
 
@@ -168,7 +175,7 @@ class RemoteDevice(virtualresource.VirtualResource):
             raise ValueError("Incorrect type in info dict")
         virtualresource.VirtualResource.__init__(self)
         global remote_devices_atomic
-
+        dbgd[name]=self
 
         #This data dict represents all persistent configuration
         #for the alert object.
@@ -180,6 +187,9 @@ class RemoteDevice(virtualresource.VirtualResource):
 
         #It is a list of all alerts "owned" by the device.
         self.alerts={}
+
+        #A list of all the tag points owned by the device
+        self.tagPoints ={}
 
         self.name = data.get('name', None) or name
         self.errors = []
@@ -224,6 +234,10 @@ def updateDevice(name, kwargs,saveChanges=True):
         if name in remote_devices:
             remote_devices[name].close()
             del device_data[name]
+        gc.collect()
+        time.sleep(0.01)
+        time.sleep(0.01)
+        gc.collect()
 
         #Allow name changing via data
         name=kwargs.get("name") or name
@@ -296,6 +310,7 @@ class WebDevices():
                 pass
             global remote_devices_atomic
             remote_devices_atomic =remote_devices.copy()
+            gc.collect()
             registry.set("system_remotedevices.devices", device_data)
 
         raise cherrypy.HTTPRedirect("/devices")
@@ -473,6 +488,13 @@ class PavillionDevice(RemoteDevice):
         self.t = self.pclient.messageTarget("k4dprint",handle_print)
         self.t2 = self.pclient.messageTarget("k4derr",handle_error)
     
+
+        def genericMessage(target,name,data,source):
+            kaithemobj.kaithem.messagebus.postMessage("/devices/"+self.name+"/msg/"+target,(name,data,source))
+            
+        self._handlemsg = genericMessage
+        self.t3 = self.pclient.messageTarget(None, genericMessage)
+
     def __getattr__(self,attr):
         "Transparently pass along things to the pavillion client"
         return getattr(self.pclient,attr)

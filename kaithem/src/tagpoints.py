@@ -2,7 +2,8 @@
 from . import scheduling,workers, virtualresource,newevt,widgets
 import time, threading,weakref,logging
 
-logger = logging.getLogger("system.tagpoints")
+logger = logging.getLogger("tagpoints")
+syslogger = logging.getLogger("system")
 
 t = time.monotonic
 
@@ -89,7 +90,12 @@ class _TagPoint(virtualresource.VirtualResource):
     def __init__(self,name, min=None, max=None):
         global allTagsAtomic
         virtualresource.VirtualResource.__init__(self)
+        
+        #Might be the number, or might be the getter function.
+        #it's the current value of the active claim
         self._value = 0
+
+        #The cached actual value
         self.cvalue = 0
         self.lastGotValue = 0
         self.interval =1
@@ -100,6 +106,10 @@ class _TagPoint(virtualresource.VirtualResource):
         self.poller = None
         self._hi = 10**10
         self._lo = -10**10
+        self.lastError = 0
+
+        #String describing the owner of the tag point
+        self.owner = ""
 
         self.handler=None
 
@@ -173,18 +183,6 @@ class _TagPoint(virtualresource.VirtualResource):
         return
 
 
-        with self.lock:
-            with other.lock:
-                for i in self.subscribers:
-                    if not i() in [j() for j in other.subscribers]:
-                       other.subscribers.append()
-        
-        for i in self.claims:
-            if not i in other.claims:
-                other.claims[i] = self.claims[i]
-        virtualresource.VirtualResource.handoff(self,other)
-
-
     def _managePolling(self):        
         if self.subscribers:
             if not self.poller or not (self.interval == self.poller.interval):
@@ -203,7 +201,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 if not i():
                     torm.append(i)
             for i in torm:
-                self.subscribers.remove(x)
+                self.subscribers.remove(i)
     
     def unsubscribe(self,f):
         with self.lock:
@@ -218,6 +216,10 @@ class _TagPoint(virtualresource.VirtualResource):
         self.handler=weakref.ref(f)
 
     def _push(self,val):
+        """Push to subscribers. Only call under the same lock you changed value
+            under. Otherwise the push might happen in the opposite order as the set, and
+            subscribers would see the old data as most recent.
+        """
         self.meterWidget.write(val)
         #This is not threadsafe, but I don't think it matters.
         #A few unnecessary updates shouldn't affect anything.
@@ -300,23 +302,37 @@ class _TagPoint(virtualresource.VirtualResource):
          )
 
     @property
+    def age(self):
+        return time.time()-self.lastGotValue
+
+    @property
     def value(self):
+        return self._getValue()
+
+    def _getValue(self):
+        #Get the numeric value of the tag. It is meant to be called under lock.
         if isinstance(self._value, (float,int)):
             return self.processValue(self._value)
         else:
-            #Call the function if that's what it is
             if time.time()-self.lastGotValue> self.interval:
                 try:
-                    self.cvalue= self._value()
-                    self.lastGotValue = time.time()
+                    #None means no new data
+                    x = self._value()
+                    self.cvalue=  x or  self.cvalue
+                    if not x is None:
+                        self.lastGotValue = time.time()
                 except:
+                    #We treat errors as no new data.
                     logger.exception("Error getting tag value")
+
+                    #The system logger is the one kaithem actually logs to file.
+                    if self.lastError<(time.time()-(60*10)):
+                        syslogger.exception("Error getting tag value. This message will only be logged every ten minutes.")
                     #If we can, try to send the exception back whence it came
                     try:
                         newevt.eventByModuleName(self._value.__module__)._handle_exception()
                     except:
                         pass
-                    raise
 
             return self.processValue(self.cvalue)
     
@@ -366,7 +382,7 @@ class _TagPoint(virtualresource.VirtualResource):
                         self._value=x.value
                         self.activeClaim=i
                         break
-            self._push(self.value)           
+            self._push(self._getValue())           
             return claim
 
     def setClaimVal(self,claim,val):
@@ -385,7 +401,8 @@ class _TagPoint(virtualresource.VirtualResource):
             x.value = val
             if upd:
                 self._value=val
-                self._push(self.value)
+                self._push(self._getValue())           
+
 
     def release(self, name):
         with self.lock:

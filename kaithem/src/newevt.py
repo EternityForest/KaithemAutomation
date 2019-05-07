@@ -1302,6 +1302,8 @@ def getEventsFromModules(only = None):
             #retry immediately, but only after trying the remaining list of events.
             #This is because inter-event dependancies are the most common reason for failure.
             for baz in range(0,max(1,config['max-load-attempts'])):
+                if not toLoad:
+                    break
                 logging.debug("Event initialization resolution round "+str(baz))
                 for i in toLoad:
                     try:

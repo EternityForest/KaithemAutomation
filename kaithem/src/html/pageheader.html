@@ -99,7 +99,7 @@ import cherrypy
             </li>
             <li><a class="moduleslink" href="/modules/">Modules</a>
 %if modules.unsaved_changed_obj:
-<span title="The modules have unsaved changes">*</span>
+<span title="The modules have unsaved changes"><a href="/settings/save">*</a></span>
 %endif
             <li><a class="pageslink" href="/pagelisting">Page Index</a></li>
             <li><a class="deviceslink" href="/devices">Devices</a></li>
@@ -110,11 +110,11 @@ import cherrypy
             
 
 %if auth.authchanged:
-<span title="The users, groups, user settings, or permissions have unsaved changes">*</span>
+<span title="The users, groups, user settings, or permissions have unsaved changes"><a href="/settings/save">*</a></span>
 %endif
 
 %if not registry.is_clean:
-<span title="The kaithem registry has unsaved changes">*</span>
+<span title="The kaithem registry has unsaved changes"><a href="/settings/save">*</a></span>
 %endif
 <li><a class="helplink" href="/helpmenu">Help</a></li>
 </li>

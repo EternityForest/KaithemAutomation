@@ -849,7 +849,19 @@ class _Client():
                         def f():
                             i.callback(d[1].decode('utf-8') ,d[2],addr)
                         self.handle().execute(f)
-
+            #If we have a listener for the "All messages"    
+            if None in self.messageTargets:
+                s = self.messageTargets[None]
+                with self.targetslock:
+                    #Look for weakrefs that haven't expired
+                    for i in s:
+                        i = i()
+                        if not i:
+                            continue
+                        def f():
+                            #This is different, we also pass the target.
+                            i.callback(d[0].decode('utf-8'),d[1].decode('utf-8') ,d[2],addr)
+                        self.handle().execute(f)
         #Handle S->C messages.
         if  opcode==1:
             d = data.split(b'\n',2)

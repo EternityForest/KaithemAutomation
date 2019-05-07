@@ -58,6 +58,16 @@ def devStatString(d):
 %endfor
 </table>
 
+%if remotedevices.getZombies():
+<h2>Zombie Devices</h2>
+%for i in sorted(remotedevices.getZombies()):
+<h3>${i}</h3>
+<p>
+
+</p>
+%endfor
+%endif
+
 <datalist id="deviceTypes">
     %for i in remotedevices.builtinDeviceTypes:
     <option value="${i}" title=${remotedevices.builtinDeviceTypes[i].description} >
