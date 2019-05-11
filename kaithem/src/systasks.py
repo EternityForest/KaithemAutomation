@@ -76,7 +76,7 @@ rhistory=[]
 def check_scheduler():
     "This is a continual built in self test for the scheduler"
     global rhistory
-    rhistory.append((time.time(),))
+    rhistory.append((time.time(),time.monotonic()))
     rhistory = rhistory[-10:]
     global time_last_minute
     if time_last_minute:

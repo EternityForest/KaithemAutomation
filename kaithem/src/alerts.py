@@ -102,21 +102,19 @@ def cleanup():
     "Cleans up the mutable lists, call only under lock"
     global active
     global unacknowledged
-
-    for i in _active.keys():
+    for i in list(_active.keys()):
         if _active[i]()==None:
             try:
                 del _active[i]
             except KeyError:
                 pass
         active = _active.copy()
-    for i in _unacknowledged.keys():
+    for i in list(_unacknowledged.keys()):
         if _unacknowledged[i]()==None:
             try:
                 del _unacknowledged[i]
             except KeyError:
                 pass
-
 
 class Alert(virtualresource.VirtualResource):
     def __init__(self, name, priority="info", zone=None, tripDelay=0, autoAck=False,

@@ -71,7 +71,7 @@ class ServerStatus():
         if blevel == 0:
             self.batteryState="unknown"
 
-        self.battery = (blevel/64)*100100
+        self.battery = (blevel/64)*100
         #Avoid confusion due to low precision
         if self.battery>98:
             self.battery=100
@@ -763,7 +763,7 @@ class _Client():
         #So we don't need to use the usual validation.
 
         #Some stuff is common to messages and RPC calls
-        if opcode==2 or opcode==5:
+        if opcode==1 or opcode==5:
             #Get the message number it's an ack for
             d = struct.unpack("<Q",data[:8])[0]
             #acknowlegement happens even for old messages, so long as they aren't too old.
@@ -819,10 +819,16 @@ class _Client():
                 #but ONLY if the counter is new.
                 #If the message is old, we don't want old status data
                 if len(data)>=8+3:
-                    server._status = ServerStatus(data[8:8+3])
                     if not server._status.raw == data[8:8+3]:
-                        self.handle().onServerStatusUpdate(server.iface)
+                        nd = True
+                    else:
+                        nd=False                   
         
+                    server._status = ServerStatus(data[8:8+3])
+                    if nd:
+                        self.handle().onServerStatusUpdate(server.iface)
+
+
             #RPC Specific stuff
             elif opcode==5:
                 try:
@@ -835,7 +841,7 @@ class _Client():
                     pass
 
         #Handle S->C messages
-        if  opcode==3:
+        if  opcode==3 or opcode==1:
             d = data.split(b'\n',2)
             #If we have a listener for that message target
             if d[0].decode('utf-8') in self.messageTargets:

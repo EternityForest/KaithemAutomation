@@ -55,11 +55,14 @@ class Claim():
     def __init__(self,tag, value, name='default',priority=50):
         self.name=name
         self.tag=tag
-        
+        self.value = value
+
     def __del__(self):
-        self.tag.release(self.name)
+        if self.name != 'default':
+            self.tag.release(self.name)
     
     def set(self,value):
+       self.value = value
        self.tag.setClaimVal(self.name, value)
 
     def release(self):
@@ -98,14 +101,14 @@ class _TagPoint(virtualresource.VirtualResource):
         #The cached actual value
         self.cvalue = 0
         self.lastGotValue = 0
-        self.interval =1
+        self.interval =0
         self.activeClaim =None
         self.claims = {}
         self.lock = threading.Lock()
         self.subscribers = []
         self.poller = None
-        self._hi = 10**10
-        self._lo = -10**10
+        self._hi = 10**16
+        self._lo = -10**16
         self.lastError = 0
 
         #String describing the owner of the tag point
@@ -376,7 +379,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 #Defensive programming against weakrefs dissapearing
                 #in some kind of race condition that leaves them in the list.
                 #Basically we find the highest priority valid claim
-                for i in reversed(sorted(self.claims.values)):
+                for i in reversed(sorted(self.claims.values())):
                     x= i[3]()
                     if x:
                         self._value=x.value
@@ -418,7 +421,16 @@ class _TagPoint(virtualresource.VirtualResource):
             if len(self.claims)==1:
                 raise RuntimeError("Tags must maintain at least one claim")
             del self.claims[name]
-            self.activeClaim = sorted(list(self.claims.values()))[-1]
-            self._value = self.activeClaim[3]
+            while self.claims:
+                self.activeClaim = sorted(list(self.claims.values()),reverse=True)[0]
+                o = self.activeClaim[3]()
+
+                #Perhaps in a race condition that has dissapeared.
+                #We must remove it and retry.
+                if o==None:
+                    del self.claims[self.activeClaim[2]]
+                else:
+                    self._value = o.value
+                    break
             self._push(self.value)
 

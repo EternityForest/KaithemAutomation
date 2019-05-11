@@ -29,6 +29,11 @@ If a function is provided, it may return None to indicate no new data has arrive
 age.
 
 Should a claim already exist by that name, the exact same claim object as the previous claim is returned.
+##### Claim.set(value)
+Set the value of a claim
+
+##### Claim.release()
+Release a claim.
 
 #### TagPoint.min, TagPoint.max
 Set the range of the tag point. Out of range values are clipped.

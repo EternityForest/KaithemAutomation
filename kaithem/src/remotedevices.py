@@ -193,6 +193,10 @@ class RemoteDevice(virtualresource.VirtualResource):
 
         self.name = data.get('name', None) or name
         self.errors = []
+
+        #Time, title, text tuples for any "messages" a device might "print"
+        self.messages = []
+        
         with lock:
             remote_devices[name]=self
             remote_devices_atomic =remote_devices.copy()
@@ -484,14 +488,17 @@ class PavillionDevice(RemoteDevice):
         self._handlerror = handle_error
         self._handleprint=handle_print
 
-        #Todo: change names
+        #K4d stuff is different for messages from the device itsewkf because it's from
+        #A specific program
         self.t = self.pclient.messageTarget("k4dprint",handle_print)
         self.t2 = self.pclient.messageTarget("k4derr",handle_error)
     
 
         def genericMessage(target,name,data,source):
-            kaithemobj.kaithem.messagebus.postMessage("/devices/"+self.name+"/msg/"+target,(name,data,source))
-            
+            print(target,name,data)
+            kaithemobj.kaithem.message.post("/devices/"+self.name+"/msg/"+target,(name,data,source))
+            if target=="core.print":
+                self.messages.append(time.time(),name, data.decode('utf8'),source)
         self._handlemsg = genericMessage
         self.t3 = self.pclient.messageTarget(None, genericMessage)
 
