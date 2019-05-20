@@ -99,7 +99,7 @@ class _TagPoint(virtualresource.VirtualResource):
         #Might be the number, or might be the getter function.
         #it's the current value of the active claim
         self._value = 0
-
+        self.name = name
         #The cached actual value
         self.cvalue = 0
         self.lastGotValue = 0
@@ -118,7 +118,7 @@ class _TagPoint(virtualresource.VirtualResource):
         self.owner = ""
 
         #Stamp of when the tag's value was set
-        self._setTime = time.monotonic()
+        self.timestamp = time.monotonic()
         self.annotation=None
 
         self.handler=None
@@ -149,7 +149,11 @@ class _TagPoint(virtualresource.VirtualResource):
         self.manualOverrideClaim = None
 
         self._alarms = {}
+    
 
+    @property
+    def currentSource(self):
+        return self.activeClaim[2]
   
 
     def addAlarm(self,name, alarm):
@@ -326,11 +330,12 @@ class _TagPoint(virtualresource.VirtualResource):
                 try:
                     #None means no new data
                     x = self._value()
-                    self._setTime = time.monotonic()
-                    self.annotation=None
+                  
                     self.cvalue=  x or  self.cvalue
                     if not x is None:
                         self.lastGotValue = time.time()
+                        self.timestamp = time.monotonic()
+                        self.annotation=None
                 except:
                     #We treat errors as no new data.
                     logger.exception("Error getting tag value")
@@ -350,7 +355,7 @@ class _TagPoint(virtualresource.VirtualResource):
     def value(self, v):
         self.setClaimVal("default",v)
 
-    def claim(self, value, name="default", priority=50,timestamp=None, annotation=None):
+    def claim(self, value, name="default", priority=None,timestamp=None, annotation=None):
         """Adds a 'claim', a request to set the tag's value either to a literal 
             number or to a getter function.
 
@@ -367,18 +372,22 @@ class _TagPoint(virtualresource.VirtualResource):
             #We need to get the claim object, which we stored by weakref
             claim=None
             try:
+                ##If there's an existing claim by that name we're just going to modify it
                 if name in self.claims:
                     claim= self.claims[name][3]()
+                    priority= priority or claim.priority
             except:
                 logger.exception("Probably a race condition and safe to ignore this")
 
             #If the weakref obj disappeared it will be None
             if claim ==None:
+                priority = priority or 50
                 claim = Claim(self, value,name,priority)
         
             claim.value=value
             claim.timestamp = timestamp
             claim.annotation = annotation
+            claim.priority = priority
 
 
             #Note  that we use the time, so that the most recent claim is
@@ -388,7 +397,11 @@ class _TagPoint(virtualresource.VirtualResource):
             if self.activeClaim==None or priority >= self.activeClaim[0]:
                 self.activeClaim = self.claims[name]
                 self._value = value
-            #If priority has been reduced on the existing active claim
+                self.timestamp = timestamp
+                self.annotation = annotation
+
+            #If priority has been changed on the existing active claim
+            #We need to handle it
             elif name==self.activeClaim[2]:
                 #Defensive programming against weakrefs dissapearing
                 #in some kind of race condition that leaves them in the list.
@@ -397,11 +410,11 @@ class _TagPoint(virtualresource.VirtualResource):
                     x= i[3]()
                     if x:
                         self._value=x.value
-                        self._setTime = x.timestamp
+                        self.timestamp = x.timestamp
                         self.annotation = x.annotation
                         self.activeClaim=i
                         break
-            self._push(self._getValue(),self._setTime, self.annotation)           
+            self._push(self._getValue(),self.timestamp, self.annotation)           
             return claim
 
     def setClaimVal(self,claim,val,timestamp,annotation):
@@ -421,8 +434,9 @@ class _TagPoint(virtualresource.VirtualResource):
             x.value = val
             x.annotation=annotation
             if upd:
-                self._setTime = timestamp
+                self.timestamp = timestamp
                 self._value=val
+                self.annotation=annotation
                 self._push(self._getValue(),timestamp,annotation)           
 
 
@@ -450,8 +464,8 @@ class _TagPoint(virtualresource.VirtualResource):
                     del self.claims[self.activeClaim[2]]
                 else:
                     self._value = o.value
-                    self._setTime = o.timestamp
+                    self.timestamp = o.timestamp
                     self.annotation =o.annotation
                     break
-            self._push(self.value, self._setTime, self.annotation)
+            self._push(self.value, self.timestamp, self.annotation)
 

@@ -347,6 +347,13 @@ class _RemoteServer():
                                             pass
                                     self.skey = clientobj.cipher.keyedhash(clientobj.nonce+servernonce,clientobj.psk)
                                     servers_by_skey[self.skey] = self
+
+                                    #The session keys are new, they probably rebooted since we saw them,
+                                    #the time offsets aren't valid anymore
+                                    try:
+                                        del self.remoteMonotonicTimeOffset 
+                                    except:
+                                        pass
                                     #Any message they send can't have been older than this handshake,
                                     #So we accept all counter values.
                                     self.server_counter =0
@@ -828,7 +835,7 @@ class _Client():
             if len(data)>=8:
                 m=time.monotonic()
                 ts =struct.unpack("<Q",data[:8])[0]
-                self.remoteMonotonicTimeOffset = m-(ts/1000_000)
+                server.remoteMonotonicTimeOffset = m-(ts/1000_000)
 
         #Time Sync Response
         if opcode==21:

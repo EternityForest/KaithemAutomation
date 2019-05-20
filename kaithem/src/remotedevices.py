@@ -346,6 +346,60 @@ class PavillionDevice(RemoteDevice):
             pass
     onPavillionConnect =None
 
+
+    def handleIncomingTagValue(self, value, good_ts, timestamp, name,tag,raw_timestamp):
+        """
+            Conflict resolution and possibly pushing local value to them.
+            timesamp must be in the local sytem monotnic scale
+            good_ts indicates if that timestamp is actually valid and synced with the remote.
+
+            The conflic resolution logic shouldn't be trusted completely. You may get some glitches
+            with bidirectional tags if it makes an incorrect decision about what is new.
+        """
+        if good_ts:
+            if ((timestamp>tag.timestamp) and (tag.currentSource=="shared"))  or not (tag.remote_writable):
+                #if we have old data, or if it's a read only
+                #Tag and we shouldn't try to do conflic resolution anyway
+
+                #However, if the source is not the shared claim, we assume
+                #a higher priority claim is in effect and we don't even bother
+                #resolving with timestamps.
+
+
+                #Because sync isn't perfect, we also filter by not accepting the same timestamp from the remote
+                #Twice in a row.
+                if not(tag.lastRemoteTs==raw_timestamp):
+                    self.tagClaims[name].set(value,timestamp,"DoNotSend")
+            else:
+                #Local data is newer, push it!
+                try:
+                    t = int(self.pclient.getServer().toRemoteMonotonic(tag.timestamp)*1000_1000)
+                except:
+                    t=tag.lastRemoteTs+1
+                    tag.lastRemoteTs+=1
+                self.pclient.sendMessage("core.tagv", name,struct.pack("<fQ",value,int(t)))
+            
+        else:
+            #No time sync. So we use a simpler rule. If it's writable, write it.
+            #Almost all tags will not be bidirectional i suspect.
+
+            #But even then we can do a bit more, we can reject timestamps
+            #That are identiical to what we already saw, and catch a large number of the repeats.
+            if (tag.remote_writable) and not(tag.lastRemoteTs==raw_timestamp):
+                try:
+                    t = int(self.pclient.getServer().toRemoteMonotonic(tag.timestamp)*1000_1000)
+                except:
+                    #Guess at something higher than what they sent
+                    t=raw_timestamp+1000
+                    tag.lastRemoteTs=raw_timestamp+1000
+                self.pclient.sendMessage("core.tagv", name,struct.pack("<fQ",value,int(t)))
+            else:
+                #Tag isn't writable, we accept their value
+                self.tagClaims[name].set(value,timestamp,"DoNotSend")
+        
+        tag.lastRemoteTs = raw_timestamp
+
+
     def __init__(self, name, data):
         import pavillion
         RemoteDevice.__init__(self,name,data)
@@ -504,32 +558,51 @@ class PavillionDevice(RemoteDevice):
                     self.messages.append(time.time(),name, data.decode('utf8'),source)
 
                 elif target=="core.tagv":
-                    value, timestamp = struct.unpack("<fQ",data)
-                    timestamp=timestamp/10**6
+                    value, raw_timestamp = struct.unpack("<fQ",data)
+                    timestamp=raw_timestamp/10**6
                     try:
-                        t = self.pclient.getServer().toLocalMonotonic(timestamp)
+                        localized_timestamp = self.pclient.getServer().toLocalMonotonic(timestamp)
+                        good_ts = True
                     except:
-                        t=time.monotonic()
+                        good_ts = False
+                        localized_timestamp=time.monotonic()
 
-                    self.tagClaims[name].set(value, t,"DoNotSend")
+                    #Do the more advanced conflict resolution logic.
+                    self.handleIncomingTagValue(value, good_ts,localized_timestamp, name, self.tagPoints[name],timestamp)
 
                 
                 elif target=="core.tag":
                     #These messages contain pretty much the complete tag state,
                     #We use them to init new tags
-                    value, min,max,interval,flags,timestamp = struct.unpack("<ffffBQ",data)
+                    value, min,max,interval,flags,raw_timestamp = struct.unpack("<ffffBQ",data)
                     if not name in self.tagPoints:
                         with self.lock:
+                            timestamp=raw_timestamp/10**6
+                            try:
+                                ts = self.pclient.getServer().toLocalMonotonic(timestamp)
+                                good_ts = True
+                            except:
+                                good_ts=False
+                                ts=time.monotonic()
+
                             t = self.tagPoints.copy()
                             t[name]=tagpoints.Tag("/devices/"+self.name+"/"+name)
                             t[name].max = max
                             t[name].min=min
                             t[name].interval=interval
                             t[name].remote_writable = bool(flags&1)
-                            t[name].lastRemoteTs = timestamp
                             self.pclient.enableTimeSync()
 
-                            self.tagClaims[name]= t[name].claim(value,"shared",51)
+                            #On first connect, we just use the val from the server
+                            #to make this easier
+                            if not name in self.tagClaims:
+                                self.tagClaims[name]= t[name].claim(value,"shared",51,ts)
+                                t[name].lastRemoteTs = raw_timestamp
+
+                            #Name is already in the list. We try to use available info to guess
+                            #At who has newer data, even though bidirectional tags aren't exact.
+                            else:
+                                self.handleIncomingTagValue(value,good_ts,ts,name,t[name])
 
                             #Annotate the value with self
                             self.tagClaims[name].set(value,None, "DoNotSend")
@@ -549,8 +622,8 @@ class PavillionDevice(RemoteDevice):
                                         #Awful hack just in case our time is not synced.
                                         t=t[name].lastRemoteTs+1
                                         t[name].lastRemoteTs+=1
-
-                                    self.pclient.sendMessage("core.tagv", name,struct.pack("<fQ",value,int(ts)))
+                                    print("Sendiiiiiing")
+                                    self.pclient.sendMessage("core.tagv", name,struct.pack("<fQ",value,int(t)))
                                 t[name].setHandler(tagHandler)
                                 t[name]._refToStashHandler = tagHandler
 
