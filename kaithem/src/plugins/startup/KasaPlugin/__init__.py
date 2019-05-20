@@ -82,7 +82,7 @@ class KasaSmartplug(remotedevices.RemoteDevice):
             "switch": self.switchTagPoint
         }
 
-        def switchTagHandler(v):
+        def switchTagHandler(v,ts, a):
             try:
                 self.setSwitch(0,v>=0.5)
             except:

@@ -609,6 +609,14 @@ class _Server():
                     del self.knownclients[addr]
             except:
                 logging.exception("error closing connection")
+    
+        #Handle time sync requests
+        if opcode==20:
+            t = time.monotonic()*1000_000
+            t2 = time.time()*1000_000
+            with self.lock:
+                self.knownclients[addr].counter +=1
+                self.knownclients[addr].send(self.knownclients[addr].counter, 21,struct.pack("<QQQ",counter, int(t), int(t2)))
                     
     def _cleanupSessions(self, who=None):
         torm=[]

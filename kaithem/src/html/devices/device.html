@@ -91,8 +91,12 @@ ${obj.getManagementForm()}
         </tr>
 
         <tr>
-                <td>Remote IP(Shows only one if multiple)</td>
-                <td>${obj.pclient.remoteAddress if obj.batteryStatusTag else None}</td>
+                <td>Connected To(Shows only one if multiple)</td>
+                %try:
+                <td>${obj.pclient.remoteAddress }</td>
+                %except:
+                </td>
+                %endtry
         </tr>
 
         <tr>

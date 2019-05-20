@@ -1075,7 +1075,7 @@ class ArtNetSender():
 
     def onFrame(self,data,physical = None, universe=0):
         with self.lock:
-            if data:
+            if not (data is None):
                 p = b'Art-Net\x00\x00\x50\x00\x0E\0' + struct.pack("<BH", physical if not physical is None else universe, universe) +struct.pack(">H",len(data)) + data.astype(numpy.uint8).tobytes()
                 self.data = p
             else:

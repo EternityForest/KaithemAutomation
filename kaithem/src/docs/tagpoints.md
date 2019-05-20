@@ -12,6 +12,15 @@ exist until there are no more references or claims on them, and all properties m
 be reconfigured on the fly. this allows them to be used for loose coupling between different
 parts of a program.
 
+Tag point values have an associated timestamp and annotation(Which have defaults, and you can ignore),
+that follow the values, allowing advanced patterns and loop avoidance with remote systems.
+
+The annotation is an arbitrary python object, and the timestamp is always in the time.monotonic()
+scale.
+
+It is suggested that you not do anything with annotations besides equality testing, or that you
+always typecheck the value as it defaults to None.
+
 ### Error Handling
 Errors in getters are logged, and the most recent value is used. Errors in setters are logged.
 
@@ -21,7 +30,7 @@ Property that can get the tag's value, or set the value of the default claim.
 
 Errors in getters will never cause an error to be raised getting or setting this.
 
-#### TagPoint.claim(value, name, priority)
+#### TagPoint.claim(value, name, priority, timestamp=None, annotation=None)
 Adds a claim to the tag. The claim will dissapear if the returned Claim object ever does.
 Value may be a function that can be polled to return a float, or a number.
 
@@ -29,8 +38,10 @@ If a function is provided, it may return None to indicate no new data has arrive
 age.
 
 Should a claim already exist by that name, the exact same claim object as the previous claim is returned.
-##### Claim.set(value)
-Set the value of a claim
+
+##### Claim.set(value,timestamp=None,annotation=None)
+Set the value of a claim. You can optionally also set the timestamp of the message.
+
 
 ##### Claim.release()
 Release a claim.
@@ -44,4 +55,7 @@ Set the sample rate of the tags data in seconds. Affects polling and cacheing.
 #### TagPoint.subscribe(f)
 f will be called whe the value changes. Polling will only occur if interval
 is nonzero and there is at least one subscriber.
+
+The signature of f must be:
+f(value, timestamp, annotation)
 

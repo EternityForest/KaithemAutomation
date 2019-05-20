@@ -52,18 +52,20 @@ def Tag(name):
 
 class Claim():
     "Represents a claim on a tag point's value"
-    def __init__(self,tag, value, name='default',priority=50):
+    def __init__(self,tag, value, name='default',priority=50,timestamp=None, annotation=None):
         self.name=name
         self.tag=tag
         self.value = value
+        self.annotation=annotation
+        self.timestamp = timestamp
 
     def __del__(self):
         if self.name != 'default':
             self.tag.release(self.name)
     
-    def set(self,value):
+    def set(self,value,timestamp=None, annotation=None):
        self.value = value
-       self.tag.setClaimVal(self.name, value)
+       self.tag.setClaimVal(self.name, value,timestamp,annotation)
 
     def release(self):
         self.tag.release(self.name)
@@ -111,8 +113,13 @@ class _TagPoint(virtualresource.VirtualResource):
         self._lo = -10**16
         self.lastError = 0
 
-        #String describing the owner of the tag point
+        #String describing the "owner" of the tag point
+        #This is not a precisely defined concept
         self.owner = ""
+
+        #Stamp of when the tag's value was set
+        self._setTime = time.monotonic()
+        self.annotation=None
 
         self.handler=None
 
@@ -131,10 +138,6 @@ class _TagPoint(virtualresource.VirtualResource):
             allTagsAtomic= allTags.copy()
 
 
-        def poll():
-            self._push(self.value)
-
-        self.p = poll
         self.defaultClaim = self.claim(0)
         
         #What permissions are needed to 
@@ -146,6 +149,8 @@ class _TagPoint(virtualresource.VirtualResource):
         self.manualOverrideClaim = None
 
         self._alarms = {}
+
+  
 
     def addAlarm(self,name, alarm):
         with self.lock:
@@ -218,7 +223,7 @@ class _TagPoint(virtualresource.VirtualResource):
     def setHandler(self, f):
         self.handler=weakref.ref(f)
 
-    def _push(self,val):
+    def _push(self,val,timestamp,annotation):
         """Push to subscribers. Only call under the same lock you changed value
             under. Otherwise the push might happen in the opposite order as the set, and
             subscribers would see the old data as most recent.
@@ -235,7 +240,7 @@ class _TagPoint(virtualresource.VirtualResource):
         if self.handler:
             f=self.handler()
             if f:
-                f(val)
+                f(val, timestamp, annotation)
             else:
                 self.handler=None
         self.lastPushedValue = val
@@ -244,7 +249,7 @@ class _TagPoint(virtualresource.VirtualResource):
             def f():
                 x=i()
                 if x:
-                    x(val)
+                    x(val,timestamp,annotation)
                 del x
             workers.do(f)
 
@@ -321,6 +326,8 @@ class _TagPoint(virtualresource.VirtualResource):
                 try:
                     #None means no new data
                     x = self._value()
+                    self._setTime = time.monotonic()
+                    self.annotation=None
                     self.cvalue=  x or  self.cvalue
                     if not x is None:
                         self.lastGotValue = time.time()
@@ -343,7 +350,7 @@ class _TagPoint(virtualresource.VirtualResource):
     def value(self, v):
         self.setClaimVal("default",v)
 
-    def claim(self, value, name="default", priority=50):
+    def claim(self, value, name="default", priority=50,timestamp=None, annotation=None):
         """Adds a 'claim', a request to set the tag's value either to a literal 
             number or to a getter function.
 
@@ -351,6 +358,8 @@ class _TagPoint(virtualresource.VirtualResource):
             active, or the value returned from the getter if the active claim is
             a function.
         """
+        timestamp = timestamp or time.monotonic()
+
         if not callable(value):
             value=float(value)
         with self.lock:
@@ -367,6 +376,11 @@ class _TagPoint(virtualresource.VirtualResource):
             if claim ==None:
                 claim = Claim(self, value,name,priority)
         
+            claim.value=value
+            claim.timestamp = timestamp
+            claim.annotation = annotation
+
+
             #Note  that we use the time, so that the most recent claim is
             #Always the winner in case of conflicts
             self.claims[name] = (priority, t(),name,weakref.ref(claim))
@@ -383,13 +397,16 @@ class _TagPoint(virtualresource.VirtualResource):
                     x= i[3]()
                     if x:
                         self._value=x.value
+                        self._setTime = x.timestamp
+                        self.annotation = x.annotation
                         self.activeClaim=i
                         break
-            self._push(self._getValue())           
+            self._push(self._getValue(),self._setTime, self.annotation)           
             return claim
 
-    def setClaimVal(self,claim,val):
+    def setClaimVal(self,claim,val,timestamp,annotation):
         "Set the value of an existing claim"
+        timestamp = timestamp or time.monotonic()
         if not callable(val):
             val=float(val)
         with self.lock:
@@ -402,9 +419,11 @@ class _TagPoint(virtualresource.VirtualResource):
             #Grab the claim obj and set it's val
             x= c[3]()
             x.value = val
+            x.annotation=annotation
             if upd:
+                self._setTime = timestamp
                 self._value=val
-                self._push(self._getValue())           
+                self._push(self._getValue(),timestamp,annotation)           
 
 
     def release(self, name):
@@ -431,6 +450,8 @@ class _TagPoint(virtualresource.VirtualResource):
                     del self.claims[self.activeClaim[2]]
                 else:
                     self._value = o.value
+                    self._setTime = o.timestamp
+                    self.annotation =o.annotation
                     break
-            self._push(self.value)
+            self._push(self.value, self._setTime, self.annotation)
 

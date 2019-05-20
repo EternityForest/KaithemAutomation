@@ -1031,11 +1031,16 @@ nothing.
 
 #### kaithem.message.post(topic,message)
 
-Post a message to the internal system-wide message bus. Message MUST be
-a JSON serializable object. i.e True/false, numbers, strings, lists, and
-dictionaries only. Message topics are hierarchial, delimited by forward
+Post a message to the internal system-wide message bus.
+Message topics are hierarchial, delimited by forward
 slashes, and the root directory is /. However /foo is equivalent to
 foo.  
+
+Formerly, messages could only be JSON serializable objects. Now that
+we do not use the message system for logging, messages may be any python object at all.
+
+The most recent messages are still logged in ram and viewable as before, for debugging purposes.
+
 
 #### kaithem.message.subscribe(topic,callback)
 

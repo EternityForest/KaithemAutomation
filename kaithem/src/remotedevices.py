@@ -190,6 +190,8 @@ class RemoteDevice(virtualresource.VirtualResource):
 
         #A list of all the tag points owned by the device
         self.tagPoints ={}
+        #Where we stash our claims on the tags
+        self.tagClaims={}
 
         self.name = data.get('name', None) or name
         self.errors = []
@@ -349,6 +351,7 @@ class PavillionDevice(RemoteDevice):
         RemoteDevice.__init__(self,name,data)
         self.pclient=None
         self.recievelock=threading.Lock()
+        self.lastError = 0
 
         self.k4dprint = []
         self.k4derr = []
@@ -495,10 +498,90 @@ class PavillionDevice(RemoteDevice):
     
 
         def genericMessage(target,name,data,source):
-            print(target,name,data)
-            kaithemobj.kaithem.message.post("/devices/"+self.name+"/msg/"+target,(name,data,source))
-            if target=="core.print":
-                self.messages.append(time.time(),name, data.decode('utf8'),source)
+            try:
+                kaithemobj.kaithem.message.post("/devices/"+self.name+"/msg/"+target,(name,data,source))
+                if target=="core.print":
+                    self.messages.append(time.time(),name, data.decode('utf8'),source)
+
+                elif target=="core.tagv":
+                    value, timestamp = struct.unpack("<fQ",data)
+                    timestamp=timestamp/10**6
+                    try:
+                        t = self.pclient.getServer().toLocalMonotonic(timestamp)
+                    except:
+                        t=time.monotonic()
+
+                    self.tagClaims[name].set(value, t,"DoNotSend")
+
+                
+                elif target=="core.tag":
+                    #These messages contain pretty much the complete tag state,
+                    #We use them to init new tags
+                    value, min,max,interval,flags,timestamp = struct.unpack("<ffffBQ",data)
+                    if not name in self.tagPoints:
+                        with self.lock:
+                            t = self.tagPoints.copy()
+                            t[name]=tagpoints.Tag("/devices/"+self.name+"/"+name)
+                            t[name].max = max
+                            t[name].min=min
+                            t[name].interval=interval
+                            t[name].remote_writable = bool(flags&1)
+                            t[name].lastRemoteTs = timestamp
+                            self.pclient.enableTimeSync()
+
+                            self.tagClaims[name]= t[name].claim(value,"shared",51)
+
+                            #Annotate the value with self
+                            self.tagClaims[name].set(value,None, "DoNotSend")
+
+                            if t[name].remote_writable:
+                                def tagHandler(value,timestamp,annotation):
+                                    """When a tag's value chages, inform the server.
+                                    """
+                                    ##No doing loops
+                                    if annotation=="DoNotSend":
+                                        return
+
+                                    #Convert the time to the client
+                                    try:
+                                        t = int(self.pclient.getServer().toRemoteMonotonic(timestamp)*1000_1000)
+                                    except:
+                                        #Awful hack just in case our time is not synced.
+                                        t=t[name].lastRemoteTs+1
+                                        t[name].lastRemoteTs+=1
+
+                                    self.pclient.sendMessage("core.tagv", name,struct.pack("<fQ",value,int(ts)))
+                                t[name].setHandler(tagHandler)
+                                t[name]._refToStashHandler = tagHandler
+
+
+                            self.tagPoints = t
+
+
+                elif target=="core.alert":
+                    #This lets us dynamically add them at runtime
+                    if not name in self.alerts:
+                        if len(self.alerts)>512:
+                            raise RuntimeError("Too many alerts on one device")
+                        with self.lock:
+                            x = self.alerts.copy()
+                            x[name] = alerts.Alert("/devices/"+self.name+"/"+name)
+                            self.alerts=x
+                        self.setAlertPriorities()
+
+                    #Trip the alarm if the remote device says it's tripped
+                    if data[0]>0:
+                        self.alerts[name].trip()
+                    else:
+                        self.alerts[name].clear()
+            except:
+                #Log to the "system" logger for the first error we have in a while
+                if self.lastError <(time.time()- 10*60):
+                    syslogger.exception("Error handling message from client(Log ratelimit: 10min)")
+                else:
+                    logging.exception("Error handling message from client")
+                self.lastError = time.time()
+
         self._handlemsg = genericMessage
         self.t3 = self.pclient.messageTarget(None, genericMessage)
 

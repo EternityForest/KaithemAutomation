@@ -2,9 +2,11 @@ Change Log
 ----------
 
 ### 0.63
--   New tagpoints(Like SCADA tagpoints)
+-   New tagpoints(Like SCADA tagpoints) with Pavillion sync to Arduino
 -   Kasa smartplug support
 -   Migrate docs to markdown
+-   Message bus can handle any python object type
+-   Workarouds for the "Too many open file descriptors" issues.
 
 ### 0.62
 

@@ -104,6 +104,15 @@ class RemoteServerInterface():
             raise NotConnected()
         return s
 
+    def remoteMonotonic(self):
+        return time.monotonic() - self._getServer().remoteMonotonicTimeOffset
+
+    def toLocalMonotonic(self,t):
+        return self._getServer().remoteMonotonicTimeOffset+t
+
+    def toRemoteMonotonic(self,t):
+        return t-self._getServer().remoteMonotonicTimeOffset
+    
     def battery(self):
         "Returns bettery in percent, or raises NotConnected"
         return self._getServer().status().battery
@@ -395,6 +404,13 @@ class _Client():
         if daemon is None:
             daemon=pavillion.daemon
 
+        #Counter value for the last time sync req we sent
+        self.lastTsReq = 0
+        #send timestamp. in monotonic
+        self.lastTsTimestamp=0
+
+        #We really don't need this most of the time
+        self.enableTimeSync = False
    
         #Last time we were known to be connected
         #We're trying to pretend to be connectionless, so
@@ -581,6 +597,13 @@ class _Client():
             if self in common.cleanup_refs:
                 common.cleanup_refs.append(weakref.ref(self))
 
+    def doTimeSync(self):
+        with self.lock:
+            self.counter+=1
+            self.lastTsReq = self.counter
+            self.lastTsTimestamp=time.monotonic()
+            self.send(self.counter, 20, b'')
+
     def send(self, counter, opcode, data,addr=None):
         
         ##Experimental optimization to send to the only known server most of the time if there's only one
@@ -655,6 +678,9 @@ class _Client():
             except:
                 pavillion_logger.exception("Error sending keepalive")
             self._keepalive_time=time.time()
+        
+        if self.enableTimeSync:
+            self.doTimeSync()
 
     def countBroadcastSubscribers(self,target):
         with self.subslock:
@@ -799,8 +825,28 @@ class _Client():
 
         #Client accept message
         if opcode==16:
-            pass
+            if len(data)>=8:
+                m=time.monotonic()
+                ts =struct.unpack("<Q",data[:8])[0]
+                self.remoteMonotonicTimeOffset = m-(ts/1000_000)
 
+        #Time Sync Response
+        if opcode==21:
+            tr = time.monotonic()
+            ctr, ts = struct.unpack("<QQ", data[:16])
+            ts/= 1000_000
+            with self.lock:
+                if ctr == self.lastTsReq:
+                    halflatency= ((tr-self.lastTsTimestamp)/2)
+                    server.remoteMonotonicTimeOffset = (tr-halflatency)- ts
+
+        #Handle time sync requests
+        if opcode==20:
+            t = time.monotonic()*1000_000
+            t2 = time.time()*1000_000
+            with self.lock:
+                self.counter +=1
+                self.send(self.counter, 21,struct.pack("<QQQ",counter, int(t), int(t2)))
 
         #Some stuff is common to messages and RPC calls
         if opcode==2 or opcode==5:
@@ -1119,6 +1165,8 @@ class Client():
         self.execute = execute or pavillion.execute
 
 
+    def enableTimeSync(self):
+        self.client.enableTimeSync=True
 
     def messageTarget(self,target,callback):
         return self.client.messageTarget(target, callback)
@@ -1218,8 +1266,10 @@ class Client():
 
     def getServers(self):
         return self.client.getServers()
+
     def getServer(self):
         return self.client.getServer()
+
     def call(self,function,data=b'',timeout=None):
         return self.client.call(function, data,timeout=timeout)
 
