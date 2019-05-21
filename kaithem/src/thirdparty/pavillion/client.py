@@ -10,6 +10,9 @@ import pavillion
 
 servers_by_skey =weakref.WeakValueDictionary()
 
+#Indexed by name, contains ((ip,port),time)
+discovered_addresses = {}
+discovered_addresses_atomic = {}
 class RemoteError(Exception):
     pass
 
@@ -108,9 +111,11 @@ class RemoteServerInterface():
         return time.monotonic() - self._getServer().remoteMonotonicTimeOffset
 
     def toLocalMonotonic(self,t):
+        "Convert a time in remote monotonic to the corresponding time in local monotonic"
         return self._getServer().remoteMonotonicTimeOffset+t
 
     def toRemoteMonotonic(self,t):
+        "Convert a time in local monotonic to the corresponding time in remote monotonic"
         return t-self._getServer().remoteMonotonicTimeOffset
     
     def battery(self):
@@ -715,7 +720,11 @@ class _Client():
                 except socket.timeout:
                     continue
 
-
+                if msg.startswith(b"pvserver"):
+                    with lock:
+                        global discovered_addresses_atomic
+                        discovered_addresses[msg[8:].decode("utf8")]= (addr, time.time())
+                        discovered_addresses_atomic = discovered_addresses.copy()
                 try:
                     if addr in self.known_servers:
                         self.known_servers[addr].onRawMessage(msg,addr)
@@ -775,14 +784,17 @@ class _Client():
         with self.lock:
             return {i:RemoteServerInterface(self.known_servers[i]) for i in self.known_servers if self.known_servers[i].connectedAt>(time.time()-240)}
 
-    def getServer(self):
+    def getServer(self,addr=None):
         """Returns a single server interface object representing one connected physical remote server
             Or None if no servers are connected.
+
+            If addr is provided, only return a server at that ip port.
         """
         with self.lock:
             for i in self.known_servers:
                 if self.known_servers[i].connectedAt>(time.time()-240):
-                    return RemoteServerInterface(self.known_servers[i])
+                    if addr==None or addr==i:
+                        return RemoteServerInterface(self.known_servers[i])
         return None
 
     def onOldMessage(self,addr, counter, opcode, data):
@@ -1274,9 +1286,9 @@ class Client():
     def getServers(self):
         return self.client.getServers()
 
-    def getServer(self):
-        return self.client.getServer()
-
+    def getServer(self,addr=None):
+        return self.client.getServer(addr)
+ 
     def call(self,function,data=b'',timeout=None):
         return self.client.call(function, data,timeout=timeout)
 

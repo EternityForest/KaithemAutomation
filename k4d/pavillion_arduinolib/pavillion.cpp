@@ -83,9 +83,9 @@ static uint32_t microsRollovers=0;
 
 static uint32_t lastMicrosCheckTime=0;
 
-uint64_t pavillionMonotonicTime()
+int64_t pavillionMonotonicTime()
 {
-  uint64_t x;
+  int64_t x;
 
   uint32_t z = micros();
 
@@ -354,7 +354,7 @@ void PavillionServer::broadcastMessage(const char *target, const char *name, con
 }
 
 
-static void setTagValueByName(char * name, float v,uint64_t timestamp);
+static void setTagValueByName(char * name, float v,int64_t timestamp);
 
 void PavillionServer::broadcastMessage(const char *target, const char *name, const uint8_t *data, int len, char opcode)
 {
@@ -636,7 +636,7 @@ void PavillionServer::onApplicationMessage(IPAddress addr, uint16_t port, uint64
         //bytes 0-3 are the floating point value. 4-7 are the timestamp
         //We save the timestamp from the client, because it represents the real time at which
         //The measurememt or command happened.
-        setTagValueByName(name, readFloatingNumber(payload), readUnsignedNumber(payload+4,8));
+        setTagValueByName(name, readFloatingNumber(payload), readSignedNumber(payload+4,8));
       }
     }
   }
@@ -912,7 +912,7 @@ void KnownClient::onMessage(uint8_t *data, uint16_t datalen, IPAddress addr, uin
       dbg("sending cl accept");
       
       //send the client the connection timestamp
-      uint64_t ts = pavillionMonotonicTime();
+      int64_t ts = pavillionMonotonicTime();
 
       WiFi.setOutputPower(20);
       
@@ -922,7 +922,7 @@ void KnownClient::onMessage(uint8_t *data, uint16_t datalen, IPAddress addr, uin
         //If tag points are in use, this gets to be more important
         //So we send it twice to increase the chances we have a good time sync
         //before the first tag data arrives at the client.
-        uint64_t ts = pavillionMonotonicTime();
+        int64_t ts = pavillionMonotonicTime();
         this->sendRawEncrypted(16, (uint8_t *)(&ts), 8);
         //This should mostly ensure the message gets there before the tag data.
         //It's not exactly a big deal if it isn't, the client should be
@@ -1241,7 +1241,7 @@ PavillionTagpoint::PavillionTagpoint(const char * n, PavillionServer * s)
   max=1000000000;
   name=(char *)malloc(strlen(n)+1);
 
-  timestamp=0;
+  timestamp= -9223372036854775800;
   strcpy(name, n);
 
   if (tagsList == 0)
@@ -1267,7 +1267,7 @@ void PavillionTagpoint::set(float v)
   uint8_t d[4+8];
   ((float *)d)[0]= v;
 
-  ((uint64_t*)(d+4))[0]=timestamp;
+  ((int64_t*)(d+4))[0]=timestamp;
 
   server->broadcastMessage("core.tagv",name,d,12);
 }
@@ -1293,7 +1293,7 @@ void PavillionTagpoint::push()
   ((float *)d)[3]=interval;
   d[16]=flags;
 
-  ((uint64_t*)(d+17))[0]=timestamp;
+  ((int64_t*)(d+17))[0]=timestamp;
 
 
   server->broadcastMessage("core.tag",name,d,16+1+8);
@@ -1315,7 +1315,7 @@ static void pushAllTags(PavillionServer * s)
   PAV_UNLOCK();
 }
 
-static void setTagValueByName(char * name, float v,uint64_t timestamp)
+static void setTagValueByName(char * name, float v,int64_t timestamp)
 {
   PAV_LOCK();
    PavillionTagpoint *p = tagsList;
@@ -1331,6 +1331,7 @@ static void setTagValueByName(char * name, float v,uint64_t timestamp)
               //Also reject anything more than a minute in the future
               if(timestamp < (pavillionMonotonicTime()+ 60000000L))
               {
+                //Don't call set, that would trigger a send
                 p->timestamp =timestamp;
                 p->value=v;
               }
