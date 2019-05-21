@@ -135,3 +135,94 @@ uint64_t readUnsignedNumber(void * i,int len);
 //Interpret i as a pointer to an integer of length len and write the value
 void writeSignedNumber(void * i,int len, int64_t val);
 void writeUnsignedNumber(void * i,int len, uint64_t val);
+
+### Transmitting server status data
+The Arduino version of pavillion attaches the server's WiFi signal level to certain packets.
+However, the ESP8266 has no builtin concept of battery or temperature.
+
+To use these, you can define `int pavillion_getTemperature()`(Builtin on ESP32),
+and `int pavillion_getBatteryStatus()`. The temperature function must return an int in celcius between -127 and 127.
+
+The battery status function must return a number between 0 and 63 indicating the relative fullness,
+plus one of the following status flags:
+
+
+```
+  #define PAV_BATSTATUS_CHARGING 2* 64
+  #define PAV_BATSTATUS_SLOWCHARGING 1* 64
+  #define PAV_BATSTATUS_DISCHARGING 0* 64
+  #define PAV_BATSTATUS_GENERATING 3* 64
+```
+
+### Dynamic TX power
+Pavillion tries to use the minimum amount of power to achieve full speed. To 
+do this it needs an estimate of the access point's power. We default to 20dbm,
+because most APs run at full power. set `pavillionApTxPower` to 0 to disable it, or give it another
+value in dbm to make optimization more accurate.
+
+This only happens on the ESP8266 at the moment.
+
+### Letting Pavillion manage WiFi reconnection
+
+`void pavillionConnectWiFi(static unsigned char * ssid, static unsigned char * psk);`
+This also handles turning off that silly persistance feature that wears out flash.
+
+### Tag Points and Alerts
+
+This library supports tagpoints and alerts, including automatically transmitting the state of them when new clients
+connect.
+
+Tag points are bidirectional, but currently the server will not rebroadcast chages from one client to another.
+
+Ther are best used for sensors, or things only one client controls.
+
+To use them:
+
+```
+PavillionServer p;
+
+//Tags and alerts just need a name and the server they belong to.
+PavillionTagpoint tagPoint("testingTagPoint",&p);
+PavillionAlert testingAlert("testingAlert", &p);
+
+void myFunction()
+{
+
+  //Set and push to server
+  tagPoint.set(98);
+
+  //Interval may be overwritten by the client, but
+  //Min and max are "part of" the tag point and can only be set
+  //By the "owner"
+  tagPoint.interval = 5;
+  tagPoint.max = 100;
+  tagPoint.min = 0
+
+  //The remote clients cannpt write to a tagpoint iif this is false.
+  tagPoint.setFlag(TAG_FLAG_WRITABLE)
+
+  testingAlert.trip();
+  testingAlert.release();
+
+  //Set but don't push to the server immediatly.
+  tagPoint.value=9;
+}
+```
+
+On the client side you will currently need to manually use the core.tag and core.tagv messages, unless you
+are using Kaithem's GUI.
+
+
+### MDNS
+
+If you use MDNS and get a reboot loop, try including things in exactly this order:
+```
+
+#include "pavillion.h"
+ #include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
+#include <WiFiClient.h>
+
+```
+
+And no, I have no clue what's going on there or what's hiding in that MDNS lib.

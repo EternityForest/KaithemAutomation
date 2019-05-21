@@ -617,7 +617,7 @@ class PavillionDevice(RemoteDevice):
 
                                     #Convert the time to the client
                                     try:
-                                        t = int(self.pclient.getServer().toRemoteMonotonic(timestamp)*1000_1000)
+                                        t = int(self.pclient.getServer().toRemoteMonotonic(timestamp)*1000_000)
                                     except:
                                         #Awful hack just in case our time is not synced.
                                         t=t[name].lastRemoteTs+1

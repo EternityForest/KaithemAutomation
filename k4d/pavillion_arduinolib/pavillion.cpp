@@ -41,7 +41,91 @@ extern "C"
 
 #define ip_cmp(a, b) ((a[0] == b[0]) & (a[1] == b[1]) & (a[2] == b[2]) & (a[3] == b[3]))
 
+
+#ifdef ESP32
+#ifdef __cplusplus
+extern "C" {
+#endif
+uint8_t temprature_sens_read();
+#ifdef __cplusplus
+}
+#endif
+
+__attribute__((weak)) int pavillion_getTemperature()
+{
+  return (temprature_sens_read() - 32) / 1.8;
+}
+
+#else
+
+__attribute__((weak)) int pavillion_getTemperature()
+{
+  return 25;
+}
+#endif
+
+__attribute__((weak)) int pavillion_getBatteryStatus()
+{
+  return 0;
+}
+static void pushAllAlerts(PavillionServer * p);
+static void pushAllTags(PavillionServer * p);
+
+//Anchor for the linked list of all tag points
+PavillionTagpoint * tagsList=0;
+
 static bool connected = false;
+
+//Estimate of the AP's TX power
+int pavillionApTxPower = 20;
+
+static uint32_t microsRollovers=0;
+
+static uint32_t lastMicrosCheckTime=0;
+
+uint64_t pavillionMonotonicTime()
+{
+  uint64_t x;
+
+  uint32_t z = micros();
+
+  ((uint32_t*)(&x))[0]=micros();
+  ((uint32_t*)(&x))[1]=microsRollovers;
+
+  //Detect if a rollover happened while we weren't looking.
+  if(micros()<z)
+  {
+    ((uint32_t*)(&x))[0]=micros();
+    ((uint32_t*)(&x))[1]=microsRollovers;
+  }
+  return x;
+}
+
+//Dynamically optimize the transmit power in real time
+//To maintain a -73dbm level at the reciever. This
+static void optimizeTXPower()
+{
+  #ifdef  ESP32
+  //TODO:Optimize the ESP32 also
+  #else
+  if (pavillionApTxPower)
+  {
+    //With the user-supplied estimate, guess the path loss
+    int pathloss = pavillionApTxPower - WiFi.RSSI();
+    int txpwr = (-73)+pathloss;
+    if (txpwr>20)
+    {
+      txpwr=20;
+    }
+    if(txpwr<0)
+    {
+      txpwr=0;
+    }
+    //Assume path loss is symmetric, set the output power to produce -73dbm at the reciever
+    WiFi.setOutputPower(txpwr);
+  }
+  #endif
+}
 
 //Root entry of linked list of all PavillionServers
 static PavillionServer *ServersList = 0;
@@ -78,6 +162,21 @@ uint64_t readUnsignedNumber(void *i, int len)
   return r;
 }
 
+//Sigh. Esp8266 aligned addressing crap workaround
+float readFloatingNumber(void *i)
+{
+  union {
+    float r = 0;
+    uint8_t b[4];
+  };
+  for (int j = 0; j < 4; j++)
+  {
+    b[j] = ((uint8_t *)i)[j];
+  }
+  return r;
+}
+
+
 void writeSignedNumber(void *i, int len, int64_t val)
 {
   for (int j = 0; j < len; j++)
@@ -93,6 +192,12 @@ void writeUnsignedNumber(void *i, int len, uint64_t val)
     ((uint8_t *)i)[j] = ((uint8_t *)&val)[j];
   }
 }
+static unsigned long reconnectTimer = 0;
+
+//Cinfigured ssid and psk if pavillion is doing reconnect
+static char * cssid=0;
+static char * cpsk=0;
+
 
 #ifdef ESP32
 //TODO: thread safe if we ever implement closing a server
@@ -105,6 +210,7 @@ static void pav_WiFiEvent(WiFiEvent_t event)
   {
   case SYSTEM_EVENT_STA_GOT_IP:
     dbg(F("WiFi connected"));
+    reconnectTimer=0;
 
     //TODO: We should try to send a message to the last known server we were in contact with?
     connected = true;
@@ -117,6 +223,13 @@ static void pav_WiFiEvent(WiFiEvent_t event)
   case SYSTEM_EVENT_STA_DISCONNECTED:
     dbg(F("WiFi disconnected"));
     connected = false;
+    reconnectTimer=millis();
+
+    //If we configured auto reconnect
+    if(cssid)
+    {
+      WiFi.begin(cssid,cpsk);
+    }
     break;
 
   default:
@@ -126,13 +239,14 @@ static void pav_WiFiEvent(WiFiEvent_t event)
 
 //ESP8266
 #else
-WiFiEventHandler stationConnectedHandler;
-WiFiEventHandler stationDisconnectedHandler;
+static WiFiEventHandler stationConnectedHandler;
+static WiFiEventHandler stationDisconnectedHandler;
 
 static void pav_onconnect(const WiFiEventStationModeConnected &evt)
 {
   dbg(F("WiFi Connected"));
   connected = true;
+  reconnectTimer=0;
   PavillionServer *p = ServersList;
   while (p)
   {
@@ -145,6 +259,13 @@ static void pav_ondisconnect(const WiFiEventStationModeDisconnected &evt)
 {
   dbg(F("WiFi disconnected"));
   connected = false;
+  reconnectTimer=millis();
+
+  //If we configured auto reconnect
+    if(cssid)
+    {
+      WiFi.begin(cssid,cpsk);
+    }
 }
 #endif
 
@@ -155,9 +276,6 @@ static SemaphoreHandle_t setThingsUp()
   SemaphoreHandle_t t;
 #ifdef ESP32
   WiFi.onEvent(pav_WiFiEvent);
-#else
-  stationConnectedHandler = WiFi.onSoftAPModeStationConnected(&pav_onconnect);
-  stationDisconnectedHandler = WiFi.onSoftAPModeStationDisconnected(&pav_ondisconnect);
 #endif
   t = xSemaphoreCreateBinary();
   xSemaphoreGive(t);
@@ -230,12 +348,15 @@ void KnownClient::sendRawEncrypted(uint8_t opcode, uint8_t *data, uint16_t datal
   free(op);
 }
 
-void PavillionServer::broadcastMessage(const char *target, const char *name, uint8_t *data, int len)
+void PavillionServer::broadcastMessage(const char *target, const char *name, const uint8_t *data, int len)
 {
   broadcastMessage(target, name, data, len, PAV_OP_RELIABLE);
 }
 
-void PavillionServer::broadcastMessage(const char *target, const char *name, uint8_t *data, int len, char opcode)
+
+static void setTagValueByName(char * name, float v,uint64_t timestamp);
+
+void PavillionServer::broadcastMessage(const char *target, const char *name, const uint8_t *data, int len, char opcode)
 {
   dbg("Starting to broadcastMessage");
 //It is important that sendinglock be the outer lock.
@@ -379,8 +500,16 @@ void PavillionServer::broadcastMessage(const char *target, const char *name, uin
                                   len + tlen + nlen + 2 + 1, (uint8_t *)&(knownClients[i]->counter[0]),
                                   knownClients[i]->skey);
 
+            //After a few retries we crank up the power
+            if(d>200)
+            {
+              WiFi.setOutputPower(20);
+            }
             sendUDP(op, len + tlen + nlen + 2 + 16 + 8 + 1 + 11, knownClients[i]->addr, knownClients[i]->port);
             free(op);
+
+            //Turn it back to the optimized baseline when we're done
+            optimizeTXPower();
           }
         }
       }
@@ -400,6 +529,8 @@ void PavillionServer::broadcastMessage(const char *target, const char *name, uin
       }
       else
       {
+        //TODO: Eliminate this delay in favor of 10ms polling
+        //So we don't get those big interruptions
         delay(d);
       }
       PAV_LOCK();
@@ -421,6 +552,7 @@ void PavillionServer::broadcastMessage(const char *target, const char *name, uin
             if (knownClients[i]->ack_responded == false)
             {
               dbg("Still waiting on client");
+  
               canQuit = 0;
             }
             else
@@ -482,6 +614,42 @@ void PavillionServer::onApplicationMessage(IPAddress addr, uint16_t port, uint64
       dbg("Recieved message ack");
       client->ack_responded = true;
     }
+  }
+
+  //Handle either kind of message
+   if ((opcode == PAV_OP_RELIABLE) | (opcode == PAV_OP_UNRELIABLE))
+  {
+    char * topic = (char *)data;
+    char * name = strchr((char *)data, '\n');
+    uint8_t * payload= (uint8_t *)strchr((char *)name+1,'\n');
+    //Set separators to null terminators like they probably always should have been
+    *name = 0;
+    *payload = 0;
+    name+=1;
+    payload+=1;
+    //Hopefully the compiler can tell when tagsList is always 0 and leave this code out
+    if(tagsList)
+    {
+      //If it's a tag point message that's kind of important.
+      if(strcmp(topic,"core.tagv")==0)
+      {
+        //bytes 0-3 are the floating point value. 4-7 are the timestamp
+        //We save the timestamp from the client, because it represents the real time at which
+        //The measurememt or command happened.
+        setTagValueByName(name, readFloatingNumber(payload), readUnsignedNumber(payload+4,8));
+      }
+    }
+  }
+
+  if (opcode == PAV_OP_TIMESYNCREQ)
+  {
+      //send the client the connection timestamp
+      uint64_t d[3];
+      
+      d[0]=counter;
+      d[1]=pavillionMonotonicTime();
+      d[2]=0;
+      client->sendRawEncrypted(PAV_OP_TIMESYNC, (uint8_t *)(&d), 16);
   }
 
 //This feature is only for non-rtos platforms.
@@ -565,7 +733,33 @@ void KnownClient::onMessage(uint8_t *data, uint16_t datalen, IPAddress addr, uin
     if (data[0] == PAV_OP_RELIABLE)
     {
       dbg("Sending acknowledgement");
-      sendRawEncrypted(2, (uint8_t *)&counter, 8);
+      uint8_t *rbufack = (uint8_t*)malloc(8+3);
+      if(rbufack)
+      {
+        int rssi =  WiFi.RSSI();
+        if (rssi>-20)
+        {
+          rssi= -20;
+        }
+        rssi+=120;
+        if(rssi>100)
+        {
+          rssi=100;
+        }
+        if(rssi<0)
+        {
+          rssi=0;
+        }
+
+        //Put in the additional status data
+        writeUnsignedNumber(rbufack,8, counter);
+        writeUnsignedNumber(rbufack+8,1, pavillion_getBatteryStatus());
+        writeUnsignedNumber(rbufack+9,1, rssi);
+        writeUnsignedNumber(rbufack+10,1, pavillion_getTemperature());
+
+        sendRawEncrypted(2, rbufack, 8+3);
+        free(rbufack);
+      }
     }
 
 
@@ -577,6 +771,8 @@ void KnownClient::onMessage(uint8_t *data, uint16_t datalen, IPAddress addr, uin
 
     clientcounter = counter;
     this->lastSeen = millis();
+    //Putting a null makes string operations safer
+    data[datalen]=0;
     this->server->onApplicationMessage(addr, port, counter, data, datalen, this);
   }
 
@@ -645,8 +841,12 @@ void KnownClient::onMessage(uint8_t *data, uint16_t datalen, IPAddress addr, uin
                          clientPSK, 32);
 
       head += 32;
-
+      
+      //Increase power for setup messages
+      WiFi.setOutputPower(20);
       this->server->sendUDP(resp, head - resp, this->addr, this->port);
+      optimizeTXPower();
+
       free(resp);
     }
 
@@ -710,10 +910,36 @@ void KnownClient::onMessage(uint8_t *data, uint16_t datalen, IPAddress addr, uin
 
       //Send the client accept message
       dbg("sending cl accept");
-      this->sendRawEncrypted(16, (uint8_t *)"", 30);
+      
+      //send the client the connection timestamp
+      uint64_t ts = pavillionMonotonicTime();
+
+      WiFi.setOutputPower(20);
+      
+      this->sendRawEncrypted(16, (uint8_t *)(&ts), 8);
+      if (tagsList)
+      {
+        //If tag points are in use, this gets to be more important
+        //So we send it twice to increase the chances we have a good time sync
+        //before the first tag data arrives at the client.
+        uint64_t ts = pavillionMonotonicTime();
+        this->sendRawEncrypted(16, (uint8_t *)(&ts), 8);
+        //This should mostly ensure the message gets there before the tag data.
+        //It's not exactly a big deal if it isn't, the client should be
+        //able to resolve the conflict no matter what, just not
+        //In the way we'd like
+        delay(20);
+      }
       //No reusing the server nonce is allowed here.
       randombytes_buf(serverNonce, 32);
+      //Every reconnect, we send the state of all alerts
+      //Because they might have changed while we weren't looking.
+      pushAllAlerts(this->server);
+      pushAllTags(this->server);
+      
+      optimizeTXPower();
     }
+
   }
 }
 
@@ -874,20 +1100,246 @@ void PavillionServer::listen()
 void PavillionServer::poll()
 {
   PAV_LOCK();
+ 
+   if (reconnectTimer)
+  {
+    if (millis()-reconnectTimer> 20000)
+    {
+      WiFi.persistent(false);
+      reconnectTimer = millis()|1;
+      WiFi.begin(cssid, cpsk);
+    }
+  }
+
+  uint32_t m =micros();
+  //Hack so we can get a 64 bit count
+  if(lastMicrosCheckTime> m)
+  {
+    microsRollovers+=1;
+  }
+  lastMicrosCheckTime=m;
+
+
   if (connected == false)
   {
     PAV_UNLOCK();
     return;
   }
+
+optimizeTXPower();
+
   int x = udp.parsePacket();
 
   if (x)
   {
     //Once again the extra 32 are for garbage fake libsodium's memory saving tricks
-    uint8_t *incoming = (uint8_t *)malloc(x + 32 + 1);
+    //Add one in case of math error somewhere and a buffer overflow
+    //Also add another one because we add our own null terminator before passing to
+    //The application, to protect against unsafe use ir string functions
+    uint8_t *incoming = (uint8_t *)malloc(x + 32 + 1+1);
     udp.read(incoming, 1500);
     this->onMessage(incoming, x, udp.remoteIP(), udp.remotePort());
     free(incoming);
   }
+  PAV_UNLOCK();
+}
+
+
+void pavillionConnectWiFi(const char * ssid, const char * psk)
+{
+  PAV_LOCK();
+
+  if(cssid)
+  {
+    free(cssid);
+  }
+  cssid=(char *)malloc(strlen(ssid)+2);
+  strcpy(cssid,ssid);
+
+  if(cpsk)
+  {
+    free(cpsk);
+  }
+  cpsk=(char *)malloc(strlen(psk)+2);
+  strcpy(cpsk,psk);
+  
+  WiFi.persistent(false);
+  WiFi.begin(ssid,psk);
+  PAV_UNLOCK();
+}
+
+
+PavillionAlert * alertsList=0;
+
+PavillionAlert::PavillionAlert(const char * n, PavillionServer * p)
+{
+    PAV_LOCK();
+
+  server = p;
+  name=(char *)malloc(strlen(n)+1);
+  strcpy(name, n);
+
+  if (alertsList == 0)
+  {
+    alertsList = this;
+  }
+  else
+  {
+    PavillionAlert *p = alertsList;
+
+    while (p->next)
+    {
+      p = p->next;
+    }
+    p->next = this;
+  }
+    PAV_UNLOCK();
+
+
+}
+
+void PavillionAlert::push()
+{
+  //Push the state of the alert
+  if(state==true)
+  {
+    server->broadcastMessage("core.alert",name,(uint8_t*)"\x01",1);
+  }
+  else
+  {
+    server->broadcastMessage("core.alert",name,(uint8_t*)"\x00",1);
+  }
+  
+}
+
+static void pushAllAlerts(PavillionServer * s)
+{
+   PAV_LOCK();
+
+   PavillionAlert *p = alertsList;
+
+    while (p)
+    {
+      if(s==p->server)
+      {
+        p->push();
+      }
+      p = p->next;
+    }
+    PAV_UNLOCK();
+
+}
+
+
+
+PavillionTagpoint::PavillionTagpoint(const char * n, PavillionServer * s)
+{
+  PAV_LOCK();
+  server = s;
+  interval=0;
+  min=-1000000000;
+  max=1000000000;
+  name=(char *)malloc(strlen(n)+1);
+
+  timestamp=0;
+  strcpy(name, n);
+
+  if (tagsList == 0)
+  {
+    tagsList = this;
+  }
+  else
+  {
+    PavillionTagpoint *p = tagsList;
+
+    while (p->next)
+    {
+      p = p->next;
+    }
+    p->next = this;
+  }
+  PAV_UNLOCK();
+}
+
+void PavillionTagpoint::set(float v)
+{
+  timestamp = pavillionMonotonicTime();
+  uint8_t d[4+8];
+  ((float *)d)[0]= v;
+
+  ((uint64_t*)(d+4))[0]=timestamp;
+
+  server->broadcastMessage("core.tagv",name,d,12);
+}
+
+void PavillionTagpoint::setFlag(uint8_t f)
+{
+  flags=flags|f;
+}
+
+
+void PavillionTagpoint::clearFlag(uint8_t f)
+{
+  flags=flags&(~f);
+}
+
+//Push the value and configuration of the tagpoint to the server
+void PavillionTagpoint::push()
+{
+  uint8_t d[16+1+8];
+  ((float *)d)[0]=value;
+  ((float *)d)[1]=min;
+  ((float *)d)[2]=max;
+  ((float *)d)[3]=interval;
+  d[16]=flags;
+
+  ((uint64_t*)(d+17))[0]=timestamp;
+
+
+  server->broadcastMessage("core.tag",name,d,16+1+8);
+}
+
+static void pushAllTags(PavillionServer * s)
+{
+  PAV_LOCK();
+   PavillionTagpoint *p = tagsList;
+
+    while (p)
+    {
+      if(s==p->server)
+      {
+        p->push();
+      }
+      p = p->next;
+    }
+  PAV_UNLOCK();
+}
+
+static void setTagValueByName(char * name, float v,uint64_t timestamp)
+{
+  PAV_LOCK();
+   PavillionTagpoint *p = tagsList;
+    while (p)
+    {
+      if(strcmp(p->name,name)==0)
+      {
+        if(p->flags & TAG_FLAG_WRITABLE)
+        {
+            //Reject old timestamps
+            if(timestamp>p->timestamp)
+            {
+              //Also reject anything more than a minute in the future
+              if(timestamp < (pavillionMonotonicTime()+ 60000000L))
+              {
+                p->timestamp =timestamp;
+                p->value=v;
+              }
+            
+            }
+        }
+        break;
+      }
+      p = p->next;
+    }
   PAV_UNLOCK();
 }
