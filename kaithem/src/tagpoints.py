@@ -2,6 +2,9 @@
 from . import scheduling,workers, virtualresource,newevt,widgets
 import time, threading,weakref,logging
 
+import pint
+ureg = pint.UnitRegistry()
+
 logger = logging.getLogger("tagpoints")
 syslogger = logging.getLogger("system")
 
@@ -64,8 +67,14 @@ class Claim():
             self.tag.release(self.name)
     
     def set(self,value,timestamp=None, annotation=None):
-       self.value = value
-       self.tag.setClaimVal(self.name, value,timestamp,annotation)
+        self.value = value
+        self.tag.setClaimVal(self.name, value,timestamp,annotation)
+
+    def setAs(self, value, unit, timestamp=None,annotation=None):
+        "Convert a value in the given unit to the tag's native unit"
+        x = ureg(unit)*value
+        self.set( x.to(self.tag.unit).magnitude, timestamp, magnitude)
+
 
     def release(self):
         self.tag.release(self.name)
@@ -150,6 +159,16 @@ class _TagPoint(virtualresource.VirtualResource):
 
         self._alarms = {}
     
+    def convertTo(self, unit):
+        "Return the tag's current vakue converted to the given unit"
+        x = ureg(self.unit)*self.value
+        return x.to(unit).magnitude
+    
+    def convertValue(self, value, unit):
+        "Convert a value in the tag's native unit to the given unit"
+        x = ureg(self.unit)*value
+        return x.to(unit).magnitude
+
 
     @property
     def currentSource(self):

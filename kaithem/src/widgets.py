@@ -25,6 +25,17 @@ if config['enable-websockets']:
 widgets = weakref.WeakValueDictionary()
 n = 0
 
+import pint
+ureg = pint.UnitRegistry()
+
+dimensionality_strings={
+    ureg('centimeter').dimensionality: "length",
+    ureg('degC').dimensionality: "temperature",
+    ureg('kPa').dimensionality: "pressure",
+    ureg('kg').dimensionality: "length",
+    ureg('lux').dimensionality: "light",
+}
+
 server_session_ID= str(time.time())+str(os.urandom(8))
 def mkid():
     global n
@@ -415,6 +426,19 @@ class Meter(Widget):
             self.k['min'] = 0
         if not 'max' in self.k:
             self.k['max'] = 100
+        
+        self.displayUnits = None
+        if not 'unit' in kwargs:
+            self.unit = None
+        else:
+            try:
+                ##Throw an error if you give it a bad unit
+                self.unit = ureg(unit)
+                #Do a KeyError if we don't support the unit
+                (dimensionality_strings[self.unit.dimensionality]+"_format").split("|")
+            except:
+                self.unit = None
+            logging.exception("Bad unit")
 
 
         Widget.__init__(self,*args,**kwargs)
@@ -451,6 +475,31 @@ class Meter(Widget):
     def onUpdate(self,*a,**k):
         raise RuntimeError("Only the server can edit this widget")
 
+    def formatForUser(self):
+        """Format the value into something for display, like 27degC, if we have a unit configured.
+            Otherwise just return the value
+        """
+        if self.unit:
+            s = ''
+            auth.getUserSetting(pages.getAcessingUser(),dimensionality_strings[self.unit.dimensionality]+"_format")
+
+            #Overrides are allowed, we ignorer the user specified units
+            if self.displayUnits:
+                units = self.displayUnits
+            else:
+                units = auth.getUserSetting(pages.getAcessingUser(),dimensionality_strings[self.unit.dimensionality]+"_format").split("|")
+
+            for i in units:
+                d = self.value*self.unit
+                #If you need more than three digits,
+                #You should probably use an SI prefix.
+                #We're just hardcoding this for now
+                s += str(round(d.to(i),3))+i
+            
+            return s
+        else:
+            return str(round(self.value,3))
+        
 
     def render(self,unit='',label=''):
         return("""

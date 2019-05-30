@@ -657,13 +657,21 @@ class _Server():
         #one gets through.
 
         #This is just an optimization, the client can also initiate the connection
+
+
+        #If this is not a multicast server, we send it to a specific address that clients can use to
+        #Detect when a client they were connected to previously reboots(so long as it keeps it's addreess)
+        #And reconnect quickly.
         if self.mcastgroup:
-            m = struct.pack("<Q",0)+struct.pack("<B",4)+b''
-            self.sendsock.sendto(b"PavillionS0"+m,(self.mcastgroup,self.port))
-            time.sleep(0.003)
-            self.sendsock.sendto(b"PavillionS0"+m,(self.mcastgroup,self.port))
-            time.sleep(0.025)
-            self.sendsock.sendto(b"PavillionS0"+m,(self.mcastgroup,self.port))
+            a = (self.mcastgroup,self.port)
+        else:
+            a = ("224.0.0.251",2221)
+        m = struct.pack("<Q",0)+struct.pack("<B",5)+b''
+        self.sendsock.sendto(b"PavillionS0"+m,a)
+        time.sleep(0.003)
+        self.sendsock.sendto(b"PavillionS0"+m,a)
+        time.sleep(0.025)
+        self.sendsock.sendto(b"PavillionS0"+m,a)
 
         while(self.running):
             try:

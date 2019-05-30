@@ -42,6 +42,10 @@ Should a claim already exist by that name, the exact same claim object as the pr
 ##### Claim.set(value,timestamp=None,annotation=None)
 Set the value of a claim. You can optionally also set the timestamp of the message.
 
+##### Claim.setAs(value,unit,timestamp=None,annotation=None)
+Set the value of a claim with a value of the given unit, if neccesary, converts to the tag's
+native unit before setting. You can optionally also set the timestamp of the message.
+
 
 ##### Claim.release()
 Release a claim.
@@ -58,4 +62,16 @@ is nonzero and there is at least one subscriber.
 
 The signature of f must be:
 f(value, timestamp, annotation)
+
+
+#### TagPoint.unit
+A string that determines the unit of a tag. This is a regular atttribute abd is not reactive, so it shouldn't
+change often while the tag is in use or you may get wrong results. Units are expressed in strings like "cm" or "degF".
+
+#### TagPoint.convertTo(unit)
+Return the value in the given unit
+
+#### TagPoint.convertValue(value,unit)
+Value must be a number in the tag's native unit. Returns the value after converting.
+
 
