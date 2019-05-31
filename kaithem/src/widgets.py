@@ -34,6 +34,17 @@ dimensionality_strings={
     ureg('kPa').dimensionality: "pressure",
     ureg('kg').dimensionality: "length",
     ureg('lux').dimensionality: "light",
+    ureg('V').dimensionality: "voltage",
+    ureg('A').dimensionality: "current",
+}
+
+defaultDisplayUnits={
+    "temperature": "degC|degF",
+    "length": "m",
+    "weight":"g",
+    "pressure": "psi|Pa",
+    "voltage": "V",
+    "current":"A"
 }
 
 server_session_ID= str(time.time())+str(os.urandom(8))
@@ -410,7 +421,11 @@ class TextDisplay(Widget):
         </script>%s
         </div>"""%(height,width, self.uuid, self.uuid, self.uuid, self.uuid,self.uuid,self.uuid,self.value))
 
-
+#Gram is the base unit even though Si has kg as the base
+#Because it makes it *SO* much easier
+siUnits={
+    "m","Pa","g","V","A"
+}
 class Meter(Widget):
     def __init__(self,*args,**kwargs):
         self.k = kwargs
@@ -433,16 +448,18 @@ class Meter(Widget):
         else:
             try:
                 ##Throw an error if you give it a bad unit
-                self.unit = ureg(unit)
+                self.unit = ureg(kwargs['unit'])
+                self.unitstr = kwargs['unit']
+
                 #Do a KeyError if we don't support the unit
-                (dimensionality_strings[self.unit.dimensionality]+"_format").split("|")
+                dimensionality_strings[self.unit.dimensionality]+"_format"
             except:
                 self.unit = None
-            logging.exception("Bad unit")
+                logging.exception("Bad unit")
 
 
         Widget.__init__(self,*args,**kwargs)
-        self.value = [0,'normal']
+        self.value = [0,'normal',self.formatForUser(0)]
 
     def write(self,value):
         #Decide a class so it can show red or yellow with high or low values.
@@ -463,42 +480,69 @@ class Meter(Widget):
         if 'low' in self.k:
             if value <= self.k['low']:
                 self.c = 'error'
-        self.value = [round(value,3),self.c]
+        self.value = [round(value,3),self.c, self.formatForUser(value)]
         Widget.write(self,self.value)
 
-    def setup(self,min,max,high,low):
+    def setup(self,min,max,high,low,unit=None):
         "On-the-fly change of parameters"
         d={'high':high,'low':low,'high_warn':high,'low_warn':low,"min":min,"max":max}
         self.k.update(d)
+
+        if not unit:
+            self.unit = None
+        else:
+            try:
+                ##Throw an error if you give it a bad unit
+                self.unit = ureg(unit)
+                self.unitstr = unit
+
+                #Do a KeyError if we don't support the unit
+                dimensionality_strings[self.unit.dimensionality]+"_format"
+            except:
+                logging.exception("Bad unit")
+                self.unit = None
         Widget.write(self,self.value+[d])
 
     def onUpdate(self,*a,**k):
         raise RuntimeError("Only the server can edit this widget")
 
-    def formatForUser(self):
+    def formatForUser(self,v):
         """Format the value into something for display, like 27degC, if we have a unit configured.
             Otherwise just return the value
         """
         if self.unit:
             s = ''
-            auth.getUserSetting(pages.getAcessingUser(),dimensionality_strings[self.unit.dimensionality]+"_format")
 
+            x=dimensionality_strings[self.unit.dimensionality]
+            if x in defaultDisplayUnits:
+                units = defaultDisplayUnits[x]
+            else:
+                return str(round(v,3))
             #Overrides are allowed, we ignorer the user specified units
             if self.displayUnits:
                 units = self.displayUnits
             else:
-                units = auth.getUserSetting(pages.getAcessingUser(),dimensionality_strings[self.unit.dimensionality]+"_format").split("|")
+                if not self.unitstr in units:
+                    units+="|"+self.unitstr 
+           # else:
+            #    units = auth.getUserSetting(pages.getAcessingUser(),dimensionality_strings[self.unit.dimensionality]+"_format").split("|")
 
-            for i in units:
-                d = self.value*self.unit
-                #If you need more than three digits,
-                #You should probably use an SI prefix.
-                #We're just hardcoding this for now
-                s += str(round(d.to(i),3))+i
+            for i in units.split("|"):
+                d = ureg.Quantity(v, self.unit)
+                if s:
+                    s+=" | "
+                #Si abbreviations and symbols work with prefixes
+                if i in siUnits:
+                    s+=unitsofmeasure.siFormatNumber(d.to(i).magnitude)+i
+                else:
+                    #If you need more than three digits,
+                    #You should probably use an SI prefix.
+                    #We're just hardcoding this for now
+                    s += str(round(d.to(i).magnitude,2))+i
             
             return s
         else:
-            return str(round(self.value,3))
+            return str(round(v,3))
         
 
     def render(self,unit='',label=''):
@@ -509,24 +553,25 @@ class Meter(Widget):
         <script type="text/javascript">
         var upd = function(val)
         {{
-            document.getElementById("{uuid}").innerHTML=val[0]+"{unit}";
             document.getElementById("{uuid}_m").value=val[0];
             document.getElementById("{uuid}").className=val[1]+" numericpv";
-            if(val[2])
+            document.getElementById("{uuid}").innerHTML=val[2]+"{unit}";
+
+            if(val[3])
             {{
-                document.getElementById("{uuid}_m").high = val[2].high;
-                document.getElementById("{uuid}_m").low = val[2].low;
-                document.getElementById("{uuid}_m").min = val[2].min;
-                document.getElementById("{uuid}_m").max = val[2].max;
+                document.getElementById("{uuid}_m").high = val[3].high;
+                document.getElementById("{uuid}_m").low = val[3].low;
+                document.getElementById("{uuid}_m").min = val[3].min;
+                document.getElementById("{uuid}_m").max = val[3].max;
             }}
         }}
         KWidget_subscribe('{uuid}',upd);
-        </script>{value:f}
+        </script>{valuestr}
         </span></br>
         <meter id="{uuid}_m" value="{value:f}" min="{min:f}" max="{max:f}" high="{high:f}" low="{low:f}"></meter>
 
         </div>""".format(uuid=self.uuid, value=self.value[0], min=self.k['min'],
-        max=self.k['max'],high=self.k['high_warn'],low=self.k['low_warn'],label=label,unit=unit))
+        max=self.k['max'],high=self.k['high_warn'],low=self.k['low_warn'],label=label,unit=unit,valuestr=self.formatForUser(self.value[0])))
 
 class Button(Widget):
 

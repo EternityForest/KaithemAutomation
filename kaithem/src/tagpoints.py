@@ -61,7 +61,7 @@ class Claim():
         self.value = value
         self.annotation=annotation
         self.timestamp = timestamp
-
+        
     def __del__(self):
         if self.name != 'default':
             self.tag.release(self.name)
@@ -72,8 +72,8 @@ class Claim():
 
     def setAs(self, value, unit, timestamp=None,annotation=None):
         "Convert a value in the given unit to the tag's native unit"
-        x = ureg(unit)*value
-        self.set( x.to(self.tag.unit).magnitude, timestamp, magnitude)
+        x = ureg.Quantity(value,unit)
+        self.set( x.to(self.tag.unit).magnitude, timestamp, annotation)
 
 
     def release(self):
@@ -134,6 +134,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
         self._min = min
         self._max = max
+        self._unit = None
 
         self.meterWidget= widgets.Meter()
         self.meterWidget.setPermissions(['/users/tagpoints.view'],['/users/tagpoints.edit'])
@@ -161,13 +162,29 @@ class _TagPoint(virtualresource.VirtualResource):
     
     def convertTo(self, unit):
         "Return the tag's current vakue converted to the given unit"
-        x = ureg(self.unit)*self.value
+        x = ureg.Quantity(self.value,self.unit)
         return x.to(unit).magnitude
     
     def convertValue(self, value, unit):
         "Convert a value in the tag's native unit to the given unit"
-        x = ureg(self.unit)*value
+        x = ureg.Quantity(value,self.unit)
         return x.to(unit).magnitude
+
+
+
+    @property
+    def unit(self):
+        return self._unit
+
+    @unit.setter
+    def unit(self,value):
+        if self._unit:
+            if not self._unit==value:
+                if value:
+                    raise ValueError("Cannot change unit of tagpoint. To override this, set to None first")
+        self._unit = value
+        self._setupMeter()
+        self.meterWidget.write(self.value)
 
 
     @property
@@ -329,7 +346,7 @@ class _TagPoint(virtualresource.VirtualResource):
     def _setupMeter(self):
         self.meterWidget.setup(self._min if (not (self._min is None)) else -100,
         self._max if (not (self._max is None)) else 100,
-        self._hi, self._lo
+        self._hi, self._lo, unit = self.unit
          )
 
     @property

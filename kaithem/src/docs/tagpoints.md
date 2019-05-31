@@ -30,6 +30,47 @@ Property that can get the tag's value, or set the value of the default claim.
 
 Errors in getters will never cause an error to be raised getting or setting this.
 
+
+
+#### TagPoint.min, TagPoint.max
+Set the range of the tag point. Out of range values are clipped.
+
+#### TagPoint.interval
+Set the sample rate of the tags data in seconds. Affects polling and cacheing.
+
+#### TagPoint.subscribe(f)
+f will be called whe the value changes. Polling will only occur if interval
+is nonzero and there is at least one subscriber.
+
+The signature of f must be:
+f(value, timestamp, annotation)
+
+
+#### TagPoint.unit
+A string that determines the unit of a tag. Units are expressed in strings like "m" or "degF". Units are provided by pint.
+
+It is prefered that base Si units be used, except for weight, where grams are prefered over kilograms for simplicity of automatic prefixing for display(Rendering 0.001V as 1mV, etc).
+
+Abbreviated symbols(g, K, etc) are preferred ofer full names(gram, kilograms).
+
+Note that operations involving units raise an error if the unit is not set. To prevent this,
+both the "sending" and "recieving" code should set the unit before using the tag.
+
+To prevent the very obvious classes of errors where different code thinks a unit is a different thing,
+this property will not allow changes once it has been set. You can freely write the same string to it, and
+you can set it to None and then to a new value if you must, but you cannot change between two strings without raising
+an exception.
+
+For some units, meters will become "unit aware" on the display page.
+
+
+#### TagPoint.convertTo(unit)
+Return the value in the given unit
+
+#### TagPoint.convertValue(value,unit)
+Value must be a number in the tag's native unit. Returns the value after converting.
+
+
 #### TagPoint.claim(value, name, priority, timestamp=None, annotation=None)
 Adds a claim to the tag. The claim will dissapear if the returned Claim object ever does.
 Value may be a function that can be polled to return a float, or a number.
@@ -49,29 +90,3 @@ native unit before setting. You can optionally also set the timestamp of the mes
 
 ##### Claim.release()
 Release a claim.
-
-#### TagPoint.min, TagPoint.max
-Set the range of the tag point. Out of range values are clipped.
-
-#### TagPoint.interval
-Set the sample rate of the tags data in seconds. Affects polling and cacheing.
-
-#### TagPoint.subscribe(f)
-f will be called whe the value changes. Polling will only occur if interval
-is nonzero and there is at least one subscriber.
-
-The signature of f must be:
-f(value, timestamp, annotation)
-
-
-#### TagPoint.unit
-A string that determines the unit of a tag. This is a regular atttribute abd is not reactive, so it shouldn't
-change often while the tag is in use or you may get wrong results. Units are expressed in strings like "cm" or "degF".
-
-#### TagPoint.convertTo(unit)
-Return the value in the given unit
-
-#### TagPoint.convertValue(value,unit)
-Value must be a number in the tag's native unit. Returns the value after converting.
-
-
