@@ -447,6 +447,8 @@ defineUnit("ksi", 1000,"pressure",0,"psi")
 defineUnit("mmHg",133.32237,"pressure")
 
 def convert(v, fr, to):
+    if fr==to:
+        return v
     try:
         fr = units[fr]
         to = units[to]
