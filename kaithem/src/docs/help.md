@@ -496,6 +496,40 @@ code. It has the following properties:
 
 ### General Utilities
 
+
+### kaithem.units
+
+#### kaithem.units.convert(value, fr, to)
+Convert a value from unit fr to unit to. Both are expressed as strings,
+like "degC" to "degF". Note that there is no protection against all nonsensical conversions.
+
+This uses the pint library for most units, which can be slow, but for some common units uses kaithem's
+optimized fast unit conversions. This only works for abbreviated symbols in the correct case(mmHg, m, g, etc), 
+and does not work with SI prefixes
+
+#### kaithem.units.define(name, multiplier, type, baseUnit=None)
+
+Define a new unit. Multiplier is what must be multipllied by to convert the base unit to the new unit.
+
+It may also be a tuple of functions, one to go TO the base unit, and another to go FROM the base unit.
+For example: Celcius is defined in terms of Kelvin as: (lambda x: x+273.15, lambda x: x-273.15)
+
+You can base your unit on any unit, otherwise it is assumed you are using the default base, or that you are
+defining the a new base unit. You can only use the default "true" global base for units defined as functions.
+
+Kaithem does not know what the base units are, they are simply units with no offset and a multiplier if 1,it is up to the
+programmer to know what the base unit for any particular type of measurement is. All conversions are done
+by going to the global unit and then to the new unit.
+
+Included Base Units:
+
+mass: g
+length: m
+temperature(Absolute): K
+flow: m3/min
+pressure: Pa
+
+
 #### kaithem.globals
 
 An instance of object() who's only purpose is so that the user can asign
@@ -1115,6 +1149,13 @@ all passes as keyword arguments.
 Render takes the optional parameter called unit, that specifies a unit
 to associate, like "Volts" or "Hz" or such, and the optional parameter
 label, which specifies a label such as "CH1 Voltage"
+
+
+The constructor takes an optional "unit" parameter, which is a string like "m" that describes the
+native unit of the meter.
+
+It also takes a parameter displayUnits, which describe what units should be displayed. It is a pipe-separated
+list without spaces.
 
 #### kaithem.widgets.Slider(\*\*kwargs)
 

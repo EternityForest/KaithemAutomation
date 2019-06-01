@@ -25,18 +25,8 @@ if config['enable-websockets']:
 widgets = weakref.WeakValueDictionary()
 n = 0
 
-import pint
-ureg = pint.UnitRegistry()
+from .unitsofmeasure import convert, unitTypes
 
-dimensionality_strings={
-    ureg('centimeter').dimensionality: "length",
-    ureg('degC').dimensionality: "temperature",
-    ureg('kPa').dimensionality: "pressure",
-    ureg('kg').dimensionality: "length",
-    ureg('lux').dimensionality: "light",
-    ureg('V').dimensionality: "voltage",
-    ureg('A').dimensionality: "current",
-}
 
 defaultDisplayUnits={
     "temperature": "degC|degF",
@@ -448,11 +438,9 @@ class Meter(Widget):
         else:
             try:
                 ##Throw an error if you give it a bad unit
-                self.unit = ureg(kwargs['unit'])
-                self.unitstr = kwargs['unit']
-
+                self.unit = kwargs['unit']
                 #Do a KeyError if we don't support the unit
-                dimensionality_strings[self.unit.dimensionality]+"_format"
+                unitTypes[self.unit]+"_format"
             except:
                 self.unit = None
                 logging.exception("Bad unit")
@@ -483,7 +471,7 @@ class Meter(Widget):
         self.value = [round(value,3),self.c, self.formatForUser(value)]
         Widget.write(self,self.value)
 
-    def setup(self,min,max,high,low,unit=None):
+    def setup(self,min,max,high,low,unit=None,displayUnits=None):
         "On-the-fly change of parameters"
         d={'high':high,'low':low,'high_warn':high,'low_warn':low,"min":min,"max":max}
         self.k.update(d)
@@ -491,13 +479,13 @@ class Meter(Widget):
         if not unit:
             self.unit = None
         else:
+            self.displayUnits = displayUnits
             try:
                 ##Throw an error if you give it a bad unit
-                self.unit = ureg(unit)
-                self.unitstr = unit
+                self.unit = unit
 
                 #Do a KeyError if we don't support the unit
-                dimensionality_strings[self.unit.dimensionality]+"_format"
+                unitTypes[self.unit]+"_format"
             except:
                 logging.exception("Bad unit")
                 self.unit = None
@@ -513,7 +501,8 @@ class Meter(Widget):
         if self.unit:
             s = ''
 
-            x=dimensionality_strings[self.unit.dimensionality]
+            x=unitTypes[self.unit]
+
             if x in defaultDisplayUnits:
                 units = defaultDisplayUnits[x]
             else:
@@ -522,23 +511,22 @@ class Meter(Widget):
             if self.displayUnits:
                 units = self.displayUnits
             else:
-                if not self.unitstr in units:
-                    units+="|"+self.unitstr 
+                if not self.unit in units:
+                    units+="|"+self.unit 
            # else:
             #    units = auth.getUserSetting(pages.getAcessingUser(),dimensionality_strings[self.unit.dimensionality]+"_format").split("|")
 
             for i in units.split("|"):
-                d = ureg.Quantity(v, self.unit)
                 if s:
                     s+=" | "
                 #Si abbreviations and symbols work with prefixes
                 if i in siUnits:
-                    s+=unitsofmeasure.siFormatNumber(d.to(i).magnitude)+i
+                    s+=unitsofmeasure.siFormatNumber(convert(v, self.unit, i))+i
                 else:
                     #If you need more than three digits,
                     #You should probably use an SI prefix.
                     #We're just hardcoding this for now
-                    s += str(round(d.to(i).magnitude,2))+i
+                    s += str(round(convert(v, self.unit, i),2))+i
             
             return s
         else:

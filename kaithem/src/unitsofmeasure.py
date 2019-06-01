@@ -17,6 +17,9 @@ import time,pytz,datetime,re
 from .config import config
 from . import auth,pages
 
+import pint 
+ureg = pint.UnitRegistry()
+
 class DayOfWeek(str):
     """This class it a value object that will appear like a string but supports intelligent comparisions like Dow=='Thu' etc.
         supports upper ad lower case and abbreviations and numbers(monday=0).
@@ -215,10 +218,10 @@ def timeIntervalFromString(s):
     return total
 
 
-def formatTimeIntervallong(t,maxunits,clock=False):
+def formatTimeIntervallong(t,maunitss,clock=False):
     """Take a length of time t in seconds, and return a nicely formatted string
     like "2 hours, 4 minutes, 12 seconds".
-    maxunits is the maximum number of units to use in the string(7 will add a milliseconds field to times in years)
+    maunitss is the maximum number of units to use in the string(7 will add a milliseconds field to times in years)
 
     """
     if clock:
@@ -231,9 +234,9 @@ def formatTimeIntervallong(t,maxunits,clock=False):
         hours= t/3600
 
         s = "%02d:%02d"%(hours,minutes)
-        if maxunits>2:
+        if maunitss>2:
             s+= ":%02d"%(seconds)
-        if maxunits>3:
+        if maunitss>3:
             #Adding 0.01 seems to help with some kind of obnoxious rounding bug thing. Prob a better way to do things.
             s+=":%03d"%(0.01+frac*1000)
 
@@ -241,7 +244,7 @@ def formatTimeIntervallong(t,maxunits,clock=False):
     s = ""
     
     for i in sorted(time_as_seconds.items(),key= lambda x:x[1], reverse=True):
-        if maxunits == 0:
+        if maunitss == 0:
             return s[:-2]
         x = t%i[1]
         b=(t-x)
@@ -250,16 +253,16 @@ def formatTimeIntervallong(t,maxunits,clock=False):
         t = t-b
         if y>1:
             s += str(int(round(y))) + " " + i[0]+"s, "
-            maxunits -=1
+            maunitss -=1
         elif y==1:
             s += str(int(round(y))) + " " + i[0]+", "
-            maxunits -=1
+            maunitss -=1
     return s[:-2]
 
-def formatTimeIntervalabbr(t,maxunits,clock=False):
+def formatTimeIntervalabbr(t,maunitss,clock=False):
     """Take a length of time t in seconds, and return a nicely formatted string
     like "2 hours, 4 minutes, 12 seconds".
-    maxunits is the maximum number of units to use in the string(7 will add a milliseconds field to times in years)
+    maunitss is the maximum number of units to use in the string(7 will add a milliseconds field to times in years)
 
     """
     if clock:
@@ -272,16 +275,16 @@ def formatTimeIntervalabbr(t,maxunits,clock=False):
         hours= t/3600
 
         s = "%02d:%02d"%(hours,minutes)
-        if maxunits>2:
+        if maunitss>2:
             s+= ":%02d"%(seconds)
-        if maxunits>3:
+        if maunitss>3:
             #Adding 0.01 seems to help with some kind of obnoxious rounding bug thing. Prob a better way to do things.
             s+=":%03d"%(0.01+frac*1000)
 
         return s
     s = ""
     for i in sorted(time_as_seconds_abbr.items(),key= lambda x:x[1], reverse=True):
-        if maxunits == 0:
+        if maunitss == 0:
             return s[:-1]
         x = t%i[1]
         b=(t-x)
@@ -293,10 +296,10 @@ def formatTimeIntervalabbr(t,maxunits,clock=False):
                 s += str(int(round(y))) + i[0]+"s "
             else:
                 s += str(int(round(y))) + i[0]+" "
-            maxunits -=1
+            maunitss -=1
         elif y:
             s += str(int(round(y))) + i[0]+" "
-            maxunits -=1
+            maunitss -=1
     return s[:-1]
 
 if not config['full-time-intervals']:
@@ -359,3 +362,110 @@ def strftime(*arg):
         d = datetime.datetime.utcfromtimestamp(time.time()).replace(tzinfo=pytz.utc)
 
     return tz.normalize(d.astimezone(tz)).strftime(auth.getUserSetting(pages.getAcessingUser(),'strftime'))
+
+
+#Units datafile.  All the units are all mixed together.  Every type of unit has to have a single base unit
+#and everything else is defined in terms of that
+units ={
+
+    #Base unit of mass is grams
+    "g": 1.0,
+    "lb": 453.592,
+    "oz": 28, 
+
+    #Base unit of distance is meters
+    "m": 1.0,
+    "in": 0.0254,
+
+    #Base unit of temperature is Kelvin
+    "K": 1.0,
+    #Offset unit. It is defined by two functions,the one to convert to the base an one to convert from
+    "degC": (lambda x: x+273.15, lambda x: x-273.15),
+
+    #Voltage/Current
+    "A": 1,
+    "V": 1
+}
+
+unitTypes={
+     #Base unit of mass is grams
+    "g":  "mass",
+    "lb": "mass",
+    "oz": "mass",
+
+    #Base unit of distance is meters
+    "m":  "length",
+    "in": "length",
+
+    #Base unit of temperature is Kelvin
+    "K":    "temperature",
+    #Offset unit. To convert FROM the base divide by the first and add the second number
+    "degC": "temperature",
+    
+    "V": "voltage",
+    "A": "current"
+}
+
+def getUnitType(u):
+    return unitTypes(u)
+
+
+def defineUnit(unitname, multiplier, type, offset=0,base=None):
+    """Define a new unit. The multiplier is how many of the base unit one step in the base unit new unit is worth. 
+    Base defaults to 1, the global base unit.
+    
+    Multiplier can also be a tuple of two functions, frombase,tobase, that handle the conversions. 
+    Function based units cannot be chained. You must define them in terms of the global default base
+    
+    """
+
+    if base:
+        z = units[base]
+        if isinstance(z,float):
+            multiplier*= z
+        else:
+            raise RuntimeError("Function-based units can only be defined directly in terms of the global base")
+        
+        if not isinstance(multiplier,float):
+            raise RuntimeError("Function-based units can only be defined directly in terms of the global base")
+
+    else:
+        units[unitname]= multiplier
+        unitTypes[unitname]= type
+
+defineUnit("degF", (lambda x: (x+459.67) * (5/9),  lambda x: (x*(9/5))-459.67), "temperature")
+defineUnit("ft", 12, "length", 0, "in")
+defineUnit("mile",1609.344, "length")
+
+defineUnit("m3/min",1, "flow")
+defineUnit("cfm", 0.028316847, "flow")
+defineUnit("gpm", 0.0037854118, "flow")
+
+defineUnit("Pa", 1,"pressure")
+defineUnit("psi", 6894.7573, "pressure")
+defineUnit("ksi", 1000,"pressure",0,"psi")
+defineUnit("mmHg",133.32237,"pressure")
+
+def convert(v, fr, to):
+    try:
+        fr = units[fr]
+        to = units[to]
+    #Fallback to pint library
+    except KeyError:
+        x = ureg.Quantity(v, fr)
+        return x.to(to).magnitude
+
+
+    #Convert into the base unit
+    if isinstance(fr, float):
+        v=v/fr
+    else:
+       v = fr[0](v)
+
+
+    #Convert from the base unit
+    if isinstance(to, float):
+        v=v*to
+    else:
+        v=to[1](v)
+    return v

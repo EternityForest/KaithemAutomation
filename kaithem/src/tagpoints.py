@@ -2,9 +2,6 @@
 from . import scheduling,workers, virtualresource,newevt,widgets
 import time, threading,weakref,logging
 
-import pint
-ureg = pint.UnitRegistry()
-
 logger = logging.getLogger("tagpoints")
 syslogger = logging.getLogger("system")
 
@@ -20,6 +17,10 @@ allTagsAtomic = {}
 
 providers = {}
 
+
+
+
+from .unitsofmeasure import convert, unitTypes
 
 class TagProvider():
     def mount(self, path):
@@ -72,8 +73,7 @@ class Claim():
 
     def setAs(self, value, unit, timestamp=None,annotation=None):
         "Convert a value in the given unit to the tag's native unit"
-        x = ureg.Quantity(value,unit)
-        self.set( x.to(self.tag.unit).magnitude, timestamp, annotation)
+        self.set(convert(value,unit,self.tag.unit), timestamp, annotation)
 
 
     def release(self):
@@ -122,6 +122,10 @@ class _TagPoint(virtualresource.VirtualResource):
         self._lo = -10**16
         self.lastError = 0
 
+
+        #Pipe separated list of how to display value
+        self._displayUnits=None
+
         #String describing the "owner" of the tag point
         #This is not a precisely defined concept
         self.owner = ""
@@ -162,13 +166,12 @@ class _TagPoint(virtualresource.VirtualResource):
     
     def convertTo(self, unit):
         "Return the tag's current vakue converted to the given unit"
-        x = ureg.Quantity(self.value,self.unit)
-        return x.to(unit).magnitude
+        return convert(self.value,self.unit,unit)
     
     def convertValue(self, value, unit):
         "Convert a value in the tag's native unit to the given unit"
-        x = ureg.Quantity(value,self.unit)
-        return x.to(unit).magnitude
+        return convert(value,self.unit,unit)
+
 
 
 
@@ -183,6 +186,17 @@ class _TagPoint(virtualresource.VirtualResource):
                 if value:
                     raise ValueError("Cannot change unit of tagpoint. To override this, set to None first")
         self._unit = value
+        self._setupMeter()
+        self.meterWidget.write(self.value)
+
+
+    @property
+    def displayUnits(self):
+        return self._displayUnits
+
+    @displayUnits.setter
+    def displayUnits(self,value):
+        self._displayUnits = value
         self._setupMeter()
         self.meterWidget.write(self.value)
 
@@ -346,7 +360,7 @@ class _TagPoint(virtualresource.VirtualResource):
     def _setupMeter(self):
         self.meterWidget.setup(self._min if (not (self._min is None)) else -100,
         self._max if (not (self._max is None)) else 100,
-        self._hi, self._lo, unit = self.unit
+        self._hi, self._lo, unit = self.unit, displayUnits= self.displayUnits
          )
 
     @property

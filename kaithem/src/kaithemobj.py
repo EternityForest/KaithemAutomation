@@ -60,6 +60,12 @@ class Kaithem():
         else:
             raise AttributeError()
 
+    class units():
+        convert = unitsofmeasure.convert
+        units = unitsofmeasure.units 
+        getType = unitsofmeasure.getUnitType
+        define = unitsofmeasure.defineUnit
+    
     class users(object):
         @staticmethod
         def checkPermission(user,permission):

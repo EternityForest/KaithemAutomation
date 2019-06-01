@@ -47,11 +47,11 @@ f(value, timestamp, annotation)
 
 
 #### TagPoint.unit
-A string that determines the unit of a tag. Units are expressed in strings like "m" or "degF". Units are provided by pint.
+A string that determines the unit of a tag. Units are expressed in strings like "m" or "degF". Currently only a small number 
+of unit conversions are supported natively and others use pint, which is not as fast.
 
-It is prefered that base Si units be used, except for weight, where grams are prefered over kilograms for simplicity of automatic prefixing for display(Rendering 0.001V as 1mV, etc).
+SI prefixes should not be used in units, as it interferes with auto-prefixing for display that meter widgets can do, and generally complicates coding. This includes kilograms. Grams should be used for internal calculations instead despite Kg being the base unit according to SI.
 
-Abbreviated symbols(g, K, etc) are preferred ofer full names(gram, kilograms).
 
 Note that operations involving units raise an error if the unit is not set. To prevent this,
 both the "sending" and "recieving" code should set the unit before using the tag.
@@ -63,6 +63,12 @@ an exception.
 
 For some units, meters will become "unit aware" on the display page.
 
+
+#### TagPoint.displayUnits
+
+This can be None, or a pipe-separated string listing one or more units that the tag's value should be displayed in.
+Base SI units imply that the correct prefix should be used for readability, but units that contain a prefix imply fixed
+display only in that unit.
 
 #### TagPoint.convertTo(unit)
 Return the value in the given unit
