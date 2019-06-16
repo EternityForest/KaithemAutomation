@@ -279,7 +279,7 @@ if config['change-process-title']:
 
 if config['enable-websockets']:
     from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
-    from ws4py.websocket import EchoWebSocket
+    from ws4py.websocket import EchoWebSocket, WebSocket
     WebSocketPlugin(cherrypy.engine).subscribe()
     cherrypy.tools.websocket = WebSocketTool()
     logger.info("activated websockets")
@@ -477,8 +477,12 @@ site_config={
 if config['enable-websockets']:
     wscfg={'tools.websocket.on': True,
             'tools.websocket.handler_cls': widgets.websocket}
+
+    wscfg2={'tools.websocket.on': True,
+            'tools.websocket.handler_cls':notifications.websocket}
 else:
     wscfg = {}
+    wscfg2 = {}
 
 cnf={
     '/static':
@@ -523,7 +527,8 @@ cnf={
         'request.dispatch': cherrypy.dispatch.MethodDispatcher()
         },
 
-    '/widgets/ws': wscfg
+    '/widgets/ws': wscfg,
+    '/notifications/ws':wscfg2
 }
 
 if not config['favicon-png']=="default":
