@@ -534,13 +534,17 @@ cnf={
 if not config['favicon-png']=="default":
     cnf['/favicon.png']={
     'tools.staticfile.on' : True,
-    'tools.staticfile.filename' : os.path.join(directories.datadir,"static",config['favicon-png'])
+    'tools.staticfile.filename' : os.path.join(directories.datadir,"static",config['favicon-png']),
+    'tools.expires.on'    : True,
+    'tools.expires.secs'  : 3600# expire in an hour
     }
 
 if not config['favicon-ico']=="default":
     cnf['/favicon.ico']={
     'tools.staticfile.on' : True,
-    'tools.staticfile.filename' : os.path.join(directories.datadir,"static",config['favicon-ico'])
+    'tools.staticfile.filename' : os.path.join(directories.datadir,"static",config['favicon-ico']),
+    'tools.expires.on'    : True,
+    'tools.expires.secs'  : 3600# expire in an hour
     }
 
 #Let the user create additional static directories
