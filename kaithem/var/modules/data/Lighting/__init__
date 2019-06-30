@@ -1881,6 +1881,7 @@ def pre_render():
                 universe = universes[u]
                 universe.all_static = True
                 if i.rerender:
+                    changedUniverses[u] =(0,0)
                     if ((i.priority,i.started) <= universe.prerendered_layer):
                         to_reset[u]=1
                     else:
@@ -1985,6 +1986,8 @@ class FadeCanvas():
 
         Should you have cached dicts of arrays vals and alpha channels(one pair of arrays per universe), put them in vals and arrays
         for better performance.
+
+        fade is the fade amount from 0 to 1 to new
         """
         
         #We assume a lot of these lists have the same set of universes. If it gets out of sync you
@@ -3070,6 +3073,8 @@ class Scene():
         if fadePosition<1:
             self.rerender = True
 
+        self.canvas.paint(self.cue, fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays,track=self.cue.track)
+
         if self.cue.length and(timefunc()-self.enteredCue)> self.cuelen*(60/self.bpm):
             #rel_length cues end after the sound in a totally different part of code
             #Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
@@ -3085,8 +3090,9 @@ class Scene():
                             if not i in self.affect:
                                 self.affect.append(i)
                     self.fadeInCompleted = True
-                self.canvas.paint(self.cue, fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays,track=self.cue.track)
+                    self.rerender=True
 
+                
 
 def event(s,value=None, info=''):
     with module.lock:

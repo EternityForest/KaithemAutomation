@@ -49,6 +49,7 @@
                 "eth0",
                 "eth1",
                 "eth2",
+                "wlp2s0",
                 "wlan0",
                 "wlan1",
                 "wifi0",
@@ -57,16 +58,65 @@
                 "ath0",
                 "ath1",
                 "ppp0",
+                "tun0",
                 ]
             for ifname in interfaces:
                 try:
                     ip = get_interface_ip(ifname)
+                    s = ifname
                     if not ip.startswith("127."):
                         break
                 except IOError:
                     pass
-        return ip
+        return ip,s
 
+
+    def list_ips():
+        ips={}
+        
+        if os.name != "nt":
+            interfaces = [
+                "eth0",
+                "eth1",
+                "eth2",
+                "wlp2s0",
+                "wlan0",
+                "wlan1",
+                "wifi0",
+                "wlo0",
+                "wlo1",
+                "ath0",
+                "ath1",
+                "ppp0",
+                "tun0",
+                ]
+            for ifname in interfaces:
+                try:
+                    ips[ifname]=[get_interface_ip(ifname),None]
+                except IOError:
+                    pass
+        try:
+            import netifaces
+            x =[iface for iface in netifaces.interfaces()]
+            for i in x:
+                try:
+                    v4 = netifaces.ifaddresses(i)[netifaces.AF_INET][0]['addr']
+                except:
+                    v4= None
+
+                try:
+                    v6 = netifaces.ifaddresses(i)[netifaces.AF_INET6][0]['addr']
+                except:
+                    v6= None
+
+
+                ips[i]=[v4,v6]
+        except ImportError:
+            pass
+     
+        return sorted(ips.items())
+
+lanip =get_lan_ip()
 %>
 <script src="/static/qrcode.min.js"></script>
 
@@ -83,10 +133,10 @@
     <b>Version:</b> ${kaithem.__version__|h}
     </div>
     <div class="sectionbox">
-        <b>LAN access QR:</b><br>
+        <b>LAN access QR(${lanip[1]}):</b><br>
         <div id="lanqr"></div>
         <script>
-        new QRCode(document.getElementById("lanqr"), "https://${get_lan_ip()}:${config['https-port']}");
+        new QRCode(document.getElementById("lanqr"), "https://${lanip[0]}:${config['https-port']}");
         </script>
     </div>
     <br>
@@ -94,10 +144,7 @@
 <p>
 <h3>IP Data</h3>
     <table border=1>
-        <tr>
-            <td>LAN IP Adress</td>
-            <td>${get_lan_ip()}</td>
-        </tr><tr>
+       <tr>
             <td>WAN(Public) IP when sys loaded</td>
             <td>${myip}</td>
         </tr>
@@ -109,6 +156,23 @@
             <td>HTTP(Unsecure) Port</td>
             <td>${config['http-port']}</td>
         </tr>
+    </table>
+
+
+    <h3>Addresses</h3>
+    <table border=1>
+        <tr>
+            <th>Device</th><th>IPv4</th><th>IPv6</th>
+        </tr>
+        %for i in list_ips():
+        <tr>
+            <td>${i[0]}</td>
+            <td>${i[1][0]}</td>
+            <td>${i[1][1]}</td>
+
+        </tr>
+        %endfor
+        
     </table>
 </p>
 <p>
