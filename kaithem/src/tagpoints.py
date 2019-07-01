@@ -79,6 +79,8 @@ class Claim():
     def release(self):
         self.tag.release(self.name)
 
+#_ and . allowed
+illegalCharsInName = "[]{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
 class _TagPoint(virtualresource.VirtualResource):
     """
         A Tag Point is a named object that can be chooses from a set of data sources based on priority,
@@ -103,6 +105,13 @@ class _TagPoint(virtualresource.VirtualResource):
     """
     def __init__(self,name, min=None, max=None):
         global allTagsAtomic
+
+        if name =="":
+            raise ValueError("Tag with empty name")
+
+        for i in illegalCharsInName:
+            if i in name:
+                raise ValueError("Illegal char in tag point name: "+i)
         virtualresource.VirtualResource.__init__(self)
         
         #Might be the number, or might be the getter function.
@@ -121,6 +130,7 @@ class _TagPoint(virtualresource.VirtualResource):
         self._hi = 10**16
         self._lo = -10**16
         self.lastError = 0
+        
 
 
         #Pipe separated list of how to display value

@@ -25,7 +25,8 @@ priorities  ={
     'critical': 50
 }
 
-
+#_ and . and / allowed
+illegalCharsInName = "[]{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
 
 
 nextbeep = 10**10
@@ -150,6 +151,16 @@ class Alert(virtualresource.VirtualResource):
         There is no cleanup action required when deleting an alarm, nor
         is there any need for unique names. However ID
         """
+
+
+
+        if name =="":
+            raise ValueError("Alert with empty name")
+
+        for i in illegalCharsInName:
+            if i in name:
+                raise ValueError("Illegal char in alert name: "+i)
+
         virtualresource.VirtualResource.__init__(self)
 
         self.permissions    = permissions + ['/users/alarms.view']

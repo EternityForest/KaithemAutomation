@@ -18,6 +18,8 @@ from decimal import Decimal
 from tinytag import TinyTag
 
 
+logger = logging.getLogger("system.chandler")
+
 import numpy
 import hashlib
 import base64
@@ -27,6 +29,17 @@ abs=abs
 int=int
 max=max
 min=min
+
+
+#when the last time we logged an error, so we can ratelimit
+lastSysloggedError =0
+
+def rl_log_exc(m):
+    print(m)
+    global lastSysloggedError
+    if lastSysloggedError< time.monotonic()-5*60:
+        logging.exception(m)
+    lastSysloggedError= time.monotonic()
 
 module.boards = []
 
@@ -948,12 +961,19 @@ class TagpointUniverse(Universe):
         #Put a claim on all the tags
         for i in self.tagpoints:
             #One higher than default
-            self.claims[int(i)]= kaithem.tags[self.tagpoints[i]].claim(0,"LightboardUniverse_"+name, 51)
-            #Might as well configure them here
-            kaithem.tags[self.tagpoints[i]].min=0
-            kaithem.tags[self.tagpoints[i]].max=255
-            kaithem.tags[self.tagpoints[i]].lo=-1
-            kaithem.tags[self.tagpoints[i]].hi=256
+            try:
+                self.claims[int(i)]= kaithem.tags[self.tagpoints[i]].claim(0,"LightboardUniverse_"+name, 51)
+                #Might as well configure them here
+                kaithem.tags[self.tagpoints[i]].min=0
+                kaithem.tags[self.tagpoints[i]].max=255
+                kaithem.tags[self.tagpoints[i]].lo=-1
+                kaithem.tags[self.tagpoints[i]].hi=256
+            except Exception as e:
+                self.status="error, "+i+" "+ str(e)
+                logger.exception("Error related to tag point "+i)
+                print(traceback.format_exc())
+                event("board.error",traceback.format_exc())
+
         #Sender needs the values to be there for setup
         self.values = numpy.array([0.0]*channels,dtype="f4")
         
@@ -966,6 +986,7 @@ class TagpointUniverse(Universe):
                 try:
                     self.claims[i].set(float(self.values[i]))
                 except:
+                    rl_log_exc("Error in tagpoint universe")
                     print(traceback.format_exc())
 
 
@@ -1040,6 +1061,7 @@ class ArtNetSender():
                         self.frame.clear()
                     time.sleep(max(((1.0/self.framerate)-(time.time()-s)), 0))
                 except Exception as e:
+                    rl_log_exc("Error in artnet universe")
                     print(traceback.format_exc())
         self.thread = threading.Thread(target =run)
         self.thread.name = "ArtnetSenderThread_"+self.thread.name
@@ -1119,6 +1141,7 @@ class LightBoard():
         try:
             self.createUniverses()
         except Exception as e:
+            logger.exception("Error creating universes")
             print(traceback.format_exc(6))
 
         self.loadDict(kaithem.registry.get("lighting/scenes",{}))
@@ -1150,6 +1173,7 @@ class LightBoard():
                     self.fixtures[i[0]].assign(i[2],int(i[3]))
                     module.fixtures[i[0]]= x                    
                 except:
+                    logger.exception("Error setting up fixtures")
                     print(traceback.format_exc(4))
                     self.ferrs += str(i)+'\n'+traceback.format_exc(2)
 
@@ -1203,6 +1227,7 @@ class LightBoard():
                             s.go()
                             s.rerender=True
                     except Exception as e:
+                        logger.exception("Failed to load scene "+str(i)+" "+str(data[i].get('name','')))
                         print("Failed to load scene "+str(i)+" "+str(data[i].get('name',''))+": "+traceback.format_exc(3))
             
     def addScene(self,scene):
@@ -1301,6 +1326,7 @@ class LightBoard():
 
         except:
             subs = -1
+            rl_log_exc("Error pushing metadata")
             print(traceback.format_exc())
         self.link.send(["scenemeta",sceneid,     
                          {
@@ -1352,6 +1378,7 @@ class LightBoard():
                             'script': cue.script
                             }])
         except Exception as e:
+            rl_log_exc("Error pushing cue data")
             print("cue data push error", cueid,e)
 
     def pushCueData(self, cueid):
@@ -1713,7 +1740,7 @@ class LightBoard():
                 self.pushCueMeta(msg[1])
 
             if msg[0] == "setscript":
-                cues[msg[1]].setScript(msg[2][:2048])
+                cues[msg[1]].setScript(msg[2][:2048],allow_bad=False)
                 self.pushCueMeta(msg[1])
 
             if msg[0] == "setblend":
@@ -1777,6 +1804,7 @@ class LightBoard():
     
 
         except Exception as e:
+            rl_log_exc("Error handling command")
             self.pushEv('board.error', "__this_lightboard__",timefunc(), "", traceback.format_exc(1))
             print(msg,traceback.format_exc(8))
             
@@ -2110,12 +2138,16 @@ class Cue():
             "nextCue":self.nextCue,"track":self.track,"number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,'rel_length':self.rel_length, 'script':self.script, 
             }
 
-    def setScript(self,script):
+    def setScript(self,script, allow_bad=True):
         self.script = script
         try:
             self.scene().commandBindings= parseCommandBindings(script)
         except:
+            rl_log_exc("Error handling script")
             print(traceback.format_exc(6))
+            if not allow_bad:
+                raise
+            
     
     def push(self):
         for i in module.boards:
@@ -2553,6 +2585,7 @@ class Scene():
             for i in module.boards:
                 i().pushEv(s, self.name,timefunc(), value=value, info=info)
         except:
+            rl_log_exc("Error handling event")
             print(traceback.format_exc())
         self._event(s)
 
@@ -2566,7 +2599,9 @@ class Scene():
                 try:
                     runCommand(i)
                 except Exception as e:
+                    rl_log_exc("Error handling event")
                     print(traceback.format_exc(6))
+                    event("script.error", self.name+"\n"+traceback.format_exc())
     
 
     def gotoCue(self, cue,t=None, sendSync=True,generateEvents=True):
@@ -2653,6 +2688,7 @@ class Scene():
             try:
                 self.commandBindings= parseCommandBindings(cobj.script)
             except:
+                rl_log_exc("Error handling script")
                 print(traceback.format_exc(6))
             
             if self.cue.onExit:
@@ -3100,6 +3136,7 @@ def event(s,value=None, info=''):
             for i in module.boards:
                 i().pushEv(s, '__global__',timefunc(), value=value, info=info)
         except:
+            rl_log_exc("error handling event")
             print(traceback.format_exc())
 
         for i in module.activeScenes:

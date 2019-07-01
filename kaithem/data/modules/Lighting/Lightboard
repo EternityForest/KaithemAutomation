@@ -169,7 +169,7 @@ from src import tagpoints
                 Log</h2>
             <input v-model="evfilt" placeholder="Filter events"><br>
             <div class="scrollbox" style="height:6em">
-                <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0]=='cue.error',  'evlisting_err': i[0]=='board.error'}"
+                <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
                     v-for="i in evlog" v-if="i[1].search(evfilt)>-1 || i[0].search(evfilt)>-1">{{i[2]}}: <b>{{i[0]}}</b> at {{i[1]}}: {{i[3]}}
                     <pre>{{i[4]}}</div>
         </div>
@@ -680,7 +680,7 @@ from src import tagpoints
                 <div style="clear:both">
                     <div style="display:inline-block;">
                         Script Bindings:</br>
-                        <textarea rows=3 cols=40 title="Enter script bindings here that can trigger at the start and end of the cue" v-on:input="setscript(currentcueid,$event.target.value)"
+                        <textarea rows=3 cols=40 title="Enter script bindings here that can trigger at the start and end of the cue" v-on:change="setscript(currentcueid,$event.target.value)"
                             v-model="cuemeta[currentcueid].script"></textarea>
                     </div>
 
@@ -2017,6 +2017,9 @@ from src import tagpoints
                 if (appData.evlog.length > 250)
                 {
                     appData.evlog = appData.evlog.slice(-250)
+                }
+                if (v[1][0].includes("error")){
+                    appData.showevents= true;
                 }
             }
             if (c == "serports")
