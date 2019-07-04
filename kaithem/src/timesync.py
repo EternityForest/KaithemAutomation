@@ -30,10 +30,12 @@ import ntplib
 import re
 import ntpserver
 
-from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf
-from . import workers,config
+syslogger = logging.getLogger("system")
 
-r = zeroconf.Zeroconf()
+from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf
+from . import workers,config, util
+
+r = util.zeroconf
 
 ntp_port = ntpserver.runServer(port=0)[1]
 
@@ -42,7 +44,7 @@ desc = {}
 localserver_name = "ntp"+str(config.config['ntpserver-priority'])+"_"+str(int(time.time()*1000000))+"-kaithem._ntp._udp.local."
 info = zeroconf.ServiceInfo("_ntp._udp.local.",
         localserver_name,
-        socket.inet_aton("127.0.0.1"), ntp_port, 0, 0, desc)
+        [None], ntp_port, 0, 0, desc)
 r.register_service(info)
 
 
@@ -61,19 +63,56 @@ def sortkey(i):
 
 def on_service_state_change(zeroconf, service_type, name, state_change):
     global selected_server
-    if state_change is ServiceStateChange.Added:
+    if state_change is ServiceStateChange.Added or ServiceStateChange.Updated:
         info = zeroconf.get_service_info(service_type, name)
 
         #Don't sync to servers that are lower priority than us,
         #we'll just continue using our local time.
         try:
-            if info and sortkey(name)<sortkey(localserver_name):
+            if info:
                 #No excessive cache sizes
                 if len(local_ntp_servers)>8192:
                     local_ntp_servers.popitem(False)
-                local_ntp_servers[name]=(info.address,info.port,name)
+                #Assume only one addr
+                local_ntp_servers[name]=(socket.inet_ntoa(info.addresses[0]),info.port,name)
+                
                 s = local_ntp_servers[sorted(local_ntp_servers.keys(),key=sortkey)[0]]
-                selected_server = s
+                if sortkey(s[2])<sortkey(localserver_name):
+                    #Don't sync with ourself
+                    if not s[0].startswith("127.0.0.1"):        
+                        if selected_server:
+                            syslogger.warning("Selecting lantime server at " +str(s[0])+ ":"+str(s[1]))
+                        else:
+                            syslogger.info("Selecting lantime server at " +str(s[0])+ ":"+str(s[1]))
+                        selected_server = s
+
+        except:
+            logging.exception("")
+
+    elif state_change is ServiceStateChange.Removed:
+         #we'll just continue using our local time.
+        try:
+            if info:
+                #No excessive cache sizes
+                if len(local_ntp_servers)>8192:
+                    local_ntp_servers.popitem(False)
+                #Assume only one addr
+                del local_ntp_servers[name]
+
+                
+                #Time to find another server
+                #The rac condition doesn't matter that much really,
+                #even if it was multithreaded.
+                if selected_server:
+                    if selected_server[2]==name:
+                        if len(local_ntp_servers):
+                            s = local_ntp_servers[sorted(local_ntp_servers.keys(),key=sortkey)[0]]
+                            if sortkey(s[2])<sortkey(localserver_name):    
+                                selected_server = s
+                                syslogger.warning("Selected new lantime server at " +str(s[0])+ ":"+str(s[1]))
+                                return
+                #Couldn't select one
+                selected_server=None
         except:
             logging.exception("")
 

@@ -45,35 +45,28 @@ See [This page](kaithem/src/docs/setup.md)
 
 
 
-Recent Changes(See changes.md for full change info)
+Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.63
+
+-   New tagpoints(Like SCADA tagpoints) with Pavillion sync to Arduino
+-   Kasa smartplug support
+-   Migrate docs to markdown
+-   Message bus can handle any python object type
+-   Workarouds for the "Too many open file descriptors" issues.
+-   Major MDNS and NTP improvements
+-   MDNS browsing page
+-   QR Code display in about page
+-   Proper cache support for favicon
+-   Notifications use websockets, not polling
+-   Lighting subsystem improvements
+-   Logging bugfixes
+
 ### 0.62
-- Performance and lighting bugfix release
 
-### 0.61
+-   Major performance bugfixes
 
--   Detect unclean shutdown
--   Lightboard improvements
--   New alarms feature
--   Experimental Kaithem for Devices
--   Improvements to the Pavillion protocol(Possibly breaking)
--   Better support for multiple soundcards
-
-### 0.60
-
--   Can now view event history
--   Lighting module cue matrix view, and many other lighting improvements.
--   Add breakpoint function
--   UTF-8 encoding in page responses
--   kaithem.time.lantime() for a time value automatically synced across the LAN (py3.3 only, netifaces required)
--   **BREAKING CHANGE** Widget.doCallback,onRequest, and onUpdate now expect a connection ID parameter.
--   New Widget.attach2(f) function for 3 parameter callbacks, username,value, and connection ID
--   New widget.sendTo(val,target) function to send to a specific connection ID
--   apiwidget.now() function added on javascript side to get the current server time.
--   Correctly attribute "And ninety-nine are with dreams content..." to a Ted Olson poem, not to Poe as the internet claims.
--   FontAwesome and Fugue icon packs included
--   Misc bugfixes
 
 License Terms
 =============

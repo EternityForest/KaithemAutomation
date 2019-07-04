@@ -56,6 +56,9 @@ modulehashes = {}
 
 
 def hashModules():
+    """For some unknown lagacy reason, the hash of the entire module state is different from the hash of individual modules 
+        hashed together
+    """
     try:
         m=hashlib.md5()
         with modulesLock:
@@ -730,6 +733,8 @@ def loadModule(folder:str, modulename:str, ignore_func=None):
                     if os.path.basename(root) == "__filedata__":
                         if not os.path.exists(os.path.join(directories.vardir,"modules","filedata")):
                             os.makedirs(os.path.join(directories.vardir,"modules","filedata"),700)
+
+                        #Special case handling of if we are loading from the data dir
                         if util.in_directory(fn, directories.datadir):
                             shutil.copy(fn, os.path.join(directories.vardir,"modules","filedata"))
                         continue
@@ -771,7 +776,7 @@ def loadModule(folder:str, modulename:str, ignore_func=None):
         scopes[modulename] = ModuleObject(modulename)
         ActiveModules[modulename] = module
         messagebus.postMessage("/system/modules/loaded",modulename)
-        logger.info("Loaded module "+modulename)
+        logger.info("Loaded module "+modulename +" with md5 "+getModuleHash(modulename))
         #bookkeeponemodule(name)
 
 def getModuleAsZip(module:str,noFiles:bool=True):

@@ -197,6 +197,8 @@ class LoggingHandler(logging.Handler):
                 if not self.current_file:
                     fn = os.path.join(self.folder,self.fn+"_"+str(t)+ext)
                     self.current_file=fn
+                else:
+                    fn=self.current_file
     
                 #We can't append to gz and bz2 files efficiently, so we dissalow using those for anything
                 #except one file buffered dumps

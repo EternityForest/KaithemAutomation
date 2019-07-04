@@ -15,7 +15,14 @@ properties:
 
     host:
         type: string
+    
+    advertise-webui:
+        type: boolean
 
+    #Empty string means kaithem_HOSTNAME
+    webui-servicename:
+        type: string
+    
     ssl-dir:
         type: string
 

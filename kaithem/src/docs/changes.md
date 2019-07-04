@@ -2,11 +2,19 @@ Change Log
 ----------
 
 ### 0.63
+
 -   New tagpoints(Like SCADA tagpoints) with Pavillion sync to Arduino
 -   Kasa smartplug support
 -   Migrate docs to markdown
 -   Message bus can handle any python object type
 -   Workarouds for the "Too many open file descriptors" issues.
+-   Major MDNS and NTP improvements
+-   MDNS browsing page
+-   QR Code display in about page
+-   Proper cache support for favicon
+-   Notifications use websockets, not polling
+-   Lighting subsystem improvements
+-   Logging bugfixes
 
 ### 0.62
 

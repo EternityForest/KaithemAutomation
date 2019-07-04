@@ -615,7 +615,32 @@ try:
 except:
     messagebus.postMessage('/system/notifications/errors',"Error loading plugins")
 
-            
+
+
+r = util.zeroconf
+
+import zeroconf
+#Register an NTP service
+desc = {}
+
+if cfg.config['advertise-webui']:
+    try:
+        import socket
+        if not cfg.config['webui-servicename']=="default":
+            localserver_name = cfg.config['webui-servicename']
+        else:
+            localserver_name = "kaithem_"+socket.gethostname()
+
+        info = zeroconf.ServiceInfo("_http._tcp.local.",
+                localserver_name+"._http._tcp.local.",
+                [None], cfg.config['http-port'], 0, 0, desc)
+        r.register_service(info)
+        info2 = zeroconf.ServiceInfo("_https._tcp.local.",
+                localserver_name+"._https._tcp.local.",
+                [None], cfg.config['https-port'], 0, 0, desc)
+        r.register_service(info2)
+    except:
+        logger.exception("Error advertising MDNS service")
 
 
 cherrypy.engine.block()
