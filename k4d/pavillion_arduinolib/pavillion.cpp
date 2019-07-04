@@ -21,8 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <iostream>
-#include <string.h>
 
 #include "pavillion.h"
 
@@ -242,7 +240,7 @@ static void pav_WiFiEvent(WiFiEvent_t event)
 static WiFiEventHandler stationConnectedHandler;
 static WiFiEventHandler stationDisconnectedHandler;
 
-static void pav_onconnect(const WiFiEventStationModeConnected &evt)
+static void pav_onconnect(const WiFiEventStationModeGotIP &evt)
 {
   dbg(F("WiFi Connected"));
   connected = true;
@@ -268,41 +266,56 @@ static void pav_ondisconnect(const WiFiEventStationModeDisconnected &evt)
     }
 }
 #endif
+static char isSetUp = 0;
 
 #ifdef INC_FREERTOS_H
 //Basically what this does is let us do this function before main.
+static SemaphoreHandle_t PavilllionLock =0;
 static SemaphoreHandle_t setThingsUp()
 {
+  if(isSetUp)
+  {
+    return 1;
+  }
+  isSetUp = 1;
   SemaphoreHandle_t t;
 #ifdef ESP32
   WiFi.onEvent(pav_WiFiEvent);
 #endif
   t = xSemaphoreCreateBinary();
   xSemaphoreGive(t);
+  PavilllionLock=t;
   return (t);
 }
 
-static SemaphoreHandle_t PavilllionLock = setThingsUp();
 
 #define PAV_LOCK() assert(xSemaphoreTake(PavilllionLock, 1500))
 #define PAV_UNLOCK() xSemaphoreGive(PavilllionLock)
 #endif
 
 #ifndef INC_FREERTOS_H
+
 static char setThingsUp()
 {
+   if(isSetUp)
+  {
+    return 1;
+  }
+  isSetUp = 1;
 #ifdef ESP32
   WiFi.onEvent(pav_WiFiEvent);
 #else
-  stationConnectedHandler = WiFi.onStationModeConnected(&pav_onconnect);
+  stationConnectedHandler = WiFi.onStationModeGotIP(&pav_onconnect);
   stationDisconnectedHandler = WiFi.onStationModeDisconnected(&pav_ondisconnect);
 #endif
 }
-static char t = setThingsUp();
 //These are no-ops in a single thread.
 #include <assert.h>
-#define PAV_LOCK() assert(1)
-#define PAV_UNLOCK() assert(1)
+#define PAV_LOCK() 
+#define PAV_UNLOCK() 
+
+//#define PAV_LOCK() assert(1)
+//#define PAV_UNLOCK() assert(1)
 #endif
 
 KnownClient::KnownClient()
@@ -1012,9 +1025,9 @@ void inline PavillionServer::sendUDP(uint8_t *data, uint16_t datalen, IPAddress 
                const struct sockaddr *dest_addr, socklen_t addrlen)
 */
 
-  udp.beginPacket(udpAddress, udpPort);
-  udp.write(data, datalen);
-  udp.endPacket();
+  udp->beginPacket(udpAddress, udpPort);
+  udp->write(data, datalen);
+  udp->endPacket();
 }
 
 static void serverTask(void *t)
@@ -1086,14 +1099,45 @@ void PavillionServer::onMessage(uint8_t *data, uint16_t len, IPAddress addr, uin
 void PavillionServer::listen(uint16_t port)
 {
   this->port = port;
-  udp.begin(port);
+  listen();
+
 }
 
 void PavillionServer::listen()
 {
+  /*if(connected==false)
+  {
+    return;
+  }*/
+setThingsUp();
+  if(udp==0)
+  {
+    udp= new WiFiUDP();
+  }
+
   if (port)
   {
-    udp.begin(port);
+    udp->begin(port);
+  
+  //Send the new server join packet for fast reconnect
+  IPAddress t =  WiFi.localIP();
+
+  //Yes I know the pavillion spec says to multicast
+  //Not broadcast. That didn't work. If someone
+  //Else can get it working maybe I'll fix it
+  IPAddress d =IPAddress(224,0,0,251);
+  
+  udp->beginPacketMulticast(d, 2221,t);
+  uint8_t x[1];
+
+  udp->print("PavillionS0");
+  x[0]=0;
+  for(int j=0; j<8;j++){
+    udp->write(x,1);
+  }
+  x[0]=5;
+  udp->write(x,1);
+  udp->endPacket();
   }
 }
 
@@ -1128,7 +1172,7 @@ void PavillionServer::poll()
 
 optimizeTXPower();
 
-  int x = udp.parsePacket();
+  int x = udp->parsePacket();
 
   if (x)
   {
@@ -1137,8 +1181,8 @@ optimizeTXPower();
     //Also add another one because we add our own null terminator before passing to
     //The application, to protect against unsafe use ir string functions
     uint8_t *incoming = (uint8_t *)malloc(x + 32 + 1+1);
-    udp.read(incoming, 1500);
-    this->onMessage(incoming, x, udp.remoteIP(), udp.remotePort());
+    udp->read(incoming, 1500);
+    this->onMessage(incoming, x, udp->remoteIP(), udp->remotePort());
     free(incoming);
   }
   PAV_UNLOCK();
@@ -1198,6 +1242,20 @@ PavillionAlert::PavillionAlert(const char * n, PavillionServer * p)
 
 }
 
+
+void PavillionAlert::trip()
+{
+  state=true;
+  push();
+}
+
+
+void PavillionAlert::release()
+{
+  state=true;
+  push();
+}
+
 void PavillionAlert::push()
 {
   //Push the state of the alert
@@ -1236,7 +1294,9 @@ PavillionTagpoint::PavillionTagpoint(const char * n, PavillionServer * s)
 {
   PAV_LOCK();
   server = s;
+  flags=0;
   interval=0;
+  value=0;
   min=-1000000000;
   max=1000000000;
   name=(char *)malloc(strlen(n)+1);

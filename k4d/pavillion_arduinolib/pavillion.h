@@ -54,14 +54,13 @@ extern int pavillionApTxPower;
 
 extern int pavillion_getTemperature();
 extern int pavillion_getBatteryStatus();
+#include "Arduino.h"
 
 #ifdef ESP32
-
 #include <WiFi.h>
 #else
 #include <ESP8266WiFi.h>
 #endif
-#include "Arduino.h"
 #include <WiFiUdp.h>
 
 //#define PAVILLIONDEBUG
@@ -191,7 +190,6 @@ class PavillionTagpoint
 
 class PavillionServer
 {
-    WiFiUDP udp;
     KnownClient *knownClients[MAX_CLIENTS];
     KnownClient *clientForAddr(IPAddress addr, uint16_t port);
     struct RpcFunction fzero = {0, 0, "null", 0};
@@ -210,7 +208,8 @@ class PavillionServer
 #endif
 
   public:
-    
+    WiFiUDP * udp=0;
+
     //If this is not 0, it gets called from within the inner loop while broadcasting;
     //It must not use any Pavillion functions, but can do other things to prevent the system from entirely locking up.
     void (*yieldFunc)() =0 ;

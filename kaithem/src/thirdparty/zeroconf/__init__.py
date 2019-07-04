@@ -82,6 +82,15 @@ _BROWSER_BACKOFF_LIMIT = 3600  # s
 #How many seconds in between rescanning network devices
 _REFRESH_INTERVAL = 180
 
+# Limit how many entries can be put in a single cache.
+# Neither of these limits are really enough to do much,
+# But it should help a little.
+MAX_ENTRIES_PER_CACHE= 512
+
+#The cache keys are service names, this limits how many services per name.
+MAX_ENTRIES_PER_CACHE_KEY = 512
+
+
 # Some DNS constants
 
 _MDNS_ADDR = '224.0.0.251'
@@ -376,6 +385,7 @@ class DNSEntry:
 
     """A DNS entry"""
 
+    __slots__ = ['key','name','type','class_','unique']
     def __init__(self, name: str, type_: int, class_):
         self.key = name.lower()
         self.name = name
@@ -1115,7 +1125,28 @@ class DNSCache:
         """Adds an entry"""
         # Insert first in list so get returns newest entry
         self.cache.setdefault(entry.key, []).insert(0, entry)
+        
+        if len(self.cache[entry.key])>MAX_ENTRIES_PER_CACHE_KEY:
+            try:
+                self.cache[entry.key].pop(0)
+            except KeyError:
+                pass
+            except IndexError:
+                pass
 
+        #If there's too many, we delete one so this can't be used to DoS the RAM
+        if len(self.cache)>MAX_ENTRIES_PER_CACHE:
+            x =None
+            #Easy way to select one entry
+            for i in self.cache:
+                x= i
+                break
+
+            try:
+                del self.cache[x]
+            except KeyError:
+                #Prevent any future or unknown race conditions
+                pass
     def remove(self, entry):
         """Removes an entry"""
         try:
