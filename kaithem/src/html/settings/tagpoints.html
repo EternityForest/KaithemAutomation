@@ -1,0 +1,29 @@
+<%include file="/pageheader.html"/>
+
+<%
+from src import tagpoints
+import gc
+%>
+<script src="/static/widget.js"></script>
+<h1>Tag Points</h1>
+<div class="sectionbox">
+<p class="help">
+    This page lists all Tag Points currently managed by Kaithem.
+</p>
+<table border="1">
+<tr><th>Name</th><th>Value</th><th>Interval</th><th>Active Claim</th><th>Owner</th></tr>
+%for i in tagpoints.allTagsAtomic:
+%if tagpoints.allTagsAtomic[i]():
+<tr>
+    <td>${i|h}</td>
+    <td>${tagpoints.allTagsAtomic[i]().meterWidget.render()}</td>
+    <td>${tagpoints.allTagsAtomic[i]().interval}</td>
+    <td>${tagpoints.allTagsAtomic[i]().activeClaim[2]}</td>
+    <td>${tagpoints.allTagsAtomic[i]().owner}</td>
+</tr>
+%endif
+
+%endfor
+</table>
+</div>
+<%include file="/pagefooter.html"/>

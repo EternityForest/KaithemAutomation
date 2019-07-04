@@ -28,6 +28,7 @@ class VirtualResource(object):
         self.__interfaces = []
         self.__lock=threading.Lock()
         self.replacement =None
+        self.name=None
 
     def __repr__(self):
         return "<VirtualResource at "+str(id(self))+" of class"+str(self.__class__)+">"
@@ -35,9 +36,8 @@ class VirtualResource(object):
     def __html_repr__(self):
         return "VirtualResource at "+str(id(self))+" of class"+str(self.__class__.__name__)+""
 
-    def interface(self,name):
+    def interface(self):
         if not self.replacement:
-
             with self.__lock:
                 x= VirtualResourceInterface(self)
                 self.__interfaces.append(weakref.ref(x))
@@ -49,19 +49,26 @@ class VirtualResource(object):
 
                 #remove them
                 for i in torm:
-                    self.__interfaces.remove()
+                    self.__interfaces.remove(i)
+                return(x)
         else:
             return self.replacement.interface(self)
 
     def handoff(self,other):
+        #Handle some bizzare edge cases. Don't call the possibly
+        #Slow of buggy function if the same thing gets added twice
+        if self==other:
+            return
         with self.__lock:
             #Someone thinks this is the current one and wants to replace it,
             #But actually this has already been replaced and some object is now current.
             #So that object is the one we actually want to replace
             x = self.replacement
-            if x and (not x is other):
+            if x:
+                if x is other:
+                    return
                 return x.handoff(self)
-
+            
             #Change all interfaces to this object to point to the new object.
             for i in self.__interfaces:
                 try:

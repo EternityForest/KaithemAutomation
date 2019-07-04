@@ -3,15 +3,13 @@
 from src import messagelogging
 from src import messagebus
 from src.unitsofmeasure import formatTimeInterval,strftime
-import time,json
+import time
 import cherrypy
-from src.util import url
+from src.util import url,saferepr
 from src.config import config
 
 def dump(j):
-    if isinstance(j,str):
-        return j
-    return json.dumps(j,sort_keys=True,indent=4, separators=(',', ': '))
+    return saferepr(j)
 %>
 
 %if config['enable-js']:

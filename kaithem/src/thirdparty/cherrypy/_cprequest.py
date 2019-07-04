@@ -1,15 +1,16 @@
 import sys
 import time
-import warnings
+from http.cookies import SimpleCookie, CookieError
 
-import six
+import uuid
+
+from more_itertools import consume
 
 import cherrypy
-from cherrypy._cpcompat import text_or_bytes, copykeys, ntob
-from cherrypy._cpcompat import SimpleCookie, CookieError
-from cherrypy import _cpreqbody, _cpconfig
+from cherrypy._cpcompat import ntob
+from cherrypy import _cpreqbody
 from cherrypy._cperror import format_exc, bare_error
-from cherrypy.lib import httputil, file_generator
+from cherrypy.lib import httputil, reprconf, encoding
 
 
 class Hook(object):
@@ -51,12 +52,11 @@ class Hook(object):
         self.kwargs = kwargs
 
     def __lt__(self, other):
-        # Python 3
+        """
+        Hooks sort by priority, ascending, such that
+        hooks of lower priority are run first.
+        """
         return self.priority < other.priority
-
-    def __cmp__(self, other):
-        # Python 2
-        return cmp(self.priority, other.priority)
 
     def __call__(self):
         """Run self.callback(**self.kwargs)."""
@@ -107,7 +107,7 @@ class HookMap(dict):
                 except (cherrypy.HTTPError, cherrypy.HTTPRedirect,
                         cherrypy.InternalRedirect):
                     exc = sys.exc_info()[1]
-                except:
+                except Exception:
                     exc = sys.exc_info()[1]
                     cherrypy.log(traceback=True, severity=40)
         if exc:
@@ -127,7 +127,7 @@ class HookMap(dict):
         return '%s.%s(points=%r)' % (
             cls.__module__,
             cls.__name__,
-            copykeys(self)
+            list(self)
         )
 
 
@@ -139,8 +139,8 @@ def hooks_namespace(k, v):
     # hookpoint per path (e.g. "hooks.before_handler.1").
     # Little-known fact you only get from reading source ;)
     hookpoint = k.split('.', 1)[0]
-    if isinstance(v, text_or_bytes):
-        v = cherrypy.lib.attributes(v)
+    if isinstance(v, str):
+        v = cherrypy.lib.reprconf.attributes(v)
     if not isinstance(v, Hook):
         v = Hook(v)
     cherrypy.serving.request.hooks[hookpoint].append(v)
@@ -467,7 +467,10 @@ class Request(object):
     A string containing the stage reached in the request-handling process.
     This is useful when debugging a live server with hung requests."""
 
-    namespaces = _cpconfig.NamespaceSet(
+    unique_id = None
+    """A lazy object generating and memorizing UUID4 on ``str()`` render."""
+
+    namespaces = reprconf.NamespaceSet(
         **{'hooks': hooks_namespace,
            'request': request_namespace,
            'response': response_namespace,
@@ -497,6 +500,8 @@ class Request(object):
         self.namespaces = self.namespaces.copy()
 
         self.stage = None
+
+        self.unique_id = LazyUUID4()
 
     def close(self):
         """Run cleanup code. (Core)"""
@@ -590,7 +595,7 @@ class Request(object):
 
         except self.throws:
             raise
-        except:
+        except Exception:
             if self.throw_errors:
                 raise
             else:
@@ -610,84 +615,81 @@ class Request(object):
 
         try:
             cherrypy.log.access()
-        except:
+        except Exception:
             cherrypy.log.error(traceback=True)
-
-        if response.timed_out:
-            raise cherrypy.TimeoutError()
 
         return response
 
-    # Uncomment for stage debugging
-    # stage = property(lambda self: self._stage, lambda self, v: print(v))
-
     def respond(self, path_info):
         """Generate a response for the resource at self.path_info. (Core)"""
-        response = cherrypy.serving.response
         try:
             try:
                 try:
-                    if self.app is None:
-                        raise cherrypy.NotFound()
-
-                    # Get the 'Host' header, so we can HTTPRedirect properly.
-                    self.stage = 'process_headers'
-                    self.process_headers()
-
-                    # Make a copy of the class hooks
-                    self.hooks = self.__class__.hooks.copy()
-                    self.toolmaps = {}
-
-                    self.stage = 'get_resource'
-                    self.get_resource(path_info)
-
-                    self.body = _cpreqbody.RequestBody(
-                        self.rfile, self.headers, request_params=self.params)
-
-                    self.namespaces(self.config)
-
-                    self.stage = 'on_start_resource'
-                    self.hooks.run('on_start_resource')
-
-                    # Parse the querystring
-                    self.stage = 'process_query_string'
-                    self.process_query_string()
-
-                    # Process the body
-                    if self.process_request_body:
-                        if self.method not in self.methods_with_bodies:
-                            self.process_request_body = False
-                    self.stage = 'before_request_body'
-                    self.hooks.run('before_request_body')
-                    if self.process_request_body:
-                        self.body.process()
-
-                    # Run the handler
-                    self.stage = 'before_handler'
-                    self.hooks.run('before_handler')
-                    if self.handler:
-                        self.stage = 'handler'
-                        response.body = self.handler()
-
-                    # Finalize
-                    self.stage = 'before_finalize'
-                    self.hooks.run('before_finalize')
-                    response.finalize()
+                    self._do_respond(path_info)
                 except (cherrypy.HTTPRedirect, cherrypy.HTTPError):
                     inst = sys.exc_info()[1]
                     inst.set_response()
                     self.stage = 'before_finalize (HTTPError)'
                     self.hooks.run('before_finalize')
-                    response.finalize()
+                    cherrypy.serving.response.finalize()
             finally:
                 self.stage = 'on_end_resource'
                 self.hooks.run('on_end_resource')
         except self.throws:
             raise
-        except:
+        except Exception:
             if self.throw_errors:
                 raise
             self.handle_error()
+
+    def _do_respond(self, path_info):
+        response = cherrypy.serving.response
+
+        if self.app is None:
+            raise cherrypy.NotFound()
+
+        self.hooks = self.__class__.hooks.copy()
+        self.toolmaps = {}
+
+        # Get the 'Host' header, so we can HTTPRedirect properly.
+        self.stage = 'process_headers'
+        self.process_headers()
+
+        self.stage = 'get_resource'
+        self.get_resource(path_info)
+
+        self.body = _cpreqbody.RequestBody(
+            self.rfile, self.headers, request_params=self.params)
+
+        self.namespaces(self.config)
+
+        self.stage = 'on_start_resource'
+        self.hooks.run('on_start_resource')
+
+        # Parse the querystring
+        self.stage = 'process_query_string'
+        self.process_query_string()
+
+        # Process the body
+        if self.process_request_body:
+            if self.method not in self.methods_with_bodies:
+                self.process_request_body = False
+        self.stage = 'before_request_body'
+        self.hooks.run('before_request_body')
+        if self.process_request_body:
+            self.body.process()
+
+        # Run the handler
+        self.stage = 'before_handler'
+        self.hooks.run('before_handler')
+        if self.handler:
+            self.stage = 'handler'
+            response.body = self.handler()
+
+        # Finalize
+        self.stage = 'before_finalize'
+        self.hooks.run('before_finalize')
+        response.finalize()
 
     def process_query_string(self):
         """Parse the query string into Python structures. (Core)"""
@@ -700,12 +702,6 @@ class Request(object):
                 'strings for this resource must be encoded with %r.' %
                 self.query_string_encoding)
 
-        # Python 2 only: keyword arguments must be byte strings (type 'str').
-        if six.PY2:
-            for key, value in p.items():
-                if isinstance(key, six.text_type):
-                    del p[key]
-                    p[key.encode(self.query_string_encoding)] = value
         self.params.update(p)
 
     def process_headers(self):
@@ -718,23 +714,16 @@ class Request(object):
             name = name.title()
             value = value.strip()
 
-            # Warning: if there is more than one header entry for cookies
-            # (AFAIK, only Konqueror does that), only the last one will
-            # remain in headers (but they will be correctly stored in
-            # request.cookie).
-            if '=?' in value:
-                dict.__setitem__(headers, name, httputil.decode_TEXT(value))
-            else:
-                dict.__setitem__(headers, name, value)
+            headers[name] = httputil.decode_TEXT_maybe(value)
 
-            # Handle cookies differently because on Konqueror, multiple
-            # cookies come on different lines with the same key
+            # Some clients, notably Konquoror, supply multiple
+            # cookies on different lines with the same key. To
+            # handle this case, store all cookies in self.cookie.
             if name == 'Cookie':
                 try:
                     self.cookie.load(value)
-                except CookieError:
-                    msg = 'Illegal cookie name %s' % value.split('=')[0]
-                    raise cherrypy.HTTPError(400, msg)
+                except CookieError as exc:
+                    raise cherrypy.HTTPError(400, str(exc))
 
         if not dict.__contains__(headers, 'Host'):
             # All Internet-based HTTP/1.1 servers MUST respond with a 400
@@ -772,36 +761,13 @@ class Request(object):
             inst.set_response()
             cherrypy.serving.response.finalize()
 
-    # ------------------------- Properties ------------------------- #
-
-    def _get_body_params(self):
-        warnings.warn(
-            'body_params is deprecated in CherryPy 3.2, will be removed in '
-            'CherryPy 3.3.',
-            DeprecationWarning
-        )
-        return self.body.params
-    body_params = property(_get_body_params,
-                           doc="""
-    If the request Content-Type is 'application/x-www-form-urlencoded' or
-    multipart, this will be a dict of the params pulled from the entity
-    body; that is, it will be the portion of request.params that come
-    from the message body (sometimes called "POST params", although they
-    can be sent with various HTTP method verbs). This value is set between
-    the 'before_request_body' and 'before_handler' hooks (assuming that
-    process_request_body is True).
-
-    Deprecated in 3.2, will be removed for 3.3 in favor of
-    :attr:`request.body.params<cherrypy._cprequest.RequestBody.params>`.""")
-
 
 class ResponseBody(object):
 
     """The body of the HTTP response (the response entity)."""
 
-    if six.PY3:
-        unicode_err = ('Page handlers MUST return bytes. Use tools.encode '
-                       'if you wish to return unicode.')
+    unicode_err = ('Page handlers MUST return bytes. Use tools.encode '
+                   'if you wish to return unicode.')
 
     def __get__(self, obj, objclass=None):
         if obj is None:
@@ -812,30 +778,14 @@ class ResponseBody(object):
 
     def __set__(self, obj, value):
         # Convert the given value to an iterable object.
-        if six.PY3 and isinstance(value, str):
+        if isinstance(value, str):
             raise ValueError(self.unicode_err)
-
-        if isinstance(value, text_or_bytes):
-            # strings get wrapped in a list because iterating over a single
-            # item list is much faster than iterating over every character
-            # in a long string.
-            if value:
-                value = [value]
-            else:
-                # [''] doesn't evaluate to False, so replace it with [].
-                value = []
-        elif six.PY3 and isinstance(value, list):
+        elif isinstance(value, list):
             # every item in a list must be bytes...
-            for i, item in enumerate(value):
-                if isinstance(item, str):
-                    raise ValueError(self.unicode_err)
-        # Don't use isinstance here; io.IOBase which has an ABC takes
-        # 1000 times as long as, say, isinstance(value, str)
-        elif hasattr(value, 'read'):
-            value = file_generator(value)
-        elif value is None:
-            value = []
-        obj._body = value
+            if any(isinstance(item, str) for item in value):
+                raise ValueError(self.unicode_err)
+
+        obj._body = encoding.prepare_iter(value)
 
 
 class Response(object):
@@ -872,14 +822,6 @@ class Response(object):
     time = None
     """The value of time.time() when created. Use in HTTP dates."""
 
-    timeout = 300
-    """Seconds after which the response will be aborted."""
-
-    timed_out = False
-    """
-    Flag to indicate the response should be aborted, because it has
-    exceeded its timeout."""
-
     stream = False
     """If False, buffer the response body."""
 
@@ -901,19 +843,17 @@ class Response(object):
 
     def collapse_body(self):
         """Collapse self.body to a single string; replace it and return it."""
-        if isinstance(self.body, text_or_bytes):
-            return self.body
+        new_body = b''.join(self.body)
+        self.body = new_body
+        return new_body
 
-        newbody = []
-        for chunk in self.body:
-            if six.PY3 and not isinstance(chunk, bytes):
-                raise TypeError("Chunk %s is not of type 'bytes'." %
-                                repr(chunk))
-            newbody.append(chunk)
-        newbody = ntob('').join(newbody)
-
-        self.body = newbody
-        return newbody
+    def _flush_body(self):
+        """
+        Discard self.body but consume any generator such that
+        any finalization can occur, such as is required by
+        caching.tee_output().
+        """
+        consume(iter(self.body))
 
     def finalize(self):
         """Transform headers (and cookies) into self.header_list. (Core)"""
@@ -926,7 +866,7 @@ class Response(object):
 
         self.status = '%s %s' % (code, reason)
         self.output_status = ntob(str(code), 'ascii') + \
-            ntob(' ') + headers.encode(reason)
+            b' ' + headers.encode(reason)
 
         if self.stream:
             # The upshot: wsgiserver will chunk the response if
@@ -939,7 +879,8 @@ class Response(object):
             # and 304 (not modified) responses MUST NOT
             # include a message-body."
             dict.pop(headers, 'Content-Length', None)
-            self.body = ntob('')
+            self._flush_body()
+            self.body = b''
         else:
             # Responses which are not streamed should have a Content-Length,
             # but allow user code to set Content-Length if desired.
@@ -954,17 +895,28 @@ class Response(object):
         if cookie:
             for line in cookie.split('\r\n'):
                 name, value = line.split(': ', 1)
-                if isinstance(name, six.text_type):
+                if isinstance(name, str):
                     name = name.encode('ISO-8859-1')
-                if isinstance(value, six.text_type):
+                if isinstance(value, str):
                     value = headers.encode(value)
                 h.append((name, value))
 
-    def check_timeout(self):
-        """If now > self.time + self.timeout, set self.timed_out.
 
-        This purposefully sets a flag, rather than raising an error,
-        so that a monitor thread can interrupt the Response thread.
+class LazyUUID4(object):
+    def __str__(self):
+        """Return UUID4 and keep it for future calls."""
+        return str(self.uuid4)
+
+    @property
+    def uuid4(self):
+        """Provide unique id on per-request basis using UUID4.
+
+        It's evaluated lazily on render.
         """
-        if time.time() > self.time + self.timeout:
-            self.timed_out = True
+        try:
+            self._uuid4
+        except AttributeError:
+            # evaluate on first access
+            self._uuid4 = uuid.uuid4()
+
+        return self._uuid4

@@ -13,11 +13,33 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import time,atexit,sys,platform,re,datetime,threading,weakref,signal,logging
+import time,atexit,sys,platform,re,datetime,threading,weakref,signal,logging,socket
 import cherrypy
 from . import newevt,messagebus,unitsofmeasure,util,messagelogging,mail,scheduling
 from .kaithemobj import kaithem
 from .config import config
+
+from zeroconf import ServiceBrowser, ServiceStateChange
+
+#very much not thread safe, doesn't matter, it's only for one UI page
+httpservices= []
+def on_service_state_change(zeroconf, service_type, name, state_change):
+
+    info = zeroconf.get_service_info(service_type, name)
+    if not info:
+        return
+    if state_change is ServiceStateChange.Added:
+        httpservices.append(([socket.inet_ntoa(i) for i in info.addresses], service_type, name, info.port))
+        if len(httpservices)> 2048:
+            httpservices.pop(0)
+    else:
+        httpservices.remove((info.addresses, service_type, name, info.port))
+
+browser = ServiceBrowser(util.zeroconf, "_https._tcp.local.", handlers=[on_service_state_change])
+browser2 = ServiceBrowser(util.zeroconf, "_http._tcp.local.", handlers=[on_service_state_change])
+
+
+
 
 #Can't think of anywhere else to put this thing.
 systemStarted = time.time()
@@ -76,7 +98,7 @@ rhistory=[]
 def check_scheduler():
     "This is a continual built in self test for the scheduler"
     global rhistory
-    rhistory.append((time.time(),))
+    rhistory.append((time.time(),time.monotonic()))
     rhistory = rhistory[-10:]
     global time_last_minute
     if time_last_minute:

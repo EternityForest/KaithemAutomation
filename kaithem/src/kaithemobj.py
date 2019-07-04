@@ -42,10 +42,17 @@ class ServeFileInsteadOfRenderingPageException(Exception):
 plugins = weakref.WeakValueDictionary()
 
 
-        
+
+from src import tagpoints
+class TagInterface():
+    def __getitem__(self,k):
+        return tagpoints.Tag(k)
+            
 class Kaithem():
 
     devices= remotedevices.DeviceNamespace()
+
+    tags=TagInterface()
 
     def __getattr__(self,name):
         if name in plugins:
@@ -53,11 +60,17 @@ class Kaithem():
         else:
             raise AttributeError()
 
-    class Users(object):
+    class units():
+        convert = unitsofmeasure.convert
+        units = unitsofmeasure.units 
+        getType = unitsofmeasure.getUnitType
+        define = unitsofmeasure.defineUnit
+    
+    class users(object):
         @staticmethod
         def checkPermission(user,permission):
             try:
-                if auth.canUserDoThis(username, permission):
+                if auth.canUserDoThis(user, permission):
                     return True
                 else:
                     return False

@@ -18,35 +18,12 @@ by adding a named handler to Config.namespaces. The name can be any string,
 and the handler must be either a callable or a context manager.
 """
 
-try:
-    # Python 3.0+
-    from configparser import ConfigParser
-except ImportError:
-    from ConfigParser import ConfigParser
-
-try:
-    text_or_bytes
-except NameError:
-    text_or_bytes = str
-
-try:
-    # Python 3
-    import builtins
-except ImportError:
-    # Python 2
-    import __builtin__ as builtins
-
-import operator as _operator
+import builtins
+import configparser
+import operator
 import sys
 
-
-def as_dict(config):
-    """Return a dict from 'config' whether it is a dict, file, or filename."""
-    if isinstance(config, text_or_bytes):
-        config = Parser().dict_from_file(config)
-    elif hasattr(config, 'read'):
-        config = Parser().dict_from_file(config)
-    return config
+from cherrypy._cpcompat import text_or_bytes
 
 
 class NamespaceSet(dict):
@@ -59,7 +36,7 @@ class NamespaceSet(dict):
     namespace removed) and the config value.
 
     Namespace handlers may be any Python callable; they may also be
-    Python 2.5-style 'context managers', in which case their __enter__
+    context managers, in which case their __enter__
     method should return a callable to be used as the handler.
     See cherrypy.tools (the Toolbox class) for an example.
     """
@@ -84,10 +61,10 @@ class NamespaceSet(dict):
                 bucket[name] = config[k]
 
         # I chose __enter__ and __exit__ so someday this could be
-        # rewritten using Python 2.5's 'with' statement:
-        # for ns, handler in self.iteritems():
+        # rewritten using 'with' statement:
+        # for ns, handler in self.items():
         #     with handler as callable:
-        #         for k, v in ns_confs.get(ns, {}).iteritems():
+        #         for k, v in ns_confs.get(ns, {}).items():
         #             callable(k, v)
         for ns, handler in self.items():
             exit = getattr(handler, '__exit__', None)
@@ -98,7 +75,7 @@ class NamespaceSet(dict):
                     try:
                         for k, v in ns_confs.get(ns, {}).items():
                             callable(k, v)
-                    except:
+                    except Exception:
                         # The exceptional case is handled here
                         no_exc = False
                         if exit is None:
@@ -149,16 +126,8 @@ class Config(dict):
         dict.update(self, self.defaults)
 
     def update(self, config):
-        """Update self from a dict, file or filename."""
-        if isinstance(config, text_or_bytes):
-            # Filename
-            config = Parser().dict_from_file(config)
-        elif hasattr(config, 'read'):
-            # Open file object
-            config = Parser().dict_from_file(config)
-        else:
-            config = config.copy()
-        self._apply(config)
+        """Update self from a dict, file, or filename."""
+        self._apply(Parser.load(config))
 
     def _apply(self, config):
         """Update self from a dict."""
@@ -177,7 +146,7 @@ class Config(dict):
         self.namespaces({k: v})
 
 
-class Parser(ConfigParser):
+class Parser(configparser.ConfigParser):
 
     """Sub-class of ConfigParser that keeps the case of options and that
     raises an exception if the file cannot be read.
@@ -227,126 +196,22 @@ class Parser(ConfigParser):
             self.read(file)
         return self.as_dict()
 
+    @classmethod
+    def load(self, input):
+        """Resolve 'input' to dict from a dict, file, or filename."""
+        is_file = (
+            # Filename
+            isinstance(input, text_or_bytes)
+            # Open file object
+            or hasattr(input, 'read')
+        )
+        return Parser().dict_from_file(input) if is_file else input.copy()
+
 
 # public domain "unrepr" implementation, found on the web and then improved.
 
 
-class _Builder2:
-
-    def build(self, o):
-        m = getattr(self, 'build_' + o.__class__.__name__, None)
-        if m is None:
-            raise TypeError('unrepr does not recognize %s' %
-                            repr(o.__class__.__name__))
-        return m(o)
-
-    def astnode(self, s):
-        """Return a Python2 ast Node compiled from a string."""
-        try:
-            import compiler
-        except ImportError:
-            # Fallback to eval when compiler package is not available,
-            # e.g. IronPython 1.0.
-            return eval(s)
-
-        p = compiler.parse('__tempvalue__ = ' + s)
-        return p.getChildren()[1].getChildren()[0].getChildren()[1]
-
-    def build_Subscript(self, o):
-        expr, flags, subs = o.getChildren()
-        expr = self.build(expr)
-        subs = self.build(subs)
-        return expr[subs]
-
-    def build_CallFunc(self, o):
-        children = o.getChildren()
-        # Build callee from first child
-        callee = self.build(children[0])
-        # Build args and kwargs from remaining children
-        args = []
-        kwargs = {}
-        for child in children[1:]:
-            class_name = child.__class__.__name__
-            # None is ignored
-            if class_name == 'NoneType':
-                continue
-            # Keywords become kwargs
-            if class_name == 'Keyword':
-                kwargs.update(self.build(child))
-            # Everything else becomes args
-            else :
-                args.append(self.build(child))
-
-        return callee(*args, **kwargs)
-
-    def build_Keyword(self, o):
-        key, value_obj = o.getChildren()
-        value = self.build(value_obj)
-        kw_dict = {key: value}
-        return kw_dict
-
-    def build_List(self, o):
-        return map(self.build, o.getChildren())
-
-    def build_Const(self, o):
-        return o.value
-
-    def build_Dict(self, o):
-        d = {}
-        i = iter(map(self.build, o.getChildren()))
-        for el in i:
-            d[el] = i.next()
-        return d
-
-    def build_Tuple(self, o):
-        return tuple(self.build_List(o))
-
-    def build_Name(self, o):
-        name = o.name
-        if name == 'None':
-            return None
-        if name == 'True':
-            return True
-        if name == 'False':
-            return False
-
-        # See if the Name is a package or module. If it is, import it.
-        try:
-            return modules(name)
-        except ImportError:
-            pass
-
-        # See if the Name is in builtins.
-        try:
-            return getattr(builtins, name)
-        except AttributeError:
-            pass
-
-        raise TypeError('unrepr could not resolve the name %s' % repr(name))
-
-    def build_Add(self, o):
-        left, right = map(self.build, o.getChildren())
-        return left + right
-
-    def build_Mul(self, o):
-        left, right = map(self.build, o.getChildren())
-        return left * right
-
-    def build_Getattr(self, o):
-        parent = self.build(o.expr)
-        return getattr(parent, o.attrname)
-
-    def build_NoneType(self, o):
-        return None
-
-    def build_UnarySub(self, o):
-        return -self.build(o.getChildren()[0])
-
-    def build_UnaryAdd(self, o):
-        return self.build(o.getChildren()[0])
-
-
-class _Builder3:
+class _Builder:
 
     def build(self, o):
         m = getattr(self, 'build_' + o.__class__.__name__, None)
@@ -389,7 +254,7 @@ class _Builder3:
                     args.append(self.build(a))
         kwargs = {}
         for kw in o.keywords:
-            if kw.arg is None: # double asterix `**`
+            if kw.arg is None:  # double asterix `**`
                 rst = self.build(kw.value)
                 if not isinstance(rst, dict):
                     raise TypeError('Invalid argument for call.'
@@ -398,7 +263,7 @@ class _Builder3:
                 for k, v in rst.items():
                     if k not in kwargs:
                         kwargs[k] = v
-            else: # defined on the call as: arg=value
+            else:  # defined on the call as: arg=value
                 kwargs[kw.arg] = self.build(kw.value)
         return callee(*args, **kwargs)
 
@@ -422,7 +287,7 @@ class _Builder3:
             kwargs = {}
         else:
             kwargs = self.build(o.kwargs)
-        if o.keywords is not None: # direct a=b keywords
+        if o.keywords is not None:  # direct a=b keywords
             for kw in o.keywords:
                 # preference because is a direct keyword against **kwargs
                 kwargs[kw.arg] = self.build(kw.value)
@@ -461,7 +326,6 @@ class _Builder3:
 
         # See if the Name is in builtins.
         try:
-            import builtins
             return getattr(builtins, name)
         except AttributeError:
             pass
@@ -470,6 +334,8 @@ class _Builder3:
 
     def build_NameConstant(self, o):
         return o.value
+
+    build_Constant = build_NameConstant  # Python 3.8 change
 
     def build_UnaryOp(self, o):
         op, operand = map(self.build, [o.op, o.operand])
@@ -480,13 +346,13 @@ class _Builder3:
         return op(left, right)
 
     def build_Add(self, o):
-        return _operator.add
+        return operator.add
 
     def build_Mult(self, o):
-        return _operator.mul
+        return operator.mul
 
     def build_USub(self, o):
-        return _operator.neg
+        return operator.neg
 
     def build_Attribute(self, o):
         parent = self.build(o.value)
@@ -500,10 +366,7 @@ def unrepr(s):
     """Return a Python object compiled from a string."""
     if not s:
         return s
-    if sys.version_info < (3, 0):
-        b = _Builder2()
-    else:
-        b = _Builder3()
+    b = _Builder()
     obj = b.astnode(s)
     return b.build(obj)
 

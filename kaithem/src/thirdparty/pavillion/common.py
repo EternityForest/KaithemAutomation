@@ -85,16 +85,21 @@ def getStatusBytes():
     #TODO: This assumes that if there's wifi,
     #That's what's being used, otherwise we get unknown.
     #This inaccurate data is better than nothing I think.
+
+    #In addition, it assumes there is only one WiFi
     try:
 
         ##This reports WiFi signal level on
-        p = subprocess.check_output("iwconfig", stderr=os.devnull)
+        FNULL = open(os.devnull, 'w')
+        p = subprocess.check_output("iwconfig", stderr=FNULL)
         sig = int(re.search(b"Signal level=(.*?)dBm",p).group(1).decode("utf8"))
         sig=min(sig, -20)
         sig=max(sig,-120)
         nstat= sig+120
     except:
        pass
+    finally:
+        FNULL.close() 
 
     statusCache = struct.pack("<BBb",int(bstat),nstat, max(min(int(temp), 127), -127))
     return statusCache

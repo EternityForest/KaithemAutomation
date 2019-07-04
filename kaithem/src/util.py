@@ -17,6 +17,11 @@
 "This file ideally should only depend on sdtilb stuff and import the rest as needed. We don't want this to drag in threads and everything"
 import  os,threading,copy,sys,shutil,difflib,time,json,traceback,stat,subprocess,copy,collections,types,weakref,logging,struct,hashlib
 import yaml
+
+
+import zeroconf
+zeroconf = zeroconf.Zeroconf()
+
 logger = logging.getLogger("system")
 #2 and 3 have basically the same module with diferent names
 if sys.version_info < (3,0):

@@ -1,16 +1,12 @@
 <%include file="/pageheader.html"/>
 <%!
 from src import messagelogging
-import time,json,itertools,math
+import time,itertools,math
 from src.unitsofmeasure import formatTimeInterval,strftime
-from src.util import url
+from src.util import url,saferepr
 from src.config import config
-
 def dump(j):
-    if isinstance(j,str):
-        return j
-    return json.dumps(j,sort_keys=True,indent=4, separators=(',', ': '))
-
+    return saferepr(j)
 def getEntries(p,page = 1):
     global entries
     start =len(p)- ((page) * 200)

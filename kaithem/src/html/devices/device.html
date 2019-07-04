@@ -1,58 +1,139 @@
 <%include file="/pageheader.html"/>
+<script type="text/javascript" src="/static/widget.js"></script>
+
 <h1>Device Inspector: ${name}</h1>
 <div class="sectionbox">
 <form method="POST" action="../updateDevice/${name}">
 
 <%
 import traceback
+from src import unitsofmeasure
 %>
 
-<h2>Device Info</h2>
-<table border="1" style="width:80em">
-    <tr>
-            <td>Device Type</td>
-            <td><input name="type" value="${data.get('type','')}"></td>
-    </tr>
+%if hasattr(obj,"getManagementForm"):
+${obj.getManagementForm()}
+%endif
 
-    <tr>
-            <td>Client ID(32 Hex chars or 16 UTF-8 bytes)</td>
-            <td><input name="cid" value="${data.get('cid','')}"></td>
-    </tr>
+<h2>Alerts</h2>
+<p class="help">This section lists all alerts supported by the device and
+        allows you to change the priorities for each.
+</p>
+<table border="1" style="width:40em">
+<tr><td>Name</td><td>Priority</td><td>Status</td></tr>
 
-    <tr>
-        <td>IP Address of server:</td>
-        <td><input name="address" value="${data.get('address','')}"></td>
-    </tr>
-
-    <tr>
-            <td>Port</td>
-            <td><input name="port" value="${data.get('port','')}"></td>
-    </tr>
-
-    <tr>
-            <td>PSK(64 Hex chars or 32 UTF-8 bytes)</td>
-            <td><input name="psk" value="${data.get('psk','')}" style="width: 65em"></td>
-    </tr>
+%for i in obj.alerts:
+<tr><td>${i|h}</td>
+        <td>
+        <select name="alerts.${i}.priority">
+                <option value="debug" ${"selected" if obj.alerts[i].priority=="debug" else ""}>Debug</option>
+                <option value="info" ${"selected" if obj.alerts[i].priority=="info" else ""}>Info</option>
+                <option value="warning" ${"selected" if obj.alerts[i].priority=="warning" else ""}>Warning</option>
+                <option value="error" ${"selected" if obj.alerts[i].priority=="error" else ""} >Error</option>
+                <option value="critical" ${"selected" if obj.alerts[i].priority=="critical" else ""}>Critical</option>
+        </select>
+        </td>
+        <td>${obj.alerts[i].sm.state}</td>
+</tr>
+%endfor
 </table>
 
-<input type="submit" value="Save settings">
-%if 0:
+
+
+<h2>Tag Points</h2>
+<p class="help">This section lists all the tag points owned 
+</p>
+<table border="1" style="width:40em">
+<tr><td>Name</td><td>Value</td><td>Active Claim</td></tr>
+
+%for i in obj.tagPoints:
+<tr><td>${i|h}</td>
+        <td>${obj.tagPoints[i].value}</td>
+        <td>${obj.tagPoints[i].activeClaim[2]|h}</td>
+</tr>
+%endfor
+</table>
+
+
 %if obj.errors:
 <h2>Errors</h2>
-%for i in obj.errors:
-<p class="error"><pre>${i[1]|}</pre></p>
-%endfor
-%endif
 
-%if obj.k4derr:
-<h2>Kaithem for Devices program errors</h2>
-%for i in obj.k4derr:
-<p class="error">
-        <b>${i[0]} at ${unitsofmeasure.strftime(i[2])}</b><br>
-        <pre>${i[1]|h}</pre>
-</p>
-%endfor
+<div class="scrollbox">
+        %for i in obj.errors:
+        <h4 class="error">${unitsofmeasure.strftime(i[0])}</h4>
+        <pre  class="error">${i[1]|h}</pre>
+        %endfor
+</div>
 %endif
+<input type="submit" value="Save settings">
+
+%if data.get('type','') in ("pavillion", "k4d"):
+        <%
+        try:
+                obj.pclient.sendMessage("","",b'',timeout=1)
+        except:
+                pass
+        %>
+        <h2>Device Info</h2>
+        <table border="1" style="width:80em">
+        <tr>
+                <td>Device Type</td>
+                <td><input name="type" value="${data.get('type','')}"></td>
+        </tr>
+
+        <tr>
+                <td>Battery info(For one device if multiple)</td>
+                <td>${obj.batteryStatusTag.value if obj.batteryStatusTag else 100}% ${obj.batteryState}</td>
+        </tr>
+
+        <tr>
+                <td>Connection status(For one device if multiple)</td>
+                <td>${obj.connectionTag.value}dbm ${obj.connectionType}</td>
+        </tr>
+
+        <tr>
+                <td>Connected To(Shows only one if multiple)</td>
+                %try:
+                <td>${obj.pclient.remoteAddress }</td>
+                %except:
+                </td>
+                %endtry
+        </tr>
+
+        <tr>
+                <td>Client ID(32 Hex chars or 16 UTF-8 bytes)</td>
+                <td><input name="cid" value="${data.get('cid','')}"></td>
+        </tr>
+
+        <tr>
+                <td>IP Address of server:</td>
+                <td><input name="address" value="${data.get('address','')}"></td>
+        </tr>
+
+        <tr>
+                <td>Port</td>
+                <td><input name="port" value="${data.get('port','')}"></td>
+        </tr>
+
+        <tr>
+                <td>PSK(64 Hex chars or 32 UTF-8 bytes)</td>
+                <td><input name="psk" id="psk" value="${data.get('psk','')}" style="width: 65em">
+                <input type="button" onclick="document.getElementById('psk').value='0000000000000000000000000000000000000000000000000000000000000000'" value="Use Default Key">
+        </td>
+        </tr>
+        </table>
+
+        <input type="submit" value="Save settings">
+       
+
+        %if obj.k4derr:
+        <h2>Kaithem for Devices program errors</h2>
+        %for i in obj.k4derr:
+        <p class="error">
+                <b>${i[0]} at ${unitsofmeasure.strftime(i[2])}</b><br>
+                <pre>${i[1]|h}</pre>
+        </p>
+        %endfor
+        %endif
 %endif
 </form>
 

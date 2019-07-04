@@ -1,4 +1,4 @@
-#Copyright Daniel Dunn 2014-2015, 2018
+#Copyright Daniel Dunn 2014-2015, 2018,2019
 #This file is part of Kaithem Automation.
 
 #Kaithem Automation is free software: you can redistribute it and/or modify
@@ -12,7 +12,7 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import weakref,time,json,base64,cherrypy,os, traceback,random,threading,logging,socket
+import weakref,time,json,base64,cherrypy,os, traceback,random,threading,logging,socket,copy
 from . import auth,pages,unitsofmeasure,config,util,messagebus
 from src.config import config
 
@@ -24,6 +24,18 @@ if config['enable-websockets']:
     from ws4py.websocket import WebSocket
 widgets = weakref.WeakValueDictionary()
 n = 0
+
+from .unitsofmeasure import convert, unitTypes
+
+
+defaultDisplayUnits={
+    "temperature": "degC|degF",
+    "length": "m",
+    "weight":"g",
+    "pressure": "psi|Pa",
+    "voltage": "V",
+    "current":"A"
+}
 
 server_session_ID= str(time.time())+str(os.urandom(8))
 def mkid():
@@ -307,7 +319,10 @@ class Widget():
 
     def requireToWrite(self,permission):
         self._write_perms.append(permission)
-
+    
+    def setPermissions(self,read,write):
+        self._read_perms= copy.copy(read)
+        self._write_perms= copy.copy(write)
 
 #This widget is just a time display, it doesn't really talk to the server, but it's useful to keep the same interface.
 class TimeWidget(Widget):
@@ -396,7 +411,11 @@ class TextDisplay(Widget):
         </script>%s
         </div>"""%(height,width, self.uuid, self.uuid, self.uuid, self.uuid,self.uuid,self.uuid,self.value))
 
-
+#Gram is the base unit even though Si has kg as the base
+#Because it makes it *SO* much easier
+siUnits={
+    "m","Pa","g","V","A"
+}
 class Meter(Widget):
     def __init__(self,*args,**kwargs):
         self.k = kwargs
@@ -412,14 +431,28 @@ class Meter(Widget):
             self.k['min'] = 0
         if not 'max' in self.k:
             self.k['max'] = 100
+        
+        self.displayUnits = None
+        if not 'unit' in kwargs:
+            self.unit = None
+        else:
+            try:
+                ##Throw an error if you give it a bad unit
+                self.unit = kwargs['unit']
+                #Do a KeyError if we don't support the unit
+                unitTypes[self.unit]+"_format"
+            except:
+                self.unit = None
+                logging.exception("Bad unit")
 
 
         Widget.__init__(self,*args,**kwargs)
-        self.value = [0,'normal']
+        self.value = [0,'normal',self.formatForUser(0)]
 
     def write(self,value):
         #Decide a class so it can show red or yellow with high or low values.
         self.c = "normal"
+
         if 'high_warn' in self.k:
             if value >= self.k['high_warn']:
                 self.c = 'warning'
@@ -435,30 +468,98 @@ class Meter(Widget):
         if 'low' in self.k:
             if value <= self.k['low']:
                 self.c = 'error'
+        self.value = [round(value,3),self.c, self.formatForUser(value)]
+        Widget.write(self,self.value)
 
-        Widget.write(self,[round(value,3),self.c])
+    def setup(self,min,max,high,low,unit=None,displayUnits=None):
+        "On-the-fly change of parameters"
+        d={'high':high,'low':low,'high_warn':high,'low_warn':low,"min":min,"max":max}
+        self.k.update(d)
+
+        if not unit:
+            self.unit = None
+        else:
+            self.displayUnits = displayUnits
+            try:
+                ##Throw an error if you give it a bad unit
+                self.unit = unit
+
+                #Do a KeyError if we don't support the unit
+                unitTypes[self.unit]+"_format"
+            except:
+                logging.exception("Bad unit")
+                self.unit = None
+        Widget.write(self,self.value+[d])
+
+    def onUpdate(self,*a,**k):
+        raise RuntimeError("Only the server can edit this widget")
+
+    def formatForUser(self,v):
+        """Format the value into something for display, like 27degC, if we have a unit configured.
+            Otherwise just return the value
+        """
+        if self.unit:
+            s = ''
+
+            x=unitTypes[self.unit]
+
+            if x in defaultDisplayUnits:
+                units = defaultDisplayUnits[x]
+            else:
+                return str(round(v,3))
+            #Overrides are allowed, we ignorer the user specified units
+            if self.displayUnits:
+                units = self.displayUnits
+            else:
+                if not self.unit in units:
+                    units+="|"+self.unit 
+           # else:
+            #    units = auth.getUserSetting(pages.getAcessingUser(),dimensionality_strings[self.unit.dimensionality]+"_format").split("|")
+
+            for i in units.split("|"):
+                if s:
+                    s+=" | "
+                #Si abbreviations and symbols work with prefixes
+                if i in siUnits:
+                    s+=unitsofmeasure.siFormatNumber(convert(v, self.unit, i))+i
+                else:
+                    #If you need more than three digits,
+                    #You should probably use an SI prefix.
+                    #We're just hardcoding this for now
+                    s += str(round(convert(v, self.unit, i),2))+i
+            
+            return s
+        else:
+            return str(round(v,3))
+        
 
     def render(self,unit='',label=''):
         return("""
         <div class="widgetcontainer meterwidget">
-        <b>%s</b><br>
-        <span class="numericpv" id="%s" style=" margin:0px;">
+        <b>{label}</b><br>
+        <span class="numericpv" id="{uuid}" style=" margin:0px;">
         <script type="text/javascript">
         var upd = function(val)
-        {
-            document.getElementById("%s").innerHTML=val[0]+"%s";
-            document.getElementById("%s_m").value=val[0];
-            document.getElementById("%s").className=val[1]+" numericpv";
-        }
-        KWidget_subscribe('%s',upd);
-        </script>%s
-        </span></br>
-        <meter id="%s_m" value="%d" min="%d" max="%d" high="%d" low="%d"></meter>
+        {{
+            document.getElementById("{uuid}_m").value=val[0];
+            document.getElementById("{uuid}").className=val[1]+" numericpv";
+            document.getElementById("{uuid}").innerHTML=val[2]+"{unit}";
 
-        </div>"""%(label,self.uuid,
-            self.uuid,unit,self.uuid,self.uuid,self.uuid,self.value[0],
-                          self.uuid,self.value[0], self.k['min'],self.k['max'],self.k['high_warn'],self.k['low_warn']
-                          ))
+            if(val[3])
+            {{
+                document.getElementById("{uuid}_m").high = val[3].high;
+                document.getElementById("{uuid}_m").low = val[3].low;
+                document.getElementById("{uuid}_m").min = val[3].min;
+                document.getElementById("{uuid}_m").max = val[3].max;
+            }}
+        }}
+        KWidget_subscribe('{uuid}',upd);
+        </script>{valuestr}
+        </span></br>
+        <meter id="{uuid}_m" value="{value:f}" min="{min:f}" max="{max:f}" high="{high:f}" low="{low:f}"></meter>
+
+        </div>""".format(uuid=self.uuid, value=self.value[0], min=self.k['min'],
+        max=self.k['max'],high=self.k['high_warn'],low=self.k['low_warn'],label=label,unit=unit,valuestr=self.formatForUser(self.value[0])))
 
 class Button(Widget):
 

@@ -4,59 +4,44 @@ WebSocket within CherryPy is a tricky bit since CherryPy is
 a threaded server which would choke quickly if each thread
 of the server were kept attached to a long living connection
 that WebSocket expects.
-
 In order to work around this constraint, we take some advantage
 of some internals of CherryPy as well as the introspection
 Python provides.
-
 Basically, when the WebSocket handshake is complete, we take over
 the socket and let CherryPy take back the thread that was
 associated with the upgrade request.
-
 These operations require a bit of work at various levels of
 the CherryPy framework but this module takes care of them
 and from your application's perspective, this is abstracted.
-
 Here are the various utilities provided by this module:
-
  * WebSocketTool: The tool is in charge to perform the
                   HTTP upgrade and detach the socket from
                   CherryPy. It runs at various hook points of the
                   request's processing. Enable that tool at
                   any path you wish to handle as a WebSocket
                   handler.
-
  * WebSocketPlugin: The plugin tracks the instanciated web socket handlers.
                     It also cleans out websocket handler which connection
                     have been closed down. The websocket connection then
                     runs in its own thread that this plugin manages.
-
 Simple usage example:
-
 .. code-block:: python
     :linenos:
-
     import cherrypy
     from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
     from ws4py.websocket import EchoWebSocket
-
     cherrypy.config.update({'server.socket_port': 9000})
     WebSocketPlugin(cherrypy.engine).subscribe()
     cherrypy.tools.websocket = WebSocketTool()
-
     class Root(object):
         @cherrypy.expose
         def index(self):
             return 'some HTML with a websocket javascript connection'
-
         @cherrypy.expose
         def ws(self):
             pass
-
     cherrypy.quickstart(Root(), '/', config={'/ws': {'tools.websocket.on': True,
                                                      'tools.websocket.handler_cls': EchoWebSocket}})
-
-
 Note that you can set the handler class on per-path basis,
 meaning you could also dynamically change the class based
 on other envrionmental settings (is the user authenticated for ex).
@@ -69,7 +54,10 @@ import threading
 import cherrypy
 from cherrypy import Tool
 from cherrypy.process import plugins
-from cherrypy.wsgiserver import HTTPConnection, HTTPRequest
+try:
+    from cheroot.server import HTTPConnection, HTTPRequest, KnownLengthRFile
+except ImportError:
+    from cherrypy.wsgiserver import HTTPConnection, HTTPRequest, KnownLengthRFile    
 
 from ws4py import WS_KEY, WS_VERSION
 from ws4py.exc import HandshakeError
@@ -101,10 +89,8 @@ class WebSocketTool(Tool):
         """
         Performs the upgrade of the connection to the WebSocket
         protocol.
-
         The provided protocols may be a list of WebSocket
         protocols supported by the instance of the tool.
-
         When no list is provided and no protocol is either
         during the upgrade, then the protocol parameter is
         not taken into account. On the other hand,
@@ -197,7 +183,11 @@ class WebSocketTool(Tool):
             response.headers['Sec-WebSocket-Extensions'] = ','.join(ws_extensions)
 
         addr = (request.remote.ip, request.remote.port)
-        ws_conn = get_connection(request.rfile.rfile)
+        rfile = request.rfile.rfile
+        if isinstance(rfile, KnownLengthRFile):
+            rfile = rfile.rfile
+
+        ws_conn = get_connection(rfile)
         request.ws_handler = handler_cls(ws_conn, ws_protocols, ws_extensions,
                                          request.wsgi_environ.copy(),
                                          heartbeat_freq=heartbeat_freq)
@@ -254,7 +244,6 @@ class WebSocketTool(Tool):
         of introspection to set those flags. Even by Python standards
         such introspection isn't the cleanest but it works well
         enough in this case.
-
         This also means that we do that only on WebSocket
         connections rather than globally and therefore we do not
         harm the rest of the HTTP server.
@@ -265,14 +254,14 @@ class WebSocketTool(Tool):
                 break
             _locals = current.f_locals
             if 'self' in _locals:
-               if type(_locals['self']) == HTTPRequest:
-                   _locals['self'].close_connection = True
-               if type(_locals['self']) == HTTPConnection:
-                   _locals['self'].linger = True
-                   # HTTPConnection is more inner than
-                   # HTTPRequest so we can leave once
-                   # we're done here
-                   return
+                if isinstance(_locals['self'], HTTPRequest):
+                    _locals['self'].close_connection = True
+                if isinstance(_locals['self'], HTTPConnection):
+                    _locals['self'].linger = True
+                    # HTTPConnection is more inner than
+                    # HTTPRequest so we can leave once
+                    # we're done here
+                    return
             _locals = None
             current = current.f_back
 
@@ -297,7 +286,6 @@ class WebSocketPlugin(plugins.SimplePlugin):
     def handle(self, ws_handler, peer_addr):
         """
         Tracks the provided handler.
-
         :param ws_handler: websocket handler instance
         :param peer_addr: remote peer address for tracing purpose
         """
@@ -315,7 +303,6 @@ class WebSocketPlugin(plugins.SimplePlugin):
         """
         Broadcasts a message to all connected clients known to
         the server.
-
         :param message: a message suitable to pass to the send() method
           of the connected handler.
         :param binary: whether or not the message is a binary one

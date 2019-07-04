@@ -86,6 +86,8 @@ BasePermissions = {
 "/admin/eventoutput.view": "View the message logs.",
 "/users/logs.view": "View the message logs.",
 "/users/accountsettings.edit" : "Edit ones own account preferences",
+"/users/tagpoints.view" : "View tagpoints",
+"/users/tagpoints.edit" : "Override tagpoint values and modify configuration",
 "/admin/errors.view": "View errors in resources. Note that /users/logs.view or /admin/modules.edit will also allow this.",
 "__all_permissions__": "Special universal permission that grants all permissions in the system. Use with care."
 }
@@ -442,15 +444,20 @@ def dumpDatabase():
 
     util.ensure_dir2(p)
     util.chmod_private_try(p)
-    f = open(os.path.join(p,"users.json"),"w")
-    util.chmod_private_try(os.path.join(p,"users.json"),execute=False)
-    #pretty print
-    json.dump(temp,f,sort_keys=True, indent=4, separators=(',', ': '))
-    f.close()
-    f = open(os.path.join(p,"__COMPLETE__"),"w")
-    util.chmod_private_try(os.path.join(p,"__COMPLETE__"),execute=False)
-    f.write("completely arbitrary text")
-    f.close()
+    try:
+        f = open(os.path.join(p,"users.json"),"w")
+        util.chmod_private_try(os.path.join(p,"users.json"),execute=False)
+        #pretty print
+        json.dump(temp,f,sort_keys=True, indent=4, separators=(',', ': '))
+    finally:
+        f.close()
+
+    try:
+        f = open(os.path.join(p,"__COMPLETE__"),"w")
+        util.chmod_private_try(os.path.join(p,"__COMPLETE__"),execute=False)
+        f.write("completely arbitrary text")
+    finally:
+        f.close()
     util.deleteAllButHighestNumberedNDirectories(directories.usersdir,2)
     authchanged = False
     return True

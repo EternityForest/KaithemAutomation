@@ -61,8 +61,9 @@ import os
 import re
 import sys
 
+from more_itertools import always_iterable
+
 import cherrypy
-from cherrypy._cpcompat import copyitems, ntob
 from cherrypy._cperror import format_exc, bare_error
 from cherrypy.lib import httputil
 
@@ -100,6 +101,7 @@ def setup(req):
     engine.autoreload.unsubscribe()
     cherrypy.server.unsubscribe()
 
+    @engine.subscribe('log')
     def _log(msg, level):
         newlevel = apache.APLOG_ERR
         if logging.DEBUG >= level:
@@ -112,7 +114,6 @@ def setup(req):
         # http://www.modpython.org/pipermail/mod_python/2003-October/014291.html
         # Also, "When server is not specified...LogLevel does not apply..."
         apache.log_error(msg, newlevel, req.server)
-    engine.subscribe('log', _log)
 
     engine.start()
 
@@ -167,6 +168,8 @@ def handler(req):
                          "either 'on' or 'off', when running a version "
                          'of mod_python < 3.1')
 
+            options = req.get_options()
+
             threaded = options.get('multithread', '').lower()
             if threaded == 'on':
                 threaded = True
@@ -192,7 +195,7 @@ def handler(req):
             path = req.uri
             qs = req.args or ''
             reqproto = req.protocol
-            headers = copyitems(req.headers_in)
+            headers = list(req.headers_in.items())
             rfile = _ReadOnlyRequest(req)
             prev = None
 
@@ -239,7 +242,7 @@ def handler(req):
                     response.body, response.stream)
             finally:
                 app.release_serving()
-    except:
+    except Exception:
         tb = format_exc()
         cherrypy.log(tb, 'MOD_PYTHON', severity=logging.ERROR)
         s, h, b = bare_error()
@@ -264,11 +267,8 @@ def send_response(req, status, headers, body, stream=False):
         req.flush()
 
     # Set response body
-    if isinstance(body, text_or_bytes):
-        req.write(body)
-    else:
-        for seg in body:
-            req.write(seg)
+    for seg in always_iterable(body):
+        req.write(seg)
 
 
 # --------------- Startup tools for CherryPy + mod_python --------------- #
@@ -292,7 +292,7 @@ def read_process(cmd, args=''):
     try:
         firstline = pipeout.readline()
         cmd_not_found = re.search(
-            ntob('(not recognized|No such file|not found)'),
+            b'(not recognized|No such file|not found)',
             firstline,
             re.IGNORECASE
         )

@@ -9,6 +9,12 @@ http-port : 8002
 #What host to bind to. Default is determined by local-access-only
 host: "default"
 
+#If true, makes an MDNS service
+advertise-webui: yes
+
+#default means kaithem_HOSTNAME
+webui-servicename: default
+
 #The directory in which certificate.cert and certificate.key, used for the SSL, are to be found.
 #Relative to the site-data-dir(or use an absolute path)
 ssl-dir : ssl

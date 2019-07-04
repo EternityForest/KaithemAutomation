@@ -1,0 +1,77 @@
+
+<%!
+
+import KasaPlugin
+import traceback
+%>
+
+<%
+KasaPlugin.maybeRefresh()
+
+try:
+    en = obj.getEnergyStats(0)
+except:
+    en = {'voltage':0,'current':0}
+%>
+<h2>Kasa Plug Device Info</h2>
+<datalist id="devices">
+    %for i in KasaPlugin.lookup:
+    <option value="${i}"></option>
+    %endfor
+</datalist>
+
+<p class="help">Note: Once overcurrent has tripped, any attempt to turn the switch on
+    will raise an error until the alert has been acknowledged.
+
+</p>
+
+<table border="1" style="width:40em">
+
+<tr>
+        <td>Device Type</td>
+        <td><input name="type" value="${data.get('type','')}"></td>
+</tr>
+
+
+<tr>
+    <td>Device locator(IP address or device alias)</td>
+    <td><input list="devices" name="locator" value="${data.get('locator','')}"></td>
+</tr>
+
+<tr>
+        <td>Turn plug off if current exceeds this value(Response time may be over a minute)</td>
+        <td><input type="number" name="device.maxcurrent" value="${data.get('device.maxcurrent',1550)}"></td>
+</tr>
+
+<tr>
+        <td>Raise alert if current exceeds this value(Response time may be over a minute)</td>
+        <td><input type="number" name="device.alarmcurrent" value="${data.get('device.alarmcurrent',1500)}"></td>
+</tr>
+<tr>
+    <td>RSSI</td><td>
+    %try:
+    ${obj.rssi()}</td>
+    %except Exception as e:
+    ${e|h}</td>
+    %endtry
+
+</tr>
+%try:
+<tr>
+    <td>Line Voltage</td>
+    <td>${en['voltage']}</td>
+</tr>
+<tr>
+    <td>Power Consumption</td>
+    <td>${obj.powerWidget.render("W")}</td>
+</tr>
+<tr>
+        <td>Control</td>
+        <td>${obj.onButton.render("On")} ${obj.offButton.render("Off")}</td>
+</tr>
+%except Exception as e:
+<tr>${e}</tr>
+%endtry
+    
+
+</table>

@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import logging,threading,os, time, gzip, bz2,atexit,weakref,random,re,textwrap,shutil,traceback
+import logging,threading,os, time, gzip, bz2,atexit,weakref,random,re,textwrap,shutil,traceback,gc
 
 from . import messagebus, registry, directories,unitsofmeasure,util
 from .config import config 
@@ -54,12 +54,12 @@ atexit.register(at_exit)
 
 class KFormatter(logging.Formatter):
     def formatException(self,exc_info):
-        return textwrap.fill(logging.Formatter.formatException(self,exc_info),initial_indent="  ",subsequent_indent="  ",width=120)
+        return textwrap.fill(logging.Formatter.formatException(self,exc_info),initial_indent="  ",subsequent_indent="  ",width=180)
 
 class LoggingHandler(logging.Handler):
     def __init__(self,name,folder, fn, bufferlen=25000,
                     level=30,contextlevel=10,contextbuffer=0,
-                    entries_per_file=25000, keep=10, compress='none'):
+                    entries_per_file=25000, keep=10, compress='none',doprint=True):
         """Implements a memory-buffered context logger with automatic log rotation.
         Log entries are kept in memory until the in memory buffer exceeds bufferlen entries.
         When that happens,logs are dumped to a file named fn_TIMESTAMP.FRACTIONALPART.log,
@@ -81,6 +81,8 @@ class LoggingHandler(logging.Handler):
                 raise ValueError("entries_per_file must == bufferlen when using compression as compressed files cannot be efficiently appended")
         self.name = name
         self.fn = fn
+        self.doprint=doprint
+        
         self.folder=folder
         self.bufferlen = bufferlen
         self.contextlen = contextbuffer
@@ -127,7 +129,8 @@ class LoggingHandler(logging.Handler):
         
     def emit(self,record):
         #We handle all logs that make it to the root logger, and do the filtering ourselves
-        print(self.format(record))
+        if self.doprint:
+            print(self.format(record))
         if not (record.name == self.name or record.name.startswith(self.name+".")) and not self.name=='':
             return
         self.callback(record)
@@ -194,18 +197,26 @@ class LoggingHandler(logging.Handler):
                 if not self.current_file:
                     fn = os.path.join(self.folder,self.fn+"_"+str(t)+ext)
                     self.current_file=fn
+                else:
+                    fn=self.current_file
     
                 #We can't append to gz and bz2 files efficiently, so we dissalow using those for anything
                 #except one file buffered dumps
                 ###TODO: TOo Many Open Files error
                 chmodflag= not os.path.exists(self.current_file)
-                with openlog(self.current_file,'ba' if self.compress =="none" else "wb") as f:
-                    if chmodflag:
-                        util.chmod_private_try(fn)
-                    for i in logbuffer:
-                        b =(i+"\r\n").encode("utf8")
-                        self.bytecounter+=len(b)
-                        f.write(b)
+                try:
+                    with openlog(self.current_file,'ba' if self.compress =="none" else "wb") as f:
+                        if chmodflag:
+                            util.chmod_private_try(fn)
+                        for i in logbuffer:
+                            b =(i+"\r\n").encode("utf8")
+                            self.bytecounter+=len(b)
+                            f.write(b)
+                except OSError:
+                    #Sometimes the problem is that garbage collection
+                    #Hasn't gotten to a bunch of sockets yet
+                    gc.collect()
+                    raise
                 
 
                 #Keep track of how many we have written to the file
@@ -258,14 +269,14 @@ class LoggingHandler(logging.Handler):
                 size = size - os.path.getsize(os.path.join(self.folder,i))
                 os.remove(os.path.join(self.folder,i))
 
-        
+#Don't print, the root logger does that.        
 syslogger = LoggingHandler("system",fn="system" if not config['log-format']=='none' else None,
 
                         folder=os.path.join(directories.logdir,"dumps"),level=20,
                         entries_per_file=config['log-dump-size'], 
                         bufferlen =config['log-buffer'],
                         keep=unitsofmeasure.strToIntWithSIMultipliers(config['keep-log-files']),
-                        compress= config['log-compress'])
+                        compress= config['log-compress'],doprint=False)
 
 ##Linux only way of recovering backups even if the
 if os.path.exists("/dev/shm/kaithemdbglog"):

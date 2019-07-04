@@ -13,30 +13,25 @@ info = sys._current_frames()
 %else:
 <dt>
 %endif
-<b>${i.name|h}</b>(${i.__class__|h})
+<b>${i.name|h} ${i.ident}</b>(${i.__class__|h})
 %if i.daemon:
 <i>(daemon)</i>
 %endif
-%try:
-: running function <b>${i._original_target_function.__name__ if hasattr(i,'_original_target_function')  else i.target.__name__ if hasattr(i,'_target') else  "<unknown>"|h}</b>
-     defined in <b>${i._original_target_function.__module__ if hasattr(i,'_original_target_function') and i._original_target_function else i.__module__}
-     </b> </dt>
+</dt>
 <dd>
-%try:
-Current Frame Info: ${inspect.getframeinfo(info[t.id])|h}
-%except Exception as e:
-No frame info
-%endtry
-</dd>
 
+%try:
+running function ${i._original_target_function.__name__ if hasattr(i,'_original_target_function')  else i.target.__name__ if hasattr(i,'_target') else  "<unknown>"|h}
+defined in ${i._original_target_function.__module__ if hasattr(i,'_original_target_function') and i._original_target_function else i.__module__}
 %except:
-: running a function defined in <b>${i._target.__module__ if hasattr(i,'_target') and i._target else i.__module__}</b></dt><dd>
+running a function defined in <b>${i._target.__module__ if hasattr(i,'_target') and i._target else i.__module__}</b></dt><dd>
 
 %try:
 Current Frame Info: ${inspect.getframeinfo(info[i.ident])|h}
 %except Exception as e:
-No frame info ${e}
+${e}
 %endtry
+          
 </dd>
 %endtry
 %endfor

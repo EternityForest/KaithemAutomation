@@ -45,61 +45,56 @@ import cherrypy
                             }
                             return c_value;
                             }
-                    function f()
-                    {
-                    x = new XMLHttpRequest();
+                 
+
                     if (!getCookie("LastSawMainPage"))
                     {
-                     y= 0
+                      y= 0
                     }
                     else
                     {
-                    y=getCookie("LastSawMainPage");
+                       y=getCookie("LastSawMainPage");
                     }
-                    x.open("GET","/notifications/countnew?since="+y,false);
-                    x.send();
-                    k = JSON.parse(x.response);
-                    if(k[0]>0)
-                    {
-                        document.getElementById("notifications").innerHTML= "("+k[0]+")";
+                    notifications_socket = new WebSocket(window.location.protocol.replace("http","ws")+"//"+window.location.host + '/notifications/ws?since='+y);
 
-                        if(k[2]>0)
-                        {
-                        document.getElementById("notifications").className = "warning";
-                        }
+                    notifications_socket.onmessage = function(e){
+                      try{
+                            var k = JSON.parse(e.data);
+                            
+                            if(k[0]>0)
+                                    {
+                                        document.getElementById("notifications").innerHTML= "("+k[0]+")";
 
-                        if(k[3]>0)
-                        {
-                        document.getElementById("notifications").className = "error";
-                        }
+                                        if(k[2]>0)
+                                        {
+                                        document.getElementById("notifications").className = "warning";
+                                        }
 
+                                        if(k[3]>0)
+                                        {
+                                        document.getElementById("notifications").className = "error";
+                                        }
+
+                                    }
+                                    else
+                                    {
+                                        document.getElementById("notifications").innerHTML = '';
+                                    }
+                      }
+                      catch(err)
+                      {
+                        console.log("JSON Parse Error in websocket response:\n"+e.data);
+                      }
                     }
-                    else
-                    {
-                        document.getElementById("notifications").innerHTML = '';
-                    }
-                    }
-                    f();
-                    setInterval(f,10000);
-                    setTimeout(f,350);
-                    setTimeout(f,1000);
-                    setTimeout(f,4000);
-
-
-            %elif pages.canUserDoThis("/admin/mainpage.view"):
-
-            ${notifications.makenotifier()}
-            %endif
-
 
                 </script>
             </span>
-
+            %endif
 
             </li>
             <li><a class="moduleslink" href="/modules/">Modules</a>
 %if modules.unsaved_changed_obj:
-<span title="The modules have unsaved changes">*</span>
+<span title="The modules have unsaved changes"><a href="/settings/save">*</a></span>
 %endif
             <li><a class="pageslink" href="/pagelisting">Page Index</a></li>
             <li><a class="deviceslink" href="/devices">Devices</a></li>
@@ -110,11 +105,11 @@ import cherrypy
             
 
 %if auth.authchanged:
-<span title="The users, groups, user settings, or permissions have unsaved changes">*</span>
+<span title="The users, groups, user settings, or permissions have unsaved changes"><a href="/settings/save">*</a></span>
 %endif
 
 %if not registry.is_clean:
-<span title="The kaithem registry has unsaved changes">*</span>
+<span title="The kaithem registry has unsaved changes"><a href="/settings/save">*</a></span>
 %endif
 <li><a class="helplink" href="/helpmenu">Help</a></li>
 </li>

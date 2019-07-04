@@ -16,8 +16,8 @@
 
 #
 
-__version__ = "0.62.1 Production"
-__version_info__ = (0,62,1,"release",0)
+__version__ = "0.63 Production"
+__version_info__ = (0,63,0,"release",0)
 
 #Library that makes threading and lock operations, which we use a lot of, use native code on linux
 try:
@@ -64,6 +64,14 @@ x = os.path.join(x,'src')
 #Avoid having to rename six.py by treating it's folder as a special case.
 sys.path = [os.path.join(x,'thirdparty','six')] + sys.path
 
+sys.path = [os.path.join(x,'plugins','ondemand')] + sys.path
+sys.path = [os.path.join(x,'plugins','startup')] + sys.path
+
+startupPluginsPath = os.path.join(x,'plugins','startup')
+
+sys.path = sys.path+ [os.path.join(x,'plugins','lowpriority')]
+
+
 if sys.version_info < (3,0):
     sys.path = [os.path.join(x,'thirdparty','python2')] + sys.path
     from gzip import open as opengzip
@@ -91,6 +99,9 @@ import src
 
 import time,signal
 import cherrypy,validictory
+
+#We don't want Cherrypy writing temp files for no reason
+cherrypy._cpreqbody.Part.maxrambytes = 64*1024
 
 from cherrypy import _cperror
 from src import util
@@ -252,8 +263,8 @@ else:
 if cfgmodule.argcmd.nosecurity == 1:
     bindto = '127.0.0.1'
 
-cherrypy.process.servers.check_port(bindto, config['http-port'], timeout=1.0)
-cherrypy.process.servers.check_port(bindto, config['https-port'], timeout=1.0)
+#cherrypy.process.servers.check_port(bindto, config['http-port'], timeout=1.0)
+#cherrypy.process.servers.check_port(bindto, config['https-port'], timeout=1.0)
 logger.info("Ports are free")
 
 MyExternalIPAdress = util.updateIP()
@@ -264,11 +275,11 @@ if config['change-process-title']:
         setproctitle.setproctitle("kaithem")
         logger.info("setting process title")
     except:
-        pass
+        logger.warning("error setting process title")
 
 if config['enable-websockets']:
     from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
-    from ws4py.websocket import EchoWebSocket
+    from ws4py.websocket import EchoWebSocket, WebSocket
     WebSocketPlugin(cherrypy.engine).subscribe()
     cherrypy.tools.websocket = WebSocketTool()
     logger.info("activated websockets")
@@ -300,6 +311,12 @@ class webapproot():
         pages.require("/admin/mainpage.view")
         cherrypy.response.cookie['LastSawMainPage'] = time.time()
         return pages.get_template('index.html').render()
+    
+    #"/" is mapped to this
+    @cherrypy.expose
+    def tagpoints(self,*path,**data):
+        pages.require("/admin/settings.view")
+        return pages.get_template('settings/tagpoints.html').render()
 
 
     @cherrypy.expose
@@ -316,6 +333,7 @@ class webapproot():
                 return zipcache[path]
         except:
             print("err in cache for zip")
+        cherrypy.response.headers['Cache-Control'] = "max-age=28800"
 
         m =mimetypes.guess_type(path[-1])
         cherrypy.response.headers['Content-Type'] = m[0]
@@ -338,6 +356,8 @@ class webapproot():
         if path:
             return pages.get_template('help/'+path[0]+'.html').render()
         return pages.get_template('help/help.html').render()
+
+
 
     @cherrypy.expose
     def makohelp(self,*path,**data):
@@ -457,8 +477,12 @@ site_config={
 if config['enable-websockets']:
     wscfg={'tools.websocket.on': True,
             'tools.websocket.handler_cls': widgets.websocket}
+
+    wscfg2={'tools.websocket.on': True,
+            'tools.websocket.handler_cls':notifications.websocket}
 else:
     wscfg = {}
+    wscfg2 = {}
 
 cnf={
     '/static':
@@ -484,9 +508,17 @@ cnf={
         "tools.addheader.on": True
         },
 
+        '/static/docs':
+        {'tools.staticdir.on': True,
+        'tools.staticdir.dir':os.path.join(sdn,'docs'),
+        "tools.sessions.on": False,
+        "tools.addheader.on": True
+        },
     '/static/zip':
         {
-        'request.dispatch': cherrypy.dispatch.MethodDispatcher()
+        'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
+        "tools.addheader.on": True
+
         },
     '/pages':
         {
@@ -495,19 +527,24 @@ cnf={
         'request.dispatch': cherrypy.dispatch.MethodDispatcher()
         },
 
-    '/widgets/ws': wscfg
+    '/widgets/ws': wscfg,
+    '/notifications/ws':wscfg2
 }
 
 if not config['favicon-png']=="default":
     cnf['/favicon.png']={
     'tools.staticfile.on' : True,
-    'tools.staticfile.filename' : os.path.join(directories.datadir,"static",config['favicon-png'])
+    'tools.staticfile.filename' : os.path.join(directories.datadir,"static",config['favicon-png']),
+    'tools.expires.on'    : True,
+    'tools.expires.secs'  : 3600# expire in an hour
     }
 
 if not config['favicon-ico']=="default":
     cnf['/favicon.ico']={
     'tools.staticfile.on' : True,
-    'tools.staticfile.filename' : os.path.join(directories.datadir,"static",config['favicon-ico'])
+    'tools.staticfile.filename' : os.path.join(directories.datadir,"static",config['favicon-ico']),
+    'tools.expires.on'    : True,
+    'tools.expires.secs'  : 3600# expire in an hour
     }
 
 #Let the user create additional static directories
@@ -522,7 +559,7 @@ for i in config['serve-static']:
 
 def addheader(*args,**kwargs):
     "This function's only purpose is to tell the browser to cache requests for an hour"
-    cherrypy.response.headers['Cache-Control'] = "max-age=3600"
+    cherrypy.response.headers['Cache-Control'] = "max-age=28800"
     #del cherrypy.response.headers['Expires']
 
 def pageloadnotify(*args,**kwargs):
@@ -565,6 +602,47 @@ cherrypy.engine.start()
 util.drop_perms(config['run-as-user'], config['run-as-group'])
 messagebus.postMessage('/system/startup','System Initialized')
 messagebus.postMessage('/system/notifications/important','System Initialized')
+
+import importlib
+plugins = {}
+try:
+    for i in os.listdir(startupPluginsPath):
+        try:
+            plugins[i] = importlib.import_module(i)
+        except:
+            logger.exception("Error loading plugin "+i)
+            messagebus.postMessage('/system/notifications/errors',"Error loading plugin "+i)
+except:
+    messagebus.postMessage('/system/notifications/errors',"Error loading plugins")
+
+
+
+r = util.zeroconf
+
+import zeroconf
+#Register an NTP service
+desc = {}
+
+if cfg.config['advertise-webui']:
+    try:
+        import socket
+        if not cfg.config['webui-servicename']=="default":
+            localserver_name = cfg.config['webui-servicename']
+        else:
+            localserver_name = "kaithem_"+socket.gethostname()
+
+        info = zeroconf.ServiceInfo("_http._tcp.local.",
+                localserver_name+"._http._tcp.local.",
+                [None], cfg.config['http-port'], 0, 0, desc)
+        r.register_service(info)
+        info2 = zeroconf.ServiceInfo("_https._tcp.local.",
+                localserver_name+"._https._tcp.local.",
+                [None], cfg.config['https-port'], 0, 0, desc)
+        r.register_service(info2)
+    except:
+        logger.exception("Error advertising MDNS service")
+
+
 cherrypy.engine.block()
 
 #Old workaround for things not stopping on python3 that no longer appears to be needed.

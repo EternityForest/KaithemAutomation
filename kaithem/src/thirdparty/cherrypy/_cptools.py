@@ -22,13 +22,10 @@ Tools may be implemented as any object with a namespace. The builtins
 are generally either modules or instances of the tools.Tool class.
 """
 
-import sys
-import warnings
-
 import cherrypy
 from cherrypy._helper import expose
 
-from cherrypy.lib import cptools, encoding, auth, static, jsontools
+from cherrypy.lib import cptools, encoding, static, jsontools
 from cherrypy.lib import sessions as _sessions, xmlrpcutil as _xmlrpc
 from cherrypy.lib import caching as _caching
 from cherrypy.lib import auth_basic, auth_digest
@@ -38,14 +35,9 @@ def _getargs(func):
     """Return the names of all static arguments to the given function."""
     # Use this instead of importing inspect for less mem overhead.
     import types
-    if sys.version_info >= (3, 0):
-        if isinstance(func, types.MethodType):
-            func = func.__func__
-        co = func.__code__
-    else:
-        if isinstance(func, types.MethodType):
-            func = func.im_func
-        co = func.func_code
+    if isinstance(func, types.MethodType):
+        func = func.__func__
+    co = func.__code__
     return co.co_varnames[:co.co_argcount]
 
 
@@ -72,12 +64,13 @@ class Tool(object):
         self.__doc__ = self.callable.__doc__
         self._setargs()
 
-    def _get_on(self):
+    @property
+    def on(self):
         raise AttributeError(_attr_error)
 
-    def _set_on(self, value):
+    @on.setter
+    def on(self, value):
         raise AttributeError(_attr_error)
-    on = property(_get_on, _set_on)
 
     def _setargs(self):
         """Copy func parameter names to obj attributes."""
@@ -149,7 +142,8 @@ class Tool(object):
         p = conf.pop('priority', None)
         if p is None:
             p = getattr(self.callable, 'priority', self._priority)
-        cherrypy.serving.request.hooks.attach(self._point, self.callable, priority=p, **conf)
+        cherrypy.serving.request.hooks.attach(self._point, self.callable,
+                                              priority=p, **conf)
 
 
 class HandlerTool(Tool):
@@ -321,9 +315,12 @@ class SessionTool(Tool):
         sess.regenerate()
 
         # Grab cookie-relevant tool args
-        conf = dict([(k, v) for k, v in self._merged_args().items()
-                     if k in ('path', 'path_header', 'name', 'timeout',
-                              'domain', 'secure')])
+        relevant = 'path', 'path_header', 'name', 'timeout', 'domain', 'secure'
+        conf = dict(
+            (k, v)
+            for k, v in self._merged_args().items()
+            if k in relevant
+        )
         _sessions.set_response_cookie(**conf)
 
 
@@ -391,11 +388,7 @@ class XMLRPCController(object):
 
 
 class SessionAuthTool(HandlerTool):
-
-    def _setargs(self):
-        for name in dir(cptools.SessionAuth):
-            if not name.startswith('__'):
-                setattr(self, name, None)
+    pass
 
 
 class CachingTool(Tool):
@@ -410,8 +403,8 @@ class CachingTool(Tool):
             if request.cacheable:
                 # Note the devious technique here of adding hooks on the fly
                 request.hooks.attach('before_finalize', _caching.tee_output,
-                                     priority=90)
-    _wrapper.priority = 20
+                                     priority=100)
+    _wrapper.priority = 90
 
     def _setup(self):
         """Hook caching into cherrypy.request."""
@@ -461,32 +454,16 @@ class Toolbox(object):
                     tool._setup()
 
     def register(self, point, **kwargs):
-        """Return a decorator which registers the function at the given hook point."""
+        """
+        Return a decorator which registers the function
+        at the given hook point.
+        """
         def decorator(func):
-            setattr(self, kwargs.get('name', func.__name__), Tool(point, func, **kwargs))
+            attr_name = kwargs.get('name', func.__name__)
+            tool = Tool(point, func, **kwargs)
+            setattr(self, attr_name, tool)
             return func
         return decorator
-
-
-class DeprecatedTool(Tool):
-
-    _name = None
-    warnmsg = 'This Tool is deprecated.'
-
-    def __init__(self, point, warnmsg=None):
-        self.point = point
-        if warnmsg is not None:
-            self.warnmsg = warnmsg
-
-    def __call__(self, *args, **kwargs):
-        warnings.warn(self.warnmsg)
-
-        def tool_decorator(f):
-            return f
-        return tool_decorator
-
-    def _setup(self):
-        warnings.warn(self.warnmsg)
 
 
 default_toolbox = _d = Toolbox('tools')
@@ -509,20 +486,8 @@ _d.sessions = SessionTool()
 _d.xmlrpc = ErrorTool(_xmlrpc.on_error)
 _d.caching = CachingTool('before_handler', _caching.get, 'caching')
 _d.expires = Tool('before_finalize', _caching.expires)
-_d.tidy = DeprecatedTool(
-    'before_finalize',
-    'The tidy tool has been removed from the standard distribution of '
-    'CherryPy. The most recent version can be found at '
-    'http://tools.cherrypy.org/browser.')
-_d.nsgmls = DeprecatedTool(
-    'before_finalize',
-    'The nsgmls tool has been removed from the standard distribution of '
-    'CherryPy. The most recent version can be found at '
-    'http://tools.cherrypy.org/browser.')
 _d.ignore_headers = Tool('before_request_body', cptools.ignore_headers)
 _d.referer = Tool('before_request_body', cptools.referer)
-_d.basic_auth = Tool('on_start_resource', auth.basic_auth)
-_d.digest_auth = Tool('on_start_resource', auth.digest_auth)
 _d.trailing_slash = Tool('before_handler', cptools.trailing_slash, priority=60)
 _d.flatten = Tool('before_finalize', cptools.flatten)
 _d.accept = Tool('on_start_resource', cptools.accept)
@@ -532,6 +497,6 @@ _d.json_in = Tool('before_request_body', jsontools.json_in, priority=30)
 _d.json_out = Tool('before_handler', jsontools.json_out, priority=30)
 _d.auth_basic = Tool('before_handler', auth_basic.basic_auth, priority=1)
 _d.auth_digest = Tool('before_handler', auth_digest.digest_auth, priority=1)
-_d.params = Tool('before_handler', cptools.convert_params)
+_d.params = Tool('before_handler', cptools.convert_params, priority=15)
 
-del _d, cptools, encoding, auth, static
+del _d, cptools, encoding, static

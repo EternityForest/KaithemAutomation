@@ -555,11 +555,18 @@ class MPlayerWrapper(SoundWrapper):
         def __del__(self):
             try:
                 self.process.terminate()
+                self.process.stdout.close()
+                self.process.stderr.close()
+                self.process.stdin.close()
+
             except:
                 pass
         def stop(self):
             try:
                 self.process.terminate()
+                self.process.stdout.close()
+                self.process.stderr.close()
+                self.process.stdin.close()
             except:
                 pass
 

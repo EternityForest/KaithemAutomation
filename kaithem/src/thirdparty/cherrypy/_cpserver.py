@@ -1,27 +1,15 @@
 """Manage HTTP servers with CherryPy."""
 
-import six
-
 import cherrypy
 from cherrypy.lib.reprconf import attributes
 from cherrypy._cpcompat import text_or_bytes
 from cherrypy.process.servers import ServerAdapter
 
-# export some names from here
-from cherrypy.process.servers import (
-    client_host, check_port, wait_for_free_port, wait_for_occupied_port,
-)
 
-
-__all__ = [
-    'Server',
-    'client_host', 'check_port', 'wait_for_free_port',
-    'wait_for_occupied_port',
-]
+__all__ = ('Server', )
 
 
 class Server(ServerAdapter):
-
     """An adapter for an HTTP server.
 
     You can set attributes (like socket_host and socket_port)
@@ -37,26 +25,26 @@ class Server(ServerAdapter):
 
     _socket_host = '127.0.0.1'
 
-    def _get_socket_host(self):
-        return self._socket_host
-
-    def _set_socket_host(self, value):
-        if value == '':
-            raise ValueError("The empty string ('') is not an allowed value. "
-                             "Use '0.0.0.0' instead to listen on all active "
-                             'interfaces (INADDR_ANY).')
-        self._socket_host = value
-    socket_host = property(
-        _get_socket_host,
-        _set_socket_host,
-        doc="""The hostname or IP address on which to listen for connections.
+    @property
+    def socket_host(self):  # noqa: D401; irrelevant for properties
+        """The hostname or IP address on which to listen for connections.
 
         Host values may be any IPv4 or IPv6 address, or any valid hostname.
         The string 'localhost' is a synonym for '127.0.0.1' (or '::1', if
         your hosts file prefers IPv6). The string '0.0.0.0' is a special
         IPv4 entry meaning "any active interface" (INADDR_ANY), and '::'
         is the similar IN6ADDR_ANY for IPv6. The empty string or None are
-        not allowed.""")
+        not allowed.
+        """
+        return self._socket_host
+
+    @socket_host.setter
+    def socket_host(self, value):
+        if value == '':
+            raise ValueError("The empty string ('') is not an allowed value. "
+                             "Use '0.0.0.0' instead to listen on all active "
+                             'interfaces (INADDR_ANY).')
+        self._socket_host = value
 
     socket_file = None
     """If given, the name of the UNIX socket to use instead of TCP/IP.
@@ -105,7 +93,8 @@ class Server(ServerAdapter):
 
     instance = None
     """If not None, this should be an HTTP server instance (such as
-    CPWSGIServer) which cherrypy.server will control. Use this when you need
+    cheroot.wsgi.Server) which cherrypy.server will control.
+    Use this when you need
     more control over object instantiation than is available in the various
     configuration options."""
 
@@ -122,21 +111,15 @@ class Server(ServerAdapter):
     ssl_private_key = None
     """The filename of the private key to use with SSL."""
 
-    if six.PY3:
-        ssl_module = 'builtin'
-        """The name of a registered SSL adaptation module to use with
-        the builtin WSGI server. Builtin options are: 'builtin' (to
-        use the SSL library built into recent versions of Python).
-        You may also register your own classes in the
-        wsgiserver.ssl_adapters dict."""
-    else:
-        ssl_module = 'pyopenssl'
-        """The name of a registered SSL adaptation module to use with the
-        builtin WSGI server. Builtin options are 'builtin' (to use the SSL
-        library built into recent versions of Python) and 'pyopenssl' (to
-        use the PyOpenSSL project, which you must install separately). You
-        may also register your own classes in the wsgiserver.ssl_adapters
-        dict."""
+    ssl_ciphers = None
+    """The ciphers list of SSL."""
+
+    ssl_module = 'builtin'
+    """The name of a registered SSL adaptation module to use with
+    the builtin WSGI server. Builtin options are: 'builtin' (to
+    use the SSL library built into recent versions of Python).
+    You may also register your own classes in the
+    cheroot.server.ssl_adapters dict."""
 
     statistics = False
     """Turns statistics-gathering on or off for aware HTTP servers."""
@@ -150,9 +133,29 @@ class Server(ServerAdapter):
     which declares it covers WSGI version 1.0.1 but still mandates the
     wsgi.version (1, 0)] and ('u', 0), an experimental unicode version.
     You may create and register your own experimental versions of the WSGI
-    protocol by adding custom classes to the wsgiserver.wsgi_gateways dict."""
+    protocol by adding custom classes to the cheroot.server.wsgi_gateways dict.
+    """
+
+    peercreds = False
+    """If True, peer cred lookup for UNIX domain socket will put to WSGI env.
+
+    This information will then be available through WSGI env vars:
+    * X_REMOTE_PID
+    * X_REMOTE_UID
+    * X_REMOTE_GID
+    """
+
+    peercreds_resolve = False
+    """If True, username/group will be looked up in the OS from peercreds.
+
+    This information will then be available through WSGI env vars:
+    * REMOTE_USER
+    * X_REMOTE_USER
+    * X_REMOTE_GROUP
+    """
 
     def __init__(self):
+        """Initialize Server instance."""
         self.bus = cherrypy.engine
         self.httpserver = None
         self.interrupt = None
@@ -177,14 +180,20 @@ class Server(ServerAdapter):
         super(Server, self).start()
     start.priority = 75
 
-    def _get_bind_addr(self):
+    @property
+    def bind_addr(self):
+        """Return bind address.
+
+        A (host, port) tuple for TCP sockets or a str for Unix domain sockts.
+        """
         if self.socket_file:
             return self.socket_file
         if self.socket_host is None and self.socket_port is None:
             return None
         return (self.socket_host, self.socket_port)
 
-    def _set_bind_addr(self, value):
+    @bind_addr.setter
+    def bind_addr(self, value):
         if value is None:
             self.socket_file = None
             self.socket_host = None
@@ -201,14 +210,11 @@ class Server(ServerAdapter):
                 raise ValueError('bind_addr must be a (host, port) tuple '
                                  '(for TCP sockets) or a string (for Unix '
                                  'domain sockets), not %r' % value)
-    bind_addr = property(
-        _get_bind_addr,
-        _set_bind_addr,
-        doc='A (host, port) tuple for TCP sockets or '
-            'a str for Unix domain sockets.')
 
     def base(self):
-        """Return the base (scheme://host[:port] or sock file) for this server.
+        """Return the base for this server.
+
+        e.i. scheme://host[:port] or sock file
         """
         if self.socket_file:
             return self.socket_file

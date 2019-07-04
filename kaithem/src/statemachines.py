@@ -19,7 +19,7 @@ import time, weakref,types,threading
 
 
 #Lets keep dependancies on things within kaithem to a minimum, as eventually this might be spun off to a standalone thing
-from . import scheduling,modules,unitsofmeasure,workers
+from . import scheduling,virtualresource,unitsofmeasure,workers
 
 #
 # StateMachine API
@@ -67,7 +67,7 @@ def runSubscriber(f,state):
 
 class UpdateControl():
     pass
-class StateMachine(modules.VirtualResource):
+class StateMachine(virtualresource.VirtualResource):
     def __init__(self,start="start",name="Untitled",description=""):
         self.states = {}
         self.state = start
@@ -87,7 +87,7 @@ class StateMachine(modules.VirtualResource):
         self.keepState = True
         self.keepSubscribers = True
 
-        modules.VirtualResource.__init__(self)
+        virtualresource.VirtualResource.__init__(self)
 
     def __call__(self,event):
         "Trigger an event, return the current state"
@@ -160,7 +160,7 @@ class StateMachine(modules.VirtualResource):
 
                 other.lock = self.lock
 
-                modules.VirtualResource.handoff(self,other)
+                virtualresource.VirtualResource.handoff(self,other)
 
 
     def checkTimer(self):

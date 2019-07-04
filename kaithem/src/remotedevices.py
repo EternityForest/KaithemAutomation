@@ -15,10 +15,10 @@
 
 
 
-import weakref,pavillion, threading,time,logging,traceback,struct,hashlib,base64
+import weakref,pavillion, threading,time,logging,traceback,struct,hashlib,base64,gc
 import cherrypy,mako
 
-from . import virtualresource,pages,registry,modules_state,kaithemobj, workers
+from . import virtualresource,pages,registry,modules_state,kaithemobj, workers,tagpoints, alerts
 
 remote_devices = {}
 remote_devices_atomic = {}
@@ -30,11 +30,26 @@ device_data = registry.get("system_remotedevices.devices",{})
 k4dlogger = logging.getLogger("system_k4d_errors")
 syslogger = logging.getLogger("system.devices")
 
+dbgd = weakref.WeakValueDictionary()
 
 
-
+def getZombies():
+    x =[]
+    for i in dbgd:
+        if not i in remote_devices:
+            x.append[i]
+    return x
 #Indexed by module,resource tuples
 loadedSquirrelPrograms = {}
+
+def getByDescriptor(d):
+    x = {}
+
+    for i in remote_devices_atomic:
+        if d in remote_devices_atomic[i].descriptors:
+            x[i] = remote_devices_atomic[i]
+
+    return x
 
 def sqminify(code):
     line = ''
@@ -137,22 +152,57 @@ def updateProgram(module,resource, data, upload=True):
 #This is the base class for a remote device of any variety.
 
 class RemoteDevice(virtualresource.VirtualResource):
+    """A Descriptor is something that describes a capability or attribute
+    of a device. They are string names and object values,
+    and names should be globally unique"""
+    descriptors = {}
+
+    description= "Abstract base class for a device"
     @staticmethod
     def validateData(data):
         pass
+
+    def setAlertPriorities(self):
+        """Sets alert priorites for all alerts in the alerts dict
+            based on the data key alerts.<alert_key>.priority
+        """
+        for i in self.alerts:
+            if "alerts."+i+".priority" in self.data:
+                self.alerts[i].priority =  self.data["alerts."+i+".priority"]
 
     def __init__(self,name, data):
         if not data['type']==self.deviceTypeName:
             raise ValueError("Incorrect type in info dict")
         virtualresource.VirtualResource.__init__(self)
         global remote_devices_atomic
+        dbgd[name]=self
 
+        #This data dict represents all persistent configuration
+        #for the alert object.
         self.data = data
+
+        #This dict cannot be changed, only replaced atomically.
+        #It is a list of alert objects. Dict keys
+        #may not include special chars besides underscores.
+
+        #It is a list of all alerts "owned" by the device.
+        self.alerts={}
+
+        #A list of all the tag points owned by the device
+        self.tagPoints ={}
+        #Where we stash our claims on the tags
+        self.tagClaims={}
+
         self.name = data.get('name', None) or name
         self.errors = []
+
+        #Time, title, text tuples for any "messages" a device might "print"
+        self.messages = []
+        
         with lock:
             remote_devices[name]=self
             remote_devices_atomic =remote_devices.copy()
+
 
     #Takes an error as a string and handles it
     def handleError(self, s):
@@ -164,8 +214,19 @@ class RemoteDevice(virtualresource.VirtualResource):
         with lock:
             del remote_devices[self.name]
             remote_devices_atomic =remote_devices.copy()
+
     def status(self):
         return "norm"
+    @staticmethod
+
+    def discoverDevices():
+        """Returns a list of data objectd that could be used to 
+            create a device object of this type, indexed by
+            a string that can be up to a line of description.
+
+            The data should leave out defaults.
+        """
+        return {}
 
 
 
@@ -174,11 +235,15 @@ class RemoteDevice(virtualresource.VirtualResource):
 #is name, and that's optional but can be used to rename a device
 def updateDevice(name, kwargs,saveChanges=True):
     name = name or kwargs['name']
-    devicetypes.get(kwargs['type'],RemoteDevice).validateData(kwargs)
+    getDeviceType(kwargs['type']).validateData(kwargs)
     with lock:
         if name in remote_devices:
             remote_devices[name].close()
             del device_data[name]
+        gc.collect()
+        time.sleep(0.01)
+        time.sleep(0.01)
+        gc.collect()
 
         #Allow name changing via data
         name=kwargs.get("name") or name
@@ -229,18 +294,42 @@ class WebDevices():
 
         raise cherrypy.HTTPRedirect("/devices")
 
+    @cherrypy.expose
+    def deleteDevice(self,name,**kwargs):
+        pages.require("/admin/settings.edit")
+        name = name or kwargs['name']
+        return pages.get_template("devices/confirmdelete.html").render(name=name)
+    
+    @cherrypy.expose
+    def deletetarget(self,**kwargs):
+        pages.require("/admin/settings.edit")
+        name = kwargs['name']
+        with lock:
+            remote_devices[name].close()
+            try:
+              del remote_devices[name]
+            except KeyError:
+                pass
+            try:
+                del device_data[name]
+            except KeyError:
+                pass
+            global remote_devices_atomic
+            remote_devices_atomic =remote_devices.copy()
+            gc.collect()
+            registry.set("system_remotedevices.devices", device_data)
+
+        raise cherrypy.HTTPRedirect("/devices")
 
 
+try:
+    import pavillion
+except:
+    #The re-attempt will raise an error if anyone tries 
+    #To actually use this stuff.
+    pass
 
 
-class Client2(pavillion.Client):
-    def __init__(self, cb, *a,**k):
-        self.connectCB = cb
-        pavillion.Client.__init__(self, *a,**k)
-    def onServerConnect(self, addr, pubkey):
-        #That lint error is fine
-        if self.connectCB:
-            workers.do(self.connectCB)
 
 class PavillionDevice(RemoteDevice):
     deviceTypeName="pavillion"
@@ -257,15 +346,85 @@ class PavillionDevice(RemoteDevice):
             pass
     onPavillionConnect =None
 
+
+    def handleIncomingTagValue(self, value, good_ts, timestamp, name,tag,raw_timestamp,server):
+        """
+            Conflict resolution and possibly pushing local value to them.
+            timesamp must be in the local sytem monotnic scale
+            good_ts indicates if that timestamp is actually valid and synced with the remote.
+
+            The conflic resolution logic shouldn't be trusted completely. You may get some glitches
+            with bidirectional tags if it makes an incorrect decision about what is new.
+        """
+        if not "test" in name:
+            print(timestamp, raw_timestamp, tag.timestamp,tag.remote_writable)
+        if good_ts:
+            if ((timestamp>tag.timestamp) and (tag.currentSource=="shared"))  or not (tag.remote_writable):
+                #if we have old data, or if it's a read only
+                #Tag and we shouldn't try to do conflic resolution anyway
+
+                #However, if the source is not the shared claim, we assume
+                #a higher priority claim is in effect and we don't even bother
+                #resolving with timestamps.
+
+
+                #Because sync isn't perfect, we also filter by not accepting the same timestamp from the remote
+                #Twice in a row.
+                if not(tag.lastRemoteTs==raw_timestamp):
+                    self.tagClaims[name].set(value,timestamp,"DoNotSend")
+            else:
+                #Local data is newer, push it!
+                try:
+                    t = int(server.toRemoteMonotonic(tag.timestamp)*1000_000)
+                except:
+                    print(traceback.format_exc())
+                    t=tag.lastRemoteTs+1
+                    tag.lastRemoteTs+=1
+
+                self.pclient.sendMessage("core.tagv", name,struct.pack("<fq",tag.value,int(t)))
+            
+        else:
+            #No time sync. So we use a simpler rule. If it's writable, write it.
+            #Almost all tags will not be bidirectional i suspect.
+
+            #But even then we can do a bit more, we can reject timestamps
+            #That are identiical to what we already saw, and catch a large number of the repeats.
+            if (tag.remote_writable) and not(tag.lastRemoteTs==raw_timestamp):
+                try:
+                    t = int(server.toRemoteMonotonic(tag.timestamp)*1000_000)
+                except:
+                    #Guess at something higher than what they sent
+                    t=raw_timestamp+1000
+                    tag.lastRemoteTs=raw_timestamp+1000
+                self.pclient.sendMessage("core.tagv", name,struct.pack("<fq",tag.value,int(t)))
+            else:
+                #Tag isn't writable, we accept their value
+                self.tagClaims[name].set(value,timestamp,"DoNotSend")
+        
+        tag.lastRemoteTs = raw_timestamp
+
+
     def __init__(self, name, data):
-
+        import pavillion
         RemoteDevice.__init__(self,name,data)
-
+        self.pclient=None
         self.recievelock=threading.Lock()
+        self.lastError = 0
 
         self.k4dprint = []
         self.k4derr = []
         self.loaded = weakref.WeakValueDictionary()
+        self.lock = threading.RLock()
+
+        self.batteryStatusTag = None
+        connectionTag = tagpoints.Tag("/devices/"+name+".rssi")
+        connectionTag.min =-100
+        connectionTag.max = 20
+
+        self.connectionTag = connectionTag
+        self.connectionType = "error"
+        self.batteryState = "unknown"
+
         if not 'address' in data:
             self.handleError("No address specified")
             return
@@ -282,8 +441,7 @@ class PavillionDevice(RemoteDevice):
             self.handleError("No client ID specified")
             return
 
-
-        self.address = (data['address'],data['port'])
+        self.connectionType = "unknown"
 
 
 
@@ -299,14 +457,75 @@ class PavillionDevice(RemoteDevice):
         self.server_pubkey = data.get('server_pubkey', None)
 
 
-        self.lock = threading.RLock()
+        self.connectionTagClaim = connectionTag.claim(0,"reported",51)
+        
+        self.batteryStatusClaim =None
+
+        #This alert monitors low battery.
+        self.lowBatteryAlert = alerts.Alert("/devices/"+name+".lowsignalalert")
+
+
+        #If the WiFi signal gets crappy.
+        self.lowSignalAlert   = alerts.Alert("/devices/"+name+".lowsignalalert",tripDelay=80,autoAck=True)
+        self.unreachableAlert = alerts.Alert("/devices/"+name+".lowsignalalert",tripDelay=5,autoAck=True)
+
+        self.alerts={
+            "unreachableAlert":self.unreachableAlert,
+            "lowSignalAlert": self.lowSignalAlert,
+            "lowBatteryAlert": self.lowSignalAlert,
+        }
+
+        RemoteDeviceObject = self
+        #Has to be here so it doesn't mess everything else
+        #up if we can't import Pavillion
+        class Client2(pavillion.Client):
+            def __init__(self, cb, *a,**k):
+                self.connectCB = cb
+                import pavillion
+                pavillion.Client.__init__(self, *a,**k)
+            def onServerConnect(self, addr, pubkey):
+                #That lint error is fine
+                if self.connectCB:
+                    workers.do(self.connectCB)
+            def onServerStatusUpdate(self,server):
+                RemoteDeviceObject.batteryState = server.batteryState()
+                if not server.batteryState() =='unknown':
+                    blevel = server.battery()
+                    if blevel<15:
+                        RemoteDeviceObject.lowBatteryAlert.trip()
+                    elif blevel>35:
+                        RemoteDeviceObject.lowBatteryAlert.clear()
+
+                    #We create it the first time we actually get a battery status report
+                    if not RemoteDeviceObject.batteryStatusTag:
+                        #here's a tagpoint for the battery level
+                        RemoteDeviceObject.batteryStatusTag = tagpoints.Tag("/devices/"+name+".battery")
+                        RemoteDeviceObject.batteryStatusTag.min=1
+                        RemoteDeviceObject.batteryStatusTag.max=100
+                    if not RemoteDeviceObject.batteryStatusClaim:
+                        RemoteDeviceObject.batteryStatusClaim = RemoteDeviceObject.batteryStatusTag.claim(blevel,"reported",51)
+                    RemoteDeviceObject.batteryStatusClaim.set(blevel)
+
+                RemoteDeviceObject.netType =server.netType()
+                if server.netType() in ('wwan','wlan'):
+                    RemoteDeviceObject.connectionTagClaim.set(server.rssi())
+                    if server.rssi()<-89:
+                        RemoteDeviceObject.lowSignalAlert.trip()
+                    else:
+                        RemoteDeviceObject.lowSignalAlert.clear()
+                #Doesn't really apply to non wireless
+                else:
+                    #We have a tag for every pavillion device because we assume they
+                    #Can roam to wireless because some can. On wired we set RSSI to the max
+                    RemoteDeviceObject.connectionTagClaim.set(20)
+                    RemoteDeviceObject.lowSignalAlert.clear()
+                RemoteDeviceObject.unreachableAlert.clear()
         #This client is passed a callback to autoload all new code onto the device upon connection
-        self.pclient = Client2(self.onPavillionConnect, clientID=self.cid,psk=self.psk, address=self.address)
+        self.pclient = Client2(self.onPavillionConnect, clientID=self.cid,psk=self.psk, address=(data['address'],data['port']))
 
 
         def handle_print(name, data, source):
             data= data.decode("utf8")
-            print(source, data)
             with lock:
                 try:
                     self.loaded[name].print+= data
@@ -316,7 +535,6 @@ class PavillionDevice(RemoteDevice):
 
         def handle_error(name, data, source):
             data= data.decode("utf8")
-            print(source, data)
             with self.recievelock:
                 self.k4derr.append((name, data,time.time()))
                 self.k4derr = self.k4derr[-256:]
@@ -331,9 +549,129 @@ class PavillionDevice(RemoteDevice):
         self._handlerror = handle_error
         self._handleprint=handle_print
 
-        #Todo: change names
+        #K4d stuff is different for messages from the device itsewkf because it's from
+        #A specific program
         self.t = self.pclient.messageTarget("k4dprint",handle_print)
         self.t2 = self.pclient.messageTarget("k4derr",handle_error)
+    
+
+        def genericMessage(target,name,data,source):
+            try:
+                kaithemobj.kaithem.message.post("/devices/"+self.name+"/msg/"+target,(name,data,source))
+                if target=="core.print":
+                    self.messages.append(time.time(),name, data.decode('utf8'),source)
+
+                elif target=="core.tagv":
+                    value, raw_timestamp = struct.unpack("<fq",data)
+                    timestamp=raw_timestamp/10**6
+                    try:
+                        localized_timestamp = self.pclient.getServer().toLocalMonotonic(timestamp)
+                        good_ts = True
+                    except:
+                        print("nooooooooope")
+                        good_ts = False
+                        localized_timestamp=time.monotonic()
+                    print("tagv", value, source)
+                    server=self.pclient.getServer(source)
+                    #Do the more advanced conflict resolution logic.
+                    self.handleIncomingTagValue(value, good_ts,localized_timestamp, name, self.tagPoints[name],timestamp,server)
+
+                
+                elif target=="core.tag":
+                    #These messages contain pretty much the complete tag state,
+                    #We use them to init new tags
+                    value, min,max,interval,flags,raw_timestamp = struct.unpack("<ffffBq",data)
+                    
+                    ##We do this whole thing every time we get this message.
+                    ##It's up to them not to waste out time sending it a lot
+                    with self.lock:
+                        timestamp=raw_timestamp/10**6
+                        try:
+                            ts = self.pclient.getServer().toLocalMonotonic(timestamp)
+                            good_ts = True
+                        except:
+                            good_ts=False
+                            ts=time.monotonic()
+
+                        t = self.tagPoints.copy()
+                        t[name]=tagpoints.Tag("/devices/"+self.name+"/"+name)
+                        t[name].max = max
+                        t[name].min=min
+                        t[name].interval=interval
+                        t[name].remote_writable = bool(flags&1)
+                        #We have a tag, so we now know time sync is important
+                        self.pclient.enableTimeSync()
+
+                        #On first connect, we just use the val from the server
+                        #to make this easier
+                        if not name in self.tagClaims:
+                            self.tagClaims[name]= t[name].claim(value,"shared",51,ts,"DoNotSend")
+                            t[name].lastRemoteTs = raw_timestamp
+                            if t[name].remote_writable:
+                                def tagHandler(value,timestamp,annotation):
+                                    """When a tag's value chages, inform the server.
+                                    """
+                                    ##No doing loops
+                                    if annotation=="DoNotSend":
+                                        return
+
+                                    #Convert the time to the client
+                                    try:
+                                        ##Note the problem here. It only works if there's only a single server.
+                                        #That's just how the protocol is though.
+                                        t = int(self.pclient.getServer().toRemoteMonotonic(timestamp)*1000_000)
+                                    except:
+                                        #Awful hack just in case our time is not synced.
+                                        t=t[name].lastRemoteTs+1
+                                        t[name].lastRemoteTs+=1
+                                    self.pclient.sendMessage("core.tagv", name,struct.pack("<fq",value,int(t)))
+                                t[name].setHandler(tagHandler)
+                                t[name]._refToStashHandler = tagHandler
+
+                    
+
+                        #Name is already in the list. We try to use available info to guess
+                        #At who has newer data, even though bidirectional tags aren't exact.
+                        else:
+                            print("tag", value, source,name)
+                            server=self.pclient.getServer(source)
+                            self.handleIncomingTagValue(value,good_ts,ts,name,t[name], raw_timestamp,server)
+                           
+                     
+
+                        self.tagPoints = t
+
+
+                elif target=="core.alert":
+                    #This lets us dynamically add them at runtime
+                    if not name in self.alerts:
+                        if len(self.alerts)>512:
+                            raise RuntimeError("Too many alerts on one device")
+                        with self.lock:
+                            x = self.alerts.copy()
+                            x[name] = alerts.Alert("/devices/"+self.name+"/"+name)
+                            self.alerts=x
+                        self.setAlertPriorities()
+
+                    #Trip the alarm if the remote device says it's tripped
+                    if data[0]>0:
+                        self.alerts[name].trip()
+                    else:
+                        self.alerts[name].clear()
+            except:
+                #Log to the "system" logger for the first error we have in a while
+                if self.lastError <(time.time()- 10*60):
+                    syslogger.exception("Error handling message from client(Log ratelimit: 10min)")
+                else:
+                    logging.exception("Error handling message from client")
+                self.lastError = time.time()
+
+        self._handlemsg = genericMessage
+        self.t3 = self.pclient.messageTarget(None, genericMessage)
+
+    def __getattr__(self,attr):
+        "Transparently pass along things to the pavillion client"
+        return getattr(self.pclient,attr)
 
     def __del__(self):
         try:
@@ -396,12 +734,29 @@ class K4DDevice(PavillionDevice):
 
 class DeviceNamespace():
     def __getattr__(self, name):
-        return remote_devices[name].interface
+        return remote_devices[name].interface()
+    def __getitem__(self, name):
+        return remote_devices[name].interface()
+    def __iter__(self):
+        return remote_devices_atomic.__iter__()
 
-devicetypes = {'pavillion':PavillionDevice,"k4d":K4DDevice}
+builtinDeviceTypes = {'pavillion':PavillionDevice,"k4d":K4DDevice}
+deviceTypes = weakref.WeakValueDictionary()
 
 def makeDevice(name, data):
-    return devicetypes.get(data['type'], RemoteDevice)(name, data)
+    if data['type'] in builtinDeviceTypes:
+        return builtinDeviceTypes.get(data['type'], RemoteDevice)(name, data)
+    else:
+        return deviceTypes.get(data['type'], RemoteDevice)(name, data)
+
+def getDeviceType(t):
+    if t in builtinDeviceTypes:
+        return builtinDeviceTypes[t]
+    elif t in deviceTypes:
+        return deviceTypes[t]
+    else:
+        return RemoteDevice
+
 
 def init_devices():
         

@@ -10,6 +10,9 @@ import pavillion
 
 servers_by_skey =weakref.WeakValueDictionary()
 
+#Indexed by name, contains ((ip,port),time)
+discovered_addresses = {}
+discovered_addresses_atomic = {}
 class RemoteError(Exception):
     pass
 
@@ -32,10 +35,19 @@ def dbg(*a):
         print (a)
 
 def is_multicast(addr):
+    #TODO: Do multicast URLs exist?
+    if ".local" in addr:
+        return False
     if not ":" in addr:
         a = addr.split(".")
-        if 224<= int(a[0]) <= 239:
-            return True
+        if(len(a)!=4):
+            return False
+        try:
+            if 224<= int(a[0]) <= 239:
+                return True
+        except:
+            #Not an int, that can't be an IP
+            return False
         return False
     else:
         if addr.startswith('ff') or addr.startswith("FF"):
@@ -101,12 +113,23 @@ class RemoteServerInterface():
             raise NotConnected()
         return s
 
+    def remoteMonotonic(self):
+        return time.monotonic() - self._getServer().remoteMonotonicTimeOffset
+
+    def toLocalMonotonic(self,t):
+        "Convert a time in remote monotonic to the corresponding time in local monotonic"
+        return self._getServer().remoteMonotonicTimeOffset+t
+
+    def toRemoteMonotonic(self,t):
+        "Convert a time in local monotonic to the corresponding time in remote monotonic"
+        return t-self._getServer().remoteMonotonicTimeOffset
+    
     def battery(self):
         "Returns bettery in percent, or raises NotConnected"
         return self._getServer().status().battery
     
     def batteryState(self):
-        "Returns bettery in percent, or raises NotConnected"
+        "Returns battery state as one of charging, discharging, generating, slowcharging, unknown"
         return self._getServer().status().batteryState
     
     def temperature(self):
@@ -114,12 +137,17 @@ class RemoteServerInterface():
         return self._getServer().status().temp
 
     def rssi(self):
-        "Returns temperature in C, or raises NotConnected"
+        "Returns RSSI in dbm"
         return self._getServer().status().rssi
 
     def netType(self):
         "Returns temperature in C, or raises NotConnected"
         return self._getServer().status().netType
+
+    def address(self):
+        #Returns the current addr of the server
+        return self._getServer().addr
+    
 
 
 class _RemoteServer():
@@ -181,7 +209,7 @@ class _RemoteServer():
         m = struct.pack("<Q",counter)+struct.pack("<B",opcode)+data
         self.clientObject.sock.sendto(b"PavillionS0"+m, addr or self.clientObject.server_address)
 
-    def sendNonceRequest(self,addr):
+    def sendNonceRequest(self,addr, force_mcast=False):
         if time.time()-self.lastNonceRequestRateLimitTimestamp >10:
             self.lastNonceRequestRateLimitTimestamp = time.time()
             self.nonceRequestCounter = 0
@@ -275,6 +303,8 @@ class _RemoteServer():
                 #Message 5 is a "New server join" message, which is sent by a server to the multicast
                 #Address when if first joins. It may also be unicast back to the last known addresses of clients,
                 #To provide for fast reconnection if the server is powered off. Don't wear out flash memory though.
+
+                #If we aren't saving last known addresses, we can just send to a predefined multicast addr too.
                 if opcode==5:
                     dbg("New server join from", addr)
                     self.sendNonceRequest(addr)                
@@ -330,6 +360,13 @@ class _RemoteServer():
                                             pass
                                     self.skey = clientobj.cipher.keyedhash(clientobj.nonce+servernonce,clientobj.psk)
                                     servers_by_skey[self.skey] = self
+
+                                    #The session keys are new, they probably rebooted since we saw them,
+                                    #the time offsets aren't valid anymore
+                                    try:
+                                        del self.remoteMonotonicTimeOffset 
+                                    except:
+                                        pass
                                     #Any message they send can't have been older than this handshake,
                                     #So we accept all counter values.
                                     self.server_counter =0
@@ -387,6 +424,13 @@ class _Client():
         if daemon is None:
             daemon=pavillion.daemon
 
+        #Counter value for the last time sync req we sent
+        self.lastTsReq = 0
+        #send timestamp. in monotonic
+        self.lastTsTimestamp=0
+
+        #We really don't need this most of the time
+        self.enableTimeSync = False
    
         #Last time we were known to be connected
         #We're trying to pretend to be connectionless, so
@@ -499,9 +543,21 @@ class _Client():
             group = socket.inet_aton(address[0])
             mreq = struct.pack('4sL', group, socket.INADDR_ANY)
             self.msock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+            self.ismcast = True
         else:
-            self.msock = False
-
+            # Create the socket
+            self.msock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.msock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)  
+            self.msock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  
+            self.msock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1) 
+            # Bind to the standard pavillion fast reconnect discovery address
+            self.msock.bind((self_address[0],2221))
+            self.msock.settimeout(1)
+            #TODO: Ipv4 only atm.
+            group = socket.inet_aton("224.0.0.251")
+            mreq = struct.pack('4sL', group, socket.INADDR_ANY)
+            self.msock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+            self.ismcast = False
         
         self.running = True
 
@@ -573,22 +629,33 @@ class _Client():
             if self in common.cleanup_refs:
                 common.cleanup_refs.append(weakref.ref(self))
 
-    def send(self, counter, opcode, data,addr=None):
+    def doTimeSync(self):
+        with self.lock:
+            self.counter+=1
+            self.lastTsReq = self.counter
+            self.lastTsTimestamp=time.monotonic()
+            self.send(self.counter, 20, b'')
+
+    def send(self, counter, opcode, data,addr=None,force_multicast=False):
         
         ##Experimental optimization to send to the only known server most of the time if there's only one
-        #We want to send a real broadcast if we haven't done one in 3s, this is really just
+        #We want to send a real broadcast if we haven't done one in 30s, this is really just
         #An optimization for if we ever send frequent bursts of data
         
         #Don't override the address setting though, if manually given
 
         #TODO: decide if this is actually a good idea, and for what opcodes.
+        #I'm making this 30s because we already have other ways of discovery.
         try:
-            if addr==None and len(self.known_servers)==1:
-                if self.lastActualBroadcast> time.time()-3:
-                    for i in self.known_servers:
-                        addr = i
-                else:
-                    self.lastActualBroadcast = time.time()
+            if not force_multicast:
+                if addr==None and len(self.known_servers)==1:
+                    if self.lastActualBroadcast> time.time()-30:
+                        for i in self.known_servers:
+                            #Only do the optimization if we're actually connected
+                            if self.known_servers[i].connectedAt>(time.time()-30):
+                                addr = i
+                    else:
+                        self.lastActualBroadcast = time.time()
         except:
             print(traceback.format_exc())
         if self.psk or self.keypair:
@@ -640,10 +707,13 @@ class _Client():
     def _doKeepAlive(self):
         if self._keepalive_time<time.time()-25:
             try:
-                self.sendMessage('','',b'', reliable=True)
+                self.sendMessage('','',b'', reliable=True, force_multicast_first=True)
             except:
                 pavillion_logger.exception("Error sending keepalive")
             self._keepalive_time=time.time()
+        
+        if self.enableTimeSync:
+            self.doTimeSync()
 
     def countBroadcastSubscribers(self,target):
         with self.subslock:
@@ -670,12 +740,23 @@ class _Client():
                     msg,addr = sock.recvfrom(4096)
                 except socket.timeout:
                     continue
-
-
                 try:
                     if addr in self.known_servers:
                         self.known_servers[addr].onRawMessage(msg,addr)
                     else:
+                        #Don't start nnew connections if they aren't even pavillion.
+                        s = b"PavillionS0"
+                        if not msg.startswith(s):
+                            dbg("Ignored non pavillion message")
+                            continue
+                        #Ignore new server join if we aren't multicast and don't
+                        #already know them
+                        if msg[len(s)+8]==5:
+                            dbg("server join")
+                            if not self.ismcast:
+                                dbg("Ignored irrelveant server join")
+                                continue
+
                         with self.lock:
                             if len(self.known_servers)>self.max_servers:
                                 x = sorted(self.known_servers.values(), key=lambda x:x.secure_lastused)[0]
@@ -731,14 +812,17 @@ class _Client():
         with self.lock:
             return {i:RemoteServerInterface(self.known_servers[i]) for i in self.known_servers if self.known_servers[i].connectedAt>(time.time()-240)}
 
-    def getServer(self):
+    def getServer(self,addr=None):
         """Returns a single server interface object representing one connected physical remote server
             Or None if no servers are connected.
+
+            If addr is provided, only return a server at that ip port.
         """
         with self.lock:
             for i in self.known_servers:
                 if self.known_servers[i].connectedAt>(time.time()-240):
-                    return RemoteServerInterface(self.known_servers[i])
+                    if addr==None or addr==i:
+                        return RemoteServerInterface(self.known_servers[i])
         return None
 
     def onOldMessage(self,addr, counter, opcode, data):
@@ -752,7 +836,7 @@ class _Client():
         #So we don't need to use the usual validation.
 
         #Some stuff is common to messages and RPC calls
-        if opcode==2 or opcode==5:
+        if opcode==1 or opcode==5:
             #Get the message number it's an ack for
             d = struct.unpack("<Q",data[:8])[0]
             #acknowlegement happens even for old messages, so long as they aren't too old.
@@ -788,8 +872,28 @@ class _Client():
 
         #Client accept message
         if opcode==16:
-            pass
+            if len(data)>=8:
+                m=time.monotonic()
+                ts =struct.unpack("<Q",data[:8])[0]
+                server.remoteMonotonicTimeOffset = m-(ts/1000_000)
 
+        #Time Sync Response
+        if opcode==21:
+            tr = time.monotonic()
+            ctr, ts = struct.unpack("<QQ", data[:16])
+            ts/= 1000_000
+            with self.lock:
+                if ctr == self.lastTsReq:
+                    halflatency= ((tr-self.lastTsTimestamp)/2)
+                    server.remoteMonotonicTimeOffset = (tr-halflatency)- ts
+
+        #Handle time sync requests
+        if opcode==20:
+            t = time.monotonic()*1000_000
+            t2 = time.time()*1000_000
+            with self.lock:
+                self.counter +=1
+                self.send(self.counter, 21,struct.pack("<QQQ",counter, int(t), int(t2)))
 
         #Some stuff is common to messages and RPC calls
         if opcode==2 or opcode==5:
@@ -808,10 +912,16 @@ class _Client():
                 #but ONLY if the counter is new.
                 #If the message is old, we don't want old status data
                 if len(data)>=8+3:
-                    server._status = ServerStatus(data[8:8+3])
                     if not server._status.raw == data[8:8+3]:
-                        self.handle().onServerStatusUpdate(server.iface)
+                        nd = True
+                    else:
+                        nd=False                   
         
+                    server._status = ServerStatus(data[8:8+3])
+                    if nd:
+                        self.handle().onServerStatusUpdate(server.iface)
+
+
             #RPC Specific stuff
             elif opcode==5:
                 try:
@@ -824,7 +934,7 @@ class _Client():
                     pass
 
         #Handle S->C messages
-        if  opcode==3:
+        if  opcode==3 or opcode==1:
             d = data.split(b'\n',2)
             #If we have a listener for that message target
             if d[0].decode('utf-8') in self.messageTargets:
@@ -838,7 +948,19 @@ class _Client():
                         def f():
                             i.callback(d[1].decode('utf-8') ,d[2],addr)
                         self.handle().execute(f)
-
+            #If we have a listener for the "All messages"    
+            if None in self.messageTargets:
+                s = self.messageTargets[None]
+                with self.targetslock:
+                    #Look for weakrefs that haven't expired
+                    for i in s:
+                        i = i()
+                        if not i:
+                            continue
+                        def f():
+                            #This is different, we also pass the target.
+                            i.callback(d[0].decode('utf-8'),d[1].decode('utf-8') ,d[2],addr)
+                        self.handle().execute(f)
         #Handle S->C messages.
         if  opcode==1:
             d = data.split(b'\n',2)
@@ -849,17 +971,7 @@ class _Client():
                 self.counter += 1
                 self.send(self.counter,2,struct.pack("<Q",counter),addr)
             
-            #If we have a listener for that message target
-            if d[0].decode('utf-8') in self.messageTargets:
-                s = self.messageTargets[d[0].decode('utf-8')]
-                with self.targetslock:
-                    for i in s:
-                        i = i()
-                        if not i:
-                            continue
-                        def f():
-                            i.callback(d[1].decode('utf-8') ,d[2],addr)
-                        self.handle().execute(f)
+            
         #Explicit subscribe         
         if opcode==13:
              self._seenSubscriber(server, data.decode("utf-8"))
@@ -900,8 +1012,10 @@ class _Client():
                         return
                     del x[s]
 
-    def sendMessage(self, target, name, data, reliable=True, timeout = 10,addr=None):
-        "Attempt to send the message to all subscribers. Does not raise an error on failure, but will attempt retries"
+    def sendMessage(self, target, name, data, reliable=True, timeout = 10,addr=None,force_multicast_first=False):
+        """Attempt to send the message to all subscribers. Does not raise an error on failure, but will attempt retries.
+            force_multicast_first forces the first packet to be a real multicast even if there is only one connected client.
+        """
         with self.lock:
             self.counter+=1
             counter = self.counter
@@ -935,7 +1049,7 @@ class _Client():
             w.target = target
             self.waitingForAck[counter] =w
         
-        self.send(counter, 1 if reliable else 3, target.encode('utf-8')+b"\n"+name.encode('utf-8')+b"\n"+data,addr=addr)
+        self.send(counter, 1 if reliable else 3, target.encode('utf-8')+b"\n"+name.encode('utf-8')+b"\n"+data,addr=addr,force_multicast=force_multicast_first)
 
 
         #Resend loop
@@ -1090,9 +1204,20 @@ class Client():
         self.execute = execute or pavillion.execute
 
 
+    def enableTimeSync(self):
+        self.client.enableTimeSync=True
 
     def messageTarget(self,target,callback):
         return self.client.messageTarget(target, callback)
+
+    @property
+    def remoteAddress(self):
+        """Returns the address of the remote device, or None if disconnected.
+           If the client is in multicast mode, return one if them
+        """
+        for i in self.client.known_servers:
+            if self.client.known_servers[i].connectedAt>(time.time()-60):
+                return i
     @property
     def address(self):
         return self.client.sock.getsockname()
@@ -1180,8 +1305,10 @@ class Client():
 
     def getServers(self):
         return self.client.getServers()
-    def getServer(self):
-        return self.client.getServer()
+
+    def getServer(self,addr=None):
+        return self.client.getServer(addr)
+ 
     def call(self,function,data=b'',timeout=None):
         return self.client.call(function, data,timeout=timeout)
 

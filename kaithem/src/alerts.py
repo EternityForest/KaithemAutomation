@@ -25,7 +25,8 @@ priorities  ={
     'critical': 50
 }
 
-
+#_ and . and / allowed
+illegalCharsInName = "[]{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
 
 
 nextbeep = 10**10
@@ -75,11 +76,11 @@ def highestUnacknowledged():
     if not unacknowledged:
         return
     with lock:
-        l = -1
+        l = 'debug'
         for i in unacknowledged.values():
             i = i()
             if i:
-                if (priorities[i.priority] if not i.sm.state=="error" else 40) > l:
+                if (priorities[i.priority] if not i.sm.state=="error" else 40) > priorities[l]:
                     l = i.priority
         return l
 
@@ -88,25 +89,33 @@ def _highestUnacknowledged():
     #Pre check outside lock for efficiency. 
     if not unacknowledged:
         return
-    l = -1
+    l = 'debug'
     for i in unacknowledged.values():
         i = i()
         if i:
-            #Handle the priority upgrading
-            if (priorities[i.priority] if not i.sm.state=="error" else 40) > l:
+            #Handle the priority upgrading. Error alarms act like error priority
+            if (priorities[i.priority] if not i.sm.state=="error" else "error") > priorities[l]:
                 l = i.priority
     return l
 
 
 def cleanup():
+    "Cleans up the mutable lists, call only under lock"
     global active
     global unacknowledged
-    for i in _active.keys():
-        if active[i]()==None:
-            del active[i]
-    for i in _unacknowledged.keys():
+    for i in list(_active.keys()):
+        if _active[i]()==None:
+            try:
+                del _active[i]
+            except KeyError:
+                pass
+        active = _active.copy()
+    for i in list(_unacknowledged.keys()):
         if _unacknowledged[i]()==None:
-            del _unacknowledged[i]
+            try:
+                del _unacknowledged[i]
+            except KeyError:
+                pass
 
 class Alert(virtualresource.VirtualResource):
     def __init__(self, name, priority="info", zone=None, tripDelay=0, autoAck=False,
@@ -142,6 +151,16 @@ class Alert(virtualresource.VirtualResource):
         There is no cleanup action required when deleting an alarm, nor
         is there any need for unique names. However ID
         """
+
+
+
+        if name =="":
+            raise ValueError("Alert with empty name")
+
+        for i in illegalCharsInName:
+            if i in name:
+                raise ValueError("Illegal char in alert name: "+i)
+
         virtualresource.VirtualResource.__init__(self)
 
         self.permissions    = permissions + ['/users/alarms.view']
@@ -158,10 +177,10 @@ class Alert(virtualresource.VirtualResource):
         self.sm = statemachines.StateMachine("normal")
 
         self.sm.addState("normal")
-        self.sm.addState("tripped")
+        self.sm.addState("tripped",enter=self._onTrip)
         self.sm.addState("active", enter=self._onActive)
         self.sm.addState("acknowledged", enter=self._onAck)
-        self.sm.addState("cleared")
+        self.sm.addState("cleared", enter=self._onClear)
         self.sm.addState("error")
 
         #After N seconds in the trip state, we go active
@@ -243,9 +262,7 @@ class Alert(virtualresource.VirtualResource):
             unacknowledged = _unacknowledged.copy()
         calcNextBeep()
 
-    def trip(self):
-        self.sm.event("trip")
-        self.trippedAt = time.time()
+    def _onTrip(self):
         if self.priority in ("error, critical"):
             logger.error("Alarm "+self.name +" tripped")
         if self.priority in ("warning"):
@@ -253,6 +270,10 @@ class Alert(virtualresource.VirtualResource):
         else:
             logger.info("Alarm "+self.name +" tripped")
 
+    def trip(self):
+        self.sm.event("trip")
+        self.trippedAt = time.time()
+        
     def clear(self):
         global active
         with lock:
@@ -261,12 +282,15 @@ class Alert(virtualresource.VirtualResource):
                 del _active[self.id]
             active = _active.copy()
         self.sm.event("release")
+
+    def _onClear(self):
         logger.info("Alarm "+self.name +" cleared")
 
 
     def __del__(self):
         self.acknowledge()
         self.clear()
+        cleanup()
     
     def acknowledge(self,by="unknown"):
         self.sm.event("acknowledge")

@@ -49,23 +49,76 @@
                 "eth0",
                 "eth1",
                 "eth2",
+                "wlp2s0",
                 "wlan0",
                 "wlan1",
                 "wifi0",
+                "wlo0",
+                "wlo1",
                 "ath0",
                 "ath1",
                 "ppp0",
+                "tun0",
                 ]
             for ifname in interfaces:
                 try:
                     ip = get_interface_ip(ifname)
+                    s = ifname
                     if not ip.startswith("127."):
                         break
                 except IOError:
                     pass
-        return ip
+        return ip,s
 
+
+    def list_ips():
+        ips={}
+        
+        if os.name != "nt":
+            interfaces = [
+                "eth0",
+                "eth1",
+                "eth2",
+                "wlp2s0",
+                "wlan0",
+                "wlan1",
+                "wifi0",
+                "wlo0",
+                "wlo1",
+                "ath0",
+                "ath1",
+                "ppp0",
+                "tun0",
+                ]
+            for ifname in interfaces:
+                try:
+                    ips[ifname]=[get_interface_ip(ifname),None]
+                except IOError:
+                    pass
+        try:
+            import netifaces
+            x =[iface for iface in netifaces.interfaces()]
+            for i in x:
+                try:
+                    v4 = netifaces.ifaddresses(i)[netifaces.AF_INET][0]['addr']
+                except:
+                    v4= None
+
+                try:
+                    v6 = netifaces.ifaddresses(i)[netifaces.AF_INET6][0]['addr']
+                except:
+                    v6= None
+
+
+                ips[i]=[v4,v6]
+        except ImportError:
+            pass
+     
+        return sorted(ips.items())
+
+lanip =get_lan_ip()
 %>
+<script src="/static/qrcode.min.js"></script>
 
     <%include file="/pageheader.html"/>
 	<title>About Kaithem </title>
@@ -79,15 +132,19 @@
     <div class="sectionbox">
     <b>Version:</b> ${kaithem.__version__|h}
     </div>
-    <br>
     <div class="sectionbox">
+        <b>LAN access QR(${lanip[1]}):</b><br>
+        <div id="lanqr"></div>
+        <script>
+        new QRCode(document.getElementById("lanqr"), "https://${lanip[0]}:${config['https-port']}");
+        </script>
+    </div>
+    <br>
+<div class="sectionbox">
 <p>
 <h3>IP Data</h3>
     <table border=1>
-        <tr>
-            <td>LAN IP Adress</td>
-            <td>${get_lan_ip()}</td>
-        </tr><tr>
+       <tr>
             <td>WAN(Public) IP when sys loaded</td>
             <td>${myip}</td>
         </tr>
@@ -99,6 +156,23 @@
             <td>HTTP(Unsecure) Port</td>
             <td>${config['http-port']}</td>
         </tr>
+    </table>
+
+
+    <h3>Addresses</h3>
+    <table border=1>
+        <tr>
+            <th>Device</th><th>IPv4</th><th>IPv6</th>
+        </tr>
+        %for i in list_ips():
+        <tr>
+            <td>${i[0]}</td>
+            <td>${i[1][0]}</td>
+            <td>${i[1][1]}</td>
+
+        </tr>
+        %endfor
+        
     </table>
 </p>
 <p>
@@ -283,675 +357,59 @@ def module_version(m):
                 </div>
 
 
-                <h2>Acknowledgements</h2>
-                <div class="sectionbox">
-                    <h3>Python Libraries Used(License info not guaranteed)</h3>
-                    <dl>
-                        <dt><a href="http://www.cherrypy.org/">CherryPy(Web Framework)</a>(BSD License)</dt>
-                        <dd>
-                            <pre>
-    Copyright (c) 2004-2011, CherryPy Team (team@cherrypy.org)
-    All rights reserved.
-
-    Redistribution and use in source and binary forms, with or without modification,
-    are permitted provided that the following conditions are met:
-
-        * Redistributions of source code must retain the above copyright notice,
-          this list of conditions and the following disclaimer.
-        * Redistributions in binary form must reproduce the above copyright notice,
-          this list of conditions and the following disclaimer in the documentation
-          and/or other materials provided with the distribution.
-        * Neither the name of the CherryPy Team nor the names of its contributors
-          may be used to endorse or promote products derived from this software
-          without specific prior written permission.
-
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
-    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-    </pre>
-                        </dd>
-                        <dt><a href="http://www.makotemplates.org/">Mako(HTML Template Engine)</a>(MIT License)</dt>
-                        <dd>
-                            <pre>
-This is the MIT license: http://www.opensource.org/licenses/mit-license.php
-
-Copyright (C) 2006-2012 the Mako authors and contributors <see AUTHORS file>.
-Mako is a trademark of Michael Bayer.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this
-software and associated documentation files (the "Software"), to deal in the Software
-without restriction, including without limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
-to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or
-substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
-PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
-FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-</pre>
-                        </dd>
-
-                        <dt><a href="http://www.pyyaml.org/">PyYAML(YAML Parser)</a>(MIT License)</dt>
-                        <dd>
-                            <pre>
-Copyright (c) 2006 Kirill Simonov
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished to do
-so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-</pre>
-                        </dd>
-
-                        <dt><a href="https://pypi.python.org/pypi/astral">Astral(Astronomical calculations)</a>(Apache 2.0)</dt>
-                        <dd>
-                            <pre>
-Copyright 2009-2012, Simon Kennedy, code@sffjunkie.co.uk
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-  http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-</pre>
-                        </dd>
-                        <dt><a href="http://pytz.sourceforge.net/">pytz(Time Zones)</a>(MIT)</dt>
-                        <dd>
-                            <pre>
-Copyright (c) 2003-2009 Stuart Bishop <stuart@stuartbishop.net>
-
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation
-the rights to use, copy, modify, merge, publish, distribute, sublicense,
-and/or sell copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-</pre>
-                        </dd>
-                        <dt><a href="https://labix.org/python-dateutil">dateutil</a>(BSD)</dt>
-                        <dd>
-                            <pre>
-dateutil - Extensions to the standard python 2.3+ datetime module.
-
-Copyright (c) 2003-2011 - Gustavo Niemeyer <gustavo@niemeyer.net>
-
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-    * Redistributions of source code must retain the above copyright notice,
-      this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
-    * Neither the name of the copyright holder nor the names of its
-      contributors may be used to endorse or promote products derived from
-      this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-</pre>
-                        </dd>
-
-                        <dt><a href="http://hacks.bluesmoon.info/strftime/index.html#intro_sec">strftime for javascript</a>(MIT)</dt>
-                        <dd>
-                            <pre>
-Copyright (c) 2008, Philip S Tellis &ltphilip@bluesmoon.info&gt
-All rights reserved.
-
-This code is distributed under the terms of the BSD licence
-
-Redistribution and use of this software in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-* Redistributions of source code must retain the above copyright notice, this list of conditions
- and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright notice, this list of
- conditions and the following disclaimer in the documentation and/or other materials provided
- with the distribution.
-* The names of the contributors to this file may not be used to endorse or promote products
- derived from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
-WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
-TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-</pre>
-                        </dd>
-                        <dt><a href="https://github.com/sunlightlabs/validictory">Validictory(Config file validation)</a>(MIT)</dt>
-                        <dd>
-                            <pre>
-Copyright (c) 2013 Sunlight Labs, James Turk
-Contains code from jsonschema 0.2, copyright 2008 Ian Lewis, Yusuke Muraoka
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished to do
-so, subject to the following conditions:
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-</pre>
-                        </dd>
-                        <dt><a href="http://code.google.com/p/yappi/">Yappi(Performance Profiler, must be installed separately
-                                to enable profiling)</a>(MIT)</dt>
-                        <dd>
-                            <pre>
-Copyright (c) 2009-2014 Sumer Cip
-
-Permission is hereby granted, free of charge, to any person
-obtaining a copy of this software and associated documentation
-files (the "Software"), to deal in the Software without
-restriction, including without limitation the rights to use,
-copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
-</pre>
-                        </dd>
-                        <dt><a href="http://code.google.com/p/ntplib/">ntplib(Network time protocol stuff)</a>(LGPL)</dt>
-                        <dd>
-                            <pre>
-ntplib - Python NTP library.
-Copyright (C) 2009 Charles-Francois Natali <neologix@free.fr>
-
-ntplib is free software; you can redistribute it and/or modify it under the
-terms of the GNU Lesser General Public License as published by the Free
-Software Foundation; either version 2 of the License, or (at your option) any
-later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
-details.
-
-You should have received a copy of the GNU Lesser General Public License along
-with this program; if not, write to the Free Software Foundation, Inc., 59
-Temple Place, Suite 330, Boston, MA 0.1.2-1307 USA
-</pre>
-                        </dd>
-                        <dt><a href="https://ws4py.readthedocs.org/en/latest/">ws4py(Websocket Support)</a>(BSD License)</dt>
-                        <dd>
-                            <pre>
-NOTICE: The version of ws4py included with kaithem has been modified by the author of kaithem.
-
-
-Copyright (c) 2011-2014, Sylvain Hellegouarch
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
- * Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
- * Redistributions in binary form must reproduce the above copyright
-   notice, this list of conditions and the following disclaimer in the
-   documentation and/or other materials provided with the distribution.
- * Neither the name of ws4py nor the names of its contributors may be used
-   to endorse or promote products derived from this software without
-   specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-POSSIBILITY OF SUCH DAMAGE.
-</pre>
-                        </dd>
-                        <dt><a href="https://github.com/kvh/recurrent">recurrent(Natural language datetime)</a>(MIT License)</dt>
-                        <dd>
-                            <pre>
-Copyright (c) 2012 Ken Van Haren
-
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-</dt></pre>
-
-                            <dt><a href="https://github.com/bear/parsedatetime">parsedatetime(Natural language datetime)</a>(Apache
-                                2.0)
-                            </dt>
-                            <dd>
-                                <pre>
-Copyright 2004-2014 Mike Taylor
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-</pre>
-                            </dd>
-
-                            <dt><a href="https://microsoft.github.io/monaco-editor/index.html">Monaco</a></dt>
-                            <dd>
-                                <pre>
-Copyright (c) 2016 Microsoft Corporation
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this
-software and associated documentation files (the "Software"), to deal in the Software
-without restriction, including without limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
-to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or
-substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
-PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
-FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-</pre>
-                            </dd>
-
-
-                            <dt><a href="http://docs.python-requests.org/en/master/">Requests</a>(Apache)</dt>
-                            <dd>
-                                <pre>
-Copyright 2016 Kenneth Reitz
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-</pre>
-
-                                <dt><a href="http://pythonhosted.org/six/">Six</a>(MIT)</dt>
-                                <dd>
-                                    <pre>
-    Copyright (c) 2010-2015 Benjamin Peterson
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy of
-    this software and associated documentation files (the "Software"), to deal in
-    the Software without restriction, including without limitation the rights to
-    use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-    the Software, and to permit persons to whom the Software is furnished to do so,
-    subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-    FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-    COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-    IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-    CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-</pre>
-                                </dd>
-
-                                <dt><a href="https://github.com/beautify-web/js-beautify">js-beautify</a>(Code formatter)</dt>
-
-                                <dd>
-                                    <pre>
-    The MIT License (MIT)
-
-Copyright (c) 2007-2017 Einar Lielmanis, Liam Newman, and contributors.
-
-Permission is hereby granted, free of charge, to any person obtaining 
-a copy of this software and associated documentation files (the "Software"), 
-to deal in the Software without restriction, including without limitation
- the rights to use, copy, modify, merge, publish, distribute, sublicense,
- and/or sell copies of the Software, and to permit persons to whom the Software 
-is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all 
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE 
-OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    </pre>
-                                </dd>
-
-                            </dd>
-
-                            <dt><a href="https://github.com/neogeny/tatsu">TatSu</a>(BSD-Style)</dt>
-                            <dd>
-                                <pre>
-TATSU - A PEG/Packrat parser generator for Python
-
-Copyright (C) 2017 Juancarlo Añez
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without modification, 
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, 
-this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-this list of conditions and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
-LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
-POSSIBILITY OF SUCH DAMAGE.
-</pre>
-                            </dd>
-
-                            <dt><a href="https://github.com/cillian64/ntpserver">ntpserver</a>(Pure python NTP server)</dt>
-                            <dd>
-                                <pre>The MIT License (MIT)
-
-Copyright (c) {{{2014}}} {{{ChenLi}}}
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.</pre>
-                            </dd>
-
-                    <dt><a href="https://github.com/jstasiak/python-zeroconf">python-zeroconf</a></dt>
-                    <dd>
-                        <pre>Multicast DNS Service Discovery for Python, v0.14-wmcbrine
-Copyright 2003 Paul Scott-Murphy, 2014 William McBrine
-
-This module provides a framework for the use of DNS Service Discovery
-using IP multicast.
-
-This library is free software; you can redistribute it and/or
-modify it under the terms of the GNU Lesser General Public
-License as published by the Free Software Foundation; either
-version 2.1 of the License, or (at your option) any later version.
-
-This library is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public
-License along with this library; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301
-USA</pre></dd></dl>
-
-
-<h3>Libraries used in Kaithem for Devices Arduino code</h3>
-<dl>
-
-    <dt><a href="https://tweetnacl.cr.yp.to/index.html">TweetNaCl</a></dt>
-    <dd>Public Domain tp the best of my knowledge.</dd>
-
-    <dt><a href="https://github.com/compuphase/minIni">minIni</a></dt>
-    <dd>
-<pre>
-    /*  minIni - Multi-Platform INI file parser, suitable for embedded systems
- *
- *  These routines are in part based on the article "Multiplatform .INI Files"
- *  by Joseph J. Graf in the March 1994 issue of Dr. Dobb's Journal.
- *
- *  Copyright (c) CompuPhase, 2008-2017
- *
- *  Licensed under the Apache License, Version 2.0 (the "License"); you may not
- *  use this file except in compliance with the License. You may obtain a copy
- *  of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- *  License for the specific language governing permissions and limitations
- *  under the License.
- *
-</pre></dd>
-
-
-<dt><a href="http://www.squirrel-lang.org/">Squirrel</a></dt>
-<dd><pre>/*
-    Copyright (c) 2003-2017 Alberto Demichelis
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-    The above copyright notice and this permission notice shall be included in
-    all copies or substantial portions of the Software.
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-    THE SOFTWARE.
-    */</pre></dd>
-
-<dt><a href="https://github.com/rweather/arduinolibs">Crypto(Used for BLAKE2B)</a></dt>
-<dd><pre>/*
-    * Copyright (C) 2015,2018 Southern Storm Software, Pty Ltd.
-    *
-    * Permission is hereby granted, free of charge, to any person obtaining a
-    * copy of this software and associated documentation files (the "Software"),
-    * to deal in the Software without restriction, including without limitation
-    * the rights to use, copy, modify, merge, publish, distribute, sublicense,
-    * and/or sell copies of the Software, and to permit persons to whom the
-    * Software is furnished to do so, subject to the following conditions:
-    *
-    * The above copyright notice and this permission notice shall be included
-    * in all copies or substantial portions of the Software.
-    *
-    * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-    * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-    * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-    * DEALINGS IN THE SOFTWARE.
-    */</pre></dd>
-
-    <dt><a href="https://github.com/devsnd/tinytag">TinyTag(Audio Metadata)</a></dt>
-    <dd><pre>/*
-            MIT License
-
-            Copyright (c) 2014-2017 Tom Wallroth
-            
-            Permission is hereby granted, free of charge, to any person obtaining a copy
-            of this software and associated documentation files (the "Software"), to deal
-            in the Software without restriction, including without limitation the rights
-            to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-            copies of the Software, and to permit persons to whom the Software is
-            furnished to do so, subject to the following conditions:
-            
-            The above copyright notice and this permission notice shall be included in all
-            copies or substantial portions of the Software.
-            
-            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-            IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-            FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-            AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-            LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-            SOFTWARE.</pre></dd>
-</dl>
-
-
-
-                    </ul>
-                    <h3>Command Line Utilities</h3>
-                    <ul>
-                        <li><a href="http://www.mplayerhq.hu/design7/news.html">mplayer(Default audio backend)</a></li>
-                        <li><a href="http://www.lm-sensors.org/">lm-sensors(Used for about box temperature display if availible</a></li>
-                        <li><a href="https://piware.de/2012/02/fatrace-report-system-wide-file-access-events/">fatrace(Monitor
-                                filesystem access)</a></li>
-                    </ul>
-
-                    <h3>Graphics</h3>
-                    <ul>
-                        <li><a href="http://webtreats.mysitemyway.com/">Webtreats ETC(Main background in the default scrapbook
-                                theme)</a></li>
-                        <li><a href="http://www.famfamfam.com/lab/icons/silk/">Silk Icon Pack( Creative Commons Attribution
-                                2.5)
-                            </a></li>
-                        <li><a href="https://openclipart.org/detail/1337/large-barrel">kevie at openclipart.org</a></li>
-                        <li><a href="http://sourcefoundry.org/hack/">Hack</a>(Font for source code)</a>
-                            <li><a href="https://viglino.github.io/iconicss/?icon=circle&page=license">iconicss</a>(Another
-                                icon pack)</li>
-                            <li><a href="https://fontawesome.com/">Font Awesome</a>(More icons)</li>
-                            <li><a href="http://p.yusukekamiyamane.com/">Fuge Icons</a> by Yusuke Kamiyamane. Licensed under
-                                a Creative Commons Attribution 3.0 License.</li>
-                    </ul>
-                    <h3>Tools</h3>
-                    <p>Kaithem is developed using open source tools.></p>
-                    <ul>
-                        <li><a href="http://www.gimp.org/">GIMP(Image Editor)</a></li>
-                        <li><a href="https://krita.org/">Krita(Photo editing and digital painting)</a></li>
-                        <li><a href="https://code.visualstudio.com/">Visual Studio Code</a></li>
-                        <li><a href="https://www.python.org/">Python (Language)</a></li>
-                        <li><a href="https://www.debian.org/">Debian (Linux Distro)</a></li>
-                        <li><a href="http://www.linuxmint.com/index.php">Linux Mint (Linux Distro)</a></li>
-                        <li><a href="https://www.kde.org/plasma-desktop">KDE Plasma(Linux desktop environment)</a></li>
-                        <li><a href="http://bluegriffon.org/">BlueGriffon (Web Editor, UI Prototyping)</a></li>
-                        <li><a href="https://github.com/alonho/pystuck">pystuck(Python debugging tool)</a></li>
-                        <li><a href="http://winpdb.org/">winpdb</a></li>
-                    </ul>
-                    <h3>Other</h3>
-                    <ul>
-                        <li><a href="http://www.jigsawrenaissance.org/">Jigsaw Renaissance</a></li>
-                        <li><a href="http://stackoverflow.com/">Stack Overflow</a></li>
-                        <li><a href="http://www.raspberrypi.org/">Raspberry Pi</a></li>
-                        <li><a href="https://github.com/">GitHub</a></li>
-                        <li><a href="http://en.wikipedia.org/wiki/Harvard_sentences">The Harvard Sentences(Some of the quotes
-                                in the login screen)</a></li>
-                        <li><a href="https://freesound.org/people/fins/">fins</a> and <a href="https://freesound.org/people/KIZILSUNGUR"
-                            />KIZILSUNGUR</a> of <a href="https://freesound.org/">freesound.org</a></li>
-                    </ul>
-
-                </div>
-                <%include file="/pagefooter.html"/>
+<h2>Acknowledgements</h2>
+<div class="sectionbox">
+    <h3>General</h3>
+Kaithem is powered by CherryPy, Mako, and WS4Py, and too many libs to list here! See the legal page for the full list!
+
+    <h3>Command Line Utilities</h3>
+    <ul>
+        <li><a href="http://www.mplayerhq.hu/design7/news.html">mplayer(Default audio backend)</a></li>
+        <li><a href="http://www.lm-sensors.org/">lm-sensors(Used for about box temperature display if availible</a></li>
+        <li><a href="https://piware.de/2012/02/fatrace-report-system-wide-file-access-events/">fatrace(Monitor
+                filesystem access)</a></li>
+    </ul>
+
+    <h3>Graphics</h3>
+    <ul>
+        <li><a href="http://webtreats.mysitemyway.com/">Webtreats ETC(Main background in the default scrapbook
+                theme)</a></li>
+        <li><a href="http://www.famfamfam.com/lab/icons/silk/">Silk Icon Pack( Creative Commons Attribution
+                2.5)
+            </a></li>
+        <li><a href="https://openclipart.org/detail/1337/large-barrel">kevie at openclipart.org</a></li>
+        <li><a href="http://sourcefoundry.org/hack/">Hack</a>(Font for source code)</a>
+            <li><a href="https://viglino.github.io/iconicss/?icon=circle&page=license">iconicss</a>(Another
+                icon pack)</li>
+            <li><a href="https://fontawesome.com/">Font Awesome</a>(More icons)</li>
+            <li><a href="http://p.yusukekamiyamane.com/">Fuge Icons</a> by Yusuke Kamiyamane. Licensed under
+                a Creative Commons Attribution 3.0 License.</li>
+    </ul>
+    <h3>Tools</h3>
+    <p>Kaithem is developed using open source tools.></p>
+    <ul>
+        <li><a href="http://www.gimp.org/">GIMP(Image Editor)</a></li>
+        <li><a href="https://krita.org/">Krita(Photo editing and digital painting)</a></li>
+        <li><a href="https://code.visualstudio.com/">Visual Studio Code</a></li>
+        <li><a href="https://www.python.org/">Python (Language)</a></li>
+        <li><a href="https://www.debian.org/">Debian (Linux Distro)</a></li>
+        <li><a href="http://www.linuxmint.com/index.php">Linux Mint (Linux Distro)</a></li>
+        <li><a href="https://www.kde.org/plasma-desktop">KDE Plasma(Linux desktop environment)</a></li>
+        <li><a href="http://bluegriffon.org/">BlueGriffon (Web Editor, UI Prototyping)</a></li>
+        <li><a href="https://github.com/alonho/pystuck">pystuck(Python debugging tool)</a></li>
+        <li><a href="http://winpdb.org/">winpdb</a></li>
+    </ul>
+    <h3>Other</h3>
+    <ul>
+        <li><a href="http://www.jigsawrenaissance.org/">Jigsaw Renaissance</a></li>
+        <li><a href="http://stackoverflow.com/">Stack Overflow</a></li>
+        <li><a href="http://www.raspberrypi.org/">Raspberry Pi</a></li>
+        <li><a href="https://github.com/">GitHub</a></li>
+        <li><a href="http://en.wikipedia.org/wiki/Harvard_sentences">The Harvard Sentences(Some of the quotes
+                in the login screen)</a></li>
+        <li><a href="https://freesound.org/people/fins/">fins</a> and <a href="https://freesound.org/people/KIZILSUNGUR"
+            />KIZILSUNGUR</a> of <a href="https://freesound.org/">freesound.org</a></li>
+    </ul>
+
+</div>
+<%include file="/pagefooter.html"/>

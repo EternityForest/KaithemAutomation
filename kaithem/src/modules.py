@@ -18,7 +18,7 @@ import threading,urllib,shutil,sys,time,os,json,traceback,copy,hashlib,logging,u
 import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling,modules_state,registry,remotedevices
 from .modules_state import ActiveModules,modulesLock,scopes,additionalTypes,fileResourceAbsPaths
-
+from .virtualresource import VirtualResource, VirtualResourceInterface
 
 
 logger = logging.getLogger("system")
@@ -56,6 +56,9 @@ modulehashes = {}
 
 
 def hashModules():
+    """For some unknown lagacy reason, the hash of the entire module state is different from the hash of individual modules 
+        hashed together
+    """
     try:
         m=hashlib.md5()
         with modulesLock:
@@ -242,69 +245,7 @@ class ModuleObject(object):
                     additionalTypes[resourcetype].onload(module,name, value)
 
 
-class VirtualResource(object):
-    def __init__(self):
-        self.__interfaces = []
-        self.__lock=threading.Lock()
-        self.replacement =None
-        self.name = None
 
-    def __repr__(self):
-        return "<VirtualResource at "+str(id(self))+" of class"+str(self.__class__)+">"
-
-    def __html_repr__(self):
-        return "VirtualResource at "+str(id(self))+" of class"+str(self.__class__.__name__)+""
-
-    def interface(self,name):
-        if not self.replacement:
-
-            with self.__lock:
-                x= VirtualResourceInterface(self,name)
-                self.__interfaces.append(weakref.ref(x))
-                #Make a list of all interfaces that need removing
-                torm = []
-                for i in self.interfaces:
-                    if not i():
-                        torm.append(i)
-
-                #remove them
-                for i in torm:
-                    self.__interfaces.remove()
-        else:
-            return self.replacement.interface(self.name)
-
-    def handoff(self,other):
-        with self.__lock:
-            #Change all interfaces to this object to point to the new object.
-            for i in self.__interfaces:
-                try:
-                    i()._resource_object = other
-                except:
-                    pass
-
-            self.replacement = other
-
-class VirtualResourceInterface(object):
-    def __init__(self,resource):
-        self._resource_object = resource
-    def __repr__(self):
-        return self._resource_object.__repr__()
-    def __html_repr__(self):
-        return self._resource_object.__html_repr__()
-    def __call__(self,*args,**kwargs):
-        return self._resource_object.__repr__()
-    @property
-    def __doc__(self):
-        return self._resource_object.__doc__
-
-    def __getattr__(self,attr):
-        return getattr(self._resource_object, attr)
-
-    def __setattr__(self,k,v):
-        if not k == "_resource_object":
-            setattr(self._resource_object, k,v)
-        else:
-            object.__setattr__(self,k,v)
 
 #This is used for the kaithem object.
 class ResourceAPI(object):
@@ -345,6 +286,8 @@ def insertVirtualResource(modulename:str,name:str,value:VirtualResource):
 
         #Set the value's "name". A virtual resource may only have one "hard link". The rest of the links, if you insert under multiple
         #names, will work, but won't be the "real" name, and subscriptions and things like that are always to the real name.
+        
+        #VResources can have names set elsewhere, and those are respected
         if not value.name:
             value.name="x-module:"+ util.url(modulename)+"/"+ "/".join([util.url(i) for i in util.split_escape(name,"/","\\")])
 
@@ -790,6 +733,8 @@ def loadModule(folder:str, modulename:str, ignore_func=None):
                     if os.path.basename(root) == "__filedata__":
                         if not os.path.exists(os.path.join(directories.vardir,"modules","filedata")):
                             os.makedirs(os.path.join(directories.vardir,"modules","filedata"),700)
+
+                        #Special case handling of if we are loading from the data dir
                         if util.in_directory(fn, directories.datadir):
                             shutil.copy(fn, os.path.join(directories.vardir,"modules","filedata"))
                         continue
@@ -831,7 +776,7 @@ def loadModule(folder:str, modulename:str, ignore_func=None):
         scopes[modulename] = ModuleObject(modulename)
         ActiveModules[modulename] = module
         messagebus.postMessage("/system/modules/loaded",modulename)
-        logger.info("Loaded module "+modulename)
+        logger.info("Loaded module "+modulename +" with md5 "+getModuleHash(modulename))
         #bookkeeponemodule(name)
 
 def getModuleAsZip(module:str,noFiles:bool=True):
@@ -889,33 +834,36 @@ def load_modules_from_zip(f,replace=False):
             new_modules[p] = {}
         try:
             if not  "__filedata__" in p:
-                f = z.open(i)
-                r = yaml.load(f.read().decode())
-                if r==None:
-                    raise RuntimeError("Attempting to decode file "+str(i)+" resulted in a value of None")
-                new_modules[p][n] = r
-                if r['resource-type'] == "internal-fileref":
-                    newfrpaths[p,n] = os.path.join(directories.vardir,"modules","filedata",r['target'])
-
-                f.close()
+                try:
+                    f = z.open(i)
+                    r = yaml.load(f.read().decode())
+                    if r==None:
+                        raise RuntimeError("Attempting to decode file "+str(i)+" resulted in a value of None")
+                    new_modules[p][n] = r
+                    if r['resource-type'] == "internal-fileref":
+                        newfrpaths[p,n] = os.path.join(directories.vardir,"modules","filedata",r['target'])
+                finally:
+                    f.close()
             else:
-                inputfile = z.open(i)
-                folder = os.path.join(directories.vardir,"modules","filedata")
-                util.ensure_dir2(folder)
-                data_basename = util.unurl(i.split('/')[1])
-                dataname = os.path.join(folder,data_basename)
+                try:
+                    inputfile = z.open(i)
+                    folder = os.path.join(directories.vardir,"modules","filedata")
+                    util.ensure_dir2(folder)
+                    data_basename = util.unurl(i.split('/')[1])
+                    dataname = os.path.join(folder,data_basename)
 
-                total = 0
-                with open(dataname,"wb") as f:
-                    while True:
-                        d = inputfile.read(8192)
-                        total += len(d)
-                        if total> 8*1024*1024*1024:
-                            raise RuntimeError("Cannot upload resource file bigger than 8GB")
-                        if not d:
-                            break
-                        f.write(d)
-                inputfile.close()
+                    total = 0
+                    with open(dataname,"wb") as f:
+                        while True:
+                            d = inputfile.read(8192)
+                            total += len(d)
+                            if total> 8*1024*1024*1024:
+                                raise RuntimeError("Cannot upload resource file bigger than 8GB")
+                            if not d:
+                                break
+                            f.write(d)
+                finally:
+                    inputfile.close()
                 newfrpaths[p,n] = dataname
         except:
             raise RuntimeError("Could not correctly process "+str(i))

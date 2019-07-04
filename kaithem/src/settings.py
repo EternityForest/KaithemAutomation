@@ -52,6 +52,12 @@ class Settings():
         return pages.get_template("settings/threads.html").render()
 
     @cherrypy.expose
+    def mdns(self):
+        """Return a page showing all of the discovered stuff on the LAN"""
+        pages.require("/admin/settings.view", noautoreturn=True)
+        return pages.get_template("settings/mdns.html").render()
+
+    @cherrypy.expose
     def stopsounds(self,*args,**kwargs):
         """Used to stop all sounds currently being played via kaithem's sound module"""
         pages.require("/admin/settings.edit", noautoreturn=True)
@@ -129,6 +135,9 @@ class Settings():
                 t = p.communicate(b'')
                 x+= t[0]+t[1]
                 p.kill()
+                p.stdout.close()
+                p.stderr.close()
+                p.stdin.close()
             except:
                 pass
             return pages.get_template("settings/console.html").render(output=x)

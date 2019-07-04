@@ -18,6 +18,8 @@ from decimal import Decimal
 from tinytag import TinyTag
 
 
+logger = logging.getLogger("system.chandler")
+
 import numpy
 import hashlib
 import base64
@@ -27,6 +29,17 @@ abs=abs
 int=int
 max=max
 min=min
+
+
+#when the last time we logged an error, so we can ratelimit
+lastSysloggedError =0
+
+def rl_log_exc(m):
+    print(m)
+    global lastSysloggedError
+    if lastSysloggedError< time.monotonic()-5*60:
+        logging.exception(m)
+    lastSysloggedError= time.monotonic()
 
 module.boards = []
 
@@ -285,6 +298,10 @@ To use this, add a layer below containing the base colors. The flicker layer wil
         self.heights_lp = {}
 
     def frame(self,u,old,values,alphas,alpha):
+        #It's always changing so always rerender
+        self.scene.rerender = True
+
+
         if not u in self.heights:
             if u in module.universes:
                 self.heights[u] = makeBlankArray(len(module.universes[u].values))
@@ -309,8 +326,6 @@ To use this, add a layer below containing the base colors. The flicker layer wil
         t60 = (timefunc()-self.last_per[u])*60
         self.last_per[u]=timefunc()
 
-        #It's always changing so always rerender
-        self.scene.rerender = True
         ctr = 0
         tc =  self.scene.blendArgs['topple_chance']
         lps =  self.scene.blendArgs['lowpass']
@@ -603,7 +618,10 @@ class Universe():
             self.status = "normal"
         if not hasattr(self,"ok"):
             self.ok = True
-            
+
+        #Represents the telemetry data back from the physical device of this universe.
+        self.telemetry = {}
+
         #Dict of all board ids that have already pushed a status update
         self.statusChanged = {}
         self.channels = {}
@@ -684,8 +702,11 @@ class Universe():
 
     def __del__(self):
         #Do as little as possible in the undefined __del__ thread
-        kaithem.misc.do(self.refresh_scenes)
-
+        try:
+            kaithem.misc.do(self.refresh_scenes)
+        #Eliminate the nuisance error
+        except NameError:
+            pass
     def channelsChanged(self):
         "Call this when fixtures are added, moved, or modified."
         with module.lock:
@@ -776,6 +797,7 @@ class DMXSender():
         self.data = message(universe.values)
         self.thread = threading.Thread(target =self.run)
         self.thread.daemon = True
+        self.thread.name = "DMXSenderThread_"+self.thread.name
         self.portname = port
         self.framerate = float(framerate)
         self.lock = threading.Lock()
@@ -896,12 +918,20 @@ class ArtNetUniverse(Universe):
         self.number=number
         self.statusChanged = {}
 
-        addr,port = address.split(":")
+        x = address.split("://")
+        if len(x)>1:
+            scheme = x[0]
+        else:
+            scheme=''
+        
+        addr,port = x[-1].split(":")
         port = int(port)
+
+       
 
         #Sender needs the values to be there for setup
         self.values = numpy.array([0.0]*channels,dtype="f4")
-        self.sender = ArtNetSender(self,addr,port,framerate)
+        self.sender = ArtNetSender(self,addr,port,framerate,scheme)
         
         Universe.__init__(self,name,channels)
 
@@ -914,6 +944,54 @@ class ArtNetUniverse(Universe):
         #Stop the thread when this gets deleted
         self.sender.onFrame(None)
 
+
+
+class TagpointUniverse(Universe):
+    "Used for outputting lighting to Kaithem's internal Tagpoint system"
+    def __init__(self,name,channels=128,tagpoints={},framerate=44,number=0):
+        self.ok = True
+        self.status = "OK"
+        self.number=number
+        self.statusChanged = {}
+        self.tagpoints=tagpoints
+        self.channelCount=channels
+        
+        self.claims = {}
+
+        #Put a claim on all the tags
+        for i in self.tagpoints:
+            #One higher than default
+            try:
+                self.claims[int(i)]= kaithem.tags[self.tagpoints[i]].claim(0,"LightboardUniverse_"+name, 51)
+                #Might as well configure them here
+                kaithem.tags[self.tagpoints[i]].min=0
+                kaithem.tags[self.tagpoints[i]].max=255
+                kaithem.tags[self.tagpoints[i]].lo=-1
+                kaithem.tags[self.tagpoints[i]].hi=256
+            except Exception as e:
+                self.status="error, "+i+" "+ str(e)
+                logger.exception("Error related to tag point "+i)
+                print(traceback.format_exc())
+                event("board.error",traceback.format_exc())
+
+        #Sender needs the values to be there for setup
+        self.values = numpy.array([0.0]*channels,dtype="f4")
+        
+        Universe.__init__(self,name,channels)
+
+
+    def onFrame(self):
+        for i in range(self.channelCount):
+            if i in self.claims:
+                try:
+                    self.claims[i].set(float(self.values[i]))
+                except:
+                    rl_log_exc("Error in tagpoint universe")
+                    print(traceback.format_exc())
+
+
+
+
 module.EnttecUniverse_dbg= weakref.WeakValueDictionary()
 
 class ArtNetSender():
@@ -921,15 +999,36 @@ class ArtNetSender():
         It runs in it's own thread because the frame rate might have nothing to do with
         the rate at which the data actually gets rendered.
     """
-    def __init__(self,universe,addr,port,framerate):
+    def __init__(self,universe,addr,port,framerate,scheme):
         module.EnttecUniverse_dbg[str(timefunc())]= self
         self.frame = threading.Event()
+        self.scheme=scheme
 
 
         self.universe= weakref.ref(universe)
         self.data = False
         self.running = 1
+        #The last telemetry we didn't ignore
+        self.lastTelemetry = 0
+        if self.scheme == "pavillion":
+            def onBatteryStatus(v):
+                self.universe().telemetry['battery']=v
+                if self.lastTelemetry<(time.time()-10):
+                    self.universe().statusChanged={}
+            
+            def onConnectionStatus(v):
+                self.universe().telemetry['rssi']=v
+                if self.lastTelemetry<(time.time()-10):
+                    self.universe().statusChanged={}
+            
+            self.connectionTag = kaithem.tags["/devices/"+addr+".rssi"]
+            self._oncs = onConnectionStatus
+            self.connectionTag.subscribe(onConnectionStatus)
 
+            self.batteryTag = kaithem.tags["/devices/"+addr+".battery"]
+            self._onb = onBatteryStatus
+            self.batteryTag.subscribe(onBatteryStatus)
+            
         def run():
             import time, traceback
             interval = 1.1/self.framerate
@@ -946,13 +1045,27 @@ class ArtNetSender():
                         continue
                     with self.lock:
                         if self.data is None:
+                            print("Stopping ArtNet Sender for "+self.addr)
                             return
-                        self.sock.sendto(self.data, (self.addr, self.port))
+                        #Here we have the option to use a Pavillion device
+                        if self.scheme=="pavillion":
+                            try:
+                                addr=kaithem.devices[self.addr].data['address']
+                            except:
+                                time.sleep(3)
+                                continue
+                        else:
+                            addr=self.addr
+
+                        self.sock.sendto(self.data, (addr, self.port))
                         self.frame.clear()
                     time.sleep(max(((1.0/self.framerate)-(time.time()-s)), 0))
                 except Exception as e:
+                    rl_log_exc("Error in artnet universe")
                     print(traceback.format_exc())
         self.thread = threading.Thread(target =run)
+        self.thread.name = "ArtnetSenderThread_"+self.thread.name
+
         self.thread.daemon = True
         self.framerate = float(framerate)
         self.lock = threading.Lock()
@@ -984,8 +1097,11 @@ class ArtNetSender():
 
     def onFrame(self,data,physical = None, universe=0):
         with self.lock:
-            p = b'Art-Net\x00\x00\x50\x00\x0E\0' + struct.pack("<BH", physical if not physical is None else universe, universe) +struct.pack(">H",len(data)) + data.astype(numpy.uint8).tobytes()
-            self.data = p
+            if not (data is None):
+                p = b'Art-Net\x00\x00\x50\x00\x0E\0' + struct.pack("<BH", physical if not physical is None else universe, universe) +struct.pack(">H",len(data)) + data.astype(numpy.uint8).tobytes()
+                self.data = p
+            else:
+                self.data =data
             self.frame.set()
 
 class LightBoard():
@@ -1025,6 +1141,7 @@ class LightBoard():
         try:
             self.createUniverses()
         except Exception as e:
+            logger.exception("Error creating universes")
             print(traceback.format_exc(6))
 
         self.loadDict(kaithem.registry.get("lighting/scenes",{}))
@@ -1056,6 +1173,7 @@ class LightBoard():
                     self.fixtures[i[0]].assign(i[2],int(i[3]))
                     module.fixtures[i[0]]= x                    
                 except:
+                    logger.exception("Error setting up fixtures")
                     print(traceback.format_exc(4))
                     self.ferrs += str(i)+'\n'+traceback.format_exc(2)
 
@@ -1073,6 +1191,9 @@ class LightBoard():
                 l[i] = EnttecUniverse(i,channels=int(u[i].get('channels',128)),portname=u[i].get('interface',None),framerate=float(u[i].get('framerate',44)))
             if u[i]['type'] == 'artnet':
                 l[i] = ArtNetUniverse(i,channels=int(u[i].get('channels',128)),address=u[i].get('interface',"255.255.255.255:6454"),framerate=float(u[i].get('framerate',44)),number=int(u[i].get('number',0)))
+            if u[i]['type']=='tagpoints':
+               l[i]=TagpointUniverse(i,channels=int(u[i].get('channels',128)),tagpoints=u[i].get('channelConfig',{}),framerate=float(u[i].get('framerate',44)),number=int(u[i].get('number',0)))
+
         self.universeObjs = l
         self.pushUniverses()
 
@@ -1106,6 +1227,7 @@ class LightBoard():
                             s.go()
                             s.rerender=True
                     except Exception as e:
+                        logger.exception("Failed to load scene "+str(i)+" "+str(data[i].get('name','')))
                         print("Failed to load scene "+str(i)+" "+str(data[i].get('name',''))+": "+traceback.format_exc(3))
             
     def addScene(self,scene):
@@ -1132,7 +1254,7 @@ class LightBoard():
     def pushUniverses(self):
         self.link.send(["universes",{i:{'count':len(module.universes[i].values), 
                     'status':module.universes[i].status, 
-                    'ok':module.universes[i].ok} for i in module.universes}])   
+                    'ok':module.universes[i].ok,"telemetry":module.universes[i].telemetry} for i in module.universes}])   
 
     def getScenes(self):
         "Return serializable version of scenes list"
@@ -1204,6 +1326,7 @@ class LightBoard():
 
         except:
             subs = -1
+            rl_log_exc("Error pushing metadata")
             print(traceback.format_exc())
         self.link.send(["scenemeta",sceneid,     
                          {
@@ -1255,6 +1378,7 @@ class LightBoard():
                             'script': cue.script
                             }])
         except Exception as e:
+            rl_log_exc("Error pushing cue data")
             print("cue data push error", cueid,e)
 
     def pushCueData(self, cueid):
@@ -1291,9 +1415,12 @@ class LightBoard():
                 self.pushConfiguredUniverses()
 
             if msg[0] == "setconfuniverses":
-                self.configuredUniverses = msg[1]
-                kaithem.registry.set("lighting/universes",msg[1])
-                self.createUniverses()
+                if kaithem.users.checkPermission(user,"/admin/settings.edit"):
+                    self.configuredUniverses = msg[1]
+                    kaithem.registry.set("lighting/universes",msg[1])
+                    self.createUniverses()
+                else:
+                    raise RuntimeError("User does not have permission")
 
             if msg[0] == "setfixtureclass":
                 l =[]
@@ -1613,7 +1740,7 @@ class LightBoard():
                 self.pushCueMeta(msg[1])
 
             if msg[0] == "setscript":
-                cues[msg[1]].setScript(msg[2][:2048])
+                cues[msg[1]].setScript(msg[2][:2048],allow_bad=False)
                 self.pushCueMeta(msg[1])
 
             if msg[0] == "setblend":
@@ -1677,6 +1804,7 @@ class LightBoard():
     
 
         except Exception as e:
+            rl_log_exc("Error handling command")
             self.pushEv('board.error', "__this_lightboard__",timefunc(), "", traceback.format_exc(1))
             print(msg,traceback.format_exc(8))
             
@@ -1699,7 +1827,7 @@ class LightBoard():
             self.newDataFunctions = []
             for i in module.universes:
                 if not self.id in module.universes[i].statusChanged:
-                    self.link.send(["universe_status",i,module.universes[i].status,module.universes[i].ok])
+                    self.link.send(["universe_status",i,module.universes[i].status,module.universes[i].ok,module.universes[i].telemetry])
                     module.universes[i].statusChanged[self.id]=True
 
             for i in self.scenememory:
@@ -1781,6 +1909,7 @@ def pre_render():
                 universe = universes[u]
                 universe.all_static = True
                 if i.rerender:
+                    changedUniverses[u] =(0,0)
                     if ((i.priority,i.started) <= universe.prerendered_layer):
                         to_reset[u]=1
                     else:
@@ -1885,6 +2014,8 @@ class FadeCanvas():
 
         Should you have cached dicts of arrays vals and alpha channels(one pair of arrays per universe), put them in vals and arrays
         for better performance.
+
+        fade is the fade amount from 0 to 1 to new
         """
         
         #We assume a lot of these lists have the same set of universes. If it gets out of sync you
@@ -2007,12 +2138,16 @@ class Cue():
             "nextCue":self.nextCue,"track":self.track,"number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,'rel_length':self.rel_length, 'script':self.script, 
             }
 
-    def setScript(self,script):
+    def setScript(self,script, allow_bad=True):
         self.script = script
         try:
             self.scene().commandBindings= parseCommandBindings(script)
         except:
+            rl_log_exc("Error handling script")
             print(traceback.format_exc(6))
+            if not allow_bad:
+                raise
+            
     
     def push(self):
         for i in module.boards:
@@ -2450,6 +2585,7 @@ class Scene():
             for i in module.boards:
                 i().pushEv(s, self.name,timefunc(), value=value, info=info)
         except:
+            rl_log_exc("Error handling event")
             print(traceback.format_exc())
         self._event(s)
 
@@ -2463,7 +2599,9 @@ class Scene():
                 try:
                     runCommand(i)
                 except Exception as e:
+                    rl_log_exc("Error handling event")
                     print(traceback.format_exc(6))
+                    event("script.error", self.name+"\n"+traceback.format_exc())
     
 
     def gotoCue(self, cue,t=None, sendSync=True,generateEvents=True):
@@ -2550,6 +2688,7 @@ class Scene():
             try:
                 self.commandBindings= parseCommandBindings(cobj.script)
             except:
+                rl_log_exc("Error handling script")
                 print(traceback.format_exc(6))
             
             if self.cue.onExit:
@@ -2970,6 +3109,8 @@ class Scene():
         if fadePosition<1:
             self.rerender = True
 
+        self.canvas.paint(self.cue, fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays,track=self.cue.track)
+
         if self.cue.length and(timefunc()-self.enteredCue)> self.cuelen*(60/self.bpm):
             #rel_length cues end after the sound in a totally different part of code
             #Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
@@ -2985,8 +3126,9 @@ class Scene():
                             if not i in self.affect:
                                 self.affect.append(i)
                     self.fadeInCompleted = True
-                self.canvas.paint(self.cue, fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays,track=self.cue.track)
+                    self.rerender=True
 
+                
 
 def event(s,value=None, info=''):
     with module.lock:
@@ -2994,6 +3136,7 @@ def event(s,value=None, info=''):
             for i in module.boards:
                 i().pushEv(s, '__global__',timefunc(), value=value, info=info)
         except:
+            rl_log_exc("error handling event")
             print(traceback.format_exc())
 
         for i in module.activeScenes:

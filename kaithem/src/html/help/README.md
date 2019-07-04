@@ -1,0 +1,1 @@
+Most of the docs are being moved to /src/docs, to be rendered client side with mdtemplate.html

@@ -59,7 +59,8 @@ tracebacks, if enabled).
 If you are logging the access log and error log to the same source, then there
 is a possibility that a specially crafted error message may replicate an access
 log message as described in CWE-117.  In this case it is the application
-developer's responsibility to manually escape data before using CherryPy's log()
+developer's responsibility to manually escape data before
+using CherryPy's log()
 functionality, or they may create an application that is vulnerable to CWE-117.
 This would be achieved by using a custom handler escape any special characters,
 and attached as described below.
@@ -112,11 +113,8 @@ import logging
 import os
 import sys
 
-import six
-
 import cherrypy
 from cherrypy import _cperror
-from cherrypy._cpcompat import ntob
 
 
 # Silence the no-handlers "warning" (stderr write!) in stdlib logging
@@ -155,11 +153,7 @@ class LogManager(object):
     access_log = None
     """The actual :class:`logging.Logger` instance for access messages."""
 
-    access_log_format = (
-        '{h} {l} {u} {t} "{r}" {s} {b} "{f}" "{a}"'
-        if six.PY3 else
-        '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
-    )
+    access_log_format = '{h} {l} {u} {t} "{r}" {s} {b} "{f}" "{a}"'
 
     logger_root = None
     """The "top-level" logger name.
@@ -216,7 +210,11 @@ class LogManager(object):
         if traceback:
             exc_info = _cperror._exc_info()
 
-        self.error_log.log(severity, ' '.join((self.time(), context, msg)), exc_info=exc_info)
+        self.error_log.log(
+            severity,
+            ' '.join((self.time(), context, msg)),
+            exc_info=exc_info,
+        )
 
     def __call__(self, *args, **kwargs):
         """An alias for ``error``."""
@@ -226,7 +224,8 @@ class LogManager(object):
         """Write to the access log (in Apache/NCSA Combined Log format).
 
         See the
-        `apache documentation <http://httpd.apache.org/docs/current/logs.html#combined>`_
+        `apache documentation
+        <http://httpd.apache.org/docs/current/logs.html#combined>`_
         for format details.
 
         CherryPy calls this automatically for you. Note there are no arguments;
@@ -248,9 +247,8 @@ class LogManager(object):
         if response.output_status is None:
             status = '-'
         else:
-            status = response.output_status.split(ntob(' '), 1)[0]
-            if six.PY3:
-                status = status.decode('ISO-8859-1')
+            status = response.output_status.split(b' ', 1)[0]
+            status = status.decode('ISO-8859-1')
 
         atoms = {'h': remote.name or remote.ip,
                  'l': '-',
@@ -262,46 +260,30 @@ class LogManager(object):
                  'f': dict.get(inheaders, 'Referer', ''),
                  'a': dict.get(inheaders, 'User-Agent', ''),
                  'o': dict.get(inheaders, 'Host', '-'),
+                 'i': request.unique_id,
+                 'z': LazyRfc3339UtcTime(),
                  }
-        if six.PY3:
-            for k, v in atoms.items():
-                if not isinstance(v, str):
-                    v = str(v)
-                v = v.replace('"', '\\"').encode('utf8')
-                # Fortunately, repr(str) escapes unprintable chars, \n, \t, etc
-                # and backslash for us. All we have to do is strip the quotes.
-                v = repr(v)[2:-1]
+        for k, v in atoms.items():
+            if not isinstance(v, str):
+                v = str(v)
+            v = v.replace('"', '\\"').encode('utf8')
+            # Fortunately, repr(str) escapes unprintable chars, \n, \t, etc
+            # and backslash for us. All we have to do is strip the quotes.
+            v = repr(v)[2:-1]
 
-                # in python 3.0 the repr of bytes (as returned by encode)
-                # uses double \'s.  But then the logger escapes them yet, again
-                # resulting in quadruple slashes.  Remove the extra one here.
-                v = v.replace('\\\\', '\\')
+            # in python 3.0 the repr of bytes (as returned by encode)
+            # uses double \'s.  But then the logger escapes them yet, again
+            # resulting in quadruple slashes.  Remove the extra one here.
+            v = v.replace('\\\\', '\\')
 
-                # Escape double-quote.
-                atoms[k] = v
+            # Escape double-quote.
+            atoms[k] = v
 
-            try:
-                self.access_log.log(
-                    logging.INFO, self.access_log_format.format(**atoms))
-            except:
-                self(traceback=True)
-        else:
-            for k, v in atoms.items():
-                if isinstance(v, six.text_type):
-                    v = v.encode('utf8')
-                elif not isinstance(v, str):
-                    v = str(v)
-                # Fortunately, repr(str) escapes unprintable chars, \n, \t, etc
-                # and backslash for us. All we have to do is strip the quotes.
-                v = repr(v)[1:-1]
-                # Escape double-quote.
-                atoms[k] = v.replace('"', '\\"')
-
-            try:
-                self.access_log.log(
-                    logging.INFO, self.access_log_format % atoms)
-            except:
-                self(traceback=True)
+        try:
+            self.access_log.log(
+                logging.INFO, self.access_log_format.format(**atoms))
+        except Exception:
+            self(traceback=True)
 
     def time(self):
         """Return now() in Apache Common Log Format (no timezone)."""
@@ -331,20 +313,21 @@ class LogManager(object):
         elif h:
             log.handlers.remove(h)
 
-    def _get_screen(self):
+    @property
+    def screen(self):
+        """Turn stderr/stdout logging on or off.
+
+        If you set this to True, it'll add the appropriate StreamHandler for
+        you. If you set it to False, it will remove the handler.
+        """
         h = self._get_builtin_handler
         has_h = h(self.error_log, 'screen') or h(self.access_log, 'screen')
         return bool(has_h)
 
-    def _set_screen(self, newvalue):
+    @screen.setter
+    def screen(self, newvalue):
         self._set_screen_handler(self.error_log, newvalue, stream=sys.stderr)
         self._set_screen_handler(self.access_log, newvalue, stream=sys.stdout)
-    screen = property(_get_screen, _set_screen,
-                      doc="""Turn stderr/stdout logging on or off.
-
-        If you set this to True, it'll add the appropriate StreamHandler for
-        you. If you set it to False, it will remove the handler.
-        """)
 
     # -------------------------- File handlers -------------------------- #
 
@@ -369,35 +352,37 @@ class LogManager(object):
                 h.close()
                 log.handlers.remove(h)
 
-    def _get_error_file(self):
+    @property
+    def error_file(self):
+        """The filename for self.error_log.
+
+        If you set this to a string, it'll add the appropriate FileHandler for
+        you. If you set it to ``None`` or ``''``, it will remove the handler.
+        """
         h = self._get_builtin_handler(self.error_log, 'file')
         if h:
             return h.baseFilename
         return ''
 
-    def _set_error_file(self, newvalue):
+    @error_file.setter
+    def error_file(self, newvalue):
         self._set_file_handler(self.error_log, newvalue)
-    error_file = property(_get_error_file, _set_error_file,
-                          doc="""The filename for self.error_log.
+
+    @property
+    def access_file(self):
+        """The filename for self.access_log.
 
         If you set this to a string, it'll add the appropriate FileHandler for
         you. If you set it to ``None`` or ``''``, it will remove the handler.
-        """)
-
-    def _get_access_file(self):
+        """
         h = self._get_builtin_handler(self.access_log, 'file')
         if h:
             return h.baseFilename
         return ''
 
-    def _set_access_file(self, newvalue):
+    @access_file.setter
+    def access_file(self, newvalue):
         self._set_file_handler(self.access_log, newvalue)
-    access_file = property(_get_access_file, _set_access_file,
-                           doc="""The filename for self.access_log.
-
-        If you set this to a string, it'll add the appropriate FileHandler for
-        you. If you set it to ``None`` or ``''``, it will remove the handler.
-        """)
 
     # ------------------------- WSGI handlers ------------------------- #
 
@@ -412,19 +397,20 @@ class LogManager(object):
         elif h:
             log.handlers.remove(h)
 
-    def _get_wsgi(self):
-        return bool(self._get_builtin_handler(self.error_log, 'wsgi'))
-
-    def _set_wsgi(self, newvalue):
-        self._set_wsgi_handler(self.error_log, newvalue)
-    wsgi = property(_get_wsgi, _set_wsgi,
-                    doc="""Write errors to wsgi.errors.
+    @property
+    def wsgi(self):
+        """Write errors to wsgi.errors.
 
         If you set this to True, it'll add the appropriate
         :class:`WSGIErrorHandler<cherrypy._cplogging.WSGIErrorHandler>` for you
         (which writes errors to ``wsgi.errors``).
         If you set it to False, it will remove the handler.
-        """)
+        """
+        return bool(self._get_builtin_handler(self.error_log, 'wsgi'))
+
+    @wsgi.setter
+    def wsgi(self, newvalue):
+        self._set_wsgi_handler(self.error_log, newvalue)
 
 
 class WSGIErrorHandler(logging.Handler):
@@ -460,5 +446,12 @@ class WSGIErrorHandler(logging.Handler):
                     except UnicodeError:
                         stream.write(fs % msg.encode('UTF-8'))
                 self.flush()
-            except:
+            except Exception:
                 self.handleError(record)
+
+
+class LazyRfc3339UtcTime(object):
+    def __str__(self):
+        """Return now() in RFC3339 UTC Format."""
+        now = datetime.datetime.now()
+        return now.isoformat('T') + 'Z'

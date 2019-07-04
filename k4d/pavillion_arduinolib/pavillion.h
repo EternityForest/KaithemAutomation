@@ -32,28 +32,42 @@ class KnownClient;
 int64_t readSignedNumber(void *i, int len);
 //Sigh. Esp8266 aligned addressing crap workaround
 uint64_t readUnsignedNumber(void *i, int len);
+
+float readFloatingNumber(void *i);
+
 void writeSignedNumber(void *i, int len, int64_t val);
 void writeUnsignedNumber(void *i, int len, uint64_t val);
-
+extern int pavillionApTxPower;
 
 #define PAV_OP_RELIABLE 1
 #define PAV_OP_MESSAGEACK 2
 #define PAV_OP_UNRELIABLE 3
 #define PAV_OP_RPC 4
 #define PAV_OP_QUIT 12
+#define PAV_OP_TIMESYNCREQ 20
+#define PAV_OP_TIMESYNC 21
 
+#define PAV_BATSTATUS_CHARGING (2* 64)
+#define PAV_BATSTATUS_SLOWCHARGING (1* 64)
+#define PAV_BATSTATUS_DISCHARGING (0* 64)
+#define PAV_BATSTATUS_GENERATING (3* 64)
+
+extern int pavillion_getTemperature();
+extern int pavillion_getBatteryStatus();
+#include "Arduino.h"
 
 #ifdef ESP32
-
 #include <WiFi.h>
 #else
 #include <ESP8266WiFi.h>
 #endif
-
 #include <WiFiUdp.h>
 
 //#define PAVILLIONDEBUG
 
+
+//Indicates the tag is a writable output
+#define TAG_FLAG_WRITABLE 1
 
 #ifdef PAVILLIONDEBUG
 #define dbg(x) Serial.println(x)
@@ -107,6 +121,7 @@ class KnownClient
     uint8_t serverNonce[32];
     uint8_t skey[32];
     uint8_t ckey[32];
+    
 
     PavillionServer *server = 0;
     void onMessage(uint8_t *data, uint16_t datalen, IPAddress addr, uint16_t port);
@@ -126,10 +141,55 @@ struct BufferedIncomingMessage
 free(x->decodedData);
 free(x);
 */
+void pavillionConnectWiFi(const char * ssid, const char * psk);
+
+
+class PavillionAlert
+{
+    public:
+        PavillionAlert * next = 0;
+        PavillionServer * server;
+        char * name;
+        //1 for abnormal, 0 for normal
+        bool state;
+        void release();
+        void trip();
+        void push();
+        PavillionAlert(const char *name,PavillionServer * p);
+};
+
+class PavillionTagpoint
+{
+    public:
+        PavillionTagpoint * next = 0;
+        char * name;
+        PavillionServer * server;
+        uint16_t number;
+        float value;
+        float max=10000000000.0;
+        float min=-10000000000.0;
+        float interval =0.0;
+        void set(float n);
+        void push();
+        PavillionTagpoint(const char *name,PavillionServer * p);
+
+        void setFlag(uint8_t f);
+        void clearFlag(uint8_t f);
+        uint8_t flags;
+
+        //When the tag's value was set. Note that it could be set
+        //From an old value on a client that was set before we booted,
+        //So it has to be an int so we can resolve conflicts. 
+
+        //When clients set the value, we use the timestamp they give us,
+        //So it is the timestamp of the value itself, not when it arrived.
+        int64_t timestamp=-9223372036854775807;
+};
+
+
 
 class PavillionServer
 {
-    WiFiUDP udp;
     KnownClient *knownClients[MAX_CLIENTS];
     KnownClient *clientForAddr(IPAddress addr, uint16_t port);
     struct RpcFunction fzero = {0, 0, "null", 0};
@@ -148,7 +208,8 @@ class PavillionServer
 #endif
 
   public:
-    
+    WiFiUDP * udp=0;
+
     //If this is not 0, it gets called from within the inner loop while broadcasting;
     //It must not use any Pavillion functions, but can do other things to prevent the system from entirely locking up.
     void (*yieldFunc)() =0 ;
@@ -182,6 +243,6 @@ class PavillionServer
     void addRPC(uint16_t number, char *fname, int (*function)(void *data, unsigned int datalen, KnownClient *client, void *rbuffer, unsigned int *rlen), bool usespavillion);
     void addRPC(uint16_t number, char *fname, int (*function)(void *data, unsigned int datalen, KnownClient *client, void *rbuffer, unsigned int *rlen));
     void doRPC(uint16_t number, KnownClient *client, void *data, uint16_t datalen, uint64_t callid, bool allowPavillion);
-    void broadcastMessage(const char *target, const char *name, uint8_t *data, int len, char opcode);
-    void broadcastMessage(const char *target, const char *name, uint8_t *data, int len);
+    void broadcastMessage(const char *target, const char *name, const uint8_t *data, int len, char opcode);
+    void broadcastMessage(const char *target, const char *name, const uint8_t *data, int len);
 };

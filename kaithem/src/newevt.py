@@ -25,6 +25,9 @@ from .scheduling import scheduler
 ctime =time.time
 do = workers.do
 
+#Ratelimiter for calling gc.collect automatically when we get OSErrors
+_lastGC=0
+
 #Use this lock whenever you access _events or __EventReferences in any way.
 #Most of the time it should be held by the event manager that continually iterates it.
 #To update the _events, event execution must temporarily pause
@@ -39,8 +42,7 @@ logger = logging.getLogger("system_event_errors")
 syslogger = logging.getLogger("system.events")
 
 
-
-
+eventsByModuleName=weakref.WeakValueDictionary()
 
 
 def manualRun(event):
@@ -356,6 +358,9 @@ class BaseEvent():
         self.resource = r if r else str(util.unique_number())
         self.pymodule = types.ModuleType(str("Event_"+self.module +"_"+self.resource))
         self.pymodule.__file__ = str("Event_"+self.module +"_"+self.resource)
+        self.pymoduleName="Event_"+self.module+'_'+self.resource
+
+        eventsByModuleName[self.pymoduleName]=self
         #This lock makes sure that only one copy of the event executes at once.
         self.lock = threading.Lock()
 
@@ -399,6 +404,7 @@ class BaseEvent():
         try:
             with self.lock:
                 self.pymodule.__dict__.clear()
+                del self.pymodule
         except:
             raise
 
@@ -443,11 +449,13 @@ class BaseEvent():
                 self._handle_exception(e)
 
 
-    def _handle_exception(self, e=None):
-            if sys.version_info>(3,0):
-                tb = traceback.format_exc(6, chain=True)
-            else:
-                tb = traceback.format_exc(6)
+    def _handle_exception(self, e=None, tb=None):
+            global _lastGC
+            if tb==None:
+                if sys.version_info>(3,0):
+                    tb = traceback.format_exc(6, chain=True)
+                else:
+                    tb = traceback.format_exc(6)
             #When an error happens, log it and save the time
             #Note that we are logging to the compiled event object
             self.errors.append([time.strftime(config['time-format']),tb])
@@ -469,12 +477,22 @@ class BaseEvent():
                 except KeyError:
                     backoff = config['error-backoff']['interactive']
 
-            self.backoff_until=time.time()+backoff
+            #Randomize backoff intervals in case there's an error that can
+            #Be fixed by changing the order of events
+            self.backoff_until=time.time()+(backoff*((random.random()/10) +0.95))
+
+            #Try to fix the error by garbage collecting
+            #If there's too many open files
+            if isinstance(e,OSError):
+                 if time.time()-_lastGC>240:
+                    _lastGC = time.time()
+                    gc.collect()
+
             #If this is the first error since th module was last saved raise a notification
             if len(self.errors)==1:
                 syslogger.exception("Error running event "+self.resource+" of "+ self.module)
                 messagebus.postMessage('/system/notifications/errors',"Event \""+self.resource+"\" of module \""+self.module+ "\" may need attention")
-
+            
     def register(self):
         #Note: The whole self.disabled thing is really laregly a hack to get instant response
         #To things if an event is based on some external thing with a callback that takes time to unregister.
@@ -886,7 +904,7 @@ class ThreadPolledEvalEvent(BaseEvent,CompileCodeStringsMixin):
         else:
             self.polled = True
         #Compile the trigger
-        x = compile("def _event_trigger():\n    return "+when,"Event_"+self.module+'_'+self.resource,'exec')
+        x = compile("def _event_trigger():\n    return "+when,self.pymoduleName,'exec')
         exec(x,self.pymodule.__dict__)
 
         self._init_setup_and_action(setup,do)
@@ -1186,9 +1204,12 @@ def updateOneEvent(resource,module, o=None):
                 old.unregister()
                 #Now we clean it up and delete any references the user code might have had to things
                 old.cleanup()
-            #Really we should wait a bit longer but this is a compromise, we wait so any cleanup effects can propagate.
-            #120ms is better than nothing I guess.
-            time.sleep(0.120)
+                #Really we should wait a bit longer but this is a compromise, we wait so any cleanup effects can propagate.
+                #120ms is better than nothing I guess. And we garbage collect before and after,
+                #Because we want all the __del__ stuff to get a chance to take effect.
+                gc.collect()
+                time.sleep(0.120)
+                gc.collect()
             if not o:
                 #Now we make the event
                 x = make_event_from_resource(module,resource)
@@ -1281,6 +1302,8 @@ def getEventsFromModules(only = None):
             #retry immediately, but only after trying the remaining list of events.
             #This is because inter-event dependancies are the most common reason for failure.
             for baz in range(0,max(1,config['max-load-attempts'])):
+                if not toLoad:
+                    break
                 logging.debug("Event initialization resolution round "+str(baz))
                 for i in toLoad:
                     try:

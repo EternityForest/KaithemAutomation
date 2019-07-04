@@ -1,4 +1,4 @@
-"""An implementation of the Web Site Process Bus.
+r"""An implementation of the Web Site Process Bus.
 
 This module is completely standalone, depending only on the stdlib.
 
@@ -73,16 +73,15 @@ except ImportError:
 
 import operator
 import os
-import subprocess
 import sys
 import threading
 import time
 import traceback as _traceback
 import warnings
+import subprocess
+import functools
 
-import six
-
-from cherrypy._cpcompat import _args_from_interpreter_flags
+from more_itertools import always_iterable
 
 
 # Here I save the value of os.getcwd(), which, if I am imported early enough,
@@ -95,13 +94,13 @@ _startup_cwd = os.getcwd()
 
 
 class ChannelFailures(Exception):
+    """Exception raised during errors on Bus.publish()."""
 
-    """Exception raised when errors occur in a listener during Bus.publish().
-    """
     delimiter = '\n'
 
     def __init__(self, *args, **kwargs):
-        super(Exception, self).__init__(*args, **kwargs)
+        """Initialize ChannelFailures errors wrapper."""
+        super(ChannelFailures, self).__init__(*args, **kwargs)
         self._exceptions = list()
 
     def handle_exception(self):
@@ -113,12 +112,14 @@ class ChannelFailures(Exception):
         return self._exceptions[:]
 
     def __str__(self):
+        """Render the list of errors, which happened in channel."""
         exception_strings = map(repr, self.get_instances())
         return self.delimiter.join(exception_strings)
 
     __repr__ = __str__
 
     def __bool__(self):
+        """Determine whether any error happened in channel."""
         return bool(self._exceptions)
     __nonzero__ = __bool__
 
@@ -137,6 +138,8 @@ class _StateEnum(object):
         if isinstance(value, self.State):
             value.name = key
         object.__setattr__(self, key, value)
+
+
 states = _StateEnum()
 states.STOPPED = states.State()
 states.STARTING = states.State()
@@ -157,7 +160,6 @@ else:
 
 
 class Bus(object):
-
     """Process state-machine and messenger for HTTP site deployment.
 
     All listeners for a given channel are guaranteed to be called even
@@ -173,6 +175,7 @@ class Bus(object):
     max_cloexec_files = max_files
 
     def __init__(self):
+        """Initialize pub/sub bus."""
         self.execv = False
         self.state = states.STOPPED
         channels = 'start', 'stop', 'exit', 'graceful', 'log', 'main'
@@ -182,8 +185,19 @@ class Bus(object):
         )
         self._priorities = {}
 
-    def subscribe(self, channel, callback, priority=None):
-        """Add the given callback at the given channel (if not present)."""
+    def subscribe(self, channel, callback=None, priority=None):
+        """Add the given callback at the given channel (if not present).
+
+        If callback is None, return a partial suitable for decorating
+        the callback.
+        """
+        if callback is None:
+            return functools.partial(
+                self.subscribe,
+                channel,
+                priority=priority,
+            )
+
         ch_listeners = self.listeners.setdefault(channel, set())
         ch_listeners.add(callback)
 
@@ -222,7 +236,7 @@ class Bus(object):
                 if exc and e.code == 0:
                     e.code = 1
                 raise
-            except:
+            except Exception:
                 exc.handle_exception()
                 if channel == 'log':
                     # Assume any further messages to 'log' will fail.
@@ -235,7 +249,7 @@ class Bus(object):
         return output
 
     def _clean_exit(self):
-        """An atexit handler which asserts the Bus is not running."""
+        """Assert that the Bus is not running in atexit handler callback."""
         if self.state != states.EXITING:
             warnings.warn(
                 'The main thread is exiting, but the Bus is in the %r state; '
@@ -256,13 +270,13 @@ class Bus(object):
             self.log('Bus STARTED')
         except (KeyboardInterrupt, SystemExit):
             raise
-        except:
+        except Exception:
             self.log('Shutting down due to error in start listener:',
                      level=40, traceback=True)
             e_info = sys.exc_info()[1]
             try:
                 self.exit()
-            except:
+            except Exception:
                 # Any stop/exit errors will be logged inside publish().
                 pass
             # Re-raise the original error
@@ -271,6 +285,7 @@ class Bus(object):
     def exit(self):
         """Stop all services and prepare to exit the process."""
         exitstate = self.state
+        EX_SOFTWARE = 70
         try:
             self.stop()
 
@@ -280,19 +295,19 @@ class Bus(object):
             # This isn't strictly necessary, but it's better than seeing
             # "Waiting for child threads to terminate..." and then nothing.
             self.log('Bus EXITED')
-        except:
+        except Exception:
             # This method is often called asynchronously (whether thread,
             # signal handler, console handler, or atexit handler), so we
             # can't just let exceptions propagate out unhandled.
             # Assume it's been logged and just die.
-            os._exit(70)  # EX_SOFTWARE
+            os._exit(EX_SOFTWARE)
 
         if exitstate == states.STARTING:
             # exit() was called before start() finished, possibly due to
             # Ctrl-C because a start listener got stuck. In this case,
             # we could get stuck in a loop where Ctrl-C never exits the
             # process, so we just call os.exit here.
-            os._exit(70)  # EX_SOFTWARE
+            os._exit(EX_SOFTWARE)
 
     def restart(self):
         """Restart the process (may close connections).
@@ -342,46 +357,24 @@ class Bus(object):
             # that another thread executes cherrypy.engine.exit()
             if (
                     t != threading.currentThread() and
-                    t.isAlive() and
-                    not isinstance(t, threading._MainThread)
+                    not isinstance(t, threading._MainThread) and
+                    # Note that any dummy (external) threads are
+                    # always daemonic.
+                    not t.daemon
             ):
-                # Note that any dummy (external) threads are always daemonic.
-                if hasattr(threading.Thread, 'daemon'):
-                    # Python 2.6+
-                    d = t.daemon
-                else:
-                    d = t.isDaemon()
-                if not d:
-                    self.log('Waiting for thread %s.' % t.getName())
-                    t.join()
+                self.log('Waiting for thread %s.' % t.getName())
+                t.join()
 
         if self.execv:
             self._do_execv()
 
     def wait(self, state, interval=0.1, channel=None):
         """Poll for the given state(s) at intervals; publish to channel."""
-        if isinstance(state, (tuple, list)):
-            states = state
-        else:
-            states = [state]
+        states = set(always_iterable(state))
 
-        def _wait():
-            while self.state not in states:
-                time.sleep(interval)
-                self.publish(channel)
-
-        # From http://psyco.sourceforge.net/psycoguide/bugs.html:
-        # "The compiled machine code does not include the regular polling
-        # done by Python, meaning that a KeyboardInterrupt will not be
-        # detected before execution comes back to the regular Python
-        # interpreter. Your program cannot be interrupted if caught
-        # into an infinite Psyco-compiled loop."
-        try:
-            sys.modules['psyco'].cannotcompile(_wait)
-        except (KeyError, AttributeError):
-            pass
-
-        _wait()
+        while self.state not in states:
+            time.sleep(interval)
+            self.publish(channel)
 
     def _do_execv(self):
         """Re-execute the current process.
@@ -413,7 +406,7 @@ class Bus(object):
 
     @staticmethod
     def _get_interpreter_argv():
-        """Retrieve current Python interpreter's arguments
+        """Retrieve current Python interpreter's arguments.
 
         Returns empty tuple in case of frozen mode, uses built-in arguments
         reproduction function otherwise.
@@ -427,11 +420,11 @@ class Bus(object):
         """
         return ([]
                 if getattr(sys, 'frozen', False)
-                else _args_from_interpreter_flags())
+                else subprocess._args_from_interpreter_flags())
 
     @staticmethod
     def _get_true_argv():
-        """Retrieves all real arguments of the python interpreter
+        """Retrieve all real arguments of the python interpreter.
 
         ...even those not listed in ``sys.argv``
 
@@ -439,14 +432,16 @@ class Bus(object):
         :seealso: http://stackoverflow.com/a/6683222/595220
         :seealso: http://stackoverflow.com/a/28414807/595220
         """
-
         try:
-            char_p = ctypes.c_char_p if six.PY2 else ctypes.c_wchar_p
+            char_p = ctypes.c_wchar_p
 
             argv = ctypes.POINTER(char_p)()
             argc = ctypes.c_int()
 
-            ctypes.pythonapi.Py_GetArgcArgv(ctypes.byref(argc), ctypes.byref(argv))
+            ctypes.pythonapi.Py_GetArgcArgv(
+                ctypes.byref(argc),
+                ctypes.byref(argv),
+            )
 
             _argv = argv[:argc.value]
 
@@ -471,7 +466,7 @@ class Bus(object):
 
             try:
                 c_ind = _argv.index('-c')
-                if m_ind < argv_len - 1 and _argv[c_ind + 1] == '-c':
+                if c_ind < argv_len - 1 and _argv[c_ind + 1] == '-c':
                     is_command = True
             except (IndexError, ValueError):
                 c_ind = None
@@ -489,7 +484,7 @@ class Bus(object):
                     """There's no such module exist"""
                     raise AttributeError(
                         "{} doesn't seem to be a module "
-                        "accessible by current user".format(original_module))
+                        'accessible by current user'.format(original_module))
                 del _argv[m_ind:m_ind + 2]  # remove `-m -m`
                 # ... and substitute it with the original module path:
                 _argv.insert(m_ind, original_module)
@@ -506,7 +501,7 @@ class Bus(object):
 
             :seealso: https://github.com/cherrypy/cherrypy/issues/1506
             :seealso: https://github.com/cherrypy/cherrypy/issues/1512
-            :ref: https://chromium.googlesource.com/infra/infra/+/69eb0279c12bcede5937ce9298020dd4581e38dd%5E!/
+            :ref: http://bit.ly/2gK6bXK
             """
             raise NotImplementedError
         else:
@@ -514,7 +509,8 @@ class Bus(object):
 
     @staticmethod
     def _extend_pythonpath(env):
-        """
+        """Prepend current working dir to PATH environment variable if needed.
+
         If sys.path[0] is an empty string, the interpreter was likely
         invoked with -m and the effective path is about to change on
         re-exec.  Add the current directory to $PYTHONPATH to ensure
@@ -586,5 +582,6 @@ class Bus(object):
         if traceback:
             msg += '\n' + ''.join(_traceback.format_exception(*sys.exc_info()))
         self.publish('log', msg, level)
+
 
 bus = Bus()

@@ -15,7 +15,7 @@
 
 "This file manages the kaithem global message bus that is used mostly for logging but also for many other tasks."
 
-import weakref,threading,time,os,random,json,traceback,cherrypy
+import weakref,threading,time,os,random,traceback,cherrypy
 from . import workers
 from collections import defaultdict, OrderedDict
 
@@ -154,71 +154,15 @@ class MessageBus(object):
     def postMessage(self, topic, message,errors=True):
         #Use the executor to run the post message job
         #To allow for the possibility of it running in the background as a thread
-
-        #A little more checking than usual here because the message bus is so central.
-        #Also, if anyone implements logging they will appreciate no crap on the bus.
         topic=normalize_topic(topic)
         try:
             topic = str(topic)
         except Exception:
             raise TypeError("Topic must be a string or castable to a string.")
 
-        #Ugly way to find if json serializable. Just try it
-        try:
-            json.dumps(message)
-        except Exception:
-            raise ValueError("Message must be serializable as JSON")
 
         self._post(topic,message,errors)
 
-
-# class PyMessageBus():
-#     "Represents one messagebus for virtual resources "
-#     def __init__(self):
-#         self.topics = {}
-#         self.lock = threading.Lock()
-#         #How many subscriptions since we last collected the garbage?
-#         self.sub_count = 0
-#
-#     def gc(self):
-#         with self.lock:
-#             temp = copy.deepcopy(self._topics)
-#             for i in temp:
-#                 torm = []
-#                 for j in temp[i]:
-#                     if not j():
-#                         torm.append(j)
-#                 for j in torm:
-#                     temp[i].remove(j)
-#                 if not temp[i]:
-#                     temp.pop(i)
-#             self.topics = temp
-#
-#     def moveSubscribers(self,old,new):
-#         with self.lock:
-#             temp = copy.deepcopy(self._topics)
-#             temp[new]=temp.pop(old)
-#             self.topics = temp
-#
-#     def subscribe(self,t,f):
-#         if self.sub_count>100:
-#             self.gc()
-#             self.sub_count = 0
-#         with self.lock:
-#             if not t in temp:
-#                 temp[t] =[]
-#             temp[t].append(util.universal_weakref(f))
-#             self.topics = temp
-#             self.sub_count+=1
-#
-#     def unsubscribe(self,t,f):
-#         with self.lock:
-#             temp = copy.deepcopy(topics)
-#
-#             for i in temp[t].keys():
-#                 if temp[t][i]() == f:
-#                     temp[t].pop(i)
-#             self.topics=temp
 
 #Setup the default system messagebus
 _bus = MessageBus(workers.do)

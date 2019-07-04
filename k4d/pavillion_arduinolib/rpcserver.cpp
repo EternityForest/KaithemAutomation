@@ -20,6 +20,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+#include <Wire.h>
 
 #include "pavillion.h"
 #include <FS.h>
@@ -81,6 +82,38 @@ int rpcdigitalread(void *data, unsigned int datalen, KnownClient *client, void *
 {
   *rlen = 1;
   ((uint8_t *)rbuffer)[0] = digitalRead(((uint8_t *)data)[0]);
+  return 0;
+}
+
+//I2C
+int rpcwiretransaction(void *data, unsigned int datalen, KnownClient *client, void *rbuffer, unsigned int *rlen)
+{
+  *rlen =0;
+
+  uint8_t addr = readUnsignedNumber(data,2); data+=2;
+  int flags = readUnsignedNumber(data, 1); data+=1;
+  size_t toRead = readUnsignedNumber(data, 1); data+=1;
+  if(datalen>32+4)
+  {
+        RPC_ERR(0, "Data too long");
+  }
+  if(datalen>4)
+  {
+    Wire.beginTransmission(addr);
+    Wire.write((uint8_t *)data,datalen-4);
+    Wire.endTransmission(true);
+  }
+  *rlen = 0;
+  if(toRead)
+  {
+    if(Wire.requestFrom(addr,toRead,true)==toRead)
+    {
+        Wire.readBytes((char*)rbuffer,toRead);
+        *rlen = toRead;
+    }
+  }
+
+  writeUnsignedNumber(rbuffer, 4, analogRead(((uint8_t *)data)[0]));
   return 0;
 }
 
@@ -419,6 +452,8 @@ void PavillionServer::enableRemoteAccess()
   addRPC(20, "pinMode", rpcpinmode,false);
   addRPC(23, "analogRead", rpcanalogread,false);
   addRPC(21, "digitalRead", rpcdigitalread,false);
+  addRPC(25, "wireTransaction", rpcwiretransaction,false);
+
 }
 
 /*

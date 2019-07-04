@@ -15,7 +15,7 @@
 
 import time,json,logging
 import cherrypy
-from . import messagebus,pages
+from . import messagebus,pages, auth
 from .unitsofmeasure import strftime
 from .config import config
 
@@ -64,6 +64,16 @@ def countnew(since):
                     normal += 1
                 total +=1
         return [total,normal,warnings,errors]
+import weakref
+
+handlers = weakref.WeakValueDictionary()
+from ws4py.websocket import WebSocket
+class websocket(WebSocket):
+    def opened(self):
+        self.send(json.dumps(countnew(self.since)))
+    def closed(self,*a,**k):
+        del handlers[self.id]
+
 
 class WI():
     @cherrypy.expose
@@ -76,12 +86,34 @@ class WI():
         pages.require('/admin/mainpage.view')
         return json.dumps(notificationslog[-int(kwargs['count']):])
 
+    @cherrypy.expose
+    def ws(self,since=0):
+        # you can access the class instance through
+        if not config['enable-websockets']:
+            raise RuntimeError("Websockets disabled in server config")
+        pages.require('/admin/mainpage.view')
+        handler = cherrypy.request.ws_handler
+        handler.user=  pages.getAcessingUser()
+        handler.since=float(since)
+        handler.id = time.monotonic()
+        handlers[handler.id]=handler
+
+
 
 def subscriber(topic,message):
     global notificationslog
     notificationslog.append((time.time(),topic,message))
     #Delete all but the most recent N notifications, where N is from the config file.
     notificationslog = notificationslog[-config['notifications-to-keep']:]
+    
+    #TODO:
+    #Not threadsafe. But it is still better than the old polling based system.
+    try:
+        for i in handlers:
+            if auth.canUserDoThis(handlers[i].user,'/admin/mainpage.view'):
+                handlers[i].send(json.dumps(countnew(handlers[i].since)))
+    except:
+        logging.exception("Error pushing notifications")
 
 messagebus.subscribe('/system/notifications/',subscriber)
 

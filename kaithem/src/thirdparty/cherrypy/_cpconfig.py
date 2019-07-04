@@ -122,8 +122,11 @@ import cherrypy
 from cherrypy._cpcompat import text_or_bytes
 from cherrypy.lib import reprconf
 
-# Deprecated in  CherryPy 3.2--remove in 3.3
-NamespaceSet = reprconf.NamespaceSet
+
+def _if_filename_register_autoreload(ob):
+    """Register for autoreload if ob is a string (presumed filename)."""
+    is_filename = isinstance(ob, text_or_bytes)
+    is_filename and cherrypy.engine.autoreload.files.add(ob)
 
 
 def merge(base, other):
@@ -132,11 +135,10 @@ def merge(base, other):
     If the given config is a filename, it will be appended to
     the list of files to monitor for "autoreload" changes.
     """
-    if isinstance(other, text_or_bytes):
-        cherrypy.engine.autoreload.files.add(other)
+    _if_filename_register_autoreload(other)
 
     # Load other into base
-    for section, value_map in reprconf.as_dict(other).items():
+    for section, value_map in reprconf.Parser.load(other).items():
         if not isinstance(value_map, dict):
             raise ValueError(
                 'Application config must include section headers, but the '
@@ -147,15 +149,12 @@ def merge(base, other):
 
 
 class Config(reprconf.Config):
-
     """The 'global' configuration data for the entire CherryPy process."""
 
     def update(self, config):
         """Update self from a dict, file or filename."""
-        if isinstance(config, text_or_bytes):
-            # Filename
-            cherrypy.engine.autoreload.files.add(config)
-        reprconf.Config.update(self, config)
+        _if_filename_register_autoreload(config)
+        super(Config, self).update(config)
 
     def _apply(self, config):
         """Update self from a dict."""
@@ -165,16 +164,11 @@ class Config(reprconf.Config):
             config = config['global']
         if 'tools.staticdir.dir' in config:
             config['tools.staticdir.section'] = 'global'
-        reprconf.Config._apply(self, config)
+        super(Config, self)._apply(config)
 
     @staticmethod
-    def __call__(*args, **kwargs):
-        """Decorator for page handlers to set _cp_config."""
-        if args:
-            raise TypeError(
-                'The cherrypy.config decorator does not accept positional '
-                'arguments; you must use keyword arguments.')
-
+    def __call__(**kwargs):
+        """Decorate for page handlers to set _cp_config."""
         def tool_decorator(f):
             _Vars(f).setdefault('_cp_config', {}).update(kwargs)
             return f
@@ -182,10 +176,8 @@ class Config(reprconf.Config):
 
 
 class _Vars(object):
-    """
-    Adapter that allows setting a default attribute on a function
-    or class.
-    """
+    """Adapter allowing setting a default attribute on a function or class."""
+
     def __init__(self, target):
         self.target = target
 
@@ -260,6 +252,8 @@ def _server_namespace_handler(k, v):
             setattr(cherrypy.servers[servername], k, v)
     else:
         setattr(cherrypy.server, k, v)
+
+
 Config.namespaces['server'] = _server_namespace_handler
 
 
@@ -267,26 +261,23 @@ def _engine_namespace_handler(k, v):
     """Config handler for the "engine" namespace."""
     engine = cherrypy.engine
 
-    if k == 'SIGHUP':
-        engine.subscribe('SIGHUP', v)
-    elif k == 'SIGTERM':
-        engine.subscribe('SIGTERM', v)
-    elif '.' in k:
+    if k in {'SIGHUP', 'SIGTERM'}:
+        engine.subscribe(k, v)
+        return
+
+    if '.' in k:
         plugin, attrname = k.split('.', 1)
         plugin = getattr(engine, plugin)
-        if attrname == 'on':
-            if v and hasattr(getattr(plugin, 'subscribe', None), '__call__'):
-                plugin.subscribe()
-                return
-            elif (
-                (not v) and
-                hasattr(getattr(plugin, 'unsubscribe', None), '__call__')
-            ):
-                plugin.unsubscribe()
-                return
+        op = 'subscribe' if v else 'unsubscribe'
+        sub_unsub = getattr(plugin, op, None)
+        if attrname == 'on' and callable(sub_unsub):
+            sub_unsub()
+            return
         setattr(plugin, attrname, v)
     else:
         setattr(engine, k, v)
+
+
 Config.namespaces['engine'] = _engine_namespace_handler
 
 
@@ -300,4 +291,6 @@ def _tree_namespace_handler(k, v):
     else:
         cherrypy.tree.graft(v, v.script_name)
         cherrypy.engine.log('Mounted: %s on %s' % (v, v.script_name or '/'))
+
+
 Config.namespaces['tree'] = _tree_namespace_handler
