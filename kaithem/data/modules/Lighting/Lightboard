@@ -128,10 +128,10 @@ from src import tagpoints
     </script>
     <script src="gamepad.js"></script>
     <script src="${kaithem.web.resource('jquery-3.1.0')}"></script>
-    <script src="${kaithem.web.resource('vue-2.5.21-dev')}"></script>
+    <script src="${kaithem.web.resource('vue-2.6.10-dev')}"></script>
     <script type="text/javascript" src="/static/widget.js"></script>
     <script src="${kaithem.web.resource('keyboardjs-2.3.1')}"></script>
-    <script src="${kaithem.web.resource('js-yaml-3.12.1')}"></script>
+    <script src="${kaithem.web.resource('js-yaml-3.13.1')}"></script>
 
 
     <script>

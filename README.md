@@ -50,6 +50,9 @@ See [This page](kaithem/src/docs/setup.md)
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.63.1
+-  Fix JS dependancy error in lighting module
+
 ### 0.63
 
 -   New tagpoints(Like SCADA tagpoints) with Pavillion sync to Arduino

@@ -1,6 +1,9 @@
 Change Log
 ----------
 
+### 0.63.1
+-  Fix JS dependancy error in lighting module
+
 ### 0.63
 
 -   New tagpoints(Like SCADA tagpoints) with Pavillion sync to Arduino
