@@ -725,16 +725,24 @@ class _Server():
 
 class Server():
     """The public interface object that a user might interact with for a Server object"""
-    def __init__(self,port=DEFAULT_PORT, keys=None,pubkeys=None, address='',multicast=None,ecc_keypair=None,allow_guest=False,daemon=None,execute=None):
+    def __init__(self,port=DEFAULT_PORT, keys=None,pubkeys=None, address='',multicast=None,ecc_keypair=None,allow_guest=False,daemon=None,execute=None,*args,openWANPort=None):
         keys = keys or {}
         #Yes, we want the objects to share the mutable dict, 
         self.keys = keys
         self.pubkeys = pubkeys
+        #No i do not know why the import at the top of the file
+        #isn't enough.
+        import pavillion
         if daemon is None:
             daemon = pavillion.daemon
         self.server = _Server(port=port,keys=keys,pubkeys=pubkeys,address=address,multicast=multicast,ecc_keypair=ecc_keypair,handle=self,allow_guest=allow_guest,daemon=daemon,execute=execute)
         self.registers = self.server.registers
         self.ignore = self.server.ignore
+
+        if openWANPort:
+            import pavillion.upnpwrapper
+            self.upnpMapping = pavillion.upnpwrapper.addMapping(port,"UDP", WANPort=openWANPort )
+
 
     def setStatusReporting(self,s):
         "Enable or disable sending battery, temperature, and RSSI data to clients"

@@ -52,7 +52,7 @@ external_module_locations = {}
 
 moduleshash= "000000000000000000000000"
 modulehashes = {}
-
+modulewordhashes = {}
 
 
 def hashModules():
@@ -84,16 +84,33 @@ def hashModule(module: str):
         logger.exception("Could not hash module")
         return("ERRORHASHINGMODULE")
 
+def wordHashModule(module: str):
+    try:
+        m=hashlib.blake2b()
+        with modulesLock:
+            return util.blakeMemorable(json.dumps({i:ActiveModules[module][i] for i in ActiveModules[module] if not isinstance(ActiveModules[module][i],weakref.ref)} ,sort_keys=True,separators=(',',':')).encode('utf-8'), num=12,separator=" ")
+    except:
+        logger.exception("Could not hash module")
+        return("ERRORHASHINGMODULE")
+
 def getModuleHash(m: str):
-    if not m in modulehashes:
+    if not m in modulewordhashes:
         modulehashes[m] = hashModule(m)
     return modulehashes[m].upper()
+
+
+def getModuleWordHash(m: str):
+    if not m in modulewordhashes:
+        modulehashes[m] = wordHashModule(m)
+    return modulehashes[m].upper()
+
 
 def modulesHaveChanged():
     global moduleschanged,moduleshash, modulehashes
     moduleschanged = True
     moduleshash = hashModules()
     modulehashes = {}
+    modulewordhashes = {}
     modules_state.ls_folder.invalidate_cache()
 
 class ResourceObject():

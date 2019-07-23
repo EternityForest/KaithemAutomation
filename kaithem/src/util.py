@@ -74,6 +74,22 @@ def memorableHash(x, num=3, separator=""):
     return o
 
 
+def blakeMemorable(x, num=3, separator=""):
+    "Use the diceware list to encode a hash. This IS meant to be secure"
+    o = ""
+
+    if isinstance(x, str):
+        x = x.encode("utf8")
+    
+    x = hashlib.blake2b(x).digest()
+
+    for i in range(num):
+        # 4096 is an even divisor of 2**16
+        n = struct.unpack("<H",x[:2])[0]%4096
+        o+= eff_wordlist[n] + separator
+        x=x[2:]   
+    return o[:-len(separator)] if separator else o
+
 
 def universal_weakref(f):
     if isinstance(f,types.MethodType):

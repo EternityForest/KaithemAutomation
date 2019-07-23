@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import time,atexit,sys,platform,re,datetime,threading,weakref,signal,logging,socket
+import time,atexit,sys,platform,re,datetime,threading,weakref,signal,logging,socket,gc
 import cherrypy
 from . import newevt,messagebus,unitsofmeasure,util,messagelogging,mail,scheduling
 from .kaithemobj import kaithem
@@ -23,17 +23,18 @@ from zeroconf import ServiceBrowser, ServiceStateChange
 
 #very much not thread safe, doesn't matter, it's only for one UI page
 httpservices= []
+httplock = threading.Lock()
 def on_service_state_change(zeroconf, service_type, name, state_change):
-
-    info = zeroconf.get_service_info(service_type, name)
-    if not info:
-        return
-    if state_change is ServiceStateChange.Added:
-        httpservices.append(([socket.inet_ntoa(i) for i in info.addresses], service_type, name, info.port))
-        if len(httpservices)> 2048:
-            httpservices.pop(0)
-    else:
-        httpservices.remove((info.addresses, service_type, name, info.port))
+    with httplock:
+        info = zeroconf.get_service_info(service_type, name)
+        if not info:
+            return
+        if state_change is ServiceStateChange.Added:
+            httpservices.append((sorted([socket.inet_ntoa(i) for i in info.addresses]), service_type, name, info.port))
+            if len(httpservices)> 2048:
+                httpservices.pop(0)
+        else:
+            httpservices.remove((sorted([socket.inet_ntoa(i) for i in info.addresses]), service_type, name, info.port))
 
 browser = ServiceBrowser(util.zeroconf, "_https._tcp.local.", handlers=[on_service_state_change])
 browser2 = ServiceBrowser(util.zeroconf, "_http._tcp.local.", handlers=[on_service_state_change])
@@ -66,6 +67,24 @@ lastpageviews =0
 pageviewsthisminute = 0
 pageviewpublishcountdown = 1
 tenminutepagecount = 0
+
+
+upnpMapping = None
+syslogger = logging.getLogger("system")
+def doUPnP():
+    global upnpMapping
+    p= kaithem.registry.get("/system/upnp/expose_https_wan_port",None)
+    if p:
+        try:
+            lp = config['https-port']
+            import pavillion.upnpwrapper
+            upnpMapping = pavillion.upnpwrapper.addMapping(p,"TCP", desc="KaithemAutomation web UI", register=True, WANPort= lp)
+        except:
+            syslogger.exception("Could not create mapping")
+    else:
+        #Going to let GC handle this
+        upnpMapping= None
+        gc.collect()
 
 #This gets called when an HTML request is made.
 def aPageJustLoaded():

@@ -192,13 +192,19 @@ class _RemoteServer():
         self.lastNonceRequestRateLimitTimestamp=0
         self.nonceRequestCounter = 0
 
-        #Last time we were known to be connected
-        self.connectedAt =0
 
         self.addr = addr
         #Raw status string data 
         self._status = ServerStatus()
         self.iface = RemoteServerInterface(self)
+
+
+        #Last time we were known to be connected
+        self.connectedAt =0
+
+        #The lastused value last time a disconnect was posted so we
+        #only run the handler once per disconnect
+        self.lastDisconnect = 0
         
     def status(self):
         return self._status
@@ -438,6 +444,14 @@ class _Client():
         #server connected
         self.connectedAt =0
 
+        #When did we last try to find a better address than the one we have
+        #for the server we are talking to?
+        self.lastDiscoveredAddressTime =0 
+
+        #This can override the address the user set up.
+        #If hairpin NAT is enabled, 
+        self.effectiveAddress= None
+
         #The address of our associated server
         self.server_address = address
 
@@ -579,12 +593,17 @@ class _Client():
         self.waitingForAck = weakref.WeakValueDictionary()
         self.backoff_until = time.time()
 
+        #See if we need to discover the real address, for cases like
+        #Hairpin NAT
+        self.rediscoverAddress()
+
 
         t = threading.Thread(target=self.loop)
         t.daemon = daemon
         t.name+=":PavillionClient"
 
         t.start()
+
 
 
         self._kathread = threading.Thread(target=self._keepAliveLoop)
@@ -600,7 +619,6 @@ class _Client():
         elif self.keypair:
             self.sendNonceRequest()
             pass
-
         else:
             self.synced = False
             counter = 8
@@ -636,6 +654,35 @@ class _Client():
             self.lastTsTimestamp=time.monotonic()
             self.send(self.counter, 20, b'')
 
+
+    def rediscoverAddress(self):
+        """Attempt to discover the actual address of the server.
+            Normally the addr is given directly, but sometimes
+            we automatically override that.
+
+            One case is if we are on the same LAN as a target. Most
+            of the time hairpin NAT doesn't work, so we can use UPnP
+            to find them directly.
+        """
+         #Here we are going to try to find shortcuts. If we are on the same lan
+        if self.lastDiscoveredAddressTime<time.monotonic()-100:
+            self.lastDiscoveredAddressTime= time.monotonic()
+            if not is_multicast(self.server_address[0]):
+                #We are already using a shortcut address, no 
+                if not self.server_address[0].split(".")[0] in ('192',"10","127"):
+                    try:
+                        #Retry the import every time because the user might install
+                        #While we are running.
+                        import  pavillion.upnpwrapper
+                        self.effectiveAddress =  pavillion.upnpwrapper.detectShortcut(self.server_address)
+                        return
+                    except:
+                        raise
+                        logging.debug("Error discovering shortcut address")
+        #No better addr discovered
+        self.effectiveAddress=None
+
+
     def send(self, counter, opcode, data,addr=None,force_multicast=False):
         
         ##Experimental optimization to send to the only known server most of the time if there's only one
@@ -646,6 +693,9 @@ class _Client():
 
         #TODO: decide if this is actually a good idea, and for what opcodes.
         #I'm making this 30s because we already have other ways of discovery.
+
+
+       
         try:
             if not force_multicast:
                 if addr==None and len(self.known_servers)==1:
@@ -659,9 +709,9 @@ class _Client():
         except:
             print(traceback.format_exc())
         if self.psk or self.keypair:
-            self.sendSecure(counter,opcode,data,addr)
+            self.sendSecure(counter,opcode,data,addr or self.effectiveAddress)
         else:
-            self.sendPlaintext(counter,opcode,data,addr)
+            self.sendPlaintext(counter,opcode,data,addr or self.effectiveAddress)
 
 
     def sendPlaintext(self, counter, opcode, data,addr=None):
@@ -766,6 +816,7 @@ class _Client():
                                 #And it takes 3 seconds to get rid of them.
                                 if (x.secure_lastused<time.time()-300) and (x.lastused<time.time()-3):
                                     del self.known_servers[x.machine_addr]
+
                                 
                                 #If the new client is on the LAN and the old one isn't,
                                 #Prioritize it. 
@@ -780,14 +831,38 @@ class _Client():
                                 self.known_servers[addr].onRawMessage(msg,addr)
 
                 except:
-                    logging.exception("Exception in client loop")
+                    pavillion_logger.exception("Exception in client loop")
             #remove those who have not
-            #responded for 240s, which is probably about 6 packets.
+            #responded for 240s, which is probably about 6 packets, from the subscribers.
+            #But still track them in general, we of course want fast reconnect to still work
+
+            #Normally, we rediscover on disconnect, and on initial connection.
+            #We also do it every ten minutes as a fallback.
+            if self.lastDiscoveredAddressTime<time.monotonic()-10*60:
+                self.rediscoverAddress()
+            
             #Do cleanups
             if time.time()-l>30:
-                l=time.time()
-                with self.subslock:
-                    self._cleanSubscribers()
+                try:
+                    l=time.time()
+                    with self.subslock:
+                        self._cleanSubscribers()
+                    with self.lock:
+                        #Only allow one missed keepalive before registering a disconnect.
+                        #All that means is we call the handler function, connections are lightweight
+                        #and auto restablished and we don't remove them form the list or even stop
+                        #sending to them for quite a bit longer
+                        for i in self.known_servers:
+                            if self.known_servers[i].connectedAt<(time.time()-40):
+                                if self.known_servers[i].connectedAt != self.known_servers[i].lastDisconnect:
+                                    self.handle().onServerDisconnect(i,self.known_servers[i])
+                                    self.known_servers[i].lastDisconnect = self.known_servers[i].connectedAt
+                                    #Since we just disconnected, we may need to rediscover the addr
+                                    #To be able to reconnect
+                                    self.rediscoverAddress()
+                except:
+                    pavillion_logger.exception("Exception in client maintenance functions")
+
 
         #Close socket at loop end
         self.sock.close()
@@ -1035,6 +1110,8 @@ class _Client():
                 #Get the list of all the skeys of our subscribers
                 try:
                     if target in self.knownSubscribers:
+                        #Don't try to send thing to subscribers that haven't reponded in forever.
+                        #We don't just delete them, to allow for fast reconnect, but we also don't want to waste bandwidth
                         expected = {i:1 for i in self.knownSubscribers[target] if self.knownSubscribers[target][i]>(time.time()-240)}
                     else:
                         expected = {0:0}
@@ -1065,6 +1142,9 @@ class _Client():
                 if e.wait(x):
                     return
                 self.send(counter, 1 if reliable else 3, target.encode('utf-8')+b"\n"+name.encode('utf-8')+b"\n"+data)
+
+       
+
         if reliable:
             #Return how many subscribers definitely recieved the message.
             return max(0,ecount-len(w.nodes))
@@ -1130,6 +1210,8 @@ class _Client():
                 return x
             except NoResponseError:
                 delay*=2
+
+     
         raise NoResponseError("Server did not respond after "+str(timeout)+"s")
 
 
@@ -1202,7 +1284,9 @@ class Client():
         self.clientID = clientID
         self.knownSubscribers = self.client.knownSubscribers
         self.execute = execute or pavillion.execute
-
+        if keypair:
+            self.pubkey = keypair[0]
+        self.serverkey = serverkey
 
     def enableTimeSync(self):
         self.client.enableTimeSync=True
@@ -1320,8 +1404,14 @@ class Client():
     def onServerConnect(self, addr, pubkey):
         """
             Meant for subclassing. Used to detect whenever a secure connection to a new server happens.
-            Note that this fires anytime a connection is re established. Pubkey is none if PSK
+            Note that this fires anytime a connection is re established. Pubkey is none if not PSK
         """
+
+    def onServerDisconnect(self, addr, pubkey):
+        """
+            Meant for subclassing. Used to detect when a server goes offline
+        """
+
 
     def onNewSubscriber(self, target, addr):
         """

@@ -1,0 +1,46 @@
+"""Constants of services that can be discovered."""
+
+BELKIN_WEMO = "belkin_wemo"
+DLNA_DMS = "DLNA_DMS"
+DLNA_DMR = "DLNA_DMR"
+GOOGLE_CAST = "google_cast"
+PHILIPS_HUE = "philips_hue"
+PMS = 'plex_mediaserver'
+LMS = 'logitech_mediaserver'
+ASUS_ROUTER = "asus_router"
+HUAWEI_ROUTER = "huawei_router"
+NETGEAR_ROUTER = "netgear_router"
+SONOS = "sonos"
+PANASONIC_VIERA = "panasonic_viera"
+SABNZBD = 'sabnzbd'
+KODI = 'kodi'
+HOME_ASSISTANT = "home_assistant"
+MYSTROM = 'mystrom'
+HASS_IOS = "hass_ios"
+BOSE_SOUNDTOUCH = 'bose_soundtouch'
+SAMSUNG_TV = "samsung_tv"
+FRONTIER_SILICON = "frontier_silicon"
+APPLE_TV = "apple_tv"
+HARMONY = "harmony"
+BLUESOUND = "bluesound"
+ZIGGO_MEDIABOX_XL = "ziggo_mediabox_xl"
+DECONZ = "deconz"
+TIVO_DVR = "tivo_dvr"
+FREEBOX = "freebox"
+XBOX_SMARTGLASS = "xbox_smartglass"
+
+ATTR_NAME = 'name'
+ATTR_HOST = 'host'
+ATTR_PORT = 'port'
+ATTR_HOSTNAME = 'hostname'
+ATTR_URLBASE = 'urlbase'
+ATTR_DEVICE_TYPE = 'device_type'
+ATTR_MODEL_NAME = 'model_name'
+ATTR_MODEL_NUMBER = 'model_number'
+ATTR_MANUFACTURER = 'manufacturer'
+ATTR_UDN = 'udn'
+ATTR_PROPERTIES = 'properties'
+ATTR_SSDP_DESCRIPTION = 'ssdp_description'
+ATTR_UPNP_DEVICE_TYPE = 'upnp_device_type'
+ATTR_SERIAL = 'serial'
+ATTR_MAC_ADDRESS = 'mac_address'

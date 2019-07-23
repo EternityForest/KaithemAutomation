@@ -22,6 +22,27 @@ You need the <i>/admin/settings.edit</i> permission to perform these actions. <b
 
 </div>
 
+<h2>Port Forwarding</h2>
+<section>
+<p class="help">
+This allows you to use UPnP to allow access to kaithem from the internet. Only HTTPS
+is supported. Use at your own risk. Don't make kaithem publically acessible unless all user
+passwords are very strong. This will open a port on all discovered routers if enabled.</a>
+</p>
+<form method="POST" action="/settings/changeupnp">
+<table border=1>
+<tr>
+<td>HTTPS WAN Port(0 to disable forwarding)</td>
+<td><input name="exposeport" value="${registry.get('/system/upnp/expose_https_wan_port',0)}".></td>
+</tr>
+</table>
+<input type="submit" >
+</form>
+</section>
+
+
+
+
 <h2>Server Location</h2>
 <section>
 <p class="help">

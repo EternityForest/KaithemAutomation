@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 import cherrypy,base64,os,time,subprocess,time,shutil,sys,logging
 from cherrypy.lib.static import serve_file
-from . import pages, util,messagebus,config,auth,registry,mail,kaithemobj, config,weblogin
+from . import pages, util,messagebus,config,auth,registry,mail,kaithemobj, config,weblogin,systasks
 
 if sys.version_info < (3,0):
     import StringIO as io 
@@ -56,6 +56,11 @@ class Settings():
         """Return a page showing all of the discovered stuff on the LAN"""
         pages.require("/admin/settings.view", noautoreturn=True)
         return pages.get_template("settings/mdns.html").render()
+    @cherrypy.expose
+    def upnp(self):
+        """Return a page showing all of the discovered stuff on the LAN"""
+        pages.require("/admin/settings.view", noautoreturn=True)
+        return pages.get_template("settings/upnp.html").render()
 
     @cherrypy.expose
     def stopsounds(self,*args,**kwargs):
@@ -367,8 +372,20 @@ class Settings():
 
         registry.set("system/location/lat",float(kwargs['lat']))
         registry.set("system/location/lon",float(kwargs['lon']))
+        systasks.doUpnp()
+
         messagebus.postMessage("/system/settings/changedelocation",pages.getAcessingUser())
         raise cherrypy.HTTPRedirect('/settings/system')
+
+    @cherrypy.expose
+    def changeupnptarget(self,**kwargs):
+        pages.require("/admin/settings.edit",noautoreturn=True)
+        pages.postOnly()
+
+        registry.set("/system/upnp/expose_https_wan_port",int(kwargs['exposeport']))
+        systasks.doUpnp()
+        raise cherrypy.HTTPRedirect('/settings/system')
+
 
     @cherrypy.expose
     def ip_geolocate(self,**kwargs):

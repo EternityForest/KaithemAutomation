@@ -1,7 +1,7 @@
 <%!
 from src.unitsofmeasure import siFormatNumber
 from src.util import url
-from src.modules import getModuleHash,fileResourceAbsPaths, external_module_locations
+from src.modules import getModuleHash,getModuleWordHash,fileResourceAbsPaths, external_module_locations
 from src import pages,newevt,usrpages,unitsofmeasure,util,scheduling,modules_state,registry,modules
 import time,os,weakref
 %>
@@ -21,6 +21,8 @@ def getDesc():
 <section>
 <form action="/modules/module/${url(name)}/update" method="POST" name="user">
 MD5 Sum: <b>${getModuleHash(name)}</b></br>
+WordHash: <b>${getModuleWordHash(name)}</b></br>
+
 <a href="/modules/download/${url(name)}.zip">Download this module as a zip file</a><br>
 <a href="/modules/yamldownload/${url(name)}.zip">Download this module as a zip file with YAML resources(not compatible with older versions)</a><br>
 <a href="/modules/module/${url(name)}/obj/module">View the module namespace object(requires edit permission, beware shoulder surfers)</a>

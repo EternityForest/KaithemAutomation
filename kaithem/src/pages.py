@@ -15,16 +15,19 @@
 
 from mako.template import Template
 from mako.lookup import TemplateLookup
-import cherrypy,base64,weakref
+import cherrypy,base64,weakref,threading,time
 from . import auth,config
 from . import directories,util
 
 _Lookup = TemplateLookup(directories=[directories.htmldir])
 get_template = _Lookup.get_template
 
-webResources = weakref.WeakValueDictionary()
+webResources = {}
 
+webResourceLock = threading.Lock()
 
+#Indexed by (time, name, url) pairs
+allWebResources = {}
 
 class WebResource():
     """
@@ -34,15 +37,36 @@ class WebResource():
     def __init__(self,name,url,priority=50):
         self.url = url
         self.priority = 50
-        try:
-            o =webResources[name]
-            if o.priority <= self.priority:
+        self.identifier = (time.time(), name,url)
+        
+        with webResourceLock:
+            allWebResources[self.identifier]=self
+        
+            if name in webResources:
+                o =webResources[name]
+                if o.priority <= self.priority:
+                    webResources[name] = self
+            else:
                 webResources[name] = self
-        except:
-            webResources[name] = self
 
-vue = WebResource("vue-2.5.16","/static/js/vue-2.5.16.js")
-vue2 = WebResource("vue-default","/static/js/vue-2.5.16.js")
+
+    def __del__(self):
+        with webResourceLock:
+            if self.name in webResources and webResources[self.name]==self:
+                del webResources[self.name]
+            #Deletion should be rare, and we should only have a few thousand at most.
+            #we can afford to rescan the whole list under lock.
+            for i in allWebResources:
+                if i[1]==self.name:
+                    if not self.name in webResources:
+                        webResources[self.name] = allWebResources[i]
+                    else:
+                        if i[3]>=webResources[self.name.priority]:
+                            webResources[self.name] = allWebResources[i]
+
+vue = WebResource("vue-2.5.16","/static/js/vue-2.6.10.js")
+vue2 = WebResource("vue-default","/static/js/vue-2.6.10.js")
+vue3 = WebResource("vue2-default","/static/js/vue-2.6.10.js")
 
 
 def postOnly():

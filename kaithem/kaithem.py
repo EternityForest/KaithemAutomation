@@ -642,7 +642,9 @@ if cfg.config['advertise-webui']:
     except:
         logger.exception("Error advertising MDNS service")
 
-
+#Open a port to the outside world. Note that this can only be enabled through the webUI,
+#You are safe unless someone turns it on..
+systasks.doUpnp()
 cherrypy.engine.block()
 
 #Old workaround for things not stopping on python3 that no longer appears to be needed.
