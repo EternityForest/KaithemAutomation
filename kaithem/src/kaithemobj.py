@@ -111,6 +111,8 @@ class Kaithem():
         def breakpoint():
             breakpoint.breakpoint()
 
+        effwords = util.eff_wordlist
+
     #In modules.py, we insert a resource API object.
     #kaithemobj.kaithem.resource = ResourceAPI()
 

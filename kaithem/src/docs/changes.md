@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.64
+- Option to open port with UPnP
+- Built in UPnP scanner to detect security issues
+- Full copy of the python3.8 documentation available locally in the help section
+
 ### 0.63.1
 -  Fix JS dependancy error in lighting module
 

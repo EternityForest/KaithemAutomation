@@ -553,6 +553,10 @@ errors.
 Returns about a sentence to a paragraph of placeholder text that may
 change between calls and may not actually be classic Lorem Ipsum text.
 
+#### kaithem.misc.effwords:
+An indexable iterable of every word in the EFF wordlist
+
+
 #### Kaithem.misc.uptime()
 
 Returns uptime in seconds of the kaithem server(not of the machine

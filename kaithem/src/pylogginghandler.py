@@ -54,7 +54,7 @@ atexit.register(at_exit)
 
 class KFormatter(logging.Formatter):
     def formatException(self,exc_info):
-        return textwrap.fill(logging.Formatter.formatException(self,exc_info),initial_indent="  ",subsequent_indent="  ",width=180)
+        return textwrap.fill(logging.Formatter.formatException(self,exc_info),initial_indent="  ",subsequent_indent="  ",width=240)
 
 class LoggingHandler(logging.Handler):
     def __init__(self,name,folder, fn, bufferlen=25000,

@@ -24,6 +24,9 @@ from .config import config
 
 #Normally we run from one folder. If it's been installed, we change the paths a bit.
 dn = os.path.dirname(os.path.realpath(__file__))
+
+srcdir = dn
+
 if "/usr/lib" in dn:
     vardir= "/var/lib/kaithem"
     datadir = "/usr/share/kaithem"

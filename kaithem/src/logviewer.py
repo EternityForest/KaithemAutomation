@@ -47,7 +47,7 @@ class WidgetHandler(logging.Handler):
             self.emit(record)
         return r
     def emit(self,r):
-        t = textwrap.fill(pylogginghandler.syslogger.format(r),80)
+        t = textwrap.fill(pylogginghandler.syslogger.format(r),120)
         t = esc(t)
         if r.levelname in ["ERROR", "CRITICAL"]:
             self.widget.write('<pre class="error">'+t+"</pre>")
@@ -61,7 +61,7 @@ dbg = WidgetHandler()
 
 logging.getLogger().addHandler(dbg)
 def f(r):
-    t =  textwrap.fill(pylogginghandler.syslogger.format(r),80)
+    t =  textwrap.fill(pylogginghandler.syslogger.format(r),120)
     if r.levelname in ["ERROR","CRITICAL"]:
         syslogwidget.write('<pre class="error">'+t+"</pre>")
     elif r.levelname in ["WARNING"]:

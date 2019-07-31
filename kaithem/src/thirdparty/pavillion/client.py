@@ -630,7 +630,7 @@ class _Client():
 
     def sendNonceRequest(self,addr=None):
         if self.keypair:
-            self.sendSetup(0, 1, struct.pack("<B",self.cipher.id)+self.clientID+self.challenge+self.sessionID+self.keypair[1],addr=addr)
+            self.sendSetup(0, 1, struct.pack("<B",self.cipher.id)+self.clientID+self.challenge+self.sessionID+self.keypair[0],addr=addr)
         else:
             self.sendSetup(0, 1, struct.pack("<B",self.cipher.id)+self.clientID+self.challenge+self.sessionID+b'\0'*32,addr=addr)
 
@@ -855,6 +855,8 @@ class _Client():
                         for i in self.known_servers:
                             if self.known_servers[i].connectedAt<(time.time()-40):
                                 if self.known_servers[i].connectedAt != self.known_servers[i].lastDisconnect:
+                                    pavillion_logger.debug("Pavillion client disconnected from server at "+str(i))
+
                                     self.handle().onServerDisconnect(i,self.known_servers[i])
                                     self.known_servers[i].lastDisconnect = self.known_servers[i].connectedAt
                                     #Since we just disconnected, we may need to rediscover the addr
@@ -951,6 +953,8 @@ class _Client():
                 m=time.monotonic()
                 ts =struct.unpack("<Q",data[:8])[0]
                 server.remoteMonotonicTimeOffset = m-(ts/1000_000)
+            pavillion_logger.debug("Pavillion client connected to server at "+str(addr))
+
 
         #Time Sync Response
         if opcode==21:

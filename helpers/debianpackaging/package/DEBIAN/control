@@ -5,7 +5,7 @@ Essential: no
 Section: web
 Priority: optional
 Depends: python3, systemd
-Recommends: mplayer, pulseaudio, python3-pyserial, python3-pytz, python3-dateutil, lm-sensors, python3-netifaces
+Recommends: mplayer, pulseaudio, python3-pyserial, python3-pytz, python3-dateutil, lm-sensors, python3-netifaces,python3-jack-client
 Maintainer: Daniel Dunn
 Installed-Size: 25000
 Description: The KaithemAutomation Web GUI based automation platform. By default this package will run  as a new user "kaithem" with access to almost all hardware but not sudo.

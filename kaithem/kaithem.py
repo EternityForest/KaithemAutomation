@@ -40,7 +40,7 @@ except:
 
 
 
-import sys,os,threading,traceback,logging,time
+import sys,os,threading,traceback,logging,time,mimetypes
 
 logger = logging.getLogger("system")
 logger.setLevel(0)
@@ -354,6 +354,14 @@ class webapproot():
     @cherrypy.expose
     def docs(self,*path,**data):
         if path:
+            if path[0]=="thirdparty":
+                p = os.path.normpath(os.path.join(directories.srcdir,"docs","/".join(path)))
+                if not p.startswith(os.path.join(directories.srcdir,"docs")):
+                    raise RuntimeError("Invalid URL")
+                cherrypy.response.headers['Content-Type']= mimetypes.guess_type(p)[0]
+
+                with open(p,"rb") as f:
+                    return(f.read())
             return pages.get_template('help/'+path[0]+'.html').render()
         return pages.get_template('help/help.html').render()
 
@@ -644,7 +652,7 @@ if cfg.config['advertise-webui']:
 
 #Open a port to the outside world. Note that this can only be enabled through the webUI,
 #You are safe unless someone turns it on..
-systasks.doUpnp()
+systasks.doUPnP()
 cherrypy.engine.block()
 
 #Old workaround for things not stopping on python3 that no longer appears to be needed.

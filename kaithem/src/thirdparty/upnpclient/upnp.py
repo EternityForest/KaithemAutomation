@@ -433,7 +433,9 @@ class Action(object):
             raise ValidationError(arg_reasons)
 
         # Make the actual call
-        self._log.debug(">> %s (%s)", self.name, call_kwargs)
+        if not self.name.startswith("Get"):
+            #Kaithem project mod. Don't log every single get action
+            self._log.debug(">> %s (%s)", self.name, call_kwargs)
         soap_client = SOAP(self.url, self.service_type)
 
         soap_response = soap_client.call(
@@ -442,7 +444,8 @@ class Action(object):
           http_auth or self.service.device.http_auth,
           http_headers or self.service.device.http_headers
         )
-        self._log.debug("<< %s (%s): %s", self.name, call_kwargs, soap_response)
+        #Kaithem project modification, too much logging.
+        #self._log.debug("<< %s (%s): %s", self.name, call_kwargs, soap_response)
 
         # Marshall the response to python data types
         out = {}

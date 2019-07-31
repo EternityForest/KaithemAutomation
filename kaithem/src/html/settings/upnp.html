@@ -1,0 +1,34 @@
+<%include file="/pageheader.html"/>
+<%
+from pavillion import upnpwrapper
+%>
+<h1>Local Network</h1>
+<div class="sectionbox">
+<h2>WAN Adddresses</h2>
+<p class="help">Only UPnP routers listed here</p>
+<ul>
+%for i in upnpwrapper.getWANAddresses():
+<li>${i}</li>
+%endfor
+
+</ul>
+    
+</table>
+
+<h2>Detected Port Mappings</h2>
+<table>
+    <tr>
+        <th>WAN Addr</th><th>LAN Addr</th><th>Protocol</th><th>Description</th>
+    </tr>   
+%for i in upnpwrapper.listMappings():
+<tr>
+    <td>${i['external']}</td>
+    <td>${i['internal']}</td>
+    <td>${i['protocol']}</td>
+    <td>${i['description']}</td>
+</tr>
+%endfor
+
+</table>
+</div>
+<%include file="/pagefooter.html"/>
