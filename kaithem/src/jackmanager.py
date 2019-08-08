@@ -1,16 +1,33 @@
-#This code runs once when the event loads. It also runs when you save the event during the test compile
-#and may run multiple times when kaithem boots due to dependancy resolution
+#Copyright Daniel Dunn 2019
+#This file is part of Kaithem Automation.
+
+#Kaithem Automation is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, version 3.
+
+#Kaithem Automation is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 __doc__=''
 
 
 
-
-import jack
 import weakref
 import threading
 import base64
 
 import os,re,time,subprocess,hashlib,struct,threading,atexit,select,traceback
+
+#Util is not used anywhere else
+from . import util 
+eff_wordlist = util.eff_wordlist
+
+#This is an acceptable dependamcy, it will be part of libkaithem if such a thing exists
+from . import messagebus
 
 import logging
 
@@ -20,9 +37,15 @@ jackclient =None
 #from, to pairs.
 connections=[]
 
+lock = threading.Lock()
+
 #Currently we only support using the default system card as the
 #JACK backend. We prefer this because it's easy to get Pulse working right.
 usingDefaultCard = True
+
+def isConnected(f,t):
+    with lock:
+        return jackclient.get_port_by_name(t) in jackclient.get_all_connections(jackclient.get_port_by_name(f))
 
 def setupPulse():
     try:
@@ -33,12 +56,14 @@ def setupPulse():
 
 def ensureConnections():
     "Auto restore connections in the connection list"
-    for i in allConnections:
-        try:
-           allConnections[i].reconnect()
-        except:
-            print(traceback.format_exc)
-
+    try:
+        for i in allConnections:
+            try:
+                allConnections[i].reconnect()
+            except:
+                print(traceback.format_exc)
+    except:
+        raise
 import weakref
 allConnections=weakref.WeakValueDictionary()
 
@@ -52,44 +77,50 @@ class MonoAirwire():
     
     They start out in the connected state
     """
-    def __init__(self, name, orig, to):
+    def __init__(self, orig, to):
+        log.info("Created JACK airwire from "+str(orig) +" to "+ str(to))
         self.orig=orig
         self.to = to
-        self.name = name
+        print(orig,to)
         self.active = True
 
     def disconnect(self):
         self.disconnected = True
         try:
-            del allConnections[self.name]
+            del allConnections[self.orig, self.to]
         except:
             pass
         try:
-            x = jackclient.get_port_by_name(self.orig)
-            if x.is_connected_to(self.to):
+            with lock:
+                x = jackclient.get_port_by_name(self.orig)
+            if isConnected(self.orig,self.to):
                 x.disconnect(self.to)
                 del activeConnections[self.orig,self.to]
         except:
             pass
 
     def __del__(self):
-        x = jackclient.get_port_by_name(self.orig)
-        if x.is_connected_to(self.to):
-            x.disconnect(self.to)
+        if self.active:
+            with lock:
+                x = jackclient.get_port_by_name(self.orig)
+            if isConnected(self.orig,self.to):
+                x.disconnect(self.to)
 
     def connect(self):
-        allConnections[self.name]= self
+        allConnections[self.orig, self.to]= self
         self.connected=True
         self.reconnect()
 
     def reconnect(self):
-        try:
-            x = jackclient.get_port_by_name(self.orig)
-            if not x.is_connected_to(self.to):
-                x.connect(self.to)
-                activeConnections[self.orig, self.to]=self
-        except:
-            pass
+        if self.orig and self.to:
+            try:
+                with lock:
+                    x = jackclient.get_port_by_name(self.orig)
+                if not isConnected(self.orig,self.to):
+                    x.connect(self.to)
+                    activeConnections[self.orig, self.to]=self
+            except:
+                print(traceback.format_exc())
 
 class Effect():
     def __init__(self, effectype):
@@ -97,29 +128,15 @@ class Effect():
         #Todo, create the gstreamer element 
 
 class MultichannelAirwire(MonoAirwire):
+    "Link all outputs of f to all inputs of t, in sorted order"
 
-    def __init__(self, f,t):
-        if isinstance(f,ChannelStrip):
-            self.orig = weakref.ref(f)
-        else:
-            self.orig = f
-        if isinstance(t,ChannelStrip):
-            self.to = weakref.ref(to)
-        else:
-            self.to = to
 
     def _getEndpoints(self):
-        if isinstance(self.orig,weakref.ref):
-            f =self.orig()
-        else:
-            f = self.orig
+        f = self.orig
         if not f:
             return None,None
         
-        if isinstance(self.to,weakref.ref):
-            t =self.to()
-        else:
-            t = self.to
+        t = self.to
         if not t:
             return None,None
         return f,t
@@ -137,43 +154,34 @@ class MultichannelAirwire(MonoAirwire):
         if not f:
             return
 
-        if isinstance(f,ChannelStrip):
-            outPorts = jackclient.get_ports(f.name+":output*",is_output=True,is_audio=True)
-        else:
+        with lock:
             outPorts = jackclient.get_ports(f+":*",is_output=True,is_audio=True)
-        
-        if isinstance(t,ChannelStrip):
-            t=t.name
-        inPorts = jackclient.get_ports(t+":*",is_input=True,is_audio=True)
-
-        #Connect all the ports
-        for i in zip(outPorts,inPorts):
-            if not i[0].is_connected_to(i[1]):
-                i[0].connect(i[1])
-                activeConnections[i[0],i[1]]=self
+            inPorts = jackclient.get_ports(t+":*",is_input=True,is_audio=True)
+            print(t, f, inPorts, outPorts)
+            #Connect all the ports
+            for i in zip(outPorts,inPorts):
+                if not isConnected(i[0].name,i[1].name):
+                    if jackclient:
+                        jackclient.connect(i[0],i[1])
+                    activeConnections[i[0].name,i[1].name]=self
 
     def disconnect(self):
         f,t=self._getEndpoints()
         if not f:
             return
 
-        if isinstance(f,ChannelStrip):
-            outPorts = jackclient.get_ports(f.name+":output*",is_output=True,is_audio=True)
-        else:
+        with lock:
             outPorts = jackclient.get_ports(f+":*",is_output=True,is_audio=True)
-        
-        if isinstance(t,ChannelStrip):
-            t=t.name
-        inPorts = jackclient.get_ports(t+":*",is_input=True,is_audio=True)
+            inPorts = jackclient.get_ports(t+":*",is_input=True,is_audio=True)
 
-        #Connect all the ports
-        for i in zip(outPorts,inPorts):
-            if i[0].is_connected_to(i[1]):
-                i[0].disconnect(i[1])
-                try:
-                    del activeConnections[i[0],i[1]]
-                except KeyError:
-                    pass
+            #Connect all the ports
+            for i in zip(outPorts,inPorts):
+                if isConnected(i[0],i[1]):
+                    jackclient.disconnect(i[0],i[1])
+                    try:
+                        del activeConnections[i[0],i[1]]
+                    except KeyError:
+                        pass
 
     def __del__(self):
         self.disconnect()
@@ -181,37 +189,28 @@ class MultichannelAirwire(MonoAirwire):
 
 def CombiningAirwire(MultichannelAirwire):
     def reconnect(self):
-        """Connects the outputs of channel strip f to the inputs of t, one to one, until
-        you run out of ports. 
-        
-        Note that channel strips only have the main inputs but can have sends,
-        so we have to distinguish them in the regex.
+        """Connects the outputs of channel strip f to the port t. As in all outputs
+        to one input.
         """
         if not self.active:
             return
         f,t=self._getEndpoints()
         if not f:
             return
-
-        if isinstance(f,ChannelStrip):
-            outPorts = jackclient.get_ports(f.name+":output*",is_output=True,is_audio=True)
-        else:
+        with lock:
             outPorts = jackclient.get_ports(f+":*",is_output=True,is_audio=True)
-    
+        
+            inPort = jackclient.get_port(t)
+            if not inPort:
+                return
 
-        inPort = jackclient.get_port(t)
-        if not inPort:
-            return
+
+            #Connect all the ports
+            for i in outPorts:
+                if not isConnected(i.name,inPort.name):
+                    jackclient.connect(i,inPort)
 
 
-        #Connect all the ports
-        for i in outPorts:
-            if i.is_connected_to(inPort):
-                i.disconnect(inPort)
-                try:
-                    del activeConnections[i,inPort]
-                except KeyError:
-                    pass
 
 
     def disconnect(self):
@@ -219,49 +218,59 @@ def CombiningAirwire(MultichannelAirwire):
         if not f:
             return
 
-        if isinstance(f,ChannelStrip):
-            outPorts = jackclient.get_ports(f.name+":output*",is_output=True,is_audio=True)
-        else:
+        with lock:
             outPorts = jackclient.get_ports(f+":*",is_output=True,is_audio=True)
-    
+        
+            inPort = jackclient.get_port(t)
+            if not inPort:
+                return
 
-        inPort = jackclient.get_port(t)
-        if not inPort:
-            return
-
-
-        #Disconnect all the ports
-        for i in outPorts:
-            if i.is_connected_to(inPort):
-                i.disconnect(inPort)
-                try:
-                    del activeConnections[i,inPort]
-                except KeyError:
-                    pass
+            #Disconnect all the ports
+            for i in outPorts:
+                if isConnected(i.name,inPort.name):
+                    i.disconnect(inPort)
+                    try:
+                        del activeConnections[i,inPort]
+                    except KeyError:
+                        pass
 
 def Airwire(f,t):
+    if f==None or t==None:
+        return MonoAirwire(None,None)
     if ":" in f:
         if not ":" in t:
-            raise ValueError("MultichannelAirwire to single channel makes no sense")
-            #Can't connect multichannel to single channel
-        return MultichannelAirwire(f,t)
-    else:
+           return CombiningAirwire(f,t)
         return MonoAirwire(f,t)
+    else:
+        return MultichannelAirwire(f,t)
 
-def onPortConnect(a,b,disconnected):
+def onPortConnect(a,b,connected):
     #Whem things are manually disconnected we don't
     #Want to always reconnect every time
-    if disconnected:
+    if not connected:
+        log.info("JACK port "+ a.name+" disconnected from "+b.name)
         i = (a.name,b.name)
         #Try to stop whatever airwire or set therof
         #from remaking the connection
         if i in activeConnections:
             try:
+                #Deactivate first, that must keep it from using the api
+                #From within the callback
                 activeConnections[i].active=False
                 del allConnections[i]
                 del activeConnections[i]
             except:
                 pass
+    else:
+        log.info("JACK port "+ a.name+" disconnected from "+b.name)
+
+def onPortRegistered(port,registered):
+    if registered:
+        log.info("JACK port registered: "+name)
+        messagebus.postMessage("/system/jack/newport/",[port.name, port.is_input] )
+    else:
+        log.info("JACK port unregistered: "+name)
+        messagebus.postMessage("/system/jack/delport/",name)
 
 class ChannelStrip():
     def init(self, name,stereo=False, sends=[]):
@@ -491,9 +500,6 @@ def listSoundCardsByPersistentName():
     return inputs,outputs,names_to_jacknames
 
 
-import util 
-eff_wordlist = util.eff_wordlist
-
 def memorableHash(x, num=1, separator="",caps=False):
     "Use the diceware list to encode a hash. Not meant to be secure."
     o = ""
@@ -572,23 +578,11 @@ def startJack():
             subprocess.check_call(['pulseaudio','-k'])
         except:
             pass
-        jackp =subprocess.Popen("jackd --realtime -d alsa -d hw:0,0 -p 256 -n 3",shell=True,stdin=subprocess.DEVNULL,stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)    
+        f = open(os.devnull,"w")
+        g = open(os.devnull,"w")
+        jackp =subprocess.Popen("jackd --realtime -d alsa -d hw:0,0 -p 256 -n 3",stdout=f, stderr=g, shell=True,stdin=subprocess.DEVNULL)    
 
 
-
-def startManagingJack():
-    global jackclient
-    atexit.register(cleanup)
-    stopJack()
-    startJack()
-    for i in range(10):
-        try:
-            jackclient = jack.Client("Overseer")
-        except:
-            if i>9:
-                continue
-            raise
-    setupPulse()
 
 
 
@@ -746,12 +740,58 @@ def handleManagedSoundcards():
             log.exception("Exception in loop")
 
 
+def work():
+    handleManagedSoundcards()
+    ensureConnections()
+    time.sleep(5)
+
+t =None
+
+def startManagingJack():
+    import jack, re
+    global jackclient
+    global t
+
+    def _get_ports_fix(self, name_pattern='', is_audio=False, is_midi=False,
+                   is_input=False, is_output=False, is_physical=False,
+                   can_monitor=False, is_terminal=False):
+        if name_pattern:
+            re.compile(name_pattern)
+                
+        return jack.Client._get_ports(self, name_pattern, is_audio, is_midi, 
+                                    is_input, is_output, is_physical, 
+                                    can_monitor, is_terminal)
+
+    jack.Client._get_ports = jack.Client.get_ports
+    jack.Client.get_ports = _get_ports_fix
+
+    atexit.register(cleanup)
+    stopJack()
+    startJack()
+    for i in range(10):
+        try:
+            jackclient = jack.Client("Overseer",no_start_server=True)
+            break
+        except:
+            time.sleep(1)
+            if i<9:
+                continue
+            raise
+    with lock:
+        jackclient.set_port_registration_callback(onPortRegistered)
+        jackclient.set_port_connect_callback(onPortConnect)
+    setupPulse()
+    t = threading.Thread(target=work)
+    t.daemon=True
+    t.start()
 
 
-
+def getPorts(*a,**k):
+    with lock:
+        if not jackclient:
+            return []
+        return jackclient.get_ports(*a,**k)
 
 startManagingJack()
 
-while 1:
-    handleManagedSoundcards()
-    ensureConnections()
+

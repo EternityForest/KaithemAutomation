@@ -52,10 +52,18 @@ class Settings():
         return pages.get_template("settings/threads.html").render()
 
     @cherrypy.expose
+    def mixer(self):
+        """Return a page showing all of kaithem's current running threads"""
+        pages.require("/usees/mixer.edit",)
+        return pages.get_template("settings/mixer.html").render()
+
+
+    @cherrypy.expose
     def mdns(self):
         """Return a page showing all of the discovered stuff on the LAN"""
         pages.require("/admin/settings.view", noautoreturn=True)
         return pages.get_template("settings/mdns.html").render()
+
     @cherrypy.expose
     def upnp(self):
         """Return a page showing all of the discovered stuff on the LAN"""
@@ -384,6 +392,22 @@ class Settings():
 
         registry.set("/system/upnp/expose_https_wan_port",int(kwargs['exposeport']))
         systasks.doUpnp()
+        raise cherrypy.HTTPRedirect('/settings/system')
+
+    @cherrypy.expose
+    def changejacksettingstarget(self,**kwargs):
+        pages.require("/admin/settings.edit",noautoreturn=True)
+        pages.postOnly()
+
+        registry.set("/system/sound/usejack",int(kwargs['jackmode']))
+        import jackmanager
+        if registry.get("/system/sound/usejack",None)=="manage":
+            try:
+                jackmanager.startManagingJack()
+            except:
+                log.exception("Error managing JACK")
+        else:
+            jackmanager.stopJack()
         raise cherrypy.HTTPRedirect('/settings/system')
 
 

@@ -29,7 +29,7 @@ This allows you to use UPnP to allow access to kaithem from the internet. Only H
 is supported. Use at your own risk. Don't make kaithem publically acessible unless all user
 passwords are very strong. This will open a port on all discovered routers if enabled.</a>
 </p>
-<form method="POST" action="/settings/changeupnp">
+<form method="POST" action="/settings/changeupnptarget">
 <table border=1>
 <tr>
 <td>HTTPS WAN Port(0 to disable forwarding)</td>
@@ -39,6 +39,29 @@ passwords are very strong. This will open a port on all discovered routers if en
 <input type="submit" >
 </form>
 </section>
+
+
+<h2>JACK Audio</h2>
+<section>
+<p class="help">
+Kaithem can use JACK audio, including automaticallly giving soundcards persistant JACK
+names.  Using this is required for Kaithem's integrated sound mixer to work correctly.
+</p>
+
+<form method="POST" action="/settings/changejacksettingstarget">
+<table border=1>
+<tr>
+<td>JACK Mode</td>
+<td><select name="jackmode">
+<option title="Kaithem will ignore JACK" value="off" ${'selected' if  registry.get('/system/sound/usejack','off')=='off' else ''}>off</option>
+<option title="Kaithem will start and manage jackd" value="manage" ${'selected' if registry.get('/system/sound/usejack','off')=='manage' else ''}>manage</option>
+</td>
+</tr>
+</table>
+<input type="submit" >
+</form>
+</section>
+
 
 
 

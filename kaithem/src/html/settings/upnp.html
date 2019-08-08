@@ -18,7 +18,7 @@ from pavillion import upnpwrapper
 <h2>Detected Port Mappings</h2>
 <table>
     <tr>
-        <th>WAN Addr</th><th>LAN Addr</th><th>Protocol</th><th>Description</th>
+        <th>WAN Addr</th><th>LAN Addr</th><th>Protocol</th><th>Description</th><th>Duration</th>
     </tr>   
 %for i in upnpwrapper.listMappings():
 <tr>
@@ -26,6 +26,8 @@ from pavillion import upnpwrapper
     <td>${i['internal']}</td>
     <td>${i['protocol']}</td>
     <td>${i['description']}</td>
+    <td>${i['duration']}</td>
+
 </tr>
 %endfor
 
