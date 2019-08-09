@@ -23,7 +23,6 @@ logger = logging.getLogger("system.chandler")
 import numpy
 import hashlib
 import base64
-
 float=float
 abs=abs
 int=int
@@ -1272,6 +1271,7 @@ class LightBoard():
                              'blend':  x.blend,
                              'blendArgs': x.blendArgs,
                              'backtrack': x.backtrack,
+                             'soundOutput': x.soundOutput,
                              'syncKey':x.syncKey, 'syncPort': x.syncPort, 'syncAddr':x.syncAddr                            
                             }
             return sd
@@ -1351,7 +1351,9 @@ class LightBoard():
                           'syncAddr': scene.syncAddr,
                           'syncPort': scene.syncPort,
                           'subs': subs,
-                          'subslist': subslist
+                          'subslist': subslist,
+                          'soundOutput': scene.soundOutput,
+
                 }])
                 
     def pushCueMeta(self,cueid):
@@ -1475,6 +1477,9 @@ class LightBoard():
             if msg[0] == "setsoundout":
                 cues[msg[1]].soundOutput=msg[2]
                 self.pushCueMeta(msg[1])
+
+   
+
 
             if msg[0] == "clonescene":
                 s = Scene(msg[2])
@@ -1701,6 +1706,16 @@ class LightBoard():
                 cues[msg[1]].soundOutput=msg[2]
                 self.pushCueMeta(msg[1])
 
+            if msg[0]=="setlninfluences":
+                cues[msg[1]].setLivingNightInfluences(msg[2])
+                self.pushCueMeta(msg[1])
+
+            if msg[0]=="setlnassosiations":
+                cues[msg[1]].setLivingNightAssociatoind(msg[2])
+                self.pushCueMeta(msg[1])
+
+
+
             if msg[0] == "settrack":
                 cues[msg[1]].setTrack(msg[2])
                 self.pushCueMeta(msg[1])
@@ -1712,6 +1727,10 @@ class LightBoard():
                 
             if msg[0] == "setbacktrack":
                 module.scenes[msg[1]].setBacktrack(bool(msg[2]))
+                self.pushMeta(msg[1])
+            
+            if msg[0] == "setscenesoundout":
+                module.scenes[msg[1]].soundOutput=msg[2]
                 self.pushMeta(msg[1])
 
             if msg[0] == "setlength":
@@ -2087,7 +2106,7 @@ cues =weakref.WeakValueDictionary()
 
 class Cue():
     "A static set of values with a fade in and out duration"
-    __slots__=['id','changed','next_ll','alpha','fadein','fadeout','length','lengthRandomize','name','values','scene','nextCue','track','shortcut','number','inherit','sound','rel_length','script','soundOutput','onEnter','onExit','__weakref__']
+    __slots__=['id','changed','next_ll','alpha','fadein','fadeout','length','lengthRandomize','name','values','scene','nextCue','track','shortcut','number','inherit','sound','rel_length','script','soundOutput','onEnter','onExit','influences','associations','__weakref__']
     def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, fadeout=0, length=0,track=True, nextCue = None,shortcut=None,sound='',soundOutput=None,rel_length=False, id=None,number=None,
         lengthRandomize=0,script='',onEnter=None,onExit=None,**kw):
         #This is so we can loop through them and push to gui
@@ -2129,9 +2148,35 @@ class Cue():
         self.soundOutput = soundOutput
         s = number_to_shortcut(self.number)
         shortcut = shortcut or s
+
+        #Used for the livingnight algorithm
+        #Aspect, value tuples
+        self.influences = {}
+
+        #List if tuples(type, aspect, effect)
+        #Type is what parameter if the cue is being affected
+        self.associations = []
+
+
         self.setShortcut(shortcut)
             
         self.push()
+    
+    def setInfluences(self, influences):
+        self.influences = influences
+        self.scene.recalcLivingNight()
+    
+    def getProbabilty(self):
+        """
+        When randomly selecting a cue, this modifies the probability of each cue
+        based on LivingNight parameters
+        """
+        s = 1
+        for i in self.associations:
+            if i[0]== 'probability':
+                s= module.lnEffect(s,i[1],i[2])
+
+        return s 
 
     def serialize(self):
             return {"fadein":self.fadein,"fadeout":self.fadeout,"length":self.length,'lengthRandomize':self.lengthRandomize,"shortcut":self.shortcut,"values":self.values,
@@ -2285,7 +2330,7 @@ class Cue():
 
 class Scene():
     "An objecting representing one scene"
-    def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,blendArgs=None,backtrack=True,defaultCue=True, syncKey=None, bpm=60, syncAddr="239.255.28.12", syncPort=1783):
+    def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,blendArgs=None,backtrack=True,defaultCue=True, syncKey=None, bpm=60, syncAddr="239.255.28.12", syncPort=1783, soundOutput=''):
 
 
        
@@ -2312,6 +2357,9 @@ class Scene():
         self.canvas = None
         self.backtrack = backtrack
         self.bpm = bpm
+        self.soundOutput = soundOutput
+
+        self.cue=None
 
         #Used for the tap tempo algorithm
         self.lastTap = 0
@@ -2376,6 +2424,12 @@ class Scene():
 
         #The bindings for script commands that might be in the cue metadata
         self.commandBindings = {}
+
+
+        #List the active LivingNight influences
+        self.influences = {}
+
+        self.recalcLivingNight()
 
 
         import hashlib
@@ -2456,6 +2510,25 @@ class Scene():
                 if data[0] in self.cues:
                     self.gotoCue(data[0],t,sendSync=False)
         self.msgtarget = self.pavillions.messageTarget(msgtarget,f)
+
+
+    
+    def recalcLivingNight(self):
+        "This is called whenever a relevant change happens to LivingNight."
+        with self.lock:
+            if self.cue:
+                #When the cue changes we alsi
+                x = self.cue.influences
+
+                for i in self.influences:
+                    if not i in x:
+                        del self.influences[i]
+
+                for i in x:
+                    if i in self.influences:
+                        self.influences[i].update(x[i])
+                    else:
+                        self.influences[i]=module.lnInfluence(i,x[i])
 
 
     def insertSorted(self,c):
@@ -2768,7 +2841,12 @@ class Scene():
                             sound = os.path.join(i,sound)
 
                 if os.path.isfile(sound):
-                    kaithem.sound.play(sound,handle=str(self.id),volume=self.alpha,output=self.cue.soundOutput)
+                    out = self.cue.soundOutput
+                    if not out:
+                        out = self.soundOutput
+                    if not out:
+                        out = None
+                    kaithem.sound.play(sound,handle=str(self.id),volume=self.alpha,output=out)
                 else:
                     self.event("error", info="File does not exist")
 
@@ -3037,8 +3115,8 @@ class Scene():
 
 
     
-    def cue(self,name,**kw):
-        return Cue(self,name,**kw)
+   # def cue(self,name,**kw):
+   #     return Cue(self,name,**kw)
 
     def setBlend(self,blend):
         disallow_special(blend)

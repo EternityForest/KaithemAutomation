@@ -780,7 +780,7 @@ from src import tagpoints
 
                 <div>
                     <p style="background-color:rgba(250,250,250,0.5)">
-                        <button v-on:click="scenetab='blend'">Scene Properties</button>
+                        <button v-on:click="scenetab='blend'">Properties</button>
                         <button v-on:click="scenetab='sound'">Sound</button>
                         <button v-on:click="scenetab='sync'"> Sync</button>
                         <button v-on:click="scenetab='data'" title="Direct copy and pastable access to cue data"> Cue Data</button>
@@ -841,14 +841,17 @@ from src import tagpoints
                         </label><br>
                             <div class="scrollbox">
                                 <h5>Kaithem Sound Aliases</h5>
-                                <p class="help">Double click to select. These so long as you plug the same device into the same port(on linux), it will be given
-                                    the same device alias.</p>
-                                <dl>
-                                    <span v-for="i of soundCards">
-                                <dt v-on:dblclick="cuemeta[currentcueid].soundOutput=i">{{i}}</dt>
-                                <dd> <button v-on:click="testSoundCard(i,0,48000)">Test</button>
-                                </span>
-                                </dl>
+                                <p class="help">So long as you plug the same device into the same port(on linux), it will be given
+                                    the same device alias, although they will be different if JACK is used.</p>
+                                <table>
+                                    <tr v-for="i of soundCards">
+                                <td >{{i}}</td>
+                                <td> <button v-on:click="setSoundOutput(currentcueid,i)">Set for Cue</button></td>
+                                <td> <button v-on:click="testSoundCard(i,0,48000)">Test(48k)</button></td>
+                                <td> <button v-on:click="testSoundCard(i,0,96000)">Test(96k)</button></td>
+                                <td> <button v-on:click="testSoundCard(i,0,44100)">Test(44.1k)</button></td>
+                                </tr>
+                                </table>
                             </div>
 
                             <label>Length relative to sound:
@@ -861,18 +864,100 @@ from src import tagpoints
                             <ul>
                                 <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir('')">&ltTOP&gt</li>
                                 <li v-if="soundfilesdir" style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">..</li>
-                                <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(soundfilesdir+i)" v-for="i in soundfileslisting[0]">{{i}}</li>
+                                <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(i)" v-for="i in soundfileslisting[0]">{{i}}</li>
 
                             </ul>
 
-                            <ul>
-                                <li title="Double click to select" v-on:dblclick="setSoundfile(currentcueid,soundfilesdir+i)" v-for="i in soundfileslisting[1]">{{i}}</li>
-                            </ul>
+                            <table border="1">
+                                <tr><th>File</th> <th>Add to Current</th> <th>Add to New</th></tr>
+                                <tr  v-for="i in soundfileslisting[1]">
+                                    <td>{{i}}</td>
+                                    <td><button v-on:click="setSoundfile(currentcueid,soundfilesdir+i)">Set</button></td>
+                                    <td><button>New</button></td>
+                                </tr>
+                            </table>
                         </div>
                     </div>
 
 
+
+                     <div v-if="scenetab=='livingnight'">
+                        <h3>LivingNight</h3>
+                        <div style="display:inline-block;">
+                            <p class="help">LivingNight is an algorithm for modifying random properties for better realism, to achieve effects like crickets quieting down when someone walks past. This is done with a global set of "attributes" like loudness, darkness, etc,
+                                that are affected by influences.  Attributes can be any arbitrary work you choose.  Cues can have any number of influences that increase or decrease these attributes.
+                            </p>
+                            <h4>Associations</h4>
+                            <table border=1>
+                                <tr>
+                                    <th title="Attributes reflect a condition of the virtual world that can be described by a number">Attribute</th>
+                                    <th title="The parameter you want to control based on the attribute">Parameter</th>
+                                    <th title="Positive values increase the parameter when that attribute is strong">Effect Level</th>
+                                </tr>
+                                
+                                <tr v-for="i in currentcue.associations">
+                                    <td>i[0]</td>
+                                    <td>i[1]</td>
+                                    <td>i[2]</td>
+                                <tr>
+                            </table>
+                        </div>
+                    </div>
+
+
+
+
+
+
+
                     <div v-if="scenetab=='blend'">
+                        <h4 title="These properties belong to the selected cue and can vary between cues">Cue Properties</h4>
+
+                        <label>Number:
+                        <input type="number" title="Cue number" style="width:6em" v-on:input="setnumber(currentcueid,$event.target.value)"
+                            min=0 step=0.1 v-model="currentcue.number">
+                        </label>
+                        <label>Code:
+                            <input title="Shortcut code used to quickly activate a cue" size="8" v-on:input="setshortcut(currentcueid,$event.target.value)"
+                                v-model="currentcue.shortcut">
+                        </label>
+                        <label>Track:
+                            <input type="checkbox" v-on:change="settrack(currentcueid,currentcue.track)" v-model="currentcue.track"
+                                title="Track values from previous cue? If false, values not present are always transparent">
+                        </label>
+                        <label>Fadein:
+                            <input type="number" v-on:input="setfadein(currentcueid,$event.target.value)" style="width:3em"
+                                min=0 v-model="currentcue.fadein">{{scenemeta[scenename].bpm?"beats":"s"}}
+                        </label>
+                        <label>Length:
+                            <input type="number" v-on:input="setlength(currentcueid,$event.target.value)" v-model="cuemeta[currentcueid].length"
+                                style="width:4em" min=0></input>{{scenemeta[scenename].bpm?"beats":"s"}}
+                        </label>
+                        <label>Randomize Length:
+                            <input type="number" v-on:input="setrandomize(currentcueid,$event.target.value)"
+                                title="Randomize the cue length +- this amount" v-model="cuemeta[currentcueid].lengthRandomize"
+                                style="width:4em" min=0 step=0.25></input>{{scenemeta[scenename].bpm?"beats":"s"}}
+                        </label>
+                        <br>
+
+
+                        <br>
+                        <label>Soundfile:
+                            <input placeholder="No sound file" v-model="currentcue.sound"
+                                style="width:32em;" v-on:change="setSoundfile(currentcueid,currentcue.sound)">
+                        </label>
+                        <label>Device:
+                            <input title="Using mplayer -ao syntax, set the output device" v-on:input="setSoundOutput(currentcueid,$event.target.value)"
+                                v-model="cuemeta[currentcueid].soundOutput" placeholder="default"></input>
+                        </label>
+
+                        <label>Length From Sound:
+                            <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_len)" v-model="currentcue.rel_len"
+                                title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
+                        </label>
+                        <br>
+
+
                         <h4 title="These properties are fixed per-scene and don't change between cues">Scene Properties</h4>
                         <label>Default Alpha:
                         <input type="number" style="width:4em" max=1 step=0.01 min=0 v-on:input="setdalpha(scenename,parseFloat($event.target.value))"
@@ -900,49 +985,7 @@ from src import tagpoints
                         </label>
                         <button v-on:click="tap(scenename)">
                         <img src="/zipstatic/img/icons/fugue.zip/hand-finger.png"></img>Tap</button><br>
-                        <label>Number:
-                        <input type="number" title="Cue number" style="width:6em" v-on:input="setnumber(currentcueid,$event.target.value)"
-                            min=0 step=0.1 v-model="currentcue.number">
-                        </label>
-                        <label>Code:
-                            <input title="Shortcut code used to quickly activate a cue" size="8" v-on:input="setshortcut(currentcueid,$event.target.value)"
-                                v-model="currentcue.shortcut">
-                        </label>
-                        <label>Track:
-                            <input type="checkbox" v-on:change="settrack(currentcueid,currentcue.track)" v-model="currentcue.track"
-                                title="Track values from previous cue? If false, values not present are always transparent">
-                        </label>
-                        <label>Fadein:
-                            <input type="number" v-on:input="setfadein(currentcueid,$event.target.value)" style="width:3em"
-                                min=0 v-model="currentcue.fadein">{{scenemeta[scenename].bpm?"beats":"s"}}
-                        </label>
-                        <label>Length:
-                            <input type="number" v-on:input="setlength(currentcueid,$event.target.value)" v-model="cuemeta[currentcueid].length"
-                                style="width:4em" min=0></input>{{scenemeta[scenename].bpm?"beats":"s"}}
-                        </label>
-                        <label>Randomize:
-                            <input type="number" v-on:input="setrandomize(currentcueid,$event.target.value)"
-                                title="Randomize the cue length +- this amount" v-model="cuemeta[currentcueid].lengthRandomize"
-                                style="width:4em" min=0 step=0.25></input>{{scenemeta[scenename].bpm?"beats":"s"}}
-                        </label>
-                        <br>
-
-
-                        <br>
-                        <label>Soundfile:
-                            <input placeholder="No sound file" v-model="currentcue.sound"
-                                style="width:32em;" v-on:change="setSoundfile(currentcueid,currentcue.sound)">
-                        </label>
-                        <label>Device:
-                            <input title="Using mplayer -ao syntax, set the output device" v-on:input="setSoundOutput(currentcueid,$event.target.value)"
-                                v-model="cuemeta[currentcueid].soundOutput" placeholder="default"></input>
-                        </label>
-
-                        <label>Length From Sound:
-                            <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_len)" v-model="currentcue.rel_len"
-                                title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
-                        </label>
-                        <br>
+                        
 
                         <label title="Check this box to make the scene active at startup">Active By Default:
                             <input type="checkbox" v-on:change="setdactive(scenename,$event.target.checked)"
@@ -954,6 +997,8 @@ from src import tagpoints
                                 v-model="editingScene.backtrack"></input>
                         </label>
 
+                        Default Sound Output: <input title="If not set by a cue, the global setting for the scene is used" v-on:input="setSceneSoundOutput(scenename,$event.target.value)"
+                                v-model="editingScene.soundOutput" placeholder="default" list="soundcards"></input>
                         </br>
 
                         <hr v-if="editingScene.blend!='normal'" style="border-style:solid;border-width:1px;border-color:grey;">
@@ -977,6 +1022,23 @@ from src import tagpoints
                                 </select>
 
                                 <button v-on:click="sendev(scenename)">Send</button>
+                     </label>
+                            <div class="scrollbox">
+                                <h5>Kaithem Sound Aliases</h5>
+                                <p class="help">So long as you plug the same device into the same port(on linux), it will be given
+                                    the same device alias, although they will be different if JACK is used.</p>
+                                <table>
+                                    <tr v-for="i of soundCards">
+                                <td >{{i}}</td>
+                                <td> <button v-on:click="setSoundOutput(currentcueid,i)">Set for Cue</button></td>
+                                <td> <button v-on:click="setSceneSoundOutput(scenename,i)">Set as Scene Default</button></td>
+                                <td> <button v-on:click="testSoundCard(i,0,48000)">Test(48k)</button></td>
+                                <td> <button v-on:click="testSoundCard(i,0,96000)">Test(96k)</button></td>
+                                <td> <button v-on:click="testSoundCard(i,0,44100)">Test(44.1k)</button></td>
+
+                                </tr>
+                                </table>
+                            </div>
 
                 </div>
             </div>
@@ -1154,8 +1216,15 @@ from src import tagpoints
             ],
             'setSoundfileDir': function(i)
             {
-
-                appData.soundfilesdir = i;
+                
+                if(! ((i=='')| (i[0]=='/') ))
+                {
+                    appData.soundfilesdir += i;
+                }
+                else
+                {
+                    appData.soundfilesdir = i;
+                }
                 appData.soundfileslisting = [
                     [],
                     []
@@ -1166,6 +1235,11 @@ from src import tagpoints
             {
 
                 api_link.send(['setcuesoundoutput', cueid, i])
+            },
+               'setSceneSoundOutput': function(cueid, i)
+            {
+
+                api_link.send(['setscenesoundout', cueid, i])
             },
             'setSoundfile': function(cueid, i)
             {

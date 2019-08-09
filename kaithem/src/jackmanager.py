@@ -48,7 +48,7 @@ def isConnected(f,t):
         f=f.name
     if not isinstance(f, str):
         f=f.name
-        
+
     with lock:
         return jackclient.get_port_by_name(t) in jackclient.get_all_connections(jackclient.get_port_by_name(f))
 
@@ -340,6 +340,7 @@ iooptions=["-p", "128","-m:", "64", "-q","1"]
 
 toretry_in = {}
 toretry_out ={}
+
 
 def compressnumbers(s):
     """Take a string that's got a lot of numbers and try to make something 
