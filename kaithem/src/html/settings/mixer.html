@@ -1,0 +1,171 @@
+<%include file="/pageheader.html"/>
+<%!
+from src import systasks
+from src import timesync
+from src import jackmixer
+%>
+<title>Mixing Board</title>
+<div class="sectionbox" style="height: 80vh">
+<script type="text/javascript" src="/static/widget.js"></script>
+<style>
+  div.channel{
+    height:95%; border-style:inset; border-width:0.2em; display: inline-block;
+    margin: 0.2em;
+    vertical-align: top;
+    width: 24em;
+
+  }
+
+  div.chain{
+   border-style:inset; border-width:0.1em;    margin: 0.2em; height: 50%; overflow: scroll;
+
+
+  }
+  div.effect{
+    border-style:solid; border-width:1px;
+    margin: 0.5em;
+  }
+</style>
+
+
+${jackmixer.board.api.render("api")}
+${jackmixer.global_api.render("gapi")}
+
+<datalist name="effectTypes">
+    <option value="fader">Fader</option>
+    <option value="3beq">3-Band EQ</option>
+</datalist>
+
+<div id="app" style="height:95%;overflow-x: scroll; overflow-y: hidden; min-width: 80%; max-width: 10000%; max-height: 98%;     white-space: nowrap;">
+
+  <div  class="channel"  v-for="(channel,channelname) in channels">
+  <h3>{{channelname}} <button v-on:click="confirmDelete(channelname)">X</button></h3>
+  <div class="chain">
+      <div v-for="effect, index in channel.effects" class="effect">
+          <h4>{{effect.displayType}}<button v-on:click="moveEffectUp(channelname, index)">Up</button></h4>
+          <div v-for="param in sortedParams(effect.params)" class="param">
+            <div v-if="param.type='float'">
+                <b>{{param.displayName}}</b>({{param.value}}):  {{param.min}}<input type="range" v-model="param.value"
+                v-bind:min="param.min" v-bind:max="param.max" 
+                >{{param.max}}
+            </div>
+          </div>
+        
+        
+      </div>
+
+    <div class="effect" style="color:grey">
+    <h3>New Effect</h3>
+    <input v-model="neweffecttype"><button v-on:click="api.send(['addEffect', channelname, neweffecttype])">Add</button>
+    </div>
+  
+  </div>
+
+  <input v-model="channel.fader" v-on:input="setFader(channelname, parseFloat($event.target.value))" orient="vertical" type="range" step="0.5" value="-80" min="-80" max="30">
+  {{channel.fader}}dB
+
+
+
+ </div>
+
+  <div class="channel">
+  <h2>Soundboard</h2>
+  <p>This is the control strip.<br>
+    Kaithem's Soundboard is an</br>
+    Emulation of a traditional </br>
+    Analog board.</br>
+  </p>
+  <h3>New Channel</h3>
+  <input v-model="newchannelname"><button v-on:click="api.send(['addChannel', newchannelname])">Add</button>
+  </div>
+
+
+</div>
+
+
+
+<script src="/static/js/vue2.js"></script>
+
+<script>
+function compareParams(a, b){
+  if (a.sort > b.sort) return 1;
+  if (b.sort < a.sort) return -1;
+
+  return 0;
+};
+
+function sortedParams(pl)
+{
+    var l = [];
+    for (i in pl)
+    {
+        pl[i].name = i;
+        l.push(pl[i]);
+    }
+    l.sort(compareParams);
+    return(l);
+};
+
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    message: 'Hello Vue!',
+    inports: [],
+    channels: {},
+    api:api,
+    newchannelname: "",
+    neweffecttype:"",
+    confirmDelete: function(c){
+        if (window.confirm("Do you really want to delete this channel?")) { 
+            api.send(['rmChannel', c]);
+        }
+    },
+    moveEffectUp: function(channel, effectIndex){
+        if (effectIndex>0)
+        {
+            var x = this.channels[channel].effects[effectIndex]
+            var y = this.channels[channel].effects[effectIndex-1]
+
+            this.channels[channel].effects[effectIndex]= y;
+            this.channels[channel].effects[effectIndex-1]= x;
+            api.send(['setEffects', channel, this.channels[channel].effects]);
+
+        }
+    },
+
+    setFader: function(channel, value){
+        api.send(['setFader', channel, value]);
+    },
+
+    sortedParams: function (pl)
+        {
+            var l = [];
+            for (i in pl)
+            {
+                pl[i].name = i;
+                l.push(pl[i]);
+            }
+            l.sort(compareParams);
+            return(l);
+        }
+  }
+});
+
+api.upd = function(msg){
+  if (msg[0]=="inports")
+  {
+    app.$data.inports = msg[1];
+  }
+  if (msg[0]=="channels")
+  {
+    app.$data.channels = msg[1];
+  }
+};
+gapi.upd = api.upd;
+
+api.send(['refresh']);
+</script>
+
+</div>
+<%include file="/pagefooter.html"/>
