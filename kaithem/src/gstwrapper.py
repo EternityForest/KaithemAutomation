@@ -93,6 +93,23 @@ class Pipeline():
         self._input = jackmanager.Airwire(self.input, self.name+"_in") 
         self._input.connect()
 
+    def setInput(self, input):
+        self.input=input
+        self._input.disconnect()
+        self._input = jackmanager.Airwire(self.input, self.name+"_in") 
+        self._input.connect()
+
+    def setOutputs(self, outputs):
+        self.outputs = outputs
+        for i in self._outputs:
+            i.disconnect()
+        
+        self._outputs = []
+        for i in self.outputs:
+            x = jackmanager.Airwire(self.name+"_out", i)
+            x.connect()
+            self._outputs.append(x)
+
     def finalize(self):
         if not self.elements[-1].link(self.sink):
             raise RuntimeError("Could not link to jack sink")

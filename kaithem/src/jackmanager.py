@@ -37,13 +37,18 @@ jackclient =None
 #from, to pairs.
 connections=[]
 
-lock = threading.Lock()
+lock = threading.RLock()
 
 #Currently we only support using the default system card as the
 #JACK backend. We prefer this because it's easy to get Pulse working right.
 usingDefaultCard = True
 
 def isConnected(f,t):
+    if not isinstance(f, str):
+        f=f.name
+    if not isinstance(f, str):
+        f=f.name
+        
     with lock:
         return jackclient.get_port_by_name(t) in jackclient.get_all_connections(jackclient.get_port_by_name(f))
 
@@ -54,16 +59,19 @@ def setupPulse():
     except:
         log.exception("Error configuring pulseaudio")
 
-def ensureConnections():
+def ensureConnections(*a,**k):
     "Auto restore connections in the connection list"
     try:
-        for i in allConnections:
-            try:
-                allConnections[i].reconnect()
-            except:
-                print(traceback.format_exc)
+        with lock:
+            for i in allConnections:
+                try:
+                    allConnections[i].reconnect()
+                except:
+                    print(traceback.format_exc)
     except:
         raise
+messagebus.subscribe("/system/jack/newport/",ensureConnections)
+
 import weakref
 allConnections=weakref.WeakValueDictionary()
 
@@ -157,11 +165,12 @@ class MultichannelAirwire(MonoAirwire):
         with lock:
             outPorts = jackclient.get_ports(f+":*",is_output=True,is_audio=True)
             inPorts = jackclient.get_ports(t+":*",is_input=True,is_audio=True)
-            print(t, f, inPorts, outPorts)
             #Connect all the ports
             for i in zip(outPorts,inPorts):
                 if not isConnected(i[0].name,i[1].name):
+                    print("Attemot connect")
                     if jackclient:
+                        print(i[0],i[1])
                         jackclient.connect(i[0],i[1])
                     activeConnections[i[0].name,i[1].name]=self
 
@@ -353,7 +362,6 @@ def compressnumbers(s):
 
   
 
-lock=threading.Lock()
 
 def try_stop(p):
     try:
@@ -741,9 +749,10 @@ def handleManagedSoundcards():
 
 
 def work():
-    handleManagedSoundcards()
-    ensureConnections()
-    time.sleep(5)
+    while(1):
+        handleManagedSoundcards()
+        ensureConnections()
+        time.sleep(5)
 
 t =None
 
@@ -781,7 +790,9 @@ def startManagingJack():
         jackclient.set_port_registration_callback(onPortRegistered)
         jackclient.set_port_connect_callback(onPortConnect)
     setupPulse()
+    log.debug("Set up pulse")
     t = threading.Thread(target=work)
+    t.name="JackReconnector"
     t.daemon=True
     t.start()
 

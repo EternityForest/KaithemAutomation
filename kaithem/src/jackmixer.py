@@ -33,7 +33,8 @@ def replaceClientNameForDisplay(i):
 
 def onPortAdd(t,m):
     #m[1] is true of input
-    global_api.send(['newport', m[0],m[1]])  
+    global_api.send(['newport', m[0],{},m[1]])  
+
 def onPortRemove(t,m):
     #m[1] is true of input
     global_api.send(['rmport', m[0]])
@@ -70,11 +71,12 @@ class MixingBoard():
 
 
     def sendPorts(self):
-        inPorts = jackmanager.getPorts(is_audio=True, is_output=False)
+        inPorts = jackmanager.getPorts(is_audio=True, is_input=True)
         outPorts = jackmanager.getPorts(is_audio=True, is_output=True)
-        self.api.send(['inports',sorted([replaceClientNameForDisplay(i.name) for i in  inPorts]) ])
-        self.api.send(['outports',sorted([replaceClientNameForDisplay(i.name) for i in  outPorts]) ])
-        self.api.send(['channels', channels])
+
+        self.api.send(['inports',{i.name:{} for i in  inPorts}])
+        self.api.send(['outports',{i.name:{} for i in  outPorts}])
+        self.api.send(['channels', self.channels])
 
     def createChannel(self, name,data):
         # import time
@@ -128,6 +130,14 @@ class MixingBoard():
             self.channels[data[1]]['effects']= data[2]
             self.api.send(['channels', self.channels])
             self.createChannel(data[1], self.channels[data[1]])
+
+
+        if data[0]== 'setInput':
+            self.channels[data[1]]['input']= data[2]
+            self.channelObjects[data[1]].setInput(data[2])
+        if data[0]== 'setOutput':
+            self.channels[data[1]]['output']= data[2]
+            self.channelObjects[data[1]].setOutputs(data[2].split(","))
 
 
         if data[0]=='setFader':

@@ -59,48 +59,8 @@ function KWidget_sendValue(key,value)
 	KWidget_poll_ratelimited();
 }
 
-function pollLoop()
-{
-
-if((Object.keys(KWidget_toSend).length+Object.keys(KWidget_serverMsgCallbacks).length)>0)
-    {
-	poll();
-    }
-window.setTimeout(pollLoop, 120);
-
-}
-
 KWidget_can_show_error = 1;
-KWidget_usual_delay = 0
-
-function poll()
-{
-	var toSend = {'upd':KWidget_toSend,'req':[]};
-	var j = JSON.stringify(toSend);
-	xmlhttp=new XMLHttpRequest();
-	xmlhttp.open("GET","/widgets?json="+escape(j),false);
-    xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-	xmlhttp.send();
-	KWidget_dirty = {};
-	xmlDoc=xmlhttp.responseText;
-	try
-	{
-	resp = JSON.parse(xmlDoc);
-	KWidget_usual_delay = 0;
-    }
-	catch(err)
-	{
-        KWidget_usual_delay = 250;
-	}
-			for(var j in KWidget_serverMsgCallbacks[i])
-			{
-				KWidget_serverMsgCallbacks[i][j](resp[i]);
-			}
-
-	justSet = KWidget_toSend;
-	KWidget_toSend={};
-
-}
+KWidget_usual_delay = 0;
 KWidget_reconnect_timeout = 1500;
 
 KWidget_connect = function()
@@ -157,13 +117,17 @@ KWidget_connect = function()
 
 		KWidget_wpoll = function()
 		{
-			if(KWidget_toSend.length>0 || KWidget_polled.length>0)
+			//Don't bother sending if we aren'y connected
+			if( KWidget_connection.readyState==1)
 			{
-				var toSend = {'upd':KWidget_toSend,'req':Object.keys(KWidget_polled)};
-				var j = JSON.stringify(toSend);
-				KWidget_connection.send(j);
-				justSet = KWidget_toSend;
-				KWidget_toSend=[];
+				if(KWidget_toSend.length>0 || KWidget_polled.length>0)
+				{
+					var toSend = {'upd':KWidget_toSend,'req':Object.keys(KWidget_polled)};
+					var j = JSON.stringify(toSend);
+					KWidget_connection.send(j);
+					justSet = KWidget_toSend;
+					KWidget_toSend=[];
+				}
 			}
 
 			if(KWidget_toSend.length>0 || KWidget_polled.length>0)
