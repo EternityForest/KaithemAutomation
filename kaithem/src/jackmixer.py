@@ -77,17 +77,22 @@ effectTemplates={
             "delay-agnostic": True
         },
         "preSupportElements":[
-            {"gstelement": "audioconvert", "gstSetup":{}}
+            {"gstelement": "queue", "gstSetup":{"min-threshold-time": 25*1000*000}},
+            {"gstelement": "audioconvert", "gstSetup":{}},
+            {"gstelement": "interleave", "gstSetup":{}}
+
         ],
         "postSupportElements":[
             {"gstelement": "audioconvert", "gstSetup":{}}
         ]
     },
 
-    "voicedsprobe":{"type":"voicedsprobe", "displayType":"Voice DSP Probe","help": "When using voice DSP, you must have one of these right before the main output.", "gstelement": "webrtcdsp",
+    "voicedsprobe":{"type":"voicedsprobe", "displayType":"Voice DSP Probe","help": "When using voice DSP, you must have one of these right before the main output.", "gstelement": "webrtcechoprobe",
     "params":{}, "gstSetup":{},
      "preSupportElements":[
-        {"gstelement": "audioconvert", "gstSetup":{}}
+        {"gstelement": "audioconvert", "gstSetup":{}},
+        {"gstelement": "interleave", "gstSetup":{}}
+
         ],
     "postSupportElements":[
         {"gstelement": "audioconvert", "gstSetup":{}}
@@ -170,16 +175,17 @@ class ChannelStrip(gstwrapper.Pipeline):
             if i['type']=="fader":
                 self.fader= self.addElement("volume")
             else:
-                if "postSupportElements" in i:
-                    for j in i['postSupportElements']:
+                if "preSupportElements" in i:
+                    for j in i['preSupportElements']:
                         self.addElement(j['gstelement'],**j['gstSetup'])
 
                 self.effectsById[i['id']] = self.addElement(i['gstelement'],**i['gstSetup'])
+                self.effectDataById[i['id']]= i
                 
                 if "postSupportElements" in i:
                     for j in i['postSupportElements']:
                         self.addElement(j['gstelement'],**j['gstSetup'])
-                self.effectDataById[i['id']]= i
+               
                 for j in i['params']:
                     self.setProperty(self.effectsById[i['id']],j, i['params'][j]['value'])
 

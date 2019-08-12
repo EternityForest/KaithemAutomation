@@ -72,9 +72,13 @@ from src import jackmixer
               <button v-on:click="deleteEffect(channelname, index)">Del</button>
             </h4>
             <div v-for="param in sortedParams(effect.params)" class="param">
-              <div v-if="param.type='float'">
+              <div v-if="param.type=='float'">
                 <b>{{param.displayName}}</b>({{param.value}}): {{param.min}}<input type="range" v-model.number="param.value"
-                  v-bind:min="param.min" v-bind:max="param.max" v-on:input="setParam(channelname,effect.id,param.name,param.value)">{{param.max}}
+                  v-bind:min="param.min" v-bind:max="param.max" v-on:input="setParam(channelname,effect.id,param.name,$event.target.value)">{{param.max}}
+              </div>
+              <div v-if="param.type=='bool'">
+                <b>{{param.displayName}}</b>({{param.value}}): {{param.min}}<input type="checkbox" v-model.number="param.value"
+                   v-on:input="setParam(channelname,effect.id,param.name,$event.target.value)">{{param.max}}
               </div>
             </div>
 

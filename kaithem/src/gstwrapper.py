@@ -48,8 +48,8 @@ class Pipeline():
         self.name = name
 
         self.src = Gst.ElementFactory.make('jackaudiosrc')
-        self.src.set_property("buffer-time",0)
-        self.src.set_property("latency-time",0)
+        self.src.set_property("buffer-time",10)
+        self.src.set_property("latency-time",10)
 
         self.capsfilter = Gst.ElementFactory.make('capsfilter')
 
