@@ -46,8 +46,8 @@ usingDefaultCard = True
 def isConnected(f,t):
     if not isinstance(f, str):
         f=f.name
-    if not isinstance(f, str):
-        f=f.name
+    if not isinstance(t, str):
+        t=t.name
 
     with lock:
         return jackclient.get_port_by_name(t) in jackclient.get_all_connections(jackclient.get_port_by_name(f))
@@ -188,7 +188,7 @@ class MultichannelAirwire(MonoAirwire):
                 if isConnected(i[0],i[1]):
                     jackclient.disconnect(i[0],i[1])
                     try:
-                        del activeConnections[i[0],i[1]]
+                        del activeConnections[i[0].name,i[1].name]
                     except KeyError:
                         pass
 
@@ -275,11 +275,11 @@ def onPortConnect(a,b,connected):
 
 def onPortRegistered(port,registered):
     if registered:
-        log.info("JACK port registered: "+name)
+        log.info("JACK port registered: "+port.name)
         messagebus.postMessage("/system/jack/newport/",[port.name, port.is_input] )
     else:
-        log.info("JACK port unregistered: "+name)
-        messagebus.postMessage("/system/jack/delport/",name)
+        log.info("JACK port unregistered: "+port.name)
+        messagebus.postMessage("/system/jack/delport/",port.name)
 
 class ChannelStrip():
     def init(self, name,stereo=False, sends=[]):
@@ -577,6 +577,7 @@ def stopJack():
     except:
         pass
 
+
 jackp = None
 def startJack():
     #Start the JACK server.
@@ -589,9 +590,7 @@ def startJack():
             pass
         f = open(os.devnull,"w")
         g = open(os.devnull,"w")
-        jackp =subprocess.Popen("jackd --realtime -d alsa -d hw:0,0 -p 256 -n 3",stdout=f, stderr=g, shell=True,stdin=subprocess.DEVNULL)    
-
-
+        jackp =subprocess.Popen("jackd --realtime -P 70 -S -d alsa -d hw:0,0 -p 128 -n 3",stdout=f, stderr=g, shell=True,stdin=subprocess.DEVNULL)    
 
 
 

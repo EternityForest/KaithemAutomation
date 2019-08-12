@@ -42,14 +42,87 @@ def onPortRemove(t,m):
 messagebus.subscribe("/system/jack/newport/", onPortAdd)
 messagebus.subscribe("/system/jack/rmport/", onPortRemove)
 
-
+#These are templates for effect data. Note that they contain everything needed to generate and interface for
+#And use a gstreamer element. Except fader, which is special cased.
 effectTemplates={
     "fader":{"type":"fader", "displayType": "Fader", "help": "The main fader for the channel",
-    "params": []
+    "params": {}
     },
-    "3beq":{"type":"fader", "displayType":"3 Band EQ","help": "Basic builtin EQ",
+
+    "voicedsp":{"type":"voicedsp", "displayType":"Voice DSP","help": "Noise Removal, AGC, and AEC", "gstelement": "webrtcdsp",
         "params": {
-            "high": {
+          "gain-control": {
+                "type":"bool",
+                "displayName": "AGC",
+                "value": False,
+                "sort":0
+            },
+          "echo-cancel": {
+                "type":"bool",
+                "displayName": "Feedback Cancel",
+                "value": True,
+                "sort":1
+            },
+           "noise-suppression":
+           {
+                "type":"bool",
+                "displayName": "Noise Suppression",
+                "value": True,
+                "sort":1          
+            }
+
+        },
+        "gstSetup":{
+            "high-pass-filter": False,
+            "delay-agnostic": True
+        },
+        "preSupportElements":[
+            {"gstelement": "audioconvert", "gstSetup":{}}
+        ],
+        "postSupportElements":[
+            {"gstelement": "audioconvert", "gstSetup":{}}
+        ]
+    },
+
+    "voicedsprobe":{"type":"voicedsprobe", "displayType":"Voice DSP Probe","help": "When using voice DSP, you must have one of these right before the main output.", "gstelement": "webrtcdsp",
+    "params":{}, "gstSetup":{},
+     "preSupportElements":[
+        {"gstelement": "audioconvert", "gstSetup":{}}
+        ],
+    "postSupportElements":[
+        {"gstelement": "audioconvert", "gstSetup":{}}
+    ]
+    },
+
+    "3beq":{"type":"3beq", "displayType":"3 Band EQ","help": "Basic builtin EQ", "gstelement": "equalizer-nbands",
+        "params": {
+          "0:gain": {
+                "type":"float",
+                "displayName": "Low",
+                "value": 0,
+                "min": -12,
+                "max": 12,
+                "sort":3
+            },
+            "1:gain": {
+                "type":"float",
+                "displayName": "Mid",
+                "value": 0,
+                "min": -12,
+                "max": 12,
+                "sort":2
+            },
+
+            "1:freq": {
+                "type":"float",
+                "displayName": "MidFreq",
+                "value": 0,
+                "min": 200,
+                "max": 8000,
+                "sort":1
+            },
+          
+            "2:gain": {
                 "type":"float",
                 "displayName": "High",
                 "value": 0,
@@ -57,9 +130,81 @@ effectTemplates={
                 "max": 12,
                 "sort":0
             }
+        },
+        "gstSetup":
+        {
+            "num-bands":3,
+            "band1::freq": 180,
+            "band2::freq": 2000,
+            "band3::freq": 12000,
+            "band1::bandwidth": 360,
+            "band1::bandwidth": 3600,
+            "band1::bandwidth": 19000,
         }
     }
 }
+
+specialCaseParamCallbacks={}
+
+def beq3(e, p, v):
+    if p =="band2::freq":
+        e.set_property("band2::bandwidth", v*1.7)
+
+specialCaseParamCallbacks['3beq']= beq3
+
+import uuid
+class ChannelStrip(gstwrapper.Pipeline):
+
+    def __init__(self, *a,board=None, **k):
+        gstwrapper.Pipeline.__init__(self,*a,**k)
+        self.board =board
+        self.lastLevel = None
+        self.lastPushedLevel = time.monotonic()
+        self.effectsById = {}
+        self.effectDataById = {}
+
+    def loadData(self,d):
+        for i in d['effects']:
+            if not "id" in i or not i['id']:
+                i['id']=str(uuid.uuid4())
+            if i['type']=="fader":
+                self.fader= self.addElement("volume")
+            else:
+                if "postSupportElements" in i:
+                    for j in i['postSupportElements']:
+                        self.addElement(j['gstelement'],**j['gstSetup'])
+
+                self.effectsById[i['id']] = self.addElement(i['gstelement'],**i['gstSetup'])
+                
+                if "postSupportElements" in i:
+                    for j in i['postSupportElements']:
+                        self.addElement(j['gstelement'],**j['gstSetup'])
+                self.effectDataById[i['id']]= i
+                for j in i['params']:
+                    self.setProperty(self.effectsById[i['id']],j, i['params'][j]['value'])
+
+    def setEffectParam(self,effectId,param,value):
+        paramData = self.effectDataById[effectId]['params'][param]
+        paramData['value']=value
+        self.setProperty(self.effectsById[effectId], param, value)
+        t = self.effectDataById[effectId]['type']
+        if t in specialCaseParamCallbacks:
+            specialCaseParamCallbacks[t](self.effectsById[effectId], param, value)
+
+    def addLevelDetector(self):
+        self.addElement("level", message=True, peak_ttl=3*1000*1000*1000)
+
+    def on_message(self, bus, message):
+        if  message.structure.get_name() == 'level':
+            s = message.structure
+            if self.board:
+                l = [i for i in s['decay']]
+                if l==self.lastLevel:
+                    if time.monotonic()-self.lastPushedLevel< 1:
+                        return
+                self.lastPushedLevel = time.monotonic()
+                self.lastLevel = l
+                self.board.pushLevel(self.name, l)
 
 class MixingBoard():
     def __init__(self, *args, **kwargs):
@@ -70,6 +215,7 @@ class MixingBoard():
         self.channelObjects ={}
 
 
+
     def sendPorts(self):
         inPorts = jackmanager.getPorts(is_audio=True, is_input=True)
         outPorts = jackmanager.getPorts(is_audio=True, is_output=True)
@@ -77,6 +223,7 @@ class MixingBoard():
         self.api.send(['inports',{i.name:{} for i in  inPorts}])
         self.api.send(['outports',{i.name:{} for i in  outPorts}])
         self.api.send(['channels', self.channels])
+        self.api.send(['effectTypes', effectTemplates])
 
     def createChannel(self, name,data):
         # import time
@@ -91,13 +238,10 @@ class MixingBoard():
         time.sleep(0.01)
         time.sleep(0.01)
 
-        p = gstwrapper.Pipeline(name, outputs=op, input=data['input'])
-        p.effectsList = []
+        p = ChannelStrip(name,board=self,outputs=op, input=data['input'])
         p.fader=None
-
-        for i in data['effects']:
-            if i['type']=="fader":
-                p.fader= p.addElement("volume")
+        p.loadData(data)
+        p.addLevelDetector()
         p.finalize()
         p.connect()
         self.channelObjects[name]=p
@@ -108,6 +252,10 @@ class MixingBoard():
         if name in self.channelObjects:
             self.channelObjects[name].stop()
             del self.channelObjects[name]
+
+    def pushLevel(self,cn,d):
+        self.api.send(['lv',cn,d])
+
 
 
 
@@ -135,6 +283,7 @@ class MixingBoard():
         if data[0]== 'setInput':
             self.channels[data[1]]['input']= data[2]
             self.channelObjects[data[1]].setInput(data[2])
+
         if data[0]== 'setOutput':
             self.channels[data[1]]['output']= data[2]
             self.channelObjects[data[1]].setOutputs(data[2].split(","))
@@ -144,14 +293,15 @@ class MixingBoard():
             "Directly set the effects data of a channel"
             self.channels[data[1]]['fader']= float(data[2])
             self.api.send(['fader', data[1], data[2]])
-            if data[2]>-80:
-                self.channelObjects[data[1]].fader.set_property('volume', 10**(float(data[2])/20))
-            else:
-                self.channelObjects[data[1]].fader.set_property('volume', 0)
+            if self.channelObjects[data[1]].fader:
+                if data[2]>-80:
+                    self.channelObjects[data[1]].fader.set_property('volume', 10**(float(data[2])/20))
+                else:
+                    self.channelObjects[data[1]].fader.set_property('volume', 0)
 
         if data[0]=='setParam':
-            "Directly set the effects data of a channel. Params and effects don't have names"
-            self.channels[data[1]]['effects'][data[2]]['params'][data[3]]['value'] = data[4]
+            "Directly set the effects data of a channel. Packet is channel, effectID, paramname, val"
+            self.channelObjects[data[1]].setEffectParam(data[2],data[3],data[4])
             self.api.send(['param', data[1],data[2], data[3], data[4]])
 
 

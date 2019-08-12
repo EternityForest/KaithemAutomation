@@ -54,7 +54,7 @@ class Settings():
     @cherrypy.expose
     def mixer(self):
         """Return a page showing all of kaithem's current running threads"""
-        pages.require("/usees/mixer.edit",)
+        pages.require("/users/mixer.edit",)
         return pages.get_template("settings/mixer.html").render()
 
 

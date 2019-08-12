@@ -86,6 +86,7 @@ def doUPnP():
         upnpMapping= None
         gc.collect()
 
+
 #This gets called when an HTML request is made.
 def aPageJustLoaded():
     global pageviewsthisminute

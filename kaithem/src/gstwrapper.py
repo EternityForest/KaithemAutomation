@@ -48,11 +48,18 @@ class Pipeline():
         self.name = name
 
         self.src = Gst.ElementFactory.make('jackaudiosrc')
+        self.src.set_property("buffer-time",0)
+        self.src.set_property("latency-time",0)
+
         self.capsfilter = Gst.ElementFactory.make('capsfilter')
 
         self.capsfilter.caps = Gst.Caps("audio/x-raw, channels="+str(channels))
 
         self.sink = Gst.ElementFactory.make('jackaudiosink')
+        self.sink.set_property("buffer-time",8000)
+        self.sink.set_property("latency-time",4000)
+        self.sink.set_property("sync",False)
+        self.sink.set_property("slave-method",2)
        
 
 
@@ -82,6 +89,14 @@ class Pipeline():
 
         self.sends = []
         self.sendAirwires =[]
+        self.namedElements = {}
+        
+    def __del__(self):
+        self.pipeline.unref()
+
+    def on_message(self, bus, message):        
+        return True
+
 
     def connect(self):
         self._outputs = []
@@ -112,7 +127,9 @@ class Pipeline():
 
     def finalize(self):
         if not self.elements[-1].link(self.sink):
-            raise RuntimeError("Could not link to jack sink")
+            raise RuntimeError("Could not link "+str(self.elements[-1])+" to "+str(self.sink))
+        self.pipeline.get_bus().add_signal_watch()
+        self.pgbcobj = self.pipeline.get_bus().connect('message::element', self.on_message)
         self.pipeline.set_state(Gst.State.PLAYING)
 
     def stop(self):
@@ -126,7 +143,7 @@ class Pipeline():
         
             self.pipeline.set_state(Gst.State.NULL)
 
-    def addElement(self,t,name=None):
+    def addElement(self,t,name=None,**kwargs):
         if not isinstance(t, str):
             raise ValueError("Element type must be string")
 
@@ -135,10 +152,36 @@ class Pipeline():
         if e==None:
             raise ValueError("Nonexistant element type")
 
+
+        for i in kwargs:
+            if not ":" in i:
+                if name=="capsfilter" and i=="caps" and isinstance(i,str):
+                    e.set_property(i,Gst.Caps(kwargs[i]))
+                else:
+                    v = kwargs[i]
+                    i=i
+                    print(e.find_property(i))
+                    e.set_property(i,v)
+            
         self.pipeline.add(e)
-        self.elements[-1].link(e)
+        if not self.elements[-1].link(e):
+            raise RuntimeError("Could not link "+str(self.elements[-1])+" to "+str(e))
         self.elements.append(e)
+        self.namedElements[name]=e
         return e
+
+    def setProperty(self, element, prop,value):
+        prop=prop.replace("_","-")
+
+        prop=prop.split(":")
+        if len(prop)>1:
+            childIndex=int(prop[0])
+            target= element.get_child_by_index(childIndex)
+            target.set_property(prop[1], value)
+        else:
+            element.set_property(prop[0], value)
+
+
 
     def addSend(self,target):
         if not isinstance(target, str):
@@ -150,7 +193,7 @@ class Pipeline():
             raise ValueError("Nonexistant element type")
 
         e2 = Gst.ElementFactory.make("jacksink")
-
+        e2.sink.set_property("buffer-time",8000)
         if e2==None:
             raise ValueError("Nonexistant element type jacksink")
 

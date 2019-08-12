@@ -57,37 +57,49 @@ from src import jackmixer
       <option v-for="i in sortedConnectables(outports)">{{i}}</option>
     </datalist>
 
-    <div class="channel" v-for="(channel,channelname) in channels">
-      <h3>{{channelname}} <button v-on:click="confirmDelete(channelname)">X</button></h3>
-      Connect Input: <input v-model="channel.input" list="outports"
-        v-on:input="setInput(channelname, $event.target.value)">
-      <div class=" chain">
-        <div v-for="effect, index in channel.effects" class="effect">
-          <h4>{{effect.displayType}}<button v-on:click="moveEffectUp(channelname, index)">Up</button></h4>
-          <div v-for="param in sortedParams(effect.params)" class="param">
-            <div v-if="param.type='float'">
-              <b>{{param.displayName}}</b>({{param.value}}): {{param.min}}<input type="range" v-model="param.value"
-                v-bind:min="param.min" v-bind:max="param.max">{{param.max}}
+    <button class="{bold: activePane=='mixer'}" v-on:click="activePane=mixer">Mixer</button>
+
+    <div v-if="activePane=='mixer'">
+      <div class="channel" v-for="(channel,channelname) in channels">
+        <h3>{{channelname}} <button v-on:click="confirmDelete(channelname)">X</button></h3>
+        Connect Input: <input v-model="channel.input" list="outports"
+          v-on:input="setInput(channelname, $event.target.value)">
+        <div class=" chain">
+          <div v-for="effect, index in channel.effects" class="effect">
+            <h4 v-bind:title="effect.id">{{effect.displayType}}
+              <button v-on:click="moveEffectUp(channelname, index)">Up</button>
+              <button v-on:click="moveEffectDown(channelname, index)">Down</button>
+              <button v-on:click="deleteEffect(channelname, index)">Del</button>
+            </h4>
+            <div v-for="param in sortedParams(effect.params)" class="param">
+              <div v-if="param.type='float'">
+                <b>{{param.displayName}}</b>({{param.value}}): {{param.min}}<input type="range" v-model.number="param.value"
+                  v-bind:min="param.min" v-bind:max="param.max" v-on:input="setParam(channelname,effect.id,param.name,param.value)">{{param.max}}
+              </div>
             </div>
+
+          </div>
+
+          <div class="effect">
+            <h3>Add Effect</h3>
+              <div style="height:8em;overflow: scroll;">
+              <div v-for="i in effectTypes">
+                <h4>{{i.displayType}}</h4>
+                <p>{{i.help}}</p>
+                <button v-on:click="api.send(['addEffect', channelname, i.type])">Add</button>
+              </div>
+              </div>
           </div>
 
         </div>
-
-        <div class="effect" style="color:grey">
-          <h3>New Effect</h3>
-          <input list="effectTypes" v-model="neweffecttype"><button
-            v-on:click="api.send(['addEffect', channelname, neweffecttype])">Add</button>
-        </div>
+    
+        <input v-model="channel.fader" v-on:input="setFader(channelname, parseFloat($event.target.value))"
+        orient="vertical" type="range" step="0.5" value="-80" min="-80" max="10">
+      {{channel.fader}}dB<br>
+      Connect output: <input v-model="channel.output" list="inports"
+        v-on:input="setOutput(channelname, $event.target.value)">
 
       </div>
-  
-      <input v-model="channel.fader" v-on:input="setFader(channelname, parseFloat($event.target.value))"
-      orient="vertical" type="range" step="0.5" value="-80" min="-80" max="30">
-    {{channel.fader}}dB<br>
-    Connect output: <input v-model="channel.output" list="inports"
-      v-on:input="setOutput(channelname, $event.target.value)">
-      
-    </div>
 
 
   <div class="channel">
@@ -100,13 +112,16 @@ from src import jackmixer
     <h3>New Channel</h3>
     <input v-model="newchannelname"><button v-on:click="api.send(['addChannel', newchannelname])">Add</button>
   </div>
-
+</div>
 
 </div>
 
 
 
 <script src="/static/js/vue2.js"></script>
+<script src="/static/js/sortable.min.js"></script>
+<script src="/static/js/vuedraggable.umd.min.js"></script>
+
 
 <script>
   function compareParams(a, b) {
@@ -138,6 +153,8 @@ from src import jackmixer
       api: api,
       newchannelname: "",
       neweffecttype: "",
+      activePane: "mixer",
+      effectTypes:{},
       confirmDelete: function (c) {
         if (window.confirm("Do you really want to delete this channel?")) {
           api.send(['rmChannel', c]);
@@ -155,12 +172,32 @@ from src import jackmixer
         }
       },
 
+      moveEffectDown: function (channel, effectIndex) {
+        if (effectIndex < (this.channels[channel].effects.length-1)) {
+          var x = this.channels[channel].effects[effectIndex]
+          var y = this.channels[channel].effects[effectIndex +1]
+
+          this.channels[channel].effects[effectIndex] = y;
+          this.channels[channel].effects[effectIndex + 1] = x;
+          api.send(['setEffects', channel, this.channels[channel].effects]);
+
+        }
+      },
+      deleteEffect: function (channel, effectIndex) {
+          this.channels[channel].effects.splice(effectIndex,1);
+          api.send(['setEffects', channel, this.channels[channel].effects]);
+      },
+
       setFader: function (channel, value) {
         api.send(['setFader', channel, value]);
       },
 
       setOutput: function (channel, value) {
         api.send(['setOutput', channel, value]);
+      },
+
+      setParam: function (channel, effect,param,value) {
+        api.send(['setParam', channel, effect,param,value]);
       },
       setInput: function (channel, value) {
         api.send(['setInput', channel, value]);
@@ -214,6 +251,10 @@ from src import jackmixer
 
     if (msg[0] == "inports") {
       app.$data.inports = msg[1];
+    }
+
+    if (msg[0] == "effectTypes") {
+      app.$data.effectTypes = msg[1];
     }
     if (msg[0] == "outports") {
       app.$data.outports = msg[1];

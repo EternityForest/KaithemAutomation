@@ -1,8 +1,35 @@
-import upnpclient,atexit,threading,socket,time
+
+# Copyright (c) 2019 Daniel Dunn
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+
+import atexit,threading,socket,time
 from urllib.parse import urlparse
 import logging
 
 logger=logging.getLogger("upnp")
+try:
+    from . import upnp as upnpclient
+except ImportError:
+    upnp=None
+    logger.exception("Error loading UPnP")
 
 listlock = threading.Lock()
 
@@ -62,11 +89,13 @@ class Mapping():
 
 def getDevicesWithDefault(deviceURL):
     global cachedDevices
+    startIfNeeded()
     if deviceURL:
         devices = [upnpclient.Device(deviceURL)]
     else:
         if not cachedDevices:
-            cachedDevices = upnpclient.discover()
+            #Very quick scan because we let the background thread handle the slow stuff.
+            cachedDevices = upnpclient.discover(timeout=1)
         devices = cachedDevices
     return devices
       
@@ -141,8 +170,10 @@ def addMapping(port,proto, desc="Description here", deviceURL=0, register=True, 
     return m
 
 
-                
-def listMappings(deviceURL= None):
+cachedMappings =None
+cachedMappingsTime = 0
+
+def listMappings(deviceURL= None, cacheTime=1):
     """Scan the entire network for port mappings. Return as list of dicts.
 
     They will have the keys internal and external, both ip,port pairs.
@@ -151,9 +182,16 @@ def listMappings(deviceURL= None):
 
     deviceURL can be the URL of a router, otherwise defaults to all routers.
     """
+
+    global cachedMappings
+    global cachedMappingsTime
+    if cachedMappings and cachedMappingsTime>(time.monotonic()-cacheTime):
+        return cachedMappings
+
     devices = getDevicesWithDefault(deviceURL)
  
     mappings = []
+
 
     for i in devices:
         l=urlparse(i.location).netloc
@@ -184,7 +222,8 @@ def listMappings(deviceURL= None):
                     if "WAN" in j.service_type:
                         try:
                             ind = 0
-                            while(1):
+                            start= time.time()
+                            while(time.time()-start< 100):
                                 try:
                                     x = j.GetGenericPortMappingEntry(NewPortMappingIndex=ind)
                                     mappings.append((
@@ -202,9 +241,9 @@ def listMappings(deviceURL= None):
                                 except upnpclient.soap.SOAPError:
                                     break    
                         except:
-                            raise
                             logger.exception("Err")
-    
+    cachedMappings =mappings
+    cachedMappingsTime =time.monotonic()
     return mappings
 
 
@@ -224,6 +263,7 @@ def renewer():
         #This takes such a long time that I can't think of a better way,
         #Aside from a background rescan
         cachedDevices = upnpclient.discover()
+        listMappings()
         time.sleep(8*60)
         try:
             with listlock:
@@ -232,7 +272,13 @@ def renewer():
         except Exception as e:
             print(e)
 
-                
-rth = threading.Thread(target=renewer)
-rth.daemon=True
-rth.start()
+rth = None
+
+def startIfNeeded():
+    global rth
+    if rth:
+        return
+    rth = threading.Thread(target=renewer)
+    rth.daemon=True
+    rth.start()
+
