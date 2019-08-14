@@ -3,11 +3,12 @@
 Parse and translate an EBNF grammar into a Python parser for
 the described language.
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import generator_stop
 import codecs
 import argparse
 import os
 import sys
+import importlib
 
 from tatsu._version import __version__
 from tatsu.util import eval_escapes
@@ -78,7 +79,7 @@ def parse_args():
     generation_opts = argparser.add_argument_group('generation options')
     generation_opts.add_argument(
         '--no-left-recursion', '-l',
-        help='turns left-recusion support off',
+        help='turns left-recursion support off',
         dest="left_recursion",
         action='store_false',
         default=True,
@@ -111,6 +112,24 @@ def parse_args():
         help='characters to skip during parsing (use "" to disable)',
     )
 
+    def import_class(path):
+        try:
+            spath = path.rsplit('.', 1)
+            module = importlib.import_module(spath[0])
+
+            return getattr(module, spath[1])
+        except Exception:
+            raise argparse.ArgumentTypeError(
+                "Couldn't find class %s" % path
+            )
+
+    generation_opts.add_argument(
+        '--base-type',
+        metavar='CLASSPATH',
+        help='class to use as base type for the object model, for example "mymodule.MyNode"',
+        type=import_class
+    )
+
     std_args = argparser.add_argument_group('common options')
     std_args.add_argument(
         '--help', '-h',
@@ -138,18 +157,24 @@ __compiled_grammar_cache = {}  # type: ignore
 def compile(grammar, name=None, semantics=None, asmodel=False, **kwargs):
     cache = __compiled_grammar_cache
 
-    if (grammar, semantics) in cache:
-        model = cache[(grammar, semantics)]
+    key = grammar
+    if key in cache:
+        model = cache[key]
     else:
         gen = GrammarGenerator(name, **kwargs)
-        model = cache[grammar] = gen.parse(grammar, **kwargs)
-        model.semantics = semantics or asmodel and ModelBuilderSemantics()
+        model = cache[key] = gen.parse(grammar, **kwargs)
+
+    if semantics is not None:
+        model.semantics = semantics
+    elif asmodel:
+        model.semantics = ModelBuilderSemantics()
+
     return model
 
 
-def parse(grammar, input, name=None, semantics=None, asmodel=False, **kwargs):
-    model = compile(grammar, name=name, semantics=semantics, asmodel=asmodel, **kwargs)
-    return model.parse(input, semantics=semantics, **kwargs)
+def parse(grammar, input, start=None, name=None, semantics=None, asmodel=False, **kwargs):
+    model = compile(grammar, name=name, semantics=semantics, asmodel=asmodel)
+    return model.parse(input, start=start, semantics=semantics, **kwargs)
 
 
 def to_python_sourcecode(grammar, name=None, filename=None, **kwargs):
@@ -157,9 +182,9 @@ def to_python_sourcecode(grammar, name=None, filename=None, **kwargs):
     return pythoncg(model)
 
 
-def to_python_model(grammar, name=None, filename=None, **kwargs):
+def to_python_model(grammar, name=None, filename=None, base_type=None, **kwargs):
     model = compile(grammar, name=name, filename=filename, **kwargs)
-    return objectmodel.codegen(model)
+    return objectmodel.codegen(model, base_type=base_type)
 
 
 # for backwards compatibility. Use `compile()` instead
@@ -200,7 +225,7 @@ def main(codegen=pythoncg):
     prepare_for_output(outfile)
     prepare_for_output(args.object_model_outfile)
 
-    grammar = codecs.open(args.filename, 'r', encoding='utf-8').read()
+    grammar = codecs.open(args.filename, encoding='utf-8').read()
 
     try:
         model = compile(
@@ -223,7 +248,7 @@ def main(codegen=pythoncg):
             elif args.pretty_lean:
                 result = model.pretty_lean()
             elif args.object_model:
-                result = objectmodel.codegen(model)
+                result = objectmodel.codegen(model, base_type=args.base_type)
             else:
                 result = codegen(model)
 
@@ -234,7 +259,7 @@ def main(codegen=pythoncg):
 
         # if requested, always save it
         if args.object_model_outfile:
-            save(args.object_model_outfile, objectmodel.codegen(model))
+            save(args.object_model_outfile, objectmodel.codegen(model, base_type=args.base_type))
 
         print('-' * 72, file=sys.stderr)
         print('{:12,d}  lines in grammar'.format(len(grammar.split())), file=sys.stderr)

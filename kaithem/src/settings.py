@@ -24,7 +24,7 @@ else:
 def validate_upload():
     #Allow 4gb uploads for admin users, otherwise only allow 64k 
     return 64*1024 if not pages.canUserDoThis("/admin/settings.edit") else 1024*1024*4096
-
+syslogger = logging.getLogger("system")
 class Settings():
     @cherrypy.expose
     def index(self):
@@ -399,13 +399,13 @@ class Settings():
         pages.require("/admin/settings.edit",noautoreturn=True)
         pages.postOnly()
 
-        registry.set("/system/sound/usejack",int(kwargs['jackmode']))
-        import jackmanager
+        registry.set("/system/sound/usejack",kwargs['jackmode'])
+        from . import jackmanager
         if registry.get("/system/sound/usejack",None)=="manage":
             try:
                 jackmanager.startManagingJack()
             except:
-                log.exception("Error managing JACK")
+                syslogger.exception("Error managing JACK")
         else:
             jackmanager.stopJack()
         raise cherrypy.HTTPRedirect('/settings/system')

@@ -13,16 +13,19 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import re, jack,time
+import re, jack,time,json
 
-from . import widgets, messagebus
+from . import widgets, messagebus,util,registry
 from . import jackmanager, gstwrapper
+
+import threading
 
 global_api =widgets.APIWidget()
 global_api.require("/users/mixer.edit")
 
 #Configured list of mixer channel strips
 channels = {}
+
 
 def replaceClientNameForDisplay(i):
     x = i.split(':')[0]
@@ -49,7 +52,12 @@ effectTemplates={
     "params": {}
     },
 
-    "voicedsp":{"type":"voicedsp", "displayType":"Voice DSP","help": "Noise Removal, AGC, and AEC", "gstelement": "webrtcdsp",
+    "voicedsp":{
+        "type":"voicedsp", 
+        "displayType":"Voice DSP",
+        "help": "Noise Removal, AGC, and AEC", 
+        "gstelement": "webrtcdsp",
+        
         "params": {
           "gain-control": {
                 "type":"bool",
@@ -74,7 +82,8 @@ effectTemplates={
         },
         "gstSetup":{
             "high-pass-filter": False,
-            "delay-agnostic": True
+            "delay-agnostic": True,
+            'noise-suppression-level': 0
         },
         "preSupportElements":[
             {"gstelement": "queue", "gstSetup":{"min-threshold-time": 25*1000*000}},
@@ -149,6 +158,22 @@ effectTemplates={
     }
 }
 
+
+def cleanupEffectData(fx):
+    x= effectTemplates.get(fx['type'],{})
+    for i in x:
+        if not i in fx:
+            fx[i]==x[i]
+
+    if not 'help' in fx:
+        fx['help'] = ''
+    if not 'displayName' in fx:
+        fx['displayName'] = fx['type']
+    if not 'gstSetup' in fx:
+        fx['gstSetup'] = {}
+
+channelTemplate = {"effects":[effectTemplates['fader']], "input": '', 'output': '', "fader":-60}
+
 specialCaseParamCallbacks={}
 
 def beq3(e, p, v):
@@ -156,6 +181,9 @@ def beq3(e, p, v):
         e.set_property("band2::bandwidth", v*1.7)
 
 specialCaseParamCallbacks['3beq']= beq3
+
+
+
 
 import uuid
 class ChannelStrip(gstwrapper.Pipeline):
@@ -167,6 +195,7 @@ class ChannelStrip(gstwrapper.Pipeline):
         self.lastPushedLevel = time.monotonic()
         self.effectsById = {}
         self.effectDataById = {}
+        self.faderLevel = -60
 
     def loadData(self,d):
         for i in d['effects']:
@@ -174,6 +203,7 @@ class ChannelStrip(gstwrapper.Pipeline):
                 i['id']=str(uuid.uuid4())
             if i['type']=="fader":
                 self.fader= self.addElement("volume")
+                self.fader.set_property('volume', 0)
             else:
                 if "preSupportElements" in i:
                     for j in i['preSupportElements']:
@@ -189,14 +219,19 @@ class ChannelStrip(gstwrapper.Pipeline):
                 for j in i['params']:
                     self.setProperty(self.effectsById[i['id']],j, i['params'][j]['value'])
 
-    def setEffectParam(self,effectId,param,value):
-        paramData = self.effectDataById[effectId]['params'][param]
-        paramData['value']=value
-        self.setProperty(self.effectsById[effectId], param, value)
-        t = self.effectDataById[effectId]['type']
-        if t in specialCaseParamCallbacks:
-            specialCaseParamCallbacks[t](self.effectsById[effectId], param, value)
+        self.setFader(d["fader"])
+        self.setInput(d['input'])
+        self.setOutputs(d['output'].split(","))
 
+    def setEffectParam(self,effectId,param,value):
+        with self.lock:
+            paramData = self.effectDataById[effectId]['params'][param]
+            paramData['value']=value
+            self.setProperty(self.effectsById[effectId], param, value)
+            t = self.effectDataById[effectId]['type']
+            if t in specialCaseParamCallbacks:
+                specialCaseParamCallbacks[t](self.effectsById[effectId], param, value)
+    
     def addLevelDetector(self):
         self.addElement("level", message=True, peak_ttl=3*1000*1000*1000)
 
@@ -212,6 +247,23 @@ class ChannelStrip(gstwrapper.Pipeline):
                 self.lastLevel = l
                 self.board.pushLevel(self.name, l)
 
+    def setFader(self,level):
+        if self.fader:
+            if level>-60:
+                self.fader.set_property('volume', 10**(float(level)/20))
+            else:
+                self.fader.set_property('volume', 0)
+class ChannelInterface():
+    def __init__(self, name,effectData={},mixingboard=None):
+        if not mixingboard:
+            mixingboard = board
+        self.channel=board.createChannel(name, effectData)
+
+    def fader(self):
+        return self.board.getFader()
+    def __del__(self):
+        board.deleteChannel(self.name)
+        
 class MixingBoard():
     def __init__(self, *args, **kwargs):
         self.api =widgets.APIWidget()
@@ -219,55 +271,100 @@ class MixingBoard():
         self.api.attach(self.f)
         self.channels = {}
         self.channelObjects ={}
+        self.lock = threading.Lock()
 
+    def loadData(self,d):
+        with self.lock:
+            self._loadData(d)
+    
+    def _loadData(self,x):
+        #Raise an error if it can't be serialized
+        json.dumps(x)
+        if not isinstance(x,dict):
+            raise TypeError("Data must be a dict")
 
+        self.channels=x
+        for i in self.channels:
+            self._createChannel(i,self.channels[i])
 
-    def sendPorts(self):
-        inPorts = jackmanager.getPorts(is_audio=True, is_input=True)
-        outPorts = jackmanager.getPorts(is_audio=True, is_output=True)
+    def sendState(self):
+        with self.lock:
+            inPorts = jackmanager.getPorts(is_audio=True, is_input=True)
+            outPorts = jackmanager.getPorts(is_audio=True, is_output=True)
 
-        self.api.send(['inports',{i.name:{} for i in  inPorts}])
-        self.api.send(['outports',{i.name:{} for i in  outPorts}])
-        self.api.send(['channels', self.channels])
-        self.api.send(['effectTypes', effectTemplates])
+            self.api.send(['inports',{i.name:{} for i in  inPorts}])
+            self.api.send(['outports',{i.name:{} for i in  outPorts}])
+            self.api.send(['channels', self.channels])
+            self.api.send(['effectTypes', effectTemplates])
+            self.api.send(['presets',registry.ls("/system.mixer/presets/")])
 
-    def createChannel(self, name,data):
-        # import time
-        op = data['output'].split(",")
+    def createChannel(self, name, data={}):
+        with self.lock:
+            self._createChannel(name,data)
 
-
+    def _createChannel(self, name,data=channelTemplate):
         if name in self.channelObjects:
             self.channelObjects[name].stop()
+        self.channels[name]=data
         time.sleep(0.01)
         time.sleep(0.01)
         time.sleep(0.01)
         time.sleep(0.01)
         time.sleep(0.01)
 
-        p = ChannelStrip(name,board=self,outputs=op, input=data['input'])
+        p = ChannelStrip(name,board=self)
         p.fader=None
         p.loadData(data)
         p.addLevelDetector()
         p.finalize()
         p.connect()
         self.channelObjects[name]=p
+        self.api.send(['channels', self.channels])
+
 
     def deleteChannel(self,name):
+        with self.lock:
+            self._deleteChannel(name)
+
+    def _deleteChannel(self,name):
         if name in self.channels:
             del self.channels[name]
         if name in self.channelObjects:
             self.channelObjects[name].stop()
             del self.channelObjects[name]
+        self.api.send(['channels', self.channels])
 
     def pushLevel(self,cn,d):
         self.api.send(['lv',cn,d])
 
+    def setFader(self, channel,level):
+        "Set the fader of a given channel to the given level"
+        with self.lock:
+            self.channels[channel]['fader']= float(level)
+            self.api.send(['fader', channel, level])
+            c = self.channelObjects[channel]
+            c.setFader(level)
+            
 
+    def savePreset(self, presetName):
+        with self.lock:
+            util.disallowSpecialChars(presetName)
+            registry.set("/system.mixer/presets/"+presetName, self.channels)
 
+    def deletePreset(self,presetName):
+        registry.delete("/system.mixer/presets/"+presetName)
+
+    def loadPreset(self, presetName):
+        with self.lock:
+            x = list(self.channels)
+            for i in x:
+                self._deleteChannel(i)
+            self._loadData(registry.get("/system.mixer/presets/"+presetName))
 
     def f(self,user, data):
         if data[0]== 'refresh':
-            self.sendPorts()
+            self.sendState()
+
         if data[0]=='addChannel':
             #No overwrite
             if data[1] in self.channels:
@@ -275,15 +372,15 @@ class MixingBoard():
             #No empty names
             if not data[1]:
                 return
-            self.channels[data[1]] = {"effects":[effectTemplates['fader']], "input": '', 'output': '', "fader":-60}
-            self.api.send(['channels', self.channels])
-            self.createChannel(data[1], self.channels[data[1]])
+            util.disallowSpecialChars(data[1])
+            self.createChannel(data[1], channelTemplate)
 
         if data[0]=='setEffects':
             "Directly set the effects data of a channel"
-            self.channels[data[1]]['effects']= data[2]
-            self.api.send(['channels', self.channels])
-            self.createChannel(data[1], self.channels[data[1]])
+            with self.lock:
+                self.channels[data[1]]['effects']= data[2]
+                self.api.send(['channels', self.channels])
+                self._createChannel(data[1], self.channels[data[1]])
 
 
         if data[0]== 'setInput':
@@ -297,13 +394,7 @@ class MixingBoard():
 
         if data[0]=='setFader':
             "Directly set the effects data of a channel"
-            self.channels[data[1]]['fader']= float(data[2])
-            self.api.send(['fader', data[1], data[2]])
-            if self.channelObjects[data[1]].fader:
-                if data[2]>-80:
-                    self.channelObjects[data[1]].fader.set_property('volume', 10**(float(data[2])/20))
-                else:
-                    self.channelObjects[data[1]].fader.set_property('volume', 0)
+            self.setFader(data[1], data[2])
 
         if data[0]=='setParam':
             "Directly set the effects data of a channel. Packet is channel, effectID, paramname, val"
@@ -312,13 +403,24 @@ class MixingBoard():
 
 
         if data[0]=='addEffect':
-            self.channels[data[1]]['effects'].append(effectTemplates[data[2]])
-            self.api.send(['channels', self.channels])
-            self.createChannel(data[1], self.channels[data[1]])
+            with self.lock:
+                self.channels[data[1]]['effects'].append(effectTemplates[data[2]])
+                self.api.send(['channels', self.channels])
+                self._createChannel(data[1], self.channels[data[1]])
 
         if data[0]=='rmChannel':
-            del self.channels[data[1]]
-            self.api.send(['channels', self.channels])
             self.deleteChannel(data[1])
 
+        if data[0]=='savePreset':
+            self.savePreset(data[1])
+            self.api.send(['presets',registry.ls("/system.mixer/presets/")])
+
+        if data[0]=='loadPreset':
+            self.loadPreset(data[1])
+
+        if data[0]=='deletePreset':
+            self.deletePreset(data[1])
+            self.api.send(['presets',registry.ls("/system.mixer/presets/")])
+
 board = MixingBoard()
+board.loadData(registry.get("/system.mixer/presets/default",{}))

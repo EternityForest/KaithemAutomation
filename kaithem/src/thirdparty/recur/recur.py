@@ -318,7 +318,7 @@ class ForConstraint(BaseConstraint):
             return x+datetime.timedelta(seconds=self.length)
 
     def before(self, dt, align=None):
-        return selt.constraint.before(dt)
+        return self.constraint.before(dt)
 
 class weekday(BaseConstraint):
     "Match one day or list of days in every week"

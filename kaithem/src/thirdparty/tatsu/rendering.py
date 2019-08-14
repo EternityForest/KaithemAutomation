@@ -3,13 +3,12 @@
 The Renderer class provides the infrastructure for generating template-based
 code. It's used by the .grammars module for parser generation.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
+from __future__ import generator_stop
 
 import itertools
 import string
 
-from tatsu.util import indent, isiter, strtype, trim, ustr
+from tatsu.util import indent, isiter, trim
 
 
 def render(item, join='', **fields):
@@ -17,7 +16,7 @@ def render(item, join='', **fields):
     """
     if item is None:
         return ''
-    elif isinstance(item, strtype):
+    elif isinstance(item, str):
         return item
     elif isinstance(item, Renderer):
         return item.render(join=join, **fields)
@@ -26,21 +25,21 @@ def render(item, join='', **fields):
     elif isinstance(item, (int, float)):
         return item
     else:
-        return ustr(item)
+        return str(item)
 
 
 class RenderingFormatter(string.Formatter):
     def render(self, item, join='', **fields):
         return render(item, join=join, **fields)
 
-    def format_field(self, value, spec):
-        if ':' not in spec:
-            return super(RenderingFormatter, self).format_field(
+    def format_field(self, value, format_spec):
+        if ':' not in format_spec:
+            return super().format_field(
                 self.render(value),
-                spec
+                format_spec
             )
 
-        ind, sep, fmt = spec.split(':')
+        ind, sep, fmt = format_spec.split(':')
         if sep == '\\n':
             sep = '\n'
 
@@ -102,7 +101,7 @@ class Renderer(object):
         return self._formatter.render(item, join=join, **fields)
 
     def indent(self, item, ind=1, multiplier=4):
-        return indent(self.rend(item), indent=ind, multiplier=4)
+        return indent(self.rend(item), indent=ind)
 
     def trim(self, item, tabwidth=4):
         return trim(self.rend(item), tabwidth=tabwidth)
@@ -110,9 +109,10 @@ class Renderer(object):
     def render_fields(self, fields):
         """ Pre-render fields before rendering the template.
         """
-        pass
+        return
 
-    def render(self, template=None, **fields):
+    def render(self, **fields):
+        template = fields.pop('template', None)
         fields.update(__class__=self.__class__.__name__)
         fields.update({k: v for k, v in vars(self).items() if not k.startswith('_')})
 

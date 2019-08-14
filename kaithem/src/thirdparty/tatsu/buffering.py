@@ -6,26 +6,24 @@ Line analysis and caching are done so the parser can freely move with goto(p)
 to any position in the parsed text, and still recover accurate information
 about source lines and content.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
+from __future__ import generator_stop
 
 import os
 from itertools import takewhile, repeat
 
-from tatsu.util import identity, imap, ustr, strtype
-from tatsu.util import extend_list, contains_sublist
-from tatsu.util import re as regexp
-from tatsu.util import WHITESPACE_RE
-from tatsu.exceptions import ParseError
-from tatsu.infos import PosLine, LineIndexInfo, LineInfo, CommentInfo
-
-RETYPE = type(regexp.compile('.'))
+from .tokenizing import Tokenizer
+from .util import identity
+from .util import extend_list, contains_sublist
+from .util import re as regexp
+from .util import RETYPE, WHITESPACE_RE
+from .exceptions import ParseError
+from .infos import PosLine, LineIndexInfo, LineInfo, CommentInfo
 
 # for backwards compatibility with existing parsers
 LineIndexEntry = LineIndexInfo
 
 
-class Buffer(object):
+class Buffer(Tokenizer):
     def __init__(self,
                  text,
                  filename=None,
@@ -37,23 +35,22 @@ class Buffer(object):
                  comment_recovery=False,
                  namechars='',
                  **kwargs):
-        text = ustr(text)
+        text = str(text)
         self.text = self.original_text = text
-        self.filename = filename or ''
+        self._filename = filename or ''
 
         self.whitespace = whitespace
 
         self.comments_re = comments_re
         self.eol_comments_re = eol_comments_re
-        self.ignorecase = ignorecase
-        self.nameguard = (nameguard
-                          if nameguard is not None
-                          else bool(self.whitespace_re))
+        self._ignorecase = ignorecase
+        self.nameguard = (
+            nameguard if nameguard is not None
+            else bool(self.whitespace_re) or bool(namechars)
+        )
         self.comment_recovery = comment_recovery
-        self.namechars = namechars
-        self._namechar_set = set(namechars)
-        if namechars:
-            self.nameguard = True
+        self.namechars = namechars if namechars is not None else ''
+        self._namechar_set = set(self.namechars)
 
         self._pos = 0
         self._len = 0
@@ -66,6 +63,14 @@ class Buffer(object):
 
         self._preprocess()
         self._postprocess()
+
+    @property
+    def filename(self):
+        return self._filename
+
+    @property
+    def ignorecase(self):
+        return self._ignorecase
 
     @property
     def whitespace(self):
@@ -83,7 +88,7 @@ class Buffer(object):
         elif isinstance(whitespace, RETYPE):
             return whitespace
         elif whitespace:
-            if not isinstance(whitespace, strtype):
+            if not isinstance(whitespace, str):
                 # a list or a set?
                 whitespace = ''.join(c for c in whitespace)
             return regexp.compile(
@@ -185,8 +190,9 @@ class Buffer(object):
         return self._pos >= self._len
 
     def ateol(self):
-        return self.atend() or self.current() in '\r\n'
+        return self.atend() or self.current in '\r\n'
 
+    @property
     def current(self):
         if self._pos >= self._len:
             return None
@@ -201,14 +207,14 @@ class Buffer(object):
         return self.at(self._pos + n)
 
     def next(self):
-        if self._pos >= self._len:
+        if self.atend():
             return None
         c = self.text[self._pos]
         self._pos += 1
         return c
 
-    def goto(self, p):
-        self._pos = max(0, min(len(self.text), p))
+    def goto(self, pos):
+        self._pos = max(0, min(len(self.text), pos))
 
     def move(self, n):
         self.goto(self.pos + n)
@@ -246,7 +252,7 @@ class Buffer(object):
 
     def _eat_regex(self, regex):
         if regex is not None:
-            return list(takewhile(identity, imap(self.matchre, repeat(regex))))
+            return list(takewhile(identity, map(self.matchre, repeat(regex))))
 
     def eat_whitespace(self):
         return self._eat_regex(self.whitespace_re)
@@ -293,7 +299,7 @@ class Buffer(object):
         return self.scan_space()
 
     def is_name_char(self, c):
-        return c is not None and c.isalnum() or c in self._namechar_set
+        return c is not None and (c.isalnum() or c in self._namechar_set)
 
     def match(self, token, ignorecase=None):
         ignorecase = ignorecase if ignorecase is not None else self.ignorecase
@@ -309,13 +315,10 @@ class Buffer(object):
 
         if is_match:
             self.move(len(token))
-            if not self.nameguard:
-                return token
-
             partial_match = (
-                token.isalnum() and
-                token[0].isalpha() and
-                self.is_name_char(self.current())
+                self.nameguard and
+                all(self.is_name_char(t) for t in token) and
+                self.is_name_char(self.current)
             )
             if not partial_match:
                 return token
@@ -346,14 +349,15 @@ class Buffer(object):
         if pos is None:
             pos = self._pos
 
-        if pos >= len(self._line_cache):
-            return LineInfo(self.filename, self.linecount, 0, self._len, self._len, '')
-
+        # -2 to skip over sentinel
+        pos = min(pos, len(self._line_cache) - 2)
         start, line, length = self._line_cache[pos]
         end = start + length
         col = pos - start
 
         text = self.text[start:end]
+
+        # only required to support includes
         n = min(len(self._line_index) - 1, line)
         filename, line = self._line_index[n]
 

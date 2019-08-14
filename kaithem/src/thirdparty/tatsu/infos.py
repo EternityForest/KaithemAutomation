@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import generator_stop
 
 from collections import namedtuple
 
@@ -34,7 +34,7 @@ class LineIndexInfo(namedtuple('_LineIndexInfoBase', ['filename', 'line'])):
         return list(LineIndexInfo(l, i) for l, i in zip(n * [name], range(n)))
 
 
-class LineInfo (namedtuple('_LineInfo', ['filename', 'line', 'col', 'start', 'end', 'text'])):
+class LineInfo(namedtuple('_LineInfo', ['filename', 'line', 'col', 'start', 'end', 'text'])):
     __slots__ = ()
 
 
@@ -49,7 +49,7 @@ class CommentInfo(namedtuple('_CommentInfo', ['inline', 'eol'])):
 _ParseInfo = namedtuple(
     '_ParseInfoTuple',
     [
-        'buffer',
+        'tokenizer',
         'rule',
         'pos',
         'endpos',
@@ -63,31 +63,48 @@ class ParseInfo(_ParseInfo):
     __slots__ = ()
 
     def text_lines(self):
-        return self.buffer.get_lines(self.line, self.endline)
+        return self.tokenizer.get_lines(self.line, self.endline)
 
     def line_index(self):
-        return self.buffer.line_index(self.line, self.endline)
+        return self.tokenizer.line_index(self.line, self.endline)
 
 
 MemoKey = namedtuple(
     'MemoKey',
     [
         'pos',
-        'name',
+        'rule',
         'state'
     ]
 )
 
 
-RuleInfo = namedtuple(
+_RuleInfo = namedtuple(
     'RuleInfo',
     [
         'name',
         'impl',
+        'is_leftrec',
+        'is_memoizable',
         'params',
         'kwparams',
     ]
 )
+
+
+class RuleInfo(_RuleInfo):
+    __slots__ = ()
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        if isinstance(other, RuleInfo):
+            return self.name == other.name
+        return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 
 RuleResult = namedtuple(

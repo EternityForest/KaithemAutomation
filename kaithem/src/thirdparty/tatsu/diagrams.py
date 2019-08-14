@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import generator_stop
 
 import itertools
 
-from tatsu.walkers import NodeWalker
+import pygraphviz as pgv  # pylint: disable=E0401
 
-try:
-    import pygraphviz as pgv
-except:
-    raise
+from tatsu.walkers import NodeWalker
 
 
 __all__ = ['draw']
@@ -22,7 +19,7 @@ def draw(filename, grammar):
 
 class GraphvizWalker(NodeWalker):
     def __init__(self):
-        super(GraphvizWalker, self).__init__()
+        super().__init__()
         self.top_graph = pgv.AGraph(directed=True,
                                     rankdir='LR',
                                     packMode='clust',
@@ -50,7 +47,6 @@ class GraphvizWalker(NodeWalker):
 
     def pop_graph(self):
         self.stack.pop()
-        pass
 
     def node(self, name, id=None, **attr):
         if id is None:
@@ -164,7 +160,7 @@ class GraphvizWalker(NodeWalker):
             self.pop_graph()
 
     def walk__based_rule(self, r):
-        return self.walk_Rule(r)
+        return self.walk__rule(r)
 
     def walk__rule_ref(self, rr):
         n = self.ref_node(rr.name)

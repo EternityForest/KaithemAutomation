@@ -235,6 +235,13 @@ def deleteAllButHighestNumberedNDirectories(where,N):
     for i in sorted(asnumbers.keys())[0:-N]:
         shutil.rmtree(os.path.join(where,asnumbers[i]))
 
+def disallowSpecialChars(s,allow=""):
+    for i in r"""~!@#$%^&*()_+`-=[]\{}|;':"',./<>?""":
+        if i in s:
+            raise ValueError("String contains "+i)
+    for i in "\n\r\t":
+        if i in s:
+            raise ValueError("String contains tab, newline, or return")
 class LowPassFiter(object):
     "Speed should be 0 to 1 and express by what percentage to approach the new value per sample"
     def __init__(self,speed,startval=0 ):

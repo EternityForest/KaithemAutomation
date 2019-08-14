@@ -1,23 +1,22 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import generator_stop
 
-from collections import OrderedDict
-import re
+from collections.abc import Sequence
 
-from tatsu import grammars
-from tatsu.exceptions import FailedSemantics
-from tatsu.semantics import ModelBuilderSemantics
-from tatsu.util import eval_escapes, warning
+from . import grammars
+from .exceptions import FailedSemantics
+from .semantics import ModelBuilderSemantics
+from .util import eval_escapes, re, warning, flatten
 
 
 class EBNFGrammarSemantics(ModelBuilderSemantics):
     def __init__(self, grammar_name):
-        super(EBNFGrammarSemantics, self).__init__(
+        super().__init__(
             base_type=grammars.Model,
             types=grammars.Model.classes()
         )
         self.grammar_name = grammar_name
-        self.rules = OrderedDict()
+        self.rules = {}
 
     def token(self, ast, *args):
         token = ast
@@ -47,7 +46,7 @@ class EBNFGrammarSemantics(ModelBuilderSemantics):
     def string(self, ast):
         return eval_escapes(ast)
 
-    def hext(self, ast):
+    def hex(self, ast):
         return int(ast, 16)
 
     def float(self, ast):
@@ -66,7 +65,7 @@ class EBNFGrammarSemantics(ModelBuilderSemantics):
 
     def sequence(self, ast, *args):
         seq = ast.sequence
-        assert isinstance(seq, list), str(seq)
+        assert isinstance(seq, Sequence), str(seq)
         if len(seq) == 1:
             return seq[0]
         return grammars.Sequence(ast)
@@ -95,7 +94,7 @@ class EBNFGrammarSemantics(ModelBuilderSemantics):
         exp = ast.exp
         base = ast.base
         params = ast.params
-        kwparams = OrderedDict(ast.kwparams) if ast.kwparams else None
+        kwparams = dict(ast.kwparams) if ast.kwparams else None
 
         if 'override' not in decorators and name in self.rules:
             self.new_name(name)
@@ -120,8 +119,12 @@ class EBNFGrammarSemantics(ModelBuilderSemantics):
         return grammars.RuleInclude(rule)
 
     def grammar(self, ast, *args):
-        directives = OrderedDict((d.name, d.value) for d in ast.directives)
-        keywords = set(ast.keywords or [])
+        directives = {d.name: d.value for d in flatten(ast.directives)}
+        keywords = set(flatten(ast.keywords) or [])
+
+        if directives.get('whitespace') in ('None', 'False'):
+            directives['whitespace'] = ''
+
         return grammars.Grammar(
             self.grammar_name,
             list(self.rules.values()),

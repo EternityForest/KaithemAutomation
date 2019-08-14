@@ -54,8 +54,13 @@ def isConnected(f,t):
 
 def setupPulse():
     try:
-        subprocess.check_call("pulseaudio -k",shell=True)
-        subprocess.check_call("pactl load-module module-jack-sink channels=2; pactl load-module module-jack-source channels=2; pacmd set-default-sink jack_out",shell=True)
+        subprocess.check_call(['pulseaudio','-k'])
+    except:
+        pass
+    try:
+        subprocess.check_call(['pulseaudio','-D'])
+        time.sleep(0.1)
+        subprocess.check_call("pactl load-module module-jack-sink channels=2; pactl load-module module-jack-source channels=2; pacmd set-default-sink jack_out;",shell=True)
     except:
         log.exception("Error configuring pulseaudio")
 
@@ -86,10 +91,8 @@ class MonoAirwire():
     They start out in the connected state
     """
     def __init__(self, orig, to):
-        log.info("Created JACK airwire from "+str(orig) +" to "+ str(to))
         self.orig=orig
         self.to = to
-        print(orig,to)
         self.active = True
 
     def disconnect(self):
@@ -306,6 +309,7 @@ class ChannelStrip():
         self.sends = sends
 
         self.send_airwires = []
+
     def connectOutput(self, dest):
        self.outAirwire = Airwire(self,dest)
     
@@ -336,7 +340,9 @@ failcards = {}
 
 #The options we use to tune alsa_in and alsa_out
 #so they don't sound horrid
-iooptions=["-p", "128","-m:", "64", "-q","1"]
+iooptions=["-p", "128", "-t","256", "-m", "256", "-q","1", "-r", "48000", "-n","16"]
+
+
 
 toretry_in = {}
 toretry_out ={}
@@ -590,7 +596,7 @@ def startJack():
             pass
         f = open(os.devnull,"w")
         g = open(os.devnull,"w")
-        jackp =subprocess.Popen("jackd --realtime -P 70 -S -d alsa -d hw:0,0 -p 128 -n 3",stdout=f, stderr=g, shell=True,stdin=subprocess.DEVNULL)    
+        jackp =subprocess.Popen("jackd --realtime -P 70 -S -d alsa -d hw:0,0 -p 128 -n 3 -r 48000",stdout=f, stderr=g, shell=True,stdin=subprocess.DEVNULL)    
 
 
 
@@ -618,16 +624,18 @@ def handleManagedSoundcards():
                 problem = problem or b"busy" in (x+e) 
 
                 if problem:
-                    log.error("Error in output "+ i +(x+e).decode("utf8"))
+                    log.error("Error in output "+ i +(x+e).decode("utf8") +" status code "+str(alsa_out_instances[i].poll()))
                     closeAlsaProcess(i, alsa_out_instances[i])
                     tr.append(i)
                     #We have to delete the busy stuff but we can
                     #retry later
                     if b"busy" in (x+e):
+                        toretry_out[i]=time.monotonic()+5
+                    elif b"No such" in (x+e):
+                        toretry_out[i]=time.monotonic()+10
+                    else:
                         toretry_out[i]=time.monotonic()
-                    
-                    if b"No such" in (x+e):
-                        toretry_out[i]=time.monotonic()                
+
                     log.info("Removed "+i+"o")
 
                 elif not alsa_out_instances[i].poll()==None:
@@ -646,14 +654,17 @@ def handleManagedSoundcards():
                 problem = b"err =" in x+e or alsa_in_instances[i].poll()
                 problem = problem or b"busy" in (x+e) 
                 if problem :
-                    log.error("Error in "+ i +(x+e).decode("utf8"))
+                    log.error("Error in output "+ i +(x+e).decode("utf8") +" status code "+str(alsa_in_instances[i].poll()))
                     closeAlsaProcess(i, alsa_in_instances[i])   
                     tr.append(i)
                     if b"busy" in (x+e):
-                        toretry_in[i]=time.monotonic()
+                        toretry_in[i]=time.monotonic()+5
                     
                     if b"No such" in (x+e):
-                        toretry_in[i]=time.monotonic()  
+                        toretry_in[i]=time.monotonic()+10
+                    else:
+                        toretry_out[i]=time.monotonic()
+
                     log.info("Removed "+i+"i")
 
                 elif not alsa_in_instances[i].poll()==None:
@@ -673,29 +684,46 @@ def handleManagedSoundcards():
         #This is how we avoid constantky retrying to connect the same few
         #clients that fail, which might make a bad periodic click that nobody
         #wants to hear.
+        startPulse = False
         if (inp,op)==(oldi,oldo):
 
             #However some things we need to retry.
             #Device or resource busy being the main one
             for i in inp:
                 if i in toretry_in:
-                    if time.monotonic() < toretry_in[i]+5:
+                    if time.monotonic() < toretry_in[i]:
                         continue
                     del toretry_in[i]
                     if not i in alsa_in_instances:
+                        #Pulse likes to take over cards so we have to stop it, take the card, then start it. It sucks
+                        startPulse = True
+                        try:
+                            subprocess.check_call(['pulseaudio','-k'])
+                        except:
+                            pass
+                        time.sleep(2)
                         x = subprocess.Popen(["alsa_in"]+iooptions+["-d", inp[i][0], "-j",i+"i"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+
                         alsa_in_instances[i]=x
                         log.info("Added "+i+"i at"+inp[i][1])
 
             for i in op:
                 if i in toretry_out:
-                    if time.monotonic() < toretry_out[i]+5:
+                    if time.monotonic() < toretry_out[i]:
                         continue
                     del toretry_out[i]
                     if not i in alsa_out_instances:
+                        try:
+                            subprocess.check_call(['pulseaudio','-k'])
+                        except:
+                            pass
                         x = subprocess.Popen(["alsa_out"]+iooptions+["-d", op[i][0], "-j",i+"o"]+iooptions,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
                         alsa_out_instances[i]=x
                         log.info("Added "+i+"o")
+            #If we stopped it, start it again
+            if startPulse:
+                setupPulse()
+
             return
             
         oldi,oldo,oldnames =inp,op,names
@@ -756,23 +784,27 @@ def work():
 
 t =None
 
+didPatch = False
 def startManagingJack():
     import jack, re
     global jackclient
     global t
+    global didPatch
 
-    def _get_ports_fix(self, name_pattern='', is_audio=False, is_midi=False,
-                   is_input=False, is_output=False, is_physical=False,
-                   can_monitor=False, is_terminal=False):
-        if name_pattern:
-            re.compile(name_pattern)
-                
-        return jack.Client._get_ports(self, name_pattern, is_audio, is_midi, 
-                                    is_input, is_output, is_physical, 
-                                    can_monitor, is_terminal)
+    if not didPatch:
+        def _get_ports_fix(self, name_pattern='', is_audio=False, is_midi=False,
+                    is_input=False, is_output=False, is_physical=False,
+                    can_monitor=False, is_terminal=False):
+            if name_pattern:
+                re.compile(name_pattern)
+                    
+            return jack.Client._get_ports(self, name_pattern, is_audio, is_midi, 
+                                        is_input, is_output, is_physical, 
+                                        can_monitor, is_terminal)
 
-    jack.Client._get_ports = jack.Client.get_ports
-    jack.Client.get_ports = _get_ports_fix
+        jack.Client._get_ports = jack.Client.get_ports
+        jack.Client.get_ports = _get_ports_fix
+        didPatch = True
 
     atexit.register(cleanup)
     stopJack()
@@ -789,6 +821,7 @@ def startManagingJack():
     with lock:
         jackclient.set_port_registration_callback(onPortRegistered)
         jackclient.set_port_connect_callback(onPortConnect)
+    jackclient.activate()
     setupPulse()
     log.debug("Set up pulse")
     t = threading.Thread(target=work)
@@ -803,6 +836,6 @@ def getPorts(*a,**k):
             return []
         return jackclient.get_ports(*a,**k)
 
-startManagingJack()
+#startManagingJack()
 
 

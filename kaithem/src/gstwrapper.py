@@ -86,7 +86,7 @@ class Pipeline():
         self.input=input
         self._input= None
         self.outputs=outputs
-
+        self._outputs = []
         self.sends = []
         self.sendAirwires =[]
         self.namedElements = {}
@@ -110,7 +110,8 @@ class Pipeline():
 
     def setInput(self, input):
         self.input=input
-        self._input.disconnect()
+        if self._input:
+            self._input.disconnect()
         self._input = jackmanager.Airwire(self.input, self.name+"_in") 
         self._input.connect()
 

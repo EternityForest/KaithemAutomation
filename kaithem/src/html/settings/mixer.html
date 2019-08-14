@@ -34,6 +34,11 @@ from src import jackmixer
       border-width: 1px;
       margin: 0.5em;
     }
+    button.bold{
+      font-weight: bolder;
+      text-shadow: 5px;
+      
+    }
   </style>
 
 
@@ -57,7 +62,41 @@ from src import jackmixer
       <option v-for="i in sortedConnectables(outports)">{{i}}</option>
     </datalist>
 
-    <button class="{bold: activePane=='mixer'}" v-on:click="activePane=mixer">Mixer</button>
+    <button class="{bold: activePane=='mixer'}" v-on:click="activePane='mixer'">Mixer</button>
+    <button class="{bold: activePane=='presets'}" v-on:click="activePane='presets'">Presets/Defaults</button>
+
+
+
+
+    <div v-if="activePane=='presets'">
+    <h2>Presets</h2>
+    <p class="help">Presets let you load and save the entire state of the mixing board. When kaithem boots, the preset
+      named "default" will be loaded if it exists.
+    </p>
+    
+    <table border="1">
+      <tr><th>Name</th><th>Actions</th></tr>
+      <tr v-for="i in presets">
+        <td>{{i}}</td>
+        <td>
+          <button v-on:click="confirmLoadPreset(i)">Load</button>
+        </td>
+        <td>
+          <button v-on:click="confirmDeletePreset(i)">Delete</button>
+        </td>
+      </tr>
+
+      <tr>
+        <td>
+          <input v-model="newpresetname" placeholder="New Preset">
+        </td>
+        <td><button v-on:click="createPreset(newpresetname)">Save</button></td>
+        <td></td>
+      </tr>
+
+    </table>
+    </div>
+
 
     <div v-if="activePane=='mixer'">
       <div class="channel" v-for="(channel,channelname) in channels">
@@ -73,12 +112,12 @@ from src import jackmixer
             </h4>
             <div v-for="param in sortedParams(effect.params)" class="param">
               <div v-if="param.type=='float'">
-                <b>{{param.displayName}}</b>({{param.value}}): {{param.min}}<input type="range" v-model.number="param.value"
-                  v-bind:min="param.min" v-bind:max="param.max" v-on:input="setParam(channelname,effect.id,param.name,$event.target.value)">{{param.max}}
+                <b>{{param.displayName}}</b>({{param.value}}): {{param.min}}<input type="range" v-model.number="param.value" s
+                  v-bind:min="param.min" v-bind:max="param.max" step="(param.max-param.min)/(144*2)" v-on:input="setParam(channelname,effect.id,param.name,parseFloat($event.target.value))">{{param.max}}
               </div>
               <div v-if="param.type=='bool'">
-                <b>{{param.displayName}}</b>({{param.value}}): {{param.min}}<input type="checkbox" v-model.number="param.value"
-                   v-on:input="setParam(channelname,effect.id,param.name,$event.target.value)">{{param.max}}
+                <b>{{param.displayName}}</b>({{param.value}}): {{param.min}}<input type="checkbox" v-model.bool="param.value"
+                   v-on:input="setParam(channelname,effect.id,param.name,$event.target.checked)">{{param.max}}
               </div>
             </div>
 
@@ -98,7 +137,7 @@ from src import jackmixer
         </div>
     
         <input v-model="channel.fader" v-on:input="setFader(channelname, parseFloat($event.target.value))"
-        orient="vertical" type="range" step="0.5" value="-80" min="-80" max="10">
+        orient="vertical" type="range" step="0.5" value="-60" min="-60" max="20">
       {{channel.fader}}dB<br>
       Connect output: <input v-model="channel.output" list="inports"
         v-on:input="setOutput(channelname, $event.target.value)">
@@ -156,14 +195,31 @@ from src import jackmixer
       channels: {},
       api: api,
       newchannelname: "",
+      newpresetname:"",
       neweffecttype: "",
       activePane: "mixer",
       effectTypes:{},
+      presets:[],
       confirmDelete: function (c) {
         if (window.confirm("Do you really want to delete this channel?")) {
           api.send(['rmChannel', c]);
         }
       },
+      confirmDeletePreset: function (c) {
+        if (window.confirm("Do you really want to delete this preset?")) {
+          api.send(['deletePreset', c]);
+        }
+      },
+      confirmLoadPreset: function (c) {
+        if (window.confirm("Do you really want to load this preset?")) {
+          api.send(['loadPreset', c]);
+        }
+      },
+
+      createPreset: function (name) {
+        api.send(['savePreset', name]);
+      },
+
       moveEffectUp: function (channel, effectIndex) {
         if (effectIndex > 0) {
           var x = this.channels[channel].effects[effectIndex]
@@ -255,6 +311,10 @@ from src import jackmixer
 
     if (msg[0] == "inports") {
       app.$data.inports = msg[1];
+    }
+
+    if (msg[0] == "presets") {
+      app.$data.presets = msg[1];
     }
 
     if (msg[0] == "effectTypes") {

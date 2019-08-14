@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import generator_stop
 
-
-import collections
+from collections.abc import Mapping, MutableMapping
 import weakref
 
 from tatsu.util import asjson, asjsons
-from tatsu.util import Mapping, MutableMapping
 from tatsu.infos import CommentInfo
 from tatsu.ast import AST
 # TODO: from tatsu.exceptions import NoParseInfo
@@ -17,7 +15,7 @@ BASE_CLASS_TOKEN = '::'
 
 class Node(object):
     def __init__(self, ctx=None, ast=None, parseinfo=None, **kwargs):
-        super(Node, self).__init__()
+        super().__init__()
         self._ctx = ctx
         self._ast = ast
 
@@ -25,8 +23,8 @@ class Node(object):
             parseinfo = ast.parseinfo if not parseinfo else None
         self._parseinfo = parseinfo
 
-        attributes = ast or {}
-        # asume that kwargs contains node attributes of interest
+        attributes = ast if ast is not None else {}
+        # assume that kwargs contains node attributes of interest
         if isinstance(attributes, MutableMapping):
             attributes.update(kwargs)
 
@@ -39,7 +37,10 @@ class Node(object):
             return
 
         for name in set(ast) - {'parseinfo'}:
-            setattr(self, name, ast[name])
+            try:
+                setattr(self, name, ast[name])
+            except AttributeError:
+                raise AttributeError("'%s' is a reserved name" % name)
 
     @property
     def ast(self):
@@ -90,18 +91,19 @@ class Node(object):
     @property
     def line_info(self):
         if self.parseinfo:
-            return self.parseinfo.buffer.line_info(self.parseinfo.pos)
+            return self.parseinfo.tokenizer.line_info(self.parseinfo.pos)
 
     @property
     def text(self):
-        if self.parseinfo:
-            text = self.parseinfo.buffer.text
-            return text[self.parseinfo.pos:self.parseinfo.endpos]
+        if not self.parseinfo:
+            return ''
+        text = self.parseinfo.tokenizer.text
+        return text[self.parseinfo.pos:self.parseinfo.endpos]
 
     @property
     def comments(self):
         if self.parseinfo:
-            return self.parseinfo.buffer.comments(self.parseinfo.pos)
+            return self.parseinfo.tokenizer.comments(self.parseinfo.pos)
         return CommentInfo([], [])
 
     def __cn(self, add_child, child_collection, child, seen=None):
@@ -167,11 +169,10 @@ class Node(object):
         }
 
     def __json__(self):
-        result = collections.OrderedDict(
-            __class__=self.__class__.__name__,
-        )
-        result.update(self._pubdict())
-        return asjson(result)
+        return asjson({
+            '__class__': type(self).__name__,
+            **self._pubdict()
+        })
 
     def __str__(self):
         return asjsons(self)

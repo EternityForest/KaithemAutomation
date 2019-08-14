@@ -759,7 +759,6 @@ def getDeviceType(t):
 
 
 def init_devices():
-        
     for i in device_data:
         try:
             remote_devices[i] = makeDevice(i, device_data[i])

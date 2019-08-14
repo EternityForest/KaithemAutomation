@@ -2,16 +2,15 @@
 """
 Python code generation for models defined with tatsu.model
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import generator_stop
 
 from tatsu.util import (
     indent,
     safe_name,
     trim,
     timestamp,
-    urepr,
-    ustr,
-    compress_seq
+    compress_seq,
+    RETYPE
 )
 from tatsu.exceptions import CodegenError
 from tatsu.objectmodel import Node
@@ -20,11 +19,11 @@ from tatsu.codegen.cgbase import ModelRenderer, CodeGenerator
 
 
 class PythonCodeGenerator(CodeGenerator):
-    def _find_renderer_class(self, item):
-        if not isinstance(item, Node):
+    def _find_renderer_class(self, node):
+        if not isinstance(node, Node):
             return None
 
-        name = item.__class__.__name__
+        name = node.__class__.__name__
         renderer = globals().get(name)
         if not renderer or not issubclass(renderer, Base):
             raise CodegenError('Renderer for %s not found' % name)
@@ -55,7 +54,7 @@ class Fail(Base):
 class Comment(Base):
     def render_fields(self, fields):
         lines = '\n'.join(
-            '# %s' % ustr(c) for c in self.node.comment.splitlines()
+            '# %s' % str(c) for c in self.node.comment.splitlines()
         )
         fields.update(lines=lines)
 
@@ -83,21 +82,21 @@ class Group(_Decorator):
 
 class Token(Base):
     def render_fields(self, fields):
-        fields.update(token=urepr(self.node.token))
+        fields.update(token=repr(self.node.token))
 
     template = "self._token({token})"
 
 
 class Constant(Base):
     def render_fields(self, fields):
-        fields.update(literal=urepr(self.node.literal))
+        fields.update(literal=repr(self.node.literal))
 
     template = "self._constant({literal})"
 
 
 class Pattern(Base):
     def render_fields(self, fields):
-        raw_repr = 'r' + urepr(self.node.pattern).replace("\\\\", '\\')
+        raw_repr = repr(self.node.pattern)
         fields.update(pattern=raw_repr)
 
     template = 'self._pattern({pattern})'
@@ -139,14 +138,14 @@ class Choice(Base):
             error = 'no available options'
         fields.update(n=self.counter(),
                       options=indent(options),
-                      error=urepr(error)
+                      error=repr(error)
                       )
 
     def render(self, **fields):
         if len(self.node.options) == 1:
             return self.rend(self.options[0], **fields)
         else:
-            return super(Choice, self).render(**fields)
+            return super().render(**fields)
 
     option_template = '''\
                     with self._option():
@@ -167,7 +166,7 @@ class Closure(_Decorator):
     def render(self, **fields):
         if {()} in self.node.exp.lookahead():
             raise CodegenError('may repeat empty sequence')
-        return '\n' + super(Closure, self).render(**fields)
+        return '\n' + super().render(**fields)
 
     template = '''\
                 def block{n}():
@@ -191,7 +190,7 @@ class Join(_Decorator):
     def render(self, **fields):
         if {()} in self.node.exp.lookahead():
             raise CodegenError('may repeat empty sequence')
-        return '\n' + super(Join, self).render(**fields)
+        return '\n' + super().render(**fields)
 
     template = '''\
                 def sep{n}():
@@ -321,7 +320,7 @@ class RuleRef(Base):
 
 class RuleInclude(_Decorator):
     def render_fields(self, fields):
-        super(RuleInclude, self).render_fields(fields)
+        super().render_fields(fields)
         fields.update(exp=self.rend(self.node.rule.exp))
 
     template = '''
@@ -333,9 +332,9 @@ class Rule(_Decorator):
     @staticmethod
     def param_repr(p):
         if isinstance(p, (int, float)):
-            return ustr(p)
+            return str(p)
         else:
-            return urepr(p.split(BASE_CLASS_TOKEN)[0])
+            return repr(p.split(BASE_CLASS_TOKEN)[0])
 
     def render_fields(self, fields):
         self.reset_counter()
@@ -368,8 +367,8 @@ class Rule(_Decorator):
         if not (sdefs or ldefs):
             sdefines = ''
         else:
-            sdefs = '[%s]' % ', '.join(urepr(d) for d in sorted(sdefs))
-            ldefs = '[%s]' % ', '.join(urepr(d) for d in sorted(ldefs))
+            sdefs = '[%s]' % ', '.join(repr(d) for d in sorted(sdefs))
+            ldefs = '[%s]' % ', '.join(repr(d) for d in sorted(ldefs))
             if not ldefs:
                 sdefines = '\n\n    self.ast._define(%s, %s)' % (sdefs, ldefs)
             else:
@@ -382,9 +381,14 @@ class Rule(_Decorator):
         fields.update(
             check_name='\n    self._check_name()' if self.is_name else '',
         )
+        leftrec = self.node.is_leftrec
+        fields.update(leftrec='\n@leftrec' if leftrec else '')
+        fields.update(nomemo='\n@nomemo' if not self.node.is_memoizable and not leftrec else '')
 
     template = '''
-        @tatsumasu({params})
+        @tatsumasu({params})\
+        {leftrec}\
+        {nomemo}
         def _{name}_(self):  # noqa
         {exp:1::}{check_name}{defines}
         '''
@@ -402,7 +406,7 @@ class BasedRule(Rule):
         return self.rhs.defines()
 
     def render_fields(self, fields):
-        super(BasedRule, self).render_fields(fields)
+        super().render_fields(fields)
         fields.update(exp=self.rhs)
 
 
@@ -415,27 +419,28 @@ class Grammar(Base):
         ]
         abstract_rules = indent('\n'.join(abstract_rules))
 
-        if self.node.whitespace is not None:
-            whitespace = urepr(self.node.whitespace)
-        elif self.node.directives.get('whitespace') is not None:
-            whitespace = 're.compile({0})'.format(urepr(self.node.directives.get('whitespace')))
-        else:
+        whitespace = self.node.whitespace or self.node.directives.get('whitespace')
+        if not whitespace:
             whitespace = 'None'
+        elif isinstance(whitespace, RETYPE):
+            whitespace = repr(whitespace)
+        else:
+            whitespace = 're.compile({0})'.format(repr(whitespace))
 
         if self.node.nameguard is not None:
-            nameguard = urepr(self.node.nameguard)
+            nameguard = repr(self.node.nameguard)
         elif self.node.directives.get('nameguard') is not None:
             nameguard = self.node.directives.get('nameguard')
         else:
             nameguard = 'None'
 
-        comments_re = urepr(self.node.directives.get('comments'))
-        eol_comments_re = urepr(self.node.directives.get('eol_comments'))
+        comments_re = repr(self.node.directives.get('comments'))
+        eol_comments_re = repr(self.node.directives.get('eol_comments'))
         ignorecase = self.node.directives.get('ignorecase', 'None')
         left_recursion = self.node.directives.get('left_recursion', True)
         parseinfo = self.node.directives.get('parseinfo', True)
 
-        namechars = urepr(self.node.directives.get('namechars') or '')
+        namechars = repr(self.node.directives.get('namechars') or '')
 
         rules = '\n'.join([
             self.get_renderer(rule).render() for rule in self.node.rules
@@ -443,11 +448,13 @@ class Grammar(Base):
 
         version = str(tuple(int(n) for n in str(timestamp()).split('.')))
 
-        keywords = '\n'.join("    %s," % urepr(k) for k in sorted(self.keywords))
+        keywords = [str(k) for k in self.keywords]
+        keywords = '\n'.join("    %s," % repr(k) for k in keywords)
         if keywords:
             keywords = '\n%s\n' % keywords
 
         fields.update(rules=indent(rules),
+                      start=self.node.rules[0].name,
                       abstract_rules=abstract_rules,
                       version=version,
                       whitespace=whitespace,
@@ -480,11 +487,14 @@ class Grammar(Base):
                 # the file is generated.
 
 
-                from __future__ import print_function, division, absolute_import, unicode_literals
+                from __future__ import generator_stop
+
+                import sys
 
                 from tatsu.buffering import Buffer
                 from tatsu.parsing import Parser
-                from tatsu.parsing import tatsumasu
+                from tatsu.parsing import tatsumasu, leftrec, nomemo
+                from tatsu.parsing import leftrec, nomemo  # noqa
                 from tatsu.util import re, generic_main  # noqa
 
 
@@ -503,7 +513,7 @@ class Grammar(Base):
                         namechars={namechars},
                         **kwargs
                     ):
-                        super({name}Buffer, self).__init__(
+                        super().__init__(
                             text,
                             whitespace=whitespace,
                             nameguard=nameguard,
@@ -527,12 +537,12 @@ class Grammar(Base):
                         parseinfo={parseinfo},
                         keywords=None,
                         namechars={namechars},
-                        buffer_class={name}Buffer,
+                        tokenizercls={name}Buffer,
                         **kwargs
                     ):
                         if keywords is None:
                             keywords = KEYWORDS
-                        super({name}Parser, self).__init__(
+                        super().__init__(
                             whitespace=whitespace,
                             nameguard=nameguard,
                             comments_re=comments_re,
@@ -542,7 +552,7 @@ class Grammar(Base):
                             parseinfo=parseinfo,
                             keywords=keywords,
                             namechars=namechars,
-                            buffer_class=buffer_class,
+                            tokenizercls=tokenizercls,
                             **kwargs
                         )
 
@@ -553,11 +563,16 @@ class Grammar(Base):
                 {abstract_rules}
 
 
-                def main(filename, startrule, **kwargs):
-                    with open(filename) as f:
-                        text = f.read()
+                def main(filename, start=None, **kwargs):
+                    if start is None:
+                        start = '{start}'
+                    if not filename or filename == '-':
+                        text = sys.stdin.read()
+                    else:
+                        with open(filename) as f:
+                            text = f.read()
                     parser = {name}Parser()
-                    return parser.parse(text, startrule, filename=filename, **kwargs)
+                    return parser.parse(text, rule_name=start, filename=filename, **kwargs)
 
 
                 if __name__ == '__main__':

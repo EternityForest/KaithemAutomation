@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import generator_stop
 
 
 class _BF(object):
@@ -45,10 +45,11 @@ Style = _Style
 def init():
     try:
         import colorama
-
-        global Fore, Back, Style
-        Fore = colorama.Fore
-        Back = colorama.Back
-        Style = colorama.Style
+        colorama.init()
     except ImportError:
-        pass
+        return
+
+    global Fore, Back, Style
+    Fore = colorama.Fore
+    Back = colorama.Back
+    Style = colorama.Style

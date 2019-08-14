@@ -479,6 +479,8 @@ class _Client():
         self.keypair = keypair
         self.server_pubkey = serverkey
 
+        self.synced=False
+
         #Clients can be associated with a server
         self.server = server
 
@@ -593,9 +595,7 @@ class _Client():
         self.waitingForAck = weakref.WeakValueDictionary()
         self.backoff_until = time.time()
 
-        #See if we need to discover the real address, for cases like
-        #Hairpin NAT
-        self.rediscoverAddress()
+       
 
 
         t = threading.Thread(target=self.loop)
@@ -611,6 +611,14 @@ class _Client():
         self._kathread.name+=":PavillionClientKeepalive"
         self._kathread.start()
 
+    
+
+    def initialConnection(self):
+        "We call this once at setup, to pre-connect ahead of time."
+        #See if we need to discover the real address, for cases like
+        #Hairpin NAT
+        self.rediscoverAddress()
+        
         #Attempt to connect. The protocol has reconnection built in,
         #But this lets us connect in advance
         if self.psk and self.clientID:
@@ -870,6 +878,11 @@ class _Client():
         self.sock.close()
 
     def _keepAliveLoop(self):
+        #Just a convenient place to put this so it's out of the way.
+        #It can use discoverAddress, so we don't want to do it synchronously
+        #In startup.
+        self.initialConnection()
+
         while self.running:
             s = time.time()
             try:

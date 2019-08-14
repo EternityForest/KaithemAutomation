@@ -1,19 +1,24 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import generator_stop
 
 import os
 import functools
-from collections import defaultdict, Mapping
+from collections.abc import Mapping
+from collections import defaultdict
 from copy import copy
+from itertools import takewhile
 
-from tatsu.util import indent, trim, ustr, urepr, strtype, compress_seq, chunks
-from tatsu.util import re
+from tatsu.util import (
+    indent, trim, compress_seq, chunks,
+    re, notnone,
+)
 from tatsu.exceptions import FailedRef, GrammarError
 from tatsu.ast import AST
 from tatsu.contexts import ParseContext
 from tatsu.objectmodel import Node
 from tatsu.bootstrap import EBNFBootstrapBuffer
 from tatsu.infos import RuleInfo
+from tatsu.leftrec import Nullable, find_left_recursion
 
 
 PEP8_LLEN = 72
@@ -21,7 +26,7 @@ PEP8_LLEN = 72
 
 COMMENTS_RE = r'\(\*((?:.|\n)*?)\*\)'
 EOL_COMMENTS_RE = r'#([^\n]*?)$'
-PRAGMA_RE = r'^\s*#[a-z]+'
+PRAGMA_RE = r'^\s*#include.*$'
 
 
 def dot(x, y, k):
@@ -33,8 +38,9 @@ def pythonize_name(name):
 
 
 class EBNFBuffer(EBNFBootstrapBuffer):
-    def __init__(self, text, filename=None, comments_re=None, eol_comments_re=None, **kwargs):
-        super(EBNFBuffer, self).__init__(
+    def __init__(
+            self, text, filename=None, comments_re=None, eol_comments_re=None, **kwargs):
+        super().__init__(
             text,
             filename=filename,
             memoize_lookaheads=False,
@@ -51,7 +57,7 @@ class EBNFBuffer(EBNFBootstrapBuffer):
             if re.match(PRAGMA_RE, line):
                 directive, arg = line.split('#', 1)[1], ''
                 if '::' in directive:
-                    directive, arg = directive.split('::')
+                    directive, arg = directive.split('::', 1)
                 directive, arg = directive.strip(), arg.strip()
                 i = self.pragma(name, directive, arg, lines, index, i)
             else:
@@ -69,9 +75,8 @@ class EBNFBuffer(EBNFBootstrapBuffer):
 
 class ModelContext(ParseContext):
     def __init__(self, rules, semantics=None, trace=False, **kwargs):
-        super(ModelContext, self).__init__(
+        super().__init__(
             semantics=semantics,
-            buffer_class=EBNFBuffer,
             trace=trace,
             **kwargs
         )
@@ -79,11 +84,7 @@ class ModelContext(ParseContext):
 
     @property
     def pos(self):
-        return self._buffer.pos
-
-    @property
-    def buf(self):
-        return self._buffer
+        return self._tokenizer.pos
 
     def _find_rule(self, name):
         return functools.partial(self.rules[name].parse, self)
@@ -98,10 +99,17 @@ class Model(Node):
         ]
 
     def __init__(self, ast=None, ctx=None):
-        super(Model, self).__init__(ast=ast, ctx=ctx)
+        super().__init__(ast=ast, ctx=ctx)
         self._lookahead = None
         self._first_set = None
         self._follow_set = set()
+        self.value = None
+        self._nullability = self._nullable()
+        if isinstance(self._nullability, int):  # Allow simple boolean values
+            if self._nullability:
+                self._nullability = Nullable.yes()
+            else:
+                self._nullability = Nullable.no()
 
     def parse(self, ctx):
         ctx.last_node = None
@@ -123,7 +131,10 @@ class Model(Node):
     def followset(self, k=1):
         return self._follow_set
 
-    def _missing_rules(self, rules):
+    def missing_rules(self, rules):
+        return set()
+
+    def _used_rule_names(self):
         return set()
 
     def _first(self, k, f):
@@ -131,6 +142,16 @@ class Model(Node):
 
     def _follow(self, k, fl, a):
         return a
+
+    def is_nullable(self, ctx=None):
+        return self._nullability.nullable
+
+    def _nullable(self):
+        return False
+
+    # list of rules that can be invoked at the same position
+    def at_same_pos(self, ctx):
+        return []
 
     def comments_str(self):
         comments, eol = self.comments
@@ -154,9 +175,6 @@ class Model(Node):
     def _to_str(self, lean=False):
         return '%s:%d' % (type(self).__name__, id(self))
 
-    def _to_ustr(self, lean=False):
-        return ustr(self._to_str(lean=lean))
-
     def __str__(self):
         return self._to_str()
 
@@ -167,6 +185,9 @@ class Void(Model):
 
     def _to_str(self, lean=False):
         return '()'
+
+    def _nullable(self):
+        return True
 
 
 class Any(Model):
@@ -187,7 +208,8 @@ class Fail(Model):
 
 class Comment(Model):
     def __init__(self, ast=None, **kwargs):
-        super(Comment, self).__init__(ast=AST(comment=ast))
+        self.comment = None
+        super().__init__(ast=AST(comment=ast))
 
     def _to_str(self, lean=False):
         return '(* %s *)' % self.comment
@@ -214,7 +236,7 @@ class Decorator(Model):
             # Patch to avoid bad interactions with attribute setting in Model.
             # Also a shortcut for subexpressions that are not ASTs.
             ast = AST(exp=ast)
-        super(Decorator, self).__init__(ast)
+        super().__init__(ast)
         assert isinstance(self.exp, Model)
 
     def parse(self, ctx):
@@ -223,8 +245,11 @@ class Decorator(Model):
     def defines(self):
         return self.exp.defines()
 
-    def _missing_rules(self, rules):
-        return self.exp._missing_rules(rules)
+    def missing_rules(self, rules):
+        return self.exp.missing_rules(rules)
+
+    def _used_rule_names(self):
+        return self.exp._used_rule_names()
 
     def _first(self, k, f):
         return self.exp._first(k, f)
@@ -236,7 +261,13 @@ class Decorator(Model):
         return 1 + self.exp.nodecount()
 
     def _to_str(self, lean=False):
-        return self.exp._to_ustr(lean=lean)
+        return self.exp._to_str(lean=lean)
+
+    def _nullable(self):
+        return Nullable.of(self.exp)
+
+    def at_same_pos(self, ctx):
+        return [self.exp]
 
 
 # NOTE: backwards compatibility
@@ -250,7 +281,7 @@ class Group(Decorator):
             return ctx.last_node
 
     def _to_str(self, lean=False):
-        exp = self.exp._to_ustr(lean=lean)
+        exp = self.exp._to_str(lean=lean)
         if len(exp.splitlines()) > 1:
             return '(\n%s\n)' % indent(exp)
         else:
@@ -259,38 +290,41 @@ class Group(Decorator):
 
 class Token(Model):
     def __postinit__(self, ast):
-        super(Token, self).__postinit__(ast)
+        super().__postinit__(ast)
         self.token = ast
 
     def parse(self, ctx):
         return ctx._token(self.token)
 
     def _first(self, k, f):
-        return set([(self.token,)])
+        return {(self.token,)}
 
     def _to_str(self, lean=False):
-        return urepr(self.token)
+        return repr(self.token)
 
 
 class Constant(Model):
     def __postinit__(self, ast):
-        super(Constant, self).__postinit__(ast)
+        super().__postinit__(ast)
         self.literal = ast
 
     def parse(self, ctx):
         return self.literal
 
     def _to_str(self, lean=False):
-        return '`%s`' % urepr(self.literal)
+        return '`%s`' % repr(self.literal)
+
+    def _nullable(self):
+        return True
 
 
 class Pattern(Model):
     def __postinit__(self, ast):
-        super(Pattern, self).__postinit__(ast)
+        super().__postinit__(ast)
         if not isinstance(ast, list):
             ast = [ast]
         self.patterns = ast
-        re.compile(self.pattern)
+        self.regex = re.compile(self.pattern)
 
     @property
     def pattern(self):
@@ -300,11 +334,11 @@ class Pattern(Model):
         return ctx._pattern(self.pattern)
 
     def _first(self, k, f):
-        return set([(self.pattern,)])
+        return {(self.pattern,)}
 
     def _to_str(self, lean=False):
         parts = []
-        for pat in (ustr(p) for p in self.patterns):
+        for pat in (str(p) for p in self.patterns):
             template = '/%s/'
             if '/' in pat:
                 template = '?"%s"'
@@ -312,37 +346,48 @@ class Pattern(Model):
             parts.append(template % pat)
         return '\n+ '.join(parts)
 
+    def _nullable(self):
+        return bool(self.regex.match(""))
+
 
 class Lookahead(Decorator):
     def parse(self, ctx):
         with ctx._if():
-            super(Lookahead, self).parse(ctx)
+            return super().parse(ctx)
 
     def _to_str(self, lean=False):
-        return '&' + self.exp._to_ustr(lean=lean)
+        return '&' + self.exp._to_str(lean=lean)
+
+    def _nullable(self):
+        return True
 
 
 class NegativeLookahead(Decorator):
-    def _to_str(self, lean=False):
-        return '!' + ustr(self.exp._to_str(lean=lean))
-
     def parse(self, ctx):
         with ctx._ifnot():
-            super(NegativeLookahead, self).parse(ctx)
+            return super().parse(ctx)
+
+    def _to_str(self, lean=False):
+        return '!' + str(self.exp._to_str(lean=lean))
+
+    def _nullable(self):
+        return True
 
 
 class SkipTo(Decorator):
     def parse(self, ctx):
-        return ctx._skip_to(lambda: super(SkipTo, self).parse(ctx))
+        super_parse = super().parse
+        return ctx._skip_to(lambda: super_parse(ctx))
 
     def _to_str(self, lean=False):
-        return '->' + self.exp._to_ustr(lean=lean)
+        return '->' + self.exp._to_str(lean=lean)
 
 
 class Sequence(Model):
     def __init__(self, ast, **kwargs):
         assert ast.sequence
-        super(Sequence, self).__init__(ast=ast)
+        self.sequence = ()
+        super().__init__(ast=ast)
 
     def parse(self, ctx):
         ctx.last_node = [s.parse(ctx) for s in self.sequence]
@@ -351,8 +396,11 @@ class Sequence(Model):
     def defines(self):
         return [d for s in self.sequence for d in s.defines()]
 
-    def _missing_rules(self, ruleset):
-        return set().union(*[s._missing_rules(ruleset) for s in self.sequence])
+    def missing_rules(self, rules):
+        return set().union(*[s.missing_rules(rules) for s in self.sequence])
+
+    def _used_rule_names(self):
+        return set().union(*[s._used_rule_names() for s in self.sequence])
 
     def _first(self, k, f):
         result = {()}
@@ -374,18 +422,28 @@ class Sequence(Model):
 
     def _to_str(self, lean=False):
         comments = self.comments_str()
-        seq = [ustr(s._to_str(lean=lean)) for s in self.sequence]
+        seq = [str(s._to_str(lean=lean)) for s in self.sequence]
         single = ' '.join(seq)
         if len(single) <= PEP8_LLEN and len(single.splitlines()) <= 1:
             return comments + single
         else:
             return comments + '\n'.join(seq)
 
+    def _nullable(self):
+        return Nullable.all(self.sequence)
+
+    def at_same_pos(self, ctx):
+        head = list(takewhile(lambda c: c.is_nullable(ctx), self.sequence))
+        if len(head) < len(self.sequence):
+            head.append(self.sequence[len(head)])
+        return head
+
 
 class Choice(Model):
     def __init__(self, ast=None, **kwargs):
-        super(Choice, self).__init__(ast=AST(options=ast))
-        assert isinstance(self.options, list), urepr(self.options)
+        self.options = []
+        super().__init__(ast=AST(options=ast))
+        assert isinstance(self.options, list), repr(self.options)
 
     def parse(self, ctx):
         with ctx._choice():
@@ -394,7 +452,7 @@ class Choice(Model):
                     ctx.last_node = o.parse(ctx)
                     return ctx.last_node
 
-            lookahead = ' '.join(ustr(urepr(f[0])) for f in self.lookahead() if str(f))
+            lookahead = ' '.join(str(repr(f[0])) for f in self.lookahead() if str(f))
             if lookahead:
                 ctx._error('expecting one of {%s}' % lookahead)
             ctx._error('no available options')
@@ -402,8 +460,11 @@ class Choice(Model):
     def defines(self):
         return [d for o in self.options for d in o.defines()]
 
-    def _missing_rules(self, rules):
-        return set().union(*[o._missing_rules(rules) for o in self.options])
+    def missing_rules(self, rules):
+        return set().union(*[o.missing_rules(rules) for o in self.options])
+
+    def _used_rule_names(self):
+        return set().union(*[o._used_rule_names() for o in self.options])
 
     def _first(self, k, f):
         result = set()
@@ -420,7 +481,7 @@ class Choice(Model):
         return 1 + sum(o.nodecount() for o in self.options)
 
     def _to_str(self, lean=False):
-        options = [ustr(o._to_str(lean=lean)) for o in self.options]
+        options = [str(o._to_str(lean=lean)) for o in self.options]
 
         multi = any(len(o.splitlines()) > 1 for o in options)
         single = ' | '.join(o for o in options)
@@ -431,6 +492,12 @@ class Choice(Model):
             return '| ' + '\n| '.join(o for o in options)
         else:
             return single
+
+    def _nullable(self):
+        return Nullable.any(self.options)
+
+    def at_same_pos(self, ctx):
+        return self.options
 
 
 class Closure(Decorator):
@@ -445,11 +512,14 @@ class Closure(Decorator):
         return {()} | result
 
     def _to_str(self, lean=False):
-        sexp = ustr(self.exp._to_str(lean=lean))
+        sexp = str(self.exp._to_str(lean=lean))
         if len(sexp.splitlines()) <= 1:
             return '{%s}' % sexp
         else:
             return '{\n%s\n}' % indent(sexp)
+
+    def _nullable(self):
+        return True
 
 
 class PositiveClosure(Closure):
@@ -464,14 +534,17 @@ class PositiveClosure(Closure):
         return result
 
     def _to_str(self, lean=False):
-        return super(PositiveClosure, self)._to_str(lean=lean) + '+'
+        return super()._to_str(lean=lean) + '+'
+
+    def _nullable(self):
+        return Nullable.of(self.exp)
 
 
 class Join(Decorator):
     JOINOP = '%'
 
     def __init__(self, ast=None, **kwargs):
-        super(Join, self).__init__(ast.exp)
+        super().__init__(ast.exp)
         self.sep = ast.sep
 
     def parse(self, ctx):
@@ -488,11 +561,14 @@ class Join(Decorator):
 
     def _to_str(self, lean=False):
         ssep = self.sep._to_str(lean=lean)
-        sexp = ustr(self.exp._to_str(lean=lean))
+        sexp = str(self.exp._to_str(lean=lean))
         if len(sexp.splitlines()) <= 1:
             return '%s%s{%s}' % (ssep, self.JOINOP, sexp)
         else:
             return '%s%s{\n%s\n}' % (ssep, self.JOINOP, sexp)
+
+    def _nullable(self):
+        return True
 
 
 class PositiveJoin(Join):
@@ -500,7 +576,10 @@ class PositiveJoin(Join):
         return ctx._positive_join(exp, sep)
 
     def _to_str(self, lean=False):
-        return super(PositiveJoin, self)._to_str(lean=lean) + '+'
+        return super()._to_str(lean=lean) + '+'
+
+    def _nullable(self):
+        return Nullable.of(self.exp)
 
 
 class LeftJoin(PositiveJoin):
@@ -529,7 +608,10 @@ class PositiveGather(Gather):
         return ctx._positive_gather(exp, sep)
 
     def _to_str(self, lean=False):
-        return super(PositiveGather, self)._to_str(lean=lean) + '+'
+        return super()._to_str(lean=lean) + '+'
+
+    def _nullable(self):
+        return Nullable.of(self.exp)
 
 
 class EmptyClosure(Model):
@@ -538,6 +620,9 @@ class EmptyClosure(Model):
 
     def _to_str(self, lean=False):
         return '{}'
+
+    def _nullable(self):
+        return True
 
 
 class Optional(Decorator):
@@ -550,7 +635,7 @@ class Optional(Decorator):
         return {()} | self.exp._first(k, f)
 
     def _to_str(self, lean=False):
-        exp = ustr(self.exp._to_str(lean=lean))
+        exp = str(self.exp._to_str(lean=lean))
         template = '[%s]'
         if isinstance(self.exp, Choice):
             template = trim(self.str_template)
@@ -564,6 +649,9 @@ class Optional(Decorator):
             ]
             '''
 
+    def _nullable(self):
+        return True
+
 
 class Cut(Model):
     def parse(self, ctx):
@@ -576,10 +664,13 @@ class Cut(Model):
     def _to_str(self, lean=False):
         return '~'
 
+    def _nullable(self):
+        return True
+
 
 class Named(Decorator):
     def __init__(self, ast=None, **kwargs):
-        super(Named, self).__init__(ast.exp)
+        super().__init__(ast.exp)
         self.name = ast.name
 
     def parse(self, ctx):
@@ -588,32 +679,32 @@ class Named(Decorator):
         return value
 
     def defines(self):
-        return [(self.name, False)] + super(Named, self).defines()
+        return [(self.name, False)] + super().defines()
 
     def _to_str(self, lean=False):
         if lean:
-            return self.exp._to_ustr(lean=True)
-        return '%s:%s' % (self.name, self.exp._to_ustr(lean=lean))
+            return self.exp._to_str(lean=True)
+        return '%s:%s' % (self.name, self.exp._to_str(lean=lean))
 
 
 class NamedList(Named):
     def parse(self, ctx):
         value = self.exp.parse(ctx)
-        ctx.ast.setlist(self.name, value)
+        ctx.ast._setlist(self.name, value)
         return value
 
     def defines(self):
-        return [(self.name, True)] + super(NamedList, self).defines()
+        return [(self.name, True)] + super().defines()
 
     def _to_str(self, lean=False):
         if lean:
-            return self.exp._to_ustr(lean=True)
-        return '%s+:%s' % (self.name, ustr(self.exp._to_str(lean=lean)))
+            return self.exp._to_str(lean=True)
+        return '%s+:%s' % (self.name, str(self.exp._to_str(lean=lean)))
 
 
 class Override(Named):
     def __init__(self, ast=None, **kwargs):
-        super(Override, self).__init__(ast=AST(name='@', exp=ast))
+        super().__init__(ast=AST(name='@', exp=ast))
 
     def defines(self):
         return []
@@ -621,7 +712,7 @@ class Override(Named):
 
 class OverrideList(NamedList):
     def __init__(self, ast=None, **kwargs):
-        super(OverrideList, self).__init__(ast=AST(name='@', exp=ast))
+        super().__init__(ast=AST(name='@', exp=ast))
 
     def defines(self):
         return []
@@ -629,15 +720,18 @@ class OverrideList(NamedList):
 
 class Special(Model):
     def _first(self, k, f):
-        return set([(self.value,)])
+        return {(self.value,)}
 
     def _to_str(self, lean=False):
         return '?%s?' % self.value
 
+    def _nullable(self):
+        return True
+
 
 class RuleRef(Model):
     def __postinit__(self, ast):
-        super(RuleRef, self).__postinit__(ast)
+        super().__postinit__(ast)
         self.name = ast
 
     def parse(self, ctx):
@@ -648,10 +742,13 @@ class RuleRef(Model):
         else:
             return rule()
 
-    def _missing_rules(self, ruleset):
-        if self.name not in ruleset:
+    def missing_rules(self, rules):
+        if self.name not in rules:
             return {self.name}
         return set()
+
+    def _used_rule_names(self):
+        return {self.name}
 
     def _first(self, k, f):
         self._first_set = f.get(self.name, set())
@@ -665,11 +762,14 @@ class RuleRef(Model):
     def _to_str(self, lean=False):
         return self.name
 
+    def is_nullable(self, ctx=None):
+        return ctx[self.name].is_nullable(ctx)
+
 
 class RuleInclude(Decorator):
     def __init__(self, rule):
-        assert isinstance(rule, Rule), ustr(rule.name)
-        super(RuleInclude, self).__init__(rule.exp)
+        assert isinstance(rule, Rule), str(rule.name)
+        super().__init__(rule.exp)
         self.rule = rule
 
     def _to_str(self, lean=False):
@@ -679,7 +779,7 @@ class RuleInclude(Decorator):
 class Rule(Decorator):
     def __init__(self, ast, name, exp, params, kwparams, decorators=None):
         assert kwparams is None or isinstance(kwparams, Mapping), kwparams
-        super(Rule, self).__init__(exp=exp, ast=ast)
+        super().__init__(exp=exp, ast=ast)
         self.name = name
         self.params = params
         self.kwparams = kwparams
@@ -688,23 +788,31 @@ class Rule(Decorator):
 
         self.is_name = 'name' in self.decorators
         self.base = None
+        self.is_leftrec = False  # Starts a left recursive cycle
+        self.is_memoizable = 'nomemo' not in self.decorators
 
     def parse(self, ctx):
         result = self._parse_rhs(ctx, self.exp)
+        self._add_defined_attributes(result)
         if self.is_name:
             ctx._check_name()
         return result
 
     def _parse_rhs(self, ctx, exp):
-        ruleinfo = RuleInfo(self.name, exp.parse, self.params, self.kwparams)
+        ruleinfo = RuleInfo(
+            self.name, exp.parse,
+            self.is_leftrec, self.is_memoizable, self.params, self.kwparams
+        )
         result = ctx._call(ruleinfo)
-        if isinstance(result, AST):
-            defines = compress_seq(self.defines())
-            result._define(
-                [d for d, l in defines if not l],
-                [d for d, l in defines if l]
-            )
         return result
+
+    def _add_defined_attributes(self, ast):
+        defines = compress_seq(self.defines())
+        if not isinstance(ast, (AST, Node)):
+            return
+        for d, l in defines:
+            if not hasattr(ast, d):
+                setattr(ast, d, [] if l else None)
 
     def _first(self, k, f):
         if self._first_set:
@@ -714,14 +822,17 @@ class Rule(Decorator):
     def _follow(self, k, fl, a):
         return self.exp._follow(k, fl, fl[self.name])
 
+    def _nullable(self):
+        return Nullable.of(self.exp)
+
     @staticmethod
     def param_repr(p):
         if isinstance(p, (int, float)):
-            return ustr(p)
-        elif isinstance(p, strtype) and p.isalnum():
-            return ustr(p)
+            return str(p)
+        elif isinstance(p, str) and p.isalnum():
+            return str(p)
         else:
-            return urepr(p)
+            return repr(p)
 
     def _to_str(self, lean=False):
         comments = self.comments_str()
@@ -749,7 +860,7 @@ class Rule(Decorator):
                 else:
                     params = '(%s)' % params
 
-        base = ' < %s' % ustr(self.base.name) if self.base else ''
+        base = ' < %s' % str(self.base.name) if self.base else ''
 
         return trim(self.str_template).format(
             name=self.name,
@@ -770,7 +881,7 @@ class Rule(Decorator):
 
 class BasedRule(Rule):
     def __init__(self, ast, name, exp, base, params, kwparams, decorators=None):
-        super(BasedRule, self).__init__(
+        super().__init__(
             ast,
             name,
             exp,
@@ -798,13 +909,14 @@ class Grammar(Model):
                  filename='Unknown',
                  whitespace=None,
                  nameguard=None,
+                 namechars=None,
                  left_recursion=None,
                  comments_re=None,
                  eol_comments_re=None,
                  directives=None,
                  parseinfo=None,
                  keywords=None):
-        super(Grammar, self).__init__()
+        super().__init__()
         assert isinstance(rules, list), str(rules)
 
         self.rules = rules
@@ -828,6 +940,10 @@ class Grammar(Model):
             nameguard = directives.get('nameguard')
         self.nameguard = nameguard
 
+        if namechars is None:
+            namechars = directives.get('namechars')
+        self.namechars = namechars
+
         if left_recursion is None:
             left_recursion = directives.get('left_recursion', True)
         self.left_recursion = left_recursion
@@ -848,19 +964,40 @@ class Grammar(Model):
 
         self._adopt_children(rules)
 
-        missing = self._missing_rules({r.name for r in self.rules})
+        missing = self.missing_rules({r.name for r in self.rules})
         if missing:
             msg = '\n'.join([''] + list(sorted(missing)))
             raise GrammarError('Unknown rules, no parser generated:' + msg)
 
         self._calc_lookahead_sets()
+        if left_recursion:
+            find_left_recursion(self)
 
-    def _missing_rules(self, ruleset):
-        return set().union(*[rule._missing_rules(ruleset) for rule in self.rules])
+    def missing_rules(self, rules):
+        return set().union(*[rule.missing_rules(rules) for rule in self.rules])
+
+    def _used_rule_names(self):
+        if not self.rules:
+            return {}
+
+        used = {'start', self.rules[0].name}
+        prev = {}
+        while used != prev:
+            prev = used
+            used = used | set().union(*[
+                rule._used_rule_names()
+                for rule in self.rules
+                if rule.name in used
+            ])
+        return used
+
+    def used_rules(self):
+        used = self._used_rule_names()
+        return [rule for rule in self.rules if rule.name in used]
 
     @property
     def first_sets(self):
-        return self._first_sets
+        return self._first_set
 
     def _calc_lookahead_sets(self, k=1):
         self._calc_first_sets()
@@ -901,7 +1038,9 @@ class Grammar(Model):
               comments_re=None,
               eol_comments_re=None,
               parseinfo=None,
-              **kwargs):
+              nameguard=None,
+              namechars=None,
+              **kwargs):  # pylint: disable=W0221
         start = start if start is not None else rule_name
         start = start if start is not None else self.rules[0].name
 
@@ -911,25 +1050,16 @@ class Grammar(Model):
             keywords=self.keywords,
             **kwargs)
 
-        if semantics is None:
-            semantics = self.semantics
-
-        if whitespace is None:
-            whitespace = self.whitespace
+        semantics = notnone(semantics, self.semantics)
+        left_recursion = notnone(left_recursion, self.left_recursion)
+        parseinfo = notnone(parseinfo, self._use_parseinfo)
+        comments_re = notnone(comments_re, self.comments_re)
+        eol_comments_re = notnone(eol_comments_re, self.eol_comments_re)
+        nameguard = notnone(nameguard, self.nameguard)
+        namechars = notnone(namechars, self.namechars)
+        whitespace = notnone(whitespace, self.whitespace)
         if whitespace:
             whitespace = re.compile(whitespace)
-
-        if left_recursion is None:
-            left_recursion = self.left_recursion
-
-        if parseinfo is None:
-            parseinfo = self._use_parseinfo
-
-        if comments_re is None:
-            comments_re = self.comments_re
-
-        if eol_comments_re is None:
-            eol_comments_re = self.eol_comments_re
 
         return ctx.parse(
             text,
@@ -942,6 +1072,8 @@ class Grammar(Model):
             eol_comments_re=eol_comments_re,
             left_recursion=left_recursion,
             parseinfo=parseinfo,
+            nameguard=nameguard,
+            namechars=namechars,
             **kwargs
         )
 
@@ -959,8 +1091,8 @@ class Grammar(Model):
                 name=directive,
                 frame='/' if directive in regex_directives else '',
                 value=(
-                    urepr(value) if directive in string_directives
-                    else ustr(value) if directive in ustr_directives
+                    repr(value) if directive in string_directives
+                    else str(value) if directive in ustr_directives
                     else value
                 ),
             )
@@ -969,13 +1101,13 @@ class Grammar(Model):
             directives += '\n'
 
         keywords = '\n'.join(
-            '@@keyword :: ' + ' '.join(urepr(k) for k in c if k is not None)
+            '@@keyword :: ' + ' '.join(repr(k) for k in c if k is not None)
             for c in chunks(sorted(self.keywords), 8)
         ).strip()
         keywords = '\n\n' + keywords + '\n' if keywords else ''
 
         rules = (
-            '\n\n'.join(ustr(rule._to_str(lean=lean))
+            '\n\n'.join(str(rule._to_str(lean=lean))
                         for rule in self.rules)
         ).rstrip() + '\n'
         return directives + keywords + rules

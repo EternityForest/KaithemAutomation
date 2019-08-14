@@ -1,23 +1,23 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals  # noqa
+from __future__ import generator_stop
 
 import sys
 import functools
 from contextlib import contextmanager
 
-from ._unicode_characters import (
+from tatsu.util.unicode_characters import (
     C_DERIVE,
     C_ENTRY,
     C_SUCCESS,
     C_FAILURE,
     C_RECURSION,
 )
-from tatsu.util import notnone, ustr, prune_dict, is_list, info, safe_name
-from tatsu.util import left_assoc, right_assoc
-from tatsu.util import debug  # noqa
-from tatsu import buffering
-from tatsu import color
-from tatsu.infos import (
+from . import tokenizing
+from . import buffering
+from . import color
+from .util import notnone, prune_dict, is_list, info, safe_name
+from .util import left_assoc, right_assoc
+from .infos import (
     MemoKey,
     ParseInfo,
     RuleInfo,
@@ -38,7 +38,7 @@ from tatsu.exceptions import (
     OptionSucceeded
 )
 
-__all__ = ['ParseContext', 'tatsumasu']
+__all__ = ['ParseContext', 'tatsumasu', 'leftrec', 'nomemo']
 
 
 # decorator for rule implementation methods
@@ -50,19 +50,35 @@ def tatsumasu(*params, **kwparams):
             # remove the single leading and trailing underscore
             # that the parser generator added
             name = name[1:-1]
-            ruleinfo = RuleInfo(name, impl, params, kwparams)
+            is_leftrec = getattr(impl, "is_leftrec", False)
+            is_memoizable = getattr(impl, "is_memoizable", True)
+            ruleinfo = RuleInfo(name, impl, is_leftrec, is_memoizable, params, kwparams)
             return self._call(ruleinfo)
         return wrapper
     return decorator
 
 
-class closure(list):  # noqa
+# This is used to mark left recursive rules
+def leftrec(impl):
+    impl.is_leftrec = True
+    impl.is_memoizable = False
+    return impl
+
+
+# Marks rules for which memoization has to be turned off
+# (has no effect when left recursion is turned off)
+def nomemo(impl):
+    impl.is_memoizable = False
+    return impl
+
+
+class closure(list):
     pass
 
 
 class ParseContext(object):
     def __init__(self,
-                 buffer_class=buffering.Buffer,
+                 tokenizercls=buffering.Buffer,
                  semantics=None,
                  parseinfo=False,
                  trace=False,
@@ -81,10 +97,10 @@ class ParseContext(object):
                  keywords=None,
                  namechars='',
                  **kwargs):
-        super(ParseContext, self).__init__()
+        super().__init__()
 
-        self._buffer = None
-        self.buffer_class = buffer_class
+        self._tokenizer = None
+        self.tokenizercls = tokenizercls
         self.semantics = semantics
         self.encoding = encoding
         self.parseinfo = parseinfo
@@ -115,13 +131,12 @@ class ParseContext(object):
         self._state = None
         self._lookahead = 0
 
-        self._recursive_rules = set()
-        self._clear_memoizetion_caches()
+        self._clear_memoization_caches()
 
     def _reset(self,
                text=None,
                filename=None,
-               buffer_class=None,
+               tokenizercls=None,
                semantics=None,
                trace=None,
                comments_re=None,
@@ -133,7 +148,7 @@ class ParseContext(object):
                left_recursion=None,
                colorize=None,
                keywords=None,
-               namechars='',
+               namechars=None,
                **kwargs):
         if ignorecase is None:
             ignorecase = self.ignorecase
@@ -154,16 +169,16 @@ class ParseContext(object):
         if self.colorize:
             color.init()
         if namechars is not None:
-            namechars = self.namechars
+            self.namechars = namechars
 
         self._initialize_caches()
         self._furthest_exception = None
 
-        if isinstance(text, buffering.Buffer):
-            buffer = text
+        if isinstance(text, tokenizing.Tokenizer):
+            tokenizer = text
         else:
-            buffer_class = buffer_class or self.buffer_class
-            buffer = buffer_class(
+            tokenizercls = tokenizercls or self.tokenizercls
+            tokenizer = tokenizercls(
                 text,
                 filename=filename,
                 comments_re=comments_re or self.comments_re,
@@ -173,7 +188,10 @@ class ParseContext(object):
                 nameguard=nameguard,
                 namechars=namechars,
                 **kwargs)
-        self._buffer = buffer
+        self._tokenizer = tokenizer
+
+        if hasattr(self.semantics, 'set_context'):
+            self.semantics.set_context(self)
 
     def _set_furthest_exception(self, e):
         if not self._furthest_exception or e.pos > self._furthest_exception.pos:
@@ -183,7 +201,7 @@ class ParseContext(object):
               text,
               rule_name='start',
               filename=None,
-              buffer_class=None,
+              tokenizercls=None,
               semantics=None,
               trace=False,
               whitespace=None,
@@ -193,9 +211,9 @@ class ParseContext(object):
             self._reset(
                 text=text,
                 filename=filename,
-                buffer_class=buffer_class,
+                tokenizercls=tokenizercls,
                 semantics=semantics,
-                trace=trace or self.trace,
+                trace=trace if trace is not None else self.trace,
                 whitespace=whitespace if whitespace is not None else self.whitespace,
                 **kwargs
             )
@@ -210,7 +228,11 @@ class ParseContext(object):
             self._set_furthest_exception(e)
             raise self._furthest_exception
         finally:
-            self._clear_memoizetion_caches()
+            self._clear_memoization_caches()
+
+    @property
+    def tokenizer(self):
+        return self._tokenizer
 
     @property
     def last_node(self):
@@ -222,21 +244,22 @@ class ParseContext(object):
 
     @property
     def _pos(self):
-        return self._buffer.pos
+        return self._tokenizer.pos
 
-    def _clear_memoizetion_caches(self):
+    def _clear_memoization_caches(self):
         self._memos = dict()
         self._results = dict()
+        self._recursion_depth = 0
 
     def _goto(self, pos):
-        self._buffer.goto(pos)
+        self._tokenizer.goto(pos)
 
     def _next(self):
-        return self._buffer.next()
+        return self._tokenizer.next()
 
     def _next_token(self, ruleinfo=None):
-        if ruleinfo is None or ruleinfo.name.islower():
-            self._buffer.next_token()
+        if ruleinfo is None or not ruleinfo.name.lstrip('_')[:1].isupper():
+            self._tokenizer.next_token()
 
     @property
     def ast(self):
@@ -250,7 +273,7 @@ class ParseContext(object):
         self.ast[name] = self.last_node
 
     def add_last_node_to_name(self, name):
-        self.ast.setlist(name, self.last_node)
+        self.ast._setlist(name, self.last_node)
 
     def _push_ast(self):
         self._tree_stack.append(TreeInfo())
@@ -316,7 +339,7 @@ class ParseContext(object):
         self._cut_stack[-1] = True
 
         # Kota Mizushima et al say that we can throw away
-        # memos for previous positions in the buffer under
+        # memos for previous positions in the tokenizer under
         # certain circumstances, without affecting the linearity
         # of PEG parsing.
         #   http://goo.gl/VaGpj
@@ -335,7 +358,8 @@ class ParseContext(object):
         return self.memoize_lookaheads or self._lookahead == 0
 
     def _rulestack(self):
-        stack = self.trace_separator.join(reversed(self._rule_stack))
+        rulestack = map(lambda r: r.name, reversed(self._rule_stack))
+        stack = self.trace_separator.join(rulestack)
         if max(len(s) for s in stack.splitlines()) > self.trace_length:
             stack = stack[:self.trace_length]
             stack = stack.rsplit(self.trace_separator, 1)[0]
@@ -365,22 +389,22 @@ class ParseContext(object):
 
     def _trace(self, msg, *params, **kwargs):
         if self.trace:
-            msg = msg % params
-            info(ustr(msg), file=sys.stderr)
+            msg %= params
+            info(str(msg), file=sys.stderr)
 
     def _trace_event(self, event):
         if self.trace:
             fname = ''
             if self.trace_filename:
-                fname = self._buffer.line_info().filename + '\n'
+                fname = self._tokenizer.line_info().filename + '\n'
 
-            lookahead = self._buffer.lookahead().rstrip()
+            lookahead = self._tokenizer.lookahead().rstrip()
             if lookahead:
                 lookahead = '\n' + lookahead
             self._trace(
                 '%s %s%s%s',
                 event + self._rulestack(),
-                self._buffer.lookahead_pos(),
+                self._tokenizer.lookahead_pos(),
                 color.Style.DIM + fname,
                 color.Style.NORMAL + lookahead +
                 color.Style.RESET_ALL,
@@ -406,7 +430,7 @@ class ParseContext(object):
         if self.trace:
             fname = ''
             if self.trace_filename:
-                fname = self._buffer.line_info().filename + '\n'
+                fname = self._tokenizer.line_info().filename + '\n'
             name = '/%s/' % name if name else ''
 
             if not failed:
@@ -414,7 +438,7 @@ class ParseContext(object):
             else:
                 fgcolor = color.Fore.RED + C_FAILURE
 
-            lookahead = self._buffer.lookahead().rstrip()
+            lookahead = self._tokenizer.lookahead().rstrip()
             if lookahead:
                 lookahead = '\n' + lookahead
 
@@ -429,7 +453,8 @@ class ParseContext(object):
             )
 
     def _make_exception(self, item, exclass=FailedParse):
-        return exclass(self._buffer, self._rule_stack, item)
+        rulestack = list(map(lambda r: r.name, self._rule_stack))
+        return exclass(self._tokenizer, rulestack, item)
 
     def _error(self, item, exclass=FailedParse):
         raise self._make_exception(item, exclass=exclass)
@@ -440,12 +465,12 @@ class ParseContext(object):
     def _get_parseinfo(self, name, pos):
         endpos = self._pos
         return ParseInfo(
-            self._buffer,
+            self._tokenizer,
             name,
             pos,
             endpos,
-            self._buffer.posline(pos),
-            self._buffer.posline(endpos),
+            self._tokenizer.posline(pos),
+            self._tokenizer.posline(endpos),
         )
 
     @property
@@ -457,7 +482,7 @@ class ParseContext(object):
         return MemoKey(self._pos, self.rule, self._state)
 
     def _memoize(self, key, memo):
-        if self._memoization():
+        if self._memoization() and key.rule.is_memoizable:
             self._memos[key] = memo
         return memo
 
@@ -467,39 +492,28 @@ class ParseContext(object):
     def _memo_for(self, key):
         memo = self._memos.get(key)
 
-        if isinstance(memo, FailedLeftRecursion):
-            self._set_recursive(key.name)
-            memo = self._results.get(key, memo)
+        # if isinstance(memo, FailedLeftRecursion):
+        #     memo = self._results.get(key, memo)
 
         return memo
 
     def _mkresult(self, node):
         return RuleResult(node, self._pos, self._state)
 
-    def _save_result(self, key, node):
-        if is_list(node):
-            node = closure(node)
-        self._results[key] = self._mkresult(node)
+    def _save_result(self, key, result):
+        if is_list(result.node):
+            result = RuleResult(closure(result.node), result.newpos, result.newstate)
+        self._results[key] = result
 
-    def _is_recursive(self, name):
-        return self.left_recursion and name in self._recursive_rules
-
-    def _set_recursive(self, name):
-        if self.left_recursion:
-            # add rules that are mutually recursive
-            i = self._rule_stack.index(name)
-            for rule in reversed(self._rule_stack[i:]):
-                self._recursive_rules.add(rule)
-
-    def _unset_recursive(self, name):
-        self._recursive_rules -= {name}
+    def _is_recursive(self, ruleinfo):
+        return ruleinfo.is_leftrec
 
     def _set_left_recursion_guard(self, key):
-        ex = self._make_exception(key.name, exclass=FailedLeftRecursion)
+        ex = self._make_exception(key.rule.name, exclass=FailedLeftRecursion)
         self._memoize(key, ex)
 
     def _call(self, ruleinfo):
-        self._rule_stack += [ruleinfo.name]
+        self._rule_stack += [ruleinfo]
         pos = self._pos
         try:
             self._trace_entry()
@@ -534,27 +548,41 @@ class ParseContext(object):
         prune_dict(self._memos, filter)
 
     def _recursive_call(self, ruleinfo):
+        if not ruleinfo.is_leftrec:
+            return self._invoke_rule(ruleinfo, self.memokey)
+        elif not self.left_recursion:
+            self._error('Left recursion detected', exclass=FailedLeftRecursion)
+
         self._next_token(ruleinfo)
-        lastpos = self._pos
         key = self.memokey
-        result = self._invoke_rule(ruleinfo, key)
 
-        if not self.left_recursion:
-            return result
-        if not self._is_recursive(ruleinfo.name):
-            return result
+        self._recursion_depth += 1
+        if key in self._results:
+            result = self._results[key]
+        else:
+            result = self._make_exception(ruleinfo.name, exclass=FailedLeftRecursion)
+            self._results[key] = result
 
-        while self._pos > lastpos:
-            self._next_token(ruleinfo)
+            initial = self._pos
+            lastpos = initial - 1
+            while True:
+                try:
+                    self._clear_recursion_errors()
+                    new_result = self._invoke_rule(ruleinfo, key)
+                    self._goto(initial)
+                except FailedParse:
+                    break
 
-            self._save_result(self.memokey, result.node)
-            try:
-                lastpos = self._pos
-                key = self.memokey
-                result = self._invoke_rule(ruleinfo, key)
-            except FailedParse:
-                # del self._recursion_cache[key]
-                break
+                if new_result.newpos > lastpos:
+                    self._save_result(key, new_result)
+                    lastpos = new_result.newpos
+                    result = new_result
+                else:
+                    break
+        self._recursion_depth -= 1
+
+        if isinstance(result, Exception):
+            raise result
 
         return result
 
@@ -562,7 +590,7 @@ class ParseContext(object):
         memo = self._memo_for(key)
         if isinstance(memo, Exception):
             raise memo
-        elif memo:
+        if memo:
             return memo
         self._set_left_recursion_guard(key)
 
@@ -577,7 +605,7 @@ class ParseContext(object):
                 self._memoize(key, result)
                 return result
             except FailedSemantics as e:
-                self._error(ustr(e), FailedParse)
+                self._error(str(e))
             finally:
                 self._pop_ast()
         except FailedParse as e:
@@ -588,7 +616,7 @@ class ParseContext(object):
     def _get_node(self, pos, ruleinfo):
         node = self.ast
         if not node:
-            node = self.cst
+            node = tuple(self.cst) if is_list(self.cst) else self.cst
         elif '@' in node:
             node = node['@']  # override the AST
         elif self.parseinfo:
@@ -605,7 +633,7 @@ class ParseContext(object):
 
     def _token(self, token):
         self._next_token()
-        if self._buffer.match(token) is None:
+        if self._tokenizer.match(token) is None:
             self._trace_match(token, failed=True)
             self._error(token, exclass=FailedToken)
         self._trace_match(token)
@@ -621,7 +649,7 @@ class ParseContext(object):
         return literal
 
     def _pattern(self, pattern):
-        token = self._buffer.matchre(pattern)
+        token = self._tokenizer.matchre(pattern)
         if token is None:
             self._trace_match('', pattern, failed=True)
             self._error(pattern, exclass=FailedPattern)
@@ -631,14 +659,14 @@ class ParseContext(object):
         return token
 
     def _eof(self):
-        return self._buffer.atend()
+        return self._tokenizer.atend()
 
     def _eol(self):
-        return self._buffer.ateol()
+        return self._tokenizer.ateol()
 
     def _check_eof(self):
         self._next_token()
-        if not self._buffer.atend():
+        if not self._tokenizer.atend():
             self._error('Expecting end of text', exclass=FailedExpectingEndOfText)
 
     @contextmanager
@@ -653,7 +681,7 @@ class ParseContext(object):
             yield
             ast = self.ast
             cst = self.cst
-        except:
+        except FailedParse:
             self._goto(p)
             self._state = s
             raise
@@ -713,11 +741,13 @@ class ParseContext(object):
         self._lookahead += 1
         try:
             yield
+            cst = self.cst
         finally:
             self._lookahead -= 1
             self._goto(p)
             self._state = s
             self._pop_ast()  # simply discard
+        self.last_node = cst
 
     @contextmanager
     def _ifnot(self):
@@ -800,10 +830,10 @@ class ParseContext(object):
         return self._positive_closure(block, sep=sep, omitsep=True)
 
     def _join(self, block, sep):
-        return self._closure(block, sep=sep, omitsep=False)
+        return self._closure(block, sep=sep)
 
     def _positive_join(self, block, sep):
-        return self._positive_closure(block, sep=sep, omitsep=False)
+        return self._positive_closure(block, sep=sep)
 
     def _left_join(self, block, sep):
         self.cst = left_assoc(self._positive_join(block, sep))
@@ -815,9 +845,10 @@ class ParseContext(object):
         self.last_node = self.cst
         return self.cst
 
-    def _check_name(self):
-        name = ustr(self.last_node)
-        if self.ignorecase or self._buffer.ignorecase:
+    def _check_name(self, name=None):
+        if name is None:
+            name = str(self.last_node)
+        if self.ignorecase or self._tokenizer.ignorecase:
             name = name.upper()
         if name in self.keywords:
             raise FailedKeywordSemantics('"%s" is a reserved word' % name)

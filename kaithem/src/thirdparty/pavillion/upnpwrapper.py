@@ -251,6 +251,10 @@ def detectShortcut(addr,protocol="UDP"):
     """Given a WAN address, check if it maps to a LAN address we can talk to instead.
        This function also resolves DNS names
     """
+    #No shortcut needed for these ar all
+    if addr[0].startswith("192.") or addr[0].startswith("10.") or  addr[0].startswith("127.") or addr[0].endswith(".local"):
+        return
+
     addr= (socket.gethostbyname_ex(addr[0])[2][0], addr[1])
     for i in listMappings():
         if i['external']==addr and i['protocol']==protocol:

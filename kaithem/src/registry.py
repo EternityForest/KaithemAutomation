@@ -211,6 +211,17 @@ def exists(key):
         else:
             return False
 
+def ls(key):
+    prefix = key.split("/")[0]
+    with reglock:
+        f = registry.open(prefix)
+        if not 'keys' in f:
+            return False
+        k= f['keys']
+        return([key.split("/")[-1] for key in k])
+
+
+
 def set(key,value):
     global is_clean
     is_clean = False

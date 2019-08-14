@@ -16,6 +16,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import tatsu
+import os
 grammar = """
 @@left_recursion :: False
 @@ignorecase :: True
@@ -35,6 +36,9 @@ constraint_list = {atomic_constraint}+;
 and_constraint = allof+:constraint_list {['and'] allof+:constraint_list} ;
 except_constraint = 'except' atomic_constraint;
 
+#constants
+predefinedtime = "noon"| "midnight";
+
 
 #Data types
 timeinterval = number ("seconds" | "minutes" |"hours" | "days" | "weeks");
@@ -44,7 +48,7 @@ ordinal = 'first'|'second'|'third'|'1st'|'2nd'|'3rd'|'other'|/\d\d?th/;
 enumber = 'one'|'two'|'three'|'four'|'five'|'six'|'seven' | 'eight' | 'nine' | 'ten';
 
 #If it looks like 02:45, assume 24 hour time.
-time = predefinedtime|((hour:hour [[(':' minute:minute) [(':' second:second) [(':' ms:millisecond)]]]] ampm:('am'|'pm'|'AM'|'PM'))|(hour:hour ':' minute:minute [[(':' second:second) [(':' ms:millisecond)]]]));
+time = predefined:predefinedtime|((hour:hour [[(':' minute:minute) [(':' second:second) [(':' ms:millisecond)]]]] ampm:('am'|'pm'|'AM'|'PM'))|(hour:hour ':' minute:minute [[(':' second:second) [(':' ms:millisecond)]]]));
 times = {times+:time [',']['and']}+;
 hour = /\d\d?/;
 minute = /\d\d/;
@@ -86,8 +90,22 @@ monthconstraint = [('during'|'in'|'in the month of'|'in the months of')] @+:mont
 #Directives
 startingat = ("starting" ['at'|'on'] @:datetimewithyear) |"starting on" weekday:weekday;
 
-#constants
-predefinedtime = "noon"| "midnight";
+
 """
 
-parser = tatsu.compile(grammar)
+compiled_path = os.path.join(os.path.dirname(__file__),"compiledparser.py")
+if __name__ == "__main__":
+    #Run as main to build precompiled
+    with open(compiled_path,"w") as f:
+        f.write(tatsu.to_python_sourcecode(grammar))
+else:
+    try:
+        #If this file has been changed don't use the old cache
+        if os.path.exists(compiled_path) and os.path.getmtime(__file__)< os.path.getmtime(compiled_path):
+            from . compiledparser import UnknownParser as parser
+            parser = parser()
+        else:
+            parser = tatsu.compile(grammar)
+    except:
+        raise
+        parser = tatsu.compile(grammar)

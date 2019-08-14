@@ -35,7 +35,7 @@ def parseDateTimeWithYearWithDefaults(s):
      minute=int(t.minute) if t and t.minute else 0,
      hour = int(t.hour) if t and t.hour else 0,
      second=int(t.second) if t and t.second else 0,
-     microsecond=int(t.millisecond)*1000 if t and t.millisecond else 0)
+     microsecond=int(t.millisecond) if t and t.millisecond else 0)
 
 def parseOrdinal(s):
     "Given either an int or a string like '1', '1st','10th', etc; return an int"
@@ -64,13 +64,16 @@ intervals = {
 }
 def parseTime(s):
     "Given the AST for a strng like 4:45pm, return a datetime.time"
-    if s == "midnight":
+    if s.predefined == "midnight":
       return datetime.time(0,0,0)
-    if s== "noon":
+    if s.predefined== "noon":
       return datetime.time(12,0,0)
-    return datetime.time(
-    int(s.hour)+ (12 if s.ampm in ['PM',"pm"] else 0), int(s.minute) if s.minute else 0, int(s.second) if s.second else 0, s.ms*1000 if s.ms else 0)
-
+    try:
+        return datetime.time(
+        int(s.hour)+ (12 if s.ampm in ['PM',"pm"] else 0), int(s.minute) if s.minute else 0, int(s.second) if s.second else 0, s.ms*1000 if s.ms else 0)
+    except Exception as e:
+        raise
+        
 def parseTimes(s):
     return [parseTime(time) for time in s['times']]
     
@@ -116,8 +119,10 @@ class semantics():
     def for_statement(self,ast):
         if ast.get("for",None):
             return recur.ForConstraint(ast['c'], float(float(ast['for'][0])*intervals[ast['for'][1]]) )
+        if ast.get("for_",None):
+            return recur.ForConstraint(ast['c'], float(float(ast['for_'][0])*intervals[ast['for_'][1]]) )
         return ast['c']
-
+  
     def nintervalconstraint(self, ast):
         n = parseOrdinal(ast[1])
         i = ast[2]
@@ -193,6 +198,9 @@ class semantics():
         
     def for_statements(self, ast):
         x = ast['and']
+        #I have no clue what is going on here
+        if x==None:
+            x=ast['and_']
         c = x.pop()
         while x:
             y = x.pop()
