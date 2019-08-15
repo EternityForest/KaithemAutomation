@@ -68,10 +68,15 @@ class SoundDeviceAlias():
             return "jack:port="+ self.jackName.replace(":","=").replace(",",".")
         return "alsa:device="+ self.alsaName.replace(":","=").replace(",",".")
 
+class PulseDeviceAlias(SoundDeviceAlias):
+    @property
+    def mplayerName(self):
+        return "pulse"
+
 
 aliasesLock = threading.Lock()
 
-commonSoundAliases = {}
+commonSoundAliases = {"PulseAudio:default": PulseDeviceAlias}
 otherSoundAliases = {}
 userSoundAliases = {}
 

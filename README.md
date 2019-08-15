@@ -43,7 +43,11 @@ or access the full help via the web interface!
 
 
 ## Setup
-See [This page](kaithem/src/docs/setup.md)
+See [This page](kaithem/src/docs/setup.md). Or, to just try things out, git clone and run kaithem/kaithem.py, then visit port 8001(for https) or port 8002(for not-https) on localhost. That's really all you need to do.
+
+### Security
+At some point, you should probably set up a proper SSL certificate in kaithem/var/ssl. The debian installer will generate one at
+/var/lib/kaithem/ssl/certificate.key that you can replace with a real one if you don't want to go self-signed.
 
 
 

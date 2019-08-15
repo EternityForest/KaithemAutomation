@@ -28,6 +28,9 @@ Gst = None
 def init():
     "On demand loading, for startup speed but also for compatibility if Gstreamer isn't there"
     global initialized, Gst
+    #Quick check outside the lock
+    if initialized:
+        return
     with initlock:
         if not initialized:
             import gi
@@ -39,6 +42,58 @@ def init():
             Gst = gst
             Gst.init(None)
             initialized = True
+
+
+class AudioFilePlayer():
+    def __init__(self, file, output=None):
+        init()
+        self.lock = threading.Lock()
+        self.pipeline = Gst.Pipeline()
+        self.name = name
+
+        self.src = Gst.ElementFactory.make('filesrc')
+        self.src.set_property("file", file)
+
+        self.decoder = Gst.ElementFactory.make('decodebin')
+        self.converter = Gst.ElementFactory.make('audioconvert')
+        self.converter2 = Gst.ElementFactory.make('audioresample')
+
+        self.pipeline.add(self.decoder)
+        self.pipeline.add(self.converter)
+        self.pipeline.add(self.converter2)
+
+        self.src.link(self.decoder)
+        self.decoder.link(self.converter)
+        self.converter.link(self.converter2)
+
+        if not output:
+            self.sink = Gst.ElementFactory.make('autoaudiosink')
+        if ":" in output:
+            self.sink = Gst.ElementFactory.make('jackaudiosink')
+            self.sink.set_property("buffer-time",8000)
+            self.sink.set_property("latency-time",4000)
+            self.sink.set_property("sync",False)
+            self.sink.set_property("slave-method",2)
+            self.sink.set_property("port-pattern","fdgjkndgmkndfmfgkjkf")
+            self.sink.connect=0
+            self.aw = jackmanager.Airwire(self.name+"_out", i)
+
+
+
+        self.pipeline.add(self.sink)
+        self.converter2.link(self.sink)
+
+    def pause(self):
+        self.pipeline.set_state(Gst.State.PAUSED)
+
+    def play(self):
+        self.pipeline.set_state(Gst.State.PLAYING)
+
+
+
+
+
+       
 
 class Pipeline():
     def __init__(self, name, channels= 2, input=None, outputs=[]):
@@ -60,7 +115,7 @@ class Pipeline():
         self.sink.set_property("latency-time",4000)
         self.sink.set_property("sync",False)
         self.sink.set_property("slave-method",2)
-       
+
 
 
         self.src.connect = 0

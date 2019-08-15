@@ -4,10 +4,9 @@ Installation
 
 All required dependancies should already be included. Huge thanks to the developers of all the great libraries used!!!
 
-There's a few optional dependancies though. Auto time synchronization and MDNS depends on netifaces, and sound requires mplayer, madplay, or sox, with all but mplayer not recommended. Pavillion-based net sync requires libnacl.
+There's a few optional dependancies though. Auto time synchronization and MDNS depends on netifaces, and sound requires mplayer, madplay, or sox, with all but mplayer not recommended. Pavillion-based net sync requires libnacl. Sound mixing needs jackd2, python3-gstreamer1.0, and all the gstreamer plugins.
 
 git clone or download somewhere and run `python3 kaithem/kaithem.py`
-You can also use python2 if you really want.
 
 If you want to build a debian package, install fakeroot, go to helpers/debianpackaging and do
 `fakeroot sh build.sh`
@@ -42,8 +41,8 @@ Command line options:
         password recovery in secure environments.
 
     "--nosecurity 2"
-        Similar, except allows access from other machines on the network. Not
-        recommended outside of a virtual machine.
+        Similar, except allows access from other machines on the local network. Not
+        recommended except on private LANs.
 
 Then point your browser to https://localhost:<yourport> (default port is 8001)
 and log in with Username:admin Password:password

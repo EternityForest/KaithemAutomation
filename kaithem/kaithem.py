@@ -267,8 +267,17 @@ def webRoot():
             bindto = '::'
 
     #limit nosecurity to localhost
-    if cfgmodule.argcmd.nosecurity == 1:
+    if int(cfgmodule.argcmd.nosecurity) == 1:
         bindto = '127.0.0.1'
+        auth.noSecurityMode = 1
+
+    #Unless it's mode 2
+    if int(cfgmodule.argcmd.nosecurity) == 2:
+        auth.noSecurityMode=2
+
+    #Unless it's mode 2
+    if int(cfgmodule.argcmd.nosecurity) == 3:
+        auth.noSecurityMode=3
 
     #cherrypy.process.servers.check_port(bindto, config['http-port'], timeout=1.0)
     #cherrypy.process.servers.check_port(bindto, config['https-port'], timeout=1.0)

@@ -28,6 +28,8 @@ from . import util,directories,modules_state,registry,messagebus
 import json,base64,os,time,shutil,hashlib,base64,sys,yaml,hmac,struct,logging
 from src import config as cfg
 
+noSecurityMode=False
+
 logger = logging.getLogger("system.auth")
 #This maps raw tokens to users
 Tokens = {}
@@ -580,7 +582,22 @@ def canUserDoThis(user,permission):
         else:
             if '__guest__' in Users and "__all_permissions__" in Users["__guest__"].permissions:
                 return True
-            return False
+
+            if noSecurityMode==1:
+                if cherrypy.request.remote.ip.startswith("127."):
+                    return True
+                else:
+                    return False
+                    
+            if noSecurityMode==2:
+                x = cherrypy.request.remote.ip
+                if x.startswith("192."):
+                    return True
+                if x.startswith("10."):
+                    return True
+                if x.startswith("127."):
+                    return True
+                return False
 
 
     if permission in Users[user].permissions:
@@ -597,10 +614,7 @@ def canUserDoThis(user,permission):
 
 
     return False
-
-if cfg.argcmd.nosecurity:
-    def canUserDoThis(user,permission):
-        return True
+import cherrypy
 
 def sys_login(username, password):
     return subprocess.check_output('echo "'+ shellquote(password[:40]) +'" | sudo  -S -u ' + shellquote(username[:25]) +' groups', shell=True)[:-1]
