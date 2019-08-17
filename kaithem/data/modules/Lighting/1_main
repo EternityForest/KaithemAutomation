@@ -1047,7 +1047,7 @@ class LightBoard():
         "Errors in fixture list"
         self.link.send(["ferrs",self.ferrs])   
         try:
-            self.link.send(['fixtures', [[i,module.fixtures[i].universe,module.fixtures[i].startAddress] for i in sorted(list(module.fixtures.keys()))]])
+            self.link.send(['fixtures', {i:[module.fixtures[i].universe,module.fixtures[i].startAddress, module.fixtures[i].channels] for i in module.fixtures} ])
         except:
             pass
             
@@ -1336,17 +1336,21 @@ class LightBoard():
                     return
                 if not u:
                     return
+                cue = cues[msg[1]]
 
+                #Add every non-unused channel.  Fixtures
+                #Are stored as if they are their own universe, starting with an @ sign.
+                #Channels are stored by name and not by number.
                 for i in x.channels:
                     if not i[1]=="unused":
-                        if hasattr(cues[msg[1]].scene().blendClass,'default_channel_value'):
-                            val = cues[msg[1]].scene().blendClass.default_channel_value
+                        if hasattr(cue.scene().blendClass,'default_channel_value'):
+                            val = cue.scene().blendClass.default_channel_value
                         else:
                             val = 0
-                        cues[msg[1]].setValue(u,ch,val)
-                    ch+=1
-                s = cues[msg[1]]
-                self.link.send(["cuedata",msg[1],s.values])
+                        #i[0] is the name of the channel
+                        cue.setValue("@"+msg[2],i[0],val)
+
+                self.link.send(["cuedata",msg[1],cue.values])
 
             if msg[0] == "rmcuef":
                 x = module.fixtures[msg[2]]
@@ -1434,9 +1438,18 @@ class LightBoard():
             #I'm not going to worry about it, this is only for the GUI list of universes.
             if msg[0] == "getuniverses":
                 self.pushUniverses()
+
+
             if msg[0] == "scv":
-                cues[msg[1]].setValue(msg[2],msg[3],msg[4])
-                self.link.send(["scv",msg[1],msg[2],msg[3],msg[4]])
+                ch = msg[3]
+                #If it looks like an int, it should be an int.
+                if isinstance(ch, str):
+                    try:
+                        ch=int(ch)
+                    except:
+                        pass
+                cues[msg[1]].setValue(msg[2],ch,msg[4])
+                self.link.send(["scv",msg[1],msg[2],ch,msg[4]])
 
             
             if msg[0]=="generatesynckey":
@@ -2083,10 +2096,17 @@ class Cue():
             self.push()
 
     def setValue(self,universe,channel,value):
-        disallow_special(universe)
-        if not isinstance(channel,int):
+        disallow_special(universe, allow="@")
+        if not isinstance(channel,(str,int)):
             print(channel)
-            raise Exception("Only int channek numbers allowed")
+            raise Exception("Only str or int channel numbers allowed")
+        
+        #Assume anything that can be an int, is meant to be
+        if isinstance(channel, str):
+            try:
+                channel=int(channel)
+            except:
+                pass
         with module.lock:
             self.scene().rerender = True
             reset = False

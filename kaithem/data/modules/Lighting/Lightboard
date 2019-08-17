@@ -50,10 +50,19 @@ from src import tagpoints
             border-width: 1px;
             border-color: grey;
             margin: 3px;
+            float:left;
+            width:15em;
+            height:2em;
+        }
+        div.hfader input{
+            float: right;
+        }
+        div.hfader span.indicator{
+            float: right;
         }
         
         .fadersbox {
-            background-color: rgba(20, 20, 20, 0.1);
+            background-color: rgba(200, 200, 255, 0.1);
         }
         
         .evlisting {
@@ -86,6 +95,7 @@ from src import tagpoints
             border-width: 1px;
             border-color: grey;
             margin: 3px;
+            width: 95%;
             display: inline-block; //background-color: rgba(128, 128, 128, 0.4);
             !important
         }
@@ -665,66 +675,94 @@ from src import tagpoints
 
 
 
-                <span class="help" v-if="editingScene.ext">This is an external scene that is defined somewhere in code. Any changed made here may be overwritten by the code at any time.</span>
+                <span class="help" v-if="editingScene.ext">This is an external scene that is defined somewhere in code. Any changes made here may be overwritten by the code at any time.</span>
 
                 <div style="overflow: scroll; max-height:30em;" class="fadersbox" v-if="showLightingControls">
-                    <div class="universe" v-for="(h,uname) in cuevals[currentcueid]" style="border-style:solid">
-                        <div class="fixture" v-for="h in groupByFixture(h)" style="display:inline-block">
+                    <div class="universe" v-for="(h,uname) in cuevals[currentcueid]" v-if="uname[0]!='@'" style="border-style:solid">
+                        <h3>{{uname}}</h3>
+                        <div class="hfader" v-for="i in h">
 
-                            <b style="font-size: 150%;" v-if="chnamelookup(uname,h[0].ch)">{{uname}}:{{channelNames[uname][h[0].ch][0]}}</b>
-                            <button v-if="chnamelookup(uname,h[0].ch)" v-on:click="rmFixCue(channelNames[uname][h[0].ch][0])">
+                            <span title="Double click to toggle released">
+                                <small>{{i.u}}:</small><b style="font-size:130%">{{i.ch}}</b>
+                            </span>
+
+                            <span v-if="i.v !== null">
+                                <input v-bind:disabled="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine'" 
+                                    v-if="(editingScene.blend!=='monitor')"
+                                    type="range" v-bind:step="(chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine')? 0.01:1"
+                                    :min="getValueRange(chnamelookup(i.u,i.ch),i.v)[0]"
+                                    :max="getValueRange(chnamelookup(i.u,i.ch),i.v)[1]"
+                                    v-on:input="setCueVal(currentcueid,i.u,i.ch,parseFloat($event.target.value))" v-model="i.v"
+                                    v-on:change="unlockCueValFader(currentcueid,i.u,i.ch)">
+
+                                <meter v-if="editingScene.blend=='monitor'" type="range" max=255 v-bind:value="i.v"></meter>
+                            </span>
+
+                            <span v-if="i.v== null" class=grey>Released</span>
+
+                            <span v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}" class="indicator"></span>
+                        </div>
+
+                    </div>
+
+
+                    <div class="fixture" v-for="(h,fname) in cuevals[currentcueid]" v-if="fname[0]=='@'" style="border-style:solid">
+                        <h4>{{fname}}(Fixture)</h4>
+                        <button v-on:click="rmFixCue(currentcueid, fname)">
                             <img src="/zipstatic/img/icons/fugue.zip/minus-circle.png">
                         </button>
 
 
-                            <div class="hfader" v-for="i in h">
+                        <div class="hfader" v-for="i in h">
 
-                                <span title="Double click to toggle released">
-                        <b v-if="chnamelookup(i.u,i.ch)==undefined">{{i.u}}:{{i.ch}}</b>
-                        <b v-if="chnamelookup(i.u,i.ch)" v-bind:title="'Actual channel:'+i.u+':'+i.ch">{{channelNames[i.u][i.ch][1]}}</b>                    </span>
-                                <span v-if="i.v !== null">
-                    <input v-bind:disabled="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine'" 
-                        v-if="(editingScene.blend!=='monitor')"
-                        type="range" v-bind:step="(chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine')? 0.01:1"
-                         :min="getValueRange(chnamelookup(i.u,i.ch),i.v)[0]"
-                         :max="getValueRange(chnamelookup(i.u,i.ch),i.v)[1]"
-                        v-on:input="setCueVal(currentcueid,i.u,parseInt(i.ch),parseFloat($event.target.value))" v-model="i.v">
+                            <span title="Double click to toggle released">
+                                <b v-if="chnamelookup(i.u,i.ch)==undefined">{{i.u}}:{{i.ch}}</b>
+                                <b v-if="chnamelookup(i.u,i.ch)" v-bind:title="'Actual channel:'+i.u+':'+i.ch">{{channelNames[i.u][i.ch][1]}}</b>
+                            </span>
+
+                            <span v-if="i.v !== null">
+                                <input v-bind:disabled="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine'" 
+                                    v-if="(editingScene.blend!=='monitor')"
+                                    type="range" v-bind:step="(chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine')? 0.01:1"
+                                    :min="getValueRange(chnamelookup(i.u,i.ch),i.v)[0]"
+                                    :max="getValueRange(chnamelookup(i.u,i.ch),i.v)[1]"
+                                    v-on:input="setCueVal(currentcueid,i.u,i.ch,parseFloat($event.target.value))" v-model="i.v"
+                                    v-on:change="unlockCueValFader(currentcueid,i.u,i.ch)">
+
+                                <meter v-if="editingScene.blend=='monitor'" type="range" max=255 v-bind:value="i.v"></meter>
+                            </span>
+
+                            <span v-if="i.v== null" class=grey>Released</span>
 
 
-                    <meter v-if="editingScene.blend=='monitor'" type="range" max=255 v-bind:value="i.v"></meter>
-                    </span>
-                                <span v-if="i.v== null" class=grey>Released</span>
 
+                            <span v-if="!(channelNames[i.u]&&channelNames[i.u][i.ch]&&channelNames[i.u][i.ch][2]=='fine')" title="Double click to set exact value"
+                                v-on:dblclick="promptExactVal(currentcueid,i.u,parseInt(i.ch))" style="font-size:80%">{{Number(i.v).toPrecision(4)}}</span>
+                            <span class=grey  v-if="channelNames[i.u]&&channelNames[i.u][i.ch]&&channelNames[i.u][i.ch][2]=='fine'"
+                                v-on:dblclick="promptExactVal(currentcueid,i.u,parseInt(i.ch))">auto</span>
 
+                            <span v-if="chnamelookup(i.u,i.ch)&&(chnamelookup(i.u,i.ch)[2]=='red')" v-bind:style="{'background-color': 'rgb('+i.v+ ',0,0)' , 'border-color':'red'}"
+                                class="indicator"></span>
+                            <span v-if="chnamelookup(i.u,i.ch)&&(chnamelookup(i.u,i.ch)[2]=='green')" v-bind:style="{'background-color': 'rgb(0,'+i.v+',0)' , 'border-color':'green'}"
+                                class="indicator"></span>
+                            <span v-if="chnamelookup(i.u,i.ch)&&(chnamelookup(i.u,i.ch)[2]=='blue')" v-bind:style="{'background-color': 'rgb(0,0,'+i.v+')'  , 'border-color':'blue'}"
+                            class="indicator"></span>
+                            <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='uv'" v-bind:style="{'background-color': 'rgb(i.v,0,'+i.v+')'  , 'border-color':'blue'}"
+                                class="indicator"></span>
+                            <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='custom'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
+                                class="indicator"></span>
+                            <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='intensity'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
+                                class="indicator"></span>
+                            <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='white'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
+                                class="indicator"></span>
 
-                                <span v-if="!(channelNames[i.u]&&channelNames[i.u][i.ch]&&channelNames[i.u][i.ch][2]=='fine')" title="Double click to set exact value"
-                                    v-on:dblclick="promptExactVal(currentcueid,i.u,parseInt(i.ch))" style="font-size:80%">{{Number(i.v).toPrecision(4)}}</span>
-                                    <span class=grey title="Double click to set exact value" v-if="channelNames[i.u]&&channelNames[i.u][i.ch]&&channelNames[i.u][i.ch][2]=='fine'"
-                                        v-on:dblclick="promptExactVal(currentcueid,i.u,parseInt(i.ch))">auto</span>
+                            <span v-if="chnamelookup(i.u,i.ch)==undefined" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}" class="indicator"></span>
+                            <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='custom'"><br>
+                                <select :value="getValueRange(chnamelookup(i.u,i.ch),i.v)[2]" v-on:change="setCueValNolock(currentcueid,i.u,i.ch,mapvaluerange(i.v, chnamelookup(i.u,i.ch), $event.target.value))"> 
+                                    <option v-for="i of chnamelookup(i.u,i.ch).slice(3)" :value="i[2]">{{i[2]}}({{i[0]}} to {{i[1]}})</option>
+                                </select>
+                            </span>
 
-                                        <span v-if="chnamelookup(i.u,i.ch)&&(chnamelookup(i.u,i.ch)[2]=='red')" v-bind:style="{'background-color': 'rgb('+i.v+ ',0,0)' , 'border-color':'red'}"
-                                            class="indicator"></span>
-                                            <span v-if="chnamelookup(i.u,i.ch)&&(chnamelookup(i.u,i.ch)[2]=='green')" v-bind:style="{'background-color': 'rgb(0,'+i.v+',0)' , 'border-color':'green'}"
-                                                class="indicator"></span>
-                                                <span v-if="chnamelookup(i.u,i.ch)&&(chnamelookup(i.u,i.ch)[2]=='blue')" v-bind:style="{'background-color': 'rgb(0,0,'+i.v+')'  , 'border-color':'blue'}"
-                                                    class="indicator"></span>
-                                                    <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='uv'" v-bind:style="{'background-color': 'rgb(i.v,0,'+i.v+')'  , 'border-color':'blue'}"
-                                                        class="indicator"></span>
-                                                        <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='custom'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
-                                                            class="indicator"></span>
-                                                            <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='intensity'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
-                                                                class="indicator"></span>
-                                                                <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='white'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
-                                                                    class="indicator"></span>
-
-                                                                    <span v-if="chnamelookup(i.u,i.ch)==undefined" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}" class="indicator"></span>
-                                                                    <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='custom'"><br>
-                    <select :value="getValueRange(chnamelookup(i.u,i.ch),i.v)[2]" v-on:change="setCueVal(currentcueid,i.u,parseInt(i.ch),mapvaluerange(i.v, chnamelookup(i.u,i.ch), $event.target.value))"> 
-                        <option v-for="i of chnamelookup(i.u,i.ch).slice(3)" :value="i[2]">{{i[2]}}({{i[0]}} to {{i[1]}})</option>
-                    </select>
-                    </span>
-
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -738,7 +776,7 @@ from src import tagpoints
                     <button v-on:click="rmValFromCue()"><img src="/zipstatic/img/icons/fugue.zip/minus-octagon-frame.png"></img>Remove</button>
                     <br>
                     <select id="newcuefix" title="Channel Number" style="width:10em">
-                    <option v-for="i in fixtures" :value="i[0]">{{i[1]}}:{{i[0]}} at {{i[2]}}</option>
+                    <option v-for="(v,i) in fixtures" :value="i">{{v[0]}}:{{i}} at {{v[1]}}</option>
                 </select>
                     <button v-on:click="addFixToCue()"><img src="/zipstatic/img/icons/fugue.zip/light-bulb.png"></img>Add Fixture to Cue</button>
 
@@ -1467,7 +1505,6 @@ from src import tagpoints
                         op[i][j]=parseFloat(c[i][j].v)
                     }
                 }
-                console.log(op)
                 return op
             },
 
@@ -1479,7 +1516,7 @@ from src import tagpoints
                 {
                     if (parseFloat(x))
                     {
-                        appData.setCueVal(cue, u, v, Math.max(0,
+                        appData.setCueValNolock(cue, u, v, Math.max(0,
                             Math.min(
                                 parseFloat(x), 255)))
                     }
@@ -1490,11 +1527,11 @@ from src import tagpoints
             {
                 if (v != null)
                 {
-                    appData.setCueVal(cue, u, c, null)
+                    appData.setCueValNolock(cue, u, c, null)
                 }
                 else
                 {
-                    appData.setCueVal(cie, u, c, null)
+                    appData.setCueValNolock(cie, u, c, null)
                 }
             },
             'promptRename' (s)
@@ -1532,10 +1569,13 @@ from src import tagpoints
             'cuevals': {},
 
 
+
             //l must be a universe dict
             'groupByFixture': function(l)
             {
+                //Output buf
                 var o = [];
+                //Fill up this buf, then append to o when the group changes
                 var c = []
                 var x = null;
 
@@ -1597,6 +1637,10 @@ from src import tagpoints
             //same info as scenevals, indexed hierarchally, as [universe][channel]
             //Actual objs are shared too so changing one obj change in in the other.
 
+            //We must track faders the user is actively touching so new data doesn't
+            //Annoy you jumping them around
+            'lockedFaders': {},
+
             'recomputeformattedCues':function()
             {
                 appData.formatCues(0)
@@ -1618,7 +1662,16 @@ from src import tagpoints
             'scenedata': {},
             'setCueVal': function(sc, u, ch, val)
             {
+                this.lockedFaders[sc+":"+u+":"+ch]=true;
                 api_link.send(['scv', sc, u, ch, val]);
+            },
+            'setCueValNolock': function(sc, u, ch, val)
+            {
+                api_link.send(['scv', sc, u, ch, val]);
+            },
+            'unlockCueValFader': function(sc, u, ch)
+            {
+                delete this.lockedFaders[sc+":"+u+":"+ch];
             },
 
             'selectcue': function(sc, cue)
@@ -1743,8 +1796,13 @@ from src import tagpoints
 
             'setalpha': function(sc, v)
             {
+                appData.lockedFaders[sc]=true;
                 api_link.send(['setalpha', sc, v]);
                 appData.alphas[sc] = v
+            },
+            'unlockAlpha':function(sc)
+            {
+                delete appData.lockedFaders[sc];
             },
 
 
@@ -2054,7 +2112,11 @@ from src import tagpoints
                 {
                     appData.getcuemeta(v[2].cue)
                 }
-                Vue.set(appData.alphas, v[1], v[2].alpha);
+                if (!appData.lockedFaders[v[1]])
+                {
+                    Vue.set(appData.alphas, v[1], v[2].alpha);
+                }
+                
                 set(appData.scenemeta, v[1], v[2]);
                 if (appData.selectedCues[v[1]] == undefined)
                 {
@@ -2182,23 +2244,26 @@ from src import tagpoints
 
             if (c == "scv")
             {
-
                 x = []
 
                 cue = v[1]
                 universe = v[2]
                 channel = v[3]
                 value= v[4]
-                console.log(v)
+                
+                if(appData.lockedFaders[cue+":"+universe+":"+channel]==true)
+                {
+                    return;
+                }
+            
 
-    
+                var needRefresh = false;
                 //Empty universe dict
                 if (!appData.cuevals[cue][universe])
                 {
 
                     Vue.set(appData.cuevals[cue], universe, {})
-
-
+                    needRefresh=1;
                 }
 
                 if (v[4] !== null)
@@ -2215,9 +2280,12 @@ from src import tagpoints
                 else
                 {
                     Vue.delete(appData.cuevals[cue][universe], channel)
-
+                    needRefresh=1;
                 }
-                appData.refreshcuedata()
+                if (needRefresh)
+                {
+                    appData.refreshcuedata()
+                }
 
             }
 
