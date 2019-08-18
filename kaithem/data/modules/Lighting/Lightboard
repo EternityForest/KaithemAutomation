@@ -555,7 +555,7 @@ from src import tagpoints
 
 
         <div class="sectionbox" v-if="editingScene && cuemeta[editingScene.cue]" style="display:inline-block; width:75%; resize:both;">
-            <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name"><span v-if="editingScene.blend=='monitor'">Monitor</span>                Scene: {{editingScene.name}}</span> <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>                Current Cue:
+            <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name"><span v-if="editingScene.blend=='monitor'">Monitor</span>                Scene: {{editingScene.name}}</span> <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>Current Cue:
                 <button v-on:click="selectcue(scenename,cuemeta[editingScene.cue].name)">{{cuemeta[editingScene.cue].name}}</span>
                 <meter v-if="editingScene.active && cuemeta[editingScene.cue].length" min=0 max=1
                     v-bind:value="(unixtime-editingScene.enteredCue)/editingScene.cuelen"></meter>
@@ -568,10 +568,10 @@ from src import tagpoints
             <input v-model="cuefilter" placeholder="Search Cues" />
             <button v-on:click="cuefilter=''">X</button>
             <table border="1">
-                <thead>
-                </thead>
+              
                 <tbody style="overflow-y: auto; width:100%; height:12em;display:block;">
-                    <tr>
+                    
+                 <tr>
                         <th title="Click the cue name to edit that cue">Cue Name</th>
                         <th>Number</th>
                         <th>Shortcut</th>
@@ -582,9 +582,10 @@ from src import tagpoints
                         <th>Track</th>
                         <th>Jump to</th>
                     </tr>
+    
 
                     <tr v-for="i in formattedCues" v-if="i[1].id" v-bind:style="{'background-color':((selectedCues[scenename]==i[1].name)?'lightblue':'')}">
-                        <td title="Click the cue name to edit that cue" v-on:click="selectcue(scenename,i[1].name)"><i v-if="cuemeta[editingScene.cue].name==i[1].name" class="fas fa-play-circle" style="color:green;"></i>
+                        <td style=" user-select: none;" title="Click the cue name to edit that cue" v-on:click="selectcue(scenename,i[1].name)"><i v-if="cuemeta[editingScene.cue].name==i[1].name" class="fas fa-play-circle" style="color:green;"></i>
                             <img v-if="selectedCues[scenename]==i[1].name" src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>
                             <b>{{i[1].name}}</b></td>
                         <td><b title="Cue number, double click to change." style="width:6em" v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</b></td>

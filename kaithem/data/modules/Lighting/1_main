@@ -29,6 +29,32 @@ int=int
 max=max
 min=min
 
+
+
+def mapUniverse(u):
+    if not u.startswith("@"):
+        return u
+    
+    try:
+        x = module.fixtures[u[1:]]
+    except KeyError:
+        return None
+    return x.universe
+
+def mapChannel(u,c):
+    if not u.startswith("@"):
+        return u,c
+    
+    try:
+        f = module.fixtures[u[1:]]
+    except KeyError:
+        return None
+    x=f.assignment
+    if not x:
+        return
+    return x[0], x[1]+f.nameToOffset[c]
+
+
 def fnToCueName(fn):
     fn=fn.split(".")[0]
     fn=fn.replace("-","_")
@@ -335,6 +361,7 @@ class Fixture():
             self.channels = None
         self.universe = None
         self.startAddress = 0
+        self.assignment = None
         disallow_special(name)
 
         self.nameToOffset = {}
@@ -374,6 +401,8 @@ class Fixture():
 
     def assign(self,universe, channel):
         with module.lock:
+            self.assignment=universe, channel
+
             if self.universe and self.startAddress and (self.universe in module.universes):
                 #Delete current assignments
                 for i in range(self.startAddress,self.startAddress+len(self.channels)):
@@ -1318,15 +1347,18 @@ class LightBoard():
                 #Verify correct data
                 for i in msg[2]:
                     for j in msg[2][i]:
-                        int(j)
                         float(msg[2][i][j])
                 
                 cues[msg[1]].clearValues()
                 
                 for i in msg[2]:
                     for j in msg[2][i]:
+                        try:
+                            ch = int(j)
+                        except:
+                            ch = j
                         #Hack. because JSON and yaml are giving us strings
-                        cues[msg[1]].setValue(i,int(j),msg[2][i][j])
+                        cues[msg[1]].setValue(i,j,msg[2][i][j])
 
             if msg[0] == "addcuef":
                 x = module.fixtures[msg[2]]
@@ -1710,6 +1742,10 @@ def composite(background,values,alphas,alpha):
 
 def applyLayer(universe, uvalues,scene):
     "May happen in place, or not, but always returns the new version"
+
+
+
+
     if not universe in scene.canvas.v2:
         return uvalues
     vals = scene.canvas.v2[universe]
@@ -1729,16 +1765,7 @@ def applyLayer(universe, uvalues,scene):
             #precompute constants
             c= 255/scene.alpha
             uvalues = (uvalues*(1-alphas*scene.alpha)) + (uvalues*vals)/c
-                
-    elif scene.blend == "monitor":
-        data =  scene.cue.values
-        if not universe in data:
-            return uvalues
-        sceneuniverse = data[universe]
-        for k,v in sceneuniverse.items():
-            #Deal with maybe a numpy array
-            sceneuniverse[k] = float(uvalues[k])
-        scene.valueschanged = {}
+
 
     elif scene._blend:
         try:
@@ -1802,6 +1829,10 @@ def render(t=None):
         if i.rerender or (i.cue.length and ((timefunc()-i.enteredCue)>i.cuelen*(60/i.bpm))):
             i.rerender = False
             i.render()
+
+        if i.blend=="monitor":
+            i.updateMonitorValues()
+            continue
 
         data =i.affect
 
@@ -2122,26 +2153,31 @@ class Cue():
                     del self.values[universe][channel]
                 if not self.values[universe]:
                     del self.values[universe]
-            
-            if self.scene().cue==self and self.scene().isActive():
-                self.scene().rerender=True    
-                if (not universe in self.scene().cue_cached_alphas_as_arrays) and universe in module.universes and not value is None:
-                    self.scene().cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
-                    self.scene().cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
-                if universe in self.scene().cue_cached_alphas_as_arrays:
-                    self.scene().cue_cached_alphas_as_arrays[universe][channel] = 1 if not value is None else 0
-                    self.scene().cue_cached_vals_as_arrays[universe][channel] =  value if not value is None else 0
-                if not universe in self.scene().affect:
-                    self.scene().affect.append(universe)
+            mapChannel(universe, channel)
 
-                #The FadeCanvas needs to know about this change
-                self.scene().render(force_repaint=True)
+            x = mapChannel(universe, channel)
+            if x:
+                universe, channel = x[0],x[1]
+                self.pushoneval(universe,channel,value)
+
+                if self.scene().cue==self and self.scene().isActive():
+                    self.scene().rerender=True    
+                    if (not universe in self.scene().cue_cached_alphas_as_arrays) and universe in module.universes and not value is None:
+                        self.scene().cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
+                        self.scene().cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
+                    if universe in self.scene().cue_cached_alphas_as_arrays:
+                        self.scene().cue_cached_alphas_as_arrays[universe][channel] = 1 if not value is None else 0
+                        self.scene().cue_cached_vals_as_arrays[universe][channel] =  value if not value is None else 0
+                    if not universe in self.scene().affect:
+                        self.scene().affect.append(universe)
+
+                    #The FadeCanvas needs to know about this change
+                    self.scene().render(force_repaint=True)
 
             #For blend modes that don't like it when you
             #change the list of values without resetting
             if reset:
                 self.scene().setBlend(self.scene().blend)
-            self.pushoneval(universe,channel,value)
                 
     def clearValues(self):
             self.values= {}
@@ -2647,16 +2683,23 @@ class Scene():
                 for cuex in reversed(l):
                     #Loop over universes in the cue
                     for i in cuex.values:
-                        if i in module.universes:
-                            if not i in self.cue_cached_vals_as_arrays:
-                                self.cue_cached_vals_as_arrays[i] = numpy.array([0.0]*len(module.universes[i].values),dtype="f4")
-                                self.cue_cached_alphas_as_arrays[i] = numpy.array([0.0]*len(module.universes[i].values),dtype="f4")
-                                if not i in self.affect:
-                                    self.affect.append(i)
+                        universe=mapUniverse(i)
+                        if not universe:
+                            continue
+                        if universe in module.universes:
+                            if not universe in self.cue_cached_vals_as_arrays:
+                                self.cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
+                                self.cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
+                                if not universe in self.affect:
+                                    self.affect.append(universe)
                             
                         for j in cuex.values[i]:
-                            self.cue_cached_alphas_as_arrays[i][j] = 1.0 if not cuex.values[i][j]==None else 0
-                            self.cue_cached_vals_as_arrays[i][j] = cuex.values[i][j] if not cuex.values[i][j]==None else 0
+                            cuev = cuex.values[i][j]
+                            x = mapChannel(i, j)
+                            if x:
+                                universe, channel = x[0],x[1]
+                            self.cue_cached_alphas_as_arrays[universe][channel] = 1.0 if not cuev==None else 0
+                            self.cue_cached_vals_as_arrays[universe][channel] = cuev if not cuev==None else 0
             
 
             #optimization, try to se if we can just increment if we are going to the next cue, else
@@ -2706,18 +2749,26 @@ class Scene():
 
             #Loop over universes in the cue
             for i in self.cue.values:
-                if i in module.universes:
-                    if not i in self.affect:
-                        self.affect.append(i)
-                    if not i in self.cue_cached_vals_as_arrays:
+                universe=mapUniverse(i)
+                if not universe:
+                    continue
+                if universe in module.universes:
+                    if not universe in self.affect:
+                        self.affect.append(universe)
+                    if not universe in self.cue_cached_vals_as_arrays:
                         try:
-                            self.cue_cached_vals_as_arrays[i] = numpy.array([0.0]*len(module.universes[i].values),dtype="f4")
-                            self.cue_cached_alphas_as_arrays[i] = numpy.array([0.0]*len(module.universes[i].values),dtype="f4")
+                            self.cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
+                            self.cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
                         except:
                             print(i,"might be none in scene???")
+                            
                     for j in self.cue.values[i]:
-                        self.cue_cached_alphas_as_arrays[i][j] = 1.0 if not self.cue.values[i][j]==None else 0
-                        self.cue_cached_vals_as_arrays[i][j] = self.cue.values[i][j] if not self.cue.values[i][j]==None else 0
+                        cuev = self.cue.values[i][j]
+                        x = mapChannel(i,j)
+                        if x:
+                            universe, channel = x[0],x[1]
+                        self.cue_cached_alphas_as_arrays[universe][channel] = 1.0 if not cuev ==None else 0
+                        self.cue_cached_vals_as_arrays[universe][channel] = cuev if not cuev==None else 0
 
     
             self.rerender = True
@@ -3042,12 +3093,23 @@ class Scene():
                     #We no longer affect universes from anything else
                     self.affect = []
                     for i in self.cue.values:
+                        i = mapUniverse(i)
                         if i in module.universes:
                             if not i in self.affect:
                                 self.affect.append(i)
                     self.fadeInCompleted = True
                     self.rerender=True
 
+    def updateMonitorValues(self):
+        if self.blend == "monitor":
+            data =  self.cue.values
+            for i in data:
+                for j in data[i]:
+                    x = mapChannel(i,j)
+                    if x:
+                        v = module.universes[x[0]].values[x[1]]
+                        self.cue.values[i][j] = float(v)
+            self.valueschanged={}
                 
 
 def event(s,value=None, info=''):
