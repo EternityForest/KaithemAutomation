@@ -166,16 +166,14 @@ class MultichannelAirwire(MonoAirwire):
             return
 
         with lock:
-            outPorts = jackclient.get_ports(f+":*",is_output=True,is_audio=True)
-            inPorts = jackclient.get_ports(t+":*",is_input=True,is_audio=True)
-            #Connect all the ports
-            for i in zip(outPorts,inPorts):
-                if not isConnected(i[0].name,i[1].name):
-                    print("Attemot connect")
-                    if jackclient:
-                        print(i[0],i[1])
+            if jackclient:
+                outPorts = jackclient.get_ports(f+":*",is_output=True,is_audio=True)
+                inPorts = jackclient.get_ports(t+":*",is_input=True,is_audio=True)
+                #Connect all the ports
+                for i in zip(outPorts,inPorts):
+                    if not isConnected(i[0].name,i[1].name):
                         jackclient.connect(i[0],i[1])
-                    activeConnections[i[0].name,i[1].name]=self
+                        activeConnections[i[0].name,i[1].name]=self
 
     def disconnect(self):
         f,t=self._getEndpoints()

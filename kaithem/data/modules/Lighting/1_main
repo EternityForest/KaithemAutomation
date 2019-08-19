@@ -36,7 +36,9 @@ def mapUniverse(u):
         return u
     
     try:
-        x = module.fixtures[u[1:]]
+        x = module.fixtures[u[1:]]()
+        if not x:
+            return None
     except KeyError:
         return None
     return x.universe
@@ -46,7 +48,9 @@ def mapChannel(u,c):
         return u,c
     
     try:
-        f = module.fixtures[u[1:]]
+        f = module.fixtures[u[1:]]()
+        if not f:
+            return None
     except KeyError:
         return None
     x=f.assignment
@@ -78,8 +82,9 @@ def rl_log_exc(m):
 module.boards = []
 
 universesLock = threading.Lock()
-module.universes={}
-
+#in the del and init we copy data from this slow weakrefd thing to a fast not-weakref thing.
+module.universes=weakref.WeakValueDictionary()
+module.fastUniverses = {}
 module.lock = threading.RLock()
 boardsListLock = threading.Lock()
 
@@ -379,7 +384,7 @@ class Fixture():
                 if name in module.fixtures:
                     raise ValueError("Name in Use")
                 else:
-                    module.fixtures[name]=self
+                    module.fixtures[name]=weakref.ref(self)
                     self.name=name
     
     def getChannelByName(self,name):
@@ -393,7 +398,7 @@ class Fixture():
         ID=id(self)
         def f():
             try:
-                if id(module.fixtures[self.name])==id(ID):
+                if id(module.fixtures[self.name]())==id(ID):
                     self.assign(None,None)
                     self.rm()
             except:
@@ -476,7 +481,11 @@ class Universe():
             if name in module.universes:
                 raise ValueError("Name "+name+ " is taken")
             module.universes[name] =self
-
+            try:
+                module.fastUniverses = {i:module.universes[i] for i in module.universes}
+            except IterationError:
+                module.fastUniverses=module.universes
+                    
         #flag to apply all scenes, even ones not marked as neding rerender
         self.full_rerender = False
         
@@ -503,9 +512,13 @@ class Universe():
         #Deal with fixtures in this universe that aren't actually attached to this object yet.
         for i in range(0,5):
             try:
-                for i in module.fixtures:
-                    if module.fixtures[i].universe==self.name:
-                        module.fixtures[i].assign(module.fixtures[i].universe,module.fixtures[i].startAddress)
+                with fixtureslock:
+                    for i in module.fixtures:
+                        f = module.fixtures[i]()
+                        if not f:
+                            continue
+                        if f.universe==self.name:
+                            f.assign(f.universe,f.startAddress)
             except RuntimeError:
                 #Should there be some kind of dict changed size problem, retry
                 time.sleep(0.1)
@@ -515,6 +528,10 @@ class Universe():
     def __del__(self):
         with universesLock:
                 del module.universes[self.name]
+                try:
+                    module.fastUniverses = {i:module.universes[i] for i in module.universes}
+                except IterationError:
+                    module.fastUniverses=module.universes
 
     def setStatus(self,s,ok):
         "Set the status shown in the gui. ok is a bool value that indicates if the object is able to transmit data to the fixtures"
@@ -1022,7 +1039,7 @@ class LightBoard():
                     x = Fixture(i[0],self.fixtureClasses[i[1]])
                     self.fixtures[i[0]] = x
                     self.fixtures[i[0]].assign(i[2],int(i[3]))
-                    module.fixtures[i[0]]= x                    
+                    module.fixtures[i[0]]= weakref.ref(x)                    
                 except:
                     logger.exception("Error setting up fixtures")
                     print(traceback.format_exc(4))
@@ -1034,7 +1051,8 @@ class LightBoard():
 
             with fixtureslock:
                 for f in module.fixtures:
-                    self.pushChannelNames("@"+f)
+                    if f:
+                        self.pushChannelNames("@"+f)
 
             self.ferrs = self.ferrs or 'No Errors!'
             self.pushfixtures()
@@ -1104,7 +1122,7 @@ class LightBoard():
         "Errors in fixture list"
         self.link.send(["ferrs",self.ferrs])   
         try:
-            self.link.send(['fixtures', {i:[module.fixtures[i].universe,module.fixtures[i].startAddress, module.fixtures[i].channels] for i in module.fixtures} ])
+            self.link.send(['fixtures', {i:[module.fixtures[i]().universe,module.fixtures[i]().startAddress, module.fixtures[i]().channels] for i in module.fixtures} ])
         except:
             pass
             
@@ -1145,10 +1163,10 @@ class LightBoard():
     def pushChannelNames(self,u):
         "This has expanded to push more data than names"
         if not u[0]=='@':      
-            if u in module.universes:
+            if u in module.fastUniverses:
                 d = {}
-                for i in module.universes[u].channels:
-                    fixture = module.universes[u].channels[i]
+                for i in module.fastUniverses[u].channels:
+                    fixture = module.fastUniverses[u].channels[i]
                     if not fixture.startAddress:
                         return
                     data= [fixture.name]+fixture.channels[i-fixture.startAddress]
@@ -1157,7 +1175,7 @@ class LightBoard():
         else:
             d={}
             if u[1:] in module.fixtures:
-                f= module.fixtures[u[1:]]
+                f= module.fixtures[u[1:]]()
                 for i in range(0,len(f.channels)):
                     d[f.channels[i][0]] = [u[1:]]+ f.channels[i]
             self.link.send(['cnames',u,d])
@@ -1400,15 +1418,9 @@ class LightBoard():
                         cues[msg[1]].setValue(i,j,msg[2][i][j])
 
             if msg[0] == "addcuef":
-                x = module.fixtures[msg[2]]
-                ch = x.startAddress
-                u = x.universe
-                if not ch:
-                    return
-                if not u:
-                    return
                 cue = cues[msg[1]]
 
+                x = module.fixtures[msg[2]]()
                 #Add every non-unused channel.  Fixtures
                 #Are stored as if they are their own universe, starting with an @ sign.
                 #Channels are stored by name and not by number.
@@ -1427,10 +1439,10 @@ class LightBoard():
                 s = cues[msg[1]]
                 
 
-                x = module.fixtures[msg[2][1:]]
+                x = list(s.values[msg[2]].keys())
                 
-                for i in x.channels:
-                    s.setValue(msg[2],i[0],None)
+                for i in x:
+                    s.setValue(msg[2],i,None)
                 self.link.send(["cuedata",msg[1],s.values])
 
 
@@ -1815,7 +1827,7 @@ def pre_render():
     #Here we find out what universes can be reset to a cached layer and which need to be fully rerendered.
     changedUniverses = {}
     to_reset ={}
-    universes = module.universes
+    universes = module.fastUniverses
     #Important to reverse, that way scenes that need a full reset come after and don't get overwritten
     for i in reversed(module.activeScenes):
         for u in i.affect:
@@ -1874,27 +1886,27 @@ def render(t=None):
         for u in data:
             if not u in module.universes:
                 continue
-            if (i.priority,i.started) > module.universes[u].top_layer:
+            if (i.priority,i.started) > module.fastUniverses[u].top_layer:
                 #If this layer we are about to render was found to be the highest layer that won't need rerendering,
                 #Save the state just befor we apply that layer.
-                if (module.universes[u].save_before_layer==(i.priority,i.started)) and not((i.priority,i.started)==(0,0)):
-                    module.universes[u].save_prerendered(module.universes[u].top_layer[0], module.universes[u].top_layer[1])
+                if (module.fastUniverses[u].save_before_layer==(i.priority,i.started)) and not((i.priority,i.started)==(0,0)):
+                    module.fastUniverses[u].save_prerendered(module.fastUniverses[u].top_layer[0], module.fastUniverses[u].top_layer[1])
 
                 changedUniverses[u]=(i.priority, i.started)
                 if not u in module.universes:
                     continue
                 
-                universe = module.universes[u]
+                universe = module.fastUniverses[u]
                 universe.values = applyLayer(u, universe.values, i)
                 universe.top_layer = (i.priority, i.started)
 
                 #If this is the first nonstatic layer, meaning it's render function requested a rerender next frame
                 #or if this is the last one, mark it as the one we should save just before
                 if i.rerender or (i is module.activeScenes[-1]):
-                    if module.universes[u].all_static:
+                    if module.fastUniverses[u].all_static:
                         #Copy it and set to none as a flag that we already found it
-                        module.universes[u].all_static = False
-                        module.universes[u].save_before_layer = module.universes[u].top_layer
+                        module.fastUniverses[u].all_static = False
+                        module.fastUniverses[u].save_before_layer = module.fastUniverses[u].top_layer
         
 
     for i in changedUniverses:
