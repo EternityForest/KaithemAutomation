@@ -212,7 +212,7 @@ def CombiningAirwire(MultichannelAirwire):
         with lock:
             outPorts = jackclient.get_ports(f+":*",is_output=True,is_audio=True)
         
-            inPort = jackclient.get_port(t)
+            inPort = jackclient.get_ports(t)[0]
             if not inPort:
                 return
 
@@ -233,7 +233,7 @@ def CombiningAirwire(MultichannelAirwire):
         with lock:
             outPorts = jackclient.get_ports(f+":*",is_output=True,is_audio=True)
         
-            inPort = jackclient.get_port(t)
+            inPort = jackclient.get_ports(t)[0]
             if not inPort:
                 return
 
@@ -836,6 +836,39 @@ def getPorts(*a,**k):
             return []
         return jackclient.get_ports(*a,**k)
 
+def getConnections(name,*a,**k):
+    with lock:
+        if not jackclient:
+            return []
+        return jackclient.get_all_connections(name)
+
+def connect(f,t):
+      with lock:
+        if not jackclient:
+            return 
+        if  isinstance(f,str):
+            f = jackclient.get_port_by_name(f)
+        if  isinstance(t,str):
+            t = jackclient.get_port_by_name(f)
+        
+        f_input =  f.is_input
+
+        if f.is_input:
+            if t.is_input:
+                raise ValueError("Cannot connect two inputs",str((f,t)))
+        else:
+            if not t.is_input:
+                raise ValueError("Cannot connect two outputs",str((f,t)))
+        f=f.name
+        t=t.name
+        try:
+            if f_input:
+                return jackclient.connect(t,f)    
+            else:
+                return jackclient.connect(f,t)
+        except:
+            pass
+            
 #startManagingJack()
 
 

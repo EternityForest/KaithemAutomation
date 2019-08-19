@@ -152,8 +152,8 @@ effectTemplates={
             "band2::freq": 2000,
             "band3::freq": 12000,
             "band1::bandwidth": 360,
-            "band1::bandwidth": 3600,
-            "band1::bandwidth": 19000,
+            "band2::bandwidth": 3600,
+            "band3::bandwidth": 19000,
         }
     }
 }
@@ -178,7 +178,7 @@ specialCaseParamCallbacks={}
 
 def beq3(e, p, v):
     if p =="band2::freq":
-        e.set_property("band2::bandwidth", v*1.7)
+        e.set_property("band2::bandwidth", v*0.3)
 
 specialCaseParamCallbacks['3beq']= beq3
 
@@ -303,8 +303,11 @@ class MixingBoard():
             self._createChannel(name,data)
 
     def _createChannel(self, name,data=channelTemplate):
+        backup = []
         if name in self.channelObjects:
+            backup =self.channelObjects[name].backup()
             self.channelObjects[name].stop()
+
         self.channels[name]=data
         time.sleep(0.01)
         time.sleep(0.01)
@@ -317,7 +320,7 @@ class MixingBoard():
         p.loadData(data)
         p.addLevelDetector()
         p.finalize()
-        p.connect()
+        p.connect(restore=backup)
         self.channelObjects[name]=p
         self.api.send(['channels', self.channels])
 

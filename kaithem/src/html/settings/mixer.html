@@ -71,7 +71,8 @@ from src import jackmixer
     <div v-if="activePane=='presets'">
     <h2>Presets</h2>
     <p class="help">Presets let you load and save the entire state of the mixing board. When kaithem boots, the preset
-      named "default" will be loaded if it exists.
+      named "default" will be loaded if it exists. Presets are not commited to disk until you <a href="/settings/save">commit to disk</a> unless
+      autosave is enabled.
     </p>
     
     <table border="1">

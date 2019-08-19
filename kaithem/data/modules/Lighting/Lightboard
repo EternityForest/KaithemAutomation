@@ -681,90 +681,16 @@ from src import tagpoints
                 <div style="overflow: scroll; max-height:30em;" class="fadersbox" v-if="showLightingControls">
                     <div class="universe" v-for="(h,uname) in cuevals[currentcueid]" v-if="uname[0]!='@'" style="border-style:solid">
                         <h3>{{uname}}</h3>
-                        <div class="hfader" v-for="i in h">
-
-                            <span title="Double click to toggle released">
-                                <small>{{i.u}}:</small><b style="font-size:130%">{{i.ch}}</b>
-                            </span>
-
-                            <span v-if="i.v !== null">
-                                <input v-bind:disabled="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine'" 
-                                    v-if="(editingScene.blend!=='monitor')"
-                                    type="range" v-bind:step="(chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine')? 0.01:1"
-                                    :min="getValueRange(chnamelookup(i.u,i.ch),i.v)[0]"
-                                    :max="getValueRange(chnamelookup(i.u,i.ch),i.v)[1]"
-                                    v-on:input="setCueVal(currentcueid,i.u,i.ch,parseFloat($event.target.value))" v-model="i.v"
-                                    v-on:change="unlockCueValFader(currentcueid,i.u,i.ch)">
-
-                                <meter v-if="editingScene.blend=='monitor'" type="range" max=255 v-bind:value="i.v"></meter>
-                            </span>
-
-                            <span v-if="i.v== null" class=grey>Released</span>
-
-                            <span v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}" class="indicator"></span>
-                        </div>
-
+                        <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid" v-for="i in h"></h-fader>
                     </div>
 
 
                     <div class="fixture" v-for="(h,fname) in cuevals[currentcueid]" v-if="fname[0]=='@'" style="border-style:solid">
-                        <h4>{{fname}}(Fixture)</h4>
+                        <h4>{{fname}}</h4>
                         <button v-on:click="rmFixCue(currentcueid, fname)">
                             <img src="/zipstatic/img/icons/fugue.zip/minus-circle.png">
                         </button>
-
-
-                        <div class="hfader" v-for="i in h">
-
-                            <span title="Double click to toggle released">
-                                <b v-if="chnamelookup(i.u,i.ch)==undefined">{{i.u}}:{{i.ch}}</b>
-                                <b v-if="chnamelookup(i.u,i.ch)" v-bind:title="'Actual channel:'+i.u+':'+i.ch">{{channelNames[i.u][i.ch][1]}}</b>
-                            </span>
-
-                            <span v-if="i.v !== null">
-                                <input v-bind:disabled="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine'" 
-                                    v-if="(editingScene.blend!=='monitor')"
-                                    type="range" v-bind:step="(chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine')? 0.01:1"
-                                    :min="getValueRange(chnamelookup(i.u,i.ch),i.v)[0]"
-                                    :max="getValueRange(chnamelookup(i.u,i.ch),i.v)[1]"
-                                    v-on:input="setCueVal(currentcueid,i.u,i.ch,parseFloat($event.target.value))" v-model="i.v"
-                                    v-on:change="unlockCueValFader(currentcueid,i.u,i.ch)">
-
-                                <meter v-if="editingScene.blend=='monitor'" type="range" max=255 v-bind:value="i.v"></meter>
-                            </span>
-
-                            <span v-if="i.v== null" class=grey>Released</span>
-
-
-
-                            <span v-if="!(channelNames[i.u]&&channelNames[i.u][i.ch]&&channelNames[i.u][i.ch][2]=='fine')" title="Double click to set exact value"
-                                v-on:dblclick="promptExactVal(currentcueid,i.u,parseInt(i.ch))" style="font-size:80%">{{Number(i.v).toPrecision(4)}}</span>
-                            <span class=grey  v-if="channelNames[i.u]&&channelNames[i.u][i.ch]&&channelNames[i.u][i.ch][2]=='fine'"
-                                v-on:dblclick="promptExactVal(currentcueid,i.u,parseInt(i.ch))">auto</span>
-
-                            <span v-if="chnamelookup(i.u,i.ch)&&(chnamelookup(i.u,i.ch)[2]=='red')" v-bind:style="{'background-color': 'rgb('+i.v+ ',0,0)' , 'border-color':'red'}"
-                                class="indicator"></span>
-                            <span v-if="chnamelookup(i.u,i.ch)&&(chnamelookup(i.u,i.ch)[2]=='green')" v-bind:style="{'background-color': 'rgb(0,'+i.v+',0)' , 'border-color':'green'}"
-                                class="indicator"></span>
-                            <span v-if="chnamelookup(i.u,i.ch)&&(chnamelookup(i.u,i.ch)[2]=='blue')" v-bind:style="{'background-color': 'rgb(0,0,'+i.v+')'  , 'border-color':'blue'}"
-                            class="indicator"></span>
-                            <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='uv'" v-bind:style="{'background-color': 'rgb(i.v,0,'+i.v+')'  , 'border-color':'blue'}"
-                                class="indicator"></span>
-                            <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='custom'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
-                                class="indicator"></span>
-                            <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='intensity'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
-                                class="indicator"></span>
-                            <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='white'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
-                                class="indicator"></span>
-
-                            <span v-if="chnamelookup(i.u,i.ch)==undefined" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}" class="indicator"></span>
-                            <span v-if="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='custom'"><br>
-                                <select :value="getValueRange(chnamelookup(i.u,i.ch),i.v)[2]" v-on:change="setCueValNolock(currentcueid,i.u,i.ch,mapvaluerange(i.v, chnamelookup(i.u,i.ch), $event.target.value))"> 
-                                    <option v-for="i of chnamelookup(i.u,i.ch).slice(3)" :value="i[2]">{{i[2]}}({{i[0]}} to {{i[1]}})</option>
-                                </select>
-                            </span>
-
-                        </div>
+                        <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid" v-for="i in h"></h-fader>
                     </div>
                 </div>
                 <div v-if="showLightingControls" style="clear:both">
@@ -857,12 +783,11 @@ from src import tagpoints
                         </label><br>
                         </div>
                         <div style="max-height:25em; overflow:scroll; background-color:rgba(255,255,255,0.4);">
-                            <h4>{{soundfilesdir}}</h4>
+                            <h4><a title="View in file manager" v-bind:href="'/settings/files'+encodeURI(soundfilesdir)" target="_blank">{{soundfilesdir}}</a></h4>
                             <ul>
                                 <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir('')">&ltTOP DIRECTORY&gt</li>
                                 <li v-if="soundfilesdir" style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">..</li>
                                 <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(i)" v-for="i in soundfileslisting[0]">{{i}}</li>
-                                <li><a v-bind:href="'/settings/files'+encodeURI(soundfilesdir)" target="_blank">View in File Manager</a></li>
 
                             </ul>
 
@@ -1109,6 +1034,63 @@ from src import tagpoints
      <br>
      </span></span>
 </template>
+
+
+<template id="h-fader">
+    <div class="hfader">
+        <span>
+            <b v-if="chinfo==undefined">{{i.ch}}</b>
+            <b v-if="chinfo" v-bind:title="'Actual channel:'+i.u+':'+i.ch">{{i.ch}}</b>
+        </span>
+
+        <span v-if="i.v !== null">
+            <input v-bind:disabled="chinfo&&chinfo[2]=='fine'" 
+                v-if="!monitor"
+                type="range" v-bind:step="(chinfo&&chinfo[2]=='fine')? 0.01:1"
+                :min="getValueRange(chinfo,i.v)[0]"
+                :max="getValueRange(chinfo,i.v)[1]"
+                v-on:input="setCueVal(currentcueid,i.u,i.ch,parseFloat($event.target.value))" v-model="i.v"
+                v-on:change="unlockCueValFader(currentcueid,i.u,i.ch)">
+
+            <meter v-if="monitor" type="range" max=255 v-bind:value="i.v"></meter>
+        </span>
+
+        <span v-if="i.v==null" class=grey>Released</span>
+
+
+
+        <span v-if="!(chinfo&&chinfo[2]=='fine')" title="Double click to set exact value"
+            v-on:dblclick="promptExactVal(currentcueid,i.u,parseInt(i.ch))" style="font-size:80%">{{Number(i.v).toPrecision(4)}}</span>
+        <span class=grey  v-if="chinfo&&chinfo[2]=='fine'"
+            v-on:dblclick="promptExactVal(currentcueid,i.u,parseInt(i.ch))">auto</span>
+
+        <span v-if="chinfo&&(chinfo[2]=='red')" v-bind:style="{'background-color': 'rgb('+i.v+ ',0,0)' , 'border-color':'red'}"
+            class="indicator"></span>
+        <span v-if="chinfo&&(chinfo[2]=='green')" v-bind:style="{'background-color': 'rgb(0,'+i.v+',0)' , 'border-color':'green'}"
+            class="indicator"></span>
+        <span v-if="chinfo&&(chinfo[2]=='blue')" v-bind:style="{'background-color': 'rgb(0,0,'+i.v+')'  , 'border-color':'blue'}"
+        class="indicator"></span>
+        <span v-if="chinfo&&chinfo[2]=='uv'" v-bind:style="{'background-color': 'rgb(i.v,0,'+i.v+')'  , 'border-color':'blue'}"
+            class="indicator"></span>
+        <span v-if="chinfo&&chinfo[2]=='custom'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
+            class="indicator"></span>
+        <span v-if="chinfo&&chinfo[2]=='intensity'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
+            class="indicator"></span>
+        <span v-if="chinfo&&chinfo[2]=='white'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
+            class="indicator"></span>
+
+        <span v-if="chinfo==undefined" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}" class="indicator"></span>
+
+        
+        <span v-if="chinfo&&chinfo[2]=='custom'"><br>
+            <select :value="getValueRange(chinfo,i.v)[2]" v-on:change="setCueValNolock(currentcueid,i.u,i.ch,mapvaluerange(i.v, chinfo, $event.target.value))"> 
+                <option v-for="i of chinfo.slice(3)" :value="i[2]">{{i[2]}}({{i[0]}} to {{i[1]}})</option>
+            </select>
+        </span>
+    </div>
+</template>
+
+
 <div>
 
     ${module.board.link.render('api_link')}
@@ -1140,7 +1122,64 @@ from src import tagpoints
             {
                 return ({ 'formatInterval': formatInterval })
             }
-        });
+        })
+        
+        getValueRange = function(d, v)
+            {
+                //Given a channel info list structure thing and a value, return the [min,max,name] of the range
+                //that the value is in
+                if (d == undefined) { return ([0, 255, "Unknown"]) }
+                var c = 0
+                for (i of d)
+                {
+                    if (c > 2)
+                    {
+                        if (i[1] >= v)
+                        {
+                            //Better to return Unknown then bad data
+                            if (i.length == 3)
+                            {
+                                return (i)
+                            }
+                        }
+                    }
+                    c += 1
+                }
+                return ([0, 255, "Unknown"])
+            }
+        
+
+        hfaderdata =
+        {
+            'setCueVal': function(sc, u, ch, val)
+            {
+                appData.lockedFaders[sc+":"+u+":"+ch]=true;
+                api_link.send(['scv', sc, u, ch, val]);
+            },
+            'setCueValNolock': function(sc, u, ch, val)
+            {
+                api_link.send(['scv', sc, u, ch, val]);
+            },
+            'unlockCueValFader': function(sc, u, ch)
+            {
+                delete appData.lockedFaders[sc+":"+u+":"+ch];
+            },
+            'getValueRange':getValueRange
+        }
+
+        Vue.component('h-fader',
+        {
+            template: '#h-fader',
+            //I is a data object having u,ch, and v, the universe channel and value.
+            //Chinfo is the channel info list from the fixtues that you get with chnamelookup
+            props: ['i', 'chinfo','monitor','currentcueid'],
+            data: function()
+            {
+                return (hfaderdata)
+            }
+        })        
+        
+
 
         //# sourceURL=appcode.js 
         appData = {
@@ -1284,29 +1323,7 @@ from src import tagpoints
                 }
                 appData.pushfixture(i)
             },
-            'getValueRange': function(d, v)
-            {
-                //Given a channel info list structure thing and a value, return the [min,max,name] of the range
-                //that the value is in
-                if (d == undefined) { return ([0, 255, "Unknown"]) }
-                var c = 0
-                for (i of d)
-                {
-                    if (c > 2)
-                    {
-                        if (i[1] >= v)
-                        {
-                            //Better to return Unknown then bad data
-                            if (i.length == 3)
-                            {
-                                return (i)
-                            }
-                        }
-                    }
-                    c += 1
-                }
-                return ([0, 255, "Unknown"])
-            },
+            'getValueRange': getValueRange,
             //Returns new value mapped into the range when user clicks to change the range of a custom val
             //Given current val, new range info and old range info
             'mapvaluerange': function(oldv, d, newrange)

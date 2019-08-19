@@ -77,7 +77,9 @@ def rl_log_exc(m):
 
 module.boards = []
 
-module.universes= weakref.WeakValueDictionary()
+universesLock = threading.Lock()
+module.universes={}
+
 module.lock = threading.RLock()
 boardsListLock = threading.Lock()
 
@@ -329,7 +331,8 @@ def getControlValue(cv,default=None):
                 return default
             raise
 
-module.fixtures = weakref.WeakValueDictionary()
+fixtureslock = threading.Lock()
+module.fixtures ={}
 fixtureschanged = {}
 
 def unpack_np_vals(v):
@@ -372,17 +375,21 @@ class Fixture():
 
 
         with module.lock:
-            if name in module.fixtures:
-                raise ValueError("Name in Use")
-            else:
-                module.fixtures[name]=self
-                self.name=name
+            with fixtureslock:
+                if name in module.fixtures:
+                    raise ValueError("Name in Use")
+                else:
+                    module.fixtures[name]=self
+                    self.name=name
     
     def getChannelByName(self,name):
         if self.startAddress:
             return self
                     
     def __del__(self):
+        with fixtureslock:
+            del module.fixtures[self.name]
+            
         ID=id(self)
         def f():
             try:
@@ -465,7 +472,10 @@ class Universe():
         #Reset in pre_render, indicates if we've not rendered a layer that we think is going to change soon
         #so far in this frame
         self.all_static = True
-        module.universes[name] =self
+        with universesLock:
+            if name in module.universes:
+                raise ValueError("Name "+name+ " is taken")
+            module.universes[name] =self
 
         #flag to apply all scenes, even ones not marked as neding rerender
         self.full_rerender = False
@@ -501,6 +511,10 @@ class Universe():
                 time.sleep(0.1)
 
         self.refresh_scenes()
+
+    def __del__(self):
+        with universesLock:
+                del module.universes[self.name]
 
     def setStatus(self,s,ok):
         "Set the status shown in the gui. ok is a bool value that indicates if the object is able to transmit data to the fixtures"
@@ -1005,9 +1019,15 @@ class LightBoard():
                     logger.exception("Error setting up fixtures")
                     print(traceback.format_exc(4))
                     self.ferrs += str(i)+'\n'+traceback.format_exc(2)
+                    
+            with universesLock:
+                for u in module.universes:
+                    self.pushChannelNames(u)
 
-            for u in module.universes:
-                self.pushChannelNames(u)
+            with fixtureslock:
+                for f in module.fixtures:
+                    self.pushChannelNames("@"+f)
+
             self.ferrs = self.ferrs or 'No Errors!'
             self.pushfixtures()
 
@@ -1115,15 +1135,26 @@ class LightBoard():
         self.link.send(['tracks',{i:module.runningTracks[i].name for i in module.runningTracks}])
 
     def pushChannelNames(self,u):
-        if u in module.universes:
-            d = {}
-            for i in module.universes[u].channels:
-                fixture = module.universes[u].channels[i]
-                if not fixture.startAddress:
-                    return
-                data= [fixture.name]+fixture.channels[i-fixture.startAddress]
-                d[i]=data
+        "This has expanded to push more data than names"
+        if not u[0]=='@':      
+            if u in module.universes:
+                d = {}
+                for i in module.universes[u].channels:
+                    fixture = module.universes[u].channels[i]
+                    if not fixture.startAddress:
+                        return
+                    data= [fixture.name]+fixture.channels[i-fixture.startAddress]
+                    d[i]=data
+                self.link.send(['cnames',u,d])
+        else:
+            d={}
+            if u[1:] in module.fixtures:
+                f= module.fixtures[u[1:]]
+                for i in range(0,len(f.channels)):
+                    d[f.channels[i][0]] = [u[1:]]+ f.channels[i]
             self.link.send(['cnames',u,d])
+
+
 
     def pushMeta(self,sceneid):
         scene = module.scenes[sceneid]
@@ -2129,7 +2160,6 @@ class Cue():
     def setValue(self,universe,channel,value):
         disallow_special(universe, allow="@")
         if not isinstance(channel,(str,int)):
-            print(channel)
             raise Exception("Only str or int channel numbers allowed")
         
         #Assume anything that can be an int, is meant to be
@@ -2153,12 +2183,12 @@ class Cue():
                     del self.values[universe][channel]
                 if not self.values[universe]:
                     del self.values[universe]
+                    
+            self.pushoneval(universe,channel,value)
             mapChannel(universe, channel)
-
             x = mapChannel(universe, channel)
             if x:
                 universe, channel = x[0],x[1]
-                self.pushoneval(universe,channel,value)
 
                 if self.scene().cue==self and self.scene().isActive():
                     self.scene().rerender=True    

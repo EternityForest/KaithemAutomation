@@ -153,7 +153,7 @@ class Pipeline():
         return True
 
 
-    def connect(self):
+    def connect(self, restore=[]):
         self._outputs = []
         for i in self.outputs:
             x = jackmanager.Airwire(self.name+"_out", i)
@@ -162,6 +162,18 @@ class Pipeline():
 
         self._input = jackmanager.Airwire(self.input, self.name+"_in") 
         self._input.connect()
+        for i in restore:
+            for j in i[1]:
+                jackmanager.connect(i[0],j)
+
+    def backup(self):
+        c = []
+        
+        for i in jackmanager.getPorts(self.name+"_in:"):
+            c.append((i, jackmanager.getConnections(i)))
+        for i in jackmanager.getPorts(self.name+"_out:"):
+            c.append((i, jackmanager.getConnections(i)))
+        return c
 
     def setInput(self, input):
         self.input=input
