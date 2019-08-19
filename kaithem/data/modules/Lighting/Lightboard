@@ -2029,13 +2029,9 @@ from src import tagpoints
                 ]);
 
             },
-            'rmFixCue': function(f)
+            'rmFixCue': function(cue,fix)
             {
-                api_link.send(['rmcuef', appData.scenecues[
-                        appData.scenename]
-                    [appData.selectedCues[appData.scenename]],
-                    f
-                ]);
+                api_link.send(['rmcuef', cue,fix]);
 
             },
 
@@ -2208,6 +2204,10 @@ from src import tagpoints
             if (c == "universes")
             {
                 appData.universes = v[1]
+            }
+            if (c == "soundoutputs")
+            {
+                appData.soundCards = v[1]
             }
             if (c == 'scenecues')
             {

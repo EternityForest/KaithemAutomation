@@ -989,6 +989,14 @@ class LightBoard():
 
         self.loadDict(kaithem.registry.get("lighting/scenes",{}))
         self.refreshFixtures()
+        def f(self,*dummy):
+            self.link.send(['soundoutputs',[i for i in kaithem.sound.outputs()]])
+
+        self.callback_jackports = f
+        kaithem.message.subscribe("/system/jack/newport/",f)
+        kaithem.message.subscribe("/system/jack/delport/",f)
+        
+    
     
     def refreshFixtures(self):
         with module.lock:
@@ -1416,18 +1424,13 @@ class LightBoard():
                 self.link.send(["cuedata",msg[1],cue.values])
 
             if msg[0] == "rmcuef":
-                x = module.fixtures[msg[2]]
-                ch = x.startAddress
-                u = x.universe
-                if not ch:
-                    return
-                if not u:
-                    return
-
-                for i in x.channels:
-                    cues[msg[1]].setValue(u,ch,None)
-                    ch+=1
                 s = cues[msg[1]]
+                
+
+                x = module.fixtures[msg[2][1:]]
+                
+                for i in x.channels:
+                    s.setValue(msg[2],i[0],None)
                 self.link.send(["cuedata",msg[1],s.values])
 
 
@@ -2006,7 +2009,7 @@ class Cue():
     def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, fadeout=0, length=0,track=True, nextCue = None,shortcut=None,sound='',soundOutput=None,rel_length=False, id=None,number=None,
         lengthRandomize=0,script='',onEnter=None,onExit=None,**kw):
         #This is so we can loop through them and push to gui
-        self.id = random.random()+timefunc()
+        self.id = uuid.uuid4().hex
         self.name = name
         self.script = script
         self.onEnter = onEnter
@@ -2095,6 +2098,12 @@ class Cue():
             if len(i().newDataFunctions)<100:
                 i().newDataFunctions.append(lambda s:s.pushCueMeta(self.id))
 
+    
+    def pushData(self):
+        for i in module.boards:
+            if len(i().newDataFunctions)<100:
+                i().newDataFunctions.append(lambda s:s.pushCueData(self.id))
+
     def pushoneval(self,u,ch,v):
         for i in module.boards:
             if len(i().newDataFunctions)<100:
@@ -2179,12 +2188,17 @@ class Cue():
                     reset = True
                 self.values[universe][channel] = value
             else:
+                empty=False
                 if channel in self.values[universe]:
                     del self.values[universe][channel]
                 if not self.values[universe]:
+                    empty=True
                     del self.values[universe]
-                    
+                if empty:
+                    self.pushData()        
             self.pushoneval(universe,channel,value)
+            
+                
             mapChannel(universe, channel)
             x = mapChannel(universe, channel)
             if x:
