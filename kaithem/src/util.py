@@ -50,6 +50,7 @@ else:
     datadir = os.path.join(dn,'../data')
 
 eff_wordlist = [s.split()[1] for s in open(os.path.join(datadir,'words_eff.txt'))]
+mnemonic_wordlist = [s.strip() for s in open(os.path.join(datadir,'words_mnemonic.txt'))]
 
 def memorableHash(x, num=3, separator=""):
     "Use the diceware list to encode a hash. Not meant to be secure."

@@ -24,7 +24,7 @@ import os,re,time,subprocess,hashlib,struct,threading,atexit,select,traceback
 
 #Util is not used anywhere else
 from . import util, workers
-eff_wordlist = util.eff_wordlist
+wordlist = util.mnemonic_wordlist
 
 #This is an acceptable dependamcy, it will be part of libkaithem if such a thing exists
 from . import messagebus
@@ -176,6 +176,8 @@ class MultichannelAirwire(MonoAirwire):
                         activeConnections[i[0].name,i[1].name]=self
 
     def disconnect(self):
+        if not jackclient:
+            return
         f,t=self._getEndpoints()
         if not f:
             return
@@ -390,7 +392,7 @@ def cleanupstring(s):
 
     x = s.replace(" ","").replace("\n","").replace("*","").replace("(","")
     x=x.replace(")","").replace("-","").replace(":",".").replace("Audio","")
-    x=x.replace("Lpe","").replace("-","")
+    x=x.replace("Lpe","").replace("-","").replace("Generic","").replace("Device",'')
     return x
 
 def cardsfromregex(m, cards,usednames = []):
@@ -399,19 +401,134 @@ def cardsfromregex(m, cards,usednames = []):
 
     d = {}
 
+    usedFirstWords = {}
+
+    #We are going to list out all the PCI bus devices and give them numbers
+    #So we can use fewer bits for that. Here we assign them all numbers hopefully
+    #From 0 to 128. Scatter around by hash to at least try to stay consistent if
+    #They change.
+    pciNumbers = {}
+    usedNumbers = {}
+    if os.path.exists("/sys/bus/pci/devices"):
+        for i in sorted(os.listdir("/sys/bus/pci/devices")):
+            n=struct.unpack("<Q",hashlib.sha1(i.encode('utf8')).digest()[:8])[0]%128
+            while n in usedNumbers:
+                n+=1
+            usedNumbers[n]=i
+            pciNumbers[n]=i
+            
+            
     #Why sort? We need consistent ordering so that our conflict resolution
     #has the absolute most possible consistency
+    def key(a):
+        "Sort USBs last, so that PCI stuff gets the first pick"
+        return(1 if ('usb' in a[2].lower()) else 0, a)
+
     m= sorted(m)
     for i in m:
         #We generate a name that contains both the device path and subdevice
         generatedName = cards[i[0]]+"."+i[2]
 
-        numberstring = compressnumbers(cards[i[0]])
 
-        h = memorableHash(cards[i[0]]+":"+i[2])[:12]
+        locator = cards[i[0]]
+
+        nums = []
+
+        #Handle USB locators
+        if 'usb' in locator:
+            x = locator.split("-")
+            if len(x)>2:
+                controller = x[1]
+                usbpath = x[2]
+
+                if not controller in pciNumbers:
+                    #Not a PCI controller. We don't know how to enumerate these in a compact
+                    #Way, so we have to just trust that there is only one or two of them
+                    pval = 1
+                    accum = 0
+                    #Use base 8 to convert the usb path into a number. Assume that it's little endian.
+                    #We of course may have numbers that overflow and such, but we will deal with collisions
+                    #From that.
+                    digitNumber = 0
+                    for j in reversed(controller):
+                        if j.lower() in '0123456789abcdef':
+                            accum+=int(j,16)*pval
+                            #Optimize for PCI bus stuff.  The last digit(Reversed to the first)
+                            #Can only be 0 to 7. We use a nonlinear base system where the firt hex
+                            #digit is multiplied by 8, and the second by 8*16, even though it can be up to 15.
+                            #This is very confusing.
+                            if digitNumber:
+                                pval*=16
+                            else:
+                                pval*=8
+                            digitNumber +=1
+
+                    #We just have to trust that we aren't likely to have two of these weird USB
+                    #things with locators separated by more than 128, and if we do the chance
+                    #of collision is low anyway.  This whole block is mostly for embedded ARM stuff
+                    #with one controller
+                    n = usbpath[0]
+                    if n in '0123456789':
+                        accum = int(n)*128
+                else:
+                    #We know the PCI number we generated for this. Take the first digit
+                    #Of the path and add it in, so that the first word varies with root port.
+                    #This seems kinda nice, to group things by root port.
+                    n = usbpath[0]
+                    if n in '0123456789':
+                        accum = int(n)*128 +pciNumbers[controller]
+                    else:
+                        accum=pciNumbers[controller]
+
+                #Choose an unused first word based on what the controller is.
+                first= wordlist[accum%1621]
+                s= 0
+                #Now we are going to fix collisons.
+                while first in usedFirstWords and s<100:
+                    s+=1
+                    if usedFirstWords[first]==controller:
+                        break
+                    first=memorableHash(controller+str(s))
+                usedFirstWords[first]=controller
+
+                pval = 1
+                accum = 0
+                #Use base 8 to convert the usb path into a number. Assume that it's little endian.
+                #We of course may have numbers that overflow and such, but we will deal with collisions
+                #From that.
+                for j in usbpath:
+                    if j in '0123456789':
+                        accum+=int(j)*pval
+                        pval*=8
+                # 1621 is a prime number. We use this for modulo
+                # to prevent discarding higher order bits.
+                second = wordlist[accum%1621]
+            else:
+                first = memorableHash(x[2])
+                second = memorableHash(x[1])
+        #handle nonusb
+        else:
+            controller =locator
+            first=memorableHash(controller)
+
+            while first in usedFirstWords and s<100:
+                s+=1
+                if usedFirstWords[first]==controller:
+                    break
+                first=memorableHash(controller+str(s))
+            second=memorableHash(i[3])
+
+        numberstring = compressnumbers(locator)
+
+        #h = memorableHash(cards[i[0]]+":"+i[2])[:12]
+        
+        #Note that we could still have collisions. We are going to fix that, by
+        # Rehashing the ones that need it. 
+        h = first+second
+
 
         n = cleanupstring(i[3])
-        jackname =n+'_'+h
+        jackname =n[:4]+'_'+h
         jackname+=numberstring
         jackname=jackname[:28]
 
@@ -420,7 +537,7 @@ def cardsfromregex(m, cards,usednames = []):
         while (jackname in d) or jackname in usednames:
             h = memorableHash(jackname+cards[i[0]]+":"+i[2])[:12]
             n = cleanupstring(i[3])
-            jackname =n+'_'+h
+            jackname =n[:4]+'_'+h
             jackname+=numberstring
             jackname=jackname[:28]
         
@@ -522,8 +639,8 @@ def memorableHash(x, num=1, separator="",caps=False):
     for i in range(num):
         while 1:
             x = hashlib.sha256(x).digest()
-            n = struct.unpack("<Q",x[:8])[0]%len(eff_wordlist)
-            e = eff_wordlist[n]
+            n = struct.unpack("<Q",x[:8])[0]%len(wordlist)
+            e = wordlist[n]
             if caps:
                 e=e.capitalize()
             #Don't have a word that starts with the letter the last one ends with
@@ -684,7 +801,6 @@ def handleManagedSoundcards():
         #wants to hear.
         startPulse = False
         if (inp,op)==(oldi,oldo):
-
             #However some things we need to retry.
             #Device or resource busy being the main one
             for i in inp:
