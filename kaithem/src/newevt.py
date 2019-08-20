@@ -1293,7 +1293,7 @@ def getEventsFromModules(only = None):
                             f.module =module
                             f.resource =resource
 
-            toLoad =sorted(toLoad,key= lambda x: (x.module,x.module))
+            toLoad =sorted(toLoad,key= lambda x: (x.module,x.resource))
             nextRound = []
             #for each allowed loading attempt, we loop over
             #the events and try to set them up. If this fails,

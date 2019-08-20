@@ -559,6 +559,11 @@ class MPlayerWrapper(SoundWrapper):
                     x = commonSoundAliases[x].mplayerName
                 
                 cmd.extend(["-ao",x])
+            else:
+                if jackClientsFound:
+                    if 'system' in commonSoundAliases:
+                        x = commonSoundAliases['system'].mplayerName
+                        cmd.extend(["-ao",x])
 
 
             if "video_output" in kw:

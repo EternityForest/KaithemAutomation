@@ -75,7 +75,7 @@ def ensureConnections(*a,**k):
                     print(traceback.format_exc)
     except:
         raise
-messagebus.subscribe("/system/jack/newport/",ensureConnections)
+messagebus.subscribe("/system/jack/newport",ensureConnections)
 
 import weakref
 allConnections=weakref.WeakValueDictionary()
@@ -274,15 +274,15 @@ def onPortConnect(a,b,connected):
             except:
                 pass
     else:
-        log.info("JACK port "+ a.name+" disconnected from "+b.name)
+        log.info("JACK port "+ a.name+" connected to "+b.name)
 
 def onPortRegistered(port,registered):
     if registered:
         log.info("JACK port registered: "+port.name)
-        messagebus.postMessage("/system/jack/newport/",[port.name, port.is_input] )
+        messagebus.postMessage("/system/jack/newport",[port.name, port.is_input] )
     else:
         log.info("JACK port unregistered: "+port.name)
-        messagebus.postMessage("/system/jack/delport/",port.name)
+        messagebus.postMessage("/system/jack/delport",port.name)
 
 class ChannelStrip():
     def init(self, name,stereo=False, sends=[]):
@@ -712,8 +712,14 @@ def startJack():
         f = open(os.devnull,"w")
         g = open(os.devnull,"w")
         jackp =subprocess.Popen("jackd --realtime -P 70 -S -d alsa -d hw:0,0 -p 128 -n 3 -r 48000",stdout=f, stderr=g, shell=True,stdin=subprocess.DEVNULL)    
-
-
+        def f():
+            #Poll till it's actually started, then post the message
+            for i in range(120):
+                if getPorts():
+                    break
+                time.sleep(0.5)
+            messagebus.postMessage("/system/jack/started",{})
+        workers.do(f)
 
 portDisplayNames = {}
 portJackNames = {}

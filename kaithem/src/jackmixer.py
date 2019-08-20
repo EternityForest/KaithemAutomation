@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import re, jack,time,json
+import re, jack,time,json,logging
 
 from . import widgets, messagebus,util,registry
 from . import jackmanager, gstwrapper
@@ -25,6 +25,8 @@ global_api.require("/users/mixer.edit")
 
 #Configured list of mixer channel strips
 channels = {}
+
+log =logging.getLogger("system.mixer")
 
 
 def replaceClientNameForDisplay(i):
@@ -272,11 +274,18 @@ class MixingBoard():
         self.channels = {}
         self.channelObjects ={}
         self.lock = threading.Lock()
-
+        def f(t,v):
+            self.reload()
+        messagebus.subscribe("/system/jack/started", f)
+        self.reloader = f
     def loadData(self,d):
         with self.lock:
             self._loadData(d)
     
+    def reload(self):
+        print("999999999999999999999999999999999999999999999999")
+        self.loadData(self.channels)
+
     def _loadData(self,x):
         #Raise an error if it can't be serialized
         json.dumps(x)
@@ -285,8 +294,11 @@ class MixingBoard():
 
         self.channels=x
         for i in self.channels:
-            self._createChannel(i,self.channels[i])
-
+            log.info("Creating mixer channel "+i)
+            try:
+                self._createChannel(i,self.channels[i])
+            except:
+                log.exception("Could not create channel "+i)
     def sendState(self):
         with self.lock:
             inPorts = jackmanager.getPorts(is_audio=True, is_input=True)

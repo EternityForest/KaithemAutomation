@@ -15,7 +15,7 @@
 
 "This file manages the kaithem global message bus that is used mostly for logging but also for many other tasks."
 
-import weakref,threading,time,os,random,traceback,cherrypy
+import weakref,threading,time,os,random,traceback,cherrypy,logging
 from . import workers
 from collections import defaultdict, OrderedDict
 
@@ -25,7 +25,7 @@ _subscribers_list_modify_lock = threading.RLock()
 parsecache = OrderedDict()
 parsecachecache = {}
 
-
+log =logging.getLogger("system.messagebus")
 def normalize_topic(topic):
     """"Because some topics are equivalent("/foo" and "foo"), this lets us convert them to the canonical "/foo" representation.
     Note that "/foo/" is not the same as "/foo", because a trailing slash indicates a "directory"."""
@@ -127,8 +127,11 @@ class MessageBus(object):
                 try:
                     if errors:
                         self.postMessage("/system/messagebus/errors","Error in subscribed function handling topic: " + topic+"\n"+traceback.format_exc(6),False)
-                except:
-                        pass
+                        f.alreadyLogged=True
+                        if not hasattr(f,"alreadyLogged"):
+                            log.exception("Error in subscribed function for "+topic)
+                except Exception as e:
+                        print("err",e)
         return g
 
 
