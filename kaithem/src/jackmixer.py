@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import re, jack,time,json,logging
+import re, jack,time,json,logging,copy
 
 from . import widgets, messagebus,util,registry
 from . import jackmanager, gstwrapper
@@ -58,7 +58,7 @@ effectTemplates={
         "type":"voicedsp", 
         "displayType":"Voice DSP",
         "help": "Noise Removal, AGC, and AEC", 
-        "gstelement": "webrtcdsp",
+        "gstElement": "webrtcdsp",
         
         "params": {
           "gain-control": {
@@ -88,29 +88,29 @@ effectTemplates={
             'noise-suppression-level': 0
         },
         "preSupportElements":[
-            {"gstelement": "queue", "gstSetup":{"min-threshold-time": 25*1000*000}},
-            {"gstelement": "audioconvert", "gstSetup":{}},
-            {"gstelement": "interleave", "gstSetup":{}}
+            {"gstElement": "queue", "gstSetup":{"min-threshold-time": 25*1000*000}},
+            {"gstElement": "audioconvert", "gstSetup":{}},
+            {"gstElement": "interleave", "gstSetup":{}}
 
         ],
         "postSupportElements":[
-            {"gstelement": "audioconvert", "gstSetup":{}}
+            {"gstElement": "audioconvert", "gstSetup":{}}
         ]
     },
 
-    "voicedsprobe":{"type":"voicedsprobe", "displayType":"Voice DSP Probe","help": "When using voice DSP, you must have one of these right before the main output.", "gstelement": "webrtcechoprobe",
+    "voicedsprobe":{"type":"voicedsprobe", "displayType":"Voice DSP Probe","help": "When using voice DSP, you must have one of these right before the main output.", "gstElement": "webrtcechoprobe",
     "params":{}, "gstSetup":{},
      "preSupportElements":[
-        {"gstelement": "audioconvert", "gstSetup":{}},
-        {"gstelement": "interleave", "gstSetup":{}}
+        {"gstElement": "audioconvert", "gstSetup":{}},
+        {"gstElement": "interleave", "gstSetup":{}}
 
         ],
     "postSupportElements":[
-        {"gstelement": "audioconvert", "gstSetup":{}}
+        {"gstElement": "audioconvert", "gstSetup":{}}
     ]
     },
 
-    "3beq":{"type":"3beq", "displayType":"3 Band EQ","help": "Basic builtin EQ", "gstelement": "equalizer-nbands",
+    "3beq":{"type":"3beq", "displayType":"3 Band EQ","help": "Basic builtin EQ", "gstElement": "equalizer-nbands",
         "params": {
           "0:gain": {
                 "type":"float",
@@ -157,7 +157,199 @@ effectTemplates={
             "band2::bandwidth": 3600,
             "band3::bandwidth": 19000,
         }
+    },
+    "plateReverb":
+    {
+        "displayType":"Plate Reverb",
+        "type": "plateReverb",
+        "monoGstElement": "ladspa-caps-so-plate",
+        "stereoGstElement": "ladspa-caps-so-plate",
+        'help': "Basic plate reverb. From the CAPS plugins.",
+        "params": {
+          "blend": {
+                "type":"float",
+                "displayName": "Mix",
+                "value": 0.25,
+                "min": 0,
+                "max": 1,
+                "step":0.01,
+                "sort":0
+            },
+
+            "bandwidth": {
+                "type":"float",
+                "displayName": "Bandwidth",
+                "value": 0.5,
+                "min": 0,
+                "max": 1,
+                "step":0.01,
+                "sort":1
+            },
+
+            "tail": {
+                "type":"float",
+                "displayName": "Tail",
+                "value": 0.75,
+                "min": 0,
+                "max": 1,
+                "step":0.01,
+                "sort":2
+            },
+            "damping": {
+                "type":"float",
+                "displayName": "Damping",
+                "value": 0.5,
+                "min": 0,
+                "max": 1,
+                "step":0.01,
+                "sort":3
+            }
+
+            },
+    "gstSetup":
+            {},
+        #It's stereo out, we may need to mono-ify it.
+        "postSupportElements":[
+            {"gstElement": "audioconvert", "gstSetup":{}}
+        ]
+    },
+
+    "sc1Compressor":
+    {
+        "type": "sc1Compressor",
+        "displayType":"SC1 Compressor",
+        "help": "Steve Harris SC1 compressor",
+        "monoGstElement": "ladspa-sc1-1425-so-sc1",
+        "params": {
+
+            "threshold-level": {
+                "type":"float",
+                "displayName": "Threshold",
+                "value": -12,
+                "min": -30,
+                "max": 0,
+                "step":0.01,
+                "sort":0
+            },
+          "attack-time": {
+                "type":"float",
+                "displayName": "Attack",
+                "value": 100,
+                "min": 1,
+                "max": 400,
+                "step":0.01,
+                "sort":1
+            },
+
+            "release-time": {
+                "type":"float",
+                "displayName": "Release",
+                "value":200,
+                "min": 0,
+                "max": 800,
+                "step":0.01,
+                "sort":2
+            },
+
+            
+            "ratio": {
+                "type":"float",
+                "displayName": "Ratio",
+                "value": 2.5,
+                "min": 0,
+                "max": 10,
+                "step":0.1,
+                "sort":3
+            },
+            "knee-radius": {
+                "type":"float",
+                "displayName": "Knee",
+                "value": 8,
+                "min": 0,
+                "max": 10,
+                "step":0.1,
+                "sort":4
+            },
+            "makeup-gain": {
+                "type":"float",
+                "displayName": "Gain",
+                "value": 8,
+                "min": 0,
+                "max": 24,
+                "step":0.1,
+                "sort":5
+            }
+
+            },
+      "gstSetup":
+            {},
+    },
+    "echo":
+    {
+        "type": "echo",
+        "gstElement":"audioecho",
+        "help":"Simple echo",
+        "displayType":"echo",
+        "params": {
+
+            "delay": {
+                "type":"float",
+                "displayName": "Delay",
+                "value": 250,
+                "min": 10,
+                "max": 2500,
+                "step":10,
+                "sort":0
+            },
+          "intensity": {
+                "type":"float",
+                "displayName": "Mix",
+                "value": 0.5,
+                "min": 0,
+                "max": 1,
+                "step":0.01,
+                "sort":1
+            },
+         "feedback": {
+                "type":"float",
+                "displayName": "feedback",
+                "value": 0,
+                "min": 0,
+                "max": 1,
+                "step":0.01,
+                "sort":2
+            },
+        },
+        'gstSetup':{
+            "max-delay":3000*1000*1000
+        }
+    },
+
+   "queue":
+    {
+        "type": "queue",
+        "gstElement":"queue",
+        "help":"Queue that enables multicore if placed before heavy effects.",
+        "displayType":"queue",
+        "params": {
+
+            "min-threshold-time": {
+                "type":"float",
+                "displayName": "Delay",
+                "value": 250,
+                "min": 10,
+                "max": 2500,
+                "step":10,
+                "sort":0
+            },
+
+        },
+        'gstSetup':{
+            "max-size-time": 5*1000*1000*1000,
+            "leaky":2
+        }
     }
+
 }
 
 
@@ -178,11 +370,36 @@ channelTemplate = {"effects":[effectTemplates['fader']], "input": '', 'output': 
 
 specialCaseParamCallbacks={}
 
+
+#Returning true enables the default param setting action
 def beq3(e, p, v):
     if p =="band2::freq":
         e.set_property("band2::bandwidth", v*0.3)
+    return True
+
+def echo(e, p, v):
+    if p =="delay":
+        e.set_property("delay", v*1000000)
+        return False
+    return True
+
+def queue(e, p, v):
+    if p =="min-threshold-time":
+        e.set_property("min-threshold-time", v*1000000)
+        #Set to something short to clear the already buffered crap through leakage
+        e.set_property("max-size-time", v*1000000 )
+        #We should be able to depend on JACK not to let us get horribly out of sync,
+        #The read rate should be exactly the write rate, so we give
+        #As much buffer as you can before delay sounds worse than dropouts.
+        e.set_property("max-size-time", v*1000000 + 50*1000*1000)
+
+        return False
+    return True
 
 specialCaseParamCallbacks['3beq']= beq3
+specialCaseParamCallbacks['echo']= echo
+specialCaseParamCallbacks['queue']= queue
+
 
 
 
@@ -209,17 +426,31 @@ class ChannelStrip(gstwrapper.Pipeline):
             else:
                 if "preSupportElements" in i:
                     for j in i['preSupportElements']:
-                        self.addElement(j['gstelement'],**j['gstSetup'])
+                        self.addElement(j['gstElement'],**j['gstSetup'])
 
-                self.effectsById[i['id']] = self.addElement(i['gstelement'],**i['gstSetup'])
+                #Prioritize specific mono or stereo version of elements
+                if self.channels == 1 and 'monoGstElement' in i:
+                    self.effectsById[i['id']] = self.addElement(i['monoGstElement'],**i['gstSetup'])
+                elif self.channels == 2 and 'stereoGstElement' in i:
+                    self.effectsById[i['id']] = self.addElement(i['stereoGstElement'],**i['gstSetup'])
+                else:
+                    self.effectsById[i['id']] = self.addElement(i['gstElement'],**i['gstSetup'])
+
+
                 self.effectDataById[i['id']]= i
                 
                 if "postSupportElements" in i:
                     for j in i['postSupportElements']:
-                        self.addElement(j['gstelement'],**j['gstSetup'])
+                        self.addElement(j['gstElement'],**j['gstSetup'])
                
                 for j in i['params']:
-                    self.setProperty(self.effectsById[i['id']],j, i['params'][j]['value'])
+                    if i['type'] in specialCaseParamCallbacks:
+                        x=specialCaseParamCallbacks[i['type']]
+                        if x(self.effectsById[i['id']], j, i['params'][j]['value'] ):
+                            self.setProperty(self.effectsById[i['id']],j, i['params'][j]['value'])
+                    else:
+                        self.setProperty(self.effectsById[i['id']],j, i['params'][j]['value'])
+
 
         self.setFader(d["fader"])
         self.setInput(d['input'])
@@ -229,10 +460,13 @@ class ChannelStrip(gstwrapper.Pipeline):
         with self.lock:
             paramData = self.effectDataById[effectId]['params'][param]
             paramData['value']=value
-            self.setProperty(self.effectsById[effectId], param, value)
             t = self.effectDataById[effectId]['type']
             if t in specialCaseParamCallbacks:
-                specialCaseParamCallbacks[t](self.effectsById[effectId], param, value)
+                if specialCaseParamCallbacks[t](self.effectsById[effectId], param, value):
+                    self.setProperty(self.effectsById[effectId], param, value)
+            else:
+                self.setProperty(self.effectsById[effectId], param, value)
+
     
     def addLevelDetector(self):
         self.addElement("level", message=True, peak_ttl=3*1000*1000*1000)
@@ -283,7 +517,6 @@ class MixingBoard():
             self._loadData(d)
     
     def reload(self):
-        print("999999999999999999999999999999999999999999999999")
         self.loadData(self.channels)
 
     def _loadData(self,x):
@@ -327,13 +560,13 @@ class MixingBoard():
         time.sleep(0.01)
         time.sleep(0.01)
 
-        p = ChannelStrip(name,board=self)
+        p = ChannelStrip(name,board=self, channels=data.get('channels',2))
+        self.channelObjects[name]=p
         p.fader=None
         p.loadData(data)
         p.addLevelDetector()
         p.finalize()
         p.connect(restore=backup)
-        self.channelObjects[name]=p
         self.api.send(['channels', self.channels])
 
 
@@ -388,7 +621,9 @@ class MixingBoard():
             if not data[1]:
                 return
             util.disallowSpecialChars(data[1])
-            self.createChannel(data[1], channelTemplate)
+            c = copy.deepcopy(channelTemplate)
+            c['channels']=data[2]
+            self.createChannel(data[1], c)
 
         if data[0]=='setEffects':
             "Directly set the effects data of a channel"
@@ -419,7 +654,9 @@ class MixingBoard():
 
         if data[0]=='addEffect':
             with self.lock:
-                self.channels[data[1]]['effects'].append(effectTemplates[data[2]])
+                fx = copy.deepcopy(effectTemplates[data[2]])
+                fx['id']=str(uuid.uuid4())
+                self.channels[data[1]]['effects'].append(fx)
                 self.api.send(['channels', self.channels])
                 self._createChannel(data[1], self.channels[data[1]])
 

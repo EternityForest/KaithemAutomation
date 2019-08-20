@@ -969,15 +969,15 @@ def connect(f,t):
         if  isinstance(f,str):
             f = jackclient.get_port_by_name(f)
         if  isinstance(t,str):
-            t = jackclient.get_port_by_name(f)
+            t = jackclient.get_port_by_name(t)
         
         f_input =  f.is_input
 
         if f.is_input:
-            if t.is_input:
+            if not t.is_output:
                 raise ValueError("Cannot connect two inputs",str((f,t)))
         else:
-            if not t.is_input:
+            if t.is_output:
                 raise ValueError("Cannot connect two outputs",str((f,t)))
         f=f.name
         t=t.name

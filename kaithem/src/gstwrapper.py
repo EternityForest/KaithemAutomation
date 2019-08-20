@@ -66,7 +66,7 @@ class AudioFilePlayer():
         self.decoder.link(self.converter)
         self.converter.link(self.converter2)
 
-        if not output:
+        if output=="__auto__":
             self.sink = Gst.ElementFactory.make('autoaudiosink')
         if ":" in output:
             self.sink = Gst.ElementFactory.make('jackaudiosink')
@@ -116,9 +116,12 @@ class Pipeline():
         self.src.set_property("latency-time",10)
 
         self.capsfilter = Gst.ElementFactory.make('capsfilter')
-
         self.capsfilter.caps = Gst.Caps("audio/x-raw, channels="+str(channels))
 
+
+        self.capsfilter2 = Gst.ElementFactory.make('capsfilter')
+        self.capsfilter2.caps = Gst.Caps("audio/x-raw, channels="+str(channels))
+        
         self.sink = Gst.ElementFactory.make('jackaudiosink')
         self.sink.set_property("buffer-time",8000)
         self.sink.set_property("latency-time",4000)
@@ -140,6 +143,8 @@ class Pipeline():
 
         self.pipeline.add(self.src)
         self.pipeline.add(self.capsfilter)
+        self.pipeline.add(self.capsfilter2)
+
         self.pipeline.add(self.sink)
         self.channels = channels
 
@@ -206,8 +211,10 @@ class Pipeline():
 
     def finalize(self):
         with self.lock:
-            if not self.elements[-1].link(self.sink):
+            if not self.elements[-1].link(self.capsfilter2):
                 raise RuntimeError("Could not link "+str(self.elements[-1])+" to "+str(self.sink))
+            if not self.capsfilter2.link(self.sink):
+                raise RuntimeError("Could not link "+str(self.capsfilter2)+" to "+str(self.sink))
             self.pipeline.get_bus().add_signal_watch()
             self.pgbcobj = self.pipeline.get_bus().connect('message::element', self.on_message)
             self.pipeline.set_state(Gst.State.PLAYING)
