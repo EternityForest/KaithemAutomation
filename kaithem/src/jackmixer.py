@@ -532,13 +532,19 @@ class MixingBoard():
                 self._createChannel(i,self.channels[i])
             except:
                 log.exception("Could not create channel "+i)
+
     def sendState(self):
         with self.lock:
-            inPorts = jackmanager.getPorts(is_audio=True, is_input=True)
-            outPorts = jackmanager.getPorts(is_audio=True, is_output=True)
+            inPorts = jackmanager.getPortNamesWithAliases(is_audio=True, is_input=True)
+            outPorts = jackmanager.getPortNamesWithAliases(is_audio=True, is_output=True)
+            midiOutPorts = jackmanager.getPortNamesWithAliases(is_midi=True, is_output=True)
+            midiInPorts = jackmanager.getPortNamesWithAliases(is_midi=True, is_input=True)
 
-            self.api.send(['inports',{i.name:{} for i in  inPorts}])
-            self.api.send(['outports',{i.name:{} for i in  outPorts}])
+            self.api.send(['inports',{i:{} for i in  inPorts}])
+            self.api.send(['outports',{i:{} for i in  outPorts}])
+            self.api.send(['midioutports',{i:{} for i in  midiInPorts}])
+            self.api.send(['midioutports',{i:{} for i in  midiOutPorts}])
+
             self.api.send(['channels', self.channels])
             self.api.send(['effectTypes', effectTemplates])
             self.api.send(['presets',registry.ls("/system.mixer/presets/")])

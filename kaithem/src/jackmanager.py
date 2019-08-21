@@ -329,7 +329,7 @@ class ChannelStrip():
 #and may run multiple times when kaithem boots due to dependancy resolution
 __doc__=''
 
-oldi,oldo,oldnames  = None,None,{}
+oldi,oldo,oldmidis  = None,None,None
 
 
 
@@ -395,14 +395,9 @@ def cleanupstring(s):
     x=x.replace("Lpe","").replace("-","").replace("Generic","").replace("Device",'')
     return x
 
-def cardsfromregex(m, cards,usednames = []):
-    """Given the regex matches from arecord or aplay, match them up to the actual 
-    devices and give them memorable aliases"""
 
-    d = {}
-
-    usedFirstWords = {}
-
+def enumeratePCI():
+    "generate the PCI numbering that cardsfromregex needs"
     #We are going to list out all the PCI bus devices and give them numbers
     #So we can use fewer bits for that. Here we assign them all numbers hopefully
     #From 0 to 128. Scatter around by hash to at least try to stay consistent if
@@ -416,8 +411,125 @@ def cardsfromregex(m, cards,usednames = []):
                 n+=1
             usedNumbers[n]=i
             pciNumbers[n]=i
-            
-            
+    return pciNumbers
+
+
+
+
+def assignName(locator,longname, usedFirstWords,pciNumbers):
+    """Given the relevant context, return a two-word easy to remember name to the card with the given
+        'locator' which is usually something like usb-0000:00:14.0-1
+    """
+    #Handle USB locators
+    if 'usb' in locator:
+        x = locator.split("-")
+        if len(x)>2:
+            controller = x[1]
+            usbpath = x[2]
+
+            if not controller in pciNumbers:
+                #Not a PCI controller. We don't know how to enumerate these in a compact
+                #Way, so we have to just trust that there is only one or two of them
+                pval = 1
+                accum = 0
+                #Use base 8 to convert the usb path into a number. Assume that it's little endian.
+                #We of course may have numbers that overflow and such, but we will deal with collisions
+                #From that.
+                digitNumber = 0
+                for j in reversed(controller):
+                    if j.lower() in '0123456789abcdef':
+                        accum+=int(j,16)*pval
+                        #Optimize for PCI bus stuff.  The last digit(Reversed to the first)
+                        #Can only be 0 to 7. We use a nonlinear base system where the firt hex
+                        #digit is multiplied by 8, and the second by 8*16, even though it can be up to 15.
+                        #This is very confusing.
+                        if digitNumber:
+                            pval*=16
+                        else:
+                            pval*=8
+                        digitNumber +=1
+
+                #We just have to trust that we aren't likely to have two of these weird USB
+                #things with locators separated by more than 128, and if we do the chance
+                #of collision is low anyway.  This whole block is mostly for embedded ARM stuff
+                #with one controller
+                n = usbpath[0]
+                if n in '0123456789':
+                    accum = int(n)*128
+            else:
+                #We know the PCI number we generated for this. Take the first digit
+                #Of the path and add it in, so that the first word varies with root port.
+                #This seems kinda nice, to group things by root port.
+                n = usbpath[0]
+                if n in '0123456789':
+                    accum = int(n)*128 +pciNumbers[controller]
+                else:
+                    accum=pciNumbers[controller]
+
+            #Choose an unused first word based on what the controller is.
+            first= wordlist[accum%1621]
+            s= 0
+            #Now we are going to fix collisons.
+            while first in usedFirstWords and s<100:
+                s+=1
+                if usedFirstWords[first]==controller:
+                    break
+                first=memorableHash(controller+str(s))
+            usedFirstWords[first]=controller
+
+            pval = 1
+            accum = 0
+            #Use base 8 to convert the usb path into a number. Assume that it's little endian.
+            #We of course may have numbers that overflow and such, but we will deal with collisions
+            #From that.
+            for j in usbpath:
+                if j in '0123456789':
+                    accum+=int(j)*pval
+                    pval*=8
+            # 1621 is a prime number. We use this for modulo
+            # to prevent discarding higher order bits.
+            second = wordlist[accum%1621]
+        else:
+            first = memorableHash(x[2])
+            second = memorableHash(x[1])
+    #handle nonusb
+    else:
+        controller =locator
+        first=memorableHash(controller)
+
+        while first in usedFirstWords and s<100:
+            s+=1
+            if usedFirstWords[first]==controller:
+                break
+            first=memorableHash(controller+str(s))
+        second=memorableHash(longname)
+
+
+    #Note that we could still have collisions. We are going to fix that
+    #In the second step
+    h = first+second
+    return h
+def generateJackName(words,longname, numberstring,  taken, taken2):
+    "Generate a name suitable for direct use as a jack client name"
+    n = cleanupstring(longname)
+    jackname =n[:4]+'_'+words
+    jackname+=numberstring
+    jackname=jackname[:28]
+    #If there's a collision, we're going to redo everything
+    #This of course will mean we're going back to 
+    while (jackname in taken) or jackname in taken2:
+        h = memorableHash(jackname+cards[i[0]]+":"+i[2])[:12]
+        n = cleanupstring(longname)
+        jackname =n[:4]+'_'+words
+        jackname+=numberstring
+        jackname=jackname[:28]
+    return jackname
+
+def cardsfromregex(m, cards,usednames = [],pciNumbers={},usedFirstWords = {}):
+    """Given the regex matches from arecord or aplay, match them up to the actual 
+    devices and give them memorable aliases"""
+
+    d = {}
     #Why sort? We need consistent ordering so that our conflict resolution
     #has the absolute most possible consistency
     def key(a):
@@ -429,129 +541,78 @@ def cardsfromregex(m, cards,usednames = []):
         #We generate a name that contains both the device path and subdevice
         generatedName = cards[i[0]]+"."+i[2]
 
-
+        longname=i[3]
         locator = cards[i[0]]
-
-        nums = []
-
-        #Handle USB locators
-        if 'usb' in locator:
-            x = locator.split("-")
-            if len(x)>2:
-                controller = x[1]
-                usbpath = x[2]
-
-                if not controller in pciNumbers:
-                    #Not a PCI controller. We don't know how to enumerate these in a compact
-                    #Way, so we have to just trust that there is only one or two of them
-                    pval = 1
-                    accum = 0
-                    #Use base 8 to convert the usb path into a number. Assume that it's little endian.
-                    #We of course may have numbers that overflow and such, but we will deal with collisions
-                    #From that.
-                    digitNumber = 0
-                    for j in reversed(controller):
-                        if j.lower() in '0123456789abcdef':
-                            accum+=int(j,16)*pval
-                            #Optimize for PCI bus stuff.  The last digit(Reversed to the first)
-                            #Can only be 0 to 7. We use a nonlinear base system where the firt hex
-                            #digit is multiplied by 8, and the second by 8*16, even though it can be up to 15.
-                            #This is very confusing.
-                            if digitNumber:
-                                pval*=16
-                            else:
-                                pval*=8
-                            digitNumber +=1
-
-                    #We just have to trust that we aren't likely to have two of these weird USB
-                    #things with locators separated by more than 128, and if we do the chance
-                    #of collision is low anyway.  This whole block is mostly for embedded ARM stuff
-                    #with one controller
-                    n = usbpath[0]
-                    if n in '0123456789':
-                        accum = int(n)*128
-                else:
-                    #We know the PCI number we generated for this. Take the first digit
-                    #Of the path and add it in, so that the first word varies with root port.
-                    #This seems kinda nice, to group things by root port.
-                    n = usbpath[0]
-                    if n in '0123456789':
-                        accum = int(n)*128 +pciNumbers[controller]
-                    else:
-                        accum=pciNumbers[controller]
-
-                #Choose an unused first word based on what the controller is.
-                first= wordlist[accum%1621]
-                s= 0
-                #Now we are going to fix collisons.
-                while first in usedFirstWords and s<100:
-                    s+=1
-                    if usedFirstWords[first]==controller:
-                        break
-                    first=memorableHash(controller+str(s))
-                usedFirstWords[first]=controller
-
-                pval = 1
-                accum = 0
-                #Use base 8 to convert the usb path into a number. Assume that it's little endian.
-                #We of course may have numbers that overflow and such, but we will deal with collisions
-                #From that.
-                for j in usbpath:
-                    if j in '0123456789':
-                        accum+=int(j)*pval
-                        pval*=8
-                # 1621 is a prime number. We use this for modulo
-                # to prevent discarding higher order bits.
-                second = wordlist[accum%1621]
-            else:
-                first = memorableHash(x[2])
-                second = memorableHash(x[1])
-        #handle nonusb
-        else:
-            controller =locator
-            first=memorableHash(controller)
-
-            while first in usedFirstWords and s<100:
-                s+=1
-                if usedFirstWords[first]==controller:
-                    break
-                first=memorableHash(controller+str(s))
-            second=memorableHash(i[3])
-
         numberstring = compressnumbers(locator)
 
-        #h = memorableHash(cards[i[0]]+":"+i[2])[:12]
+        h = assignName(locator,longname,usedFirstWords,pciNumbers)
+
+        jackname = generateJackName(h, longname,numberstring,d, usednames)
         
-        #Note that we could still have collisions. We are going to fix that, by
-        # Rehashing the ones that need it. 
-        h = first+second
-
-
-        n = cleanupstring(i[3])
-        jackname =n[:4]+'_'+h
-        jackname+=numberstring
-        jackname=jackname[:28]
-
-        #If there's a collision, we're going to redo everything
-        #This of course will mean we're going back to 
-        while (jackname in d) or jackname in usednames:
-            h = memorableHash(jackname+cards[i[0]]+":"+i[2])[:12]
-            n = cleanupstring(i[3])
-            jackname =n[:4]+'_'+h
-            jackname+=numberstring
-            jackname=jackname[:28]
-        
-        jackname=jackname.replace('Generic','')
-        jackname=jackname.replace('Device','')
-
-    
-        longname = n.replace('Generic','')+"_"+memorableHash(cards[i[0]]+":"+i[2],num=4,caps=True)+"_"+cards[i[0]]
+        longname = h+"_"+memorableHash(cards[i[0]]+":"+i[2],num=4,caps=True)+"_"+cards[i[0]]
         
         try:
             d[jackname]  = ("hw:"+i[0]+","+i[2], cards[i[0]], (int(i[0]), int(i[2])), longname)
         except KeyError:
             d[jackname] = ("hw:"+i[0]+","+i[2], cards[i[0]], (int(i[0]), int(i[2])), longname)
     return d
+
+
+
+def midiClientsToCardNumbers():
+    #Groups are clientnum, name, cardnumber, only if the client actually has a card number
+    pattern =r"client\s+(\d+):.+?'(.+?)'.+?card=(\d+)."
+    x = subprocess.check_output(['aconnect','-i'],stderr=subprocess.DEVNULL).decode("utf8")
+    x = re.findall(pattern,x)
+
+    clients = {}
+    for i in x:
+        clients[int(i[0])] = (i[1], int(i[2]))
+    
+    x = subprocess.check_output(['aconnect','-o'],stderr=subprocess.DEVNULL).decode("utf8")
+    x = re.findall(pattern,x)
+
+    clients = {}
+    for i in x:
+        clients[int(i[0])] = (i[1], int(i[2]))
+    return clients
+
+
+
+
+
+def scanMidi(m, cards,usednames = [],pciNumbers={},usedFirstWords = {}):
+    """Given the regex matches from amidi -l, match them up to the actual 
+    devices and give them memorable aliases.
+    
+    Return a dict that maps the name we have assigned the client, to a name, alsaClientNumber
+    which can be used to find the ports "a2jmidid -e" may have registered, and give them aliases.
+
+    Note that the client may have multiple ports, so we have to add disambiguation later.
+    """
+
+    d = {}
+
+    midiInfo = midiClientsToCardNumbers()
+
+    for i in midiInfo:
+        name= midiInfo[i][0]
+        card = midiInfo[i][1]
+        
+        if card in cards:
+            locator = cards[0]
+        else:
+            continue
+
+        numberstring = compressnumbers(locator)
+
+        h = assignName(locator,name,usedFirstWords,pciNumbers)
+
+        jackname = generateJackName(h, name,numberstring,d, usednames)
+        
+        d[jackname]  = (name,i)
+    return d
+
 
 
 def readAllSoFar(proc, retVal=b''): 
@@ -608,26 +669,24 @@ def listSoundCardsByPersistentName():
         n = i[2].strip().replace(" ","").replace(",fullspeed","").replace("[","").replace("]","")
         cards[i[0]] = n
 
+    pci = enumeratePCI()
+    usedFirstWords ={}
 
     x = subprocess.check_output(['aplay','-l'],stderr=subprocess.DEVNULL).decode("utf8")
     #Groups are cardnumber, cardname, subdevice, longname
     sd = re.findall(r"card (\d+): (\w*)\s\[.*?\], device (\d*): (.*?)\s+\[.*?]",x)
-
-    outputs= cardsfromregex(sd,cards)
+    outputs= cardsfromregex(sd,cards,pciNumbers=pci,usedFirstWords=usedFirstWords)
    
 
     x = subprocess.check_output(['arecord','-l'],stderr=subprocess.DEVNULL).decode("utf8")
     #Groups are cardnumber, cardname, subdevice, longname
     sd = re.findall(r"card (\d+): (\w*)\s\[.*?\], device (\d*): (.*?)\s+\[.*?]",x)
-    inputs=cardsfromregex(sd,cards)
+    inputs=cardsfromregex(sd,cards, pciNumbers=pci,usedFirstWords=usedFirstWords)
 
-    names_to_jacknames = {}
+    midis=scanMidi(sd,cards, pciNumbers=pci,usedFirstWords=usedFirstWords)
 
-    for i in inputs:
-        names_to_jacknames[inputs[i][3]] = i+"i"
-    for i in outputs:
-        names_to_jacknames[outputs[i][3]] = i+"o"
-    return inputs,outputs,names_to_jacknames
+
+    return inputs,outputs,midis
 
 
 def memorableHash(x, num=1, separator="",caps=False):
@@ -721,15 +780,11 @@ def startJack():
             messagebus.postMessage("/system/jack/started",{})
         workers.do(f)
 
-portDisplayNames = {}
-portJackNames = {}
-
 def handleManagedSoundcards():
     "Make sure that all of our alsa_in and out instances are working as they should be."
     global oldi
     global oldo
-    global portDisplayNames
-    global portJackNames
+    global oldmidis
 
     #There seems to be a bug in reading errors from the process
     #Right now it's a TODO, but most of the time
@@ -801,12 +856,12 @@ def handleManagedSoundcards():
 
 
         ##HANDLE CREATING AND GC-ING things
-        inp,op,names = listSoundCardsByPersistentName()
+        inp,op,midis = listSoundCardsByPersistentName()
         #This is how we avoid constantky retrying to connect the same few
         #clients that fail, which might make a bad periodic click that nobody
         #wants to hear.
         startPulse = False
-        if (inp,op)==(oldi,oldo):
+        if (inp,op,midis)==(oldi,oldo,oldmidis):
             #However some things we need to retry.
             #Device or resource busy being the main one
             for i in inp:
@@ -846,10 +901,8 @@ def handleManagedSoundcards():
 
             return
             
-        oldi,oldo,oldnames =inp,op,names
-        portDisplayNames = names
-        portJackNames = {names[i]:i for i in names}
-
+        oldi,oldo,oldmidis =inp,op,oldmidis
+       
         for i in inp:
             #HDMI doesn't do inputs as far as I know
             if not i.startswith("HDMI"):
@@ -954,7 +1007,24 @@ def getPorts(*a,**k):
     with lock:
         if not jackclient:
             return []
+        ports =[]
         return jackclient.get_ports(*a,**k)
+       
+
+def getPortNamesWithAliases(*a,**k):
+    with lock:
+        if not jackclient:
+            return []
+        ports =[]
+        x= jackclient.get_ports(*a,**k)
+        for i in x:
+            for j in i.aliases:
+                if not j in ports:
+                    ports.append(j)
+            if not i.name in ports:
+                ports.append(i.name)
+        return ports
+
 
 def getConnections(name,*a,**k):
     with lock:
