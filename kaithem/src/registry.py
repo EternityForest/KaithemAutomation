@@ -13,8 +13,58 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 from . import util,directories,messagebus
-import os,time,json,copy,hashlib,threading,copy, traceback, shutil, yaml, validictory
+import os,time,json,copy,hashlib,threading,copy, traceback, shutil, yaml, validictory,sqlite3,sys,logging
 from .util import url, unurl
+
+log = logging.getLogger("system.registry")
+
+if os.path.exists("/dev/shm"):
+    uniqueInstanceId = ",".join(sys.argv) + os.path.normpath(__file__)
+    uniqueInstanceId= hashlib.sha1(uniqueInstanceId.encode("utf8")).hexdigest()[:24]
+    enable_sqlite_backup=True
+    recoveryDbPath = os.path.join("/dev/shm/kaithem/",uniqueInstanceId, "registrybackup")
+    util.ensure_dir(recoveryDbPath)
+    recoveryDb = sqlite3.connect(recoveryDbPath)
+    util.chmod_private_try(recoveryDbPath)
+    recoveryDb.row_factory = sqlite3.Row
+    #If flag is 1, that means the resource has been deleted. All this is, is key value storage of
+    #Unsaved changes to the modules. When you save, you clear everything before deleting the __complete__
+    #Marker.
+
+    #When we load kaithem, we can check if this database has newer data than anything in the modules and resources.
+    #Time is of course used to detect that. We use the system time. We just have to trust that the system
+    #Time won't go significantly backwards. Combined with the fact manual editing is probably not happening on
+    #RTCless systems, none of this persists after reboots, and we normally delete these records when saving for real,
+    #There is very little change that old data ever overwrites newer data.
+    with recoveryDb:
+        recoveryDb.execute("CREATE TABLE IF NOT EXISTS change (key TEXT, value TEXT, flag INTEGER, time INTEGER)")
+    recoveryDb.commit()
+    recoveryDb.close()
+else:
+    enable_sqlite_backup=False
+
+
+
+def purgeSqliteBackup():
+    if enable_sqlite_backup:
+        recoveryDb = sqlite3.connect(recoveryDbPath)
+        with recoveryDb:
+            recoveryDb.execute("delete from change")
+        recoveryDb.commit()
+        recoveryDb.close()
+
+def createRecoveryEntry(key, value, flag):
+    valuej=json.dumps(value)
+    if enable_sqlite_backup: 
+        recoveryDb = sqlite3.connect(recoveryDbPath)
+        with recoveryDb:
+            recoveryDb.execute("delete from change where key=?",(key,))
+            recoveryDb.execute("insert into change values (?,?,?,?)",(
+                key, valuej, flag, int(time.time()*1000000)
+            ))
+        recoveryDb.commit()
+        recoveryDb.close()
+
 
 class PersistanceArea():
 
@@ -51,6 +101,8 @@ class PersistanceArea():
             except:
                 raise RuntimeError("Invalid dict insert %s:%s has a non serializable value or key"%(key,val))
             dict.__setitem__(self, key, val)
+
+
 
     def __init__(self,folder):
         try:
@@ -90,11 +142,12 @@ class PersistanceArea():
                         with open(os.path.join(folder,f,i)) as x:
                             self.files[i[:-5]] = self.PersistanceDict(yaml.load(x)['data'])
                             self.files[i[:-5]].markClean()
-
-
+                completeFileTimestamp=os.stat(os.path.join(folder,"data",'kaithem_dump_valid.txt')).st_mtime
+                #If there are any unsaved registry changes, recover them now
+                self.loadRecoveryDbInfo(completeFileTimestamp)
 
         except Exception as e:
-            print(e)
+            log.exception("Loading")
             self.files = {}
         self.folder = folder
 
@@ -153,9 +206,9 @@ class PersistanceArea():
                        pass
 
         except Exception as e:
-            print("Failure dumping persistance dicts.")
+            log.exception("Failure dumping persistance dicts.")
             messagebus.postMessage("/system/notifications/errors",'Registry save error:' + repr(e))
-
+        purgeSqliteBackup()
         if not error:
             with open(os.path.join(self.folder,"data",'kaithem_dump_valid.txt'),"w") as x:
                 util.chmod_private_try(os.path.join(self.folder,"data",'kaithem_dump_valid.txt'), execute=False)
@@ -164,20 +217,63 @@ class PersistanceArea():
             print("Failure dumping persistance dicts.")
         for i in self.files:
             self.files[i].markClean()
+
         util.deleteAllButHighestNumberedNDirectories(self.folder,2)
         return True
+
+    def loadRecoveryDbInfo(self,completeFileTimestamp=0):
+        global is_clean
+        with reglock:
+            if enable_sqlite_backup:
+                recoveryDb = sqlite3.connect(recoveryDbPath)
+                with recoveryDb:
+                    c = recoveryDb.cursor()
+                    c.row_factory=sqlite3.Row
+                    c.execute("select * from change")
+                    for i in c:
+                        is_clean = False
+                        #Older than what we have now, ignore, the state was saved
+                        #After this entry was created
+                        if not i['time']/1000000 > completeFileTimestamp:
+                            continue
+                        if not i['flag']:
+                            self.set(i['key'],json.loads(i['value']))
+                        else:
+                            delete(i['key'])
+                recoveryDb.close()
 
     def open(self,f):
         if not f in self.files:
             self.files[f]= self.PersistanceDict()
         return self.files[f]
 
-registry = PersistanceArea(directories.regdir)
+    def set(self, key,value):
+        global is_clean
+        is_clean = False
+        try:
+            json.dumps({key:value})
+        except:
+            raise Exception
+        with reglock:
+            prefix = key.split("/")[0]
+            f = self.open(prefix)
+            if not 'keys' in f:
+                f['keys']={}
+            if not key in f['keys']:
+                f['keys'][key]={}
+            if 'schema' in f['keys'][key]:
+                validictory.validate(value, f['keys'][key]['schema'])
+            f['keys'][key]['data'] = copy.deepcopy(value)
+            createRecoveryEntry(key,value,0)
+
+
 reglock = threading.RLock()
 
 #This is not the actual way we determine if it is clean or not for saving, that is determined per file in an odd way.
 #however, this is used for display purposes.
 is_clean = True
+
+
 
 
 def get(key,default=None):
@@ -198,6 +294,7 @@ def delete(key):
             return False
         k= f['keys']
         del k[key]
+        createRecoveryEntry(key,None,1)
 
 def exists(key):
     prefix = key.split("/")[0]
@@ -222,23 +319,7 @@ def ls(key):
 
 
 
-def set(key,value):
-    global is_clean
-    is_clean = False
-    try:
-        json.dumps({key:value})
-    except:
-        raise Exception
-    with reglock:
-        prefix = key.split("/")[0]
-        f = registry.open(prefix)
-        if not 'keys' in f:
-            f['keys']={}
-        if not key in f['keys']:
-            f['keys'][key]={}
-        if 'schema' in f['keys'][key]:
-            validictory.validate(value, f['keys'][key]['schema'])
-        f['keys'][key]['data'] = copy.deepcopy(value)
+
 
 def setschema(key,schema):
     "Associate a validitory schema with a key such that nobody can set an invalid value to it"
@@ -264,3 +345,5 @@ def sync():
          x = registry.save()
     is_clean = True
     return x
+registry = PersistanceArea(directories.regdir)
+set = registry.set

@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #File for keeping track of and editing kaithem modules(not python modules)
-import threading,urllib,shutil,sys,time,os,json,traceback,copy,hashlib,logging,uuid, gc,re,weakref
+import threading,urllib,shutil,sys,time,os,json,traceback,copy,hashlib,logging,uuid, gc,re,weakref,sqlite3
 import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling,modules_state,registry,remotedevices
 from .modules_state import ActiveModules,modulesLock,scopes,additionalTypes,fileResourceAbsPaths
@@ -22,6 +22,7 @@ from .virtualresource import VirtualResource, VirtualResourceInterface
 
 
 logger = logging.getLogger("system")
+
 
 def new_empty_module():
     return {"__description":
@@ -240,6 +241,7 @@ class ModuleObject(object):
                 unsaved_changed_obj[(module,name)] = "User code inserted or modified module"
                 #Insert the new item into the global modules thing
                 ActiveModules[module][name]=value
+                modules_state.createRecoveryEntry(module,name,value)
                 modulesHaveChanged()
 
                 #Make sure we recognize the resource-type, or else we can't load it.
@@ -385,6 +387,10 @@ def loadResource(fn:str,ver:int=1):
             if r['resource-type'] == 'event':
                 r['setup'] = sections[1]
                 r['action'] = sections[2]
+        
+        #If no resource timestamp use the one from the file time.
+        if not 'resource-timestamp' in r:
+            r['resource-timestamp'] = int(os.stat(fn).st_mtime*1000000)
         return r
     except:
         logger.exception("Error loading resource from file "+fn)
@@ -442,6 +448,7 @@ def saveAll():
 
     #This is an RLock, and we need to use the lock so that someone else doesn't make a change while we are saving that isn't caught by
     #moduleschanged.
+    
     with modulesLock:
         if not unsaved_changed_obj:
             return False
@@ -467,6 +474,46 @@ def saveAll():
         cleanupBlobs()
         moduleschanged = False
         return True
+
+def loadRecoveryDbInfo(completeFileTimestamp=0):
+    global moduleschanged
+    with modulesLock:
+        if modules_state.enable_sqlite_backup:
+            recoveryDb = sqlite3.connect(modules_state.recoveryDbPath)
+
+            with recoveryDb:
+                c = modules_state.recoveryDb.cursor()
+                c.execute("select * from change")
+                for i in c:
+                    #Older than what we have now, ignore, the state was saved
+                    #After this entry was created
+                    if not i['time']/1000000 > completeFileTimestamp:
+                        continue
+                    unsaved_changed_obj[i['module'],i['resource']] = "Recovered from RAM"
+                    moduleschanged = True
+                    if i['flag'] ==0:
+                        if not i['module'] in modules_state.ActiveModules:
+                            modules_state.ActiveModules[i['module']]={}
+                            scopes[i['module']] = ModuleObject(i['module'])
+                        
+                        #Only handle new stuff, don't deal with changes, that should have happened in the inital load.
+                        if not i['resource'] in  modules_state.ActiveModules[i['module']]:
+                            r = json.loads(i['value'])
+                            modules_state.ActiveModules[i['module']][i['resource']] = r
+
+                            if r['resource-type'] == "internal-fileref":
+                                newpath = os.path.join(directories.vardir,"modules","filedata",r['target'])
+                                fileResourceAbsPaths[modulename,resource] = newpath
+
+                    else:
+                        if not i['module'] in modules_state.ActiveModules:
+                            continue
+                        if i['resource'] in  modules_state.ActiveModules[i['module']]:
+                            del modules_state.ActiveModules[i['module']][i['resource']]
+                        if not modules_state.ActiveModules[i['module']]:
+                            del modules_state.ActiveModules[i['module']]
+            recoveryDb.close()
+
 
 def initModules():
     global moduleshash, external_module_locations
@@ -506,9 +553,13 @@ def initModules():
                             shutil.rmtree(possibledir)
                     except:
                         logger.exception("Failed to rename corrupted data. This is normal if kaithem's var dir is not currently writable.")
+        
+        loadRecoveryDbInfo(completeFileTimestamp=os.stat(os.path.join(possibledir,'__COMPLETE__')).st_mtime)
 
     except:
         messagebus.postMessage("/system/notifications/errors" ," Error loading modules: "+ traceback.format_exc(4))
+    
+    
     auth.importPermissionsFromModules()
     newevt.getEventsFromModules()
     usrpages.getPagesFromModules()
@@ -600,7 +651,15 @@ def saveModule(module, dir:str,modulename:Optional[str]=None, ignore_func=None):
     except:
         raise
 
-def saveModules(where:str):
+def saveToRam():
+    #Command line arguments plus file location should be good enough to
+    #tell instances apart on one machine
+    uniqueInstanceId = ",".join(sys.argv) + os.path.normpath(__file__)
+    uniqueInstanceId= hashlib.sha1(uniqueInstanceId.encode("utf8")).hexdigest()[:24]
+    if os.path.exists("/dev/shm/"):
+        saveModules(os.path.join("/dev/shm/kaithem"+uniqueInstanceId, "modulesbackup"), markSaved=False)
+
+def saveModules(where:str,markSaved=True):
     """Save the modules in a directory as JSON files. Low level and does not handle the timestamp directories, etc."""
     global unsaved_changed_obj
     #List to keep track of saved modules and resources
@@ -672,10 +731,12 @@ def saveModules(where:str):
                     if isinstance(i,str) and not i.startswith("__") and not i in ActiveModules:
                         saved.append(i)
 
-            #Now that we know the dump is actually valid, we remove those entries from the unsaved list for real
-            for i in saved:
-                if i in unsaved_changed_obj:
-                    del unsaved_changed_obj[i]
+            if markSaved:
+                #Now that we know the dump is actually valid, we remove those entries from the unsaved list for real
+                for i in saved:
+                    if i in unsaved_changed_obj:
+                        del unsaved_changed_obj[i]
+            modules_state.purgeSqliteBackup()
 
         except:
             raise
@@ -905,18 +966,23 @@ def load_modules_from_zip(f,replace=False):
                 messagebus.postMessage("/system/modules/unloaded",i)
                 messagebus.postMessage("/system/modules/deleted",{'user':pages.getAcessingUser()})
 
-            try:
-                for i in new_modules:
-                    ActiveModules[i] = new_modules[i]
-                    messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " uploaded module" + i + " from a zip file")
+        try:
+            for i in new_modules:
+                ActiveModules[i] = new_modules[i]
+                
+                for j in ActiveModules[i]:
+                    modules_state.createRecoveryEntry(i,j,ActiveModules[i][j])
+                messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " uploaded module" + i + " from a zip file")
+                bookkeeponemodule(i)
+        except:
+            for i in new_modules:
+                if i in backup:
+                    ActiveModules[i] = backup[i]
+                    for j in ActiveModules[i]:
+                        modules_state.createRecoveryEntry(i,j,ActiveModules[i][j])
+                    messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " uploaded module" + i + " from a zip file, but initializing failed. Reverting to old version.")
                     bookkeeponemodule(i)
-            except:
-                for i in new_modules:
-                    if i in backup:
-                        ActiveModules[i] = backup[i]
-                        messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " uploaded module" + i + " from a zip file, but initializing failed. Reverting to old version.")
-                        bookkeeponemodule(i)
-                raise
+            raise
         fileResourceAbsPaths.update(newfrpaths)
 
         modulesHaveChanged()
@@ -992,6 +1058,7 @@ def rmResource(module,resource,message="Resource Deleted"):
 
     with modulesLock:
        r = ActiveModules[module].pop(resource)
+       modules_state.createRecoveryEntry(module,resource,None)
     try:
         if r['resource-type'] == 'page':
             usrpages.removeOnePage(module,resource)
@@ -1041,7 +1108,7 @@ def newModule(name,location=None):
             ActiveModules[name] = {"__description":
             {"resource-type":"module-description",
             "text":"Module info here"}}
-
+        modules_state.createRecoveryEntry(name,"__description",ActiveModules[name]["__description"])
         bookkeeponemodule(name)
         #Go directly to the newly created module
         messagebus.postMessage("/system/notifications","User "+ pages.getAcessingUser() + " Created Module " + name)
@@ -1060,11 +1127,12 @@ def rmModule(module,message="deleted"):
 
     #Delete any custom resource types hanging around.
     for k in j:
-        if j.get('resource-type',None) in additionalTypes:
+        if j[k].get('resource-type',None) in additionalTypes:
             try:
-                additionalTypes[j['resource-type']].ondelete(i,k,j[k])
+                additionalTypes[j[k]['resource-type']].ondelete(module,k,j[k])
             except:
-                messagebus.postMessage("/system/modules/errors/unloading","Error deleting resource: "+str(i,k))
+                messagebus.postMessage("/system/modules/errors/unloading","Error deleting resource: "+str(module,k))
+        modules_state.createRecoveryEntry(module,k,None)
     #Get rid of any lingering cached events
     newevt.removeModuleEvents(module)
     #Get rid of any permissions defined in the modules.

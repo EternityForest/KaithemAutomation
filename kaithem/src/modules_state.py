@@ -14,34 +14,39 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #This file is just for keeping track of state info that would otherwise cause circular issues.
-import weakref
+import weakref, sqlite3,os,sys,hashlib,json,time
 from threading import RLock
 from src import util
 
-#Items must be dicts, with the key being the name of the type, and having the key editpage
+#Items must be dicts, with the key being the name of the type, and the dict itself having the key 'editpage'
 #That is a function which takes 3 arguments, module and resource, and the current resource arg,
 #and must return an HTML string to be returned to the user.
+
 #The key update must also be defined.
 #This must take a module, a resource, the current resource object, and a dict created from a form
 #POST, and returing a new updated resource object.
 
+
+
 #If you want to be able to move the module, you must define a function 'onmove' that takes(module,resource,newmodule,newresource,object)
 #The update function will always run under a lock.
+
 
 #If you want your resource to do something special when it loads, you must define onload(module,resource,object)
 
 #All of these functions are guaranteed to only be called during times when the entire list of modules is locked, only
 #one at a time, etc.
 
-#If you, as is most likely, want to be able to create new pages, define a function createpage(module,resource)
-#That returns an HTML page for creating a new page.
+
+
+#If you, as is most likely, want to be able to create new resources, define a function createpage(module,resource)
+#That returns an HTML page for creating a new resource.
 
 #It must post to /modules/module/MODULENAME/addresourcetarget/TYPE/THE/PATH/WITHIN/THE/MODULE with name as a kwarg
 
-#Yes, I know this is an awful way of doing this. It's based on really old code, and I was in a major hurry.
 
 #To actually create the page, define a function create(module,resource, kwargs)
-#That will return the JSON object of the module. Onload will be automatically called.
+#TWhich must return the JSON object of the module. Onload will be automatically called for newly created resources.
 
 #Note that the actual dict objects are directly passed, you can modify them in place but you still must return them.
 additionalTypes = weakref.WeakValueDictionary()
@@ -53,10 +58,49 @@ fileResourceAbsPaths = {}
 #When a module is saved outside of the var dir, we put the folder in which it is saved in here.
 external_module_locations = {}
 
-unsaved_changed_obj = {}
+
+if os.path.exists("/dev/shm"):
+    uniqueInstanceId = ",".join(sys.argv) + os.path.normpath(__file__)
+    uniqueInstanceId= hashlib.sha1(uniqueInstanceId.encode("utf8")).hexdigest()[:24]
+    enable_sqlite_backup=True
+    recoveryDbPath = os.path.join("/dev/shm/kaithem/",uniqueInstanceId, "modulesbackup")
+    util.ensure_dir(recoveryDbPath)
+    recoveryDb = sqlite3.connect(recoveryDbPath)
+    util.chmod_private_try(recoveryDbPath)
+    recoveryDb.row_factory = sqlite3.Row
+    #If flag is 1, that means the resource has been deleted. All this is, is key value storage of
+    #Unsaved changes to the modules. When you save, you clear everything before deleting the __complete__
+    #Marker.
+
+    #When we load kaithem, we can check if this database has newer data than anything in the modules and resources.
+    #Time is of course used to detect that. We use the system time. We just have to trust that the system
+    #Time won't go significantly backwards. Combined with the fact manual editing is probably not happening on
+    #RTCless systems, none of this persists after reboots, and we normally delete these records when saving for real,
+    #There is very little change that old data ever overwrites newer data.
+    with recoveryDb:
+        recoveryDb.execute("CREATE TABLE IF NOT EXISTS change (module TEXT, resource TEXT, value TEXT, flag INTEGER, time INTEGER)")
+else:
+    enable_sqlite_backup=False
 
 
 
+def purgeSqliteBackup():
+    if enable_sqlite_backup:
+        recoveryDb = sqlite3.connect(recoveryDbPath)
+        with recoveryDb:
+            recoveryDb.execute("delete from change")
+        recoveryDb.commit()
+
+def createRecoveryEntry(module, resource, value):
+    valuej=json.dumps(value)
+    if enable_sqlite_backup: 
+        recoveryDb = sqlite3.connect(recoveryDbPath)
+        with recoveryDb:
+            recoveryDb.execute("delete from change where module=? and resource=?",(module,resource))
+            recoveryDb.execute("insert into change values (?,?,?,?,?)",(
+                module, resource, valuej if value else '', 0 if (value!=None) else 1, int(time.time()*1000000)
+            ))
+        recoveryDb.commit()
 
 class ResourceType():
     def __init__(self):

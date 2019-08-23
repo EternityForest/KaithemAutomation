@@ -9,7 +9,8 @@ Recommends: mplayer, pulseaudio, python3-pyserial,
  python3-pytz, python3-dateutil, lm-sensors,
  python3-netifaces,python3-jack-client,
  python3-gst-1.0, python3-libnacl, jack-tools,
- jackd2, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad
+ jackd2, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, a2jmidid
+ swh-plugins, tap-plugins, caps,  gstreamer1.0-plugins-ugly
 
 Maintainer: Daniel Dunn
 Installed-Size: 35000

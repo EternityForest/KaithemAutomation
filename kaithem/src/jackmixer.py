@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import re, jack,time,json,logging,copy
+import re, jack,time,json,logging,copy, subprocess
 
 from . import widgets, messagebus,util,registry
 from . import jackmanager, gstwrapper
@@ -325,6 +325,45 @@ effectTemplates={
         }
     },
 
+    "pitchshift":
+    {
+        "type": "pitchshift",
+        "monoGstElement":"ladspa-tap-pitch-so-tap-pitch",
+        "help":"Pitch shift(TAP LADSPA)",
+        "displayType":"TAP Pitch Shifter",
+        "params": {
+            "semitone-shift": {
+                "type":"float",
+                "displayName": "Shift",
+                "value": 250,
+                "min": -12,
+                "max": 12,
+                "step":1,
+                "sort":0
+            },
+          "dry-level": {
+                "type":"float",
+                "displayName": "Dry",
+                "value": -90,
+                "min": -90,
+                "max": 20,
+                "step":1,
+                "sort":1
+            },
+         "wet-level": {
+                "type":"float",
+                "displayName": "Wet",
+                "value": 0,
+                "min": -90,
+                "max": 20,
+                "step":1,
+                "sort":2
+            },
+        },
+        'gstSetup':{
+        }
+    },
+
    "queue":
     {
         "type": "queue",
@@ -366,7 +405,7 @@ def cleanupEffectData(fx):
     if not 'gstSetup' in fx:
         fx['gstSetup'] = {}
 
-channelTemplate = {"effects":[effectTemplates['fader']], "input": '', 'output': '', "fader":-60}
+channelTemplate = {"type":"audio","effects":[effectTemplates['fader']], "input": '', 'output': '', "fader":-60}
 
 specialCaseParamCallbacks={}
 
@@ -402,10 +441,38 @@ specialCaseParamCallbacks['queue']= queue
 
 
 
+class BaseChannel():
+    pass
+class MidiConnection(BaseChannel):
+    "Represents one MIDI connection with a single plugin that remaps all channels to one"
+    def __init__(self, board, input, output,mapToChannel=0):
+        self.map = mapToChannel
 
+        if not mapToChannel:
+            self.airwire = jackmanager.MonoAirwire(input, output)
+
+
+    def start(self):
+        if self.map:
+            self.process = subprocess.Popen(["jalv"], stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
+            self.input.connect()
+            self.output.connect()
+        else:
+            self.aiirwire.connect()
+
+
+    def close(self):
+        try:
+            self.process.kill()
+        except:
+            pass
+
+    def __del__(self):
+        self.close()
+    
 
 import uuid
-class ChannelStrip(gstwrapper.Pipeline):
+class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
 
     def __init__(self, *a,board=None, **k):
         gstwrapper.Pipeline.__init__(self,*a,**k)
@@ -508,10 +575,15 @@ class MixingBoard():
         self.channels = {}
         self.channelObjects ={}
         self.lock = threading.Lock()
+        self.running=False
         def f(t,v):
+            self.running=True
             self.reload()
         messagebus.subscribe("/system/jack/started", f)
         self.reloader = f
+        self.loadedPreset = "default"
+
+
     def loadData(self,d):
         with self.lock:
             self._loadData(d)
@@ -526,6 +598,8 @@ class MixingBoard():
             raise TypeError("Data must be a dict")
 
         self.channels=x
+        if not self.running:
+            return
         for i in self.channels:
             log.info("Creating mixer channel "+i)
             try:
@@ -533,6 +607,7 @@ class MixingBoard():
             except:
                 log.exception("Could not create channel "+i)
 
+       
     def sendState(self):
         with self.lock:
             inPorts = jackmanager.getPortNamesWithAliases(is_audio=True, is_input=True)
@@ -542,39 +617,50 @@ class MixingBoard():
 
             self.api.send(['inports',{i:{} for i in  inPorts}])
             self.api.send(['outports',{i:{} for i in  outPorts}])
-            self.api.send(['midioutports',{i:{} for i in  midiInPorts}])
+            self.api.send(['midiinports',{i:{} for i in  midiInPorts}])
             self.api.send(['midioutports',{i:{} for i in  midiOutPorts}])
 
             self.api.send(['channels', self.channels])
             self.api.send(['effectTypes', effectTemplates])
             self.api.send(['presets',registry.ls("/system.mixer/presets/")])
+            self.api.send(['loadedPreset', self.loadedPreset])
+
 
     def createChannel(self, name, data={}):
         with self.lock:
             self._createChannel(name,data)
 
     def _createChannel(self, name,data=channelTemplate):
-        backup = []
-        if name in self.channelObjects:
-            backup =self.channelObjects[name].backup()
-            self.channelObjects[name].stop()
-
         self.channels[name]=data
-        time.sleep(0.01)
-        time.sleep(0.01)
-        time.sleep(0.01)
-        time.sleep(0.01)
-        time.sleep(0.01)
-
-        p = ChannelStrip(name,board=self, channels=data.get('channels',2))
-        self.channelObjects[name]=p
-        p.fader=None
-        p.loadData(data)
-        p.addLevelDetector()
-        p.finalize()
-        p.connect(restore=backup)
         self.api.send(['channels', self.channels])
+        if not self.running:
+            return
+        if not 'type' in data or data['type']=="audio":
+            backup = []
+            if name in self.channelObjects:
+                backup =self.channelObjects[name].backup()
+                self.channelObjects[name].stop()
 
+
+            time.sleep(0.01)
+            time.sleep(0.01)
+            time.sleep(0.01)
+            time.sleep(0.01)
+            time.sleep(0.01)
+
+            p = ChannelStrip(name,board=self, channels=data.get('channels',2))
+            self.channelObjects[name]=p
+            p.fader=None
+            p.loadData(data)
+            p.addLevelDetector()
+            p.finalize()
+            p.connect(restore=backup)
+
+        elif data['type']=="midiConnection":
+            self.channels[name]=data
+            if name in self.channelObjects:
+                self.channelObjects[name].stop()
+            self.channelObjects[name]=MidiConnection(self, data['input'], data['output'])
 
     def deleteChannel(self,name):
         with self.lock:
@@ -593,6 +679,8 @@ class MixingBoard():
 
     def setFader(self, channel,level):
         "Set the fader of a given channel to the given level"
+        if not self.running:
+            return
         with self.lock:
             self.channels[channel]['fader']= float(level)
             self.api.send(['fader', channel, level])
@@ -601,9 +689,13 @@ class MixingBoard():
             
 
     def savePreset(self, presetName):
+        if not presetName:
+            raise ValueError("Empty preset name")
         with self.lock:
             util.disallowSpecialChars(presetName)
             registry.set("/system.mixer/presets/"+presetName, self.channels)
+            self.loadedPreset=presetName
+            self.api.send(['loadedPreset', self.loadedPreset])
 
     def deletePreset(self,presetName):
         registry.delete("/system.mixer/presets/"+presetName)
@@ -614,6 +706,8 @@ class MixingBoard():
             for i in x:
                 self._deleteChannel(i)
             self._loadData(registry.get("/system.mixer/presets/"+presetName))
+            self.loadedPreset=presetName
+            self.api.send(['loadedPreset', self.loadedPreset])
 
     def f(self,user, data):
         if data[0]== 'refresh':
@@ -641,10 +735,15 @@ class MixingBoard():
 
         if data[0]== 'setInput':
             self.channels[data[1]]['input']= data[2]
+            if not self.running:
+                return
             self.channelObjects[data[1]].setInput(data[2])
 
         if data[0]== 'setOutput':
             self.channels[data[1]]['output']= data[2]
+
+            if not self.running:
+                return
             self.channelObjects[data[1]].setOutputs(data[2].split(","))
 
 
@@ -654,6 +753,12 @@ class MixingBoard():
 
         if data[0]=='setParam':
             "Directly set the effects data of a channel. Packet is channel, effectID, paramname, val"
+
+            for i in self.channels[data[1]]['effects']:
+                if i['id']==data[2]:
+                    i['params'][data[3]]['value']=data[4]
+            if not self.running:
+                return
             self.channelObjects[data[1]].setEffectParam(data[2],data[3],data[4])
             self.api.send(['param', data[1],data[2], data[3], data[4]])
 

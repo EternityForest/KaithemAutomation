@@ -17,7 +17,7 @@
 #This file really shouldn't have too many non-essential dependancies onthe rest of kaithem,
 #Aside from the threadpool and the message bus.
 
-import threading
+import threading,time
 
 from . import jackmanager
 
@@ -116,11 +116,11 @@ class Pipeline():
         self.src.set_property("latency-time",10)
 
         self.capsfilter = Gst.ElementFactory.make('capsfilter')
-        self.capsfilter.caps = Gst.Caps("audio/x-raw, channels="+str(channels))
+        self.capsfilter.caps = Gst.Caps("audio/x-raw,channels="+str(channels))
 
 
         self.capsfilter2 = Gst.ElementFactory.make('capsfilter')
-        self.capsfilter2.caps = Gst.Caps("audio/x-raw, channels="+str(channels))
+        self.capsfilter2.caps = Gst.Caps("audio/x-raw,channels="+str(channels))
         
         self.sink = Gst.ElementFactory.make('jackaudiosink')
         self.sink.set_property("buffer-time",8000)
@@ -159,6 +159,9 @@ class Pipeline():
         self.sends = []
         self.sendAirwires =[]
         self.namedElements = {}
+
+        self.usingJack=True
+        
         
     def __del__(self):
         self.pipeline.unref()
@@ -217,6 +220,15 @@ class Pipeline():
                 raise RuntimeError("Could not link "+str(self.capsfilter2)+" to "+str(self.sink))
             self.pipeline.get_bus().add_signal_watch()
             self.pgbcobj = self.pipeline.get_bus().connect('message::element', self.on_message)
+
+            #I think It doesn't like it if you start without jack
+            if self.usingJack:
+                t=time.time()
+                while(time.time()-t)<3:
+                    if jackmanager.getPorts():
+                        break
+                if not jackmanager.getPorts():
+                    return
             self.pipeline.set_state(Gst.State.PLAYING)
 
     def stop(self):
@@ -248,7 +260,6 @@ class Pipeline():
                     else:
                         v = kwargs[i]
                         i=i
-                        print(e.find_property(i))
                         e.set_property(i,v)
                 
             self.pipeline.add(e)

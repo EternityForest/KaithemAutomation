@@ -63,6 +63,7 @@ from src import jackmixer
     <button class="{bold: activePane=='mixer'}" v-on:click="activePane='mixer'">Mixer</button>
     <button class="{bold: activePane=='presets'}" v-on:click="activePane='presets'">Presets/Defaults</button>
     <button v-on:click="showAddEffect=true">Show Effects Menu</button>
+    <label>Preset:<input v-model="loadedPreset" placeholder="Preset name"><button v-on:click="confirmSavePreset(loadedPreset)">Save</button></label>
 
 
 
@@ -210,6 +211,7 @@ from src import jackmixer
       effectTypes:{},
       presets:[],
       showAddEffect: false,
+      loadedPreset: '',
       confirmDelete: function (c) {
         if (window.confirm("Do you really want to delete this channel?")) {
           api.send(['rmChannel', c]);
@@ -223,6 +225,11 @@ from src import jackmixer
       confirmLoadPreset: function (c) {
         if (window.confirm("Do you really want to load this preset?")) {
           api.send(['loadPreset', c]);
+        }
+      },
+      confirmSavePreset: function (c) {
+        if (window.confirm("Do you really want to save this preset? Anything named 'default' will be loaded at startup. Presets are not commited to disk till the server state is saved!!!")) {
+          api.send(['savePreset', c]);
         }
       },
 
@@ -335,6 +342,9 @@ from src import jackmixer
     }
     if (msg[0] == "channels") {
       app.$data.channels = msg[1];
+    }
+    if (msg[0] == "loadedPreset") {
+      app.$data.loadedPreset = msg[1];
     }
   };
   gapi.upd = api.upd;

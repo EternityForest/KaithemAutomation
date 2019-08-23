@@ -54,13 +54,20 @@ def isConnected(f,t):
 
 def setupPulse():
     try:
-        subprocess.check_call(['pulseaudio','-k'])
+        subprocess.check_call(['pulseaudio','-k'],timeout=5)
     except:
         pass
+    time.sleep(0.1)
     try:
-        subprocess.check_call(['pulseaudio','-D'])
+        #This may mean it's already running, but hanging in some way
+        try:
+            subprocess.check_call(['pulseaudio','-D'],timeout=5)
+        except:
+            subprocess.check_call(['killall','-9','pulseaudio'],timeout=5)
+            subprocess.check_call(['pulseaudio','-D'],timeout=5)
+            pass
         time.sleep(0.1)
-        subprocess.check_call("pactl load-module module-jack-sink channels=2; pactl load-module module-jack-source channels=2; pacmd set-default-sink jack_out;",shell=True)
+        subprocess.check_call("pactl load-module module-jack-sink channels=2; pactl load-module module-jack-source channels=2; pacmd set-default-sink jack_out;",shell=True,timeout=5)
     except:
         log.exception("Error configuring pulseaudio")
 
@@ -83,6 +90,8 @@ allConnections=weakref.WeakValueDictionary()
 activeConnections=weakref.WeakValueDictionary()
 
 
+errlog = []
+
 class MonoAirwire():
     """Represents a connection that should always exist as long as there
     is a reference to this object. You can also enable and disable it with 
@@ -103,19 +112,17 @@ class MonoAirwire():
             pass
         try:
             with lock:
-                x = jackclient.get_port_by_name(self.orig)
-            if isConnected(self.orig,self.to):
-                x.disconnect(self.to)
-                del activeConnections[self.orig,self.to]
+                if isConnected(self.orig,self.to):
+                    jackclient.disconnect(self.orig, self.to)
+                    del activeConnections[self.orig,self.to]
         except:
             pass
 
     def __del__(self):
         if self.active:
             with lock:
-                x = jackclient.get_port_by_name(self.orig)
-            if isConnected(self.orig,self.to):
-                x.disconnect(self.to)
+                if isConnected(self.orig,self.to):
+                    jackclient.disconnect(self.orig, self.to)
 
     def connect(self):
         allConnections[self.orig, self.to]= self
@@ -125,10 +132,9 @@ class MonoAirwire():
     def reconnect(self):
         if self.orig and self.to:
             try:
-                with lock:
-                    x = jackclient.get_port_by_name(self.orig)
                 if not isConnected(self.orig,self.to):
-                    x.connect(self.to)
+                    with lock:
+                        jackclient.connect(self.orig,self.to)
                     activeConnections[self.orig, self.to]=self
             except:
                 print(traceback.format_exc())
