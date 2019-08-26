@@ -47,9 +47,38 @@ def onPortRemove(t,m):
 messagebus.subscribe("/system/jack/newport/", onPortAdd)
 messagebus.subscribe("/system/jack/rmport/", onPortRemove)
 
+
+
+def logReport():
+    if not util.which("jackd"):
+        log.error("Jackd not found. Mixing will not work")
+    if not util.which("a2jmidid"):
+        log.error("A2jmidid not found, MIDI may not work")
+    if not util.which("fluidsynth"):
+        log.error("Fluidsynth not found. MIDI playing will not work,")
+    try:
+        if not gstwrapper.doesElementExist("tee"):
+            log.error("Gstreamer or python bindings not installed properly. Mixing will not work")
+    except:
+        log.exception("Gstreamer or python bindings not installed properly. Mixing will not work")
+    if not gstwrapper.doesElementExist("jackaudiosrc"):
+         log.error("Gstreamer JACK plugin not found. Mixing will not work")
+
+    for i in effectTemplates:
+        e = effectTemplates[i]
+        if 'gstElement' in e:
+            if not gstwrapper.doesElementExist(e['gstElement']):
+                log.warning("GST element "+e['gstElement']+" not found. Some effects in the mixer will not work.")
+        if 'gstMonoElement' in e:
+            if not gstwrapper.doesElementExist(e['gstMonoElement']):
+                log.warning("GST element "+e['gstMonoElement']+" not found. Some effects in the mixer will not work.")  
+        if 'gstStereoElement' in e:
+            if not gstwrapper.doesElementExist(e['gstStereoElement']):
+                log.warning("GST element "+e['gstStereoElement']+" not found. Some effects in the mixer will not work.")
+
 #These are templates for effect data. Note that they contain everything needed to generate and interface for
 #And use a gstreamer element. Except fader, which is special cased.
-effectTemplates={
+effectTemplates_data={
     "fader":{"type":"fader", "displayType": "Fader", "help": "The main fader for the channel",
     "params": {}
     },
@@ -335,7 +364,7 @@ effectTemplates={
             "semitone-shift": {
                 "type":"float",
                 "displayName": "Shift",
-                "value": 250,
+                "value": 0,
                 "min": -12,
                 "max": 12,
                 "step":1,
@@ -358,6 +387,86 @@ effectTemplates={
                 "max": 20,
                 "step":1,
                 "sort":2
+            },
+        },
+        'gstSetup':{
+        }
+    },
+
+    "hqpitchshift":
+    {
+        "type": "hqpitchshift",
+        "monoGstElement":"ladspa-pitch-scale-1194-so-pitchscalehq",
+        "help":"Pitch shift(Steve Harris/swh-plugins)",
+        "displayType":"FFT Pitch Shifter",
+        "params": {
+            "pitch-co-efficient": {
+                "type":"float",
+                "displayName": "Scale",
+                "value": 0,
+                "min": -2,
+                "max": 2,
+                "step":0.01,
+                "sort":0
+            },
+        },
+        'gstSetup':{
+        }
+    },
+
+    "multichorus":
+    {
+        "type": "multichorus",
+        "monoGstElement":"ladspa-multivoice-chorus-1201-so-multivoicechorus",
+        "help":"Multivoice Chorus 1201 (Steve Harris/swh-plugins)",
+        "displayType":"Multivoice Chorus",
+        "params": {
+            "number-of-voices": {
+                "type":"float",
+                "displayName": "Voices",
+                "value": 1,
+                "min": 1,
+                "max": 8,
+                "step":1,
+                "sort":0
+            },
+ 
+            "delay-base": {
+                "type":"float",
+                "displayName": "Delay",
+                "value": 10,
+                "min": 10,
+                "max": 40,
+                "step":1,
+                "sort":2
+            },
+            "voice-separation": {
+                "type":"float",
+                "displayName": "Separation",
+                "value": 0.5,
+                "min": 0,
+                "max": 2,
+                "step":0.1,
+                "sort":3
+            },
+
+            "detune": {
+                "type":"float",
+                "displayName": "Detune",
+                "value": 1,
+                "min": 0,
+                "max": 5,
+                "step":1,
+                "sort":4
+            },
+            "output-attenuation": {
+                "type":"float",
+                "displayName": "Level",
+                "value": 1,
+                "min": -20,
+                "max": 0,
+                "step":1,
+                "sort":5
             },
         },
         'gstSetup':{
@@ -391,7 +500,7 @@ effectTemplates={
 
 }
 
-
+effectTemplates = effectTemplates_data
 def cleanupEffectData(fx):
     x= effectTemplates.get(fx['type'],{})
     for i in x:
@@ -408,6 +517,8 @@ def cleanupEffectData(fx):
 channelTemplate = {"type":"audio","effects":[effectTemplates['fader']], "input": '', 'output': '', "fader":-60}
 
 specialCaseParamCallbacks={}
+
+
 
 
 #Returning true enables the default param setting action
@@ -470,6 +581,34 @@ class MidiConnection(BaseChannel):
     def __del__(self):
         self.close()
     
+
+
+
+class FluidSynthChannel(BaseChannel):
+    "Represents one MIDI connection with a single plugin that remaps all channels to one"
+    def __init__(self, board,name, input, output,mapToChannel=0):
+        self.name=name
+
+        self.input = jackmanager.MonoAirwire(input,self.name+"-midi:*")
+        self.output = jackmanager.airwire(self.name, output)
+
+
+    def start(self):
+        if self.map:
+            self.process = subprocess.Popen(["fluidsynth", 
+            '-a','jack','-m','jack', "-c","0","-r","0",
+            "-o","audio.jack.id",self.name,
+            "-o","audio.jack.multi","True",
+            "-o","midi.jack.id",self.name+"-midi",
+            ],
+            
+            stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
+            self.input.connect()
+            self.output.connect()
+        else:
+            self.aiirwire.connect()
+
+
 
 import uuid
 class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
@@ -536,19 +675,25 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
 
     
     def addLevelDetector(self):
-        self.addElement("level", message=True, peak_ttl=3*1000*1000*1000)
+        self.addElement("level", post_messages=True, peak_ttl=300*1000*1000,peak_falloff=60)
 
     def on_message(self, bus, message):
-        if  message.structure.get_name() == 'level':
-            s = message.structure
+        s = message.get_structure()
+        if not s:
+            return
+        if  s.get_name() == 'level':
             if self.board:
-                l = [i for i in s['decay']]
-                if l==self.lastLevel:
-                    if time.monotonic()-self.lastPushedLevel< 1:
-                        return
+                l = sum([i for i in s['decay']])/len(s['decay'])
+                if l>-45:
+                    if time.monotonic()-self.lastPushedLevel< 3:
+                        return True
+                else:
+                    if time.monotonic()-self.lastPushedLevel< 0.2:
+                        return True
+                self.board.channels[self.name]['level']=l
                 self.lastPushedLevel = time.monotonic()
-                self.lastLevel = l
                 self.board.pushLevel(self.name, l)
+        return True
 
     def setFader(self,level):
         if self.fader:

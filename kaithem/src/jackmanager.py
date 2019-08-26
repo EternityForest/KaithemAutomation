@@ -585,7 +585,7 @@ def midiClientsToCardNumbers():
 
 
 
-
+midip =None
 
 def scanMidi(m, cards,usednames = [],pciNumbers={},usedFirstWords = {}):
     """Given the regex matches from amidi -l, match them up to the actual 
@@ -603,10 +603,10 @@ def scanMidi(m, cards,usednames = [],pciNumbers={},usedFirstWords = {}):
 
     for i in midiInfo:
         name= midiInfo[i][0]
-        card = midiInfo[i][1]
+        card = str(midiInfo[i][1])
         
         if card in cards:
-            locator = cards[0]
+            locator = cards[card]
         else:
             continue
 
@@ -777,13 +777,17 @@ def startJack():
         f = open(os.devnull,"w")
         g = open(os.devnull,"w")
         jackp =subprocess.Popen("jackd --realtime -P 70 -S -d alsa -d hw:0,0 -p 128 -n 3 -r 48000",stdout=f, stderr=g, shell=True,stdin=subprocess.DEVNULL)    
+       
         def f():
+            global midip
             #Poll till it's actually started, then post the message
             for i in range(120):
                 if getPorts():
                     break
                 time.sleep(0.5)
             messagebus.postMessage("/system/jack/started",{})
+            if util.which("a2jmidid"):
+                midip = subprocess.Popen("a2jmidid -e",stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True,stdin=subprocess.DEVNULL) 
         workers.do(f)
 
 def handleManagedSoundcards():
@@ -868,6 +872,7 @@ def handleManagedSoundcards():
         #wants to hear.
         startPulse = False
         if (inp,op,midis)==(oldi,oldo,oldmidis):
+
             #However some things we need to retry.
             #Device or resource busy being the main one
             for i in inp:
@@ -894,6 +899,7 @@ def handleManagedSoundcards():
                         continue
                     del toretry_out[i]
                     if not i in alsa_out_instances:
+                        startPulse=True
                         try:
                             subprocess.check_call(['pulseaudio','-k'])
                         except:
@@ -907,8 +913,23 @@ def handleManagedSoundcards():
 
             return
             
-        oldi,oldo,oldmidis =inp,op,oldmidis
-       
+        oldi,oldo,oldmidis =inp,op,midis
+        print("Not the same")
+
+        #Look for ports with the a2jmidid naming pattern and give them persistant name aliases.
+        x = jackclient.get_ports(is_midi=True)
+        for i in midis:
+            for j in x:
+                number = "["+str(midis[i][1])+"]"
+                if number in j.name:
+                    if i[0] in j.name:
+                        try:
+                            if not i in j.aliases:
+                                j.set_alias(i)
+                        except:
+                            log.exception("Error setting MIDI alias")
+
+
         for i in inp:
             #HDMI doesn't do inputs as far as I know
             if not i.startswith("HDMI"):

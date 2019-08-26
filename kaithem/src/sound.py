@@ -23,10 +23,12 @@ from . import registry
 log= logging.getLogger("system.sound")
 
 if registry.get("/system/sound/usejack",None)=="manage":
-    try:
-        jackmanager.startManagingJack()
-    except:
-        log.exception("Error managing JACK")
+    def f():
+        try:        
+            jackmanager.startManagingJack()
+        except:
+            log.exception("Error managing JACK")
+    workers.do(f)
 
 jackAPIWidget = None
 

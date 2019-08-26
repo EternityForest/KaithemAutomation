@@ -17,7 +17,7 @@
 #This file really shouldn't have too many non-essential dependancies onthe rest of kaithem,
 #Aside from the threadpool and the message bus.
 
-import threading,time
+import threading,time,logging
 
 from . import jackmanager
 
@@ -25,6 +25,9 @@ initialized = False
 initlock = threading.Lock()
 Gst = None
 
+
+def elementInfo(e):
+    r=Gst.Registry.get()
 def init():
     "On demand loading, for startup speed but also for compatibility if Gstreamer isn't there"
     global initialized, Gst
@@ -43,6 +46,13 @@ def init():
             Gst.init(None)
             initialized = True
 
+
+
+def doesElementExist(n):
+    n =Gst.ElementFactory.make(n)
+    if n:
+        n.unref()
+    return True
 
 class AudioFilePlayer():
     def __init__(self, file, output=None):
@@ -106,7 +116,10 @@ class Pipeline():
             raise RuntimeError("Could not create pipeline")
         if not initialized:
             raise RuntimeError("Gstreamer not set up")
-        
+        self.bus = self.pipeline.get_bus()
+        self.bus.add_signal_watch()
+        self.pgbcobj = self.bus.connect('message',self.on_message)
+        self.bus.connect("message::error", self.on_error)
         self.name = name
 
         self.src = Gst.ElementFactory.make('jackaudiosrc')
@@ -127,7 +140,6 @@ class Pipeline():
         self.sink.set_property("latency-time",4000)
         self.sink.set_property("sync",False)
         self.sink.set_property("slave-method",2)
-
 
 
         self.src.connect = 0
@@ -161,13 +173,21 @@ class Pipeline():
         self.namedElements = {}
 
         self.usingJack=True
+        self.running = False 
+    def pollerf(self):
+        while self.running:
+            self.bus.poll(Gst.MessageType.ANY,1)
         
         
     def __del__(self):
         self.pipeline.unref()
 
-    def on_message(self, bus, message):        
+    def on_message(self, bus, message):
+        print("*******************************************************************",message)  
         return True
+
+    def on_error(self,bus,message):
+        logging.debug(str(message))
 
 
     def connect(self, restore=[]):
@@ -218,8 +238,6 @@ class Pipeline():
                 raise RuntimeError("Could not link "+str(self.elements[-1])+" to "+str(self.sink))
             if not self.capsfilter2.link(self.sink):
                 raise RuntimeError("Could not link "+str(self.capsfilter2)+" to "+str(self.sink))
-            self.pipeline.get_bus().add_signal_watch()
-            self.pgbcobj = self.pipeline.get_bus().connect('message::element', self.on_message)
 
             #I think It doesn't like it if you start without jack
             if self.usingJack:
@@ -230,8 +248,12 @@ class Pipeline():
                 if not jackmanager.getPorts():
                     return
             self.pipeline.set_state(Gst.State.PLAYING)
+            self.running=True
+            self.pollthread = threading.Thread(target=self.pollerf,daemon=True,name="GSTPoller")
+            self.pollthread.start()
 
     def stop(self):
+        self.running=False
         with self.lock:
             for i in self.sendAirwires:
                 i.disconnect()
