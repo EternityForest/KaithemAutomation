@@ -8,6 +8,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [lights/lightboard.admin]
+resource-timestamp: 1566264981194438
 resource-type: page
 template-engine: mako
 
@@ -649,28 +650,6 @@ from src import tagpoints
             <div v-if="currentcue">
                 <h3>{{currentcue.name}}</h3>
 
-                <label>Next Cue:
-                <input list="cues_in_scene" title="Select a cue to activate when this one ends" v-on:input="setnext(currentcueid,$event.target.value)"
-                    v-model="cuemeta[currentcueid].next" v-bind:placeholder="currentcue.defaultnext"></input>
-            </label>
-                <button v-on:click="gotonext(currentcueid)">
-                <img src="/zipstatic/img/icons/fugue.zip/book-open-next.png"></img>Edit Next</button>
-                <button title="If this cue's next does not exist, clone the current cue to be the next, and edit that cue" v-on:click="clonecue(scenename,currentcueid,currentcue.next)">
-                <img src="/zipstatic/img/icons/fugue.zip/document-copy.png"></img>Clone to Next</button>
-
-                <datalist id="cues_in_scene" v-if="Object.keys(scenecues[scenename]).length<50">
-                    <option v-for="i in Object.keys(scenecues[scenename]).sort()" v-bind:value="i">{{i}}</option>
-                </datalist>
-
-                <div style="clear:both" v-if="showAdvancedControls" >
-                    <div style="display:inline-block;">
-                        Script Bindings:</br>
-                        <textarea rows=3 cols=40 title="Enter script bindings here that can trigger at the start and end of the cue" v-on:change="setscript(currentcueid,$event.target.value)"
-                            v-model="cuemeta[currentcueid].script"></textarea>
-                    </div>
-
-
-                </div>
 
 
 
@@ -681,7 +660,7 @@ from src import tagpoints
                 <div style="overflow: scroll; max-height:30em;" class="fadersbox" v-if="showLightingControls">
                     <div class="universe" v-for="(h,uname) in cuevals[currentcueid]" v-if="uname[0]!='@'" style="border-style:solid">
                         <h3>{{uname}}</h3>
-                        <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid" v-for="i in h"></h-fader>
+                        <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid" :showdelete="scenetab=='channels'" v-for="i in h"></h-fader>
                     </div>
 
 
@@ -690,37 +669,48 @@ from src import tagpoints
                         <button v-on:click="rmFixCue(currentcueid, fname)">
                             <img src="/zipstatic/img/icons/fugue.zip/minus-circle.png">
                         </button>
-                        <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid" v-for="i in h"></h-fader>
+                        <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid" :showdelete="scenetab=='channels'" v-for="i in h"></h-fader>
                     </div>
                 </div>
-                <div v-if="showLightingControls" style="clear:both">
-                    <input list="universes" id="newcueu" placeholder="Universe">
-                    <datalist id="universes">
-                        <option v-for="(v,i) of universes" v-bind:value="i">({{v.count}} values)</option>
-                    </datalist>
-                    <input type="number" id="newcuevnumber" title="Channel Number" style="width:5em" value="1">
-                    <button v-on:click="addValToCue()"><img src="/zipstatic/img/icons/fugue.zip/plus-octagon-frame.png"></img>Add Channel to Cue</button>
-                    <button v-on:click="rmValFromCue()"><img src="/zipstatic/img/icons/fugue.zip/minus-octagon-frame.png"></img>Remove</button>
-                    <br>
-                    <select id="newcuefix" title="Channel Number" style="width:10em">
-                    <option v-for="(v,i) in fixtures" :value="i">{{v[0]}}:{{i}} at {{v[1]}}</option>
-                </select>
-                    <button v-on:click="addFixToCue()"><img src="/zipstatic/img/icons/fugue.zip/light-bulb.png"></img>Add Fixture to Cue</button>
-
-                    <label v-if="editingScene.blend=='monitor'">Priority:
-                    <input type='number' min=0 max=100 style="width:3em" v-on:input="setpriority(scenename,parseFloat($event.target.value))"
-                        v-model="editingScene.priority">
-                </label>
-
-                </div>
+                   
 
                 <div>
                     <p style="background-color:rgba(250,250,250,0.5)">
-                        <button v-on:click="scenetab='blend'">Properties</button>
+                        <button v-on:click="scenetab='blend'">Scene</button>
+                        <button v-on:click="scenetab='cue'">Cue</button>
                         <button v-on:click="scenetab='sound'">Sound</button>
                         <button v-on:click="scenetab='sync'"> Sync</button>
+                        <button v-on:click="scenetab='channels'">Add/Remove channels</button>
                         <button v-on:click="scenetab='data'" title="Direct copy and pastable access to cue data"> Cue Data</button>
                     </p>
+
+
+
+ 
+                    <div v-if="scenetab=='channels'">
+                        <h3>Add/Remove Channels</h3>
+                       
+                        <h4>Directly Add Numbered Channel</h4>
+                        <input list="universes" id="newcueu" placeholder="Universe">
+                        <datalist id="universes">
+                            <option v-for="(v,i) of universes" v-bind:value="i">({{v.count}} values)</option>
+                        </datalist>
+
+                        <input type="number" id="newcuevnumber" title="Channel Number" style="width:5em" value="1">
+                        <button v-on:click="addValToCue()"><img src="/zipstatic/img/icons/fugue.zip/plus-octagon-frame.png"></img>Add Channel to Cue</button>
+                        
+                        <h4>Add Fixture</h4>
+                       
+                        <table>
+                            <tr  v-for="(v,i) in fixtures"><td>{{v[0]}}:{{i}} at {{v[1]}}</td><td><button v-on:click="addThisFixToCurrentCue(i)"><img src="/zipstatic/img/icons/fugue.zip/plus-octagon-frame.png"></img>Add</button></td></tr>
+                        </table>
+
+                        <label v-if="editingScene.blend=='monitor'">Priority:
+                        <input type='number' min=0 max=100 style="width:3em" v-on:input="setpriority(scenename,parseFloat($event.target.value))"
+                            v-model="editingScene.priority">
+                        </label>
+                    </div>
+
 
                     <div v-if="scenetab=='data'">
                         <textarea rows=50 cols=25 v-model="cuedatafield" v-on:change="setcuevaldata(currentcueid,$event.target.value)">
@@ -760,7 +750,7 @@ from src import tagpoints
 
                     <div v-if="scenetab=='sound'">
                         <h3>Sound</h3>
-                        <div style="display:inline-block;">
+                        <div>
                             <label>Sound:
                             <input placeholder="No sound file" v-model="currentcue.sound" style="width:32em;"
                                 v-on:change="setSoundfile(currentcueid,currentcue.sound)">
@@ -782,18 +772,19 @@ from src import tagpoints
                                 title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
                         </label><br>
                         </div>
+                        <input v-model="soundfilter" placeholder="Filter Sounds" style="width:60%;">
                         <div style="max-height:25em; overflow:scroll; background-color:rgba(255,255,255,0.4);">
                             <h4><a title="View in file manager" v-bind:href="'/settings/files'+encodeURI(soundfilesdir)" target="_blank">{{soundfilesdir}}</a></h4>
                             <ul>
                                 <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir('')">&ltTOP DIRECTORY&gt</li>
                                 <li v-if="soundfilesdir" style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">..</li>
-                                <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(i)" v-for="i in soundfileslisting[0]">{{i}}</li>
+                                <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(i)" v-for="i in soundfileslisting[0]" v-if="fuzzyIncludes(i,soundfilter)">{{i}}</li>
 
                             </ul>
 
                             <table border="1">
                                 <tr><th>File</th> <th>Add to Current</th> <th>Add to New</th></tr>
-                                <tr  v-for="i in soundfileslisting[1]">
+                                <tr  v-for="i in soundfileslisting[1]" v-if="fuzzyIncludes(i,soundfilter)">
                                     <td>{{i}}</td>
                                     <td><button v-on:click="setSoundfile(currentcueid,soundfilesdir+i)">Set</button></td>
                                     <td><button v-on:click="newCueFromSound(scenename,soundfilesdir+i)">New</button></td>
@@ -844,12 +835,9 @@ from src import tagpoints
 
 
 
-
-
-
-                    <div v-if="scenetab=='blend'">
-                        <h4 title="These properties belong to the selected cue and can vary between cues">Cue Properties</h4>
-
+                    <div v-if="scenetab=='cue'">
+                       <h4 title="These properties belong to the selected cue and can vary between cues">Cue Properties</h4>
+                       <h5>Basic</h5>
                         <label>Number:
                         <input type="number" title="Cue number" style="width:6em" v-on:input="setnumber(currentcueid,$event.target.value)"
                             min=0 step=0.1 v-model="currentcue.number">
@@ -875,10 +863,7 @@ from src import tagpoints
                                 title="Randomize the cue length +- this amount" v-model="cuemeta[currentcueid].lengthRandomize"
                                 style="width:4em" min=0 step=0.25></input>{{scenemeta[scenename].bpm?"beats":"s"}}
                         </label>
-                        <br>
-
-
-                        <br>
+                       <h5>Sound</h5>
                         <label v-if="showSoundControls" >Soundfile:
                             <input placeholder="No sound file" v-model="currentcue.sound"
                                 style="width:32em;" v-on:change="setSoundfile(currentcueid,currentcue.sound)">
@@ -891,15 +876,44 @@ from src import tagpoints
                         <label v-if="showSoundControls">Length From Sound:
                             <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_len)" v-model="currentcue.rel_len"
                                 title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
-                        </label>
-                        <br>
+                        </label><br>
+
+                        <h5>Cue Advance</h5>
+
+                        <label>Next Cue:
+                        <input list="cues_in_scene" title="Select a cue to activate when this one ends" v-on:input="setnext(currentcueid,$event.target.value)"
+                            v-model="cuemeta[currentcueid].next" v-bind:placeholder="currentcue.defaultnext"></input>
+                    </label>
+                        
+                        <button v-on:click="gotonext(currentcueid)">
+                        <img src="/zipstatic/img/icons/fugue.zip/book-open-next.png"></img>Edit Next</button>
+                        <button title="If this cue's next does not exist, clone the current cue to be the next, and edit that cue" v-on:click="clonecue(scenename,currentcueid,currentcue.next)">
+                        <img src="/zipstatic/img/icons/fugue.zip/document-copy.png"></img>Clone to Next</button>
+
+                        <datalist id="cues_in_scene" v-if="Object.keys(scenecues[scenename]).length<50">
+                            <option v-for="i in Object.keys(scenecues[scenename]).sort()" v-bind:value="i">{{i}}</option>
+                        </datalist>
+
+                        <div style="clear:both" v-if="showAdvancedControls" >
+                            <div style="display:inline-block;">
+                                <h5>Script Bindings</h5>
+                                <textarea rows=3 cols=40 title="Enter script bindings here that can trigger at the start and end of the cue" v-on:change="setscript(currentcueid,$event.target.value)"
+                                    v-model="cuemeta[currentcueid].script"></textarea>
+                            </div>
 
 
+                        </div>
+                    </div>
+
+
+
+                    <div v-if="scenetab=='blend'">
+             
                         <h4 title="These properties are fixed per-scene and don't change between cues">Scene Properties</h4>
                         <label v-if="showLightingControls">Default Alpha:
                         <input type="number" style="width:4em" max=1 step=0.01 min=0 v-on:input="setdalpha(scenename,parseFloat($event.target.value))"
                             v-model="editingScene.dalpha"></input>
-                    </label>
+                        </label>
                         <label  v-if="showLightingControls" >Blend Mode:
                             <select title="This setting controls blending multiple scenes together" v-on:input="setblend(scenename,$event.target.value)"
                                 v-model="editingScene.blend">
@@ -950,7 +964,6 @@ from src import tagpoints
 
                         <label v-if="showAdvancedControls">Send event to this scene:
                                 <input v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name" title="Event Name">
-                                            <label>
 
                                 <input v-model="evval" v-on:keydown.enter="sendev" title="Event Value" placeholder="value">
 
@@ -988,7 +1001,7 @@ from src import tagpoints
 
     </div>
 
-    <section style="float:left; width:40%;" v-if="showKeyBindings">
+    <section style="float:left; width:30%;" v-if="showKeyBindings">
         <h3>Key Bindings</h3>
         <button v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}"><img src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>Off</button>
         <button v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}"><img src="/zipstatic/img/icons/fugue.zip/tick-octagon.png"></img>On</button>
@@ -1005,7 +1018,7 @@ from src import tagpoints
                 <br>next [scene]<br> toggle [scene].<br><br> To organize bindings
                 into banks, <br>put the bank's name in square brackets on a line.<br>                when the page loads, the bank is 'default'.<br> To switch banks,
                 use the bank [name] command.
-                <br><br> Use the goto command to make a scene jump to a cue. Example
+                <br><br> Use the goto command to make a scene jump to a cue.<br> Example
                 "a: goto scenename cuename". You can use either the cue number or
                 the cue name in a binding.</br><br> Use sc to trigger all cues attached
                 to a given shortcut code. Example: "a: sc code"</br>
@@ -1042,6 +1055,9 @@ from src import tagpoints
             <b v-if="chinfo==undefined">{{i.ch}}</b>
             <b v-if="chinfo" v-bind:title="'Actual channel:'+i.u+':'+i.ch">{{i.ch}}</b>
         </span>
+
+        <button v-if="showdelete" v-on:click="rmValFromCue(i.u,i.ch)"><img src="/zipstatic/img/icons/fugue.zip/minus-octagon-frame.png"></img>Remove</button>
+                        
 
         <span v-if="i.v !== null">
             <input v-bind:disabled="chinfo&&chinfo[2]=='fine'" 
@@ -1164,7 +1180,23 @@ from src import tagpoints
             {
                 delete appData.lockedFaders[sc+":"+u+":"+ch];
             },
-            'getValueRange':getValueRange
+            'getValueRange':getValueRange,
+            
+            'rmValFromCue': function(universe,ch)
+            {
+                api_link.send(['scv', appData.scenecues[appData.scenename]
+                    [appData.selectedCues[appData.scenename]],
+                    universe,
+                    ch,
+                    null
+                ])
+                Vue.delete(appData.cuevals[appData.selectedCues[appData
+                    .scenename]][$('#newcueu').val()], parseInt(
+                    ch))
+                Vue.delete(appData.cuevals[appData.selectedCues[appData
+                    .scenename]][$('#newcueu').val()],
+                    ch)
+            },
         }
 
         Vue.component('h-fader',
@@ -1172,7 +1204,7 @@ from src import tagpoints
             template: '#h-fader',
             //I is a data object having u,ch, and v, the universe channel and value.
             //Chinfo is the channel info list from the fixtues that you get with chnamelookup
-            props: ['i', 'chinfo','monitor','currentcueid'],
+            props: ['i', 'chinfo','monitor','currentcueid','showdelete'],
             data: function()
             {
                 return (hfaderdata)
@@ -1576,15 +1608,29 @@ from src import tagpoints
             //Filter which scenes are shown in the list
             'scenefilter': '',
             'cuefilter': '',
+            'soundfilter':'',
             'currentBindingBank': 'default',
             'localStorage': localStorage,
             'keybindscript': localStorage.getItem("keybind-script"),
             'keybindmode': 'edit',
+            'showAddChannels':false,
             'showLightingControls': true,
             'showAdvancedControls': true,
             'showSoundControls': true,
             //Formatted for display
             'cuevals': {},
+
+            'fuzzyIncludes'(s, search)
+            {
+                for ( i of search.toLowerCase().split(" "))
+                {
+                    if (!s.toLowerCase().includes(i))
+                    {
+                        return 0;
+                    }
+                }
+                return 1;
+            },
 
 
 
@@ -2029,6 +2075,15 @@ from src import tagpoints
                 ]);
 
             },
+            'addThisFixToCurrentCue': function(fix)
+            {
+                api_link.send(['addcuef', appData.scenecues[
+                        appData.scenename]
+                    [appData.selectedCues[appData.scenename]],
+                    fix
+                ]);
+
+            },
             'rmFixCue': function(cue,fix)
             {
                 api_link.send(['rmcuef', cue,fix]);
@@ -2052,18 +2107,7 @@ from src import tagpoints
                     1)
 
             },
-            'rmValFromCue': function()
-            {
-                api_link.send(['scv', appData.scenecues[appData.scenename]
-                    [appData.selectedCues[appData.scenename]],
-                    $('#newcueu').val(),
-                    parseInt($('#newcuevnumber').val()),
-                    null
-                ])
-                Vue.delete(appData.cuevals[appData.selectedCues[appData
-                    .scenename]][$('#newcueu').val()], parseInt(
-                    $('#newcuevnumber').val()))
-            },
+
             'sortscenes': function()
             {
 

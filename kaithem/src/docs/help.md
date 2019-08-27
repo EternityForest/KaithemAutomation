@@ -1065,6 +1065,10 @@ Resume a paused a sound. Does nothing if not paused. Only works with the
 mplayer backend. If you are using any other sound backend, this does
 nothing.
 
+#### kaithem.sound.resolveSound(fn,extrapaths=[])
+Search every default sound path, and all the extra paths for the sound file.
+Return full absolute path to the sound if found.
+
 ### kaithem.message
 
 #### kaithem.message.post(topic,message)

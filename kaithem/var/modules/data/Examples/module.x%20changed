@@ -2,6 +2,7 @@ continual: false
 once: true
 priority: interactive
 rate-limit: 0.0
+resource-timestamp: 1566264981078414
 resource-type: event
 trigger: '!onchange module.x'
 versions: {}

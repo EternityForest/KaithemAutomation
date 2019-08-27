@@ -4,6 +4,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
+resource-timestamp: 1566264981246449
 resource-type: event
 trigger: 'True'
 versions: {}
@@ -28,6 +29,8 @@ abs=abs
 int=int
 max=max
 min=min
+
+allowedCueNameSpecials = '_~'
 
 
 
@@ -65,7 +68,8 @@ def fnToCueName(fn):
     fn=fn.replace("_"," ")
     fn = fn.replace(":"," ")
     for i in r"""\~!@#$%^&*()+`-=[]\{}|;':"./,<>?""":
-        fn=fn.replace(i,"")
+        if not i in allowedCueNameSpecials:
+            fn=fn.replace(i,"")
     return fn
 
 
@@ -1561,6 +1565,12 @@ class LightBoard():
             if msg[0]=="newFromSound":
                 bn = os.path.basename(msg[2])
                 bn=fnToCueName(bn)
+                try:
+                    tags = TinyTag.get(msg[2])
+                    if tags.artist and tags.title:
+                        bn = tags.title +" ~ "+ tags.artist
+                except:
+                    pass
                 if not bn in module.scenes[msg[1]].cues:
                     module.scenes[msg[1]].addCue(bn)
                     module.scenes[msg[1]].cues[bn].rel_length=True
@@ -1662,7 +1672,7 @@ class LightBoard():
                 self.pushCueMeta(msg[1])
 
             if msg[0] == "setnext":
-                disallow_special( msg[2][:1024],allow="_")
+                disallow_special( msg[2][:1024],allow=allowedCueNameSpecials)
                 if msg[2][:1024]:
                     c = msg[2][:1024]
                 else:
@@ -2026,7 +2036,7 @@ class Cue():
         self.script = script
         self.onEnter = onEnter
         self.onExit = onExit
-        disallow_special(name)
+        disallow_special(name,allowedCueNameSpecials)
         if name[0] in '1234567890 \t_':
             name = 'x'+name
 
@@ -3183,7 +3193,9 @@ def event(s,value=None, info=''):
 
 lastrendered = 0
 
-module.board = LightBoard()
+module.Board = LightBoard
+
+module.board =LightBoard()
 module.boards.append(weakref.ref(module.board))
 module.Scene = Scene
 
@@ -3199,9 +3211,8 @@ kaithem.lights.scriptActions = weakref.WeakValueDictionary()
 kaithem.lights.event = event
 
 
-module.controluniverse = Universe("control")
+module.controluniverse = module.Universe("control")
 
-render()
 ---
 with module.lock:
     render()

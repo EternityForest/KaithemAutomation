@@ -496,14 +496,13 @@ def loadRecoveryDbInfo(completeFileTimestamp=0):
                             modules_state.ActiveModules[i['module']]={}
                             scopes[i['module']] = ModuleObject(i['module'])
                         
-                        #Only handle new stuff, don't deal with changes, that should have happened in the inital load.
-                        if not i['resource'] in  modules_state.ActiveModules[i['module']]:
-                            r = json.loads(i['value'])
-                            modules_state.ActiveModules[i['module']][i['resource']] = r
+                   
+                        r = json.loads(i['value'])
+                        modules_state.ActiveModules[i['module']][i['resource']] = r
 
-                            if r['resource-type'] == "internal-fileref":
-                                newpath = os.path.join(directories.vardir,"modules","filedata",r['target'])
-                                fileResourceAbsPaths[modulename,resource] = newpath
+                        if r['resource-type'] == "internal-fileref":
+                            newpath = os.path.join(directories.vardir,"modules","filedata",r['target'])
+                            fileResourceAbsPaths[modulename,resource] = newpath
 
                     else:
                         if not i['module'] in modules_state.ActiveModules:

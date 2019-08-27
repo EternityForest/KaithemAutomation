@@ -616,7 +616,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
     def __init__(self, *a,board=None, **k):
         gstwrapper.Pipeline.__init__(self,*a,**k)
         self.board =board
-        self.lastLevel = None
+        self.lastLevel = 0
         self.lastPushedLevel = time.monotonic()
         self.effectsById = {}
         self.effectDataById = {}
@@ -684,14 +684,15 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
         if  s.get_name() == 'level':
             if self.board:
                 l = sum([i for i in s['decay']])/len(s['decay'])
-                if l>-45:
-                    if time.monotonic()-self.lastPushedLevel< 3:
+                if l<-45 or abs(l-self.lastLevel)<6:
+                    if time.monotonic()-self.lastPushedLevel< 1:
                         return True
                 else:
-                    if time.monotonic()-self.lastPushedLevel< 0.2:
+                    if time.monotonic()-self.lastPushedLevel< 0.07:
                         return True
                 self.board.channels[self.name]['level']=l
                 self.lastPushedLevel = time.monotonic()
+                self.lastLevel = l
                 self.board.pushLevel(self.name, l)
         return True
 

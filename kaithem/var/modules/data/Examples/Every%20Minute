@@ -1,5 +1,6 @@
 {continual: false, enable: true, once: true, priority: interactive, rate-limit: 0.0,
-  resource-type: event, trigger: '!time every minute'}
+  resource-timestamp: 1566264981038406, resource-type: event, trigger: '!time every
+    minute'}
 
 #End metadata. Format: metadata, setup, action, delimited by --- on it's own line.
 ---

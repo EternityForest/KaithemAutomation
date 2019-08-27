@@ -417,6 +417,7 @@ class WebInterface():
 
                     def insertResource(r):
                         ActiveModules[root][escapedName] = r
+                        modules_state.createRecoveryEntry(root,escapedName,r)
                     ####END BLOCK OF COPY PASTED CODE.
 
                     insertResource({'resource-type':'internal-fileref', 'target':data_basename})
@@ -545,6 +546,7 @@ def addResourceTarget(module,type,name,kwargs,path):
 
     def insertResource(r):
         ActiveModules[root][escapedName] = r
+        modules_state.createRecoveryEntry(module,escapedName, r)
 
     with modulesLock:
         #Check if a resource by that name is already there
@@ -605,7 +607,6 @@ def addResourceTarget(module,type,name,kwargs,path):
 
         messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + " added resource " +
                             escapedName + " of type " + type+" to module " + root)
-
         #Take the user straight to the resource page
         raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module)+'/resource/'+util.url(escapedName))
 
@@ -699,7 +700,6 @@ def resourceUpdateTarget(module,resource,kwargs):
     pages.postOnly()
     modulesHaveChanged()
     unsaved_changed_obj[(module,resource)] = "Resource modified by"+ pages.getAcessingUser()
-
     with modulesLock:
         t = ActiveModules[module][resource]['resource-type']
         resourceobj = ActiveModules[module][resource]
@@ -830,7 +830,7 @@ def resourceUpdateTarget(module,resource,kwargs):
         if 'name' in kwargs:
             if not kwargs['name'] == resource:
                 mvResource(module,resource,module,kwargs['name'])
-
+        modules_state.createRecoveryEntry(module,resource, resourceobj)
     messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + " modified resource " +
                            resource + " of module " + module)
     r =resource

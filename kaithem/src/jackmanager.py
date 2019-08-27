@@ -1015,6 +1015,12 @@ def startManagingJack():
             break
         except:
             time.sleep(1)
+            if i==8:
+                try:
+                    subprocess.check_call(['killall', '-9', 'jackd'])
+                except:
+                    pass
+                time.sleep(3)
             if i<9:
                 continue
             raise

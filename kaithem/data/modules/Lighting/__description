@@ -1,3 +1,4 @@
+resource-timestamp: 1566264981278455
 resource-type: module-description
 text: "Lighting control library and JS virtual light board. Requires numpy.\r\nYou\
   \ have to load the jslibs module(Should work with any jslibs-0.xx.x) to use the\

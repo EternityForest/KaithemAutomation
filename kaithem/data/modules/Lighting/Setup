@@ -8,6 +8,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
+resource-timestamp: 1566264981186437
 resource-type: page
 template-engine: mako
 

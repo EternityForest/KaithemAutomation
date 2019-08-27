@@ -176,7 +176,7 @@ class Pipeline():
         self.running = False 
     def pollerf(self):
         while self.running:
-            self.bus.poll(Gst.MessageType.ANY,1)
+            self.bus.poll(Gst.MessageType.ANY,0.1)
         
         
     def __del__(self):

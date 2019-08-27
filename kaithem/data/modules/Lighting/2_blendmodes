@@ -3,6 +3,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
+resource-timestamp: 1566264981146428
 resource-type: event
 trigger: 'False'
 versions: {}

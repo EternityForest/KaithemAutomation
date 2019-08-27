@@ -8,6 +8,7 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [lights/lightboard.admin]
+resource-timestamp: 1566264981174434
 resource-type: page
 template-engine: mako
 

@@ -130,7 +130,7 @@ from src import jackmixer
                 <template v-if="param.type=='float'">
                   <td>{{param.displayName}}</td> 
                   <td><input type="range" style="width:95%" v-model.number="param.value" 
-                    v-bind:min="param.min" v-bind:max="param.max" :step="(param.step|0.1)" v-on:input="setParam(channelname,effect.id,param.name,parseFloat($event.target.value))">
+                    v-bind:min="param.min" v-bind:max="param.max" :step="(param.step)" v-on:input="setParam(channelname,effect.id,param.name,parseFloat($event.target.value))">
                   </td>
                     
                     <td>{{param.value}}</td>
@@ -211,14 +211,14 @@ from src import jackmixer
   };
 
 
-
+  channels = {};
   var app = new Vue({
     el: '#app',
     data: {
       message: 'Hello Vue!',
       inports: {},
       outports: {},
-      channels: {},
+      channels:channels,
       api: api,
       newchannelname: "",
       newpresetname:"",
@@ -306,7 +306,6 @@ from src import jackmixer
         l.sort(compareParams);
         return (l);
       },
-
       //Given dict of ports, return every connectable(Port and just client without port)
       sortedConnectables: function (pl) {
         var l = [];
@@ -326,6 +325,7 @@ from src import jackmixer
     }
   });
 
+  
   api.upd = function (msg) {
 
     if (msg[0] == "newport") {
