@@ -1009,15 +1009,30 @@ def startManagingJack():
     atexit.register(cleanup)
     stopJack()
     startJack()
+
+    #Close any existing stuff
+    if jackclient:
+        jackclient.close()
+
     for i in range(10):
         try:
             jackclient = jack.Client("Overseer",no_start_server=True)
             break
         except:
             time.sleep(1)
+            #If we couldn't get it working, try shutting down some possible conflicts with -9
             if i==8:
                 try:
                     subprocess.check_call(['killall', '-9', 'jackd'])
+                except:
+                    pass
+                try:
+                    subprocess.check_call(['pulseaudio', '-k'])
+                    time.sleep(2)
+                except:
+                    pass
+                try:
+                    subprocess.check_call(['killall', '-9', 'pulseaudio'])
                 except:
                     pass
                 time.sleep(3)

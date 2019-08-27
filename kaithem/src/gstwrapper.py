@@ -24,7 +24,14 @@ from . import jackmanager
 initialized = False
 initlock = threading.Lock()
 Gst = None
+lock = threading.Lock()
+jackChannels = {}
 
+def stopAllJackUsers():
+    #It seems best to stop everything using jack before stopping and starting the daemon.
+    with lock:
+        for i in jackChannels:
+            jackChannels[i].stop()
 
 def elementInfo(e):
     r=Gst.Registry.get()
@@ -109,8 +116,7 @@ class Pipeline():
     def __init__(self, name, channels= 2, input=None, outputs=[]):
         init()
         self.lock = threading.RLock()
-        if not jackmanager.getPorts():
-            raise RuntimeError("JACK not running")
+       
         self.pipeline = Gst.Pipeline()
         if not self.pipeline:
             raise RuntimeError("Could not create pipeline")
@@ -122,11 +128,10 @@ class Pipeline():
         self.bus.connect("message::error", self.on_error)
         self.name = name
 
-        self.src = Gst.ElementFactory.make('jackaudiosrc')
-        if not self.src:
-            raise RuntimeError("Could not create jack source")
-        self.src.set_property("buffer-time",10)
-        self.src.set_property("latency-time",10)
+        self.elements = []
+        self.namedElements = {}
+
+        self.src=self.addElement("jackaudiosrc", buffer_time=10, latency_time=10, port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=name+"_in",connect=0) 
 
         self.capsfilter = Gst.ElementFactory.make('capsfilter')
         self.capsfilter.caps = Gst.Caps("audio/x-raw,channels="+str(channels))
@@ -135,6 +140,10 @@ class Pipeline():
         self.capsfilter2 = Gst.ElementFactory.make('capsfilter')
         self.capsfilter2.caps = Gst.Caps("audio/x-raw,channels="+str(channels))
         
+
+        #self.sink=self.addElement("jackaudiosink", buffer_time=8000, latency_time=4000,sync=False,
+        #slave_method=2, port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=name+"_out",connect=0) 
+
         self.sink = Gst.ElementFactory.make('jackaudiosink')
         self.sink.set_property("buffer-time",8000)
         self.sink.set_property("latency-time",4000)
@@ -142,18 +151,14 @@ class Pipeline():
         self.sink.set_property("slave-method",2)
 
 
-        self.src.connect = 0
         self.sink.connect=0
 
         #Random nonsense so they don't auto connect
-        self.src.set_property("port-pattern","fdgjkndgmkndfmfgkjkf")
         self.sink.set_property("port-pattern","fdgjkndgmkndfmfgkjkf")
 
-        self.src.set_property("client-name",name+"_in")
         self.sink.set_property("client-name",name+"_out")
 
 
-        self.pipeline.add(self.src)
         self.pipeline.add(self.capsfilter)
         self.pipeline.add(self.capsfilter2)
 
@@ -164,13 +169,14 @@ class Pipeline():
             raise RuntimeError
 
         self.elements = [self.capsfilter]
+
         self.input=input
         self._input= None
         self.outputs=outputs
         self._outputs = []
         self.sends = []
         self.sendAirwires =[]
-        self.namedElements = {}
+  
 
         self.usingJack=True
         self.running = False 
@@ -180,6 +186,11 @@ class Pipeline():
         
         
     def __del__(self):
+        with lock:
+            try:
+                del jackChannels[self]
+            except:
+                pass
         self.pipeline.unref()
 
     def on_message(self, bus, message):
@@ -265,6 +276,13 @@ class Pipeline():
             self.pipeline.set_state(Gst.State.NULL)
 
     def addElement(self,t,name=None,**kwargs):
+
+        #Don't let the user use JACK if it's not running,
+        #For fear of gstreamer undefined behavior
+        if t.startswith("jackaudio"):
+            if not jackmanager.getPorts():
+                raise RuntimeError("JACK not running")
+        
         with self.lock:
             if not isinstance(t, str):
                 raise ValueError("Element type must be string")
@@ -285,10 +303,19 @@ class Pipeline():
                         e.set_property(i,v)
                 
             self.pipeline.add(e)
-            if not self.elements[-1].link(e):
-                raise RuntimeError("Could not link "+str(self.elements[-1])+" to "+str(e))
+
+            #This could be the first element
+            if self.elements:
+                if not self.elements[-1].link(e):
+                    raise RuntimeError("Could not link "+str(self.elements[-1])+" to "+str(e))
             self.elements.append(e)
             self.namedElements[name]=e
+
+            #Mark as a JACK user so we can stop if needed for JACK
+            #Stuff
+            if t.startswith("jackaudio"):
+                with lock:
+                    jackChannels[self.name] = self
             return e
 
     def setProperty(self, element, prop,value):
