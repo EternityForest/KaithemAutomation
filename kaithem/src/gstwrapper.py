@@ -24,7 +24,7 @@ from . import jackmanager
 initialized = False
 initlock = threading.Lock()
 Gst = None
-lock = threading.Lock()
+lock = threading.RLock()
 jackChannels = {}
 
 def stopAllJackUsers():
@@ -182,10 +182,18 @@ class Pipeline():
         self.running = False 
     def pollerf(self):
         while self.running:
-            self.bus.poll(Gst.MessageType.ANY,0.1)
+            with self.lock:
+                if self.running:
+                    self.bus.poll(Gst.MessageType.ANY,0.1)
         
         
     def __del__(self):
+        self.running=False
+        with self.lock:
+            try:
+                self.pipeline.set_state(Gst.State.NULL)
+            except:
+                pass
         with lock:
             try:
                 del jackChannels[self]
@@ -261,6 +269,7 @@ class Pipeline():
             self.pipeline.set_state(Gst.State.PLAYING)
             self.running=True
             self.pollthread = threading.Thread(target=self.pollerf,daemon=True,name="GSTPoller")
+            self.pollthread.daemon=True
             self.pollthread.start()
 
     def stop(self):

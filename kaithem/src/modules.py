@@ -502,7 +502,7 @@ def loadRecoveryDbInfo(completeFileTimestamp=0):
 
                         if r['resource-type'] == "internal-fileref":
                             newpath = os.path.join(directories.vardir,"modules","filedata",r['target'])
-                            fileResourceAbsPaths[modulename,resource] = newpath
+                            fileResourceAbsPaths[i['module'],i['resource']] = newpath
 
                     else:
                         if not i['module'] in modules_state.ActiveModules:

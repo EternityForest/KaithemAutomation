@@ -749,11 +749,9 @@ atexit.register(cleanup)
 
 def stopJack():
     import subprocess
-    #Get rid of old stuff 
-    try:
-        subprocess.check_call(['killall','jackd'])
-    except:
-        pass
+    #Get rid of old stuff
+    from . import gstwrapper
+    gstwrapper.stopAllJackUsers()
     try:
         subprocess.check_call(['killall','alsa_in'])
     except:
@@ -762,14 +760,29 @@ def stopJack():
         subprocess.check_call(['killall','alsa_out'])
     except:
         pass
+    try:
+        subprocess.check_call(['killall','a2jmidid'])
+    except:
+        pass
+
+    try:
+        subprocess.check_call(['killall','jackd'])
+    except:
+        pass
 
 
 jackp = None
 def startJack():
     #Start the JACK server.
     global jackp
-
+    
     if not jackp or not jackp.poll()==None:
+        if midip:
+            try:
+                midip.kill()
+            except:
+                pass
+
         try:
             subprocess.check_call(['pulseaudio','-k'])
         except:
@@ -786,6 +799,7 @@ def startJack():
                     break
                 time.sleep(0.5)
             messagebus.postMessage("/system/jack/started",{})
+           
             if util.which("a2jmidid"):
                 midip = subprocess.Popen("a2jmidid -e",stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True,stdin=subprocess.DEVNULL) 
         workers.do(f)
@@ -819,6 +833,7 @@ def handleManagedSoundcards():
                         toretry_out[i]=time.monotonic()+5
                     elif b"No such" in (x+e):
                         toretry_out[i]=time.monotonic()+10
+                        log.error("Nonexistant card "+i)
                     else:
                         toretry_out[i]=time.monotonic()
 
@@ -840,7 +855,7 @@ def handleManagedSoundcards():
                 problem = b"err =" in x+e or alsa_in_instances[i].poll()
                 problem = problem or b"busy" in (x+e) 
                 if problem :
-                    log.error("Error in output "+ i +(x+e).decode("utf8") +" status code "+str(alsa_in_instances[i].poll()))
+                    log.error("Error in input "+ i +(x+e).decode("utf8") +" status code "+str(alsa_in_instances[i].poll()))
                     closeAlsaProcess(i, alsa_in_instances[i])   
                     tr.append(i)
                     if b"busy" in (x+e):
@@ -848,6 +863,7 @@ def handleManagedSoundcards():
                     
                     if b"No such" in (x+e):
                         toretry_in[i]=time.monotonic()+10
+                        log.error("Nonexistant card "+i)
                     else:
                         toretry_out[i]=time.monotonic()
 
@@ -925,6 +941,7 @@ def handleManagedSoundcards():
                     if i[0] in j.name:
                         try:
                             if not i in j.aliases:
+                                print(j.aliases, i)
                                 j.set_alias(i)
                         except:
                             log.exception("Error setting MIDI alias")
@@ -963,6 +980,10 @@ def handleManagedSoundcards():
                     tr.append(i)
             for i in tr:
                 log.warning("Removed "+i+"o because the card was removed")
+                try:
+                    closeAlsaProcess(alsa_out_instances[i])
+                except:
+                    pass
                 del alsa_out_instances[i]
 
             tr =[]
@@ -971,6 +992,10 @@ def handleManagedSoundcards():
                     tr.append(i)
             for i in tr:
                 log.warning("Removed "+i+"i because the card was removed")
+                try:
+                    closeAlsaProcess(alsa_in_instances[i])
+                except:
+                    pass
                 del alsa_in_instances[i]
         except:
             log.exception("Exception in loop")
@@ -978,6 +1003,8 @@ def handleManagedSoundcards():
 
 def work():
     while(1):
+        checkJack()
+        checkJackClient()
         handleManagedSoundcards()
         ensureConnections()
         time.sleep(5)
@@ -1025,16 +1052,16 @@ def startManagingJack():
                 try:
                     subprocess.check_call(['killall', '-9', 'jackd'])
                 except:
-                    pass
+                    log.exception("err")
                 try:
                     subprocess.check_call(['pulseaudio', '-k'])
                     time.sleep(2)
                 except:
-                    pass
+                    log.exception("err")
                 try:
                     subprocess.check_call(['killall', '-9', 'pulseaudio'])
                 except:
-                    pass
+                    log.exception("err")
                 time.sleep(3)
             if i<9:
                 continue
@@ -1051,13 +1078,36 @@ def startManagingJack():
     t.start()
 
 
+
+def checkJack():
+    global jackp
+    if jackp and jackp.poll() !=None:
+        startJack()
+
+def checkJackClient():
+    global jackclient
+    with lock:
+        if not jackclient:
+            return []
+        ports =[]
+        try:
+            return jackclient.get_ports()
+        except:
+            try:
+                jackclient.close
+            except:
+                pass
+            try:
+                jackclient=jack.Client("Overseer")
+            except:
+                log.exception("Error creating JACK client")
 def getPorts(*a,**k):
     with lock:
         if not jackclient:
             return []
         ports =[]
         return jackclient.get_ports(*a,**k)
-       
+
 
 def getPortNamesWithAliases(*a,**k):
     with lock:
