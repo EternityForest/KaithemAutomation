@@ -7,8 +7,11 @@ Change Log
 - Full copy of the python3.8 documentation available locally in the help section
 - Sound Mixer built in(if using JACK)
 - Lightboard better suited for media
+- Dynamic Fixture Mapping in Lightboard
 - If the server is restarted but the system itself remains running, all module and registry changes persist in RAM
     on linux.
+- Many bugfixes
+- Boot time is several times faster
 
 ### 0.63.1
 -  Fix JS dependancy error in lighting module

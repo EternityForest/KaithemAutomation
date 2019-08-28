@@ -1,9 +1,23 @@
-# Mixing Board
+# JACK/Mixing Board
 
 
-Kaithem includes an audio mixer that is enabled when you configure the use of the JACK server. It only works on Linux.
+Kaithem includes an audio mixer that is enabled when you configure the use of the JACK server(Set the JACK mode to "manage"). It only works on Linux.
 
 The mixing board is based on channel strips, which should be familiar if you have used a physical mixing board.
+
+## WARNING
+
+This is beta functionality. It may crash. It may segfault. etc.
+
+## Dependancies
+
+ For the mixer and the JACK subsystem to work correctly, you will need several dependancies that are not included.
+ They are included in the kaithem .deb package recommended section, and you can install on debian with:
+
+ ` sudo apt install python3-jack-client python3-gst-1.0 jack-tools
+   sudo apt install jackd2 gstreamer1.0-plugins-good gstreamer1.0-plugins-bad a2jmidid
+   sudo apt install swh-plugins tap-plugins caps gstreamer1.0-plugins-ugly
+`
 
 ## Channel Strips
 
@@ -27,6 +41,8 @@ The state of the entire board can be saved as a named preset. The preset called 
 
 When kaithem is managing JACK, it will create a jack client for every additional soundcard. These have generated persistent names based on what USB or PCI port they are plugged into. They will stay the same regardless of what order they are detected in.
 
+It will also use a2jmidid to bring all avbailable MIDI devices into JACK.  Since that program does not allow control of names,
+we assign aliases.
 
 ### Name Assignment
 

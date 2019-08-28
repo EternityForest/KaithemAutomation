@@ -15,7 +15,7 @@
 
 
 
-import weakref,pavillion, threading,time,logging,traceback,struct,hashlib,base64,gc
+import weakref, threading,time,logging,traceback,struct,hashlib,base64,gc
 import cherrypy,mako
 
 from . import virtualresource,pages,registry,modules_state,kaithemobj, workers,tagpoints, alerts

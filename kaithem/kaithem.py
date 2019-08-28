@@ -40,12 +40,10 @@ except:
 
 
 
-import sys,os,threading,traceback,logging,time,mimetypes,urllib3
+import sys,os,threading,traceback,logging,time,mimetypes
 
 #Some things get really excessive with this logging, especially UPnP
 #Libs
-urlliblogger = logging.getLogger("urllib3.connectionpool")
-urlliblogger.setLevel(logging.INFO)
 
 logger = logging.getLogger("system")
 logger.setLevel(0)
@@ -99,6 +97,11 @@ if sys.version_info < (3,0):
     sys.path = sys.path+[os.path.join(x,'thirdparty','lowpriority','python2')]
 else:
     sys.path = sys.path+[os.path.join(x,'thirdparty','lowpriority','python3')]
+
+
+import urllib3
+urlliblogger = logging.getLogger("urllib3.connectionpool")
+urlliblogger.setLevel(logging.INFO)
 
 import src
 
@@ -266,17 +269,18 @@ def webRoot():
         else:
             bindto = '::'
 
+    mode = int(cfgmodule.argcmd.nosecurity) if cfgmodule.argcmd.nosecurity else None
     #limit nosecurity to localhost
-    if int(cfgmodule.argcmd.nosecurity) == 1:
+    if mode == 1:
         bindto = '127.0.0.1'
         auth.noSecurityMode = 1
 
     #Unless it's mode 2
-    if int(cfgmodule.argcmd.nosecurity) == 2:
+    if mode == 2:
         auth.noSecurityMode=2
 
     #Unless it's mode 2
-    if int(cfgmodule.argcmd.nosecurity) == 3:
+    if mode == 3:
         auth.noSecurityMode=3
 
     #cherrypy.process.servers.check_port(bindto, config['http-port'], timeout=1.0)

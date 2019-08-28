@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import re, jack,time,json,logging,copy, subprocess
+import re,time,json,logging,copy, subprocess
 
 from . import widgets, messagebus,util,registry
 from . import jackmanager, gstwrapper,mixerfx

@@ -25,7 +25,7 @@ There's a built in realtime websocket-based log viewer to assist with debugging,
 make detecting intrusions and errors easier.
 ![Settings](screenshots/settings.jpg)
 
-Kaithem includes a library for common automation tasks such as file IO, timing, executing functions in the background, formatting numbers, and more, including a graphical lighting console!
+Kaithem includes a library for common automation tasks such as file IO, timing, executing functions in the background, formatting numbers, and more, including a graphical lighting console and a mixing board supporting multiple soundcards!
 
 ![Lighting control](screenshots/lighting.jpg)
 
@@ -44,6 +44,11 @@ or access the full help via the web interface!
 
 ## Setup
 See [This page](kaithem/src/docs/setup.md). Or, to just try things out, git clone and run kaithem/kaithem.py, then visit port 8001(for https) or port 8002(for not-https) on localhost. That's really all you need to do.
+
+There are many optional dependancies in the .deb recommended section that enable extra features. All are available in the debian
+repos and do not need to be compiled.  
+
+In particular, everything to do with sound is handled by dependancies, and python3-libnacl and python3-netifaces are recommended as several networking features require them.
 
 ### Security
 At some point, you should probably set up a proper SSL certificate in kaithem/var/ssl. The debian installer will generate one at
