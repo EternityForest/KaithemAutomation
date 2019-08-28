@@ -135,6 +135,7 @@ from src import jackmixer
                     
                     <td>{{param.value}}</td>
                 </template>
+
                 <template v-if="param.type=='bool'">
                   <td>{{param.displayName}}</td>
                   <td><input type="checkbox" v-model.bool="param.value"
@@ -142,6 +143,15 @@ from src import jackmixer
                   </td>
                   <td>{{param.value}}</td>
                 </template>
+
+                <template v-if="param.type=='JackInput'">
+                  <td>{{param.displayName}}</td>
+                  <td><input list="inports" v-model="param.value"
+                    v-on:input="setParam(channelname,effect.id,param.name,$event.target.value)">
+                  </td>
+                  <td>{{param.value}}</td>
+                </template>
+                
               </tr>
             </table>
 

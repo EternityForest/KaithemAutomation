@@ -16,7 +16,7 @@
 import re, jack,time,json,logging,copy, subprocess
 
 from . import widgets, messagebus,util,registry
-from . import jackmanager, gstwrapper
+from . import jackmanager, gstwrapper,mixerfx
 
 import threading
 
@@ -76,430 +76,8 @@ def logReport():
             if not gstwrapper.doesElementExist(e['gstStereoElement']):
                 log.warning("GST element "+e['gstStereoElement']+" not found. Some effects in the mixer will not work.")
 
-#These are templates for effect data. Note that they contain everything needed to generate and interface for
-#And use a gstreamer element. Except fader, which is special cased.
-effectTemplates_data={
-    "fader":{"type":"fader", "displayType": "Fader", "help": "The main fader for the channel",
-    "params": {}
-    },
-
-    "voicedsp":{
-        "type":"voicedsp", 
-        "displayType":"Voice DSP",
-        "help": "Noise Removal, AGC, and AEC", 
-        "gstElement": "webrtcdsp",
-        
-        "params": {
-          "gain-control": {
-                "type":"bool",
-                "displayName": "AGC",
-                "value": False,
-                "sort":0
-            },
-          "echo-cancel": {
-                "type":"bool",
-                "displayName": "Feedback Cancel",
-                "value": True,
-                "sort":1
-            },
-           "noise-suppression":
-           {
-                "type":"bool",
-                "displayName": "Noise Suppression",
-                "value": True,
-                "sort":1          
-            }
-
-        },
-        "gstSetup":{
-            "high-pass-filter": False,
-            "delay-agnostic": True,
-            'noise-suppression-level': 0
-        },
-        "preSupportElements":[
-            {"gstElement": "queue", "gstSetup":{"min-threshold-time": 25*1000*000}},
-            {"gstElement": "audioconvert", "gstSetup":{}},
-            {"gstElement": "interleave", "gstSetup":{}}
-
-        ],
-        "postSupportElements":[
-            {"gstElement": "audioconvert", "gstSetup":{}}
-        ]
-    },
-
-    "voicedsprobe":{"type":"voicedsprobe", "displayType":"Voice DSP Probe","help": "When using voice DSP, you must have one of these right before the main output.", "gstElement": "webrtcechoprobe",
-    "params":{}, "gstSetup":{},
-     "preSupportElements":[
-        {"gstElement": "audioconvert", "gstSetup":{}},
-        {"gstElement": "interleave", "gstSetup":{}}
-
-        ],
-    "postSupportElements":[
-        {"gstElement": "audioconvert", "gstSetup":{}}
-    ]
-    },
-
-    "3beq":{"type":"3beq", "displayType":"3 Band EQ","help": "Basic builtin EQ", "gstElement": "equalizer-nbands",
-        "params": {
-          "0:gain": {
-                "type":"float",
-                "displayName": "Low",
-                "value": 0,
-                "min": -12,
-                "max": 12,
-                "sort":3
-            },
-            "1:gain": {
-                "type":"float",
-                "displayName": "Mid",
-                "value": 0,
-                "min": -12,
-                "max": 12,
-                "sort":2
-            },
-
-            "1:freq": {
-                "type":"float",
-                "displayName": "MidFreq",
-                "value": 0,
-                "min": 200,
-                "max": 8000,
-                "sort":1
-            },
-          
-            "2:gain": {
-                "type":"float",
-                "displayName": "High",
-                "value": 0,
-                "min": -12,
-                "max": 12,
-                "sort":0
-            }
-        },
-        "gstSetup":
-        {
-            "num-bands":3,
-            "band1::freq": 180,
-            "band2::freq": 2000,
-            "band3::freq": 12000,
-            "band1::bandwidth": 360,
-            "band2::bandwidth": 3600,
-            "band3::bandwidth": 19000,
-        }
-    },
-    "plateReverb":
-    {
-        "displayType":"Plate Reverb",
-        "type": "plateReverb",
-        "monoGstElement": "ladspa-caps-so-plate",
-        "stereoGstElement": "ladspa-caps-so-plate",
-        'help': "Basic plate reverb. From the CAPS plugins.",
-        "params": {
-          "blend": {
-                "type":"float",
-                "displayName": "Mix",
-                "value": 0.25,
-                "min": 0,
-                "max": 1,
-                "step":0.01,
-                "sort":0
-            },
-
-            "bandwidth": {
-                "type":"float",
-                "displayName": "Bandwidth",
-                "value": 0.5,
-                "min": 0,
-                "max": 1,
-                "step":0.01,
-                "sort":1
-            },
-
-            "tail": {
-                "type":"float",
-                "displayName": "Tail",
-                "value": 0.75,
-                "min": 0,
-                "max": 1,
-                "step":0.01,
-                "sort":2
-            },
-            "damping": {
-                "type":"float",
-                "displayName": "Damping",
-                "value": 0.5,
-                "min": 0,
-                "max": 1,
-                "step":0.01,
-                "sort":3
-            }
-
-            },
-    "gstSetup":
-            {},
-        #It's stereo out, we may need to mono-ify it.
-        "postSupportElements":[
-            {"gstElement": "audioconvert", "gstSetup":{}}
-        ]
-    },
-
-    "sc1Compressor":
-    {
-        "type": "sc1Compressor",
-        "displayType":"SC1 Compressor",
-        "help": "Steve Harris SC1 compressor",
-        "monoGstElement": "ladspa-sc1-1425-so-sc1",
-        "params": {
-
-            "threshold-level": {
-                "type":"float",
-                "displayName": "Threshold",
-                "value": -12,
-                "min": -30,
-                "max": 0,
-                "step":0.01,
-                "sort":0
-            },
-          "attack-time": {
-                "type":"float",
-                "displayName": "Attack",
-                "value": 100,
-                "min": 1,
-                "max": 400,
-                "step":0.01,
-                "sort":1
-            },
-
-            "release-time": {
-                "type":"float",
-                "displayName": "Release",
-                "value":200,
-                "min": 0,
-                "max": 800,
-                "step":0.01,
-                "sort":2
-            },
-
-            
-            "ratio": {
-                "type":"float",
-                "displayName": "Ratio",
-                "value": 2.5,
-                "min": 0,
-                "max": 10,
-                "step":0.1,
-                "sort":3
-            },
-            "knee-radius": {
-                "type":"float",
-                "displayName": "Knee",
-                "value": 8,
-                "min": 0,
-                "max": 10,
-                "step":0.1,
-                "sort":4
-            },
-            "makeup-gain": {
-                "type":"float",
-                "displayName": "Gain",
-                "value": 8,
-                "min": 0,
-                "max": 24,
-                "step":0.1,
-                "sort":5
-            }
-
-            },
-      "gstSetup":
-            {},
-    },
-    "echo":
-    {
-        "type": "echo",
-        "gstElement":"audioecho",
-        "help":"Simple echo",
-        "displayType":"echo",
-        "params": {
-
-            "delay": {
-                "type":"float",
-                "displayName": "Delay",
-                "value": 250,
-                "min": 10,
-                "max": 2500,
-                "step":10,
-                "sort":0
-            },
-          "intensity": {
-                "type":"float",
-                "displayName": "Mix",
-                "value": 0.5,
-                "min": 0,
-                "max": 1,
-                "step":0.01,
-                "sort":1
-            },
-         "feedback": {
-                "type":"float",
-                "displayName": "feedback",
-                "value": 0,
-                "min": 0,
-                "max": 1,
-                "step":0.01,
-                "sort":2
-            },
-        },
-        'gstSetup':{
-            "max-delay":3000*1000*1000
-        }
-    },
-
-    "pitchshift":
-    {
-        "type": "pitchshift",
-        "monoGstElement":"ladspa-tap-pitch-so-tap-pitch",
-        "help":"Pitch shift(TAP LADSPA)",
-        "displayType":"TAP Pitch Shifter",
-        "params": {
-            "semitone-shift": {
-                "type":"float",
-                "displayName": "Shift",
-                "value": 0,
-                "min": -12,
-                "max": 12,
-                "step":1,
-                "sort":0
-            },
-          "dry-level": {
-                "type":"float",
-                "displayName": "Dry",
-                "value": -90,
-                "min": -90,
-                "max": 20,
-                "step":1,
-                "sort":1
-            },
-         "wet-level": {
-                "type":"float",
-                "displayName": "Wet",
-                "value": 0,
-                "min": -90,
-                "max": 20,
-                "step":1,
-                "sort":2
-            },
-        },
-        'gstSetup':{
-        }
-    },
-
-    "hqpitchshift":
-    {
-        "type": "hqpitchshift",
-        "monoGstElement":"ladspa-pitch-scale-1194-so-pitchscalehq",
-        "help":"Pitch shift(Steve Harris/swh-plugins)",
-        "displayType":"FFT Pitch Shifter",
-        "params": {
-            "pitch-co-efficient": {
-                "type":"float",
-                "displayName": "Scale",
-                "value": 0,
-                "min": -2,
-                "max": 2,
-                "step":0.01,
-                "sort":0
-            },
-        },
-        'gstSetup':{
-        }
-    },
-
-    "multichorus":
-    {
-        "type": "multichorus",
-        "monoGstElement":"ladspa-multivoice-chorus-1201-so-multivoicechorus",
-        "help":"Multivoice Chorus 1201 (Steve Harris/swh-plugins)",
-        "displayType":"Multivoice Chorus",
-        "params": {
-            "number-of-voices": {
-                "type":"float",
-                "displayName": "Voices",
-                "value": 1,
-                "min": 1,
-                "max": 8,
-                "step":1,
-                "sort":0
-            },
+effectTemplates_data= mixerfx.effectTemplates_data
  
-            "delay-base": {
-                "type":"float",
-                "displayName": "Delay",
-                "value": 10,
-                "min": 10,
-                "max": 40,
-                "step":1,
-                "sort":2
-            },
-            "voice-separation": {
-                "type":"float",
-                "displayName": "Separation",
-                "value": 0.5,
-                "min": 0,
-                "max": 2,
-                "step":0.1,
-                "sort":3
-            },
-
-            "detune": {
-                "type":"float",
-                "displayName": "Detune",
-                "value": 1,
-                "min": 0,
-                "max": 5,
-                "step":1,
-                "sort":4
-            },
-            "output-attenuation": {
-                "type":"float",
-                "displayName": "Level",
-                "value": 1,
-                "min": -20,
-                "max": 0,
-                "step":1,
-                "sort":5
-            },
-        },
-        'gstSetup':{
-        }
-    },
-
-   "queue":
-    {
-        "type": "queue",
-        "gstElement":"queue",
-        "help":"Queue that enables multicore if placed before heavy effects.",
-        "displayType":"queue",
-        "params": {
-
-            "min-threshold-time": {
-                "type":"float",
-                "displayName": "Delay",
-                "value": 250,
-                "min": 10,
-                "max": 2500,
-                "step":10,
-                "sort":0
-            },
-
-        },
-        'gstSetup':{
-            "max-size-time": 5*1000*1000*1000,
-            "leaky":2
-        }
-    }
-
-}
-
 effectTemplates = effectTemplates_data
 def cleanupEffectData(fx):
     x= effectTemplates.get(fx['type'],{})
@@ -613,14 +191,104 @@ class FluidSynthChannel(BaseChannel):
 import uuid
 class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
 
-    def __init__(self, *a,board=None, **k):
-        gstwrapper.Pipeline.__init__(self,*a,**k)
+    def __init__(self, name,board=None,channels= 2, input=None, outputs=[]):
+        gstwrapper.Pipeline.__init__(self,name)
         self.board =board
         self.lastLevel = 0
         self.lastPushedLevel = time.monotonic()
         self.effectsById = {}
         self.effectDataById = {}
         self.faderLevel = -60
+
+        self.src=self.addElement("jackaudiosrc", buffer_time=10, latency_time=10, port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=name+"_in",connect=0) 
+        self.capsfilter = self.addElement("capsfilter", caps="audio/x-raw,channels="+str(channels))
+        self.channels = channels
+
+        self.input=input
+        self._input= None
+        self.outputs=outputs
+        self._outputs = []
+        self.sends = []
+        self.sendAirwires =[]
+  
+
+        self.usingJack=True
+
+
+
+
+
+    def finalize(self):
+        with self.lock:
+            #self.addElement("audioconvert")
+            #self.capsfilter2= self.addElement("capsfilter", caps="audio/x-raw,channels="+str(channels))
+
+            self.sink=self.addElement("jackaudiosink", buffer_time=8000, latency_time=4000,sync=False,
+                slave_method=2, port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=self.name+"_out",connect=0) 
+
+            #I think It doesn't like it if you start without jack
+            if self.usingJack:
+                t=time.time()
+                while(time.time()-t)<3:
+                    if jackmanager.getPorts():
+                        break
+                if not jackmanager.getPorts():
+                    return
+        self.start()
+
+
+    def connect(self, restore=[]):
+        self._outputs = []
+        for i in self.outputs:
+            x = jackmanager.Airwire(self.name+"_out", i)
+            x.connect()
+            self._outputs.append(x)
+
+        self._input = jackmanager.Airwire(self.input, self.name+"_in") 
+        self._input.connect()
+        for i in restore:
+            for j in i[1]:
+                jackmanager.connect(i[0],j)
+
+    def stop(self):
+        with self.lock:
+            for i in self.sendAirwires:
+                i.disconnect()
+            if self._input:
+                self._input.disconnect()
+            for i in self._outputs:
+                i.disconnect()
+        gstwrapper.Pipeline.stop(self)
+
+
+    def backup(self):
+        c = []
+        
+        for i in jackmanager.getPorts(self.name+"_in:"):
+            c.append((i, jackmanager.getConnections(i)))
+        for i in jackmanager.getPorts(self.name+"_out:"):
+            c.append((i, jackmanager.getConnections(i)))
+        return c
+
+    def setInput(self, input):
+        with self.lock:
+            self.input=input
+            if self._input:
+                self._input.disconnect()
+            self._input = jackmanager.Airwire(self.input, self.name+"_in") 
+            self._input.connect()
+
+    def setOutputs(self, outputs):
+        with self.lock:
+            self.outputs = outputs
+            for i in self._outputs:
+                i.disconnect()
+            
+            self._outputs = []
+            for i in self.outputs:
+                x = jackmanager.Airwire(self.name+"_out", i)
+                x.connect()
+                self._outputs.append(x)
 
     def loadData(self,d):
         for i in d['effects']:
@@ -629,6 +297,10 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
             if i['type']=="fader":
                 self.fader= self.addElement("volume")
                 self.fader.set_property('volume', 0)
+            #Special case this, it's made of multiple gstreamer blocks and also airwires
+            elif i['type']=="send":
+                self.addSend(i['params']['target']['value'], i['id'], i['params']['level']['value'])
+
             else:
                 if "preSupportElements" in i:
                     for j in i['preSupportElements']:
@@ -667,7 +339,16 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
             paramData = self.effectDataById[effectId]['params'][param]
             paramData['value']=value
             t = self.effectDataById[effectId]['type']
-            if t in specialCaseParamCallbacks:
+
+            #One type of special case
+            if t[0]=='*':
+                if t=="*destination":
+                    #Keep the old origin, just swap the destination
+                    if effectId in self.sendAirwires:
+                        self.sendAirwires[effectId].disconnect()
+                        self.sendAirwires[effectId] = jackmanager.Airwire(self.sendAirwires[effectId].orig, value)
+
+            elif t in specialCaseParamCallbacks:
                 if specialCaseParamCallbacks[t](self.effectsById[effectId], param, value):
                     self.setProperty(self.effectsById[effectId], param, value)
             else:
@@ -702,6 +383,35 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                 self.fader.set_property('volume', 10**(float(level)/20))
             else:
                 self.fader.set_property('volume', 0)
+
+    def addSend(self,target, id,volume=-60):
+            with self.lock:
+                if not isinstance(target, str):
+                    raise ValueError("Targt must be string")
+
+                e = self.makeElement("tee")
+
+                l = self.makeElement('volume')
+                self.effectsById[id] = l
+
+                e2 =self.makeElement("jacksink")
+                e2.set_property("buffer-time",8000)
+                e2.set_property("port-pattern","fdgjkndgmkndfmfgkjkf")
+
+
+                #Sequentially number the sends
+                cname = self.name+"_send"+str(len(self.sends))
+                e2.set_property("client-name",cname)
+                self.sendAirwires[id] = jackmanager.Airwire(cname, target)
+                self.sends.append(e2)
+
+
+                self.elements[-1].link(e)
+                self.elements.append(e)
+                return e
+
+
+
 class ChannelInterface():
     def __init__(self, name,effectData={},mixingboard=None):
         if not mixingboard:
