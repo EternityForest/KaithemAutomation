@@ -12,7 +12,7 @@ effectTemplates_data={
         "help": "JACK mono/stereo send", 
         "gstElement": "SpecialCase",
         "params": {
-          "level": {
+          "volume": {
                 "type":"float",
                 "displayName": "Level",
                 "value": False,
@@ -181,14 +181,190 @@ effectTemplates_data={
                 "step":0.01,
                 "sort":3
             }
+        }
+    },
+    "gverb":
+    {
+        "displayType":"GVerb",
+        "type": "gverb",
+        "gstElement": "ladspa-gverb-1216-so-gverb",
+        'help': "Mono in stereo out GVerb(Steve Harris swh-plugins)",
+        "params": {
+          "roomsize": {
+                "type":"float",
+                "displayName": "Room Size",
+                "value": 75,
+                "min": 1,
+                "max": 300,
+                "step":5,
+                "sort":0
+            },
+
+            "reverb-time": {
+                "type":"float",
+                "displayName": "Bandwidth",
+                "value": 7.5,
+                "min": 0.1,
+                "max": 30,
+                "step":0.25,
+                "sort":1
+            },
+
+            "dry-signal-level": {
+                "type":"float",
+                "displayName": "Dry",
+                "value": -70,
+                "min": -70,
+                "max": 0,
+                "step":1,
+                "sort":2
+            },
+
+            "early-reflection-level": {
+                "type":"float",
+                "displayName": "Early",
+                "value": -70,
+                "min": -70,
+                "max": 0,
+                "step":1,
+                "sort":3
+            },
+            "tail-level": {
+                "type":"float",
+                "displayName": "Tail",
+                "value": -70,
+                "min": -70,
+                "max": 0,
+                "step":1,
+                "sort":3
+            },
+            "damping": {
+                "type":"float",
+                "displayName": "Damping",
+                "value": 0.5,
+                "min": 0,
+                "max": 1,
+                "step":0.01,
+                "sort":5
+            }
 
             },
-    "gstSetup":
+              "gstSetup":
             {},
         #It's stereo out, we may need to mono-ify it.
         "postSupportElements":[
             {"gstElement": "audioconvert", "gstSetup":{}}
+        ],
+        #It's mono in, maybe we need to downmix?
+        "preSupportElements":[
+            {"gstElement": "audioconvert", "gstSetup":{}}
         ]
+    },
+
+    "tenband":
+    {
+        "displayType":"10-Band EQ",
+        "type": "gverb",
+        "stereoGstElement": "ladspa-caps-so-eq10x2",
+        'help': "Stereo 10-band (CAPS)",
+        "params": {
+          "param-31-hz": {
+                "type":"float",
+                "displayName": "31Hz",
+                "value": 0,
+                "min": -48,
+                "max": 24,
+                "step":0.25,
+                "sort":0
+            },
+
+          "param-63-hz": {
+                "type":"float",
+                "displayName": "63Hz",
+                "value": 0,
+                "min": -48,
+                "max": 24,
+                "step":0.25,
+                "sort":0
+            },
+          "param-125-hz": {
+                "type":"float",
+                "displayName": "125Hz",
+                "value": 0,
+                "min": -48,
+                "max": 24,
+                "step":0.25,
+                "sort":0
+            },
+          "param-250-hz": {
+                "type":"float",
+                "displayName": "250Hz",
+                "value": 0,
+                "min": -48,
+                "max": 24,
+                "step":0.25,
+                "sort":0
+            },
+          "param-500-hz": {
+                "type":"float",
+                "displayName": "500Hz",
+                "value": 0,
+                "min": -48,
+                "max": 24,
+                "step":0.25,
+                "sort":0
+            },
+          "param-1-khz": {
+                "type":"float",
+                "displayName": "1KHz",
+                "value": 0,
+                "min": -48,
+                "max": 24,
+                "step":0.25,
+                "sort":0
+            },
+          "param-2-khz": {
+                "type":"float",
+                "displayName": "2KHz",
+                "value": 0,
+                "min": -48,
+                "max": 24,
+                "step":0.25,
+                "sort":0
+            },
+          "param-4-khz": {
+                "type":"float",
+                "displayName": "4KHz",
+                "value": 0,
+                "min": -48,
+                "max": 24,
+                "step":0.25,
+                "sort":0
+            },
+          "param-8-khz": {
+                "type":"float",
+                "displayName": "8KHz",
+                "value": 0,
+                "min": -48,
+                "max": 24,
+                "step":0.25,
+                "sort":0
+            },
+          "param-16-hz": {
+                "type":"float",
+                "displayName": "16KHz",
+                "value": 0,
+                "min": -48,
+                "max": 24,
+                "step":0.25,
+                "sort":0
+            },
+
+            },
+
+    "gstSetup":
+            {},
+       
     },
 
     "sc1Compressor":

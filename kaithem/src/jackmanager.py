@@ -1037,12 +1037,14 @@ def startManagingJack():
     stopJack()
     startJack()
 
-    #Close any existing stuff
-    if jackclient:
-        jackclient.close()
+ 
 
     for i in range(10):
         try:
+            #Close any existing stuff
+            if jackclient:
+                jackclient.close()
+                jackclient=None
             jackclient = jack.Client("Overseer",no_start_server=True)
             break
         except:
@@ -1063,6 +1065,8 @@ def startManagingJack():
                 except:
                     log.exception("err")
                 time.sleep(3)
+                startJack()
+
             if i<9:
                 continue
             raise
@@ -1143,7 +1147,12 @@ def connect(f,t):
 
         if f.is_input:
             if not t.is_output:
-                raise ValueError("Cannot connect two inputs",str((f,t)))
+                #Do a retry, there seems to be a bug somewhere
+                f = jackclient.get_port_by_name(f.name)
+                t = jackclient.get_port_by_name(t.name)
+                if f.is_input:
+                    if not t.is_output:
+                         raise ValueError("Cannot connect two inputs",str((f,t)))
         else:
             if t.is_output:
                 raise ValueError("Cannot connect two outputs",str((f,t)))

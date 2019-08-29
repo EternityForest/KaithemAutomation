@@ -128,7 +128,13 @@ specialCaseParamCallbacks['3beq']= beq3
 specialCaseParamCallbacks['echo']= echo
 specialCaseParamCallbacks['queue']= queue
 
-
+#Returning true enables the default param setting action
+def send(e, p, v):
+    if v>-60:
+        e.set_property('volume', 10**(float(v)/20))
+    else:
+        e.set_property('volume', 0)
+specialCaseParamCallbacks['send']= send
 
 class BaseChannel():
     pass
@@ -200,7 +206,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
         self.effectDataById = {}
         self.faderLevel = -60
 
-        self.src=self.addElement("jackaudiosrc", buffer_time=10, latency_time=10, port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=name+"_in",connect=0) 
+        self.src=self.addElement("jackaudiosrc",buffer_time=10, latency_time=10, port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=name+"_in",connect=0) 
         self.capsfilter = self.addElement("capsfilter", caps="audio/x-raw,channels="+str(channels))
         self.channels = channels
 
@@ -209,7 +215,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
         self.outputs=outputs
         self._outputs = []
         self.sends = []
-        self.sendAirwires =[]
+        self.sendAirwires ={}
   
 
         self.usingJack=True
@@ -248,12 +254,14 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
         self._input.connect()
         for i in restore:
             for j in i[1]:
-                jackmanager.connect(i[0],j)
-
+                try:
+                    jackmanager.connect(i[0],j)
+                except:
+                    pass
     def stop(self):
         with self.lock:
             for i in self.sendAirwires:
-                i.disconnect()
+                 self.sendAirwires[i].disconnect()
             if self._input:
                 self._input.disconnect()
             for i in self._outputs:
@@ -299,7 +307,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                 self.fader.set_property('volume', 0)
             #Special case this, it's made of multiple gstreamer blocks and also airwires
             elif i['type']=="send":
-                self.addSend(i['params']['target']['value'], i['id'], i['params']['level']['value'])
+                self.addSend(i['params']['*destination']['value'], i['id'], i['params']['volume']['value'])
 
             else:
                 if "preSupportElements" in i:
@@ -335,25 +343,33 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
         self.setOutputs(d['output'].split(","))
 
     def setEffectParam(self,effectId,param,value):
+        "Set val after casting, and return properly typed val"
         with self.lock:
             paramData = self.effectDataById[effectId]['params'][param]
             paramData['value']=value
             t = self.effectDataById[effectId]['type']
 
+            if t=='float':
+                value = float(value)
+
             #One type of special case
-            if t[0]=='*':
-                if t=="*destination":
+            if param[0]=='*':
+                if param=="*destination":
                     #Keep the old origin, just swap the destination
                     if effectId in self.sendAirwires:
                         self.sendAirwires[effectId].disconnect()
                         self.sendAirwires[effectId] = jackmanager.Airwire(self.sendAirwires[effectId].orig, value)
+                        try:
+                             self.sendAirwires[effectId].connect()
+                        except:
+                            pass
 
             elif t in specialCaseParamCallbacks:
                 if specialCaseParamCallbacks[t](self.effectsById[effectId], param, value):
                     self.setProperty(self.effectsById[effectId], param, value)
             else:
                 self.setProperty(self.effectsById[effectId], param, value)
-
+        return value
     
     def addLevelDetector(self):
         self.addElement("level", post_messages=True, peak_ttl=300*1000*1000,peak_falloff=60)
@@ -387,27 +403,56 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
     def addSend(self,target, id,volume=-60):
             with self.lock:
                 if not isinstance(target, str):
-                    raise ValueError("Targt must be string")
+                    raise ValueError("Target must be string")
 
                 e = self.makeElement("tee")
-
+                q = self.makeElement("queue")
+                q2 = self.makeElement("queue")
+                q2.max_size_buffers = 1
+                q.max_size_buffers =1
+                q.leaky =2
+                q2.leaky = 2
                 l = self.makeElement('volume')
                 self.effectsById[id] = l
 
-                e2 =self.makeElement("jacksink")
+                e2 =self.makeElement("jackaudiosink","_send"+str(len(self.sends)))
                 e2.set_property("buffer-time",8000)
                 e2.set_property("port-pattern","fdgjkndgmkndfmfgkjkf")
-
+                e2.set_property("sync",False)
+                e2.set_property("slave-method",2)
+                e2.set_property('provide-clock',False)
+                e2.latency_time=4000
+                self.effectsById[id]= l
+                self.effectsById[id+"*destination"] = e2
+                
+                d = effectTemplates['send']
+                d['params']['*destination']['value']= target
+                d['params']['volume']['value']= volume
+                self.effectDataById[id]=d
 
                 #Sequentially number the sends
                 cname = self.name+"_send"+str(len(self.sends))
                 e2.set_property("client-name",cname)
                 self.sendAirwires[id] = jackmanager.Airwire(cname, target)
                 self.sends.append(e2)
+                
+                
+                tee_src_pad_template = e.get_pad_template("src_%u")
+                tee_audio_pad = e.request_pad(tee_src_pad_template, None, None)
+                tee_audio_pad2 = e.request_pad(tee_src_pad_template, None, None)
 
+                
+                if self.elements:
+                    gstwrapper.link(self.elements[-1],e)
+                gstwrapper.link(tee_audio_pad,q)
+                gstwrapper.link(tee_audio_pad2,q2 )
+                self.elements.append(q2)
 
-                self.elements[-1].link(e)
-                self.elements.append(e)
+                gstwrapper.link(q,l)
+                gstwrapper.link(l,e2)
+
+    
+
                 return e
 
 

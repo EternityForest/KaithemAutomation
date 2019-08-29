@@ -27,6 +27,22 @@ Gst = None
 lock = threading.RLock()
 jackChannels = {}
 
+
+def link(a,b):
+
+    if not a or not b:
+        raise ValueError("Cannot link None")
+    if isinstance(a, Gst.Pad):
+        if not isinstance(b,Gst.Pad):
+            b = b.get_static_pad("sink")
+            if not b:
+                raise RuntimeError("B has no pad named sink and A is a pad") 
+        if not a.link(b)==Gst.PadLinkReturn.OK:
+            raise RuntimeError("Could not link")
+
+    elif not a.link(b):
+        raise RuntimeError("Could not link")
+
 def stopAllJackUsers():
     #It seems best to stop everything using jack before stopping and starting the daemon.
     with lock:
@@ -36,8 +52,8 @@ def stopAllJackUsers():
 def elementInfo(e):
     r=Gst.Registry.get()
 
-def Element(n):
-    e = Gst.ElementFactory.make(n)
+def Element(n,name=None):
+    e = Gst.ElementFactory.make(n,None)
     if e:
         return e
     else:
@@ -146,10 +162,10 @@ class Pipeline():
         self.running = False
 
     
-    def makeElement(self,n):
+    def makeElement(self,n,name=None):
         with self.lock:
-            e = Element(n)
-            self.pipeline.add(n)
+            e = Element(n,name)
+            self.pipeline.add(e)
             return e
 
     def pollerf(self):
@@ -228,8 +244,7 @@ class Pipeline():
 
             #This could be the first element
             if self.elements:
-                if not self.elements[-1].link(e):
-                    raise RuntimeError("Could not link "+str(self.elements[-1])+" to "+str(e)+"\r\ncaps: "+str((getCaps(self.elements[-1]), getCaps(e))))
+                link(self.elements[-1],e)
             self.elements.append(e)
             self.namedElements[name]=e
 
