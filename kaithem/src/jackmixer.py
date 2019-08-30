@@ -29,6 +29,9 @@ channels = {}
 log =logging.getLogger("system.mixer")
 
 
+
+
+
 def replaceClientNameForDisplay(i):
     x = i.split(':')[0]
     if x in jackmanager.portJackNames:
@@ -205,10 +208,10 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
         self.effectsById = {}
         self.effectDataById = {}
         self.faderLevel = -60
+        self.channels = channels
 
         self.src=self.addElement("jackaudiosrc",buffer_time=10, latency_time=10, port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=name+"_in",connect=0) 
         self.capsfilter = self.addElement("capsfilter", caps="audio/x-raw,channels="+str(channels))
-        self.channels = channels
 
         self.input=input
         self._input= None
@@ -229,8 +232,8 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
             #self.addElement("audioconvert")
             #self.capsfilter2= self.addElement("capsfilter", caps="audio/x-raw,channels="+str(channels))
 
-            self.sink=self.addElement("jackaudiosink", buffer_time=8000, latency_time=4000,sync=False,
-                slave_method=2, port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=self.name+"_out",connect=0) 
+            self.sink=self.addElement("jackaudiosink", buffer_time=1000, latency_time=500,sync=False,
+                slave_method=2, port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=self.name+"_out",connect=0, blocksize=self.channels*128) 
 
             #I think It doesn't like it if you start without jack
             if self.usingJack:
@@ -416,7 +419,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                 self.effectsById[id] = l
 
                 e2 =self.makeElement("jackaudiosink","_send"+str(len(self.sends)))
-                e2.set_property("buffer-time",8000)
+                e2.set_property("buffer-time",1000)
                 e2.set_property("port-pattern","fdgjkndgmkndfmfgkjkf")
                 e2.set_property("sync",False)
                 e2.set_property("slave-method",2)

@@ -48,6 +48,17 @@ import sys,os,threading,traceback,logging,time,mimetypes
 logger = logging.getLogger("system")
 logger.setLevel(0)
 
+try:
+    import os
+    if os.path.exists("/dev/shm"):
+        if not os.path.exists("/dev/shm/kaithem_pyx"):
+            os.mkdir("/dev/shm/kaithem_pyx")
+    
+    import pyximport
+    pyximport.install(build_dir = "/dev/shm/kaithem_pyx" if os.path.isfile("/dev/shm/kaithem_pyx") else None)
+except:
+    logger.exception("Could not set up pyximport. Ensure that Cython is installed if you want to use .pyx files")
+
 #There are some libraries that are actually different for 3 and 2, so we use the appropriate one
 #By changing the pathe to include the proper ones.
 

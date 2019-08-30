@@ -794,7 +794,9 @@ class ArtNetUniverse(Universe):
        
 
         #Sender needs the values to be there for setup
-        self.values = numpy.array([0.0]*channels,dtype="f4")
+
+        #Channel 0 is a dummy to make math easier.
+        self.values = numpy.array([0.0]*(channels+1),dtype="f4")
         self.sender = ArtNetSender(self,addr,port,framerate,scheme)
         
         Universe.__init__(self,name,channels)
@@ -962,11 +964,16 @@ class ArtNetSender():
     def onFrame(self,data,physical = None, universe=0):
         with self.lock:
             if not (data is None):
-                p = b'Art-Net\x00\x00\x50\x00\x0E\0' + struct.pack("<BH", physical if not physical is None else universe, universe) +struct.pack(">H",len(data)) + data.astype(numpy.uint8).tobytes()
+                #DMX starts at 1, don't send element 0 even though it exists.
+                p = b'Art-Net\x00\x00\x50\x00\x0E\0' + struct.pack("<BH", physical if not physical is None else universe, universe) +struct.pack(">H",len(data)) + (data.astype(numpy.uint8).tobytes()[1:])
                 self.data = p
             else:
                 self.data =data
             self.frame.set()
+
+def fixturesFromOldListStyle(l):
+    "Convert fixtures from the older list of tuples style to the new dict style"
+    return {i[0]:{'name':i[0],'type':i[1],'universe':i[2],'addr':i[3]} for i in l if len(i)==4}
 
 class LightBoard():
     "Represents a web GUI light board. Pretty much the whole GUI app is part of this class"
@@ -1000,8 +1007,11 @@ class LightBoard():
         self.fixtureAssignments = {}
         self.fixtures ={}
         
-        #This is a list of [name, fixturetype, startAddress] triples
-        self.fixtureAssignments = kaithem.registry.get("lighting/fixtures",[])
+        self.fixtureAssignments = kaithem.registry.get("lighting/fixtures",{})
+
+        #This used to be a list of [name, fixturetype, startAddress] triples
+        if not isinstance(self.fixtureAssignments,dict):
+            self.fixtureAssignments = fixturesFromOldListStyle(self.fixtureAssignments)
         try:
             self.createUniverses()
         except Exception as e:
@@ -1034,21 +1044,19 @@ class LightBoard():
                 pass
                 
             self.fixtures = {}
-            for i in self.fixtureAssignments:
-                if i == [''] or i ==[]:
-                    continue
+
+            for i in self.fixtureAssignments.values():
                 try:
-                    if not len(i)==4:
-                        raise ValueError('Syntax error')
-                    x = Fixture(i[0],self.fixtureClasses[i[1]])
-                    self.fixtures[i[0]] = x
-                    self.fixtures[i[0]].assign(i[2],int(i[3]))
-                    module.fixtures[i[0]]= weakref.ref(x)                    
+                    x = Fixture(i['name'],self.fixtureClasses[i['type']])
+                    self.fixtures[i['name']] = x
+                    self.fixtures[i['name']].assign(i['universe'],  int(i['addr']))
+                    module.fixtures[i['name']]= weakref.ref(x)                    
                 except:
-                    logger.exception("Error setting up fixtures")
+                    logger.exception("Error setting up fixture")
                     print(traceback.format_exc(4))
                     self.ferrs += str(i)+'\n'+traceback.format_exc(2)
-                    
+
+
             with universesLock:
                 for u in module.universes:
                     self.pushChannelNames(u)
@@ -1287,7 +1295,9 @@ class LightBoard():
         while x:
             self.link.send(["scenecues",scene,{i:(s.cues[i].id,s.cues[i].number/1000.0) for i in x[:100] }])
             x = x[100:]
-
+    def pushFixtureAssignmentCode(self):
+        d = [[i['name'],i['type'],i['universe'],i['addr']] for i in self.fixtureAssignments.values()]
+        self.link.send(['fixtureascode','\n'.join([', '.join(i) for  i in d])]  )
     def _onmsg(self,user,msg):
         #Adds a light to a scene
         try:
@@ -1326,13 +1336,38 @@ class LightBoard():
                 kaithem.registry.set("lighting/fixturetypes", self.fixtureClasses)
                 self.refreshFixtures()
 
-            if msg[0] == "setfixtureassg":
-                self.fixtureAssignments = [[j.strip() for j in i.split(',')] for i in msg[1].split("\n")]
+            if msg[0] == "setfixturesfromcode":
+                self.fixtureAssignments = fixturesFromOldListStyle([[j.strip() for j in i.split(',')] for i in msg[1].split("\n") if len(i)])
                 kaithem.registry.set("lighting/fixtures", self.fixtureAssignments)
+                self.link.send(['fixtureAssignments', self.fixtureAssignments])
+                self.pushFixtureAssignmentCode()
                 self.refreshFixtures()
 
+
+            if msg[0] == "setFixtureAssignment":
+                self.fixtureAssignments[msg[1]]=msg[2]
+                kaithem.registry.set("lighting/fixtures", self.fixtureAssignments)
+                self.link.send(['fixtureAssignments', self.fixtureAssignments])
+                self.pushFixtureAssignmentCode()
+                self.refreshFixtures()
+
+            if msg[0] == "rmFixtureAssignment":
+                del self.fixtureAssignments[msg[1]]
+
+                self.link.send(['fixtureAssignments', self.fixtureAssignments])
+                self.pushFixtureAssignmentCode()
+                kaithem.registry.set("lighting/fixtures", self.fixtureAssignments)
+                self.link.send(['fixtureAssignments', self.fixtureAssignments])
+
+               
+                
+                self.refreshFixtures()
+
+
+
             if msg[0] == "getfixtureassg":
-                self.link.send(['fixtureassg','\n'.join([', '.join(i) for  i in self.fixtureAssignments])])
+                self.link.send(['fixtureAssignments', self.fixtureAssignments])
+                self.pushFixtureAssignmentCode()
                 self.pushfixtures()
                 
             if msg[0] == "clonecue":
@@ -1459,10 +1494,12 @@ class LightBoard():
 
             if msg[0] == "gsd":
                 #Could be long-running, so we offload to a workerthread
+                #Used to be get scene data, Now its a general get everything to show pags thing
                 def f():
                     s = module.scenes[msg[1]]
                     self.pushCueList(s.id)
                     self.pushMeta(msg[1])
+                    self.pushfixtures()
                 kaithem.misc.do(f)
             
             if msg[0] == "getallcuemeta":

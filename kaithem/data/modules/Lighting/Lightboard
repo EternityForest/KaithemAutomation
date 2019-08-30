@@ -399,7 +399,6 @@ from src import tagpoints
 
 
 
-
     <div v-if="showFixtureSetup" class="sectionbox">
         <h3><button v-on:click="showhidefixtures()"><img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button>Fixture Setup</h3>
 
@@ -408,103 +407,151 @@ from src import tagpoints
             </option>
         </select>
         <button v-on:click="addfixturetype"><img src="/zipstatic/img/icons/fugue.zip/plus-octagon-frame.png"></img>Add fixture type</button>
-        <button v-on:click="delfixturetype"><img src="/zipstatic/img/icons/fugue.zip/minus-octagon-frame.png"></img>Delete Selected</button>
+        
+        <div v-if="selectedFixtureClass">
 
-        <button>Rename</button><br> Code(Click to edit or copy):<br>
-        <textarea v-on:focus="$event.target.value=JSON.stringify(fixtureClasses[selectedFixtureClass]);$event.target.rows=15;"
-            v-on:input="fixtureClasses[selectedFixtureClass]=JSON.parse($event.target.value)"
-            v-on:blur="pushfixture(selectedFixtureClass);$event.target.rows=1;" rows=1 columns=40 ></textarea>
-        <h3>Channels in Fixture Type</h3>
-        <div v-for="(v,i) in fixtureClasses[selectedFixtureClass]">
-            <h4>{{i}}.</h4>
-            <label>Name:
-                <input v-on:change="pushfixture(selectedFixtureClass)" v-model="fixtureClasses[selectedFixtureClass][i][0]">
-            </label>
-            <label>Type:
-                <select v-on:change="pushfixture(selectedFixtureClass)" v-model="fixtureClasses[selectedFixtureClass][i][1]"
-                    v-on:change="chTypeChanged(i)">
-                    <option>red</option>
-                    <option>green</option>
-                    <option>blue</option>
-                    <option>uv</option>
-                    <option>white</option>
-                    <option>intensity</option>
-                    <option>custom</option>
-                    <option>fine</option>
-                    <option>unused</option>
+            <button v-on:click="delfixturetype"><img src="/zipstatic/img/icons/fugue.zip/minus-octagon-frame.png"></img>Delete Fixture Type</button>
 
-                </select>
-            </label>
+            <button>Rename</button><h4>Edit as Code</h4>
+            <button title="Update the textbox with the current fixture data(reload)" v-on:click="fixturecode=JSON.stringify(fixtureClasses[selectedFixtureClass]);$event.target.rows=15;">Fixture > Code(reload)</button>
+            <button title="Update the fixture data with the code in the textbox"  v-on:click="saveFixtureTypeFromCode(selectedFixtureClass,fixturecode);">Code > Fixture(save)</button>
+            <br>
+            <textarea v-model="fixturecode"
+                rows=1 columns=40 ></textarea>
+            <h3>Channels in Fixture Type</h3>
+            <div v-for="(v,i) in fixtureClasses[selectedFixtureClass]">
+                <h4>{{i}}.</h4>
+                <label>Name:
+                    <input v-on:change="pushfixture(selectedFixtureClass)" v-model="fixtureClasses[selectedFixtureClass][i][0]">
+                </label>
+                <label>Type:
+                    <select v-on:change="pushfixture(selectedFixtureClass)" v-model="fixtureClasses[selectedFixtureClass][i][1]"
+                        v-on:change="chTypeChanged(i)">
+                        <option>red</option>
+                        <option>green</option>
+                        <option>blue</option>
+                        <option>uv</option>
+                        <option>white</option>
+                        <option>intensity</option>
+                        <option>custom</option>
+                        <option>fine</option>
+                        <option>unused</option>
 
-            <label v-if="fixtureClasses[selectedFixtureClass][i][1]=='fine'">
-                Matching Coarse:
-                <input v-on:change="pushfixture(selectedFixtureClass)" title="The corresponding coarse channel for this fine channel"
-                    min=0 max=64 type="number" v-model="fixtureClasses[selectedFixtureClass][i][2]">
-            </label>
+                    </select>
+                </label>
 
-            <div v-if="fixtureClasses[selectedFixtureClass][i][1]=='custom'">
-                <p class="Help">
-                    The custom channel type allows you to define a different meaning for a channel depending
-                    on what range it is in. This is fairly common for controlling
-                    gobos and gobo rotation, etc. Ranges are defined my the inclusive
-                    min and max channel of that range, plus a name for that option.</p>
-                </p>
-                <h5>Ranges for channel {{i}}</h5>
-                <table border="1">
-                    <tr>
-                        <th>Min Val</th>
-                        <th>Max Val</th>
-                        <th>Option Name</th>
-                        <th>Actions</th>
-                    </tr>
-                    <tr v-for="(w,j) in fixtureClasses[selectedFixtureClass][i].slice(2)">
-                        <td>
-                            <input v-on:change="pushfixture(selectedFixtureClass)" v-model.number="fixtureClasses[selectedFixtureClass][i][j+2][0]"
-                                type="number">
-                        </td>
-                        <td>
-                            <input v-on:change="pushfixture(selectedFixtureClass)" v-model.number="fixtureClasses[selectedFixtureClass][i][j+2][1]"
-                                type="number">
-                        </td>
-                        <td>
-                            <input v-on:change="pushfixture(selectedFixtureClass)" v-model.number="fixtureClasses[selectedFixtureClass][i][j+2][2]">
-                        </td>
-                        <td>
-                            <button v-on:click="del(fixtureClasses[selectedFixtureClass][i],j+2)">Del</button>
-                        </td>
-                    </tr>
-                </table>
-                <button v-on:click="fixtureClasses[selectedFixtureClass][i].push([0,0,'optionName'])">Add Range</button>
+                <label v-if="fixtureClasses[selectedFixtureClass][i][1]=='fine'">
+                    Matching Coarse:
+                    <input v-on:change="pushfixture(selectedFixtureClass)" title="The corresponding coarse channel for this fine channel"
+                        min=0 max=64 type="number" v-model="fixtureClasses[selectedFixtureClass][i][2]">
+                </label>
+
+                <div v-if="fixtureClasses[selectedFixtureClass][i][1]=='custom'">
+                    <p class="Help">
+                        The custom channel type allows you to define a different meaning for a channel depending
+                        on what range it is in. This is fairly common for controlling
+                        gobos and gobo rotation, etc. Ranges are defined my the inclusive
+                        min and max channel of that range, plus a name for that option.</p>
+                    </p>
+                    <h5>Ranges for channel {{i}}</h5>
+                    <table border="1">
+                        <tr>
+                            <th>Min Val</th>
+                            <th>Max Val</th>
+                            <th>Option Name</th>
+                            <th>Actions</th>
+                        </tr>
+                        <tr v-for="(w,j) in fixtureClasses[selectedFixtureClass][i].slice(2)">
+                            <td>
+                                <input v-on:change="pushfixture(selectedFixtureClass)" v-model.number="fixtureClasses[selectedFixtureClass][i][j+2][0]"
+                                    type="number">
+                            </td>
+                            <td>
+                                <input v-on:change="pushfixture(selectedFixtureClass)" v-model.number="fixtureClasses[selectedFixtureClass][i][j+2][1]"
+                                    type="number">
+                            </td>
+                            <td>
+                                <input v-on:change="pushfixture(selectedFixtureClass)" v-model.number="fixtureClasses[selectedFixtureClass][i][j+2][2]">
+                            </td>
+                            <td>
+                                <button v-on:click="del(fixtureClasses[selectedFixtureClass][i],j+2)">Del</button>
+                            </td>
+                        </tr>
+                    </table>
+                    <button v-on:click="fixtureClasses[selectedFixtureClass][i].push([0,0,'optionName'])">Add Range</button>
+                </div>
             </div>
+            <button v-on:click="fixtureClasses[selectedFixtureClass].push(['red','red'])">Add Channel</button>
         </div>
-        <button v-on:click="fixtureClasses[selectedFixtureClass].push(['red','red'])">Add Channel</button>
-
     </div>
 
 
     <div v-if="showfixtureassg" class="sectionbox">
         
         <h3>
-                                <button v-on:click="showfixtureassg=0"><img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button>
-
-            Fixture Assignments</h3>
+            <button v-on:click="showfixtureassg=0"><img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button>
+            Fixture Assignments
+        </h3>
         <p class="Help">Here is where you actually assign fixtures to channels after creating the
             desired fixture types. Clicking Update will cause the new assignments
             to take effect immediately. They are stored in the Kaithem registry,
             use the save server state button in Kaithem's settings to make them permanent.
         </p>
-        <p class="help">To Create a fixture, simply add a line of the format "name, type,universe,
+        <p class="help">To Create a fixture, using codesimply add a line of the format "name, type,universe,
             startaddr", where name is freely chosen(letters and numbers only), type
             is an existing fixture type, universe is the name of the universe you
             are putting the fixture in, and startaddr is a number.</p>
-        <textarea v-model="fixtureassg" rows=12 cols=45>
-        </textarea>
+
+
+        <p class="help">To Delete, just remove the line. You can also use the "Easy View" form to very quickly add and delete fixtures.</p>
+
+        <h4>Code View</h4>
+        <textarea v-model="fixturescode" rows=12 cols=45>
+        </textarea><div>
+        <button v-on:click="pushfixturescode">Save Code Changes</button>
+        <button v-on:click="getfixtureassg">Reload Fixtures</button>
+        </div>
+
+        <h4>Easy View</h4>
+
+        <table border="1">
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Universe</th>
+                <th>Start Address</th>
+                <th>Delete</th>
+            </tr>
+
+            <tr v-for="i in dictView(fixtureAssignments,['universe', 'channel'])">
+                <td>{{i[1].name}}</td>
+                <td>{{i[1].type}}</td>
+                <td><input v-on:change="setFixtureAssignment(i[1].name, i[1])" v-model="i[1].universe"></td>
+                <td><input v-on:change="setFixtureAssignment(i[1].name, i[1])" v-model="i[1].addr"></td>
+                <td><button v-on:click="rmFixtureAssignment(i[1].name)">Delete</button>
+
+            </tr>
+        </table>
+
+        <table border="1">
+
+        <tr><td>Name:</td><td><input v-model="newfixname"></input></td>
+        <tr><td>Type:</td><td>
+            <select v-model="newfixtype">
+                <option v-for="(v,i) in fixtureClasses" v-bind:value="i">{{i}}</option>
+            </select>
+        
+        </td>
+        <tr><td>Universe:</td><td><input v-model="newfixuniverse" list="universes"></input></td>
+        <tr><td>Address:</td><td><input type="number" min=1 v-model="newfixaddr"></input></td>
+        </table>
+        <button v-on:click="addFixtureAssignment(newfixname,newfixtype,newfixuniverse, newfixaddr)">Add and Update</button>
+        
         <div v-if="ferrs">
             <h4>Errors:</h4>
             <pre>{{ferrs}}</pre>
             </div><br>
 
-            <button v-on:click="pushfixtureassg">Update</button>
         </div>
 
         <div v class="sectionbox" style="float:left;overflow: auto; width:20%; height:90%; resize:both;">
@@ -1066,7 +1113,7 @@ from src import tagpoints
                 :min="getValueRange(chinfo,i.v)[0]"
                 :max="getValueRange(chinfo,i.v)[1]"
                 v-on:input="setCueVal(currentcueid,i.u,i.ch,parseFloat($event.target.value))" v-model="i.v"
-                v-on:change="unlockCueValFader(currentcueid,i.u,i.ch)">
+                v-on:change="setCueValNolock(currentcueid,i.u,i.ch,parseFloat($event.target.value))">
 
             <meter v-if="monitor" type="range" max=255 v-bind:value="i.v"></meter>
         </span>
@@ -1221,11 +1268,22 @@ from src import tagpoints
             'sc_code': "",
             'unixtime': 0,
             'serports': [],
-            'fixtureassg': '',
+
+            //Code view for the fixture assignments
+            'fixturescode': '',
+            //Index by name
+            'fixtureAssignments': {},
+            'newfixname':'',
+            'newfixtype':'',
+            'newfixaddr':'',
+            'newfixuniverse':'',
             //Fixture error info str
             'ferrs': '',
             'fixtures': '',
             'evfilt': '',
+
+            //The code in the fixture edit as code box
+            'fixturecode':'',
             'evlog': [
                 ['item', 'foo']
             ],
@@ -1383,14 +1441,55 @@ from src import tagpoints
                 }
             },
 
+            'saveFixtureTypeFromCode': function(fixture, code)
+            {
+                try{
+                    appData.fixtureClasses[fixture]=JSON.parse(code)
+                }
+                catch
+                {
+                    alert("Could not set JSON data. Syntax error?")
+                }
+                appData.pushfixture(fixture)
+
+            },
+
             'pushfixture': function(i)
             {
                 api_link.send(['setfixtureclass', i, appData.fixtureClasses[
                     i]])
             },
-            'pushfixtureassg': function()
+            'pushfixturescode': function()
             {
-                api_link.send(['setfixtureassg', appData.fixtureassg])
+                api_link.send(['setfixturesfromcode', appData.fixturescode])
+            },
+
+            'setFixtureAssignment': function(i,v)
+            {
+                api_link.send(['setFixtureAssignment',i,v])
+            },
+
+            'rmFixtureAssignment': function(i)
+            {
+                api_link.send(['rmFixtureAssignment',i])
+            },
+
+
+            'addFixtureAssignment': function(name, t, univ,addr)
+            {
+                if(!name)
+                {
+                    return;
+                }
+                var d={
+                    'name':name,
+                    'type':t,
+                    'universe':univ,
+                    'addr':addr
+                }
+
+                api_link.send(['setFixtureAssignment',name,d])
+
             },
             'getfixtureassg': function()
             {
@@ -1404,6 +1503,7 @@ from src import tagpoints
             },
             'showhidefixtureassignments': function()
             {
+                appData.getfixtureclasses()
                 appData.showfixtureassg = ! appData.showfixtureassg;
                 api_link.send(['getfixtureassg']);
             },
@@ -1413,6 +1513,8 @@ from src import tagpoints
             },
             'getfixtureclass': function(i)
             {
+                //Reset the textbox when it changes
+                appData.fixturecode = '';
                 api_link.send(['getfixtureclass', i])
             },
             'addfixturetype': function()
@@ -1451,7 +1553,7 @@ from src import tagpoints
                 var l = []
                 for (var i of sorts)
                 {
-                    //Convert to pairs reverse, string where reverse is -1 if str started with an exclamation point
+                    //Convert to (reverse, string) tuple where reverse is -1 if str started with an exclamation point
                     //Get rid of the fist char if so
                     l.push([
                         i[0] == '!' ? -1 : 1,
@@ -1472,9 +1574,7 @@ from src import tagpoints
                         var rev = i[0]
                         if (!(d[key] == d2[key]))
                         {
-                            return (d[key] > d2[key] ? 1 :
-                                    -1) *
-                                rev
+                            return (d[key] > d2[key] ? 1 :-1) * rev
                         }
 
                     }
@@ -2386,11 +2486,18 @@ from src import tagpoints
 
                 Vue.set(appData.fixtureClasses, v[1], v[2])
             }
-            if (c == "fixtureassg")
+            if (c == "fixtureascode")
             {
 
-                appData.fixtureassg = v[1]
+                appData.fixturescode = v[1]
             }
+
+            if (c == "fixtureAssignments")
+            {
+
+                appData.fixtureAssignments = v[1]
+            }
+            
             if (c == "del")
             {
                 Vue.delete(appData.selectedCues, v[1])

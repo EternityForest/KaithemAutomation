@@ -7,6 +7,7 @@ if [ ! -f /var/lib/kaithem/users/data/users.json ] ; then
     chown kaithem /var/lib/kaithem/ssl/certificate.key
 fi
 
+pip3 install cython
 usermod -a -G serial kaithem
 usermod -a -G dialout kaithem
 usermod -a -G audio kaithem

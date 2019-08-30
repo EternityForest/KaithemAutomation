@@ -181,7 +181,9 @@ effectTemplates_data={
                 "step":0.01,
                 "sort":3
             }
-        }
+        },
+          "gstSetup":
+            {},
     },
     "gverb":
     {

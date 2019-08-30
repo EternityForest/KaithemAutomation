@@ -81,7 +81,7 @@ def ensureConnections(*a,**k):
                 except:
                     print(traceback.format_exc)
     except:
-        raise
+        log.exception("Probably just a weakref that went away.")
 messagebus.subscribe("/system/jack/newport",ensureConnections)
 
 import weakref
@@ -346,7 +346,7 @@ failcards = {}
 
 #The options we use to tune alsa_in and alsa_out
 #so they don't sound horrid
-iooptions=["-p", "128", "-t","256", "-m", "256", "-q","1", "-r", "48000", "-n","16"]
+iooptions=["-p", "128", "-t","384", "-m", "384", "-q","1", "-r", "48000", "-n","32"]
 
 
 
@@ -381,7 +381,7 @@ def try_stop(p):
         p.terminate()
     except:
         pass
-def closeAlsaProcess(i, x):
+def closeAlsaProcess(x):
     #Why not a proper terminate?
     #It seemed to ignore that sometimes.
     x.kill()
@@ -789,8 +789,13 @@ def startJack():
             pass
         f = open(os.devnull,"w")
         g = open(os.devnull,"w")
-        jackp =subprocess.Popen("jackd --realtime -P 70 -S -d alsa -d hw:0,0 -p 128 -n 3 -r 48000",stdout=f, stderr=g, shell=True,stdin=subprocess.DEVNULL)    
-       
+        jackp =subprocess.Popen(['jackd', '-S', '--realtime', '-P' ,'70' ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,'128', '-n' ,'3' ,'-r','48000'],stdout=f, stderr=g,stdin=subprocess.DEVNULL)    
+     
+        try:
+            subprocess.check_call(['chrt', '-f','-p', '70', str(jackp.pid)])
+        except:
+            log.exception("Error getting RT")
+      
         def f():
             global midip
             #Poll till it's actually started, then post the message
@@ -825,7 +830,7 @@ def handleManagedSoundcards():
 
                 if problem:
                     log.error("Error in output "+ i +(x+e).decode("utf8") +" status code "+str(alsa_out_instances[i].poll()))
-                    closeAlsaProcess(i, alsa_out_instances[i])
+                    closeAlsaProcess(alsa_out_instances[i])
                     tr.append(i)
                     #We have to delete the busy stuff but we can
                     #retry later
@@ -856,7 +861,7 @@ def handleManagedSoundcards():
                 problem = problem or b"busy" in (x+e) 
                 if problem :
                     log.error("Error in input "+ i +(x+e).decode("utf8") +" status code "+str(alsa_in_instances[i].poll()))
-                    closeAlsaProcess(i, alsa_in_instances[i])   
+                    closeAlsaProcess(alsa_in_instances[i])   
                     tr.append(i)
                     if b"busy" in (x+e):
                         toretry_in[i]=time.monotonic()+5
@@ -905,7 +910,11 @@ def handleManagedSoundcards():
                             pass
                         time.sleep(2)
                         x = subprocess.Popen(["alsa_in"]+iooptions+["-d", inp[i][0], "-j",i+"i"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-
+                        try:
+                            subprocess.check_call(['chrt', '-f','-p', '70', str(x.pid)])
+                        except:
+                            log.exception("Error getting RT")
+      
                         alsa_in_instances[i]=x
                         log.info("Added "+i+"i at"+inp[i][1])
 
@@ -922,6 +931,11 @@ def handleManagedSoundcards():
                             pass
                         x = subprocess.Popen(["alsa_out"]+iooptions+["-d", op[i][0], "-j",i+"o"]+iooptions,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
                         alsa_out_instances[i]=x
+
+                        try:
+                            subprocess.check_call(['chrt', '-f','-p', '70', str(x.pid)])
+                        except:
+                            log.exception("Error getting RT")
                         log.info("Added "+i+"o")
             #If we stopped it, start it again
             if startPulse:
@@ -983,7 +997,7 @@ def handleManagedSoundcards():
                 try:
                     closeAlsaProcess(alsa_out_instances[i])
                 except:
-                    pass
+                    log.exception("Error closing process")
                 del alsa_out_instances[i]
 
             tr =[]
@@ -995,7 +1009,7 @@ def handleManagedSoundcards():
                 try:
                     closeAlsaProcess(alsa_in_instances[i])
                 except:
-                    pass
+                    log.exception("Error closing process")
                 del alsa_in_instances[i]
         except:
             log.exception("Exception in loop")
@@ -1090,6 +1104,7 @@ def checkJack():
 
 def checkJackClient():
     global jackclient
+    import jack
     with lock:
         if not jackclient:
             return []
@@ -1098,7 +1113,7 @@ def checkJackClient():
             return jackclient.get_ports()
         except:
             try:
-                jackclient.close
+                jackclient.close()
             except:
                 pass
             try:

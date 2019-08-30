@@ -27,6 +27,16 @@ Gst = None
 lock = threading.RLock()
 jackChannels = {}
 
+log = logging.getLogger("gstwrapper")
+#Try to import a cython extension that only works on Linux
+try:
+    from . import threadpriority
+    setPririority = threadpriority.setThreadPriority
+except:
+    log.exception("Cython import failed, gstreamer realtime priority is disabled")
+    setPririority = lambda p,po:None
+
+
 
 def link(a,b):
 
@@ -142,8 +152,9 @@ def getCaps(e):
 
 class Pipeline():
     "Semi-immutable pipeline. You can only add stuff to it"
-    def __init__(self, name):
+    def __init__(self, name, realtime=70):
         init()
+        self.realtime = 70
         self.lock = threading.RLock()
         self.pipeline = Gst.Pipeline()
         if not self.pipeline:
@@ -160,7 +171,29 @@ class Pipeline():
         self.namedElements = {}
 
         self.running = False
-
+        
+        self.knownThreads= {}
+        self.startTime = 0
+        def dummy(*a,**k):
+            pass
+        self.bus.set_sync_handler(self.syncMessage,0,dummy)
+        
+    def syncMessage(self,*arguments):
+        "Synchronous message, so we can enable realtime priority on individual threads."
+        #Stop the poorly performing sync messages after a while.
+        #Wait till we have at least one thread though.
+        if self.knownThreads and time.monotonic()-self.startTime>3:
+            def f():
+                with self.lock:
+                    self.bus.set_sync_handler(None,0,None)
+        if not threading.currentThread().ident in self.knownThreads:
+            self.knownThreads[threading.currentThread().ident] = True
+            if self.realtime:
+                try:
+                    setPririority(1,self.realtime)
+                except:
+                    log.exception("Error setting realtime priority")
+        return Gst.BusSyncReply.PASS
     
     def makeElement(self,n,name=None):
         with self.lock:

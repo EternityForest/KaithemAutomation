@@ -46,7 +46,9 @@ or access the full help via the web interface!
 See [This page](kaithem/src/docs/setup.md). Or, to just try things out, git clone and run kaithem/kaithem.py, then visit port 8001(for https) or port 8002(for not-https) on localhost. That's really all you need to do.
 
 There are many optional dependancies in the .deb recommended section that enable extra features. All are available in the debian
-repos and do not need to be compiled.  
+repos and do not need to be compiled, except for Cython, which is installed automatically by the postinstall script of the debian package, or can easily be manually installed with "sudo pip3 install Cython".
+
+At the moment, Cython is only used to give audio mixer gstreamer threads realtime priority.
 
 In particular, everything to do with sound is handled by dependancies, and python3-libnacl and python3-netifaces are recommended as several networking features require them.
 
