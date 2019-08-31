@@ -256,18 +256,26 @@ def detectShortcut(addr,protocol="UDP"):
         return
 
     addr= (socket.gethostbyname_ex(addr[0])[2][0], addr[1])
-    for i in listMappings():
-        if i['external']==addr and i['protocol']==protocol:
-            return i['internal']
-
+    try:
+        for i in listMappings():
+            if i['external']==addr and i['protocol']==protocol:
+                return i['internal']
+    #Network is unreachable, must not be any
+    #Mappings!
+    except OSError as e:
+        if e.errno == 101:
+            return []
 
 def renewer():
     global cachedDevices
     while 1:
         #This takes such a long time that I can't think of a better way,
         #Aside from a background rescan
-        cachedDevices = upnpclient.discover()
-        listMappings()
+        try:
+            cachedDevices = upnpclient.discover()
+            listMappings()
+        except:
+            logger.exception("err")
         time.sleep(8*60)
         try:
             with listlock:

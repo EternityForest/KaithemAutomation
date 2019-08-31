@@ -19,8 +19,14 @@
 # SOFTWARE.
 
 
-import hashlib,logging,struct,threading,atexit,base64,queue,time,subprocess,re,os
+import hashlib,logging,struct,threading,atexit,base64,queue,time,subprocess,re,os,socket
 
+def addMulticastGroup(s,address):
+    group = socket.inet_aton(address)
+    mreq = struct.pack('4sL', group, socket.INADDR_ANY)
+    s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+
+    
 DEFAULT_PORT=1783
 DEFAULT_MCAST_ADDR="239.255.28.12"
 

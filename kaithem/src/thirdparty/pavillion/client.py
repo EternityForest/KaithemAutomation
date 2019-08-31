@@ -547,6 +547,11 @@ class _Client():
         self.sock.settimeout(1)
 
 
+        #Set the flag, we are goinf to need to retry later if it fails.
+        #Linux sometimes gives us "errno 19" if we try to join a multicast group but we aren't on 
+        #a network
+        self.msock_joined = False
+
         if is_multicast(address[0]):
             # Create the socket
             self.msock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -556,9 +561,8 @@ class _Client():
             # Bind to the server address
             self.msock.bind((self_address[0],self.server_address[1]))
             self.msock.settimeout(1)
-            group = socket.inet_aton(address[0])
-            mreq = struct.pack('4sL', group, socket.INADDR_ANY)
-            self.msock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+
+            self.maddr=address[0]
             self.ismcast = True
         else:
             # Create the socket
@@ -569,12 +573,20 @@ class _Client():
             # Bind to the standard pavillion fast reconnect discovery address
             self.msock.bind((self_address[0],2221))
             self.msock.settimeout(1)
+            self.maddr = "224.0.0.251"
             #TODO: Ipv4 only atm.
-            group = socket.inet_aton("224.0.0.251")
-            mreq = struct.pack('4sL', group, socket.INADDR_ANY)
-            self.msock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-            self.ismcast = False
         
+            self.ismcast = False
+
+
+        try:
+            common.addMulticastGroup(self.msock, self.maddr)
+            self.msock_joined = True
+        except OSError as e:
+            if e.errno==19:
+                pass
+            else:
+                raise
         self.running = True
 
         def cl(*args):
@@ -730,8 +742,14 @@ class _Client():
     def sendSetup(self, counter, opcode, data,addr=None):
         "Send an unsecured packet"
         m = struct.pack("<Q",counter)+struct.pack("<B",opcode)+data
-        self.sock.sendto(b"PavillionS0"+m,addr or self.server_address)
-
+        try:
+            self.sock.sendto(b"PavillionS0"+m,addr or self.server_address)
+            return True
+        except OSError as e:
+            if e.errno==101:
+                if is_multicast((addr or self.server_address)[0]):
+                    return False
+            raise
     def sendSecure(self, counter, opcode, data,addr=None):
         "Send a secured packet"
         self.lastSent = time
@@ -739,8 +757,13 @@ class _Client():
         n = b'\x00'*(24-8)+struct.pack("<Q",counter)
         m = struct.pack("<B",opcode)+data
         m = self.cipher.encrypt(m,self.key,n)
-        self.sock.sendto(b"PavillionS0"+q+m,addr or self.server_address)
-
+        try:    
+            self.sock.sendto(b"PavillionS0"+q+m,addr or self.server_address)
+        except OSError as e:
+            if e.errno==101:
+                if is_multicast((addr or self.server_address)[0]):
+                    return False
+            raise
 
     #Get rid of old subscribers, only call from _seenSubscriber
     def _cleanSubscribers(self):
@@ -763,6 +786,22 @@ class _Client():
                 pass
 
     def _doKeepAlive(self):
+
+
+        #Some systems don't start up with a multicast route.
+        #I don't really understand why not, but I work around
+        #By retrying in case there was an error
+        if not self.msock_joined:
+            try:
+                common.addMulticastGroup(self.msock, "224.0.0.251")
+                self.msock_joined = True
+            except OSError as e:
+                if e.errno==19:
+                    pass
+                else:
+                    pavillion_logger.exception("Error joining multicast group")
+
+
         if self._keepalive_time<time.time()-25:
             try:
                 self.sendMessage('','',b'', reliable=True, force_multicast_first=True)
@@ -847,8 +886,10 @@ class _Client():
             #Normally, we rediscover on disconnect, and on initial connection.
             #We also do it every ten minutes as a fallback.
             if self.lastDiscoveredAddressTime<time.monotonic()-10*60:
-                self.rediscoverAddress()
-            
+                try:
+                    self.rediscoverAddress()
+                except:
+                    pavillion_logger.exception("Error in loop")
             #Do cleanups
             if time.time()-l>30:
                 try:
@@ -881,7 +922,10 @@ class _Client():
         #Just a convenient place to put this so it's out of the way.
         #It can use discoverAddress, so we don't want to do it synchronously
         #In startup.
-        self.initialConnection()
+        try:
+            self.initialConnection()
+        except OSError:
+            pavillion_logger.exception("Error trying to find device, retrying later")
 
         while self.running:
             s = time.time()
@@ -1142,9 +1186,15 @@ class _Client():
             w = common.ExpectedAckTracker(e,expected)
             w.target = target
             self.waitingForAck[counter] =w
-        
-        self.send(counter, 1 if reliable else 3, target.encode('utf-8')+b"\n"+name.encode('utf-8')+b"\n"+data,addr=addr,force_multicast=force_multicast_first)
 
+        #Here's where unreachable network can happen.    
+        try:
+            self.send(counter, 1 if reliable else 3, target.encode('utf-8')+b"\n"+name.encode('utf-8')+b"\n"+data,addr=addr,force_multicast=force_multicast_first)
+        except OSError as e:
+            #This can be auto retried, so I'm really not sure we need
+            #To do anything here. 
+            if e.errno == 101:
+                pass#logging.exception("Error in send")
 
         #Resend loop
         if reliable:
@@ -1158,9 +1208,13 @@ class _Client():
                 time.sleep(x)
                 if e.wait(x):
                     return
-                self.send(counter, 1 if reliable else 3, target.encode('utf-8')+b"\n"+name.encode('utf-8')+b"\n"+data)
+                try:
+                    self.send(counter, 1 if reliable else 3, target.encode('utf-8')+b"\n"+name.encode('utf-8')+b"\n"+data)
+                except OSError:
+                    pass
+                except:
+                    logging.exception("Error in send")
 
-       
 
         if reliable:
             #Return how many subscribers definitely recieved the message.

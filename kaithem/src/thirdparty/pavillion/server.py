@@ -371,11 +371,16 @@ class _Server():
 
         self.mcastgroup = multicast
         #Subscribe to any requested mcast group
+        self.msock_joined = False
         if multicast:
-            group = socket.inet_aton(multicast)
-            mreq = struct.pack('4sL', group, socket.INADDR_ANY)
-            self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-
+            try:
+                common.addMulticastGroup(self.sock, multicast)
+                self.msock_joined = True
+            except OSError as e:
+                if e.errno==19:
+                    pass
+                else:
+                    raise
         #A list of all the registers and functions indexed by number
         self.registers = {}
 
@@ -672,13 +677,28 @@ class _Server():
         else:
             a = ("224.0.0.251",2221)
         m = struct.pack("<Q",0)+struct.pack("<B",5)+b''
-        self.sendsock.sendto(b"PavillionS0"+m,a)
-        time.sleep(0.003)
-        self.sendsock.sendto(b"PavillionS0"+m,a)
-        time.sleep(0.025)
-        self.sendsock.sendto(b"PavillionS0"+m,a)
-
+        try:
+            self.sendsock.sendto(b"PavillionS0"+m,a)
+            time.sleep(0.003)
+            self.sendsock.sendto(b"PavillionS0"+m,a)
+            time.sleep(0.025)
+            self.sendsock.sendto(b"PavillionS0"+m,a)
+        except OSError as e:
+            if e.errno == 101:
+                pass
+            else:
+                pavillion_logger.exception("Err in initial send")
         while(self.running):
+            
+            if not self.msock_joined and self.mcastgroup:
+                try:
+                    common.addMulticastGroup(self.sock, self.mcastgroup)
+                    self.msock_joined = True
+                except OSError as e:
+                    if e.errno==19:
+                        pass
+                    else:
+                        raise
             try:
                 r,w,x= select.select([self.sock,self.sendsock],[],[],5)
             except:

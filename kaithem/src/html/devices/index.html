@@ -43,7 +43,7 @@ def devStatString(d):
         <a href="device/${i}">Edit</a>
     </td>
 
-    <td>${devStatString(devices[i])|h} ${" offline" if devices[i].pclient.remoteAddress==None else ""}</td>
+    <td>${devStatString(devices[i])|h} ${" offline" if  devices[i].pclient and devices[i].pclient.remoteAddress==None else ""}</td>
     
 
     <td>
