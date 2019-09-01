@@ -12,6 +12,7 @@ Change Log
     on linux.
 - Many bugfixes
 - Boot time is several times faster
+- No limit to event traceback stack depth
 
 ### 0.63.1
 -  Fix JS dependancy error in lighting module

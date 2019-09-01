@@ -453,9 +453,9 @@ class BaseEvent():
             global _lastGC
             if tb==None:
                 if sys.version_info>(3,0):
-                    tb = traceback.format_exc(6, chain=True)
+                    tb = traceback.format_exc(chain=True)
                 else:
-                    tb = traceback.format_exc(6)
+                    tb = traceback.format_exc()
             #When an error happens, log it and save the time
             #Note that we are logging to the compiled event object
             self.errors.append([time.strftime(config['time-format']),tb])
@@ -1316,11 +1316,11 @@ def getEventsFromModules(only = None):
                     #If there is an error, add it t the list of things to be retried.
                     except Exception as e:
                         if sys.version_info > (3,0):
-                            i.error = traceback.format_exc(6,chain = True)
+                            i.error = traceback.format_exc(chain = True)
                         else:
-                            i.error = traceback.format_exc(6)
+                            i.error = traceback.format_exc()
                         nextRound.append(i)
-                        logging.debug("Could not load "+i.module + ":"+i.resource+" in this round, deferring to next round\n"+"failed after"+str(round(time.time()-slt, 2))+"s\n"+traceback.format_exc(6))
+                        logging.debug("Could not load "+i.module + ":"+i.resource+" in this round, deferring to next round\n"+"failed after"+str(round(time.time()-slt, 2))+"s\n"+traceback.format_exc())
 
                         pass
                 toLoad = nextRound

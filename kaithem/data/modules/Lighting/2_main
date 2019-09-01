@@ -33,7 +33,7 @@ min=min
 
 allowedCueNameSpecials = '_~'
 
-getblenddesc = module.getblenddesc
+
 
 def mapUniverse(u):
     if not u.startswith("@"):
@@ -197,6 +197,34 @@ def listsoundfolder(path):
         sorted([i for i in x if os.path.isfile(os.path.join(path,i))])
     ) 
     
+
+
+def searchPaths(s, paths):
+    if not len(s)>2:
+        return []
+
+    words = [i.strip() for i in s.lower().split(" ")]
+
+    results = []
+    for path in paths:
+        if not path[-1]=="/":
+            path=path+'/'
+
+        for dir, dirs, files in os.walk(path):
+            relpath = dir[len(path):]
+            for i in files:
+                match = True
+                for j in words:
+                    if not j in i.lower():
+                        if not j in relpath.lower():
+                            match=False
+                if not match:
+                    continue
+                results.append((path,os.path.join(relpath,i)))
+    return results
+
+
+
 def getSerPorts():
     try:
         import serial.tools.list_ports
@@ -281,7 +309,7 @@ kaithem.lights = ObjPlugin()
 module.controlValues = weakref.WeakValueDictionary()
 
 
-blendmodes = module.blendmodes
+
 
 
 def number_to_shortcut(number):
@@ -1208,7 +1236,7 @@ class LightBoard():
                           'bpm': round(scene.bpm,6),
                           'blend':scene.blend,
                           'blendArgs': scene.blendArgs,
-                          'blendDesc':getblenddesc(scene.blend),
+                          'blendDesc':module.getblenddesc(scene.blend),
                           'blendParams': scene.blendClass.parameters if hasattr(scene.blendClass,"parameters") else {},
                           'priority': scene.priority,
                           'started':  scene.started,
@@ -1489,9 +1517,11 @@ class LightBoard():
             if msg[0] == "getfixtureclasses":
                 #Send placeholder lists
                 self.link.send(["fixtureclasses",{i:[] for i in self.fixtureClasses.keys()}])
-
+            
             if msg[0] == 'listsoundfolder':
                 self.link.send(["soundfolderlisting",msg[1],listsoundfolder(msg[1])])
+
+
 
             if msg[0] == "getcuemeta":
                 s = cues[msg[1]]
@@ -1569,6 +1599,8 @@ class LightBoard():
                 if not msg[2] in module.scenes[msg[1]].cues:
                     module.scenes[msg[1]].addCue(msg[2])
             
+            if msg[0]=="searchsounds":
+                self.link.send(['soundsearchresults', msg[1], searchPaths(msg[1], kaithem.registry.get("lighting/soundfolders",[])) ])
             if msg[0]=="newFromSound":
                 bn = os.path.basename(msg[2])
                 bn=fnToCueName(bn)
@@ -2882,8 +2914,8 @@ class Scene():
 
             self.enteredCue = module.timefunc()
 
-            if self.blend in blendmodes:
-                self._blend = blendmodes[self.blend](self)
+            if self.blend in module.blendmodes:
+                self._blend = module.blendmodes[self.blend](self)
 
 
             self.effectiveValues = None
@@ -3088,10 +3120,10 @@ class Scene():
         disallow_special(blend)
         blend=str(blend)[:256]
         self.blend= blend
-        if blend in blendmodes:
+        if blend in module.blendmodes:
             if self.isActive():
-                self._blend = blendmodes[blend](self)
-            self.blendClass = blendmodes[blend]
+                self._blend = module.blendmodes[blend](self)
+            self.blendClass = module.blendmodes[blend]
             self.setupBlendArgs()
         else:
             self.blendArgs = self.blendArgs or {}
@@ -3211,7 +3243,7 @@ kaithem.lights.Scene = module.Scene
 kaithem.lights.scenes = module.scenes
 kaithem.lights.scenesByName = module.scenes_by_name
 kaithem.lights.Universe = Universe
-kaithem.lights.blendmodes = blendmodes
+kaithem.lights.blendmodes = module.blendmodes
 kaithem.lights.fixture = Fixture
 kaithem.lights.shortcut = shortcutCode
 kaithem.lights.scriptActions = weakref.WeakValueDictionary()

@@ -819,24 +819,41 @@ from src import tagpoints
                                 title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
                         </label><br>
                         </div>
-                        <input v-model="soundfilter" placeholder="Filter Sounds" style="width:60%;">
+                        <input v-model="soundsearch" v-on:change="soundsearchresults=[]" v-on:keyup.enter="doSoundSearch(soundsearch)" placeholder="Filter Sounds" style="width:60%;">
+                        <button v-on:click="doSoundSearch(soundsearch)">Search</button>
+                        <button v-on:click="soundsearch=''">Clear Search</button>
                         <div style="max-height:25em; overflow:scroll; background-color:rgba(255,255,255,0.4);">
-                            <h4><a title="View in file manager" v-bind:href="'/settings/files'+encodeURI(soundfilesdir)" target="_blank">{{soundfilesdir}}</a></h4>
-                            <ul>
-                                <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir('')">&ltTOP DIRECTORY&gt</li>
-                                <li v-if="soundfilesdir" style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">..</li>
-                                <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(i)" v-for="i in soundfileslisting[0]" v-if="fuzzyIncludes(i,soundfilter)">{{i}}</li>
+                            
+                            
+                            <div v-if="soundsearch">
+                                <table border="1">
+                                    <tr><th>File</th> <th>Add to Current</th> <th>Add to New</th></tr>
+                                    <tr  v-for="i in soundsearchresults">
+                                        <td v-bind:title="'Found in'+i[0]">{{i[1]}}</td>
+                                        <td><button v-on:click="setSoundfile(currentcueid,soundfilesdir+i[1])">Set</button></td>
+                                        <td><button v-on:click="newCueFromSound(scenename,soundfilesdir+i[1])">New</button></td>
+                                    </tr>
+                                </table>
+                            </div>
 
-                            </ul>
+                            <div v-if="soundsearch==''">
+                                <h4><a title="View in file manager" v-bind:href="'/settings/files'+encodeURI(soundfilesdir)" target="_blank">{{soundfilesdir}}</a></h4>
 
-                            <table border="1">
-                                <tr><th>File</th> <th>Add to Current</th> <th>Add to New</th></tr>
-                                <tr  v-for="i in soundfileslisting[1]" v-if="fuzzyIncludes(i,soundfilter)">
-                                    <td>{{i}}</td>
-                                    <td><button v-on:click="setSoundfile(currentcueid,soundfilesdir+i)">Set</button></td>
-                                    <td><button v-on:click="newCueFromSound(scenename,soundfilesdir+i)">New</button></td>
-                                </tr>
-                            </table>
+                                <ul>
+                                    <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir('')">&ltTOP DIRECTORY&gt</li>
+                                    <li v-if="soundfilesdir" style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">..</li>
+                                    <li style="color:blue; text-decoration:underline;" v-on:click="setSoundfileDir(i)" v-for="i in soundfileslisting[0]" >{{i}}</li>
+                                </ul>
+
+                                <table border="1">
+                                    <tr><th>File</th> <th>Add to Current</th> <th>Add to New</th></tr>
+                                    <tr  v-for="i in soundfileslisting[1]">
+                                        <td>{{i}}</td>
+                                        <td><button v-on:click="setSoundfile(currentcueid,soundfilesdir+i)">Set</button></td>
+                                        <td><button v-on:click="newCueFromSound(scenename,soundfilesdir+i)">New</button></td>
+                                    </tr>
+                                </table>
+                            </div>
                         </div>
                             <div class="scrollbox">
                                 <h5>Kaithem Sound Aliases</h5>
@@ -1708,7 +1725,8 @@ from src import tagpoints
             //Filter which scenes are shown in the list
             'scenefilter': '',
             'cuefilter': '',
-            'soundfilter':'',
+            'soundsearch':'',
+            'soundsearchresults':[],
             'currentBindingBank': 'default',
             'localStorage': localStorage,
             'keybindscript': localStorage.getItem("keybind-script"),
@@ -1733,7 +1751,10 @@ from src import tagpoints
             },
 
 
-
+            'doSoundSearch': function(s)
+            {
+                api_link.send( ["searchsounds", s]  )
+            },
             //l must be a universe dict
             'groupByFixture': function(l)
             {
@@ -2352,6 +2373,14 @@ from src import tagpoints
             if (c == "soundoutputs")
             {
                 appData.soundCards = v[1]
+            }
+
+            if(c=='soundsearchresults')
+            {
+                if(appData.soundsearch==v[1])
+                {
+                    appData.soundsearchresults = v[2]
+                }
             }
             if (c == 'scenecues')
             {

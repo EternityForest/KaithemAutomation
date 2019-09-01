@@ -16,7 +16,7 @@ __doc__=''
 
 
 import numpy
-import time,random, math
+import time,random, math,weakref
 
 
 if not hasattr(module,"blendmodes"):
