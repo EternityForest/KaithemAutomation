@@ -25,6 +25,9 @@ import random
 logger = logging.getLogger("workers")
 
 syslogger = logging.getLogger("system")
+
+lastWorkersError = 0 
+
 def inWaiting():
     return len(__queue)
 
@@ -96,7 +99,12 @@ def makeWorker(e,q):
                 e.clear()
                 e.wait(timeout=5)
             except Exception:
+                global lastWorkersError
                 try:
+                    if lastWorkersError<time.monotonic()-60:
+                        syslogger.exception("Error in function. This message is ratelimited, see debug logs for full.\r\nIn "+f.__name__ +" from " + f.__module__ +"\r\n")
+                        lastWorkersError= time.monotonic()
+
                     logger.exception("Error in function running in thread pool "+f.__name__ +" from " + f.__module__)
                 except:
                     print("Failed to handle error: "+traceback.format_exc(6))

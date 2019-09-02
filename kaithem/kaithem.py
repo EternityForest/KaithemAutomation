@@ -26,13 +26,17 @@ try:
 except:
     pass
 
+import logging 
+
+logger = logging.getLogger("system")
+logger.setLevel(0)
+
 #Dump stuff to stderr when we get a segfault
 try:
     import faulthandler
     faulthandler.enable()
 except:
-    pass
-
+    logger.exception("Faulthandler not fount. Segfault error messages disabled. use pip3 install faulthandler to fix")
 
 
 #This file is the main entry point of the app. It imports everything, loads configuration,
@@ -40,84 +44,34 @@ except:
 
 
 
-import sys,os,threading,traceback,logging,time,mimetypes
-
-#Some things get really excessive with this logging, especially UPnP
-#Libs
-
-logger = logging.getLogger("system")
-logger.setLevel(0)
-
-try:
-    import os
-    if os.path.exists("/dev/shm"):
-        if not os.path.exists("/dev/shm/kaithem_pyx"):
-            os.mkdir("/dev/shm/kaithem_pyx")
-    
-    import pyximport
-    pyximport.install(build_dir = "/dev/shm/kaithem_pyx" if os.path.isfile("/dev/shm/kaithem_pyx") else None)
-except:
-    logger.exception("Could not set up pyximport. Ensure that Cython is installed if you want to use .pyx files")
-
-#There are some libraries that are actually different for 3 and 2, so we use the appropriate one
-#By changing the pathe to include the proper ones.
-
-#Also, when we install on linux, everything gets moved around, so we change the paths accordingly.
-x = sys.path[0]
-linuxpackage = False
-#This is ow we detect if we are running in "unzip+run mode" or installed on linux.
-#If we are installed, then src is found in /usr/lib/kaithem
-
-if x.startswith('/usr/bin'):
-    x = "/usr/lib/kaithem"
-    linuxpackage = True
-    sys.path = [x] + sys.path
-
-x = os.path.join(x,'src')
-
-#Avoid having to rename six.py by treating it's folder as a special case.
-sys.path = [os.path.join(x,'thirdparty','six')] + sys.path
-
-sys.path = [os.path.join(x,'plugins','ondemand')] + sys.path
-sys.path = [os.path.join(x,'plugins','startup')] + sys.path
-
-startupPluginsPath = os.path.join(x,'plugins','startup')
-
-sys.path = sys.path+ [os.path.join(x,'plugins','lowpriority')]
+import sys,os,threading,traceback,time,mimetypes,time,signal
 
 
-if sys.version_info < (3,0):
-    sys.path = [os.path.join(x,'thirdparty','python2')] + sys.path
-    from gzip import open as opengzip
-    import thread
-else:
-    from gzip import GzipFile as opengzip
-    import _thread as thread
-    sys.path = [os.path.join(x,'thirdparty','python3')] + sys.path
+from src import pathsetup
+#Enable importing stuff directly from src/thirdparty,
+#Since we include lots of dependancies that would normally be provided by the system.
+#This must be done before CherryPy
+pathsetup.setupPath()
 
-#There is actually a very good reason to change the import path here.
-#It means we can refer to an installed copy of a library by the same name
-#We use for the copy we include. Normally we use our version.
-#If not, it will fall back to theirs.
-sys.path = [os.path.join(x,'thirdparty')] + sys.path
-
-#Low priority modules will default to using the version installed on the user's computer.
-sys.path =  sys.path + [os.path.join(x,'thirdparty',"lowpriority")]
-
-if sys.version_info < (3,0):
-    sys.path = sys.path+[os.path.join(x,'thirdparty','lowpriority','python2')]
-else:
-    sys.path = sys.path+[os.path.join(x,'thirdparty','lowpriority','python3')]
+#Enable Cython JIT imports, needed by a few optional features.
+#Pyximport may become required in the future.
+pathsetup.setupCython()
 
 
+#Enable logging when threads start and stop.
+from src import tweaks
+tweaks.installThreadLogging()
+
+
+#Make this not spew debug logs, I'm pretty sure that lib is well tested and
+#Reliable and we don't need to know about every request.
 import urllib3
 urlliblogger = logging.getLogger("urllib3.connectionpool")
 urlliblogger.setLevel(logging.INFO)
 
 import src
 
-import time,signal
-
+#This is a very slightly modified version with better socket cleanup properties
 import cherrypy
 
 def webRoot():
@@ -134,19 +88,8 @@ def webRoot():
 
     #WE have to get the workers set up early because a lot of things depend on it.
     from src import workers
-    def handleError(f,exc):
-            from src import messagebus
-            try:
-                messagebus.postMessage('system/errors/workers',
-                                            {"function":f.__name__,
-                                            "module":f.__module__,
-                                            "traceback":traceback.format_exception(*exc, limit=6)})
+  
 
-            except:
-                messagebus.postMessage('system/errors/workers',{
-                                    "traceback":traceback.format_exception(*exc, limit=s6)})
-
-    workers.handleError = handleError
 
     #Attempt to make pavillion work in a sane way that takes advantage of the thread pooling
     try:
@@ -156,7 +99,8 @@ def webRoot():
     except:
         pass
 
-    #We want a notification anytime every first error in a scheduled event
+    #We want a notification anytime every first error in a scheduled event.
+    #This can stay even with real python logging, we want the front page notificaton.
     from src import scheduling
     def handleFirstError(f):
         "Callback to deal with the first error from any given event"
@@ -178,52 +122,6 @@ def webRoot():
     from src import pylogginghandler
     from src import logviewer
 
-
-    threadlogger = logging.getLogger("system.threading")
-
-    def installThreadExcepthook():
-        """
-        Workaround for sys.excepthook thread bug
-        From
-        http://spyced.blogspot.com/2007/06/workaround-for-sysexcepthook-bug.html
-        (https://sourceforge.net/tracker/?func=detail&atid=105470&aid=1230540&group_id=5470).
-        Call once from __main__ before creating any threads.
-        If using psyco, call psyco.cannotcompile(threading.Thread.run)
-        since this replaces a new-style class method.
-
-        Modified by kaithem project to do something slightly different. Credit to Ian Beaver.
-        What our version does is posts to the message bus when a thread starts, stops, or has an exception.
-        """
-        init_old = threading.Thread.__init__
-        def init(self, *args, **kwargs):
-            init_old(self, *args, **kwargs)
-            run_old = self.run
-            def run_with_except_hook(*args, **kw):
-                try:
-                    threadlogger.info("Thread starting: "+self.name)
-                    messagebus.postMessage("/system/threads/start",self.name)
-                    run_old(*args, **kw)
-                    threadlogger.info("Thread stopping: "+self.name)
-                    messagebus.postMessage("/system/threads/stop",self.name)
-                except Exception as e:
-                    threadlogger.exception("Thread stopping due to exception: "+self.name)
-                    messagebus.postMessage("/system/notifications/errors","Exception in thread %s, thread stopped. More details in logs."%self.name)
-                    messagebus.postMessage("/system/threads/errors","Exception in thread %s:\n%s"%(self.name, traceback.format_exc(6)))
-                    raise e
-            #Rename thread so debugging works
-            try:
-                if self._target:
-                    run_with_except_hook.__name__ = self._target.__name__
-                    run_with_except_hook.__module__ =self._target.__module__
-            except:
-                try:
-                    run_with_except_hook.__name__ = "run"
-                except:
-                    pass
-            self.run = run_with_except_hook
-        threading.Thread.__init__ = init
-
-    installThreadExcepthook()
 
 
 
@@ -284,15 +182,7 @@ def webRoot():
     #limit nosecurity to localhost
     if mode == 1:
         bindto = '127.0.0.1'
-        auth.noSecurityMode = 1
 
-    #Unless it's mode 2
-    if mode == 2:
-        auth.noSecurityMode=2
-
-    #Unless it's mode 2
-    if mode == 3:
-        auth.noSecurityMode=3
 
     #cherrypy.process.servers.check_port(bindto, config['http-port'], timeout=1.0)
     #cherrypy.process.servers.check_port(bindto, config['https-port'], timeout=1.0)
@@ -480,7 +370,7 @@ def webRoot():
     root.syslog = logviewer.WebInterface()
     root.devices = remotedevices.WebDevices()
 
-    if not linuxpackage:
+    if not sys.path[0].startswith("/usr/bin"):
         sdn = os.path.join(os.path.dirname(os.path.realpath(__file__)),"src")
         ddn = os.path.join(os.path.dirname(os.path.realpath(__file__)),"data")
     else:

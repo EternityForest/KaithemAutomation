@@ -19,6 +19,8 @@ from .repeatingevents import *
 
 logger = logging.getLogger("system.scheduling")
 
+localLogger = logging.getLogger("scheduling")
+
 def handleFirstError(f):
     "Callback that you can swap for something else, test first error in a repeating event"
     pass
@@ -195,10 +197,10 @@ class RepeatingEvent(BaseEvent):
             except:
                 try:
                     if hasattr(f,"__name__") and hasattr(f,"__module__"):
-                        logging.exception("Exception in scheduled function "+f.__name__+" of module "+f.__module__)
+                        localLogger.exception("Exception in scheduled function "+f.__name__+" of module "+f.__module__)
 
                 except:
-                        logging.exception("Exception in scheduled function")
+                        localLogger.exception("Exception in scheduled function")
 
                 if not self.errored:
                     try:

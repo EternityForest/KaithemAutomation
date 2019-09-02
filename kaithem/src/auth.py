@@ -30,6 +30,25 @@ from src import config as cfg
 
 noSecurityMode=False
 
+mode = int(cfg.argcmd.nosecurity) if cfg.argcmd.nosecurity else None
+#limit nosecurity to localhost
+if mode == 1:
+    bindto = '127.0.0.1'
+    noSecurityMode = 1
+
+#Unless it's mode 2
+if mode == 2:
+    noSecurityMode=2
+
+#Unless it's mode 2
+if mode == 3:
+    noSecurityMode=3
+
+
+
+
+
+
 logger = logging.getLogger("system.auth")
 #This maps raw tokens to users
 Tokens = {}
