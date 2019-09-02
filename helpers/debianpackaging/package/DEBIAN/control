@@ -1,17 +1,17 @@
 Package: kaithem
-Version: 0.63.1
+Version: 0.64.0
+Maintainer: Daniel Dunn
+Installed-Size: 35000
+Description: The KaithemAutomation Web GUI based automation platform.
 Architecture: all
 Essential: no
 Section: web
 Priority: optional
-Depends: python3, systemd
+Depends: python3, systemd, cython3, build-essential
 Recommends: mplayer, pulseaudio, python3-pyserial,
  python3-pytz, python3-dateutil, lm-sensors,
  python3-netifaces,python3-jack-client,
  python3-gst-1.0, python3-libnacl, jack-tools,
- jackd2, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, a2jmidid
+ jackd2, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, a2jmidid,
  swh-plugins, tap-plugins, caps,  gstreamer1.0-plugins-ugly, python3-psutil
 
-Maintainer: Daniel Dunn
-Installed-Size: 35000
-Description: The KaithemAutomation Web GUI based automation platform. By default this package will run  as a new user "kaithem" with access to almost all hardware but not sudo.

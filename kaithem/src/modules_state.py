@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #This file is just for keeping track of state info that would otherwise cause circular issues.
-import weakref, sqlite3,os,sys,hashlib,json,time
+import weakref, sqlite3,os,sys,hashlib,json,time,getpass
 from threading import RLock
 from src import util
 
@@ -60,10 +60,10 @@ external_module_locations = {}
 
 
 if os.path.exists("/dev/shm"):
-    uniqueInstanceId = ",".join(sys.argv) + os.path.normpath(__file__)
+    uniqueInstanceId = ",".join(sys.argv) + os.path.normpath(__file__)+util.getUser()
     uniqueInstanceId= hashlib.sha1(uniqueInstanceId.encode("utf8")).hexdigest()[:24]
     enable_sqlite_backup=True
-    recoveryDbPath = os.path.join("/dev/shm/kaithem/",uniqueInstanceId, "modulesbackup")
+    recoveryDbPath = os.path.join("/dev/shm/kaithem_"+util.getUser()+"/",uniqueInstanceId, "modulesbackup")
     util.ensure_dir(recoveryDbPath)
     recoveryDb = sqlite3.connect(recoveryDbPath)
     util.chmod_private_try(recoveryDbPath)
@@ -94,6 +94,8 @@ def purgeSqliteBackup():
 def createRecoveryEntry(module, resource, value):
     valuej=json.dumps(value)
     if enable_sqlite_backup: 
+        if not os.path.exists(recoveryDbPath):
+            util.ensure_dir(recoveryDbPath)
         recoveryDb = sqlite3.connect(recoveryDbPath)
         with recoveryDb:
             recoveryDb.execute("delete from change where module=? and resource=?",(module,resource))

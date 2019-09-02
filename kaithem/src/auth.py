@@ -640,7 +640,7 @@ def canUserDoThis(user,permission):
                 if x.startswith("127."):
                     return True
                 return False
-
+        return False
 
     if permission in Users[user].permissions:
         return True

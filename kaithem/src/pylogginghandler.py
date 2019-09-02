@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import logging,threading,os, time, gzip, bz2,atexit,weakref,random,re,textwrap,shutil,traceback,gc
+import logging,threading,os, time, gzip, bz2,atexit,weakref,random,re,textwrap,shutil,traceback,gc,getpass
 
 from . import messagebus, registry, directories,unitsofmeasure,util
 from .config import config 
@@ -45,7 +45,7 @@ def at_exit():
     #This lets us tell a clean shutdown from something like a segfault
     if os.path.exists("/dev/shm"):
         try:
-            with open("/dev/shm/shutdowntime","w") as f:
+            with open("/dev/shm/shutdowntime_"+getpass.getuser(),"w") as f:
                 f.write(str(time.time()))
         except:
             print(traceback.format_exc())
@@ -279,14 +279,14 @@ syslogger = LoggingHandler("system",fn="system" if not config['log-format']=='no
                         compress= config['log-compress'],doprint=False)
 
 ##Linux only way of recovering backups even if the
-if os.path.exists("/dev/shm/kaithemdbglog"):
-    if not os.path.exists("/dev/shm/shutdowntime"):
+if os.path.exists("/dev/shm/kaithemdbglog_"+getpass.getuser()):
+    if not os.path.exists("/dev/shm/shutdowntime_"+getpass.getuser()):
         try:
-            shutil.rmtree("/dev/shm/kaithemdbglog")
+            shutil.rmtree("/dev/shm/kaithemdbglog_"+getpass.getuser())
         except:
             pass
         try:
-            shutil.copytree("/dev/shm/kaithemdbglog", "/dev/shm/kaithemdbglogbackup")
+            shutil.copytree("/dev/shm/kaithemdbglog_"+getpass.getuser(), "/dev/shm/kaithemdbglogbackup_"+getpass.getuser())
         except:
             pass
         messagebus.postMessage("/system/notifications/errors", 
@@ -300,7 +300,7 @@ if os.path.exists("/dev/shm/kaithemdbglog"):
 #We know that there was a problem, and we can report that.
 if os.path.exists("/dev/shm"):
     try:
-       os.remove("/dev/shm/shutdowntime")
+       os.remove("/dev/shm/shutdowntime_"+getpass.getuser())
     except:
         pass
 
@@ -314,7 +314,7 @@ if os.path.exists("/dev/shm"):
 #and diagnose really odd errors.
 if os.path.exists("/dev/shm"):
     shmhandler = LoggingHandler("",fn="kaithemlog",
-            folder="/dev/shm/kaithemdbglog/",level=0,
+            folder="/dev/shm/kaithemdbglog_"+getpass.getuser()+"/",level=0,
             entries_per_file=5000, 
             bufferlen= 0,
             keep=10**6,

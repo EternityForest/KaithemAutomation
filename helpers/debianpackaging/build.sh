@@ -1,3 +1,4 @@
+#!/bin/bash
 mkdir build > /dev/null
 rm build/a.zip >/dev/null
 rm -r build/package>/dev/null

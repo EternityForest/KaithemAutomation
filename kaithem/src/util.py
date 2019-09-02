@@ -16,6 +16,7 @@
 
 "This file ideally should only depend on sdtilb stuff and import the rest as needed. We don't want this to drag in threads and everything"
 import  os,threading,copy,sys,shutil,difflib,time,json,traceback,stat,subprocess,copy,collections,types,weakref,logging,struct,hashlib
+import getpass
 import yaml
 
 
@@ -467,9 +468,13 @@ def saferepr(obj):
     except Exception as e:
         return e+" in repr() call"
 
-
+currentUser = None
+def getUser():
+    global currentUser
+    return currentUser or getpass.getuser()
 #Partly based on code by Tamás of stack overflow.
 def drop_perms(user, group = None):
+    global currentUser 
     if os.name == 'nt':
         return
     if os.getuid() != 0:
@@ -490,6 +495,8 @@ def drop_perms(user, group = None):
     os.setgroups(groups)
     os.setgid(running_gid)
     os.setuid(running_uid)
+    currentUser = user
+
 
 
 def lrucache(n=10):

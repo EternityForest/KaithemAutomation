@@ -44,15 +44,14 @@ except:
 
 
 
-import sys,os,threading,traceback,time,mimetypes,time,signal
+import sys,os,threading,traceback,time,mimetypes,signal,shutil
 
 
 #Minimal path setup, to be able to even find the rest
-x = sys.path[0]
+x = os.path.abspath(__file__)
 #This is ow we detect if we are running in "unzip+run mode" or installed on linux.
 #If we are installed, then src is found in /usr/lib/kaithem
-
-if x.startswith('/usr/bin') and not force_local:
+if x.startswith('/usr/bin'):
     x = "/usr/lib/kaithem"
     sys.path = [x] + sys.path
 
@@ -61,7 +60,7 @@ from src import pathsetup
 #Enable importing stuff directly from src/thirdparty,
 #Since we include lots of dependancies that would normally be provided by the system.
 #This must be done before CherryPy
-pathsetup.setupPath()
+pathsetup.setupPath(linuxpackage = os.path.abspath(__file__).startswith("/usr/bin"))
 
 #Enable Cython JIT imports, needed by a few optional features.
 #Pyximport may become required in the future.
@@ -84,14 +83,60 @@ import src
 #This is a very slightly modified version with better socket cleanup properties
 import cherrypy
 
+from src import util,workers
+from src import config as cfg
+from src.config import config
+
+qsize = cfg.config['task-queue-size']
+count = cfg.config['worker-threads']
+wait =  cfg.config['wait-for-workers']
+workers.start(count,qsize,wait)
+
+
+from src import auth
+
+#Initialize the authorization module
+auth.initializeAuthentication()
+logger.info("Loaded auth data")
+
+if cfg.argcmd.initialpackagesetup:
+    util.drop_perms(config['run-as-user'], config['run-as-group'])
+    auth.dumpDatabase()
+    logger.info("Kaithem users set up. Now exiting(May take a few seconds. You may start the service manually or via systemd/init")
+    cherrypy.engine.exit()
+    sys.exit()
+
+
+from src import kaithemobj
+from src import statemachines
+kaithemobj.kaithem.states.StateMachine = statemachines.StateMachine
+kaithemobj.kaithem.misc.version      = __version__
+kaithemobj.kaithem.misc.version_info = __version_info__
+
+from src import messagebus
+
+import importlib
+plugins = {}
+try:
+    for i in os.listdir(pathsetup.startupPluginsPath):
+        try:
+            plugins[i] = importlib.import_module(i)
+            logger.info("Loaded plugin "+i)
+        except:
+            logger.exception("Error loading plugin "+i)
+            messagebus.postMessage('/system/notifications/errors',"Error loading plugin "+i)
+except:
+    messagebus.postMessage('/system/notifications/errors',"Error loading plugins")
+    logger.exception("Error loading plugins")
+
+from src import remotedevices
+remotedevices.init_devices()
+
 def webRoot():
     #We don't want Cherrypy writing temp files for no reason
     cherrypy._cpreqbody.Part.maxrambytes = 64*1024
 
     from cherrypy import _cperror
-    from src import util
-
-    from src import config as cfg
 
     logging.getLogger("cherrypy.access").propagate = False
 
@@ -120,12 +165,8 @@ def webRoot():
                 +", check logs for more info.")
     scheduling.handleFirstError = handleFirstError
 
-    qsize = cfg.config['task-queue-size']
-    count = cfg.config['worker-threads']
-    wait =  cfg.config['wait-for-workers']
-    workers.start(count,qsize,wait)
 
-    from src import messagebus
+
     from src import messagelogging
     from src import notifications
 
@@ -149,24 +190,12 @@ def webRoot():
 
     from src import pages
     from src import weblogin
-    from src import auth
     from src import directories
     from src import pages
 
 
-    #Initialize the authorization module
-    auth.initializeAuthentication()
-    logger.info("Loaded auth data")
-
-    if cfg.argcmd.initialpackagesetup:
-        util.drop_perms(cfg.config['run-as-user'], cfg.config['run-as-group'])
-        auth.dumpDatabase()
-        logger.info("Kaithem users set up. Now exiting(May take a few seconds. You may start the service manually or via systemd/init")
-        cherrypy.engine.exit()
-        sys.exit()
 
     from src import ManageUsers
-    from src import statemachines
     from src import newevt
     from src import registry
     from src import modules
@@ -178,7 +207,6 @@ def webRoot():
 
     from src import alerts
     logger.info("Loaded core python code")
-    from src.config import config
     import src.config as cfgmodule
     if not config['host'] == 'default':    
         bindto = config['host']
@@ -217,10 +245,7 @@ def webRoot():
 
 
     sys.modules['kaithem'] = sys.modules['__main__']
-    from src import kaithemobj
-    kaithemobj.kaithem.states.StateMachine = statemachines.StateMachine
-    kaithemobj.kaithem.misc.version      = __version__
-    kaithemobj.kaithem.misc.version_info = __version_info__
+
 
     #Load all modules from the active modules directory
     modules.initModules()
@@ -380,7 +405,7 @@ def webRoot():
     root.syslog = logviewer.WebInterface()
     root.devices = remotedevices.WebDevices()
 
-    if not sys.path[0].startswith("/usr/bin"):
+    if not os.path.abspath(__file__).startswith("/usr/bin"):
         sdn = os.path.join(os.path.dirname(os.path.realpath(__file__)),"src")
         ddn = os.path.join(os.path.dirname(os.path.realpath(__file__)),"data")
     else:
@@ -537,25 +562,26 @@ def webRoot():
 
 
     cherrypy.engine.start()
+    
+    #Unlike other shm stuff that only gets used after startup, this
+    #Can be used both before and after we are fully loaded.
+    #So we need to hand off everything to the user we will actually run as
+    #Thanks to https://stackoverflow.com/questions/2853723/what-is-the-python-way-for-recursively-setting-file-permissions
+    if  not config['run-as-user']=='root':
+        d = "/dev/shm/kaithem_pyx_"+config['run-as-user']
+
+        shutil.chown(d,config['run-as-user'] )
+        for dirpath, dirnames, filenames in os.walk(d):
+            shutil.chown(dirpath,config['run-as-user'])
+            for fname in filenames:
+                shutil.chown(os.path.join(dirpath, fname), config['run-as-user'])
+
     #If configured that way on unix, check if we are root and drop root.
     util.drop_perms(config['run-as-user'], config['run-as-group'])
     messagebus.postMessage('/system/startup','System Initialized')
     messagebus.postMessage('/system/notifications/important','System Initialized')
 
-    import importlib
-    plugins = {}
-    try:
-        for i in os.listdir(pathsetup.startupPluginsPath):
-            try:
-                plugins[i] = importlib.import_module(i)
-            except:
-                logger.exception("Error loading plugin "+i)
-                messagebus.postMessage('/system/notifications/errors',"Error loading plugin "+i)
-    except:
-        messagebus.postMessage('/system/notifications/errors',"Error loading plugins")
-        logger.exception("Error loading plugins")
-
-
+ 
 
     r = util.zeroconf
 

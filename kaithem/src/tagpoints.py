@@ -1,5 +1,5 @@
 
-from . import scheduling,workers, virtualresource,newevt,widgets
+from . import scheduling,workers, virtualresource,widgets
 import time, threading,weakref,logging
 
 logger = logging.getLogger("tagpoints")
@@ -405,6 +405,7 @@ class _TagPoint(virtualresource.VirtualResource):
                         syslogger.exception("Error getting tag value. This message will only be logged every ten minutes.")
                     #If we can, try to send the exception back whence it came
                     try:
+                        import newevt
                         newevt.eventByModuleName(self._value.__module__)._handle_exception()
                     except:
                         pass

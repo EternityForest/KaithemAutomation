@@ -13,13 +13,15 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import time,atexit,sys,platform,re,datetime,threading,weakref,signal,logging,socket,gc
+import time,atexit,sys,platform,re,datetime,threading,weakref,signal,logging,socket,gc,subprocess
 import cherrypy
 from . import newevt,messagebus,unitsofmeasure,util,messagelogging,mail,scheduling
 from .kaithemobj import kaithem
 from .config import config
 
 from zeroconf import ServiceBrowser, ServiceStateChange
+
+
 
 #very much not thread safe, doesn't matter, it's only for one UI page
 httpservices= []

@@ -12,14 +12,14 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-from . import util,directories,messagebus
-import os,time,json,copy,hashlib,threading,copy, traceback, shutil, yaml, validictory,sqlite3,sys,logging
+from . import util,directories,messagebus,util
+import os,time,json,copy,hashlib,threading,copy, traceback, shutil, yaml, validictory,sqlite3,sys,logging,getpass
 from .util import url, unurl
 
 log = logging.getLogger("system.registry")
 
 if os.path.exists("/dev/shm"):
-    uniqueInstanceId = ",".join(sys.argv) + os.path.normpath(__file__)
+    uniqueInstanceId = ",".join(sys.argv) + os.path.normpath(__file__)+util.getUser()
     uniqueInstanceId= hashlib.sha1(uniqueInstanceId.encode("utf8")).hexdigest()[:24]
     enable_sqlite_backup=True
     recoveryDbPath = os.path.join("/dev/shm/kaithem/",uniqueInstanceId, "registrybackup")
@@ -47,15 +47,20 @@ else:
 
 def purgeSqliteBackup():
     if enable_sqlite_backup:
-        recoveryDb = sqlite3.connect(recoveryDbPath)
-        with recoveryDb:
-            recoveryDb.execute("delete from change")
-        recoveryDb.commit()
-        recoveryDb.close()
+        try:
+            recoveryDb = sqlite3.connect(recoveryDbPath)
+            with recoveryDb:
+                recoveryDb.execute("delete from change")
+            recoveryDb.commit()
+            recoveryDb.close()
+        except:
+            logging.exception("err deleting old recovery records")
 
 def createRecoveryEntry(key, value, flag):
     valuej=json.dumps(value)
-    if enable_sqlite_backup: 
+    if enable_sqlite_backup:
+        if not os.path.exists(recoveryDbPath):
+            util.ensure_dir(recoveryDbPath)
         recoveryDb = sqlite3.connect(recoveryDbPath)
         with recoveryDb:
             recoveryDb.execute("delete from change where key=?",(key,))
@@ -123,7 +128,9 @@ class PersistanceArea():
 
                 if not os.path.isfile(os.path.join(folder,"data","kaithem_dump_valid.txt")):
                     if os.path.isdir(os.path.join(folder,"data")):
-                        shutil.copytree(os.path.join(folder,f),os.path.join(folder,"INCOMPLETE"+f))
+                        #I guess assume it's already been backed up?
+                        if not os.path.exists(os.path.join(folder,"INCOMPLETE"+f)):
+                            shutil.copytree(os.path.join(folder,f),os.path.join(folder,"INCOMPLETE"+f))
 
                 #Not that we are in a try block
                 if not f:
@@ -142,7 +149,11 @@ class PersistanceArea():
                         with open(os.path.join(folder,f,i)) as x:
                             self.files[i[:-5]] = self.PersistanceDict(yaml.load(x)['data'])
                             self.files[i[:-5]].markClean()
-                completeFileTimestamp=os.stat(os.path.join(folder,"data",'kaithem_dump_valid.txt')).st_mtime
+
+                if os.path.isfile(os.path.join(folder,"data",'kaithem_dump_valid.txt')):
+                    completeFileTimestamp=os.stat(os.path.join(folder,"data",'kaithem_dump_valid.txt')).st_mtime
+                else:
+                    completeFileTimestamp=0
                 #If there are any unsaved registry changes, recover them now
                 self.loadRecoveryDbInfo(completeFileTimestamp)
 

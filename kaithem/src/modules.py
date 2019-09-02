@@ -656,7 +656,7 @@ def saveToRam():
     uniqueInstanceId = ",".join(sys.argv) + os.path.normpath(__file__)
     uniqueInstanceId= hashlib.sha1(uniqueInstanceId.encode("utf8")).hexdigest()[:24]
     if os.path.exists("/dev/shm/"):
-        saveModules(os.path.join("/dev/shm/kaithem"+uniqueInstanceId, "modulesbackup"), markSaved=False)
+        saveModules(os.path.join("/dev/shm/kaithem_"+util.getUser()+"/"+uniqueInstanceId, "modulesbackup"), markSaved=False)
 
 def saveModules(where:str,markSaved=True):
     """Save the modules in a directory as JSON files. Low level and does not handle the timestamp directories, etc."""

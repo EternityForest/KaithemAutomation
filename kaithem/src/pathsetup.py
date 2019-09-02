@@ -20,26 +20,34 @@ import sys, os, logging
 logger = logging.getLogger("system")
 
 def setupCython():
+    #TODO do we want unique instance ids so two apps can be on one user?
+    #Does that ever happen? Do they even need separate dirs?
+    from src import config,util
+
+    if config.config['run-as-user']=='root':
+        d = "/dev/shm/kaithem_pyx_"+util.getUser()
+    else:
+        d = "/dev/shm/kaithem_pyx_"+config.config['run-as-user']
     #Set up pyximport in the proper kaithem-y way
     try:
         import os
         if os.path.exists("/dev/shm"):
-            if not os.path.exists("/dev/shm/kaithem_pyx"):
-                os.mkdir("/dev/shm/kaithem_pyx")
+            if not os.path.exists(d):
+                os.mkdir(d)
         
         import pyximport
-        pyximport.install(build_dir = "/dev/shm/kaithem_pyx" if os.path.isfile("/dev/shm/kaithem_pyx") else None)
+        pyximport.install(build_dir = d if os.path.isdir(d) else None)
     except:
         logger.exception("Could not set up pyximport. Ensure that Cython is installed if you want to use .pyx files")
 
-def setupPath(force_local=False):
+def setupPath(linuxpackage, force_local=False):
     global startupPluginsPath
     #There are some libraries that are actually different for 3 and 2, so we use the appropriate one
     #By changing the pathe to include the proper ones.
 
     #Also, when we install on linux, everything gets moved around, so we change the paths accordingly.
 
-    x = sys.path[0]
+    x = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     #This is ow we detect if we are running in "unzip+run mode" or installed on linux.
     #If we are installed, then src is found in /usr/lib/kaithem
 

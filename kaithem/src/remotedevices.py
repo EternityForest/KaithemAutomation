@@ -745,9 +745,9 @@ deviceTypes = weakref.WeakValueDictionary()
 
 def makeDevice(name, data):
     if data['type'] in builtinDeviceTypes:
-        return builtinDeviceTypes.get(data['type'], RemoteDevice)(name, data)
+        return builtinDeviceTypes[data['type']](name, data)
     else:
-        return deviceTypes.get(data['type'], RemoteDevice)(name, data)
+        return deviceTypes[data['type']](name, data)
 
 def getDeviceType(t):
     if t in builtinDeviceTypes:
@@ -763,8 +763,6 @@ def init_devices():
         try:
             remote_devices[i] = makeDevice(i, device_data[i])
         except:
-            syslogger.exception("Error initializing device")
+            syslogger.exception("Error initializing device "+str(i))
 
     remote_devices_atomic =remote_devices.copy()
-
-init_devices()

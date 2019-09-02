@@ -124,7 +124,7 @@ def waitingtasks():
     return __queue.qsize()
 
 #This is a decorator to make an asychronous version of a function
-def async(f):
+def asyncDecorator(f):
     """Given a function f, return a function g that asyncronously executes f. Basically calling g will immediately run f in the thread pool."""
     def g():
         def h(*args,**kwargs):
