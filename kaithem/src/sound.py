@@ -25,7 +25,7 @@ log= logging.getLogger("system.sound")
 if registry.get("/system/sound/usejack",None)=="manage":
     def f():
         try:        
-            jackmanager.startManagingJack()
+            jackmanager.startManagingJack(registry.get("/system/sound/jackperiodsize",128), registry.get("/system/sound/jackperiods",3))
         except:
             log.exception("Error managing JACK")
     workers.do(f)

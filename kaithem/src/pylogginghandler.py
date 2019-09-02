@@ -99,6 +99,8 @@ class LoggingHandler(logging.Handler):
         self.flush_before_close = True
         #The file we are writing to right now
         self.current_file = None
+
+        self.isShmHandler=False
         
         #How many entries have we dumped to the file already?
         self.counter=0
@@ -110,6 +112,15 @@ class LoggingHandler(logging.Handler):
         formatter = KFormatter('%(levelname)s:%(asctime)s %(name)s %(message)s',"%Y%b%d %H:%M:%S %Z")
         self.setFormatter(formatter)
         all_handlers[(time.time(),random.random(),self.name)] = self
+    
+
+    def _checkShmFolderChanged(self):
+        "Only relevant to shm handlers. Basically we need to move to a new folder if permissions dropped"
+        f = "/dev/shm/kaithemdbglog_"+getpass.getuser()+"/"
+        if not f ==self.folder:
+            self.folder=f
+            self.current_file=None
+   
     def close(self):
         if self.flush_before_close:
             self.flush()
@@ -213,6 +224,11 @@ class LoggingHandler(logging.Handler):
                             self.bytecounter+=len(b)
                             f.write(b)
                 except OSError:
+                    #Swap them back so we can flush later, but don't hoard too many
+                    if len(logbuffer)< 1024:
+                        self.logbuffer = logbuffer 
+                    if self.isShmHandler:
+                        self._checkShmFolderChanged()
                     #Sometimes the problem is that garbage collection
                     #Hasn't gotten to a bunch of sockets yet
                     gc.collect()
@@ -319,3 +335,4 @@ if os.path.exists("/dev/shm"):
             bufferlen= 0,
             keep=10**6,
             compress= "none")
+    shmhandler.isShmHandler=True

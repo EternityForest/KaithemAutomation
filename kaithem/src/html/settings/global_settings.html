@@ -50,13 +50,51 @@ names.  Using this is required for Kaithem's integrated sound mixer to work corr
 
 <form method="POST" action="/settings/changejacksettingstarget">
 <table border=1>
-<tr>
-<td>JACK Mode</td>
-<td><select name="jackmode">
-<option title="Kaithem will ignore JACK" value="off" ${'selected' if  registry.get('/system/sound/usejack','off')=='off' else ''}>off</option>
-<option title="Kaithem will start and manage jackd" value="manage" ${'selected' if registry.get('/system/sound/usejack','off')=='manage' else ''}>manage</option>
-</td>
-</tr>
+    <tr>
+        <td>JACK Mode</td>
+        <td>
+            <select name="jackmode">
+                <option title="Kaithem will ignore JACK" value="off" ${'selected' if  registry.get('/system/sound/usejack','off')=='off' else ''}>off</option>
+                <option title="Kaithem will start and manage jackd" value="manage" ${'selected' if registry.get('/system/sound/usejack','off')=='manage' else ''}>manage</option>
+            </select>
+        </td>
+    </tr>
+    <%
+    psize = registry.get('/system/sound/jackperiodsize',128)
+    periods  = registry.get('/system/sound/jackperiods',3)
+    %>
+    <tr>
+        <td>
+            Period Size(Lower is less laggy, higher is more reliable)
+        </td>
+        <td>
+            <select name="jackperiodsize">
+                <option value="64" ${'selected' if psize==64 else ''}>64(Usually doesn't work)</option>
+                <option value="128" ${'selected' if psize==128 else ''}>128(Some raspberry pi versions can't handle)</option>
+                <option value="256" ${'selected' if psize==256 else ''}>256(Usually works, but laggy)</option>
+                <option value="512" ${'selected' if psize==512 else ''}>512(Really laggy but even less dropouts)</option>
+                <option value="1024" ${'selected' if psize==1024 else ''}>1024</option>
+            </select>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            Periods(Usually 2 or 3, Lower is less laggy, higher is more reliable)
+        </td>
+        <td>
+            <select name="jackperiods">
+                <option value="2" ${'selected' if periods==2 else ''}>2(Sometimes works, sometimes choppy)</option>
+                <option value="3" ${'selected' if periods==3 else ''}>3(Usually works)</option>
+                <option value="4" ${'selected' if periods==4 else ''}>4</option>
+                <option value="5" ${'selected' if periods==5 else ''}>5</option>
+                <option value="6" ${'selected' if periods==6 else ''}>6</option>
+                <option value="7" ${'selected' if periods==7 else ''}>7</option>
+                <option value="8" ${'selected' if periods==8 else ''}>8</option>
+
+            </select>
+        </td>
+    </tr>
+
 </table>
 <input type="submit" >
 </form>

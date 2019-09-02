@@ -400,10 +400,13 @@ class Settings():
         pages.postOnly()
 
         registry.set("/system/sound/usejack",kwargs['jackmode'])
+        registry.set("/system/sound/jackperiodsize",max(32,int(kwargs['jackperiodsize'])))
+        registry.set("/system/sound/jackperiods",max(2,int(kwargs['jackperiods'])))
+
         from . import jackmanager
         if registry.get("/system/sound/usejack",None)=="manage":
             try:
-                jackmanager.startManagingJack()
+                jackmanager.startManagingJack(registry.get("/system/sound/jackperiodsize",128), registry.get("/system/sound/jackperiods",3))
             except:
                 syslogger.exception("Error managing JACK")
         else:

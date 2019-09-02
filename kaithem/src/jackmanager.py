@@ -746,6 +746,11 @@ def cleanup():
             alsa_out_instances[i].terminate()
 atexit.register(cleanup)
 
+jackShouldBeRunning = False
+
+def stopManagingJack():
+    global jackShouldBeRunning
+    jackShouldBeRunning =False
 
 def stopJack():
     import subprocess
@@ -772,9 +777,17 @@ def stopJack():
 
 
 jackp = None
-def startJack():
+period = 128
+nperiods = 3
+
+def startJack(p=None, n=None):
     #Start the JACK server.
     global jackp
+    global period
+    global nperiods
+    
+    period = p or period
+    nperiods = n or nperiods
     
     if not jackp or not jackp.poll()==None:
         if midip:
@@ -789,7 +802,7 @@ def startJack():
             pass
         f = open(os.devnull,"w")
         g = open(os.devnull,"w")
-        jackp =subprocess.Popen(['jackd', '-S', '--realtime', '-P' ,'70' ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,'128', '-n' ,'3' ,'-r','48000'],stdout=f, stderr=g,stdin=subprocess.DEVNULL)    
+        jackp =subprocess.Popen(['jackd', '-S', '--realtime', '-P' ,'70' ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,str(period), '-n' ,str(nperiods) ,'-r','48000'],stdout=f, stderr=subprocess.DEVNULL,stdin=subprocess.DEVNULL)    
      
         try:
             subprocess.check_call(['chrt', '-f','-p', '70', str(jackp.pid)])
@@ -1016,7 +1029,7 @@ def handleManagedSoundcards():
 
 
 def work():
-    while(1):
+    while(tstopper[0]):
         checkJack()
         checkJackClient()
         handleManagedSoundcards()
@@ -1024,13 +1037,16 @@ def work():
         time.sleep(5)
 
 t =None
+tstopper = [0]
 
 didPatch = False
-def startManagingJack():
+def startManagingJack(p=None,n=None):
     import jack, re
     global jackclient
     global t
     global didPatch
+    global jackShouldBeRunning
+    jackShouldBeRunning = True
 
     if not didPatch:
         def _get_ports_fix(self, name_pattern='', is_audio=False, is_midi=False,
@@ -1049,7 +1065,7 @@ def startManagingJack():
 
     atexit.register(cleanup)
     stopJack()
-    startJack()
+    startJack(p,n)
 
  
 
@@ -1079,7 +1095,7 @@ def startManagingJack():
                 except:
                     log.exception("err")
                 time.sleep(3)
-                startJack()
+                startJack(p,n)
 
             if i<9:
                 continue
@@ -1090,6 +1106,16 @@ def startManagingJack():
     jackclient.activate()
     setupPulse()
     log.debug("Set up pulse")
+    
+    #Stop the old thread if needed
+    tstopper[0] = 0
+    try:
+        if t:
+            t.join()
+    except:
+        pass
+        
+    tstopper[0]=1
     t = threading.Thread(target=work)
     t.name="JackReconnector"
     t.daemon=True
@@ -1097,9 +1123,10 @@ def startManagingJack():
 
 
 
+
 def checkJack():
     global jackp
-    if jackp and jackp.poll() !=None:
+    if jackShouldBeRunning  and jackp and jackp.poll() !=None:
         startJack()
 
 def checkJackClient():
