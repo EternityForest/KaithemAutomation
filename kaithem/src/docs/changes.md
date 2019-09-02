@@ -15,6 +15,7 @@ Change Log
 - No limit to event traceback stack depth
 - Remove posting to /system/threads/start, it created a refactoring nightmare and wasn't useful
 - Remove system/errors/workers for the same reason, traditional logging makes it obsolete.
+- Hopefully resolved the SSL segfault
 
 ### 0.63.1
 -  Fix JS dependancy error in lighting module

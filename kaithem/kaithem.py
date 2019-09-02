@@ -535,7 +535,7 @@ def webRoot():
     import importlib
     plugins = {}
     try:
-        for i in os.listdir(startupPluginsPath):
+        for i in os.listdir(pathsetup.startupPluginsPath):
             try:
                 plugins[i] = importlib.import_module(i)
             except:
@@ -543,6 +543,7 @@ def webRoot():
                 messagebus.postMessage('/system/notifications/errors',"Error loading plugin "+i)
     except:
         messagebus.postMessage('/system/notifications/errors',"Error loading plugins")
+        logger.exception("Error loading plugins")
 
 
 
