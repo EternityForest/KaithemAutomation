@@ -547,8 +547,7 @@ class MPlayerWrapper(SoundWrapper):
             self.volume = vol
             cmd = ["mplayer" , "-slave" , "-quiet", "-softvol" ,"-ss", str(start)]
 
-            if not 'eq' in extras:
-                cmd.extend(["-af", "equalizer=0:0:0:0:0:0:0:0:0:0,volume="+str(10*math.log10(vol or 10**-30))])
+           
             if end:
                 cmd.extend(["-endpos",str(end)])
 
@@ -590,6 +589,9 @@ class MPlayerWrapper(SoundWrapper):
                 else:
                     cmd.extend(['-af','equalizer=' +":".join(extras['eq'])+",volume="+str((10*math.log10(vol or 10**-30)+5))+pan
                     ])
+            else:
+                cmd.extend(["-af", "volume="+str(10*math.log10(vol or 10**-30))+pan])
+            
             if 'loop' in kw:
                 cmd.extend(["-loop", str(0 if kw['loop'] is True else int(kw['loop']))])
 

@@ -4,14 +4,22 @@
 from src import remotedevices
 
 def devStatString(d):
+    #TODO this should be the responsibility of the individual devices
+    "Misc status info that we can gather from the device typy"
+    s = ''
     try:
-        s = ''
+       
         if 'kaithem.device.rssi' in d.descriptors:
             s+= "RSSI:" +str(d.rssi())+ " "
-
         return s.strip()
     except Exception as e:
-        return ""
+        pass
+
+    if hasattr(d,'pclient'):
+        s+=" offline" if  devices[i].pclient and devices[i].pclient.remoteAddress==None else ""
+
+    return s
+    
 %>
 
 
@@ -43,7 +51,7 @@ def devStatString(d):
         <a href="device/${i}">Edit</a>
     </td>
 
-    <td>${devStatString(devices[i])|h} ${" offline" if  devices[i].pclient and devices[i].pclient.remoteAddress==None else ""}</td>
+    <td>${devStatString(devices[i])|h}</td>
     
 
     <td>

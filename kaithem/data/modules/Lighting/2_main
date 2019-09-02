@@ -1413,6 +1413,7 @@ class LightBoard():
                 s.fadein = s0.fadein
                 s.length = s0.length
                 s.defaultalpha = s0.defaultalpha
+                s.alpha = s0.alpha
                 s.track = s0.track
                 s.setBlend(s0.blend)
                 s.blendArgs = s0.blendArgs.copy()
@@ -2836,7 +2837,9 @@ class Scene():
                         out = self.soundOutput
                     if not out:
                         out = None
+                    print(self.id,self.alpha)
                     kaithem.sound.play(sound,handle=str(self.id),volume=self.alpha,output=out)
+                    
                 else:
                     self.event("error", info="File does not exist")
 
@@ -2902,7 +2905,6 @@ class Scene():
             self.canvas = FadeCanvas()
 
             self.manualAlpha = False
-            self.alpha = self.defaultalpha
 
             if not self.cue:
                 self.gotoCue('default',sendSync=False)
@@ -3055,7 +3057,6 @@ class Scene():
                 module._activeScenes.remove(self)
                 module.activeScenes = module._activeScenes[:]
 
-            self.alpha = 0
             self.active = False
             self.cue_cached_vals_as_arrays = None
             self.cue_cached_alphas_as_arrays = None

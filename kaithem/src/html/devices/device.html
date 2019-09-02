@@ -66,7 +66,7 @@ ${obj.getManagementForm()}
 %endif
 <input type="submit" value="Save settings">
 
-%if data.get('type','') in ("pavillion", "k4d"):
+%if data.get('type','FOOOOOOOOOOOOOOOOOOOOOO') in ("pavillion", "k4d"):
         <%
         try:
                 obj.pclient.sendMessage("","",b'',timeout=1)

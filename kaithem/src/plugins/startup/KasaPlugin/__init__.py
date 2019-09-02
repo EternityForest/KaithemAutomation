@@ -78,6 +78,9 @@ class KasaSmartplug(remotedevices.RemoteDevice):
         self.switchTagPoint.max=1
         self.switchTagPoint.owner= "Kasa Smartplug"
 
+
+        self.lastLoggedUnreachable = 0
+
         self.tagPoints={
             "switch": self.switchTagPoint
         }
@@ -157,7 +160,9 @@ class KasaSmartplug(remotedevices.RemoteDevice):
                 else:
                     getDevice(self.data.get("locator")).turn_off()
             except:
-                self.handleError("Device was unreachable")
+                if self.lastLoggedUnreachable< time.monotonic()-30:
+                    self.handleError("Device was unreachable")
+                    self.lastLoggedUnreachable=time.monotonic()
                 self.unreachableAlert.trip()
                 raise
 
@@ -172,7 +177,9 @@ class KasaSmartplug(remotedevices.RemoteDevice):
             try:
                 s = getDevice(self.data.get("locator")).state=="ON"
             except:
-                self.handleError("Device was unreachable")
+                if self.lastLoggedUnreachable< time.monotonic()-30:
+                    self.handleError("Device was unreachable")
+                    self.lastLoggedUnreachable=time.monotonic()
                 self.unreachableAlert.trip()
                 raise
 
@@ -255,7 +262,9 @@ class KasaSmartplug(remotedevices.RemoteDevice):
                 #we're getting sysinfo anyway.
                 self._has_emeter = ('model' in info) and ('HS110' in info['model'])
             except:
-                self.handleError("Device was unreachable")
+                if self.lastLoggedUnreachable< time.monotonic()-30:
+                    self.handleError("Device was unreachable")
+                    self.lastLoggedUnreachable=time.monotonic()
                 self.unreachableAlert.trip()
                 raise
 
