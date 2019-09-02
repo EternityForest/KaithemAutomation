@@ -32,19 +32,23 @@ def setupCython():
     except:
         logger.exception("Could not set up pyximport. Ensure that Cython is installed if you want to use .pyx files")
 
-def setupPath():
+def setupPath(force_local=False):
     global startupPluginsPath
     #There are some libraries that are actually different for 3 and 2, so we use the appropriate one
     #By changing the pathe to include the proper ones.
 
     #Also, when we install on linux, everything gets moved around, so we change the paths accordingly.
+
     x = sys.path[0]
     #This is ow we detect if we are running in "unzip+run mode" or installed on linux.
     #If we are installed, then src is found in /usr/lib/kaithem
 
-    if x.startswith('/usr/bin'):
+    if x.startswith('/usr/bin') and not force_local:
         x = "/usr/lib/kaithem"
         sys.path = [x] + sys.path
+    else:
+        logger.info("Running in unzip-and-run mode")
+
 
     x = os.path.join(x,'src')
 

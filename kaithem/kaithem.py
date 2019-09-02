@@ -47,6 +47,16 @@ except:
 import sys,os,threading,traceback,time,mimetypes,time,signal
 
 
+#Minimal path setup, to be able to even find the rest
+x = sys.path[0]
+#This is ow we detect if we are running in "unzip+run mode" or installed on linux.
+#If we are installed, then src is found in /usr/lib/kaithem
+
+if x.startswith('/usr/bin') and not force_local:
+    x = "/usr/lib/kaithem"
+    sys.path = [x] + sys.path
+
+
 from src import pathsetup
 #Enable importing stuff directly from src/thirdparty,
 #Since we include lots of dependancies that would normally be provided by the system.

@@ -25,7 +25,7 @@ of a valid token"""
 #of not using the filesystem much to save any SD cards.
 
 from . import util,directories,modules_state,registry,messagebus
-import json,base64,os,time,shutil,hashlib,base64,sys,yaml,hmac,struct,logging
+import json,base64,os,time,shutil,hashlib,base64,sys,yaml,hmac,struct,logging, threading
 from src import config as cfg
 
 noSecurityMode=False
@@ -48,6 +48,7 @@ if mode == 3:
 
 
 
+lock= threading.RLock()
 
 logger = logging.getLogger("system.auth")
 #This maps raw tokens to users
@@ -110,6 +111,7 @@ BasePermissions = {
 "/users/tagpoints.view" : "View tagpoints",
 "/users/tagpoints.edit" : "Override tagpoint values and modify configuration",
 "/admin/errors.view": "View errors in resources. Note that /users/logs.view or /admin/modules.edit will also allow this.",
+"/users/mixer.edit": "Control the audio mixing functionality",
 "__all_permissions__": "Special universal permission that grants all permissions in the system. Use with care."
 }
 
@@ -157,151 +159,139 @@ class User(dict):
 
 def changeUsername(old,new):
     "Change a user's username"
-    global authchanged
-    authchanged = True
-    #this should work because tokens stores object references ad we are not deleting
-    #the actual user object
-    Users[new] = Users.pop(old)
-    Users[new]['username'] = new
+    global auth
+    with lock:
+        authchanged = True
+        #this should work because tokens stores object references ad we are not deleting
+        #the actual user object
+        Users[new] = Users.pop(old)
+        Users[new]['username'] = new
 
 def changePassword(user,newpassword):
     "Change a user's password"
     global authchanged
     if len(newpassword)>256:
         raise ValueError("Password cannot be longer than 256 bytes")
-    authchanged = True
-    salt = os.urandom(16)
-    salt64 = base64.b64encode(salt)
-    #Python is a great language. But sometimes I'm like WTF???
-    #Base64 should never return a byte string. The point of base64 is to store binary data
-    #as normal strings. So why would I ever want a base64 value stores as bytes()?
-    #Anyway, python2 doesn't do that, so we just decode it if its new python.
-    if sys.version_info >= (3,0):
-        salt64 = salt64.decode("utf8")
-    Users[user]['salt'] = salt64
-    m = hashlib.sha256()
-    m.update(usr_bytes(newpassword,'utf8'))
-    m.update(salt)
-    p = base64.b64encode(m.digest())
-    if sys.version_info >= (3,0):
-        p = p.decode("utf8")
-    Users[user]['password'] = p
+    with lock:
+        authchanged = True
+        salt = os.urandom(16)
+        salt64 = base64.b64encode(salt)
+        #Python is a great language. But sometimes I'm like WTF???
+        #Base64 should never return a byte string. The point of base64 is to store binary data
+        #as normal strings. So why would I ever want a base64 value stores as bytes()?
+        #Anyway, python2 doesn't do that, so we just decode it if its new python.
+        if sys.version_info >= (3,0):
+            salt64 = salt64.decode("utf8")
+        Users[user]['salt'] = salt64
+        m = hashlib.sha256()
+        m.update(usr_bytes(newpassword,'utf8'))
+        m.update(salt)
+        p = base64.b64encode(m.digest())
+        if sys.version_info >= (3,0):
+            p = p.decode("utf8")
+        Users[user]['password'] = p
 
 
 def addUser(username,password):
     global authchanged
-    authchanged = True
-    if not username in Users: #stop overwriting attempts
-        Users[username] = User({'username':username,'groups':[]})
-        Users[username].limits = {}
-        changePassword(username,password)
+    with lock:
+        authchanged = True
+        if not username in Users: #stop overwriting attempts
+            Users[username] = User({'username':username,'groups':[]})
+            Users[username].limits = {}
+            changePassword(username,password)
 
 def removeUser(user):
     global authchanged
-    authchanged = True
-    x =Users.pop(user)
-    #If the user has a token, delete that too
-    if hasattr(x,'token'):
-        if x.token in Tokens:
-            Tokens.pop(x.token)
-            try:
-                tokenHashes.pop(hashToken(x.token))
-            except:
-                raise
+    with lock:
+        authchanged = True
+        x =Users.pop(user)
+        #If the user has a token, delete that too
+        if hasattr(x,'token'):
+            if x.token in Tokens:
+                Tokens.pop(x.token)
+                try:
+                    tokenHashes.pop(hashToken(x.token))
+                except:
+                    raise
 
 def removeGroup(group):
     global authchanged
-    authchanged = True
-    x =Groups.pop(group)
-    #Remove all references to that group from all users
-    for i in Users:
-        if group in Users[i]['groups']:
-            Users[i]['groups'].remove(group)
-    generateUserPermissions()
+    with lock:
+        authchanged = True
+        x =Groups.pop(group)
+        #Remove all references to that group from all users
+        for i in Users:
+            if group in Users[i]['groups']:
+                Users[i]['groups'].remove(group)
+        generateUserPermissions()
 
 
 def addGroup(groupname):
     global authchanged
-    authchanged = True
-    if not groupname in Groups: #stop from overwriting
-            Groups[groupname] = {'permissions':[]}
+    with lock:
+        authchanged = True
+        if not groupname in Groups: #stop from overwriting
+                Groups[groupname] = {'permissions':[]}
 
 def addUserToGroup(username,group):
     global authchanged
-    authchanged = True
-    if group not in Users[username]['groups']: #Don't add multiple copies of a group
-        Users[username]['groups'].append(group)
-    generateUserPermissions(username)  #Regenerate the per-user permissions cache for that user
+    with lock:
+        authchanged = True
+        if group not in Users[username]['groups']: #Don't add multiple copies of a group
+            Users[username]['groups'].append(group)
+        generateUserPermissions(username)  #Regenerate the per-user permissions cache for that user
 
 def removeUserFromGroup(username,group):
     global authchanged
-    authchanged = True
-    Users[username]['groups'].remove(group)
-    generateUserPermissions(username) #Regenerate the per-user permissions cache for that user
+    with lock:
+        authchanged = True
+        Users[username]['groups'].remove(group)
+        generateUserPermissions(username) #Regenerate the per-user permissions cache for that user
 
 def promptGenerateUser(username="admin"):
-    global authchanged
-    p = "samevscdfghjkl,ljhgfdsfhjmk,.lkjhgfdgnm,kjgfdnmj,kjuytredsfvbnhjmk?P>O:P_O>{:?{|<>/,.(0%(%(*5)))}"
-    p2 = "differentgfbhnjmuytrfdcvbnjuytfgcvbnmjuytgfvbnmjkiuytgfvbnmjuytgfvbnmjkuyhgf"
-    try:
-        input2=raw_input
-    except:
-        input2=input
-    while not p == p2:
-        p = "samejytfdcvbnjytfgvbnmjuytrfdcv bnmjuytgfvbnmjuytgfvbnmjytgfvbnjytgfcvliku7ytrfghjuytrfg:{<}>?<MLNI)*&(Y?>:I)"
-        p2 = "differentkyhgfvbnmjuytrdcxvbhjytredsxcvbnjkjnmkliuytrdsfgtrewsxdcvghjkmkiuhgft54ewe3wdfghujhjkiu76y7yuijh"
-        p = input2("Account %s created. Choose password:"%(username))
-        p2 = input2("Reenter Password:")
-        if not p==p2:
-            print("password mismatch")
+    with lock:
+        global authchanged
+        p = "samevscdfghjkl,ljhgfdsfhjmk,.lkjhgfdgnm,kjgfdnmj,kjuytredsfvbnhjmk?P>O:P_O>{:?{|<>/,.(0%(%(*5)))}"
+        p2 = "differentgfbhnjmuytrfdcvbnjuytfgcvbnmjuytgfvbnmjkiuytgfvbnmjuytgfvbnmjkuyhgf"
+        try:
+            input2=raw_input
+        except:
+            input2=input
+        while not p == p2:
+            p = "samejytfdcvbnjytfgvbnmjuytrfdcv bnmjuytgfvbnmjuytgfvbnmjytgfvbnjytgfcvliku7ytrfghjuytrfg:{<}>?<MLNI)*&(Y?>:I)"
+            p2 = "differentkyhgfvbnmjuytrdcxvbhjytredsxcvbnjkjnmkliuytrdsfgtrewsxdcvghjkmkiuhgft54ewe3wdfghujhjkiu76y7yuijh"
+            p = input2("Account %s created. Choose password:"%(username))
+            p2 = input2("Reenter Password:")
+            if not p==p2:
+                print("password mismatch")
 
-    m = hashlib.sha256()
-    r = os.urandom(16)
-    r64 = base64.b64encode(r).decode("utf-8")
-    m.update(usr_bytes(p,'utf-8'))
-    m.update(r)
-    pwd = base64.b64encode(m.digest()).decode('utf-8')
+        m = hashlib.sha256()
+        r = os.urandom(16)
+        r64 = base64.b64encode(r).decode("utf-8")
+        m.update(usr_bytes(p,'utf-8'))
+        m.update(r)
+        pwd = base64.b64encode(m.digest()).decode('utf-8')
 
-    temp = {
-            "groups": {
-                "Administrators": {
-                    "permissions": [
-                        "__all_permissions__"
-                    ]
-                }
-            },
-            "users": {
-                username: {
-                    "groups": [
-                        "Administrators"
-                    ],
-                    "password": pwd,
-                    "username": "admin",
-                    "salt": r64
+        temp = {
+                "groups": {
+                    "Administrators": {
+                        "permissions": [
+                            "__all_permissions__"
+                        ]
+                    }
+                },
+                "users": {
+                    username: {
+                        "groups": [
+                            "Administrators"
+                        ],
+                        "password": pwd,
+                        "username": "admin",
+                        "salt": r64
+                    }
                 }
             }
-        }
-    global Users
-    Users = temp['users']
-    global Groups
-    Groups = temp['groups']
-    global Tokens
-    Tokens = {}
-    tokenHashes = {}
-    for user in Users:
-        #What an unreadable line! It turs all the dicts in Users into User() instances
-        Users[user] = User(Users[user])
-        assignNewToken(user)
-    authchanged = True
-    generateUserPermissions()
-
-def tryToLoadFrom(d):
-    if os.path.isfile(os.path.join(d,"__COMPLETE__")):
-        try:
-            f = open(os.path.join(d,'users.json'))
-            temp = json.load(f)
-        finally:
-            f.close()
         global Users
         Users = temp['users']
         global Groups
@@ -313,103 +303,129 @@ def tryToLoadFrom(d):
             #What an unreadable line! It turs all the dicts in Users into User() instances
             Users[user] = User(Users[user])
             assignNewToken(user)
+        authchanged = True
         generateUserPermissions()
-        return True
-    else:
-        raise RuntimeError("No complete marker found")
-    logger.info("Loaded auth data from "+d)
+
+def tryToLoadFrom(d):
+    with lock:
+        if os.path.isfile(os.path.join(d,"__COMPLETE__")):
+            try:
+                f = open(os.path.join(d,'users.json'))
+                temp = json.load(f)
+            finally:
+                f.close()
+            global Users
+            Users = temp['users']
+            global Groups
+            Groups = temp['groups']
+            global Tokens
+            Tokens = {}
+            tokenHashes = {}
+            for user in Users:
+                #What an unreadable line! It turs all the dicts in Users into User() instances
+                Users[user] = User(Users[user])
+                assignNewToken(user)
+            generateUserPermissions()
+            return True
+        else:
+            raise RuntimeError("No complete marker found")
+        logger.info("Loaded auth data from "+d)
 
 data_bad = False
 def initializeAuthentication():
-    "Load the saved users and groups, and the permissions from the mailing lists, but not the permissions from the modules. "
-    #If no file use default but set filename anyway so the dump function will work
-    #Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
-    loaded = False
-    try:
-        tryToLoadFrom(os.path.join(directories.usersdir,"data"))
-        loaded = True
-    except Exception as e:
-        logger.exception("Error loading auth data, may be able to continue from old state")
-        messagebus.postMessage("/system/notifications/errors","Error loading auth data, may be able to continue from old state:\n"+str(e))
-        data_bad=True
+    with lock:
+        "Load the saved users and groups, and the permissions from the mailing lists, but not the permissions from the modules. "
+        #If no file use default but set filename anyway so the dump function will work
+        #Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
+        loaded = False
         try:
-            dirname = util.getHighestNumberedTimeDirectory(directories.usersdir)
-            tryToLoadFrom(dirname)
-            loaded =True
-            messagebus.postMessage("/system/notifications/warnings",
-            """Saving was interrupted. Using last version of users list.
-            This could create a secuirty issue if the old version allowes access to a malicious user.
-            To suppress this warning, please review your users and groups, and re-save the server state. You must make at least
-            one change to users and groups (Or click save on a user or group without making changes)
-            for them to actually be saved.
-            """)
-        except:
-            messagebus.postMessage("/system/notifications/errors","Could not load old state:\n"+str(e))
-            pass
+            tryToLoadFrom(os.path.join(directories.usersdir,"data"))
+            loaded = True
+        except Exception as e:
+            logger.exception("Error loading auth data, may be able to continue from old state")
+            messagebus.postMessage("/system/notifications/errors","Error loading auth data, may be able to continue from old state:\n"+str(e))
+            data_bad=True
+            try:
+                dirname = util.getHighestNumberedTimeDirectory(directories.usersdir)
+                tryToLoadFrom(dirname)
+                loaded =True
+                messagebus.postMessage("/system/notifications/warnings",
+                """Saving was interrupted. Using last version of users list.
+                This could create a secuirty issue if the old version allowes access to a malicious user.
+                To suppress this warning, please review your users and groups, and re-save the server state. You must make at least
+                one change to users and groups (Or click save on a user or group without making changes)
+                for them to actually be saved.
+                """)
+            except:
+                messagebus.postMessage("/system/notifications/errors","Could not load old state:\n"+str(e))
+                pass
 
-    if not loaded:
-        time.sleep(2)
-        promptGenerateUser()
-        messagebus.postMessage("/system/notifications/warnings","No valid users file, using command line prompt")
+        if not loaded:
+            time.sleep(2)
+            promptGenerateUser()
+            messagebus.postMessage("/system/notifications/warnings","No valid users file, using command line prompt")
 
 
-    getPermissionsFromMail()
+        getPermissionsFromMail()
 
 def generateUserPermissions(username = None):
-    #TODO let you do one user at a time
-    """Generate the list of permissions for each user from their groups plus __guest__"""
-    #Give each user all of the permissions that his or her groups have
-    global Users
-    for i in Users:
-        limits = {}
-        Users[i].permissions = []
-        for j in Users[i]['groups']:
-            #Handle nonexistant groups
-            if not j in Groups:
-                logger.warning("User "+i+" is member of nonexistant group "+ j)
+   """Generate the list of permissions for each user from their groups plus __guest__"""
+   with lock:
+        #TODO let you do one user at a time
+        #Give each user all of the permissions that his or her groups have
+        global Users
+        for i in Users:
+            limits = {}
+            Users[i].permissions = []
+            for j in Users[i]['groups']:
+                #Handle nonexistant groups
+                if not j in Groups:
+                    logger.warning("User "+i+" is member of nonexistant group "+ j)
 
-            for k in Groups[j]['permissions']:
-                Users[i].permissions.append(k)
+                for k in Groups[j]['permissions']:
+                    Users[i].permissions.append(k)
 
-            #A user has access to the highest limit of all the groups he's in
-            for k in Groups[j].get('limits',{}):
-                limits[k] = max( Groups[j].get('limits',{})[k],limits.get(k,0))
-        Users[i].limits = limits
-        #If the user has a token, update the stored copy of user in the tokens dict too
-        if hasattr(Users[i],'token'):
-            Tokens[Users[i].token] = Users[i]
-            tokenHashes[hashToken(Users[i].token)] = Users[i]
+                #A user has access to the highest limit of all the groups he's in
+                for k in Groups[j].get('limits',{}):
+                    limits[k] = max( Groups[j].get('limits',{})[k],limits.get(k,0))
+            Users[i].limits = limits
+            #If the user has a token, update the stored copy of user in the tokens dict too
+            if hasattr(Users[i],'token'):
+                Tokens[Users[i].token] = Users[i]
+                tokenHashes[hashToken(Users[i].token)] = Users[i]
 
 def userLogin(username,password):
     """return a base64 authentication token on sucess or return False on failure"""
-    if  username in Users:
-        m = hashlib.sha256()
-        m.update(usr_bytes(password,'utf8'))
-        m.update(base64.b64decode(Users[username]['salt'].encode('utf8')  ))
-        m = m.digest()
-        if hmac.compare_digest(base64.b64decode(Users[username]['password'].encode('utf8')), m):
-            #We can't just always assign a new token because that would break multiple
-            #Logins as same user
-            if not hasattr(Users[username],'token'):
-                assignNewToken(username)
-            return (Users[username].token)
-    return "failure"
+    with lock:
+        if  username in Users:
+            m = hashlib.sha256()
+            m.update(usr_bytes(password,'utf8'))
+            m.update(base64.b64decode(Users[username]['salt'].encode('utf8')  ))
+            m = m.digest()
+            if hmac.compare_digest(base64.b64decode(Users[username]['password'].encode('utf8')), m):
+                #We can't just always assign a new token because that would break multiple
+                #Logins as same user
+                if not hasattr(Users[username],'token'):
+                    assignNewToken(username)
+                return (Users[username].token)
+        return "failure"
 
 
 
 def checkTokenPermission(token,permission):
     """return true if the user associated with token has the permission"""
-    token = hashToken(token)
-    if token in tokenHashes:
-        if permission in tokenHashes[token].permissions:
-            return True
-        else:
-            if '__all_permissions__' in tokenHashes[token].permissions:
+    with lock:
+        token = hashToken(token)
+        if token in tokenHashes:
+            if permission in tokenHashes[token].permissions:
                 return True
             else:
+                if '__all_permissions__' in tokenHashes[token].permissions:
+                    return True
+                else:
+                    return False
+        else:
                 return False
-    else:
-            return False
 
 #Remove references to deleted permissions
 #NO-OP, Lets just let user manually uncheck them.
@@ -425,90 +441,94 @@ def destroyUnusedPermissions():
 
 def dumpDatabase():
     """Save the state of the users and groups to a file."""
-    global authchanged
-    if not authchanged:
-        return False
-    x = Users.copy()
-    for i in x:
-        #Don't save the login history.
-        if 'loginhistory' in x[i]:
-            del x[i]['loginhistory']
-    #Assemble the users and groups data and save it back where we found it
-    temp = {"users":x,"groups":Groups.copy()}
+    with lock:
+        global authchanged
+        if not authchanged:
+            return False
+        x = Users.copy()
+        for i in x:
+            #Don't save the login history.
+            if 'loginhistory' in x[i]:
+                del x[i]['loginhistory']
+        #Assemble the users and groups data and save it back where we found it
+        temp = {"users":x,"groups":Groups.copy()}
 
-    if time.time()> util.min_time:
-        t = time.time()
-    else:
-        t = int(util.min_time) +1.234
-
-    if os.path.isdir(os.path.join(directories.usersdir,str("data"))):
-    #Copy the data found in data to a new directory named after the current time. Don't copy completion marker
-
-        #If the data dir was corrupt, copy it to a different place than a normal backup.
-        if not data_bad:
-            copyto = os.path.join(directories.usersdir,str(t))
+        if time.time()> util.min_time:
+            t = time.time()
         else:
-            copyto = os.path.join(directories.usersdir,str(t)+"INCOMPLETE")
+            t = int(util.min_time) +1.234
 
-        shutil.copytree(os.path.join(directories.usersdir,str("data")), copyto,
-                        ignore=shutil.ignore_patterns("__COMPLETE__"))
-        #Add completion marker at the end
-        with open(os.path.join(copyto,'__COMPLETE__'),"w") as x:
-            util.chmod_private_try(os.path.join(copyto,'__COMPLETE__'), execute=False)
-            x.write("This file certifies this folder as valid")
+        if os.path.isdir(os.path.join(directories.usersdir,str("data"))):
+        #Copy the data found in data to a new directory named after the current time. Don't copy completion marker
+
+            #If the data dir was corrupt, copy it to a different place than a normal backup.
+            if not data_bad:
+                copyto = os.path.join(directories.usersdir,str(t))
+            else:
+                copyto = os.path.join(directories.usersdir,str(t)+"INCOMPLETE")
+
+            shutil.copytree(os.path.join(directories.usersdir,str("data")), copyto,
+                            ignore=shutil.ignore_patterns("__COMPLETE__"))
+            #Add completion marker at the end
+            with open(os.path.join(copyto,'__COMPLETE__'),"w") as x:
+                util.chmod_private_try(os.path.join(copyto,'__COMPLETE__'), execute=False)
+                x.write("This file certifies this folder as valid")
 
 
-    p = os.path.join(directories.usersdir,"data")
+        p = os.path.join(directories.usersdir,"data")
 
-    if os.path.isfile(os.path.join(p,'__COMPLETE__')):
-        os.remove(os.path.join(p,'__COMPLETE__'))
+        if os.path.isfile(os.path.join(p,'__COMPLETE__')):
+            os.remove(os.path.join(p,'__COMPLETE__'))
 
-    util.ensure_dir2(p)
-    util.chmod_private_try(p)
-    try:
-        f = open(os.path.join(p,"users.json"),"w")
-        util.chmod_private_try(os.path.join(p,"users.json"),execute=False)
-        #pretty print
-        json.dump(temp,f,sort_keys=True, indent=4, separators=(',', ': '))
-    finally:
-        f.close()
+        util.ensure_dir2(p)
+        util.chmod_private_try(p)
+        try:
+            f = open(os.path.join(p,"users.json"),"w")
+            util.chmod_private_try(os.path.join(p,"users.json"),execute=False)
+            #pretty print
+            json.dump(temp,f,sort_keys=True, indent=4, separators=(',', ': '))
+        finally:
+            f.close()
 
-    try:
-        f = open(os.path.join(p,"__COMPLETE__"),"w")
-        util.chmod_private_try(os.path.join(p,"__COMPLETE__"),execute=False)
-        f.write("completely arbitrary text")
-    finally:
-        f.close()
-    util.deleteAllButHighestNumberedNDirectories(directories.usersdir,2)
-    authchanged = False
-    return True
+        try:
+            f = open(os.path.join(p,"__COMPLETE__"),"w")
+            util.chmod_private_try(os.path.join(p,"__COMPLETE__"),execute=False)
+            f.write("completely arbitrary text")
+        finally:
+            f.close()
+        util.deleteAllButHighestNumberedNDirectories(directories.usersdir,2)
+        authchanged = False
+        return True
 
 def setGroupLimit(group,limit,val):
-    global authchanged
-    authchanged = True
-    if val == 0:
-        try:
-            Groups[group].get('limits',{}).pop(limit)
-        except:
-            pass
-    else:
-        #TODO unlikely race condition here
-        gr = Groups[group]
-        if not 'limits' in gr:
-            gr['limits'] = {}
-        gr['limits'][limit] = val
+    with lock:
+        global authchanged
+        authchanged = True
+        if val == 0:
+            try:
+                Groups[group].get('limits',{}).pop(limit)
+            except:
+                pass
+        else:
+            #TODO unlikely race condition here
+            gr = Groups[group]
+            if not 'limits' in gr:
+                gr['limits'] = {}
+            gr['limits'][limit] = val
 
 def addGroupPermission(group,permission):
     """Add a permission to a group"""
-    global authchanged
-    authchanged = True
-    if permission not in Groups[group]['permissions']:
-        Groups[group]['permissions'].append(permission)
+    with lock:
+        global authchanged
+        authchanged = True
+        if permission not in Groups[group]['permissions']:
+            Groups[group]['permissions'].append(permission)
 
 def removeGroupPermission(group,permission):
     global authchanged
-    authchanged = True
-    Groups[group]['permissions'].remove(permission)
+    with lock:
+        authchanged = True
+        Groups[group]['permissions'].remove(permission)
 
 #This is a salt for the token hint. The idea being that we look
 #up the tokens by hashing them, not by actually looking them up.
@@ -529,50 +549,53 @@ def hashToken(token):
 
 def assignNewToken(user):
     """Log user out by defining a new token"""
-    #Generate new token
-    x = str(base64.b64encode(os.urandom(24)))
-    #Get the old token, delete it, and assign a new one
-    if hasattr(Users[user],'token'):
-        oldtoken = Users[user].token
-        del Tokens[oldtoken]
-        try:
-            del tokenHashes[hashToken(oldtoken)]
-        except:
-            #Not there?
-            pass
-    Users[user].token = x
-    Tokens[x] = Users[user]
-    tokenHashes[hashToken(x)] = Users[user]
+    with lock:
+        #Generate new token
+        x = str(base64.b64encode(os.urandom(24)))
+        #Get the old token, delete it, and assign a new one
+        if hasattr(Users[user],'token'):
+            oldtoken = Users[user].token
+            del Tokens[oldtoken]
+            try:
+                del tokenHashes[hashToken(oldtoken)]
+            except:
+                #Not there?
+                pass
+        Users[user].token = x
+        Tokens[x] = Users[user]
+        tokenHashes[hashToken(x)] = Users[user]
 
 class UnsetSettingException:
     pass
 
 def setUserSetting(user,setting,value):
-    global authchanged
-    authchanged = True
-    un=user
-    if user == "<unknown>":
-        return
-    user = Users[user]
-    #This line is just there to raise an error on bad data.
-    json.dumps(value)
-    if not 'settings' in user:
-        user['settings'] = {}
+    with lock:
+        global authchanged
+        authchanged = True
+        un=user
+        if user == "<unknown>":
+            return
+        user = Users[user]
+        #This line is just there to raise an error on bad data.
+        json.dumps(value)
+        if not 'settings' in user:
+            user['settings'] = {}
 
-    Users[un]['settings'][setting]= value
+        Users[un]['settings'][setting]= value
 
 def getUserSetting(user,setting):
-        if user == '<unknown>':
-            return defaultusersettings[setting]
-        user = Users[user]
-        if not 'settings' in user:
-            return defaultusersettings[setting]
+    #I suppose this doesnt need a lock?
+    if user == '<unknown>':
+        return defaultusersettings[setting]
+    user = Users[user]
+    if not 'settings' in user:
+        return defaultusersettings[setting]
 
 
-        if setting in user['settings']:
-            return user['settings'][setting]
-        else:
-            return defaultusersettings[setting]
+    if setting in user['settings']:
+        return user['settings'][setting]
+    else:
+        return defaultusersettings[setting]
 
 def getUserLimit(user,limit,maximum=2**64):
     """Return the user's limit for any limit category, or 0 if not set. Limit to maximum. 
