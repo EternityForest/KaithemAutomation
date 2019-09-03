@@ -138,7 +138,6 @@ from src import tagpoints
 
     </script>
     <script src="gamepad.js"></script>
-    <script src="${kaithem.web.resource('jquery-3.1.0')}"></script>
 
     <script src="/static/js/vue2.js"></script>
     <script src="/static/js/sortable.min.js"></script>
@@ -595,7 +594,7 @@ from src import tagpoints
 
 
             <hr>
-            <input id="newscenename" placeholder="New scene name">
+            <input v-model="newscenename" placeholder="New scene name">
             <button v-on:click="addScene()"><img src="/zipstatic/img/icons/fugue.zip/plus-octagon-frame.png"></img>Add</button>
             <button v-on:click="addMonitorScene()"><img src="/zipstatic/img/icons/fugue.zip/binocular--plus.png"></img>Add Monitor</button>
 
@@ -738,12 +737,12 @@ from src import tagpoints
                         <h3>Add/Remove Channels</h3>
                        
                         <h4>Directly Add Numbered Channel</h4>
-                        <input list="universes" id="newcueu" placeholder="Universe">
+                        <input list="universes" v-model="newcueu" placeholder="Universe">
                         <datalist id="universes">
                             <option v-for="(v,i) of universes" v-bind:value="i">({{v.count}} values)</option>
                         </datalist>
 
-                        <input type="number" id="newcuevnumber" title="Channel Number" style="width:5em" value="1">
+                        <input type="number" v-model.number="newcuevnumber" title="Channel Number" style="width:5em" value="1">
                         <button v-on:click="addValToCue()"><img src="/zipstatic/img/icons/fugue.zip/plus-octagon-frame.png"></img>Add Channel to Cue</button>
                         
                         <h4>Add Fixture</h4>
@@ -1255,10 +1254,10 @@ from src import tagpoints
                     null
                 ])
                 Vue.delete(appData.cuevals[appData.selectedCues[appData
-                    .scenename]][$('#newcueu').val()], parseInt(
+                    .scenename]][appData.newcueu], parseInt(
                     ch))
                 Vue.delete(appData.cuevals[appData.selectedCues[appData
-                    .scenename]][$('#newcueu').val()],
+                    .scenename]][appData.newcueu],
                     ch)
             },
         }
@@ -1298,6 +1297,9 @@ from src import tagpoints
             'ferrs': '',
             'fixtures': '',
             'evfilt': '',
+            'newcueu': '',
+            'newcuevnumber':'',
+            'newscenename':'',
 
             //The code in the fixture edit as code box
             'fixturecode':'',
@@ -2179,23 +2181,15 @@ from src import tagpoints
 
             'addScene': function()
             {
-                api_link.send(['addscene', $('#newscenename').val()]);
+                api_link.send(['addscene', appData.newscenename]);
             },
 
             'addMonitorScene': function()
             {
-                api_link.send(['addmonitor', $('#newscenename').val()]);
+                api_link.send(['addmonitor', appData.newscenename]);
             },
 
-            'addFixToCue': function()
-            {
-                api_link.send(['addcuef', appData.scenecues[
-                        appData.scenename]
-                    [appData.selectedCues[appData.scenename]],
-                    $('#newcuefix').val()
-                ]);
 
-            },
             'addThisFixToCurrentCue': function(fix)
             {
                 api_link.send(['addcuef', appData.scenecues[
@@ -2213,19 +2207,16 @@ from src import tagpoints
 
             'addValToCue': function()
             {
-                if (!$('#newcueu').val())
+                if (!appData.newcueu)
                 {
                     return
                 }
                 api_link.send(['addcueval', appData.scenecues[
                         appData.scenename]
                     [appData.selectedCues[appData.scenename]],
-                    $('#newcueu').val(), parseInt($(
-                        '#newcuevnumber').val())
+                    appData.newcueu, parseInt(appData.newcuevnumber)
                 ]);
-                $('#newcuevnumber').val(parseInt($('#newcuevnumber')
-                        .val()) +
-                    1)
+                appData.newcuevnumber+=1
 
             },
 
