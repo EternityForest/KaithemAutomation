@@ -63,11 +63,44 @@ from src import jackmixer
     <button class="{bold: activePane=='mixer'}" v-on:click="activePane='mixer'">Mixer</button>
     <button class="{bold: activePane=='presets'}" v-on:click="activePane='presets'">Presets/Defaults</button>
     <button class="{bold: activePane=='status'}" v-on:click="activePane='status'">Status</button>
+    <button class="{bold: activePane=='settings'}" v-on:click="activePane='settings'">Settings</button>
 
     <button v-on:click="showAddEffect=true">Show Effects Menu</button>
     <label>Preset:<input v-model="loadedPreset" placeholder="Preset name"><button v-on:click="confirmSavePreset(loadedPreset)">Save</button></label>
 
 
+
+    <div v-if="activePane=='settings'">
+      <h3>USB Soundcard Settings</h3>
+      <table>
+        <tr>
+          <td>Period Size(Lower is lower latency)</td>
+          <td>
+              <select v-model.number="usbsize">
+                  <option value="64">64(Usually doesn't work)</option>
+                  <option value="128">128(Usually works, may by choppy)</option>
+                  <option value="256">256(Usually good quality)</option>
+                  <option value="512">512</option>
+            </select>
+          </td>
+        </tr>
+
+
+        <tr>
+            <td>Target Latency(Does nothing if below period size)</td>
+            <td>
+                <select v-model.number="usblatency">
+                    <option value="192">192(Usually doesn't work)</option>
+                    <option value="384">384(Usually works, may by choppy)</option>
+                    <option value="512">512(Usually good quality)</option>
+                    <option value="768">768</option>
+                    <option value="1024">1024</option>
+              </select>
+            </td>
+          </tr>
+      </table>
+      <button v-on:click="setUSBSettings()">Set</button>
+    </div>
 
     <div v-if="activePane=='status'">
 
@@ -240,6 +273,10 @@ from src import jackmixer
       loadedPreset: '',
       midiinports:[],
       midioutports:[],
+
+      usblatency:384,
+      usbsize: 128,
+
       confirmDelete: function (c) {
         if (window.confirm("Do you really want to delete this channel?")) {
           api.send(['rmChannel', c]);
@@ -301,6 +338,9 @@ from src import jackmixer
         api.send(['setOutput', channel, value]);
       },
 
+      setUSBSettings: function() {
+        api.send(['setUSBAlsa', this.usbsize, this.usblatency]);
+      },
       setParam: function (channel, effect,param,value) {
         api.send(['setParam', channel, effect,param,value]);
       },
@@ -407,6 +447,11 @@ from src import jackmixer
 
     if (msg[0] == "lv") {
       app.$data.channels[msg[1]].level=msg[2];
+    }
+
+    if (msg[0] == "usbalsa") {
+      app.$data.usbsize = msg[1]
+      app.$data.usblatency = msg[2]
     }
   };
   gapi.upd = api.upd;

@@ -528,7 +528,7 @@ class MixingBoard():
             self.api.send(['effectTypes', effectTemplates])
             self.api.send(['presets',registry.ls("/system.mixer/presets/")])
             self.api.send(['loadedPreset', self.loadedPreset])
-
+            self.api.send(['usbalsa', registry.get("/system/sound/jackusbperiod",128), registry.get("/system/sound/jackusblatency",384)])
 
     def createChannel(self, name, data={}):
         with self.lock:
@@ -688,6 +688,22 @@ class MixingBoard():
         if data[0]=='deletePreset':
             self.deletePreset(data[1])
             self.api.send(['presets',registry.ls("/system.mixer/presets/")])
+
+        if data[0]=='setUSBAlsa':
+            registry.set("/system/sound/jackusbperiodsize",int(data[1]))
+            registry.set("/system/sound/jackusblatency",int(data[2]))
+            self.api.send(['usbalsa',data[1], data[2]])
+            killUSBCards()
+
+def killUSBCards():
+    try:
+        subprocess.check_call(['killall','alsa_in'])
+    except:
+        pass
+    try:
+        subprocess.check_call(['killall','alsa_out'])
+    except:
+        pass
 
 board = MixingBoard()
 board.loadData(registry.get("/system.mixer/presets/default",{}))

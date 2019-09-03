@@ -344,10 +344,6 @@ alsa_out_instances ={}
 
 failcards = {}
 
-#The options we use to tune alsa_in and alsa_out
-#so they don't sound horrid
-iooptions=["-p", "128", "-t","384", "-m", "384", "-q","1", "-r", "48000", "-n","32"]
-
 
 
 toretry_in = {}
@@ -774,7 +770,13 @@ def stopJack():
         subprocess.check_call(['killall','jackd'])
     except:
         pass
-
+    try:
+        #Close any existing stuff
+        if jackclient:
+            jackclient.close()
+            jackclient=None
+    except:
+        pass
 
 jackp = None
 period = 128
@@ -822,11 +824,28 @@ def startJack(p=None, n=None):
                 midip = subprocess.Popen("a2jmidid -e",stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True,stdin=subprocess.DEVNULL) 
         workers.do(f)
 
+
+
+def getIOOptions():
+    #TODO move this out somehow for libkaithem maybe
+    from . import registry
+    psize = registry.get("/system/sound/jackusbperiodsize",128)
+
+    l = max(registry.get("/system/sound/jackusblatency",384),psize*2)
+    l = max(l,registry.get("/system/sound/jackperiodsize",128)*2)
+    buf = int(2*(l/psize)+0.999)
+
+    iooptions=["-p",str(psize), "-t",str(l), "-m", str(l), "-q","1", "-r", "48000", "-n",'64']
+    return iooptions
+
+lastFullScan=0
+
 def handleManagedSoundcards():
     "Make sure that all of our alsa_in and out instances are working as they should be."
     global oldi
     global oldo
     global oldmidis
+    global lastFullScan
 
     #There seems to be a bug in reading errors from the process
     #Right now it's a TODO, but most of the time
@@ -922,7 +941,9 @@ def handleManagedSoundcards():
                         except:
                             pass
                         time.sleep(2)
-                        x = subprocess.Popen(["alsa_in"]+iooptions+["-d", inp[i][0], "-j",i+"i"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+
+
+                        x = subprocess.Popen(["alsa_in"]+getIOOptions()+["-d", inp[i][0], "-j",i+"i"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
                         try:
                             subprocess.check_call(['chrt', '-f','-p', '70', str(x.pid)])
                         except:
@@ -942,7 +963,8 @@ def handleManagedSoundcards():
                             subprocess.check_call(['pulseaudio','-k'])
                         except:
                             pass
-                        x = subprocess.Popen(["alsa_out"]+iooptions+["-d", op[i][0], "-j",i+"o"]+iooptions,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+
+                        x = subprocess.Popen(["alsa_out"]+getIOOptions()+["-d", op[i][0], "-j",i+"o"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
                         alsa_out_instances[i]=x
 
                         try:
@@ -954,10 +976,10 @@ def handleManagedSoundcards():
             if startPulse:
                 setupPulse()
 
-            return
-            
+            if lastFullScan> time.monotonic()-10:
+                return
+            lastFullScan = time.monotonic()
         oldi,oldo,oldmidis =inp,op,midis
-        print("Not the same")
 
         #Look for ports with the a2jmidid naming pattern and give them persistant name aliases.
         x = jackclient.get_ports(is_midi=True)
@@ -983,7 +1005,14 @@ def handleManagedSoundcards():
                         #Is already the JACK backend
                         if usingDefaultCard:
                             continue
-                    x = subprocess.Popen(["alsa_in"]+iooptions+["-d", inp[i][0], "-j",i+"i"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+
+                
+                    x = subprocess.Popen(["alsa_in"]+getIOOptions()+["-d", inp[i][0], "-j",i+"i"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+                
+                    try:
+                        subprocess.check_call(['chrt', '-f','-p', '70', str(x.pid)])
+                    except:
+                        log.exception("Error getting RT")
                     alsa_in_instances[i]=x
                     log.info("Added "+i+"i at "+inp[i][1])
 
@@ -994,7 +1023,14 @@ def handleManagedSoundcards():
                     if op[i][0]== "hw:0,0":
                         if usingDefaultCard:
                             continue
-                    x = subprocess.Popen(["alsa_out"]+iooptions+["-d", op[i][0], "-j",i+'o']+iooptions,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+                    
+
+                    x = subprocess.Popen(["alsa_out"]+getIOOptions()+["-d", op[i][0], "-j",i+'o'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+                
+                    try:
+                        subprocess.check_call(['chrt', '-f','-p', '70', str(x.pid)])
+                    except:
+                        log.exception("Error getting RT")
                     alsa_out_instances[i]=x
                     log.info("Added "+i+"o at "+op[i][1])
 
@@ -1047,36 +1083,37 @@ def startManagingJack(p=None,n=None):
     global didPatch
     global jackShouldBeRunning
     jackShouldBeRunning = True
+    with lock:
+        if not didPatch:
+            def _get_ports_fix(self, name_pattern='', is_audio=False, is_midi=False,
+                        is_input=False, is_output=False, is_physical=False,
+                        can_monitor=False, is_terminal=False):
+                if name_pattern:
+                    re.compile(name_pattern)
+                        
+                return jack.Client._get_ports(self, name_pattern, is_audio, is_midi, 
+                                            is_input, is_output, is_physical, 
+                                            can_monitor, is_terminal)
 
-    if not didPatch:
-        def _get_ports_fix(self, name_pattern='', is_audio=False, is_midi=False,
-                    is_input=False, is_output=False, is_physical=False,
-                    can_monitor=False, is_terminal=False):
-            if name_pattern:
-                re.compile(name_pattern)
-                    
-            return jack.Client._get_ports(self, name_pattern, is_audio, is_midi, 
-                                        is_input, is_output, is_physical, 
-                                        can_monitor, is_terminal)
+            jack.Client._get_ports = jack.Client.get_ports
+            jack.Client.get_ports = _get_ports_fix
+            didPatch = True
+            atexit.register(cleanup)
 
-        jack.Client._get_ports = jack.Client.get_ports
-        jack.Client.get_ports = _get_ports_fix
-        didPatch = True
-
-    atexit.register(cleanup)
-    stopJack()
-    startJack(p,n)
+        stopJack()
+        startJack(p,n)
 
  
 
     for i in range(10):
         try:
-            #Close any existing stuff
-            if jackclient:
-                jackclient.close()
-                jackclient=None
-            jackclient = jack.Client("Overseer",no_start_server=True)
-            break
+            with lock:
+                #Close any existing stuff
+                if jackclient:
+                    jackclient.close()
+                    jackclient=None
+                jackclient = jack.Client("Overseer",no_start_server=True)
+                break
         except:
             time.sleep(1)
             #If we couldn't get it working, try shutting down some possible conflicts with -9
@@ -1085,6 +1122,14 @@ def startManagingJack(p=None,n=None):
                     subprocess.check_call(['killall', '-9', 'jackd'])
                 except:
                     log.exception("err")
+                try:
+                    with lock:
+                        #Close any existing stuff
+                        if jackclient:
+                            jackclient.close()
+                            jackclient=None
+                except:
+                    pass
                 try:
                     subprocess.check_call(['pulseaudio', '-k'])
                     time.sleep(2)
@@ -1095,39 +1140,43 @@ def startManagingJack(p=None,n=None):
                 except:
                     log.exception("err")
                 time.sleep(3)
-                startJack(p,n)
+                with lock:
+                    startJack(p,n)
 
             if i<9:
                 continue
             raise
+
     with lock:
         jackclient.set_port_registration_callback(onPortRegistered)
         jackclient.set_port_connect_callback(onPortConnect)
-    jackclient.activate()
+        jackclient.activate()
     setupPulse()
     log.debug("Set up pulse")
     
-    #Stop the old thread if needed
-    tstopper[0] = 0
-    try:
-        if t:
-            t.join()
-    except:
-        pass
-        
-    tstopper[0]=1
-    t = threading.Thread(target=work)
-    t.name="JackReconnector"
-    t.daemon=True
-    t.start()
+    with lock:
+        #Stop the old thread if needed
+        tstopper[0] = 0
+        try:
+            if t:
+                t.join()
+        except:
+            pass
+            
+        tstopper[0]=1
+        t = threading.Thread(target=work)
+        t.name="JackReconnector"
+        t.daemon=True
+        t.start()
 
 
 
 
 def checkJack():
     global jackp
-    if jackShouldBeRunning  and jackp and jackp.poll() !=None:
-        startJack()
+    with lock:
+        if jackShouldBeRunning  and jackp and jackp.poll() !=None:
+            startJack()
 
 def checkJackClient():
     global jackclient
@@ -1174,7 +1223,11 @@ def getConnections(name,*a,**k):
     with lock:
         if not jackclient:
             return []
-        return jackclient.get_all_connections(name)
+        try:
+            return jackclient.get_all_connections(name)
+        except:
+            log.exception()
+            return []
 
 def connect(f,t):
       with lock:
