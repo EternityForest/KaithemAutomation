@@ -285,8 +285,6 @@ if __name__=='__setup__':
     
      
     blendmodes['sparks'] = sparks_blendmode
-    
 
 def eventAction():
     pass
-    

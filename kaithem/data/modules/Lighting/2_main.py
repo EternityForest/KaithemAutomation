@@ -3257,8 +3257,6 @@ if __name__=='__setup__':
     
     
     module.controluniverse = module.Universe("control")
-    
-    
 
 def eventAction():
     with module.lock:
@@ -3273,7 +3271,4 @@ def eventAction():
                 if b:
                     b.guiPush()
                 del b
-        lastrendered = module.timefunc()        
-    
-    
-    
+        lastrendered = module.timefunc()

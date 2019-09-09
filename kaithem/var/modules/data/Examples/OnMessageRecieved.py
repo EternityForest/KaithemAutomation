@@ -10,9 +10,6 @@ __trigger__='!onmsg /test'
 
 if __name__=='__setup__':
     pass
-    
-    
-    
 
 def eventAction():
     #This is an example of how to use a special trigger expression to recieve messages from the internal message bus
@@ -21,4 +18,3 @@ def eventAction():
     #__message contains the actual message while __topic has the topic
     #the variable module, like kaithem, is availible almost everywhere but each module has its own instance
     module.last_msg = __message
-    

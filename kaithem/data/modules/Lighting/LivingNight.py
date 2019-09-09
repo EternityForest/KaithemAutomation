@@ -79,9 +79,6 @@ if __name__=='__setup__':
     
     module.lnEffect= calculateEffect
     module.LNInfluence = Influence
-    
-    
 
 def eventAction():
     pass
-    

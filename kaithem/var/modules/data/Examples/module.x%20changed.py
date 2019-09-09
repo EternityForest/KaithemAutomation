@@ -15,10 +15,7 @@ __trigger__='!onchange module.x'
 
 if __name__=='__setup__':
     module.x = 0
-    
 
 def eventAction():
     #This is like a useless machine. Whenever x changes, it sets it back to 0!
     module.x = 0
-    
-    

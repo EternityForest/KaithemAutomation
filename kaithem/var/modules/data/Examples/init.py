@@ -28,9 +28,7 @@ if __name__=='__setup__':
     #You can also use events just for setting things up, like this!
     kaithem.globals.count = 0
     p =0
-    
 
 def eventAction():
     p+=1
     x ={}
-    

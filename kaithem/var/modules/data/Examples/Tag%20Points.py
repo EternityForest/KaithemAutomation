@@ -38,8 +38,6 @@ if __name__=='__setup__':
     print(t.value)
     
     print("Tag point example stuff took(us):", (time.time()-ts)*10**6)
-    
 
 def eventAction():
     pass
-    

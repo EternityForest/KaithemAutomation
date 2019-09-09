@@ -410,9 +410,9 @@ def loadResource(fn:str,ver:int=1):
                 
                 shouldRemoveExtension = False
                 
-                isPyEncoded=False
+                isSpecialEncoded=False
                 if fn.endswith('.py'):
-                    isPyEncoded=True
+                    isSpecialEncoded=True
 
                     try:
                         #Get the two code blocks, then remove  them before further processing
@@ -422,21 +422,36 @@ def loadResource(fn:str,ver:int=1):
                         #A syntax error preventing reading the data at all
                         data = yaml.load(readStringFromSource(restofthecode, '__data__'))
                         data['trigger'] = readStringFromSource(restofthecode,"__trigger__")
-                        data['setup']=setup
-                        data['action']=action
+                        data['setup']=setup.strip()
+                        data['action']=action.strip()
                       
                         r = data
                         #This is a .py file, remove the extension
                         shouldRemoveExtension = True
                     except:
-                        isPyEncoded= False
+                        isSpecialEncoded= False
                         logging.exception("err loading as pyencoded: "+fn)
                         pass
-                if fn.endswith('.yaml'):
+                
+                elif fn.endswith(".html"):
+                    isSpecialEncoded=True
+                    try:
+                        x = re.search(r'<script +type=\"2b8c68ea-307c-4558-bf34-5e024c8306f4\">((.|[\n\r])*?)<\/script>',d)
+                        data = yaml.load(x.group(1))
+                        d = re.sub(r'<script +type=\"2b8c68ea-307c-4558-bf34-5e024c8306f4\">((.|[\n\r])*?)<\/script>','',d)
+                        data['body']= d.strip()
+                        r=data
+                        shouldRemoveExtension = True
+                    except:
+                        isSpecialEncoded= False
+                        logging.exception("err loading as html encoded: "+fn)
+                        pass
+
+                elif fn.endswith('.yaml'):
                     shouldRemoveExtension = True
 
 
-                if not isPyEncoded:
+                if not isSpecialEncoded:
                     r = yaml.load(sections[0])
 
                     #Catch new style save files
@@ -496,8 +511,9 @@ def saveResource2(obj,fn:str):
     if r['resource-type'] == 'page':
         b = r['body']
         del r['body']
-        d = yaml.dump(r) + "\n#End YAML metadata, page body mako code begins on first line after ---\n---\n" + b
-        ext = ".yaml"
+        c ="#This script is only to configure metadata, \n#it is YAML, not JS and is not included in  the page\n\n"
+        d = '<script type="2b8c68ea-307c-4558-bf34-5e024c8306f4">\n'+indent(c+yaml.dump(r).strip()) + "\n</script>\n\n" + b
+        ext = ".html"
 
     elif r['resource-type'] == 'event':
         #Special encoding as a python file, for syntax highlightability

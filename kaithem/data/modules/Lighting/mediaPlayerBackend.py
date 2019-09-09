@@ -84,8 +84,6 @@ if __name__=='__setup__':
             module.mediaAPI.send(["mediaFiles", listMedia])
     
     module.mediaAPI.attach(f)
-    
 
 def eventAction():
     pass
-    

@@ -33,9 +33,7 @@ if __name__=='__setup__':
     #Rules can target a function that returns the actual destination or None for no change.
     sm.addRule("off", "toggle", lambda sm: 'on' if enableTurningOn else None)
     import time
-    
 
 def eventAction():
     sm.event("toggle")
     print(time.time())
-    

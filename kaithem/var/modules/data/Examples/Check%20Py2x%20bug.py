@@ -11,10 +11,7 @@ __trigger__='False'
 if __name__=='__setup__':
     #This will cause two issues in python 2, a dictionary changed size suring iteration bug, and an error wherin it won't be able to find p
     p=0
-    
-    
 
 def eventAction():
     p+=1
     x={}
-    
