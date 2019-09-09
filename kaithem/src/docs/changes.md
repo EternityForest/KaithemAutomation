@@ -16,6 +16,9 @@ Change Log
 - Remove posting to /system/threads/start, it created a refactoring nightmare and wasn't useful
 - Remove system/errors/workers for the same reason, traditional logging makes it obsolete.
 - Hopefully resolved the SSL segfault
+- Auto-adopt stuff to the default kaithem user if started as root(Useful if things are modified by sudo)
+- Minor breaking: Resources all have file extensions, old loaded modules may have odd names but will load
+- Events are now stored as standard python files with data in variables, for easy viewing in external editors
 
 ### 0.63.1
 -  Fix JS dependancy error in lighting module

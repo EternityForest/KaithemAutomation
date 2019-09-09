@@ -14,9 +14,9 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #This file is just for keeping track of state info that would otherwise cause circular issues.
-import weakref, sqlite3,os,sys,hashlib,json,time,getpass
+import weakref, sqlite3,os,sys,hashlib,json,time,getpass,shutil
 from threading import RLock
-from src import util
+from src import util, config
 
 #Items must be dicts, with the key being the name of the type, and the dict itself having the key 'editpage'
 #That is a function which takes 3 arguments, module and resource, and the current resource arg,
@@ -60,13 +60,24 @@ external_module_locations = {}
 
 
 if os.path.exists("/dev/shm"):
-    uniqueInstanceId = ",".join(sys.argv) + os.path.normpath(__file__)+util.getUser()
+    selectedUser= config.config['run-as-user'] if util.getUser()=='root' else util.getUser()
+
+    uniqueInstanceId = ",".join(sys.argv) + os.path.normpath(__file__)+selectedUser
     uniqueInstanceId= hashlib.sha1(uniqueInstanceId.encode("utf8")).hexdigest()[:24]
     enable_sqlite_backup=True
-    recoveryDbPath = os.path.join("/dev/shm/kaithem_"+util.getUser()+"/",uniqueInstanceId, "modulesbackup")
+    recoveryDbPath = os.path.join("/dev/shm/kaithem_"+selectedUser+"/",uniqueInstanceId, "modulesbackup")
     util.ensure_dir(recoveryDbPath)
     recoveryDb = sqlite3.connect(recoveryDbPath)
     util.chmod_private_try(recoveryDbPath)
+
+    #Chown to the user we are actually going to be running as
+    if util.getUser()=='root':
+        shutil.chown(os.path.join("/dev/shm/kaithem_"+selectedUser,uniqueInstanceId, "registrybackup"), selectedUser)
+        shutil.chown(os.path.join("/dev/shm/kaithem_"+selectedUser,uniqueInstanceId), selectedUser)
+        shutil.chown(os.path.join("/dev/shm/kaithem_"+selectedUser), selectedUser)
+
+
+
     recoveryDb.row_factory = sqlite3.Row
     #If flag is 1, that means the resource has been deleted. All this is, is key value storage of
     #Unsaved changes to the modules. When you save, you clear everything before deleting the __complete__

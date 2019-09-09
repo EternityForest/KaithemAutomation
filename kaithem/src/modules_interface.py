@@ -358,6 +358,11 @@ class WebInterface():
             if path[0] == 'updateresource':
                 return resourceUpdateTarget(module,path[1],kwargs)
 
+            #This goes to a dispatcher that takes into account the type of resource and updates everything about the resource.
+            if path[0] == 'reloadresource':
+                pages.require("/admin/modules.edit")
+                modules.reloadOneResource(module,path[1])
+                return resourceEditPage(module,path[1],version,kwargs)
 
             if path[0] == 'getfileresource':
                 pages.require("/admin/modules.edit")
@@ -693,6 +698,10 @@ def permissionEditPage(module,resource):
     pages.require("/admin/modules.view")
     return pages.get_template("modules/permissions/permission.html").render(module = module,
     permission = resource, description = ActiveModules[module][resource]['description'])
+
+
+
+
 
 #The actual POST target to modify a resource. Context dependant based on resource type.
 def resourceUpdateTarget(module,resource,kwargs):

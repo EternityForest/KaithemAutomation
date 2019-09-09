@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 #File for keeping track of and editing kaithem modules(not python modules)
-import threading,urllib,shutil,sys,time,os,json,traceback,copy,hashlib,logging,uuid, gc,re,weakref,sqlite3
+import threading,urllib,shutil,sys,time,os,json,traceback,copy,hashlib,logging,uuid, gc,re,weakref,sqlite3,ast
 import cherrypy,yaml
 from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling,modules_state,registry,remotedevices
 from .modules_state import ActiveModules,modulesLock,scopes,additionalTypes,fileResourceAbsPaths
@@ -22,6 +22,38 @@ from .virtualresource import VirtualResource, VirtualResourceInterface
 
 
 logger = logging.getLogger("system")
+
+
+try:
+    import fcntl
+except:
+    pass
+
+def lock(f):
+    t =time.time()
+    while time.time()-t>5: 
+        try:
+            fcntl.lockf(f, fcntl.LOCK_SH)
+        except IOError:
+            time.sleep(0.01)
+        except:
+            return
+
+def unlock(f):
+    try:
+        fcntl.lockf(f, fcntl.LOCK_SH)
+    except:
+        pass
+
+#Map filenames to the module,resource tuple they represent.
+#May contain deleted data, but never contains old data for existing stuff
+
+#In particular, deleted stuff is still here until we save, we need to know
+#What the file on disk we delete used to represent
+fnToModuleResource = {}
+
+def moduleFromPythonCode(c):
+    c = 9
 
 
 def new_empty_module():
@@ -55,6 +87,62 @@ moduleshash= "000000000000000000000000"
 modulehashes = {}
 modulewordhashes = {}
 
+
+def getInitialWhitespace(s):
+    t = ''
+    for i in s:
+        if i in '\t ':
+            t+=i
+        else:
+            break
+    return t
+
+
+def readToplevelBlock(p,heading):
+    """Given code and a heading like an if or a def, read everything under it.
+        return tuple of the code we read, and the code WITHOUT that stuff
+    """
+    x = p.split("\n")
+    state = 'outside'
+    indent = 0
+    lines = []
+    outside_lines =[]
+    firstline =''
+    heading = heading.strip()
+    #Eliminate space, this is probably not the best way
+    heading=heading.replace(' ','').replace('"',"'")
+    for i in x:
+        if state =='outside':
+            if i.replace(' ','').replace('"',"'").strip().startswith(heading):
+                state = 'firstline'
+                firstline=i
+            else:
+                outside_lines.append(i)
+        elif state =='firstline':
+            indent = getInitialWhitespace(i)
+            if not indent:
+                raise ValueError("Expected indented block after "+firstline)
+            lines.append(i[len(indent):])
+            state='inside'
+        elif state == 'inside':
+            if not len(indent) <= len(getInitialWhitespace(i)):
+                state='outside'
+            lines.append(i[len(indent):])
+    if not lines:
+        if state=='outside':
+            raise ValueError("No such block")
+    return ('\n'.join(lines),'\n'.join(outside_lines))
+
+
+def readStringFromSource(s, var):
+    "Without executing it, get a string var from source code"
+    a = ast.parse(s)
+    b = a.body
+    for i in b:
+        if isinstance(i, ast.Assign):
+            for t in i.targets:
+                if t.id==var:
+                    return i.value.s
 
 def hashModules():
     """For some unknown lagacy reason, the hash of the entire module state is different from the hash of individual modules 
@@ -310,121 +398,171 @@ def insertVirtualResource(modulename:str,name:str,value:VirtualResource):
         if not value.name:
             value.name="x-module:"+ util.url(modulename)+"/"+ "/".join([util.url(i) for i in util.split_escape(name,"/","\\")])
 
-def parsePyModule(s):
-    "Unused at the moment"
-    md =''
-    tr = ''
-    act =''
-    mode = 'setup'
-
-    for i in s.split(lines):
-
-        if not( i.startswith(' ') or i.startswith('\t')):
-            if 'def trigger' in i:
-                mode='trig'
-            if 'def action' in i:
-                mode='act'
-            if '#---BEGIN_METADATA---' in i:
-                mode = 'meta'
-            if '#---END_METADATA---' in i:
-                mode = 'setup'
-            continue
-
-        if mode=='trig':
-            if not i.strip():
-                continue
-            if i.strip().startswith("#"):
-                continue
-            if tr:
-                raise ValueError("Multiline trigger")
-            i = i.strip()
-            if i.startswith('return'):
-                tr = i[6:]
-
-        if mode=='act':
-            i = i.strip()
-            act+=i+'\n'
-                    
-        if mode=='meta':
-            i = i.strip()
-            md+=i+'\n'
-
-        if mode=='setup':
-            i = i.strip()
-            setup+=i+'\n'
-                   
 #Backwards compatible resource loader.
 def loadResource(fn:str,ver:int=1):
+    "Returns (datadict, shouldRemoveFileExtension)"
     try:
         with open(fn,"rb") as f:
             try:
                 d = f.read().decode("utf-8")
                 #This regex is meant to handle any combination of cr, lf, and trailing whitespaces
                 sections = re.split("\r?\n---[ |\t]*?\r?\n",d)
-                r = yaml.load(sections[0])
+                
+                shouldRemoveExtension = False
+                
+                isPyEncoded=False
+                if fn.endswith('.py'):
+                    isPyEncoded=True
+
+                    try:
+                        #Get the two code blocks, then remove  them before further processing
+                        action,restofthecode = readToplevelBlock(d, 'def eventAction():')
+                        setup,restofthecode = readToplevelBlock(restofthecode, "if __name__ == '__setup__':")
+                        #Restofthecode doesn't have those blocks, we should be able to AST parse with less fear of
+                        #A syntax error preventing reading the data at all
+                        data = yaml.load(readStringFromSource(restofthecode, '__data__'))
+                        data['trigger'] = readStringFromSource(restofthecode,"__trigger__")
+                        data['setup']=setup
+                        data['action']=action
+                      
+                        r = data
+                        #This is a .py file, remove the extension
+                        shouldRemoveExtension = True
+                    except:
+                        isPyEncoded= False
+                        logging.exception("err loading as pyencoded: "+fn)
+                        pass
+                if fn.endswith('.yaml'):
+                    shouldRemoveExtension = True
+
+
+                if not isPyEncoded:
+                    r = yaml.load(sections[0])
+
+                    #Catch new style save files
+                    if len(sections)>1:
+                        if r['resource-type'] == 'page':
+                            r['body'] = sections[1]
+
+                        if r['resource-type'] == 'event':
+                            r['setup'] = sections[1]
+                            r['action'] = sections[2]
             except:
                 #This is a workaround for when dolphin puts .directory files in directories and gitignore files
                 #and things like that. Also ignore attempts to load from filedata
                 #I'd like to add more workarounds if there are other programs that insert similar crap files.
                 if "/.git" in fn or "/.gitignore" in fn or "__filedata__" in fn or fn.endswith(".directory"):
-                    return None
+                    return (None,False)
                 else:
                     raise
             if not r or not 'resource-type' in r:
                 if "/.git" in fn or "/.gitignore" in fn or "__filedata__" in fn or fn.endswith(".directory"):
-                    return None
+                    return None,False
                 else:
                     print(fn)
 
 
 
 
-        #Catch new style save files
-        if len(sections)>1:
-            if r['resource-type'] == 'page':
-                r['body'] = sections[1]
-
-            if r['resource-type'] == 'event':
-                r['setup'] = sections[1]
-                r['action'] = sections[2]
         
         #If no resource timestamp use the one from the file time.
         if not 'resource-timestamp' in r:
             r['resource-timestamp'] = int(os.stat(fn).st_mtime*1000000)
-        return r
+        #Set the loaded from. we strip this before saving
+        r['resource-loadedfrom']=fn
+        return (r, shouldRemoveExtension)
     except:
         logger.exception("Error loading resource from file "+fn)
         raise
     logger.debug("Loaded resource from file "+fn)
 
-def saveResource2(r,fn:str):
+def indent(s, prefix='    '):
+    s = [prefix+i for i in s.split("\n")]
+    return '\n'.join(s)
+
+def saveResource2(obj,fn:str):
     #Don't save VResources
-    if isinstance(r,weakref.ref):
+    if isinstance(obj,weakref.ref):
         logger.debug("Did not save resource because it is virtual")
         return
-    logger.debug("Saving resource to"+str(fn))
+    logger.debug("Saving resource to "+str(fn))
 
-    r = copy.deepcopy(r)
+    r = copy.deepcopy(obj)
+    #This is a ram only thing that tells us where it is saved
+    if 'resource-loadedfrom' in r:
+        del r['resource-loadedfrom']
+
+    ext = ''
     if r['resource-type'] == 'page':
         b = r['body']
         del r['body']
         d = yaml.dump(r) + "\n#End YAML metadata, page body mako code begins on first line after ---\n---\n" + b
+        ext = ".yaml"
 
     elif r['resource-type'] == 'event':
-        t = r['setup']
+        #Special encoding as a python file, for syntax highlightability
+        s = r['setup']
         del r['setup']
         a = r['action']
         del r['action']
-        d = yaml.dump(r) + "\n#End metadata. Format: metadata, setup, action, delimited by --- on it's own line.\n---\n" + t + "\n---\n" + a
+        t = r['trigger']
+        del r['trigger']
+        d="## Code outside the data string, and the setup and action blocks is ignored\n"
+        d+="## If manually editing, you must reload the code through the web UI\n"
 
+        d += '__data__="""\n'
+        d += yaml.dump(r).replace("\\","\\\\").replace('"""',r'\"""') + '\n"""\n\n'
+
+        #Autoselect what quote to use
+        if not "'" in t:
+            d+= "__trigger__='" + t.replace("\\","\\\\").replace("'",r"\'") + "'\n\n"
+        else:
+            d+= '__trigger__="' + t.replace("\\","\\\\").replace('"',r'\"') + '"\n\n'
+
+        d+="if __name__=='__setup__':\n"
+        d+= indent(s)
+        d+="\n\n"
+        
+        d+="def eventAction():\n"
+        d+= indent(a)
+        d+="\n"
+        
+        ext = ".py"
     else:
         d = yaml.dump(r)
+        ext = ".yaml"
+
+    fn+= ext
+
+
+    if os.path.exists(fn):
+        try:
+            #Don't overwrite more recent manual changes
+            if 'resource-timestamp' in r:
+                t = int(r['resource-timestamp'])/10**6
+                if t<os.path.getmtime(fn):
+                    #If the file is newer than the current time,
+                    #The clock is all kinds of wrong, and we can't use the conflict
+                    #Resolution logic
+                    if os.path.getmtime(fn) > time.time():
+                        logging.info(fn + " has been modified externally, on-disk version is more recent, not saving")
+                        return fn
+
+            #Check for sameness, avoid useless write
+            with open(fn,"rb") as f:
+                x = f.read().decode('utf8')
+                if x==d:
+                    return fn
+        except:
+            logger.exception("err, continuing")
 
     with open(fn,"wb") as f:
         util.chmod_private_try(fn,execute = False)
         f.write(d.encode("utf-8"))
 
     logger.debug("saved resource to file "+ fn)
+    obj['resource-loadedfrom']=fn
+    return fn
 
 def saveResource(r,fn:str):
     with open(fn,"wb") as f:
@@ -579,6 +717,8 @@ def saveModule(module, dir:str,modulename:Optional[str]=None, ignore_func=None):
     #under the URL url module name for the filename.
     logger.debug("Saving module "+str(modulename))
     saved = []
+
+    moduleFilenames = {}
     try:
         #Make sure there is a directory at where/module/
         util.ensure_dir2(os.path.join(dir))
@@ -591,7 +731,7 @@ def saveModule(module, dir:str,modulename:Optional[str]=None, ignore_func=None):
 
             #Allow non-saved virtual resources
             if not hasattr(r,"ephemeral") or r.ephemeral==False:
-                saveResource2(r,fn)
+                moduleFilenames[saveResource2(r,fn)]=True
 
             saved.append((modulename,resource))
 
@@ -640,11 +780,13 @@ def saveModule(module, dir:str,modulename:Optional[str]=None, ignore_func=None):
                 p = os.path.join(dir,j)
                 if ignore_func and ignore_func(p):
                     continue
-                if util.unurl(j) not in module:
+                if p not in moduleFilenames:
                     os.remove(p)
                     #Remove them from the list of unsaved changed things.
-                    if (modulename,util.unurl(j)) in unsaved_changed_obj:
-                        saved.append((modulename,util.unurl(j)))
+
+                    if p in fnToModuleResource and fnToModuleResource[p] in unsaved_changed_obj:
+                        saved.append(fnToModuleResource[p])
+                        del fnToModuleResource[p]
         saved.append(modulename)
         return saved
     except:
@@ -790,6 +932,92 @@ def _detect_ignorable(path:str):
         return True
 
 
+
+def handleResourceChange(module,resource):
+    t = ActiveModules[module][resource]['resource-type']
+    data = ActiveModules[module][resource]['resource-type']
+
+    if t == 'permission':
+        #has its own lock
+        auth.importPermissionsFromModules() #sync auth's list of permissions
+    
+    if t=="k4dprog_sq":
+        remotedevices.updateProgram(module, resource, data)
+
+    elif t == 'event':
+        evt = None
+        #Test compile, throw error on fail.
+
+        if 'enable' in data:
+            try:
+                #Remove the old event even before we do a test compile. If we can't do the new version just put the old one back.
+                newevt.removeOneEvent(module,resource)
+                #Leave a delay so that effects of cleanup can fully propagate.
+                time.sleep(0.08)
+                #UMake event from resource, but use our substitute modified dict
+                evt = newevt. make_event_from_resource(module,resource, data)
+
+            except Exception as e:
+                messagebus.postMessage("system/notifications/errors", "In: "+ module +" "+resource+ "\n"+ traceback.format_exc(4))
+                raise
+        #Save but don't enable
+        else:
+            #Remove the old event even before we do a test compile. If we can't do the new version just put the old one back.
+            newevt.removeOneEvent(module,resource)
+            #Leave a delay so that effects of cleanup can fully propagate.
+            time.sleep(0.08)
+
+        #if the test compile fails, evt will be None and the function will look up the old one in the modules database
+        #And compile that. Otherwise, we avoid having to double-compile.
+        newevt.updateOneEvent(resource,module,evt)
+
+    elif t == 'page':
+        usrpages.updateOnePage(resource,module)
+
+    else:
+        messagebus.postMessage("system/notifications/", "In: "+ module +" "+resource+ "\n"+ "Resource modified on disk, this type requires kaithem restart to take effect")
+
+
+
+def reloadOneResource(module,resource):
+    r = ActiveModules[module][resource]
+    if 'resource-loadedfrom' in r:
+        mfolder = os.path.join(directories.moduledir,"data",module)
+        loadOneResource(mfolder, os.path.relpath(r['resource-loadedfrom'], mfolder), module)
+
+
+def loadOneResource(folder, relpath, module):
+    resourcename = util.unurl(relpath)
+    r,removeExt = loadResource(os.path.join(folder,relpath))
+    if not r:
+        return
+    if removeExt:
+        resourcename = '.'.join(resourcename.split('.')[:-1])
+    
+    ActiveModules[module][resourcename] = r
+    fnToModuleResource[resourcename] = (module, resourcename)
+    
+    if not 'resource-type' in r:
+        logger.warning("No resource type found for "+resourcename)
+        return
+    handleResourceChange(module, resourcename)
+
+    if r['resource-type'] == "internal-fileref":
+        #Handle two separate ways of handling these file resources.
+        #One is to store them directly in the module data in a special folder.
+        #That's what we do if we are using an external folder
+        #For internal folders we don't want to store duplicate copies in the dumps,
+        #So we store them in one big folder that is shared between all loaded modules.
+        #Which is not exactly ideal, but all the per-module stuff is stored in dumps.
+
+        #Note that we handle things in library modules the same as in loaded vardir modules,
+        #Because things in vardir modules get copied to the vardir.
+        if util.in_directory(os.path.join(folder,relpath), directories.vardir) or util.in_directory(os.path.join(folder,relpath), directories.datadir):
+            fileResourceAbsPaths[modulename,resourcename] = os.path.join(directories.vardir,"modules","filedata",r['target'])
+        else:
+            fileResourceAbsPaths[modulename,resourcename] = os.path.join(folder,"__filedata__",r['target'])
+
+
 def loadModule(folder:str, modulename:str, ignore_func=None):
     "Load a single module but don't bookkeep it . Used by loadModules"
     logger.debug("Attempting to load module "+modulename)
@@ -806,38 +1034,45 @@ def loadModule(folder:str, modulename:str, ignore_func=None):
                         continue
                     relfn = os.path.relpath(os.path.join(root,i),folder)
                     fn = os.path.join(folder , relfn)
-                    #Copy stuff from anything called filedata to handle library modules with filedata
-                    if os.path.basename(root) == "__filedata__":
-                        if not os.path.exists(os.path.join(directories.vardir,"modules","filedata")):
-                            os.makedirs(os.path.join(directories.vardir,"modules","filedata"),700)
+                    try:
+                        #Copy stuff from anything called filedata to handle library modules with filedata
+                        if os.path.basename(root) == "__filedata__":
+                            if not os.path.exists(os.path.join(directories.vardir,"modules","filedata")):
+                                os.makedirs(os.path.join(directories.vardir,"modules","filedata"),700)
 
-                        #Special case handling of if we are loading from the data dir
-                        if util.in_directory(fn, directories.datadir):
-                            shutil.copy(fn, os.path.join(directories.vardir,"modules","filedata"))
-                        continue
-                    #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
-                    resourcename = util.unurl(relfn)
-                    r = loadResource(fn)
-                    if not r:
-                        continue
-                    module[resourcename] = r
-                    if not 'resource-type' in r:
-                        logger.warning("No resource type found for "+resourcename)
-                        continue
-                    if r['resource-type'] == "internal-fileref":
-                        #Handle two separate ways of handling these file resources.
-                        #One is to store them directly in the module data in a special folder.
-                        #That's what we do if we are using an external folder
-                        #For internal folders we don't want to store duplicate copies in the dumps,
-                        #So we store them in one big folder that is shared between all loaded modules.
-                        #Which is not exactly ideal, but all the per-module stuff is stored in dumps.
+                            #Special case handling of if we are loading from the data dir
+                            if util.in_directory(fn, directories.datadir):
+                                shutil.copy(fn, os.path.join(directories.vardir,"modules","filedata"))
+                            continue
+                        #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
+                        resourcename = util.unurl(relfn)
+                        r,removeExt = loadResource(fn)
+                        if not r:
+                            continue
+                        if removeExt:
+                            resourcename = '.'.join(resourcename.split('.')[:-1])
+                        module[resourcename] = r
+                        fnToModuleResource[resourcename] = (modulename, resourcename)
+                        if not 'resource-type' in r:
+                            logger.warning("No resource type found for "+resourcename)
+                            continue
+                        if r['resource-type'] == "internal-fileref":
+                            #Handle two separate ways of handling these file resources.
+                            #One is to store them directly in the module data in a special folder.
+                            #That's what we do if we are using an external folder
+                            #For internal folders we don't want to store duplicate copies in the dumps,
+                            #So we store them in one big folder that is shared between all loaded modules.
+                            #Which is not exactly ideal, but all the per-module stuff is stored in dumps.
 
-                        #Note that we handle things in library modules the same as in loaded vardir modules,
-                        #Because things in vardir modules get copied to the vardir.
-                        if util.in_directory(fn, directories.vardir) or util.in_directory(fn, directories.datadir) :
-                            fileResourceAbsPaths[modulename,resourcename] = os.path.join(directories.vardir,"modules","filedata",r['target'])
-                        else:
-                            fileResourceAbsPaths[modulename,resourcename] = os.path.join(folder,"__filedata__",r['target'])
+                            #Note that we handle things in library modules the same as in loaded vardir modules,
+                            #Because things in vardir modules get copied to the vardir.
+                            if util.in_directory(fn, directories.vardir) or util.in_directory(fn, directories.datadir) :
+                                fileResourceAbsPaths[modulename,resourcename] = os.path.join(directories.vardir,"modules","filedata",r['target'])
+                            else:
+                                fileResourceAbsPaths[modulename,resourcename] = os.path.join(folder,"__filedata__",r['target'])
+                    except:
+                        messagebus.postMessage("/system/notifications/errors","Error loading from: "+fn+"\r\n"+traceback.format_exc())
+                        raise
 
                 for i in dirs:
                     if i == "__filedata__":
@@ -1056,8 +1291,8 @@ def rmResource(module,resource,message="Resource Deleted"):
     unsaved_changed_obj[(module,resource)] = message
 
     with modulesLock:
-       r = ActiveModules[module].pop(resource)
-       modules_state.createRecoveryEntry(module,resource,None)
+        r = ActiveModules[module].pop(resource)
+        modules_state.createRecoveryEntry(module,resource,None)
     try:
         if r['resource-type'] == 'page':
             usrpages.removeOnePage(module,resource)

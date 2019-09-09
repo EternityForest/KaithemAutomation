@@ -12,19 +12,33 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-from . import util,directories,messagebus,util
+from . import util,directories,messagebus,config
 import os,time,json,copy,hashlib,threading,copy, traceback, shutil, yaml, validictory,sqlite3,sys,logging,getpass
 from .util import url, unurl
 
 log = logging.getLogger("system.registry")
 
+
+
 if os.path.exists("/dev/shm"):
-    uniqueInstanceId = ",".join(sys.argv) + os.path.normpath(__file__)+util.getUser()
+    #Detect if we are going to change to a different user
+    selectedUser= config.config['run-as-user'] if util.getUser()=='root' else util.getUser()
+    uniqueInstanceId = ",".join(sys.argv) + os.path.normpath(__file__)+selectedUser
     uniqueInstanceId= hashlib.sha1(uniqueInstanceId.encode("utf8")).hexdigest()[:24]
     enable_sqlite_backup=True
-    recoveryDbPath = os.path.join("/dev/shm/kaithem/",uniqueInstanceId, "registrybackup")
+    recoveryDbPath = os.path.join("/dev/shm/kaithem_"+selectedUser,uniqueInstanceId, "registrybackup")
+
     util.ensure_dir(recoveryDbPath)
     recoveryDb = sqlite3.connect(recoveryDbPath)
+    util.chmod_private_try(recoveryDbPath)
+
+    #Chown to the user we are actually going to be running as
+    if util.getUser()=='root':
+        shutil.chown(os.path.join("/dev/shm/kaithem_"+selectedUser,uniqueInstanceId, "registrybackup"), selectedUser)
+        shutil.chown(os.path.join("/dev/shm/kaithem_"+selectedUser,uniqueInstanceId), selectedUser)
+        shutil.chown(os.path.join("/dev/shm/kaithem_"+selectedUser), selectedUser)
+
+
     util.chmod_private_try(recoveryDbPath)
     recoveryDb.row_factory = sqlite3.Row
     #If flag is 1, that means the resource has been deleted. All this is, is key value storage of
@@ -248,7 +262,7 @@ class PersistanceArea():
                         if not i['time']/1000000 > completeFileTimestamp:
                             continue
                         if not i['flag']:
-                            self.set(i['key'],json.loads(i['value']))
+                            self.set(i['key'],json.loads(i['value']),_noRecoveryRecord=True)
                         else:
                             delete(i['key'])
                 recoveryDb.close()
@@ -258,7 +272,7 @@ class PersistanceArea():
             self.files[f]= self.PersistanceDict()
         return self.files[f]
 
-    def set(self, key,value):
+    def set(self, key,value,_noRecoveryRecord=False):
         global is_clean
         is_clean = False
         try:
@@ -275,7 +289,8 @@ class PersistanceArea():
             if 'schema' in f['keys'][key]:
                 validictory.validate(value, f['keys'][key]['schema'])
             f['keys'][key]['data'] = copy.deepcopy(value)
-            createRecoveryEntry(key,value,0)
+            if not _noRecoveryRecord:
+                createRecoveryEntry(key,value,0)
 
 
 reglock = threading.RLock()

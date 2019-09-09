@@ -1,0 +1,52 @@
+allow-origins: ['*']
+allow-xss: false
+auto-reload: false
+auto-reload-interval: 5.0
+dont-show-in-index: false
+mimetype: text/html
+no-header: false
+no-navheader: true
+require-method: [GET, POST]
+require-permissions: []
+resource-timestamp: 1566264981262452
+resource-type: page
+template-engine: mako
+
+#End YAML metadata, page body mako code begins on first line after ---
+---
+<%!
+#Code Here runs once when page is first rendered. Good place for import statements.
+__doc__= ""
+%>
+<%
+#Python Code here runs every page load
+%>
+
+<script src="/static/js/vue2.js"></script>
+<script src="/static/js/sortable.min.js"></script>
+<script src="/static/js/vuedraggable.umd.min.js"></script>
+
+<h2>MediaPlayer</h2>
+<title>MediaPlayer</title>
+
+
+<div id="app" class="sectionbox">
+<draggable v-model="myArray"  @start="drag=true" @end="drag=false">
+   <div v-for="element in myArray" :key="element.id">{{element.name}}</div>
+</draggable>
+
+
+</div>
+
+
+<script>
+
+
+  var app = new Vue({
+    el: '#app',
+    data: {
+      message: 'Hello Vue!',
+      playlist:[{"id":909, "name":"sandy"}, {"id":9, "name":"sand"}]
+    }
+  })
+</script>

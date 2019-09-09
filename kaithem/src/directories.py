@@ -19,7 +19,7 @@
 #Log is the log files
 
 #[]Put these in approprite places when running on linux
-import os
+import os,pwd,shutil
 from .config import config
 
 #Normally we run from one folder. If it's been installed, we change the paths a bit.
@@ -63,3 +63,16 @@ def recreate():
     datadir = os.path.normpath(os.path.join(dn,'../data'))
     htmldir = os.path.join(dn,'html')
     ssldir =  os.path.join(vardir,config['ssl-dir'])
+
+
+def chownIf(f,usr):
+    if not pwd.getpwuid(os.stat(filename).st_uid).pw_name ==usr:
+        shutil.chown(f,usr,usr)
+
+def rchown(d, usr):
+    chownIf(d,usr)
+    for root, dirs, files in os.path.walk():
+        chownIf(root, usr)
+        for file in files:
+            chownIf(os.path.join(root,file), usr)
+        

@@ -565,16 +565,28 @@ def webRoot():
     
     #Unlike other shm stuff that only gets used after startup, this
     #Can be used both before and after we are fully loaded.
-    #So we need to hand off everything to the user we will actually run as
-    #Thanks to https://stackoverflow.com/questions/2853723/what-is-the-python-way-for-recursively-setting-file-permissions
-    if  not config['run-as-user']=='root':
-        d = "/dev/shm/kaithem_pyx_"+config['run-as-user']
+    #So we need to hand off everything to the user we will actually run as.
 
-        shutil.chown(d,config['run-as-user'] )
-        for dirpath, dirnames, filenames in os.walk(d):
-            shutil.chown(dirpath,config['run-as-user'])
-            for fname in filenames:
-                shutil.chown(os.path.join(dirpath, fname), config['run-as-user'])
+    #This is also useful for when someone directly modifies config
+    #Over SSH and we want to adopt those changes to the kaithem usr.
+
+    #It's even useful if we ever change the user for some reason.
+    
+    #We only do this if we start as root though.
+
+    if  not config['run-as-user']=='root' and getpass.getuser()=='root':
+        try:
+            d = "/dev/shm/kaithem_pyx_"+config['run-as-user']
+            directories.rchown(d,config['run-as-user'] )
+            directories.rchown(directories.vardir,config['run-as-user'] )
+            directories.rchown(directories.logdir,config['run-as-user'] )
+            #Might as well own our own SSL dir, that way we can change certs via the webUI.
+            directories.rchown(directories.ssldir,config['run-as-user'] )
+            directories.rchown(directories.usersdir,config['run-as-user'] )
+            directories.rchown(directories.regdir,config['run-as-user'] )
+        except:
+            logger.exception("This is normal on non-unix")
+
 
     #If configured that way on unix, check if we are root and drop root.
     util.drop_perms(config['run-as-user'], config['run-as-group'])
