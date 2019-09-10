@@ -261,7 +261,39 @@ def webRoot():
 
     #This class represents the "/" root of the web app
     class webapproot():
-        #"/" is mapped to this
+
+        #This lets users mount stuff at arbitrary points, so long
+        #As it doesn't conflict with anything
+        def _cp_dispatch(self, vpath):
+
+            while vpath:
+                if tuple(vpath) in pages.nativeHandlers:
+                    x =  pages.nativeHandlers[tuple(vpath)]
+                    if not isinstance(x, Exception):
+                        return x
+                    else:
+                        raise x
+                vpath.pop(0)
+
+            if None in pages.nativeHandlers:
+                return pages.nativeHandlers[None]
+
+            return None
+
+
+
+        #Keep the dispatcher from freaking out. The actual handling
+        #Is done by a cherrypy tool. These just keeo cp_dispatch from being called
+        #I have NO clue why the favicon doesn't have this issue.
+        @cherrypy.expose
+        def static(self,*path,**data):
+            pass
+
+        @cherrypy.expose
+        def usr(self,*path,**data):
+            pass
+
+
         @cherrypy.expose
         def index(self,*path,**data):
             pages.require("/admin/mainpage.view")

@@ -19,6 +19,8 @@ Change Log
 - Auto-adopt stuff to the default kaithem user if started as root(Useful if things are modified by sudo)
 - Minor breaking: Resources all have file extensions, old loaded modules may have odd names but will load
 - Events are now stored as standard python files with data in variables, for easy viewing in external editors
+- New kaithem.web.controllers: Easily create pages directly in python code using cherrypy directly without losing the flexibility of Kaithem.
+
 
 ### 0.63.1
 -  Fix JS dependancy error in lighting module

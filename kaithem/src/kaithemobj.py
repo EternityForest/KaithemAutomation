@@ -310,6 +310,9 @@ class Kaithem():
 
         WebResource = pages.WebResource
 
+
+        controllers = pages.nativeHandlers
+
         @staticmethod
         def unurl(s):
             return util.unurl(s)

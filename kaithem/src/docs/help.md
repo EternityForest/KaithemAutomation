@@ -1239,6 +1239,33 @@ echoed back to all clients
 
 ### kaithem.web
 
+#### kaithem.web.controllers 
+
+This is a WeakValueDict that maps path tuples to CherryPy
+style controller objects.  It allows you to handle requests for
+arbitrary URLs so long as they do not conflict.
+
+These are raw CherryPy pages. You are responsible for checking permissions
+yourself.
+
+Controllers are simply objects with @cherrypy.expose methods. Putting
+them in this dict "Mounts" them at a given path.
+
+The controller with a key of ("hello","test") would map to
+/hello/test, and would also be used for hello/test/foo, etc.
+
+To set up a default handler for all requests, you may also mount something at
+None, essentially overlaying it with the / root.
+
+The handler which is mounted at the longest path is chosen.
+
+
+You may also mount Exception objects this way. These will be raised if anyone
+tries to go to that path.
+
+Note that these are just straight up native Cherrypy handlers. You cannot
+use kaithem.web.serveFile like you can in a page created as a Page Resource.
+
 #### kaithem.web.url(url)
 
 URL enode a string.

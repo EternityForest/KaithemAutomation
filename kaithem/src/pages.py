@@ -69,6 +69,12 @@ vue2 = WebResource("vue-default","/static/js/vue-2.6.10.js")
 vue3 = WebResource("vue2-default","/static/js/vue-2.6.10.js")
 
 
+#
+nativeHandlers = weakref.WeakValueDictionary()
+
+   
+
+
 def postOnly():
     """Redirect user to main page if the request is anything but POST"""
     if not cherrypy.request.method == "POST":

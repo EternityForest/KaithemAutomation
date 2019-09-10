@@ -103,9 +103,9 @@ def universal_weakref(f):
 def chmod_private_try(p, execute=True):
     try:
         if execute:
-            os.chmod(p,stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+            os.chmod(p,stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IXGRP)
         else:
-            os.chmod(p,stat.S_IRUSR|stat.S_IWUSR)
+            os.chmod(p,stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IWGRP)
     except Exception as e:
         raise e
 
