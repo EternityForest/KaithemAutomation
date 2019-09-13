@@ -1,11 +1,80 @@
 FAQ
 ===
 
+
+### How do I use version control? How do I edit pages with an external editor?
+
+Kaithem was designed to make this easy. Look in /var/lib/kaithem (Or the var directory in unzip-and-run mode).
+
+Inside you will find a modules folder, and within that a data folder containing the latest state of the modules.
+
+There are other folders with numbers in the names too, these are backed up old versions.
+
+Inside the data folder, every module gets a subfolder.
+
+Events are represented as python files with a __data__ string, the setup section under if __name__=='__setup__':, etc.  It's fairlt obvious.
+
+Pages are stored as HTML files, with a script at the top in a special script type.
+
+Kaithem won't mess with your .git folder should you choose to use git.
+
+
+
+Registry configuration is stored similarly, if you want to version control that too. It is stored in readable YAML, so git will handle it nicely.
+
+
+
+### JACK Audio doesn't work or sounds bad
+
+You may  need threadirqs. Check that kaithem's user can
+run realtime processes(Adding them to the audio group may help).
+
+Finally, there's a limit to what computers can handle. Turn up the block size.
+You will get more lag, but better quality.
+
+### Kaithem can't so something!
+
+Have you checked if it's a permission problem? If it's installed as a
+package, it runs under it's own user.
+
+Try one of these as appropriate
+
+```
+#For serial ports
+usermod -a -G serial kaithem
+usermod -a -G dialout kaithem
+
+#For Audio, especially realtime issues
+usermod -a -G audio kaithem
+
+# RPi GPIO, and general low level interfacing
+usermod -a -G gpio kaithem
+usermod -a -G i2c kaithem
+usermod -a -G spi kaithem
+
+#Changing WiFi settings
+usermod -a -G netdev kaithem
+
+#Misc
+usermod -a -G video kaithem
+usermod -a -G uucp kaithem
+```
+
+### I Restarted Kaithem, but all my changes are still there?
+
+Yup! On Linux, Kaithem uses /dev/shm ramdisks to store changes without saving to disk until the next save.
+
+These go away when the system loses power, so be sure to actually save or set up autosave.
+
 ### Where does Kaithem store data?
 
 By default, kaithem stores all variable data in kaithem/var(inside it's
 directory) It does not use the windows registry, APPDATA, a database, or
-any other central means of storage. However, keeping your data in
+any other central means of storage.
+
+If installed as a Debian package, Kaithem will store it's data in /var/lib/kaithem unless configures otherwise.
+
+However, keeping your data in
 kaithems "unzip and run" folder has a few problems. First and most
 important, it makes it hard to update, since if you download a new
 version it will not have your data.
@@ -14,6 +83,9 @@ To avoid this, we recommend that you copy kaithem/var someplace else,
 and use the site-data-dir config option to point to the new location. If
 you copy var to /home/juan/ then site-data-dir should equal
 /home/juan/var
+
+
+
 
 ### How do I let users upload to a a page
 
@@ -51,7 +123,7 @@ you must reload kaithem for the changes to take effect.
 
 Kaithem only saves topics to the hard drive if they are in the list of
 things to save. Go to the logging page and select the channels you are
-interested in. This
+interested in. 
 
 ### What is with these security certificate errors?
 
@@ -123,10 +195,8 @@ shutting down.
 ### I would like to back up the code that I wrote in Kaithem
 
 At the moment, the easiest way to do this is just to make a copy of the
-folder where your variable data is kept.
-
-The modules directory within that dir uses a format designed to work
-well with git.
+folder where your variable data is kept. See "How do I use version control"
+for more info.
 
 ### How exactly does logging work?
 

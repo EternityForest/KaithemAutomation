@@ -53,9 +53,14 @@ class Settings():
 
     @cherrypy.expose
     def mixer(self):
-        """Return a page showing all of kaithem's current running threads"""
         pages.require("/users/mixer.edit",)
         return pages.get_template("settings/mixer.html").render()
+
+    @cherrypy.expose
+    def wifi(self):
+        """Return a page showing the wifi config"""
+        pages.require("/admin/settings.edit",)
+        return pages.get_template("settings/wifi.html").render()
 
 
     @cherrypy.expose

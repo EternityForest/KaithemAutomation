@@ -278,7 +278,7 @@ class PersistanceArea():
         try:
             json.dumps({key:value})
         except:
-            raise Exception
+            raise ValueError("Must be JSON Serializable")
         with reglock:
             prefix = key.split("/")[0]
             f = self.open(prefix)

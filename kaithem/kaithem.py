@@ -132,6 +132,9 @@ except:
 from src import remotedevices
 remotedevices.init_devices()
 
+
+from src import wifimanager
+
 def webRoot():
     #We don't want Cherrypy writing temp files for no reason
     cherrypy._cpreqbody.Part.maxrambytes = 64*1024

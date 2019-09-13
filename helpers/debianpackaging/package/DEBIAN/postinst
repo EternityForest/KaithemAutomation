@@ -1,4 +1,7 @@
-#!/bin/bash
+#!/bin/bashG i2c kaithem
+# usermod -a -G video kaithem
+# usermod -a -G spi kaithem
+# usermod -a -G uucp kaithem
 
 if [ ! -f /var/lib/kaithem/users/data/users.json ] ; then
     mkdirs /var/lib/kaithem/ssl/
@@ -13,10 +16,14 @@ fi
 # usermod -a -G dialout kaithem
 # usermod -a -G audio kaithem
 # usermod -a -G gpio kaithem
+# usermod -a -G video kaithem
+# usermod -a -G spi kaithem
+# usermod -a -G uucp kaithem
 # usermod -a -G i2c kaithem
 # usermod -a -G video kaithem
 # usermod -a -G spi kaithem
 # usermod -a -G uucp kaithem
+# usermod -a -G netdev kaithem
 groupadd -r kaithem
 usermod -a -G kaithem kaithem
 

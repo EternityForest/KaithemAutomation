@@ -338,6 +338,25 @@ Includes external open-source libraries by third parties.
        See the License for the specific language governing permissions and
        limitations under the License.
 
+#### [python-networkmanager](https://github.com/seveas/python-networkmanager)
+    python-networkmanager - Easy communication with NetworkManager
+    Copyright (C) 2011-2017 Dennis Kaarsemaker <dennis@kaarsemaker.net>
+
+    This software is provided 'as-is', without any express or implied
+    warranty. In no event will the authors be held liable for any damages
+    arising from the use of this software.
+
+    Permission is granted to anyone to use this software for any purpose,
+    including commercial applications, and to alter it and redistribute it
+    freely, subject to the following restrictions:
+
+    1. The origin of this software must not be misrepresented; you must not
+    claim that you wrote the original software. If you use this software
+    in a product, an acknowledgement in the product documentation would be
+    appreciated but is not required.
+    2. Altered source versions must be plainly marked as such, and must not be
+    misrepresented as being the original software.
+    3. This notice may not be removed or altered from any source distribution.
 #### [urllib3](https://github.com/urllib3/urllib3)
         MIT License
 
@@ -355,7 +374,25 @@ Includes external open-source libraries by third parties.
 
         THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
         IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE  
+python-networkmanager - Easy communication with NetworkManager
+Copyright (C) 2011-2017 Dennis Kaarsemaker <dennis@kaarsemaker.net>
+
+This software is provided 'as-is', without any express or implied
+warranty. In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software
+   in a product, an acknowledgement in the product documentation would be
+   appreciated but is not required.
+2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+3. This notice may not be removed or altered from any source distribution.
         AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
         LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
         OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN T

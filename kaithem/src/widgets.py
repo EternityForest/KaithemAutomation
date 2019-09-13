@@ -156,6 +156,7 @@ if config['enable-websockets']:
 
 
             except Exception as e:
+                logging.exception('Error in widget')
                 messagebus.postMessage("system/errors/widgets/websocket", traceback.format_exc(6))
                 self.send(json.dumps({'__WIDGETERROR__':repr(e)}))
 
