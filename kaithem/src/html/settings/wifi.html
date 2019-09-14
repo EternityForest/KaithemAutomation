@@ -84,7 +84,18 @@ from src import wifimanager
     el: '#app',
     data: {
       connections: [],
-      api:api
+      api:api,
+      setParam: function(con, param, val)
+      {
+        api.send(['setConnectionParam', con,param,val])
+      },
+      deleteConnection: function(con)
+      {
+        if (confirm("Do you really want to delete this connection?"))
+        {
+          api.send(['deleteConnection', con])
+        }
+      }
   }}
   );
 

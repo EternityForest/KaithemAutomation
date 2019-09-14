@@ -219,6 +219,11 @@ def handleMessage(u,v):
         registry.set('system.wifi/connections',x)
         api.send(['connections', registry.get('system.wifi/connections',[])])
 
+    if v[0]=='deleteConnection':
+        x = registry.get('system.wifi/connections',[])
+        x= [i for i in x if not i['uuid']==v[1]]
+        registry.set('system.wifi/connections',x)
+        api.send(['connections', registry.get('system.wifi/connections',[])])
 
 @scheduling.scheduler.everyMinute
 def worker():

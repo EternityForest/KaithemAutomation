@@ -2,7 +2,7 @@
 ## If manually editing, you must reload the code through the web UI
 __data__="""
 {continual: false, enable: true, once: true, priority: interactive, rate-limit: 0.0,
-  resource-type: event}
+  resource-timestamp: 1568112911280269, resource-type: event}
 
 """
 

@@ -24,6 +24,24 @@ from .config import config
 errors = {}
 
 
+
+def markdownToSelfRenderingHTML(content, title):
+    """Return self-rendering page body for markdown string"""
+
+    x="<title>"+title+"</title>"+"""
+    <section id="content">
+    """+content+"""</section>
+    <script src="/static/showdown.min.js"></script>
+    <script>
+    showdown.setFlavor('github');
+    var c= document.getElementById("content").innerHTML;
+    var converter = new showdown.Converter();
+
+    document.getElementById("content").innerHTML=converter.makeHtml(c);
+    </script>
+    """
+    return x
+
 @util.lrucache(50)
 def lookup(module,args):
     resource_path = [i.replace("\\","\\\\").replace("/","\\/") for i in args]
@@ -104,6 +122,12 @@ class CompiledPage():
             d['module']= modules_state.scopes[m]
         if not 'template-engine' in resource or resource['template-engine']=='mako':
             self.template = mako.template.Template(templatesource, uri="Template"+m+'_'+r, global_vars=d)
+        
+        elif resource['template-engine']=='markdown':
+            header = mako.template.Template(header, uri="Template"+m+'_'+r, global_vars=d).render()
+            footer = mako.template.Template(footer, uri="Template"+m+'_'+r, global_vars=d).render()
+
+            self.text = header+"\r\n"+markdownToSelfRenderingHTML(template,r)+footer
         else:
             self.text = template
 

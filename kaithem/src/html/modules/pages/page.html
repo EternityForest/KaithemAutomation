@@ -150,18 +150,16 @@ document.getElementById("box").style="display:none;";
         %endif
        ></input>Don't show this page in the page index<br>
 
-<input type="checkbox"  name="use-mako" value="true"
-         %if 'template-engine' in page:
-            %if page['template-engine']=="mako":
-            checked="yes"
-            %endif
-         %else:
-            checked="yes"
-         %endif
+Preprocess Engine:<select name="template-engine"
+
         %if not pages.canUserDoThis("/admin/modules.edit"):
                     disabled=1\
         %endif
-       ></input>Enable Mako templates(Uncheck to serve raw text as-is)<br>
+       >
+    <option value="mako" ${'selected' if page.get('template-engine','mako')== 'mako' else ''}>Mako templating(default)</option>
+    <option value="markdown" ${'selected' if  page.get('template-engine','mako')== 'markdown' else ''}>Display markdown</option>
+    <option value="none" ${'selected' if  page.get('template-engine','mako')== 'none' else ''}>Serve text as-is</option>   
+    </select><br>
 
 <input type="checkbox"  name="allow-GET" value="true"
          %if 'require-method' in page:
