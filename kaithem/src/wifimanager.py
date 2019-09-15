@@ -91,8 +91,6 @@ def applyConnections():
            
 
 
-u =  'f598ca94-d461-11e9-ae8b-6368d32e2345'
-
 
 class Connection():
     def __init__(self,ssid, psk,interface='',mode="sta", priority = 50,uuid=NetworkManager):
