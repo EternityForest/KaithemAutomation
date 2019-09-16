@@ -10,8 +10,7 @@ log = logging.getLogger("system.wifi")
 
 
 def applyConnections():
-    #Get all the interfaces that are not already connected
-    freeDevices = []
+
 
     #Skip the whole nonsense if there's no connections set up anyway
     if not by_uuid:
@@ -34,8 +33,6 @@ def applyConnections():
             else:
                 connectionStrengths[device.ActiveAccessPoint.Ssid] =(device.ActiveAccessPoint.Strength,device)
 
-        else:
-            freeDevices.append(device)
 
     #Clear weak connections when a strong connection exists to that same access point
     for device in NetworkManager.NetworkManager.GetAllDevices():
@@ -78,29 +75,68 @@ def applyConnections():
 
             #Don't allow connections to stomp on higher priority connections
             if dev.ActiveConnection:
-                if dev.ActiveConnection.uuid in by_uuid:
-                    if by_uuid[dev.ActiveConnection.uuid].priority >= self.priority:
+                if dev.ActiveConnection.Uuid in by_uuid:
+                    if by_uuid[dev.ActiveConnection.Uuid].priority >= con.priority:
                         continue
-                    else:
-                        if self.priority<51:
-                            continue
+                else:
+                    #Assume unknown is priority 50
+                    if con.priority<51:
+                        continue
             #If they selected an interface, only bind to that one.
             if con.interface and not dev.Udi==con.interface:
                 continue
-            for ap in dev.GetAccessPoints():
-                if ap.Ssid == con.ssid:
-                    if ap.Strength > selectedDeviceStrength:
-                        selectedDevice = dev
-                        selectedDeviceStrength = ap.Strength
+
+            #Make sure we don't select a device that can't even see the AP
+            if con.mode == 'sta':
+                for ap in dev.GetAccessPoints():
+                    if ap.Ssid == con.ssid:
+                        if ap.Strength > selectedDeviceStrength:
+                            selectedDevice = dev
+                            selectedDeviceStrength = ap.Strength
+            else:
+                #Just pick one
+                selectedDevice = dev
+                selectedDeviceStrength = 100
         if selectedDevice:
+           if selectedDevice.ActiveAccessPoint:
+                selectedDevice.Disconnect()
            con.activate(interface=selectedDevice.Udi)
-           freeDevices.remove(selectedDevice)
-           
+
+modes={
+    3:'AP',
+    2:'STA'
+}        
+
+def getConnectionStatus():
+    d = {}
+    import NetworkManager
+    for device in NetworkManager.NetworkManager.GetAllDevices():
+        if  device.DeviceType ==  NetworkManager.NM_DEVICE_TYPE_WIFI:
+            ap = device.ActiveAccessPoint
+            if ap:
+                d[device.Udi] = (ap.Ssid, 100 if device.Mode==2 else ap.Strength, modes.get(device.Mode,"UNKNOWN") )
+            else:
+                d[device.Udi] = ("", 0, "DISCONNECTED")
+        else:
+            d[device.Udi] = ("NOT_WIFI",0, "UNKNOWN")
+
+    return d
+
+# def scanWeak():
+#     d = {}
+#     import NetworkManager
+#     for device in NetworkManager.NetworkManager.GetAllDevices():
+#         if  device.DeviceType ==  NetworkManager.NM_DEVICE_TYPE_WIFI:
+#             ap = device.ActiveAccessPoint
+#             if device.mode == 2:
+#                 if ap.Strength< 30:
+#                     pass
+#     return d
 
 
 
 class Connection():
-    def __init__(self,ssid, psk,interface='',mode="sta", priority = 50,id=None):
+    def __init__(self,ssid, psk,interface='',mode="sta", priority = 50,id=None,addrs=''):
         import NetworkManager
 
         self.ssid = ssid
@@ -109,6 +145,7 @@ class Connection():
         self.priority = priority
         self.uuid = id or str(uuid.uuid4())
         self.interface=interface
+        self.addrs = addrs
         by_uuid[self.uuid] = self
         try:
             NetworkManager.Settings.GetConnectionByUuid(self.uuid).Delete()
@@ -120,25 +157,74 @@ class Connection():
         if mode == 'ap' or mode=='sta':
             keymgt='wpa-psk'
 
+        authalg =''
+        if not psk:
+            keymgt='none'
+            authalg="open"
 
+        modes= {
+            'ap': 'ap',
+            'sta': 'infrastructure',
+            'adhoc': 'adhoc'
+        }
+
+        def parseAddresses(a):
+            v6=[]
+            v4=[]
+            
+            for i in a.split(","):
+                i =i.strip()
+                if not i:
+                    continue
+
+                i = i.split("/")
+                if len(i)>1:
+                    snlen=int(i[1])
+                    addr = i[0]
+                else:
+                    addr = i[0]
+                    snlen=24
+                if ":" in addr:
+                    v6.append({"address":addr,"prefix":snlen})
+                else:
+                    v6.append({"address":addr,"prefix":snlen})
+            return v4, v6
+
+        v4,v6 = parseAddresses(addrs)
+
+        #Give it a default address, so it actually works
+        if mode=="ap" and not v4:
+            v4=[{"address":"10.0.0.1","prefix":24}]
+        
         connection = {
-            '802-11-wireless': {'mode': 'infrastructure',
+            '802-11-wireless': {'mode': modes[mode],
                                 'ssid': ssid},
-            '802-11-wireless-security': {'key-mgmt': keymgt, 'psk':psk, 'group': ['ccmp'] if psk else []},
+            '802-11-wireless-security': {'key-mgmt': keymgt,
+             'psk':psk, 
+             'group': ['ccmp'] if psk else [],             
+             },
 
             'connection': {'id': "temp:"+ssid,
                             'type': '802-11-wireless',
                             'uuid':self.uuid,
                     },
-            'ipv4': {'method': 'auto'},
-            'ipv6': {'method': 'auto'},
+            'ipv4': {'method': 'auto', "address-data":v4, 'dns':registry.get("system.wifi/v4_dns",[])},
+            'ipv6': {'method': 'auto', 'address-data':v6, 'dns':registry.get("system.wifi/v6_dns",[])},
         }
-
         NetworkManager.Settings.AddConnectionUnsaved(connection)
 
 
 
     def __del__(self):
+
+        #Detect if this has been replaced by another with the same UUID
+        #And we should avoid deleting the new one.
+        #May have a race condition, doesn't matter, leaving one or two
+        #connections on rare occasions isn't a big deal, they don't persist anyway,
+        #And they'll get cleaned up next time something with this uuid changes
+        if self.uuid in by_uuid:
+            if by_uuid[self.uuid] != self:
+                return
         try:
             import NetworkManager
             NetworkManager.Settings.GetConnectionByUuid(self.uuid).Delete()
@@ -153,13 +239,17 @@ class Connection():
             if dev.DeviceType ==  NetworkManager.NM_DEVICE_TYPE_WIFI:
                 if self.interface and not dev.Udi==self.interface:
                     continue
-                if dev.ActiveConnection in by_uuid:
-                    try:
-                        if by_uuid[dev.ActiveConnection.Uuid].priority>= self.priority:
+                if dev.ActiveConnection:
+                    if dev.ActiveConnection.Uuid in by_uuid:
+                        try:
+                            if by_uuid[dev.ActiveConnection.Uuid].priority>= self.priority:
+                                continue
+                        except:
+                            logging.exception("what?")
+                    else:
+                        if self.priority<51:
                             continue
-                    except:
-                        logging.exception("what?")
-                
+
                 if self.mode =="sta":
                     visible = False
                     for i in dev.GetAccessPoints():
@@ -167,6 +257,7 @@ class Connection():
                             visible=True
                     if visible==False:
                         return
+
                 c = NetworkManager.Settings.GetConnectionByUuid(self.uuid)
                 print(c,dev)
                 NetworkManager.NetworkManager.ActivateConnection(c, dev,'/')
@@ -192,9 +283,10 @@ def connectionsFromRegistry():
                     if i['ssid']==x.ssid and i['psk']==x.psk:
                         if i['mode']==x.mode:
                             if i['interface']==x.interface:
-                                x.priority= i['priority']
+                                if i.get('addrs','') == x.addrs:
+                                    x.priority= i['priority']
                                 continue
-                registryConnections[i['uuid']] = Connection(id=i['uuid'], ssid=i['ssid'], psk=i['psk'],interface=i['interface'],mode=i['mode'], priority=i['priority'])
+                registryConnections[i['uuid']] = Connection(id=i['uuid'], ssid=i['ssid'], psk=i['psk'],interface=i['interface'],mode=i['mode'], priority=i['priority'], addrs=i.get('addrs',''))
         except:
             log.exception("Error setting up connection to "+str(i.get('ssid',"")))
     
@@ -206,6 +298,13 @@ def connectionsFromRegistry():
 def handleMessage(u,v):
     if v[0]=='refresh':
         api.send(['connections',registry.get('system.wifi/connections',[])])
+        api.send(['status', getConnectionStatus()])
+        api.send(['global',{
+        'v4dns': registry.get('system.wifi/v4_dns',[]),
+        'v6dns': registry.get('system.wifi/v6_dns',[])
+        }
+        
+        ])
 
     if v[0]=='setConnectionParam':
         x = registry.get('system.wifi/connections',[])
@@ -219,7 +318,7 @@ def handleMessage(u,v):
     if v[0]=='addConnection':
         c = {
             'ssid': '', 'mode':'sta', 'psk':'', 'interface':'', 'priority': 50,
-            'uuid': str(uuid.uuid4())
+            'uuid': str(uuid.uuid4()), 'addrs':''
         }
         x = registry.get('system.wifi/connections',[])
         x.append(c)
@@ -231,6 +330,12 @@ def handleMessage(u,v):
         x= [i for i in x if not i['uuid']==v[1]]
         registry.set('system.wifi/connections',x)
         api.send(['connections', registry.get('system.wifi/connections',[])])
+    
+    if v[0]=="setV6DNS":
+        registry.set('system.wifi/v6_dns',[i.strip() for i in v[1].split(",") if i.strip()])
+
+    if v[0]=="setV4DNS":
+        registry.set('system.wifi/v4_dns',[i.strip() for i in v[1].split(",") if i.strip()])
 
     if v[0]=='apply':
         try:
@@ -244,8 +349,15 @@ def handleMessage(u,v):
 @scheduling.scheduler.everyMinute
 def worker():
     try:
+        import NetworkManager
+    except:
+        log.exception("Could not import NetworkManager. Network management disabled.")
+        return
+
+    try:
         connectionsFromRegistry()
         applyConnections()
+        api.send(['status', getConnectionStatus()])
     except:
         log.exception("Error in WifiManager")
 

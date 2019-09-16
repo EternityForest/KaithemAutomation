@@ -23,6 +23,8 @@ from src import wifimanager
   <h1>Kaithem WiFi Manager</h1>
   <p>Here you can manager the system wifi, if you are running with NetworkManager on Linux.
     Connections are only saved to the kaithem registry, they dissapear as soon as kaithem exits.
+  </p>
+  <p>
     Connections created elsewhere(Such as through a desktop widget) still work while kaithem is running,
     they have an effective priority of 50.
   </p>
@@ -46,9 +48,27 @@ from src import wifimanager
     the registry as soon as you make them and will be applied when kaithem restarts or you press apply.
   </p>
 
+
+  <h2>Network Interfaces</h2>
   <table border=1>
     <tr>
-        <th>SSID</th><th>Password</th><th>Mode</th><th>Interface(Blank for any)</th><th>Priority</th>
+      <th>Interface</th><th>Connected To</th><th>Strength</th><th>Mode</th>
+    </tr>
+
+    <tr v-for="v,i in status">
+      <td>{{i}}</td>
+      <td>{{v[0]}}</td>
+      <td>{{v[1]}}% <meter style="float: right;" v-bind:value="v[1]" min=0 max=100 low=35></meter></td>
+      <td title="AP indicates this machine is the access point. STA indicates that it is the client">{{v[2]}}</td>
+    </tr>
+  </table>
+
+  <h2>Connections</h2>
+  <table border=1>
+    <tr>
+        <th>SSID</th><th>Password</th><th>Mode</th><th>Interface(Blank for any)</th>
+        <th title="Manually assign addresses, comma separated, v4 or 6, example: '10.9.7.5/24'">Addresses</th>
+        <th>Priority</th>
         <th>Delete</th>
     </tr>
 
@@ -69,11 +89,16 @@ from src import wifimanager
         <td>
             <input v-model='i.interface' v-on:change="setParam(i.uuid, 'interface', $event.target.value)">
         </td>
+
+        <td>
+            <input v-model.number='i.addrs' v-on:change="setParam(i.uuid, 'addrs', $event.target.value)">
+        </td>
+
         <td>
             <input type="number" v-model.number='i.priority' v-on:change="setParam(i.uuid, 'priority', parseInt($event.target.value))">
         </td>
         <td>
-            <button v-on:click="confirmDelete(i.uuid)">Delete</button>
+            <button v-on:click="deleteConnection(i.uuid)">Delete</button>
         </td>
     </tr>
   </table>
@@ -91,6 +116,7 @@ from src import wifimanager
     el: '#app',
     data: {
       connections: [],
+      status: {},
       api:api,
       setParam: function(con, param, val)
       {
@@ -109,6 +135,9 @@ from src import wifimanager
   api.upd = function (msg) {
         if (msg[0] == "connections") {
             app.$data.connections= msg[1]
+        }
+        else if (msg[0] == "status") {
+            app.$data.status= msg[1]
         }
     }
 
