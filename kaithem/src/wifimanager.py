@@ -1,8 +1,7 @@
 
-import NetworkManager
 import uuid,weakref, threading,logging
 
-from .import registry, widgets, scheduling
+from .import registry, widgets, scheduling,messagebus
 
 by_uuid = weakref.WeakValueDictionary()
 
@@ -13,6 +12,14 @@ log = logging.getLogger("system.wifi")
 def applyConnections():
     #Get all the interfaces that are not already connected
     freeDevices = []
+
+    #Skip the whole nonsense if there's no connections set up anyway
+    if not by_uuid:
+        return
+
+    #This whole file is imported on-demand, because it has so many dependancies
+    #And isn't available everywhere.
+    import NetworkManager
 
     #SSID to (strength, device) of strongest connection to an AP
     connectionStrengths ={}
@@ -93,19 +100,20 @@ def applyConnections():
 
 
 class Connection():
-    def __init__(self,ssid, psk,interface='',mode="sta", priority = 50,uuid=NetworkManager):
+    def __init__(self,ssid, psk,interface='',mode="sta", priority = 50,id=None):
+        import NetworkManager
+
         self.ssid = ssid
         self.psk = psk
         self.mode = mode
         self.priority = priority
-        self.uuid = uuid or str(uuid.uuid4())
+        self.uuid = id or str(uuid.uuid4())
         self.interface=interface
         by_uuid[self.uuid] = self
         try:
             NetworkManager.Settings.GetConnectionByUuid(self.uuid).Delete()
         except:
             pass
-
 
         if mode =='adhoc':
             keymgt = 'wpa-none'
@@ -118,7 +126,7 @@ class Connection():
                                 'ssid': ssid},
             '802-11-wireless-security': {'key-mgmt': keymgt, 'psk':psk, 'group': ['ccmp'] if psk else []},
 
-            'connection': {'id': 'testconnect',
+            'connection': {'id': "temp:"+ssid,
                             'type': '802-11-wireless',
                             'uuid':self.uuid,
                     },
@@ -132,11 +140,14 @@ class Connection():
 
     def __del__(self):
         try:
+            import NetworkManager
             NetworkManager.Settings.GetConnectionByUuid(self.uuid).Delete()
         except:
             pass
 
     def activate(self, interface=None):
+        import NetworkManager
+
         devices = NetworkManager.NetworkManager.GetAllDevices()
         for dev in devices:
             if dev.DeviceType ==  NetworkManager.NM_DEVICE_TYPE_WIFI:
@@ -161,8 +172,6 @@ class Connection():
                 NetworkManager.NetworkManager.ActivateConnection(c, dev,'/')
                 return True
 
-applyConnections()
-
 
 registryConnections = {}
 
@@ -182,10 +191,10 @@ def connectionsFromRegistry():
                     #Just update priority
                     if i['ssid']==x.ssid and i['psk']==x.psk:
                         if i['mode']==x.mode:
-                            if i['interface']==x['interface']:
-                                if x.priority== i['priority']:
-                                    continue
-                registryConnections[i['uuid']] = Connection(ssid=i['ssid'], psk=i['psk'],interface=i['interface'],mode=i['mode'], priority=i['priority'])
+                            if i['interface']==x.interface:
+                                x.priority= i['priority']
+                                continue
+                registryConnections[i['uuid']] = Connection(id=i['uuid'], ssid=i['ssid'], psk=i['psk'],interface=i['interface'],mode=i['mode'], priority=i['priority'])
         except:
             log.exception("Error setting up connection to "+str(i.get('ssid',"")))
     
@@ -202,8 +211,8 @@ def handleMessage(u,v):
         x = registry.get('system.wifi/connections',[])
         for i in x:
             if i['uuid']==v[1]:
-                i[v[2]]==v[3]
-        x = reversed(sorted(x, key=lambda c: (c.priority, c.interface)))
+                i[v[2]]=v[3]
+        x = list(reversed(sorted(x, key=lambda c: (c['priority'], c['interface'],c['uuid']))))
         registry.set('system.wifi/connections',x)
         api.send(['connections',registry.get('system.wifi/connections',[])])
 
@@ -223,9 +232,31 @@ def handleMessage(u,v):
         registry.set('system.wifi/connections',x)
         api.send(['connections', registry.get('system.wifi/connections',[])])
 
+    if v[0]=='apply':
+        try:
+            connectionsFromRegistry()
+            applyConnections()
+        except:
+            log.exception("Error in WifiManager")
+            messagebus.postMessage("/system/notifications/errrors","WiFi Manager is set up but not working")
+
+
 @scheduling.scheduler.everyMinute
 def worker():
+    try:
+        connectionsFromRegistry()
+        applyConnections()
+    except:
+        log.exception("Error in WifiManager")
+
+
+try:
+    connectionsFromRegistry()
     applyConnections()
+except:
+    log.exception("Error in WifiManager")
+    messagebus.postMessage("/system/notifications/errrors","WiFi Manager is set up but not working")
+
 
 
 api = widgets.APIWidget()

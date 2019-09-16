@@ -40,9 +40,15 @@ from src import wifimanager
   <p>Whenever two interfaces have a connection to the same SSID, the interface disconnects the lower
       priority one.
   </p>
+
+  <p class="warning">Changing these settings could result in disconnecting from WiFi. You may not
+    be able to access the server to fix it, unless you connect directly.  Changes are saved to
+    the registry as soon as you make them and will be applied when kaithem restarts or you press apply.
+  </p>
+
   <table border=1>
     <tr>
-        <th>SSID</th></th>Password</th><th>Mode</th><th>Interface(Blank for any)</th><th>Priority</th>
+        <th>SSID</th><th>Password</th><th>Mode</th><th>Interface(Blank for any)</th><th>Priority</th>
         <th>Delete</th>
     </tr>
 
@@ -72,6 +78,7 @@ from src import wifimanager
     </tr>
   </table>
   <button v-on:click="api.send(['addConnection'])">Add New Connection</button>
+  <button v-on:click="api.send(['apply']);">Apply Settings</button>
 </div>
 
 
