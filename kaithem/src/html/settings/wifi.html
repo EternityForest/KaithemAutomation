@@ -64,6 +64,10 @@ from src import wifimanager
   </table>
 
   <h2>Connections</h2>
+  <p class="help">
+    To match multiple interfaces that could be plugged into the same port, use the * wildcard.
+    It only works at the end.
+  </p>
   <table border=1>
     <tr>
         <th>SSID</th><th>Password</th><th>Mode</th><th>Interface(Blank for any)</th>
@@ -83,11 +87,10 @@ from src import wifimanager
             <select v-model='i.mode' v-on:change="setParam(i.uuid, 'mode', $event.target.value)">
                 <option value="sta">Client(sta/infrastructure)</option>
                 <option value="ap">Act as Access Point(ap)</option>
-                <option value="adhoc">Ad-hoc(Not all devices support)</option>
             </select>
         </td>
         <td>
-            <input v-model='i.interface' v-on:change="setParam(i.uuid, 'interface', $event.target.value)">
+            <input  width=25em v-model='i.interface' title="* can be used at the end for a wildcard to match multiple things that might on a port. It only works at the end." v-on:change="setParam(i.uuid, 'interface', $event.target.value)">
         </td>
 
         <td>

@@ -48,7 +48,7 @@ def Tag(name):
             if x:
                 return x
         
-        for i in providers:
+        for i in sorted(providers.keys(),key =lambda p: len(p.path), reverse=True):
             if name.startswith(i):
                 return providers[i].getTag(i)
 

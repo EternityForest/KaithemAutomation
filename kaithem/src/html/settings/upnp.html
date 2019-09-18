@@ -5,7 +5,7 @@ from pavillion import upnpwrapper
 <h1>Local Network</h1>
 <div class="sectionbox">
 <h2>WAN Adddresses</h2>
-<p class="help">Only UPnP routers listed here</p>
+<p class="help">Only UPnP routers listed here, You may need to refresh because of how discovery works.</p>
 <ul>
 %for i in upnpwrapper.getWANAddresses():
 <li>${i}</li>

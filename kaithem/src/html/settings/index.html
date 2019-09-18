@@ -3,6 +3,9 @@
 <h1>Settings and Tools</h1>
 <div class="sectionbox">
 <dl>
+<h2>Settings</h2>
+<dt><a href="/settings/save">Save server state to disk</a></dt>
+<dd>Commit in-memory data for modules, users, and the registry to the disk.</dd>
 <dt><a href="/settings/account">My Account</a></dt>
 <dd>View and edit your account and security info
 <dt><a href="/settings/system">System Settings</a></dt>
@@ -12,18 +15,24 @@
 <p class="warning">WARNING: Yappi has High CPU use, may crash on rasPi or similar.</p></dd>
 <dt><a href="/auth/">Users and Groups</a></dt>
 <dd>Manage users, Groups, and Permissions</dd>
+
+<h2>Logging</h2>
 <dt><a href="/syslog">System Logs</a></dt>
 <dd>View system and debug logs</dd>
-<dt><a href="/tagpoints">Tag Points</a></dt>
-<dd>View Tagpoints</dd>
 <dt><a href="/logs">Message Bus Logs</a></dt>
 <dd>View recent logs from the message bus, choose what topics are logged to the system log.</dd>
 <dt><a href="/settings/loginfailures">Failed Login Attempts</a></dt>
 <dd>View IPs that have recently attempted to log in with an incorrect password</dd>
+
+<h2>Status</h2>
+<dt><a href="/tagpoints">Tag Points</a></dt>
+<dd>View Tagpoints</dd>
 <dt><a href="/settings/processes">Processes</a></dt>
 <dd>View processes running on the server(Depends on the unix utility top)</dd>
 <dt><a href="/settings/threads">Threads</a></dt>
 <dd>View Kaithem Threads on the server.</dd>
+
+<h2>Utilities</h2>
 <dt><a href="/settings/mdns">MDNS</a></dt>
 <dd>View HTTP,HTTPS, and NTP services on the LAN</dd>
 <dt><a href="/settings/upnp">UPnP Scanner</a></dt>
@@ -32,13 +41,10 @@
 <dd>Run short scripts in the system shell via the web interface. Unix only.</dd>
 <dt><a href="/settings/files">File Manager</a></dt>
 <dd>Download, upload, view, and delete files on the filesystem(But only those Kaithem can access)</dd>
-
 <dt><a href="/settings/mixer">JACK Mixer(BETA)</a></dt>
 <dd>Web-based audio mixing board. Requires JACK and GStreamer, and only works on Linux.</dd>
 </dl>
-
-
-<dt><a href="/settings/wifi">Network Settings</a></dt>
+<dt><a href="/settings/wifi">Network Settings(BETA)</a></dt>
 <dd>If kaithem has the right permissions, manage WiFi connections. Uses NetworkManager, only works on Linux.
     Usually kaithem just has to be in the netdev group.
 </dd>
@@ -47,6 +53,7 @@
 
 <dt><a href="/settings/stopsounds">Stop All Sounds currently playing</a></dt>
 <dd>Click to stop all sounds playing on the server.</dd>
+
 </dl>
 </div>
 
