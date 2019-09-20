@@ -336,12 +336,13 @@ def exists(key):
 
 def ls(key):
     prefix = key.split("/")[0]
+
     with reglock:
         f = registry.open(prefix)
         if not 'keys' in f:
             return False
         k= f['keys']
-        return([key.split("/")[-1] for key in k])
+        return([i.split("/")[-1] for i in k if (i.startswith(key) or i.startswith('/'+key))])
 
 
 

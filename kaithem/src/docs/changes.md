@@ -22,6 +22,7 @@ Change Log
 - New kaithem.web.controllers: Easily create pages directly in python code using cherrypy directly without losing the flexibility of Kaithem.
 - WiFi Manager, on Linux with NetworkManager you can set up connections to access points via
   the web UI.
+- `__del__` support in events, just define it in the setup.
 
 
 ### 0.63.1

@@ -139,6 +139,10 @@ class MonoAirwire():
             except:
                 print(traceback.format_exc())
 
+
+
+
+
 class Effect():
     def __init__(self, effectype):
         pass
@@ -1110,7 +1114,10 @@ def startManagingJack(p=None,n=None):
             with lock:
                 #Close any existing stuff
                 if jackclient:
-                    jackclient.close()
+                    try:
+                        jackclient.close()
+                    except:
+                        log.exception("Probably already closed")
                     jackclient=None
                 jackclient = jack.Client("Overseer",no_start_server=True)
                 break

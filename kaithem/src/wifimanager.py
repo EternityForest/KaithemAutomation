@@ -107,6 +107,14 @@ modes={
     2:'STA'
 }        
 
+
+def matchIface(a, pattern):
+    if pattern.endswith("*"):
+        if a.startswith(pattern[:-1]):
+            return True
+    else:
+        if a==pattern:
+            return True
 def getConnectionStatus():
     d = {}
     import NetworkManager
@@ -237,7 +245,7 @@ class Connection():
         devices = NetworkManager.NetworkManager.GetAllDevices()
         for dev in devices:
             if dev.DeviceType ==  NetworkManager.NM_DEVICE_TYPE_WIFI:
-                if self.interface and not dev.Udi==self.interface:
+                if self.interface and matchIface(dev.Udi==self.interface):
                     continue
                 if dev.ActiveConnection:
                     if dev.ActiveConnection.Uuid in by_uuid:

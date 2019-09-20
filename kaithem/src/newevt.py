@@ -401,8 +401,16 @@ class BaseEvent():
             self.lock.release()
 
     def cleanup(self):
+
         try:
             with self.lock:
+                try:
+                    if '__del__' in self.pymodule.__dict__:
+                        self.pymodule.__dict__.__del__()
+                        del self.pymodule.__dict__.__del__
+                except:
+                    logger.exception("Error in delete function")
+
                 self.pymodule.__dict__.clear()
                 del self.pymodule
         except:

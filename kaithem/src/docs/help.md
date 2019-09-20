@@ -200,6 +200,9 @@ Anything defined in the Setup function of an event becomes a part of the
 global namespace for that event, and can be accessed by code in Trigger
 and Action, and written to by use of the global keyword.
 
+If you define a __del__() function, it gets called when the event is cleaned
+up.
+
 Internally, the events are compiled to (in memory, bytecode is not
 written to disk) python modules and the actions become functions.
 
@@ -964,6 +967,34 @@ a value that is invalid acording to a schema, it will raise an error.
 #### kaithem.registry.delete(key, schema)
 
 Delete a key and and data and schema assosiated with it
+
+
+### kaithem.midi
+This namespace deals with MIDI.
+
+#### kaithem.midi.FluidSynth(soundfont=DEFAULT, jackClientName=None)
+Creates a FluidSynth instance using a specified soundfont. It
+is a wrapper around https://github.com/nwhitehead/pyfluidsynth.
+
+If no soundfont is supplied, kaithem includes babyfont.sf3, an excellent 4MB
+soundfont file.
+
+The library is a fork that has been patched to support FluidSynth 2 as well as 1.
+
+#### FluidSynth.setInstrument(channel, instrument, bank=0)
+Uses a MIDI program select message to set the instrument for the channel. You
+can directly use a patch number, or you can use a string. The first instrument
+in the soundfont or in general midi to match all words(case insensitive) is chosen.
+
+
+Example:
+`synth.setInstrument(0, "jazz guitar")`
+Will select:
+`26 : "Electric Guitar (jazz)"`
+
+
+#### FluidSynth.fs
+This is the raw synth in the library we are wrapping.
 
 ### kaithem.sound
 
