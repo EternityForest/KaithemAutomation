@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 import subprocess,os,math,time,sys,threading, collections,logging,re
-from . import  util, scheduling,directories,workers, registry,widgets,messagebus
+from . import  util, scheduling,directories,workers, registry,widgets,messagebus, midi
 from .config import config
 
 
@@ -857,6 +857,9 @@ for i in config['audio-backends']:
         backend = l[i]()
         break
 
+def stopAllSounds():
+    midi.allNotesOff()
+    backend.stopAllSounds()
 
 #Make fake module functions mapping to the bound methods.
 playSound = backend.playSound
@@ -865,7 +868,6 @@ isPlaying = backend.isPlaying
 resolveSound = soundPath
 pause = backend.pause
 resume = backend.resume
-stopAllSounds = backend.stopAllSounds
 setvol = backend.setVolume
 setEQ = backend.setEQ
 position = backend.getPosition

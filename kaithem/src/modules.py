@@ -433,7 +433,8 @@ def loadResource(fn:str,ver:int=1):
                         logging.exception("err loading as pyencoded: "+fn)
                         pass
                 
-                elif fn.endswith(".html"):
+                #Option to encode metadata as special script type
+                elif fn.endswith(".html") and "2b8c68ea-307c-4558-bf34-5e024c8306f4" in d:
                     isSpecialEncoded=True
                     try:
                         x = re.search(r'<script +type=\"2b8c68ea-307c-4558-bf34-5e024c8306f4\">((.|[\n\r])*?)<\/script>',d)
@@ -447,9 +448,9 @@ def loadResource(fn:str,ver:int=1):
                         logging.exception("err loading as html encoded: "+fn)
                         pass
 
-                #Markdown files start with --- and are delimited by ---
+                #Markdown and most html files files start with --- and are delimited by ---
                 #The first section is YAML and the second is the page body.
-                elif fn.endswith(".md"):
+                elif fn.endswith(".md") or fn.endswith(".html"):
                     isSpecialEncoded=True
                     try:
                         x = d.split("---\n",2)
@@ -531,8 +532,7 @@ def saveResource2(obj,fn:str):
         else:
             b = r['body']
             del r['body']
-            c ="#This script is only to configure metadata, \n#it is YAML, not JS and is not included in  the page\n\n"
-            d = '<script type="2b8c68ea-307c-4558-bf34-5e024c8306f4">\n'+indent(c+yaml.dump(r).strip()) + "\n</script>\n\n" + b
+            d="---\n"+yaml.dump(r)+"\n---\n"+b
             ext = ".html"
 
     elif r['resource-type'] == 'event':

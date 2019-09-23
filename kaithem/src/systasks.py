@@ -193,17 +193,6 @@ def autosave():
             lastdumpedlogs = time.time()
             messagelogging.dumpLogFile()
 
-def save():
-    if config['save-before-shutdown']:
-        messagebus.postMessage('/system/notifications/important/',"System saving before shutting down")
-        util.SaveAllState()
-
-#let the user choose to have the server save everything before a shutdown
-if config['save-before-shutdown']:
-    atexit.register(save)
-    cherrypy.engine.subscribe("exit",save)
-
-
 def sd():
     messagebus.postMessage('/system/shutdown',"System about to shut down or restart")
     messagebus.postMessage('/system/notifications/important',"System shutting down now")

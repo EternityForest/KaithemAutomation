@@ -766,6 +766,7 @@ def resourceUpdateTarget(module,resource,kwargs):
 
                 #If everything seems fine, then we update the actual resource data
                 ActiveModules[module][resource]=r2
+                resourceobj = r2
             #Save but don't enable
             else:
                 #Make a copy of the old resource object and modify it
@@ -800,6 +801,7 @@ def resourceUpdateTarget(module,resource,kwargs):
             #if the test compile fails, evt will be None and the function will look up the old one in the modules database
             #And compile that. Otherwise, we avoid having to double-compile.
             newevt.updateOneEvent(resource,module,evt)
+            resourceobj = r2
 
         elif t == 'page':
 

@@ -23,6 +23,8 @@ Change Log
 - WiFi Manager, on Linux with NetworkManager you can set up connections to access points via
   the web UI.
 - `__del__` support in events, just define it in the setup.
+- kaithem.midi.FluidSynth lets you play MIDI notes with soundfonts
+
 
 
 ### 0.63.1

@@ -44,7 +44,7 @@ except:
 
 
 
-import sys,os,threading,traceback,time,mimetypes,signal,shutil
+import sys,os,threading,traceback,time,mimetypes,signal,shutil,atexit
 
 
 #Minimal path setup, to be able to even find the rest
@@ -253,6 +253,18 @@ def webRoot():
     #Load all modules from the active modules directory
     modules.initModules()
     logger.info("Loaded modules")
+
+
+    def save():
+        if config['save-before-shutdown']:
+            messagebus.postMessage('/system/notifications/important/',"System saving before shutting down")
+            util.SaveAllState()
+
+    #let the user choose to have the server save everything before a shutdown
+    if config['save-before-shutdown']:
+        atexit.register(save)
+        cherrypy.engine.subscribe("exit",save)
+
 
     import mimetypes
 
