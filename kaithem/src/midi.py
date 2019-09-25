@@ -97,6 +97,11 @@ class FluidSynth():
         connectMidi=None, connectOutput=None,reverb=False,chorus=False, ondemand=True):
         players[id(self)]=self
 
+        if jackClientName:
+           from . import jackmanager
+           if not jackmanager.getPorts():
+               raise RuntimeError("It appears that JACK is not running")
+               
         if not os.path.isfile(soundfont):
             raise OSError("Soundfont: "+soundfont+" does not exist or is not a file")
         self.soundfont = soundfont
@@ -114,9 +119,6 @@ class FluidSynth():
         usingJack = False
 
         if jackClientName:
-           from . import jackmanager
-           if not jackmanager.getPorts():
-               raise RuntimeError("It appears that JACK is not running")
            self.fs.setting("audio.jack.id", jackClientName)
            usingJack = True
 

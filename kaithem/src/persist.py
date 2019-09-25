@@ -12,7 +12,7 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import sys,os,weakref,threading,gzip,bz2,json, time,logging
+import sys,os,weakref,threading,gzip,bz2,json, time,logging,hashlib
 
 
 ###THIS FILE IS INTENDED TO BE USABLE AS A STANDALONE LIBRARY. DON'T ADD DEPENDANCIES
@@ -85,7 +85,7 @@ class Persister():
         if os.path.exists(self.fn):
             self.value = load(self.fn)
 
-def save(data,fn,mode="default", private=False,backup=None, expand=True, md5=False):
+def save(data,fn,mode="default", private=False,backup=True, expand=True, md5=False):
     """Save data to file. Filename must end in .json, .yaml, .txt, or .bin. Data will be encoded appropriately.
         Also supports compressed versions via filenames ending in .gz or .bz2.
         Args:
@@ -139,7 +139,7 @@ def save(data,fn,mode="default", private=False,backup=None, expand=True, md5=Fal
         elif x.endswith(".yaml"):
             import yaml
             data = yaml.dump(data).encode('utf8')
-        elif x.endswith(".txt"):
+        elif x.endswith(".txt") or x.endswith(".md") or x.endswith(".rst"):
             data = (str(data).encode('utf8'))
         elif x.endswith(".bin"):
             data = (data)
@@ -175,48 +175,7 @@ def save(data,fn,mode="default", private=False,backup=None, expand=True, md5=Fal
             mode="backup"
 
         if mode=="backup":
-
-            #If we are running on an os that has has posix atomic rename on top of an old file,
-            #Write to a tempfile, and then rename it on top of the old file.
-
-            #If we do not have POSIX rename semantics, we have to make a backup file.
-            #But, we also need a way to know if that backup file is good or not wehn we load.
-            #So, we have to make another file that marks the backup file as good
-            #We call that one ~!
-            if posix_rename:
-                tempfn = fn+str(time.time())
-            else:
-                #We don't want to squash any existing backups
-                if not os.path.exists(fn+'~'):
-                    buf = fn+'~'
-                else:
-                    #This will make a crap file that will need to be cleaned up manually unfortunately
-                    buf = fn+"~"+str(time.time())
-
-                if os.path.isfile(fn):
-                    shutil.copy(fn, buf)
-                    #This is where we make the marker file that says the backup we just made is good.
-                    with open(buf+"!","w") as f:
-                        pass
-                else:
-                    #If the file does not already exist, we are going to make a "backup file"
-                    #That serves only to mark the real file as incomplete until we delete it.
-                    #To this end, we are not going to make a backup good marker file.
-
-                    if not os.path.exists(fn+'~'):
-                        #This is where we make the marker file that says the backup we just made is good.
-                        with open(buf+"~","w") as f:
-                            pass
-
-                if os.path.isfile(fn+".md5"):
-                    #Delete the old MD5 if it somehow exists. It shouldn't, because there wasn't a file to go with it
-                    #Or we would never have done the copy
-                    if os.path.exists(buf+".md5"):
-                        os.path.remove(buf+'.md5')
-                    shutil.copy(fn+".md5", buf+".md5")
-
-                #Not actually a temp fn, we just do a direct write.
-                tempfn = fn
+            tempfn = fn+str(time.time())
         else:
             tempfn = fn
         #Actually write it
@@ -237,15 +196,7 @@ def save(data,fn,mode="default", private=False,backup=None, expand=True, md5=Fal
             os.fsync(f.fileno())
 
         if mode=="backup":
-            if posix_rename:
-                os.rename(tempfn, fn)
-            else:
-                #Remove our backup file and it's associated marker
-                os.remove(buf)
-                os.remove(buf+"!")
-
-                if os.path.exists(buf+".md5"):
-                    os.path.remove(buf+'.md5')
+            os.replace(tempfn, fn)
 
         if md5:
             with open(fn+ ".md5" , "w") as md5f:
@@ -259,7 +210,10 @@ def load(filename, autorecover = True,expand=True):
     After that may be a .bz2 or a .gz for compression.
 
     If autorecover is True, if the file is missing or corrupted(May not catch all corrupted YAML files), looks for a ~ backup before failing.
-    maybe best to use gz if you really care because gz has a checksum"""
+    maybe best to use gz if you really care because gz has a checksum.
+    
+    Autorecover is deprecated, saving should be atomic on all platforms
+    """
     filename = resolvePath(filename, expand)
 
     with lock:
@@ -305,7 +259,7 @@ def load(filename, autorecover = True,expand=True):
             elif x.endswith(".yaml"):
                 import yaml
                 r=yaml.load(f.read().decode('utf8'))
-            elif x.endswith(".txt"):
+            elif x.endswith(".txt") or x.endswith(".md") or x.endswith(".rst"):
                 r=f.read().decode('utf8')
             elif x.endswith(".bin"):
                 r=f.read()

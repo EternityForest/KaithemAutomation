@@ -33,6 +33,22 @@ if registry.get("/system/sound/usejack",None)=="manage":
 jackAPIWidget = None
 
 jackClientsFound = False
+
+def tryCloseFds(p):
+    if not p:
+        return
+    try:
+        p.stdout.close()
+    except:
+        pass
+    try:
+        p.stderr.close()
+    except:
+        pass 
+    try:
+        p.stdin.close()
+    except:
+        pass
 class SoundDeviceAlias():
     """An object meant to be looked up by alias, that tells you how to access the sound device it describes,
         using various drivers."""
@@ -304,6 +320,7 @@ class MadPlayWrapper(SoundWrapper):
                         self.loopcounter -=1
                         try:
                             self.process.terminate()
+                            tryCloseFds(self.process)
                         except:
                             pass
                         self.process = subprocess.Popen(cmd, stdout=f, stderr=g)
@@ -315,6 +332,7 @@ class MadPlayWrapper(SoundWrapper):
         def __del__(self):
             try:
                 self.process.terminate()
+                tryCloseFds(self.process)
                 del self.loop_repeat_func
             except:
                 pass
@@ -378,6 +396,8 @@ class Mpg123Wrapper(SoundWrapper):
                             self.process.terminate()
                         except:
                             pass
+                        tryCloseFds(self.process)
+
                         self.process = subprocess.Popen(cmd, stdout=f, stderr=g)
                         return True
                     self.loop_repeat_func = loop_play_again
@@ -388,6 +408,7 @@ class Mpg123Wrapper(SoundWrapper):
             try:
                 self.process.terminate()
                 del self.loop_repeat_func
+                tryCloseFds(self.process)
             except:
                 pass
 
@@ -452,6 +473,7 @@ class SOXWrapper(SoundWrapper):
                             self.process.terminate()
                         except:
                             pass
+                        tryCloseFds(self.process)
                         self.process = subprocess.Popen(["play",filename,"vol",str(vol),"trim",str(start),str(end)], stdout = f, stderr = g)
                         return True
                     self.loop_repeat_func = loop_play_again
@@ -465,6 +487,7 @@ class SOXWrapper(SoundWrapper):
             try:
                 self.process.terminate()
                 del self.loop_repeat_func
+                tryCloseFds(self.process)
             except:
                 pass
 
@@ -620,18 +643,14 @@ class MPlayerWrapper(SoundWrapper):
         def __del__(self):
             try:
                 self.process.terminate()
-                self.process.stdout.close()
-                self.process.stderr.close()
-                self.process.stdin.close()
-
+                tryCloseFds(self.process)
             except:
                 pass
         def stop(self):
             try:
                 self.process.terminate()
-                self.process.stdout.close()
-                self.process.stderr.close()
-                self.process.stdin.close()
+                tryCloseFds(self.process)
+
             except:
                 pass
 

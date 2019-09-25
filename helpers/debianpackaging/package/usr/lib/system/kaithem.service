@@ -2,12 +2,31 @@
 Description=KaithemAutomation python based automation server
 After=basic.target
 Type=simple
-Restart=on-failure
-RestartSec=5
+
 
 [Service]
 TimeoutStartSec=0
 ExecStart="/usr/bin/kaithem -c /etc/kaithem/cfg.yaml"
+Restart=on-failure
+RestartSec=5
+
+#--------Thanks to the mpd service file for this part
+# allow Kaithem to use real-time priority 80
+LimitRTPRIO=80
+LimitRTTIME=-1
+
+# move to a top-level cgroup, as real-time budget assignment fails
+# because /system has a zero real-time
+# budget; see
+# http://www.freedesktop.org/wiki/Software/systemd/MyServiceCantGetRealtime/
+ControlGroup=cpu:/kaithem
+
+# assign a real-time budget
+ControlGroupAttribute=cpu.rt_runtime_us 800000
+
+#Needed to allow launching jackd without X
+Environment="DBUS_SESSION_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket"
+Environment="JACK_NO_AUDIO_RESERVATION=1"
 
 [Install]
 WantedBy=multi-user.target

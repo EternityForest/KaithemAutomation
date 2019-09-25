@@ -1,0 +1,13 @@
+---
+no-header: false
+no-navheader: true
+require-method: [GET, POST]
+require-permissions: []
+resource-timestamp: 1566264981098419
+resource-type: page
+
+---
+This page tries to set module.x to 50.
+However there is an event trigger waiting for module.x to change that immediately resets it to 0
+See the page "View Useless Machine Result" to see module.x
+<%module.x = 50%>

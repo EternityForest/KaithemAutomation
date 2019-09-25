@@ -376,16 +376,35 @@ def compressnumbers(s):
   
 
 
+def tryCloseFds(p):
+    if not p:
+        return
+    try:
+        p.stdout.close()
+    except:
+        pass
+    try:
+        p.stderr.close()
+    except:
+        pass 
+    try:
+        p.stdin.close()
+    except:
+        pass
+
 def try_stop(p):
     try:
         p.terminate()
     except:
         pass
+    tryCloseFds(p)
+
 def closeAlsaProcess(x):
     #Why not a proper terminate?
     #It seemed to ignore that sometimes.
     x.kill()
     x.wait()
+    tryCloseFds(x)
 
 
 
@@ -544,6 +563,9 @@ def cardsfromregex(m, cards,usednames = [],pciNumbers={},usedFirstWords = {}):
 
     m= sorted(m)
     for i in m:
+        #Filter out HDMI
+        if 'HDMI' in i[3]:
+            continue
         #We generate a name that contains both the device path and subdevice
         generatedName = cards[i[0]]+"."+i[2]
 
@@ -622,7 +644,7 @@ def scanMidi(m, cards,usednames = [],pciNumbers={},usedFirstWords = {}):
 
 
 def readAllSoFar(proc, retVal=b''): 
-  counter = 128
+  counter = 1024
   while counter:
     x =(select.select([proc.stdout],[],[],0.1)[0])
     if x:   
@@ -633,7 +655,7 @@ def readAllSoFar(proc, retVal=b''):
   return retVal
 
 def readAllErrSoFar(proc, retVal=b''): 
-  counter = 128
+  counter = 1024
   while counter:
     x =(select.select([proc.stderr],[],[],0.1)[0])
     if x:   
@@ -748,9 +770,14 @@ atexit.register(cleanup)
 
 jackShouldBeRunning = False
 
+
 def stopManagingJack():
     global jackShouldBeRunning
     jackShouldBeRunning =False
+
+jackp = None
+period = 128
+nperiods = 3
 
 def stopJack():
     import subprocess
@@ -781,10 +808,10 @@ def stopJack():
             jackclient=None
     except:
         pass
+    tryCloseFds(jackp)
 
-jackp = None
-period = 128
-nperiods = 3
+
+
 
 def startJack(p=None, n=None):
     #Start the JACK server.
@@ -796,6 +823,7 @@ def startJack(p=None, n=None):
     nperiods = n or nperiods
     
     if not jackp or not jackp.poll()==None:
+        tryCloseFds(jackp)
         if midip:
             try:
                 midip.kill()
@@ -806,10 +834,25 @@ def startJack(p=None, n=None):
             subprocess.check_call(['pulseaudio','-k'])
         except:
             pass
+
+        #TODO: Explicitly close all the FDs we open!
         f = open(os.devnull,"w")
-        g = open(os.devnull,"w")
-        jackp =subprocess.Popen(['jackd', '-S', '--realtime', '-P' ,'70' ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,str(period), '-n' ,str(nperiods) ,'-r','48000'],stdout=f, stderr=subprocess.DEVNULL,stdin=subprocess.DEVNULL)    
-     
+
+        jackp =subprocess.Popen(['jackd', '-S', '--realtime', '-P' ,'70' ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,str(period), '-n' ,str(nperiods) ,'-r','48000'],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE, stderr=subprocess.PIPE)    
+        time.sleep(0.5)
+        if jackp.poll() != None:
+            x = readAllErrSoFar(jackp)
+            if x:
+                log.error("jackd:\n"+x)
+            x=readAllErrSoFar(jackp)
+            if x:
+                log.info("jackd:\n"+x)
+            tryCloseFds(jackp)
+
+
+        if jackp.poll() != None:
+            tryCloseFds(jackp)
+            raise RuntimeError("Could not start JACK process")
         try:
             subprocess.check_call(['chrt', '-f','-p', '70', str(jackp.pid)])
         except:
@@ -978,8 +1021,10 @@ def handleManagedSoundcards():
                         log.info("Added "+i+"o")
             #If we stopped it, start it again
             if startPulse:
-                setupPulse()
-
+                try:
+                    setupPulse()
+                except:
+                    log.exception("Error restarting pulse, ignoring")
             if lastFullScan> time.monotonic()-10:
                 return
             lastFullScan = time.monotonic()
@@ -1070,12 +1115,14 @@ def handleManagedSoundcards():
 
 def work():
     while(tstopper[0]):
-        checkJack()
-        checkJackClient()
-        handleManagedSoundcards()
-        ensureConnections()
-        time.sleep(5)
-
+        try:
+            checkJack()
+            checkJackClient()
+            handleManagedSoundcards()
+            ensureConnections()
+            time.sleep(5)
+        except:
+            logging.exception("Error in jack manager")
 t =None
 tstopper = [0]
 
@@ -1119,8 +1166,9 @@ def startManagingJack(p=None,n=None):
                     except:
                         log.exception("Probably already closed")
                     jackclient=None
+
                 jackclient = jack.Client("Overseer",no_start_server=True)
-                break
+
         except:
             time.sleep(1)
             #If we couldn't get it working, try shutting down some possible conflicts with -9
@@ -1128,7 +1176,7 @@ def startManagingJack(p=None,n=None):
                 try:
                     subprocess.check_call(['killall', '-9', 'jackd'])
                 except:
-                    log.exception("err")
+                    pass
                 try:
                     with lock:
                         #Close any existing stuff
@@ -1141,14 +1189,18 @@ def startManagingJack(p=None,n=None):
                     subprocess.check_call(['pulseaudio', '-k'])
                     time.sleep(2)
                 except:
-                    log.exception("err")
+                    pass
                 try:
                     subprocess.check_call(['killall', '-9', 'pulseaudio'])
                 except:
-                    log.exception("err")
+                    pass
                 time.sleep(3)
                 with lock:
-                    startJack(p,n)
+                    try:
+                        startJack(p,n)
+                        time.sleep(2)
+                    except:
+                        log.exception("Error starting jack, may be able to retry")
 
             if i<9:
                 continue
@@ -1158,8 +1210,11 @@ def startManagingJack(p=None,n=None):
         jackclient.set_port_registration_callback(onPortRegistered)
         jackclient.set_port_connect_callback(onPortConnect)
         jackclient.activate()
-    setupPulse()
-    log.debug("Set up pulse")
+    try:
+        setupPulse()
+        log.debug("Set up pulse")
+    except:
+        log.exception("Error starting pulse, ignoring")    
     
     with lock:
         #Stop the old thread if needed
@@ -1182,6 +1237,8 @@ def startManagingJack(p=None,n=None):
 def checkJack():
     global jackp
     with lock:
+        readAllSoFar(jackp)
+        readAllErrSoFar(jackp)
         if jackShouldBeRunning  and jackp and jackp.poll() !=None:
             startJack()
 

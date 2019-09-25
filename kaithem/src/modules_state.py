@@ -72,7 +72,7 @@ if os.path.exists("/dev/shm"):
 
     #Chown to the user we are actually going to be running as
     if util.getUser()=='root':
-        shutil.chown(os.path.join("/dev/shm/kaithem_"+selectedUser,uniqueInstanceId, "registrybackup"), selectedUser)
+        shutil.chown(os.path.join("/dev/shm/kaithem_"+selectedUser,uniqueInstanceId, "modulesbackup"), selectedUser)
         shutil.chown(os.path.join("/dev/shm/kaithem_"+selectedUser,uniqueInstanceId), selectedUser)
         shutil.chown(os.path.join("/dev/shm/kaithem_"+selectedUser), selectedUser)
 

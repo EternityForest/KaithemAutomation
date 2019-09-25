@@ -16,8 +16,8 @@
 
 #
 
-__version__ = "0.63.1 Production"
-__version_info__ = (0,63,1,"release",0)
+__version__ = "0.64 Production"
+__version_info__ = (0,64,0,"release",0)
 
 #Library that makes threading and lock operations, which we use a lot of, use native code on linux
 try:
@@ -44,7 +44,7 @@ except:
 
 
 
-import sys,os,threading,traceback,time,mimetypes,signal,shutil,atexit
+import sys,os,threading,traceback,time,mimetypes,signal,shutil,atexit,getpass
 
 
 #Minimal path setup, to be able to even find the rest
@@ -637,6 +637,7 @@ def webRoot():
 
     #If configured that way on unix, check if we are root and drop root.
     util.drop_perms(config['run-as-user'], config['run-as-group'])
+    pylogginghandler.onUserChanged()
     messagebus.postMessage('/system/startup','System Initialized')
     messagebus.postMessage('/system/notifications/important','System Initialized')
 

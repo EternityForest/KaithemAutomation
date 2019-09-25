@@ -398,10 +398,20 @@ class WebInterface():
                     folder = os.path.join(external_module_locations[module],"__filedata__")
 
                 util.ensure_dir2(folder)
-                data_basename = kwargs['name']+"_"+str(uuid.uuid4().hex)
-                dataname = os.path.join(folder,data_basename)
+                data_basename = kwargs['name']
+
+                dataname=data_basename
+                if len(path)>1:
+                    dataname = path[1]+'/'+dataname
+
+                if not module in external_module_locations:
+                    dataname = os.path.join(folder,module, dataname)
+                else:
+                    dataname = os.path.join(folder, dataname)
+
                 inputfile = kwargs['file']
 
+                util.ensure_dir(dataname)
                 with open(dataname,"wb") as f:
                     while True:
                         d = inputfile.file.read(8192)
@@ -425,8 +435,12 @@ class WebInterface():
                         modules_state.createRecoveryEntry(root,escapedName,r)
                     ####END BLOCK OF COPY PASTED CODE.
 
-                    insertResource({'resource-type':'internal-fileref', 'target':data_basename})
-                    fileResourceAbsPaths[root,kwargs['name']] = dataname
+                    insertResource({'resource-type':'internal-fileref', 'target':"$MODULERESOURCES/"+data_basename})
+                    if len(path)>1:
+                        x = path[1]+"/"
+                    else:
+                        x =""
+                    fileResourceAbsPaths[root,x+kwargs['name']] = dataname
                     modulesHaveChanged()
                 raise cherrypy.HTTPRedirect("/modules/module/"+util.url(root))
 

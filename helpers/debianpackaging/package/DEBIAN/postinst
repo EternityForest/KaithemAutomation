@@ -1,7 +1,5 @@
-#!/bin/bashG i2c kaithem
-# usermod -a -G video kaithem
-# usermod -a -G spi kaithem
-# usermod -a -G uucp kaithem
+#!/bin/bash
+
 
 if [ ! -f /var/lib/kaithem/users/data/users.json ] ; then
     mkdirs /var/lib/kaithem/ssl/

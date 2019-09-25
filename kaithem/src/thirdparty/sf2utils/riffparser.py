@@ -64,7 +64,7 @@ def parse_fixed_array(func):
             try:
                 result = insert_generator_in_result(generator, result)
             except StopIteration:
-                logging.debug("no more data expected for the current list chunk")
+                #logging.debug("no more data expected for the current list chunk")
                 break
 
             if self.tell() == old_offset:
@@ -107,7 +107,7 @@ def parse_list(func):
                 try:
                     result = insert_generator_in_result(generator, result)
                 except StopIteration:
-                    logging.debug("no more data expected for the current list chunk")
+                    #logging.debug("no more data expected for the current list chunk")
                     break
 
                 if self.tell() == old_offset:
@@ -211,7 +211,7 @@ class RiffParser(object):
             return None
 
         chunk_id, = struct.unpack(r'4s', data)
-        logging.debug("found chunk [%s]" % chunk_id)
+        #logging.debug("found chunk [%s]" % chunk_id)
 
         chunk_parser = self.parser_map.get(chunk_id)
         if chunk_parser is None:

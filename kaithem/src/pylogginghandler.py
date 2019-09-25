@@ -114,6 +114,10 @@ class LoggingHandler(logging.Handler):
         all_handlers[(time.time(),random.random(),self.name)] = self
     
 
+    def checkShmFolder():
+        with self.savelock:
+            self._checkShmFolderChanged()
+
     def _checkShmFolderChanged(self):
         "Only relevant to shm handlers. Basically we need to move to a new folder if permissions dropped"
         f = "/dev/shm/kaithemdbglog_"+getpass.getuser()+"/"
@@ -223,12 +227,27 @@ class LoggingHandler(logging.Handler):
                             b =(i+"\r\n").encode("utf8")
                             self.bytecounter+=len(b)
                             f.write(b)
+                except PermissionError:
+                    #Swap them back so we can flush later, but don't hoard too many
+                    if len(logbuffer)< 1024:
+                        self.logbuffer = logbuffer 
+                    if self.isShmHandler:
+                        self._checkShmFolderChanged()
+                    #Sometimes the problem is that garbage collection
+                    #Hasn't gotten to a bunch of sockets yet
+                    gc.collect()
+                    raise
                 except OSError:
                     #Swap them back so we can flush later, but don't hoard too many
                     if len(logbuffer)< 1024:
                         self.logbuffer = logbuffer 
                     if self.isShmHandler:
                         self._checkShmFolderChanged()
+                    #Sometimes the problem is that garbage collection
+                    #Hasn't gotten to a bunch of sockets yet
+                    gc.collect()
+                    raise
+                except:
                     #Sometimes the problem is that garbage collection
                     #Hasn't gotten to a bunch of sockets yet
                     gc.collect()
@@ -336,3 +355,9 @@ if os.path.exists("/dev/shm"):
             keep=10**6,
             compress= "none")
     shmhandler.isShmHandler=True
+
+    def onUserChanged():
+        shmhandler.checkShmFolder()
+else:
+    def onUserChanged():
+        pass

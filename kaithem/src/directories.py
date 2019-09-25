@@ -66,7 +66,7 @@ def recreate():
 
 
 def chownIf(f,usr):
-    if not pwd.getpwuid(os.stat(filename).st_uid).pw_name ==usr:
+    if not pwd.getpwuid(os.stat(f).st_uid).pw_name ==usr:
         shutil.chown(f,usr,usr)
 
 def rchown(d, usr):

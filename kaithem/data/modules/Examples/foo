@@ -1,5 +1,0 @@
-code: "//To test this one out, connect to a remote  K4D device and call it \"foo\"\
-  \r\nprint(lorem());"
-device: foo
-prgid: foo
-resource-type: k4dprog_sq

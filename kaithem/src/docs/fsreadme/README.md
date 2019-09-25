@@ -1,0 +1,1 @@
+These readme files are placed in kaithem's var dir in appropriate places by various bits of code
