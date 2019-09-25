@@ -183,7 +183,7 @@ def wordHashModule(module: str):
         return("ERRORHASHINGMODULE")
 
 def getModuleHash(m: str):
-    if not m in modulewordhashes:
+    if not m in modulehashes:
         modulehashes[m] = hashModule(m)
     return modulehashes[m].upper()
 
@@ -195,7 +195,7 @@ def getModuleWordHash(m: str):
 
 
 def modulesHaveChanged():
-    global moduleschanged,moduleshash, modulehashes
+    global moduleschanged,moduleshash, modulehashes,modulewordhashes
     moduleschanged = True
     moduleshash = hashModules()
     modulehashes = {}
@@ -352,7 +352,69 @@ class ModuleObject(object):
                     additionalTypes[resourcetype].onload(module,name, value)
 
 
+class VirtualResource(object):
+    def __init__(self):
+        self.__interfaces = []
+        self.__lock=threading.Lock()
+        self.replacement =None
+        self.name = None
 
+    def __repr__(self):
+        return "<VirtualResource at "+str(id(self))+" of class"+str(self.__class__)+">"
+
+    def __html_repr__(self):
+        return "VirtualResource at "+str(id(self))+" of class"+str(self.__class__.__name__)+""
+
+    def interface(self,name):
+        if not self.replacement:
+
+            with self.__lock:
+                x= VirtualResourceInterface(self,name)
+                self.__interfaces.append(weakref.ref(x))
+                #Make a list of all interfaces that need removing
+                torm = []
+                for i in self.interfaces:
+                    if not i():
+                        torm.append(i)
+
+                #remove them
+                for i in torm:
+                    self.__interfaces.remove()
+        else:
+            return self.replacement.interface(self.name)
+
+    def handoff(self,other):
+        with self.__lock:
+            #Change all interfaces to this object to point to the new object.
+            for i in self.__interfaces:
+                try:
+                    i()._resource_object = other
+                except:
+                    pass
+
+            self.replacement = other
+
+class VirtualResourceInterface(object):
+    def __init__(self,resource):
+        self._resource_object = resource
+    def __repr__(self):
+        return self._resource_object.__repr__()
+    def __html_repr__(self):
+        return self._resource_object.__html_repr__()
+    def __call__(self,*args,**kwargs):
+        return self._resource_object.__repr__()
+    @property
+    def __doc__(self):
+        return self._resource_object.__doc__
+
+    def __getattr__(self,attr):
+        return getattr(self._resource_object, attr)
+
+    def __setattr__(self,k,v):
+        if not k == "_resource_object":
+            setattr(self._resource_object, k,v)
+        else:
+            object.__setattr__(self,k,v)
 
 #This is used for the kaithem object.
 class ResourceAPI(object):
@@ -398,6 +460,8 @@ def insertVirtualResource(modulename:str,name:str,value:VirtualResource):
         if not value.name:
             value.name="x-module:"+ util.url(modulename)+"/"+ "/".join([util.url(i) for i in util.split_escape(name,"/","\\")])
 
+
+                   
 #Backwards compatible resource loader.
 def loadResource(fn:str,ver:int=1):
     "Returns (datadict, shouldRemoveFileExtension)"
@@ -601,6 +665,10 @@ def saveResource2(obj,fn:str):
     obj['resource-loadedfrom']=fn
     return fn
 
+def saveResource(r,fn:str):
+    with open(fn,"wb") as f:
+        util.chmod_private_try(fn, execute=False)
+        f.write(yaml.dump(r).encode("utf-8"))
 
 def cleanupBlobs():
     fddir = os.path.join(directories.vardir,"modules","filedata")
@@ -629,7 +697,6 @@ def saveAll():
 
     #This is an RLock, and we need to use the lock so that someone else doesn't make a change while we are saving that isn't caught by
     #moduleschanged.
-    
     with modulesLock:
         if not unsaved_changed_obj:
             return False
