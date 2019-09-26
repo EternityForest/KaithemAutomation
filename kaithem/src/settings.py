@@ -434,6 +434,11 @@ class Settings():
     def processes(self):
         pages.require("/admin/settings.view")
         return pages.get_template("settings/processes.html").render()
+    
+    @cherrypy.expose
+    def environment(self):
+        pages.require("/admin/settings.view")
+        return pages.get_template("settings/environment.html").render()
 
     @cherrypy.expose
     def clearerrorstarget(self):

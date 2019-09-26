@@ -299,18 +299,23 @@ you do not need to include it in your management form.
 --------------------------------------------------
 
 Beginning in version 0.55, modules may contain arbitrary files as
-resources. To preserve kaithem's atomic save functionality, files are
-stored in one large pool with names that have long strings of characters
-after them, and the modules themselves only contain references to them.
-The exception is in external modules and zip files. Saving to an
+resources. 
+
+To preserve kaithem's atomic save functionality without making copies of large data, files are
+stored a separate folder, and the modules themselves only contain references to them.
+The exception is in external modules and zip files. 
+
+Saving to an
 external module will populate a special \_\_filedata\_\_ folder in that
-module, likewise with zip files. However, due to potential performance
-and memory constraints, users without the edit permission will not be
-able to download copies of modules that include files. You should still
-not make your modules publically viewable unless you have good reason.
+module, likewise with zip files. 
+
+However, due to potential performance and memory constraints, users without the edit permission will not be
+able to download copies of modules that include files. 
 
 You can always get the real disk path of a file resource from within the
 same module via the code: module\['name'\].getPath()
+
+You can directly access a file resource KAITHEMVARDIR/modules/filedata/MODULE/RESOURCE
 
 The Widget System
 -----------------
@@ -585,6 +590,35 @@ Serial is not guaranteed to actually do anything
 
 This does nothing except print a notice. It's there so you can find the
 function in breakpoint.py, and put a breakpoint there.
+
+
+### kaithem.gpio
+
+This namespace integrates the excellent GPIOZero into kaithem.
+
+### kaithem.gpio.DigitalInput(pin, *, pull_up=True, active_state=None, bounce_time=None, hold_time=1, hold_repeat=False, pin_factory=None)
+
+Creates an object that acts as an interface to the specified GPIO. Acts generally like gpiozero.button.
+
+It acrs /system/gpio/PIN where you can view the status of the tag. The tag will be 1 when the 
+button is active.
+
+#### DigitalInput.onChange(f)
+Subscribes a function that must be f(topic,value) to debounced changes. Uses the internal
+message bus. The topic will always be `"/system/gpio/change/"+str(self.pin)`, and the value
+will always True if active or False if inactive.
+
+#### DigitalInput.onChange(f)
+Subscribes a function that must be f(topic,value) to get notified on hold events. Topic will always be `"/system/gpio/hold/"+str(self.pin)`, and the value will always True.
+
+#### DigitalInput.setRawMockVakue(f)
+On platforms without real GPIO, or where you explicitly set the factory to Mock, sets the fake
+raw input value. If real GPIO exists, raise an error.
+
+
+#### DigitalInput.gpio
+The raw gpiozero.button object. Do not override any of the callbacks if you want to use kaithem's
+native messagebus/tagpoint based API.
 
 ### kaithem.resource
 
@@ -1118,8 +1152,10 @@ The most recent messages are still logged in ram and viewable as before, for deb
 #### kaithem.message.subscribe(topic,callback)
 
 Request that function *callback* which must take two
-arguments(topic,message) be called whenever a message matching the topic
-is posted. Should the topic end with a slash, it will also match all
+arguments(topic,message), or just one argument(message) be called whenever a message matching the topic
+is posted. 
+
+Should the topic end with a slash, it will also match all
 subtopics(e.g. "/foo/" will match "/foo", "/foo/bar" and
 "/foo/anything"). Uncaaught errors in the callback are ignored.  
 You must always maintain a reference to the callback, otherwise, the

@@ -837,16 +837,21 @@ def startJack(p=None, n=None):
 
         #TODO: Explicitly close all the FDs we open!
         f = open(os.devnull,"w")
+        my_env = os.environ.copy()
+ 
+        if not 'DBUS_SESSION_BUS_ADDRESS' in my_env or not my_env['DBUS_SESSION_BUS_ADDRESS']:
+            my_env = "unix:path=/run/dbus/system_bus_socket"
 
-        jackp =subprocess.Popen(['jackd', '-S', '--realtime', '-P' ,'70' ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,str(period), '-n' ,str(nperiods) ,'-r','48000'],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE, stderr=subprocess.PIPE)    
+
+        jackp =subprocess.Popen(['jackd', '-S', '--realtime', '-P' ,'70' ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,str(period), '-n' ,str(nperiods) ,'-r','48000'],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE, stderr=subprocess.PIPE,env=my_env)    
         time.sleep(0.5)
         if jackp.poll() != None:
             x = readAllErrSoFar(jackp)
             if x:
-                log.error("jackd:\n"+x)
+                log.error("jackd:\n"+x.decode('utf8','ignore'))
             x=readAllErrSoFar(jackp)
             if x:
-                log.info("jackd:\n"+x)
+                log.info("jackd:\n"+x.decode('utf8','ignore'))
             tryCloseFds(jackp)
 
 

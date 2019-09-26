@@ -729,12 +729,14 @@ def resourceUpdateTarget(module,resource,kwargs):
         if t == 'permission':
             resourceobj['description'] = kwargs['description']
             #has its own lock
+            modules_state.createRecoveryEntry(module,resource, resourceobj)
             auth.importPermissionsFromModules() #sync auth's list of permissions
         
         if t=="k4dprog_sq":
             resourceobj['code'] = kwargs['code']
             resourceobj['device'] = kwargs['device']
             resourceobj['prgid'] = kwargs['prgid']
+            modules_state.createRecoveryEntry(module,resource, resourceobj)
             remotedevices.updateProgram(module, resource, resourceobj)
 
         elif t == 'event':
@@ -774,6 +776,7 @@ def resourceUpdateTarget(module,resource,kwargs):
                         r2.pop("versions")
 
                     resourceobj['versions']['__draft__'] = copy.deepcopy(r2)
+                    modules_state.createRecoveryEntry(module,resource, resourceobj)
 
                     messagebus.postMessage("system/errors/misc/failedeventupdate", "In: "+ module +" "+resource+ "\n"+ traceback.format_exc(4))
                     raise
@@ -812,6 +815,8 @@ def resourceUpdateTarget(module,resource,kwargs):
             except:
                 pass
 
+            modules_state.createRecoveryEntry(module,resource, resourceobj)
+
             #if the test compile fails, evt will be None and the function will look up the old one in the modules database
             #And compile that. Otherwise, we avoid having to double-compile.
             newevt.updateOneEvent(resource,module,evt)
@@ -847,15 +852,18 @@ def resourceUpdateTarget(module,resource,kwargs):
                 if i[:10] == 'Permission':
                     if kwargs[i] == 'true':
                         resourceobj['require-permissions'].append(i[10:])
+
+            modules_state.createRecoveryEntry(module,resource, resourceobj)
             usrpages.updateOnePage(resource,module)
 
         else:
+            modules_state.createRecoveryEntry(module,resource, resourceobj)
             additionalTypes[resourceobj['resource-type']].update(module,resource, kwargs)
 
         if 'name' in kwargs:
             if not kwargs['name'] == resource:
                 mvResource(module,resource,module,kwargs['name'])
-        modules_state.createRecoveryEntry(module,resource, resourceobj)
+
     messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + " modified resource " +
                            resource + " of module " + module)
     r =resource

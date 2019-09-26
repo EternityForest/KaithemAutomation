@@ -19,7 +19,7 @@ import time,random,subprocess,threading,random,gzip,json,yaml,os,ntplib,bz2,weak
 
 import cherrypy
 from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry,directories,pages,config,persist,auth,breakpoint
-from . import timesync, remotedevices, alerts,midi
+from . import timesync, remotedevices, alerts,midi,gpio
 
 
 from . import astrallibwrapper as sky
@@ -79,6 +79,9 @@ class Kaithem():
 
     class alerts(object):
         Alert = alerts.Alert
+
+    class gpio():
+        DigitalInput = gpio.DigitalInput
 
     class logging(object):
         @staticmethod

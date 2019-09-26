@@ -356,6 +356,10 @@ def handleMessage(u,v):
 
 @scheduling.scheduler.everyMinute
 def worker():
+
+    #Don't bother if not configured
+    if not registry.get('system.wifi/connections',[]):
+        return
     try:
         import NetworkManager
     except:

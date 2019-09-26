@@ -426,6 +426,8 @@ class _TagPoint(virtualresource.VirtualResource):
         """
         timestamp = timestamp or time.monotonic()
 
+        if priority and priority>100:
+            raise ValueError("Maximum priority is 100")
         if not callable(value):
             value=float(value)
         with self.lock:

@@ -3,7 +3,7 @@ from src.util import url
 from src import auth,pages
 from src import usrpages,pages,util
 from src.config import config
-import cherrypy
+import cherrypy,traceback
 %>
 
 <%
@@ -270,6 +270,7 @@ else:
 <p class ="help">
 This section shows up to the most recent 25 errors that occured while rendering the page.
 </p>
+%try:
 <div class="scrollbox">
 %for i in usrpages.getPageErrors(module,name):
     <h4>${i[0]|h}</h4>
@@ -281,6 +282,9 @@ ${str(i[1])|h}
 </pre>
 %endfor
 </div>
+%except:
+<pre class="error">${traceback.format_exc()|h}</pre></div>
+%endtry
 %else:
 <p class="error">Some Errors Hidden because you are not logged in or do not have the permissions to view them.</p>
 %endif

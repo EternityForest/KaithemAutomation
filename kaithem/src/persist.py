@@ -190,7 +190,7 @@ def save(data,fn,mode="default", private=False,backup=True, expand=True, md5=Fal
 
             #Chmod it before we write anything to it.
             if private:
-                util.chmod_private_try(fn)
+                util.chmod_private_try(tempfn)
             f.write(data)
             f.flush()
             os.fsync(f.fileno())

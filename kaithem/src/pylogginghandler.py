@@ -114,7 +114,7 @@ class LoggingHandler(logging.Handler):
         all_handlers[(time.time(),random.random(),self.name)] = self
     
 
-    def checkShmFolder():
+    def checkShmFolder(self):
         with self.savelock:
             self._checkShmFolderChanged()
 

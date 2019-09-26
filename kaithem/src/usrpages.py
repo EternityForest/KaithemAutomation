@@ -196,6 +196,14 @@ def updateOnePage(resource,module):
         if module not in _Pages:
             _Pages[module]={}
 
+        #Delete the old version if present
+        try:
+            del _Pages[module][resource]
+            gc.collect()
+            time.sleep(0.125)
+            gc.collect()
+        except:
+            pass
         #Get the page resource in question
         j = modules_state.ActiveModules[module][resource]
         _Pages[module][resource] = CompiledPage(j)
@@ -234,7 +242,7 @@ def getPagesFromModules():
                             tb = traceback.format_exc()
                             #When an error happens, log it and save the time
                             #Note that we are logging to the compiled event object
-                            _Pages[i][m].errors.append([time.strftime(config['time-format']),tb])
+                            _Pages[i][m].errors.append([time.strftime(config['time-format']),tb,"Error while initializing"])
                             try:
                                 messagebus.postMessage('system/errors/pages/'+
                                                 i+'/'+

@@ -92,7 +92,7 @@ def makeWorker(e,q):
                     if f:
                         #That pass statement is important. Things break if it goes away.
                         pass
-                        f()
+                        f[0](*f[1])
                 e.on=False
                 if not len(ready_threads)>1000:
                     ready_threads.append((q,e))
@@ -146,7 +146,7 @@ def startDummy():
 def start(count=8, qsize=64, shutdown_wait=60):
     global do, do_try
     #Start a number of threads as determined by the config file
-    def do(func):
+    def do(func,args=[]):
         """Run a function in the background
 
         funct(function):
@@ -161,7 +161,7 @@ def start(count=8, qsize=64, shutdown_wait=60):
         if ready_threads:
             try:
                 t = ready_threads.pop()
-                t[0].append(func)
+                t[0].append((func,args))
                 t[1].set()
                 return
             except IndexError:
@@ -174,7 +174,7 @@ def start(count=8, qsize=64, shutdown_wait=60):
         if len(overflow_q)>1000:
             #ratelimit if the queue gets over
             time.sleep(max(0,(len(overflow_q)-1000)/2000.0))
-        overflow_q.append(func)
+        overflow_q.append((func,args))
 
         #Be sure there is an awake thread to deal with our overflow entry.
         for i in queues:
@@ -182,13 +182,14 @@ def start(count=8, qsize=64, shutdown_wait=60):
                 i[0].set()
                 return
 
-    def do_try(func):
+    def do_try(func,args=[]):
         """Run a function in the background
 
         funct(function):
             A function of 0 arguments to be ran in the background in another thread immediatly,
         """
-        __queue.put(func)
+        __queue.put((func, args))
+        
     global __queue, run,worker_wait
     run = True
     worker_wait = shutdown_wait

@@ -15,7 +15,7 @@
 
 "This file manages the kaithem global message bus that is used mostly for logging but also for many other tasks."
 
-import weakref,threading,time,os,random,traceback,cherrypy,logging
+import weakref,threading,time,os,random,traceback,cherrypy,logging,inspect
 from . import workers
 from collections import defaultdict, OrderedDict
 
@@ -83,7 +83,11 @@ class MessageBus(object):
                 except:
                         pass
         with _subscribers_list_modify_lock:
-            self.subscribers[topic].append(weakref.ref(callback,delsubscription))
+            wrappedCallback = self.wrap_callback(callback)
+
+            #Note that wrap_callback modifies the original to reference
+            #The wrapper, so it is safe until GC happens
+            self.subscribers[topic].append(weakref.ref(wrappedCallback,delsubscription))
             self.subscribers_immutable = self.subscribers.copy()
 
     @staticmethod
@@ -116,23 +120,45 @@ class MessageBus(object):
         return matchingtopics
 
 
-    def make_poster(self,f,topic,message,errors):
-        """return function g that calls f with (topic,message) and if errors is true posts another
-        message should an error occur running f"""
+    def wrap_callback(self,f):
+        """return function g that calls f with (topic,message) or just f(topic), depending
+        on how many args there are.
+         and if errors is true logs the error"""
 
-        def g():
-            try:
-                f(topic,message)
-            except:
+        args = len(inspect.signature(f).parameters)
+
+        if args<1:
+            raise ValueError("f must take at least one param")
+
+        elif args>1:
+            def g(topic, message,errors):
                 try:
-                    if errors:
-                        self.postMessage("/system/messagebus/errors","Error in subscribed function handling topic: " + topic+"\n"+traceback.format_exc(6),False)
-                        f.alreadyLogged=True
-                        if not hasattr(f,"alreadyLogged"):
-                            log.exception("Error in subscribed function for "+topic)
-                except Exception as e:
-                        print("err",e)
+                    f(topic,message)
+                except:
+                    try:
+                        if errors:
+                            f.alreadyLogged=True
+                            if not hasattr(f,"alreadyLogged"):
+                                log.exception("Error in subscribed function for "+topic)
+                    except Exception as e:
+                            print("err",e)
+        else:
+            def g(topic, message,errors):
+                try:
+                    f(topic)
+                except:
+                    try:
+                        if errors:
+                            f.alreadyLogged=True
+                            if not hasattr(f,"alreadyLogged"):
+                                log.exception("Error in subscribed function for "+topic)
+                    except Exception as e:
+                            print("err",e)
+
+        #It's wrapped, make a reference so we don't GC the wrapper till the original goes
+        f._kaithem_subscribe_wrapper = g
         return g
+
 
 
     def _post(self, topic,message,errors):
@@ -151,8 +177,7 @@ class MessageBus(object):
                     #We ignore both of these errors and move on
                     f =ref()
                     if f:
-                        g= self.make_poster(f,topic,message,errors)
-                        self.executor(g)
+                        self.executor(f,(topic,message,errors))
 
     def postMessage(self, topic, message,errors=True):
         #Use the executor to run the post message job

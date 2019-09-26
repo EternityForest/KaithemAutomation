@@ -611,10 +611,13 @@ def cleanupBlobs():
 
     for root, dirs, files in os.walk(fddir):
         for i in files:
-            i=os.path.join(root,i)
-            if not i in inUseFiles:
-                fn = os.path.join(root,i )
-                os.remove(fn)
+            #Old style hashes were long, new stuff isn't in the root
+            #Preserver the random .directory config stuff
+            if not((i=='README.md' or len(i)<20) and fddir==root):
+                i=os.path.join(root,i)
+                if not i in inUseFiles:
+                    fn = os.path.join(root,i )
+                    os.remove(fn)
     for root, dirs, files in os.walk(fddir,topdown=False):
         if not files and not dirs:
             os.rmdir(root)
@@ -935,7 +938,7 @@ def saveModules(where:str,markSaved=True):
     p = os.path.join(directories.vardir,"modules","filedata","README.md")    
     util.ensure_dir(p)
 
-    f = os.path.join(directories.datadir,"fsreadme","filedata_readme.md")
+    f = os.path.join(os.path.dirname(__file__),"docs","fsreadme","filedata_readme.md")
     persist.save(persist.load(f),p)
 
 

@@ -71,7 +71,7 @@ def chownIf(f,usr):
 
 def rchown(d, usr):
     chownIf(d,usr)
-    for root, dirs, files in os.path.walk():
+    for root, dirs, files in os.walk():
         chownIf(root, usr)
         for file in files:
             chownIf(os.path.join(root,file), usr)
