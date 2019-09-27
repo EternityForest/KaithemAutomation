@@ -21,7 +21,8 @@
    
     <h2>Digital Inputs in Use</h2>
     <p class="status">
-        Only inputs via kaithem.gpio are shown
+        Only inputs via kaithem.gpio are shown.  You can "Mock" a pin, effectivly switching the pin into a virtual
+        mode where it ignores real input and only watches your virtual commands.
     </p>
     <table border="1">
        <tr>
@@ -29,6 +30,7 @@
            <th title="If the pin is active, NOT the raw val">Active</th>
            <th>Comment</th>
            <th>Mocked</th>
+           <th>Tools</th>
        </tr>
 
        <tr v-for="i in dictView(inputs, ['p'])">
@@ -36,6 +38,7 @@
            <td>{{i[1].v}}</td>
            <td>{{i[1].c}}</td>
            <td>{{i[1].m}}</td>
+           <td><button v-on:click="promptMock(i[0])">Mocking</button></td>
        </tr>
 
    </table>
@@ -56,6 +59,27 @@
       api:api,
       inputs: {},
 
+      'promptMock':function(m)
+      {
+            var x = parseInt(m)
+            if (!isNaN(x))
+            {
+                m=x;
+            }
+            var r = prompt("Enter fake raw pin value(1 for electrical high, 0 for low, -1 to return to unmocked)")
+            if (r!=null)
+            {
+                r = parseInt(r);
+                if(r==-1)
+                {
+                    api.send(['unmock', m])
+                }
+                else
+                {
+                    api.send(['mock', m,r ])
+                }
+            }
+      },
 
       'dictView': function(dict, sorts)
         {
@@ -114,6 +138,9 @@
         }
         if (msg[0] == "v") {
             app.$data.inputs[msg[1]].v=msg[2]
+        }
+        if (msg[0] == "ipin") {
+            app.$data.inputs[msg[1]]=msg[2]
         }
     }
 

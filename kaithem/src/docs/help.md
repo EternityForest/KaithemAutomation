@@ -596,7 +596,7 @@ function in breakpoint.py, and put a breakpoint there.
 
 This namespace integrates the excellent GPIOZero into kaithem.
 
-### kaithem.gpio.DigitalInput(pin, *, pull_up=True, active_state=None, bounce_time=None, hold_time=1, hold_repeat=False, pin_factory=None)
+### kaithem.gpio.DigitalInput(pin, *,mock=None, pull_up=True, active_state=None, bounce_time=None, hold_time=1, hold_repeat=False, pin_factory=None)
 
 Creates an object that acts as an interface to the specified GPIO. Acts generally like gpiozero.button.
 
@@ -605,6 +605,8 @@ It creates a tag point at /system/gpio/PIN where you can view the status of the 
 If the platform doesn't have GPIO, it will instead use gpiozero's Mock factory, and you'll
 be able to use setRawMockValue. Calling this on a platform that DOES have mocking will auto-switch to
 mock mode.
+
+You can force mock mode with mock=True
 
 
 #### DigitalInput.onChange(f)
@@ -626,6 +628,28 @@ Returns to real GPIO.
 #### DigitalInput.gpio
 The raw gpiozero.button object. Do not override any of the callbacks if you want to use kaithem's
 native messagebus/tagpoint based API.
+
+
+### kaithem.GPIO.DigitalOutput(pin, mock=False, comment=False,*, active_high=True, initial_value=0, frequency=100, pin_factory=None)
+
+Wrapper for PWMLED or LED if a non-PWM pin is selected.
+
+Sets a digital output to follow the state of a tag point at  /system/gpio/PIN.
+In PWM mode, the range is 0-1.
+
+#### DigitalOutput.tag
+The tag point
+
+#### DigitalOutput.tag.value
+The PWM or digital value. Writing this sets the default value, which may be overridden by
+another claim.
+
+#### DigitalOutput.on()
+Turn on by setting the tag's default value to 1. May be overriden by higher claims.
+
+
+#### DigitalOutput.off()
+Turn off by setting the tag's default value to 0. May be overriden by higher claims.
 
 ### kaithem.resource
 

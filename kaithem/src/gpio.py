@@ -28,6 +28,7 @@ api = widgets.APIWidget()
 api.require("/admin/settings.edit")
 
 inputs = {}
+outputs = {}
 
 lock = threading.Lock()
 
@@ -48,10 +49,27 @@ def formatPin(p):
         'p': p.pin
     }
 
+
+def formatOutputPin(p):
+    return{
+        'v':p.gpio.value,
+        'c':p.comment,
+        'm': p.gpio==p.fakeGpio,
+        'p': p.pin
+    }
+
+
 def handleApiCall(u,v):
     if v[0]=="refresh":
         with lock:
             api.send(["inputs", {i:formatPin(inputs[i]()) for i in inputs}])
+            api.send(["outputs", {i:formatOutputPin(outputs[i]()) for i in outputs}])
+    
+    if v[0]=='mock':
+        inputs[v[1]]().setRawMockValue(v[2])
+
+    if v[0]=='unmock':
+        inputs[v[1]]().releaseMocking()
 
 api.attach(handleApiCall)
 
@@ -77,12 +95,13 @@ class GPIOTag():
         from gpiozero import Device
         import gpiozero
 
-        #Always keep a fake GPIO port for testing purposes
-        from gpiozero.pins.mock import MockFactory
-        if not globalMockFactory:
-            globalMockFactory = MockFactory()
-        self.fakeGpio = withclass(pin, *args,**kwargs,pin_factory=globalMockFactory)
-        
+        if not self.fakeGpio:
+            #Always keep a fake GPIO port for testing purposes
+            from gpiozero.pins.mock import MockFactory
+            if not globalMockFactory:
+                globalMockFactory = MockFactory()
+            self.fakeGpio = withclass(pin, *args,**kwargs,pin_factory=globalMockFactory)
+            
         if not mock:
             try:
                 self.gpio = withclass(pin, *args,**kwargs)
@@ -96,6 +115,67 @@ class GPIOTag():
         self.gpio.when_activated = self._onActive
         self.gpio.when_deactivated = self._onInactive
         self.gpio.when_held = self._onHold
+
+
+
+class DigitalOutput(GPIOTag):
+    def __init__(self, pin, *args,comment="",mock=None, **kwargs):
+
+        GPIOTag.__init__(self, "/system/gpio/"+str(pin), pin,comment=comment)
+        from gpiozero import LED,PWMLED
+        from gpiozero.pins.mock import MockFactory
+        import gpiozero
+        self.pin=pin
+        self.comment=comment
+        try:
+            self.connectToPin(PWMLED, pin, mock=mock,*args,**kwargs)
+        except gpiozero.exc.GPIODeviceError:
+            self.connectToPin(LED, pin, mock=mock,*args,**kwargs)
+        self.phyclaim = self.tag.claim(self.gpio.value,"gpio", 60)
+        self.lastPushed = 0
+
+        def tagHandler(self, val, ts, annotation):
+            self.gpio.value = val
+
+            t=time.time()
+            #We show the actual pin value not the tag point value
+            if t-self.lastPushed>.2:
+                api.send(['v',self.gpio.value,True])
+            self.lastPushed = time.time()
+
+        self.tagHandler = tagHandler
+        self.tag.setHandler(tagHandler)
+
+        with lock:
+            outputs[self.pin]=weakref.ref(self)
+    
+    def on(self):
+        self.tag.value = 1
+
+    def off(self):
+        self.tag.value = 0
+
+    def setState(self, val):
+        self.tag.value = 1 if val else 0
+
+    def _on(self):
+        self.gpio.on()
+
+    def _off(self):
+        self.gpio.off()
+
+    def __del__(self):
+        try:
+            with lock:
+                del outputs[self.pin]
+            self.realGpio.close()
+        except:
+            pass
+        
+        try:
+            self.fakeGpio.close()
+        except:
+            pass
 
 class DigitalInput(GPIOTag):
     def __init__(self, pin, *args,comment="",mock=None, **kwargs):
@@ -154,13 +234,16 @@ class DigitalInput(GPIOTag):
             globalMockFactory.pin(self.pin).drive_high()
         else:
             globalMockFactory.pin(self.pin).drive_low()
+        
+        api.send(["ipin", self.pin, formatPin(self)])
 
     def releaseMocking(self):
         "Returns to reak GPIO mode"
         self._selectReal()
+        api.send(["ipin", self.pin, formatPin(self)])
 
     def _onActive(self):
-        messagebus.postMessage("/system/gpio/change"+str(self.pin),True)
+        messagebus.postMessage("/system/gpio/change/"+str(self.pin),True)
         self.phyclaim.set(1)
 
         #Push all changes, but ratelimit. The UI will catch them later with
@@ -172,7 +255,7 @@ class DigitalInput(GPIOTag):
         self.lastPushed = time.time()
 
     def _onInactive(self):
-        messagebus.postMessage("/system/gpio/change"+str(self.pin),False)
+        messagebus.postMessage("/system/gpio/change/"+str(self.pin),False)
         self.phyclaim.set(0)
         t=time.time()
         if t-self.lastPushed>.2:
@@ -181,7 +264,6 @@ class DigitalInput(GPIOTag):
 
     def _onHold(self):
         messagebus.postMessage("/system/gpio/hold"+str(self.pin),True)
-        self.phyclaim.set(0)
     
     def onChange(self, f):
         return messagebus.subscribe("/system/gpio/change"+str(self.pin),f)
