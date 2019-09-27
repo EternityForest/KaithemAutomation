@@ -451,6 +451,7 @@ def webRoot():
     root.widgets = widgets.WebInterface()
     root.syslog = logviewer.WebInterface()
     root.devices = remotedevices.WebDevices()
+    
 
     if not os.path.abspath(__file__).startswith("/usr/bin"):
         sdn = os.path.join(os.path.dirname(os.path.realpath(__file__)),"src")

@@ -24,8 +24,9 @@ Change Log
   the web UI.
 - `__del__` support in events, just define it in the setup.
 - kaithem.midi.FluidSynth lets you play MIDI notes with soundfonts
-
-
+- One-param messagebus subscriptions that don't get the topic(Two param stil works)
+- gpiozero integration
+- Util page for viewing environment variables
 
 ### 0.63.1
 -  Fix JS dependancy error in lighting module

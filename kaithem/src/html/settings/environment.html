@@ -1,0 +1,23 @@
+<%include file="/pageheader.html"/>
+<h1>Environment Variables</h1>
+<div class="sectionbox">
+<table border=1>
+<tr>
+    <th>Variable</th>
+    <th>Value</th>
+</tr>
+
+<%
+import os
+env = os.environ.copy()
+%>
+%for i in env:
+<tr>
+    <td>${i[:80]}</td>
+    <td style="overflow:auto">${env[i][:240]}</td>
+</tr>
+%endfor
+
+</table>
+</div>
+<%include file="/pagefooter.html"/>

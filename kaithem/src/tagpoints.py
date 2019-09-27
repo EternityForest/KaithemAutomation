@@ -156,6 +156,7 @@ class _TagPoint(virtualresource.VirtualResource):
         #If false, only push changed data to subscribers.
         self.pushOnRepeats = False
         self.lastPushedValue=None
+        self.onSourceChanged = None
 
         with lock:
             allTags[name]=weakref.ref(self)
@@ -416,6 +417,14 @@ class _TagPoint(virtualresource.VirtualResource):
     def value(self, v):
         self.setClaimVal("default",v)
 
+    
+    def handleSourceChanged(self,name):
+        if self.onSourceChanged:
+            try:
+                self.onSourceChanged(name)
+            except:
+                logging.exception("Error handling changed source")
+
     def claim(self, value, name="default", priority=None,timestamp=None, annotation=None):
         """Adds a 'claim', a request to set the tag's value either to a literal 
             number or to a getter function.
@@ -459,6 +468,8 @@ class _TagPoint(virtualresource.VirtualResource):
 
             if self.activeClaim==None or priority >= self.activeClaim[0]:
                 self.activeClaim = self.claims[name]
+                self.handleSourceChanged(name)
+
                 self._value = value
                 self.timestamp = timestamp
                 self.annotation = annotation
@@ -476,6 +487,7 @@ class _TagPoint(virtualresource.VirtualResource):
                         self.timestamp = x.timestamp
                         self.annotation = x.annotation
                         self.activeClaim=i
+                        self.handleSourceChanged(i[2])
                         break
             self._push(self._getValue(),self.timestamp, self.annotation)           
             return claim

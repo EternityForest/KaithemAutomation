@@ -1,0 +1,127 @@
+<%include file="/pageheader.html"/>
+<%!
+
+%>
+<title>GPIO</title>
+<div class="sectionbox" style="height: 80vh">
+  <script type="text/javascript" src="/static/widget.js"></script>
+  <style>
+    button.bold{
+      font-weight: bolder;
+      text-shadow: 5px;
+      
+    }
+  </style>
+
+
+  ${api.render("api")}
+
+  <div id="app" class =sectionbox
+    style="height:95%;overflow-x: scroll; overflow-y: hidden; min-width: 80%; max-width: 10000%; max-height: 98%;     white-space: nowrap;">
+   
+    <h2>Digital Inputs in Use</h2>
+    <p class="status">
+        Only inputs via kaithem.gpio are shown
+    </p>
+    <table border="1">
+       <tr>
+           <th>Pin</th>
+           <th title="If the pin is active, NOT the raw val">Active</th>
+           <th>Comment</th>
+           <th>Mocked</th>
+       </tr>
+
+       <tr v-for="i in dictView(inputs, ['p'])">
+           <td>{{i[0]}}</td>
+           <td>{{i[1].v}}</td>
+           <td>{{i[1].c}}</td>
+           <td>{{i[1].m}}</td>
+       </tr>
+
+   </table>
+   <button v-on:click="api.send(['refresh'])">Refresh</button>
+</div>
+
+
+
+<script src="/static/js/vue2.js"></script>
+
+
+<script>
+  var app = new Vue({
+    el: '#app',
+    data: {
+      connections: [],
+      status: {},
+      api:api,
+      inputs: {},
+
+
+      'dictView': function(dict, sorts)
+        {
+            //Given a dict  and a list of sort keys sorts,
+            //return a list of [key,value] pairs sorted by the sort 
+            //keys. Earlier sort keys take precendence.
+
+            //Keys starting with ! are interpreted as meanng to sort in descending order
+
+            var o = []
+            Object.keys(dict).forEach(
+                function(key, index)
+                {
+                    o.push([key, dict[key]])
+                })
+
+            var l = []
+            for (var i of sorts)
+            {
+                //Convert to (reverse, string) tuple where reverse is -1 if str started with an exclamation point
+                //Get rid of the fist char if so
+                l.push([
+                    i[0] == '!' ? -1 : 1,
+                    i[0] == "!" ? i.slice(1) : i
+                ])
+            }
+
+            o.sort(function(a, b)
+            {
+                //For each of the possible soft keys, check if they
+                //are different. If so, compare and possible reverse the ouptut
+
+                var d = a[1]
+                var d2 = b[1]
+                for (i of l)
+                {
+                    var key = i[1]
+                    var rev = i[0]
+                    if (!(d[key] == d2[key]))
+                    {
+                        return (d[key] > d2[key] ? 1 :-1) * rev
+                    }
+
+                }
+                return 0
+            });
+            return (o)
+        }
+
+  }}
+  );
+
+  api.upd = function (msg) {
+        if (msg[0] == "inputs") {
+            app.$data.inputs= msg[1]
+        }
+        if (msg[0] == "v") {
+            app.$data.inputs[msg[1]].v=msg[2]
+        }
+    }
+
+ var refresh=function(){ api.send(['refresh']);}
+
+ setInterval(refresh,5000);
+ api.send(['refresh'])
+</script>
+
+</div>
+<%include file="/pagefooter.html"/>

@@ -44,7 +44,6 @@ syslogger = logging.getLogger("system.events")
 
 eventsByModuleName=weakref.WeakValueDictionary()
 
-
 def manualRun(event):
     "Run an event manually"
     return EventReferences[event].manualRun()
@@ -82,7 +81,7 @@ def fastGetEventErrors(module,event):
     try:
         return __EventReferences[module,event].errors
     except:
-        return[]
+        return[['0','Try refreshing page?']]
 
 #Given two functions, execute the action when the trigger is true.
 #Trigger takes no arguments and returns a boolean
@@ -418,7 +417,7 @@ class BaseEvent():
 
     def new_print(self,*args,**kwargs):
         #No, we cannot just do print(*args), because it breaks on python2
-        if 'local' in kwargs and kwargs[local]:
+        if 'local' in kwargs and kwargs['local']:
             local = True
         else:
             local=False
@@ -742,7 +741,7 @@ class FunctionEvent(BaseEvent):
                 raise
 
 
-    def _do_action(self):
+    def _do_action(self,*args,**kwargs):
         return self.pymodule.kaithem_event_action(*args,**kwargs)
 
 class MessageEvent(BaseEvent,CompileCodeStringsMixin):
@@ -1148,9 +1147,9 @@ class RecurringEvent(BaseEvent,CompileCodeStringsMixin):
 #Work in progress
 def recalc_schedule():
     with _event_list_lock:
-        for i in _EventReferences:
-            if isinstance(_EventReferences[i],RecurringEvent):
-                _EventReferences[i].recalc_time()
+        for i in __EventReferences:
+            if isinstance(__EventReferences[i],RecurringEvent):
+                __EventReferences[i].recalc_time()
 
 
 #BORING BOOKEEPING BELOW
@@ -1276,6 +1275,7 @@ def getEventsFromModules(only = None):
         def __init__(self,module,resource):
             self.module=module
             self.resource = resource
+            self.loadingTraceback = None
 
         def f(self):
             x = make_event_from_resource(self.module,self.resource)
@@ -1309,7 +1309,9 @@ def getEventsFromModules(only = None):
             #up to the maximum number of tries. The important part is that we don't
             #retry immediately, but only after trying the remaining list of events.
             #This is because inter-event dependancies are the most common reason for failure.
-            for baz in range(0,max(1,config['max-load-attempts'])):
+
+            attempts = max(1,config['max-load-attempts'])
+            for baz in range(0,attempts):
                 if not toLoad:
                     break
                 logging.debug("Event initialization resolution round "+str(baz))
@@ -1327,6 +1329,9 @@ def getEventsFromModules(only = None):
                             i.error = traceback.format_exc(chain = True)
                         else:
                             i.error = traceback.format_exc()
+                        if baz == attempts-1:
+                            i.loadingTraceback = traceback.format_exc()
+
                         nextRound.append(i)
                         logging.debug("Could not load "+i.module + ":"+i.resource+" in this round, deferring to next round\n"+"failed after"+str(round(time.time()-slt, 2))+"s\n"+traceback.format_exc())
 

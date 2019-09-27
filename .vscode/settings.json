@@ -3,5 +3,7 @@
     "python.linting.pylintArgs": [
     "--rcfile",
     "${workspaceFolder}\\.pylintrc"
-    ]
+    ],
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true
 }

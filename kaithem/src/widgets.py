@@ -596,7 +596,7 @@ class Button(Widget):
 
             </script>
             <button type="button" id="%s_1" onmousedown="%s_toggle()">ARM</button><br/>
-            <button type="button" class="triggerbuttonwidget" disabled=true id="%s_2" onmousedown="KWidget_setValue('%s','ped')" onmouseleave="KWidget_setValue('%s','released')" onmouseup="KWidget_setValue('%s','released')" %s>
+            <button type="button" class="triggerbuttonwidget" disabled=true id="%s_2" onmousedown="KWidget_setValue('%s','pushed')" onmouseleave="KWidget_setValue('%s','released')" onmouseup="KWidget_setValue('%s','released')" %s>
             <span id="%s_3">%s</span>
             </button>
             </div>

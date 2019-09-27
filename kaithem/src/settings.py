@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 import cherrypy,base64,os,time,subprocess,time,shutil,sys,logging
 from cherrypy.lib.static import serve_file
-from . import pages, util,messagebus,config,auth,registry,mail,kaithemobj, config,weblogin,systasks
+from . import pages, util,messagebus,config,auth,registry,mail,kaithemobj, config,weblogin,systasks,gpio
 
 if sys.version_info < (3,0):
     import StringIO as io 
@@ -448,6 +448,7 @@ class Settings():
         messagebus.postMessage("/system/notifications","All errors were cleared by" + pages.getAcessingUser())
         raise cherrypy.HTTPRedirect('/')
 
+    gpio = gpio.WebInterface()
     class profiler():
         @cherrypy.expose
         def index():

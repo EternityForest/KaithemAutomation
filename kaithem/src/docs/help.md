@@ -600,8 +600,12 @@ This namespace integrates the excellent GPIOZero into kaithem.
 
 Creates an object that acts as an interface to the specified GPIO. Acts generally like gpiozero.button.
 
-It acrs /system/gpio/PIN where you can view the status of the tag. The tag will be 1 when the 
-button is active.
+It creates a tag point at /system/gpio/PIN where you can view the status of the pin(Real or fake). The tag will be 1 when the button is active.
+
+If the platform doesn't have GPIO, it will instead use gpiozero's Mock factory, and you'll
+be able to use setRawMockValue. Calling this on a platform that DOES have mocking will auto-switch to
+mock mode.
+
 
 #### DigitalInput.onChange(f)
 Subscribes a function that must be f(topic,value) to debounced changes. Uses the internal
@@ -611,9 +615,12 @@ will always True if active or False if inactive.
 #### DigitalInput.onChange(f)
 Subscribes a function that must be f(topic,value) to get notified on hold events. Topic will always be `"/system/gpio/hold/"+str(self.pin)`, and the value will always True.
 
-#### DigitalInput.setRawMockVakue(f)
-On platforms without real GPIO, or where you explicitly set the factory to Mock, sets the fake
-raw input value. If real GPIO exists, raise an error.
+#### DigitalInput.setRawMockValue(v)
+Switches to mock/testing mode and sets the fake raw input value. Everything should behave
+exactly like it's getting real GPIO input.
+
+#### DigitalInput.releaseMocking()
+Returns to real GPIO.
 
 
 #### DigitalInput.gpio
