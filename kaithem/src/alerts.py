@@ -163,8 +163,8 @@ class Alert(virtualresource.VirtualResource):
 
         virtualresource.VirtualResource.__init__(self)
 
-        self.permissions    = permissions + ['/users/alarms.view']
-        self.ackPermissions = ackPermissions + ['users/alarms.acknowledge']
+        self.permissions    = permissions + ['/users/alerts.view']
+        self.ackPermissions = ackPermissions + ['users/alerts.acknowledge']
 
         self.priority = priority
         self.zone = zone

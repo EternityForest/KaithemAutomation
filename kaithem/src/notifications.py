@@ -15,7 +15,7 @@
 
 import time,json,logging
 import cherrypy
-from . import messagebus,pages, auth
+from . import messagebus,pages, auth,widgets
 from .unitsofmeasure import strftime
 from .config import config
 
@@ -23,6 +23,15 @@ logger = logging.getLogger("system.notifications")
 ilogger = logging.getLogger("system.notifications.important")
 
 notificationslog =   []
+
+
+class API(widgets.APIWidget):
+    def onNewSubscriber(self, user, cid, **kw):
+        self.send(['all', notificationslog])
+
+api = API()
+api.require("/admin/mainpage.view")
+
 
 def makenotifier():
     if not 'LastSawMainPage' in cherrypy.response.cookie:
@@ -67,13 +76,14 @@ def countnew(since):
 import weakref
 
 handlers = weakref.WeakValueDictionary()
+handlersmp = weakref.WeakValueDictionary()
+
 from ws4py.websocket import WebSocket
 class websocket(WebSocket):
     def opened(self):
         self.send(json.dumps(countnew(self.since)))
     def closed(self,*a,**k):
         del handlers[self.id]
-
 
 class WI():
     @cherrypy.expose
@@ -98,6 +108,17 @@ class WI():
         handler.id = time.monotonic()
         handlers[handler.id]=handler
 
+    def ws_mp(self,since=0):
+        # you can access the class instance through
+        if not config['enable-websockets']:
+            raise RuntimeError("Websockets disabled in server config")
+        pages.require('/admin/mainpage.view')
+        handler = cherrypy.request.ws_handler
+        handler.user=  pages.getAcessingUser()
+        handler.since=float(since)
+        handler.id = time.monotonic()
+        handlersmp[handler.id]=handler
+
 
 
 def subscriber(topic,message):
@@ -112,20 +133,23 @@ def subscriber(topic,message):
         for i in handlers:
             if auth.canUserDoThis(handlers[i].user,'/admin/mainpage.view'):
                 handlers[i].send(json.dumps(countnew(handlers[i].since)))
+                handlersmp[i].send([time.time(),topic,message])
     except:
         logging.exception("Error pushing notifications")
+
+    api.send(['notification',[time.time(),topic,message]])
 
 messagebus.subscribe('/system/notifications/',subscriber)
 
 def printer(t,m):
-        if 'error' in t:
-            logger.error(m)
-        elif 'warning' in t:
-            logger.warning(m)
-        elif 'important' in t:
-            ilogger.info(m)
-        else:
-            logger.info(m)
+    if 'error' in t:
+        logger.error(m)
+    elif 'warning' in t:
+        logger.warning(m)
+    elif 'important' in t:
+        ilogger.info(m)
+    else:
+        logger.info(m)
 
 for i in config['print-topics']:
     messagebus.subscribe(i,printer)

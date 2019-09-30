@@ -20,28 +20,88 @@
     style="height:95%;overflow-x: scroll; overflow-y: hidden; min-width: 80%; max-width: 10000%; max-height: 98%;     white-space: nowrap;">
    
     <h2>Digital Inputs in Use</h2>
-    <p class="status">
+    <p class="help">
         Only inputs via kaithem.gpio are shown.  You can "Mock" a pin, effectivly switching the pin into a virtual
         mode where it ignores real input and only watches your virtual commands.
+    </p>
+    <p class="help">
+        Note that GPIOZero natively supports active-low pins. A pin is active when the voltage matches the configured active state,
+        which can be high or low. Active low pins are "active" when the raw input is low.
     </p>
     <table border="1">
        <tr>
            <th>Pin</th>
-           <th title="If the pin is active, NOT the raw val">Active</th>
+           <th title="If the pin is active, NOT the raw val">Current State</th>
            <th>Comment</th>
            <th>Mocked</th>
+           <th>Active High</th>
            <th>Tools</th>
        </tr>
 
        <tr v-for="i in dictView(inputs, ['p'])">
            <td>{{i[0]}}</td>
-           <td>{{i[1].v}}</td>
+           <td title="If the pin is active, NOT the raw voltage input">
+            <img src="/zipstatic/img/icons/fugue.zip/light-bulb.png" v-if="i[1].v">
+            <img src="/zipstatic/img/icons/fugue.zip/light-bulb-off.png" v-if="!i[1].v">
+            {{i[1].v ? 'active':"inactive"}}</td>
            <td>{{i[1].c}}</td>
-           <td>{{i[1].m}}</td>
-           <td><button v-on:click="promptMock(i[0])">Mocking</button></td>
+           <td><img src="/zipstatic/img/icons/fugue.zip/wrench.png" v-if="i[1].m">
+            <img src="/zipstatic/img/icons/fugue.zip/leaf.png" v-if="!i[1].m">
+            {{i[1].m ? 'Mocked':"Live"}}
+
+
+
+           </td>
+           <td title="Is the pin active when the voltage is high?">{{i[1].a_s}}</td>
+           <td><button v-on:click="promptMock(i[0],1)" title="Fake the raw input voltage being high">Mock pin high/3.3v</button>
+            <button v-on:click="promptMock(i[0],0)" title="Fake the raw input voltage being low">Mock 0V</button>
+            <button v-on:click="promptMock(i[0],-1)" title="Stop faking inputs">Unmock</button>
+        
+        </td>
        </tr>
 
    </table>
+
+   <h2>Digital Outputs in Use</h2>
+   <p class="help">
+       Only outputs via kaithem.gpio are shown.
+   </p>
+   <p class="help">
+       Note that GPIOZero natively supports active-low pins. An active output is set to the active state which may be low or high.
+   </p>
+   <table border="1">
+      <tr>
+          <th>Pin</th>
+          <th title="If the pin is active, NOT the raw val">Current State</th>
+          <th>Comment</th>
+          <th>Overridden</th>
+          <th>Active High</th>
+          <th>Tools</th>
+      </tr>
+
+      <tr v-for="i in dictView(outputs, ['p'])">
+          <td>{{i[0]}}</td>
+          <td title="If the pin is active, NOT the raw voltage input">
+           <img src="/zipstatic/img/icons/fugue.zip/light-bulb.png" v-if="i[1].v">
+           <img src="/zipstatic/img/icons/fugue.zip/light-bulb-off.png" v-if="!i[1].v">
+           {{i[1].v ? 'active':"inactive"}}</td>
+          <td>{{i[1].c}}</td>
+          <td><img src="/zipstatic/img/icons/fugue.zip/wrench.png" v-if="i[1].m">
+           <img src="/zipstatic/img/icons/fugue.zip/leaf.png" v-if="!i[1].m">
+           {{i[1].m ? 'Mocked':"Live"}}
+
+
+
+          </td>
+          <td title="Does the acrive state cause a high output voltage?">{{i[1].a_s}}</td>
+          <td><button v-on:click="promptOverride(i[0],1)" title="Force Active">Force Active</button>
+           <button v-on:click="promptOverride(i[0],0)" title="Force Inactive">Force Inactive</button>
+       
+       </td>
+      </tr>
+
+  </table>
+
    <button v-on:click="api.send(['refresh'])">Refresh</button>
 </div>
 
@@ -58,25 +118,37 @@
       status: {},
       api:api,
       inputs: {},
+      outputs:{},
 
-      'promptMock':function(m)
+      'promptMock':function(m,v)
       {
             var x = parseInt(m)
             if (!isNaN(x))
             {
                 m=x;
             }
-            var r = prompt("Enter fake raw pin value(1 for electrical high, 0 for low, -1 to return to unmocked)")
+            
+            //If we are not mocked, ask if we really want to
+            //Also confim before unmock
+            if((!app.$data.inputs[m].m) | v==-1)
+            {
+                var r = confirm("Are you sure you want to enable or disable mocking?")
+            }
+            else
+            {
+                var r=true;
+            }
+
             if (r!=null)
             {
                 r = parseInt(r);
-                if(r==-1)
+                if(v==-1)
                 {
                     api.send(['unmock', m])
                 }
                 else
                 {
-                    api.send(['mock', m,r ])
+                    api.send(['mock', m,v])
                 }
             }
       },
@@ -135,6 +207,9 @@
   api.upd = function (msg) {
         if (msg[0] == "inputs") {
             app.$data.inputs= msg[1]
+        }
+        if (msg[0] == "outputs") {
+            app.$data.outputs= msg[1]
         }
         if (msg[0] == "v") {
             app.$data.inputs[msg[1]].v=msg[2]

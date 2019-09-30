@@ -180,7 +180,7 @@ distribution, notably Font Awesome and iconicss.
 
 Also include is the complete Fugue icon pack, accessible as follows:
 
-    Acorn
+    /zipstatic/img/icons/fugue.zip/cross-button.png
 
 <span id="scope"></span>Scoping
 -------------------------------

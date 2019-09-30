@@ -20,8 +20,7 @@ logger = logging.getLogger("system.widgets")
 
 #Modify lock for any websocket's subscriptions
 subscriptionLock = threading.Lock()
-if config['enable-websockets']:
-    from ws4py.websocket import WebSocket
+from ws4py.websocket import WebSocket
 widgets = weakref.WeakValueDictionary()
 n = 0
 
@@ -148,9 +147,13 @@ if config['enable-websockets']:
                         if i == "__WIDGETERROR__":
                             continue
 
+
                         with subscriptionLock:
                             widgets[i].subscriptions[self.uuid] = subsc_closure(self,i,widgets[i])
                             widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
+                            #This comes after in case it  sends data
+                            widgets[i].onNewSubscriber(user,{})
+
                         self.subscriptions.append(i)
                         resp.append([i, widgets[i]._onRequest(user,self.uuid)])
 
@@ -190,6 +193,9 @@ class Widget():
 
         #Insert self into the widgets list
         widgets[self.uuid] = self
+
+    def onNewSubscriber(self,user, cid, **kw):
+        pass
 
     def forEach(self,callback):
         "For each client currently subscribed, call callback with a clientinfo object"
@@ -339,7 +345,7 @@ class TimeWidget(Widget):
         """
         if type=='widget':
             return("""<div id="%s" class="widgetcontainer">
-            <script type="text/javascript" src="/static/strftime-min.js">
+            <script type="text/javascript" src="/static/js/strftime-min.js">
             </script>
             <script type="text/javascript">
             var f = function(val)
@@ -354,7 +360,7 @@ class TimeWidget(Widget):
 
         if type=='inline':
             return("""<span id="%s">
-            <script type="text/javascript" src="/static/strftime-min.js">
+            <script type="text/javascript" src="/static/js/strftime-min.js">
             </script>
             <script type="text/javascript">
             var f = function(val)

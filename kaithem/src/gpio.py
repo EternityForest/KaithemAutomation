@@ -15,7 +15,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from . import tagpoints,messagebus,widgets,pages
+from . import tagpoints,messagebus,widgets,pages, alerts
 import weakref,threading,time
 import cherrypy
 
@@ -46,7 +46,8 @@ def formatPin(p):
         'v':p.tag.value,
         'c':p.comment,
         'm': p.gpio==p.fakeGpio,
-        'p': p.pin
+        'p': p.pin,
+        "a_s":p.activeState
     }
 
 
@@ -66,6 +67,7 @@ def handleApiCall(u,v):
             api.send(["outputs", {i:formatOutputPin(outputs[i]()) for i in outputs}])
     
     if v[0]=='mock':
+        inputs[v[1]]().mockAlert.trip()
         inputs[v[1]]().setRawMockValue(v[2])
 
     if v[0]=='unmock':
@@ -131,8 +133,10 @@ class DigitalOutput(GPIOTag):
             self.connectToPin(PWMLED, pin, mock=mock,*args,**kwargs)
         except gpiozero.exc.GPIODeviceError:
             self.connectToPin(LED, pin, mock=mock,*args,**kwargs)
-        self.phyclaim = self.tag.claim(self.gpio.value,"gpio", 60)
         self.lastPushed = 0
+
+        self.overrideAlert = alerts.Alert("Pin"+str(pin)+"override")
+        self.overrideAlert.description="Output pin overridden manually and ignoring changes to it's tagpoint"
 
         def tagHandler(self, val, ts, annotation):
             self.gpio.value = val
@@ -189,23 +193,31 @@ class DigitalInput(GPIOTag):
         self.connectToPin(Button, pin, mock=mock,*args,**kwargs)
         self.phyclaim = self.tag.claim(self.gpio.value,"gpio", 60)
         self.lastPushed = 0
-        
 
+        #Only trip this alert if it's manually mocked. If it starts out
+        #Mocled that isn't news most likely.
+        self.mockAlert = alerts.Alert("Pin"+str(pin)+"mock",autoAck=True)
+        self.mockAlert.description="Input pin is mocked and ignoring the physical iput pin"
+
+
+        if 'active_state' in kwargs:
+            if kwargs['active_state']:
+                self.activeState = True
+            else:
+                self.activeState=False
+        else:
+            if  kwargs.get('pull_up',True):
+                self.activeState = False
+            else:
+                self.activeState=True
+            
         if isinstance(gpiozero.Device.pin_factory,MockFactory):        
-                if 'active_state' in kwargs:
-                    if kwargs['active_state']:
-                        active = True
-                    else:
-                        active=False
-                else:
-                    if  kwargs.get('pull_up',True):
-                        active = False
-                    else:
-                        active=True
-                if active:
+
+                if  self.activeState:
                     Device.pin_factory.pin(pin).drive_low()
                 else:
                     Device.pin_factory.pin(pin).drive_high()
+
         with lock:
             inputs[self.pin]=weakref.ref(self)
        
@@ -276,6 +288,8 @@ class DigitalInput(GPIOTag):
             oldGpio = self.gpio
             if not self.realGpio:
                 raise RuntimeError("Object has no real GPIO")
+            self.mockAlert.release()
+
             if self.gpio==self.realGpio:
                 return
             self.fakeGpio.when_activated=None

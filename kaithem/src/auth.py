@@ -112,7 +112,9 @@ BasePermissions = {
 "/users/tagpoints.edit" : "Override tagpoint values and modify configuration",
 "/admin/errors.view": "View errors in resources. Note that /users/logs.view or /admin/modules.edit will also allow this.",
 "/users/mixer.edit": "Control the audio mixing functionality",
-"__all_permissions__": "Special universal permission that grants all permissions in the system. Use with care."
+"__all_permissions__": "Special universal permission that grants all permissions in the system. Use with care.",
+"/users/alerts.view": "Required to view alerts",
+"/users/alerts.acknowlege": "Required to acknowledge alerts"
 }
 
 Permissions=BasePermissions
