@@ -111,12 +111,17 @@ class Kaithem():
             except Exception as e:
                 return e
             return None
-        
+        @staticmethod
         def breakpoint():
             breakpoint.breakpoint()
+        @staticmethod
+        def mkdir(d):
+            util.ensure_dir2(d)
 
         effwords = util.eff_wordlist
 
+        vardir = directories.vardir
+        
     #In modules.py, we insert a resource API object.
     #kaithemobj.kaithem.resource = ResourceAPI()
 

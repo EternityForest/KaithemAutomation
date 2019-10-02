@@ -1021,7 +1021,17 @@ if __name__=='__setup__':
                 logger.exception("Error creating universes")
                 print(traceback.format_exc(6))
     
-            self.loadDict(kaithem.registry.get("lighting/scenes",{}))
+    
+            d = kaithem.registry.get("lighting/scenes",{})
+            saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "scenes")
+            if os.path.isdir(saveLocation):
+                for i in os.listdir(saveLocation):
+                    fn = os.path.join(saveLocation,i)
+    
+                    if os.path.isfile(fn) and fn.endswith(".yaml"):
+                        d[i[:-len('.yaml')]] = kaithem.persist.load(fn)
+    
+            self.loadDict(d)
             self.refreshFixtures()
             def f(self,*dummy):
                 self.link.send(['soundoutputs',[i for i in kaithem.sound.outputs()]])
@@ -1107,12 +1117,17 @@ if __name__=='__setup__':
                                 x =  data[i]['active']
                                 del data[i]['active']
     
-                            s=Scene(id=i,defaultCue=False,defaultActive=x,**data[i])
+                            uuid = i
+                            if 'uuid' in data[i]:
+                                uuid = data[i]['uuid']
+                                del data[i]['uuid']
+    
+                            s=Scene(id=uuid,defaultCue=False,defaultActive=x,**data[i])
                             for j in cues:
                                 Cue(s,f=True,name=j,**cues[j])
                             s.cue = s.cues['default']
                             s.gotoCue("default")
-                            self.scenememory[i] = s
+                            self.scenememory[uuid] = s
                             if x:
                                 s.go()
                                 s.rerender=True
@@ -1163,14 +1178,30 @@ if __name__=='__setup__':
                                  'blendArgs': x.blendArgs,
                                  'backtrack': x.backtrack,
                                  'soundOutput': x.soundOutput,
-                                 'syncKey':x.syncKey, 'syncPort': x.syncPort, 'syncAddr':x.syncAddr                            
+                                 'syncKey':x.syncKey, 'syncPort': x.syncPort, 'syncAddr':x.syncAddr,     
+                                 'uuid': i                 
                                 }
                 return sd
-        
+    
         def save(self):
             sd = self.getScenes()
-            with module.lock:                               
-                kaithem.registry.set("lighting/scenes",sd)
+            saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "scenes")
+    
+            saved = {}
+            with module.lock:    
+                for i in sd:
+                    saved[sd[i]['name']+".yaml"]=True
+                    kaithem.persist.save(sd[i], os.path.join(saveLocation,sd[i]['name']+".yaml")  )
+    
+            #Delete everything not in folder
+            for i in os.listdir(saveLocation):
+                fn=os.path.join(saveLocation,i)
+                if os.path.isfile(fn) and i.endswith(".yaml"):
+                    if not i in saved:
+                        os.remove(fn)
+            #Remove the registry entry for the legacy way of saving things.                    
+            kaithem.registry.delete("lighting/scenes")
+        
         
         def pushTracks(self):
             self.link.send(['tracks',{i:module.runningTracks[i].name for i in module.runningTracks}])
@@ -1304,6 +1335,10 @@ if __name__=='__setup__':
         def _onmsg(self,user,msg):
             #Adds a light to a scene
             try:
+    
+                if msg[0] == "saveAll":
+                    self.save()
+                    
                 if msg[0] == "addscene":
                     s = Scene(msg[1])
                     self.scenememory[s.id]=s

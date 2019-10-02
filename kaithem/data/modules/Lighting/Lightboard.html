@@ -209,7 +209,7 @@ from src import tagpoints
         <div style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;"><b>File:</b>
                 <a class="button" href="download" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Download</a>
                 <a class="button" href="upload" title="Upload a scenes file"><img src="/zipstatic/img/icons/fugue.zip/folder-horizontal-open.png"></img>Upload</a>
-                <a class="button" href="save" title="Save to the kaithem registry as the default state at boot"><img src="/zipstatic/img/icons/fugue.zip/quill.png"></img>Make Current State the Default</a>
+                <button v-on:click="saveToDisk()" title="Save the state to disk as the default when the Lightboard boots"><img src="/zipstatic/img/icons/fugue.zip/quill.png"></img>Save State as Default</a>
         </div>
 
 
@@ -1321,6 +1321,20 @@ from src import tagpoints
             'evtosend': '',
             'evtypetosend': 'float',
             'evval': '',
+            'savedThisSession': false,
+            'saveToDisk': function()
+            {
+                if (this.savedThisSession==false)
+                {
+                    var x =confirm("This saves directly to disk, overwriting the previous default. This message only shows the first save.")
+                    if(!x)
+                    {
+                        return
+                    }
+                    this.savedThisSession=true;
+                }
+                api_link.send(['saveAll'])
+            },
             'sendev': function(where)
 
             {

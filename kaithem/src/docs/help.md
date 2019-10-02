@@ -1481,35 +1481,15 @@ directory unless the data will be shared between modules
 Note that you may want to use the registry instead to save SD card wear
 by keeping changes in RAM until explicitly saved.
 
-#### kaithem.persist.load(filename, autorecover=True, expand=True)
+To store things directly in the vardir, use kaithem.misc.vardir
+to find it.
+
+
+#### kaithem.persist.load(filename, *, expand=True)
 
 Load data from a file named filname in a format dictated by the file
 extension. Data will be converted to a python appropriate representation
 and returned.
-
-If autorecover ==True, and the filename doesn't exist or can't be
-loaded, then filename+"~" will be used instead. If both the original
-file and a tilde backup file exist, the tilde backup file will be used
-if a filename~! marker file exists to indicate that the backup file is
-valid.
-
-If no marker file exists but a backup file does(Such as might be the
-case if an external editor was involved), the tilde file is used only if
-it is older or longer than the main file, because generally a program
-does not write to the main file until finished writing the backup, and
-therefore if the main file is newer, the backup likely finished
-sucessfully, allowing the code to move on to the main file.
-
-Similarly, since a tilde file never contains additional data beyond what
-was in the original, so if the tilde file is longer, that means the main
-file was truncated, which should only ever happen after a complete
-backup was made
-
-Both of these are just heuristics and cannot guarantee detection of a
-valid tilde file. However, due to persist.save using ~! markers(or
-tempfiles and atomic rename if available), the save and load process
-should be fully atomic so long as no other programs access the save
-files while kaithem is using them.
 
 #### Supported File Types
 
@@ -1537,24 +1517,17 @@ Any other type may be compressed with gzip compresssion(e.g.
 Any other type may be compressed with bz2 compression(e.g.
 "bar.json.bz2")
 
-#### kaithem.persist.save(data,filename,mode=default,private=False,backup=None,expand=False)
+#### kaithem.persist.save(data,filename,*,private=False,backup=True,expand=False)
 
 Saves data to a file named fn in a format dictated by the file
 extension. If the file does it exist, it will be created. If it does, it
-will be overwritten. If mode=='backup', the file will first be copied to
-filename~ , then an empty marker file will be created at filename~! to
-show that the backup was completed correctly, the file written or
-overwritten, and then the backup and marker file will both be deleted
-will be deleted.
+will be overwritten. If backup is true, the file will be written to filename~, then atomically renamed to filename, making this fully atomic.
+
+
 
 If the directory you try to save into does not exist, it will be created
 along with any higher level directories needed.
 
-The affect of this is that if a write fails, the loader can fall back to
-an old version.
-
-Setting backup to true is an alias for mode="backup", which should be
-used instead as the mode parameter may be removed.
 
 If private is True, file will have the mode 700(Only owner or admin/root
 can read or write the file). The mode is changed before the file is

@@ -85,17 +85,13 @@ class Persister():
         if os.path.exists(self.fn):
             self.value = load(self.fn)
 
-def save(data,fn,mode="default", private=False,backup=True, expand=True, md5=False):
+def save(data,fn, *,private=False,backup=True, expand=True, md5=False):
     """Save data to file. Filename must end in .json, .yaml, .txt, or .bin. Data will be encoded appropriately.
         Also supports compressed versions via filenames ending in .gz or .bz2.
         Args:
             data:
                 the data to be written. if fn is a .json or .yaml, must be serializable. If filename is .txt, must be a string.
                 If .bin, must be something like bytes.
-            mode:
-                If default, just overwrite the file. If backup, rename existing file to file~ then delete it on sucessful write.
-                Note that load() may not notice all corrupted JSON or YAML files, however gz and bz2 include checksums.
-                DEPRECATED
             private:
                 If True, file created with mode 700(Full access to root and owner but not even read to anyone else)
                 If False(the default), file created with default mode
@@ -171,10 +167,7 @@ def save(data,fn,mode="default", private=False,backup=True, expand=True, md5=Fal
 
         util.ensure_dir(os.path.split(fn)[0])
 
-        if backup==True:
-            mode="backup"
-
-        if mode=="backup":
+        if backup:
             tempfn = fn+str(time.time())
         else:
             tempfn = fn
@@ -184,7 +177,7 @@ def save(data,fn,mode="default", private=False,backup=True, expand=True, md5=Fal
             #In backup mode, pre truncate and flush.
             #This means that even if an error occors during writing, we will be able to tell by the
             #mtime that the tilde file is the right one.
-            if mode=="backup":
+            if backup:
                 f.flush()
                 os.fsync(f.fileno())
 
@@ -195,7 +188,7 @@ def save(data,fn,mode="default", private=False,backup=True, expand=True, md5=Fal
             f.flush()
             os.fsync(f.fileno())
 
-        if mode=="backup":
+        if backup:
             os.replace(tempfn, fn)
 
         if md5:
@@ -204,44 +197,15 @@ def save(data,fn,mode="default", private=False,backup=True, expand=True, md5=Fal
 
 
 
-def load(filename, autorecover = True,expand=True):
+def load(filename, *,expand=True):
     """Load a file. Return str if file extension is .txt, bytes on .bin, dict on .yaml or .json.
 
     After that may be a .bz2 or a .gz for compression.
 
-    If autorecover is True, if the file is missing or corrupted(May not catch all corrupted YAML files), looks for a ~ backup before failing.
-    maybe best to use gz if you really care because gz has a checksum.
-    
-    Autorecover is deprecated, saving should be atomic on all platforms
     """
     filename = resolvePath(filename, expand)
 
     with lock:
-        if autorecover:
-            if os.path.isfile(filename+"~"):
-                #If there is a backup good marker, then we know for sure the backup is good.
-                #If not, the backup still might be good so we use two heuristics.
-                #Otherwise, we will try to load the original, and if that fails use the backup.
-                if os.path.isfile(filename+"~!"):
-                    logging.error("File corruption detected in "+filename+", falling back to backup")
-                    return load(filename+"~")
-
-                #If the tilde file is older than the actual file, it means that we finished
-                #Writing to the tilde file, and had an error in the middle of writing the actual file.
-                #In that case, the tilde file is the one we want.
-
-                #However, there's a possibility that main file's metadata never reached disk,
-                #In that case, this test will not catch that.
-                if  os.stat(filename+"~").st_mtime < os.stat(filename).st_mtime:
-                    logging.error("File corruption detected in "+filename+", using heuristic to fall back to backup")
-                    return load(filename+"~")
-                #If the file we want is nonexistant, or if the tilde file is bigger, use the tilde file.
-                #This is because, if there was an error during making the tilde file, we would expect the tilde
-                #File to be smaller. This will of course fail if the error happened during the writing of the
-                #Actual file, in which case it could be larger with new data but stil be wrong.
-                if (not os.path.isfile(filename)) or (os.stat(filename+"~").st_size>= os.stat(filename).st_size):
-                    logging.error("File corruption detected in "+filename+",  using heuristic to fall back to backup")
-                    return load(filename+"~")
         try:
              #Open the file and get the filename without the compression type attached to it.
             if filename.endswith(".gz"):
@@ -270,12 +234,6 @@ def load(filename, autorecover = True,expand=True):
                 f.close()
             except:
                 pass
-            if not autorecover:
-                raise e
-            else:
-                #Avoid a loop, we call ourself but set the param to false
-                logging.exception("File corruption detected in "+filename+", falling back to backup")
-                return load(filename +'~', False)
         try:
             f.close()
         except:

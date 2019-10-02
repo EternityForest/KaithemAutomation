@@ -77,6 +77,8 @@ button,a.button,label
 
 }
 
+
+
 /*********************Code editing************************/
 
 @font-face {
@@ -104,6 +106,10 @@ button,a.button,label
 	background: rgba(150, 200, 120, 0.1)  !important;
 }
 
+pre, pre.error, pre.warning, pre.danger
+{
+	font-family: hack;
+}
 /*****************************General***********************************************************************************/
 #page {
   background-repeat: repeat;

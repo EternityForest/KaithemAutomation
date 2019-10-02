@@ -14,7 +14,6 @@ resource-type: page
 template-engine: markdown
 
 ---
-
 Kaithem Lighting System Help
 ----------------------------
 
@@ -86,6 +85,21 @@ do it by name not number.
 
 If you set a nonzero length, the cue will automatically fade or jump to
 the next cue when it ends.
+
+
+#### Saving
+
+You can upload or download the complete set of scenes as a zip file.
+You can also save the current set of scenes as the default with one click.
+
+Every scene is saved to disk as an individual version controllable YAML file. 
+These are found in Kaithem's VarDir/chandler/scenes/
+
+Keybindings are currently only savable locally, to the browser.
+
+Universes are saved to the registry automatically and commited when the server state is saved.
+They are kept separate from the scenes to allow portability and use with different interfaces.
+
 
 #### Shortcut Codes
 

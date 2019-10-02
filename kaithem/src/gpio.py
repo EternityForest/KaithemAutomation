@@ -114,7 +114,6 @@ class GPIOTag():
                 self.gpio = self.fakeGpio
         else:
             self.gpio=self.fakeGpio
-    
 
 
 class DigitalOutput(GPIOTag):
