@@ -114,13 +114,11 @@ class GPIOTag():
                 self.gpio = self.fakeGpio
         else:
             self.gpio=self.fakeGpio
-        self.gpio.when_activated = self._onActive
-        self.gpio.when_deactivated = self._onInactive
-        self.gpio.when_held = self._onHold
-
+    
 
 
 class DigitalOutput(GPIOTag):
+    requirePWM=False
     def __init__(self, pin, *args,comment="",mock=None, **kwargs):
 
         GPIOTag.__init__(self, "/system/gpio/"+str(pin), pin,comment=comment)
@@ -131,8 +129,11 @@ class DigitalOutput(GPIOTag):
         self.comment=comment
         try:
             self.connectToPin(PWMLED, pin, mock=mock,*args,**kwargs)
-        except gpiozero.exc.GPIODeviceError:
-            self.connectToPin(LED, pin, mock=mock,*args,**kwargs)
+        except gpiozero.exc.PinPWMUnsupported:
+            if not self.requirePWM:
+                self.connectToPin(LED, pin, mock=mock,*args,**kwargs)
+            else:
+                raise
         self.lastPushed = 0
 
         self.overrideAlert = alerts.Alert("Pin"+str(pin)+"override")
@@ -191,6 +192,7 @@ class DigitalInput(GPIOTag):
         self.pin=pin
         self.comment=comment
         self.connectToPin(Button, pin, mock=mock,*args,**kwargs)
+        self._setInputCallbacks()
         self.phyclaim = self.tag.claim(self.gpio.value,"gpio", 60)
         self.lastPushed = 0
 
@@ -221,6 +223,15 @@ class DigitalInput(GPIOTag):
         with lock:
             inputs[self.pin]=weakref.ref(self)
        
+    def _setInputCallbacks(self):
+        self.gpio.when_activated = self._onActive
+        self.gpio.when_deactivated = self._onInactive
+        self.gpio.when_held = self._onHold
+
+    def _clearInputCallbacks(self):
+        self.fakeGpio.when_activated=None
+        self.fakeGpio.when_deactivated=None
+        self.fakeGpio.when_deactivated=None
 
 
     def __del__(self):
@@ -288,7 +299,7 @@ class DigitalInput(GPIOTag):
             oldGpio = self.gpio
             if not self.realGpio:
                 raise RuntimeError("Object has no real GPIO")
-            self.mockAlert.release()
+            self.mockAlert.clear()
 
             if self.gpio==self.realGpio:
                 return

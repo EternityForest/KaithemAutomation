@@ -16,6 +16,8 @@ from src.unitsofmeasure import formatTimeInterval
 <script src="/static/js/strftime-min.js"></script>
 
 ${api.render("api")}
+${alertsapi.render("alertapi")}
+
 
 <main id="app">
 %if 'auth' in cherrypy.request.cookie:
@@ -132,6 +134,10 @@ ${api.render("api")}
                 app.$data.notifications.push(msg[1])
                 app.$data.notifications = app.$data.notifications.slice(-100)
             }
+        }
+
+    alertapi.upd = function (msg) {
+            
         }
 
     </script>

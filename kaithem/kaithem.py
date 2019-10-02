@@ -313,7 +313,7 @@ def webRoot():
         def index(self,*path,**data):
             pages.require("/admin/mainpage.view")
             cherrypy.response.cookie['LastSawMainPage'] = time.time()
-            return pages.get_template('index.html').render(api=notifications.api)
+            return pages.get_template('index.html').render(api=notifications.api,alertsapi=alerts.api)
         
         #"/" is mapped to this
         @cherrypy.expose

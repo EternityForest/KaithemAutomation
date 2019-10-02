@@ -1,4 +1,4 @@
-from src import statemachines, registry, sound,scheduling,workers,pages,messagebus,virtualresource,unitsofmeasure
+from src import statemachines, widgets, registry, sound,scheduling,workers,pages,messagebus,virtualresource,unitsofmeasure,auth
 
 import logging,threading,time, random, weakref
 logger = logging.getLogger("system.alerts")
@@ -31,6 +31,28 @@ illegalCharsInName = "[]{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
 
 nextbeep = 10**10
 sfile = "alert.ogg"
+
+
+
+def formatAlerts():
+    return {i:active[i]().format() for i in active if active[i]() and pages.canUserDoThis(active[i]().permissions)}
+
+class API(widgets.APIWidget):
+    def onNewSubscriber(self, user, cid, **kw):
+        with lock:
+            self.send(['all', formatAlerts()])
+
+api = API()
+api.require("/users/alerts.view")
+
+
+
+def handleApiCall(u,v):
+    if v[0]=="ack":
+        if auth.canUserDoThis(u, all[v[1]].ackPermissions):
+            all[v[1]].acknowledge()
+api.attach(handleApiCall)
+
 
 def calcNextBeep():
     global nextbeep
@@ -215,6 +237,14 @@ class Alert(virtualresource.VirtualResource):
         ('\n' if self.description else '')+self.description
         )
     
+    def format(self):
+        return{
+            'id': self.id,
+            'description': self.description,
+            'state': self.sm.state,
+            'name': self.name,
+            'zone': self.zone
+        }
     def handoff(self,other):
         #The underlying state machine handles the handoff
         self.sm.handoff(other.sm)

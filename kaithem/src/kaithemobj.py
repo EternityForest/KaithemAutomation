@@ -82,6 +82,7 @@ class Kaithem():
 
     class gpio():
         DigitalInput = gpio.DigitalInput
+        DigitalOutput = gpio.DigitalOutput
 
     class logging(object):
         @staticmethod
