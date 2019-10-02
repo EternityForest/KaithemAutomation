@@ -67,6 +67,14 @@ class Event(BaseEvent):
             else:
                 f()
         except:
+
+             #If we can, try to send the exception back whence it came
+            try:
+                from . import newevt
+                newevt.eventByModuleName(f.__module__)._handle_exception()
+            except:
+                pass
+
             try:
                 if hasattr(f,"__name__") and hasattr(f,"__module__"):
                     logger.exception("Exception in scheduled function "+f.__name__+" of module "+f.__module__)
@@ -195,6 +203,15 @@ class RepeatingEvent(BaseEvent):
                     f()
                 self._schedule()
             except:
+
+                 #If we can, try to send the exception back whence it came
+                try:
+                    from . import newevt
+                    newevt.eventByModuleName(f.__module__)._handle_exception()
+                except:
+                    pass
+
+
                 try:
                     if hasattr(f,"__name__") and hasattr(f,"__module__"):
                         localLogger.exception("Exception in scheduled function "+f.__name__+" of module "+f.__module__)

@@ -45,7 +45,7 @@ def at_exit():
     #This lets us tell a clean shutdown from something like a segfault
     if os.path.exists("/dev/shm"):
         try:
-            with open("/dev/shm/shutdowntime","w") as f:
+            with open("/dev/shm/shutdowntime_"+getpass.getuser(),"w") as f:
                 f.write(str(time.time()))
         except:
             print(traceback.format_exc())
@@ -354,3 +354,10 @@ if os.path.exists("/dev/shm"):
             bufferlen= 0,
             keep=10**6,
             compress= "none")
+    shmhandler.isShmHandler=True
+
+    def onUserChanged():
+        shmhandler.checkShmFolder()
+else:
+    def onUserChanged():
+        pass

@@ -108,6 +108,14 @@ def makeWorker(e,q):
                     logger.exception("Error in function running in thread pool "+f.__name__ +" from " + f.__module__)
                 except:
                     print("Failed to handle error: "+traceback.format_exc(6))
+
+                #If we can, try to send the exception back whence it came
+                try:
+                    from . import newevt
+                    newevt.eventByModuleName(f.__module__)._handle_exception()
+                except:
+                    pass
+
             finally:
                 #We do not want f staying around, if might hold references that should be GCed away immediatly
                 f=None

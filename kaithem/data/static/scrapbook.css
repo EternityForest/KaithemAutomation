@@ -1,9 +1,90 @@
+/*****************Typography****************************/
+
+/* lora-regular - latin_cyrillic_latin-ext_cyrillic-ext */
+@font-face {
+	font-family: 'Lora';
+	font-style: normal;
+	font-weight: 400;
+	src: local('Lora Regular'), local('Lora-Regular'),
+		 url('/static/fonts/lora/lora-v14-latin_cyrillic_latin-ext_cyrillic-ext-regular.woff2'); /* Chrome 26+, Opera 23+, Firefox 39+ */
+  }
+  /* lora-italic - latin_cyrillic_latin-ext_cyrillic-ext */
+  @font-face {
+	font-family: 'Lora';
+	font-style: italic;
+	font-weight: 400;
+	src: local('Lora Italic'), local('Lora-Italic'),
+		 url('/static/fonts/lora/lora-v14-latin_cyrillic_latin-ext_cyrillic-ext-italic.woff2') format('woff2'); /* Chrome 26+, Opera 23+, Firefox 39+ */
+  }
+  /* lora-700 - latin_cyrillic_latin-ext_cyrillic-ext */
+  @font-face {
+	font-family: 'Lora';
+	font-style: normal;
+	font-weight: 700;
+	src: local('Lora Bold'), local('Lora-Bold'),
+		 url('/static/fonts/lora/lora-v14-latin_cyrillic_latin-ext_cyrillic-ext-700.woff2') format('woff2'); /* Chrome 26+, Opera 23+, Firefox 39+ */
+  }
+  /* lora-700italic - latin_cyrillic_latin-ext_cyrillic-ext */
+  @font-face {
+	font-family: 'Lora';
+	font-style: italic;
+	font-weight: 700;
+	src: local('Lora Bold Italic'), local('Lora-BoldItalic'),
+		 url('/static/fonts/lora/lora-v14-latin_cyrillic_latin-ext_cyrillic-ext-700italic.woff2') format('woff2'); /* Chrome 26+, Opera 23+, Firefox 39+ */
+  }
+
+/* b612-regular - latin */
+@font-face {
+	font-family: 'B612';
+	font-style: normal;
+	font-weight: 400;
+	src: local('B612 Regular'), local('B612Mono-Regular'),
+		 url('/static/fonts/b612/b612-v4-latin-regular.woff2') format('woff2'); /* Chrome 26+, Opera 23+, Firefox 39+ */
+  }
+  /* b612-italic - latin */
+  @font-face {
+	font-family: 'B612';
+	font-style: italic;
+	font-weight: 400;
+	src: local('B612 Italic'), local('B612Mono-Italic'),
+		 url('/static/fonts/b612/b612-v4-latin-italic.woff2') format('woff2'); /* Chrome 26+, Opera 23+, Firefox 39+ */
+  }
+  /* b612-700 - latin */
+  @font-face {
+	font-family: 'B612';
+	font-style: normal;
+	font-weight: 700;
+	src: local('B612 Bold'), local('B612Mono-Bold'),
+		 url('/static/fonts/b612/b612-v4-latin-700.woff2') format('woff2'); /* Chrome 26+, Opera 23+, Firefox 39+ */
+  }
+  /* b612-700italic - latin */
+  @font-face {
+	font-family: 'B612';
+	font-style: italic;
+	font-weight: 700;
+	src: local('B612 Bold Italic'), local('B612Mono-BoldItalic'),
+		 url('/static/fonts/b612/b612-v4-latin-700italic.woff2') format('woff2'); /* Chrome 26+, Opera 23+, Firefox 39+ */
+  }
+
+  body{
+	  font-family: Lora;
+  }
+
+button,a.button,label
+{
+	font-family: 'B612';
+	text-shadow: 0px 0px 8px rgba(255, 255, 255 0.5);
+
+}
+
 /*********************Code editing************************/
 
 @font-face {
     font-family: hack;
     src: url(/static/hack.ttf);
 }
+
+
 .monaco-editor, .monaco-editor-background {
 	background: rgb(250,255,244);
 	font-family: hack;
@@ -43,13 +124,15 @@
 {
 	color: 	#900000;
     background-color: rgba(255,200,0,0.2);
-        text-shadow: 0px 0px 6px rgba(255, 100, 100, 0.9);
+		text-shadow: 0px 0px 6px rgba(255, 100, 100, 0.9);
+	font-family: "B612";
 
 }
 .warning
 {
 	color: 	#806600;
 	background-color: rgba(255,255,0,0.2);
+	font-family: "B612";
 
 }
 .specialentry
@@ -434,6 +517,7 @@ div.widgetcontainer
 	padding: 0px;
 	margin:2px;
 	vertical-align:text-top;
+	font-family: B612;
 }
 
 div.widgetcontainer:hover
@@ -447,6 +531,8 @@ span.numericpv
 {
 	background-color: rgba(255,255,200,0.30);
 	cursor:crosshair;
+	font-family: B612;
+
 }
 span.numericpv:hover
 {
