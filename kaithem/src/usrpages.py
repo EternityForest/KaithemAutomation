@@ -239,7 +239,7 @@ def getPagesFromModules():
                             _Pages[i][m] = CompiledPage(j,i,m)
                         except Exception as e:
                             makeDummyPage(m,i)
-                            tb = traceback.format_exc()
+                            tb = traceback.format_exc(chain=True)
                             #When an error happens, log it and save the time
                             #Note that we are logging to the compiled event object
                             _Pages[i][m].errors.append([time.strftime(config['time-format']),tb,"Error while initializing"])
@@ -340,7 +340,7 @@ class KaithemPage():
             if isinstance(e,kaithemobj.ServeFileInsteadOfRenderingPageException):
                 return cherrypy.lib.static.serve_file(e.f_filepath,e.f_MIME,e.f_name)
 
-            tb = traceback.format_exc()
+            tb = traceback.format_exc(chain=True)
             data= "Request from: "+cherrypy.request.remote.ip+"("+pages.getAcessingUser()+")\n"+cherrypy.request.request_line+"\n"
             #When an error happens, log it and save the time
             #Note that we are logging to the compiled event object

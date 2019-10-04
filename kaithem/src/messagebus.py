@@ -86,7 +86,7 @@ class MessageBus(object):
             wrappedCallback = self.wrap_callback(callback)
 
             #Note that wrap_callback modifies the original to reference
-            #The wrapper, so it is safe until GC happens
+            #The wrapper, so it is safe until GC happens.
             self.subscribers[topic].append(weakref.ref(wrappedCallback,delsubscription))
             self.subscribers_immutable = self.subscribers.copy()
 
@@ -127,9 +127,18 @@ class MessageBus(object):
 
         args = len(inspect.signature(f).parameters)
 
-        if args<1:
-            raise ValueError("f must take at least one param")
-
+        if args==0:
+            def g(topic, message,errors):
+                            try:
+                                f()
+                            except:
+                                try:
+                                    if errors:
+                                        f.alreadyLogged=True
+                                        if not hasattr(f,"alreadyLogged"):
+                                            log.exception("Error in subscribed function for "+topic)
+                                except Exception as e:
+                                        print("err",e)
         elif args>1:
             def g(topic, message,errors):
                 try:

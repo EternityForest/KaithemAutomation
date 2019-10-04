@@ -182,6 +182,27 @@ Also include is the complete Fugue icon pack, accessible as follows:
 
     /zipstatic/img/icons/fugue.zip/cross-button.png
 
+Also, the following JS libraries:
+
+#### /static/js/vue2.js
+The Vue framework
+
+#### /static/js/strftime-min.js
+    Add this to your page, and get a strftime on date objects.
+
+    `var d = new Date();
+
+     var ymd = d.strftime('%Y/%m/%d');
+     var iso = d.strftime('%Y-%m-%dT%H:%M:%S%z');
+     `
+
+#### /static/js/include.js
+
+Add this to your page, and you'll be able to include other HTML
+docs:
+
+`<include src="child.html"></include>`
+
 <span id="scope"></span>Scoping
 -------------------------------
 
@@ -200,7 +221,7 @@ Anything defined in the Setup function of an event becomes a part of the
 global namespace for that event, and can be accessed by code in Trigger
 and Action, and written to by use of the global keyword.
 
-If you define a __del__() function, it gets called when the event is cleaned
+If you define a \_\_del\_\_() function, it gets called when the event is cleaned
 up.
 
 Internally, the events are compiled to (in memory, bytecode is not
@@ -596,7 +617,7 @@ function in breakpoint.py, and put a breakpoint there.
 
 This namespace integrates the excellent GPIOZero into kaithem.
 
-### kaithem.gpio.DigitalInput(pin, *,mock=None, pull_up=True, active_state=None, bounce_time=None, hold_time=1, hold_repeat=False, pin_factory=None)
+### kaithem.gpio.DigitalInput(pin, *,mock=None, pull\_up=True, active\_state=None, bounce\_time=None, hold\_time=1, hold\_repeat=False, pin\_factory=None)
 
 Creates an object that acts as an interface to the specified GPIO. Acts generally like gpiozero.button.
 
@@ -630,7 +651,7 @@ The raw gpiozero.button object. Do not override any of the callbacks if you want
 native messagebus/tagpoint based API.
 
 
-### kaithem.GPIO.DigitalOutput(pin, mock=False, comment=False,*, active_high=True, initial_value=0, frequency=100, pin_factory=None)
+### kaithem.GPIO.DigitalOutput(pin, mock=False, comment=False,*, active\_high=True, initial\_value=0, frequency=100, pin\_factory=None)
 
 Wrapper for PWMLED or LED if a non-PWM pin is selected.
 

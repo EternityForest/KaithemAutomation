@@ -415,7 +415,7 @@ class _TagPoint(virtualresource.VirtualResource):
     
     @value.setter
     def value(self, v):
-        self.setClaimVal("default",v)
+        self.setClaimVal("default",v,time.monotonic(),"Set via value property")
 
     
     def handleSourceChanged(self,name):

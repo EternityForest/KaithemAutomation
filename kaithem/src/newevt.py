@@ -44,6 +44,31 @@ syslogger = logging.getLogger("system.events")
 
 eventsByModuleName=weakref.WeakValueDictionary()
 
+
+def makePrintFunction(ev):
+    """For some unknown reason, new_print is involved in a garbage cycle that was preventing event GC
+        Here we implement it as a closuse that only weakly references the actual event object.
+    """
+    ev = weakref.ref(ev)
+
+    def new_print(*args,**kwargs):
+        #No, we cannot just do print(*args), because it breaks on python2
+        if 'local' in kwargs and kwargs['local']:
+            local = True
+        else:
+            local=False
+            
+        if len(args)==1:
+            if not local:
+                print(args[0])
+            ev().printoutput+=str(args[0])+"\n"
+        else:
+            if not local:
+                print(args)
+            ev().printoutput+=str(args)+"\n"
+        ev().printoutput = ev().printoutput[-2500:]
+    return new_print
+
 def manualRun(event):
     "Run an event manually"
     return EventReferences[event].manualRun()
@@ -322,7 +347,7 @@ class BaseEvent():
 
     def __init__(self,when,do,scope,continual=False,ratelimit=0,setup = None,priority = 2,m=None,r=None):
         #Copy in the data from args
-        self.persistant_data = PersistentData()
+        self.evt_persistant_data = PersistentData()
         self.scope = scope
         self._prevstate = False
         self.ratelimit = ratelimit
@@ -400,7 +425,7 @@ class BaseEvent():
             self.lock.release()
 
     def cleanup(self):
-
+    
         try:
             with self.lock:
                 try:
@@ -415,21 +440,7 @@ class BaseEvent():
         except:
             raise
 
-    def new_print(self,*args,**kwargs):
-        #No, we cannot just do print(*args), because it breaks on python2
-        if 'local' in kwargs and kwargs['local']:
-            local = True
-        else:
-            local=False
-        if len(args)==1:
-            if not local:
-                print(args[0])
-            self.printoutput+=str(args[0])+"\n"
-        else:
-            if not local:
-                print(args)
-            self.printoutput+=str(args)+"\n"
-        self.printoutput = self.printoutput[-2500:]
+   
 
     def _on_trigger(self):
         #This function gets called when whatever the event's trigger condition is.
@@ -574,7 +585,9 @@ class CompileCodeStringsMixin():
             self.pymodule.__dict__['kaithem']=kaithemobj.kaithem
             self.pymodule.__dict__['module']=modules_state.scopes[self.module] if self.module in modules_state.scopes else DummyModuleScope()
             try:
-                self.pymodule.__dict__['print']=self.new_print
+                #To avoid a garbage cycle, the function is a closure 
+                #That only weak references the object
+                self.pymodule.__dict__['print']=makePrintFunction(self)
             except:
                 logging.exception("Failed to activate event print output functionality")
             self.pymodule.__dict__.update(params)
@@ -591,6 +604,8 @@ class CompileCodeStringsMixin():
         #This is one of the weirder line of code I've ever writter
         #Apperently for some reason we have to manually tell it where to go for global variables.
 
+
+    
 
     def _do_action(self):
         if hasattr(self.pymodule,"_event_action"):
@@ -1162,7 +1177,9 @@ def removeOneEvent(module,resource):
             __EventReferences[module,resource].unregister()
             __EventReferences[module,resource].cleanup()
             del __EventReferences[module,resource]
-    gc.collect()
+    gc.collect(0)
+    gc.collect(1)
+    gc.collect(2)
 
 
 #Delete all _events in a module from the cache
@@ -1174,7 +1191,9 @@ def removeModuleEvents(module):
                 __EventReferences[i].unregister()
                 __EventReferences[i].cleanup()
                 del __EventReferences[i]
-        gc.collect()
+        gc.collect(0)
+        gc.collect(1)
+        gc.collect(2)
 
 #Every event has it's own local scope that it uses, this creates the dict to represent it
 def make_eventscope(module = None, resource=None):
@@ -1214,9 +1233,14 @@ def updateOneEvent(resource,module, o=None):
                 #Really we should wait a bit longer but this is a compromise, we wait so any cleanup effects can propagate.
                 #120ms is better than nothing I guess. And we garbage collect before and after,
                 #Because we want all the __del__ stuff to get a chance to take effect.
-                gc.collect()
+                gc.collect(0)
+                gc.collect(1)
+                gc.collect(2)
+
                 time.sleep(0.120)
-                gc.collect()
+                gc.collect(0)
+                gc.collect(1)
+                gc.collect(2)
             if not o:
                 #Now we make the event
                 x = make_event_from_resource(module,resource)
@@ -1224,7 +1248,7 @@ def updateOneEvent(resource,module, o=None):
                 x = o
 
             if old:
-                x.persistent_data = old.persistent_data
+                x.evt_persistant_data = old.evt_persistant_data
 
             #Special case for functionevents, we do a handoff. This means that any references to the old
             #event now call the new one.
@@ -1323,6 +1347,12 @@ def getEventsFromModules(only = None):
                         messagebus.postMessage("/system/events/loaded",[i.module,i.resource])
                         logging.debug("Loaded "+i.module + ":"+i.resource +" in "+str(round(time.time()-slt, 2))+"s")
                         time.sleep(0.005)
+                    
+                    except SyntaxError:
+                        i.loadingTraceback = traceback.format_exc()
+                        i.error = traceback.format_exc(chain = True)
+                        logging.exception("Could not load "+i.module + ":"+i.resource)
+
                     #If there is an error, add it t the list of things to be retried.
                     except Exception as e:
                         if sys.version_info > (3,0):

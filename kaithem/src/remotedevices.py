@@ -375,7 +375,7 @@ class PavillionDevice(RemoteDevice):
             else:
                 #Local data is newer, push it!
                 try:
-                    t = int(server.toRemoteMonotonic(tag.timestamp)*1000_000)
+                    t = int(server.toRemoteMonotonic(tag.timestamp)*10**6)
                 except:
                     print(traceback.format_exc())
                     t=tag.lastRemoteTs+1
@@ -391,7 +391,7 @@ class PavillionDevice(RemoteDevice):
             #That are identiical to what we already saw, and catch a large number of the repeats.
             if (tag.remote_writable) and not(tag.lastRemoteTs==raw_timestamp):
                 try:
-                    t = int(server.toRemoteMonotonic(tag.timestamp)*1000_000)
+                    t = int(server.toRemoteMonotonic(tag.timestamp)*10**6)
                 except:
                     #Guess at something higher than what they sent
                     t=raw_timestamp+1000
@@ -619,7 +619,7 @@ class PavillionDevice(RemoteDevice):
                                     try:
                                         ##Note the problem here. It only works if there's only a single server.
                                         #That's just how the protocol is though.
-                                        t = int(self.pclient.getServer().toRemoteMonotonic(timestamp)*1000_000)
+                                        t = int(self.pclient.getServer().toRemoteMonotonic(timestamp)*10**6)
                                     except:
                                         #Awful hack just in case our time is not synced.
                                         t=t[name].lastRemoteTs+1

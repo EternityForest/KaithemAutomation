@@ -14,24 +14,42 @@ resource-type: page
 template-engine: markdown
 
 ---
-Kaithem Lighting System Help
+Chandler Help
 ----------------------------
 
-The Kaithem lighting system provides convenient abstractions for lights,
-scenes, cues, fading and related concepts, plus a very basic websocket
-based light board. Right now it re-renders constantly, and assumes that
-your lights are constantly changing, but will be optimized for low CPU
-in the future and is already pretty reasonable.
+Chandler is a general purpose lighting, sound, and general show control application that is
+designed to be easy to yse with no programming needed.
 
 This is beta software, usable but may have interface changes in the
 future.
 
+
+### The Console
+
+The module provides a GUI control based on websockes that allows you
+to access all features of Chandler.
+
+Only actively running scenes and scenes created via the board will be
+shown in the list. Only scenes created via the board can be edited.
+
+
 ### Universes
 
-A universe is a set of lighting channels with values represented as 32
+A universe is a set of "channels" with values represented as 32
 bit floats from 0 to 255. They have more or less the same meaning as DMX
-values, however you can use any transport you want to actually transmit
+values. Each has a number starting at 1, but channels may also have names in addition
+to numbers.
+
+You can use any transport you want to actually transmit
 them to lights.
+
+### Fixtures
+
+Fixtures are specific instances of a fixture type that can be assigned
+to a universe and start address. A lighting scene doesn't know where a fixture is,
+this is looked up based on configuration during rendering, so you 
+can reuse scenes between setups.
+
 
 ### Scenes
 
@@ -192,7 +210,7 @@ arguments(except when escaped or between quotes), and backslashes
 escape.
 
 You can trigger an event by calling the .event(s) method of a Scene
-object, where s is the name you want to trigger. kaithem.lights.event(s)
+object, where s is the name you want to trigger. kaithem.chandler.event(s)
 will trigger an event for all active scenes.
 
 Note that the set of commands and triggers is slightly different from
@@ -213,24 +231,20 @@ Arguments are delimited by spaces, however quote marks and backslashes
 override this behavior and work much as they do in a UNIX command line.
 To use a literal quote of backslash you must escape it.
 
-### The Light Board
 
-The module provides a GUI light board based on websockes that allows you
-to create scenes, start and stop them, and bind them to keypresses.
 
-Only actively running scenes and scenes created via the board will be
-shown in the list. Only scenes created via the board can be edited.
-
-The light board depends on a web resource provided by the jslibs module,
-and won't load unless you have a compatible version loaded. jslibs uses
-semantic versioning. The light board is tested with v0.56.0
 
 ### Scenes and Cue API
 
-To create a scene, simply use kaithem.lights.Scene(name,\*a,\*\*kw). If
+To create a scene, simply use kaithem.chandler.Scene(name,\*a,\*\*kw). If
 there are duplicates, all references by name will point to the new
 scene, but the old scene will still be usable. Scenes stop existing if
 you don't keep a reference to them.
+
+
+To access an existing scene programmatically, use the kaithem.chandler.scenes[name]
+dict.
+
 
 Every scene has a dict of cues called cues, that contains "cue objects"
 
@@ -264,7 +278,7 @@ but the default multicast address and port should be fine.
 
 To go to a new cue, use scene.gotoCue(cuename)
 
-kaithem.lights.shortcutCode(code) has the same effect as manually typing
+kaithem.chandler.shortcutCode(code) has the same effect as manually typing
 that shortcut code in the web GUI
 
 ### General API
@@ -272,7 +286,7 @@ that shortcut code in the web GUI
 #### Scripting
 
 You can add a command to the script bindings using
-kaithem.lights.scriptActions, which is a weak value dict of command
+kaithem.chandler.scriptActions, which is a weak value dict of command
 names. The first word in a script binding is the command name, the rest
 will be split by spaces(double quotes and backslashes work as they do on
 a Linux command line) and passed as positional arguments to the
@@ -281,7 +295,7 @@ function.
 ### Fixtures
 
 To show more information in the GUI besides just channel names, you can
-use the Fixture API. Fixtures are very simple. The kaithem.lights.fixure
+use the Fixture API. Fixtures are very simple. The kaithem.chandler.fixure
 constructor takes two parameters. name, which must be a unique string,
 and channels, which must be a list of tuples. The first tuple represents
 whatever channel is at the start address.
@@ -299,26 +313,12 @@ universe with fixture.assign("universe", addr). After doing so, the GUI
 will show the appropriate information if you add the channels to a
 universe.
 
-### Light Boards
 
-The module provides a GUI light board that is fairly self documenting.
-It allows creating, editing, and triggering scenes via the web.
-
-Keybindings can only be saved to the browsers localstorage, or copied
-and pasted directly. Scenes themselves may be saved either by uploading
-and downloading or by making the current state the default on boot.
-
-Note that the the save and the make default functions only affect scenes
-"owned" by the light board, i.e. those created via the web interface and
-not via code.
-
-You can configure fixtures, enttec DMX adapters, and many other
-functions entirely from the GUI light board
 
 ### Sending Data to Hardware
 
 To use the lighting subsystem, you'll want to subclass
-kaithem.lights.Universe. Your universe subclass must handle onFrame,
+kaithem.chandler.Universe. Your universe subclass must handle onFrame,
 which takes no arguments, but should trigger the object to transmit the
 new values. Frames will happen at the kaithem max frame rate, which by
 default is 60fps. Rendering happens in its own thread via a realtime

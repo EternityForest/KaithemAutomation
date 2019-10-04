@@ -54,8 +54,16 @@ if __name__=='__setup__':
     
     def mapChannel(u,c):
         if not u.startswith("@"):
-            return u,c
-        
+            if isinstance(c,str):
+                u=module.universes.get(u,None)
+                if u:
+                    c= u.channelNames.get(c,None)
+                    if not c:
+                        return None
+                    else:
+                        return u,c
+            else:
+                return u,c
         try:
             f = module.fixtures[u[1:]]()
             if not f:
@@ -167,7 +175,7 @@ if __name__=='__setup__':
         elif cmd[0] == "setalpha":
             module.scenes_by_name[cmd[1]].setAlpha(float(cmd[2]))
         else:
-            f = kaithem.lights.scriptActions[cmd[0]]
+            f = kaithem.chandler.scriptActions[cmd[0]]
             if hasattr(f,'raw') and f.raw:
                 f(cmdraw)
             else:
@@ -176,6 +184,7 @@ if __name__=='__setup__':
     def listsoundfolder(path):
         soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
         soundfolders.append(os.path.join(src.directories.datadir,"sounds"))
+        soundfolders.append(os.path.join(src.directories.vardir,"Music"))
     
         if not path.endswith("/"):
             path = path+"/"
@@ -211,6 +220,9 @@ if __name__=='__setup__':
         words = [i.strip() for i in s.lower().split(" ")]
     
         results = []
+        path = paths[:]
+        paths.append(os.path.join(src.directories.vardir,"Music"))
+    
         for path in paths:
             if not path[-1]=="/":
                 path=path+'/'
@@ -247,7 +259,7 @@ if __name__=='__setup__':
     
     
     def disallow_special(s,allow=''):
-        for i in '[]{}()!@#$%^&*()<>,./;\':"-=_+\\|`~?':
+        for i in '[]{}()!@#$%^&*()<>,./;\':"-=_+\\|`~?\r\n\t':
             if i in s and not i in allow:
                 raise ValueError("Special char "+i+" not allowed in this context(full str starts with "+s[:100]+")")
     
@@ -309,7 +321,7 @@ if __name__=='__setup__':
     
     class ObjPlugin():
         pass
-    kaithem.lights = ObjPlugin()
+    kaithem.chandler = ObjPlugin()
     
     module.controlValues = weakref.WeakValueDictionary()
     
@@ -473,6 +485,10 @@ if __name__=='__setup__':
             #Dict of all board ids that have already pushed a status update
             self.statusChanged = {}
             self.channels = {}
+    
+            #Maps names to numbers, mostly for tagpoint universes.
+            self.channelNames={}
+    
             self.groups ={}
             self.values = numpy.array([0.0]*count,dtype="f4")
             self.count = count
@@ -831,12 +847,7 @@ if __name__=='__setup__':
             for i in self.tagpoints:
                 #One higher than default
                 try:
-                    self.claims[int(i)]= kaithem.tags[self.tagpoints[i]].claim(0,"LightboardUniverse_"+name, 51)
-                    #Might as well configure them here
-                    kaithem.tags[self.tagpoints[i]].min=0
-                    kaithem.tags[self.tagpoints[i]].max=255
-                    kaithem.tags[self.tagpoints[i]].lo=-1
-                    kaithem.tags[self.tagpoints[i]].hi=256
+                    self.claims[int(i)]= kaithem.tags[self.tagpoints[i]].claim(0,"Chandler_"+name, 51)
                 except Exception as e:
                     self.status="error, "+i+" "+ str(e)
                     logger.exception("Error related to tag point "+i)
@@ -853,7 +864,9 @@ if __name__=='__setup__':
             for i in range(self.channelCount):
                 if i in self.claims:
                     try:
-                        self.claims[i].set(float(self.values[i]))
+                        x = float(self.values[i])
+                        if x>-1:
+                            self.claims[i].set(x)
                     except:
                         rl_log_exc("Error in tagpoint universe")
                         print(traceback.format_exc())
@@ -978,15 +991,15 @@ if __name__=='__setup__':
         "Convert fixtures from the older list of tuples style to the new dict style"
         return {i[0]:{'name':i[0],'type':i[1],'universe':i[2],'addr':i[3]} for i in l if len(i)==4}
     
-    class LightBoard():
-        "Represents a web GUI light board. Pretty much the whole GUI app is part of this class"
+    class ChandlerConsole():
+        "Represents a web GUI board. Pretty much the whole GUI app is part of this class"
         def __init__(self, count=65536):
     
             self.newDataFunctions = []
     
             self.id = uuid.uuid4().hex
             self.link = kaithem.widget.APIWidget("api_link")
-            self.link.require("lights/lightboard.admin")
+            self.link.require("users.chandler.admin")
             self.link.echo=False
             #mutable and immutable versions of the active scenes list.
             self._activeScenes = []
@@ -1001,7 +1014,7 @@ if __name__=='__setup__':
             #Bound method weakref nonsense prevention
             self.onmsg = lambda x,y: self._onmsg(x,y)
             self.link.attach(self.onmsg)
-            self.lock = threading.Lock()
+            self.lock = threading.RLock()
             
             self.configuredUniverses = kaithem.registry.get("lighting/universes",{})
             self.universeObjs = {}
@@ -1022,7 +1035,10 @@ if __name__=='__setup__':
                 print(traceback.format_exc(6))
     
     
+            #Old legacy scenes
             d = kaithem.registry.get("lighting/scenes",{})
+    
+    
             saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "scenes")
             if os.path.isdir(saveLocation):
                 for i in os.listdir(saveLocation):
@@ -1879,16 +1895,15 @@ if __name__=='__setup__':
     def applyLayer(universe, uvalues,scene):
         "May happen in place, or not, but always returns the new version"
     
-    
-    
-    
         if not universe in scene.canvas.v2:
             return uvalues
         vals = scene.canvas.v2[universe]
         alphas = scene.canvas.a2[universe]
     
+    
         if scene.blend =="normal":
             uvalues = composite(uvalues,vals,alphas,scene.alpha)
+    
     
         elif scene.blend == "HTP":
             uvalues = numpy.maximum(uvalues, vals*(alphas*scene.alpha))
@@ -2036,6 +2051,9 @@ if __name__=='__setup__':
             for better performance.
     
             fade is the fade amount from 0 to 1 (from background to the new)
+    
+            defaultValue is the default value for a universe. Usually 0.
+    
             """
             
             #We assume a lot of these lists have the same set of universes. If it gets out of sync you
@@ -2270,8 +2288,24 @@ if __name__=='__setup__':
     
         def setValue(self,universe,channel,value):
             disallow_special(universe, allow="@")
-            if not isinstance(channel,(str,int)):
+            if isinstance(channel,int):
+                pass
+            elif isinstance(channel,str):
+    
+                x = channel.strip()
+                if not x==channel:
+                    raise ValueError("Channel name cannot begin or end with whitespace")
+    
+                #If it looks like an int, cast it even if it's a string,
+                #We get a lot of raw user input that looks like that.
+                try:
+                    channel=int(channel)
+                except:
+                    pass
+            else:
                 raise Exception("Only str or int channel numbers allowed")
+            
+    
             
             #Assume anything that can be an int, is meant to be
             if isinstance(channel, str):
@@ -2362,7 +2396,7 @@ if __name__=='__setup__':
             if name and name in module.scenes_by_name:
                 raise RuntimeError("Cannot have 2 scenes sharing a name")
             disallow_special(name)
-            self.lock = threading.Lock()
+            self.lock = threading.RLock()
     
             self.id = id or uuid.uuid4().hex
             #Used to determine the numbering of added cues
@@ -2683,7 +2717,10 @@ if __name__=='__setup__':
             except:
                 rl_log_exc("Error handling event")
                 print(traceback.format_exc())
-            self._event(s)
+            
+            #No error loops allowed!
+            if not s=="script.error":
+                self._event(s)
     
         
         def _event(self, s,value=None,info=''):
@@ -2705,9 +2742,6 @@ if __name__=='__setup__':
             with module.lock:
                 if self.canvas:
                     self.canvas.save()
-    
-                
-                
     
                 self.fadeInCompleted = False
                 #There might be universes we affect that we don't anymore,
@@ -3256,9 +3290,9 @@ if __name__=='__setup__':
                             v = module.universes[x[0]].values[x[1]]
                             self.cue.values[i][j] = float(v)
                 self.valueschanged={}
-                    
     
     def event(s,value=None, info=''):
+        disallow_special(s, allow=".")
         with module.lock:
             try:
                 for i in module.boards:
@@ -3273,22 +3307,38 @@ if __name__=='__setup__':
     
     lastrendered = 0
     
-    module.Board = LightBoard
+    module.Board = ChandlerConsole
     
-    module.board =LightBoard()
+    module.board =ChandlerConsole()
     module.boards.append(weakref.ref(module.board))
     module.Scene = Scene
     
-    kaithem.lights.board = module.board
-    kaithem.lights.Scene = module.Scene
-    kaithem.lights.scenes = module.scenes
-    kaithem.lights.scenesByName = module.scenes_by_name
-    kaithem.lights.Universe = Universe
-    kaithem.lights.blendmodes = module.blendmodes
-    kaithem.lights.fixture = Fixture
-    kaithem.lights.shortcut = shortcutCode
-    kaithem.lights.scriptActions = weakref.WeakValueDictionary()
-    kaithem.lights.event = event
+    kaithem.chandler.board = module.board
+    kaithem.chandler.Scene = module.Scene
+    kaithem.chandler.scenesByUUID = module.scenes
+    kaithem.chandler.scenes = module.scenes_by_name
+    kaithem.chandler.Universe = Universe
+    kaithem.chandler.blendmodes = module.blendmodes
+    kaithem.chandler.fixture = Fixture
+    kaithem.chandler.shortcut = shortcutCode
+    
+    
+    class ScriptActionKeeper():
+        "This typecheck wrapper is courtesy of two hours spent debugging at 2am, and my desire to avoid repeating that"
+        def __init__(self):
+            self.scriptActions = weakref.WeakValueDictionary()
+        def __setitem__(self,key,value):
+            if not isinstance(key,str):
+                raise TypeError("Keys must be string function names")
+            if not callable(value):
+                raise TypeError("Script actions must be callable")
+            self.scriptActions[key]=value
+        def __getitem__(self,key):
+            return self.scriptActions[key]
+    
+    
+    kaithem.chandler.scriptActions = ScriptActionKeeper()
+    kaithem.chandler.event = event
     
     
     module.controluniverse = module.Universe("control")

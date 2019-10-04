@@ -8,7 +8,7 @@ mimetype: text/html
 no-header: false
 no-navheader: true
 require-method: [GET, POST]
-require-permissions: [lights/lightboard.admin]
+require-permissions: [users.chandler.admin]
 resource-timestamp: 1566264981194438
 resource-type: page
 template-engine: mako
@@ -35,7 +35,7 @@ from src import tagpoints
             break
         limitedTagsListing.append(i)
 %>
-    <title>Lightboard</title>
+    <title>Chandler Console</title>
 
 
     <style>
@@ -174,6 +174,55 @@ from src import tagpoints
     }
 
     </script>
+
+    <style>
+        .dropdown{
+        background-color:rgb(255,255,255,0.3);
+        position:absolute;
+        border-radius:1em;
+        max-height: 10em;
+        overflow:scroll;
+        min-width: 8em;
+        }
+    </style>
+
+    <template id="vue-combobox-template">
+        <div style="display:inline-block" style="width:0px">
+            <input v-bind:value="value" v-on:focus="showmenu=true" v-on:blur="showmenu=false" v-on:input="$emit('input', $event.target.value);">
+            <button v-on:click="showmenu=!showmenu">...</button>
+            <div v-if="showmenu" class="dropdown">
+                <div v-for="i in options" v-if="(!value) || i[0].includes(value) || i[0].includes(value)" >
+                    <button v-on:click="$emit('input',i[0]);showmenu=false">{{i[0]}}</button><br>
+                    <p>{{i[1]}}</p>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        Vue.component('combo-box',
+        {
+            template: '#vue-combobox-template',
+            props: ['options','value'],
+            data: function()
+            {
+                return ({'showmenu':false
+                
+                })
+            }
+        })
+
+   function useBlankDescriptions(l)
+    {
+        var l2=[];
+        for(i in l)
+        {
+            l2.push([i,'']);
+        }
+        return l2;
+    }
+    </script>
+
     <link rel="stylesheet" href="/static/img/icons/iconicss/iconicss.min.css">
     <link rel="stylesheet" href="/static/img/icons/fontawesome/css/fontawesome-all.min.css">
 
@@ -242,7 +291,7 @@ from src import tagpoints
             <b v-if="v.ok">{{i}}</b><b v-if="!v.ok" class="error">{{i}}</b>:
             <span v-for="w,j in v.telemetry">
                 <span v-if="j=='battery'"><img src="/zipstatic/img/icons/fugue.zip/battery.png"></img> <meter min=1 max=100 low=30 v-bind:value="v.telemetry[j]"></meter>{{w}}%</span>
-                <span v-if="j=='rssi'"><img src="/zipstatic/img/icons/fugue.zip/battery.png"></img><meter min=-98 max=0 low=-83 v-bind:value="v.telemetry[j]"></meter>{{w}}dbm</span>
+                <span v-if="j=='rssi'"><img src="/zipstatic/img/icons/fugue.zip/network-wireless.png"></img><meter min=-98 max=0 low=-83 v-bind:value="v.telemetry[j]"></meter>{{w}}dbm</span>
 
             </span>
             
@@ -374,6 +423,9 @@ from src import tagpoints
         <div v-if="configuredUniverses[universeFullSettings].type=='tagpoints'">
             <p class="help">
                 Tagpoint universes use a configurable set of tagpoints as the outputs. This table lets you assign tags to channels.
+                Assigning tags to channels requires admin permissions unless the tag begins with /chandler.
+
+                You can give channels names in addition to numbers by using number:name syntax.
             </p>
             <table border="1">
                 <tr><th>Channel Number</th><th>Tagpoint Name</th><th>Action</th></tr>
@@ -384,7 +436,7 @@ from src import tagpoints
 
                 </tr>
                 
-                <tr><td><input type="number" placeholder="CH #" v-model="newTagPointChannelNumber"></td>
+                <tr><td><input type="number" placeholder="CH # or number:Name" v-model="newTagPointChannelNumber"></td>
                     <td><input placeholder="Tagpoint" v-model="newTagPoint" list="tagslisting"></td>
                     <td><button v-on:click="configuredUniverses[universeFullSettings]['channelConfig'][newTagPointChannelNumber]=newTagPoint">Add</button></td>
                 </tr>
@@ -736,13 +788,11 @@ from src import tagpoints
                     <div v-if="scenetab=='channels'">
                         <h3>Add/Remove Channels</h3>
                        
-                        <h4>Directly Add Numbered Channel</h4>
-                        <input list="universes" v-model="newcueu" placeholder="Universe">
-                        <datalist id="universes">
-                            <option v-for="(v,i) of universes" v-bind:value="i">({{v.count}} values)</option>
-                        </datalist>
+                        <h4>Add Channel by Universe and Name/Number</h4>                       
+                        <combo-box v-bind:options="useBlankDescriptions(universes)" v-model="newcueu"></combo-box>
+                        
+                        <input  v-model="newcuevnumber" title="Channel Number" style="width:5em" value="1">
 
-                        <input type="number" v-model.number="newcuevnumber" title="Channel Number" style="width:5em" value="1">
                         <button v-on:click="addValToCue()"><img src="/zipstatic/img/icons/fugue.zip/plus-octagon-frame.png"></img>Add Channel to Cue</button>
                         
                         <h4>Add Fixture</h4>
@@ -1322,6 +1372,7 @@ from src import tagpoints
             'evtypetosend': 'float',
             'evval': '',
             'savedThisSession': false,
+            'useBlankDescriptions': useBlankDescriptions,
             'saveToDisk': function()
             {
                 if (this.savedThisSession==false)
@@ -2228,9 +2279,12 @@ from src import tagpoints
                 api_link.send(['addcueval', appData.scenecues[
                         appData.scenename]
                     [appData.selectedCues[appData.scenename]],
-                    appData.newcueu, parseInt(appData.newcuevnumber)
+                    appData.newcueu, appData.newcuevnumber
                 ]);
-                appData.newcuevnumber+=1
+                if(parseInt( appData.newcuevnumber) != NaN)
+                {
+                    appData.newcuevnumber = parseInt(appData.newcuevnumber)+1
+                }
 
             },
 

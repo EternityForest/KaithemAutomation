@@ -55,7 +55,7 @@ onsubmit="document.getElementById('box').value = editor.getValue()"\
 <h3>Page Body</h3>
 
 %if pages.canUserDoThis("/admin/modules.edit"):
-<input type="submit" name="GoNow" value="Save Changes and go to page">
+<input type="submit" name="GoNow" value="Save Changes and go to page" onclick="wasChanged=false">
 </input>
 %else:
 <p class="warning">You will not be able to save any change made as you are either not logged in or do not have permissions.</p>
@@ -69,6 +69,17 @@ Any keyword arguments from forms etc are availible as a dict called "kwargs".
 Information about the actual HTTP request is availble by acessing the cherrypy.request object which is aliased to "request" in user page code.
 Please see cherrypy's documentation for more info.
 </p>
+
+<script>
+wasChanged = false;
+
+window.onbeforeunload = function(){
+    if(wasChanged)
+    {
+        return "Are you sure you want to exit?";
+    }
+}
+</script>
 
 <textarea id="box" name="body" rows=25 class="htmlcode"
         %if not pages.canUserDoThis("/admin/modules.edit"):
@@ -104,7 +115,12 @@ Please see cherrypy's documentation for more info.
         add_actions(editor);
         add_mako_format(editor);
 
-	});
+        editor.model.onDidChangeContent((event) => {
+        wasChanged=true;
+        });
+    }
+    
+);
 
 
 //Hide the box, it's jut there to subit the data from the actual editor
@@ -302,7 +318,7 @@ p = usrpages.getPageOutput(module,name)
 Saving this module will cause it to be immediately acessable from the web.
 </p>
 %if pages.canUserDoThis("/admin/modules.edit"):
-<input type="submit" value="Save Changes and go back">
+<input type="submit" value="Save Changes and go back" onclick="wasChanged=false">
 <label><input type="checkbox"  name="tabtospace"
      %if auth.getUserSetting(pages.getAcessingUser(),'tabtospace'):
         checked="yes"

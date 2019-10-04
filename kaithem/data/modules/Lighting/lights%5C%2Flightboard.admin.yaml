@@ -1,5 +1,0 @@
-description: "Control all aspects of lights managed via the lights API, including\
-  \ selection of serial ports.\r\nNote that a malicious user with this permission\
-  \ could use it to control any serial device."
-resource-timestamp: 1566264981266453
-resource-type: permission

@@ -68,6 +68,15 @@ or go to the working copy and save that to delete this draft.</p>
     document.getElementById('setupbox').value = setupeditor.getValue();
     document.getElementById('actionbox').value = actioneditor.getValue();
     }
+
+    wasChanged = false;
+
+    window.onbeforeunload = function(){
+        if(wasChanged)
+        {
+            return "Are you sure you want to exit?";
+        }
+    }
 </script>
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST"
 %if using_js_editor:
@@ -108,7 +117,7 @@ if 'setup' in event:
 else:
     xyz = "pass"
 %>
-<textarea rows=3 class="pythoncode" name="setup" id="setupbox"
+<textarea rows=3 class="pythoncode" name="setup" id="setupbox" onchange="wasChanged=true"
 %if not pages.canUserDoThis("/admin/modules.edit"):
             disabled=1\
 %endif
@@ -135,7 +144,13 @@ else:
 		});
         add_actions(setupeditor);
 
-	});
+
+                setupeditor.model.onDidChangeContent((event) => {
+        wasChanged=true;
+        });
+    });
+
+
 
 //Hide the box, it's jut there to subit the data from the actual editor
 document.getElementById("setupbox").style="display:none;";
@@ -159,6 +174,7 @@ ${e}
 %if not pages.canUserDoThis("/admin/modules.edit"):
             disabled=1\
 %endif
+onchange="wasChanged=true"
 ></input>
 
 %if event['trigger'].startswith("!time"):
@@ -227,7 +243,8 @@ you may need to use the global keyword. You may also need to use the global keyw
 </b>
 </p>
 
-<textarea id="actionbox" name="action" rows=50 class="pythoncode"
+<textarea id="actionbox" name="action" rows=50 class="pythoncode" onchange="wasChanged=true"
+
         %if not pages.canUserDoThis("/admin/modules.edit"):
                     disabled=1\
         %endif
@@ -250,8 +267,12 @@ you may need to use the global keyword. You may also need to use the global keyw
 		});
         add_actions(actioneditor);
 
-	});
-
+   
+        actioneditor.model.onDidChangeContent((event) => {
+    wasChanged=true;
+    });
+});
+    
 //Hide the box, it's jut there to subit the data from the actual editor
 document.getElementById("actionbox").style="display:none;";
 </script>
@@ -344,7 +365,7 @@ Saving this module will case it to completely reload, including its local scope.
 </p>
 %if pages.canUserDoThis("/admin/modules.edit"):
 <a href="/modules/module/${url(module)}/obj/event/${url(name)}">View the event's namespace(requires edit permission, beware shoulder surfers)</a></br>
-<input type="submit" value="Save Changes"></input>
+<input type="submit" value="Save Changes" onclick="wasChanged=false"></input>
 <label><input type="checkbox"  name="tabtospace"
      %if auth.getUserSetting(pages.getAcessingUser(),'tabtospace'):
         checked="yes"
