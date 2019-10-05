@@ -75,6 +75,12 @@ def handleApiCall(u,v):
     if v[0]=='unmock':
         inputs[v[1]]().releaseMocking()
 
+    if v[0]=='unforce':
+        outputs[v[1]]().unforce()
+
+    if v[0]=='force':
+        outputs[v[1]]().force(v[2])
+
 api.attach(handleApiCall)
 
 #Only send one warning about no real GPIO to the front page
@@ -168,12 +174,12 @@ class DigitalOutput(GPIOTag):
         self.overrideAlert.description="Output pin overridden manually and ignoring changes to it's tagpoint"
 
         def tagHandler(val, ts, annotation):
-            self.gpio.value = val
+            self.gpio.value = val>0.5
 
             t=time.time()
             #We show the actual pin value not the tag point value
             if t-self.lastPushed>.2:
-                api.send(['v',self.gpio.value,True])
+                api.send(['o',self.pin,self.gpio.value > 0.5])
             self.lastPushed = time.time()
 
         self.tagHandler = tagHandler
@@ -204,6 +210,27 @@ class DigitalOutput(GPIOTag):
 
     def _off(self):
         self.gpio.off()
+
+    
+    def force(self,v):
+        with lock:
+            self.gpio=self.fakeGpio
+            if v:
+                self.realGpio.on()
+            else:
+                self.fakeGpio.off()
+        api.send(["opin", self.pin, formatPin(self)])
+
+    
+    def unforce(self):
+        with lock:
+            if self.realGpio:
+                self.gpio=self.realGpio
+                self.gpio.value = self.tag.value>0.5
+            else:
+                raise RuntimeError("No real gpio")
+        api.send(["opin", self.pin, formatPin(self)])
+
 
     def __del__(self):
         try:

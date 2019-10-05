@@ -95,7 +95,8 @@
           <td title="Does the acrive state cause a high output voltage?">{{i[1].a_s}}</td>
           <td><button v-on:click="promptOverride(i[0],1)" title="Force Active">Force Active</button>
            <button v-on:click="promptOverride(i[0],0)" title="Force Inactive">Force Inactive</button>
-       
+           <button v-on:click="promptOverride(i[0],-1)" title="Return to normal operation">Unforce</button>
+
        </td>
       </tr>
 
@@ -151,7 +152,38 @@
                 }
             }
       },
+      'promptForce':function(m,v)
+      {
+            var x = parseInt(m)
+            if (!isNaN(x))
+            {
+                m=x;
+            }
+            
+            //If we are not mocked, ask if we really want to
+            //Also confim before unmock
+            if((!app.$data.ouputs[m].m) | v==-1)
+            {
+                var r = confirm("Are you sure you want to enable or disable forcing?")
+            }
+            else
+            {
+                var r=true;
+            }
 
+            if (r!=null)
+            {
+                r = parseInt(r);
+                if(v==-1)
+                {
+                    api.send(['unforce', m])
+                }
+                else
+                {
+                    api.send(['force', m,v])
+                }
+            }
+      },
       'dictView': function(dict, sorts)
         {
             //Given a dict  and a list of sort keys sorts,
@@ -213,7 +245,13 @@
         if (msg[0] == "v") {
             app.$data.inputs[msg[1]].v=msg[2]
         }
+        if (msg[0] == "o") {
+            app.$data.outputs[msg[1]].v=msg[2]
+        }
         if (msg[0] == "ipin") {
+            app.$data.inputs[msg[1]]=msg[2]
+        }
+        if (msg[0] == "opin") {
             app.$data.inputs[msg[1]]=msg[2]
         }
     }

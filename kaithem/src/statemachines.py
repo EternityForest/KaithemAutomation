@@ -19,7 +19,7 @@ import time, weakref,types,threading
 
 
 #Lets keep dependancies on things within kaithem to a minimum, as eventually this might be spun off to a standalone thing
-from . import scheduling,virtualresource,unitsofmeasure,workers
+from . import scheduling,virtualresource,unitsofmeasure,workers,util
 
 #
 # StateMachine API
@@ -53,6 +53,7 @@ def unboundProxy(self,f):
     def f2(*args,**kwargs):
         f(*args,**kwargs)
     return f2
+
 def makechecker(ref):
     def timer_check():
         m=ref()
@@ -60,13 +61,33 @@ def makechecker(ref):
             m.checkTimer()
     return timer_check
 
+def makepollchecker(ref):
+    def timer_check():
+        m=ref()
+        if m:
+            m.check()
+    return timer_check
+
+
 def runSubscriber(f,state):
-    def doSubscriber():
-        f(state)
-    workers.do(doSubscriber)
+    f(state)
 
 class UpdateControl():
     pass
+
+
+def startPollerThread(sm):
+    sm = util.universal_weakref(sm)
+    def f():
+        while 1:
+            x = sm()
+            if not x:
+                return
+            if x.replacement:
+                return
+            x.poll()
+        
+
 class StateMachine(virtualresource.VirtualResource):
     def __init__(self,start="start",name="Untitled",description=""):
         self.states = {}
@@ -118,12 +139,12 @@ class StateMachine(virtualresource.VirtualResource):
             #First clean up old subscribers. This is slow to do thi every time, but it should be infrequent.
             for i in self.subscribers:
                 self.subscribers[i] = [ i for i in self.subscribers[state] if i() ]
-            self.subscribers = [i for i in self.subscribers if i]
+            self.subscribers = {i:self.subscribers[i] for i in self.subscribers if self.subscribers[i]}
 
 
             if not state in self.subscribers:
                 self.subscribers[state] = []
-            self.subscribers[state].append(weakref.ref(f))
+            self.subscribers[state].append(util.universal_weakref(f))
 
     @property
     def age(self):
@@ -196,7 +217,7 @@ class StateMachine(virtualresource.VirtualResource):
         if self.states[self.state].get('timer'):
             #If we haven't already passed the time of the timer
             if ((time.time()+self.time_offset)-self.enteredState)<self.states[self.state]['timer'][0]:
-                f = makechecker(weakref.ref(self))
+                f = makechecker(util.universal_weakref(self))
                 self.schedulerobj = scheduling.scheduler.schedule(f, time.time()+0.08)
                 self.schedulerobj.func_ref = f
             #If we have already passed that time, just do it now.
@@ -216,7 +237,7 @@ class StateMachine(virtualresource.VirtualResource):
 
     def addState(self,name, rules = None, enter=None, exit=None):
         with self.lock:
-            self.states[name] = {"rules": rules or {}, 'enter':enter, 'exit':exit}
+            self.states[name] = {"rules": rules or {}, 'enter':enter, 'exit':exit, 'conditions':[]}
 
     def setTimer(self,state,time, dest):
         with self.lock:
@@ -229,7 +250,10 @@ class StateMachine(virtualresource.VirtualResource):
 
     def addRule(self,start, event, to):
         with self.lock:
-            self.states[start]['rules'][event] = to
+            if isinstance(event, str):
+                self.states[start]['rules'][event] = to
+            else:
+                self.states[start]['conditions'].append((event,to))
 
     def delRule(self, start, event):
         with self.lock:
@@ -264,6 +288,21 @@ class StateMachine(virtualresource.VirtualResource):
                         self._goto(x)
             return self.event
 
+    def check(self):
+        "Check the function based condition rules"
+        with self.lock:
+            s = self.states.get(self.state,None)
+            if s:
+                #Check all the function rules, poll them all,
+                #and should any happen to be true, we follow that rule
+                #Like any other.
+                for i in s['conditions']:
+                    if i[0]():
+                        self._goto(i[1])
+
+    def jump(self, state, condition=None):
+        self.goto(state, condition)
+
     def goto(self, state, condition=None):
         "Jump to a specified state. If condition is not None, only jump if it matches the current state else do nothing."
         with self.lock:
@@ -292,11 +331,18 @@ class StateMachine(virtualresource.VirtualResource):
             self.schedulerobj.unregister()
             del self.schedulerobj
 
+        if hasattr(self,'pollingscheduledfunction'):
+            self.pollingscheduledfunction.unregister()
+            del self.pollingscheduledfunction
 
         if self.states[self.state].get('timer'):
-            f = makechecker(weakref.ref(self))
+            f = makechecker(util.universal_weakref(self))
             self.schedulerobj = scheduling.scheduler.schedule(f, time.time()+self.states[self.state].get('timer')[0])
             self.schedulerobj.func_ref = f
+
+        if self.states[self.state].get('conditions'):
+            self.pollingscheduledfunction = scheduling.scheduler.every(self.check, 1/24)
+
 
         #Do the entrance function of the new state
         if s2['enter']:

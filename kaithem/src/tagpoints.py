@@ -268,7 +268,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
     def subscribe(self,f):
         with self.lock:
-            self.subscribers.append(weakref.ref(f))
+            self.subscribers.append(universal_weakref.ref(f))
             torm = []
             for i in self.subscribers:
                 if not i():

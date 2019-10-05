@@ -13,8 +13,8 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import threading,sys,re,time,datetime,weakref,os,traceback, collections,random,logging
-from . import workers
+import threading,sys,re,time,datetime,weakref,os,traceback, collections,random,logging,types
+from . import workers,util
 from .repeatingevents import *
 
 logger = logging.getLogger("system.scheduling")
@@ -49,7 +49,7 @@ class Event(BaseEvent):
     "Does function at time provided there is a strong referemce to f still by then"
     def __init__(self,function,time):
         BaseEvent.__init__(self)
-        self.f = weakref.ref(function)
+        self.f = util.universal_weakref(function)
         self.time = time
         self.errored = False
 
@@ -103,7 +103,7 @@ class RepeatingEvent(BaseEvent):
     and stops if you don't keep a reference to function"""
     def __init__(self,function,interval,priority="realtime", phase = 0):
         BaseEvent.__init__(self)
-        self.f = weakref.ref(function, self.unregister)
+        self.f = util.universal_weakref(function)
         self.interval = float(interval)
 
         #True if the event is in the scheduler queue or the worker queue,
@@ -333,7 +333,13 @@ class NewScheduler(threading.Thread):
         e = RepeatingEvent(f,interval)
         e.register()
         e.schedule()
-        return f
+        if isinstance(f,types.MethodType):
+            def f2():
+                f()
+        else:
+            f2=f
+        f2.unregister = lambda : e.unregister()
+        return f2
 
 
     def schedule(self, f, t, exact=False):

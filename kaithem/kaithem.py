@@ -674,6 +674,10 @@ def webRoot():
     workers.do(systasks.doUPnP)
 
 webRoot()
+
+#Wait till everything is set up to start the self test
+from src import selftest
+
 cherrypy.engine.block()
 
 #Old workaround for things not stopping on python3 that no longer appears to be needed.

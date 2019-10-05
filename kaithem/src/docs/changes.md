@@ -27,6 +27,9 @@ Change Log
 - One-param messagebus subscriptions that don't get the topic(Two param stil works)
 - gpiozero integration
 - Util page for viewing environment variables
+- Lightboard scenes are now saved to VARDIR/chandler/scenes/SCENENAME.yaml
+
+
 
 ### 0.63.1
 -  Fix JS dependancy error in lighting module

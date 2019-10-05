@@ -703,14 +703,22 @@ Remove a state.
 #### sm.addRule(start, event, dest)
 
 Add a rule to an existing state that triggers when event(which can be
-any string, but values beginning with \_\_ are reserved) happens.
+any string, or a function but values beginning with \_\_ are reserved) happens.
 
 Dest can be the name of a state, or else it can be a function that takes
 one parameter, the machine itself, and returns either None or a string.
 
 This function will be called anytime the rule is triggered. If it
 returns None, nothing happens. If it returns a string, the machine will
-enter the state named by that string
+enter the state named by that string.
+
+If event is a function, it will be continually polled at sm.pollRate, defaulting to 24(24Hz),
+and every time it is true the rule will be followed.
+
+When multiple function triggers are added to the same state, they are polled in the order they
+are added in.
+
+
 
 #### sm.setTimer(state, length, dest)
 
@@ -732,11 +740,20 @@ there is an error in the enter or exit function.
 
 This does nothing if the machine is in a nonexistant state.
 
-State machine enter and exit actions occur synchronously in the thread
-that triggers the event, so this function will block until they return.
-Events and transitions are fully atomic. Any other thread that triggers
-an event during a transition will block until the original transition is
-complete, as will any modifications to the states, timers, or rules
+State machine subscribers, enter, and exit actions occur
+synchronously in the thread that triggers the event,
+so this function will block until they return.
+
+This ensures Events and transitions are atomic. 
+
+Any other thread that triggers an event during a transition will block until the original transition is complete, as will any modifications to the states, timers, or rules.
+
+#### sm.subscribe(f, state="\_\_all\_\_"):
+
+Subsribe f to be called when the state changes to state("\_\_all\_\_" indicates any state).
+
+f is called with one argument, the name of the state, and this happens in the thread that
+triggered the transition, so it should not block for too long.
 
 #### sm.jump(state, condition=None)
 
