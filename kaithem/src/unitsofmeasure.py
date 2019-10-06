@@ -17,8 +17,7 @@ import time,pytz,datetime,re
 from .config import config
 from . import auth,pages
 
-import pint 
-ureg = pint.UnitRegistry()
+ureg = None
 
 class DayOfWeek(str):
     """This class it a value object that will appear like a string but supports intelligent comparisions like Dow=='Thu' etc.
@@ -446,6 +445,12 @@ defineUnit("psi", 6894.7573, "pressure")
 defineUnit("ksi", 1000,"pressure",0,"psi")
 defineUnit("mmHg",133.32237,"pressure")
 
+def loadPint():
+    global ureg
+    if not ureg:
+        import pint 
+        ureg = pint.UnitRegistry()
+
 def convert(v, fr, to):
     if fr==to:
         return v
@@ -454,6 +459,8 @@ def convert(v, fr, to):
         to = units[to]
     #Fallback to pint library
     except KeyError:
+        if not ureg:
+            loadPint()
         x = ureg.Quantity(v, fr)
         return x.to(to).magnitude
 

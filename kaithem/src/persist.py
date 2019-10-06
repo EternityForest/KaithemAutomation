@@ -99,7 +99,6 @@ def save(data,fn, *,private=False,backup=True, expand=True, md5=False):
                 Setting this to true is an alias for mode="backup"
     """
     fn = resolvePath(fn, expand)
-    logging.debug("Persist module file save requested at "+fn)
     with lock:
 
         #Make sure we don't overwrite a file when we create our dirs, because that behavior is undocumented in makedirs.
@@ -171,6 +170,8 @@ def save(data,fn, *,private=False,backup=True, expand=True, md5=False):
             tempfn = fn+str(time.time())
         else:
             tempfn = fn
+
+        logging.debug("Writing: "+fn)
         #Actually write it
         with open(tempfn,'wb') as f:
 

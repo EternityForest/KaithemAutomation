@@ -17,6 +17,8 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import tatsu
 import os
+import logging
+
 grammar = """
 @@left_recursion :: False
 @@ignorecase :: True
@@ -95,16 +97,18 @@ startingat = ("starting" ['at'|'on'] @:datetimewithyear) |"starting on" weekday:
 
 compiled_path = os.path.join(os.path.dirname(__file__),"compiledparser.py")
 if __name__ == "__main__":
+    #DON'T EDIT THIS FILE AT ALL WITHOUT UPDATING THE PRECOMPILED. IT
+    #WILL BE SLOW!!!
     #Run as main to build precompiled
     with open(compiled_path,"w") as f:
         f.write(tatsu.to_python_sourcecode(grammar))
 else:
     try:
-        #If this file has been changed don't use the old cache
-        if os.path.exists(compiled_path) and os.path.getmtime(__file__)< os.path.getmtime(compiled_path):
+        if os.path.exists(compiled_path):
             from . compiledparser import UnknownParser as parser
             parser = parser()
         else:
+            logging.warning("No current precompiled parser for Recur. On demand compilation is slow")
             parser = tatsu.compile(grammar)
     except:
         raise
