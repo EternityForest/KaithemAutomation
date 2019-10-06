@@ -22,10 +22,12 @@ import threading,traceback,logging
 def runtest():
     from .. import messagebus
     try:
-        from . import eventsystem,statemachinestest,messagebustest
+        from . import eventsystem,statemachinestest,messagebustest,tagpointstest
+
         eventsystem.eventSystemTest()
         statemachinestest.stateMachinesTest()
         messagebustest.test()
+        tagpointstest.testTags()
         logging.info("Self test was sucessful")
     except:
         messagebus.postMessage("/system/notifications/errors",    "Self Test Error\n"+traceback.format_exc(chain=True))

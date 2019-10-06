@@ -1,4 +1,4 @@
-import time
+import time,logging,weakref
 
 def test():
     from src import messagebus
@@ -15,11 +15,15 @@ def test():
             raise RuntimeError("Message not delivered within 0.2 second. This may happen occasionally if CPU load is high but otherwise should not occur.")
         else:
             raise RuntimeError("Message not delivered within 2 seconds")
-    
+    f2 = weakref.ref(f)
+
     del f
     succeed[0] = 0
+    time.sleep(1)
 
     messagebus.postMessage("/system/selftest","Test")
     time.sleep(3)
     if succeed[0]:
+        if f2():
+            logging.error("selftest: f still exists "+str(f2()))
         raise RuntimeError("Garbage collection fails to unsubscribe")

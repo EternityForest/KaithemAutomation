@@ -24,10 +24,11 @@ Change Log
   the web UI.
 - `__del__` support in events, just define it in the setup.
 - kaithem.midi.FluidSynth lets you play MIDI notes with soundfonts
-- One-param messagebus subscriptions that don't get the topic(Two param stil works)
+- One-param and zero-param messagebus subscriptions that don't get the topic(Two param stil works)
 - gpiozero integration
 - Util page for viewing environment variables
 - Lightboard scenes are now saved to VARDIR/chandler/scenes/SCENENAME.yaml
+- Functions can now be used as StateMachine rules, they are polled and followed when true
 
 
 

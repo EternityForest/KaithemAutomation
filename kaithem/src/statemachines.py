@@ -92,6 +92,7 @@ class StateMachine(virtualresource.VirtualResource):
     def __init__(self,start="start",name="Untitled",description=""):
         self.states = {}
         self.state = start
+        self.prevState = None
         self.enteredState = time.time()
         #Used to ensure that if one leaves and reenters a state just as a timer is firing it does not trigger anything.
         self._transiton_count = 0
@@ -250,14 +251,30 @@ class StateMachine(virtualresource.VirtualResource):
 
     def addRule(self,start, event, to):
         with self.lock:
+            if not isinstance(start, str):
+                raise ValueError("Start must be string")
+            if not isinstance(to, str):
+                if not callable(to):
+                    raise ValueError("Destination state must be string or callable")
+                
             if isinstance(event, str):
                 self.states[start]['rules'][event] = to
             else:
-                self.states[start]['conditions'].append((event,to))
+                if callable(event):
+                    self.states[start]['conditions'].append((event,to))
+                    self._setupPolling()
+                else:
+                    raise ValueError("Event must be string or callable with 0 arguments")
+
 
     def delRule(self, start, event):
         with self.lock:
-            del self.states[start]['rules'][event]
+            if event in self.states[start]['rules']:
+                del self.states[start]['rules'][event]
+            elif event in self.states[start]['conditions']:
+                del self.states[start]['rules'][event]
+            else:
+                raise KeyError("No such rule")
 
 
     def event(self,event):
@@ -310,6 +327,17 @@ class StateMachine(virtualresource.VirtualResource):
                 return
             self._goto(state)
 
+    def _setupPolling(self):
+        "Start polling the function based events, if there are any to poll for"
+        if hasattr(self,'pollingscheduledfunction'):
+            self.pollingscheduledfunction.unregister()
+            del self.pollingscheduledfunction
+
+
+        if self.states[self.state].get('conditions'):
+            self.pollingscheduledfunction = scheduling.scheduler.every(self.check, 1/24)
+
+
     def _goto(self, state):
         "Must be called under the lock"
 
@@ -327,22 +355,17 @@ class StateMachine(virtualresource.VirtualResource):
         self._configureTimer()
 
         self.time_offset = 0
+
         if hasattr(self,'schedulerobj'):
             self.schedulerobj.unregister()
             del self.schedulerobj
-
-        if hasattr(self,'pollingscheduledfunction'):
-            self.pollingscheduledfunction.unregister()
-            del self.pollingscheduledfunction
 
         if self.states[self.state].get('timer'):
             f = makechecker(util.universal_weakref(self))
             self.schedulerobj = scheduling.scheduler.schedule(f, time.time()+self.states[self.state].get('timer')[0])
             self.schedulerobj.func_ref = f
 
-        if self.states[self.state].get('conditions'):
-            self.pollingscheduledfunction = scheduling.scheduler.every(self.check, 1/24)
-
+        self._setupPolling()
 
         #Do the entrance function of the new state
         if s2['enter']:

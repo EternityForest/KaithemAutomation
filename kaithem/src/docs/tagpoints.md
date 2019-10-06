@@ -39,8 +39,15 @@ Set the range of the tag point. Out of range values are clipped.
 Set the sample rate of the tags data in seconds. Affects polling and cacheing.
 
 #### TagPoint.subscribe(f)
-f will be called whe the value changes. Polling will only occur if interval
-is nonzero and there is at least one subscriber.
+f will be called whe the value changes, as long as the function f still exists.
+
+All subscribers are called synchronously in the same thread that set the value,
+however any errors are logged and ignored.
+
+They will all be called under the tagpoint's lock. To avoid various problems like
+endless loops, one should be careful when accessing the tagpoint itself from within
+this function.
+
 
 The signature of f must be:
 f(value, timestamp, annotation)

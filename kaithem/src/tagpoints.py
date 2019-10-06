@@ -1,5 +1,5 @@
 
-from . import scheduling,workers, virtualresource,widgets
+from . import scheduling,workers, virtualresource,widgets,util
 import time, threading,weakref,logging
 
 logger = logging.getLogger("tagpoints")
@@ -124,7 +124,7 @@ class _TagPoint(virtualresource.VirtualResource):
         self.interval =0
         self.activeClaim =None
         self.claims = {}
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         self.subscribers = []
         self.poller = None
         self._hi = 10**16
@@ -268,7 +268,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
     def subscribe(self,f):
         with self.lock:
-            self.subscribers.append(universal_weakref.ref(f))
+            self.subscribers.append(util.universal_weakref(f))
             torm = []
             for i in self.subscribers:
                 if not i():
@@ -311,12 +311,19 @@ class _TagPoint(virtualresource.VirtualResource):
         self.lastPushedValue = val
 
         for i in self.subscribers:
-            def f():
-                x=i()
-                if x:
-                    x(val,timestamp,annotation)
-                del x
-            workers.do(f)
+            f=i()
+            if f:
+                try:
+                    f(val,timestamp,annotation)
+                except:
+                    logger.exception("Tag subscriber error")
+                    #Return the error from whence it came to display in the proper place
+                    try:
+                        from . import newevt
+                        newevt.eventByModuleName(f.__module__)._handle_exception()
+                    except:
+                        pass
+            del f
 
     def processValue(self,value):
         #Functions are special valid types of value.

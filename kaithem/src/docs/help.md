@@ -712,11 +712,19 @@ This function will be called anytime the rule is triggered. If it
 returns None, nothing happens. If it returns a string, the machine will
 enter the state named by that string.
 
+The state machine strongly references the function, so it will not be garbage collected.
+This allows you to use lambda expressions.
+
+##### Function Polling(PLC logic)
 If event is a function, it will be continually polled at sm.pollRate, defaulting to 24(24Hz),
 and every time it is true the rule will be followed.
 
 When multiple function triggers are added to the same state, they are polled in the order they
-are added in.
+are added.
+
+They are polled under sm.lock, and it is guaranteed that only one function is
+polled at a time, and that no events, timers, or polling can happen in between an
+event returning True and the state transition.
 
 
 

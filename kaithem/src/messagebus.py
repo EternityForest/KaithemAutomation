@@ -15,7 +15,7 @@
 
 "This file manages the kaithem global message bus that is used mostly for logging but also for many other tasks."
 
-import weakref,threading,time,os,random,traceback,cherrypy,logging,inspect
+import weakref,threading,time,os,random,traceback,cherrypy,logging,inspect,types,copy
 from . import workers
 from collections import defaultdict, OrderedDict
 
@@ -34,6 +34,14 @@ def normalize_topic(topic):
         return '/'+topic
     else:
         return topic
+
+def handleError(f,topic):
+    log.exception("Error in subscribed function for "+topic)
+    try:
+        from . import newevt
+        newevt.eventByModuleName(f.__module__)._handle_exception()
+    except:
+        pass
 
 class MessageBus(object):
     def __init__(self,executor = None):
@@ -55,40 +63,14 @@ class MessageBus(object):
 
     def subscribe(self,topic,callback):
         topic=normalize_topic(topic)
-        #Allright, here is how this works.
-        #We have to deal with the possibility that, at any time,
-        #The callback will cease to exist. That, in fact, is how one unsubscribes.
-        #So, we make this here closure that knows the topic, and
-        #When the GC goes Om Nom Nom on the function, we get passed the weakref to it.
-        #Then we get rid of the empty weakref and if that causes the entire topic
-        #To have no subscribers, delete that too in case of memory leak.
-        def delsubscription(weakrefobject):
-            try:
-                self.subscribers[topic].remove(weakrefobject)
-            except:
-                pass
-            #There is a very slight chance someone will
-            #Add something to topic before we delete it but after the test.
-            #That would result in a canceled subscription
-            #So we use this lock.
-            try:
-                with _subscribers_list_modify_lock:
-                    if not self.subscribers[topic]:
-                        self.subscribers.pop(topic)
-            except AttributeError as e:
-                #This try and if statement are supposed to catch nuisiance errors when shutting down.
-                try:
-                    if cherrypy.engine.state == cherrypy.engine.states.STARTED:
-                        raise e
-                except:
-                        pass
+       
         with _subscribers_list_modify_lock:
-            wrappedCallback = self.wrap_callback(callback)
+            wrappedCallback = self.wrap_callback(callback,topic)
 
             #Note that wrap_callback modifies the original to reference
             #The wrapper, so it is safe until GC happens.
-            self.subscribers[topic].append(weakref.ref(wrappedCallback,delsubscription))
-            self.subscribers_immutable = self.subscribers.copy()
+            self.subscribers[topic].append(wrappedCallback)
+            self.subscribers_immutable = copy.deepcopy(self.subscribers)
 
     @staticmethod
     def parseTopic(topic):
@@ -120,52 +102,102 @@ class MessageBus(object):
         return matchingtopics
 
 
-    def wrap_callback(self,f):
+    def wrap_callback(self,f,topic):
         """return function g that calls f with (topic,message) or just f(topic), depending
         on how many args there are.
          and if errors is true logs the error"""
 
         args = len(inspect.signature(f).parameters)
 
+
+        #Allright, here is how this works.
+        #We have to deal with the possibility that, at any time,
+        #The callback will cease to exist. That, in fact, is how one unsubscribes.
+        #So, we make this here closure that knows the topic, and
+        #When the GC goes Om Nom Nom on the function, we get passed the weakref to it.
+        #Then we get rid of the empty weakref and if that causes the entire topic
+        #To have no subscribers, delete that too in case of memory leak.
+        def delsubscription(weakrefobject):
+            try:
+                with _subscribers_list_modify_lock:
+                    self.subscribers[topic].remove(weakrefobject)
+            except:
+                pass
+            #There is a very slight chance someone will
+            #Add something to topic before we delete it but after the test.
+            #That would result in a canceled subscription
+            #So we use this lock.
+            try:
+                with _subscribers_list_modify_lock:
+                    if not self.subscribers[topic]:
+                        self.subscribers.pop(topic)
+            except AttributeError as e:
+                #This try and if statement are supposed to catch nuisiance errors when shutting down.
+                try:
+                    if cherrypy.engine.state == cherrypy.engine.states.STARTED:
+                        raise e
+                except:
+                        pass
+            finally:
+                with _subscribers_list_modify_lock:
+                    self.subscribers_immutable = copy.deepcopy(self.subscribers)
+
+
+
+        if isinstance(f,types.MethodType):
+            f=weakref.WeakMethod(f,delsubscription)
+        else:
+            f = weakref.ref(f,delsubscription)
+
+        #Mutable object for keeping track of if we already loggged this
+        alreadyLogged=[False]
         if args==0:
             def g(topic, message,errors):
-                            try:
-                                f()
-                            except:
-                                try:
-                                    if errors:
-                                        f.alreadyLogged=True
-                                        if not hasattr(f,"alreadyLogged"):
-                                            log.exception("Error in subscribed function for "+topic)
-                                except Exception as e:
-                                        print("err",e)
-        elif args>1:
-            def g(topic, message,errors):
                 try:
-                    f(topic,message)
+                    f2 = f()
+                    if f2:
+                        f2()
                 except:
                     try:
                         if errors:
-                            f.alreadyLogged=True
-                            if not hasattr(f,"alreadyLogged"):
-                                log.exception("Error in subscribed function for "+topic)
+                            if not alreadyLogged[0]:
+                                handleError(f, topic)
+                            alreadyLogged[0]=True
+                    except Exception as e:
+                            print("err",e)
+        elif args>1:
+            def g(topic, message,errors):
+                try:
+                    f2 = f()
+                    if f2:
+                        f2(topic,message)
+                except:
+                    try:
+                        if errors:
+                            if not alreadyLogged[0]:
+                                handleError(f,topic)
+                            alreadyLogged[0]=True
+
                     except Exception as e:
                             print("err",e)
         else:
             def g(topic, message,errors):
                 try:
-                    f(topic)
+                    f2 = f()
+                    if f2:
+                        f2(topic)
                 except:
                     try:
                         if errors:
-                            f.alreadyLogged=True
-                            if not hasattr(f,"alreadyLogged"):
-                                log.exception("Error in subscribed function for "+topic)
+                            if not alreadyLogged[0]:
+                                handleError(f,topic)
+                            alreadyLogged[0]=True
                     except Exception as e:
                             print("err",e)
 
-        #It's wrapped, make a reference so we don't GC the wrapper till the original goes
-        f._kaithem_subscribe_wrapper = g
+        #Ref to the weakref so it's easy to check if the function we are wrapping
+        #Still exists.
+        g.originalFunction = f    
         return g
 
 
@@ -179,14 +211,12 @@ class MessageBus(object):
                 #When we find a match, we make a copy of that subscriber list
                 x = d[i][:]
                 #And iterate the copy
-                for ref in x:
+                for f in x:
                     #we call the ref to get its refferent
                     #An error could happen in the subscriber
                     #Or a typeerror could because the weakref has been collected
                     #We ignore both of these errors and move on
-                    f =ref()
-                    if f:
-                        self.executor(f,(topic,message,errors))
+                    self.executor(f,(topic,message,errors))
 
     def postMessage(self, topic, message,errors=True):
         #Use the executor to run the post message job

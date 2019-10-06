@@ -116,8 +116,14 @@ def stateMachinesTest():
 
     if not sm.state=='off':
         raise RuntimeError("Unexpected state")
-    
+
+       
     sm.event("motion")
+    if not sm.state=='on':
+        raise RuntimeError("Unexpected state")
+        
+    #Make sure polling doesn't trigger it if false
+    time.sleep(0.3)
     if not sm.state=='on':
         raise RuntimeError("Unexpected state")
 
