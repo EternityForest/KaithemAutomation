@@ -6,125 +6,117 @@ import cherrypy
 
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">
-    <link rel="stylesheet" type="text/css" href="${config['theme-url']}">
-    </head>
 
-  <body id="page">
+<head>
+  <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">
+  <link rel="stylesheet" type="text/css" href="${config['theme-url']}">
+</head>
 
-    <div style="width: 100%">
+<body id="page">
+
+  <div style="width: 100%;">
     ${config['top-banner-html']}
 
-    <ul  border="" id="nav">
-<li><a class="link mainpagelink" href="/">Main</a>
-            %if config['enable-js'] and pages.canUserDoThis("/admin/mainpage.view"):
-            <span id = "notifications">
-                <script type="text/javascript">
-                     function getCookie(c_name)
-                            {
-                            var c_value = document.cookie;
-                            var c_start = c_value.indexOf(" " + c_name + "=");
-                            if (c_start == -1)
-                              {
-                              c_start = c_value.indexOf(c_name + "=");
-                              }
-                            if (c_start == -1)
-                              {
-                              c_value = null;
-                              }
-                            else
-                              {
-                              c_start = c_value.indexOf("=", c_start) + 1;
-                              var c_end = c_value.indexOf(";", c_start);
-                              if (c_end == -1)
-                              {
-                            c_end = c_value.length;
-                            }
-                            c_value = unescape(c_value.substring(c_start,c_end));
-                            }
-                            return c_value;
-                            }
-                 
+    <div border="" id="nav">
+      <div><a class="link mainpagelink" href="/">Main</a>
+        %if config['enable-js'] and pages.canUserDoThis("/admin/mainpage.view"):
+        <span id="notifications">
+          <script type="text/javascript">
+            function getCookie(c_name) {
+              var c_value = document.cookie;
+              var c_start = c_value.indexOf(" " + c_name + "=");
+              if (c_start == -1) {
+                c_start = c_value.indexOf(c_name + "=");
+              }
+              if (c_start == -1) {
+                c_value = null;
+              }
+              else {
+                c_start = c_value.indexOf("=", c_start) + 1;
+                var c_end = c_value.indexOf(";", c_start);
+                if (c_end == -1) {
+                  c_end = c_value.length;
+                }
+                c_value = unescape(c_value.substring(c_start, c_end));
+              }
+              return c_value;
+            }
 
-                    if (!getCookie("LastSawMainPage"))
-                    {
-                      y= 0
-                    }
-                    else
-                    {
-                       y=getCookie("LastSawMainPage");
-                    }
-                    notifications_socket = new WebSocket(window.location.protocol.replace("http","ws")+"//"+window.location.host + '/notifications/ws?since='+y);
 
-                    notifications_socket.onmessage = function(e){
-                      try{
-                            var k = JSON.parse(e.data);
-                            
-                            if(k[0]>0)
-                                    {
-                                        document.getElementById("notifications").innerHTML= "("+k[0]+")";
+            if (!getCookie("LastSawMainPage")) {
+              y = 0
+            }
+            else {
+              y = getCookie("LastSawMainPage");
+            }
+            notifications_socket = new WebSocket(window.location.protocol.replace("http", "ws") + "//" + window.location.host + '/notifications/ws?since=' + y);
 
-                                        if(k[2]>0)
-                                        {
-                                        document.getElementById("notifications").className = "warning";
-                                        }
+            notifications_socket.onmessage = function (e) {
+              try {
+                var k = JSON.parse(e.data);
 
-                                        if(k[3]>0)
-                                        {
-                                        document.getElementById("notifications").className = "error";
-                                        }
+                if (k[0] > 0) {
+                  document.getElementById("notifications").innerHTML = "(" + k[0] + ")";
 
-                                    }
-                                    else
-                                    {
-                                        document.getElementById("notifications").innerHTML = '';
-                                    }
-                      }
-                      catch(err)
-                      {
-                        console.log("JSON Parse Error in websocket response:\n"+e.data);
-                      }
-                    }
+                  if (k[2] > 0) {
+                    document.getElementById("notifications").className = "warning";
+                  }
 
-                </script>
-            </span>
-            %endif
+                  if (k[3] > 0) {
+                    document.getElementById("notifications").className = "error";
+                  }
 
-            </li>
-            <li><a class="moduleslink" href="/modules/">Modules</a>
-%if modules.unsaved_changed_obj:
-<span title="The modules have unsaved changes"><a href="/settings/save">*</a></span>
-%endif
-            <li><a class="pageslink" href="/pagelisting">Page Index</a></li>
-            <li><a class="deviceslink" href="/devices">Devices</a></li>
+                }
+                else {
+                  document.getElementById("notifications").innerHTML = '';
+                }
+              }
+              catch (err) {
+                console.log("JSON Parse Error in websocket response:\n" + e.data);
+              }
+            }
 
-           
+          </script>
+        </span>
+        %endif
 
-            <li><a class="settingslink" href="/settings">Settings and Tools</a>
-            
+      </div>
+      <div><a class="moduleslink" href="/modules/">Modules</a>
+        %if modules.unsaved_changed_obj:
+        <span title="The modules have unsaved changes"><a href="/settings/save">*</a></span>
+        %endif
+      </div>
+        <div><a class="pageslink" href="/pagelisting">Page Index</a></div>
+        <div><a class="deviceslink" href="/devices">Devices</a></div>
 
-%if auth.authchanged:
-<span title="The users, groups, user settings, or permissions have unsaved changes"><a href="/settings/save">*</a></span>
-%endif
 
-%if not registry.is_clean:
-<span title="The kaithem registry has unsaved changes"><a href="/settings/save">*</a></span>
-%endif
-<li><a class="helplink" href="/helpmenu">Help</a></li>
-</li>
-            %if "auth" in cherrypy.request.cookie:
 
-                %if cherrypy.request.cookie['auth'].value in auth.Tokens:
-                    <li><a class="loginlink" href="/login/logout">Logout</a></li>
+        <div><a class="settingslink" href="/settings">Settings and Tools</a>
 
-                %else:
-                    <li><a class="loginlink" href="/login?go=${util.url(cherrypy.url())}">Login</a></li>
-                %endif
 
-            %else:
-                <li><a class="loginlink" href="/login?go=${util.url(cherrypy.url())}">Login</a></li>
-            %endif
-    </ul>
+          %if auth.authchanged:
+          <span title="The users, groups, user settings, or permissions have unsaved changes"><a
+              href="/settings/save">*</a></span>
+          %endif
+
+          %if not registry.is_clean:
+          <span title="The kaithem registry has unsaved changes"><a href="/settings/save">*</a></span>
+          %endif
+        </div>
+        <div><a class="helplink" href="/helpmenu">Help</a></div>
+
+        %if "auth" in cherrypy.request.cookie:
+
+        %if cherrypy.request.cookie['auth'].value in auth.Tokens:
+        <div><a class="loginlink" href="/login/logout">Logout</a></div>
+
+        %else:
+        <div><a class="loginlink" href="/login?go=${util.url(cherrypy.url())}">Login</a></div>
+        %endif
+
+        %else:
+        <div><a class="loginlink" href="/login?go=${util.url(cherrypy.url())}">Login</a></div>
+        %endif
+      </div>
     </div>
     <main>

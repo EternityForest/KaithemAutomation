@@ -67,9 +67,9 @@
   }
 
   body{
-	  font-family: Lora;
-  }
-
+		font-family: Lora;
+		font-size: 16px+1.5vw;
+	}
 button,a.button,label
 {
 	font-family: 'B612';
@@ -85,6 +85,28 @@ body {
   overscroll-behavior-y: contain;
 }
 
+/********************Basic Layout******************************/
+
+#nav div
+{
+	text-align:center;
+	font-size:16px;
+	flex-grow: 0.98;
+	flex-shrink: 0;
+	margin:2px;
+	display: inline-block;
+}
+#nav {
+	margin-top: 1px;
+	margin-bottom: 0.3em;
+	margin-left: auto;
+	margin-right: auto;
+	width:100%;
+	list-style-type:none;
+	display: flex;
+	flex-wrap: wrap;
+	padding:2px;
+}
 /*********************Code editing************************/
 
 @font-face {
@@ -166,39 +188,24 @@ text-shadow: rgb(120, 255, 100) 0px 0px 10px;
 }
 /*************************Navigation and headers************************************************************/
 
-#nav li
+#nav div
 {
-	display:inline;
 	border-width:1px;
-	border-style: none solid none none;
-    display: table-cell;
-    text-align:center;
-    border-color: grey;
-    font-size:125%;
+	border-style: solid;
+	border-color: grey;
+	font-size:130%;
+	border-radius: 5px;
+	background-color: rgba(220,255,200,0.3)
 }
 #nav {
 	border-style:solid;
-	background: rgba(255, 255, 230, 0.25);
-	border-width: 2px;
-	margin-top: 1px;
-    margin-bottom: 0.3em;
-    margin-left: auto;
-    margin-right: auto;
-	width:100%;
+	border-width: 1px;
 	border-radius:9px;
-	list-style-type:none;
-	display: table;
 	border-color:grey;
 	padding:2px;
 }
-#nav li:last-child
-{
-	display:inline;
-	border-style: none ;
-    display: table-cell;
 
-}
-nav.li:hover
+nav.div:hover
 {
 	background-color:#E6F6B8;
 }
@@ -406,6 +413,8 @@ border-style:solid;
 border-width:1px;
 border-radius: 7px;
 padding:4px;
+display: flex;
+flex-wrap: wrap;
 }
 
 /*A link styled to look like a button*/
