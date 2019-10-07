@@ -16,6 +16,10 @@
 "This file manages the kaithem global message bus that is used mostly for logging but also for many other tasks."
 
 import weakref,threading,time,os,random,traceback,cherrypy,logging,inspect,types,copy
+from typing import Callable,Optional
+
+from typeguard import typechecked
+
 from . import workers
 from collections import defaultdict, OrderedDict
 
@@ -44,7 +48,7 @@ def handleError(f,topic):
         pass
 
 class MessageBus(object):
-    def __init__(self,executor = None):
+    def __init__(self,executor:Optional[Callable] = None):
         """You pass this a function of one argument that just calls its argument. Defaults to calling in
         same thread and ignoring errors.
         """
@@ -61,7 +65,8 @@ class MessageBus(object):
         self.subscribers = defaultdict(list)
         self.subscribers_immutable = {}
 
-    def subscribe(self,topic,callback):
+    @typechecked
+    def subscribe(self,topic:str,callback:Callable):
         topic=normalize_topic(topic)
        
         with _subscribers_list_modify_lock:
@@ -101,8 +106,8 @@ class MessageBus(object):
         parsecachecache = dict(parsecache)
         return matchingtopics
 
-
-    def wrap_callback(self,f,topic):
+    @typechecked
+    def wrap_callback(self,f:Callable,topic:str):
         """return function g that calls f with (topic,message) or just f(topic), depending
         on how many args there are.
          and if errors is true logs the error"""

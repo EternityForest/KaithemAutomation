@@ -16,6 +16,8 @@
 
 
 import time, weakref,types,threading
+from typeguard import typechecked
+from typing import Union, Callable
 
 
 #Lets keep dependancies on things within kaithem to a minimum, as eventually this might be spun off to a standalone thing
@@ -44,9 +46,9 @@ from . import scheduling,virtualresource,unitsofmeasure,workers,util
 # Add a timer to state that will cause it to Transiton to newstate after 60 seconds. You can set the time to None to delete any existing timers,
 # and you can use a function for the destination state just like for a normal rule. States may only have one timerself.
 #
-#
-#
-#
+
+
+illegalStateNameChars="~!@#$%^&*()-=+`<>?,./;':\"\\[]{}\n\r\t "
 
 
 def unboundProxy(self,f):
@@ -236,11 +238,16 @@ class StateMachine(virtualresource.VirtualResource):
             self.time_offset = t-pos
             self._configureTimer()
 
-    def addState(self,name, rules = None, enter=None, exit=None):
+    @typechecked
+    def addState(self,name:str, rules = None, enter:Union[str,Callable,None]=None, exit:Union[str,Callable,None]=None):
+        for i in illegalStateNameChars:
+            if i in name:
+                raise ValueError("Forbidden special character")
         with self.lock:
             self.states[name] = {"rules": rules or {}, 'enter':enter, 'exit':exit, 'conditions':[]}
 
-    def setTimer(self,state,time, dest):
+
+    def setTimer(self,state:str, time:Union[float,int], dest:Union[str,Callable]):
         with self.lock:
             if dest:
                 self.states[state]['timer'] = [time, dest]
@@ -249,24 +256,15 @@ class StateMachine(virtualresource.VirtualResource):
         with self.lock:
             del self.states[name]['rules'][start]
 
-    def addRule(self,start, event, to):
+    @typechecked
+    def addRule(self,start:str, event:Union[str,Callable], to:Union[str,Callable]):
         with self.lock:
-            if not isinstance(start, str):
-                raise ValueError("Start must be string")
-            if not isinstance(to, str):
-                if not callable(to):
-                    raise ValueError("Destination state must be string or callable")
-                
             if isinstance(event, str):
                 self.states[start]['rules'][event] = to
-            else:
-                if callable(event):
+            elif callable(event):
                     self.states[start]['conditions'].append((event,to))
                     self._setupPolling()
-                else:
-                    raise ValueError("Event must be string or callable with 0 arguments")
-
-
+              
     def delRule(self, start, event):
         with self.lock:
             if event in self.states[start]['rules']:

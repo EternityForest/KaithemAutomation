@@ -2,6 +2,10 @@
 from . import scheduling,workers, virtualresource,widgets,util
 import time, threading,weakref,logging
 
+from typing import Callable,Optional,Union
+from typeguard import typechecked
+
+
 logger = logging.getLogger("tagpoints")
 syslogger = logging.getLogger("system")
 
@@ -40,8 +44,8 @@ class TagProvider():
     def getTag(self, tagName):
         return _TagPoint(tagName)
 
-
-def Tag(name):
+@typechecked
+def Tag(name:str):
     with lock:
         if name in allTags:
             x=allTags[name]()
@@ -54,30 +58,7 @@ def Tag(name):
 
         return _TagPoint(name)
 
-class Claim():
-    "Represents a claim on a tag point's value"
-    def __init__(self,tag, value, name='default',priority=50,timestamp=None, annotation=None):
-        self.name=name
-        self.tag=tag
-        self.value = value
-        self.annotation=annotation
-        self.timestamp = timestamp
-        
-    def __del__(self):
-        if self.name != 'default':
-            self.tag.release(self.name)
-    
-    def set(self,value,timestamp=None, annotation=None):
-        self.value = value
-        self.tag.setClaimVal(self.name, value,timestamp,annotation)
 
-    def setAs(self, value, unit, timestamp=None,annotation=None):
-        "Convert a value in the given unit to the tag's native unit"
-        self.set(convert(value,unit,self.tag.unit), timestamp, annotation)
-
-
-    def release(self):
-        self.tag.release(self.name)
 
 #_ and . allowed
 illegalCharsInName = "[]{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
@@ -103,7 +84,12 @@ class _TagPoint(virtualresource.VirtualResource):
         which can get existing tags. This allows use of tags for cross=
     
     """
-    def __init__(self,name, min=None, max=None):
+    @typechecked
+    def __init__(self,name:str, 
+        min:Union[float,int,None]=None, 
+        max:Union[float,int,None]=None):
+
+
         global allTagsAtomic
 
         if name =="":
@@ -191,7 +177,8 @@ class _TagPoint(virtualresource.VirtualResource):
         return self._unit
 
     @unit.setter
-    def unit(self,value):
+    @typechecked
+    def unit(self,value:str):
         if self._unit:
             if not self._unit==value:
                 if value:
@@ -265,8 +252,8 @@ class _TagPoint(virtualresource.VirtualResource):
             self.poller = None
 
 
-
-    def subscribe(self,f):
+    @typechecked
+    def subscribe(self,f:Callable):
         with self.lock:
             self.subscribers.append(util.universal_weakref(f))
             torm = []
@@ -285,7 +272,8 @@ class _TagPoint(virtualresource.VirtualResource):
             if x:
                 self.subscribers.remove(x)
 
-    def setHandler(self, f):
+    @typechecked
+    def setHandler(self, f:Callable):
         self.handler=weakref.ref(f)
 
     def _push(self,val,timestamp,annotation):
@@ -551,3 +539,31 @@ class _TagPoint(virtualresource.VirtualResource):
                     break
             self._push(self.value, self.timestamp, self.annotation)
 
+class Claim():
+    "Represents a claim on a tag point's value"
+    @typechecked
+    def __init__(self,tag:_TagPoint, value:Union[int,float], 
+        name:str='default',priority:Union[int,float]=50,
+        timestamp:Union[int,float,None]=None, annotation=None):
+
+        self.name=name
+        self.tag=tag
+        self.value = value
+        self.annotation=annotation
+        self.timestamp = timestamp
+        
+    def __del__(self):
+        if self.name != 'default':
+            self.tag.release(self.name)
+    
+    def set(self,value,timestamp=None, annotation=None):
+        self.value = value
+        self.tag.setClaimVal(self.name, value,timestamp,annotation)
+
+    def setAs(self, value, unit, timestamp=None,annotation=None):
+        "Convert a value in the given unit to the tag's native unit"
+        self.set(convert(value,unit,self.tag.unit), timestamp, annotation)
+
+
+    def release(self):
+        self.tag.release(self.name)
