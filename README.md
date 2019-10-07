@@ -2,10 +2,9 @@
 
 Kaithem is Linux home/commercial automation server written in pure python, HTML, Mako, and CSS. It's more low level than your average HA system, but it allows you to control anything python can.
 
-Kaithem uses a user/group/permission system with SSL support, and is designed to be fairly secured.
-I'm not a security researcher, but it should at the very least keep casual snoopers on the LAN out.
-![Login page](screenshots/login.png)
+Kaithem uses a user/group/permission system with SSL support, and is designed to be fairly secured. I'm not a security researcher, but it should at the very least keep casual snoopers on the LAN out.
 
+![Login page](screenshots/login.png)
 
 It runs on python3, but it is not tested outside of Linux. Resource usage is low enough to run well on the Raspberry Pi.
 
@@ -15,22 +14,23 @@ events, or time-based triggers using a custom semi-natural language parser.
 ![Editing an event](screenshots/edit-event.jpg)
 
 
-Almost the entire server state is maintained in RAM, and any changes you make to your code never touches the disk unless you explicitly save or configure auto-save. Even log files get buffered in RAM for a configurable duration before being saved. This allows experimentation without wearing out SD cards.
+Almost the entire server state is maintained in RAM, and any changes you make to your code never touches the disk unless you explicitly save or configure auto-save.
 
-Saving occurs transactionally, so a copy of the state of the server is made before changing the new one. The save formats for most things are simple text file with a YAML that can be hand edited if needed, and can be version controlled.
+Saving occurs transactionally, so a copy of the state of the server is made before changing the new one. The save formats for events and pages is just python code and HTML/markdown, making it easy to edit by hand.
 
 You can update systems by downloading and uploading events and pages as zip files(Grouped into "modules), making deployment easy.
 
-There's a built in realtime websocket-based log viewer to assist with debugging, and several features to
-make detecting intrusions and errors easier.
+There's a built in realtime websocket-based log viewer to assist with debugging, and several features to make detecting intrusions and errors easier.
+
 ![Settings](screenshots/settings.jpg)
 
 Kaithem includes a library for common automation tasks such as file IO, timing, executing functions in the background, formatting numbers, and more, including a graphical lighting console and a mixing board supporting multiple soundcards!
 
 ![Lighting control](screenshots/lighting.jpg)
 
-Kaithem is still beta, but I've used it in production applications running for months at a time. It wasn't
-designed for any kind of safety-critical application, but it is meant to be reliable enough for most home and commercial applications.
+Kaithem is still beta, but I've used it in production applications running for months at a time. 
+
+It wasn't designed for any kind of safety-critical application, but it is meant to be reliable enough for most home and commercial applications.
 
 Installation
 ============
@@ -61,8 +61,35 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
-### 0.63.1
--  Fix JS dependancy error in lighting module
+### 0.64
+- Option to open port with UPnP
+- Built in UPnP scanner to detect security issues
+- Full copy of the python3.8 documentation available locally in the help section
+- Sound Mixer built in(if using JACK)
+- Lightboard better suited for media
+- Dynamic Fixture Mapping in Lightboard
+- If the server is restarted but the system itself remains running, all module and registry changes persist in RAM
+    on linux.
+- Many bugfixes
+- Boot time is several times faster
+- No limit to event traceback stack depth
+- Remove posting to /system/threads/start, it created a refactoring nightmare and wasn't useful
+- Remove system/errors/workers for the same reason, traditional logging makes it obsolete.
+- Hopefully resolved the SSL segfault
+- Auto-adopt stuff to the default kaithem user if started as root(Useful if things are modified by sudo)
+- Minor breaking: Resources all have file extensions, old loaded modules may have odd names but will load
+- Events are now stored as standard python files with data in variables, for easy viewing in external editors
+- New kaithem.web.controllers: Easily create pages directly in python code using cherrypy directly without losing the flexibility of Kaithem.
+- WiFi Manager, on Linux with NetworkManager you can set up connections to access points via
+  the web UI.
+- `__del__` support in events, just define it in the setup.
+- kaithem.midi.FluidSynth lets you play MIDI notes with soundfonts
+- One-param and zero-param messagebus subscriptions that don't get the topic(Two param stil works)
+- gpiozero integration
+- Util page for viewing environment variables
+- Lightboard scenes are now saved to VARDIR/chandler/scenes/SCENENAME.yaml
+- Functions can now be used as StateMachine rules, they are polled and followed when true
+- Use Ace code editor as fallback on mobile
 
 ### 0.63
 
@@ -78,20 +105,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 -   Notifications use websockets, not polling
 -   Lighting subsystem improvements
 -   Logging bugfixes
-
-### 0.62
-- Performance and lighting bugfix release
-
--   Major performance bugfixes
-
--   Detect unclean shutdown
--   Lightboard improvements
--   New alarms feature
--   Experimental Kaithem for Devices
--   Improvements to the Pavillion protocol(Possibly breaking)
--   Better support for multiple soundcards
-
-
 
 License Terms
 =============
