@@ -193,7 +193,7 @@ class Settings():
                         lists.append(i[5:][:100])
         auth.setUserSetting(pages.getAcessingUser(),'mailinglists',lists)
 
-        auth.setUserSetting(pages.getAcessingUser(),'useace','useace' in kwargs)
+        auth.setUserSetting(pages.getAcessingUser(),'usemonaco','usemonaco' in kwargs)
 
         raise cherrypy.HTTPRedirect("/settings/account")
 

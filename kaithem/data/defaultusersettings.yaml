@@ -2,6 +2,6 @@ timezone: UTC
 strftime: "%A, %B %d, %Y at %I:%M:%S %p %Z"
 email: fail@example.com
 mailinglists: []
-useace: True
+usemonaco: True
 restrict-lan: False
 tabtospace: True

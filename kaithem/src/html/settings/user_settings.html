@@ -83,11 +83,11 @@ Restricted to LAN IP addresses(Only admin can change): ${auth.getUserSetting(pag
 <div class="sectionbox">
 <table border=1>
 <tr>
-<td>Enable CodeMirror Code Editor</td>
+<td>Enable Monaco Code Editor(Ace is still used as fallback on mobile)</td>
 <td>
-<input type="checkbox" name="useace" value="true"
+<input type="checkbox" name="usemonaco" value="true"
 
-    %if auth.getUserSetting(pages.getAcessingUser(),'useace'):
+    %if auth.getUserSetting(pages.getAcessingUser(),'usemonaco'):
     checked="on"
     %endif
 

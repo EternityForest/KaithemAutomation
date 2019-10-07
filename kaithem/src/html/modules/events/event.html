@@ -11,7 +11,7 @@ import cherrypy
 
 <%include file="/pageheader.html"/>
 <%
-using_js_editor = config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace') and not "Mobile" in cherrypy.request.headers['User-Agent']
+using_js_editor = config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'usemonaco') and not "Mobile" in cherrypy.request.headers['User-Agent']
 %>
 
 %if using_js_editor:
@@ -85,14 +85,10 @@ onsubmit="presubmit()"
 >
 <h3>Basic</h3>
 <label><b>Path:</b><input title="Backslashes are escapes and / is the path separator. You can move this resource to another directory by renaming." name="name" value="${name|h}" style="width:90%;"
-%if not pages.canUserDoThis("/admin/modules.edit"):
-            disabled=1\
-%endif
+
 ></input></label><br>
  <label><input type="checkbox"  name="enable" value="false"
-        %if not pages.canUserDoThis("/admin/modules.edit"):
-                    disabled=1\
-        %endif
+
          %if 'enable' in event:
             %if event['enable'] == True:
             checked="yes"
@@ -117,7 +113,7 @@ if 'setup' in event:
 else:
     xyz = "pass"
 %>
-<textarea rows=30 class="pythoncode" name="setup" id="setupbox" onchange="wasChanged=true"
+<textarea  data-editor="python" rows=30 class="pythoncode" name="setup" id="setupbox" onchange="wasChanged=true"
 %if not pages.canUserDoThis("/admin/modules.edit"):
             disabled=1\
 %endif
@@ -134,7 +130,7 @@ else:
 			language: 'python',
             insertSpaces: true,
             renderIndentGuides: true,
-	        fontSize: 12,
+	        fontSize: 14,
             scrollBeyondLastLine: false,
             theme:'kaithem',
 %if not pages.canUserDoThis("/admin/modules.edit"):
@@ -155,6 +151,7 @@ else:
 //Hide the box, it's jut there to subit the data from the actual editor
 document.getElementById("setupbox").style="display:none;";
 </script>
+
 %endif
 
 
@@ -243,7 +240,7 @@ you may need to use the global keyword. You may also need to use the global keyw
 </b>
 </p>
 
-<textarea id="actionbox" name="action" rows=50 class="pythoncode" onchange="wasChanged=true"
+<textarea data-editor="python" id="actionbox" name="action" rows=50 class="pythoncode" onchange="wasChanged=true"
 
         %if not pages.canUserDoThis("/admin/modules.edit"):
                     disabled=1\
@@ -259,7 +256,7 @@ you may need to use the global keyword. You may also need to use the global keyw
 			language: 'python',
             insertSpaces: true,
             renderIndentGuides: true,
-	        fontSize: 12,
+	        fontSize: 14,
             scrollBeyondLastLine: false,
 %if not pages.canUserDoThis("/admin/modules.edit"):
             readOnly:true
@@ -377,8 +374,47 @@ Saving this module will case it to completely reload, including its local scope.
 </form>
 </section>
 
-%if config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace'):
+%if not(config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'usemonaco')):
+<script src="/static/js/src-min-noconflict/ace.js"></script>
+<script src="/static/js/jquery3.js"></script>
 
-
+<script>
+    // Hook up ACE editor to all textareas with data-editor attribute
+    $(function () {
+        $('textarea[data-editor]').each(function () {
+            var textarea = $(this);
+            var mode = textarea.data('editor');
+            var editDiv = $('<div>', {
+                position: 'absolute',
+                width: textarea.width(),
+                height: textarea.height(),
+                'class': textarea.attr('class')
+            }).insertBefore(textarea);
+            textarea.css('display', 'none');
+            var editor = ace.edit(editDiv[0]);
+            editor.renderer.setShowGutter(false);
+            editor.getSession().setValue(textarea.val());
+            editor.getSession().setMode("ace/mode/" + mode);
+            // editor.setTheme("ace/theme/idle_fingers");
+            editor.setOptions({
+             fontFamily: "Hack",
+            fontSize: "12pt"
+            });
+            editor.getSession().on('change', function() {
+                wasChanged=true;
+            })
+            %if not pages.canUserDoThis("/admin/modules.edit"):
+            editor.setReadOnly(true)
+            %endif
+            // copy back to textarea on form submit...
+            textarea.closest('form').submit(function () {
+                textarea.val(editor.getSession().getValue());
+            })
+        });
+    });
+</script>
 %endif
+
+
+
 <%include file="/pagefooter.html"/>

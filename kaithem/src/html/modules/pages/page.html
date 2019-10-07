@@ -9,7 +9,7 @@ import cherrypy,traceback
 <%
 #I really am not a fan of having separate mobile and desktop versions. It's really often garbage
 #Here we don't have much of an option, monaco only supports desktop.
-using_js_editor = config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'useace') and not "Mobile" in cherrypy.request.headers['User-Agent']
+using_js_editor = config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'usemonaco') and not "Mobile" in cherrypy.request.headers['User-Agent']
 %>
 
 <%include file="/pageheader.html"/>
@@ -81,7 +81,7 @@ window.onbeforeunload = function(){
 }
 </script>
 
-<textarea id="box" name="body" rows=25 class="htmlcode"
+<textarea data-editor="html" id="box" name="body" rows=25 class="htmlcode"
         %if not pages.canUserDoThis("/admin/modules.edit"):
                     disabled=1\
         %endif
@@ -105,7 +105,7 @@ window.onbeforeunload = function(){
 			language: 'html',
             insertSpaces: true,
             renderIndentGuides: true,
-	        fontSize: 12,
+	        fontSize: 14,
             scrollBeyondLastLine: false,
             theme:'kaithem',
 %if not pages.canUserDoThis("/admin/modules.edit"):
@@ -334,5 +334,45 @@ Saving this module will cause it to be immediately acessable from the web.
 </form>
 </section>
 
+%if not(config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'usemonaco') and not "Mobile" in cherrypy.request.headers['User-Agent']):
+<script src="/static/js/src-min-noconflict/ace.js"></script>
+<script src="/static/js/jquery3.js"></script>
 
+<script>
+    // Hook up ACE editor to all textareas with data-editor attribute
+    $(function () {
+        $('textarea[data-editor]').each(function () {
+            var textarea = $(this);
+            var mode = textarea.data('editor');
+            var editDiv = $('<div>', {
+                position: 'absolute',
+                width: textarea.width(),
+                height: textarea.height(),
+                'class': textarea.attr('class')
+            }).insertBefore(textarea);
+            textarea.css('display', 'none');
+            var editor = ace.edit(editDiv[0]);
+            editor.renderer.setShowGutter(false);
+            editor.getSession().setValue(textarea.val());
+            editor.getSession().setMode("ace/mode/" + mode);
+            // editor.setTheme("ace/theme/idle_fingers");
+            editor.setOptions({
+             fontFamily: "Hack",
+            fontSize: "12pt"
+            });
+
+            editor.getSession().on('change', function() {
+                wasChanged=true;
+            })
+            %if not pages.canUserDoThis("/admin/modules.edit"):
+            editor.setReadOnly(true)
+            %endif
+            // copy back to textarea on form submit...
+            textarea.closest('form').submit(function () {
+                textarea.val(editor.getSession().getValue());
+            })
+        });
+    });
+</script>
+%endif
 <%include file="/pagefooter.html"/>
