@@ -30,6 +30,8 @@ Change Log
 - Lightboard scenes are now saved to VARDIR/chandler/scenes/SCENENAME.yaml
 - Functions can now be used as StateMachine rules, they are polled and followed when true
 - Use Ace code editor as fallback on mobile
+- Lightboard has been renamed to Chandler
+- Add a bit of runtime type checking
 
 ### 0.63.1
 -  Fix JS dependancy error in lighting module

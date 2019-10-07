@@ -1673,6 +1673,9 @@ if __name__=='__setup__':
                         module.scenes[msg[1]].cues[bn].length=0.0001
     
                         soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
+                        soundfolders.append(os.path.join(src.directories.datadir,"sounds"))
+                        soundfolders.append(os.path.join(src.directories.vardir,"Music"))
+    
                         for i in soundfolders:
                             s = msg[2]
                             #Make paths relative.
@@ -1708,6 +1711,8 @@ if __name__=='__setup__':
                 if msg[0]=="setcuesound":
                 
                     soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
+                    soundfolders.append(os.path.join(src.directories.datadir,"sounds"))
+                    soundfolders.append(os.path.join(src.directories.vardir,"Music"))
                     for i in soundfolders:
                         s = msg[2]
                         #Make paths relative.
