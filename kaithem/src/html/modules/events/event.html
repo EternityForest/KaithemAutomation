@@ -117,7 +117,7 @@ if 'setup' in event:
 else:
     xyz = "pass"
 %>
-<textarea rows=3 class="pythoncode" name="setup" id="setupbox" onchange="wasChanged=true"
+<textarea rows=30 class="pythoncode" name="setup" id="setupbox" onchange="wasChanged=true"
 %if not pages.canUserDoThis("/admin/modules.edit"):
             disabled=1\
 %endif

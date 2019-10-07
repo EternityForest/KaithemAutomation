@@ -188,8 +188,8 @@ from src import tagpoints
 
     <template id="vue-combobox-template">
         <div style="display:inline-block" style="width:0px">
-            <input v-bind:value="value" v-on:focus="showmenu=true" v-on:blur="showmenu=false" v-on:input="$emit('input', $event.target.value);">
-            <button v-on:click="showmenu=!showmenu">...</button>
+            <input v-bind:value="value" v-on:input="$emit('input', $event.target.value);">
+            <button title="Show/Hide selector" v-on:click="showmenu=!showmenu">...</button>
             <div v-if="showmenu" class="dropdown">
                 <div v-for="i in options" v-if="(!value) || i[0].includes(value) || i[0].includes(value)" >
                     <button v-on:click="$emit('input',i[0]);showmenu=false">{{i[0]}}</button><br>
@@ -255,14 +255,14 @@ from src import tagpoints
 
     <div style="background-color:rgba(255,255,255,0.3); display:block;">
 
-        <div style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;"><b>File:</b>
+        <div class="menubar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;"><b>File:</b>
                 <a class="button" href="download" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Download</a>
                 <a class="button" href="upload" title="Upload a scenes file"><img src="/zipstatic/img/icons/fugue.zip/folder-horizontal-open.png"></img>Upload</a>
                 <button v-on:click="saveToDisk()" title="Save the state to disk as the default when the Lightboard boots"><img src="/zipstatic/img/icons/fugue.zip/quill.png"></img>Save State as Default</a>
         </div>
 
 
-        <div style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px; float:left;"><b>Windows:</b>
+        <div class="menubar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px; float:left;"><b>Windows:</b>
 
         <button v-on:click="showDMXSetup=!showDMXSetup"><img src="/zipstatic/img/icons/fugue.zip/globe-green.png"></img>Universes</button>
         <button v-on:click="showhidefixtures"><img src="/zipstatic/img/icons/fugue.zip/traffic-light--pencil.png"></img> Fixture Types</button>
@@ -270,13 +270,13 @@ from src import tagpoints
         <button v-on:click="showevents=!showevents"><img src="/zipstatic/img/icons/fugue.zip/application-terminal.png"></img>Console</button>
         </div>
     
-        <div style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;">
+        <div class="menubar"  style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;">
             <b>Keybindings:</b>
             <button v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}"><img src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>Edit</button>
             <button v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}"><img src="/zipstatic/img/icons/fugue.zip/tick-octagon.png"></img>Run</button>
             <button v-on:click="showKeyBindings=!showKeyBindings"><img src="/zipstatic/img/icons/fugue.zip/eye.png"></img>Show/Hide</button>
         </div>
-        <div style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;">
+        <div class="menubar"  style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;">
             <b>View:</b>
             <label title="Show or hide lighting related controls">Lighting:<input type="checkbox" v-model="showLightingControls">
             <label title="Show or hide lighting related controls">Sound:<input type="checkbox" v-model="showSoundControls">
@@ -605,7 +605,7 @@ from src import tagpoints
 
         </div>
 
-        <div v class="sectionbox" style="float:left;overflow: auto; width:20%; height:90%; resize:both;">
+        <div v class="sectionbox" style="float:left;overflow: auto; width:20%; min-width: 15em; height:90%; resize:both;">
             <label>
             <input size=8 title="Enter a cue's shortcut code here to activate it'" placeholder="Shortcut"
                 v-model="sc_code" v-on:keydown.enter="shortcut()"></input>
@@ -653,7 +653,7 @@ from src import tagpoints
         </div>
 
 
-        <div class="sectionbox" v-if="editingScene && cuemeta[editingScene.cue]" style="display:inline-block; width:75%; resize:both;">
+        <div class="sectionbox" v-if="editingScene && cuemeta[editingScene.cue]" style="display:inline-block; width:75%; min-width: 40em; resize:both; overflow:auto;">
             <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name"><span v-if="editingScene.blend=='monitor'">Monitor</span>                Scene: {{editingScene.name}}</span> <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>Current Cue:
                 <button v-on:click="selectcue(scenename,cuemeta[editingScene.cue].name)">{{cuemeta[editingScene.cue].name}}</span>
                 <meter v-if="editingScene.active && cuemeta[editingScene.cue].length" min=0 max=1
