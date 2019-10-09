@@ -58,7 +58,9 @@ def formatOutputPin(p):
         'v':bool(p.gpio.value),
         'c':p.comment,
         'm': p.gpio==p.fakeGpio,
-        'p': p.pin
+        'p': p.pin,
+        "a_s":p.activeState
+
     }
 
 
@@ -68,18 +70,27 @@ def handleApiCall(u,v):
             api.send(["inputs", {i:formatPin(inputs[i]()) for i in inputs}])
             api.send(["outputs", {i:formatOutputPin(outputs[i]()) for i in outputs}])
     
-    if v[0]=='mock':
+    elif v[0]=='mock':
         inputs[v[1]]().mockAlert.trip()
         inputs[v[1]]().setRawMockValue(v[2])
 
-    if v[0]=='unmock':
-        inputs[v[1]]().releaseMocking()
+    elif v[0]=='unmock':
+        try:
+            inputs[v[1]]().releaseMocking()
+        except NoRealGPIOError:
+            api.send(['norealgpio'])
 
-    if v[0]=='unforce':
-        outputs[v[1]]().unforce()
 
-    if v[0]=='force':
+    elif v[0]=='unforce':
+        try:
+            outputs[v[1]]().unforce()
+        except NoRealGPIOError:
+            api.send(['norealgpio'])
+
+    elif v[0]=='force':
         outputs[v[1]]().force(v[2])
+    else:
+        raise ValueError("Unrecognized command "+str(v[0]))
 
 api.attach(handleApiCall)
 
@@ -149,6 +160,8 @@ class GPIOTag():
         else:
             self.gpio=self.fakeGpio
 
+class NoRealGPIOError(RuntimeError):
+    pass
 
 class DigitalOutput(GPIOTag):
     requirePWM=False
@@ -160,6 +173,7 @@ class DigitalOutput(GPIOTag):
         self.pin=pin
         self.comment=comment
         self.connectToPin(LED, pin, mock=mock,*args,**kwargs)
+        self.activeState = kwargs.get('active_high', True)
 
         # try:
         #     self.connectToPin(PWMLED, pin, mock=mock,*args,**kwargs)
@@ -216,10 +230,10 @@ class DigitalOutput(GPIOTag):
         with lock:
             self.gpio=self.fakeGpio
             if v:
-                self.realGpio.on()
+                self.gpio.on()
             else:
-                self.fakeGpio.off()
-        api.send(["opin", self.pin, formatPin(self)])
+                self.gpio.off()
+        api.send(["opin", self.pin, formatOutputPin(self)])
 
     
     def unforce(self):
@@ -228,8 +242,8 @@ class DigitalOutput(GPIOTag):
                 self.gpio=self.realGpio
                 self.gpio.value = self.tag.value>0.5
             else:
-                raise RuntimeError("No real gpio")
-        api.send(["opin", self.pin, formatPin(self)])
+                raise NoRealGPIOError("No real gpio")
+        api.send(["opin", self.pin, formatOutputPin(self)])
 
 
     def __del__(self):
@@ -386,7 +400,7 @@ class DigitalInput(GPIOTag):
         with self.lock:
             oldGpio = self.gpio
             if not self.realGpio:
-                raise RuntimeError("Object has no real GPIO")
+                raise NoRealGPIOError("Object has no real GPIO")
             self.mockAlert.clear()
 
             if self.gpio==self.realGpio:

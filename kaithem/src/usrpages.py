@@ -32,10 +32,47 @@ def markdownToSelfRenderingHTML(content, title):
     <section id="content">
     """+content+"""</section>
     <script src="/static/showdown.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/static/css/atelier-dune-light.css">
+    <script src="/static/js/highlight.pack.js"></script>
+    <script>
+    showdown.extension('codehighlight', function() {
+    function htmlunencode(text) {
+        return (
+        text
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+        );
+    }
+    return [
+        {
+        type: 'output',
+        filter: function (text, converter, options) {
+            // use new shodown's regexp engine to conditionally parse codeblocks
+            var left  = '<pre><code\\b[^>]*>',
+                right = '</code></pre>',
+                flags = 'g',
+                replacement = function (wholeMatch, match, left, right) {
+                // unescape match to prevent double escaping
+                match = htmlunencode(match);
+                var lang = (left.match(/class=\"([^ \"]+)/) || [])[1];
+                    left = left.slice(0, 18) + left.slice(18);
+                    if (lang && hljs.getLanguage(lang)) {
+                    return left + hljs.highlight(lang, match).value + right;
+                    } else {
+                    return left + hljs.highlightAuto(match).value + right;
+                    }            
+                };
+            return showdown.helper.replaceRecursiveRegExp(text, replacement, left, right, flags);
+        }
+        }
+    ];
+    });
+    </script>
     <script>
     showdown.setFlavor('github');
     var c= document.getElementById("content").innerHTML;
-    var converter = new showdown.Converter();
+    var converter = new showdown.Converter({metadata: true,extensions:['codehighlight']});
 
     document.getElementById("content").innerHTML=converter.makeHtml(c);
     </script>

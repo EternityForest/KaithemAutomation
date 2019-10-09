@@ -34,7 +34,17 @@ HTML, it can contain any HTML tag it wants, and only trusted users should be wri
 
 ## Cool GFM Stuff
 
+
+## Code example
+
+```python3
+class Foo(self):
+    def f():
+        pass
+```
+
 ### Horizontal Rules(Why aren't these popular anymore?')
+
 
 Three or more...
 

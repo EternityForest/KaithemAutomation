@@ -17,8 +17,63 @@ h4 {
 </style>
 <%include file="/pageheader.html"/>
 <title>Kaithem Help</title>
-
+<link rel="stylesheet" type="text/css" href="/static/css/atelier-dune-light.css">
+<script src="/static/js/highlight.pack.js"></script>
 <script src="/static/showdown.min.js"></script>
+<script>
+var url = new URL(window.location.href);
+var dl = url.searchParams.get("detectlanguages");
+if(dl==undefined)
+{
+    dl=true;
+}
+if(dl='0')
+{
+    dl=false
+}
+
+showdown.extension('codehighlight', function() {
+  function htmlunencode(text) {
+    return (
+      text
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+      );
+  }
+  return [
+    {
+      type: 'output',
+      filter: function (text, converter, options) {
+        // use new shodown's regexp engine to conditionally parse codeblocks
+        var left  = '<pre><code\\b[^>]*>',
+            right = '</code></pre>',
+            flags = 'g',
+            replacement = function (wholeMatch, match, left, right) {
+              // unescape match to prevent double escaping
+              var lang = (left.match(/class=\"([^ \"]+)/) || [])[1];
+                left = left.slice(0, 18) + left.slice(18);
+                if (lang && hljs.getLanguage(lang)) {
+                match = htmlunencode(match);
+                return left + hljs.highlight(lang, match).value + right;
+                } else {
+                    if(dl)
+                    {
+                        match = htmlunencode(match);
+                        return left + hljs.highlightAuto(match).value + right;
+                    }
+                    else
+                    {
+                        return left+match+right
+                    }
+                }            
+            };
+        return showdown.helper.replaceRecursiveRegExp(text, replacement, left, right, flags);
+      }
+    }
+  ];
+});
+</script>
 <div class="sectionbox" id="help">
     Loading markdown
 </div>
@@ -34,7 +89,7 @@ xhr.open("GET", "/static/docs/"+c, true);
 xhr.onload = function (e) {
   if (xhr.readyState === 4) {
     if (xhr.status === 200) {
-        var conv = new showdown.Converter({metadata: true});
+        var conv = new showdown.Converter({metadata: true,extensions:['codehighlight']});
         var html = conv.makeHtml(xhr.responseText);
         document.getElementById("help").innerHTML=html;
     } else {

@@ -365,7 +365,7 @@ def webRoot():
 
                     with open(p,"rb") as f:
                         return(f.read())
-                return pages.get_template('help/'+path[0]+'.html').render()
+                return pages.get_template('help/'+path[0]+'.html').render(path=path,data=data)
             return pages.get_template('help/help.html').render()
 
 

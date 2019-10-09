@@ -174,10 +174,10 @@ the root. If no default is found, an error will be returned.
 
 Kaithem provides a few static resources that are included with the
 distribution, notably Font Awesome and iconicss.
-
-    &ltlink rel="stylesheet" href="/static/img/icons/iconicss/iconicss.min.css">
-    &ltlink rel="stylesheet" href="/static/img/icons/fontawesome/css/fontawesome-all.min.css">
-
+```html
+<link rel="stylesheet" href="/static/img/icons/iconicss/iconicss.min.css">
+<link rel="stylesheet" href="/static/img/icons/fontawesome/css/fontawesome-all.min.css">
+```
 Also include is the complete Fugue icon pack, accessible as follows:
 
     /zipstatic/img/icons/fugue.zip/cross-button.png
@@ -188,13 +188,14 @@ Also, the following JS libraries:
 The Vue framework
 
 #### /static/js/strftime-min.js
-    Add this to your page, and get a strftime on date objects.
+Add this to your page, and get a strftime on date objects.
 
-    `var d = new Date();
+```js
+var d = new Date();
 
-     var ymd = d.strftime('%Y/%m/%d');
-     var iso = d.strftime('%Y-%m-%dT%H:%M:%S%z');
-     `
+var ymd = d.strftime('%Y/%m/%d');
+var iso = d.strftime('%Y-%m-%dT%H:%M:%S%z');
+```
 
 #### /static/js/include.js
 
@@ -353,7 +354,9 @@ change on another.
 Somewhere in your page before the first widget, you must include this
 line:
 
-    <script type="text/javascript" src="/static/widget.js"></script>
+```html
+<script type="text/javascript" src="/static/widget.js"></script>
+```
 
 This will include a small JS library that will automatically handle
 polling for you.
