@@ -49,13 +49,13 @@ def markdownToSelfRenderingHTML(content, title):
         type: 'output',
         filter: function (text, converter, options) {
             // use new shodown's regexp engine to conditionally parse codeblocks
-            var left  = '<pre><code\\b[^>]*>',
+            var left  = '<pre><code\\\\b[^>]*>',
                 right = '</code></pre>',
                 flags = 'g',
                 replacement = function (wholeMatch, match, left, right) {
                 // unescape match to prevent double escaping
                 match = htmlunencode(match);
-                var lang = (left.match(/class=\"([^ \"]+)/) || [])[1];
+                var lang = (left.match(/class=\\\"([^ \\\"]+)/) || [])[1];
                     left = left.slice(0, 18) + left.slice(18);
                     if (lang && hljs.getLanguage(lang)) {
                     return left + hljs.highlight(lang, match).value + right;

@@ -190,8 +190,8 @@ def getModuleHash(m: str):
 
 def getModuleWordHash(m: str):
     if not m in modulewordhashes:
-        modulehashes[m] = wordHashModule(m)
-    return modulehashes[m].upper()
+        modulewordhashes[m] = wordHashModule(m)
+    return modulewordhashes[m].upper()
 
 
 def modulesHaveChanged():
