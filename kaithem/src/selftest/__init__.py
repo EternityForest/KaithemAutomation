@@ -16,8 +16,20 @@
 #This file runs a self test when python starts. Obviously we do
 #Not want to clutter up the rraw
 
-import threading,traceback,logging
+import threading,traceback,logging,os
 
+
+def memtest():
+    "Test a small segment of memory. Possibly enought to know if it's really messed up"
+    for i in range(5):
+        x=os.urandom(128)
+
+        x1=x*1024*128
+        x2=x*1024*128
+        #Wait a bit, in case it's a time retention thing
+        time.sleep(10)
+        if not x1==x2:
+            messagebus.postMessage("/system/notifications/errors","Memory may be corrupt")
 
 def runtest():
     from .. import messagebus
@@ -29,6 +41,9 @@ def runtest():
         messagebustest.test()
         tagpointstest.testTags()
         testpersist.test()
+        t= threading.Thread(target=memtest)
+        t.daemon=True
+        t.start()
         logging.info("Self test was sucessful")
     except:
         messagebus.postMessage("/system/notifications/errors",    "Self Test Error\n"+traceback.format_exc(chain=True))
