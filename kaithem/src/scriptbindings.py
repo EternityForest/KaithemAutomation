@@ -53,11 +53,11 @@ Actions can have a manifest property applied to the function.
 It must look like:
 {
     "description":"Foo",
-    "kwargs":{
-        "arg": ["int",default,min,max],
-        "arg2": ['str','Default'],
-        "arg3:  ["SomeOtherType", "SomeOtherData"]
-    }
+    "args":[
+        ["arg1Name","int",default,min,max],
+        ["arg2Name",'str','Default'],
+        ["arg3,"SomeOtherType", "SomeOtherData"]
+    ]
 }
 
 This allows GUIs to auto-generate a UI for visually creating pipelines.
@@ -70,51 +70,7 @@ import simpleeval
 
 simpleeval.MAX_POWER = 1024
 
-
-
 import weakref,threading
-def split_cmdline(s, separator, escape="\\",preserve_escapes=False):
-    current_token = ""
-    tokens = []
-    literal = False
-    q=False
-
-    for i in s:
-        if literal:
-            current_token += i
-            literal = False
-
-        elif q:
-            #I is the thing we quoted with
-            if i==q:
-                q=False
-    
-        elif i == separator:
-            try:
-                if not '.' in current_token:
-                    current_token= int(current_token)
-                else:
-                    current_token=float(current_token)
-            except:
-                pass
-            tokens+= [current_token]
-            current_token = ""
-
-        elif i == escape:
-            literal = True
-            if preserve_escapes:
-                current_token += i
-
-        elif i in '\'"':
-            q=i
-
-        else:
-            current_token +=i
-
-    if current_token:
-        return tokens+[current_token]
-    else:
-        return tokens
 
 
 import time,random
@@ -124,12 +80,35 @@ usrFunctions={
     "randint": random.randint,
 }
 
+predefinedActions={
+    'return':lambda x:x
+}
+
 class ChandlerScriptContext():
-    def __init__(self,parentContext=None, gil=None):
+    def __init__(self,parentContext=None, gil=None,functions={}):
         self.pipelines = []
         self.eventListeners = {}
         self.variables = {}
         self.actions= weakref.WeakValueDictionary()
+
+        #Vars that have changed since last time we
+        #Cleared the list. Used for telling the GUI
+        # client about the current set of variables 
+        self.changedVariables={}
+
+        def setter(k,v):
+            if not isinstance(k,str):
+                raise RuntimeError("Var name must be string")
+            self.setVar(k,v)
+
+        self.setter = setter
+        self.actions['set']=setter
+
+        for i in predefinedActions:
+            self.actions[i]=predefinedActions[i]
+        functions=functions.copy()
+        functions.update(usrFunctions)
+        
         self.evaluator = simpleeval.SimpleEval(functions=usrFunctions)
 
         if not gil:
@@ -141,8 +120,7 @@ class ChandlerScriptContext():
     def runCommand(self,c):
         a = self.actions.get(c[0],None)
         if a:
-            print(c)
-            return a(*c[1:])
+            return a(*[self.preprocessArgument(i) for i in c[1:]])
     
     def event(self,evt,ctx=None):
         with self.gil:
@@ -155,7 +133,7 @@ class ChandlerScriptContext():
                         self.variables["_"] = x
 
     def preprocessArgument(self, a):
-        if a.startswith("="):
+        if isinstance(a,str) and a.startswith("="):
             return self.eval(a[1:])
         return a
 
@@ -170,54 +148,21 @@ class ChandlerScriptContext():
     def setVar(self,k,v):
         with self.gil:
             self.variables[k]=v
-            self.changedVariables[k]=n
+            self.changedVariables[k]=v
 
-    def parseBinding(self,b):
-        """
-        Parse a binding like foo: bar "baz" | foo2
-        into:
-        
-        (foo (
-                (bar baz)
-                (foo2)
-              )
-        )
-        Meaning:
-            When the event foo happens, run this pipeline of
-            actions until one does not return a value.
-
-            The first action is bar, with the string baz as an arg,
-            the second is foo2 with no args.
-
-        """
-        trigger, pipe = split_cmdline(b,":")
-        pipe = split_cmdline(pipe,"|")
-
-        p = []
-        for i in pipe:
-            z = split_cmdline(i, ' ')
-            p.append([i.strip() for i in z if i.strip()])
-
-        #p will be a list of dicts, each representing an action or expression
-        return trigger.strip(), p 
-    
-    
-    def parseCommandBindings(self,cmd):
-        for i in cmd.split("\n"):
-            if not i:
-                continue
-            x = self.parseBinding(i)
-            
-
-            if not x[0] in self.eventListeners:
-                self.eventListeners[x[0]]=[]
-            self.eventListeners[x[0]].append(x[1])
     
     def addBindings(self, b):
+        """
+            Take a list of bindings and add them to the context.
+            A binding looks like:
+            ['eventname',[['command','arg1'],['command2']]
+
+            When events happen commands run till one returns None.
+        """
         for i in b:
-            if not x[0] in self.eventListeners:
-                self.eventListeners[x[0]]=[]
-            self.eventListeners[x[0]].append(x[1])
+            if not i[0] in self.eventListeners:
+                self.eventListeners[i[0]]=[]
+            self.eventListeners[i[0]].append(i[1])
 
 c = ChandlerScriptContext()
 
@@ -240,12 +185,31 @@ c.actions['baseball']=baseball
 c.actions['bat']=bat
 c.actions['no']=no
 c.actions
+
+b = [
+    ['window', [ ['baseball'], ['bat', "='glove'"], ["no","this","shouldn't","run"] ]],
+    ['test',[['set','foo','bar']]   ] 
+]
+
+c.addBindings(b)
+
+#Bind event window to an action with three commands
+
+#Top level list of b is a list of event name,actions pairs.
+# 
+# Actions is a list of actions. Every action is a list where the first
+# Is th name of the command, and the rest are arguments.
+
 #Note that the first arg of bat stats with an equals sign
-#so it gets evaluated
-c.parseCommandBindings("""window: baseball | bat "= 'glove' " | no running this one """)
+#so it gets evaluated, just like a LibreOffice Calc cell.
+
 c.event('window')
+c.event('test')
 
 if not x==desired:
+    print(x)
+    raise RuntimeError("The ChandlerScript module isn't working as planned")
+if not c.variables['foo']=='bar':
     raise RuntimeError("The ChandlerScript module isn't working as planned")
 
 print(x)

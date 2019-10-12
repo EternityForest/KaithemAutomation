@@ -1,0 +1,13 @@
+{
+<<<<<<< HEAD
+    "python.pythonPath": "/usr/bin/python3",
+    "python.linting.pylintArgs": [
+    "--rcfile",
+    "${workspaceFolder}\\.pylintrc"
+    ],
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true
+=======
+    "python.linting.enabled": true
+>>>>>>> Update settings.json
+}

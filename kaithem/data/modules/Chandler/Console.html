@@ -37,13 +37,47 @@ from src import tagpoints
 %>
     <title>Chandler Console</title>
 
+    <style>
+        /*https://allthingssmitty.com/2016/10/03/responsive-table-layout/*/
+    @media screen and (max-width: 820px) {
+    
+    table.reflow tr {
+        border-bottom: 3px solid #ddd;
+        display: block;
+        margin-bottom: 1em;
+    }
+    
+    table.reflow thead{
+        display:none;
+    }
+    table.reflow td {
+        border-bottom: 1px solid #ddd;
+        display: block;
+        text-align: right;
+    }
+    
+    td.rowname{
+        font-size: 135%;
+        font-weight:bold;
+    }
+    table.reflow td::before {
+        content: attr(data-label);
+        float: left;
+    }
 
+    td{
+        font-family: B612;
+    }
+
+    }
+    </style>
     <style>
         .grey {
             color: grey;
             font-size: 70%;
         }
         
+
         div.hfader {
             border-style: solid;
             border-radius: 5px;
@@ -140,6 +174,8 @@ from src import tagpoints
     <script src="gamepad.js"></script>
 
     <script src="/static/js/vue2.js"></script>
+    <script src="/static/js/http-vue-loader.js"></script>
+
     <script src="/static/js/sortable.min.js"></script>
     <script src="/static/js/vuedraggable.umd.min.js"></script>
 
@@ -173,46 +209,7 @@ from src import tagpoints
         return true;
     }
 
-    </script>
-
-    <style>
-        .dropdown{
-        background-color:rgb(255,255,255,0.3);
-        position:absolute;
-        border-radius:1em;
-        max-height: 10em;
-        overflow:scroll;
-        min-width: 8em;
-        }
-    </style>
-
-    <template id="vue-combobox-template">
-        <div style="display:inline-block" style="width:0px">
-            <input v-bind:value="value" v-on:input="$emit('input', $event.target.value);">
-            <button title="Show/Hide selector" v-on:click="showmenu=!showmenu">...</button>
-            <div v-if="showmenu" class="dropdown">
-                <div v-for="i in options" v-if="(!value) || i[0].includes(value) || i[0].includes(value)" >
-                    <button v-on:click="$emit('input',i[0]);showmenu=false">{{i[0]}}</button><br>
-                    <p>{{i[1]}}</p>
-                </div>
-            </div>
-        </div>
-    </template>
-
-    <script>
-        Vue.component('combo-box',
-        {
-            template: '#vue-combobox-template',
-            props: ['options','value'],
-            data: function()
-            {
-                return ({'showmenu':false
-                
-                })
-            }
-        })
-
-   function useBlankDescriptions(l)
+    function useBlankDescriptions(l)
     {
         var l2=[];
         for(i in l)
@@ -221,7 +218,9 @@ from src import tagpoints
         }
         return l2;
     }
+
     </script>
+
 
     <link rel="stylesheet" href="/static/img/icons/iconicss/iconicss.min.css">
     <link rel="stylesheet" href="/static/img/icons/fontawesome/css/fontawesome-all.min.css">
@@ -346,7 +345,6 @@ from src import tagpoints
         <br>
 
         <h4>Configure Universes</h4>
-
 
         <datalist id="artnettargets">
             %if kaithem.web.hasPermission("/admin/settings.edit"):     
@@ -653,7 +651,7 @@ from src import tagpoints
         </div>
 
 
-        <div class="sectionbox" v-if="editingScene && cuemeta[editingScene.cue]" style="display:inline-block; width:75%; min-width: 40em; resize:both; overflow:auto;">
+        <div class="sectionbox" v-if="editingScene && cuemeta[editingScene.cue]" style="display:inline-block; width:75%; max-width:98vw; resize:both; overflow:auto;">
             <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name"><span v-if="editingScene.blend=='monitor'">Monitor</span>                Scene: {{editingScene.name}}</span> <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>Current Cue:
                 <button v-on:click="selectcue(scenename,cuemeta[editingScene.cue].name)">{{cuemeta[editingScene.cue].name}}</span>
                 <meter v-if="editingScene.active && cuemeta[editingScene.cue].length" min=0 max=1
@@ -666,40 +664,43 @@ from src import tagpoints
 
             <input v-model="cuefilter" placeholder="Search Cues" />
             <button v-on:click="cuefilter=''">X</button>
-            <table border="1">
+            <div style="overflow-y: scroll;height:12em;">
+            <table class="reflow" border="1" style="resize:both; width:100%;">
               
-                <tbody style="overflow-y: auto; width:100%; height:12em;display:block;">
-                    
+                <thead>
                  <tr>
-                        <th title="Click the cue name to edit that cue">Cue Name</th>
-                        <th>Number</th>
-                        <th>Shortcut</th>
-                        <th>Fadein</th>
-                        <th title="Length, 0 indicates until stopped">Length</th>
-                        <th title="The next cue, after this one ends">Next</th>
-                        <th>Randomize</th>
-                        <th>Track</th>
-                        <th>Jump to</th>
-                    </tr>
-    
+                    <th title="Click the cue name to edit that cue">Cue Name</th>
+                    <th>Number</th>
+                    <th>Shortcut</th>
+                    <th>Fadein</th>
+                    <th title="Length, 0 indicates until stopped">Length</th>
+                    <th title="The next cue, after this one ends">Next</th>
+                    <th>Randomize</th>
+                    <th>Track</th>
+                    <th>Jump to</th>
+                </tr>
+                </thead>
 
-                    <tr v-for="i in formattedCues" v-if="i[1].id" v-bind:style="{'background-color':((selectedCues[scenename]==i[1].name)?'lightblue':'')}">
-                        <td style=" user-select: none;" title="Click the cue name to edit that cue" v-on:click="selectcue(scenename,i[1].name)"><i v-if="cuemeta[editingScene.cue].name==i[1].name" class="fas fa-play-circle" style="color:green;"></i>
+                <tbody>
+                    <tr v-for="i in formatCues(1)" v-if="i[1].id" v-bind:style="{'background-color':((selectedCues[scenename]==i[1].name)?'lightblue':'')}">
+                        <td class="rowname" data-label="Cue: " style=" user-select: none;" title="Click the cue name to edit that cue" v-on:click="selectcue(scenename,i[1].name)"><i v-if="cuemeta[editingScene.cue].name==i[1].name" class="fas fa-play-circle" style="color:green;"></i>
                             <img v-if="selectedCues[scenename]==i[1].name" src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>
-                            <b>{{i[1].name}}</b></td>
-                        <td><b title="Cue number, double click to change." style="width:6em" v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</b></td>
+                            <b>{{i[1].name}}</b>
+                        </td>
 
-                        <td>
+                        <td data-label="Cue #:"><b title="Cue number, double click to change." style="width:6em" v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</b></td>
+
+                        <td data-label="Shortcut:" >
                             <input title="Shortcut code" style="width:6em" v-on:change="setshortcut(i[1].id,$event.target.value)" min=0 step=0.1 v-model="i[1].shortcut">
                         </td>
 
-                        <td>
+                        <td data-label="Fade In:">
                             <input type="number" v-on:input="setfadein(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].fadein">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
 
-                        <td>
+                        <td data-label="Length:">
                             <input type="number" v-on:change="setlength(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].length">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
 
-                        <td>
+                        <td data-label="Next Cue:">
                             <select style="width:5em" v-model="i[1].next" v-if="Object.keys(scenecues[scenename]).length<600" autocomplete=off title="Select a cue to activate when this one ends"
                                 v-on:input="setnext(i[1].id,$event.target.value)">
                                 <option value="">&gt&gt&gt</option>
@@ -715,12 +716,12 @@ from src import tagpoints
 
 
 
-                        <td>
+                        <td data-label="Randomize" >
                             <input type="number" v-on:input="setrandomize(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].lengthRandomize">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
-                        <td>
+                        <td data-label="Track vals from prev: ">
                             <input type="checkbox" v-on:change="settrack(i[1].id,currentcue.track)" v-model="i[1].track" title="Track values from previous cue? If false, values not present are always transparent">
                         </td>
-                        <td>
+                        <td data-label="Goto:">
                             <button v-on:click="jumptocue(i[1].id)">Go</button>
                         </td>
 
@@ -728,6 +729,7 @@ from src import tagpoints
                 </tbody>
 
             </table>
+            </div>
 
 
 
@@ -755,7 +757,10 @@ from src import tagpoints
 
                 <span class="help" v-if="editingScene.ext">This is an external scene that is defined somewhere in code. Any changes made here may be overwritten by the code at any time.</span>
 
-                <div style="overflow: scroll; max-height:30em;" class="fadersbox" v-if="showLightingControls">
+               
+
+
+                <div style="overflow: scroll; max-height:30em;" class="fadersbox" v-if="showLightingControls&(scenetab!='logic')">
                     <div class="universe" v-for="(h,uname) in cuevals[currentcueid]" v-if="uname[0]!='@'" style="border-style:solid">
                         <h3>{{uname}}</h3>
                         <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid" :showdelete="scenetab=='channels'" v-for="i in h"></h-fader>
@@ -2321,6 +2326,9 @@ from src import tagpoints
         {
             el: '#app',
             data: appData,
+            components: {
+                "combo-box": httpVueLoader('combobox.vue')
+                },
             computed:
             {
                 "currentcue": function()

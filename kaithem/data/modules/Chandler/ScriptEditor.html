@@ -1,0 +1,193 @@
+---
+allow-origins: ['*']
+allow-xss: false
+auto-reload: false
+auto-reload-interval: 5.0
+dont-show-in-index: false
+mimetype: text/html
+no-header: false
+no-navheader: true
+require-method: [GET, POST]
+require-permissions: []
+resource-timestamp: 1570858207423704
+resource-type: page
+template-engine: mako
+
+---
+<h2>ScriptEditor</h2>
+<title>ScriptEditor</title>
+
+<style>
+    .bindingname {
+        border-style: solid;
+        border-width: 1px;
+        border-color: black;
+        background-color: white;
+        padding: 0.5em;
+        font-weight: bold;
+    }
+
+    .action {
+        border-style: solid;
+        border-width: 1px;
+        border-color: black;
+        background-color: white;
+        padding: 0.5em;
+        font-weight: bold;
+        height:100%;
+    }
+
+.selected
+{
+    border-width: 4px;
+    border-color: darkgrey;
+    border-style: dotted;
+}
+p.small{
+    font-size: 80%;
+    font-weight: normal;
+
+}
+
+
+.inspector
+{
+    max-width: 15em;
+    border-style: solid;
+    border-width: 1px;
+    border-color: black;
+}
+</style>
+
+<div class="sectionbox" id="app">
+    <div>
+        <h2>Scene Automation Logic</h2>
+        <div style="display:flex;flex-direction:row;">
+
+        <div v-if="selectedCommand==0" class="inspector">
+            <h3>Block Inspector</h3>
+
+            <p>
+            Event Trigger. Runs the actions when something happens. 
+            Always passes True.
+            </p>
+
+            <h4>Parameters</h4>
+
+            Run when: <input v-model="selectedBinding[0]"> occurs
+
+            <h4>Delete</h4>
+            <button v-on:click="deleteBinding(selectedBinding)">Remove binding and all actions</button>
+        </div>
+
+        <div v-if="selectedCommand" class="inspector">
+            <h3>Block Inspector</h3>
+            Type<input v-model="selectedCommand[0]" v-on:change="setCommandDefaults(selectedCommand)">
+
+            <h4>Config</h4>
+            <div v-if="selectedCommand[0]=='set'">
+                Set a variable named <input v-model="selectedCommand[1]"> <br>to<br> <input v-model="selectedCommand[2]"><br>
+                and always return True.
+            </div>
+
+        </div>
+
+
+
+        <div style="display:flex;flex-direction:column;">
+            <h3>Event Actions</h3>
+            <div v-for="i in bindings" style="display:flex;flex-direction:row;">
+                <button v-bind:class="{bindingname:1,selected:selectedBinding==i&selectedCommand==0}" v-on:click="selectedBinding=i; selectedCommand=0">
+                    <p class="small">When</p>
+                    {{i[0]}}
+                    <p class="small">Occurs</p>
+                </button>
+                    <span style="margin-top:auto;margin-bottom:auto;color:grey; font-size:200%">&gt</span>
+
+                <div v-for="j in i[1]">
+                    <button v-bind:class="{action:1,selected:(selectedBinding==i&selectedCommand==j)}" v-on:click="selectedCommand=j;selectedBinding=i">
+                        <div v-if="j[0]=='set'">
+                            Set<br>{{j[1]}} to<br>{{j[2]}}
+                        </div>
+                        
+                        <div v-if="!(j[0] in specialCommands)">
+                        {{j}}
+                        </div>
+                    </button>
+                    <span style="margin-top:auto;margin-bottom:auto;color:grey; font-size:200%">&gt</span>
+
+                </div>
+
+                <button class="action" v-on:click="i[1].push(['pass'])">Add Action</button>
+            </div>
+            <button title="Add a rule that the scene should do something when an event fires" v-on:click="bindings.push(['change_this',[]])">Add event binding</button>
+        </div>
+
+
+        </div>
+
+    </div>
+</div>
+
+
+<script src="/static/js/vue2.js"></script>
+<script src="/static/js/vue2.js"></script>
+
+
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            bindings:[],
+            selectedCommand:0,
+            selectedBinding: '',
+
+            //Stuff we have built in HTML templating for
+            specialCommands : {
+                    'set': [['string',''], ['string',''] ]
+                }, 
+            deleteBinding: function(b)
+            {
+                if(confirm("really delete binding?"))
+                {
+                    this.removeElement(this.bindings, b)
+                }
+            },
+            removeElement:function(array, e){
+                var index = array.indexOf(e);
+                if (index > -1) {
+                    array.splice(index, 1);
+                }
+            },
+            setCommandDefaults:function(l)
+            {
+                //Builtins that don't have to come from the server.
+                //lists of type,default pairs basically.
+               
+                var d = 0;
+                
+                //Get description data for that type
+                if(l[0] in this.specialCommands)
+                {
+                    d=this.specialCommands[l[0]]
+                }
+                
+                //Not a command we know anything about to set defaults
+                if (d==0)
+                {
+                    return;
+                }
+
+                l.splice(1);
+
+                //Push the default values for the command
+                for(i in d)
+                {
+                    l.push(i[1])
+                }
+
+            }
+        }
+    })
+
+</script>
