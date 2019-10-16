@@ -1,0 +1,279 @@
+---
+allow-origins: ['*']
+allow-xss: false
+auto-reload: false
+auto-reload-interval: 5.0
+dont-show-in-index: true
+mimetype: text/html
+no-header: true
+no-navheader: true
+require-method: [GET, POST]
+require-permissions: []
+resource-timestamp: 1570858207423704
+resource-type: page
+template-engine: none
+
+---
+<style scoped>
+    .bindingname {
+        border-style: solid;
+        border-width: 1px;
+        border-color: black;
+        background-color: white;
+        padding: 0.5em;
+        font-weight: bold;
+    }
+    
+    .action {
+        border-style: solid;
+        border-width: 1px;
+        border-color: black;
+        background-color: white;
+        padding: 0.5em;
+        font-weight: bold;
+        height: 100%;
+    }
+    
+    .selected {
+        border-width: 4px;
+        border-color: darkgrey;
+        border-style: dotted;
+    }
+    
+    p.small {
+        font-size: 80%;
+        font-weight: normal;
+    }
+    
+    .inspector {
+        max-width: 15em;
+        border-style: solid;
+        border-width: 1px;
+        border-color: black;
+    }
+</style>
+<template>
+    <div>
+        <div>
+            <h2>Automation Logic</h2>
+            <p class="help">Here you can create rules that apply whenever the scene is in this cue, to do things like trigger other cues when this
+                one enters, but only under certain conditions.</p>
+            <p>Each row is a left-to-right sequence that starts with a trigger and stops at the end, or when a command does not return
+                anything
+            </p>
+
+            <p>The block inspector will tell you what commands return. Generally they will answer "True" and continue the action, unless
+                they are Questions. in which case they will answer with None(stopping the action) if the answer to the question is No.
+            </p>
+            <p>Any parameter for a block that starts with = is considered a math expression that may use variables,boolean logic, and
+                text operations (Similar to spreadsheets)</p>
+
+            <p>Some blocks may return an interesting number,boolean, or text value. You may access it in the next block as the variable
+                _ just like many scientific calculators.
+            </p>
+
+            <div style="display:flex;flex-direction:row;">
+
+                <div v-if="selectedCommand==0 && selectedBinding" class="inspector">
+                    <h3>Block Inspector</h3>
+
+                    <p>
+                        Event Trigger. Runs the actions when something happens.
+                    </p>
+
+                    <h4>Parameters</h4>
+
+                    Run when:
+                    <combo-box v-model="selectedBinding[0]" v-bind:options="eventsList"></combo-box> occurs
+
+                    <h4>Delete</h4>
+                    <button v-on:click="deleteBinding(selectedBinding)">Remove binding and all actions</button>
+                </div>
+
+                <div v-if="selectedCommand" class="inspector">
+                    <h3>Block Inspector</h3>
+                    Type
+                    <combo-box v-model="selectedCommand[0]" v-bind:options="getPossibleActions()" v-on:change="setCommandDefaults(selectedCommand);"
+                        v-on:input="$emit('input',value)"></combo-box>
+                        <h4>Config</h4>
+                        <div v-if="selectedCommand[0]=='set'">
+                            Set a variable named <input v-model="selectedCommand[1]" v-on:input="$emit('input',value)"> <br>to<br> <input v-model="selectedCommand[2]"><br>                            and always return True.
+                        </div>
+
+                        <div v-if="selectedCommand[0]=='pass'">
+                            Do nothing and return True.
+                        </div>
+
+                        <div v-if="(!(selectedCommand[0] in specialCommands)) && ((selectedCommand[0] in commands))">
+                            <table>
+                                <tr v-for="i in commands[selectedCommand[0]].args.keys()">
+                                    <td>{{commands[selectedCommand[0]].args[i]}}</td>
+                                    <td><input v-model="selectedCommand[i+1]" v-on:input="$emit('input',value)"></td>
+                                </tr>
+                            </table>
+                            <h5>Docs</h5>
+
+                            <p style="word-wrap: break-word;">{{commands[selectedCommand[0]].doc}}</p>
+
+                        </div>
+
+                </div>
+
+
+
+                <div style="display:flex;flex-direction:column;">
+                    <h3>Event Actions</h3>
+                    <div v-for="i in value" style="display:flex;flex-direction:row;">
+                        <button v-bind:class="{bindingname:1,selected:selectedBinding==i&selectedCommand==0}" v-on:click="selectedBinding=i; selectedCommand=0">
+                    <p class="small">When</p>
+                    {{i[0]}}
+                    <p class="small">Occurs</p>
+                </button>
+                        <span style="margin-top:auto;margin-bottom:auto;color:grey; font-size:200%">&gt</span>
+
+                        <div v-for="j in i[1]">
+                            <button v-bind:class="{action:1,selected:(selectedBinding==i&selectedCommand==j)}" v-on:click="selectedCommand=j;selectedBinding=i">
+                        
+                                    <div v-if="j[0]=='set'">
+                                        Set<br>{{j[1]}} to<br>{{j[2]}}
+                                    </div>
+
+                                    <div v-if="j[0]=='pass'">
+                                        Do Nothing
+                                    </div>
+
+                                    <div v-if="j[0]=='goto'">
+                                        Scene {{j[1]}}<br>
+                                        goes to {{j[2]}}
+                                    </div>
+
+                                    <div v-if="j[0]=='maybe'">
+                                        Continue {{j[1]}}%<br>
+                                        of the time,</br> otherwise
+                                        stop.
+                                    </div>
+
+                                    <div v-if="!(j[0] in specialCommands)">
+                                    {{j}}
+                                    </div>
+                            </button>
+                            <span style="margin-top:auto;margin-bottom:auto;color:grey; font-size:200%">&gt</span>
+
+                        </div>
+
+                        <button class="action" v-on:click="i[1].push(['pass']);$emit('input',value)">Add Action</button>
+                    </div>
+                    <button title="Add a rule that the scene should do something when an event fires" v-on:click="value.push(['change_this',[]]);$emit('input',value);">Add Rule</button>
+
+                </div>
+
+
+            </div>
+
+        </div>
+    </div>
+</template>
+
+<script>
+    module.exports={
+
+    props: ['value','commands'],
+    components:{
+        "combo-box": httpVueLoader("ComboBox.vue")
+    },
+    data:function(){
+        return({
+
+            eventsList: [['now', "Run when script loads"],['cue.exit','When exiting a cue'],['cue.enter','When entering a cue']],
+            
+
+            getPossibleActions: function()
+            {
+                var l =[];
+                for (i in this.specialCommands)
+                {
+                    l.push([i,this.specialCommands[i].description])
+                }
+                 for (i in this.commands)
+                {
+                    if(!(i in this.specialCommands))
+                    l.push([i,this.commands[i].doc])
+                }
+                return l
+            },
+
+            selectedCommand:0,
+            selectedBinding: '',
+
+
+            //Stuff we have built in HTML templating for
+            specialCommands : {
+                    'set': {
+                            args:[['x',''],['y','']],
+                            description: "Sets a variable"
+                        },
+                    'pass':{
+                        args:[],
+                        description:""
+                    },
+                    'goto':{
+                        args:[['scene',''],['cue','']],
+                        description:""
+                    },
+                    'maybe':{
+                        args:[['chance','50']],
+                        description:""
+                    }
+                }, 
+            deleteBinding: function(b)
+            {
+                if(confirm("really delete binding?"))
+                {
+                    this.removeElement(this.value, b)
+                }
+            },
+            removeElement:function(array, e){
+                var index = array.indexOf(e);
+                if (index > -1) {
+                    array.splice(index, 1);
+                }
+            },
+            setCommandDefaults:function(l)
+            {
+                //Builtins that don't have to come from the server.
+                //lists of type,default pairs basically.
+               
+                var d = 0;
+                
+                //Get description data for that type
+                if(l[0] in this.specialCommands)
+                {
+                    d=this.specialCommands[l[0]]['args']
+                }
+
+                //Get description data for that type
+                if(l[0] in this.commands)
+                {
+                    d=this.commands[l[0]]['args']
+                }
+                
+                //Not a command we know anything about to set defaults
+                if (d==0)
+                {
+                    return;
+                }
+
+                l.splice(1);
+
+                //Push the default values for the command
+                for(i in d)
+                {
+                    l.push(i[1])
+                }
+
+            }
+        })
+    }
+    }
+
+</script>

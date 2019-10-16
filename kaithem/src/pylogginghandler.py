@@ -194,7 +194,7 @@ class LoggingHandler(logging.Handler):
             else:
                 openlog = open
                 ext = '.log'
-                logging.error("Invalid config option for 'log-compress' so defaulting to no compression")
+                print("Invalid config option for 'log-compress' so defaulting to no compression")
 
             #Swap out the log buffers so we can work with an immutable copy
             #That way we don't block anything that tries to write a log for the entirety of

@@ -285,12 +285,16 @@ that shortcut code in the web GUI
 
 #### Scripting
 
-You can add a command to the script bindings using
-kaithem.chandler.scriptActions, which is a weak value dict of command
-names. The first word in a script binding is the command name, the rest
+You can add a command Chandler using
+kaithem.chandler.command, which is a weak value dict of command
+names.
+
+The first word in a script binding is the command name, the rest
 will be split by spaces(double quotes and backslashes work as they do on
 a Linux command line) and passed as positional arguments to the
 function.
+
+
 
 ### Fixtures
 

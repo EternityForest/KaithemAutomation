@@ -1350,7 +1350,7 @@ def getEventsFromModules(only = None):
                         time.sleep(0.005)
                     
                     except SyntaxError:
-                        i.loadingTraceback = traceback.format_exc()
+                        i.loadingTraceback = traceback.format_exc(chain=True)
                         i.error = traceback.format_exc(chain = True)
                         logging.exception("Could not load "+i.module + ":"+i.resource)
 
@@ -1364,7 +1364,7 @@ def getEventsFromModules(only = None):
                             i.loadingTraceback = traceback.format_exc()
 
                         nextRound.append(i)
-                        logging.debug("Could not load "+i.module + ":"+i.resource+" in this round, deferring to next round\n"+"failed after"+str(round(time.time()-slt, 2))+"s\n"+traceback.format_exc())
+                        logging.debug("Could not load "+i.module + ":"+i.resource+" in this round, deferring to next round\n"+"failed after"+str(round(time.time()-slt, 2))+"s\n"+traceback.format_exc(chain=True))
 
                         pass
                 toLoad = nextRound

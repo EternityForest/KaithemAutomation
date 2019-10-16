@@ -664,7 +664,7 @@ from src import tagpoints
 
             <input v-model="cuefilter" placeholder="Search Cues" />
             <button v-on:click="cuefilter=''">X</button>
-            <div style="overflow-y: scroll;height:12em;">
+            <div style="overflow-y: scroll;max-height:12em;">
             <table class="reflow" border="1" style="resize:both; width:100%;">
               
                 <thead>
@@ -750,17 +750,9 @@ from src import tagpoints
             <div v-if="currentcue">
                 <h3>{{currentcue.name}}</h3>
 
-
-
-
-
-
                 <span class="help" v-if="editingScene.ext">This is an external scene that is defined somewhere in code. Any changes made here may be overwritten by the code at any time.</span>
 
-               
-
-
-                <div style="overflow: scroll; max-height:30em;" class="fadersbox" v-if="showLightingControls&(scenetab!='logic')">
+                <div style="overflow: scroll; max-height:30em;" class="fadersbox" v-if="showLightingControls&&(scenetab!='logic')">
                     <div class="universe" v-for="(h,uname) in cuevals[currentcueid]" v-if="uname[0]!='@'" style="border-style:solid">
                         <h3>{{uname}}</h3>
                         <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid" :showdelete="scenetab=='channels'" v-for="i in h"></h-fader>
@@ -775,16 +767,25 @@ from src import tagpoints
                         <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid" :showdelete="scenetab=='channels'" v-for="i in h"></h-fader>
                     </div>
                 </div>
+                
+                <div style="overflow: scroll; max-height:30em;" class="logicbox" v-if="scenetab=='logic'">
+                    <h3>{{currentcue.name}} Automation</h3>
+                    <script-editor v-model="bindingsListTest" v-bind:commands="availableCommands"></script-editor>
+                </div>
+
                    
+                
 
                 <div>
                     <p style="background-color:rgba(250,250,250,0.5)">
-                        <button v-on:click="scenetab='blend'">Scene</button>
                         <button v-on:click="scenetab='cue'">Cue</button>
-                        <button v-on:click="scenetab='sound'">Sound</button>
-                        <button v-on:click="scenetab='sync'"> Sync</button>
-                        <button v-on:click="scenetab='channels'">Add/Remove channels</button>
+                        <button v-on:click="scenetab='sound'">Cue Sound</button>
+                        <button v-on:click="scenetab='channels'">Add/Remove Channels</button>
                         <button v-on:click="scenetab='data'" title="Direct copy and pastable access to cue data"> Cue Data</button>
+                        <button v-on:click="scenetab='logic'" title="If/then automation rules"> Cue Logic</button>
+
+                        <button v-on:click="scenetab='blend'">Scene Properties</button>
+                        <button v-on:click="scenetab='sync'"> Scene Sync</button>
                     </p>
 
 
@@ -1339,7 +1340,7 @@ from src import tagpoints
             'sc_code': "",
             'unixtime': 0,
             'serports': [],
-
+            'bindingsListTest':[],
             //Code view for the fixture assignments
             'fixturescode': '',
             //Index by name
@@ -1885,7 +1886,7 @@ from src import tagpoints
             'cues': {},
             'newcuename': '',
             'cuemeta': {},
-
+            'availableCommands': {},
             'selectedCues': {},
             'scenecues': {},
             'formattedCues': [],
@@ -2327,7 +2328,8 @@ from src import tagpoints
             el: '#app',
             data: appData,
             components: {
-                "combo-box": httpVueLoader('combobox.vue')
+                "combo-box": httpVueLoader('ComboBox.vue'),
+                "script-editor": httpVueLoader('ScriptEditor.vue')
                 },
             computed:
             {
@@ -2500,6 +2502,11 @@ from src import tagpoints
 
             }
 
+            else if(c=="commands")
+            {
+                appData.availableCommands=v[1]
+            }
+
             if (c == "scv")
             {
                 x = []
@@ -2622,6 +2629,8 @@ from src import tagpoints
 
         api_link.upd = f
         api_link.send(['gasd']);
+        api_link.send(['getCommands']);
+
 
     </script>
 
