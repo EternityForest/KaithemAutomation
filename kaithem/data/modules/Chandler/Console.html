@@ -770,7 +770,8 @@ from src import tagpoints
                 
                 <div style="overflow: scroll; max-height:30em;" class="logicbox" v-if="scenetab=='logic'">
                     <h3>{{currentcue.name}} Automation</h3>
-                    <script-editor v-model="bindingsListTest" v-bind:commands="availableCommands"></script-editor>
+                    {{currentcue.rules}}
+                    <script-editor v-model="currentcue.rules" v-on:input="setCueRules(currentcueid, $event.target.value)" v-bind:commands="availableCommands"></script-editor>
                 </div>
 
                    
@@ -1822,7 +1823,11 @@ from src import tagpoints
                 }
                 return 1;
             },
-
+            
+            'setCueRules': function(c,r)
+            {
+                api_link.send(['setCueRules',c,r])
+            },
 
             'doSoundSearch': function(s)
             {

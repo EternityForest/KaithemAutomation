@@ -38,7 +38,9 @@ if __name__=='__setup__':
     
     allowedCueNameSpecials = '_~'
     
+    from src.scriptbindings import ChandlerScriptContext,getFunctionInfo
     
+    rootContext = ChandlerScriptContext()
     
     def mapUniverse(u):
         if not u.startswith("@"):
@@ -154,32 +156,28 @@ if __name__=='__setup__':
     
     
     def parseCommandBindings(cmd):
-        l = {}
+        l = []
         for i in cmd.split("\n"):
             if not i:
                 continue
             x = parseBinding(i)
-            if not x[0] in l:
-                l[x[0]]=[]
-            l[x[0]].append(x[1])
+    
+            l.append([x[0],x[1]])
         return l
     
     
     
+    def gotoCommand(scene, cue):
+        "Triggers a scene to go to a cue"
+        module.scenes_by_name[scene].gotoCue(cue)
     
     
-    def runCommand(cmd):
-        cmdraw = cmd
-        if cmd[0] == "goto":
-            module.scenes_by_name[cmd[1]].gotoCue(cmd[2])
-        elif cmd[0] == "setalpha":
-            module.scenes_by_name[cmd[1]].setAlpha(float(cmd[2]))
-        else:
-            f = kaithem.chandler.scriptActions[cmd[0]]
-            if hasattr(f,'raw') and f.raw:
-                f(cmdraw)
-            else:
-                f(*cmd[1:])
+    def setAlphaCommand(scene, alpha):
+        "Set the alpha value of a scene"
+        module.scenes_by_name[scene].setAlpha(float(alpha))
+    
+    rootContext.commands['goto']=gotoCommand
+    rootContext.commands['setAlpha']=setAlphaCommand
     
     def listsoundfolder(path):
         soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
@@ -1326,7 +1324,8 @@ if __name__=='__setup__':
                                 'number': cue.number/1000.0,
                                 'defaultnext': cue.scene().getAfter(cue.name),
                                 'prev': cue.scene().getParent(cue.name),
-                                'script': cue.script
+                                'script': cue.script,
+                                'rules': cue.rules
                                 }])
             except Exception as e:
                 rl_log_exc("Error pushing cue data")
@@ -1367,6 +1366,15 @@ if __name__=='__setup__':
     
                 if msg[0] == "getserports":
                     self.link.send(["serports",getSerPorts()])   
+                
+                if msg[0]=="getCommands":
+                    c = rootContext.commands.scriptcommands
+                    l = {}
+                    for i in c:
+                        f = c[i]
+                        l[i]=getFunctionInfo(f)
+                    self.link.send(["commands",l])   
+    
     
                 if msg[0] == "getconfuniverses":
                     self.pushConfiguredUniverses()
@@ -1706,6 +1714,10 @@ if __name__=='__setup__':
                     except:
                         v=msg[2]
                     cues[msg[1]].fadein=v
+                    self.pushCueMeta(msg[1])
+    
+                if msg[0] == "setCueRules":
+                    cues[msg[1]].setRules(msg[2])
                     self.pushCueMeta(msg[1])
     
                 if msg[0]=="setcuesound":
@@ -2130,15 +2142,19 @@ if __name__=='__setup__':
     
     class Cue():
         "A static set of values with a fade in and out duration"
-        __slots__=['id','changed','next_ll','alpha','fadein','fadeout','length','lengthRandomize','name','values','scene','nextCue','track','shortcut','number','inherit','sound','rel_length','script','soundOutput','onEnter','onExit','influences','associations','__weakref__']
+        __slots__=['id','changed','next_ll','alpha','fadein','fadeout','length','lengthRandomize','name','values','scene','nextCue','track','shortcut','number','inherit','sound','rel_length','script','soundOutput','onEnter','onExit','influences','associations',"rules",'__weakref__']
         def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, fadeout=0, length=0,track=True, nextCue = None,shortcut=None,sound='',soundOutput=None,rel_length=False, id=None,number=None,
-            lengthRandomize=0,script='',onEnter=None,onExit=None,**kw):
+            lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,**kw):
             #This is so we can loop through them and push to gui
             self.id = uuid.uuid4().hex
             self.name = name
             self.script = script
             self.onEnter = onEnter
             self.onExit = onExit
+    
+            ##Rules created via the GUI logic editor
+            self.rules = rules or []
+    
             disallow_special(name,allowedCueNameSpecials)
             if name[0] in '1234567890 \t_':
                 name = 'x'+name
@@ -2210,7 +2226,7 @@ if __name__=='__setup__':
         def setScript(self,script, allow_bad=True):
             self.script = script
             try:
-                self.scene().commandBindings= parseCommandBindings(script)
+                self.scene().refreshRules()
             except:
                 rl_log_exc("Error handling script")
                 print(traceback.format_exc(6))
@@ -2260,6 +2276,10 @@ if __name__=='__setup__':
             self.number = int((Decimal(n)*Decimal(1000)).quantize(1))
     
             self.push()
+    
+        def setRules(self,r):
+            self.rules = r
+            self.scene().refreshRules()
     
         def setShortcut(self,code):
             disallow_special(code,allow=".")
@@ -2485,7 +2505,7 @@ if __name__=='__setup__':
             self.started = 0
     
             #The bindings for script commands that might be in the cue metadata
-            self.commandBindings = {}
+            self.ChandlerScriptContext = None
     
     
             #List the active LivingNight influences
@@ -2731,16 +2751,13 @@ if __name__=='__setup__':
         def _event(self, s,value=None,info=''):
             "Manually trigger any script bindings on an event"
             with self.lock:
-                if not s in self.commandBindings:
-                    return
-                for i in self.commandBindings[s]:
-                    try:
-                        runCommand(i)
-                    except Exception as e:
-                        rl_log_exc("Error handling event")
-                        print(traceback.format_exc(6))
-                        event("script.error", self.name+"\n"+traceback.format_exc())
-        
+                try:
+                    self.scriptContext.event(s)
+                except Exception as e:
+                    rl_log_exc("Error handling event")
+                    print(traceback.format_exc(6))
+                    event("script.error", self.name+"\n"+traceback.format_exc())
+    
     
         def gotoCue(self, cue,t=None, sendSync=True,generateEvents=True):
             "Goto cue by name, number, or string repr of number"
@@ -2821,7 +2838,7 @@ if __name__=='__setup__':
     
     
                 try:
-                    self.commandBindings= parseCommandBindings(cobj.script)
+                    self.refreshRules()
                 except:
                     rl_log_exc("Error handling script")
                     print(traceback.format_exc(6))
@@ -2960,6 +2977,12 @@ if __name__=='__setup__':
         
                 self.rerender = True
                 self.pushMeta(cue=True)
+    
+        def refreshRules(self):
+            with module.lock:
+                self.scriptContext = ChandlerScriptContext(rootContext)
+                self.scriptContext.addBindings(parseCommandBindings(self.cue.script))
+                self.scriptContext.addBindings(self.cue.rules)
     
         def nextCue(self,t=None):
             with module.lock:
@@ -3327,22 +3350,7 @@ if __name__=='__setup__':
     kaithem.chandler.fixture = Fixture
     kaithem.chandler.shortcut = shortcutCode
     
-    
-    class ScriptActionKeeper():
-        "This typecheck wrapper is courtesy of two hours spent debugging at 2am, and my desire to avoid repeating that"
-        def __init__(self):
-            self.scriptActions = weakref.WeakValueDictionary()
-        def __setitem__(self,key,value):
-            if not isinstance(key,str):
-                raise TypeError("Keys must be string function names")
-            if not callable(value):
-                raise TypeError("Script actions must be callable")
-            self.scriptActions[key]=value
-        def __getitem__(self,key):
-            return self.scriptActions[key]
-    
-    
-    kaithem.chandler.scriptActions = ScriptActionKeeper()
+    kaithem.chandler.commands = rootContext.commands
     kaithem.chandler.event = event
     
     
