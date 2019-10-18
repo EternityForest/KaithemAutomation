@@ -771,7 +771,7 @@ from src import tagpoints
                 <div style="overflow: scroll; max-height:30em;" class="logicbox" v-if="scenetab=='logic'">
                     <h3>{{currentcue.name}} Automation</h3>
                     {{currentcue.rules}}
-                    <script-editor v-model="currentcue.rules" v-on:input="setCueRules(currentcueid, $event.target.value)" v-bind:commands="availableCommands"></script-editor>
+                    <script-editor v-model="currentcue.rules" v-on:input="setCueRules(currentcueid, $event);" v-bind:commands="availableCommands"></script-editor>
                 </div>
 
                    
@@ -970,6 +970,9 @@ from src import tagpoints
                             <input type="checkbox" v-on:change="settrack(currentcueid,currentcue.track)" v-model="currentcue.track"
                                 title="Track values from previous cue? If false, values not present are always transparent">
                         </label>
+
+                        <label>Reentrant:<input title="If false, dissallow entering cue if it's already running" type="checkbox" v-on:input="setreentrant(currentcueid,$event.target.value)" v-model="currentcue.reentrant"></label>
+
                         <label>Fadein:
                             <input type="number" v-on:input="setfadein(currentcueid,$event.target.value)" style="width:3em"
                                 min=0 v-model="currentcue.fadein">{{scenemeta[scenename].bpm?"beats":"s"}}
@@ -2190,6 +2193,10 @@ from src import tagpoints
             'setfadein': function(cue, v)
             {
                 api_link.send(['setfadein', cue, v]);
+            },
+            'setreentrant': function(cue, v)
+            {
+                api_link.send(['setreentrant', cue, v]);
             },
             'settrack': function(cue, v)
             {

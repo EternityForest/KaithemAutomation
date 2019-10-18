@@ -177,7 +177,7 @@ class ChandlerScriptContext():
      
 
         if parentContext:
-            def delf(*a,K):
+            def delf(*a,**K):
                 del parentContext.children[selfid]
             with lock:
                 parentContext.children[id(self)]=weakref.ref(self,delf)
@@ -217,7 +217,10 @@ class ChandlerScriptContext():
             if p:
                 a=p.commands.get(c[0],None)
         if a:
-            return a(*[self.preprocessArgument(i) for i in c[1:]])
+            try:
+                return a(*[self.preprocessArgument(i) for i in c[1:]])
+            except:
+                raise RuntimeError("Error running chandler command: "+str(c)[:1024])
         else:
             raise ValueError("No such command: "+c)
     

@@ -93,22 +93,33 @@ template-engine: none
                 <div v-if="selectedCommand" class="inspector">
                     <h3>Block Inspector</h3>
                     Type
-                    <combo-box v-model="selectedCommand[0]" v-bind:options="getPossibleActions()" v-on:change="setCommandDefaults(selectedCommand);"
-                        v-on:input="$emit('input',value)"></combo-box>
+                    <combo-box v-model="selectedCommand[0]" v-bind:options="getPossibleActions()" v-on:input="setCommandDefaults(selectedCommand);"
+                        v-on:input="$emit('input',rules)"></combo-box>
                         <h4>Config</h4>
                         <div v-if="selectedCommand[0]=='set'">
-                            Set a variable named <input v-model="selectedCommand[1]" v-on:input="$emit('input',value)"> <br>to<br> <input v-model="selectedCommand[2]"><br>                            and always return True.
+                            Set a variable named <input v-model="selectedCommand[1]" v-on:input="$emit('input',rules)"> <br>to<br> <input v-model="selectedCommand[2]"  v-on:input="$emit('input',rules)"><br>                            and always return True.
                         </div>
 
                         <div v-if="selectedCommand[0]=='pass'">
                             Do nothing and return True.
                         </div>
 
+                        <div v-if="selectedCommand[0]=='goto'">
+                            Trigger scene:<input v-model="selectedCommand[1]" v-on:input="$emit('input',rules)"> <br>to go to cue:<br> <input
+                                v-model="selectedCommand[2]"  v-on:input="$emit('input',rules)"><br> and always return True.
+                        </div>
+
+
+                        <div v-if="selectedCommand[0]=='maybe'">
+                            Continue action with :<input v-model="selectedCommand[1]" v-on:input="$emit('input',rules)">% chance <br> otherwise
+                            return None and stop the action.
+                        </div>
+
                         <div v-if="(!(selectedCommand[0] in specialCommands)) && ((selectedCommand[0] in commands))">
                             <table>
                                 <tr v-for="i in commands[selectedCommand[0]].args.keys()">
                                     <td>{{commands[selectedCommand[0]].args[i]}}</td>
-                                    <td><input v-model="selectedCommand[i+1]" v-on:input="$emit('input',value)"></td>
+                                    <td><input v-model="selectedCommand[i+1]" v-on:input="$emit('input',rules)"></td>
                                 </tr>
                             </table>
                             <h5>Docs</h5>
@@ -116,6 +127,11 @@ template-engine: none
                             <p style="word-wrap: break-word;">{{commands[selectedCommand[0]].doc}}</p>
 
                         </div>
+                        <button v-on:click="rules[selectedBindingIndex][1].splice(selectedCommandIndex,1); selectedCommandIndex-=1;$emit('input',rules);">Delete</button>
+                        <button v-if="selectedCommandIndex>0" v-on:click="swapArrayElements(rules[selectedBindingIndex][1],selectedCommandIndex,selectedCommandIndex-1);selectedCommandIndex-=1;$emit('input',rules);">
+                        Move Back</button>
+                        <button v-if="selectedCommandIndex<(rules[selectedBindingIndex][1].length-1)" v-on:click="swapArrayElements(rules[selectedBindingIndex][1],selectedCommandIndex,selectedCommandIndex+1);selectedCommandIndex+=1;$emit('input',rules);">
+                        Move Forward</button>
 
                 </div>
 
@@ -123,16 +139,17 @@ template-engine: none
 
                 <div style="display:flex;flex-direction:column;">
                     <h3>Event Actions</h3>
-                    <div v-for="i in value" style="display:flex;flex-direction:row;">
-                        <button v-bind:class="{bindingname:1,selected:selectedBinding==i&selectedCommand==0}" v-on:click="selectedBinding=i; selectedCommand=0">
+                    <div style="overflow:scroll">
+                        <div v-for="i in rules" style="display:flex;flex-direction:row;">
+                            <button v-bind:class="{bindingname:1,selected:selectedBinding==i&selectedCommand==0}" v-on:click="selectedBindingIndex=rules.indexOf(i); selectedCommandIndex=-1">
                     <p class="small">When</p>
                     {{i[0]}}
                     <p class="small">Occurs</p>
                 </button>
-                        <span style="margin-top:auto;margin-bottom:auto;color:grey; font-size:200%">&gt</span>
+                            <div style="align-self:center;color:grey; font-size:200%;font-weight:bolder; overflow:hidden;flex-shrink=8">&gt</div>
 
-                        <div v-for="j in i[1]">
-                            <button v-bind:class="{action:1,selected:(selectedBinding==i&selectedCommand==j)}" v-on:click="selectedCommand=j;selectedBinding=i">
+                            <div v-for="j in i[1]" style="align-self:stretch;">
+                                <button v-bind:class="{action:1,selected:(selectedBinding==i&selectedCommand==j)}" v-on:click="selectedCommandIndex=i[1].indexOf(j);selectedBindingIndex=rules.indexOf(i)">
                         
                                     <div v-if="j[0]=='set'">
                                         Set<br>{{j[1]}} to<br>{{j[2]}}
@@ -157,13 +174,14 @@ template-engine: none
                                     {{j}}
                                     </div>
                             </button>
-                            <span style="margin-top:auto;margin-bottom:auto;color:grey; font-size:200%">&gt</span>
+                                <span style="margin-top:auto;margin-bottom:auto;color:grey; font-size:200%">&gt</span>
 
+                            </div>
+
+                            <button class="action" style="align-self:center;" v-on:click="i[1].push(['pass']);$emit('input',rules)">Add Action</button>
                         </div>
-
-                        <button class="action" v-on:click="i[1].push(['pass']);$emit('input',value)">Add Action</button>
                     </div>
-                    <button title="Add a rule that the scene should do something when an event fires" v-on:click="value.push(['change_this',[]]);$emit('input',value);">Add Rule</button>
+                    <button title="Add a rule that the scene should do something when an event fires" v-on:click="rules.push(['change_this',[]]);$emit('input',rules);">Add Rule</button>
 
                 </div>
 
@@ -181,9 +199,41 @@ template-engine: none
     components:{
         "combo-box": httpVueLoader("ComboBox.vue")
     },
+    watch: {
+        value: function(newVal) { 
+           this.rules = newVal
+        }
+      },
+    computed:{
+        "selectedBinding":function()
+        {
+            if (this.selectedBindingIndex==-1)
+            {
+                return 0;
+            }
+            return this.rules[this.selectedBindingIndex];
+        },
+       "selectedCommand":function()
+        {
+            if (this.selectedBindingIndex==-1)
+            {
+                return 0;
+            }
+            if (this.selectedCommandIndex==-1)
+            {
+                return 0;
+            }
+            return this.rules[this.selectedBindingIndex][1][this.selectedCommandIndex];
+        }
+    },
     data:function(){
         return({
-
+            swapArrayElements:function(arr, indexA, indexB) {
+                var temp = arr[indexA];
+                arr[indexA] = arr[indexB];
+                arr[indexB] = temp;
+            },
+            rules:this.value,
             eventsList: [['now', "Run when script loads"],['cue.exit','When exiting a cue'],['cue.enter','When entering a cue']],
             
 
@@ -192,7 +242,15 @@ template-engine: none
                 var l =[];
                 for (i in this.specialCommands)
                 {
-                    l.push([i,this.specialCommands[i].description])
+                    //Use the regular introspected documentation if possible
+                    if(!(i in this.commands))
+                    {
+                        l.push([i,this.specialCommands[i].description])
+                    }
+                    else
+                    {
+                        l.push([i,this.commands[i].doc])
+                    }
                 }
                  for (i in this.commands)
                 {
@@ -202,8 +260,8 @@ template-engine: none
                 return l
             },
 
-            selectedCommand:0,
-            selectedBinding: '',
+            selectedCommandIndex:-1,
+            selectedBindingIndex: -1,
 
 
             //Stuff we have built in HTML templating for
@@ -229,7 +287,7 @@ template-engine: none
             {
                 if(confirm("really delete binding?"))
                 {
-                    this.removeElement(this.value, b)
+                    this.removeElement(this.rules, b)
                 }
             },
             removeElement:function(array, e){
@@ -268,7 +326,7 @@ template-engine: none
                 //Push the default values for the command
                 for(i in d)
                 {
-                    l.push(i[1])
+                    l.push(i[1]||'')
                 }
 
             }

@@ -1192,7 +1192,7 @@ if __name__=='__setup__':
                                  'blendArgs': x.blendArgs,
                                  'backtrack': x.backtrack,
                                  'soundOutput': x.soundOutput,
-                                 'syncKey':x.syncKey, 'syncPort': x.syncPort, 'syncAddr':x.syncAddr,     
+                                 'syncKey':x.syncKey, 'syncPort': x.syncPort, 'syncAddr':x.syncAddr,
                                  'uuid': i                 
                                 }
                 return sd
@@ -1325,7 +1325,8 @@ if __name__=='__setup__':
                                 'defaultnext': cue.scene().getAfter(cue.name),
                                 'prev': cue.scene().getParent(cue.name),
                                 'script': cue.script,
-                                'rules': cue.rules
+                                'rules': cue.rules,
+                                'reentrant': cue.reentrant
                                 }])
             except Exception as e:
                 rl_log_exc("Error pushing cue data")
@@ -1715,6 +1716,13 @@ if __name__=='__setup__':
                         v=msg[2]
                     cues[msg[1]].fadein=v
                     self.pushCueMeta(msg[1])
+                             
+                if msg[0] == "setreentrant":
+                    v=bool(msg[2])
+       
+                    cues[msg[1]].reentrant=v
+                    self.pushCueMeta(msg[1])
+    
     
                 if msg[0] == "setCueRules":
                     cues[msg[1]].setRules(msg[2])
@@ -2142,15 +2150,20 @@ if __name__=='__setup__':
     
     class Cue():
         "A static set of values with a fade in and out duration"
-        __slots__=['id','changed','next_ll','alpha','fadein','fadeout','length','lengthRandomize','name','values','scene','nextCue','track','shortcut','number','inherit','sound','rel_length','script','soundOutput','onEnter','onExit','influences','associations',"rules",'__weakref__']
+        __slots__=['id','changed','next_ll','alpha','fadein','fadeout','length','lengthRandomize','name','values','scene',
+        'nextCue','track','shortcut','number','inherit','sound','rel_length','script',
+        'soundOutput','onEnter','onExit','influences','associations',"rules","reentrant",
+        '__weakref__']
         def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, fadeout=0, length=0,track=True, nextCue = None,shortcut=None,sound='',soundOutput=None,rel_length=False, id=None,number=None,
-            lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,**kw):
+            lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,reentrant=True,**kw):
             #This is so we can loop through them and push to gui
             self.id = uuid.uuid4().hex
             self.name = name
             self.script = script
             self.onEnter = onEnter
             self.onExit = onExit
+    
+            self.reentrant=True
     
             ##Rules created via the GUI logic editor
             self.rules = rules or []
@@ -2220,7 +2233,8 @@ if __name__=='__setup__':
     
         def serialize(self):
                 return {"fadein":self.fadein,"fadeout":self.fadeout,"length":self.length,'lengthRandomize':self.lengthRandomize,"shortcut":self.shortcut,"values":self.values,
-                "nextCue":self.nextCue,"track":self.track,"number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,'rel_length':self.rel_length, 'script':self.script, 
+                "nextCue":self.nextCue,"track":self.track,"number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,'rel_length':self.rel_length, 'script':self.script, 'rules':self.rules,
+                'reentrant':self.reentrant
                 }
     
         def setScript(self,script, allow_bad=True):
@@ -2524,7 +2538,7 @@ if __name__=='__setup__':
             module.scenes[self.id] = self
     
             if defaultCue:
-                self.gotoCue('default',sendSync=False, generateEvents=False)
+                self.gotoCue('default',sendSync=False)
                 pass
     
             if active:
@@ -2801,10 +2815,23 @@ if __name__=='__setup__':
                     cue = random.choice(x).strip()
                            
                 if not cue in self.cues:
+                    try:
+                        c = float(cue)
+                    except:
+                        raise ValueError("No such cue "+str(cue))
                     for i in self.cues_ordered:
                         if i.number-(float(cue)*1000)<0.001:
                             cue = i.name
                             break
+    
+                
+    
+                cobj = self.cues[cue]
+    
+                if cobj==self.cue:
+                    if not cobj.reentrant:
+                        return
+    
                 
                 if not (cue==self.cue.name):
                     if generateEvents:
@@ -2829,16 +2856,12 @@ if __name__=='__setup__':
                 self.cue_cached_vals_as_arrays = {}
                 self.cue_cached_alphas_as_arrays = {}
     
-                #When jumping to a cue that isn't directly the next one, apply and "parent" cues.
-                #We go backwards until we find a cue that has no parent. A cue has a parent if and only if it has either
-                #an explicit parent or the previous cue in the numbered list either has the default next cue or explicitly
-                #references this cue.
-                cobj = self.cues[cue]
-    
     
     
                 try:
-                    self.refreshRules()
+                    #Take rules from new cue, don't actually set this as the cue we are in
+                    #Until we succeed in running all the rules that happen as we enter
+                    self.refreshRules(cobj)
                 except:
                     rl_log_exc("Error handling script")
                     print(traceback.format_exc(6))
@@ -2871,6 +2894,14 @@ if __name__=='__setup__':
                 #Even if we are't tracking, we still need to know to rerender them without the old effects,
                 #And the fade means we might still affect them for a brief time.
     
+    
+    
+                
+                #When jumping to a cue that isn't directly the next one, apply and "parent" cues.
+                #We go backwards until we find a cue that has no parent. A cue has a parent if and only if it has either
+                #an explicit parent or the previous cue in the numbered list either has the default next cue or explicitly
+                #references this cue.
+                cobj = self.cues[cue]
     
                 if self.backtrack and not cue == self.cue.nextCue and cobj.track:
                     l = []
@@ -2978,11 +3009,12 @@ if __name__=='__setup__':
                 self.rerender = True
                 self.pushMeta(cue=True)
     
-        def refreshRules(self):
+        def refreshRules(self,rulesFrom=None):
             with module.lock:
                 self.scriptContext = ChandlerScriptContext(rootContext)
-                self.scriptContext.addBindings(parseCommandBindings(self.cue.script))
-                self.scriptContext.addBindings(self.cue.rules)
+                ##Legacy stuff
+                self.scriptContext.addBindings(parseCommandBindings((rulesFrom or self.cue).script))
+                self.scriptContext.addBindings((rulesFrom or self.cue).rules)
     
         def nextCue(self,t=None):
             with module.lock:
