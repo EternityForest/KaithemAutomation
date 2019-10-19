@@ -157,6 +157,23 @@ from src import tagpoints
             border-style: dashed;
             border-width: 1.5px;
         }
+
+        label{
+            display:inline-block;
+            border: 1px solid grey;
+            margin: 3px;
+            border-radius: 2px;
+            padding: 2px;
+        }
+        .labelbox
+        {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .break {
+            flex-basis: 100%;
+            height: 0;
+        }
     </style>
     <script>
         function findMatching(l, k, v)
@@ -238,7 +255,7 @@ from src import tagpoints
         </div>
         <label>Send Global Event:
             <input v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name" title="Event Name">
-                        <label>
+        </label>
 
             <input v-model="evval" v-on:keydown.enter="sendev" title="Event Value" placeholder="value">
 
@@ -277,11 +294,9 @@ from src import tagpoints
         </div>
         <div class="menubar"  style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;">
             <b>View:</b>
-            <label title="Show or hide lighting related controls">Lighting:<input type="checkbox" v-model="showLightingControls">
-            <label title="Show or hide lighting related controls">Sound:<input type="checkbox" v-model="showSoundControls">
-            <label title="Show or hide lighting related controls">Advanced:<input type="checkbox" v-model="showAdvancedControls">
-
-            </label>
+            <label title="Show or hide lighting related controls">Lighting:<input type="checkbox" v-model="showLightingControls"></label>
+            <label title="Show or hide lighting related controls">Sound:<input type="checkbox" v-model="showSoundControls"></label>
+            <label title="Show or hide lighting related controls">Advanced:<input type="checkbox" v-model="showAdvancedControls"></label>
         </div>
     </div>
 
@@ -772,6 +787,13 @@ from src import tagpoints
                     <h3>{{currentcue.name}} Automation</h3>
                     {{currentcue.rules}}
                     <script-editor v-model="currentcue.rules" v-on:input="setCueRules(currentcueid, $event);" v-bind:commands="availableCommands"></script-editor>
+                    <h3>Scene Variables</h3>
+                    <table border="1">
+
+                        <tr v-for="(v,i) in editingScene.vars">
+                            <td>{{i}}</td>  <td>{{v}}</td>
+                        <tr>
+                    </table>
                 </div>
 
                    
@@ -779,14 +801,14 @@ from src import tagpoints
 
                 <div>
                     <p style="background-color:rgba(250,250,250,0.5)">
-                        <button v-on:click="scenetab='cue'">Cue</button>
-                        <button v-on:click="scenetab='sound'">Cue Sound</button>
-                        <button v-on:click="scenetab='channels'">Add/Remove Channels</button>
-                        <button v-on:click="scenetab='data'" title="Direct copy and pastable access to cue data"> Cue Data</button>
-                        <button v-on:click="scenetab='logic'" title="If/then automation rules"> Cue Logic</button>
+                        <button v-bind:class="{highlight:scenetab=='cue'}" v-on:click="scenetab='cue'">Cue</button>
+                        <button v-bind:class="{highlight:scenetab=='sound'}" v-on:click="scenetab='sound'">Cue Sound</button>
+                        <button  v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'">Add/Remove Channels</button>
+                        <button  v-bind:class="{highlight:scenetab=='data'}" v-on:click="scenetab='data'" title="Direct copy and pastable access to cue data"> Cue Data</button>
+                        <button  v-bind:class="{highlight:scenetab=='logic'}" v-on:click="scenetab='logic'" title="If/then automation rules"> Cue Logic</button>
 
-                        <button v-on:click="scenetab='blend'">Scene Properties</button>
-                        <button v-on:click="scenetab='sync'"> Scene Sync</button>
+                        <button  v-bind:class="{highlight:scenetab=='blend'}" v-on:click="scenetab='blend'">Scene Properties</button>
+                        <button  v-bind:class="{highlight:scenetab=='sync'}" v-on:click="scenetab='sync'"> Scene Sync</button>
                     </p>
 
 
@@ -958,6 +980,7 @@ from src import tagpoints
                     <div v-if="scenetab=='cue'">
                        <h4 title="These properties belong to the selected cue and can vary between cues">Cue Properties</h4>
                        <h5>Basic</h5>
+                       <div class="labelbox">
                         <label>Number:
                         <input type="number" title="Cue number" style="width:6em" v-on:input="setnumber(currentcueid,$event.target.value)"
                             min=0 step=0.1 v-model="currentcue.number">
@@ -971,7 +994,7 @@ from src import tagpoints
                                 title="Track values from previous cue? If false, values not present are always transparent">
                         </label>
 
-                        <label>Reentrant:<input title="If false, dissallow entering cue if it's already running" type="checkbox" v-on:input="setreentrant(currentcueid,$event.target.value)" v-model="currentcue.reentrant"></label>
+                        <label>Reentrant:<input title="If false, dissallow entering cue if it's already running" type="checkbox" v-on:change="setreentrant(currentcueid,currentcue.reentrant)" v-model="currentcue.reentrant"></label>
 
                         <label>Fadein:
                             <input type="number" v-on:input="setfadein(currentcueid,$event.target.value)" style="width:3em"
@@ -986,7 +1009,8 @@ from src import tagpoints
                                 title="Randomize the cue length +- this amount" v-model="cuemeta[currentcueid].lengthRandomize"
                                 style="width:4em" min=0 step=0.25></input>{{scenemeta[scenename].bpm?"beats":"s"}}
                         </label>
-                       <h5>Sound</h5>
+                        <div class="break"></div>
+                       <h5 style="flex-basis:100%" >Sound</h5>
                         <label v-if="showSoundControls" >Soundfile:
                             <input placeholder="No sound file" v-model="currentcue.sound"
                                 style="width:32em;" v-on:change="setSoundfile(currentcueid,currentcue.sound)">
@@ -1001,8 +1025,7 @@ from src import tagpoints
                                 title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
                         </label><br>
 
-                        <h5>Cue Advance</h5>
-
+                       <h5 style="flex-basis:100%" >Cue Advance</h5>
                         <label>Next Cue:
                         <input list="cues_in_scene" title="Select a cue to activate when this one ends" v-on:input="setnext(currentcueid,$event.target.value)"
                             v-model="cuemeta[currentcueid].next" v-bind:placeholder="currentcue.defaultnext"></input>
@@ -1016,10 +1039,12 @@ from src import tagpoints
                         <datalist id="cues_in_scene" v-if="Object.keys(scenecues[scenename]).length<50">
                             <option v-for="i in Object.keys(scenecues[scenename]).sort()" v-bind:value="i">{{i}}</option>
                         </datalist>
+                    </div>
 
                         <div style="clear:both" v-if="showAdvancedControls" >
                             <div style="display:inline-block;">
-                                <h5>Script Bindings</h5>
+                                <h5 style="flex-basis:100%" >Scripting</h5>
+
                                 <textarea rows=3 cols=40 title="Enter script bindings here that can trigger at the start and end of the cue" v-on:change="setscript(currentcueid,$event.target.value)"
                                     v-model="cuemeta[currentcueid].script"></textarea>
                             </div>
@@ -2433,6 +2458,11 @@ from src import tagpoints
                 appData.universes[v[1]].status = v[2]
                 appData.universes[v[1]].ok = v[3]
                 appData.universes[v[1]].telemetry = v[4]
+            }
+
+            if(c=="varchange")
+            {
+                appData.scenemeta[v[1]]['vars'][v[2]]=v[3]
             }
             if (c == "delcue")
             {

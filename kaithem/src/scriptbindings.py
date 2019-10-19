@@ -166,10 +166,10 @@ class ScriptActionKeeper():
         return self.scriptcommands.get(k,d)
 
 class ChandlerScriptContext():
-    def __init__(self,parentContext=None, gil=None,functions={}):
+    def __init__(self,parentContext=None, gil=None,functions={},variables=None):
         self.pipelines = []
         self.eventListeners = {}
-        self.variables = {}
+        self.variables = variables if not variables is None else {}
         self.commands= ScriptActionKeeper()
         self.children = {}
 
@@ -202,7 +202,7 @@ class ChandlerScriptContext():
         functions=functions.copy()
         functions.update(usrFunctions)
         
-        self.evaluator = simpleeval.SimpleEval(functions=usrFunctions)
+        self.evaluator = simpleeval.SimpleEval(functions=usrFunctions,names=self._nameLookup)
 
         if not gil:
             self.gil = threading.RLock()
@@ -235,8 +235,15 @@ class ChandlerScriptContext():
                         self.variables["_"] = x
 
     def preprocessArgument(self, a):
-        if isinstance(a,str) and a.startswith("="):
-            return self.eval(a[1:])
+        if isinstance(a,str):
+            if a.startswith("="):
+                return self.eval(a[1:])
+            #Looks like a number, it is a number
+            try:
+                a=float(a)
+            except:
+                pass
+            
         return a
 
     def eval(self,a):
@@ -244,13 +251,20 @@ class ChandlerScriptContext():
 
     
     def _nameLookup(self,n):
+        n = n.id
         if n in self.variables:
             return self.variables[n]
+        
+        raise ValueError("No such name: "+n)
 
     def setVar(self,k,v):
         with self.gil:
             self.variables[k]=v
             self.changedVariables[k]=v
+            self.onVarSet(k,v)
+    
+    def onVarSet(self,k,v):
+        pass
 
     
     def addBindings(self, b):

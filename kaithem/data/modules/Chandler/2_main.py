@@ -971,10 +971,6 @@ if __name__=='__setup__':
             except:
                 pass
     
-    
-     
-    
-    
         def onFrame(self,data,physical = None, universe=0):
             with self.lock:
                 if not (data is None):
@@ -988,6 +984,21 @@ if __name__=='__setup__':
     def fixturesFromOldListStyle(l):
         "Convert fixtures from the older list of tuples style to the new dict style"
         return {i[0]:{'name':i[0],'type':i[1],'universe':i[2],'addr':i[3]} for i in l if len(i)==4}
+    
+    
+    class DebugScriptContext(ChandlerScriptContext):
+        def onVarSet(self,k, v):
+            try:
+                for i in module.boards:
+                    if isinstance(v, (str, int,float,bool)):
+                         i().link.send(['varchange',self.scene, k, v])
+                    else:
+                         i().link.send(['varchange',self.scene, k, "__PYTHONDATA__"])        
+            except:
+                rl_log_exc("Error handling var set notification")
+                print(traceback.format_exc())
+    
+            
     
     class ChandlerConsole():
         "Represents a web GUI board. Pretty much the whole GUI app is part of this class"
@@ -1193,8 +1204,10 @@ if __name__=='__setup__':
                                  'backtrack': x.backtrack,
                                  'soundOutput': x.soundOutput,
                                  'syncKey':x.syncKey, 'syncPort': x.syncPort, 'syncAddr':x.syncAddr,
-                                 'uuid': i                 
-                                }
+                                 'uuid': i
+                    }               
+                    
+    
                 return sd
     
         def save(self):
@@ -1275,6 +1288,17 @@ if __name__=='__setup__':
                 subs = -1
                 rl_log_exc("Error pushing metadata")
                 print(traceback.format_exc())
+            
+            v = {}
+            if scene.scriptContext:
+                try:
+                    for j in scene.scriptContext.variables:
+                        if isinstance(scene.scriptContext.variables[j],(int,float,str, bool)):
+                            v[j]=scene.scriptContext.variables[j]
+                        else:
+                            v[j]='__PYTHONDATA__'
+                except:
+                    print(traceback.format_exc())
             self.link.send(["scenemeta",sceneid,     
                              {
                               'ext':not sceneid in self.scenememory ,
@@ -1300,6 +1324,7 @@ if __name__=='__setup__':
                               'subs': subs,
                               'subslist': subslist,
                               'soundOutput': scene.soundOutput,
+                              'vars':v
     
                     }])
                     
@@ -2518,8 +2543,11 @@ if __name__=='__setup__':
             #Last time the scene was started. Not reset when stopped
             self.started = 0
     
+    
+            self.chandlerVars = {}
+    
             #The bindings for script commands that might be in the cue metadata
-            self.ChandlerScriptContext = None
+            self.scriptContext = None
     
     
             #List the active LivingNight influences
@@ -2980,6 +3008,10 @@ if __name__=='__setup__':
                         self.cuelen = 0
     
                 else: 
+                    cuelen = self.scriptContext.preprocessArgument(cobj.length)
+                    if not isinstance(cuelen,(int, float)):
+                        raise RuntimeError("Invalid cue length, must resolve to int or float")
+                        
                     self.cuelen = max(0,random.triangular(cobj.length-cobj.lengthRandomize, cobj.length+cobj.lengthRandomize))
     
                 #Loop over universes in the cue
@@ -3011,7 +3043,8 @@ if __name__=='__setup__':
     
         def refreshRules(self,rulesFrom=None):
             with module.lock:
-                self.scriptContext = ChandlerScriptContext(rootContext)
+                self.scriptContext = DebugScriptContext(rootContext,variables=self.chandlerVars)
+                self.scriptContext.scene = self.name
                 ##Legacy stuff
                 self.scriptContext.addBindings(parseCommandBindings((rulesFrom or self.cue).script))
                 self.scriptContext.addBindings((rulesFrom or self.cue).rules)
