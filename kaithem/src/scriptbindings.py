@@ -73,6 +73,36 @@ simpleeval.MAX_POWER = 1024
 import weakref,threading, inspect
 
 
+
+def DummyObject():
+    "Operations with this succeed, but return other"
+    def __add__(self,other):
+        return other
+    def __sub__(self,other):
+        return other
+    def __mul__(self,other):
+        return other
+    def __floordiv__(self,other):
+        return other
+    def __truediv__(self,other):
+        return other
+    def __mod__(self,other):
+        return other
+    def __pow__(self,other):
+        return other
+    def __and__(self,other):
+        return other
+    def __xor__(self,other):
+        return other
+    def __or__(self,other):
+        return other
+    def __int__(self):
+        return 0
+    def __neg__(self):
+        return other
+    def __str__(self):
+        return ""
+
 def paramDefault(p):
     if isinstance(p,int):
         return '='+str(p)
@@ -107,10 +137,29 @@ def lorem():
     "Returns a randomly selected quote"
     return kaithem.misc.lorem()
 
-usrFunctions={
+import math
+
+def safesqrt(x):
+    if x>10**30:
+        raise RuntimeError("Too High of number for sqrt")
+    return math.sqrt(x)
+
+globalUsrFunctions={
     "millis": time.monotonic,
     "random": random.random,
     "randint": random.randint,
+    "max": max,
+    "min": min,
+    "log":math.log,
+    "log10":math.log10,
+    "sin":math.sin,
+    "cos":math.cos,
+    "sqrt":safesqrt
+}
+
+globalConstants={
+    'e': math.e,
+    'pi': math.pi
 }
 
 def rval(x):
@@ -166,12 +215,13 @@ class ScriptActionKeeper():
         return self.scriptcommands.get(k,d)
 
 class ChandlerScriptContext():
-    def __init__(self,parentContext=None, gil=None,functions={},variables=None):
+    def __init__(self,parentContext=None, gil=None,functions={},variables=None, constants=None):
         self.pipelines = []
         self.eventListeners = {}
         self.variables = variables if not variables is None else {}
         self.commands= ScriptActionKeeper()
         self.children = {}
+        self.constants = constants if (not (constants is None)) else {}
 
         selfid = id(self)
      
@@ -192,6 +242,8 @@ class ChandlerScriptContext():
         def setter(k,v):
             if not isinstance(k,str):
                 raise RuntimeError("Var name must be string")
+            if k in globalConstants or k in self.constants:
+                raise NameError("Key "+k+" is a constant")
             self.setVar(k,v)
 
         self.setter = setter
@@ -199,10 +251,18 @@ class ChandlerScriptContext():
 
         for i in predefinedcommands:
             self.commands[i]=predefinedcommands[i]
+
+        def defaultVar(name,default):
+            try:
+                return self._nameLookup(name)
+            except NameError:
+                return default
+            
         functions=functions.copy()
-        functions.update(usrFunctions)
-        
-        self.evaluator = simpleeval.SimpleEval(functions=usrFunctions,names=self._nameLookup)
+        functions.update(globalUsrFunctions)
+        functions['defaultVar'] = defaultVar
+
+        self.evaluator = simpleeval.SimpleEval(functions=functions,names=self._nameLookup)
 
         if not gil:
             self.gil = threading.RLock()
@@ -251,11 +311,15 @@ class ChandlerScriptContext():
 
     
     def _nameLookup(self,n):
-        n = n.id
+        if not isinstance(n,str):
+            n = n.id
         if n in self.variables:
             return self.variables[n]
-        
-        raise ValueError("No such name: "+n)
+        if n in globalConstants:
+            return globalConstants[n]
+        if n in self.constants:
+            return self.constants[n]
+        raise NameError("No such name: "+n)
 
     def setVar(self,k,v):
         with self.gil:
