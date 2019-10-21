@@ -222,6 +222,8 @@ class ChandlerScriptContext():
         self.commands= ScriptActionKeeper()
         self.children = {}
         self.constants = constants if (not (constants is None)) else {}
+        #Used for detecting loops
+        self.eventRecursionDepth = 0
 
         selfid = id(self)
      
@@ -267,10 +269,10 @@ class ChandlerScriptContext():
         if not gil:
             self.gil = threading.RLock()
         else:
-            gil = gil
+            self.gil = gil
 
 
-    def runCommand(self,c):
+    def _runCommand(self,c):
         a = self.commands.get(c[0],None)
         if not a:
             p=self.parentContext
@@ -286,13 +288,26 @@ class ChandlerScriptContext():
     
     def event(self,evt,ctx=None):
         with self.gil:
-            if evt in self.eventListeners:
-                for pipeline in self.eventListeners[evt]:
-                    for command in pipeline:
-                        x= self.runCommand(command)
-                        if x==None:
-                            break
-                        self.variables["_"] = x
+            #Reset to 0 when the outer returns
+            if self.eventRecursionDepth==0:
+                isOuter = True
+            else:
+                isOuter=False
+            try:
+                if self.eventRecursionDepth>8:
+                    raise RecursionError("Cannot nest more than 8 events")
+                self.eventRecursionDepth+=1
+
+                if evt in self.eventListeners:
+                    for pipeline in self.eventListeners[evt]:
+                        for command in pipeline:
+                            x= self._runCommand(command)
+                            if x==None:
+                                break
+                            self.variables["_"] = x
+            finally:
+                if isOuter:
+                    self.eventRecursionDepth=0
 
     def preprocessArgument(self, a):
         if isinstance(a,str):
@@ -339,13 +354,16 @@ class ChandlerScriptContext():
 
             When events happen commands run till one returns None.
         """
-        for i in b:
-            if not i[0] in self.eventListeners:
-                self.eventListeners[i[0]]=[]
-            self.eventListeners[i[0]].append(i[1])
+        with self.gil:
+            for i in b:
+                if not i[0] in self.eventListeners:
+                    self.eventListeners[i[0]]=[]
+                self.eventListeners[i[0]].append(i[1])
 
 
-
+    def clearBindings(self):
+        with self.gil:
+            self.eventListeners={}
 
 ##### SELFTEST ##########
 
@@ -394,7 +412,6 @@ c.event('window')
 c.event('test')
 
 if not x==desired:
-    print(x)
     raise RuntimeError("The ChandlerScript module isn't working as planned")
 if not c.variables['foo']=='bar':
     raise RuntimeError("The ChandlerScript module isn't working as planned")

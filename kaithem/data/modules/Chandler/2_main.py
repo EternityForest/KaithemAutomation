@@ -1357,6 +1357,17 @@ if __name__=='__setup__':
                 rl_log_exc("Error pushing cue data")
                 print("cue data push error", cueid,e)
     
+        def pushCueMetaAttr(self,cueid,attr):
+            "Be careful with this, some attributes can't be sent directly and need preprocessing"
+            try:
+                cue = cues[cueid]
+                self.link.send(["cuemetaattr",cueid,     
+                                {attr:getattr(cue,attr)}])
+            except Exception as e:
+                rl_log_exc("Error pushing cue data")
+                print("cue data push error", cueid,e)
+    
+    
         def pushCueData(self, cueid):
             self.link.send(["cuedata",cues[cueid].id,cues[cueid].values])
     
@@ -1807,6 +1818,7 @@ if __name__=='__setup__':
                     except:
                         v=msg[2][:256]
                     cues[msg[1]].length=v
+                    cues[msg[1]].scene().recalcCueLen()
                     self.pushCueMeta(msg[1])
     
                 if msg[0] == "setrandomize":
@@ -1815,6 +1827,7 @@ if __name__=='__setup__':
                     except:
                         v=msg[2][:256]
                     cues[msg[1]].lengthRandomize=v
+                    cues[msg[1]].scene().recalcRandomizeModifier()
                     self.pushCueMeta(msg[1])
     
                 if msg[0] == "setnext":
@@ -2411,7 +2424,7 @@ if __name__=='__setup__':
                             self.scene().cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
                         if universe in self.scene().cue_cached_alphas_as_arrays:
                             self.scene().cue_cached_alphas_as_arrays[universe][channel] = 1 if not value is None else 0
-                            self.scene().cue_cached_vals_as_arrays[universe][channel] =  value if not value is None else 0
+                            self.scene().cue_cached_vals_as_arrays[universe][channel] =  self.scene().evalExpr(value if not value is None else 0)
                         if not universe in self.scene().affect:
                             self.scene().affect.append(universe)
     
@@ -2422,30 +2435,33 @@ if __name__=='__setup__':
                 #change the list of values without resetting
                 if reset:
                     self.scene().setBlend(self.scene().blend)
+    
+    
                     
         def clearValues(self):
-                self.values= {}
+            "THIS FUNCTION DOESNT WORK"
+            self.values= {}
     
-                if self.scene().cue==self and self.scene().isActive():
-                    self.scene().rerender=True    
-                    if (not universe in self.scene().cue_cached_alphas_as_arrays) and universe in module.universes and not value is None:
-                        self.scene().cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
-                        self.scene().cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
-                    if universe in self.scene().cue_cached_alphas_as_arrays:
-                        self.scene().cue_cached_alphas_as_arrays[universe][channel] = 1 if not value is None else 0
-                        self.scene().cue_cached_vals_as_arrays[universe][channel] =  value if not value is None else 0
-                    if not universe in self.scene().affect:
-                        self.scene().affect.append(universe)
+            if self.scene().cue==self and self.scene().isActive():
+                self.scene().rerender=True    
+                if (not universe in self.scene().cue_cached_alphas_as_arrays) and universe in module.universes and not value is None:
+                    self.scene().cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
+                    self.scene().cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
+                if universe in self.scene().cue_cached_alphas_as_arrays:
+                    self.scene().cue_cached_alphas_as_arrays[universe][channel] = 1 if not value is None else 0
+                    self.scene().cue_cached_vals_as_arrays[universe][channel] =  self.scene().evalExpr(value if not value is None else 0)
+                if not universe in self.scene().affect:
+                    self.scene().affect.append(universe)
     
-                    #The FadeCanvas needs to know about this change
-                    self.scene().render(force_repaint=True)
+                #The FadeCanvas needs to know about this change
+                self.scene().render(force_repaint=True)
     
-                #For blend modes that don't like it when you
-                #change the list of values without resetting
-                self.scene().setBlend(self.scene().blend)
-                for i in module.boards:
-                    if len(i().newDataFunctions)<100:
-                        i().newDataFunctions.append(lambda s:s.pushCueData(self.id))                
+            #For blend modes that don't like it when you
+            #change the list of values without resetting
+            self.scene().setBlend(self.scene().blend)
+            for i in module.boards:
+                if len(i().newDataFunctions)<100:
+                    i().newDataFunctions.append(lambda s:s.pushCueData(self.id))                
     
     
     
@@ -2580,6 +2596,16 @@ if __name__=='__setup__':
                 self.pavillions.close()
             except:
                 pass
+    
+        def evalExpr(self,s):
+            """Given A string, return a number if it looks like one, evaluate the expression if it starts with =, otherwise
+                return the input.
+    
+                Given a number, return it.
+    
+                Basically, implements something like the logic from a spreadsheet app.
+            """
+            return self.scriptContext.preprocessArgument(s)    
     
         def pavillionSetup(self):
             if self.syncKey and not isinstance(self.syncKey,bytes) and not (len(self.syncKey)==32):
@@ -2798,7 +2824,9 @@ if __name__=='__setup__':
                 except Exception as e:
                     rl_log_exc("Error handling event")
                     print(traceback.format_exc(6))
-                    event("script.error", self.name+"\n"+traceback.format_exc())
+                    
+                    #This event just gets pushed to the console, it doesn't actually do anything
+                    self.event("script.error", self.name+"\n"+traceback.format_exc())
     
     
         def gotoCue(self, cue,t=None, sendSync=True,generateEvents=True):
@@ -2941,27 +2969,10 @@ if __name__=='__setup__':
                         safety -= 1
                         if not safety:
                             break
+    
                     for cuex in reversed(l):
-                        #Loop over universes in the cue
-                        for i in cuex.values:
-                            universe=mapUniverse(i)
-                            if not universe:
-                                continue
-                            if universe in module.universes:
-                                if not universe in self.cue_cached_vals_as_arrays:
-                                    self.cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
-                                    self.cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
-                                    if not universe in self.affect:
-                                        self.affect.append(universe)
-                                
-                            for j in cuex.values[i]:
-                                cuev = cuex.values[i][j]
-                                x = mapChannel(i, j)
-                                if x:
-                                    universe, channel = x[0],x[1]
-                                self.cue_cached_alphas_as_arrays[universe][channel] = 1.0 if not cuev==None else 0
-                                self.cue_cached_vals_as_arrays[universe][channel] = cuev if not cuev==None else 0
-                
+                        self.paintCueOntoFadeCanvas(cuex)
+    
     
                 #optimization, try to se if we can just increment if we are going to the next cue, else
                 #we have to actually find the index of the new cue
@@ -2997,56 +3008,72 @@ if __name__=='__setup__':
                         
                     else:
                         self.event("error", info="File does not exist")
+                
+                self.recalcRandomizeModifier()
+                self.recalcCueLen()
+                
+                self.paintCueOntoFadeCanvas(self.cue)
+        
+                self.rerender = True
+                self.pushMeta()
     
-                #This doesn't actually determine start/end times, that's polling based if it's relative to a sound.
-                #This just lets us correctly show it.
+    
+        def recalcRandomizeModifier(self):
+            "Recalculate the random variance to apply to the length"
+            self.randomizeModifier =random.triangular(-self.cue.lengthRandomize, +self.cue.lengthRandomize)
+    
+        def recalcCueLen(self):
+                "Calculate the actual cue len, without changing the randomizeModifier"
                 if self.cue.sound and self.cue.rel_length:
                     try:
-                        slen = TinyTag.get(sound).duration+cobj.length
-                        self.cuelen=  max(0,random.triangular(slen-cobj.lengthRandomize, slen+cobj.lengthRandomize))
+                        slen = TinyTag.get(self.cue.sound).duration+self.cue.length
+                        self.cuelen=  max(0,self.randomizeModifier+slen)
                     except:
+                        logging.exception("Error getting length for sound "+str(self.cue.sound))
                         self.cuelen = 0
     
                 else: 
-                    cuelen = self.scriptContext.preprocessArgument(cobj.length)
+                    cuelen = self.scriptContext.preprocessArgument(self.cue.length)
                     if not isinstance(cuelen,(int, float)):
                         raise RuntimeError("Invalid cue length, must resolve to int or float")
-                        
-                    self.cuelen = max(0,random.triangular(cobj.length-cobj.lengthRandomize, cobj.length+cobj.lengthRandomize))
+                    self.cuelen = max(0,self.randomizeModifier+self.cue.length)
     
-                #Loop over universes in the cue
-                for i in self.cue.values:
-                    universe=mapUniverse(i)
-                    if not universe:
-                        continue
-                    if universe in module.universes:
+        def paintCueOntoFadeCanvas(self,cuex):
+            """Apply everything from the cue to the fade canvas"""
+            #Loop over universes in the cue
+            for i in cuex.values:
+                universe=mapUniverse(i)
+                if not universe:
+                    continue
+                if universe in module.universes:
+                    if not universe in self.cue_cached_vals_as_arrays:
+                        self.cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
+                        self.cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
                         if not universe in self.affect:
                             self.affect.append(universe)
-                        if not universe in self.cue_cached_vals_as_arrays:
-                            try:
-                                self.cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
-                                self.cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
-                            except:
-                                print(i,"might be none in scene???")
-                                
-                        for j in self.cue.values[i]:
-                            cuev = self.cue.values[i][j]
-                            x = mapChannel(i,j)
-                            if x:
-                                universe, channel = x[0],x[1]
-                            self.cue_cached_alphas_as_arrays[universe][channel] = 1.0 if not cuev ==None else 0
-                            self.cue_cached_vals_as_arrays[universe][channel] = cuev if not cuev==None else 0
+                    
+                for j in cuex.values[i]:
+                    cuev = cuex.values[i][j]
+                    x = mapChannel(i, j)
+                    if x:
+                        universe, channel = x[0],x[1]
+                    self.cue_cached_alphas_as_arrays[universe][channel] = 1.0 if not cuev==None else 0
+                    self.cue_cached_vals_as_arrays[universe][channel] = self.evalExpr(cuev if not cuev==None else 0)
     
-        
-                self.rerender = True
-                self.pushMeta(cue=True)
     
         def refreshRules(self,rulesFrom=None):
             with module.lock:
-                self.scriptContext = DebugScriptContext(rootContext,variables=self.chandlerVars)
-                self.scriptContext.scene = self.name
+    
+                #We copy over the event recursion depth so that we can detct infinite loops
+                if not self.scriptContext:
+                    self.scriptContext = DebugScriptContext(rootContext,variables=self.chandlerVars,gil=module.lock)
+                    self.scriptContext.scene = self.id
+    
+                self.scriptContext.clearBindings()
                 ##Legacy stuff
-                self.scriptContext.addBindings(parseCommandBindings((rulesFrom or self.cue).script))
+                if (rulesFrom or self.cue).script:
+                    self.scriptContext.addBindings(parseCommandBindings((rulesFrom or self.cue).script))
+                #Actually add the bindings
                 self.scriptContext.addBindings((rulesFrom or self.cue).rules)
     
         def nextCue(self,t=None):

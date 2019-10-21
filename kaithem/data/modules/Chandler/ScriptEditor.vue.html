@@ -55,23 +55,6 @@ template-engine: none
 <template>
     <div>
         <div>
-            <h2>Automation Logic</h2>
-            <p class="help">Here you can create rules that apply whenever the scene is in this cue, to do things like trigger other cues when this
-                one enters, but only under certain conditions.</p>
-            <p>Each row is a left-to-right sequence that starts with a trigger and stops at the end, or when a command does not return
-                anything
-            </p>
-
-            <p>The block inspector will tell you what commands return. Generally they will answer "True" and continue the action, unless
-                they are Questions. in which case they will answer with None(stopping the action) if the answer to the question is No.
-            </p>
-            <p>Any parameter for a block that starts with = is considered a math expression that may use variables,boolean logic, and
-                text operations (Similar to spreadsheets)</p>
-
-            <p>Some blocks may return an interesting number,boolean, or text value. You may access it in the next block as the variable
-                _ just like many scientific calculators.
-            </p>
-
             <div style="display:flex;flex-direction:row;">
 
                 <div v-if="selectedCommand==0 && selectedBinding" class="inspector">
@@ -84,20 +67,20 @@ template-engine: none
                     <h4>Parameters</h4>
 
                     Run when:
-                    <combo-box v-model="selectedBinding[0]" v-bind:options="eventsList"></combo-box> occurs
+                    <combo-box v-model="selectedBinding[0]" v-bind:options="eventsList" v-on:change="$emit('input',rules);"></combo-box> occurs
 
                     <h4>Delete</h4>
-                    <button v-on:click="deleteBinding(selectedBinding)">Remove binding and all actions</button>
+                    <button v-on:click="deleteBinding(selectedBinding);$emit('input',rules);">Remove binding and all actions</button>
                 </div>
 
                 <div v-if="selectedCommand" class="inspector">
                     <h3>Block Inspector</h3>
                     Type
                     <combo-box v-model="selectedCommand[0]" v-bind:options="getPossibleActions()" v-on:input="setCommandDefaults(selectedCommand);"
-                        v-on:input="$emit('input',rules)"></combo-box>
+                        v-on:change="$emit('input',rules);"></combo-box>
                         <h4>Config</h4>
                         <div v-if="selectedCommand[0]=='set'">
-                            Set a variable named <input v-model="selectedCommand[1]" v-on:input="$emit('input',rules)"> <br>to<br> <input v-model="selectedCommand[2]"  v-on:input="$emit('input',rules)"><br>                            and always return True.
+                            Set a variable named <input v-model="selectedCommand[1]" v-on:change="$emit('input',rules)"> <br>to<br> <input v-model="selectedCommand[2]"  v-on:change="$emit('input',rules)"><br>                            and always return True.
                         </div>
 
                         <div v-if="selectedCommand[0]=='pass'">
@@ -105,13 +88,13 @@ template-engine: none
                         </div>
 
                         <div v-if="selectedCommand[0]=='goto'">
-                            Trigger scene:<input v-model="selectedCommand[1]" v-on:input="$emit('input',rules)"> <br>to go to cue:<br> <input
-                                v-model="selectedCommand[2]"  v-on:input="$emit('input',rules)"><br> and always return True.
+                            Trigger scene:<combo-box v-bind:options="sceneNames" v-model="selectedCommand[1]" v-on:change="$emit('input',rules)"></combo-box> <br>to go to cue:<br> 
+                            <combo-box v-bind:options="cueNames(selectedCommand[1])" v-model="selectedCommand[2]"  v-on:change="$emit('input',rules)"></combo-box><br> and always return True.
                         </div>
 
 
                         <div v-if="selectedCommand[0]=='maybe'">
-                            Continue action with :<input v-model="selectedCommand[1]" v-on:input="$emit('input',rules)">% chance <br> otherwise
+                            Continue action with :<input v-model="selectedCommand[1]" v-on:change="$emit('input',rules)">% chance <br> otherwise
                             return None and stop the action.
                         </div>
 
@@ -119,7 +102,7 @@ template-engine: none
                             <table>
                                 <tr v-for="i in commands[selectedCommand[0]].args.keys()">
                                     <td>{{commands[selectedCommand[0]].args[i]}}</td>
-                                    <td><input v-model="selectedCommand[i+1]" v-on:input="$emit('input',rules)"></td>
+                                    <td><input v-model="selectedCommand[i+1]" v-on:change="$emit('input',rules)"></td>
                                 </tr>
                             </table>
                             <h5>Docs</h5>
@@ -195,7 +178,7 @@ template-engine: none
 <script>
     module.exports={
 
-    props: ['value','commands'],
+    props: ['value','commands','scenes'],
     components:{
         "combo-box": httpVueLoader("ComboBox.vue")
     },
@@ -205,6 +188,15 @@ template-engine: none
         }
       },
     computed:{
+        "sceneNames":function()
+        {
+            var l={};
+            for (i in this.scenes)
+            {
+                l[i]=[i,'']
+            }
+            return l;
+        },
         "selectedBinding":function()
         {
             if (this.selectedBindingIndex==-1)
@@ -228,6 +220,20 @@ template-engine: none
     },
     data:function(){
         return({
+
+              "cueNames":function(s)
+                {
+                    if(this.scenes[s]==undefined)
+                    {
+                        return {};
+                    }
+                    var l={};
+                    for (i of this.scenes[s])
+                    {
+                        l[i]=[i,'']
+                    }
+                    return l;
+                },
             swapArrayElements:function(arr, indexA, indexB) {
                 var temp = arr[indexA];
                 arr[indexA] = arr[indexB];
@@ -289,6 +295,7 @@ template-engine: none
                 {
                     this.removeElement(this.rules, b)
                 }
+
             },
             removeElement:function(array, e){
                 var index = array.indexOf(e);
