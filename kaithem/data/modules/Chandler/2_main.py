@@ -2996,6 +2996,8 @@ if __name__=='__setup__':
                         for i in [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]:
                             if os.path.isfile(os.path.join(i,sound)):
                                 sound = os.path.join(i,sound)
+                    if not sound.startswith("/"):
+                        sound = kaithem.sound.resolveSound(sound)
     
                     if os.path.isfile(sound):
                         out = self.cue.soundOutput
@@ -3007,7 +3009,7 @@ if __name__=='__setup__':
                         kaithem.sound.play(sound,handle=str(self.id),volume=self.alpha,output=out)
                         
                     else:
-                        self.event("error", info="File does not exist")
+                        self.event("error", info="File does not exist: "+sound)
                 
                 self.recalcRandomizeModifier()
                 self.recalcCueLen()
