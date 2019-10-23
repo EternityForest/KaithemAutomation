@@ -5,6 +5,7 @@ Kaithem is Linux home/commercial automation server written in pure python, HTML,
 Kaithem uses a user/group/permission system with SSL support, and is designed to be fairly secured. I'm not a security researcher, but it should at the very least keep casual snoopers on the LAN out.
 
 ![Login page](screenshots/login.png)
+(Login shown with Scrapbook theme)
 
 It runs on python3, but it is not tested outside of Linux. Resource usage is low enough to run well on the Raspberry Pi.
 
@@ -26,7 +27,8 @@ There's a built in realtime websocket-based log viewer to assist with debugging,
 
 Kaithem includes a library for common automation tasks such as file IO, timing, executing functions in the background, formatting numbers, and more, including a graphical lighting console and a mixing board supporting multiple soundcards!
 
-![Lighting control](screenshots/lighting.jpg)
+![Lighting control](screenshots/basictheme_lightboard.jpg)
+(Lightboard shown with basic theme)
 
 Kaithem is still beta, but I've used it in production applications running for months at a time. 
 

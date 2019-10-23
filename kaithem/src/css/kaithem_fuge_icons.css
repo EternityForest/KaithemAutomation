@@ -1,0 +1,94 @@
+/*These just add icons to links*/
+.createbutton::before
+{
+ content: url(/static/img/icons/silk/add.png);
+}
+.editbutton::before
+{
+content: url(/static/img/icons/silk/pencil.png);
+}
+
+.gobutton::before
+{
+content: url(/static/img/icons/silk/arrow_right.png);
+}
+
+.playbutton::before
+{
+content: url(/static/img/icons/silk/control_play.png);
+}
+
+.deletebutton::before
+{
+ content: url(/static/img/icons/silk/cross.png);
+}
+
+a.settingslink::before
+{
+ content: url(/static/img/icons/silk/cog.png);
+}
+
+a.helplink::before
+{
+ content: url(/static/img/icons/silk/book_open.png);
+}
+
+a.loginlink::before
+{
+ content: url(/static/img/icons/silk/key.png);
+}
+
+/* These spans are mostly just used to put things before*/
+span.page-icon::before
+{
+ content: url(/static/img/icons/silk/page.png);
+}
+
+span.permission-icon::before
+{
+ content: url(/static/img/icons/silk/key.png);
+}
+
+span.event-icon::before
+{
+ content: url(/static/img/icons/silk/script.png);
+}
+
+span.directory-icon::before
+{
+ content: url(/static/img/icons/silk/folder.png);
+}
+
+span.settings-icon::before
+{
+ content: url(/static/img/icons/silk/cog.png);
+}
+
+span.sqprog-icon::before
+{
+	content: url(/zipstatic/img/icons/fugue.zip/monitor-network.png);
+}
+a.modules-library-link::before
+{
+  content: url(/static/img/icons/silk/lorry.png);
+}
+
+
+a.moduleslink::before
+{
+	content: url(/zipstatic/img/icons/fugue.zip/blue-folder-tree.png);
+}
+
+a.deviceslink::before
+{
+	content: url(/zipstatic/img/icons/fugue.zip/switch-network.png);
+}
+a.upload-module-button::before
+{
+  content: url(/static/img/icons/silk/arrow_up.png);
+}
+
+a.pageslink::before
+{
+  content: url(/static/img/icons/silk/page_white_stack.png);
+}

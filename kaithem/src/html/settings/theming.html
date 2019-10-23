@@ -1,0 +1,18 @@
+<%include file="/pageheader.html"/>
+<%!
+from src import config,registry,sound
+import yaml
+%>
+<h2>Theme</h2>
+<section>
+<form method="post" action="/settings/settheming">
+<p class="help">Builtin Themes: /static/css/kaithem_scrapbook.css /static/css/kaithem_basic.css</p>
+<label>CSS Themefile(Empty for configured default): 
+    <input value="${registry.get('/system.theming/csstheme','')}" name="cssfile"></label>
+<input type="submit">
+</form>
+</section>
+
+
+</div>
+<%include file="/pagefooter.html"/>

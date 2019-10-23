@@ -1,6 +1,6 @@
 <%!
 from src.config import config
-from src import auth,util,notifications,pages,modules,registry
+from src import auth,util,notifications,pages,modules,registry,theming
 import cherrypy
 %>
 
@@ -10,7 +10,7 @@ import cherrypy
 <head>
   <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" type="text/css" href="${config['theme-url']}">
+  <link rel="stylesheet" type="text/css" href="${theming.getCSSTheme() or config['theme-url']}">
 </head>
 
 <body id="page">

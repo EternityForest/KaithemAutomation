@@ -1,0 +1,401 @@
+
+
+@import "kaithem_minimal.css"; /* Using a string */
+@import "kaithem_fuge_icons.css"; /* Using a string */
+
+:root { --hover-color: #b5ccff; } 
+
+
+#page {
+	background-repeat: repeat;  
+  }
+  
+  ::selection {
+	  background: rgba(140, 180, 140, 0.5);
+	  color:rgb(70, 45, 19);
+  }
+  
+  ::-moz-selection {background: rgba(0, 0, 250, 0.25);}
+  
+
+/*************************Navigation and headers************************************************************/
+
+#nav div
+{
+	border-width:1px;
+	border-style: solid;
+	border-color: grey;
+	font-size:130%;
+	border-radius: 5px;
+	background-color: rgba(220,255,200,0.3)
+}
+#nav {
+	border-style:solid;
+	border-width: 1px;
+	border-radius:9px;
+	border-color:grey;
+	padding:2px;
+}
+
+nav.div:hover
+{
+	background-color:var(--hover-color);
+}
+
+
+#topbanner {
+  width: 100%;
+  background: rgba(255, 255, 230, 0.25);
+  border-radius: 12px;
+  margin:1px;
+
+}
+
+#topbanner h1
+{
+	text-shadow:1px 1px 5px rgba(110,130,160,1);
+     margin-bottom: 0.2em;
+    margin-top: 0.1em;
+    vertical-align:middle;
+
+}
+
+/*These just add icons to links*/
+#topbanner h1::before,#topbanner h1::after
+{
+ background-image: url(/static/img/logo-mini.png);
+ background-size: 1.5em 1.5em;
+ background-repeat: no-repeat;
+ width: 1.5em;
+ height: 1.5em;
+ content:"";
+ display: inline-block;
+ vertical-align:middle;
+}
+
+/************************HTML ELEMENTS***********************************/
+dl
+{
+	padding:2px;
+	margin:2px;
+}
+
+dt
+{
+	margin: 0.2em;
+}
+
+li:hover
+{
+    background-color:var(--hover-color);
+}
+
+dt:hover
+{
+    background-color:var(--hover-color);
+}
+
+dt:hover+dd
+{
+    background-color:var(--hover-color);
+}
+
+
+p{
+	margin:0.5%;
+}
+
+hr {
+	border: none;
+	border-top: 1px solid #bbb;
+	background-color: #ddd; color: #ddd;
+	height: 1px;
+}
+h1{color:#2F2418;}
+h2{margin-top:0.3em;margin-bottom: 0.3em}
+h3{margin-top:0.3em;margin-bottom: 0.3em}
+h4{margin-top:0.3em; margin-bottom: 0.3em}
+h5{margin:8px;}
+
+a
+	{
+		background-color:rgba(255,255,255,0.2);
+		border-radius:5px;
+		padding: 1px 3px 1px 3px;
+	}
+a:hover
+	{
+		background-color:var(--hover-color);
+	}
+
+
+ul{line-height:128%;}
+
+tr.header
+{
+	font-weight:bold;
+}
+
+
+
+/*And also we highlight the row you hover on*/
+tr:hover
+	{
+		/*background-color: rgba(70,170,70,0.35);*/
+		background-color:var(--hover-color);
+	}
+
+pre
+	{
+		margin: 0.2em;
+	    background-color: rgba(245,255,230,0.9);
+	}
+div.kmainpagebody
+{
+}
+
+/*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
+div.sectionbox,section{
+	border-style:solid;
+	background: rgba(255, 255, 255, 0.67);
+	border-width:2px;
+	border-radius: 7px;
+	padding-top:0.2%;
+	padding-bottom:0.5%;
+	padding-right:1%;
+	padding-left:0.5%;
+	margin:2px;
+}
+
+/* A scrollable div */
+div.scrollbox {
+	border-style:solid;
+	border-width:2px;
+	border-radius: 7px;
+	max-height:10em;
+	overflow:auto;
+	padding-top:0.5%;
+	padding-bottom:0.5%;
+	padding-right:1%;
+	padding-left:0.5%;
+	margin:3px;
+}
+
+
+
+button {border-radius:7px;}
+button:disabled {background-color: #D0D0D0;border-radius:7px;}
+
+input {border-radius:7px;}
+input:disabled {background-color: #D0D0D0;}
+
+input.modulename {width:70%}
+input.pythoncode {width:100%}
+
+textarea{}
+/*A text area meant for describing something*/
+textarea.description {width:70%;}
+textarea.pythoncode { width:100%; overflow:"scroll";font-size:125%;}
+textarea.htmlcode {width:100%; overflow:"scroll";font-size:125%;}
+textarea.code {
+    	 width:100%;
+	 overflow:"scroll";
+	 font-size:125%;
+	 }
+textarea:disabled {background-color: #D0D0D0}
+
+/*This is a help paragraph usually shown at the top or a sectionbox*/
+p.help{
+background-color:rgba(255,255,25,0.1);
+border-radius:5px;
+margin-bottom:5px;
+margin-top:5px;
+border-style:solid;
+border-width:1px;
+border-radius: 7px;
+padding:3px;
+cursor:help;
+}
+
+/*This is a paragraph serving a similar funtion to the menu bars at the top of desktop application windows*/
+p.menubar div.menubar{
+background-color:rgba(255,25,255,0.1);
+border-radius: 7px;
+}
+
+/*A link styled to look like a button*/
+a.button{
+	border-width:2px;
+	text-decoration: none;
+	border-radius:5px;
+	border-style:outset;
+	color:#000000;
+	padding:0em 0.2em 0em 0.2em;
+	display: inline-block;
+}
+
+/*A button link while being clicked*/
+a.button:active
+{
+border-style:inset;
+}
+
+a.button:hover
+{
+background-color:var(--hover-color);
+}
+
+/* A real button being hovered on*/
+button:hover
+{
+background-color:var(--hover-color);
+}
+
+input:hover{
+background-color:var(--hover-color);
+}
+
+/* A span meant to look like a pre*/
+span.pre
+{
+    background-color: rgba(255,255,255,0.3);
+}
+
+p.pathnav
+{
+background-color:rgba(140,200,140,0.2);
+background-color:rgba(255,25,255,0.1);
+border-radius:5px;
+margin-bottom:5px;
+margin-top:5px;
+border-style:solid;
+border-width:1px;
+border-radius: 7px;
+padding:3px;
+cursor:help;
+}
+
+p.resource-docstring{
+color:rgb(55,55,55);
+background-color:rgba(255,255,255,0.2);
+
+}
+
+/*Tab panel stuff*/
+
+/*The tab that is actively selected*/
+.selected-tab
+{
+font-size: 135%;
+color:black;
+border-width: 3px;
+}
+
+/*The pane containing the content of a tab*/
+tab-panel tab-pane
+{
+    padding: 0.25em;
+    border-style:solid;
+    border-width: 1px;
+    border-color: grey;
+}
+
+/*The div at the top of the panel that contains the tabs you click on. We can select it like this because the only children of tab panels should be tab-pane and this
+div*/
+tab-panel div
+    {
+        border-style:solid;
+        margin-bottom:  0.4em ;
+        border-radius:9px;
+        list-style-type:none;
+        display: table;
+        border-color:grey;
+    }
+
+/*one of the tabs in the tab strip. No, I'm not sure what's really going on here. I copied and pasted from the code that does the navigation bar.*/
+tab-panel div span
+    {
+        font-weight: bold;
+        padding: 0.05em;
+        color: grey;
+        display:inline;
+        border-width:1px;
+        border-style: none solid none none;
+        display: table-cell;
+        text-align:center;
+        border-color: grey;
+        cursor: pointer;
+    }
+
+/*Widget Styles*/
+
+/*This div is the container for most of the built in widgets. */
+div.widgetcontainer
+{
+	display:inline-block;
+	background-color: rgba(70,90,70,0.25);
+	padding-top: 0px;
+	border-radius:5px;
+	border-style:inset;
+	border-width:2px;
+	color: rgb(0,0,0);
+	padding: 0px;
+	margin:2px;
+	vertical-align:text-top;
+	font-family: B612;
+}
+
+div.widgetcontainer:hover
+{
+	/*background-color: rgba(70,170,70,0.35);*/
+	background-color: var(--hover-color);
+}
+
+/*Numeric Process Value. These spans are intended for displays of changing numbers.*/
+span.numericpv
+{
+	background-color: rgba(255,255,200,0.30);
+	cursor:crosshair;
+	font-family: B612;
+
+}
+span.numericpv:hover
+{
+	background-color: var(--hover-color);
+	cursor:crosshair;
+}
+
+
+div.sliderwidget
+{
+	min-width:3.5em;
+	text-align:center;
+	font-size:90%;
+}
+
+div.meterwidget
+{
+	text-align:center;
+}
+
+button.triggerbuttonwidget
+{
+	min-height:6em;
+}
+
+input.verticalslider
+{
+	-webkit-appearance: slider-vertical;
+     writing-mode: bt-lr;
+     height:9.2em;
+     width:1em;
+     margin: auto 0;
+}
+
+input.horizontalslider
+{
+     height:0.5em;
+     width:12em;
+
+}
+

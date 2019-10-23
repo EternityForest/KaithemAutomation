@@ -1,0 +1,304 @@
+/*****************Typography****************************/
+
+/* lora-regular - latin_cyrillic_latin-ext_cyrillic-ext */
+@font-face {
+	font-family: 'Lora';
+	font-style: normal;
+	font-weight: 400;
+	src: local('Lora Regular'), local('Lora-Regular'),
+		 url('/static/fonts/lora/lora-v14-latin_cyrillic_latin-ext_cyrillic-ext-regular.woff2'); /* Chrome 26+, Opera 23+, Firefox 39+ */
+  }
+  /* lora-italic - latin_cyrillic_latin-ext_cyrillic-ext */
+  @font-face {
+	font-family: 'Lora';
+	font-style: italic;
+	font-weight: 400;
+	src: local('Lora Italic'), local('Lora-Italic'),
+		 url('/static/fonts/lora/lora-v14-latin_cyrillic_latin-ext_cyrillic-ext-italic.woff2') format('woff2'); /* Chrome 26+, Opera 23+, Firefox 39+ */
+  }
+  /* lora-700 - latin_cyrillic_latin-ext_cyrillic-ext */
+  @font-face {
+	font-family: 'Lora';
+	font-style: normal;
+	font-weight: 700;
+	src: local('Lora Bold'), local('Lora-Bold'),
+		 url('/static/fonts/lora/lora-v14-latin_cyrillic_latin-ext_cyrillic-ext-700.woff2') format('woff2'); /* Chrome 26+, Opera 23+, Firefox 39+ */
+  }
+  /* lora-700italic - latin_cyrillic_latin-ext_cyrillic-ext */
+  @font-face {
+	font-family: 'Lora';
+	font-style: italic;
+	font-weight: 700;
+	src: local('Lora Bold Italic'), local('Lora-BoldItalic'),
+		 url('/static/fonts/lora/lora-v14-latin_cyrillic_latin-ext_cyrillic-ext-700italic.woff2') format('woff2'); /* Chrome 26+, Opera 23+, Firefox 39+ */
+  }
+
+/* b612-regular - latin */
+@font-face {
+	font-family: 'B612';
+	font-style: normal;
+	font-weight: 400;
+	src: local('B612 Regular'), local('B612Mono-Regular'),
+		 url('/static/fonts/b612/b612-v4-latin-regular.woff2') format('woff2'); /* Chrome 26+, Opera 23+, Firefox 39+ */
+  }
+  /* b612-italic - latin */
+  @font-face {
+	font-family: 'B612';
+	font-style: italic;
+	font-weight: 400;
+	src: local('B612 Italic'), local('B612Mono-Italic'),
+		 url('/static/fonts/b612/b612-v4-latin-italic.woff2') format('woff2'); /* Chrome 26+, Opera 23+, Firefox 39+ */
+  }
+  /* b612-700 - latin */
+  @font-face {
+	font-family: 'B612';
+	font-style: normal;
+	font-weight: 700;
+	src: local('B612 Bold'), local('B612Mono-Bold'),
+		 url('/static/fonts/b612/b612-v4-latin-700.woff2') format('woff2'); /* Chrome 26+, Opera 23+, Firefox 39+ */
+  }
+  /* b612-700italic - latin */
+  @font-face {
+	font-family: 'B612';
+	font-style: italic;
+	font-weight: 700;
+	src: local('B612 Bold Italic'), local('B612Mono-BoldItalic'),
+		 url('/static/fonts/b612/b612-v4-latin-700italic.woff2') format('woff2'); /* Chrome 26+, Opera 23+, Firefox 39+ */
+  }
+
+  body{
+		font-family: Lora;
+		font-size: 16px+1.5vw;
+	}
+button,a.button,label
+{
+	font-family: 'B612';
+	text-shadow: 0px 0px 8px rgba(255, 255, 255 0.5);
+
+}
+
+/********************Behavior****************************/
+body {
+    /* Disables pull-to-refresh but allows overscroll glow effects. */
+    overscroll-behavior-y: contain;
+  }
+
+/********************Basic Layout******************************/
+
+#nav div
+{
+	text-align:center;
+	font-size:16px;
+	flex-grow: 0.98;
+	flex-shrink: 0;
+	margin:2px;
+	display: inline-block;
+}
+#nav {
+	margin-top: 1px;
+	margin-bottom: 0.3em;
+	margin-left: auto;
+	margin-right: auto;
+	width:100%;
+	list-style-type:none;
+	display: flex;
+	flex-wrap: wrap;
+	padding:2px;
+}
+
+#nav div
+{
+	border-width:1px;
+	border-style: solid;
+	border-color: grey;
+	font-size:130%;
+	border-radius: 5px;
+}
+#nav {
+	border-style:solid;
+	border-width: 1px;
+	border-radius:9px;
+	border-color:grey;
+	padding:2px;
+}
+
+/*This is a paragraph serving a similar funtion to the menu bars at the top of desktop application windows*/
+p.menubar div.menubar{
+	background-color:rgba(255,25,255,0.1);
+	border-radius: 7px;
+}
+	
+/*********************Code editing************************/
+
+@font-face {
+    font-family: hack;
+    src: url(/static/hack.ttf);
+}
+
+
+.monaco-editor, .monaco-editor-background {
+	background: rgb(250,255,244);
+	font-family: hack;
+}
+
+.event-trigger-edit-box
+{
+	background: rgb(250,255,244);
+}
+/* Line Numbers */
+.monaco-editor .line-numbers {
+	background-color:rgb(210,220,200);
+	color: rgb(55,30,0) !important;
+}
+
+.monaco-editor .current-line:not(.monaco-nohighlight .monaco-editor) {
+	background: rgba(150, 200, 120, 0.1)  !important;
+}
+
+pre, pre.error, pre.warning, pre.danger
+{
+	font-family: hack;
+}
+
+/*This is a paragraph serving a similar funtion to the menu bars at the top of desktop application windows*/
+p.menubar div.menubar{
+    margin:2px;
+    border-style:solid;
+    border-width:1px;
+    padding:4px;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+/*This div is the container for most of the built in widgets. */
+div.widgetcontainer
+{
+	display:inline-block;
+	background-color: rgba(70,90,70,0.25);
+	padding-top: 0px;
+	border-style:inset;
+	border-width:2px;
+	color: rgb(0,0,0);
+	padding: 0px;
+	margin:2px;
+	vertical-align:text-top;
+	font-family: B612;
+}
+
+
+
+input.modulename {width:70%}
+input.pythoncode {width:100%}
+
+/*A text area meant for describing something*/
+textarea.description {width:70%;}
+textarea.pythoncode { width:100%; overflow:"scroll";font-size:125%;}
+textarea.htmlcode {width:100%; overflow:"scroll";font-size:125%;}
+textarea.code {
+	 width:100%;
+	 overflow:"scroll";
+	 font-size:125%;
+	 }
+textarea:disabled {background-color: #D0D0D0}
+
+/*This is a help paragraph usually shown at the top or a sectionbox*/
+p.help{
+margin-bottom:5px;
+margin-top:5px;
+border-style:solid;
+border-width:1px;
+padding:3px;
+cursor:help;
+}
+
+
+/*A link styled to look like a button*/
+a.button{
+	border-color:black;
+	border-width:2px;
+	text-decoration: none;
+	border-style:outset;
+	color:#000000;
+	padding:0em 0.2em 0em 0.2em;
+	display: inline-block;
+}
+/*****************************General***********************************************************************************/
+
+/*These can be applied to jus about anything for highlighting and emphasis*/
+.error, .danger
+{
+	color: 	#900000;
+    background-color: rgba(255,200,0,0.2);
+		text-shadow: 0px 0px 6px rgba(255, 100, 100, 0.9);
+	font-family: "B612";
+
+}
+.warning
+{
+	color: 	#806600;
+	background-color: rgba(255,255,0,0.2);
+	font-family: "B612";
+
+}
+.specialentry
+{
+	color:rgba(50, 70, 100, 1);
+	text-shadow: 0px 0px 8px rgba(50, 70, 255, 1);
+}
+/*This is used for /important notifications*/
+.highlight
+{
+color: rgb(0, 50, 0);
+background-color: rgba(100,150,50,0.2);
+text-shadow: rgb(120, 255, 100) 0px 0px 10px;
+}
+
+.virtual, .computed, .inactive
+{
+    color:rgb(80,80,80);
+}
+
+
+/**Basic styling**/
+/*Tables*/
+table
+	{
+		border-style: solid;
+		border-width:3px;
+		border-collapse:collapse;
+	}
+
+/*This makes tables easier to read by coloring alternate rows differently.*/
+table tr:nth-child(odd) td
+	{
+		background-color: rgba(255,255,255,0.1);
+	}
+table tr:nth-child(even) td
+	{
+		background-color: rgba(0,0,0,0.1);
+    }
+    
+/*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
+div.sectionbox,section{
+	border-style:solid;
+	background:white;
+	border-width:2px;
+	padding-top:0.2%;
+	padding-bottom:0.5%;
+	padding-right:1%;
+	padding-left:0.5%;
+	margin:2px;
+}
+
+/* A scrollable div */
+div.scrollbox {
+	border-style:solid;
+	border-width:2px;
+	max-height:10em;
+	overflow:auto;
+	padding-top:0.5%;
+	padding-bottom:0.5%;
+	padding-right:1%;
+	padding-left:0.5%;
+	margin:3px;
+}

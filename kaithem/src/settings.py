@@ -289,6 +289,11 @@ class Settings():
         return pages.get_template("settings/save.html").render()
 
     @cherrypy.expose
+    def theming(self):
+        pages.require("/admin/settings.edit")
+        return pages.get_template("settings/theming.html").render()
+
+    @cherrypy.expose
     def savetarget(self):
         pages.require("/admin/settings.edit", noautoreturn=True)
         util.SaveAllState()
@@ -385,7 +390,6 @@ class Settings():
 
         registry.set("system/location/lat",float(kwargs['lat']))
         registry.set("system/location/lon",float(kwargs['lon']))
-        systasks.doUpnp()
 
         messagebus.postMessage("/system/settings/changedelocation",pages.getAcessingUser())
         raise cherrypy.HTTPRedirect('/settings/system')
@@ -396,8 +400,16 @@ class Settings():
         pages.postOnly()
 
         registry.set("/system/upnp/expose_https_wan_port",int(kwargs['exposeport']))
-        systasks.doUpnp()
+        systasks.doUPnP()
         raise cherrypy.HTTPRedirect('/settings/system')
+
+    @cherrypy.expose
+    def settheming(self,**kwargs):
+        pages.require("/admin/settings.edit",noautoreturn=True)
+        pages.postOnly()
+        registry.set("/system.theming/csstheme",kwargs['cssfile'])
+        raise cherrypy.HTTPRedirect('/settings/system/theming')
+
 
     @cherrypy.expose
     def changejacksettingstarget(self,**kwargs):

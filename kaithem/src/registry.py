@@ -85,6 +85,9 @@ def createRecoveryEntry(key, value, flag):
         recoveryDb.close()
 
 
+#Global cache for system registry
+cache = {}
+
 class PersistanceArea():
 
     #A special dict that works mostly like a normal one, except for it raises
@@ -280,6 +283,8 @@ class PersistanceArea():
         except:
             raise ValueError("Must be JSON Serializable")
         with reglock:
+            cache.clear()
+
             prefix = key.split("/")[0]
             f = self.open(prefix)
             if not 'keys' in f:
@@ -302,19 +307,28 @@ is_clean = True
 
 
 
+
 def get(key,default=None):
+    if key in cache:
+        return cache[key]
+
     if not exists(key):
         return default
     prefix = key.split("/")[0]
 
     with reglock:
         f = registry.open(prefix)
-        return copy.deepcopy(f['keys'][key]['data'])
 
+        v= copy.deepcopy(f['keys'][key]['data'])
+        cache[key]=v
+        return v
 
 def delete(key):
     prefix = key.split("/")[0]
     with reglock:
+        if key in cache:
+            del cache[key]
+
         f = registry.open(prefix)
         if not 'keys' in f:
             return False
@@ -323,6 +337,9 @@ def delete(key):
         createRecoveryEntry(key,None,1)
 
 def exists(key):
+    if key in cache:
+        return True
+
     prefix = key.split("/")[0]
     with reglock:
         f = registry.open(prefix)
