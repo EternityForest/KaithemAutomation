@@ -27,7 +27,7 @@ There's a built in realtime websocket-based log viewer to assist with debugging,
 
 Kaithem includes a library for common automation tasks such as file IO, timing, executing functions in the background, formatting numbers, and more, including a graphical lighting console and a mixing board supporting multiple soundcards!
 
-![Lighting control](screenshots/basictheme_lightboard.jpg)
+![Lighting control](screenshots/basictheme_lightboard.png)
 (Lightboard shown with basic theme)
 
 Kaithem is still beta, but I've used it in production applications running for months at a time. 
