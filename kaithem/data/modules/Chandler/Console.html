@@ -284,13 +284,13 @@ from src import tagpoints
         <button v-on:click="showhidefixtures"><img src="/zipstatic/img/icons/fugue.zip/traffic-light--pencil.png"></img> Fixture Types</button>
         <button v-on:click="showhidefixtureassignments"><img src="/zipstatic/img/icons/fugue.zip/light-bulb.png"></img>Fixture Assignments</button>
         <button v-on:click="showevents=!showevents"><img src="/zipstatic/img/icons/fugue.zip/application-terminal.png"></img>Console</button>
+        <a class="button" href="/pages/Chandler/docs/index" target="_blank"><img src="/zipstatic/img/icons/fugue.zip/book-question.png">Help</a>
         </div>
     
         <div class="menubar"  style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;">
             <b>Keybindings:</b>
-            <button v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}"><img src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>Edit</button>
-            <button v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}"><img src="/zipstatic/img/icons/fugue.zip/tick-octagon.png"></img>Run</button>
-            <button v-on:click="showKeyBindings=!showKeyBindings"><img src="/zipstatic/img/icons/fugue.zip/eye.png"></img>Show/Hide</button>
+            <button v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}"><img src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>Edit Mode</button>
+            <button v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}"><img src="/zipstatic/img/icons/fugue.zip/tick-octagon.png"></img>Send Events</button>
         </div>
         <div class="menubar"  style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;">
             <b>View:</b>
@@ -620,8 +620,8 @@ from src import tagpoints
 
         <div v class="sectionbox" style="float:left;overflow: auto; width:20%; min-width: 15em; height:90%; resize:both;">
             <label>
-            <input size=8 title="Enter a cue's shortcut code here to activate it'" placeholder="Shortcut"
-                v-model="sc_code" v-on:keydown.enter="shortcut()"></input>
+            <input size=8 title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected." placeholder="Shortcut"
+                v-model="sc_code" v-on:keydown.enter="shortcut()" v-on:focus="keyboardJS.pause();" v-on:blur="keyboardJS.resume();"></input>
         </label>
             <button v-on:click="shortcut()">Go!</button>
 
@@ -716,7 +716,7 @@ from src import tagpoints
                             <input type="number" v-on:change="setlength(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].length">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
 
                         <td data-label="Next Cue:">
-                            <select style="width:5em" v-model="i[1].next" v-if="Object.keys(scenecues[scenename]).length<600" autocomplete=off title="Select a cue to activate when this one ends"
+                            <select style="width:100%" v-model="i[1].next" v-if="Object.keys(scenecues[scenename]).length<600" autocomplete=off title="Select a cue to activate when this one ends"
                                 v-on:input="setnext(i[1].id,$event.target.value)">
                                 <option value="">&gt&gt&gt</option>
                                 <option v-for="j in formatCues(1)" v-bind:value="j[1].name">{{j[1].number}}: {{j[1].name}}</option>
@@ -785,7 +785,6 @@ from src import tagpoints
                 
                 <div style="overflow: scroll; max-height:30em;" class="logicbox" v-if="scenetab=='logic'">
                     <h3>{{currentcue.name}} Automation</h3>
-                    {{currentcue.rules}}
                    <div>
                         <h2>Automation Logic</h2>
                         <p class="help">Here you can create rules that apply whenever the scene is in this cue, to do things like trigger other cues when this
@@ -805,7 +804,7 @@ from src import tagpoints
                         </p>
                     </div>
                     <script-editor v-model="currentcue.rules" v-on:input="setCueRules(currentcueid, $event);" v-bind:commands="availableCommands"
-                    v-bind:scenes="cueNamesBySceneName()" v-bind:vars="editingScene.vars"> </script-editor>
+                    v-bind:scenes="cueNamesBySceneName()" v-bind:pinnedvars="specialvars" v-bind:vars="editingScene.vars"> </script-editor>
                     <h3>Scene Variables</h3>
                     <table border="1">
 
@@ -1167,39 +1166,6 @@ from src import tagpoints
         </div>
 
     </div>
-
-    <section style="float:left; width:30%;" v-if="showKeyBindings">
-        <h3>Key Bindings</h3>
-        <button v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}"><img src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>Off</button>
-        <button v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}"><img src="/zipstatic/img/icons/fugue.zip/tick-octagon.png"></img>On</button>
-        <button v-on:click="showKeyBindings=0"><img src="/zipstatic/img/icons/fugue.zip/eye.png"></img>Hide</button>
-
-        Show Help:
-        <input type="checkbox" v-model="showkeybindhelp">
-        <p class=meubar>Current Bank: {{currentBindingBank}}</p>
-        <div v-if="showkeybindhelp">
-            <p class="help">
-                One keybinding per line, as in space+x: go scene<br> Valid commands:
-                <br>sc [shortcutcode]
-                <br>go [scene]<br> stop [scene]<br>goto [scene] [cue]
-                <br>next [scene]<br> toggle [scene].<br><br> To organize bindings
-                into banks, <br>put the bank's name in square brackets on a line.<br>                when the page loads, the bank is 'default'.<br> To switch banks,
-                use the bank [name] command.
-                <br><br> Use the goto command to make a scene jump to a cue.<br> Example
-                "a: goto scenename cuename". You can use either the cue number or
-                the cue name in a binding.</br><br> Use sc to trigger all cues attached
-                to a given shortcut code. Example: "a: sc code"</br>
-                Use go to activate a scene, stop to stop it, and toggle to toggle it.
-
-            </p>
-        </div>
-        <p>
-            <textarea rows=30 style="width: 90%" v-model="keybindscript" v-on:focus="editMode"></textarea>
-        </p>
-        <button v-on:click="localStorage.setItem('keybind-script',keybindscript)">Save these keybindings to my browser as the defaults</button>
-
-
-    </section>
 <div v-if="showevents" style="height:25em">
 </div>
 
@@ -1390,6 +1356,7 @@ from src import tagpoints
             'unixtime': 0,
             'serports': [],
             'bindingsListTest':[],
+            'keyboardJS':keyboardJS,
             //Code view for the fixture assignments
             'fixturescode': '',
             //Index by name
@@ -1405,6 +1372,10 @@ from src import tagpoints
             'newcueu': '',
             'newcuevnumber':'',
             'newscenename':'',
+            'specialvars':{
+                '_':["_","Output of the previous action"]   
+            },
+
 
             //The code in the fixture edit as code box
             'fixturecode':'',
@@ -1416,12 +1387,9 @@ from src import tagpoints
             //What universe if any to show the full settings page for
             'universeFullSettings': false,
         
-
-            'showkeybindhelp': false,
             'showfixtureassg': false,
             'fixtureassg': '',
             'showsoundoptions': false,
-            'showKeyBindings': false,
             'showevents': false,
             'evtosend': '',
             'evtypetosend': 'float',
@@ -2377,7 +2345,6 @@ from src import tagpoints
             {
                 keyboardJS.reset();
                 appData.keybindmode = "edit";
-                appData.showKeyBindings = true;
             },
             'runMode': function()
             {
@@ -2399,8 +2366,8 @@ from src import tagpoints
             el: '#app',
             data: appData,
             components: {
-                "combo-box": httpVueLoader('ComboBox.vue'),
-                "script-editor": httpVueLoader('ScriptEditor.vue')
+                "combo-box": httpVueLoader('ui/ComboBox.vue'),
+                "script-editor": httpVueLoader('ui/ScriptEditor.vue')
                 },
             computed:
             {
@@ -2739,140 +2706,23 @@ from src import tagpoints
 
             }
         }
-        var goScene = function(sc)
-        {
-            return function()
-            {
-                appData.goByName(sc);
-            }
-        }
 
-        var toggleScene = function(sc)
-        {
-            return function()
-            {
-                appData.toggleByName(sc);
-            }
-        }
-        var stopScene = function(sc)
-        {
-            return function()
-            {
-                appData.stopByName(sc);
-            }
-        }
-        var switchBank = function(b)
-        {
-            return function()
-            {
-                appData.currentBindingBank = b.trim();
-                rebind(appData.keybindscript);
-            }
-        }
 
+    
+        keyHandle = function(e)
+        {
+            e.preventRepeat();
+            api_link.send(['event', "keydown."+e.key, 1, 'int',"__global__"])
+        }
+      keyUpHandle = function(e)
+        {
+            api_link.send(['event', "keyup."+e.key, 1, 'int',"__global__"])
+        }
         rebind = function(data)
         {
-
-
-            var banks = data.split("[")
             keyboardJS.reset()
-            for (var bank in banks)
-            {
-                var lines = banks[bank].split('\n')
-                //Only happens when a bank switch line is found,
-                //so everything before that is available in all banks
-                if (lines[0].includes("]"))
-                {
-
-                    var firstline = lines[0].replace("]", "").trim()
-
-                    if (firstline != appData.currentBindingBank)
-                    {
-                        continue;
-                    }
-                    lines.splice(0, 1);
-                }
-
-                for (var i in lines)
-                {
-
-                    var line = lines[i].split(":")
-                    if (line[1])
-                    {
-                        try
-                        {
-                            binding = line[0].trim()
-                            command = line[1].trim()
-                            command = command.split(" ")
-
-
-
-                            if (binding.startsWith('gamepad'))
-                            {
-                                var x = { 'a': 'button_1', 'A': 'button_1', 'b': 'button_2', 'B': 'button_2' }
-                                    [binding.split('.')[1]]
-                                if (command[0] == 'goto')
-                                {
-
-                                }
-                                gamepad.on('press', x, goto(command[1],
-                                    command.slice(2).join('').trim()
-                                ))
-
-                            }
-                            else
-                            {
-
-                                if (command[0] == 'go')
-                                {
-                                    keyboardJS.bind(binding, goScene(
-                                        command[1]))
-                                }
-                                if (command[0] == 'sc')
-                                {
-                                    keyboardJS.bind(binding, shortcut(
-                                        command[1]))
-                                }
-                                if (command[0] == 'goto')
-                                {
-                                    keyboardJS.bind(binding, goto(command[1],
-                                        command.slice(2).join('').trim()
-                                    ))
-                                }
-                                if (command[0] == 'toggle')
-                                {
-                                    keyboardJS.bind(binding, toggleScene(
-                                        command[1]))
-                                }
-                                if (command[0] == 'stop')
-                                {
-                                    keyboardJS.bind(binding, stopScene(
-                                        command[
-                                            1]))
-                                }
-                                if (command[0] == 'bank')
-                                {
-                                    //Bank switch on key up, to make sure they run after other stuff
-                                    keyboardJS.bind(binding, (pass) => 0,
-                                        switchBank(command[
-                                            1]))
-                                }
-                                if (command[0] == 'next')
-                                {
-                                    keyboardJS.bind(binding, next(command[
-                                        1]))
-                                }
-                            }
-                        }
-                        catch (e)
-                        {
-                            alert("Bad binding script line:" + lines[i] +
-                                e)
-                        }
-                    }
-
-                }
-            }
+            keyboardJS.bind(keyHandle)
+            keyboardJS.bind(null,keyUpHandle)
 
         }
 

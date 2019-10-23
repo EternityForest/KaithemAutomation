@@ -3414,7 +3414,7 @@ if __name__=='__setup__':
                 self.valueschanged={}
     
     def event(s,value=None, info=''):
-        disallow_special(s, allow=".")
+        #disallow_special(s, allow=".")
         with module.lock:
             try:
                 for i in module.boards:
