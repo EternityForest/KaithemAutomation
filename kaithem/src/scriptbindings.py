@@ -204,13 +204,22 @@ class ScheduleTimer():
             raise ValueError("Invalid")
 
         self.selector = recur.getConstraint(selector[1:])
-        self.nextruntime = self.selector.after(datetime.datetime.now(),True)
-        self.next=scheduler.schedule(self.handler, dt_to_ts(self.nextruntime,self.selector.tz), False)
+        nextruntime = self.selector.after(datetime.datetime.now(),True)
+        self.nextruntime=dt_to_ts(nextruntime,self.selector.tz)
+        self.next=scheduler.schedule(self.handler, self.nextruntime, False)
 
     def handler(self,*a,**k):
-        self.nextruntime = self.selector.after(datetime.datetime.now(),True)
-        self.next=scheduler.schedule(self.handler, dt_to_ts(self.nextruntime,self.selector.tz), False)
+        nextruntime = self.selector.after(datetime.datetime.now(),True)
+        self.nextruntime=dt_to_ts(nextruntime,self.selector.tz)
+        self.next=scheduler.schedule(self.handler, self.nextruntime, False)
         self.context().event(self.eventName)
+        self.context().onTimerChange(self.eventName,self.nextruntime)
+    
+    def stop(self):
+        try:
+            self.next.unregister()
+        except:
+            pass
 
 import pytz
 def dt_to_ts(dt,tz=None):
@@ -313,6 +322,8 @@ class ChandlerScriptContext():
         else:
             self.gil = gil
 
+    def onTimerChange(self, timer, nextRunTime):
+        pass
 
     def _runCommand(self,c):
         a = self.commands.get(c[0],None)
@@ -402,13 +413,19 @@ class ChandlerScriptContext():
                     self.eventListeners[i[0]]=[]
                 self.eventListeners[i[0]].append(i[1])
 
-                if i[0] and i[0].strip()[0]=='@':
-                    self.timeEvents[i[0]]= ScheduleTimer(i[0],self)
-
+    def startTimers(self):
+        with self.gil:
+            for i in self.eventListeners:
+                if i and i.strip()[0]=='@':
+                    self.timeEvents[i]= ScheduleTimer(i,self)
+                    self.onTimerChange(i,self.timeEvents[i].nextruntime)
 
     def clearBindings(self):
         with self.gil:
             self.eventListeners={}
+            for i in self.timeEvents:
+                self.timeEvents[i].stop()
+            self.timeEvents = {}
 
 ##### SELFTEST ##########
 

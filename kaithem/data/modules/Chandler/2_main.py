@@ -176,8 +176,14 @@ if __name__=='__setup__':
         "Set the alpha value of a scene"
         module.scenes_by_name[scene].setAlpha(float(alpha))
     
+    def ifCueCommand(scene, cue):
+        "True if the scene is running that cue"
+        return True if module.scenes_by_name[scene].active and module.scenes_by_name[scene].cue.name == cue else None
+    
+    
     rootContext.commands['goto']=gotoCommand
     rootContext.commands['setAlpha']=setAlphaCommand
+    rootContext.commands['ifCue']=ifCueCommand
     
     def listsoundfolder(path):
         soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
@@ -997,6 +1003,7 @@ if __name__=='__setup__':
             except:
                 rl_log_exc("Error handling var set notification")
                 print(traceback.format_exc())
+    
         def event(self,e,v=None):
             ChandlerScriptContext.event(self,e,v)
             try:
@@ -1005,7 +1012,16 @@ if __name__=='__setup__':
             except:
                 rl_log_exc("error handling event")
                 print(traceback.format_exc())
-            
+        
+        def onTimerChange(self,timer, run):
+            self.sceneObj().runningTimers[timer]=run
+            try:
+                for i in module.boards:
+                    i().link.send(['scenetimers',self.scene, self.sceneObj().runningTimers])
+            except:
+                rl_log_exc("Error handling timer set notification")
+                print(traceback.format_exc())
+    
     
     class ChandlerConsole():
         "Represents a web GUI board. Pretty much the whole GUI app is part of this class"
@@ -1331,7 +1347,8 @@ if __name__=='__setup__':
                               'subs': subs,
                               'subslist': subslist,
                               'soundOutput': scene.soundOutput,
-                              'vars':v
+                              'vars':v,
+                              'timers': scene.runningTimers
     
                     }])
                     
@@ -2547,6 +2564,9 @@ if __name__=='__setup__':
                 self.pavillionSetup()
     
             self.enteredCue = 0
+            
+            #Map event name to runtime as unix timestamp
+            self.runningTimers ={}
     
     
             self.priority = priority
@@ -3077,14 +3097,24 @@ if __name__=='__setup__':
                 if not self.scriptContext:
                     self.scriptContext = DebugScriptContext(rootContext,variables=self.chandlerVars,gil=module.lock)
                     self.scriptContext.scene = self.id
+                    self.scriptContext.sceneObj = weakref.ref(self)
                     self.scriptContext.sceneName = self.name
     
                 self.scriptContext.clearBindings()
+                self.runningTimers ={}
+                try:
+                    for i in module.boards:
+                        i().link.send(['scenetimers',self.name, self.runningTimers])
+                except:
+                    rl_log_exc("Error handling timer set notification")
                 ##Legacy stuff
                 if (rulesFrom or self.cue).script:
                     self.scriptContext.addBindings(parseCommandBindings((rulesFrom or self.cue).script))
                 #Actually add the bindings
                 self.scriptContext.addBindings((rulesFrom or self.cue).rules)
+    
+                self.scriptContext.startTimers()
+                
     
         def nextCue(self,t=None):
             with module.lock:
