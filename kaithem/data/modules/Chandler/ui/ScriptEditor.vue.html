@@ -46,10 +46,18 @@ template-engine: none
     }
     
     .inspector {
+        background-color: rgba(255,255,255,0.5);
         max-width: 15em;
         border-style: solid;
         border-width: 1px;
         border-color: black;
+        padding: 0.5em;
+        border-radius: 5px;
+    }
+    .rulesbox
+    {
+        background-color: rgba(255,255,255,0.5);
+        padding: 0.5em;
     }
 </style>
 <template>
@@ -76,11 +84,13 @@ template-engine: none
                 <div v-if="selectedCommand" class="inspector">
                     <h3>Block Inspector</h3>
                     Type
-                    <combo-box v-model="selectedCommand[0]" v-bind:options="getPossibleActions()" v-on:input="setCommandDefaults(selectedCommand);"
+                    <combo-box v-model="selectedCommand[0]" v-bind:options="getPossibleActions()"   v-bind:pinned="getSpecialActions()" v-on:input="setCommandDefaults(selectedCommand);"
                         v-on:change="$emit('input',rules);"></combo-box>
                         <h4>Config</h4>
                         <div v-if="selectedCommand[0]=='set'">
-                            Set a variable named <input v-model="selectedCommand[1]" v-on:change="$emit('input',rules)"> <br>to<br> <input v-model="selectedCommand[2]"  v-on:change="$emit('input',rules)"><br>                            and always return True.
+                            Set a variable named <combo-box v-model="selectedCommand[1]" v-bind:pinned="pinnedvars" v-on:change="$emit('input',rules)"></combo-box> <br>to<br> <combo-box v-model="selectedCommand[2]"  
+                            v-on:change="$emit('input',rules)"></combo-box><br>
+                            and always return True.
                         </div>
 
                         <div v-if="selectedCommand[0]=='pass'">
@@ -101,7 +111,7 @@ template-engine: none
                         <div v-if="(!(selectedCommand[0] in specialCommands)) && ((selectedCommand[0] in commands))">
                             <table>
                                 <tr v-for="i in commands[selectedCommand[0]].args.keys()">
-                                    <td>{{commands[selectedCommand[0]].args[i]}}</td>
+                                    <td>{{commands[selectedCommand[0]].args[i][0]}}</td>
                                     <td><input v-model="selectedCommand[i+1]" v-on:change="$emit('input',rules)"></td>
                                 </tr>
                             </table>
@@ -122,7 +132,7 @@ template-engine: none
 
                 <div style="display:flex;flex-direction:column;">
                     <h3>Event Actions</h3>
-                    <div style="overflow:scroll">
+                    <div  class="rulesbox" style="overflow:scroll">
                         <div v-for="i in rules" style="display:flex;flex-direction:row;">
                             <button v-bind:class="{bindingname:1,selected:selectedBinding==i&selectedCommand==0}" v-on:click="selectedBindingIndex=rules.indexOf(i); selectedCommandIndex=-1">
                     <p class="small">When</p>
@@ -152,8 +162,18 @@ template-engine: none
                                         of the time,</br> otherwise
                                         stop.
                                     </div>
-
-                                    <div v-if="!(j[0] in specialCommands)">
+                                    <div style="width:8em;overflow:hidden" v-if="(!(j[0] in specialCommands)) && ((j[0] in commands))">
+                                        {{j[0]}}<br>
+                                        <table border=1 style="width:100%">
+                                            <tr v-for="i in commands[j[0]].args.keys()">
+                                                <td>{{commands[j[0]].args[i][0]}}</td>
+                                                <td>{{j[i+1]}}</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                
+                                
+                                    <div v-if="!(j[0] in specialCommands) && (!(j[0] in commands))">
                                     {{j}}
                                     </div>
                             </button>
@@ -178,9 +198,9 @@ template-engine: none
 <script>
     module.exports={
 
-    props: ['value','commands','scenes'],
+    props: ['value','commands','scenes','pinnedvars'],
     components:{
-        "combo-box": httpVueLoader("ComboBox.vue")
+        "combo-box": httpVueLoader("ui/ComboBox.vue")
     },
     watch: {
         value: function(newVal) { 
@@ -240,10 +260,22 @@ template-engine: none
                 arr[indexB] = temp;
             },
             rules:this.value,
-            eventsList: [['now', "Run when script loads"],['cue.exit','When exiting a cue'],['cue.enter','When entering a cue']],
+            eventsList: [['now', "Run when script loads"],['cue.exit','When exiting a cue'],['cue.enter','When entering a cue'], ['keydown.a',"When a lowercase A is pressed in the Send Events mode"]],
             
 
             getPossibleActions: function()
+            {
+                var l =[];
+                 for (i in this.commands)
+                {
+                    if(!(i in this.specialCommands))
+                    l.push([i,this.commands[i].doc])
+                }
+                return l
+            },
+
+
+            getSpecialActions: function()
             {
                 var l =[];
                 for (i in this.specialCommands)
@@ -258,11 +290,7 @@ template-engine: none
                         l.push([i,this.commands[i].doc])
                     }
                 }
-                 for (i in this.commands)
-                {
-                    if(!(i in this.specialCommands))
-                    l.push([i,this.commands[i].doc])
-                }
+        
                 return l
             },
 

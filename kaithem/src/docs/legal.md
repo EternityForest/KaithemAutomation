@@ -1346,6 +1346,7 @@ Libraries used in plugins
 ### Graphics
   - [Webtreats ETC(Main background in the default scrapbook
     theme)](http://webtreats.mysitemyway.com/)
+  - [kaithem_scrapbook_green background is CC-BY-2.0 from webtreats flickr](https://www.flickr.com/photos/44071822@N08/)
   - [Silk Icon Pack( Creative Commons Attribution
     2.5)](http://www.famfamfam.com/lab/icons/silk/)
   - [kevie at

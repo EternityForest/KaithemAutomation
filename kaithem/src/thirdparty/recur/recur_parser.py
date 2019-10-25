@@ -17,16 +17,14 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import tatsu
 import os
-import logging
-
-grammar = """
+grammar = r"""
 @@left_recursion :: False
 @@ignorecase :: True
 start =for_statements [syntax_error];
 #Basic stuff to do with how constraints are combined
 atomic_constraint = timezone|intervalconstraint|nintervalconstraint|startingat|nthweekdayconstraint|weekdayconstraint|
                     monthdayconstraint|betweentimesofdayconstraint|yeardayconstraint|
-                    timeofdayconstraint|aftertimeofdayconstraint|beforetimeconstraint|beforetimeofdayconstraint|monthconstraint|
+                    timeofdayconstraint|aftertimeofdayconstraint|beforetimeconstraint|beforetimeofdayconstraint|dateconstraint|monthconstraint|
                     ('(' and_constraint ')')|except_constraint;
 
 syntax_error = /[.\w]+/;
@@ -47,6 +45,8 @@ timeinterval = number ("seconds" | "minutes" |"hours" | "days" | "weeks");
 number = /\d+[\.]\d+/;
 integer = /\d+/;
 ordinal = 'first'|'second'|'third'|'1st'|'2nd'|'3rd'|'other'|/\d\d?th/;
+ordinal_noother = 'first'|'second'|'third'|'1st'|'2nd'|'3rd'|'other'|/\w*\d\d?th/;
+
 enumber = 'one'|'two'|'three'|'four'|'five'|'six'|'seven' | 'eight' | 'nine' | 'ten';
 
 #If it looks like 02:45, assume 24 hour time.
@@ -60,9 +60,9 @@ year = /\d\d\d\d\d*/;
 month = 'jan'|'january'|'feb'|'february'|'mar'|'march'|'apr'|'april'|'may'|'jun'|'june'|'jul'|'july'|'aug'|'august'|'sep'|
         'september'| 'nov'| 'november'|'dec'|'december'|'Jan'|'January'|'Feb'|'February'|'Mar'|'March'|'Apr'|'April'|'May'|'Jun'|'June'|'Jul'|'July'|'Aug'|'August'|'Sep'|
         'September'| 'Nov'| 'November'|'Dec'|'December';
-dayofmonth = ordinal| /\d\d?/;
+dayofmonth = ordinal_noother| /\d\d?/;
 date = (month:month dayofmonth:dayofmonth) | (dayofmonth:dayofmonth month:month) | ('the' dayofmonth:dayofmonth 'of' month:month);
-dates = {@+:date ','|"and"|/, +and/}+;
+dates = {@+:date [','|"and"|/, +and/]}+;
 datewithyear = (month:month dayofmonth:dayofmonth year:year) | (dayofmonth:dayofmonth month:month year:year);
 datetime = (time:time date:date)| (time:time 'on' date:date) | (date:date 'at' time:time);
 datetimewithyear = (time:time date:datewithyear)| (time:time 'on' date:datewithyear) | (date:datewithyear 'at' time:time )| date:datewithyear;
@@ -81,7 +81,7 @@ beforetimeconstraint = ('before'|'until') before:datetimewithyear;
 betweentimesofdayconstraint = ('between' @+:time 'and' @+:time)| ('from' @+:time 'to' @+:time);
 nintervalconstraint = ('every' integer intervals) | ('every' ordinal interval)  | ('every' enumber intervals);
 intervalconstraint = ('every' interval);
-dateconstraint = (["on"] dates) | ('every year on') date;
+dateconstraint = ['on'|'every year on'] date;
 datewithyearconstraint = (["on"] datewithyear);
 yeardayconstraint = "on the " ordinal "day of the year";
 monthdayconstraint = "on the"  @+:ordinal {[','] @+:ordinal} [[',']'and'  @+:ordinal] [["day"] "of the month"];
@@ -97,18 +97,16 @@ startingat = ("starting" ['at'|'on'] @:datetimewithyear) |"starting on" weekday:
 
 compiled_path = os.path.join(os.path.dirname(__file__),"compiledparser.py")
 if __name__ == "__main__":
-    #DON'T EDIT THIS FILE AT ALL WITHOUT UPDATING THE PRECOMPILED. IT
-    #WILL BE SLOW!!!
     #Run as main to build precompiled
     with open(compiled_path,"w") as f:
         f.write(tatsu.to_python_sourcecode(grammar))
 else:
     try:
-        if os.path.exists(compiled_path):
+        #If this file has been changed don't use the old cache
+        if os.path.exists(compiled_path) and os.path.getmtime(__file__)< os.path.getmtime(compiled_path):
             from . compiledparser import UnknownParser as parser
             parser = parser()
         else:
-            logging.warning("No current precompiled parser for Recur. On demand compilation is slow")
             parser = tatsu.compile(grammar)
     except:
         raise

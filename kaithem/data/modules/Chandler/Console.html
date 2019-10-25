@@ -188,7 +188,6 @@ from src import tagpoints
     }
 
     </script>
-    <script src="gamepad.js"></script>
 
     <script src="/static/js/vue2.js"></script>
     <script src="/static/js/http-vue-loader.js"></script>
@@ -788,20 +787,7 @@ from src import tagpoints
                    <div>
                         <h2>Automation Logic</h2>
                         <p class="help">Here you can create rules that apply whenever the scene is in this cue, to do things like trigger other cues when this
-                            one enters, but only under certain conditions.</p>
-                        <p>Each row is a left-to-right sequence that starts with a trigger and stops at the end, or when a command does not return
-                            anything
-                        </p>
-
-                        <p>The block inspector will tell you what commands return. Generally they will answer "True" and continue the action, unless
-                            they are Questions. in which case they will answer with None(stopping the action) if the answer to the question is No.
-                        </p>
-                        <p>Any parameter for a block that starts with = is considered a math expression that may use variables,boolean logic, and
-                            text operations (Similar to spreadsheets)</p>
-
-                        <p>Some blocks may return an interesting number,boolean, or text value. You may access it in the next block as the variable
-                            _ just like many scientific calculators.
-                        </p>
+                            one enters or exits. <a href="/pages/Chandler/docs/RulesEngine">Documentation</a></p>
                     </div>
                     <script-editor v-model="currentcue.rules" v-on:input="setCueRules(currentcueid, $event);" v-bind:commands="availableCommands"
                     v-bind:scenes="cueNamesBySceneName()" v-bind:pinnedvars="specialvars" v-bind:vars="editingScene.vars"> </script-editor>
@@ -2681,7 +2667,7 @@ from src import tagpoints
         setInterval(function()
         {
             appData.unixtime = api_link.now() / 1000
-        }, 1000 / 10)
+        }, 1000 / 14)
         var shortcut = function(sc)
         {
             return function()
@@ -2708,14 +2694,32 @@ from src import tagpoints
         }
 
 
-    
+        keysdown = {}
         keyHandle = function(e)
         {
+            if(keysdown[e.key]!=undefined)
+            {
+                if(keysdown[e.key])
+                {
+                    return;
+                }
+                
+            }
+            keysdown[e.key]=true;
             e.preventRepeat();
             api_link.send(['event', "keydown."+e.key, 1, 'int',"__global__"])
         }
       keyUpHandle = function(e)
         {
+             if(keysdown[e.key]!=undefined)
+            {
+                if(!keysdown[e.key])
+                {
+                    return;
+                }
+                
+            }
+            keysdown[e.key]=false;
             api_link.send(['event', "keyup."+e.key, 1, 'int',"__global__"])
         }
         rebind = function(data)

@@ -997,7 +997,14 @@ if __name__=='__setup__':
             except:
                 rl_log_exc("Error handling var set notification")
                 print(traceback.format_exc())
-    
+        def event(self,e,v=None):
+            ChandlerScriptContext.event(self,e,v)
+            try:
+                for i in module.boards:
+                    i().pushEv(e, self.sceneName,module.timefunc(),value=v)
+            except:
+                rl_log_exc("error handling event")
+                print(traceback.format_exc())
             
     
     class ChandlerConsole():
@@ -1170,8 +1177,8 @@ if __name__=='__setup__':
                 pass
     
             
-        def pushEv(self,event,target,time, value=None,info=""):
-            self.link.send(['event',[event, target,kaithem.time.strftime(time),value, info]])
+        def pushEv(self,event,target,t=None, value=None,info=""):
+            self.link.send(['event',[event, target,kaithem.time.strftime(t or time.time() ),value, info]])
                 
         def pushfixtures(self):
             "Errors in fixture list"
@@ -3070,6 +3077,7 @@ if __name__=='__setup__':
                 if not self.scriptContext:
                     self.scriptContext = DebugScriptContext(rootContext,variables=self.chandlerVars,gil=module.lock)
                     self.scriptContext.scene = self.id
+                    self.scriptContext.sceneName = self.name
     
                 self.scriptContext.clearBindings()
                 ##Legacy stuff

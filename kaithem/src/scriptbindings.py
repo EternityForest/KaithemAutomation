@@ -174,16 +174,56 @@ def maybe(chance=50):
     "Return a True with some percent chance, else stop the action"
     return True if  random.random()*100>chance else None
 
+def continueIf(v):
+    "Continue if the first parameter is True"
+    return True if v else None
+
 predefinedcommands={
     'return':rval,
     'pass': passAction,
     'maybe':maybe,
-    'lorem': lorem
+    'continueIf': continueIf
 }
 
 
 lock = threading.Lock()
 
+import datetime
+
+from .scheduling import scheduler
+class ScheduleTimer():
+    def __init__(self,selector,context):
+        import recur
+        self.eventName=selector
+        self.context=weakref.ref(context)
+
+        selector = selector.strip()
+        if not selector:
+            return
+        if not selector[0]=='@':
+            raise ValueError("Invalid")
+
+        self.selector = recur.getConstraint(selector[1:])
+        self.nextruntime = self.selector.after(datetime.datetime.now(),True)
+        self.next=scheduler.schedule(self.handler, dt_to_ts(self.nextruntime,self.selector.tz), False)
+
+    def handler(self,*a,**k):
+        self.nextruntime = self.selector.after(datetime.datetime.now(),True)
+        self.next=scheduler.schedule(self.handler, dt_to_ts(self.nextruntime,self.selector.tz), False)
+        self.context().event(self.eventName)
+
+import pytz
+def dt_to_ts(dt,tz=None):
+    "Given a datetime in tz, return unix timestamp"
+    if tz:
+        utc = pytz.timezone('UTC')
+        return ((tz.localize(dt.replace(tzinfo=None)) - datetime.datetime(1970,1,1,tzinfo=utc)) / datetime.timedelta(seconds=1))
+
+    else:
+        #Local Time
+        ts = time.time()
+        offset = (datetime.datetime.fromtimestamp(ts) - datetime.datetime.utcfromtimestamp(ts)).total_seconds()
+        return ((dt - datetime.datetime(1970,1,1)) / datetime.timedelta(seconds=1))-offset
 
 class ScriptActionKeeper():
     "This typecheck wrapper is courtesy of two hours spent debugging at 2am, and my desire to avoid repeating that"
@@ -224,6 +264,8 @@ class ChandlerScriptContext():
         self.constants = constants if (not (constants is None)) else {}
         #Used for detecting loops
         self.eventRecursionDepth = 0
+
+        self.timeEvents={}
 
         selfid = id(self)
      
@@ -359,6 +401,9 @@ class ChandlerScriptContext():
                 if not i[0] in self.eventListeners:
                     self.eventListeners[i[0]]=[]
                 self.eventListeners[i[0]].append(i[1])
+
+                if i[0] and i[0].strip()[0]=='@':
+                    self.timeEvents[i[0]]= ScheduleTimer(i[0],self)
 
 
     def clearBindings(self):

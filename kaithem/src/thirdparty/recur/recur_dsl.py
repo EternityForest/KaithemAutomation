@@ -234,7 +234,11 @@ class semantics():
     def beforetimeofdayconstraint(self,ast):
         s = parseTime(ast[0])
         return recur.aftertime(*s)
-        
+
+    def dateconstraint(self,ast):
+        c = recur.monthday([parseOrdinal(ast['dayofmonth'])]) & recur.month([parseMonth(ast['month'])])
+        return c
+    
     def beforetimeconstraint(self,ast):
         s = parseDateTimeWithYearWithDefaults(ast['before'])
         return recur.endingat(s)  

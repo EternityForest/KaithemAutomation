@@ -116,6 +116,8 @@ class UnknownParser(Parser):
             with self._option():
                 self._beforetimeofdayconstraint_()
             with self._option():
+                self._dateconstraint_()
+            with self._option():
                 self._monthconstraint_()
             with self._option():
                 with self._group():
@@ -247,6 +249,27 @@ class UnknownParser(Parser):
                 self._token('other')
             with self._option():
                 self._pattern('\\d\\d?th')
+            self._error('no available options')
+
+    @tatsumasu()
+    def _ordinal_noother_(self):  # noqa
+        with self._choice():
+            with self._option():
+                self._token('first')
+            with self._option():
+                self._token('second')
+            with self._option():
+                self._token('third')
+            with self._option():
+                self._token('1st')
+            with self._option():
+                self._token('2nd')
+            with self._option():
+                self._token('3rd')
+            with self._option():
+                self._token('other')
+            with self._option():
+                self._pattern('\\w*\\d\\d?th')
             self._error('no available options')
 
     @tatsumasu()
@@ -469,7 +492,7 @@ class UnknownParser(Parser):
     def _dayofmonth_(self):  # noqa
         with self._choice():
             with self._option():
-                self._ordinal_()
+                self._ordinal_noother_()
             with self._option():
                 self._pattern('\\d\\d?')
             self._error('no available options')
@@ -507,16 +530,17 @@ class UnknownParser(Parser):
     def _dates_(self):  # noqa
 
         def block0():
-            with self._choice():
-                with self._option():
-                    self._date_()
-                    self.add_last_node_to_name('@')
-                    self._token(',')
-                with self._option():
-                    self._token('and')
-                with self._option():
-                    self._pattern(', +and')
-                self._error('no available options')
+            self._date_()
+            self.add_last_node_to_name('@')
+            with self._optional():
+                with self._choice():
+                    with self._option():
+                        self._token(',')
+                    with self._option():
+                        self._token('and')
+                    with self._option():
+                        self._pattern(', +and')
+                    self._error('no available options')
         self._positive_closure(block0)
 
     @tatsumasu()
@@ -806,17 +830,14 @@ class UnknownParser(Parser):
 
     @tatsumasu()
     def _dateconstraint_(self):  # noqa
-        with self._choice():
-            with self._option():
-                with self._group():
-                    with self._optional():
-                        self._token('on')
-                    self._dates_()
-            with self._option():
-                with self._group():
+        with self._optional():
+            with self._choice():
+                with self._option():
+                    self._token('on')
+                with self._option():
                     self._token('every year on')
-                self._date_()
-            self._error('no available options')
+                self._error('no available options')
+        self._date_()
 
     @tatsumasu()
     def _datewithyearconstraint_(self):  # noqa
@@ -990,6 +1011,9 @@ class UnknownSemantics(object):
         return ast
 
     def ordinal(self, ast):  # noqa
+        return ast
+
+    def ordinal_noother(self, ast):  # noqa
         return ast
 
     def enumber(self, ast):  # noqa
