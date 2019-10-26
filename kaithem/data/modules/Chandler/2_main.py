@@ -2859,6 +2859,7 @@ if __name__=='__setup__':
         def gotoCue(self, cue,t=None, sendSync=True,generateEvents=True):
             "Goto cue by name, number, or string repr of number"
             with module.lock:
+    
                 if self.canvas:
                     self.canvas.save()
     
@@ -2918,7 +2919,8 @@ if __name__=='__setup__':
                 
                 if not (cue==self.cue.name):
                     if generateEvents:
-                        self.event("cue.exit", value=self.cue.name)
+                        if self.active:
+                            self.event("cue.exit", value=self.cue.name)
     
                 
                 
@@ -2949,28 +2951,19 @@ if __name__=='__setup__':
                     rl_log_exc("Error handling script")
                     print(traceback.format_exc(6))
                 
-                if self.cue.onExit:
-                    self.cue.onExit(t)
-                
+                if self.active:
+                    if self.cue.onExit:
+                        self.cue.onExit(t)
+                    
     
     
-                if cobj.onEnter:
-                    cobj.onEnter(t)
-                
-                if generateEvents:
-                    self.event('cue.enter', cobj.name)
-    
-                # if "cue.enter" in self.commandBindings:
-                #     for i in self.commandBindings['cue.enter']:
-                #         try:
-                #             runCommand(i)
-                #         except Exception as e:
-                #             print(traceback.format_exc(6))
+                    if cobj.onEnter:
+                        cobj.onEnter(t)
+                    
+                    if generateEvents:
+                        self.event('cue.enter', cobj.name)
     
     
-    
-        
-               
     
                 #We don't fully reset until after we are done fading in and have rendered.
                 #Until then, the affect list has to stay because it has stuff that prev cues affected.
@@ -3014,7 +3007,7 @@ if __name__=='__setup__':
                 while c<50 and kaithem.sound.isPlaying(str(self.id)):
                     c+=1
                     time.sleep(0.017)
-                if self.cue.sound:
+                if self.cue.sound and self.active:
     
                     sound = self.cue.sound
     
@@ -3102,18 +3095,21 @@ if __name__=='__setup__':
     
                 self.scriptContext.clearBindings()
                 self.runningTimers ={}
+                
+                if self.active:
+                    ##Legacy stuff
+                    if (rulesFrom or self.cue).script:
+                        self.scriptContext.addBindings(parseCommandBindings((rulesFrom or self.cue).script))
+                    #Actually add the bindings
+                    self.scriptContext.addBindings((rulesFrom or self.cue).rules)
+    
+                    self.scriptContext.startTimers()
+    
                 try:
                     for i in module.boards:
                         i().link.send(['scenetimers',self.name, self.runningTimers])
                 except:
                     rl_log_exc("Error handling timer set notification")
-                ##Legacy stuff
-                if (rulesFrom or self.cue).script:
-                    self.scriptContext.addBindings(parseCommandBindings((rulesFrom or self.cue).script))
-                #Actually add the bindings
-                self.scriptContext.addBindings((rulesFrom or self.cue).rules)
-    
-                self.scriptContext.startTimers()
                 
     
         def nextCue(self,t=None):
@@ -3139,7 +3135,9 @@ if __name__=='__setup__':
                 self.canvas = FadeCanvas()
     
                 self.manualAlpha = False
+                self.active =True
     
+               
                 if not self.cue:
                     self.gotoCue('default',sendSync=False)
                 else:
@@ -3165,7 +3163,7 @@ if __name__=='__setup__':
                     module._activeScenes.append(self)
                 module._activeScenes = sorted(module._activeScenes,key=lambda k: (k.priority, k.started))
                 module.activeScenes = module._activeScenes[:]
-                self.active =True
+               
                 #Minor inefficiency rendering twice the first frame
                 self.rerender = True
                 #self.render()
@@ -3275,6 +3273,7 @@ if __name__=='__setup__':
         def stop(self):
             with module.lock:
                 #No need to set rerender
+                self.scriptContext.clearBindings()
                 self._blend =None
                 self.hasNewInfo = {}
                 self.canvas = None

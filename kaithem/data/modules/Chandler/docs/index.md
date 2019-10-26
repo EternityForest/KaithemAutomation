@@ -70,6 +70,15 @@ Scenes have a priority that determines render order.
 If two scenes have the same priority, the scene changed cues most recently
 goes "on top".
 
+#### Start/Stop logic
+Scenes can be "active" or stopped.  You can still use the goto operation to set the cue of a
+stopped scene, but it will not affect lights, sounds, trigger or respond to events, or auto-advance to the next cue.
+
+In effect, it acts as a memory to store whatever cue you set it to. When the cue becomes active, the current cue
+is freshly re-entered, restarting its timer(if any) from scratch, and retriggering the enter events.
+
+This happens even for non-reentrant cues.
+
 ### Cues
 
 A scene is a list of "cues", each of which has a set of lighting values
@@ -82,10 +91,11 @@ the next cue. The length is measured in beats, and the BPM is set per-scene.
 
 Length 0 just stops until something else happens to change the cue.
 
-
 Newly created cues are numbered by 5, with the first cue at 5, the
 second at 10, etc. You can use decimal cues down to 0.001. A cue's
 number may be changed at any time to move it around.
+
+#### Autoadvance and loops
 
 Unlike some lighting solutions, cues are also identified by name, and
 you can freely select the "next" cue that comes after any given cue.
@@ -97,6 +107,13 @@ each scene, not globally. Names can't contain special chars.
 When you don't explicitly set a next cue, it defaults to whatever comes
 next in the list, but if you do want to explicitly set the next cue, you
 do it by name not number.
+
+##### Reentrant and non-reentrant cues
+By default, cues are re-entrant. This means you can exit the cue and enter it again directly, resetting it's timer,
+replaying sounds, etc.
+
+Non rentrant cues simply silently ignore any commands to re-enter, EXCEPT when the cue becomes active again after being stopped,
+which always triggers a a re-enter on any cue.
 
 #### Shortcut Codes
 
@@ -133,6 +150,7 @@ to less than 2. The
 
 #### Cue Logic  
 
+
 Using the graphical editor, you can apply logic to cues via rules.
 
 A rule is just a list of actions to perform when an event occurs.
@@ -145,6 +163,9 @@ Actions happen in sequence until one returns None.
 
 When the chandler console is in send events mode, every keypress triggers a corresponding "keydown.X" event
 in all scenes. You can then use script bindings or cue logic to respond to these. Key up events trigger a "keyup.X" event.
+
+### The Events Console
+The Events Console lets you see a log of what events are being triggered where, and manually trigger any events.
 
 ### Universes
 

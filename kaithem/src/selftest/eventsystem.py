@@ -168,7 +168,15 @@ def _eventSystemTest():
 
     #Make sure the weakref isn't referencing
     if testObj():
-        raise RuntimeError("Object in event scope still exists after module deletion")
+        import gc
+        gc.collect(0)
+        gc.collect(1)
+        gc.collect(2)
+        gc.collect(0)
+        gc.collect(1)
+        gc.collect(2)
+        if testObj():
+            raise RuntimeError("Object in event scope still exists after module deletion and GC")
 
     messagebus.postMessage('foo',"/system/selftest")
     #If there is no y or pymodule, this test won't work but we can probably assume it unregistered correctly.
