@@ -38,7 +38,8 @@
                 "strftime": "%A, %B %d, %Y at %I:%M:%S %p %Z",
                 "tabtospace": true,
                 "timezone": "UTC",
-                "useace": true
+                "useace": true,
+                "usemonaco": false
             },
             "username": "admin"
         },
