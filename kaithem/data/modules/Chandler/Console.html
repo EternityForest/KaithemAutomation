@@ -791,11 +791,14 @@ from src import tagpoints
                 </div>
 
                 <div style="overflow: scroll; max-height:30em;" v-if="scenetab=='notes'">
-                <textarea v-model="editingScene.notes" v-on:change="setSceneNotes(scenename,$event.target.value)"></textarea>
+                    <vue-ace-editor v-model:value="editingScene.notes" v-bind:options="mdooptions"></vue-ace-editor><br>
+                    <button  v-on:click="setSceneNotes(scenename,editingScene.notes)">Save</button>
                 </div>
 
                 <div style="overflow: scroll; max-height:30em;" v-if="scenetab=='page'">
-                    <textarea v-model="editingScene.page" v-on:change="setScenePage(scenename,$event.target.value)"></textarea>
+                    <p class="help">Pages are an Advanced Feature requiring /admin/modules.edit, that allows you to create status pages for any scene. See the <a href="/pages/Chandler/docs/">Documentation</a></p>
+                    <vue-ace-editor v-model:value="editingScene.page" v-bind:options="htmloptions"></vue-ace-editor><br>
+                    <button v-on:click="setScenePage(scenename,editingScene.page)">Update Page</button><br>
                     <a v-bind:href="'scenepage?sc='+scenename" target="_blank">Go to page</a>
                 </div>
                 
@@ -805,8 +808,9 @@ from src import tagpoints
                         <p class="help">Here you can create rules that apply whenever the scene is in this cue, to do things like trigger other cues when this
                             one enters or exits. <a href="/pages/Chandler/docs/RulesEngine">Documentation</a></p>
                     </div>
-                    <script-editor v-model="currentcue.rules" v-on:input="setCueRules(currentcueid, $event);" v-bind:commands="availableCommands"
-                    v-bind:scenes="cueNamesBySceneName()" v-bind:pinnedvars="specialvars" v-bind:vars="editingScene.vars"> </script-editor>
+                    <script-editor v-model="currentcue.rules" v-on:input="setCueRules(currentcueid, $event);"
+                     v-bind:commands="availableCommands"  v-bind:scenes="cueNamesBySceneName()"
+                      v-bind:pinnedvars="specialvars" v-bind:vars="editingScene.vars"> </script-editor>
                     <div style="display:flex;flex-wrap:wrap;">
                         <div style="border-style:solid;flex-grow:3;margin:0.5em;padding:0.5em;">
                             <h3>Scene Variables</h3>
@@ -847,7 +851,7 @@ from src import tagpoints
                         <button  v-bind:class="{highlight:scenetab=='blend'}" v-on:click="scenetab='blend'">Scene Properties</button>
                         <button  v-bind:class="{highlight:scenetab=='sync'}" v-on:click="scenetab='sync'"> Scene Sync</button>
                         <button  v-bind:class="{highlight:scenetab=='notes'}" v-on:click="scenetab='notes'"> Scene Notes</button>
-                        <button  v-bind:class="{highlight:scenetab=='notes'}" v-on:click="scenetab='page'"> Scene Page</button>
+                        <button  v-bind:class="{highlight:scenetab=='page'}" v-on:click="scenetab='page'"> Scene Page</button>
 
                     </p>
 
@@ -1267,6 +1271,94 @@ from src import tagpoints
 
     ${module.board.link.render('api_link')}
 
+    <script src="/static/js/src-min-noconflict/ace.js"></script>
+    <script src="/static/js/jquery3.js"></script>
+
+    <script>
+            const VueAceEditor = {
+            //  simplified model handling using `value` prop and `input` event for $emit 
+            props:['value','id','options'],
+
+            //  add dynmic class and id (if not set) based on component tag
+            template:`
+                <div :id="id ? id: $options._componentTag +'-'+ _uid" 
+                    :class="$options._componentTag">
+                    <slot></slot>
+                </div>
+            `,
+
+            watch:{
+                value() { 
+                    //  two way binding – emit changes to parent
+                    this.$emit('input', this.value);
+                    
+                    //  update value on external model changes
+                    if(this.oldValue !== this.value){ 
+                        this.editor.setValue(this.value, 1); 
+                    }
+                }
+            },
+        
+            mounted(){
+                //  editor
+                this.editor = window.ace.edit(this.$el.id);
+                
+                //  deprecation fix
+                this.editor.$blockScrolling = Infinity;        
+
+                //  ignore doctype warnings
+                const session = this.editor.getSession();
+                session.on("changeAnnotation", () => {
+                    const a = session.getAnnotations();
+                    const b = a.slice(0).filter( (item) => item.text.indexOf('DOC') == -1 );
+                    if(a.length > b.length) session.setAnnotations(b);
+                });
+
+                //  editor options 
+                //  https://github.com/ajaxorg/ace/wiki/Configuring-Ace
+                this.options = this.options || {};
+                
+                //  opinionated option defaults
+                this.options.maxLines = this.options.maxLines || Infinity;
+                this.options.printMargin = this.options.printMargin || false;      
+                this.options.highlightActiveLine = this.options.highlightActiveLine || false;
+
+                //  hide cursor 
+                if(this.options.cursor === 'none' || this.options.cursor === false){
+                    this.editor.renderer.$cursorLayer.element.style.display = 'none';
+                    delete this.options.cursor; 
+                }
+
+                //  add missing mode and theme paths 
+                if(this.options.mode && this.options.mode.indexOf('ace/mode/')===-1) {
+                    this.options.mode = 'ace/mode/'+this.options.mode;
+                }
+                if(this.options.theme && this.options.theme.indexOf('ace/theme/')===-1) {
+                    this.options.theme = 'ace/theme/'+this.options.theme;
+                }
+                this.editor.setOptions(this.options);
+                
+                
+                //  set model value 
+                //  if no model value found – use slot content
+                if(!this.value || this.value === ''){
+                    this.$emit('input', this.editor.getValue());
+                } else {
+                    this.editor.setValue(this.value, -1);
+                }        
+                
+                //  editor value changes   
+                this.editor.on('change', () => {
+                    //  oldValue set to prevent internal updates
+                    this.value = this.oldValue = this.editor.getValue();
+                });
+                
+
+            },
+            methods: { editor(){ return this.editor } }
+        };
+    </script>
+
     <script>
         formatInterval = function(seconds)
         {
@@ -1371,6 +1463,24 @@ from src import tagpoints
 
         //# sourceURL=appcode.js 
         appData = {
+            //Ace code editor
+                htmloptions:{
+                mode:'html',
+                theme: 'tomorrow',
+                fontSize: 11,
+                fontFamily: 'monospace',
+                highlightActiveLine: false,
+                highlightGutterLine: false              
+              },  
+               mdooptions:{
+                mode:'markdown',
+                theme: 'tomorrow',
+                fontSize: 11,
+                fontFamily: 'monospace',
+                highlightActiveLine: false,
+                highlightGutterLine: false              
+              },  
+
             //https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
             'formatInterval': formatInterval,
             'console': console,
@@ -2399,7 +2509,9 @@ from src import tagpoints
             data: appData,
             components: {
                 "combo-box": httpVueLoader('ui/ComboBox.vue'),
-                "script-editor": httpVueLoader('ui/ScriptEditor.vue')
+                "script-editor": httpVueLoader('ui/ScriptEditor.vue'),
+                'vue-ace-editor': VueAceEditor
+
                 },
             computed:
             {

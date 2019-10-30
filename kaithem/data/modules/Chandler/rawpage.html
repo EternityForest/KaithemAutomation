@@ -9,6 +9,7 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
+resource-timestamp: 1572399839854169
 resource-type: page
 template-engine: mako
 
@@ -19,7 +20,7 @@ template-engine: mako
 
 <body style="padding:0px;margin:0px;overflow:hidden;overscroll-behavior: none;">
     <div id="KaithemSceneVueApp" style="width:100%;height:100%;padding:0px;margin:0px">
-        <div v-bind:style="{width:'100%', height:'100%', padding:'5px','margin':'0px', 'background-image': background}">
+        <div v-bind:style="{width:'100%', height:'100%', padding:'5px','margin':'0px', 'background-image': background, display:'flex'}">
             ${module.scenes[kwargs['sc']].page}
         </div>
     </div>
@@ -29,6 +30,7 @@ template-engine: mako
     <script src="/static/js/vue2.js"></script>
     <script type="text/javascript" src="/static/widget.js"></script>
     <script src="/static/js/keyboard.min.js"></script>
+    <script src="/static/js/strftime-min.js"></script>
 
     ${module.scenes[kwargs['sc']].pageLink.render("api")}
 
@@ -37,9 +39,16 @@ template-engine: mako
 
             vars: {},
             cue: '',
-            background: "url(/static/img/light_green_bg.webp)"
+            background: "url(/static/img/light_green_bg.webp)",
+            unixtime: 0
         }
-        api.send("getvars")
+        
+        setInterval(function()
+        {
+            appData.unixtime = api.now() / 1000
+        }, 1000 / 14)
+
+        api.send(["getvars"])
 
         function pageLinkCallback(v)
         {

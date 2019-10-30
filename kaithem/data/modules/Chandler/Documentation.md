@@ -281,6 +281,26 @@ To go to a new cue, use scene.gotoCue(cuename)
 kaithem.chandler.shortcutCode(code) has the same effect as manually typing
 that shortcut code in the web GUI
 
+
+
+### Pages
+
+Pages let you embed small amounts of HTML directly in a scene. They are rendered as a vue template, and the variable "vars" is a dict of all variables in the scene(Excluding list and object values).
+ 
+Pages are an Advanced Feature requiring /admin/modules.edit. You cannot modify a scene page, delete a scene with one, or upload one without that permission.
+
+```html
+<div style="display:flex; flex-direction:column; width:100%; height:100%; align-items: center; justify-content:center; font-size:400%">
+    <div>
+        Centered Content: vars {{vars}}
+    </div>
+    
+    <div>
+        Centered Content
+    </div>
+</div>
+````
+
 ### General API
 
 #### Scripting

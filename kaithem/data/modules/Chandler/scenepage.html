@@ -9,11 +9,11 @@ no-header: true
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: []
+resource-timestamp: 1572399839866169
 resource-type: page
 template-engine: mako
 
 ---
-
 
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -34,7 +34,7 @@ template-engine: mako
     </head>
     <body>
         <div id="content">
-            <iframe width="100%" height="100%" frameborder="0" src="rawpage/?sc=${kwargs['sc']}" sandbox="allow-scripts  allow-top-navigation"/>
+            <iframe width="100%" height="100%" frameborder="0" src="rawpage/?sc=${kwargs['sc']}"/>
         </div>
     </body>
 </html>

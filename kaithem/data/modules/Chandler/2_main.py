@@ -1154,7 +1154,12 @@ if __name__=='__setup__':
             self.pushUniverses()
     
     
-        def loadSceneFile(self,data):
+        def loadSceneFile(self,data,_asuser=False):
+            for i in data:
+                if 'page' in data[i] and data[i].page.strip():
+                    if not kaithem.users.checkPermission(kaithem.web.user(),"/admin/modules.edit"):
+                        raise ValueError("You cannot upload this scene without /admin/modules.edit, because it uses advanced features: pages" )
+    
             self.loadDict(yaml.load(data))
         
         def loadDict(self,data):
@@ -1545,8 +1550,9 @@ if __name__=='__setup__':
     
     
                 if msg[0] == "setPage":
-                    module.scenes[msg[1]].setPage(msg[2])
-                    self.pushMeta(msg[1])
+                    if kaithem.users.checkPermission(user,"/admin/modules.edit"):
+                        module.scenes[msg[1]].setPage(msg[2])
+                        self.pushMeta(msg[1])
     
     
                 if msg[0] == "clonescene":
@@ -1908,6 +1914,9 @@ if __name__=='__setup__':
                 if msg[0] == "del":
                     #X is there in case the activeScenes listing was the last string reference, we want to be able to push the data still
                     x = module.scenes[msg[1]]
+                    if x.page.strip():
+                        if not kaithem.users.checkPermission(user,"/admin/modules.edit"):
+                            raise ValueError("You cannot delete this scene without /admin/modules.edit, because it uses advanced features: pages" )
                     x.stop()
                     self.delscene(msg[1])
                     
@@ -2536,7 +2545,7 @@ if __name__=='__setup__':
                 if cmd[0]=='getvars':
                     for v in self.chandlerVars:
                         if isinstance(v, (str, int,float,bool)):
-                            self.pageLink.send(["var", k,self.chandlerVars[v]])
+                            self.pageLink.send(["var", v,self.chandlerVars[v]])
                 if cmd[0]=='evt':
                     if not cmd[1].startswith("page."):
                         raise ValueError("Only events starting with page. can be raised from a scenepage")
