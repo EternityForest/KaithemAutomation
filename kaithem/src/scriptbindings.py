@@ -275,7 +275,7 @@ class ChandlerScriptContext():
         self.eventRecursionDepth = 0
 
         self.timeEvents={}
-
+        self.poller=None
         selfid = id(self)
      
 
@@ -417,8 +417,14 @@ class ChandlerScriptContext():
         with self.gil:
             for i in self.eventListeners:
                 if i and i.strip()[0]=='@':
-                    self.timeEvents[i]= ScheduleTimer(i,self)
-                    self.onTimerChange(i,self.timeEvents[i].nextruntime)
+                    if not i in self.timeEvents:
+                        self.timeEvents[i]= ScheduleTimer(i,self)
+                        self.onTimerChange(i,self.timeEvents[i].nextruntime)
+                if i=="script.poll":
+                    if not self.poller:
+                        self.poller = scheduler.scheduleRepeating(self.poll, 1/24.0)
+    def poll(self):
+        self.event('script.poll')
 
     def clearBindings(self):
         with self.gil:
@@ -426,6 +432,10 @@ class ChandlerScriptContext():
             for i in self.timeEvents:
                 self.timeEvents[i].stop()
             self.timeEvents = {}
+
+            if self.poller:
+                self.poller.unregister()
+                self.poller=None
 
 ##### SELFTEST ##########
 

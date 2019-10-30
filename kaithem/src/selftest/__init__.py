@@ -107,7 +107,7 @@ def runtest():
         tagpointstest.testTags()
         testpersist.test()
         mathtest()
-        netTest()
+        #netTest()
         t= threading.Thread(target=memtest)
         t.daemon=True
         t.start()

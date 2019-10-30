@@ -278,20 +278,56 @@ def webRoot():
     class webapproot():
 
         #This lets users mount stuff at arbitrary points, so long
-        #As it doesn't conflict with anything
+        #As it doesn't conflict with anything.
+
+        #foo.bar.com/foo maps to foo,bar,/,foo
+        # bar.com/foo is just foo  
         def _cp_dispatch(self, vpath):
 
-            while vpath:
-                if tuple(vpath) in pages.nativeHandlers:
-                    x =  pages.nativeHandlers[tuple(vpath)]
+            # x = cherrypy.request.base.split("://",1)[-1]
+            
+            # sdpath = reversed(x.split("."))
+
+            # x = []
+            # for i in sdpath:
+            #     if not i:
+            #         continue
+            #     x.append(i)
+            #     #Only put one part of the ip addr, host,tld need to be exactly
+            #     #2 entries
+            #     if i.isnumeric():
+            #         #Pad with fake TLD for numeric ip addr
+            #         x.append(".faketld") 
+            #         break
+
+            # #Get rid of last two parts, the host and tld
+            # sdpath = x[:2]
+
+            # if sdpath:
+            #     vpath2 = sdpath+["/"]+vpath
+            #     print(sdpath)
+            # else:
+            #     vpath2 = vpath[:]
+
+            sdpath=0
+            vpath2=vpath
+
+            while vpath2:
+                if tuple(vpath2) in pages.nativeHandlers:
+                    x =  pages.nativeHandlers[tuple(vpath2)]
                     if not isinstance(x, Exception):
                         return x
                     else:
                         raise x
-                vpath.pop(0)
+                vpath2.pop(0)
+                if vpath:
+                    vpath.pop(0)
 
-            if None in pages.nativeHandlers:
-                return pages.nativeHandlers[None]
+            if sdpath:
+                raise ValueError("No handler found for this subdomain")
+            else:
+                if None in pages.nativeHandlers:
+                    return pages.nativeHandlers[None]
 
             return None
 
@@ -572,6 +608,8 @@ def webRoot():
     def addheader(*args,**kwargs):
         "This function's only purpose is to tell the browser to cache requests for an hour"
         cherrypy.response.headers['Cache-Control'] = "max-age=28800"
+        cherrypy.response.headers["Access-Control-Allow-Origin"] = "*"
+        
         #del cherrypy.response.headers['Expires']
 
     def pageloadnotify(*args,**kwargs):

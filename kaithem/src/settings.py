@@ -408,7 +408,7 @@ class Settings():
         pages.require("/admin/settings.edit",noautoreturn=True)
         pages.postOnly()
         registry.set("/system.theming/csstheme",kwargs['cssfile'])
-        raise cherrypy.HTTPRedirect('/settings/system/theming')
+        raise cherrypy.HTTPRedirect('/settings/theming')
 
 
     @cherrypy.expose

@@ -994,6 +994,14 @@ if __name__=='__setup__':
     
     class DebugScriptContext(ChandlerScriptContext):
         def onVarSet(self,k, v):
+    
+            try:
+                if isinstance(v, (str, int,float,bool)):
+                    self.sceneObj().pageLink.send(["var", k,v])
+            except:
+                rl_log_exc("Error handling var set notification")
+                print(traceback.format_exc())
+    
             try:
                 for i in module.boards:
                     if isinstance(v, (str, int,float,bool)):
@@ -1227,7 +1235,9 @@ if __name__=='__setup__':
                                  'backtrack': x.backtrack,
                                  'soundOutput': x.soundOutput,
                                  'syncKey':x.syncKey, 'syncPort': x.syncPort, 'syncAddr':x.syncAddr,
-                                 'uuid': i
+                                 'uuid': i,
+                                 'notes': x.notes,
+                                 'page': x.page
                     }               
                     
     
@@ -1348,7 +1358,9 @@ if __name__=='__setup__':
                               'subslist': subslist,
                               'soundOutput': scene.soundOutput,
                               'vars':v,
-                              'timers': scene.runningTimers
+                              'timers': scene.runningTimers,
+                              'notes': scene.notes,
+                              'page': scene.page
     
                     }])
                     
@@ -1527,7 +1539,14 @@ if __name__=='__setup__':
                     cues[msg[1]].soundOutput=msg[2]
                     self.pushCueMeta(msg[1])
     
-       
+                if msg[0] == "setNotes":
+                    module.scenes[msg[1]].notes=msg[2]
+                    self.pushMeta(msg[1])
+    
+    
+                if msg[0] == "setPage":
+                    module.scenes[msg[1]].setPage(msg[2])
+                    self.pushMeta(msg[1])
     
     
                 if msg[0] == "clonescene":
@@ -2491,7 +2510,7 @@ if __name__=='__setup__':
     
     class Scene():
         "An objecting representing one scene"
-        def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,blendArgs=None,backtrack=True,defaultCue=True, syncKey=None, bpm=60, syncAddr="239.255.28.12", syncPort=1783, soundOutput=''):
+        def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,blendArgs=None,backtrack=True,defaultCue=True, syncKey=None, bpm=60, syncAddr="239.255.28.12", syncPort=1783, soundOutput='',notes='',page=''):
     
     
            
@@ -2502,7 +2521,29 @@ if __name__=='__setup__':
             disallow_special(name)
             self.lock = threading.RLock()
     
+            self.notes=notes
+            self.page=page
+    
+    
             self.id = id or uuid.uuid4().hex
+    
+            
+            #This is for the nice display screens you can embed in pages
+            self.pageLink = kaithem.widget.APIWidget(id=self.id)
+            self.pageLink.require("users.chandler.admin")
+    
+            def c(u,cmd):
+                if cmd[0]=='getvars':
+                    for v in self.chandlerVars:
+                        if isinstance(v, (str, int,float,bool)):
+                            self.pageLink.send(["var", k,self.chandlerVars[v]])
+                if cmd[0]=='evt':
+                    if not cmd[1].startswith("page."):
+                        raise ValueError("Only events starting with page. can be raised from a scenepage")
+                    self.event(cmd[1],cmd[2])
+    
+            self.pageLink.attach(c)
+    
             #Used to determine the numbering of added cues
             self.topCueNumber = 0
             #Only used for monitor scenes
@@ -3185,6 +3226,10 @@ if __name__=='__setup__':
                             module.universes[i].full_rerender = True
                 except:
                     pass
+    
+        def setPage(self,page):
+            self.page= page
+            self.pageLink.send(['refresh'])
      
         def setName(self,name):
             disallow_special(name)

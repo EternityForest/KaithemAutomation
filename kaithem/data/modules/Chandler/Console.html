@@ -789,6 +789,15 @@ from src import tagpoints
                         <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid" :showdelete="scenetab=='channels'" v-for="i in h"></h-fader>
                     </div>
                 </div>
+
+                <div style="overflow: scroll; max-height:30em;" v-if="scenetab=='notes'">
+                <textarea v-model="editingScene.notes" v-on:change="setSceneNotes(scenename,$event.target.value)"></textarea>
+                </div>
+
+                <div style="overflow: scroll; max-height:30em;" v-if="scenetab=='page'">
+                    <textarea v-model="editingScene.page" v-on:change="setScenePage(scenename,$event.target.value)"></textarea>
+                    <a v-bind:href="'scenepage?sc='+scenename" target="_blank">Go to page</a>
+                </div>
                 
                 <div style="overflow: scroll; max-height:30em;" class="logicbox" v-if="scenetab=='logic'">
                    <div>
@@ -837,6 +846,9 @@ from src import tagpoints
 
                         <button  v-bind:class="{highlight:scenetab=='blend'}" v-on:click="scenetab='blend'">Scene Properties</button>
                         <button  v-bind:class="{highlight:scenetab=='sync'}" v-on:click="scenetab='sync'"> Scene Sync</button>
+                        <button  v-bind:class="{highlight:scenetab=='notes'}" v-on:click="scenetab='notes'"> Scene Notes</button>
+                        <button  v-bind:class="{highlight:scenetab=='notes'}" v-on:click="scenetab='page'"> Scene Page</button>
+
                     </p>
 
 
@@ -1500,11 +1512,7 @@ from src import tagpoints
 
                 api_link.send(['setscenesoundout', cueid, i])
             },
-            'setSoundfile': function(cueid, i)
-            {
-
-                api_link.send(['setcuesound', cueid, i])
-            },
+         
             'newCueFromSound': function(sc, i)
             {
 
@@ -1529,6 +1537,18 @@ from src import tagpoints
 
                 }
                 appData.pushfixture(i)
+            },
+
+            'setSceneNotes': function(sc, i)
+            {
+
+                api_link.send(['setNotes', sc, i])
+            },
+
+            'setScenePage': function(sc, i)
+            {
+
+                api_link.send(['setPage', sc, i])
             },
             'getValueRange': getValueRange,
             //Returns new value mapped into the range when user clicks to change the range of a custom val

@@ -1,0 +1,66 @@
+---
+allow-origins: ['*']
+allow-xss: false
+auto-reload: false
+auto-reload-interval: 5.0
+dont-show-in-index: false
+mimetype: text/html
+no-header: true
+no-navheader: true
+require-method: [GET, POST]
+require-permissions: []
+resource-type: page
+template-engine: mako
+
+---
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<html>
+
+<body style="padding:0px;margin:0px;overflow:hidden;overscroll-behavior: none;">
+    <div id="KaithemSceneVueApp" style="width:100%;height:100%;padding:0px;margin:0px">
+        <div v-bind:style="{width:'100%', height:'100%', padding:'5px','margin':'0px', 'background-image': background}">
+            ${module.scenes[kwargs['sc']].page}
+        </div>
+    </div>
+
+
+
+    <script src="/static/js/vue2.js"></script>
+    <script type="text/javascript" src="/static/widget.js"></script>
+    <script src="/static/js/keyboard.min.js"></script>
+
+    ${module.scenes[kwargs['sc']].pageLink.render("api")}
+
+    <script>
+        appData = {
+
+            vars: {},
+            cue: '',
+            background: "url(/static/img/light_green_bg.webp)"
+        }
+        api.send("getvars")
+
+        function pageLinkCallback(v)
+        {
+            if (v[0] == 'refresh')
+            {
+                window.location.reload(true);
+            }
+            if (v[0] == 'var')
+            {
+                Vue.set(appData.vars, v[1], v[2])
+            }
+        }
+        api.upd = pageLinkCallback
+
+        var app = new Vue(
+        {
+            el: '#KaithemSceneVueApp',
+            data: appData
+        })
+
+    </script>
+</body>
+
+</html>
