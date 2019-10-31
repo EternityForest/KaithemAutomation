@@ -996,18 +996,20 @@ if __name__=='__setup__':
         def onVarSet(self,k, v):
     
             try:
-                if isinstance(v, (str, int,float,bool)):
-                    self.sceneObj().pageLink.send(["var", k,v])
+                if k.startswith("pagevars."):
+                    if isinstance(v, (str, int,float,bool)):
+                        self.sceneObj().pageLink.send(["var", k.split(".",1)[1],v])
             except:
                 rl_log_exc("Error handling var set notification")
                 print(traceback.format_exc())
     
             try:
-                for i in module.boards:
-                    if isinstance(v, (str, int,float,bool)):
-                         i().link.send(['varchange',self.scene, k, v])
-                    else:
-                         i().link.send(['varchange',self.scene, k, "__PYTHONDATA__"])        
+                if not k.startswith("_"):
+                    for i in module.boards:
+                        if isinstance(v, (str, int,float,bool)):
+                            i().link.send(['varchange',self.scene, k, v])
+                        else:
+                            i().link.send(['varchange',self.scene, k, "__PYTHONDATA__"])        
             except:
                 rl_log_exc("Error handling var set notification")
                 print(traceback.format_exc())
@@ -1017,6 +1019,13 @@ if __name__=='__setup__':
             try:
                 for i in module.boards:
                     i().pushEv(e, self.sceneName,module.timefunc(),value=v)
+            except:
+                rl_log_exc("error handling event")
+                print(traceback.format_exc())
+            try:
+                if not e=='poll':
+                    if isinstance(v, (str, int,float,bool)):
+                        self.sceneObj().pageLink.send(["evt", e,v])
             except:
                 rl_log_exc("error handling event")
                 print(traceback.format_exc())
@@ -1156,7 +1165,7 @@ if __name__=='__setup__':
     
         def loadSceneFile(self,data,_asuser=False):
             for i in data:
-                if 'page' in data[i] and data[i].page.strip():
+                if 'page' in data[i] and data[i]['page']['html'].strip() or data[i]['page']['js'].strip():
                     if not kaithem.users.checkPermission(kaithem.web.user(),"/admin/modules.edit"):
                         raise ValueError("You cannot upload this scene without /admin/modules.edit, because it uses advanced features: pages" )
     
@@ -1551,7 +1560,7 @@ if __name__=='__setup__':
     
                 if msg[0] == "setPage":
                     if kaithem.users.checkPermission(user,"/admin/modules.edit"):
-                        module.scenes[msg[1]].setPage(msg[2])
+                        module.scenes[msg[1]].setPage(msg[2],msg[3],msg[4])
                         self.pushMeta(msg[1])
     
     
@@ -1914,7 +1923,7 @@ if __name__=='__setup__':
                 if msg[0] == "del":
                     #X is there in case the activeScenes listing was the last string reference, we want to be able to push the data still
                     x = module.scenes[msg[1]]
-                    if x.page.strip():
+                    if x.page['html'].strip() or x.page['css'].strip() or x.page['js'].strip():
                         if not kaithem.users.checkPermission(user,"/admin/modules.edit"):
                             raise ValueError("You cannot delete this scene without /admin/modules.edit, because it uses advanced features: pages" )
                     x.stop()
@@ -2519,7 +2528,7 @@ if __name__=='__setup__':
     
     class Scene():
         "An objecting representing one scene"
-        def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,blendArgs=None,backtrack=True,defaultCue=True, syncKey=None, bpm=60, syncAddr="239.255.28.12", syncPort=1783, soundOutput='',notes='',page=''):
+        def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,blendArgs=None,backtrack=True,defaultCue=True, syncKey=None, bpm=60, syncAddr="239.255.28.12", syncPort=1783, soundOutput='',notes='',page=None):
     
     
            
@@ -2531,7 +2540,11 @@ if __name__=='__setup__':
             self.lock = threading.RLock()
     
             self.notes=notes
-            self.page=page
+    
+            if page and isinstance(page, str):
+               page = {'html':page,'css':'','js':''}
+    
+            self.page=page or {'html':'','css':'','js':''}
     
     
             self.id = id or uuid.uuid4().hex
@@ -2539,17 +2552,29 @@ if __name__=='__setup__':
             
             #This is for the nice display screens you can embed in pages
             self.pageLink = kaithem.widget.APIWidget(id=self.id)
-            self.pageLink.require("users.chandler.admin")
+            self.pageLink.require("users.chandler.pageview")
     
             def c(u,cmd):
                 if cmd[0]=='getvars':
                     for v in self.chandlerVars:
-                        if isinstance(v, (str, int,float,bool)):
-                            self.pageLink.send(["var", v,self.chandlerVars[v]])
+                        if v.startswith("pagevars."):
+                            if isinstance(v, (str, int,float,bool)):
+                                if isinstance(v,str):
+                                    if len(v)>1024*512:
+                                        continue
+                                self.pageLink.send(["var", v.split(".",1)[1],self.chandlerVars[v]])
                 if cmd[0]=='evt':
                     if not cmd[1].startswith("page."):
                         raise ValueError("Only events starting with page. can be raised from a scenepage")
                     self.event(cmd[1],cmd[2])
+    
+                if cmd[0]=="set":
+                    if len(self.chandlerVars)>256:
+                        if isinstance(cmd[2], (str, int,float,bool)):
+                            if isinstance(cmd[2],str):
+                                if len(cmd[2])>512:
+                                    raise ValueError("Max 512 chars for val set from page")
+                            self.ChandlerScriptContext.setVar("pagevars."+cmd[1],cmd[2])
     
             self.pageLink.attach(c)
     
@@ -3236,8 +3261,12 @@ if __name__=='__setup__':
                 except:
                     pass
     
-        def setPage(self,page):
-            self.page= page
+        def setPage(self,page,style, script):
+            self.page= {
+                    'html':page,
+                    'css': style,
+                    'js': script
+                }
             self.pageLink.send(['refresh'])
      
         def setName(self,name):

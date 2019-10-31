@@ -15,23 +15,26 @@ template-engine: none
 
 ---
 <style scoped>
-    .bindingname {
+
+    .event {
         border-style: solid;
         border-width: 1px;
         border-color: black;
         background-color: white;
-        padding: 0.5em;
+        padding: 1em;
         font-weight: bold;
+        height: 100%;
+        border-radius: 1.5em;
     }
-    
     .action {
         border-style: solid;
         border-width: 1px;
         border-color: black;
         background-color: white;
-        padding: 0.5em;
+        padding: 1em;
         font-weight: bold;
         height: 100%;
+        border-radius:0px;
     }
     
     .selected {
@@ -133,8 +136,8 @@ template-engine: none
                 <div style="display:flex;flex-direction:column;">
                     <h3>Event Actions</h3>
                     <div  class="rulesbox" style="overflow:scroll">
-                        <div v-for="i in rules" style="display:flex;flex-direction:row;">
-                            <button v-bind:class="{bindingname:1,selected:selectedBinding==i&selectedCommand==0}" v-on:click="selectedBindingIndex=rules.indexOf(i); selectedCommandIndex=-1">
+                        <div v-for="i in rules" style="display:flex;flex-direction:row; padding:3px;">
+                            <button v-bind:class="{event:1,bindingname:1,selected:selectedBinding==i&selectedCommand==0}" v-on:click="selectedBindingIndex=rules.indexOf(i); selectedCommandIndex=-1">
                     <p class="small">When</p>
                     {{i[0]}}
                     <p class="small">Occurs</p>

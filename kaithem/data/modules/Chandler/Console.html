@@ -796,10 +796,19 @@ from src import tagpoints
                 </div>
 
                 <div style="overflow: scroll; max-height:30em;" v-if="scenetab=='page'">
-                    <p class="help">Pages are an Advanced Feature requiring /admin/modules.edit, that allows you to create status pages for any scene. See the <a href="/pages/Chandler/docs/">Documentation</a></p>
-                    <vue-ace-editor v-model:value="editingScene.page" v-bind:options="htmloptions"></vue-ace-editor><br>
-                    <button v-on:click="setScenePage(scenename,editingScene.page)">Update Page</button><br>
+                    <p class="help">Pages are an Advanced Feature requiring /admin/modules.edit, that allows you to create status pages for any scene. See the <a href="/pages/Chandler/docs/Pages">Documentation</a></p>\
+                    <h4>Vue/HTML</h4>
+                    <vue-ace-editor v-model:value="editingScene.page.html" v-bind:options="htmloptions"></vue-ace-editor>
+                    <h4>Style</h4>
+                    <vue-ace-editor v-model:value="editingScene.page.css" v-bind:options="htmloptions"></vue-ace-editor>
+                    <h4>JS</h4>
+                    <vue-ace-editor v-model:value="editingScene.page.js" v-bind:options="htmloptions"></vue-ace-editor>
+                    <button v-on:click="setScenePage(scenename,editingScene.page['html'], editingScene.page['css'], editingScene.page['js'])">Update Page</button>
                     <a v-bind:href="'scenepage?sc='+scenename" target="_blank">Go to page</a>
+                    <h4>Preview</h4>
+                    <div style="width:90%;height:40em;">
+                        <iframe style="display:block" width="100%" height="100%" v-bind:src="'rawpage/?sc='+scenename"></iframe>
+                    </div>
                 </div>
                 
                 <div style="overflow: scroll; max-height:30em;" class="logicbox" v-if="scenetab=='logic'">
@@ -1471,6 +1480,22 @@ from src import tagpoints
                 fontFamily: 'monospace',
                 highlightActiveLine: false,
                 highlightGutterLine: false              
+              }, 
+              cssoptions:{
+                mode:'css',
+                theme: 'tomorrow',
+                fontSize: 11,
+                fontFamily: 'monospace',
+                highlightActiveLine: false,
+                highlightGutterLine: false              
+              },                
+              jsoptions:{
+                mode:'js',
+                theme: 'tomorrow',
+                fontSize: 11,
+                fontFamily: 'monospace',
+                highlightActiveLine: false,
+                highlightGutterLine: false              
               },  
                mdooptions:{
                 mode:'markdown',
@@ -1655,10 +1680,10 @@ from src import tagpoints
                 api_link.send(['setNotes', sc, i])
             },
 
-            'setScenePage': function(sc, i)
+            'setScenePage': function(sc, p, st,js)
             {
 
-                api_link.send(['setPage', sc, i])
+                api_link.send(['setPage', sc, p,st,js])
             },
             'getValueRange': getValueRange,
             //Returns new value mapped into the range when user clicks to change the range of a custom val
