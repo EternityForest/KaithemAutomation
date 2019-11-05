@@ -102,11 +102,15 @@ you can freely select the "next" cue that comes after any given cue.
 
 This allows you to create loops, and even to have multiple selectable
 loops within one scene. Names and numbers only need to be unique within
-each scene, not globally. Names can't contain special chars.
+each scene, not globally. Names can't contain special chars aside from the dot, tilde, and underscore.
 
 When you don't explicitly set a next cue, it defaults to whatever comes
 next in the list, but if you do want to explicitly set the next cue, you
 do it by name not number.
+
+You can also select a random cue with a wildcard pattern like foo*.  A random cue will be selected from the list.
+Recently used cues are avoided, but the algorithm always leaves at least two choices.
+
 
 ##### Reentrant and non-reentrant cues
 By default, cues are re-entrant. This means you can exit the cue and enter it again directly, resetting it's timer,

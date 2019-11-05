@@ -74,6 +74,16 @@ import weakref,threading, inspect
 
 
 
+class NamespaceGetter():
+    "Takes a dict and a prefix. Responds to attr requests with dict[prefix+.+key]"
+    def __init__(self, d, prefix):
+        self.__attr_prefix = prefix
+        self.__attr_dict = d
+
+    def __getattr__(self, k):
+        return self.__attr_dict[self.__attr_prefix+'.'+k]
+
+
 def DummyObject():
     "Operations with this succeed, but return other"
     def __add__(self,other):
@@ -274,6 +284,11 @@ class ChandlerScriptContext():
         #Used for detecting loops
         self.eventRecursionDepth = 0
 
+        #Used to allow objects named foo.bar to be accessed as actual attributes of a foo obj,
+        #Even though we use a flat list of vars.
+        self.namespaces = {}
+
+
         self.timeEvents={}
         self.poller=None
         selfid = id(self)
@@ -377,7 +392,12 @@ class ChandlerScriptContext():
     def eval(self,a):
         return self.evaluator.eval(a)
 
-    
+    def addNamespace(self,name):
+        """If name is foo, Makes variables named 'foo.bar' 
+           accessible via an actual foo obj. Kind of a hack to allow a flat list of vars"""
+
+        self.namespaces[name] = NamespaceGetter(self.variables, name)
+
     def _nameLookup(self,n):
         if not isinstance(n,str):
             n = n.id
@@ -387,6 +407,10 @@ class ChandlerScriptContext():
             return globalConstants[n]
         if n in self.constants:
             return self.constants[n]
+
+        if n in self.namespaces:
+            return self.namespaces[n]
+
         raise NameError("No such name: "+n)
 
     def setVar(self,k,v):
@@ -394,6 +418,7 @@ class ChandlerScriptContext():
             self.variables[k]=v
             self.changedVariables[k]=v
             self.onVarSet(k,v)
+
     
     def onVarSet(self,k,v):
         pass

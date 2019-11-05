@@ -378,6 +378,11 @@ from src import tagpoints
             %endif
         </datalist>
 
+        <datalist id="utypes">     
+            <option value="enttec"></option>
+            <option value="artnet"></option>
+        </datalist>
+
         <table border=1>
             <tr>
                 <th>Universe</th>
@@ -393,7 +398,7 @@ from src import tagpoints
             <tr v-for="(v,i) in configuredUniverses">
                 <td>{{i}}</td>
                 <td>
-                    <input list="universetypes" v-model="v.type" title="The type of universe. Usually enttec or artnet">
+                    <input list="utypes" v-model="v.type" title="The type of universe. Usually enttec or artnet">
                 </td>
 
                 <td v-if="v.type!='artnet'">

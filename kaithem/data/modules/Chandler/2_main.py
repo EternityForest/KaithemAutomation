@@ -36,7 +36,7 @@ if __name__=='__setup__':
     max=max
     min=min
     
-    allowedCueNameSpecials = '_~'
+    allowedCueNameSpecials = '_~.'
     
     from src.scriptbindings import ChandlerScriptContext,getFunctionInfo
     
@@ -552,13 +552,21 @@ if __name__=='__setup__':
     
             self.refresh_scenes()
     
+    
         def __del__(self):
+            self.close()
+    
+        def close(self):
             with universesLock:
+                #Don't delete the object that replaced this
+                if self.name in module.universes and (module.universes[self.name] is self):
                     del module.universes[self.name]
-                    try:
-                        module.fastUniverses = {i:module.universes[i] for i in module.universes}
-                    except IterationError:
-                        module.fastUniverses=module.universes
+    
+                try:
+                    module.fastUniverses = {i:module.universes[i] for i in module.universes}
+                except IterationError:
+                    module.fastUniverses=module.universes
+                
     
         def setStatus(self,s,ok):
             "Set the status shown in the gui. ok is a bool value that indicates if the object is able to transmit data to the fixtures"
@@ -943,8 +951,13 @@ if __name__=='__setup__':
                             else:
                                 addr=self.addr
     
-                            self.sock.sendto(self.data, (addr, self.port))
                             self.frame.clear()
+                        try:
+                            self.sock.sendto(self.data, (addr, self.port))
+                        except:
+                            time.sleep(5)
+                            raise
+    
                         time.sleep(max(((1.0/self.framerate)-(time.time()-s)), 0))
                     except Exception as e:
                         rl_log_exc("Error in artnet universe")
@@ -1149,6 +1162,12 @@ if __name__=='__setup__':
     
             
         def createUniverses(self):
+            for i in self.universeObjs:
+                self.universeObjs[i].close()
+                
+            self.universeObjs = {}
+            import gc 
+            gc.collect()
             l ={}
             u = self.configuredUniverses
             for i in u:
@@ -1273,8 +1292,11 @@ if __name__=='__setup__':
                 if os.path.isfile(fn) and i.endswith(".yaml"):
                     if not i in saved:
                         os.remove(fn)
-            #Remove the registry entry for the legacy way of saving things.                    
-            kaithem.registry.delete("lighting/scenes")
+            try:
+                #Remove the registry entry for the legacy way of saving things.                    
+                kaithem.registry.delete("lighting/scenes")
+            except KeyError:
+                pass
         
         
         def pushTracks(self):
@@ -1698,11 +1720,17 @@ if __name__=='__setup__':
                             try:
                                 self.pushCueMeta(self.scenememory[i].cue.id)
                             except:
-                                pass
+                                print(traceback.format_exc())
                             try:
                                 self.pushCueMeta(self.scenememory[i].cues['default'].id)
                             except:
-                                pass
+                                print(traceback.format_exc())
+    
+                            try:
+                                for j in self.scenememory[i].cues:
+                                    self.pushCueMeta(self.scenememory[i].cues[j].id)
+                            except:
+                                print(traceback.format_exc())
     
                         for i in module.activeScenes:
                             #Tell clients about any changed alpha values and stuff.
@@ -1794,7 +1822,7 @@ if __name__=='__setup__':
                 if msg[0] == "gotonext":
                     if cues[msg[1]].nextCue:
                         try:
-                            cues[msg[1]].scene().gotoNext()
+                            cues[msg[1]].scene().nextCue()
                         except:
                             pass
     
@@ -1889,7 +1917,7 @@ if __name__=='__setup__':
                     self.pushCueMeta(msg[1])
     
                 if msg[0] == "setnext":
-                    disallow_special( msg[2][:1024],allow=allowedCueNameSpecials)
+                    disallow_special( msg[2][:1024],allow=allowedCueNameSpecials+"*|")
                     if msg[2][:1024]:
                         c = msg[2][:1024]
                     else:
@@ -1966,7 +1994,7 @@ if __name__=='__setup__':
     
             except Exception as e:
                 rl_log_exc("Error handling command")
-                self.pushEv('board.error', "__this_lightboard__",module.timefunc(), "", traceback.format_exc(1))
+                self.pushEv('board.error', "__this_lightboard__",module.timefunc(), "", traceback.format_exc(8))
                 print(msg,traceback.format_exc(8))
                 
         def setChannelName(self,id,name="Untitled"):
@@ -1977,8 +2005,10 @@ if __name__=='__setup__':
             with module.lock:
                 if sc in self.scenememory:
                     i = self.scenememory.pop(sc)
-            if i:   
-                 self.link.send(["del",i.id])  
+            if i:
+                i.stop()
+                module.scenes_by_name.pop(i.name)
+                self.link.send(["del",i.id])  
     
     
         def guiPush(self):
@@ -2113,6 +2143,9 @@ if __name__=='__setup__':
     
             #Loop over universes the scene affects
             for u in data:
+                if u.startswith("__") and u.endswith("__"):
+                    continue
+    
                 if not u in module.universes:
                     continue
                 if (i.priority,i.started) > module.fastUniverses[u].top_layer:
@@ -2473,7 +2506,6 @@ if __name__=='__setup__':
                 self.pushoneval(universe,channel,value)
                 
                     
-                mapChannel(universe, channel)
                 x = mapChannel(universe, channel)
                 if x:
                     universe, channel = x[0],x[1]
@@ -2951,7 +2983,7 @@ if __name__=='__setup__':
                     self.stop()
                     return
     
-                if cue == "__random__":
+                elif cue == "__random__":
                     for i in range(0,100 if len(self.cues)>2 else 1):
                         x = [i.name for i in self.cues_ordered]
                         for i in reversed(self.cueHistory):
@@ -2964,7 +2996,7 @@ if __name__=='__setup__':
                             break
     
                 #Handle random selection option cues
-                if "|" in cue:
+                elif "|" in cue:
                     x = cue.split("|")
                     for i in reversed(self.cueHistory):
                         if len(x)<3:
@@ -2972,6 +3004,29 @@ if __name__=='__setup__':
                         elif i in x:
                             x.remove(i)
                     cue = random.choice(x).strip()
+                    
+                elif "*" in cue:
+                    import fnmatch
+                    x = []
+    
+                    for i in self.cues_ordered:
+                        if fnmatch.fnmatch(i.name, cue):
+                            x.append(i.name)
+                    if not x:
+                        raise ValueError("No matching cue for pattern: "+cue)
+                                    
+                    #Do the "Shuffle logic" that avoids  recently used cues.
+                    #Eliminate until only two remain, the min to not get stuck in
+                    #A fixed pattern. Sometimes allow three to mix things up more.
+    
+                    optionsNeeded = 2
+                    for i in reversed(self.cueHistory):
+                        if len(x)<=optionsNeeded:
+                            break
+                        elif i in x:
+                            x.remove(i)
+                    cue = random.choice(x)
+    
                            
                 if not cue in self.cues:
                     try:
@@ -3109,7 +3164,7 @@ if __name__=='__setup__':
                 self.recalcRandomizeModifier()
                 self.recalcCueLen()
                 
-                self.paintCueOntoFadeCanvas(self.cue)
+                self.paintCueOntoFadeCanvas(self.cue, not self.cue.track)
         
                 self.rerender = True
                 self.pushMeta()
@@ -3135,19 +3190,27 @@ if __name__=='__setup__':
                         raise RuntimeError("Invalid cue length, must resolve to int or float")
                     self.cuelen = max(0,self.randomizeModifier+self.cue.length)
     
-        def paintCueOntoFadeCanvas(self,cuex):
+        def paintCueOntoFadeCanvas(self,cuex, clearBefore=False):
             """Apply everything from the cue to the fade canvas"""
             #Loop over universes in the cue
+            if clearBefore:
+                self.cue_cached_vals_as_arrays={}
+                self.cue_cached_alphas_as_arrays={}
+    
             for i in cuex.values:
                 universe=mapUniverse(i)
                 if not universe:
                     continue
-                if universe in module.universes:
-                    if not universe in self.cue_cached_vals_as_arrays:
-                        self.cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
-                        self.cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
-                        if not universe in self.affect:
-                            self.affect.append(universe)
+    
+                if not universe in module.universes:
+                    continue
+                  
+    
+                if not universe in self.cue_cached_vals_as_arrays:
+                    self.cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*l,dtype="f4")
+                    self.cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*l,dtype="f4")
+                    if not universe in self.affect:
+                        self.affect.append(universe)
                     
                 for j in cuex.values[i]:
                     cuev = cuex.values[i][j]
@@ -3164,6 +3227,9 @@ if __name__=='__setup__':
                 #We copy over the event recursion depth so that we can detct infinite loops
                 if not self.scriptContext:
                     self.scriptContext = DebugScriptContext(rootContext,variables=self.chandlerVars,gil=module.lock)
+    
+                    self.scriptContext.addNamespace("pagevars")
+    
                     self.scriptContext.scene = self.id
                     self.scriptContext.sceneObj = weakref.ref(self)
                     self.scriptContext.sceneName = self.name
@@ -3189,7 +3255,7 @@ if __name__=='__setup__':
     
         def nextCue(self,t=None):
             with module.lock:
-                if self.cue.nextCue and ((self.cue.nextCue in self.cues) or self.cue.nextCue.startswith("__")):
+                if self.cue.nextCue and ((self.cue.nextCue in self.cues) or self.cue.nextCue.startswith("__") or "|" in self.cue.nextCue or "*" in self.cue.nextCue):
                     self.gotoCue(self.cue.nextCue,t)
                 elif not self.cue.nextCue:
                     x= self.getDefaultNext()
@@ -3481,15 +3547,7 @@ if __name__=='__setup__':
                 pass
             self.valueschanged = {}
             
-        def gotoNext(self,t=None):
-            with self.lock:
-                if self.cue.nextCue:
-                    if self.cue.nextCue in self.cues or self.cue.nextCue.startswith('__'):
-                        self.gotoCue(self.cue.nextCue,t=None)
-                        return
-                elif self.getDefaultNext():
-                    self.gotoCue(self.getDefaultNext(),t=None)
-                    return
+       
     
         
         def render(self,force_repaint=False):
@@ -3529,8 +3587,9 @@ if __name__=='__setup__':
                     for j in data[i]:
                         x = mapChannel(i,j)
                         if x:
-                            v = module.universes[x[0]].values[x[1]]
-                            self.cue.values[i][j] = float(v)
+                            if x[0] in module.universes:
+                                v = module.universes[x[0]].values[x[1]]
+                                self.cue.values[i][j] = float(v)
                 self.valueschanged={}
     
     def event(s,value=None, info=''):
