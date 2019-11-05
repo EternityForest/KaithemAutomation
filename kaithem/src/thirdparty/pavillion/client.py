@@ -582,8 +582,8 @@ class _Client():
         try:
             common.addMulticastGroup(self.msock, self.maddr)
             self.msock_joined = True
-        except OSError as e:
-            if e.errno==19:
+        except OSError as err:
+            if err.errno==19:
                 pass
             else:
                 raise
@@ -745,8 +745,8 @@ class _Client():
         try:
             self.sock.sendto(b"PavillionS0"+m,addr or self.server_address)
             return True
-        except OSError as e:
-            if e.errno==101:
+        except OSError as err:
+            if err.errno==101:
                 if is_multicast((addr or self.server_address)[0]):
                     return False
             raise
@@ -757,10 +757,10 @@ class _Client():
         n = b'\x00'*(24-8)+struct.pack("<Q",counter)
         m = struct.pack("<B",opcode)+data
         m = self.cipher.encrypt(m,self.key,n)
-        try:    
+        try:
             self.sock.sendto(b"PavillionS0"+q+m,addr or self.server_address)
-        except OSError as e:
-            if e.errno==101:
+        except OSError as err:
+            if err.errno==101:
                 if is_multicast((addr or self.server_address)[0]):
                     return False
             raise
@@ -795,8 +795,8 @@ class _Client():
             try:
                 common.addMulticastGroup(self.msock, "224.0.0.251")
                 self.msock_joined = True
-            except OSError as e:
-                if e.errno==19:
+            except OSError as er:
+                if err.errno==19:
                     pass
                 else:
                     pavillion_logger.exception("Error joining multicast group")
@@ -1152,6 +1152,8 @@ class _Client():
         """Attempt to send the message to all subscribers. Does not raise an error on failure, but will attempt retries.
             force_multicast_first forces the first packet to be a real multicast even if there is only one connected client.
         """
+        beginTime = time.monotonic()
+
         with self.lock:
             self.counter+=1
             counter = self.counter
@@ -1190,10 +1192,10 @@ class _Client():
         #Here's where unreachable network can happen.    
         try:
             self.send(counter, 1 if reliable else 3, target.encode('utf-8')+b"\n"+name.encode('utf-8')+b"\n"+data,addr=addr,force_multicast=force_multicast_first)
-        except OSError as e:
+        except OSError as err:
             #This can be auto retried, so I'm really not sure we need
             #To do anything here. 
-            if e.errno == 101:
+            if err.errno == 101:
                 pass#logging.exception("Error in send")
 
         #Resend loop
@@ -1202,7 +1204,7 @@ class _Client():
             ctr = MAX_RETRIES
             if e.wait(x):
                 return
-            while ctr and (not e.wait(x)):
+            while ctr and (not e.wait(x)) and (time.monotonic()-beginTime < timeout):
                 x=min(1, x*1.1)
                 ctr-=1
                 time.sleep(x)

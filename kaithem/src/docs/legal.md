@@ -1048,7 +1048,7 @@ THE SOFTWARE.
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 
-#### [strftime.js](https://hacks.bluesmoon.info/strftime/strftime_8js.html)
+#### [strftime.js thdoan version](https://hacks.bluesmoon.info/strftime/strftime_8js.html)
     Copyright (c) 2008, Philip S Tellis <philip@bluesmoon.info>
     All rights reserved.
     Licence
