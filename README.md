@@ -2,11 +2,6 @@
 
 Kaithem is Linux home/commercial automation server written in pure python, HTML, Mako, and CSS. It's more low level than your average HA system, but it allows you to control anything python can.
 
-Kaithem uses a user/group/permission system with SSL support, and is designed to be fairly secured. I'm not a security researcher, but it should at the very least keep casual snoopers on the LAN out.
-
-![Login page](screenshots/login.png)
-(Login shown with Scrapbook theme)
-
 It runs on python3, but it is not tested outside of Linux. Resource usage is low enough to run well on the Raspberry Pi.
 
 You automate things by directly writing python and HTML via a web IDE. "Events" are sections of code that run when a trigger condition happens. Trigger conditions can be polled expressions, internal message bus
@@ -17,11 +12,6 @@ events, or time-based triggers using a custom semi-natural language parser.
 
 Almost the entire server state is maintained in RAM, and any changes you make to your code never touches the disk unless you explicitly save or configure auto-save.
 
-Saving occurs transactionally, so a copy of the state of the server is made before changing the new one. The save formats for events and pages is just python code and HTML/markdown, making it easy to edit by hand.
-
-You can update systems by downloading and uploading events and pages as zip files(Grouped into "modules), making deployment easy.
-
-There's a built in realtime websocket-based log viewer to assist with debugging, and several features to make detecting intrusions and errors easier.
 
 ![Settings](screenshots/settings.jpg)
 
@@ -47,8 +37,7 @@ or access the full help via the web interface!
 ## Setup
 See [This page](kaithem/src/docs/setup.md). Or, to just try things out, git clone and run kaithem/kaithem.py, then visit port 8001(for https) or port 8002(for not-https) on localhost. That's really all you need to do.
 
-There are many optional dependancies in the .deb recommended section that enable extra features. All are available in the debian
-repos and do not need to be compiled, except for Cython, which is installed automatically by the postinstall script of the debian package, or can easily be manually installed with "sudo pip3 install Cython".
+There are many optional dependancies in the .deb recommended section that enable extra features. All are available in the debian repos and do not need to be compiled, except for Cython, which is installed automatically by the postinstall script of the debian package, or can easily be manually installed with "sudo pip3 install Cython".
 
 At the moment, Cython is only used to give audio mixer gstreamer threads realtime priority.
 
@@ -62,6 +51,13 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+
+### 0.64.1
+- Misc fixes
+- Chandler logic editor, visual language for creating vue logic
+- Chandler Page editor, every scene can have an associated page
+- Chandler tracking and backtracking cues now function correctly
+- Devices page a little more polished
 
 ### 0.64
 - Option to open port with UPnP

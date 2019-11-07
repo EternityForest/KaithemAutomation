@@ -1,6 +1,13 @@
 Change Log
 ----------
 
+### 0.64.1
+- Misc fixes
+- Chandler logic editor, visual language for creating vue logic
+- Chandler Page editor, every scene can have an associated page
+- Chandler tracking and backtracking cues now function correctly
+- Devices page a little more polished
+
 ### 0.64
 - Option to open port with UPnP
 - Built in UPnP scanner to detect security issues
