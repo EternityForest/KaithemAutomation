@@ -57,13 +57,13 @@ if __name__=='__setup__':
     def mapChannel(u,c):
         if not u.startswith("@"):
             if isinstance(c,str):
-                u=module.universes.get(u,None)
-                if u:
-                    c= u.channelNames.get(c,None)
+                universe=module.universes.get(u,None)
+                if universe:
+                    c= universe.channelNames.get(c,None)
                     if not c:
                         return None
                     else:
-                        return u,c
+                        return universe,c
             else:
                 return u,c
         try:
@@ -1007,11 +1007,15 @@ if __name__=='__setup__':
     
     class DebugScriptContext(ChandlerScriptContext):
         def onVarSet(self,k, v):
-    
             try:
                 if k.startswith("pagevars."):
                     if isinstance(v, (str, int,float,bool)):
                         self.sceneObj().pageLink.send(["var", k.split(".",1)[1],v])
+                else:
+                    if not k=="_" and self.sceneObj().rerenderOnVarChange:
+                        self.sceneObj().recalcCueVals()
+                        self.sceneObj().rerender=True
+    
             except:
                 rl_log_exc("Error handling var set notification")
                 print(traceback.format_exc())
@@ -2095,6 +2099,8 @@ if __name__=='__setup__':
                     universe.all_static = True
                     if i.rerender:
                         changedUniverses[u] =(0,0)
+    
+                        #We are below the cached layer, we need to fully reset
                         if ((i.priority,i.started) <= universe.prerendered_layer):
                             to_reset[u]=1
                         else:
@@ -2199,7 +2205,7 @@ if __name__=='__setup__':
             self.a2 = {}
     
         
-        def paint(self,scene,fade,track=True,vals=None,alphas=None):
+        def paint(self,scene,fade,vals=None,alphas=None):
             """
             Makes v2 and a2 equal to the current background overlayed with values from scene which is any object that has dicts of dicts of vals and and
             alpha.
@@ -2228,34 +2234,27 @@ if __name__=='__setup__':
                 else:
                     #We don't want to fade any values that have 0 alpha in the scene,
                     #because that's how we mark "not present", and we want to track the old val.
-                    faded = self.v[i]*(1-(fade*alphas[i]))+ (alphas[i]*fade)*vals[i]
-    
+                    #faded = self.v[i]*(1-(fade*alphas[i]))+ (alphas[i]*fade)*vals[i]
+                    
+                    faded = self.v[i]*(1-fade) + (fade*vals[i])
+                    
+                    
+                    
                     #We always want to jump straight to the value if alpha was previously 0.
                     #That's because a 0 alpha would mean the last scene released that channel, and there's
                     #nothing to fade from, so we want to fade in from transparent not from black
                     is_new = self.a == 0
                     self.v2[i] = numpy.where(is_new, vals[i], faded)
                     
-                    #If we are tracking, we leave alphas alone for values not present.
-                    #if we aren't tracking, we fade them to transparent
-                    fadeda = self.a[i]*(1-fade) + fade*alphas[i]
-                    if track:
-                        self.a2[i]= numpy.where(alphas[i]>0, fadeda,self.a[i])
-                    else:
-                        self.a2[i] = fadeda
-            
-            #Cue-only cues are pretty uncommon, so the performance hit of this shouldn't be too bad.
-            #Basically we iterate over every single universe and fade out any alpha values
-            #Not in the cue.
-    
-            #Even though we are redoing some of the work we just now did
-            if not track:
-                for i in self.a:
-                    if not i in alphas:
-                        aset = numpy.zeros(len(self.a[i]))
-                    else:
-                        aset = alphas[i]
-                    self.a2[i] = self.a[i]*(1-fade) + fade*aset
+                    
+            #Now we calculate the alpha values. Including for
+            #Universes the cue doesn't affect.
+            for i in self.a:
+                if not i in alphas:
+                    aset = 0
+                else:
+                    aset = alphas[i]
+                self.a2[i] = self.a[i]*(1-fade) + fade*aset
     
     
     
@@ -2266,6 +2265,23 @@ if __name__=='__setup__':
         def save(self):
             self.v = copy.deepcopy(self.v2)
             self.a = copy.deepcopy(self.a2)
+    
+        def clean(self, affect):
+            for i in list(self.a.keys()):
+                if not i in affect:
+                    del self.a[i]
+    
+            for i in list(self.a2.keys()):
+                if not i in affect:
+                    del self.a2[i]
+    
+            for i in list(self.v.keys()):
+                if not i in affect:
+                    del self.v[i]
+    
+            for i in list(self.v2.keys()):
+                if not i in affect:
+                    del self.v2[i]
             
     
     def shortcutCode(code):
@@ -2458,7 +2474,7 @@ if __name__=='__setup__':
                 self.push()
     
         def setValue(self,universe,channel,value):
-            disallow_special(universe, allow="@")
+            disallow_special(universe, allow="_@")
             if isinstance(channel,int):
                 pass
             elif isinstance(channel,str):
@@ -2484,7 +2500,14 @@ if __name__=='__setup__':
                     channel=int(channel)
                 except:
                     pass
+    
+            
+          
+    
             with module.lock:
+                if universe =="__variables__":
+                    self.scene().scriptContext.setVar(channel,self.scene().evalExpr(value))
+    
                 self.scene().rerender = True
                 reset = False
                 if not (value is None):
@@ -2658,9 +2681,10 @@ if __name__=='__setup__':
        
             #Lets us cache the lists of values as numpy arrays with 0 alpha for not present vals
             #which are faster that dicts for some operations
-            self.cue_cached_vals_as_arrays = None
-            self.cue_cached_alphas_as_arrays = None
+            self.cue_cached_vals_as_arrays = {}
+            self.cue_cached_alphas_as_arrays = {}
     
+            self.rerenderOnVarChange = False
     
             #Set up the multicast synchronization
             self.pavillionc = None
@@ -3068,8 +3092,7 @@ if __name__=='__setup__':
     
                 self.fadeout_start =False
     
-                self.cue_cached_vals_as_arrays = {}
-                self.cue_cached_alphas_as_arrays = {}
+               
     
     
     
@@ -3102,6 +3125,14 @@ if __name__=='__setup__':
     
     
     
+                cuevars = self.cues[cue].values.get("__variables__",{})
+                for i in cuevars:
+                    try:
+                        self.scriptContext.setVar(i,self.evalExpr(cuevars[i]))
+                    except:
+                        print(traceback.format_exc())
+                        rl_log_exc("Error with cue variable "+i)
+    
                 
                 #When jumping to a cue that isn't directly the next one, apply and "parent" cues.
                 #We go backwards until we find a cue that has no parent. A cue has a parent if and only if it has either
@@ -3109,11 +3140,19 @@ if __name__=='__setup__':
                 #references this cue.
                 cobj = self.cues[cue]
     
-                if self.backtrack and not cue == self.cue.nextCue and cobj.track:
+                if self.backtrack and not cue == (self.cue.nextCue or self.getDefaultNext()) and cobj.track:
                     l = []
                     safety = 10000
                     x = self.getParent(cue)
                     while x:
+                        #No l00ps
+                        if x in l:
+                            break
+    
+                        #Don't backtrack past the current cue for no reason
+                        if x is self.cue:
+                            break
+    
                         l.append(self.cues[x])
                         x = self.getParent(x)
                         safety -= 1
@@ -3121,8 +3160,9 @@ if __name__=='__setup__':
                             break
     
                     for cuex in reversed(l):
-                        self.paintCueOntoFadeCanvas(cuex)
+                        self.cueValsToNumpyCache(cuex)
     
+                
     
                 #optimization, try to se if we can just increment if we are going to the next cue, else
                 #we have to actually find the index of the new cue
@@ -3130,6 +3170,8 @@ if __name__=='__setup__':
                     self.cuePointer += 1
                 else:
                     self.cuePointer = self.cues_ordered.index(self.cues[cue])
+    
+                        
                 self.cue = self.cues[cue]
                 
                 kaithem.sound.stop(str(self.id))
@@ -3164,7 +3206,7 @@ if __name__=='__setup__':
                 self.recalcRandomizeModifier()
                 self.recalcCueLen()
                 
-                self.paintCueOntoFadeCanvas(self.cue, not self.cue.track)
+                self.cueValsToNumpyCache(self.cue, not self.cue.track)
         
                 self.rerender = True
                 self.pushMeta()
@@ -3190,7 +3232,11 @@ if __name__=='__setup__':
                         raise RuntimeError("Invalid cue length, must resolve to int or float")
                     self.cuelen = max(0,self.randomizeModifier+self.cue.length)
     
-        def paintCueOntoFadeCanvas(self,cuex, clearBefore=False):
+    
+        def recalcCueVals(self):
+            self.cueValsToNumpyCache(self.cue, not self.cue.track)
+    
+        def cueValsToNumpyCache(self,cuex, clearBefore=False):
             """Apply everything from the cue to the fade canvas"""
             #Loop over universes in the cue
             if clearBefore:
@@ -3204,21 +3250,31 @@ if __name__=='__setup__':
     
                 if not universe in module.universes:
                     continue
-                  
     
                 if not universe in self.cue_cached_vals_as_arrays:
+                    l = len(module.universes[universe].values)
                     self.cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*l,dtype="f4")
                     self.cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*l,dtype="f4")
-                    if not universe in self.affect:
-                        self.affect.append(universe)
+                    
+                if not universe in self.affect:
+                    self.affect.append(universe)
+    
+                self.rerenderOnVarChange=False
                     
                 for j in cuex.values[i]:
                     cuev = cuex.values[i][j]
                     x = mapChannel(i, j)
                     if x:
                         universe, channel = x[0],x[1]
+    
                     self.cue_cached_alphas_as_arrays[universe][channel] = 1.0 if not cuev==None else 0
-                    self.cue_cached_vals_as_arrays[universe][channel] = self.evalExpr(cuev if not cuev==None else 0)
+                    try:
+                        self.cue_cached_vals_as_arrays[universe][channel] = self.evalExpr(cuev if not cuev==None else 0)
+                    except:
+                        self.event("script.error", self.name+" cue "+cuex.name+" Val " +str((universe,channel))+"\n"+traceback.format_exc())
+    
+                    if isinstance(cuev, str) and cuev.startswith("="):
+                        self.rerenderOnVarChange = True
     
     
         def refreshRules(self,rulesFrom=None):
@@ -3285,7 +3341,7 @@ if __name__=='__setup__':
                     #Re-enter cue to create the cache
                     self.gotoCue(self.cue.name)
                 #Bug workaround for bug where scenes do nothing when first activated
-                self.canvas.paint(self.cue, 0,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays,track=self.cue.track)
+                self.canvas.paint(self.cue, 0,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)
     
                 self.enteredCue = module.timefunc()
     
@@ -3440,8 +3496,8 @@ if __name__=='__setup__':
                     module.activeScenes = module._activeScenes[:]
     
                 self.active = False
-                self.cue_cached_vals_as_arrays = None
-                self.cue_cached_alphas_as_arrays = None
+                self.cue_cached_vals_as_arrays = {}
+                self.cue_cached_alphas_as_arrays = {}
                 kaithem.sound.stop(str(self.id))
     
     
@@ -3560,7 +3616,6 @@ if __name__=='__setup__':
             if fadePosition<1:
                 self.rerender = True
     
-            self.canvas.paint(self.cue, fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays,track=self.cue.track)
     
             if self.cue.length and(module.timefunc()-self.enteredCue)> self.cuelen*(60/self.bpm):
                 #rel_length cues end after the sound in a totally different part of code
@@ -3569,14 +3624,23 @@ if __name__=='__setup__':
                 self.nextCue(round(self.enteredCue+self.cuelen*(60/self.bpm),3))
             else:
                 if force_repaint or not self.fadeInCompleted:
-                    if fadePosition == 1:
-                        #We no longer affect universes from anything else
-                        self.affect = []
-                        for i in self.cue.values:
-                            i = mapUniverse(i)
-                            if i in module.universes:
-                                if not i in self.affect:
-                                    self.affect.append(i)
+                    self.canvas.paint(self.cue, fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)
+                    
+                    if fadePosition >= 1:
+    
+                        #Check if there could be effects from other cues
+                        if not self.cue.track:
+                            #We no longer affect universes from anything else
+                            self.affect = []
+                            for i in self.cue.values:
+                                i = mapUniverse(i)
+                                if i in module.universes:
+                                    if not i in self.affect:
+                                        self.affect.append(i)
+    
+                            #Remove unused universes from the cue
+                            self.canvas.clean(self.cue.values)
+    
                         self.fadeInCompleted = True
                         self.rerender=True
     
@@ -3628,6 +3692,7 @@ if __name__=='__setup__':
     
     
     module.controluniverse = module.Universe("control")
+    module.varsuniverse = module.Universe("__variables__")
 
 def eventAction():
     with module.lock:

@@ -1231,51 +1231,59 @@ from src import tagpoints
         </span>
 
         <button v-if="showdelete" v-on:click="rmValFromCue(i.u,i.ch)"><img src="/zipstatic/img/icons/fugue.zip/minus-octagon-frame.png"></img>Remove</button>
-                        
-
-        <span v-if="i.v !== null">
+        
+        <span v-if="typeof(i.v)=='string'">
             <input v-bind:disabled="chinfo&&chinfo[2]=='fine'" 
-                v-if="!monitor"
-                type="range" v-bind:step="(chinfo&&chinfo[2]=='fine')? 0.01:1"
-                :min="getValueRange(chinfo,i.v)[0]"
-                :max="getValueRange(chinfo,i.v)[1]"
-                v-on:input="setCueVal(currentcueid,i.u,i.ch,parseFloat($event.target.value))" v-model="i.v"
-                v-on:change="setCueValNolock(currentcueid,i.u,i.ch,parseFloat($event.target.value))">
+                        v-if="!monitor"
+                        v-on:input="setCueVal(currentcueid,i.u,i.ch,i.v)" v-model.lazy="i.v"
+                        v-on:change="setCueValNolock(currentcueid,i.u,i.ch,$event.target.value)">
 
-            <meter v-if="monitor" type="range" max=255 v-bind:value="i.v"></meter>
         </span>
 
-        <span v-if="i.v==null" class=grey>Released</span>
+        <span v-if="typeof(i.v)=='number'">
+            <span v-if="i.v !== null">
+                <input v-bind:disabled="chinfo&&chinfo[2]=='fine'" 
+                    v-if="!monitor"
+                    type="range" v-bind:step="(chinfo&&chinfo[2]=='fine')? 0.01:1"
+                    :min="getValueRange(chinfo,i.v)[0]"
+                    :max="getValueRange(chinfo,i.v)[1]"
+                    v-on:input="setCueVal(currentcueid,i.u,i.ch,parseFloat($event.target.value))" v-model.number="i.v"
+                    v-on:change="setCueValNolock(currentcueid,i.u,i.ch,parseFloat($event.target.value))">
+
+                <meter v-if="monitor" type="range" max=255 v-bind:value="i.v"></meter>
+            </span>
+
+            <span v-if="i.v==null" class=grey>Released</span>
 
 
 
-        <span v-if="!(chinfo&&chinfo[2]=='fine')" title="Double click to set exact value"
-            v-on:dblclick="promptExactVal(currentcueid,i.u,parseInt(i.ch))" style="font-size:80%">{{Number(i.v).toPrecision(4)}}</span>
-        <span class=grey  v-if="chinfo&&chinfo[2]=='fine'"
-            v-on:dblclick="promptExactVal(currentcueid,i.u,parseInt(i.ch))">auto</span>
+            <span v-if="!(chinfo&&chinfo[2]=='fine')" title="Double click to set exact value"
+                v-on:dblclick="promptExactVal(currentcueid,i.u,i.ch)" style="font-size:80%">{{Number(i.v).toPrecision(4)}}</span>
+            <span class=grey  v-if="chinfo&&chinfo[2]=='fine'">auto</span>
 
-        <span v-if="chinfo&&(chinfo[2]=='red')" v-bind:style="{'background-color': 'rgb('+i.v+ ',0,0)' , 'border-color':'red'}"
+            <span v-if="chinfo&&(chinfo[2]=='red')" v-bind:style="{'background-color': 'rgb('+i.v+ ',0,0)' , 'border-color':'red'}"
+                class="indicator"></span>
+            <span v-if="chinfo&&(chinfo[2]=='green')" v-bind:style="{'background-color': 'rgb(0,'+i.v+',0)' , 'border-color':'green'}"
+                class="indicator"></span>
+            <span v-if="chinfo&&(chinfo[2]=='blue')" v-bind:style="{'background-color': 'rgb(0,0,'+i.v+')'  , 'border-color':'blue'}"
             class="indicator"></span>
-        <span v-if="chinfo&&(chinfo[2]=='green')" v-bind:style="{'background-color': 'rgb(0,'+i.v+',0)' , 'border-color':'green'}"
-            class="indicator"></span>
-        <span v-if="chinfo&&(chinfo[2]=='blue')" v-bind:style="{'background-color': 'rgb(0,0,'+i.v+')'  , 'border-color':'blue'}"
-        class="indicator"></span>
-        <span v-if="chinfo&&chinfo[2]=='uv'" v-bind:style="{'background-color': 'rgb(i.v,0,'+i.v+')'  , 'border-color':'blue'}"
-            class="indicator"></span>
-        <span v-if="chinfo&&chinfo[2]=='custom'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
-            class="indicator"></span>
-        <span v-if="chinfo&&chinfo[2]=='intensity'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
-            class="indicator"></span>
-        <span v-if="chinfo&&chinfo[2]=='white'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
-            class="indicator"></span>
+            <span v-if="chinfo&&chinfo[2]=='uv'" v-bind:style="{'background-color': 'rgb(i.v,0,'+i.v+')'  , 'border-color':'blue'}"
+                class="indicator"></span>
+            <span v-if="chinfo&&chinfo[2]=='custom'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
+                class="indicator"></span>
+            <span v-if="chinfo&&chinfo[2]=='intensity'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
+                class="indicator"></span>
+            <span v-if="chinfo&&chinfo[2]=='white'" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}"
+                class="indicator"></span>
 
-        <span v-if="chinfo==undefined" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}" class="indicator"></span>
+            <span v-if="chinfo==undefined" v-bind:style="{'background-color': 'rgb(' +i.v+ ','+i.v+','+i.v+')'}" class="indicator"></span>
 
-        
-        <span v-if="chinfo&&chinfo[2]=='custom'"><br>
-            <select :value="getValueRange(chinfo,i.v)[2]" v-on:change="setCueValNolock(currentcueid,i.u,i.ch,mapvaluerange(i.v, chinfo, $event.target.value))"> 
-                <option v-for="i of chinfo.slice(3)" :value="i[2]">{{i[2]}}({{i[0]}} to {{i[1]}})</option>
-            </select>
+            
+            <span v-if="chinfo&&chinfo[2]=='custom'"><br>
+                <select :value="getValueRange(chinfo,i.v)[2]" v-on:change="setCueValNolock(currentcueid,i.u,i.ch,mapvaluerange(i.v, chinfo, $event.target.value))"> 
+                    <option v-for="i of chinfo.slice(3)" :value="i[2]">{{i[2]}}({{i[0]}} to {{i[1]}})</option>
+                </select>
+            </span>
         </span>
     </div>
 </template>
@@ -1429,6 +1437,16 @@ from src import tagpoints
 
         hfaderdata =
         {
+           'promptExactVal': function(cue, u, v)
+            {
+                var x = prompt("Enter new value for scene")
+
+                if (x != null)
+                {
+
+                        this.setCueValNolock(cue, u, v, x);
+                }
+            },
             'setCueVal': function(sc, u, ch, val)
             {
                 appData.lockedFaders[sc+":"+u+":"+ch]=true;
@@ -1453,8 +1471,8 @@ from src import tagpoints
                     null
                 ])
                 Vue.delete(appData.cuevals[appData.selectedCues[appData
-                    .scenename]][appData.newcueu], parseInt(
-                    ch))
+                    .scenename]][appData.newcueu],
+                    ch)
                 Vue.delete(appData.cuevals[appData.selectedCues[appData
                     .scenename]][appData.newcueu],
                     ch)
@@ -1943,26 +1961,13 @@ from src import tagpoints
                     op[i]={}
                     for (j in c[i])
                     {
-                        op[i][j]=parseFloat(c[i][j].v)
+                        op[i][j]=c[i][j].v
                     }
                 }
                 return op
             },
 
-            'promptExactVal': function(cue, u, v)
-            {
-                var x = prompt("Enter new value for scene")
-
-                if (x != null)
-                {
-                    if (parseFloat(x))
-                    {
-                        appData.setCueValNolock(cue, u, v, Math.max(0,
-                            Math.min(
-                                parseFloat(x), 255)))
-                    }
-                }
-            },
+    
 
             'toggleTransparent': function(cue, u, c, v)
             {
@@ -2715,7 +2720,7 @@ from src import tagpoints
                         }
                         Vue.set(appData.cuevals[v[1]][i], j, y)
                         //The other 2 don't need to be reactive, v does
-                        Vue.set(y, 'v', parseFloat(v[2][i][j]))
+                        Vue.set(y, 'v', v[2][i][j])
 
                     }
                 }
