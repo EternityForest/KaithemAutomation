@@ -14,7 +14,8 @@ resource-type: page
 template-engine: markdown
 
 ---
-# Chandler Help
+Chandler Help
+-------------
 
 ## API 
 
@@ -29,11 +30,11 @@ you don't keep a reference to them.
 To access an existing scene programmatically, use the kaithem.chandler.scenes[name]
 dict.
 
-
+#### Cues
 Every scene has a dict of cues called cues, that contains "cue objects"
 
-Add a cue to a scene simply by calling scene.Cue, as in: cue =
-scene.Cue(name,\*\*kwargs), and remove it with scene.rmCue(name)
+Add a cue to a scene simply by calling scene.addCue, as in: cue =
+scene.addCue(name,\*\*kwargs), and remove it with scene.rmCue(name)
 
 You may pass onEnter and onExit options to Cue, which must be functions
 of one argument, which will be the exact time the cue entered or exited,
@@ -45,14 +46,20 @@ cue.setLength(l), setFadein(l), and setNext(cuename) can be used.
 setNext(None) returns a cue to the default of having the next numbered
 cue as the next one
 
+##### Values
 To set a value, use cue.setValue(universe, channel, value), for example
 setValue("DMX", 45, 235).
 
 To make a channel stop affecting a value, use cue.clearValue(universe,
 channel)
 
-To activate and stop scenes, use scene.go() and scene.stop()
 
+#### Stop/go
+To activate and stop scenes, use scene.go() and scene.stop().
+
+Or, use setAlpha with a nonzero value to go.
+
+#### Sync
 For network synchronization of two scenes, to cause cue transitions to
 match, use scene.setSyncKey(key), where key is a 32 byte binary string
 that must be the same on all scenes you want to sync
@@ -60,6 +67,7 @@ that must be the same on all scenes you want to sync
 You can set the port and address with setSyncAddress and setSyncAddress,
 but the default multicast address and port should be fine.
 
+#### Cues
 To go to a new cue, use scene.gotoCue(cuename)
 
 kaithem.chandler.shortcutCode(code) has the same effect as manually typing

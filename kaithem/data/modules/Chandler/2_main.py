@@ -101,7 +101,7 @@ if __name__=='__setup__':
     
     module.boards = []
     
-    universesLock = threading.Lock()
+    universesLock = threading.RLock()
     #in the del and init we copy data from this slow weakrefd thing to a fast not-weakref thing.
     module.universes=weakref.WeakValueDictionary()
     module.fastUniverses = {}
@@ -506,6 +506,8 @@ if __name__=='__setup__':
             self.all_static = True
             with universesLock:
                 if name in module.universes:
+                    logger.warning("Replacing universe "+name)
+                    #Todo: just close the old one right here
                     raise ValueError("Name "+name+ " is taken")
                 module.universes[name] =self
                 try:
@@ -567,6 +569,16 @@ if __name__=='__setup__':
                 except IterationError:
                     module.fastUniverses=module.universes
                 
+                def alreadyClosed(*a,**k):
+                    raise RuntimeError("This universe has been stopped, possibly because it was replaced wih a newer one")
+    
+                self.onFrame = alreadyClosed
+                self.setStatus= alreadyClosed
+                self.refresh_scenes=alreadyClosed
+                self.reset_to_cache = alreadyClosed
+                self.reset = alreadyClosed
+                self.preFrame= alreadyClosed
+                self.save_prerendered=alreadyClosed
     
         def setStatus(self,s,ok):
             "Set the status shown in the gui. ok is a bool value that indicates if the object is able to transmit data to the fixtures"
@@ -1805,7 +1817,7 @@ if __name__=='__setup__':
                     if not bn in module.scenes[msg[1]].cues:
                         module.scenes[msg[1]].addCue(bn)
                         module.scenes[msg[1]].cues[bn].rel_length=True
-                        module.scenes[msg[1]].cues[bn].length=0.0001
+                        module.scenes[msg[1]].cues[bn].length=0.01
     
                         soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
                         soundfolders.append(os.path.join(src.directories.datadir,"sounds"))
@@ -2579,18 +2591,18 @@ if __name__=='__setup__':
                 if len(i().newDataFunctions)<100:
                     i().newDataFunctions.append(lambda s:s.pushCueData(self.id))                
     
-    
+    class ClosedScene():
+        pass
     
     class Scene():
         "An objecting representing one scene"
         def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,blendArgs=None,backtrack=True,defaultCue=True, syncKey=None, bpm=60, syncAddr="239.255.28.12", syncPort=1783, soundOutput='',notes='',page=None):
     
-    
-           
-    
             "Not suggested to defaultCue==False, it's only there to avoid conflicts when loading saved cues"
             if name and name in module.scenes_by_name:
                 raise RuntimeError("Cannot have 2 scenes sharing a name")
+    
+    
             disallow_special(name)
             self.lock = threading.RLock()
     
@@ -2754,6 +2766,16 @@ if __name__=='__setup__':
                 self.pavillions.close()
             except:
                 pass
+    
+    
+        def close(self):
+            "Unregister the scene and delete it from the lists"
+            with module.lock:
+                self.stop()
+                if module.scenes_by_name.get(self.name,None) is self:
+                    del module.scenes_by_name[self.name]
+                if module.scenes.get(self.id,None) is self:
+                    del module.scenes_by_name[self.id]
     
         def evalExpr(self,s):
             """Given A string, return a number if it looks like one, evaluate the expression if it starts with =, otherwise
@@ -3183,13 +3205,7 @@ if __name__=='__setup__':
     
                     sound = self.cue.sound
     
-                    #Allow relative paths
-                    if not sound.startswith("/"):
-                        for i in [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]:
-                            if os.path.isfile(os.path.join(i,sound)):
-                                sound = os.path.join(i,sound)
-                    if not sound.startswith("/"):
-                        sound = kaithem.sound.resolveSound(sound)
+                    sound = self.resolveSound(sound)
     
                     if os.path.isfile(sound):
                         out = self.cue.soundOutput
@@ -3212,25 +3228,38 @@ if __name__=='__setup__':
                 self.pushMeta()
     
     
+        def resolveSound(self, sound):
+            #Allow relative paths
+            if not sound.startswith("/"):
+                for i in [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]:
+                    if os.path.isfile(os.path.join(i,sound)):
+                        sound = os.path.join(i,sound)
+            if not sound.startswith("/"):
+                sound = kaithem.sound.resolveSound(sound)
+            return sound
+    
         def recalcRandomizeModifier(self):
             "Recalculate the random variance to apply to the length"
             self.randomizeModifier =random.triangular(-self.cue.lengthRandomize, +self.cue.lengthRandomize)
     
         def recalcCueLen(self):
                 "Calculate the actual cue len, without changing the randomizeModifier"
+                cuelen = self.scriptContext.preprocessArgument(self.cue.length)
+                
+                if not isinstance(cuelen,(int, float)):
+                        raise RuntimeError("Invalid cue length, must resolve to int or float")
+    
                 if self.cue.sound and self.cue.rel_length:
+                    path = self.resolveSound(self.cue.sound)
                     try:
-                        slen = TinyTag.get(self.cue.sound).duration+self.cue.length
+                        slen = TinyTag.get(path).duration+cuelen
                         self.cuelen=  max(0,self.randomizeModifier+slen)
                     except:
-                        logging.exception("Error getting length for sound "+str(self.cue.sound))
+                        logging.exception("Error getting length for sound "+str(path))
                         self.cuelen = 0
     
                 else: 
-                    cuelen = self.scriptContext.preprocessArgument(self.cue.length)
-                    if not isinstance(cuelen,(int, float)):
-                        raise RuntimeError("Invalid cue length, must resolve to int or float")
-                    self.cuelen = max(0,self.randomizeModifier+self.cue.length)
+                    self.cuelen = max(0,self.randomizeModifier+cuelen)
     
     
         def recalcCueVals(self):
@@ -3304,7 +3333,7 @@ if __name__=='__setup__':
     
                 try:
                     for i in module.boards:
-                        i().link.send(['scenetimers',self.name, self.runningTimers])
+                        i().link.send(['scenetimers',self.id, self.runningTimers])
                 except:
                     rl_log_exc("Error handling timer set notification")
                 
@@ -3552,8 +3581,8 @@ if __name__=='__setup__':
     
     
         
-       # def cue(self,name,**kw):
-       #     return Cue(self,name,**kw)
+        def addCue(self,name,**kw):
+            return Cue(self,name,**kw)
     
         def setBlend(self,blend):
             disallow_special(blend)

@@ -220,10 +220,19 @@ class ScheduleTimer():
 
     def handler(self,*a,**k):
         nextruntime = self.selector.after(datetime.datetime.now(),True)
-        self.nextruntime=dt_to_ts(nextruntime,self.selector.tz)
-        self.next=scheduler.schedule(self.handler, self.nextruntime, False)
-        self.context().event(self.eventName)
-        self.context().onTimerChange(self.eventName,self.nextruntime)
+        ctx = self.context()
+
+        #We don't want to reschedule if the context no longer exists
+        if not ctx:
+            return
+        try:
+            ctx.event(self.eventName)
+            ctx.onTimerChange(self.eventName,self.nextruntime)
+
+            self.nextruntime=dt_to_ts(nextruntime,self.selector.tz)
+            self.next=scheduler.schedule(self.handler, self.nextruntime, False)
+        finally:
+            del ctx
     
     def stop(self):
         try:

@@ -1665,6 +1665,11 @@ from src import tagpoints
 
                 api_link.send(['setcuesoundoutput', cueid, i])
             },
+            'setSoundfile': function(cueid, i)
+            {
+
+                api_link.send(['setcuesound', cueid, i])
+            },
                'setSceneSoundOutput': function(cueid, i)
             {
 
