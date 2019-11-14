@@ -132,12 +132,17 @@ class RepeatingEvent(BaseEvent):
 
         We implement this at the moment by having a separate _schedule functinon for when we are already under self.lock
         """
-        with self.lock:
-            if self.scheduled:
-                return
-            if not self.lastrun:
-                self.lastrun = time.time()
-            self._schedule()
+        if self.lock.acquire():
+            try:
+                if self.scheduled:
+                    return
+                if not self.lastrun:
+                    self.lastrun = time.time()
+                self._schedule()
+            finally:
+                self.lock.release()
+        else:
+            logger.warning("Tried to schedule something that is still running")
 
     def _schedule(self):
         """Calculate next runtime and put self into the queue.
@@ -512,16 +517,16 @@ class NewScheduler(threading.Thread):
 
     def _dorErrorRecovery(self):
         for i in self.repeatingtasks:
-                        try:
-                            if not i.scheduled:
-                                xyz = time.time()
-                                #Let's maybe not block the entire scheduling thread
-                                #If one event takes a long time to schedule or if it
-                                #Is already running and can't schedule yet.
-                                workers.do(i.schedule)
-                                logger.debug("Rescheduled "+str(i)+"using error recovery, could indicate a bug somewhere, or just a long running event.")
-                        except:
-                                logger.exception("Exception while scheduling event")
+            try:
+                if not i.scheduled:
+                    xyz = time.time()
+                    #Let's maybe not block the entire scheduling thread
+                    #If one event takes a long time to schedule or if it
+                    #Is already running and can't schedule yet.
+                    workers.do(i.schedule)
+                    logger.debug("Rescheduled "+str(i)+"using error recovery, could indicate a bug somewhere, or just a long running event.")
+            except:
+                    logger.exception("Exception while scheduling event")
 
 
 
