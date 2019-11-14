@@ -840,7 +840,7 @@ def startJack(p=None, n=None):
         my_env = os.environ.copy()
  
         if not 'DBUS_SESSION_BUS_ADDRESS' in my_env or not my_env['DBUS_SESSION_BUS_ADDRESS']:
-            my_env = "unix:path=/run/dbus/system_bus_socket"
+            my_env['DBUS_SESSION_BUS_ADDRESS'] = "unix:path=/run/dbus/system_bus_socket"
 
 
         jackp =subprocess.Popen(['jackd', '-S', '--realtime', '-P' ,'70' ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,str(period), '-n' ,str(nperiods) ,'-r','48000'],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE, stderr=subprocess.PIPE,env=my_env)    
