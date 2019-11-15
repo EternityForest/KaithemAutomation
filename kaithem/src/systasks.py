@@ -32,11 +32,14 @@ def on_service_state_change(zeroconf, service_type, name, state_change):
         if not info:
             return
         if state_change is ServiceStateChange.Added:
-            httpservices.append((sorted([socket.inet_ntoa(i) for i in info.addresses]), service_type, name, info.port))
+            httpservices.append((tuple(sorted([socket.inet_ntoa(i) for i in info.addresses])), service_type, name, info.port))
             if len(httpservices)> 2048:
                 httpservices.pop(0)
         else:
-            httpservices.remove((sorted([socket.inet_ntoa(i) for i in info.addresses]), service_type, name, info.port))
+            try:
+                httpservices.remove((tuple(sorted([socket.inet_ntoa(i) for i in info.addresses])), service_type, name, info.port))
+            except:
+                logging.exception("???")
 
 browser = ServiceBrowser(util.zeroconf, "_https._tcp.local.", handlers=[on_service_state_change])
 browser2 = ServiceBrowser(util.zeroconf, "_http._tcp.local.", handlers=[on_service_state_change])

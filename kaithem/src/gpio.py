@@ -137,28 +137,42 @@ class GPIOTag():
         from gpiozero import Device
         import gpiozero
 
-        if not self.fakeGpio:
-            #Always keep a fake GPIO port for testing purposes
-            from gpiozero.pins.mock import MockFactory
-            if not globalMockFactory:
-                globalMockFactory = MockFactory()
-            self.fakeGpio = withclass(pin, *args,**kwargs,pin_factory=globalMockFactory)
+        if mock:
+            if self.realGpio:
+                try:
+                    self.realGpio.close()
+                except:
+                    pass
+                self.realGpio = None
 
-        if self.realGpio:
-            raise RuntimeError("Already connected") 
-        if not mock:
+            if not self.fakeGpio:
+                from gpiozero.pins.mock import MockFactory
+                if not globalMockFactory:
+                    globalMockFactory = MockFactory()
+                if not globalMockFactory:
+                    raise RuntimeError("problem")
+                self.fakeGpio = withclass(pin, *args,**kwargs,pin_factory=globalMockFactory)
+            self.gpio=self.fakeGpio
+        else:
+            if self.fakeGpio:
+                try:
+                    self.fakeGpio.close()
+                except:
+                    pass
+                self.fakeGpio = None
             try:
-                self.gpio = withclass(pin, *args,**kwargs)
+                if not self.realGpio:
+                    self.gpio = withclass(pin, *args,**kwargs)
                 self.realGpio = self.gpio
 
             except gpiozero.exc.BadPinFactory:
                 global alreadySentMockWarning
                 if not alreadySentMockWarning:
                     messagebus.postMessage("/system/notifications/warnings", "No real GPIO found, using mock pins")
-                self.gpio = self.fakeGpio
+
+                #Redo in mock mode
+                self.connectToPin(withclass,pin,*args,mock=True,**kwargs)
                 alreadySentMockWarning = True
-        else:
-            self.gpio=self.fakeGpio
 
 class NoRealGPIOError(RuntimeError):
     pass
@@ -172,7 +186,12 @@ class DigitalOutput(GPIOTag):
         from gpiozero import LED
         self.pin=pin
         self.comment=comment
-        self.connectToPin(LED, pin, mock=mock,*args,**kwargs)
+        def pinSwitchFunc(doMock):
+            #Switch to the appropriate mock or real pin
+            self.connectToPin(LED, pin, mock=doMock,*args,**kwargs)
+        self.pinSwitchFunc = pinSwitchFunc
+        self.pinSwitchFunc(mock)
+
         self.activeState = kwargs.get('active_high', True)
 
         # try:
@@ -187,7 +206,11 @@ class DigitalOutput(GPIOTag):
         self.overrideAlert = alerts.Alert("Pin"+str(pin)+"override")
         self.overrideAlert.description="Output pin overridden manually and ignoring changes to it's tagpoint"
 
+        self.forced=False
+
         def tagHandler(val, ts, annotation):
+            if self.forced:
+                return
             self.gpio.value = val>0.5
 
             t=time.time()
@@ -219,16 +242,10 @@ class DigitalOutput(GPIOTag):
     def value(self,v):
         self.setState(v)
 
-    def _on(self):
-        self.gpio.on()
-
-    def _off(self):
-        self.gpio.off()
-
     
     def force(self,v):
         with lock:
-            self.gpio=self.fakeGpio
+            self.forced = True
             if v:
                 self.gpio.on()
             else:
@@ -238,11 +255,8 @@ class DigitalOutput(GPIOTag):
     
     def unforce(self):
         with lock:
-            if self.realGpio:
-                self.gpio=self.realGpio
-                self.gpio.value = self.tag.value>0.5
-            else:
-                raise NoRealGPIOError("No real gpio")
+            self.forced=False
+            self.gpio.value = self.tag.value>0.5
         api.send(["opin", self.pin, formatOutputPin(self)])
 
 
@@ -272,10 +286,19 @@ class DigitalInput(GPIOTag):
         from gpiozero import Button,Device
         from gpiozero.pins.mock import MockFactory
         import gpiozero
+        self.lastInactive=time.monotonic()
+        self.holdWaiter=None
+
         self.pin=pin
         self.comment=comment
-        self.connectToPin(Button, pin, mock=mock,*args,**kwargs)
-        self._setInputCallbacks()
+        def pinSwitchFunc(doMock):
+            #Switch to the appropriate mock or real pin
+            self.connectToPin(Button, pin, mock=doMock,*args,**kwargs)
+        self.pinSwitchFunc = pinSwitchFunc
+        self.pinSwitchFunc(mock)
+
+        if not mock:
+            self._setInputCallbacks()
         self.phyclaim = self.tag.claim(self.gpio.value,"gpio", 60)
         self.lastPushed = 0
 
@@ -296,12 +319,11 @@ class DigitalInput(GPIOTag):
             else:
                 self.activeState=True
             
-        if isinstance(gpiozero.Device.pin_factory,MockFactory):        
-
-                if  self.activeState:
-                    Device.pin_factory.pin(pin).drive_low()
-                else:
-                    Device.pin_factory.pin(pin).drive_high()
+        if mock:        
+            if self.activeState:
+                globalMockFactory.pin(self.pin).drive_low()
+            else:
+                globalMockFactory.pin(self.pin).drive_high()
 
         with lock:
             inputs[self.pin]=weakref.ref(self)
@@ -343,11 +365,8 @@ class DigitalInput(GPIOTag):
         #Dynamic import, we just accept that this one is slow because it's just for testing
         import gpiozero
        
-        self._selectFake()
-        if value:
-            globalMockFactory.pin(self.pin).drive_high()
-        else:
-            globalMockFactory.pin(self.pin).drive_low()
+        self._selectFake(value)
+       
         
         api.send(["ipin", self.pin, formatPin(self)])
 
@@ -357,6 +376,10 @@ class DigitalInput(GPIOTag):
         api.send(["ipin", self.pin, formatPin(self)])
 
     def _onActive(self):
+        
+        #Now was the last time it WAS inactive, this is the moment it starts being active
+        self.lastInactive=time.monotonic()
+
         messagebus.postMessage("/system/gpio/change/"+str(self.pin),True)
         messagebus.postMessage("/system/gpio/active/"+str(self.pin),True)
 
@@ -371,6 +394,7 @@ class DigitalInput(GPIOTag):
         self.lastPushed = time.time()
 
     def _onInactive(self):
+        self.lastInactive=time.monotonic()
         messagebus.postMessage("/system/gpio/change/"+str(self.pin),False)
         messagebus.postMessage("/system/gpio/inactive/"+str(self.pin),False)
 
@@ -398,13 +422,21 @@ class DigitalInput(GPIOTag):
 
     def _selectReal(self):
         with self.lock:
-            oldGpio = self.gpio
+
+            wasReal = self.gpio and self.gpio ==self.realGpio
+            if wasReal:
+                return 
+
+            oldValue = self.gpio.value
+            
+            self.pinSwitchFunc(False)
             if not self.realGpio:
                 raise NoRealGPIOError("Object has no real GPIO")
+            if self.holdWaiter:
+                self.holdWaiter.join()
+            self.holdWaiter=None()
             self.mockAlert.clear()
 
-            if self.gpio==self.realGpio:
-                return
             self.fakeGpio.when_activated=None
             self.fakeGpio.when_deactivated=None
             self.fakeGpio.when_deactivated=None
@@ -414,39 +446,64 @@ class DigitalInput(GPIOTag):
             self.gpio.when_deactivated = self._onInactive
             self.gpio.when_held = self._onHold
 
+            if self.gpio.value:
+                self.phyclaim.set(1)
+                if  not oldValue:
+                    self._onActive()
+            else:
+                self.phyclaim.set(0)
+                if oldValue:
+                    self._onInactive()
 
-            #The value may have effectively just changed
-            if not oldGpio==self.realGpio:
-                if self.gpio.value:
-                    self.phyclaim.set(1)
-                    if  not self.fakeGpio.value:
-                        self._onActive()
-                else:
-                    self.phyclaim.set(0)
-                    if not self.fakeGpio.value:
-                        self._onInactive()
-
-    def _selectFake(self):
+    def _selectFake(self,rawv):
         with self.lock:
-            if self.gpio==self.fakeGpio:
-                return
-            oldGpio = self.gpio
+    
             if self.realGpio:
                 self.realGpio.when_activated=None
                 self.realGpio.when_deactivated=None
                 self.realGpio.when_deactivated=None
-            
-            self.gpio = self.fakeGpio
-            self.gpio.when_activated = self._onActive
-            self.gpio.when_deactivated = self._onInactive
-            self.gpio.when_held = self._onHold
 
-            if not oldGpio==self.fakeGpio:
-                if self.gpio.value:
-                    self.phyclaim.set(1)
-                    if self.realGpio and not self.realGpio.value:
-                        self._onActive()
+            
+                oldValue = self.gpio.value
+            else:
+                oldValue = self.phyclaim.value
+
+            self.pinSwitchFunc(True)
+            
+            #Set the claim as if the new value was the thing, don't use the builtin
+            #Mock stuff
+            if self.activeState:
+                self.phyclaim.set(1 if rawv else 0)
+            else:
+                self.phyclaim.set(0 if rawv else 1)
+
+            self.gpio = self.fakeGpio
+            
+
+            if not oldValue==self.phyclaim.value:
+                if self.phyclaim.value:
+                    self._onActive()
+                    def f():
+                        #Wait until it's been long enough
+                        while  (time.monotonic()-self.lastInactive<self.fakeGpio.hold_time):
+                            if self.realGpio:
+                                return
+                            if self.phyclaim.value<0.5:
+                                return
+                            time.sleep(0.01)
+                        self._onHold()
+                    
+                    self.holdWaiter = threading.Thread(target=f,daemon=True)
+                    self.holdWaiter.start()
                 else:
+                    self.lastInactive= time.monotonic()
                     self.phyclaim.set(0)
-                    if self.realGpio and self.realGpio.value:
-                        self._onInactive()
+                    self._onInactive()
+                    #Wait for stop
+                    if self.holdWaiter:
+                        self.holdWaiter.join()
+                    self.holdWaiter=None
+            
+           
+            
+            
