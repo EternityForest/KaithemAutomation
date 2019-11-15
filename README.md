@@ -52,6 +52,8 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.64.3
+- Fix bugs in the GPIO mocking functions
 
 ### 0.64.2
 - Misc fixes

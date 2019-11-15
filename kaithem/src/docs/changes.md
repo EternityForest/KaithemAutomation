@@ -1,6 +1,9 @@
 Change Log
 ----------
 
+### 0.64.3
+- Fix bugs in the GPIO mocking functions
+
 
 ### 0.64.2
 - Misc fixes

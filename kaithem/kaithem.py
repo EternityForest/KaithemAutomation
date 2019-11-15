@@ -16,8 +16,8 @@
 
 #
 
-__version__ = "0.64.2 Production"
-__version_info__ = (0,64,2,"release",0)
+__version__ = "0.64.3 Production"
+__version_info__ = (0,64,3,"release",0)
 
 #Library that makes threading and lock operations, which we use a lot of, use native code on linux
 try:
