@@ -52,59 +52,20 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+
+### 0.64.2
+- Misc fixes
+- Fix environment variable bug when launching JACK
+- Fix possible schedule pileup bug with repeatingevents
+- New theme
+- Chandler accepts sound files from config
+
 ### 0.64.1
 - Misc fixes
 - Chandler logic editor, visual language for creating vue logic
 - Chandler Page editor, every scene can have an associated page
 - Chandler tracking and backtracking cues now function correctly
 - Devices page a little more polished
-
-### 0.64
-- Option to open port with UPnP
-- Built in UPnP scanner to detect security issues
-- Full copy of the python3.8 documentation available locally in the help section
-- Sound Mixer built in(if using JACK)
-- Lightboard better suited for media
-- Dynamic Fixture Mapping in Lightboard
-- If the server is restarted but the system itself remains running, all module and registry changes persist in RAM
-    on linux.
-- Many bugfixes
-- Boot time is several times faster
-- No limit to event traceback stack depth
-- Remove posting to /system/threads/start, it created a refactoring nightmare and wasn't useful
-- Remove system/errors/workers for the same reason, traditional logging makes it obsolete.
-- Hopefully resolved the SSL segfault
-- Auto-adopt stuff to the default kaithem user if started as root(Useful if things are modified by sudo)
-- Minor breaking: Resources all have file extensions, old loaded modules may have odd names but will load
-- Events are now stored as standard python files with data in variables, for easy viewing in external editors
-- New kaithem.web.controllers: Easily create pages directly in python code using cherrypy directly without losing the flexibility of Kaithem.
-- WiFi Manager, on Linux with NetworkManager you can set up connections to access points via
-  the web UI.
-- `__del__` support in events, just define it in the setup.
-- kaithem.midi.FluidSynth lets you play MIDI notes with soundfonts
-- One-param and zero-param messagebus subscriptions that don't get the topic(Two param stil works)
-- gpiozero integration
-- Util page for viewing environment variables
-- Lightboard scenes are now saved to VARDIR/chandler/scenes/SCENENAME.yaml
-- Functions can now be used as StateMachine rules, they are polled and followed when true
-- Use Ace code editor as fallback on mobile
-- Lightboard has been renamed to Chandler
-- Add a bit of runtime type checking
-
-### 0.63
-
--   New tagpoints(Like SCADA tagpoints) with Pavillion sync to Arduino
--   Kasa smartplug support
--   Migrate docs to markdown
--   Message bus can handle any python object type
--   Workarouds for the "Too many open file descriptors" issues.
--   Major MDNS and NTP improvements
--   MDNS browsing page
--   QR Code display in about page
--   Proper cache support for favicon
--   Notifications use websockets, not polling
--   Lighting subsystem improvements
--   Logging bugfixes
 
 License Terms
 =============

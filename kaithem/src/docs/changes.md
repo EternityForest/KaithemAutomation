@@ -1,6 +1,15 @@
 Change Log
 ----------
 
+
+### 0.64.2
+- Misc fixes
+- Fix environment variable bug when launching JACK
+- Fix possible schedule pileup bug with repeatingevents
+- New theme
+- Chandler accepts sound files from config
+
+
 ### 0.64.1
 - Misc fixes
 - Chandler logic editor, visual language for creating vue logic

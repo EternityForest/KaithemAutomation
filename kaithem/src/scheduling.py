@@ -132,7 +132,7 @@ class RepeatingEvent(BaseEvent):
 
         We implement this at the moment by having a separate _schedule functinon for when we are already under self.lock
         """
-        if self.lock.acquire():
+        if self.lock.acquire(timeout=0.5):
             try:
                 if self.scheduled:
                     return
