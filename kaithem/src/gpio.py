@@ -57,7 +57,7 @@ def formatOutputPin(p):
     return{
         'v':bool(p.gpio.value),
         'c':p.comment,
-        'm': p.gpio==p.fakeGpio,
+        'm': p.forced,
         'p': p.pin,
         "a_s":p.activeState
 
