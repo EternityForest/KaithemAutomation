@@ -1116,6 +1116,9 @@ The kaithem.sound API is slightly different depending on which backend
 has been configured. By default mplayer will be used if available and is
 the recommended backed.
 
+#### kaithem.sound.directories
+The `audio-paths` entry from the config YAML. May contain an entry called "__default__"
+
 #### kaithem.sound.outputs()
 
 (Currently linux ALSA only) Returns a dict of sound device info objects.

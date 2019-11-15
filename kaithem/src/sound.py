@@ -212,7 +212,7 @@ sound_paths = [""]
 
 p = config['audio-paths']
 for i in p:
-    if i== 'default':
+    if i== '__default__':
         sound_paths.append(os.path.join(directories.datadir,"sounds"))
     else:
         sound_paths.append(i)

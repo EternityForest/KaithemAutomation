@@ -186,9 +186,7 @@ if __name__=='__setup__':
     rootContext.commands['ifCue']=ifCueCommand
     
     def listsoundfolder(path):
-        soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
-        soundfolders.append(os.path.join(src.directories.datadir,"sounds"))
-        soundfolders.append(os.path.join(src.directories.vardir,"Music"))
+        soundfolders = getSoundFolders()
     
         if not path.endswith("/"):
             path = path+"/"
@@ -258,7 +256,13 @@ if __name__=='__setup__':
     
     
     
-    
+       
+    def getSoundFolders():
+        soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
+        soundfolders.append(os.path.join(src.directories.datadir,"sounds"))
+        soundfolders.append(os.path.join(src.directories.vardir,"Music"))
+        soundfolders+=[i for i in kaithem.sound.directories if not i.startswith("__")]
+        return soundfolders
     
     
     
@@ -1804,7 +1808,7 @@ if __name__=='__setup__':
                         module.scenes[msg[1]].addCue(msg[2])
                 
                 if msg[0]=="searchsounds":
-                    self.link.send(['soundsearchresults', msg[1], searchPaths(msg[1], kaithem.registry.get("lighting/soundfolders",[])) ])
+                    self.link.send(['soundsearchresults', msg[1], searchPaths(msg[1], getSoundFolders()) ])
                 if msg[0]=="newFromSound":
                     bn = os.path.basename(msg[2])
                     bn=fnToCueName(bn)
@@ -1819,9 +1823,7 @@ if __name__=='__setup__':
                         module.scenes[msg[1]].cues[bn].rel_length=True
                         module.scenes[msg[1]].cues[bn].length=0.01
     
-                        soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
-                        soundfolders.append(os.path.join(src.directories.datadir,"sounds"))
-                        soundfolders.append(os.path.join(src.directories.vardir,"Music"))
+                        soundfolders = getSoundFolders()
     
                         for i in soundfolders:
                             s = msg[2]
@@ -1867,10 +1869,9 @@ if __name__=='__setup__':
                     self.pushCueMeta(msg[1])
     
                 if msg[0]=="setcuesound":
-                
-                    soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
-                    soundfolders.append(os.path.join(src.directories.datadir,"sounds"))
-                    soundfolders.append(os.path.join(src.directories.vardir,"Music"))
+             
+                    soundfolders = getSoundFolders()
+    
                     for i in soundfolders:
                         s = msg[2]
                         #Make paths relative.
@@ -3231,7 +3232,7 @@ if __name__=='__setup__':
         def resolveSound(self, sound):
             #Allow relative paths
             if not sound.startswith("/"):
-                for i in [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]:
+                for i in getSoundFolders():
                     if os.path.isfile(os.path.join(i,sound)):
                         sound = os.path.join(i,sound)
             if not sound.startswith("/"):

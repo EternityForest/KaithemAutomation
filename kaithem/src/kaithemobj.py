@@ -370,6 +370,7 @@ class Kaithem():
         builtinSounds = sound.builtinSounds
         resolveSound = sound.resolveSound
 
+        directories = config.config['audio-paths']
 
         @staticmethod        
         def outputs():
