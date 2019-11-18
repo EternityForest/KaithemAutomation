@@ -118,11 +118,18 @@ def matchIface(a, pattern):
 def getConnectionStatus():
     d = {}
     import NetworkManager
-    for device in NetworkManager.NetworkManager.GetAllDevices():
+    try:
+        devs = NetworkManager.NetworkManager.GetAllDevices()
+        print("Err getting devices, using fallback")
+    except:
+        devs = NetworkManager.NetworkManager.GetDevices()
+
+    for device in devs:
         if  device.DeviceType ==  NetworkManager.NM_DEVICE_TYPE_WIFI:
             ap = device.ActiveAccessPoint
             if ap:
-                d[device.Udi] = (ap.Ssid, 100 if device.Mode==2 else ap.Strength, modes.get(device.Mode,"UNKNOWN") )
+                #2=WiFi STA 
+                d[device.Udi] = (ap.Ssid, 100 if (not device.Mode==2) else ap.Strength, modes.get(device.Mode,"UNKNOWN") )
             else:
                 d[device.Udi] = ("", 0, "DISCONNECTED")
         else:

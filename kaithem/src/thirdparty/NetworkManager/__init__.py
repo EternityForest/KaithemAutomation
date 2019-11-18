@@ -390,7 +390,7 @@ def device_class(typ):
         NM_DEVICE_TYPE_OVS_INTERFACE: OvsIf,
         NM_DEVICE_TYPE_OVS_PORT: OvsPort,
         NM_DEVICE_TYPE_OVS_BRIDGE: OvsBridge
-    }[typ]
+    }.get(typ,Generic)
 
 class Adsl(Device): pass
 class Bluetooth(Device): pass

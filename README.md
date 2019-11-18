@@ -52,6 +52,9 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.64.4
+- Fix bugs in the WiFi manager page(Required changing NetworkManager python bindings)
+
 ### 0.64.3
 - Fix bugs in the GPIO mocking functions
 

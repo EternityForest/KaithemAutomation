@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+
+### 0.64.4
+- Fix bugs in the WiFi manager page(Required changing NetworkManager python bindings)
+
 ### 0.64.3
 - Fix bugs in the GPIO mocking functions
 
