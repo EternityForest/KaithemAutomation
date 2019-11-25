@@ -67,6 +67,16 @@ def setupPulse():
             subprocess.check_call(['pulseaudio','-D'],timeout=5)
             pass
         time.sleep(0.1)
+        try:
+            if registry.get("/system/sound/sharepulse",None)== "localhost":
+                subprocess.check_call("pactl load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1",timeout=5)
+            elif registry.get("/system/sound/sharepulse",None)== "network":
+                subprocess.check_call("pactl load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1;192.168.0.0/24;10.0.0.0/24 auth-anonymous=1",timeout=5)
+                subprocess.check_call("load-module module-zeroconf-publish",timeout=5)
+        except:
+            log.exception("Error configuring pulseaudio sharing")
+
+
         subprocess.check_call("pactl load-module module-jack-sink channels=2; pactl load-module module-jack-source channels=2; pacmd set-default-sink jack_out;",shell=True,timeout=5)
     except:
         log.exception("Error configuring pulseaudio")
@@ -798,7 +808,14 @@ def stopJack():
         pass
 
     try:
-        subprocess.check_call(['killall','jackd'])
+        subprocess.check_call(['killall', 'jackd'])
+    except:
+        logging.exception("Failed to stop")
+
+    time.sleep(1)
+
+    try:
+        subprocess.check_call(['killall','-9', 'jackd'])
     except:
         pass
     try:

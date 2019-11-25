@@ -822,6 +822,9 @@ from src import tagpoints
                         <p class="help">Here you can create rules that apply whenever the scene is in this cue, to do things like trigger other cues when this
                             one enters or exits. <a href="/pages/Chandler/docs/RulesEngine">Documentation</a></p>
                     </div>
+                    <div>
+                        <label>Inherit rules from cue in same scene: <input v-model="currentcue.inheritRules" v-on:input="setCueInheritRules(currentcueid, $event.target.value);"></label>
+                    </div>
                     <script-editor v-model="currentcue.rules" v-on:input="setCueRules(currentcueid, $event);"
                      v-bind:commands="availableCommands"  v-bind:scenes="cueNamesBySceneName()"
                       v-bind:pinnedvars="specialvars" v-bind:vars="editingScene.vars"> </script-editor>
@@ -2035,6 +2038,11 @@ from src import tagpoints
                 }
                 return 1;
             },
+            'setCueInheritRules': function(c,r)
+            {
+                api_link.send(['setCueInheritRules',c,r])
+            },
+
             
             'setCueRules': function(c,r)
             {

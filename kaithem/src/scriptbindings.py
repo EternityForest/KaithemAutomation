@@ -121,7 +121,10 @@ def paramDefault(p):
         return '='+str(p)
 
     if isinstance(p, str):
-        return str
+        if p.strip().startswith("="):
+            return("="+repr(p))
+        else:
+            return str(p)
 
     if isinstance(p, bool):
         return 1 if p else 0
@@ -227,10 +230,11 @@ class ScheduleTimer():
             return
         try:
             ctx.event(self.eventName)
-            ctx.onTimerChange(self.eventName,self.nextruntime)
 
             self.nextruntime=dt_to_ts(nextruntime,self.selector.tz)
             self.next=scheduler.schedule(self.handler, self.nextruntime, False)
+            ctx.onTimerChange(self.eventName,self.nextruntime)
+
         finally:
             del ctx
     
@@ -296,7 +300,7 @@ class ChandlerScriptContext():
         #Used to allow objects named foo.bar to be accessed as actual attributes of a foo obj,
         #Even though we use a flat list of vars.
         self.namespaces = {}
-
+        self.contextName="ScriptContext"
 
         self.timeEvents={}
         self.poller=None
@@ -375,13 +379,18 @@ class ChandlerScriptContext():
                     raise RecursionError("Cannot nest more than 8 events")
                 self.eventRecursionDepth+=1
 
-                if evt in self.eventListeners:
-                    for pipeline in self.eventListeners[evt]:
-                        for command in pipeline:
-                            x= self._runCommand(command)
-                            if x==None:
-                                break
-                            self.variables["_"] = x
+                try:
+
+                    if evt in self.eventListeners:
+                        for pipeline in self.eventListeners[evt]:
+                            for command in pipeline:
+                                x= self._runCommand(command)
+                                if x==None:
+                                    break
+                                self.variables["_"] = x
+                except:
+                    self.event("script.error",self.contextName+"\n"+traceback.format_exc(chain=True))
+                    raise
             finally:
                 if isOuter:
                     self.eventRecursionDepth=0

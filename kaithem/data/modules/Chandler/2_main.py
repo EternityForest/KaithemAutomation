@@ -170,20 +170,30 @@ if __name__=='__setup__':
     def gotoCommand(scene, cue):
         "Triggers a scene to go to a cue"
         module.scenes_by_name[scene].gotoCue(cue)
+        return True
     
     
     def setAlphaCommand(scene, alpha):
         "Set the alpha value of a scene"
         module.scenes_by_name[scene].setAlpha(float(alpha))
+        return True
     
     def ifCueCommand(scene, cue):
         "True if the scene is running that cue"
         return True if module.scenes_by_name[scene].active and module.scenes_by_name[scene].cue.name == cue else None
     
     
+    def eventCommand(scene="=$scene", ev="DummyEvent", value=True):
+        "Send an event to a scene"
+        module.scenes_by_name[scene].event(ev,value)
+        return True
+    
+    
     rootContext.commands['goto']=gotoCommand
     rootContext.commands['setAlpha']=setAlphaCommand
     rootContext.commands['ifCue']=ifCueCommand
+    rootContext.commands['sendEvent']=eventCommand
+    
     
     def listsoundfolder(path):
         soundfolders = getSoundFolders()
@@ -1443,7 +1453,8 @@ if __name__=='__setup__':
                                 'prev': cue.scene().getParent(cue.name),
                                 'script': cue.script,
                                 'rules': cue.rules,
-                                'reentrant': cue.reentrant
+                                'reentrant': cue.reentrant,
+                                'inheritRules': cue.inheritRules
                                 }])
             except Exception as e:
                 rl_log_exc("Error pushing cue data")
@@ -1866,6 +1877,10 @@ if __name__=='__setup__':
     
                 if msg[0] == "setCueRules":
                     cues[msg[1]].setRules(msg[2])
+                    self.pushCueMeta(msg[1])
+    
+                if msg[0] == "setCueInheritRules":
+                    cues[msg[1]].setInheritRules(msg[2])
                     self.pushCueMeta(msg[1])
     
                 if msg[0]=="setcuesound":
@@ -2313,17 +2328,17 @@ if __name__=='__setup__':
         "A static set of values with a fade in and out duration"
         __slots__=['id','changed','next_ll','alpha','fadein','fadeout','length','lengthRandomize','name','values','scene',
         'nextCue','track','shortcut','number','inherit','sound','rel_length','script',
-        'soundOutput','onEnter','onExit','influences','associations',"rules","reentrant",
+        'soundOutput','onEnter','onExit','influences','associations',"rules","reentrant","inheritRules",
         '__weakref__']
         def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, fadeout=0, length=0,track=True, nextCue = None,shortcut=None,sound='',soundOutput=None,rel_length=False, id=None,number=None,
-            lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,reentrant=True,**kw):
+            lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,reentrant=True,inheritRules=None,**kw):
             #This is so we can loop through them and push to gui
             self.id = uuid.uuid4().hex
             self.name = name
             self.script = script
             self.onEnter = onEnter
             self.onExit = onExit
-    
+            self.inheritRules=inheritRules
             self.reentrant=True
     
             ##Rules created via the GUI logic editor
@@ -2395,7 +2410,7 @@ if __name__=='__setup__':
         def serialize(self):
                 return {"fadein":self.fadein,"fadeout":self.fadeout,"length":self.length,'lengthRandomize':self.lengthRandomize,"shortcut":self.shortcut,"values":self.values,
                 "nextCue":self.nextCue,"track":self.track,"number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,'rel_length':self.rel_length, 'script':self.script, 'rules':self.rules,
-                'reentrant':self.reentrant
+                'reentrant':self.reentrant, 'inheritRules': self.inheritRules
                 }
     
         def setScript(self,script, allow_bad=True):
@@ -2455,6 +2470,11 @@ if __name__=='__setup__':
         def setRules(self,r):
             self.rules = r
             self.scene().refreshRules()
+    
+        def setInheritRules(self,r):
+            self.inheritRules = r
+            self.scene().refreshRules()
+    
     
         def setShortcut(self,code):
             disallow_special(code,allow=".")
@@ -3006,8 +3026,6 @@ if __name__=='__setup__':
                     rl_log_exc("Error handling event")
                     print(traceback.format_exc(6))
                     
-                    #This event just gets pushed to the console, it doesn't actually do anything
-                    self.event("script.error", self.name+"\n"+traceback.format_exc())
     
     
         def gotoCue(self, cue,t=None, sendSync=True,generateEvents=True):
@@ -3321,6 +3339,9 @@ if __name__=='__setup__':
                     self.scriptContext.sceneName = self.name
     
                 self.scriptContext.clearBindings()
+    
+                self.scriptContext.setVar("$scene", self.name)
+                self.scriptContext.setVar("$cue", (rulesFrom or self.cue).name)
                 self.runningTimers ={}
                 
                 if self.active:
@@ -3329,6 +3350,10 @@ if __name__=='__setup__':
                         self.scriptContext.addBindings(parseCommandBindings((rulesFrom or self.cue).script))
                     #Actually add the bindings
                     self.scriptContext.addBindings((rulesFrom or self.cue).rules)
+                    x = (rulesFrom or self.cue).inheritRules
+                    while x and x.strip():
+                        self.scriptContext.addBindings(self.cues[x].rules)
+                        x = self.cues[x].inheritRules
     
                     self.scriptContext.startTimers()
     
@@ -3435,6 +3460,7 @@ if __name__=='__setup__':
                 self.name = name
                 module.scenes_by_name[name]=self
                 self.hasNewInfo = {}
+                self.scriptContext.setVar("$scene", self.name)
     
         def setBacktrack(self,b):
             b =bool(b)
@@ -3529,6 +3555,15 @@ if __name__=='__setup__':
                 self.cue_cached_vals_as_arrays = {}
                 self.cue_cached_alphas_as_arrays = {}
                 kaithem.sound.stop(str(self.id))
+    
+                self.runningTimers.clear()
+                try:
+                    for i in module.boards:
+                        i().link.send(['scenetimers',self.scene, self.runningTimers])
+                except:
+                    rl_log_exc("Error handling timer set notification")
+                    print(traceback.format_exc())
+                
     
     
             

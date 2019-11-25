@@ -417,6 +417,7 @@ class Settings():
         pages.postOnly()
 
         registry.set("/system/sound/usejack",kwargs['jackmode'])
+        registry.set("/system/sound/pulsesharing",kwargs['pulsesharing'])
         registry.set("/system/sound/jackperiodsize",max(32,int(kwargs['jackperiodsize'])))
         registry.set("/system/sound/jackperiods",max(2,int(kwargs['jackperiods'])))
 
