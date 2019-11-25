@@ -2,6 +2,10 @@ Change Log
 ----------
 
 
+### 0.64.5
+- Fix display of timers in the chandler UI
+- Option to inherit chandler rules from another cue
+
 ### 0.64.4
 - Fix bugs in the WiFi manager page(Required changing NetworkManager python bindings)
 

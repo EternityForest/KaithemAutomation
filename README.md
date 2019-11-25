@@ -12,13 +12,10 @@ events, or time-based triggers using a custom semi-natural language parser.
 
 Almost the entire server state is maintained in RAM, and any changes you make to your code never touches the disk unless you explicitly save or configure auto-save.
 
-
-![Settings](screenshots/settings.jpg)
-
-Kaithem includes a library for common automation tasks such as file IO, timing, executing functions in the background, formatting numbers, and more, including a graphical lighting console and a mixing board supporting multiple soundcards!
-
 ![Lighting control](screenshots/basictheme_lightboard.png)
-(Lightboard shown with basic theme)
+
+Kaithem also includes a module called Chandler, which is a full web-based lighting control board with a visual
+programming language for advanced interactive control.
 
 Kaithem is still beta, but I've used it in production applications running for months at a time. 
 
@@ -51,6 +48,10 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+
+### 0.64.5
+- Fix display of timers in the chandler UI
+- Option to inherit chandler rules from another cue
 
 ### 0.64.4
 - Fix bugs in the WiFi manager page(Required changing NetworkManager python bindings)
