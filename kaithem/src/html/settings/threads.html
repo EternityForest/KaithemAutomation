@@ -1,5 +1,5 @@
 <%include file="/pageheader.html"/>
-<%!import threading,sys,inspect%>
+<%!import threading,sys,inspect,traceback%>
 <h1>Running Proceses</h1>
 <div class="sectionbox">
 <h2>Running Threads</h2>
@@ -27,10 +27,18 @@ defined in ${i._original_target_function.__module__ if hasattr(i,'_original_targ
 running a function defined in <b>${i._target.__module__ if hasattr(i,'_target') and i._target else i.__module__}</b></dt><dd>
 
 %try:
-Current Frame Info: ${inspect.getframeinfo(info[i.ident])|h}
-%except Exception as e:
-${e}
+<pre>
+${"".join(traceback.format_stack(info[i.ident]))}
+</pre>
+%except Exception as e1:
+    ${e1}
+    %try:
+    Current Frame Info: ${inspect.getframeinfo(info[i.ident])|h}
+    %except Exception as e:
+    ${e}
+    %endtry
 %endtry
+
           
 </dd>
 %endtry

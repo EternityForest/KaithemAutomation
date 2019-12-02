@@ -2,6 +2,12 @@ Change Log
 ----------
 
 
+
+### 0.64.6
+- Full tracebacks in thread status page
+- Set time from web UI
+- Fix lockup bug with chandler enttec backend
+
 ### 0.64.5
 - Fix display of timers in the chandler UI
 - Option to inherit chandler rules from another cue

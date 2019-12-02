@@ -360,9 +360,13 @@ class Settings():
     @cherrypy.expose
     def set_time_from_web(self,**kwargs):
         pages.require("/admin/settings.edit", noautoreturn=True)
-        s = io.StringIO(kwargs['password'])
-        t = int(cherrypy.request.headers['REQUEST_TIME'])
-        subprocess.call(["sudo","-S","date","-s","+%Y%m%d%H%M%S",time.strftime("%Y%m%d%H%M%S",time.gmtime(t-0.15))],stdin=s)
+        t = float(kwargs['time'])
+        subprocess.call(["date","-s","+%Y%m%d%H%M%S",time.strftime("%Y%m%d%H%M%S",time.gmtime(t-0.05))])
+        try:
+            subprocess.call(["hwclock","--systohc"])
+        except:
+            pass
+
         raise cherrypy.HTTPRedirect('/settings/system')
     
     @cherrypy.expose

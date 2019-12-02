@@ -1,0 +1,14 @@
+<%include file="/pageheader.html"/>
+<h1>Set time</h1>
+<div class="sectionbox">
+<form method="POST" action="/settings/set_time_from_web">
+Browser UNIX time:<input name="time" id=time>
+<input type="submit">
+</form>
+</div>
+<script>
+setInterval(function(){
+    document.getElementById("time").value = Date.now()/1000
+}, 25)
+</script>
+<%include file="/pagefooter.html"/>
