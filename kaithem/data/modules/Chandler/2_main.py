@@ -765,7 +765,7 @@ if __name__=='__setup__':
                     self.port.close()
                 except:
                     pass
-                self.port = serial.Serial(p,57600)
+                self.port = serial.Serial(p,57600, timeout=1.0, write_timeout=1.0)
     
                 #This is a flush to try to re-sync recievers that don't have any kind of time out detection
                 #We do this by sending a frame where each value is the packet end code,
@@ -3559,7 +3559,7 @@ if __name__=='__setup__':
                 self.runningTimers.clear()
                 try:
                     for i in module.boards:
-                        i().link.send(['scenetimers',self.scene, self.runningTimers])
+                        i().link.send(['scenetimers',self.id, self.runningTimers])
                 except:
                     rl_log_exc("Error handling timer set notification")
                     print(traceback.format_exc())
@@ -3572,7 +3572,7 @@ if __name__=='__setup__':
             self.rerender = True
             #Don't auto-stop if a sound is playing, that would just be annoying to anyone using it for volume control
             #Also allow blend modes like inhibit to disable auto-stop, because 0 has a different effect than off.
-            if val<=0 and(not (self.blend =="inhibit" or (self._blend and not self._blend.autoStop)) ) and  not kaithem.sound.isPlaying(str(self.id)) :
+            if val<=0 and(not (self.blend =="inhibit" or (self._blend and not self._blend.autoStop)) ) and  not kaithem.sound.isPlaying(str(self.id)) and not self.cue.fadein>0 and not self.cue.rules:
                     self.stop()
             else:
                 if not self.isActive():
