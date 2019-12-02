@@ -49,6 +49,11 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.64.6
+- Full tracebacks in thread status page
+- Set time from web UI
+- Fix lockup bug with chandler enttec backend
+
 ### 0.64.5
 - Fix display of timers in the chandler UI
 - Option to inherit chandler rules from another cue
@@ -59,19 +64,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 ### 0.64.3
 - Fix bugs in the GPIO mocking functions
 
-### 0.64.2
-- Misc fixes
-- Fix environment variable bug when launching JACK
-- Fix possible schedule pileup bug with repeatingevents
-- New theme
-- Chandler accepts sound files from config
-
-### 0.64.1
-- Misc fixes
-- Chandler logic editor, visual language for creating vue logic
-- Chandler Page editor, every scene can have an associated page
-- Chandler tracking and backtracking cues now function correctly
-- Devices page a little more polished
 
 License Terms
 =============
