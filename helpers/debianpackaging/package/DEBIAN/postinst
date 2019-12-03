@@ -2,7 +2,7 @@
 
 
 if [ ! -f /var/lib/kaithem/users/data/users.json ] ; then
-    mkdirs /var/lib/kaithem/ssl/
+    mkdir -p /var/lib/kaithem/ssl/
     adduser --system --no-create-home kaithem
     #Look at this race condition here! Someone could steal that private key before we chmod it!
     openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /var/lib/kaithem/ssl/certificate.key  -out  /var/lib/kaithem/ssl/certificate.cert -subj '/CN=localhost'

@@ -1,7 +1,12 @@
 Change Log
 ----------
 
-
+### 0.64.7
+- Chandler proper traceback support in cue logic
+- Chandler scenes don't auto-stop at zero alpha anymore
+- Stopping chandler scenes clears all variables and returns to the default cue on restart
+- Event value accessible in cue logic as event.value, event.millis,event.time, and event.name
+- Disable JACK dbus audio reservation
 
 ### 0.64.6
 - Full tracebacks in thread status page

@@ -44,8 +44,8 @@ def handleError(f,topic):
     try:
         from . import newevt
         newevt.eventByModuleName(f.__module__)._handle_exception()
-    except:
-        pass
+    except Exception as e:
+        print(e)
 
 class MessageBus(object):
     def __init__(self,executor:Optional[Callable] = None):

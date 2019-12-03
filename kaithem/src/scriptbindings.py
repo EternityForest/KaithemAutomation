@@ -70,7 +70,7 @@ import simpleeval
 
 simpleeval.MAX_POWER = 1024
 
-import weakref,threading, inspect
+import weakref,threading, inspect,traceback
 
 
 
@@ -157,8 +157,12 @@ def safesqrt(x):
         raise RuntimeError("Too High of number for sqrt")
     return math.sqrt(x)
 
+def millis():
+    return time.monotonic()*1000
+
 globalUsrFunctions={
-    "millis": time.monotonic,
+    "unixtime": time.time,
+    "millis": millis,
     "random": random.random,
     "randint": random.randint,
     "max": max,
@@ -286,6 +290,17 @@ class ScriptActionKeeper():
     def get(self,k,d):
         return self.scriptcommands.get(k,d)
 
+
+class Event():
+    #Appears to be the top event obj on the stack.
+    #It is actually a dynamic getter for that data.
+
+    def __init__(self,name, val):
+        self.name=name
+        self.value = val
+        self.time = time.time()
+        self.millis=millis()
+   
 class ChandlerScriptContext():
     def __init__(self,parentContext=None, gil=None,functions={},variables=None, constants=None):
         self.pipelines = []
@@ -293,9 +308,14 @@ class ChandlerScriptContext():
         self.variables = variables if not variables is None else {}
         self.commands= ScriptActionKeeper()
         self.children = {}
+        self.children_iterable = {}
         self.constants = constants if (not (constants is None)) else {}
+
         #Used for detecting loops
         self.eventRecursionDepth = 0
+
+        #Should we propagate events to children
+        self.propagateEvents=False
 
         #Used to allow objects named foo.bar to be accessed as actual attributes of a foo obj,
         #Even though we use a flat list of vars.
@@ -305,13 +325,21 @@ class ChandlerScriptContext():
         self.timeEvents={}
         self.poller=None
         selfid = id(self)
+         
+        #Stack to keep track of the $event variable for the current event we are running,
+        #For nested events
+        self.eventValueStack = []
      
 
         if parentContext:
             def delf(*a,**K):
-                del parentContext.children[selfid]
+                with lock:
+                    del parentContext.children[selfid]
+                    parentContext.children_iterable=parentContext.children.copy()
+
             with lock:
                 parentContext.children[id(self)]=weakref.ref(self,delf)
+                parentContext.children_iterable=parentContext.children.copy()
 
         self.parentContext = parentContext
 
@@ -330,6 +358,7 @@ class ChandlerScriptContext():
         self.setter = setter
         self.commands['set']=setter
 
+        
         for i in predefinedcommands:
             self.commands[i]=predefinedcommands[i]
 
@@ -367,33 +396,50 @@ class ChandlerScriptContext():
         else:
             raise ValueError("No such command: "+c)
     
-    def event(self,evt,ctx=None):
+    def event(self,evt,val=None):
         with self.gil:
-            #Reset to 0 when the outer returns
-            if self.eventRecursionDepth==0:
-                isOuter = True
-            else:
-                isOuter=False
+            return self._event(evt,val)
+
+    def _event(self,evt, val):
+        handled = False
+        #Reset to 0 when the outer returns
+        if self.eventRecursionDepth==0:
+            isOuter = True
+        else:
+            isOuter=False
+        try:
+            if self.eventRecursionDepth>8:
+                raise RecursionError("Cannot nest more than 8 events")
+            self.eventRecursionDepth+=1
+            
+
+            self.eventValueStack.append(Event(evt,val))
             try:
-                if self.eventRecursionDepth>8:
-                    raise RecursionError("Cannot nest more than 8 events")
-                self.eventRecursionDepth+=1
+                if evt in self.eventListeners:
+                    handled = True
+                    for pipeline in self.eventListeners[evt]:
+                        for command in pipeline:
+                            x= self._runCommand(command)
+                            if x==None:
+                                break
+                            self.variables["_"] = x
+            except:
+                self.event("script.error",self.contextName+"\n"+traceback.format_exc(chain=True))
+                raise
+        finally:
+            self.eventValueStack.pop()
+            if isOuter:
+                self.eventRecursionDepth=0
 
-                try:
-
-                    if evt in self.eventListeners:
-                        for pipeline in self.eventListeners[evt]:
-                            for command in pipeline:
-                                x= self._runCommand(command)
-                                if x==None:
-                                    break
-                                self.variables["_"] = x
-                except:
-                    self.event("script.error",self.contextName+"\n"+traceback.format_exc(chain=True))
-                    raise
-            finally:
-                if isOuter:
-                    self.eventRecursionDepth=0
+        # #Propagate events to all children
+        # if self.propagateEvents:
+        #     for i in self.children_iterable:
+        #         x = i()
+        #         if x:
+        #             x.event(i)
+        #     del x
+        
+        return handled
 
     def preprocessArgument(self, a):
         if isinstance(a,str):
@@ -419,6 +465,10 @@ class ChandlerScriptContext():
     def _nameLookup(self,n):
         if not isinstance(n,str):
             n = n.id
+
+        if n=="event":
+            return self.eventValueStack[-1]
+
         if n in self.variables:
             return self.variables[n]
         if n in globalConstants:
@@ -479,6 +529,11 @@ class ChandlerScriptContext():
             if self.poller:
                 self.poller.unregister()
                 self.poller=None
+
+    def clearState(self):
+        with self.gil:
+            self.variables = {}
+            self.changedVariables={}
 
 ##### SELFTEST ##########
 
