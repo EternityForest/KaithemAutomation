@@ -568,7 +568,7 @@ class MPlayerWrapper(SoundWrapper):
             self.nocallback = False
             self.paused = False
             self.volume = vol
-            cmd = ["mplayer" , "-slave" , "-quiet", "-softvol" ,"-ss", str(start)]
+            cmd = ["mplayer" , "-nolirc", "-slave" , "-quiet", "-softvol" ,"-ss", str(start)]
 
            
             if end:

@@ -2633,14 +2633,35 @@ from src import tagpoints
 
             if (c == "event")
             {
-                appData.evlog.push(v[1])
-                if (appData.evlog.length > 250)
-                {
-                    appData.evlog = appData.evlog.slice(-250)
-                }
-                if (v[1][0].includes("error")){
-                    appData.showevents= true;
-                }
+                var shouldScroll = 0;
+                
+                if(appData.showevents)
+               {
+                   var element = document.getElementById('eventlogbox');
+                    if( element.scrollTop === (element.scrollHeight - element.offsetHeight))
+                    {
+                     shouldScroll = 1;   
+                    }
+               }
+               shouldScroll=1;
+               appData.evlog.push(v[1])
+               if (appData.evlog.length > 250)
+               {
+                   appData.evlog = appData.evlog.slice(-250)
+               }
+
+               if (v[1][0].includes("error")){
+                   appData.showevents= true;
+               }
+               
+               if(appData.showevents)
+               {
+                   if(shouldScroll)
+                   {
+                       var element = document.getElementById('eventlogbox');
+                       element.scrollTop = element.scrollHeight;
+                   }
+               }
             }
             if (c == "serports")
             {
