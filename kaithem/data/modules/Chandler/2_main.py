@@ -222,8 +222,14 @@ if __name__=='__setup__':
             sorted([ os.path.join(path,i)+'/' for i in x if os.path.isdir(os.path.join(path,i))]),
             sorted([i for i in x if os.path.isfile(os.path.join(path,i))])
         ) 
-        
     
+    musicLocation = os.path.join(kaithem.misc.vardir,"chandler", "music")
+    
+    if not os.path.exists(musicLocation):
+        try:
+            os.mkdir(musicLocation)
+        except:
+            pass
     
     def searchPaths(s, paths):
         if not len(s)>2:
@@ -233,7 +239,7 @@ if __name__=='__setup__':
     
         results = []
         path = paths[:]
-        paths.append(os.path.join(src.directories.vardir,"Music"))
+        paths.append(musicLocation)
     
         for path in paths:
             if not path[-1]=="/":
@@ -270,7 +276,7 @@ if __name__=='__setup__':
     def getSoundFolders():
         soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
         soundfolders.append(os.path.join(src.directories.datadir,"sounds"))
-        soundfolders.append(os.path.join(src.directories.vardir,"Music"))
+        soundfolders.append(musicLocation)
         soundfolders+=[i for i in kaithem.sound.directories if not i.startswith("__")]
         return soundfolders
     
@@ -1148,7 +1154,12 @@ if __name__=='__setup__':
             kaithem.message.subscribe("/system/jack/newport/",f)
             kaithem.message.subscribe("/system/jack/delport/",f)
             
-        
+            #Use only for stuff in background threads, to avoid pileups that clog the
+            #Whole worker pool
+            self.guiSendLock = threading.Lock()
+    
+            #For logging ratelimiting
+            self.lastLoggedGuiSendError =0
         
         def refreshFixtures(self):
             with module.lock:
@@ -1265,8 +1276,26 @@ if __name__=='__setup__':
     
             
         def pushEv(self,event,target,t=None, value=None,info=""):
-            self.link.send(['event',[event, target,kaithem.time.strftime(t or time.time() ),value, info]])
-                
+    
+           
+            #TODO: Do we want a better way of handling this? We don't want to clog up the semi-re
+            def f():
+                if self.guiSendLock.acquire(timeout=5):
+                    try:
+                        self.link.send(['event',[event, target,kaithem.time.strftime(t or time.time() ),value, info]])
+                    except:
+                        if time.monotonic()-self.lastLoggedGuiSendError< 60:
+                            logger.exception("Error when reporting event. (Log ratelimit: 30)")
+                            self.lastLoggedGuiSendError = time.monotonic()
+                    finally:
+                        self.guiSendLock.release()
+                else:
+                    if time.monotonic()-self.lastLoggedGuiSendError< 60:
+                        logger.error("Timeout getting lock to push event. (Log ratelimit: 60)")
+                        self.lastLoggedGuiSendError = time.monotonic()
+    
+            kaithem.misc.do(f)
+    
         def pushfixtures(self):
             "Errors in fixture list"
             self.link.send(["ferrs",self.ferrs])   
@@ -1354,7 +1383,8 @@ if __name__=='__setup__':
     
     
     
-        def pushMeta(self,sceneid):
+        def pushMeta(self,sceneid, statusOnly=False):
+            "Statusonly=only the stuff relevant to a cue change"
             scene = module.scenes[sceneid]
             
             try:
@@ -1398,37 +1428,50 @@ if __name__=='__setup__':
                             v[j]='__PYTHONDATA__'
                 except:
                     print(traceback.format_exc())
-            self.link.send(["scenemeta",sceneid,     
-                             {
-                              'ext':not sceneid in self.scenememory ,
-                              'dalpha':scene.defaultalpha,
-                              'alpha':scene.alpha,
-                              'active': scene.isActive(),
-                              'defaultActive': scene.defaultActive,
-                              'name':scene.name,
-                              'bpm': round(scene.bpm,6),
-                              'blend':scene.blend,
-                              'blendArgs': scene.blendArgs,
-                              'blendDesc':module.getblenddesc(scene.blend),
-                              'blendParams': scene.blendClass.parameters if hasattr(scene.blendClass,"parameters") else {},
-                              'priority': scene.priority,
-                              'started':  scene.started,
-                              'enteredCue':  scene.enteredCue,
-                              'backtrack': scene.backtrack,
-                              'cue': scene.cue.id,
-                              'cuelen': scene.cuelen,
-                              'syncKey': scene.syncKey,
-                              'syncAddr': scene.syncAddr,
-                              'syncPort': scene.syncPort,
-                              'subs': subs,
-                              'subslist': subslist,
-                              'soundOutput': scene.soundOutput,
-                              'vars':v,
-                              'timers': scene.runningTimers,
-                              'notes': scene.notes,
-                              'page': scene.page
+            if not statusOnly:
+                self.link.send(["scenemeta",sceneid,     
+                                {
+                                'ext':not sceneid in self.scenememory ,
+                                'dalpha':scene.defaultalpha,
+                                'alpha':scene.alpha,
+                                'active': scene.isActive(),
+                                'defaultActive': scene.defaultActive,
+                                'name':scene.name,
+                                'bpm': round(scene.bpm,6),
+                                'blend':scene.blend,
+                                'blendArgs': scene.blendArgs,
+                                'blendDesc':module.getblenddesc(scene.blend),
+                                'blendParams': scene.blendClass.parameters if hasattr(scene.blendClass,"parameters") else {},
+                                'priority': scene.priority,
+                                'started':  scene.started,
+                                'enteredCue':  scene.enteredCue,
+                                'backtrack': scene.backtrack,
+                                'cue': scene.cue.id if scene.cue else scene.cues['default'].id,
+                                'cuelen': scene.cuelen,
+                                'syncKey': scene.syncKey,
+                                'syncAddr': scene.syncAddr,
+                                'syncPort': scene.syncPort,
+                                'subs': subs,
+                                'subslist': subslist,
+                                'soundOutput': scene.soundOutput,
+                                'vars':v,
+                                'timers': scene.runningTimers,
+                                'notes': scene.notes,
+                                'page': scene.page
     
-                    }])
+                        }])
+            else:
+                self.link.send(["scenemeta",sceneid,     
+                                {
+                                'alpha':scene.alpha,
+                                'active': scene.isActive(),
+                                'defaultActive': scene.defaultActive,
+                        
+                                'enteredCue':  scene.enteredCue,
+                                'cue': scene.cue.id if scene.cue else scene.cues['default'].id,
+                                'cuelen': scene.cuelen,
+    
+                        }])
                     
         def pushCueMeta(self,cueid):
             try:
@@ -1711,6 +1754,15 @@ if __name__=='__setup__':
                         self.pushCueList(s.id)
                         self.pushMeta(msg[1])
                         self.pushfixtures()
+                    kaithem.misc.do(f)
+                
+    
+                if msg[0] == "getSceneMeta":
+                    #Could be long-running, so we offload to a workerthread
+                    #Used to be get scene data, Now its a general get everything to show pags thing
+                    def f():
+                        s = module.scenes[msg[1]]
+                        self.pushMeta(msg[1])
                     kaithem.misc.do(f)
                 
                 if msg[0] == "getallcuemeta":
@@ -2993,7 +3045,7 @@ if __name__=='__setup__':
                 if len(i().newDataFunctions)<100:
                     i().newDataFunctions.append(lambda s:s.pushCueData(cue.id))
     
-        def pushMeta(self,cue=False):
+        def pushMeta(self,cue=False,statusOnly=False):
             #Push cue first so the client already has that data when we jump to the new display
             if cue:
                 for i in module.boards:
@@ -3002,16 +3054,9 @@ if __name__=='__setup__':
     
             for i in module.boards:
                 if len(i().newDataFunctions)<100:
-                    i().newDataFunctions.append(lambda s:s.pushMeta(self.id))
+                    i().newDataFunctions.append(lambda s:s.pushMeta(self.id,statusOnly=statusOnly))
     
         def event(self,s,value=None, info=''):
-            try:
-                for i in module.boards:
-                    i().pushEv(s, self.name,module.timefunc(), value=value, info=info)
-            except:
-                rl_log_exc("Error handling event")
-                print(traceback.format_exc())
-            
             #No error loops allowed!
             if not s=="script.error":
                 self._event(s)
@@ -3106,11 +3151,15 @@ if __name__=='__setup__':
                 
     
                 cobj = self.cues[cue]
-    
-                if cobj==self.cue:
-                    if not cobj.reentrant:
-                        return
-    
+                
+                if self.cue:
+                    if cobj==self.cue:
+                        if not cobj.reentrant:
+                            return
+                else:
+                    #Act like we actually we in the default cue, but allow reenter no matter what since
+                    #We weren't in any cue
+                    self.cue = self.cues['default']    
                 
                 if not (cue==self.cue.name):
                     if generateEvents:
@@ -3244,7 +3293,7 @@ if __name__=='__setup__':
                 self.cueValsToNumpyCache(self.cue, not self.cue.track)
         
                 self.rerender = True
-                self.pushMeta()
+                self.pushMeta(statusOnly=True)
     
     
         def resolveSound(self, sound):
@@ -3535,6 +3584,7 @@ if __name__=='__setup__':
             with module.lock:
                 #No need to set rerender
                 self.scriptContext.clearBindings()
+                self.scriptContext.clearState()
                 self._blend =None
                 self.hasNewInfo = {}
                 self.canvas = None
@@ -3557,6 +3607,7 @@ if __name__=='__setup__':
                 kaithem.sound.stop(str(self.id))
     
                 self.runningTimers.clear()
+                self.cue=None
                 try:
                     for i in module.boards:
                         i().link.send(['scenetimers',self.id, self.runningTimers])
@@ -3570,17 +3621,13 @@ if __name__=='__setup__':
         def setAlpha(self,val,sd=False):
             kaithem.sound.setvol(val, str(self.id))
             self.rerender = True
-            #Don't auto-stop if a sound is playing, that would just be annoying to anyone using it for volume control
-            #Also allow blend modes like inhibit to disable auto-stop, because 0 has a different effect than off.
-            if val<=0 and(not (self.blend =="inhibit" or (self._blend and not self._blend.autoStop)) ) and  not kaithem.sound.isPlaying(str(self.id)) and not self.cue.fadein>0 and not self.cue.rules:
-                    self.stop()
-            else:
-                if not self.isActive():
-                    self.go()
-                self.manualAlpha = True
-                self.alpha = val
-                if sd:
-                    self.defaultalpha = val
+            
+            if not self.isActive():
+                self.go()
+            self.manualAlpha = True
+            self.alpha = val
+            if sd:
+                self.defaultalpha = val
             self.hasNewInfo = {}
     
         def setSyncKey(self, key):
@@ -3724,13 +3771,6 @@ if __name__=='__setup__':
     def event(s,value=None, info=''):
         #disallow_special(s, allow=".")
         with module.lock:
-            try:
-                for i in module.boards:
-                    i().pushEv(s, '__global__',module.timefunc(), value=value, info=info)
-            except:
-                rl_log_exc("error handling event")
-                print(traceback.format_exc())
-    
             for i in module.activeScenes:
                 i._event(s, value=value, info=info)
     

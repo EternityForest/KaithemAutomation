@@ -49,23 +49,20 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+
+### 0.64.8
+- Fix "Bad record mac" nuisiance errors by making widgets properly threadsafe
+- Autoscroll in Chandler event log
+- Fix bug where persist module could create folder with same name as file you wanted to save
+- Chandler sends events in background thread to avoind blocking rendering
+- Send only the necessary chandler metadata on every cue change
+
 ### 0.64.7
 - Chandler proper traceback support in cue logic
 - Chandler scenes don't auto-stop at zero alpha anymore
 - Stopping chandler scenes clears all variables and returns to the default cue on restart
 - Event value accessible in cue logic as event.value, event.millis,event.time, and event.name
 - Disable JACK dbus audio reservation
-
-
-### 0.64.6
-- Full tracebacks in thread status page
-- Set time from web UI
-- Fix lockup bug with chandler enttec backend
-
-### 0.64.5
-- Fix display of timers in the chandler UI
-- Option to inherit chandler rules from another cue
-
 
 
 License Terms

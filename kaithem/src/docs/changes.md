@@ -1,6 +1,14 @@
 Change Log
 ----------
 
+
+### 0.64.8
+- Fix "Bad record mac" nuisiance errors by making widgets properly threadsafe
+- Autoscroll in Chandler event log
+- Fix bug where persist module could create folder with same name as file you wanted to save
+- Chandler sends events in background thread to avoind blocking rendering
+- Send only the necessary chandler metadata on every cue change
+
 ### 0.64.7
 - Chandler proper traceback support in cue logic
 - Chandler scenes don't auto-stop at zero alpha anymore

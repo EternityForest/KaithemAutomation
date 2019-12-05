@@ -115,7 +115,12 @@ if config['enable-websockets']:
             self.subscriptions = []
             self.lastPushedNewData = 0
             self.uuid = "id"+base64.b64encode(os.urandom(16)).decode().replace("/",'').replace("-",'').replace('+','')[:-2]
+            self.widget_wslock = threading.Lock()
             WebSocket.__init__(self,*args,**kwargs)
+
+        def send(self,*a,**k):
+            with self.widget_wslock:
+                WebSocket.send(self, *a,**k)
 
         def closed(self,code,reason):
             with subscriptionLock:

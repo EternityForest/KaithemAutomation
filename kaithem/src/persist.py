@@ -117,7 +117,10 @@ def save(data,fn, *,private=False,backup=True, expand=True, md5=False):
             already[x] = True
 
         if not os.path.exists(os.path.dirname(fn)):
-            os.makedirs(os.makedirs(fn), mode=0o700 if private else 0o777)
+            if private:
+                os.makedirs(os.path.dirname(fn), mode=0o700)
+            else:
+                os.makedirs(os.path.dirname(fn))
 
         if os.path.isdir(fn):
             raise RuntimeError("Filename is already present as a directory, refusing to overwrite directory")

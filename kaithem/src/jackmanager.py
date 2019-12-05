@@ -23,7 +23,7 @@ import base64
 import os,re,time,subprocess,hashlib,struct,threading,atexit,select,traceback
 
 #Util is not used anywhere else
-from . import util, workers
+from . import util, workers,registry
 wordlist = util.mnemonic_wordlist
 
 #This is an acceptable dependamcy, it will be part of libkaithem if such a thing exists

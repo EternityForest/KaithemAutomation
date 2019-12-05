@@ -254,8 +254,8 @@ from src import tagpoints
         <div v-if="showevents" class="sectionbox" style="position:fixed; bottom:0px; width:78%;background-color:rgba(220,255,240,0.85)">
             <h2> <button v-on:click="showevents=0"><img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button>Event
                 Log</h2>
-            <input v-model="evfilt" placeholder="Filter events"><br>
-            <div class="scrollbox" style="height:6em">
+            <input v-model="evfilt" placeholder="Filter events"><label>Autoscroll<input type="checkbox" v-model="eventlogautoscroll"></label><br>
+            <div class="scrollbox" id="eventlogbox" style="height:6em">
                 <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
                     v-for="i in evlog" v-if="i[1].search(evfilt)>-1 || i[0].search(evfilt)>-1">{{i[2]}}: <b>{{i[0]}}</b> at {{i[1]}}: {{i[3]}}
                     <pre>{{i[4]}}</div>
@@ -1532,6 +1532,8 @@ from src import tagpoints
                 highlightGutterLine: false              
               },  
 
+
+            'eventlogautoscroll': true,
             //https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
             'formatInterval': formatInterval,
             'console': console,
@@ -2239,7 +2241,9 @@ from src import tagpoints
                 }
                 else
                 {
-                    var x = true
+                   var x = confirm(
+                        "Really stop scene? The cue and all variables will be reset."
+                    )
                 }
                 if (x)
                 {
@@ -2599,7 +2603,16 @@ from src import tagpoints
                     Vue.set(appData.alphas, v[1], v[2].alpha);
                 }
                 
-                set(appData.scenemeta, v[1], v[2]);
+                //Just update existing data if we can
+                if(appData.scenemeta[v[1]])
+                {
+                    var meta = Object.assign(appData.scenemeta[v[1]], v[2])
+                }
+                else
+                {
+                    var meta = v[2];
+                }
+                set(appData.scenemeta, v[1], meta);
                 if (appData.selectedCues[v[1]] == undefined)
                 {
                     Vue.set(appData.selectedCues, v[1], 'default')
@@ -2633,17 +2646,7 @@ from src import tagpoints
 
             if (c == "event")
             {
-                var shouldScroll = 0;
-                
-                if(appData.showevents)
-               {
-                   var element = document.getElementById('eventlogbox');
-                    if( element.scrollTop === (element.scrollHeight - element.offsetHeight))
-                    {
-                     shouldScroll = 1;   
-                    }
-               }
-               shouldScroll=1;
+               
                appData.evlog.push(v[1])
                if (appData.evlog.length > 250)
                {
@@ -2656,10 +2659,12 @@ from src import tagpoints
                
                if(appData.showevents)
                {
-                   if(shouldScroll)
+                   if(appData.eventlogautoscroll)
                    {
                        var element = document.getElementById('eventlogbox');
-                       element.scrollTop = element.scrollHeight;
+                       setTimeout(function(){
+                       element.scrollTop = element.scrollHeight-element.clientHeight;
+                       },150)
                    }
                }
             }
