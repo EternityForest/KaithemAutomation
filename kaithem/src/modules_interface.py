@@ -106,7 +106,7 @@ class WebInterface():
     def yamldownload(self,module):
         pages.require('/admin/modules.view')
         if config["downloads-include-md5-in-filename"]:
-            cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="%s"'%util.url(module[:-4]+"_"+getModuleHash(module[:-4]))
+            cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="%s"'%util.url(module[:-4]+"_"+getModuleHash(module[:-4])+".zip")
         cherrypy.response.headers['Content-Type']= 'application/zip'
         try:
             return getModuleAsYamlZip(module[:-4] if module.endswith('.zip') else module, noFiles =not pages.canUserDoThis("/admin/modules.edit"))

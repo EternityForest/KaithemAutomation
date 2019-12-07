@@ -22,9 +22,7 @@ def getDesc():
 <form action="/modules/module/${url(name)}/update" method="POST" name="user">
 MD5 Sum: <b>${getModuleHash(name)}</b></br>
 WordHash: <b>${getModuleWordHash(name)}</b></br>
-
-<a href="/modules/download/${url(name)}.zip">Download this module as a zip file</a><br>
-<a href="/modules/yamldownload/${url(name)}.zip">Download this module as a zip file with YAML resources(not compatible with older versions)</a><br>
+<a href="/modules/yamldownload/${url(name)}.zip">Download this module as a zip file</a><br>
 <a href="/modules/module/${url(name)}/obj/module">View the module namespace object(requires edit permission, beware shoulder surfers)</a>
 </section>
 <h3>Basic Information</h3>

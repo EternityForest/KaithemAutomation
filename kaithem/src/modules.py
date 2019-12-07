@@ -397,126 +397,137 @@ def insertVirtualResource(modulename:str,name:str,value:VirtualResource):
         if not value.name:
             value.name="x-module:"+ util.url(modulename)+"/"+ "/".join([util.url(i) for i in util.split_escape(name,"/","\\")])
 
+def readResourceFromFile(fn:str,relative_name:str,ver:int=1):
+    """Relative name is rel to the folder, aka the part of the path that actually belongs in
+        the resource name
+     """
+    with open(fn,"rb") as f:
+        d = f.read().decode("utf-8")
+
+    x= readResourceFromData(d,relative_name,ver,filename=fn)
+    logger.debug("Loaded resource from file "+fn)
+    return x
 
                    
 #Backwards compatible resource loader.
-def loadResource(fn:str,ver:int=1):
-    "Returns (datadict, shouldRemoveFileExtension)"
+def readResourceFromData(d,relative_name:str,ver:int=1,filename=None):
+    """Returns (datadict, ResourceName)
+        Should be pure except logging
+    """
+    fn = relative_name
     try:
-        with open(fn,"rb") as f:
-            try:
-                d = f.read().decode("utf-8")
-                #This regex is meant to handle any combination of cr, lf, and trailing whitespaces
-                sections = re.split("\r?\n---[ |\t]*?\r?\n",d)
-                
-                shouldRemoveExtension = False
-                
-                isSpecialEncoded=False
-                if fn.endswith('.py'):
-                    isSpecialEncoded=True
-
-                    try:
-                        #Get the two code blocks, then remove  them before further processing
-                        action,restofthecode = readToplevelBlock(d, 'def eventAction():')
-                        setup,restofthecode = readToplevelBlock(restofthecode, "if __name__ == '__setup__':")
-                        #Restofthecode doesn't have those blocks, we should be able to AST parse with less fear of
-                        #A syntax error preventing reading the data at all
-                        data = yaml.load(readStringFromSource(restofthecode, '__data__'))
-                        data['trigger'] = readStringFromSource(restofthecode,"__trigger__")
-                        data['setup']=setup.strip()
-                        data['action']=action.strip()
-                      
-                        r = data
-                        #This is a .py file, remove the extension
-                        shouldRemoveExtension = True
-                    except:
-                        isSpecialEncoded= False
-                        logging.exception("err loading as pyencoded: "+fn)
-                        pass
-                
-                #Option to encode metadata as special script type
-                elif fn.endswith(".html") and "2b8c68ea-307c-4558-bf34-5e024c8306f4" in d:
-                    isSpecialEncoded=True
-                    try:
-                        x = re.search(r'<script +type=\"2b8c68ea-307c-4558-bf34-5e024c8306f4\">((.|[\n\r])*?)<\/script>',d)
-                        data = yaml.load(x.group(1))
-                        d = re.sub(r'<script +type=\"2b8c68ea-307c-4558-bf34-5e024c8306f4\">((.|[\n\r])*?)<\/script>','',d)
-                        data['body']= d.strip()
-                        r=data
-                        shouldRemoveExtension = True
-                    except:
-                        isSpecialEncoded= False
-                        logging.exception("err loading as html encoded: "+fn)
-                        pass
-
-                #Markdown and most html files files start with --- and are delimited by ---
-                #The first section is YAML and the second is the page body.
-                elif fn.endswith(".md") or fn.endswith(".html"):
-                    isSpecialEncoded=True
-                    try:
-                        x = d.split("---\n",2)
-                        data = yaml.load(x[1])
-                        data['body']= x[2]
-                        r=data
-                        shouldRemoveExtension = True
-                    except:
-                        isSpecialEncoded= False
-                        logging.exception("err loading as html encoded: "+fn)
-                        pass
-                elif fn.endswith('.yaml'):
-                    shouldRemoveExtension = True
-
-
-                if not isSpecialEncoded:
-                    r = yaml.load(sections[0])
-
-                    #Catch new style save files
-                    if len(sections)>1:
-                        if r['resource-type'] == 'page':
-                            r['body'] = sections[1]
-
-                        if r['resource-type'] == 'event':
-                            r['setup'] = sections[1]
-                            r['action'] = sections[2]
-            except:
-                #This is a workaround for when dolphin puts .directory files in directories and gitignore files
-                #and things like that. Also ignore attempts to load from filedata
-                #I'd like to add more workarounds if there are other programs that insert similar crap files.
-                if "/.git" in fn or "/.gitignore" in fn or "__filedata__" in fn or fn.endswith(".directory"):
-                    return (None,False)
-                else:
-                    raise
-            if not r or not 'resource-type' in r:
-                if "/.git" in fn or "/.gitignore" in fn or "__filedata__" in fn or fn.endswith(".directory"):
-                    return None,False
-                else:
-                    print(fn)
-
-
-
-
+        #This regex is meant to handle any combination of cr, lf, and trailing whitespaces
+        sections = re.split("\r?\n---[ |\t]*?\r?\n",d)
         
-        #If no resource timestamp use the one from the file time.
-        if not 'resource-timestamp' in r:
-            r['resource-timestamp'] = int(os.stat(fn).st_mtime*1000000)
-        #Set the loaded from. we strip this before saving
-        r['resource-loadedfrom']=fn
-        return (r, shouldRemoveExtension)
+        shouldRemoveExtension = False
+        
+        isSpecialEncoded=False
+        if fn.endswith('.py'):
+            isSpecialEncoded=True
+
+            try:
+                #Get the two code blocks, then remove  them before further processing
+                action,restofthecode = readToplevelBlock(d, 'def eventAction():')
+                setup,restofthecode = readToplevelBlock(restofthecode, "if __name__ == '__setup__':")
+                #Restofthecode doesn't have those blocks, we should be able to AST parse with less fear of
+                #A syntax error preventing reading the data at all
+                data = yaml.load(readStringFromSource(restofthecode, '__data__'))
+                data['trigger'] = readStringFromSource(restofthecode,"__trigger__")
+                data['setup']=setup.strip()
+                data['action']=action.strip()
+                
+                r = data
+                #This is a .py file, remove the extension
+                shouldRemoveExtension = True
+            except:
+                isSpecialEncoded= False
+                logging.exception("err loading as pyencoded: "+fn)
+                pass
+        
+        #Option to encode metadata as special script type
+        elif fn.endswith(".html") and "2b8c68ea-307c-4558-bf34-5e024c8306f4" in d:
+            isSpecialEncoded=True
+            try:
+                x = re.search(r'<script +type=\"2b8c68ea-307c-4558-bf34-5e024c8306f4\">((.|[\n\r])*?)<\/script>',d)
+                data = yaml.load(x.group(1))
+                d = re.sub(r'<script +type=\"2b8c68ea-307c-4558-bf34-5e024c8306f4\">((.|[\n\r])*?)<\/script>','',d)
+                data['body']= d.strip()
+                r=data
+                shouldRemoveExtension = True
+            except:
+                isSpecialEncoded= False
+                logging.exception("err loading as html encoded: "+fn)
+                pass
+
+        #Markdown and most html files files start with --- and are delimited by ---
+        #The first section is YAML and the second is the page body.
+        elif fn.endswith(".md") or fn.endswith(".html"):
+            isSpecialEncoded=True
+            try:
+                x = d.split("---\n",2)
+                data = yaml.load(x[1])
+                data['body']= x[2]
+                r=data
+                shouldRemoveExtension = True
+            except:
+                isSpecialEncoded= False
+                logging.exception("err loading as html encoded: "+fn)
+                pass
+        elif fn.endswith('.yaml'):
+            shouldRemoveExtension = True
+
+
+        if not isSpecialEncoded:
+            r = yaml.load(sections[0])
+
+            #Catch new style save files
+            if len(sections)>1:
+                if r['resource-type'] == 'page':
+                    r['body'] = sections[1]
+
+                if r['resource-type'] == 'event':
+                    r['setup'] = sections[1]
+                    r['action'] = sections[2]
     except:
-        logger.exception("Error loading resource from file "+fn)
-        raise
-    logger.debug("Loaded resource from file "+fn)
+        #This is a workaround for when dolphin puts .directory files in directories and gitignore files
+        #and things like that. Also ignore attempts to load from filedata
+        #I'd like to add more workarounds if there are other programs that insert similar crap files.
+        if "/.git" in fn or "/.gitignore" in fn or "__filedata__" in fn or fn.endswith(".directory"):
+            return (None,False)
+        else:
+            raise
+    if not r or not 'resource-type' in r:
+        if "/.git" in fn or "/.gitignore" in fn or "__filedata__" in fn or fn.endswith(".directory"):
+            return None,False
+        else:
+            print(fn)
+
+
+    #If no resource timestamp use the one from the file time.
+    if not 'resource-timestamp' in r:
+        if filename:
+            r['resource-timestamp'] = int(os.stat(filename).st_mtime*1000000)
+        else:
+            r['resource-timestamp'] = int(time.time()*1000000)
+
+
+    #Set the loaded from. we strip this before saving
+    r['resource-loadedfrom']=fn
+
+    resourcename=util.unurl(fn)
+    if shouldRemoveExtension:
+        resourcename = '.'.join(resourcename.split('.')[:-1])
+    return (r, resourcename)
+
 
 def indent(s, prefix='    '):
     s = [prefix+i for i in s.split("\n")]
     return '\n'.join(s)
 
-def saveResource2(obj,fn:str):
-    #Don't save VResources
-    if isinstance(obj,weakref.ref):
-        logger.debug("Did not save resource because it is virtual")
-        return
-    logger.debug("Saving resource to "+str(fn))
+
+def serializeResource(obj):
+    "Returns the raw data, plus the proper file extension"
+   
 
     r = copy.deepcopy(obj)
     #This is a ram only thing that tells us where it is saved
@@ -569,8 +580,21 @@ def saveResource2(obj,fn:str):
         d = yaml.dump(r)
         ext = ".yaml"
 
-    fn+= ext
 
+    return (d,ext)
+
+def saveResource2(obj,fn:str):
+
+ 
+    #Don't save VResources
+    if isinstance(obj,weakref.ref):
+        logger.debug("Did not save resource because it is virtual")
+        return
+    logger.debug("Saving resource to "+str(fn))
+
+    d,ext = serializeResource(obj)
+
+    fn += ext
 
     if os.path.exists(fn):
         try:
@@ -602,14 +626,9 @@ def saveResource2(obj,fn:str):
     obj['resource-loadedfrom']=fn
     return fn
 
-def saveResource(r,fn:str):
-    with open(fn,"wb") as f:
-        util.chmod_private_try(fn, execute=False)
-        f.write(yaml.dump(r).encode("utf-8"))
-
 def cleanupBlobs():
     fddir = os.path.join(directories.vardir,"modules","filedata")
-    inUseFiles = {i:True for i in fileResourceAbsPaths.values()}
+    inUseFiles = {os.path.normpath(i):True for i in fileResourceAbsPaths.values()}
     #Defensive programming against nonexistant file dumps directory
     if not os.path.exists(fddir):
         return
@@ -620,8 +639,9 @@ def cleanupBlobs():
             #Preserver the random .directory config stuff
             if not((i=='README.md' or len(i)<20) and fddir==root):
                 i=os.path.join(root,i)
-                if not i in inUseFiles:
-                    fn = os.path.join(root,i )
+                fn = os.path.join(root,i )
+
+                if not os.path.normpath(fn) in inUseFiles:
                     os.remove(fn)
     for root, dirs, files in os.walk(fddir,topdown=False):
         if not files and not dirs:
@@ -874,7 +894,7 @@ def saveModules(where:str,markSaved=True):
 
             #do the saving
             for i in [i for i in ActiveModules if not i in external_module_locations]:
-                saved.extend(saveModule(ActiveModules[i],os.path.join(where,url(i)),modulename=i))
+                saved.extend(saveModule(ActiveModules[i],os.path.join(where,url(i," ")),modulename=i))
 
             for i in [i for i in ActiveModules if i in external_module_locations]:
                 try:
@@ -902,8 +922,8 @@ def saveModules(where:str,markSaved=True):
                     os.remove(os.path.join(where,i))
 
             for i in external_module_locations:
-                if not os.path.isfile(os.path.join(where, "__"+url(i)+".location")):
-                    with open(os.path.join(where, "__"+url(i)+".location"),"w+") as f:
+                if not os.path.isfile(os.path.join(where, "__"+url(i," ")+".location")):
+                    with open(os.path.join(where, "__"+url(i," ")+".location"),"w+") as f:
                         if not f.read() == external_module_locations[i]:
                             f.seek(0)
                             f.write(external_module_locations[i])
@@ -1050,12 +1070,14 @@ def reloadOneResource(module,resource):
 
 
 def loadOneResource(folder, relpath, module):
-    resourcename = util.unurl(relpath)
-    r,removeExt = loadResource(os.path.join(folder,relpath))
+    try:
+        r,resourcename = readResourceFromFile(os.path.join(folder,relpath), relpath)
+    except:
+        logger.exception("Error loading resource from file "+fn)
+        raise
     if not r:
         return
-    if removeExt:
-        resourcename = '.'.join(resourcename.split('.')[:-1])
+   
     
     ActiveModules[module][resourcename] = r
     fnToModuleResource[resourcename] = (module, resourcename)
@@ -1077,10 +1099,10 @@ def loadOneResource(folder, relpath, module):
         #Because things in vardir modules get copied to the vardir.
         if util.in_directory(os.path.join(folder,relpath), directories.vardir) or util.in_directory(os.path.join(folder,relpath), directories.datadir):
             t = parseTarget(r['target'],module)
-            fileResourceAbsPaths[module,resourcename] = os.path.join(directories.vardir,"modules","filedata",t)
+            fileResourceAbsPaths[module,resourcename] = os.path.normpath(os.path.join(directories.vardir,"modules","filedata",t))
         else:
             t = parseTarget(r['target'],module,True)
-            fileResourceAbsPaths[module,resourcename] = os.path.join(folder,"__filedata__",t)
+            fileResourceAbsPaths[module,resourcename] = os.path.normpath(os.path.join(folder,"__filedata__",t))
 
 
 def loadModule(folder:str, modulename:str, ignore_func=None):
@@ -1110,12 +1132,12 @@ def loadModule(folder:str, modulename:str, ignore_func=None):
                                 shutil.copy(fn, os.path.join(directories.vardir,"modules","filedata"))
                             continue
                         #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
-                        resourcename = util.unurl(relfn)
-                        r,removeExt = loadResource(fn)
-                        if not r:
+                        try:
+                            r,resourcename = readResourceFromFile(fn,relfn)
+                        except:
+                            logger.exception("Error loading "+fn)                        
                             continue
-                        if removeExt:
-                            resourcename = '.'.join(resourcename.split('.')[:-1])
+        
                         module[resourcename] = r
                         fnToModuleResource[resourcename] = (modulename, resourcename)
                         if not 'resource-type' in r:
@@ -1169,26 +1191,6 @@ def parseTarget(t, module,in_ext=False):
             t =urllib.parse.quote(module, safe=" ")+"/"+t
     return t
 
-def getModuleAsZip(module:str,noFiles:bool=True):
-    with modulesLock:
-        #We use a stringIO so we can avoid using a real file.
-        ram_file = StringIO()
-        z = zipfile.ZipFile(ram_file,'w')
-        #Dump each resource to JSON in the ZIP
-        for resource in ActiveModules[module]:
-            #AFAIK Zip files fake the directories with naming conventions
-            s = json.dumps(ActiveModules[module][resource],sort_keys=True,indent=4, separators=(',', ': '))
-            z.writestr(url(module)+'/'+url(resource)+".json",s)
-            if ActiveModules[module][resource]['resource-type'] == "internal-fileref":
-                if noFiles:
-                    raise RuntimeError("Cannot download this module without admin rights as it contains embedded files")
-                z.write(os.path.join(directories.vardir,"modules","filedata",ActiveModules[module][resource]['target']),"__filedata__/"+url(ActiveModules[module][resource]['target']))
-
-
-        z.close()
-        s = ram_file.getvalue()
-        ram_file.close()
-        return s
 
 def getModuleAsYamlZip(module,noFiles=True):
     with modulesLock:
@@ -1197,13 +1199,19 @@ def getModuleAsYamlZip(module,noFiles=True):
         z = zipfile.ZipFile(ram_file,'w')
         #Dump each resource to JSON in the ZIP
         for resource in ActiveModules[module]:
+            if not resource.strip():
+                raise RuntimeError("WTF?")
+            if not isinstance(ActiveModules[module][resource],dict):
+                continue
             #AFAIK Zip files fake the directories with naming conventions
-            s = yaml.dump(ActiveModules[module][resource])
-            z.writestr(url(module)+'/'+url(resource)+".yaml",s)
+            s,ext = serializeResource(ActiveModules[module][resource])
+            z.writestr(url(module," ")+'/'+url(resource,"/ ")+ext,s)
             if ActiveModules[module][resource]['resource-type'] == "internal-fileref":
                 if noFiles:
                     raise RuntimeError("Cannot download this module without admin rights as it contains embedded files")
-                z.write(os.path.join(directories.vardir,"modules","filedata",ActiveModules[module][resource]['target']),"__filedata__/"+url(ActiveModules[module][resource]['target']))
+                
+                target = fileResourceAbsPaths[module,resource]
+                z.write(os.path.join(directories.vardir,"modules","filedata",target),"__filedata__/"+url(module," ")+"/"+url(resource,'/ '))
         z.close()
         s = ram_file.getvalue()
         ram_file.close()
@@ -1218,15 +1226,15 @@ def load_modules_from_zip(f,replace=False):
     for i in z.namelist():
         #get just the folder, ie the module
         p = util.unurl(i.split('/')[0])
-        #Remove the.json by getting rid of last 5 chars
-        n = util.unurl((i.split('/'))[1][:-5])
+       
+        relative_name = (i.split('/'))[1]
         if p not in new_modules and not "__filedata__" in p:
             new_modules[p] = {}
         try:
             if not  "__filedata__" in p:
                 try:
                     f = z.open(i)
-                    r = yaml.load(f.read().decode())
+                    r,n =readResourceFromData(f.read().decode(), relative_name)
                     if r==None:
                         raise RuntimeError("Attempting to decode file "+str(i)+" resulted in a value of None")
                     new_modules[p][n] = r
