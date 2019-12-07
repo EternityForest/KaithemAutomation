@@ -1223,21 +1223,48 @@ if __name__=='__setup__':
             self.pushUniverses()
     
     
-        def loadSceneFile(self,data,_asuser=False):
+        def loadSceneFile(self,data,_asuser=False, filename=None,errs=False):
+    
+            data=yaml.load(data)
+    
+            #Detect if the user is trying to upload a single scenefile, if so, wrap it in a multi-dict of scenes to keep the reading code
+            #The same for both
+            if 'uuid' in data and isinstance(data['uuid'],str):
+                #Remove the .yaml
+                data = {filename[:-5]: data}
+            
+    
             for i in data:
                 if 'page' in data[i] and data[i]['page']['html'].strip() or data[i]['page']['js'].strip():
                     if not kaithem.users.checkPermission(kaithem.web.user(),"/admin/modules.edit"):
                         raise ValueError("You cannot upload this scene without /admin/modules.edit, because it uses advanced features: pages" )
     
-            self.loadDict(yaml.load(data))
+            self.loadDict(data,errs)
         
-        def loadDict(self,data):
+        def loadDict(self,data,errs=False):
             with module.lock:
                 for i in data:
+    
+                         #New versions don't have a name key at all, the name is the key
+                        if 'name' in data[i]:
+                            pass
+                        else:
+                            data[i]['name'] = i
+                        n = data[i]['name']
+    
+                        #Delete existing scenes we own
+                        if n in module.scenes_by_name:
+                            if module.scenes_by_name[n].id in self.scenememory:
+                                self.scenememory[module.scenes_by_name[n].id].stop()
+                                del self.scenememory[module.scenes_by_name[n].id]
+                                del module.scenes_by_name[n]
+                            else:
+                                raise ValueError("Scene "+i+" already exists. We cannot overwrite, because it was not created through this board")
                         try:
                             #Kinda brittle and hacky, because loadinga new default scene isn't well
                             #supported
                             cues = data[i]['cues']
+                            print(cues)
                             del data[i]['cues']
                             x = False
                             if 'defaultActive' in data[i]:
@@ -1247,25 +1274,35 @@ if __name__=='__setup__':
                                 x =  data[i]['active']
                                 del data[i]['active']
     
-                            uuid = i
+                            #Older versions indexed by UUID
                             if 'uuid' in data[i]:
                                 uuid = data[i]['uuid']
                                 del data[i]['uuid']
+                            else:
+                                uuid = i
+                            
+                           
     
                             s=Scene(id=uuid,defaultCue=False,defaultActive=x,**data[i])
                             for j in cues:
                                 Cue(s,f=True,name=j,**cues[j])
                             s.cue = s.cues['default']
                             s.gotoCue("default")
+    
                             self.scenememory[uuid] = s
                             if x:
                                 s.go()
                                 s.rerender=True
                         except Exception as e:
-                            logger.exception("Failed to load scene "+str(i)+" "+str(data[i].get('name','')))
-                            print("Failed to load scene "+str(i)+" "+str(data[i].get('name',''))+": "+traceback.format_exc(3))
+                            if not errs:
+                                logger.exception("Failed to load scene "+str(i)+" "+str(data[i].get('name','')))
+                                print("Failed to load scene "+str(i)+" "+str(data[i].get('name',''))+": "+traceback.format_exc(3))
+                            else:
+                                raise
                 
         def addScene(self,scene):
+            if not isinstance(scene, Scene):
+                raise ValueError("Arg must be a Scene")
             self.scenememory[scene.id] = scene
             
         def rmScene(self,scene):
@@ -1315,8 +1352,7 @@ if __name__=='__setup__':
                 sd = {}
                 for i in self.scenememory:
                     x = self.scenememory[i]
-                    sd[i] = {   
-                                 'name':x.name,
+                    sd[x.name] = {   
                                  'bpm':x.bpm,
                                  'alpha':x.defaultalpha,
                                  'cues': {j:x.cues[j].serialize() for j in x.cues},
@@ -1342,8 +1378,8 @@ if __name__=='__setup__':
             saved = {}
             with module.lock:    
                 for i in sd:
-                    saved[sd[i]['name']+".yaml"]=True
-                    kaithem.persist.save(sd[i], os.path.join(saveLocation,sd[i]['name']+".yaml")  )
+                    saved[i+".yaml"]=True
+                    kaithem.persist.save(sd[i], os.path.join(saveLocation,i+".yaml")  )
     
             #Delete everything not in folder
             for i in os.listdir(saveLocation):
@@ -1477,7 +1513,7 @@ if __name__=='__setup__':
             try:
                 cue = cues[cueid]
                 self.link.send(["cuemeta",cueid,     
-                                {'fadeout':cue.fadeout, 
+                                { 
                                 'fadein':cue.fadein, 
                                 'alpha':cue.alpha,
                                 'length':cue.length,
@@ -1538,14 +1574,14 @@ if __name__=='__setup__':
                     self.save()
                     
                 if msg[0] == "addscene":
-                    s = Scene(msg[1])
+                    s = Scene(msg[1].strip())
                     self.scenememory[s.id]=s
-                    self.link.send(["newscene",msg[1],s.id])
+                    self.link.send(["newscene",msg[1].strip(),s.id])
     
                 if msg[0] == "addmonitor":
-                    s = Scene(msg[1],blend="monitor",priority=100)
+                    s = Scene(msg[1].strip(),blend="monitor",priority=100)
                     self.scenememory[s.id]=s
-                    self.link.send(["newscene",msg[1],s.id])   
+                    self.link.send(["newscene",msg[1].strip(),s.id])   
     
                 if msg[0] == "getserports":
                     self.link.send(["serports",getSerPorts()])   
@@ -1867,8 +1903,9 @@ if __name__=='__setup__':
                     module.scenes[msg[1]].setAlpha(msg[2],sd=True)
     
                 if msg[0] == "addcue":
+                    n = msg[2].strip()
                     if not msg[2] in module.scenes[msg[1]].cues:
-                        module.scenes[msg[1]].addCue(msg[2])
+                        module.scenes[msg[1]].addCue(n)
                 
                 if msg[0]=="searchsounds":
                     self.link.send(['soundsearchresults', msg[1], searchPaths(msg[1], getSoundFolders()) ])
@@ -2017,14 +2054,6 @@ if __name__=='__setup__':
                     module.scenes[msg[1]].setBlend(msg[2])
                 if msg[0] == "setblendarg":
                     module.scenes[msg[1]].setBlendArg(msg[2],msg[3])
-    
-                if msg[0] == "setfadeout":
-                    try:
-                        v=float(msg[2])
-                    except:
-                        v=msg[2][:256]
-                    cues[msg[1]].fadeout = v
-                    self.pushCueMeta(msg[1])
                     
                 if msg[0] == "setpriority":
                     module.scenes[msg[1]].setPriority(msg[2])  
@@ -2376,21 +2405,37 @@ if __name__=='__setup__':
     
     cues =weakref.WeakValueDictionary()
     
+    cueDefaults = {
+    
+        "fadein":0,
+        "length": 0,
+        "track": True,
+        "nextCue": '',
+        "sound": "",
+        "soundOutput": '',
+        "rel_length": False,
+        "lengthRandomize": 0,
+        'inheritRules':'',
+        'rules':[],
+        'script':'',
+        'values': {},
+    }
+    
     class Cue():
         "A static set of values with a fade in and out duration"
         __slots__=['id','changed','next_ll','alpha','fadein','fadeout','length','lengthRandomize','name','values','scene',
         'nextCue','track','shortcut','number','inherit','sound','rel_length','script',
         'soundOutput','onEnter','onExit','influences','associations',"rules","reentrant","inheritRules",
         '__weakref__']
-        def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, fadeout=0, length=0,track=True, nextCue = None,shortcut=None,sound='',soundOutput=None,rel_length=False, id=None,number=None,
-            lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,reentrant=True,inheritRules=None,**kw):
+        def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, fadeout=0, length=0,track=True, nextCue = None,shortcut=None,sound='',soundOutput='',rel_length=False, id=None,number=None,
+            lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,reentrant=True,inheritRules='',**kw):
             #This is so we can loop through them and push to gui
             self.id = uuid.uuid4().hex
             self.name = name
             self.script = script
             self.onEnter = onEnter
             self.onExit = onExit
-            self.inheritRules=inheritRules
+            self.inheritRules=inheritRules or ''
             self.reentrant=True
     
             ##Rules created via the GUI logic editor
@@ -2414,19 +2459,18 @@ if __name__=='__setup__':
             self.changed= {}
             self.alpha = alpha
             self.fadein =fadein
-            self.fadeout= fadeout
             self.length = length
             self.rel_length = rel_length
             self.lengthRandomize = lengthRandomize
             self.values = values or {}
             self.scene = weakref.ref(parent)
-            self.nextCue = nextCue
+            self.nextCue = nextCue or ''
             #Note: This refers to tracking as found on lighting gear, not the old concept of track from
             #the first version
             self.track = track
             self.shortcut= None
-            self.sound = sound
-            self.soundOutput = soundOutput
+            self.sound = sound or ''
+            self.soundOutput = soundOutput or ''
             s = number_to_shortcut(self.number)
             shortcut = shortcut or s
     
@@ -2460,10 +2504,18 @@ if __name__=='__setup__':
             return s 
     
         def serialize(self):
-                return {"fadein":self.fadein,"fadeout":self.fadeout,"length":self.length,'lengthRandomize':self.lengthRandomize,"shortcut":self.shortcut,"values":self.values,
+                x =  {"fadein":self.fadein,"length":self.length,'lengthRandomize':self.lengthRandomize,"shortcut":self.shortcut,"values":self.values,
                 "nextCue":self.nextCue,"track":self.track,"number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,'rel_length':self.rel_length, 'script':self.script, 'rules':self.rules,
                 'reentrant':self.reentrant, 'inheritRules': self.inheritRules
                 }
+    
+                #Cleanup defaults
+                if x['shortcut']==number_to_shortcut(self.number):
+                    del x['shortcut']
+                for i in cueDefaults:
+                    if x[i]==cueDefaults[i]:
+                        del x[i]
+                return x
     
         def setScript(self,script, allow_bad=True):
             self.script = script
@@ -2498,7 +2550,7 @@ if __name__=='__setup__':
                 raise RuntimeError("Cannot duplicate cue names in one scene")
     
             c = Cue(self.scene(), name, fadein=self.fadein, length=self.length,  lengthRandomize=self.lengthRandomize
-            ,fadeout=self.fadeout,values=copy.deepcopy(self.values),nextCue=self.nextCue)
+            ,values=copy.deepcopy(self.values),nextCue=self.nextCue)
             
             for i in module.boards:
                 if len(i().newDataFunctions)<100:
@@ -2673,8 +2725,10 @@ if __name__=='__setup__':
     
             "Not suggested to defaultCue==False, it's only there to avoid conflicts when loading saved cues"
             if name and name in module.scenes_by_name:
-                raise RuntimeError("Cannot have 2 scenes sharing a name")
+                raise RuntimeError("Cannot have 2 scenes sharing a name: "+name)
     
+            if not name.strip():
+                raise ValueError("Invalid Name")
     
             disallow_special(name)
             self.lock = threading.RLock()
