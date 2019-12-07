@@ -49,6 +49,10 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.64.9
+- Add automationhat to the included libraries(In lowpriority)
+- Fix the link to the tagpoint documentation
+
 
 ### 0.64.8
 - Fix "Bad record mac" nuisiance errors by making widgets properly threadsafe
@@ -56,13 +60,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - Fix bug where persist module could create folder with same name as file you wanted to save
 - Chandler sends events in background thread to avoind blocking rendering
 - Send only the necessary chandler metadata on every cue change
-
-### 0.64.7
-- Chandler proper traceback support in cue logic
-- Chandler scenes don't auto-stop at zero alpha anymore
-- Stopping chandler scenes clears all variables and returns to the default cue on restart
-- Event value accessible in cue logic as event.value, event.millis,event.time, and event.name
-- Disable JACK dbus audio reservation
 
 
 License Terms

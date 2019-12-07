@@ -1,6 +1,9 @@
 Change Log
 ----------
 
+### 0.64.9
+- Add automationhat to the included libraries(In lowpriority)
+- Fix the link to the tagpoint documentation
 
 ### 0.64.8
 - Fix "Bad record mac" nuisiance errors by making widgets properly threadsafe
