@@ -3113,14 +3113,14 @@ if __name__=='__setup__':
         def event(self,s,value=None, info=''):
             #No error loops allowed!
             if not s=="script.error":
-                self._event(s)
+                self._event(s,value)
     
         
         def _event(self, s,value=None,info=''):
             "Manually trigger any script bindings on an event"
             with self.lock:
                 try:
-                    self.scriptContext.event(s)
+                    self.scriptContext.event(s,value)
                 except Exception as e:
                     rl_log_exc("Error handling event")
                     print(traceback.format_exc(6))
