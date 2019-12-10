@@ -473,7 +473,7 @@ def readResourceFromData(d,relative_name:str,ver:int=1,filename=None):
                 isSpecialEncoded= False
                 logging.exception("err loading as html encoded: "+fn)
                 pass
-        elif fn.endswith('.yaml'):
+        elif fn.endswith('.yaml') or fn.endswith('.json'):
             shouldRemoveExtension = True
 
 
@@ -1097,12 +1097,19 @@ def loadOneResource(folder, relpath, module):
 
         #Note that we handle things in library modules the same as in loaded vardir modules,
         #Because things in vardir modules get copied to the vardir.
+
+    
         if util.in_directory(os.path.join(folder,relpath), directories.vardir) or util.in_directory(os.path.join(folder,relpath), directories.datadir):
             t = parseTarget(r['target'],module)
             fileResourceAbsPaths[module,resourcename] = os.path.normpath(os.path.join(directories.vardir,"modules","filedata",t))
         else:
             t = parseTarget(r['target'],module,True)
             fileResourceAbsPaths[module,resourcename] = os.path.normpath(os.path.join(folder,"__filedata__",t))
+
+        if not os.path.exists(fileResourceAbsPaths[module,resourcename]):
+            logger.error("Missing file resource: "+fileResourceAbsPaths[module,resourcename])
+            messagebus.postMessage("/system/notifications/errors","Missing file resource: "+fileResourceAbsPaths[module,resourcename])
+
 
 
 def loadModule(folder:str, modulename:str, ignore_func=None):
@@ -1160,6 +1167,12 @@ def loadModule(folder:str, modulename:str, ignore_func=None):
                             else:
                                 t =parseTarget(r['target'],modulename,True)
                                 fileResourceAbsPaths[modulename,resourcename] = os.path.join(folder,"__filedata__",t)
+
+                         
+                            if not os.path.exists(fileResourceAbsPaths[modulename,resourcename]):
+                                logger.error("Missing file resource: "+fileResourceAbsPaths[modulename,resourcename])
+                                messagebus.postMessage("/system/notifications/errors","Missing file resource: "+fileResourceAbsPaths[modulename,resourcename])
+
                     except:
                         messagebus.postMessage("/system/notifications/errors","Error loading from: "+fn+"\r\n"+traceback.format_exc())
                         raise
@@ -1193,6 +1206,7 @@ def parseTarget(t, module,in_ext=False):
 
 
 def getModuleAsYamlZip(module,noFiles=True):
+    incompleteError=False
     with modulesLock:
         #We use a stringIO so we can avoid using a real file.
         ram_file = StringIO()
@@ -1211,7 +1225,13 @@ def getModuleAsYamlZip(module,noFiles=True):
                     raise RuntimeError("Cannot download this module without admin rights as it contains embedded files")
                 
                 target = fileResourceAbsPaths[module,resource]
-                z.write(os.path.join(directories.vardir,"modules","filedata",target),"__filedata__/"+url(module," ")+"/"+url(resource,'/ '))
+                if os.path.exists(os.path.join(directories.vardir,"modules","filedata",target)):
+                    z.write(os.path.join(directories.vardir,"modules","filedata",target),"__filedata__/"+url(module," ")+"/"+url(resource,'/ '))
+        
+                else:
+                    if not incompleteError:
+                        logging.error("Missing file(s) in module including: "+os.path.join(directories.vardir,"modules","filedata",target))
+                        incompleteError=True
         z.close()
         s = ram_file.getvalue()
         ram_file.close()

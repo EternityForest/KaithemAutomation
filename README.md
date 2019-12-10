@@ -48,6 +48,10 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+### 0.65.0
+- Fix the emedded file resources
+- Warning on missing file resources
+- Nicer formatting for zip downloads(Backwards compatible but new zips don't work in old kaithem)
 
 ### 0.64.9
 - Add automationhat to the included libraries(In lowpriority)

@@ -21,6 +21,9 @@ from src import modules
 from src.config import config
 from cherrypy.lib.static import serve_file
 
+import logging
+
+syslog = logging.getLogger("system")
 searchable = {'event': ['setup', 'trigger', 'action'], 'page':['body']}
 
 def validate_upload():
@@ -412,6 +415,8 @@ class WebInterface():
                 inputfile = kwargs['file']
 
                 util.ensure_dir(dataname)
+
+                syslog.info("User uploaded file resource to "+dataname)
                 with open(dataname,"wb") as f:
                     while True:
                         d = inputfile.file.read(8192)
