@@ -21,6 +21,9 @@ from src import modules
 from src.config import config
 from cherrypy.lib.static import serve_file
 
+import logging
+
+syslog = logging.getLogger("system")
 searchable = {'event': ['setup', 'trigger', 'action'], 'page':['body']}
 
 def validate_upload():
@@ -106,7 +109,7 @@ class WebInterface():
     def yamldownload(self,module):
         pages.require('/admin/modules.view')
         if config["downloads-include-md5-in-filename"]:
-            cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="%s"'%util.url(module[:-4]+"_"+getModuleHash(module[:-4]))
+            cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="%s"'%util.url(module[:-4]+"_"+getModuleHash(module[:-4])+".zip")
         cherrypy.response.headers['Content-Type']= 'application/zip'
         try:
             return getModuleAsYamlZip(module[:-4] if module.endswith('.zip') else module, noFiles =not pages.canUserDoThis("/admin/modules.edit"))
@@ -412,6 +415,8 @@ class WebInterface():
                 inputfile = kwargs['file']
 
                 util.ensure_dir(dataname)
+
+                syslog.info("User uploaded file resource to "+dataname)
                 with open(dataname,"wb") as f:
                     while True:
                         d = inputfile.file.read(8192)

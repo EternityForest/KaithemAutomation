@@ -121,8 +121,8 @@ def open_private_text_write(p):
         return open(p,'w')
 
 
-def url(string):
-    return quote(string,'')
+def url(string, safe=''):
+    return quote(string,safe)
 
 def SaveAllState():
     #fix circular import by putting it here
