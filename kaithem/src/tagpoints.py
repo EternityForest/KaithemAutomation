@@ -89,7 +89,7 @@ class _TagPoint(virtualresource.VirtualResource):
         self._value = self.defaultData
         self.name = name
         #The cached actual value from the claims
-        self.cvalue = self.defaultData
+        self.cachedRawClaimVal = self.defaultData
         #The cached output of processValue
         self.lastValue = self.defaultData
         self.lastGotValue = 0
@@ -210,7 +210,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
 
     def _managePolling(self):        
-        if self.subscribers:
+        if self.subscribers or self.handler:
             if not self.poller or not (self.interval == self.poller.interval):
                 self.poller = scheduling.scheduler.scheduleRepeating(self.p, self.interval)
         else:
@@ -306,20 +306,35 @@ class _TagPoint(virtualresource.VirtualResource):
 
     def _getValue(self):
         #Get the numeric value of the tag. It is meant to be called under lock.
-        if not callable(self._value):
-            self.lastValue= self.processValue(self._value)
+
+        activeClaimValue = self._value
+        if not callable(activeClaimValue):
+            self.lastValue= self.processValue(activeClaimValue)
         else:
-            #Rate limited tag getter logic
+            #Rate limited tag getter logic. We ignore the possibility for
+            #Race conditions and assume that calling a little too often is fine, since
+            #It shouldn't affect correctness
             if time.time()-self.lastGotValue> self.interval:
+                #Set this flag immediately, or else a function with an error could defeat the cacheing
+                #And just flood everything with errors
+                self.lastGotValue = time.time()
+
                 try:
-                    #None means no new data
-                    x = self._value()
-                  
-                    self.cvalue=  x or  self.cvalue
-                    if not x is None:
-                        self.lastGotValue = time.time()
-                        self.timestamp = time.monotonic()
-                        self.annotation=None
+                    #However, the actual logic IS ratelimited
+                    #Note the lock is IN the try block so we don' handle errors under it and
+                    #Cause bugs that way
+                    with self.lock:
+                        #None means no new data
+                        x = activeClaimValue()
+                        t = time.monotonic()
+                        
+                        if not x is None:
+                            #Race here. Data might not always match timestamp an annotation, if we weren't under lock
+                            self.timestamp = t 
+                            self.annotation=None
+
+                        self.cachedRawClaimVal= x or self.cachedRawClaimVal
+
                 except:
                     #We treat errors as no new data.
                     logger.exception("Error getting tag value")
@@ -330,11 +345,12 @@ class _TagPoint(virtualresource.VirtualResource):
                     #If we can, try to send the exception back whence it came
                     try:
                         import newevt
-                        newevt.eventByModuleName(self._value.__module__)._handle_exception()
+                        newevt.eventByModuleName(activeClaimValue.__module__)._handle_exception()
                     except:
                         pass
-
-            self.lastValue = self.processValue(self.cvalue)
+            else:
+                #processValue is responsible for it's own threadsafe-ness if any is needed
+                self.lastValue = self.processValue(self.cachedRawClaimVal)
         return self.lastValue
     
     @value.setter
@@ -380,7 +396,7 @@ class _TagPoint(virtualresource.VirtualResource):
             #If the weakref obj disappeared it will be None
             if claim ==None:
                 priority = priority or 50
-                claim = self.claimFactory(value,name,priority,annotation)
+                claim = self.claimFactory(value,name,priority,timestamp,annotation)
         
             claim.value=value
             claim.timestamp = timestamp
@@ -444,8 +460,8 @@ class _TagPoint(virtualresource.VirtualResource):
 
 
     #Get the specific claim object for this class
-    def claimFactory(self, value,name,priority,annotation):
-        return Claim(self, value,name,priority,annotation)
+    def claimFactory(self, value,name,priority,timestamp,annotation):
+        return Claim(self, value,name,priority,timestamp,annotation)
 
     def release(self, name):
         with self.lock:
@@ -537,8 +553,8 @@ class _NumericTagPoint(_TagPoint):
     def filterValue(self,v):
         return float(v)
 
-    def claimFactory(self, value,name,priority,annotation):
-        return NumericClaim(self,value,name,priority,annotation)
+    def claimFactory(self, value,name,priority,timestamp,annotation):
+        return NumericClaim(self,value,name,priority,timestamp,annotation)
     
     @property
     def min(self):
@@ -621,7 +637,11 @@ class _StringTagPoint(_TagPoint):
     defaultData=''
     @typechecked
     def __init__(self,name:str):
-        _TagPoint.__init__(self)
+        self.spanWidget = widgets.DynamicSpan()
+        self.spanWidget.setPermissions(['/users/tagpoints.view'],['/users/tagpoints.edit'])
+        self.guiLock=threading.Lock()
+
+        _TagPoint.__init__(self,name)
     
     def processValue(self,value):
         #Functions are special valid types of value.
@@ -635,8 +655,25 @@ class _StringTagPoint(_TagPoint):
     def filterValue(self,v):
         return str(v)
 
-    
-
+    def _guiPush(self, value):
+        #Immediate write, don't push yet, do that in a thread because TCP can block
+        self.spanWidget.write(value,push=False)
+        def pushFunction():
+            self.spanWidget.value=value
+            if self.guiLock.acquire(timeout=1):
+                try:
+                    #Use the cached literal computed value, not what we were passed,
+                    #Because it could have changed by the time we actually get to push
+                    self.spanWidget.write(self.lastValue)
+                finally:
+                    self.guiLock.release()
+        #Should there already be a function queued for this exact reason, we just let
+        #That one do it's job
+        if self.guiLock.acquire(timeout=0.001):
+            try:
+                workers.do(pushFunction)
+            finally:
+                self.guiLock.release()    
 class Claim():
     "Represents a claim on a tag point's value"
     @typechecked
@@ -649,6 +686,7 @@ class Claim():
         self.value = value
         self.annotation=annotation
         self.timestamp = timestamp
+        self.priority=priority
         
     def __del__(self):
         if self.name != 'default':
@@ -680,3 +718,4 @@ class NumericClaim(Claim):
 
 Tag = _NumericTagPoint.Tag
 ObjectTag = _TagPoint.Tag
+StringTag = _StringTagPoint.Tag

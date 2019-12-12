@@ -47,6 +47,9 @@ from src import tagpoints
 class TagInterface():
     def __getitem__(self,k):
         return tagpoints.Tag(k)
+
+    def StringTag(self,k):
+        return tagpoints.StringTag(k)
             
 class Kaithem():
 

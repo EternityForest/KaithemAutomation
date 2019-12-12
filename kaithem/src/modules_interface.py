@@ -569,6 +569,7 @@ def addResourceTarget(module,type,name,kwargs,path):
     unsaved_changed_obj[(root,escapedName)] = "Resource added by"+ pages.getAcessingUser()
 
     def insertResource(r):
+        r['resource-timestamp'] = int(time.time()*1000000)
         ActiveModules[root][escapedName] = r
         modules_state.createRecoveryEntry(module,escapedName, r)
 
@@ -731,6 +732,8 @@ def resourceUpdateTarget(module,resource,kwargs):
     with modulesLock:
         t = ActiveModules[module][resource]['resource-type']
         resourceobj = ActiveModules[module][resource]
+        resourceobj['resource-timestamp'] = int(time.time()*1000000)
+
         if t == 'permission':
             resourceobj['description'] = kwargs['description']
             #has its own lock
@@ -868,6 +871,7 @@ def resourceUpdateTarget(module,resource,kwargs):
         if 'name' in kwargs:
             if not kwargs['name'] == resource:
                 mvResource(module,resource,module,kwargs['name'])
+    
 
     messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + " modified resource " +
                            resource + " of module " + module)

@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1566264981206441
+resource-timestamp: 1576153123575211
 resource-type: page
 template-engine: markdown
 
@@ -163,10 +163,15 @@ Actions have a return value, and so can be used to as questions.
 Actions happen in sequence until one returns None.
 
 
+
 #### Key Bindings
 
 When the chandler console is in send events mode, every keypress triggers a corresponding "keydown.X" event
 in all scenes. You can then use script bindings or cue logic to respond to these. Key up events trigger a "keyup.X" event.
+
+
+#### Tag Points 
+Every scene's alpha and current cue is exposed as: /chandler/scenes/SCENENAME/alpha  /chandler/scenes/SCENENAME/cue
 
 ### The Events Console
 The Events Console lets you see a log of what events are being triggered where, and manually trigger any events.
@@ -212,8 +217,7 @@ are 0, the result will generally also be 0.
 
 HTP blendmode takes the highest value, simulating traditional lighting
 consoles. Inhibit multiplies the scene's alpha by all the channel
-values, and restricts the channels to that value. Scenes with a blend
-mode of Inhibit don't automatically stop at alpha 0. Note that in this
+values, and restricts the channels to that value.  Note that in this
 case "alpha" is being used more as a generic control input than a true
 alpha.
 

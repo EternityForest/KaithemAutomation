@@ -599,7 +599,7 @@ def saveResource2(obj,fn:str):
     if os.path.exists(fn):
         try:
             #Don't overwrite more recent manual changes
-            if 'resource-timestamp' in r:
+            if 'resource-timestamp' in obj:
                 t = int(r['resource-timestamp'])/10**6
                 if t<os.path.getmtime(fn):
                     #If the file is newer than the current time,
@@ -607,6 +607,7 @@ def saveResource2(obj,fn:str):
                     #Resolution logic
                     if os.path.getmtime(fn) > time.time():
                         logging.info(fn + " has been modified externally, on-disk version is more recent, not saving")
+                        messagebus.postMessage("/system/notifications/",fn + " has been modified externally, on-disk version is more recent, not saving")
                         return fn
 
             #Check for sameness, avoid useless write

@@ -3,6 +3,9 @@ Change Log
 
 ### 0.65.1
 - Prevent tagpoint widget send from blocking up the process
+- New StringTag objects, like tagpoints but for strings
+- Chandler Scene alpha and current cue are now exposed as read/writable tagpoints
+- Properly handle resource-timestamps
 
 
 ### 0.65.0
