@@ -24,7 +24,7 @@ from . import workers
 from collections import defaultdict, OrderedDict
 
 _subscribers_list_modify_lock = threading.RLock()
-
+cachelock = threading.RLock()
 #OrderedDict doesn't seem as fast as dict. So I have a cache of the cache
 parsecache = OrderedDict()
 parsecachecache = {}
@@ -80,10 +80,11 @@ class MessageBus(object):
     @staticmethod
     def parseTopic(topic):
         "Parse the topic string into a list of all subscriptions that could possibly match."
-        global parsecachecache
+        global parsecache
         #Since this is a pure function(except the caching itself) we can cache it
         if topic in parsecache:
-            return parsecachecache[topic]
+            return parsecache[topic]
+        
         #Let's cache by the original version of the topic, so we don't have to convert it to the canonical
         oldtopic = topic
         topic=normalize_topic(topic)
@@ -91,19 +92,22 @@ class MessageBus(object):
         #A topic foo/bar/baz would go to
         #foo, foo/bar, and /foo/bar/baz
         #So we need to make a list like that
-        matchingtopics = set(['/'])
+        matchingtopics = set(['/#'])
         parts = topic.split("/")
         last = ""
+
+        #Add the exact one
         matchingtopics.add(topic)
+        
+        
         for i in parts:
             last += (i+'/')
-            matchingtopics.add(last)
+            matchingtopics.add(last+"#")
         parsecache[oldtopic] = matchingtopics
         #Don't let the cache get too big.
         #Getting rid of the oldest should hopefully converge to the most used topics being cached
         if len(parsecache) > 600:
             parsecache.popitem(last=False)
-        parsecachecache = dict(parsecache)
         return matchingtopics
 
     @typechecked

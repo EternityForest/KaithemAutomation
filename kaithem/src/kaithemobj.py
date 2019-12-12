@@ -92,7 +92,12 @@ class Kaithem():
         def flushsyslog():
             import pylogginghandler
             pylogginghandler.syslogger.flush()
-            
+
+    class mqtt(object):
+        @staticmethod
+        def Connection(server,port=1883):
+            from . import mqtt
+            return mqtt.Connection(server,port)
     class misc(object):
         @staticmethod
         def lorem():

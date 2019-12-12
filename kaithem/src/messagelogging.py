@@ -95,7 +95,7 @@ def messagelistener(topic,message):
 
 
 
-messagebus.subscribe('/',messagelistener)
+messagebus.subscribe('/#',messagelistener)
 
 
 

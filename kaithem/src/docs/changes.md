@@ -6,6 +6,7 @@ Change Log
 - New StringTag objects, like tagpoints but for strings
 - Chandler Scene alpha and current cue are now exposed as read/writable tagpoints
 - Properly handle resource-timestamps
+- BREAKING: Message topics now work more like MQTT topics. They have to end with # if you want all subtopics(+ is not supported)
 
 
 ### 0.65.0
