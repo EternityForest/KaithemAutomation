@@ -141,7 +141,7 @@ def cleanup():
 
 class Alert(virtualresource.VirtualResource):
     def __init__(self, name, priority="info", zone=None, tripDelay=0, autoAck=False,
-                permissions=[], ackPermissions=[], id=None
+                permissions=[], ackPermissions=[], id=None,description=""
     ):
         """
         Create a new Alert object. An alert is a persistant notification 
@@ -219,7 +219,7 @@ class Alert(virtualresource.VirtualResource):
         self.sm.addRule("active","release","cleared")
         self.sm.addRule("acknowledged","release","normal")
         self.sm.addRule("error","acknowledge","normal")
-        self.description = ""
+        self.description = description
 
         self.id = id or str(time.time())
         all[self.id]=self

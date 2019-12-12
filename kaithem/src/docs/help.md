@@ -681,6 +681,35 @@ This is both a namespace containing the API for
 [VirtualResources](vresources.html), and a dict-like object allowing you
 to access resources by module, resource tuple.
 
+
+### kaithem.mqtt
+
+This namespace depends on Paho-MQTT
+
+#### kaithem.mqtt.Connection(server,port=1883, alertPriority="warning", alertAck=True)
+
+Create a connection object, if no connection to that server exists, or else the existing one is returned(The alert will be reconfigured).
+Connections are closed and cleaned up when no references exist.
+
+Internally, messages recieved are handled through
+`"/mqtt/"+self.server+":"+str(self.port)+"/in/"+topic`
+
+And sent messages go through
+`"/mqtt/"+self.server+":"+str(self.port)+"/out/"+topic`
+
+On the internal message bus.
+
+alertAck and alertPriority determine the auto-ack and priority of the alert that is raised
+when disconnected.
+
+##### Connection.subscribe(topic, callable):
+Subscribe callable(topic, message) to the topic. Uses internal message bus,
+so you must keep a reference to the callable.
+
+##### Connection.publish(topic, msg):
+Push msg to the broker under the given topic.
+
+
 ### kaithem.states
 
 This namespace deals with kaithem's state machine library.
@@ -815,7 +844,7 @@ Alerts allow you to create notification when unusual events occur,
 trigger periodic sounds, and allow users to "acknowledge" them to shut
 them up.
 
-#### kaithem.alerts.Alert(name, priority="normal", zone=None, tripDelay=0, autoAck=False, permissions=\[\], ackPermissions=\[\], \[id\])
+#### kaithem.alerts.Alert(name, priority="normal", zone=None, tripDelay=0, autoAck=False, permissions=\[\], ackPermissions=\[\], \[id\],description='')
 
 Create a new alert. Prority can be one of debug, info, warning, error,
 or critical.

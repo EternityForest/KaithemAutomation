@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import threading,weakref,logging,time
+import threading,weakref,logging,time,uuid
 
 logger = logging.getLogger("system.mqtt")
 
@@ -27,16 +27,18 @@ def getWeakrefHandlers(self):
     def on_connect(client, userdata, flags, rc):
         logger.info("Connected to MQTT server: "+self().server)
         self().statusTagClaim.set("connected")
-        self().release()
+        self().alert.release()
 
     def on_disconnect(client, userdata, flags, rc):
         logger.info("Disconnected from MQTT server: "+self().server)
         self().statusTagClaim.set("disconnected")
-        self().trip()
+        self().alert.trip()
 
 
     def on_message(client, userdata,msg):
         s = self()
+        #Everything must be fine, because we are getting messages
+        s.alert.release()
         messagebus.post("/mqtt/"+s.server+":"+str(s.port)+"/in/"+msg.topic)
         logger.info("Disconnected from MQTT server: "+s.server)
         s.statusTagClaim.set("disconnected")
@@ -44,7 +46,7 @@ def getWeakrefHandlers(self):
     return on_connect, on_disconnect, on_message
 
 class Connection():
-    def __init__(self, server,port=1883, alert_priority="info", alert_ack=True):
+    def __init__(self, server,port=1883, alertPriority="info", alertAck=True):
         self.server = server
         self.port = port
         self.lock = threading.Lock()
@@ -67,10 +69,10 @@ class Connection():
                 self.connection =  mqtt.Client()
                 self.connection.connect_async(server, port=port, keepalive=60, bind_address="")
 
-                self.alert = alerts.Alert(name="/system/mqtt/"+n+"/status", priority=alert_priority,autoAck= alert_ack,tripDelay=5)
 
                 self.statusTag = tagpoints.StringTag("/system/mqtt/"+n+"/status")
                 self.statusTagClaim = self.statusTag.claim("disconnected", "status",90)
+                self.configureAlert(alertPriority,alertAck)
 
                 #We don't want the connection to stringly reference us, that would interfere with GC
                 on_connect,on_disconnect,on_message = getWeakrefHandlers(self)
@@ -100,6 +102,16 @@ class Connection():
                 except:
                     pass
                 raise
+    
+    def configureAlert(self, alertPriority,alertAck):
+        self.alert = alerts.Alert(name="/system/mqtt/"+self.server+":"+str(self.port)+"/disconnected/",description="MQTT client is disconnected", priority=alertPriority,autoAck= alertAck,tripDelay=5)
+        #Possible race condition here with a false trip just after connect. That is why we release on every recieved msg.
+        if not self.statusTag.value == 'connected':
+            self.alert.trip()
+        time.sleep(0.05)
+        if not self.statusTag.value == 'connected':
+            self.alert.trip()
+
 
     def __del__(self):
         self.connection.disconnect()
@@ -121,9 +133,11 @@ class Connection():
 
 
 
-def getConnection(sever, port,alert_ack=True, alert_priority="info"):
-    if server+":"+str(port) in connections:
-        return connections[server+":"+str(port)]
+def getConnection(server, port,*, alertPriority="info",alertAck=True):
+    with lock:
+        if server+":"+str(port) in connections:
+            connections[server+":"+str(port)].configureAlert(alertPriority, alertAck)
+            return connections[server+":"+str(port)]
 
-    else:
-        return Connection(server,port,alert_ack=True, alert_priority="info")
+        else:
+            return Connection(server,port,alertAck=True, alertPriority="info")
