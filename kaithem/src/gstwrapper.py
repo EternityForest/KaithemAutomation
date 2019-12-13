@@ -175,11 +175,28 @@ class Pipeline():
         
     
     def on_eos(self,*a,**k):
-        with self.lock:
-            if self.running:
-                self.running=False
-                print("About to stop")
-                self.stop()
+        #Some kinda deadlock happened here between this and the delete function.
+        #So we just try our best to stop and excpect the del function to catch it in cases of deadlock.
+        #Our backup plan is to try doing it from another thread
+        
+        def f():
+            if self.lock.acquire(timeout=0.1):
+                try:
+                    if self.running:
+                        self.running=False
+                        self.stop()
+                        return True
+                finally:
+                    self.lock.release()
+        
+        def f2():
+            try:
+                f()
+            except:
+                pass
+        if not f():
+            workers.do(f2)
+
         self.onStreamFinished()
     def onStreamFinished(self):
         pass
@@ -200,7 +217,6 @@ class Pipeline():
         self.pipeline.unref()
 
     def on_message(self, bus, message):
-        print("*******************************************************************",message.type)  
         return True
 
     def on_error(self,bus,message):
