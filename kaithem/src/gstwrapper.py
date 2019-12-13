@@ -17,9 +17,9 @@
 #This file really shouldn't have too many non-essential dependancies onthe rest of kaithem,
 #Aside from the threadpool and the message bus.
 
-import threading,time,logging
+import threading,time,logging,uuid
 
-from . import jackmanager
+from . import jackmanager,workers
 
 initialized = False
 initlock = threading.Lock()
@@ -94,50 +94,7 @@ def doesElementExist(n):
         n.unref()
     return True
 
-class AudioFilePlayer():
-    def __init__(self, file, output=None):
-        init()
-        self.lock = threading.Lock()
-        self.pipeline = Gst.Pipeline()
-        self.name = name
 
-        self.src = Gst.ElementFactory.make('filesrc')
-        self.src.set_property("file", file)
-
-        self.decoder = Gst.ElementFactory.make('decodebin')
-        self.converter = Gst.ElementFactory.make('audioconvert')
-        self.converter2 = Gst.ElementFactory.make('audioresample')
-
-        self.pipeline.add(self.decoder)
-        self.pipeline.add(self.converter)
-        self.pipeline.add(self.converter2)
-
-        self.src.link(self.decoder)
-        self.decoder.link(self.converter)
-        self.converter.link(self.converter2)
-
-        if output=="__auto__":
-            self.sink = Gst.ElementFactory.make('autoaudiosink')
-        if ":" in output:
-            self.sink = Gst.ElementFactory.make('jackaudiosink')
-            self.sink.set_property("buffer-time",8000)
-            self.sink.set_property("latency-time",4000)
-            self.sink.set_property("sync",False)
-            self.sink.set_property("slave-method",2)
-            self.sink.set_property("port-pattern","fdgjkndgmkndfmfgkjkf")
-            self.sink.connect=0
-            self.aw = jackmanager.Airwire(self.name+"_out", i)
-
-
-
-        self.pipeline.add(self.sink)
-        self.converter2.link(self.sink)
-
-    def pause(self):
-        self.pipeline.set_state(Gst.State.PAUSED)
-
-    def play(self):
-        self.pipeline.set_state(Gst.State.PLAYING)
 
 
 
@@ -164,11 +121,15 @@ class Pipeline():
         self.bus = self.pipeline.get_bus()
         self.bus.add_signal_watch()
         self.pgbcobj = self.bus.connect('message',self.on_message)
+        self.pgbcobj2 = self.bus.connect("message::eos", self.on_eos)
         self.bus.connect("message::error", self.on_error)
         self.name = name
 
         self.elements = []
         self.namedElements = {}
+
+        #Just a place to store refs
+        self.waitingCallbacks= []
 
         self.running = False
         
@@ -177,6 +138,9 @@ class Pipeline():
         def dummy(*a,**k):
             pass
         self.bus.set_sync_handler(self.syncMessage,0,dummy)
+        self.pollthread=None
+
+        self.lastElementType = None
         
     def syncMessage(self,*arguments):
         "Synchronous message, so we can enable realtime priority on individual threads."
@@ -186,6 +150,7 @@ class Pipeline():
             def f():
                 with self.lock:
                     self.bus.set_sync_handler(None,0,None)
+            workers.do(f)
         if not threading.currentThread().ident in self.knownThreads:
             self.knownThreads[threading.currentThread().ident] = True
             if self.realtime:
@@ -202,17 +167,29 @@ class Pipeline():
             return e
 
     def pollerf(self):
+        alreadyStarted = False
         while self.running:
             with self.lock:
                 if self.running:
                     self.bus.poll(Gst.MessageType.ANY,0.1)
         
-        
+    
+    def on_eos(self,*a,**k):
+        with self.lock:
+            if self.running:
+                self.running=False
+                print("About to stop")
+                self.stop()
+        self.onStreamFinished()
+    def onStreamFinished(self):
+        pass
+
     def __del__(self):
-        self.running=False
         with self.lock:
             try:
-                self.pipeline.set_state(Gst.State.NULL)
+                if self.running:
+                    self.running=False
+                    self.pipeline.set_state(Gst.State.NULL)
             except:
                 pass
         with lock:
@@ -223,7 +200,7 @@ class Pipeline():
         self.pipeline.unref()
 
     def on_message(self, bus, message):
-        print("*******************************************************************",message)  
+        print("*******************************************************************",message.type)  
         return True
 
     def on_error(self,bus,message):
@@ -237,9 +214,20 @@ class Pipeline():
         with self.lock:
             self.pipeline.set_state(Gst.State.PLAYING)
             self.running=True
-            self.pollthread = threading.Thread(target=self.pollerf,daemon=True,name="GSTPoller")
-            self.pollthread.daemon=True
-            self.pollthread.start()
+            if not self.pollthread:
+                self.pollthread = threading.Thread(target=self.pollerf,daemon=True,name="GSTPoller")
+                self.pollthread.daemon=True
+                self.pollthread.start()
+    
+    def pause(self):
+        "Not that we can start directly into paused without playing first, to preload stuff"
+        with self.lock:
+            self.pipeline.set_state(Gst.State.PAUSED)
+            self.running=True
+            if not self.pollthread:
+                self.pollthread = threading.Thread(target=self.pollerf,daemon=True,name="GSTPoller")
+                self.pollthread.daemon=True
+                self.pollthread.start()
 
     def stop(self):
         self.running=False
@@ -277,7 +265,19 @@ class Pipeline():
 
             #This could be the first element
             if self.elements:
-                link(self.elements[-1],e)
+                #Decodeboin doesn't have a pad yet for some awful reason
+                if self.lastElementType=='decodebin':
+
+                    def closureMaker(src, dest):
+                        def f(element, pad):
+                            link(element,dest)
+                        return f
+                    f = closureMaker(self.elements[-1],e)
+
+                    self.waitingCallbacks.append(f)
+                    self.elements[-1].connect("pad-added",f)
+                else:
+                    link(self.elements[-1],e)
             self.elements.append(e)
             self.namedElements[name]=e
 
@@ -286,6 +286,8 @@ class Pipeline():
             if t.startswith("jackaudio"):
                 with lock:
                     jackChannels[self.name] = self
+
+            self.lastElementType = t
             return e
 
     def setProperty(self, element, prop,value):
@@ -305,7 +307,6 @@ class Pipeline():
 
 
 
-  
 
 # import time
 # p = Pipeline("test", outputs=["system"])
