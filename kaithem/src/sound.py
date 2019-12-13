@@ -900,7 +900,7 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
     def pause(self):
         self.pipeline.set_state(Gst.State.PAUSED)
 
-    def play(self):
+    def resume(self):
         self.pipeline.set_state(Gst.State.PLAYING)
   
     def onStreamFinished(self):
@@ -944,8 +944,8 @@ class GStreamerBackend(SoundWrapper):
         def pause(self):
             self.pl.pause()
         
-        def play(self):
-            self.pl.play()
+        def resume(self):
+            self.pl.resume()
        
     def playSound(self,filename,handle="PRIMARY",extraPaths=[],**kwargs):
         #Those old sound handles won't garbage collect themselves
@@ -1009,6 +1009,19 @@ class GStreamerBackend(SoundWrapper):
                 return self.runningSounds[channel].setVol(vol)
             except KeyError:
                 pass
+    
+    def pause(self,channel = "PRIMARY" ):
+        try:
+            return self.runningSounds[channel].pause()
+        except KeyError:
+            pass
+
+     def resume(self,channel = "PRIMARY" ):
+        try:
+            return self.runningSounds[channel].pause()
+        except KeyError:
+            pass
+    
 l = {'sox':SOXWrapper, 'mpg123':Mpg123Wrapper, "mplayer":MPlayerWrapper, "madplay":MadPlayWrapper, 'gstreamer':GStreamerBackend}
 
 

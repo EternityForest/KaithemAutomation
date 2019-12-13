@@ -109,7 +109,7 @@ def getCaps(e):
 
 class Pipeline():
     "Semi-immutable pipeline. You can only add stuff to it"
-    def __init__(self, name, realtime=70):
+    def __init__(self, name, realtime=70, systemTime =False):
         init()
         self.realtime = 70
         self.lock = threading.RLock()
@@ -142,6 +142,33 @@ class Pipeline():
 
         self.lastElementType = None
         
+        #If true, keep the pipeline running at the same rate as system time
+        self.systemTime = systemTime
+        self.targetRate = 1.0
+        self.pipelineRate = 1.0
+        
+    
+    def seek(self, time=None,rate=1.0):
+        "Seek the pipeline to a position in seconds, set the playback rate, or both"
+        with self.lock:
+            if not self.running:
+                return
+
+            #Set effective start time so that the system clock sync keeps working.
+            if not time is None:
+                self.startTime = time.monotonic()-time
+
+            self.targetRate = rate
+            self.pipelineRate = rate
+            self.pipeline.seek (rate, Gst.Format.TIME,
+            Gst.SeekFlags.SKIP, Gst.SeekType.NONE if time is None else Gst.SeekType.SET, time*10**9,
+            Gst.SeekType.NONE, -1)
+    
+    def getPosition(self):
+        "Returns stream position in seconds"
+        with self.lock:
+            return self.pipeline.query_position(Gst.Format.TIME)/10**9
+
     def syncMessage(self,*arguments):
         "Synchronous message, so we can enable realtime priority on individual threads."
         #Stop the poorly performing sync messages after a while.
@@ -172,7 +199,26 @@ class Pipeline():
             with self.lock:
                 if self.running:
                     self.bus.poll(Gst.MessageType.ANY,0.1)
-        
+
+                    if self.systemTime:
+                        #Closed loop adjust the pipeline time.
+                        t = self.pipeline.query_position(Gst.Format.TIME)/10**9
+                        m = time.monotonic()
+
+                        sysElapsed = (m-self.startTime)/self.targetRate
+                        diff = t-sysElapsed
+                        needAdjust = False
+                        if diff>0.005:
+                            self.pipelineRate = self.targetRate - 0.0003
+                            needAdjust=True
+                        elif diff<-0.005:
+                            self.pipelineRate = self.targetRate + 0.0003
+                            needAdjust=True
+
+                        if needAdjust:
+                            self.pipeline.seek (self.pipelineRate, Gst.Format.TIME,
+                        Gst.SeekFlags.SKIP, Gst.SeekType.NONE,0,
+                        Gst.SeekType.NONE, -1)
     
     def on_eos(self,*a,**k):
         #Some kinda deadlock happened here between this and the delete function.
@@ -226,15 +272,33 @@ class Pipeline():
 
    
 
-    def start(self):
+    def start(self, effectiveStartTime=None):
+        "effectiveStartTime is used to keep multiple players synced when used with systemTime"
         with self.lock:
+            x = effectiveStartTime or time.time()
+            timeAgo = time.time()-x
+            #Convert to monotonic time that the nternal APIs use
+            self.startTime= time.monotonic()-timeAgo
+            self.pipeline.set_state(Gst.State.PAUSED)
+
+            #Seek to where we should be, if we had actually
+            #Started when we should have.
+            if self.systemTime:
+                self.seek(time.monotonic()-self.startTime)
+
             self.pipeline.set_state(Gst.State.PLAYING)
             self.running=True
             if not self.pollthread:
                 self.pollthread = threading.Thread(target=self.pollerf,daemon=True,name="GSTPoller")
                 self.pollthread.daemon=True
                 self.pollthread.start()
-    
+
+    def play(self):
+        with self.lock:
+            if not self.running:
+                raise RuntimeError("Pipeline is not paused, or running, call start()")
+            self.pipeline.set_state(Gst.State.PLAYING)
+            
     def pause(self):
         "Not that we can start directly into paused without playing first, to preload stuff"
         with self.lock:
