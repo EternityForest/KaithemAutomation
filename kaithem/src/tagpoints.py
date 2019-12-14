@@ -393,7 +393,7 @@ class _TagPoint(virtualresource.VirtualResource):
                     #No priority change, set and return
                     if priority == claim.priority:
                         claim.set(value,timestamp, annotation)
-                        return
+                        return claim
                     priority= priority or claim.priority
             except:
                 logger.exception("Probably a race condition and safe to ignore this")

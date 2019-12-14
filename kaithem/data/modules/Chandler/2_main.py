@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1576153298181405
+resource-timestamp: 1576363361308970
 resource-type: event
 versions: {}
 
@@ -3183,13 +3183,71 @@ if __name__=='__setup__':
                 except Exception as e:
                     rl_log_exc("Error handling event")
                     print(traceback.format_exc(6))
-                    
     
+        def parseCueName(self,cue):
+            if cue == "__random__":
+                for i in range(0,100 if len(self.cues)>2 else 1):
+                    x = [i.name for i in self.cues_ordered]
+                    for i in reversed(self.cueHistory):
+                        if len(x)<3:
+                            break
+                        elif i in x:
+                            x.remove(i)
+                    cue = random.choice(x)
+                    if not cue == self.cue.name:
+                        break
+    
+            #Handle random selection option cues
+            elif "|" in cue:
+                x = cue.split("|")
+                for i in reversed(self.cueHistory):
+                    if len(x)<3:
+                        break
+                    elif i in x:
+                        x.remove(i)
+                cue = random.choice(x).strip()
+                
+            elif "*" in cue:
+                import fnmatch
+                x = []
+    
+                for i in self.cues_ordered:
+                    if fnmatch.fnmatch(i.name, cue):
+                        x.append(i.name)
+                if not x:
+                    raise ValueError("No matching cue for pattern: "+cue)
+                                
+                #Do the "Shuffle logic" that avoids  recently used cues.
+                #Eliminate until only two remain, the min to not get stuck in
+                #A fixed pattern. Sometimes allow three to mix things up more.
+    
+                optionsNeeded = 2
+                for i in reversed(self.cueHistory):
+                    if len(x)<=optionsNeeded:
+                        break
+                    elif i in x:
+                        x.remove(i)
+                cue = random.choice(x)
+    
+                        
+            if not cue in self.cues:
+                try:
+                    c = float(cue)
+                except:
+                    raise ValueError("No such cue "+str(cue))
+                for i in self.cues_ordered:
+                    if i.number-(float(cue)*1000)<0.001:
+                        cue = i.name
+                        break
+            return cue
     
         def gotoCue(self, cue,t=None, sendSync=True,generateEvents=True):
             "Goto cue by name, number, or string repr of number"
             with module.lock:
     
+                if not self.active:
+                    return
+                    
                 #Can't change the cue if some TagPoint claim has already locked it to one cue
                 if not self.cueTag.currentSource == self.cueTagClaim.name:
                     if not self.cueTag.value == cue:
@@ -3213,60 +3271,7 @@ if __name__=='__setup__':
                     self.stop()
                     return
     
-                elif cue == "__random__":
-                    for i in range(0,100 if len(self.cues)>2 else 1):
-                        x = [i.name for i in self.cues_ordered]
-                        for i in reversed(self.cueHistory):
-                            if len(x)<3:
-                                break
-                            elif i in x:
-                                x.remove(i)
-                        cue = random.choice(x)
-                        if not cue == self.cue.name:
-                            break
-    
-                #Handle random selection option cues
-                elif "|" in cue:
-                    x = cue.split("|")
-                    for i in reversed(self.cueHistory):
-                        if len(x)<3:
-                            break
-                        elif i in x:
-                            x.remove(i)
-                    cue = random.choice(x).strip()
-                    
-                elif "*" in cue:
-                    import fnmatch
-                    x = []
-    
-                    for i in self.cues_ordered:
-                        if fnmatch.fnmatch(i.name, cue):
-                            x.append(i.name)
-                    if not x:
-                        raise ValueError("No matching cue for pattern: "+cue)
-                                    
-                    #Do the "Shuffle logic" that avoids  recently used cues.
-                    #Eliminate until only two remain, the min to not get stuck in
-                    #A fixed pattern. Sometimes allow three to mix things up more.
-    
-                    optionsNeeded = 2
-                    for i in reversed(self.cueHistory):
-                        if len(x)<=optionsNeeded:
-                            break
-                        elif i in x:
-                            x.remove(i)
-                    cue = random.choice(x)
-    
-                           
-                if not cue in self.cues:
-                    try:
-                        c = float(cue)
-                    except:
-                        raise ValueError("No such cue "+str(cue))
-                    for i in self.cues_ordered:
-                        if i.number-(float(cue)*1000)<0.001:
-                            cue = i.name
-                            break
+                cue = self.parseCueName(cue)
     
                 
     
@@ -3282,7 +3287,11 @@ if __name__=='__setup__':
                     self.cue = self.cues['default']
                     self.cueTagClaim.set(self.cue.name,annotation="SceneObject")  
      
-                
+                #Allow specifying an "Exact" time to enter for zero-drift stuff
+                #I don't know if it's fully correct to set the timestamp before exit...
+                self.enteredCue = t or module.timefunc()
+                entered = self.enteredCue
+    
                 if not (cue==self.cue.name):
                     if generateEvents:
                         if self.active:
@@ -3299,9 +3308,7 @@ if __name__=='__setup__':
                 self.cueHistory = self.cueHistory[-100:]
                 self.sound_end = 0
     
-                #Allow specifying an "Exact" time to enter for zero-drift stuff
-                self.enteredCue = t or module.timefunc()
-    
+               
                 self.fadeout_start =False
     
                
@@ -3321,12 +3328,10 @@ if __name__=='__setup__':
                         self.cue.onExit(t)
                     
     
-    
-                    if cobj.onEnter:
-                        cobj.onEnter(t)
-                    
-                    if generateEvents:
-                        self.event('cue.enter', cobj.name)
+                #We return if some the enter transition already
+                #Changed to a new cue
+                if not self.enteredCue == entered:
+                    return
     
     
     
@@ -3337,13 +3342,6 @@ if __name__=='__setup__':
     
     
     
-                cuevars = self.cues[cue].values.get("__variables__",{})
-                for i in cuevars:
-                    try:
-                        self.scriptContext.setVar(i,self.evalExpr(cuevars[i]))
-                    except:
-                        print(traceback.format_exc())
-                        rl_log_exc("Error with cue variable "+i)
     
                 
                 #When jumping to a cue that isn't directly the next one, apply and "parent" cues.
@@ -3376,12 +3374,33 @@ if __name__=='__setup__':
     
                 
     
+                cuevars = self.cues[cue].values.get("__variables__",{})
+                for i in cuevars:
+                    try:
+                        self.scriptContext.setVar(i,self.evalExpr(cuevars[i]))
+                    except:
+                        print(traceback.format_exc())
+                        rl_log_exc("Error with cue variable "+i)
+    
                 #optimization, try to se if we can just increment if we are going to the next cue, else
                 #we have to actually find the index of the new cue
                 if self.cuePointer<(len(self.cues_ordered)-1) and self.cues[cue] is self.cues_ordered[self.cuePointer+1]:
                     self.cuePointer += 1
                 else:
                     self.cuePointer = self.cues_ordered.index(self.cues[cue])
+    
+                #Must do active and onEnter stuff
+                if self.active:
+                    if cobj.onEnter:
+                        cobj.onEnter(t)
+                    
+                    if generateEvents:
+                        self.event('cue.enter', cobj.name)
+    
+                #We return if some the enter transition already
+                #Changed to a new cue
+                if not self.enteredCue == entered:
+                    return
     
                         
                 self.cue = self.cues[cue]
