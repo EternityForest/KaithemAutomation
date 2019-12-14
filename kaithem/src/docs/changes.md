@@ -8,7 +8,9 @@ Change Log
 - Properly handle resource-timestamps
 - BREAKING: Message topics now work more like MQTT topics. They have to end with # if you want all subtopics(+ is not supported)
 - Gstreamer based audio playback is now the default
-
+- =expression based polled ChandlerScript events(Dynamically eveluated when needed)
+- Chandler tagValue(tagName) function
+- Chandler setTag(name,value, priority) command to set tags and stringtags 
 
 ### 0.65.0
 - Fix the emedded file resources

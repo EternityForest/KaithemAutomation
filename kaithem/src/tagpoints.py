@@ -3,6 +3,7 @@ from . import scheduling,workers, virtualresource,widgets,util
 import time, threading,weakref,logging
 
 from typing import Callable,Optional,Union
+from threading import setprofile
 from typeguard import typechecked
 
 
@@ -389,6 +390,10 @@ class _TagPoint(virtualresource.VirtualResource):
                 ##If there's an existing claim by that name we're just going to modify it
                 if name in self.claims:
                     claim= self.claims[name][3]()
+                    #No priority change, set and return
+                    if priority == claim.priority:
+                        claim.set(value,timestamp, annotation)
+                        return
                     priority= priority or claim.priority
             except:
                 logger.exception("Probably a race condition and safe to ignore this")
@@ -693,7 +698,6 @@ class Claim():
             self.tag.release(self.name)
     
     def set(self,value,timestamp=None, annotation=None):
-        self.value = value
         self.tag.setClaimVal(self.name, value,timestamp,annotation)
 
 

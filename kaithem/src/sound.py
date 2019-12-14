@@ -1016,7 +1016,7 @@ class GStreamerBackend(SoundWrapper):
         except KeyError:
             pass
 
-     def resume(self,channel = "PRIMARY" ):
+    def resume(self,channel = "PRIMARY" ):
         try:
             return self.runningSounds[channel].pause()
         except KeyError:

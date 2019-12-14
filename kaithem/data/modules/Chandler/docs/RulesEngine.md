@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1571876207940466
+resource-timestamp: 1576313455192830
 resource-type: page
 template-engine: markdown
 
@@ -43,10 +43,42 @@ Returns random number from 0 to 1
 Return a monotonic milliseconds counter. It will not go backwards till the system
 reboots.
 
+### tagValue(tagName)
+Returns the value of the tagpoint with that name, or 0 if the tag does not exist.
+Any tagpoint beginning with /chandler/ is allowed.
+
+Accessing a tag will add it to the list of tags being "watched" by that tag, until
+the next cue transition.
+
+The variable $tag:NAME will be updated to match the value, so long as the tag is watched.
+Also, all =expression events that use the tag(Currently just all of them) will be re-polled whenever a watched tag changes.
+
+### stringTagValue(tagName)
+Same as tagValue, for string tagpoints "" if the tag does not exist.
+
+
 ## Time Expressions
 
 Any event beginning with @ is a time expression. The event will fire as soon as the statement is true.
 Things like "@every 10 minutes between 5AM and 6PM" can be used for complex time rules.
+
+## Polled expressions
+
+Amy event beginning with = is a polled expression. It will be polled every few seconds at minimum,
+but will also be polled:
+* When a relevant tag point (One that is mentioned in any event name) changes.
+* Immediately on entering the cue
+* When updating it's scripting
+* When a relevant variable(One that is mentioned in any event name) changes
+
+It will fire whenever True.
+
+Note that these are level-triggered, not edge triggered. The event should fire when it becomes true,
+but may also fire at any time again while it is true.
+
+The intent is to use them to trigger cue transitions as soon as an expression involving tags becomes True
+
+
 
 ## Dynamic lighting channel values
 

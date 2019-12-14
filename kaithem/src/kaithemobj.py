@@ -50,6 +50,8 @@ class TagInterface():
 
     def StringTag(self,k):
         return tagpoints.StringTag(k)
+
+    TagClass = tagpoints._TagPoint
             
 class Kaithem():
 
