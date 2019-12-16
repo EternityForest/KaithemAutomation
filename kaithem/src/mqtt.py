@@ -13,11 +13,11 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import threading,weakref,logging,time,uuid
+import threading,weakref,logging,time,uuid,traceback
 
 logger = logging.getLogger("system.mqtt")
 
-from . import tagpoints,messagebus,alerts
+from . import tagpoints,messagebus,alerts,util
 
 connections = {}
 lock = threading.RLock()
@@ -29,29 +29,51 @@ def getWeakrefHandlers(self):
         self().statusTagClaim.set("connected")
         self().alert.release()
 
+        with self().lock:
+            for i in self().subscriptions:
+                #Refresh all subscriptions
+                self().connection.subscribe(i,self().subscriptions[i])
+
+
     def on_disconnect(client, userdata, flags, rc):
         logger.info("Disconnected from MQTT server: "+self().server)
         self().statusTagClaim.set("disconnected")
         self().alert.trip()
-
+        logger.info("Disconnected from MQTT server: "+s.server)
 
     def on_message(client, userdata,msg):
-        s = self()
-        #Everything must be fine, because we are getting messages
-        s.alert.release()
-        messagebus.post("/mqtt/"+s.server+":"+str(s.port)+"/in/"+msg.topic)
-        logger.info("Disconnected from MQTT server: "+s.server)
-        s.statusTagClaim.set("disconnected")
+        print("**********************")
+        print(msg)
+        try:
+            s = self()
+            #Everything must be fine, because we are getting messages
+            s.alert.release()
+            messagebus.postMessage("/mqtt/"+s.server+":"+str(s.port)+"/in/"+msg.topic,msg.payload)
+            s.statusTagClaim.set("connected")
+        except:
+            print (traceback.format_exc())
 
     return on_connect, on_disconnect, on_message
+
+
+def makeThread(f):
+    def f2():
+        f()
+    return f2
 
 class Connection():
     def __init__(self, server,port=1883, alertPriority="info", alertAck=True):
         self.server = server
         self.port = port
         self.lock = threading.Lock()
+        self.subscriptions = {}
         logger.info("Creating connection object to: "+self.server)
         import paho.mqtt.client as mqtt
+
+        #When we wrap a function store a weakref to the original here,
+        #Pplus the wrapper, so the wrapper doesn't get GCed till
+        #The wearkref callback deletes it.
+        self.subscribeWrappers ={}
 
         with lock:
             n = server+":"+str(port)
@@ -63,11 +85,10 @@ class Connection():
                     torm.append(i)
             for i in torm:
                 del connections[i]
-            connections[n]=self
+            connections[n]=weakref.ref(self)
 
             try:
                 self.connection =  mqtt.Client()
-                self.connection.connect_async(server, port=port, keepalive=60, bind_address="")
 
 
                 self.statusTag = tagpoints.StringTag("/system/mqtt/"+n+"/status")
@@ -83,9 +104,12 @@ class Connection():
                 self.out_handler=out_handler
                 self.connection.on_connect = on_connect
                 self.connection.on_disconnect= on_disconnect
-                self.connection.on_message=on_message    
+                self.connection.on_message=on_message 
+
+                self.connection.connect_async(server, port=port, keepalive=60, bind_address="")
+  
                 messagebus.subscribe("/mqtt/"+server+":"+str(port)+"/out/#", out_handler)
-                self._thread = threading.Thread(target=self.thread, name=server+":"+str(port), daemon=True)
+                self._thread = threading.Thread(target=makeThread(self.connection.loop_forever), name=server+":"+str(port), daemon=True)
                 #We have 5s to connect before the alert actually does anything
                 self.alert.trip()
                 self._thread.start()
@@ -116,17 +140,63 @@ class Connection():
     def __del__(self):
         self.connection.disconnect()
 
-    def thread(self):
-        self.connection.loop_forever()
+    def unsubscribe(self,topic,function):
+        try:
+            self.subscriptions[topic]
+        except KeyError:
+            pass
+        with self.lock:
+            em = []
+            torm =[]
+            for i in self.subscribeWrappers:
+               x =self.subscribeWrappers[i]
+               if x[2]==topic and (x[0]()==function or x[0]()==None) :
+                   messagebus.unsubscribe(x[3],x[1])
+                   torm.append(i)
+            for i in torm:
+                try:
+                    del self.subscribeWrappers[i]
+                except:
+                    pass
+            
+            for i in self.subscribeWrappers:
+                x =self.subscribeWrappers[i]
+                if x[2]==topic:
+                   return
 
-    def subscribe(self,topic, function):
-        self.connection.subscribe(topic,2)
+            #We could not find even a single subscriber function
+            #So we unsubscribe at the MQTT level
+            logging.debug("MQTT Unsubscribe from "+topic+" at "+self.server)
+            self.connection.unsubscribe(topic)
+
+    def subscribe(self,topic, function, qos=2):
+        self.connection.subscribe(topic,qos)
+        with self.lock:
+            self.subscriptions[topic]=qos
+        x = str(uuid.uuid4())
+        
+        def handleDel(*a):
+            del self.subscribeWrappers[x]
+            #We're really just using the "check if there's no subscribers"
+            #Part of the function
+            self.unsubscribe(topic, None)
+
+        function = util.universal_weakref(function, handleDel)
+        
+
         def f(t,m):
             #Get rid of the extra kaithem framing part of the topic
-            t = t[:len("/mqtt/"+s.server+":"+str(s.port)+"/in/")]
-            function(t,m)
-        function._mqtt_subscribe_wrapper= f
-        messagebus.subscribe("/mqtt/"+s.server+":"+str(s.port)+"/in/"+topic,function)
+            t = t[:len("/mqtt/"+self.server+":"+str(self.port)+"/in/")]
+            function()(t,m)
+
+        internalTopic = "/mqtt/"+self.server+":"+str(self.port)+"/in/"+topic
+
+        #Extra data is mostly used for unsubscription
+        self.subscribeWrappers[x]=(function,f,topic,internalTopic)
+
+        logging.debug("MQTT subscribe to "+topic+" at "+self.server)
+        #Ref to f exists as long as the original does because it's kept in subscribeWrappers
+        messagebus.subscribe(internalTopic,f)
 
     def publish(self,topic, message):
         messagebus.postMessage("/mqtt/"+self.server+":"+str(self.port)+"/out/"+topic, message)
@@ -136,8 +206,9 @@ class Connection():
 def getConnection(server, port,*, alertPriority="info",alertAck=True):
     with lock:
         if server+":"+str(port) in connections:
-            connections[server+":"+str(port)].configureAlert(alertPriority, alertAck)
-            return connections[server+":"+str(port)]
+            x = connections[server+":"+str(port)]()
+            if x:
+                x.configureAlert(alertPriority, alertAck)
+                return x
 
-        else:
-            return Connection(server,port,alertAck=True, alertPriority="info")
+        return Connection(server,port,alertAck=True, alertPriority="info")

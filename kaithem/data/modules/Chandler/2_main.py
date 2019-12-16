@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1576363361308970
+resource-timestamp: 1576487366377803
 resource-type: event
 versions: {}
 
@@ -22,7 +22,7 @@ if __name__=='__setup__':
     import time,array,random,weakref, os,threading,uuid,logging,serial,traceback,yaml,copy,json,math,struct,socket,src
     from decimal import Decimal
     from tinytag import TinyTag
-    
+    from typeguard import typechecked
     
     
     logger = logging.getLogger("system.chandler")
@@ -193,6 +193,11 @@ if __name__=='__setup__':
     rootContext.commands['setAlpha']=setAlphaCommand
     rootContext.commands['ifCue']=ifCueCommand
     rootContext.commands['sendEvent']=eventCommand
+    def sendMqttMessage(topic, message):
+        "JSON encodes message, and publishes it to the scene's MQTT server"
+        raise RuntimeError("This was supposed to be overridden by a scene specific version")
+    rootContext.commands['sendMQTT']=sendMqttMessage
+    
     
     
     def listsoundfolder(path):
@@ -1243,6 +1248,9 @@ if __name__=='__setup__':
                 if 'page' in data[i] and data[i]['page']['html'].strip() or data[i]['page']['js'].strip():
                     if not kaithem.users.checkPermission(kaithem.web.user(),"/admin/modules.edit"):
                         raise ValueError("You cannot upload this scene without /admin/modules.edit, because it uses advanced features: pages" )
+                if 'mqttServer' in data[i] and data[i]['page']['mqttServer'].strip():
+                    if not kaithem.users.checkPermission(kaithem.web.user(),"/admin/modules.edit"):
+                        raise ValueError("You cannot upload this scene without /admin/modules.edit, because it uses advanced features: MQTT" )
     
             self.loadDict(data,errs)
         
@@ -1369,7 +1377,8 @@ if __name__=='__setup__':
                                  'syncKey':x.syncKey, 'syncPort': x.syncPort, 'syncAddr':x.syncAddr,
                                  'uuid': i,
                                  'notes': x.notes,
-                                 'page': x.page
+                                 'page': x.page,
+                                 'mqttServer': x.mqttServer
                     }               
                     
     
@@ -1497,7 +1506,9 @@ if __name__=='__setup__':
                                 'vars':v,
                                 'timers': scene.runningTimers,
                                 'notes': scene.notes,
-                                'page': scene.page
+                                'page': scene.page,
+                                "mqttServer": scene.mqttServer,
+                                'status': scene.getStatusString()
     
                         }])
             else:
@@ -1506,11 +1517,10 @@ if __name__=='__setup__':
                                 'alpha':scene.alpha,
                                 'active': scene.isActive(),
                                 'defaultActive': scene.defaultActive,
-                        
                                 'enteredCue':  scene.enteredCue,
                                 'cue': scene.cue.id if scene.cue else scene.cues['default'].id,
                                 'cuelen': scene.cuelen,
-    
+                                'status': scene.getStatusString()
                         }])
                     
         def pushCueMeta(self,cueid):
@@ -1674,7 +1684,7 @@ if __name__=='__setup__':
                     shortcutCode(msg[1])
     
                 if msg[0]=="event":
-                    event(msg[1])
+                    event(msg[1],msg[2])
                     
                 if msg[0] == "setshortcut":
                     cues[msg[1]].setShortcut(msg[2][:128])      
@@ -1697,6 +1707,11 @@ if __name__=='__setup__':
                 if msg[0] == "setPage":
                     if kaithem.users.checkPermission(user,"/admin/modules.edit"):
                         module.scenes[msg[1]].setPage(msg[2],msg[3],msg[4])
+                        self.pushMeta(msg[1])
+    
+                if msg[0] == "setMqttServer":
+                    if kaithem.users.checkPermission(user,"/admin/modules.edit"):
+                        module.scenes[msg[1]].setMqttServer(msg[2])
                         self.pushMeta(msg[1])
     
     
@@ -2071,6 +2086,11 @@ if __name__=='__setup__':
                     if x.page['html'].strip() or x.page['css'].strip() or x.page['js'].strip():
                         if not kaithem.users.checkPermission(user,"/admin/modules.edit"):
                             raise ValueError("You cannot delete this scene without /admin/modules.edit, because it uses advanced features: pages" )
+                    
+                    if x.mqttServer.strip():
+                        if not kaithem.users.checkPermission(user,"/admin/modules.edit"):
+                            raise ValueError("You cannot delete this scene without /admin/modules.edit, because it uses advanced features: MQTT" )
+    
                     x.stop()
                     self.delscene(msg[1])
                     
@@ -2111,7 +2131,7 @@ if __name__=='__setup__':
     
             except Exception as e:
                 rl_log_exc("Error handling command")
-                self.pushEv('board.error', "__this_lightboard__",module.timefunc(), "", traceback.format_exc(8))
+                self.pushEv('board.error', "__this_lightboard__",module.timefunc(),traceback.format_exc(8))
                 print(msg,traceback.format_exc(8))
                 
         def setChannelName(self,id,name="Untitled"):
@@ -2725,16 +2745,22 @@ if __name__=='__setup__':
     
     class Scene():
         "An objecting representing one scene. DefaultCue says if you should auto-add a default cue"
-        def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,blendArgs=None,backtrack=True,defaultCue=True, syncKey=None, bpm=60, syncAddr="239.255.28.12", syncPort=1783, soundOutput='',notes='',page=None):
+        def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,
+        blendArgs=None,backtrack=True,defaultCue=True, syncKey=None, bpm=60, syncAddr="239.255.28.12", syncPort=1783, 
+        soundOutput='',notes='',page=None, mqttServer=''):
     
             if name and name in module.scenes_by_name:
                 raise RuntimeError("Cannot have 2 scenes sharing a name: "+name)
     
             if not name.strip():
                 raise ValueError("Invalid Name")
+            
+    
     
             disallow_special(name)
             self.lock = threading.RLock()
+    
+    
     
             self.notes=notes
     
@@ -2929,6 +2955,9 @@ if __name__=='__setup__':
                 name = self.id
             module.scenes[self.id] = self
     
+        
+            self.setMqttServer(mqttServer)
+    
             if defaultCue:
                 #self.gotoCue('default',sendSync=False)
                 pass
@@ -2949,6 +2978,12 @@ if __name__=='__setup__':
             except:
                 pass
     
+        def getStatusString(self):
+            x=''
+            if self.mqttConnection:
+                if not self.mqttConnection.statusTag.value == "connected":
+                    x+="MQTT Disconnected "
+            return x
     
         def close(self):
             "Unregister the scene and delete it from the lists"
@@ -3527,6 +3562,10 @@ if __name__=='__setup__':
                     self.scriptContext.scene = self.id
                     self.scriptContext.sceneObj = weakref.ref(self)
                     self.scriptContext.sceneName = self.name
+                    def sendMQTT(t,m):
+                        self.sendMqttMessage(t,m)
+                    self.wrMqttCmdSendWrapper = sendMQTT
+                    self.scriptContext.commands['sendMQTT'] = sendMQTT
     
                 self.scriptContext.clearBindings()
     
@@ -3546,6 +3585,7 @@ if __name__=='__setup__':
                         x = self.cues[x].inheritRules
     
                     self.scriptContext.startTimers()
+                    self.doMqttSubscriptions()
     
                 try:
                     for i in module.boards:
@@ -3553,6 +3593,40 @@ if __name__=='__setup__':
                 except:
                     rl_log_exc("Error handling timer set notification")
                 
+    
+        def onMqttMessage(self,topic,message):
+            try:
+                self.event("$mqtt:", json.loads(message.decode("utf-8")))
+            except:
+                self.event("$badmqtt:", message)
+                
+        def doMqttSubscriptions(self):
+            if self.mqttConnection and self.scriptContext:
+                
+    
+                #Subscribe to everything we aren't subscribed to
+                for i in self.scriptContext.eventListeners:
+                    if i.startswith("$mqtt:"):
+                        x = i.split(":",1)
+                        if not x[1] in self.mqttSubscribed:
+                            self.mqttConnection.subscribe(x[1],self.onMqttMessage)
+                            self.mqttSubscribed[x[1]] = True
+    
+                #Unsubscribe from no longer used things
+                torm = []
+    
+                for i in self.mqttSubscribed:
+                    if not "$mqtt:"+i in self.scriptContext.eventListeners:
+                        self.mqttConnection.unsubscribe(i,self.onMqttMessage)
+                        del self.mqttSubscribed[i]
+    
+        def sendMqttMessage(self,topic, message):
+            "JSON encodes message, and publishes it to the scene's MQTT server"
+            self.mqttConnection.publish(topic, json.dumps(message).encode("utf-8"))
+        
+     
+    
+    
     
         def nextCue(self,t=None):
             with module.lock:
@@ -3629,13 +3703,53 @@ if __name__=='__setup__':
                 except:
                     pass
     
-        def setPage(self,page,style, script):
+        @typechecked
+        def setPage(self,page: str,style:str, script:str):
             self.page= {
                     'html':page,
                     'css': style,
                     'js': script
                 }
             self.pageLink.send(['refresh'])
+    
+        
+        def mqttStatusEvent(self, value, timestamp, annotation):
+            if value:
+                self.event("board.mqtt.connect")
+            else:
+                self.event("board.mqtt.disconnect")
+            
+            self.pushMeta(statusOnly=True)
+    
+            
+        @typechecked
+        def setMqttServer(self, mqttServer: str):
+            with self.lock:
+                x = mqttServer.split(":")
+                server = x[0]
+                if len(x)>1:
+                    port=int(x[1])
+                else:
+                    port=1883
+    
+                self.mqttServer = mqttServer
+                if mqttServer:
+                    
+                    self.mqttConnection = kaithem.mqtt.Connection(server, port,alertPriority='warning')
+                    self.mqttSubscribed={}
+                    t= self.mqttConnection.statusTag
+    
+                    if t.value:
+                        self.event("board.mqtt.connect")
+                    else:
+                        self.event("board.mqtt.disconnect")
+                    t.subscribe(self.mqttStatusEvent)
+               
+                else:
+                    self.mqttConnection=None
+             
+                self.doMqttSubscriptions()
+    
      
         def setName(self,name):
             disallow_special(name)

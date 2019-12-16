@@ -72,10 +72,42 @@ class MessageBus(object):
         with _subscribers_list_modify_lock:
             wrappedCallback = self.wrap_callback(callback,topic)
 
-            #Note that wrap_callback modifies the original to reference
-            #The wrapper, so it is safe until GC happens.
+           
             self.subscribers[topic].append(wrappedCallback)
             self.subscribers_immutable = copy.deepcopy(self.subscribers)
+
+    def unsubscribe(self,topic, function):
+            "Unsubscribe topic from function"
+            try:
+                with _subscribers_list_modify_lock:
+                    target = None
+                    for j in self.subscribers[topic]:
+                        if j.originalFunction()==function:
+                            target = j
+                    if target:
+                        self.subscribers[topic].remove(target)
+                    else:
+                        raise ValueError("No such subscriber found")
+            except:
+                pass
+            #There is a very slight chance someone will
+            #Add something to topic before we delete it but after the test.
+            #That would result in a canceled subscription
+            #So we use this lock.
+            try:
+                with _subscribers_list_modify_lock:
+                    if not self.subscribers[topic]:
+                        self.subscribers.pop(topic)
+            except AttributeError as e:
+                #This try and if statement are supposed to catch nuisiance errors when shutting down.
+                try:
+                    if cherrypy.engine.state == cherrypy.engine.states.STARTED:
+                        raise e
+                except:
+                        pass
+            finally:
+                with _subscribers_list_modify_lock:
+                    self.subscribers_immutable = copy.deepcopy(self.subscribers)
 
     @staticmethod
     def parseTopic(topic):
@@ -243,4 +275,5 @@ class MessageBus(object):
 #Setup the default system messagebus
 _bus = MessageBus(workers.do)
 subscribe = _bus.subscribe
+unsubscribe = _bus.unsubscribe
 postMessage = _bus.postMessage

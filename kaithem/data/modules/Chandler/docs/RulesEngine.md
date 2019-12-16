@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1576313455192830
+resource-timestamp: 1576476101108743
 resource-type: page
 template-engine: markdown
 
@@ -78,7 +78,10 @@ but may also fire at any time again while it is true.
 
 The intent is to use them to trigger cue transitions as soon as an expression involving tags becomes True
 
+## MQTT Message Expressions
 
+Any event like "$mqtt:topic/name" is an MQTT expression. If the scene is connected to an MQTT server, it fires when
+someone publishes a message on that topic. Wildcards are not currently not supported.
 
 ## Dynamic lighting channel values
 

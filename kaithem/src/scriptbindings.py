@@ -66,7 +66,8 @@ If there is an unrecognized type, it is treated as a string.
 """
 
 
-from . import tagpoints
+from types import MethodType
+from . import tagpoints,util
 import simpleeval
 
 simpleeval.MAX_POWER = 1024
@@ -275,6 +276,9 @@ class ScriptActionKeeper():
             raise TypeError("Keys must be string function names")
         if not callable(value):
             raise TypeError("Script commands must be callable")
+
+        if isinstance(value,MethodType):
+            raise TypeError("Bound method type not supported")
         
         p= inspect.signature(value).parameters
         for i in p:
@@ -646,6 +650,11 @@ class ChandlerScriptContext():
                 if not i[0] in self.eventListeners:
                     self.eventListeners[i[0]]=[]
                 self.eventListeners[i[0]].append(i[1])
+                self.onBindingAdded(i)
+
+    def onBindingAdded(self,evt):
+        "Called when a binding is added that listens to evt"
+        pass
 
     def startTimers(self):
         with self.gil:
@@ -666,6 +675,9 @@ class ChandlerScriptContext():
         self.event('script.poll')
 
     def clearBindings(self):
+        """Clear event bindings and associated data like timers.
+           Don't clear any binding for an event listed in preserve.
+        """
         with self.gil:
             self.eventListeners={}
             for i in self.timeEvents:

@@ -9,7 +9,7 @@ no-header: true
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1570868263000000
+resource-timestamp: 1576455615941295
 resource-type: page
 template-engine: none
 
@@ -165,7 +165,7 @@ template-engine: none
                                             of the time,</br> otherwise
                                             stop.
                                         </div>
-                                        <div style="width:8em;overflow:hidden" v-if="(!(j[0] in specialCommands)) && ((j[0] in commands))">
+                                        <div style="min-width:5em;max-width:22em;overflow:auto;" v-if="(!(j[0] in specialCommands)) && ((j[0] in commands))">
                                             {{j[0]}}<br>
                                             <table border=1 style="width:100%">
                                                 <tr v-for="i in commands[j[0]].args.keys()">
