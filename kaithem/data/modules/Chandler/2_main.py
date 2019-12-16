@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1576487366377803
+resource-timestamp: 1576490881983925
 resource-type: event
 versions: {}
 
@@ -3596,9 +3596,9 @@ if __name__=='__setup__':
     
         def onMqttMessage(self,topic,message):
             try:
-                self.event("$mqtt:", json.loads(message.decode("utf-8")))
+                self.event("$mqtt:"+topic, json.loads(message.decode("utf-8")))
             except:
-                self.event("$badmqtt:", message)
+                self.event("$badmqtt:"+topic, message)
                 
         def doMqttSubscriptions(self):
             if self.mqttConnection and self.scriptContext:

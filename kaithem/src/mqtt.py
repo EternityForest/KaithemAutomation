@@ -27,7 +27,7 @@ def getWeakrefHandlers(self):
     def on_connect(client, userdata, flags, rc):
         logger.info("Connected to MQTT server: "+self().server)
         self().statusTagClaim.set("connected")
-        self().alert.release()
+        self().alert.clear()
 
         with self().lock:
             for i in self().subscriptions:
@@ -47,7 +47,7 @@ def getWeakrefHandlers(self):
         try:
             s = self()
             #Everything must be fine, because we are getting messages
-            s.alert.release()
+            s.alert.clear()
             messagebus.postMessage("/mqtt/"+s.server+":"+str(s.port)+"/in/"+msg.topic,msg.payload)
             s.statusTagClaim.set("connected")
         except:
@@ -186,7 +186,7 @@ class Connection():
 
         def f(t,m):
             #Get rid of the extra kaithem framing part of the topic
-            t = t[:len("/mqtt/"+self.server+":"+str(self.port)+"/in/")]
+            t = t[len("/mqtt/"+self.server+":"+str(self.port)+"/in/"):]
             function()(t,m)
 
         internalTopic = "/mqtt/"+self.server+":"+str(self.port)+"/in/"+topic
