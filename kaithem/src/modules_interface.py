@@ -369,7 +369,7 @@ class WebInterface():
 
             if path[0] == 'getfileresource':
                 pages.require("/admin/modules.edit")
-                folder = os.path.join(directories.vardir,"modules","filedata")
+                folder = os.path.join(directories.vardir,"modules",module,"__filedata__")
                 data_basename =fileResourceAbsPaths[module,path[1]]
                 dataname = os.path.join(folder,data_basename)
                 if os.path.isfile(dataname):
@@ -396,7 +396,7 @@ class WebInterface():
                 pages.postOnly()
 
                 if not module in external_module_locations:
-                    folder = os.path.join(directories.vardir,"modules","filedata")
+                    folder = os.path.join(directories.vardir,"modules",module,"__filedata__")
                 else:
                     folder = os.path.join(external_module_locations[module],"__filedata__")
 

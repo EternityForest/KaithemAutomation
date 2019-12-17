@@ -11,6 +11,7 @@ Change Log
 - =expression based polled ChandlerScript events(Dynamically eveluated when needed)
 - Chandler tagValue(tagName) function
 - Chandler setTag(name,value, priority) command to set tags and stringtags 
+- Semi-breaking: File resources are stored in __filedata__ and managed immediately, not on system state save. They are no longer atomic.
 
 ### 0.65.0
 - Fix the emedded file resources
