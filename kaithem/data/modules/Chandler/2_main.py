@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1576650723061732
+resource-timestamp: 1576711240426741
 resource-type: event
 versions: {}
 
@@ -2761,7 +2761,7 @@ if __name__=='__setup__':
             
             #Important for reentrant cues
             self.cueTag.pushOnRepeats = True
-            self.cueTagClaim = self.cueTag.claim("__stopped__","Scene", 51,annotation="SceneObject")
+            self.cueTagClaim = self.cueTag.claim("__stopped__","default", 51,annotation="SceneObject")
     
             #Allow GotoCue 
             def cueTagHandler(val,timestamp, annotation):
@@ -2821,7 +2821,7 @@ if __name__=='__setup__':
             self.alphaTag.max=1
             self.alphaTag.pushOnRepeats = False
     
-            self.alphaTagClaim = self.alphaTag.claim(self.alpha,"Scene", 51, annotation="SceneObject")
+            self.alphaTagClaim = self.alphaTag.claim(self.alpha,"default", 50, annotation="SceneObject")
     
             #Allow setting the alpha 
             def alphaTagHandler(val,timestamp, annotation):

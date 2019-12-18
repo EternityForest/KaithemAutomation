@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1576363388646194
+resource-timestamp: 1576711343835478
 resource-type: event
 versions: {}
 
@@ -55,9 +55,10 @@ if __name__=='__setup__':
     cue1 = sc.cues["default"]
     cue1.setValue(uid,7,50)
     u.close()
+    
     sc.stop()
     sc2.stop()
-    del u
+    
     del sc
     del sc2
 
