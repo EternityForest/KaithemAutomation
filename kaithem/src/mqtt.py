@@ -42,8 +42,6 @@ def getWeakrefHandlers(self):
         logger.info("Disconnected from MQTT server: "+s.server)
 
     def on_message(client, userdata,msg):
-        print("**********************")
-        print(msg)
         try:
             s = self()
             #Everything must be fine, because we are getting messages
@@ -62,7 +60,7 @@ def makeThread(f):
     return f2
 
 class Connection():
-    def __init__(self, server,port=1883, alertPriority="info", alertAck=True):
+    def __init__(self, server,port=1883, *, alertPriority="info", alertAck=True):
         self.server = server
         self.port = port
         self.lock = threading.Lock()
@@ -169,7 +167,7 @@ class Connection():
             logging.debug("MQTT Unsubscribe from "+topic+" at "+self.server)
             self.connection.unsubscribe(topic)
 
-    def subscribe(self,topic, function, qos=2):
+    def subscribe(self,topic, function, qos=2, encoding="json"):
         self.connection.subscribe(topic,qos)
         with self.lock:
             self.subscriptions[topic]=qos
@@ -183,11 +181,25 @@ class Connection():
 
         function = util.universal_weakref(function, handleDel)
         
+        if encoding=='json':
+            def f(t,m):
+                #Get rid of the extra kaithem framing part of the topic
+                t = t[len("/mqtt/"+self.server+":"+str(self.port)+"/in/"):]
+                function()(t,json.loads(m))
 
-        def f(t,m):
-            #Get rid of the extra kaithem framing part of the topic
-            t = t[len("/mqtt/"+self.server+":"+str(self.port)+"/in/"):]
-            function()(t,m)
+        if encoding=='utf8':
+            def f(t,m):
+                #Get rid of the extra kaithem framing part of the topic
+                t = t[len("/mqtt/"+self.server+":"+str(self.port)+"/in/"):]
+                function()(t,m.decode("utf8"))
+
+        elif encoding=='raw':
+            def f(t,m):
+                #Get rid of the extra kaithem framing part of the topic
+                t = t[len("/mqtt/"+self.server+":"+str(self.port)+"/in/"):]
+                function()(t,m)
+        else:
+            raise ValueError("Invalid encoding!")
 
         internalTopic = "/mqtt/"+self.server+":"+str(self.port)+"/in/"+topic
 
@@ -196,10 +208,18 @@ class Connection():
 
         logging.debug("MQTT subscribe to "+topic+" at "+self.server)
         #Ref to f exists as long as the original does because it's kept in subscribeWrappers
-        messagebus.subscribe(internalTopic,f)
+        messagebus.subscribe(internalTopic,f,timestamp, annotation)
 
-    def publish(self,topic, message):
-        messagebus.postMessage("/mqtt/"+self.server+":"+str(self.port)+"/out/"+topic, message)
+    def publish(self,topic, message,qos=2,encoding="json"):
+        if encoding=='json':
+            message=json.dumps(message)
+        if encoding=='utf8':
+            message=message.encode("utf8")
+        elif encoding=='raw':
+            pass
+        else:
+            raise ValueError("Invalid encoding!")
+        messagebus.postMessage("/mqtt/"+self.server+":"+str(self.port)+"/out/"+topic, message,annotation=2)
 
 
 

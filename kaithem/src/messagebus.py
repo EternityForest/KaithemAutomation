@@ -193,7 +193,7 @@ class MessageBus(object):
         #Mutable object for keeping track of if we already loggged this
         alreadyLogged=[False]
         if args==0:
-            def g(topic, message,errors):
+            def g(topic, message,errors,timestamp,annotation):
                 try:
                     f2 = f()
                     if f2:
@@ -206,8 +206,8 @@ class MessageBus(object):
                             alreadyLogged[0]=True
                     except Exception as e:
                             print("err",e)
-        elif args>1:
-            def g(topic, message,errors):
+        elif args==2:
+            def g(topic, message,errors,timestamp,annotation):
                 try:
                     f2 = f()
                     if f2:
@@ -221,12 +221,27 @@ class MessageBus(object):
 
                     except Exception as e:
                             print("err",e)
-        else:
-            def g(topic, message,errors):
+        elif args==4:
+            def g(topic, message,errors,timestamp,annotation):
                 try:
                     f2 = f()
                     if f2:
-                        f2(topic)
+                        f2(topic,message,timestamp,annotation)
+                except:
+                    try:
+                        if errors:
+                            if not alreadyLogged[0]:
+                                handleError(f,topic)
+                            alreadyLogged[0]=True
+
+                    except Exception as e:
+                            print("err",e)
+        elif args==1:
+            def g(topic, message,errors,timestamp,annotation):
+                try:
+                    f2 = f()
+                    if f2:
+                        f2(message)
                 except:
                     try:
                         if errors:
@@ -235,6 +250,8 @@ class MessageBus(object):
                             alreadyLogged[0]=True
                     except Exception as e:
                             print("err",e)
+        else:
+            raise ValueError("Invalid function signature(0,1,2, or 4 args supported)")
 
         #Ref to the weakref so it's easy to check if the function we are wrapping
         #Still exists.
@@ -243,7 +260,7 @@ class MessageBus(object):
 
 
 
-    def _post(self, topic,message,errors):
+    def _post(self, topic,message,errors,timestamp,annotation):
         matchingtopics = self.parseTopic(topic)
         #We can't iterate on anything that could possibly change so we make copies
         d = self.subscribers_immutable
@@ -257,9 +274,9 @@ class MessageBus(object):
                     #An error could happen in the subscriber
                     #Or a typeerror could because the weakref has been collected
                     #We ignore both of these errors and move on
-                    self.executor(f,(topic,message,errors))
+                    self.executor(f,(topic,message,errors,timestamp,annotation))
 
-    def postMessage(self, topic, message,errors=True):
+    def postMessage(self, topic, message,errors=True, timestamp=None,annotation=None):
         #Use the executor to run the post message job
         #To allow for the possibility of it running in the background as a thread
         topic=normalize_topic(topic)
@@ -268,8 +285,8 @@ class MessageBus(object):
         except Exception:
             raise TypeError("Topic must be a string or castable to a string.")
 
-
-        self._post(topic,message,errors)
+        timestamp = timestamp or time.monotonic()
+        self._post(topic,message,errors,timestamp, annotation)
 
 
 #Setup the default system messagebus

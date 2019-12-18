@@ -224,6 +224,15 @@ def soundPath(fn,extrapaths=[]):
     filename = util.search_paths(fn, extrapaths)
     if not filename:
         filename = util.search_paths(fn, sound_paths)
+
+    #Search all module media folders
+    if not filename:
+        for i in os.listdir( os.path.join(directories.vardir,"modules",'data')):
+            p =os.path.join(directories.vardir,"modules",'data',i,"__filedata__",'media')
+            filename = util.search_paths(fn, [p])
+            if filename:
+                break
+
     #Raise an error if the file doesn't exist
     if not filename or not os.path.isfile(filename):
         raise ValueError("Specified audio file '"+fn+"' was not found")

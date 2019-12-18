@@ -224,6 +224,9 @@ class DigitalOutput(GPIOTag):
 
         with lock:
             outputs[self.pin]=weakref.ref(self)
+
+        #Tag may have gotten here before we did!
+        self.setState(self.tag.value>0.5)
     
     def on(self):
         self.tag.value = 1

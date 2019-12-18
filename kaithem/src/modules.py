@@ -22,6 +22,9 @@ from .virtualresource import VirtualResource, VirtualResourceInterface
 import urllib.parse
 
 logger = logging.getLogger("system")
+
+#/ is there because we just forbid use of that char for anything but dirs,
+#So there is no confusion
 safeFnChars="~@*&()-_=+/ '"
 
 try:
@@ -686,11 +689,11 @@ def loadRecoveryDbInfo(completeFileTimestamp=0):
                         if r['resource-type'] == "internal-fileref":
                             if not i['module'] in external_module_locations:
                                 t = parseTarget((r['target']), i['module'])
-                                newpath = os.path.join(directories.vardir,"modules",i['module'],'data',"__filedata__",t)
+                                newpath = os.path.join(directories.vardir,"modules",'data',i['module'],"__filedata__",url(t,safeFnChars))
                             else:
                                 d = external_module_locations[i['module']]
                                 t = parseTarget((r['target']), i['module'],True)
-                                newpath = os.path.join(d,"__filedata__",t)
+                                newpath = os.path.join(d,"__filedata__",url(t,safeFnChars))
                             fileResourceAbsPaths[i['module'],i['resource']] = newpath
 
                     else:
@@ -788,10 +791,9 @@ def saveModule(module, dir:str,modulename:Optional[str]=None, ignore_func=None):
                 #Basically, we want to always copy the current "loaded" version over.
                 currentFileLocation = fileResourceAbsPaths[modulename,resource]
                 #Handle broken targets if a file was manually deleted
-                #Don't mess with externally referenced files in some random abs path
-                if os.path.isfile(currentFileLocation) and not r['target'].startswith("/"):
+                if os.path.isfile(currentFileLocation):
                     t =parseTarget(r['target'],modulename,True)
-                    newpath = os.path.join(dir,"__filedata__",t)
+                    newpath = os.path.join(dir,"__filedata__",url(t,safeFnChars))
                     if not newpath == currentFileLocation:
                         util.ensure_dir(newpath)
                         #Storage is cheap enough I guess, might as well copy instead of move for now. Maybe
@@ -1049,7 +1051,7 @@ def loadOneResource(folder, relpath, module):
     
         if util.in_directory(os.path.join(folder,relpath), directories.vardir) or util.in_directory(os.path.join(folder,relpath), directories.datadir):
             t = parseTarget(r['target'],module)
-            fileResourceAbsPaths[module,resourcename] = os.path.normpath(os.path.join(directories.vardir,"modules",module,"__filedata__",t))
+            fileResourceAbsPaths[module,resourcename] = os.path.normpath(os.path.join(directories.vardir,"modules",'data',module,"__filedata__",t))
         else:
             t = parseTarget(r['target'],module,True)
             fileResourceAbsPaths[module,resourcename] = os.path.normpath(os.path.join(folder,"__filedata__",t))
@@ -1086,6 +1088,12 @@ def loadModule(folder:str, modulename:str, ignore_func=None, resource_folder=Non
                         #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
                         try:
                             r,resourcename = readResourceFromFile(fn,relfn)
+                            if not r:
+                                #File managers sprinkle this crap around
+                                if not os.path.basename(fn)=='.directory':
+                                    logger.exception("Null loading "+fn)
+                                continue
+
                         except:
                             logger.exception("Error loading "+fn)                        
                             continue
@@ -1107,13 +1115,14 @@ def loadModule(folder:str, modulename:str, ignore_func=None, resource_folder=Non
                         raise
 
                 for i in dirs:
-                    if i == "__filedata__":
-                        continue
+                    
                     if ignore_func and ignore_func(i):
                         continue
                     relfn = os.path.relpath(os.path.join(root,i),folder)
                     fn = os.path.join(folder , relfn)
-                    #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
+                    if "/__filedata__/" in fn:
+                        continue
+                    #Create a directory resource for the dirrctory
                     module[util.unurl(relfn)] = {"resource-type":"directory"}
 
         #Make resource objects for anything missing one
@@ -1165,12 +1174,12 @@ def getModuleAsYamlZip(module,noFiles=True):
                     raise RuntimeError("Cannot download this module without admin rights as it contains embedded files")
                 
                 target = fileResourceAbsPaths[module,resource]
-                if os.path.exists(os.path.join(directories.vardir,"modules",module,'data',"__filedata__",target)):
-                    z.write(os.path.join(directories.vardir,"modules",module,'data',"__filedata__",target),"__filedata__/"+url(module," ")+"/"+url(resource,safeFnChars))
+                if os.path.exists(target):
+                    z.write(target,module+"/__filedata__/"+url(resource,safeFnChars))
         
                 else:
                     if not incompleteError:
-                        logging.error("Missing file(s) in module including: "+os.path.join(directories.vardir,"modules",module,"__filedata__",target))
+                        logging.error("Missing file(s) in module including: "+os.path.join(directories.vardir,"modules",'data',module,"__filedata__",target))
                         incompleteError=True
         z.close()
         s = ram_file.getvalue()
@@ -1184,14 +1193,16 @@ def load_modules_from_zip(f,replace=False):
     newfrpaths = {}
 
     for i in z.namelist():
+        if i.endswith("/"):
+            continue
         #get just the folder, ie the module
-        p = util.unurl(i.split('/')[0])
+        p = util.unurl(i.split('/',1)[0])
        
-        relative_name = (i.split('/'))[1]
-        if p not in new_modules and not "__filedata__" in p:
+        relative_name = (i.split('/',1))[1]
+        if p not in new_modules:
             new_modules[p] = {}
         try:
-            if not  "__filedata__" in p:
+            if not "/__filedata__/" in i:
                 try:
                     f = z.open(i)
                     r,n =readResourceFromData(f.read().decode(), relative_name)
@@ -1199,22 +1210,23 @@ def load_modules_from_zip(f,replace=False):
                         raise RuntimeError("Attempting to decode file "+str(i)+" resulted in a value of None")
                     new_modules[p][n] = r
                     if r['resource-type'] == "internal-fileref":
-                        modulename
-                        newfrpaths[p,n] = os.path.join(directories.vardir,"modules",module,'data',"__filedata__",p,r['target'])
+                        newfrpaths[p,n] = os.path.join(directories.vardir,"modules",'data',p,"__filedata__",url(n,safeFnChars))
+                except:
+                    raise ValueError(i+" in zip makes no sense")
                 finally:
                     f.close()
             else:
                 try:
                     inputfile = z.open(i)
-                    folder = os.path.join(directories.vardir,"modules",module,'data',"__filedata__")
+                    folder = os.path.join(directories.vardir,"modules",'data',p,"__filedata__")
                     util.ensure_dir2(folder)
 
                     #Assumimg format is MODULE/__filedata__/file.png, we get just
                     #file.png
-                    data_basename = util.unurl(i.split('/')[1])
+                    data_basename = util.unurl(i.split('/',2)[2])
 
                     #We are saving it in vardir/module/__filedata__/file.png
-                    dataname = os.path.join(folder,p,data_basename)
+                    dataname = os.path.join(folder,data_basename)
 
                     util.ensure_dir2(os.path.dirname(dataname))
 

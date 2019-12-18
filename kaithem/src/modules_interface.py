@@ -369,7 +369,7 @@ class WebInterface():
 
             if path[0] == 'getfileresource':
                 pages.require("/admin/modules.edit")
-                folder = os.path.join(directories.vardir,"modules",module,"__filedata__")
+                folder = os.path.join(directories.vardir,"modules","data",module,"__filedata__")
                 data_basename =fileResourceAbsPaths[module,path[1]]
                 dataname = os.path.join(folder,data_basename)
                 if os.path.isfile(dataname):
@@ -396,7 +396,7 @@ class WebInterface():
                 pages.postOnly()
 
                 if not module in external_module_locations:
-                    folder = os.path.join(directories.vardir,"modules",module,"__filedata__")
+                    folder = os.path.join(directories.vardir,"modules",'data',module,"__filedata__")
                 else:
                     folder = os.path.join(external_module_locations[module],"__filedata__")
 
@@ -440,7 +440,7 @@ class WebInterface():
                         modules_state.createRecoveryEntry(root,escapedName,r)
                     ####END BLOCK OF COPY PASTED CODE.
 
-                    insertResource({'resource-type':'internal-fileref', 'target':"$MODULERESOURCES/"+data_basename})
+                    insertResource({'resource-type':'internal-fileref', 'target':"$MODULERESOURCES/"+url(escapedName,modules.safeFnChars)})
                     if len(path)>1:
                         x = path[1]+"/"
                     else:

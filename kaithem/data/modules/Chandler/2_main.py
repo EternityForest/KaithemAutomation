@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1576490881983925
+resource-timestamp: 1576650723061732
 resource-type: event
 versions: {}
 
@@ -22,7 +22,7 @@ if __name__=='__setup__':
     import time,array,random,weakref, os,threading,uuid,logging,serial,traceback,yaml,copy,json,math,struct,socket,src
     from decimal import Decimal
     from tinytag import TinyTag
-    from typeguard import typechecked
+    
     
     
     logger = logging.getLogger("system.chandler")
@@ -193,11 +193,6 @@ if __name__=='__setup__':
     rootContext.commands['setAlpha']=setAlphaCommand
     rootContext.commands['ifCue']=ifCueCommand
     rootContext.commands['sendEvent']=eventCommand
-    def sendMqttMessage(topic, message):
-        "JSON encodes message, and publishes it to the scene's MQTT server"
-        raise RuntimeError("This was supposed to be overridden by a scene specific version")
-    rootContext.commands['sendMQTT']=sendMqttMessage
-    
     
     
     def listsoundfolder(path):
@@ -207,7 +202,7 @@ if __name__=='__setup__':
             path = path+"/"
             
         if not path and not name:
-            return [[i+('/' if not i.endswith('/') else '') for i in soundfolders],[]]
+            return [[[i+('/' if not i.endswith('/') else ''),soundfolders[i]] for i in soundfolders],[]]
     
         #If it's not one of the sound folders return for security reasons
         match = False
@@ -217,7 +212,7 @@ if __name__=='__setup__':
             if path.startswith(i):
                 match =True
         if not match:
-            return [[i+('/' if not i.endswith('/') else '') for i in soundfolders],[]]
+            return [[[i+('/' if not i.endswith('/') else ''),soundfolders[i]] for i in soundfolders],[]]
             
         if not os.path.exists(path):
             return [[],[]]
@@ -279,10 +274,15 @@ if __name__=='__setup__':
     
        
     def getSoundFolders():
-        soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
-        soundfolders.append(os.path.join(src.directories.datadir,"sounds"))
-        soundfolders.append(musicLocation)
-        soundfolders+=[i for i in kaithem.sound.directories if not i.startswith("__")]
+        "path:displayname dict"
+        soundfolders = {i.strip():i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])}
+        soundfolders[os.path.join(src.directories.datadir,"sounds")] = 'Builtin'
+        soundfolders[musicLocation] = "Chandler music folder"
+        for i in [i for i in kaithem.sound.directories if not i.startswith("__")]:
+            soundfolders[i]=i
+    
+        for i in os.listdir( os.path.join(src.directories.vardir,"modules",'data')):
+            soundfolders[os.path.join(src.directories.vardir,"modules",'data',i,"__filedata__",'media')]= "Module:"+i+"/media"
         return soundfolders
     
     
@@ -1248,9 +1248,6 @@ if __name__=='__setup__':
                 if 'page' in data[i] and data[i]['page']['html'].strip() or data[i]['page']['js'].strip():
                     if not kaithem.users.checkPermission(kaithem.web.user(),"/admin/modules.edit"):
                         raise ValueError("You cannot upload this scene without /admin/modules.edit, because it uses advanced features: pages" )
-                if 'mqttServer' in data[i] and data[i]['page']['mqttServer'].strip():
-                    if not kaithem.users.checkPermission(kaithem.web.user(),"/admin/modules.edit"):
-                        raise ValueError("You cannot upload this scene without /admin/modules.edit, because it uses advanced features: MQTT" )
     
             self.loadDict(data,errs)
         
@@ -1377,8 +1374,7 @@ if __name__=='__setup__':
                                  'syncKey':x.syncKey, 'syncPort': x.syncPort, 'syncAddr':x.syncAddr,
                                  'uuid': i,
                                  'notes': x.notes,
-                                 'page': x.page,
-                                 'mqttServer': x.mqttServer
+                                 'page': x.page
                     }               
                     
     
@@ -1506,9 +1502,7 @@ if __name__=='__setup__':
                                 'vars':v,
                                 'timers': scene.runningTimers,
                                 'notes': scene.notes,
-                                'page': scene.page,
-                                "mqttServer": scene.mqttServer,
-                                'status': scene.getStatusString()
+                                'page': scene.page
     
                         }])
             else:
@@ -1517,10 +1511,11 @@ if __name__=='__setup__':
                                 'alpha':scene.alpha,
                                 'active': scene.isActive(),
                                 'defaultActive': scene.defaultActive,
+                        
                                 'enteredCue':  scene.enteredCue,
                                 'cue': scene.cue.id if scene.cue else scene.cues['default'].id,
                                 'cuelen': scene.cuelen,
-                                'status': scene.getStatusString()
+    
                         }])
                     
         def pushCueMeta(self,cueid):
@@ -1684,7 +1679,7 @@ if __name__=='__setup__':
                     shortcutCode(msg[1])
     
                 if msg[0]=="event":
-                    event(msg[1],msg[2])
+                    event(msg[1])
                     
                 if msg[0] == "setshortcut":
                     cues[msg[1]].setShortcut(msg[2][:128])      
@@ -1707,11 +1702,6 @@ if __name__=='__setup__':
                 if msg[0] == "setPage":
                     if kaithem.users.checkPermission(user,"/admin/modules.edit"):
                         module.scenes[msg[1]].setPage(msg[2],msg[3],msg[4])
-                        self.pushMeta(msg[1])
-    
-                if msg[0] == "setMqttServer":
-                    if kaithem.users.checkPermission(user,"/admin/modules.edit"):
-                        module.scenes[msg[1]].setMqttServer(msg[2])
                         self.pushMeta(msg[1])
     
     
@@ -1839,7 +1829,7 @@ if __name__=='__setup__':
                     self.link.send(["fixtureclasses",{i:[] for i in self.fixtureClasses.keys()}])
                 
                 if msg[0] == 'listsoundfolder':
-                    self.link.send(["soundfolderlisting",msg[1],listsoundfolder(msg[1])])
+                    self.link.send(["soundfolderlisting",msg[1], listsoundfolder(msg[1])])
     
     
     
@@ -2086,11 +2076,6 @@ if __name__=='__setup__':
                     if x.page['html'].strip() or x.page['css'].strip() or x.page['js'].strip():
                         if not kaithem.users.checkPermission(user,"/admin/modules.edit"):
                             raise ValueError("You cannot delete this scene without /admin/modules.edit, because it uses advanced features: pages" )
-                    
-                    if x.mqttServer.strip():
-                        if not kaithem.users.checkPermission(user,"/admin/modules.edit"):
-                            raise ValueError("You cannot delete this scene without /admin/modules.edit, because it uses advanced features: MQTT" )
-    
                     x.stop()
                     self.delscene(msg[1])
                     
@@ -2131,7 +2116,7 @@ if __name__=='__setup__':
     
             except Exception as e:
                 rl_log_exc("Error handling command")
-                self.pushEv('board.error', "__this_lightboard__",module.timefunc(),traceback.format_exc(8))
+                self.pushEv('board.error', "__this_lightboard__",module.timefunc(), "", traceback.format_exc(8))
                 print(msg,traceback.format_exc(8))
                 
         def setChannelName(self,id,name="Untitled"):
@@ -2745,22 +2730,16 @@ if __name__=='__setup__':
     
     class Scene():
         "An objecting representing one scene. DefaultCue says if you should auto-add a default cue"
-        def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,
-        blendArgs=None,backtrack=True,defaultCue=True, syncKey=None, bpm=60, syncAddr="239.255.28.12", syncPort=1783, 
-        soundOutput='',notes='',page=None, mqttServer=''):
+        def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,blendArgs=None,backtrack=True,defaultCue=True, syncKey=None, bpm=60, syncAddr="239.255.28.12", syncPort=1783, soundOutput='',notes='',page=None):
     
             if name and name in module.scenes_by_name:
                 raise RuntimeError("Cannot have 2 scenes sharing a name: "+name)
     
             if not name.strip():
                 raise ValueError("Invalid Name")
-            
-    
     
             disallow_special(name)
             self.lock = threading.RLock()
-    
-    
     
             self.notes=notes
     
@@ -2955,9 +2934,6 @@ if __name__=='__setup__':
                 name = self.id
             module.scenes[self.id] = self
     
-        
-            self.setMqttServer(mqttServer)
-    
             if defaultCue:
                 #self.gotoCue('default',sendSync=False)
                 pass
@@ -2978,12 +2954,6 @@ if __name__=='__setup__':
             except:
                 pass
     
-        def getStatusString(self):
-            x=''
-            if self.mqttConnection:
-                if not self.mqttConnection.statusTag.value == "connected":
-                    x+="MQTT Disconnected "
-            return x
     
         def close(self):
             "Unregister the scene and delete it from the lists"
@@ -3218,71 +3188,13 @@ if __name__=='__setup__':
                 except Exception as e:
                     rl_log_exc("Error handling event")
                     print(traceback.format_exc(6))
+                    
     
-        def parseCueName(self,cue):
-            if cue == "__random__":
-                for i in range(0,100 if len(self.cues)>2 else 1):
-                    x = [i.name for i in self.cues_ordered]
-                    for i in reversed(self.cueHistory):
-                        if len(x)<3:
-                            break
-                        elif i in x:
-                            x.remove(i)
-                    cue = random.choice(x)
-                    if not cue == self.cue.name:
-                        break
-    
-            #Handle random selection option cues
-            elif "|" in cue:
-                x = cue.split("|")
-                for i in reversed(self.cueHistory):
-                    if len(x)<3:
-                        break
-                    elif i in x:
-                        x.remove(i)
-                cue = random.choice(x).strip()
-                
-            elif "*" in cue:
-                import fnmatch
-                x = []
-    
-                for i in self.cues_ordered:
-                    if fnmatch.fnmatch(i.name, cue):
-                        x.append(i.name)
-                if not x:
-                    raise ValueError("No matching cue for pattern: "+cue)
-                                
-                #Do the "Shuffle logic" that avoids  recently used cues.
-                #Eliminate until only two remain, the min to not get stuck in
-                #A fixed pattern. Sometimes allow three to mix things up more.
-    
-                optionsNeeded = 2
-                for i in reversed(self.cueHistory):
-                    if len(x)<=optionsNeeded:
-                        break
-                    elif i in x:
-                        x.remove(i)
-                cue = random.choice(x)
-    
-                        
-            if not cue in self.cues:
-                try:
-                    c = float(cue)
-                except:
-                    raise ValueError("No such cue "+str(cue))
-                for i in self.cues_ordered:
-                    if i.number-(float(cue)*1000)<0.001:
-                        cue = i.name
-                        break
-            return cue
     
         def gotoCue(self, cue,t=None, sendSync=True,generateEvents=True):
             "Goto cue by name, number, or string repr of number"
             with module.lock:
     
-                if not self.active:
-                    return
-                    
                 #Can't change the cue if some TagPoint claim has already locked it to one cue
                 if not self.cueTag.currentSource == self.cueTagClaim.name:
                     if not self.cueTag.value == cue:
@@ -3306,7 +3218,60 @@ if __name__=='__setup__':
                     self.stop()
                     return
     
-                cue = self.parseCueName(cue)
+                elif cue == "__random__":
+                    for i in range(0,100 if len(self.cues)>2 else 1):
+                        x = [i.name for i in self.cues_ordered]
+                        for i in reversed(self.cueHistory):
+                            if len(x)<3:
+                                break
+                            elif i in x:
+                                x.remove(i)
+                        cue = random.choice(x)
+                        if not cue == self.cue.name:
+                            break
+    
+                #Handle random selection option cues
+                elif "|" in cue:
+                    x = cue.split("|")
+                    for i in reversed(self.cueHistory):
+                        if len(x)<3:
+                            break
+                        elif i in x:
+                            x.remove(i)
+                    cue = random.choice(x).strip()
+                    
+                elif "*" in cue:
+                    import fnmatch
+                    x = []
+    
+                    for i in self.cues_ordered:
+                        if fnmatch.fnmatch(i.name, cue):
+                            x.append(i.name)
+                    if not x:
+                        raise ValueError("No matching cue for pattern: "+cue)
+                                    
+                    #Do the "Shuffle logic" that avoids  recently used cues.
+                    #Eliminate until only two remain, the min to not get stuck in
+                    #A fixed pattern. Sometimes allow three to mix things up more.
+    
+                    optionsNeeded = 2
+                    for i in reversed(self.cueHistory):
+                        if len(x)<=optionsNeeded:
+                            break
+                        elif i in x:
+                            x.remove(i)
+                    cue = random.choice(x)
+    
+                           
+                if not cue in self.cues:
+                    try:
+                        c = float(cue)
+                    except:
+                        raise ValueError("No such cue "+str(cue))
+                    for i in self.cues_ordered:
+                        if i.number-(float(cue)*1000)<0.001:
+                            cue = i.name
+                            break
     
                 
     
@@ -3322,11 +3287,7 @@ if __name__=='__setup__':
                     self.cue = self.cues['default']
                     self.cueTagClaim.set(self.cue.name,annotation="SceneObject")  
      
-                #Allow specifying an "Exact" time to enter for zero-drift stuff
-                #I don't know if it's fully correct to set the timestamp before exit...
-                self.enteredCue = t or module.timefunc()
-                entered = self.enteredCue
-    
+                
                 if not (cue==self.cue.name):
                     if generateEvents:
                         if self.active:
@@ -3343,7 +3304,9 @@ if __name__=='__setup__':
                 self.cueHistory = self.cueHistory[-100:]
                 self.sound_end = 0
     
-               
+                #Allow specifying an "Exact" time to enter for zero-drift stuff
+                self.enteredCue = t or module.timefunc()
+    
                 self.fadeout_start =False
     
                
@@ -3363,10 +3326,12 @@ if __name__=='__setup__':
                         self.cue.onExit(t)
                     
     
-                #We return if some the enter transition already
-                #Changed to a new cue
-                if not self.enteredCue == entered:
-                    return
+    
+                    if cobj.onEnter:
+                        cobj.onEnter(t)
+                    
+                    if generateEvents:
+                        self.event('cue.enter', cobj.name)
     
     
     
@@ -3377,6 +3342,13 @@ if __name__=='__setup__':
     
     
     
+                cuevars = self.cues[cue].values.get("__variables__",{})
+                for i in cuevars:
+                    try:
+                        self.scriptContext.setVar(i,self.evalExpr(cuevars[i]))
+                    except:
+                        print(traceback.format_exc())
+                        rl_log_exc("Error with cue variable "+i)
     
                 
                 #When jumping to a cue that isn't directly the next one, apply and "parent" cues.
@@ -3409,33 +3381,12 @@ if __name__=='__setup__':
     
                 
     
-                cuevars = self.cues[cue].values.get("__variables__",{})
-                for i in cuevars:
-                    try:
-                        self.scriptContext.setVar(i,self.evalExpr(cuevars[i]))
-                    except:
-                        print(traceback.format_exc())
-                        rl_log_exc("Error with cue variable "+i)
-    
                 #optimization, try to se if we can just increment if we are going to the next cue, else
                 #we have to actually find the index of the new cue
                 if self.cuePointer<(len(self.cues_ordered)-1) and self.cues[cue] is self.cues_ordered[self.cuePointer+1]:
                     self.cuePointer += 1
                 else:
                     self.cuePointer = self.cues_ordered.index(self.cues[cue])
-    
-                #Must do active and onEnter stuff
-                if self.active:
-                    if cobj.onEnter:
-                        cobj.onEnter(t)
-                    
-                    if generateEvents:
-                        self.event('cue.enter', cobj.name)
-    
-                #We return if some the enter transition already
-                #Changed to a new cue
-                if not self.enteredCue == entered:
-                    return
     
                         
                 self.cue = self.cues[cue]
@@ -3562,10 +3513,6 @@ if __name__=='__setup__':
                     self.scriptContext.scene = self.id
                     self.scriptContext.sceneObj = weakref.ref(self)
                     self.scriptContext.sceneName = self.name
-                    def sendMQTT(t,m):
-                        self.sendMqttMessage(t,m)
-                    self.wrMqttCmdSendWrapper = sendMQTT
-                    self.scriptContext.commands['sendMQTT'] = sendMQTT
     
                 self.scriptContext.clearBindings()
     
@@ -3585,7 +3532,6 @@ if __name__=='__setup__':
                         x = self.cues[x].inheritRules
     
                     self.scriptContext.startTimers()
-                    self.doMqttSubscriptions()
     
                 try:
                     for i in module.boards:
@@ -3593,40 +3539,6 @@ if __name__=='__setup__':
                 except:
                     rl_log_exc("Error handling timer set notification")
                 
-    
-        def onMqttMessage(self,topic,message):
-            try:
-                self.event("$mqtt:"+topic, json.loads(message.decode("utf-8")))
-            except:
-                self.event("$badmqtt:"+topic, message)
-                
-        def doMqttSubscriptions(self):
-            if self.mqttConnection and self.scriptContext:
-                
-    
-                #Subscribe to everything we aren't subscribed to
-                for i in self.scriptContext.eventListeners:
-                    if i.startswith("$mqtt:"):
-                        x = i.split(":",1)
-                        if not x[1] in self.mqttSubscribed:
-                            self.mqttConnection.subscribe(x[1],self.onMqttMessage)
-                            self.mqttSubscribed[x[1]] = True
-    
-                #Unsubscribe from no longer used things
-                torm = []
-    
-                for i in self.mqttSubscribed:
-                    if not "$mqtt:"+i in self.scriptContext.eventListeners:
-                        self.mqttConnection.unsubscribe(i,self.onMqttMessage)
-                        del self.mqttSubscribed[i]
-    
-        def sendMqttMessage(self,topic, message):
-            "JSON encodes message, and publishes it to the scene's MQTT server"
-            self.mqttConnection.publish(topic, json.dumps(message).encode("utf-8"))
-        
-     
-    
-    
     
         def nextCue(self,t=None):
             with module.lock:
@@ -3703,53 +3615,13 @@ if __name__=='__setup__':
                 except:
                     pass
     
-        @typechecked
-        def setPage(self,page: str,style:str, script:str):
+        def setPage(self,page,style, script):
             self.page= {
                     'html':page,
                     'css': style,
                     'js': script
                 }
             self.pageLink.send(['refresh'])
-    
-        
-        def mqttStatusEvent(self, value, timestamp, annotation):
-            if value:
-                self.event("board.mqtt.connect")
-            else:
-                self.event("board.mqtt.disconnect")
-            
-            self.pushMeta(statusOnly=True)
-    
-            
-        @typechecked
-        def setMqttServer(self, mqttServer: str):
-            with self.lock:
-                x = mqttServer.split(":")
-                server = x[0]
-                if len(x)>1:
-                    port=int(x[1])
-                else:
-                    port=1883
-    
-                self.mqttServer = mqttServer
-                if mqttServer:
-                    
-                    self.mqttConnection = kaithem.mqtt.Connection(server, port,alertPriority='warning')
-                    self.mqttSubscribed={}
-                    t= self.mqttConnection.statusTag
-    
-                    if t.value:
-                        self.event("board.mqtt.connect")
-                    else:
-                        self.event("board.mqtt.disconnect")
-                    t.subscribe(self.mqttStatusEvent)
-               
-                else:
-                    self.mqttConnection=None
-             
-                self.doMqttSubscriptions()
-    
      
         def setName(self,name):
             disallow_special(name)
