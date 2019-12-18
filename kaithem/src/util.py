@@ -93,11 +93,11 @@ def blakeMemorable(x, num=3, separator=""):
     return o[:-len(separator)] if separator else o
 
 
-def universal_weakref(f):
+def universal_weakref(f,cb=None):
     if isinstance(f,types.MethodType):
-        return weakref.WeakMethod(f)
+        return weakref.WeakMethod(f,cb)
     else:
-        return weakref.ref(f)
+        return weakref.ref(f,cb)
 
 
 def chmod_private_try(p, execute=True):

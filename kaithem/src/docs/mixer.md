@@ -32,6 +32,9 @@ To create a master channel, you just need to create a channel that outputs to th
 
 Channels have a list of effects, and a fader. Audio comes in the input and is processed through them, finally reaching the output.
 
+### Tagpoint control
+Every channel fader is a tagpoint named /jackmixer/channels/CHANNEL/fader.  Moving the slider simply sets the default claim at priority
+50, but you can set this claim(Usually the way to go) or even completely override the fader and lock out manual control.
 
 ## Presets
 

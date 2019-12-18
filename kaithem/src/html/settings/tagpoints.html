@@ -13,13 +13,33 @@ import gc
 <table border="1">
 <tr><th>Name</th><th>Value</th><th>Interval</th><th>Active Claim</th><th>Owner</th></tr>
 %for i in tagpoints.allTagsAtomic:
-%if tagpoints.allTagsAtomic[i]():
+%if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._NumericTagPoint):
 <tr>
     <td>${i|h}</td>
     <td>${tagpoints.allTagsAtomic[i]().meterWidget.render()}</td>
     <td>${tagpoints.allTagsAtomic[i]().interval}</td>
     <td>${tagpoints.allTagsAtomic[i]().activeClaim[2]}</td>
     <td>${tagpoints.allTagsAtomic[i]().owner}</td>
+</tr>
+%endif
+
+%if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._StringTagPoint):
+<tr>
+    <td>${i|h}</td>
+    <td>${tagpoints.allTagsAtomic[i]().spanWidget.render()}</td>
+    <td>${tagpoints.allTagsAtomic[i]().interval}</td>
+    <td>${tagpoints.allTagsAtomic[i]().activeClaim[2]}</td>
+    <td>${tagpoints.allTagsAtomic[i]().owner}</td>
+</tr>
+%endif
+
+%if tagpoints.allTagsAtomic[i]()==None:
+<tr>
+    <td>${i|h}</td>
+    <td>DELETED</td>
+    <td>DELETED</td>
+    <td>DELETED</td>
+    <td>DELETED</td>
 </tr>
 %endif
 

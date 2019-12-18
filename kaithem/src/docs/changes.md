@@ -1,5 +1,22 @@
 Change Log
 ----------
+
+### 0.65.1
+- Prevent tagpoint widget send from blocking up the process
+- New StringTag objects, like tagpoints but for strings
+- Chandler Scene alpha and current cue are now exposed as read/writable tagpoints
+- Properly handle resource-timestamps
+- BREAKING: Message topics now work more like MQTT topics. They have to end with # if you want all subtopics(+ is not supported)
+- Gstreamer based audio playback is now the default
+- =expression based polled ChandlerScript events(Dynamically eveluated when needed)
+- Chandler tagValue(tagName) function
+- Chandler setTag(name,value, priority) command to set tags and stringtags 
+- Semi-breaking: File resources are stored in __filedata__ and managed immediately, not on system state save. They are no longer atomic.
+- Messagebus timestamp and annotation
+- MQTT support via eclipse paho
+- Jack mixer fader tagpoints
+- Fix gpio output ignoring pre-existing tagpoints
+
 ### 0.65.0
 - Fix the emedded file resources
 - Warning on missing file resources

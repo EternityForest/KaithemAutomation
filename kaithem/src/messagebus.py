@@ -24,7 +24,7 @@ from . import workers
 from collections import defaultdict, OrderedDict
 
 _subscribers_list_modify_lock = threading.RLock()
-
+cachelock = threading.RLock()
 #OrderedDict doesn't seem as fast as dict. So I have a cache of the cache
 parsecache = OrderedDict()
 parsecachecache = {}
@@ -72,18 +72,51 @@ class MessageBus(object):
         with _subscribers_list_modify_lock:
             wrappedCallback = self.wrap_callback(callback,topic)
 
-            #Note that wrap_callback modifies the original to reference
-            #The wrapper, so it is safe until GC happens.
+           
             self.subscribers[topic].append(wrappedCallback)
             self.subscribers_immutable = copy.deepcopy(self.subscribers)
+
+    def unsubscribe(self,topic, function):
+            "Unsubscribe topic from function"
+            try:
+                with _subscribers_list_modify_lock:
+                    target = None
+                    for j in self.subscribers[topic]:
+                        if j.originalFunction()==function:
+                            target = j
+                    if target:
+                        self.subscribers[topic].remove(target)
+                    else:
+                        raise ValueError("No such subscriber found")
+            except:
+                pass
+            #There is a very slight chance someone will
+            #Add something to topic before we delete it but after the test.
+            #That would result in a canceled subscription
+            #So we use this lock.
+            try:
+                with _subscribers_list_modify_lock:
+                    if not self.subscribers[topic]:
+                        self.subscribers.pop(topic)
+            except AttributeError as e:
+                #This try and if statement are supposed to catch nuisiance errors when shutting down.
+                try:
+                    if cherrypy.engine.state == cherrypy.engine.states.STARTED:
+                        raise e
+                except:
+                        pass
+            finally:
+                with _subscribers_list_modify_lock:
+                    self.subscribers_immutable = copy.deepcopy(self.subscribers)
 
     @staticmethod
     def parseTopic(topic):
         "Parse the topic string into a list of all subscriptions that could possibly match."
-        global parsecachecache
+        global parsecache
         #Since this is a pure function(except the caching itself) we can cache it
         if topic in parsecache:
-            return parsecachecache[topic]
+            return parsecache[topic]
+        
         #Let's cache by the original version of the topic, so we don't have to convert it to the canonical
         oldtopic = topic
         topic=normalize_topic(topic)
@@ -91,19 +124,22 @@ class MessageBus(object):
         #A topic foo/bar/baz would go to
         #foo, foo/bar, and /foo/bar/baz
         #So we need to make a list like that
-        matchingtopics = set(['/'])
+        matchingtopics = set(['/#'])
         parts = topic.split("/")
         last = ""
+
+        #Add the exact one
         matchingtopics.add(topic)
+        
+        
         for i in parts:
             last += (i+'/')
-            matchingtopics.add(last)
+            matchingtopics.add(last+"#")
         parsecache[oldtopic] = matchingtopics
         #Don't let the cache get too big.
         #Getting rid of the oldest should hopefully converge to the most used topics being cached
         if len(parsecache) > 600:
             parsecache.popitem(last=False)
-        parsecachecache = dict(parsecache)
         return matchingtopics
 
     @typechecked
@@ -157,7 +193,7 @@ class MessageBus(object):
         #Mutable object for keeping track of if we already loggged this
         alreadyLogged=[False]
         if args==0:
-            def g(topic, message,errors):
+            def g(topic, message,errors,timestamp,annotation):
                 try:
                     f2 = f()
                     if f2:
@@ -170,8 +206,8 @@ class MessageBus(object):
                             alreadyLogged[0]=True
                     except Exception as e:
                             print("err",e)
-        elif args>1:
-            def g(topic, message,errors):
+        elif args==2:
+            def g(topic, message,errors,timestamp,annotation):
                 try:
                     f2 = f()
                     if f2:
@@ -185,12 +221,27 @@ class MessageBus(object):
 
                     except Exception as e:
                             print("err",e)
-        else:
-            def g(topic, message,errors):
+        elif args==4:
+            def g(topic, message,errors,timestamp,annotation):
                 try:
                     f2 = f()
                     if f2:
-                        f2(topic)
+                        f2(topic,message,timestamp,annotation)
+                except:
+                    try:
+                        if errors:
+                            if not alreadyLogged[0]:
+                                handleError(f,topic)
+                            alreadyLogged[0]=True
+
+                    except Exception as e:
+                            print("err",e)
+        elif args==1:
+            def g(topic, message,errors,timestamp,annotation):
+                try:
+                    f2 = f()
+                    if f2:
+                        f2(message)
                 except:
                     try:
                         if errors:
@@ -199,6 +250,8 @@ class MessageBus(object):
                             alreadyLogged[0]=True
                     except Exception as e:
                             print("err",e)
+        else:
+            raise ValueError("Invalid function signature(0,1,2, or 4 args supported)")
 
         #Ref to the weakref so it's easy to check if the function we are wrapping
         #Still exists.
@@ -207,7 +260,7 @@ class MessageBus(object):
 
 
 
-    def _post(self, topic,message,errors):
+    def _post(self, topic,message,errors,timestamp,annotation):
         matchingtopics = self.parseTopic(topic)
         #We can't iterate on anything that could possibly change so we make copies
         d = self.subscribers_immutable
@@ -221,9 +274,9 @@ class MessageBus(object):
                     #An error could happen in the subscriber
                     #Or a typeerror could because the weakref has been collected
                     #We ignore both of these errors and move on
-                    self.executor(f,(topic,message,errors))
+                    self.executor(f,(topic,message,errors,timestamp,annotation))
 
-    def postMessage(self, topic, message,errors=True):
+    def postMessage(self, topic, message,errors=True, timestamp=None,annotation=None):
         #Use the executor to run the post message job
         #To allow for the possibility of it running in the background as a thread
         topic=normalize_topic(topic)
@@ -232,11 +285,12 @@ class MessageBus(object):
         except Exception:
             raise TypeError("Topic must be a string or castable to a string.")
 
-
-        self._post(topic,message,errors)
+        timestamp = timestamp or time.monotonic()
+        self._post(topic,message,errors,timestamp, annotation)
 
 
 #Setup the default system messagebus
 _bus = MessageBus(workers.do)
 subscribe = _bus.subscribe
+unsubscribe = _bus.unsubscribe
 postMessage = _bus.postMessage

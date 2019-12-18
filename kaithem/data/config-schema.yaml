@@ -131,6 +131,7 @@ properties:
                 -mplayer
                 -madplay
                 -mpv
+                -gstreamer
 
     audio-paths:
         type: array

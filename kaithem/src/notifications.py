@@ -139,7 +139,7 @@ def subscriber(topic,message):
 
     api.send(['notification',[time.time(),topic,message]])
 
-messagebus.subscribe('/system/notifications/',subscriber)
+messagebus.subscribe('/system/notifications/#',subscriber)
 
 def printer(t,m):
     if 'error' in t:

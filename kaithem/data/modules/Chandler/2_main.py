@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1566264981246449
+resource-timestamp: 1576711240426741
 resource-type: event
 versions: {}
 
@@ -202,7 +202,7 @@ if __name__=='__setup__':
             path = path+"/"
             
         if not path and not name:
-            return [[i+('/' if not i.endswith('/') else '') for i in soundfolders],[]]
+            return [[[i+('/' if not i.endswith('/') else ''),soundfolders[i]] for i in soundfolders],[]]
     
         #If it's not one of the sound folders return for security reasons
         match = False
@@ -212,7 +212,7 @@ if __name__=='__setup__':
             if path.startswith(i):
                 match =True
         if not match:
-            return [[i+('/' if not i.endswith('/') else '') for i in soundfolders],[]]
+            return [[[i+('/' if not i.endswith('/') else ''),soundfolders[i]] for i in soundfolders],[]]
             
         if not os.path.exists(path):
             return [[],[]]
@@ -274,10 +274,15 @@ if __name__=='__setup__':
     
        
     def getSoundFolders():
-        soundfolders = [i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])]
-        soundfolders.append(os.path.join(src.directories.datadir,"sounds"))
-        soundfolders.append(musicLocation)
-        soundfolders+=[i for i in kaithem.sound.directories if not i.startswith("__")]
+        "path:displayname dict"
+        soundfolders = {i.strip():i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])}
+        soundfolders[os.path.join(src.directories.datadir,"sounds")] = 'Builtin'
+        soundfolders[musicLocation] = "Chandler music folder"
+        for i in [i for i in kaithem.sound.directories if not i.startswith("__")]:
+            soundfolders[i]=i
+    
+        for i in os.listdir( os.path.join(src.directories.vardir,"modules",'data')):
+            soundfolders[os.path.join(src.directories.vardir,"modules",'data',i,"__filedata__",'media')]= "Module:"+i+"/media"
         return soundfolders
     
     
@@ -497,6 +502,8 @@ if __name__=='__setup__':
                     raise ValueError("Name cannot contain special characters except _")
             self.name = name
     
+            self.hidden=True
+    
             #Let subclasses set these
             if not hasattr(self,"status"):
                 self.status = "normal"
@@ -701,6 +708,7 @@ if __name__=='__setup__':
             
             Universe.__init__(self,name,channels)
     
+            self.hidden=False
     
         def onFrame(self):
             data = message(self.values)
@@ -864,6 +872,7 @@ if __name__=='__setup__':
             
             Universe.__init__(self,name,channels)
     
+            self.hidden=False
     
         def onFrame(self):
             data = (self.values)
@@ -886,7 +895,8 @@ if __name__=='__setup__':
             self.channelCount=channels
             
             self.claims = {}
-    
+            self.hidden=False
+            
             #Put a claim on all the tags
             for i in self.tagpoints:
                 #One higher than default
@@ -1264,7 +1274,6 @@ if __name__=='__setup__':
                             #Kinda brittle and hacky, because loadinga new default scene isn't well
                             #supported
                             cues = data[i]['cues']
-                            print(cues)
                             del data[i]['cues']
                             x = False
                             if 'defaultActive' in data[i]:
@@ -1287,7 +1296,7 @@ if __name__=='__setup__':
                             for j in cues:
                                 Cue(s,f=True,name=j,**cues[j])
                             s.cue = s.cues['default']
-                            s.gotoCue("default")
+                            #s.gotoCue("default")
     
                             self.scenememory[uuid] = s
                             if x:
@@ -1820,7 +1829,7 @@ if __name__=='__setup__':
                     self.link.send(["fixtureclasses",{i:[] for i in self.fixtureClasses.keys()}])
                 
                 if msg[0] == 'listsoundfolder':
-                    self.link.send(["soundfolderlisting",msg[1],listsoundfolder(msg[1])])
+                    self.link.send(["soundfolderlisting",msg[1], listsoundfolder(msg[1])])
     
     
     
@@ -2720,10 +2729,9 @@ if __name__=='__setup__':
         pass
     
     class Scene():
-        "An objecting representing one scene"
+        "An objecting representing one scene. DefaultCue says if you should auto-add a default cue"
         def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,blendArgs=None,backtrack=True,defaultCue=True, syncKey=None, bpm=60, syncAddr="239.255.28.12", syncPort=1783, soundOutput='',notes='',page=None):
     
-            "Not suggested to defaultCue==False, it's only there to avoid conflicts when loading saved cues"
             if name and name in module.scenes_by_name:
                 raise RuntimeError("Cannot have 2 scenes sharing a name: "+name)
     
@@ -2747,6 +2755,30 @@ if __name__=='__setup__':
             #This is for the nice display screens you can embed in pages
             self.pageLink = kaithem.widget.APIWidget(id=self.id)
             self.pageLink.require("users.chandler.pageview")
+    
+            #TagPoint for managing the current cue
+            self.cueTag = kaithem.tags.StringTag("/chandler/scenes/"+name+"/cue")
+            
+            #Important for reentrant cues
+            self.cueTag.pushOnRepeats = True
+            self.cueTagClaim = self.cueTag.claim("__stopped__","default", 51,annotation="SceneObject")
+    
+            #Allow GotoCue 
+            def cueTagHandler(val,timestamp, annotation):
+                #We generated this event, that means we don't have to respond to it
+                if annotation=="SceneObject":
+                    return
+                
+                if val =="__stopped__":
+                    self.stop()
+                else:
+                    #Just goto the cue
+                    self.gotoCue(val)
+    
+            self.cueTag.setHandler(cueTagHandler)
+    
+    
+    
     
             def c(u,cmd):
                 if cmd[0]=='getvars':
@@ -2780,6 +2812,27 @@ if __name__=='__setup__':
             self._blend = None
             self.blendClass = None
             self.alpha = alpha if defaultActive else 0
+    
+            self.cuelen = 0
+    
+            #TagPoint for managing the current alpha
+            self.alphaTag = kaithem.tags["/chandler/scenes/"+name+"/alpha"]
+            self.alphaTag.min=0
+            self.alphaTag.max=1
+            self.alphaTag.pushOnRepeats = False
+    
+            self.alphaTagClaim = self.alphaTag.claim(self.alpha,"default", 50, annotation="SceneObject")
+    
+            #Allow setting the alpha 
+            def alphaTagHandler(val,timestamp, annotation):
+                #We generated this event, that means we don't have to respond to it
+                if annotation=="SceneObject":
+                    return
+                #Just goto the cue
+                self.setAlpha(val)
+            self.alphaTag.setHandler(alphaTagHandler)  
+    
+    
             self.active = False
             self.defaultalpha = alpha
             self.name = name
@@ -2810,6 +2863,9 @@ if __name__=='__setup__':
             self.cues = {}
             if defaultCue:
                 self.cue = Cue(self,"default",self.values)
+                self.cueTagClaim.set(self.cue.name,annotation="SceneObject")  
+    
+    
             
             #Used to avoid an excessive number of repeats in random cues
             self.cueHistory = []
@@ -2879,13 +2935,17 @@ if __name__=='__setup__':
             module.scenes[self.id] = self
     
             if defaultCue:
-                self.gotoCue('default',sendSync=False)
+                #self.gotoCue('default',sendSync=False)
                 pass
     
             if active:
+                self.gotoCue('default',sendSync=False)
                 self.go()
                 if isinstance(active, float):
                     self.started = module.timefunc()-active
+            
+            else:
+                self.cueTagClaim.set("__stopped__",annotation="SceneObject")
     
         def __del__(self):
             try:
@@ -3043,6 +3103,10 @@ if __name__=='__setup__':
             with module.lock:
                 if not len(self.cues)>1:
                     raise RuntimeError("Cannot have scene with no cues")
+                if cue in cues:
+                    if cues[id].name=="default":
+                        raise RuntimeError("Cannot delete the cue named default")
+    
                 if self.cue and self.name == cue:
                     try:
                         self.gotoCue("default")
@@ -3131,6 +3195,13 @@ if __name__=='__setup__':
             "Goto cue by name, number, or string repr of number"
             with module.lock:
     
+                #Can't change the cue if some TagPoint claim has already locked it to one cue
+                if not self.cueTag.currentSource == self.cueTagClaim.name:
+                    if not self.cueTag.value == cue:
+                        if not self.cue:
+                            raise RuntimeError("Undefined state. There is no current cue, and one may be required here, but we cannot enter one because of a tagpoint: "+self.cueTag.currentSource)
+                        return
+    
                 if self.canvas:
                     self.canvas.save()
     
@@ -3213,7 +3284,9 @@ if __name__=='__setup__':
                 else:
                     #Act like we actually we in the default cue, but allow reenter no matter what since
                     #We weren't in any cue
-                    self.cue = self.cues['default']    
+                    self.cue = self.cues['default']
+                    self.cueTagClaim.set(self.cue.name,annotation="SceneObject")  
+     
                 
                 if not (cue==self.cue.name):
                     if generateEvents:
@@ -3317,7 +3390,8 @@ if __name__=='__setup__':
     
                         
                 self.cue = self.cues[cue]
-                
+                self.cueTagClaim.set(self.cue.name,annotation="SceneObject")  
+    
                 kaithem.sound.stop(str(self.id))
                 c = 0
                 while c<50 and kaithem.sound.isPlaying(str(self.id)):
@@ -3335,7 +3409,6 @@ if __name__=='__setup__':
                             out = self.soundOutput
                         if not out:
                             out = None
-                        print(self.id,self.alpha)
                         kaithem.sound.play(sound,handle=str(self.id),volume=self.alpha,output=out)
                         
                     else:
@@ -3487,6 +3560,7 @@ if __name__=='__setup__':
             with module.lock:
                 if self in module.activeScenes:
                     return
+    
                 self.canvas = FadeCanvas()
     
                 self.manualAlpha = False
@@ -3637,8 +3711,16 @@ if __name__=='__setup__':
         def stop(self):
             with module.lock:
                 #No need to set rerender
-                self.scriptContext.clearBindings()
-                self.scriptContext.clearState()
+                if self.scriptContext:
+                    self.scriptContext.clearBindings()
+                    self.scriptContext.clearState()
+                
+                #Use the cue as the marker of if we actually
+                #Completed the stop, not just if we logically should be stopped
+                #Because we want to be able to manually retry that if we failed.
+                if not self.cue:
+                    return
+                
                 self._blend =None
                 self.hasNewInfo = {}
                 self.canvas = None
@@ -3661,7 +3743,7 @@ if __name__=='__setup__':
                 kaithem.sound.stop(str(self.id))
     
                 self.runningTimers.clear()
-                self.cue=None
+                
                 try:
                     for i in module.boards:
                         i().link.send(['scenetimers',self.id, self.runningTimers])
@@ -3669,17 +3751,21 @@ if __name__=='__setup__':
                     rl_log_exc("Error handling timer set notification")
                     print(traceback.format_exc())
                 
-    
+             
+                self.cue=None
+                self.cueTagClaim.set("__stopped__",annotation="SceneObject")
     
             
         def setAlpha(self,val,sd=False):
+            val = min(1,max(0,val))
             kaithem.sound.setvol(val, str(self.id))
             self.rerender = True
             
-            if not self.isActive():
+            if not self.isActive() and val>0:
                 self.go()
             self.manualAlpha = True
             self.alpha = val
+            self.alphaTagClaim.set(val,annotation="SceneObject")
             if sd:
                 self.defaultalpha = val
             self.hasNewInfo = {}

@@ -369,7 +369,7 @@ class WebInterface():
 
             if path[0] == 'getfileresource':
                 pages.require("/admin/modules.edit")
-                folder = os.path.join(directories.vardir,"modules","filedata")
+                folder = os.path.join(directories.vardir,"modules","data",module,"__filedata__")
                 data_basename =fileResourceAbsPaths[module,path[1]]
                 dataname = os.path.join(folder,data_basename)
                 if os.path.isfile(dataname):
@@ -396,7 +396,7 @@ class WebInterface():
                 pages.postOnly()
 
                 if not module in external_module_locations:
-                    folder = os.path.join(directories.vardir,"modules","filedata")
+                    folder = os.path.join(directories.vardir,"modules",'data',module,"__filedata__")
                 else:
                     folder = os.path.join(external_module_locations[module],"__filedata__")
 
@@ -440,7 +440,7 @@ class WebInterface():
                         modules_state.createRecoveryEntry(root,escapedName,r)
                     ####END BLOCK OF COPY PASTED CODE.
 
-                    insertResource({'resource-type':'internal-fileref', 'target':"$MODULERESOURCES/"+data_basename})
+                    insertResource({'resource-type':'internal-fileref', 'target':"$MODULERESOURCES/"+url(escapedName,modules.safeFnChars)})
                     if len(path)>1:
                         x = path[1]+"/"
                     else:
@@ -569,6 +569,7 @@ def addResourceTarget(module,type,name,kwargs,path):
     unsaved_changed_obj[(root,escapedName)] = "Resource added by"+ pages.getAcessingUser()
 
     def insertResource(r):
+        r['resource-timestamp'] = int(time.time()*1000000)
         ActiveModules[root][escapedName] = r
         modules_state.createRecoveryEntry(module,escapedName, r)
 
@@ -731,6 +732,8 @@ def resourceUpdateTarget(module,resource,kwargs):
     with modulesLock:
         t = ActiveModules[module][resource]['resource-type']
         resourceobj = ActiveModules[module][resource]
+        resourceobj['resource-timestamp'] = int(time.time()*1000000)
+
         if t == 'permission':
             resourceobj['description'] = kwargs['description']
             #has its own lock
@@ -868,6 +871,7 @@ def resourceUpdateTarget(module,resource,kwargs):
         if 'name' in kwargs:
             if not kwargs['name'] == resource:
                 mvResource(module,resource,module,kwargs['name'])
+    
 
     messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + " modified resource " +
                            resource + " of module " + module)

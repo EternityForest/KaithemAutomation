@@ -23,6 +23,9 @@ import urllib.parse
 
 logger = logging.getLogger("system")
 
+#/ is there because we just forbid use of that char for anything but dirs,
+#So there is no confusion
+safeFnChars="~@*&()-_=+/ '"
 
 try:
     import fcntl
@@ -599,7 +602,7 @@ def saveResource2(obj,fn:str):
     if os.path.exists(fn):
         try:
             #Don't overwrite more recent manual changes
-            if 'resource-timestamp' in r:
+            if 'resource-timestamp' in obj:
                 t = int(r['resource-timestamp'])/10**6
                 if t<os.path.getmtime(fn):
                     #If the file is newer than the current time,
@@ -607,6 +610,7 @@ def saveResource2(obj,fn:str):
                     #Resolution logic
                     if os.path.getmtime(fn) > time.time():
                         logging.info(fn + " has been modified externally, on-disk version is more recent, not saving")
+                        messagebus.postMessage("/system/notifications/",fn + " has been modified externally, on-disk version is more recent, not saving")
                         return fn
 
             #Check for sameness, avoid useless write
@@ -625,28 +629,6 @@ def saveResource2(obj,fn:str):
     logger.debug("saved resource to file "+ fn)
     obj['resource-loadedfrom']=fn
     return fn
-
-def cleanupBlobs():
-    fddir = os.path.join(directories.vardir,"modules","filedata")
-    inUseFiles = {os.path.normpath(i):True for i in fileResourceAbsPaths.values()}
-    #Defensive programming against nonexistant file dumps directory
-    if not os.path.exists(fddir):
-        return
-
-    for root, dirs, files in os.walk(fddir):
-        for i in files:
-            #Old style hashes were long, new stuff isn't in the root
-            #Preserver the random .directory config stuff
-            if not((i=='README.md' or len(i)<20) and fddir==root):
-                i=os.path.join(root,i)
-                fn = os.path.join(root,i )
-
-                if not os.path.normpath(fn) in inUseFiles:
-                    os.remove(fn)
-    for root, dirs, files in os.walk(fddir,topdown=False):
-        if not files and not dirs:
-            os.rmdir(root)
-
 
 def saveAll():
     """saveAll and loadall are the ones outside code shold use to save and load the state of what modules are loaded.
@@ -676,7 +658,6 @@ def saveAll():
         saveModules(os.path.join(directories.moduledir,"data"))
         #We only want 1 backup(for now at least) so clean up old ones.
         util.deleteAllButHighestNumberedNDirectories(directories.moduledir,2)
-        cleanupBlobs()
         moduleschanged = False
         return True
 
@@ -708,11 +689,11 @@ def loadRecoveryDbInfo(completeFileTimestamp=0):
                         if r['resource-type'] == "internal-fileref":
                             if not i['module'] in external_module_locations:
                                 t = parseTarget((r['target']), i['module'])
-                                newpath = os.path.join(directories.vardir,"modules","filedata",t)
+                                newpath = os.path.join(directories.vardir,"modules",'data',i['module'],"__filedata__",url(t,safeFnChars))
                             else:
                                 d = external_module_locations[i['module']]
                                 t = parseTarget((r['target']), i['module'],True)
-                                newpath = os.path.join(d,"__filedata__",t)
+                                newpath = os.path.join(d,"__filedata__",url(t,safeFnChars))
                             fileResourceAbsPaths[i['module'],i['resource']] = newpath
 
                     else:
@@ -775,10 +756,6 @@ def initModules():
     usrpages.getPagesFromModules()
     remotedevices.loadProgramsFromModules()
     moduleshash = hashModules()
-    try:
-        cleanupBlobs()
-    except:
-        logger.exception("Failed to cleanup old blobs. This is normal if kaithem's var dir is not currently writable.")
     logger.info("Initialized modules")
 
 def saveModule(module, dir:str,modulename:Optional[str]=None, ignore_func=None):
@@ -809,41 +786,20 @@ def saveModule(module, dir:str,modulename:Optional[str]=None, ignore_func=None):
             saved.append((modulename,resource))
 
             if r['resource-type'] == "internal-fileref":
-                #Handle two separate ways of handling these file resources.
-                #One is to store them directly in the module data in a special folder.
-                #That's what we do if we are using an external folder
-                #For internal folders we don't want to store duplicate copies in the dumps,
-                #So we store them in one big folder that is shared between all loaded modules.
-                #Which is not exactly ideal, but all the per-module stuff is stored in dumps.
-
+                #store them directly in the module data in a special folder.
+               
                 #Basically, we want to always copy the current "loaded" version over.
                 currentFileLocation = fileResourceAbsPaths[modulename,resource]
                 #Handle broken targets if a file was manually deleted
                 if os.path.isfile(currentFileLocation):
-                    #If the resource yaml file is in the vardir, so the file data goes in filedata from wherever it currently is.
-                    if util.in_directory(fn, directories.vardir):
-                        t =parseTarget(r['target'],modulename)
-                        newpath = os.path.join(directories.vardir,"modules","filedata",t)
-                        #And the file is not already in place
-                        if not newpath == currentFileLocation:
-                            util.ensure_dir(newpath)
-                            #It doesn't matter if this gets interrupted. Files are UUID identified so they never overwite
-                            #So really if a dump gets interrupted there won't be anything valid to reference it
-                            #and it will just get cleaned up as an unused blob.
-                            #What's important is not deleting stuff in external folders for no reason.
-                            shutil.copyfile(currentFileLocation, newpath)
-                            fileResourceAbsPaths[modulename,resource] = newpath
-                    #Resource file is outside vardir. So the actual file data belongs with the module folder
-                    else:
-
-                        t =parseTarget(r['target'],modulename,True)
-                        newpath = os.path.join(dir,"__filedata__",t)
-                        if not newpath == currentFileLocation:
-                            util.ensure_dir(newpath)
-                            #Storage is cheap enough I guess, might as well copy instead of move for now. Maybe
-                            #change it?
-                            shutil.copyfile(currentFileLocation, newpath)
-                            fileResourceAbsPaths[modulename,resource] = newpath
+                    t =parseTarget(r['target'],modulename,True)
+                    newpath = os.path.join(dir,"__filedata__",url(t,safeFnChars))
+                    if not newpath == currentFileLocation:
+                        util.ensure_dir(newpath)
+                        #Storage is cheap enough I guess, might as well copy instead of move for now. Maybe
+                        #change it?
+                        shutil.copyfile(currentFileLocation, newpath)
+                        fileResourceAbsPaths[modulename,resource] = newpath
                 #broken target
                 else:
                     logger.error("File reference resource has nonexistant target, igonring.")
@@ -958,12 +914,6 @@ def saveModules(where:str,markSaved=True):
         except:
             raise
 
-    #Write a readme, filesystem embedded documenteation
-    p = os.path.join(directories.vardir,"modules","filedata","README.md")    
-    util.ensure_dir(p)
-
-    f = os.path.join(os.path.dirname(__file__),"docs","fsreadme","filedata_readme.md")
-    persist.save(persist.load(f),p)
 
 
 def loadModules(modulesdir:str):
@@ -1101,7 +1051,7 @@ def loadOneResource(folder, relpath, module):
     
         if util.in_directory(os.path.join(folder,relpath), directories.vardir) or util.in_directory(os.path.join(folder,relpath), directories.datadir):
             t = parseTarget(r['target'],module)
-            fileResourceAbsPaths[module,resourcename] = os.path.normpath(os.path.join(directories.vardir,"modules","filedata",t))
+            fileResourceAbsPaths[module,resourcename] = os.path.normpath(os.path.join(directories.vardir,"modules",'data',module,"__filedata__",t))
         else:
             t = parseTarget(r['target'],module,True)
             fileResourceAbsPaths[module,resourcename] = os.path.normpath(os.path.join(folder,"__filedata__",t))
@@ -1112,12 +1062,17 @@ def loadOneResource(folder, relpath, module):
 
 
 
-def loadModule(folder:str, modulename:str, ignore_func=None):
+def loadModule(folder:str, modulename:str, ignore_func=None, resource_folder=None):
     "Load a single module but don't bookkeep it . Used by loadModules"
     logger.debug("Attempting to load module "+modulename)
+
+    if not resource_folder:
+        resource_folder = os.path.join(folder, "__filedata__")
+
     with modulesLock:
         #Make an empty dict to hold the module resources
         module = {}
+
         #Iterate over all resource files and load them
         for root, dirs, files in os.walk(folder):
                 #Function used to ignore things like VCS folders and such
@@ -1129,18 +1084,16 @@ def loadModule(folder:str, modulename:str, ignore_func=None):
                     relfn = os.path.relpath(os.path.join(root,i),folder)
                     fn = os.path.join(folder , relfn)
                     try:
-                        #Copy stuff from anything called filedata to handle library modules with filedata
-                        if os.path.basename(root) == "__filedata__":
-                            if not os.path.exists(os.path.join(directories.vardir,"modules","filedata")):
-                                os.makedirs(os.path.join(directories.vardir,"modules","filedata"),700)
-
-                            #Special case handling of if we are loading from the data dir
-                            if util.in_directory(fn, directories.datadir):
-                                shutil.copy(fn, os.path.join(directories.vardir,"modules","filedata"))
-                            continue
+                        #TODO: Lib modules? filedata?
                         #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
                         try:
                             r,resourcename = readResourceFromFile(fn,relfn)
+                            if not r:
+                                #File managers sprinkle this crap around
+                                if not os.path.basename(fn)=='.directory':
+                                    logger.exception("Null loading "+fn)
+                                continue
+
                         except:
                             logger.exception("Error loading "+fn)                        
                             continue
@@ -1151,24 +1104,8 @@ def loadModule(folder:str, modulename:str, ignore_func=None):
                             logger.warning("No resource type found for "+resourcename)
                             continue
                         if r['resource-type'] == "internal-fileref":
-                            #Handle two separate ways of handling these file resources.
-                            #One is to store them directly in the module data in a special folder.
-                            #That's what we do if we are using an external folder
-                            #For internal folders we don't want to store duplicate copies in the dumps,
-                            #So we store them in one big folder that is shared between all loaded modules.
-                            #Which is not exactly ideal, but all the per-module stuff is stored in dumps.
+                            fileResourceAbsPaths[modulename,resourcename] = os.path.join(folder,"__filedata__",url(resourcename,safeFnChars))
 
-                            #Note that we handle things in library modules the same as in loaded vardir modules,
-                            #Because things in vardir modules get copied to the vardir.
-                            
-                            if util.in_directory(fn, directories.vardir) or util.in_directory(fn, directories.datadir) :
-                                t =parseTarget(r['target'],modulename)
-                                fileResourceAbsPaths[modulename,resourcename] = os.path.join(directories.vardir,"modules","filedata",t)
-                            else:
-                                t =parseTarget(r['target'],modulename,True)
-                                fileResourceAbsPaths[modulename,resourcename] = os.path.join(folder,"__filedata__",t)
-
-                         
                             if not os.path.exists(fileResourceAbsPaths[modulename,resourcename]):
                                 logger.error("Missing file resource: "+fileResourceAbsPaths[modulename,resourcename])
                                 messagebus.postMessage("/system/notifications/errors","Missing file resource: "+fileResourceAbsPaths[modulename,resourcename])
@@ -1178,15 +1115,31 @@ def loadModule(folder:str, modulename:str, ignore_func=None):
                         raise
 
                 for i in dirs:
-                    if i == "__filedata__":
-                        continue
+                    
                     if ignore_func and ignore_func(i):
                         continue
                     relfn = os.path.relpath(os.path.join(root,i),folder)
                     fn = os.path.join(folder , relfn)
-                    #Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
+                    if "/__filedata__/" in fn:
+                        continue
+                    #Create a directory resource for the dirrctory
                     module[util.unurl(relfn)] = {"resource-type":"directory"}
 
+        #Make resource objects for anything missing one
+        if resource_folder:
+            s = set(fileResourceAbsPaths.values())
+            for root, dirs, files in os.walk(resource_folder):
+                for i in files:
+                    f = os.path.join(root,i)
+                    if not resource_folder.endswith("/"):
+                        resource_folder+="/"
+                    
+                    data_basename= f[len(resource_folder):]
+                    
+
+                    if not f in s:
+                        module[util.unurl(data_basename)]= {'resource-type':'internal-fileref', 'target':"$MODULERESOURCES/"+data_basename}
+                    fileResourceAbsPaths[modulename,data_basename] = f     
 
         scopes[modulename] = ModuleObject(modulename)
         ActiveModules[modulename] = module
@@ -1198,10 +1151,6 @@ def loadModule(folder:str, modulename:str, ignore_func=None):
 def parseTarget(t, module,in_ext=False):
     if t.startswith("$MODULERESOURCES/"):
         t=t[len('$MODULERESOURCES/'):]
-        #Ext modules have the resource dir right in the module
-        #And don't need the extra sort by module layer
-        if not in_ext:
-            t =urllib.parse.quote(module, safe=" ")+"/"+t
     return t
 
 
@@ -1219,18 +1168,18 @@ def getModuleAsYamlZip(module,noFiles=True):
                 continue
             #AFAIK Zip files fake the directories with naming conventions
             s,ext = serializeResource(ActiveModules[module][resource])
-            z.writestr(url(module," ")+'/'+url(resource,"/ ")+ext,s)
+            z.writestr(url(module," ")+'/'+url(resource,safeFnChars)+ext,s)
             if ActiveModules[module][resource]['resource-type'] == "internal-fileref":
                 if noFiles:
                     raise RuntimeError("Cannot download this module without admin rights as it contains embedded files")
                 
                 target = fileResourceAbsPaths[module,resource]
-                if os.path.exists(os.path.join(directories.vardir,"modules","filedata",target)):
-                    z.write(os.path.join(directories.vardir,"modules","filedata",target),"__filedata__/"+url(module," ")+"/"+url(resource,'/ '))
+                if os.path.exists(target):
+                    z.write(target,module+"/__filedata__/"+url(resource,safeFnChars))
         
                 else:
                     if not incompleteError:
-                        logging.error("Missing file(s) in module including: "+os.path.join(directories.vardir,"modules","filedata",target))
+                        logging.error("Missing file(s) in module including: "+os.path.join(directories.vardir,"modules",'data',module,"__filedata__",target))
                         incompleteError=True
         z.close()
         s = ram_file.getvalue()
@@ -1244,14 +1193,16 @@ def load_modules_from_zip(f,replace=False):
     newfrpaths = {}
 
     for i in z.namelist():
+        if i.endswith("/"):
+            continue
         #get just the folder, ie the module
-        p = util.unurl(i.split('/')[0])
+        p = util.unurl(i.split('/',1)[0])
        
-        relative_name = (i.split('/'))[1]
-        if p not in new_modules and not "__filedata__" in p:
+        relative_name = (i.split('/',1))[1]
+        if p not in new_modules:
             new_modules[p] = {}
         try:
-            if not  "__filedata__" in p:
+            if not "/__filedata__/" in i:
                 try:
                     f = z.open(i)
                     r,n =readResourceFromData(f.read().decode(), relative_name)
@@ -1259,22 +1210,23 @@ def load_modules_from_zip(f,replace=False):
                         raise RuntimeError("Attempting to decode file "+str(i)+" resulted in a value of None")
                     new_modules[p][n] = r
                     if r['resource-type'] == "internal-fileref":
-                        modulename
-                        newfrpaths[p,n] = os.path.join(directories.vardir,"modules","filedata",p,r['target'])
+                        newfrpaths[p,n] = os.path.join(directories.vardir,"modules",'data',p,"__filedata__",url(n,safeFnChars))
+                except:
+                    raise ValueError(i+" in zip makes no sense")
                 finally:
                     f.close()
             else:
                 try:
                     inputfile = z.open(i)
-                    folder = os.path.join(directories.vardir,"modules","filedata")
+                    folder = os.path.join(directories.vardir,"modules",'data',p,"__filedata__")
                     util.ensure_dir2(folder)
 
                     #Assumimg format is MODULE/__filedata__/file.png, we get just
                     #file.png
-                    data_basename = util.unurl(i.split('/')[1])
+                    data_basename = util.unurl(i.split('/',2)[2])
 
-                    #We are saving it in filedata/MODULE/file.png
-                    dataname = os.path.join(folder,p,data_basename)
+                    #We are saving it in vardir/module/__filedata__/file.png
+                    dataname = os.path.join(folder,data_basename)
 
                     util.ensure_dir2(os.path.dirname(dataname))
 
@@ -1420,21 +1372,14 @@ def rmResource(module,resource,message="Resource Deleted"):
         elif r['resource-type'] == 'permission':
             auth.importPermissionsFromModules() #sync auth's list of permissions
 
-            #Don't actually delete the file on disk here, because doing stuff on disk should be atomic.
-            #We let the blobs cleanup take care of that instead.
         elif r['resource-type'] == 'internal-fileref':
+            try:
+                os.remove(fileResourceAbsPaths[module,resource])
+            except:
+                pass
+
             del fileResourceAbsPaths[module,resource]
-            
-            #Eventually we delete here not in a cleanup step.
-            # if module in external_module_locations:
-            #     f = parseTarget(r['target'], module,True)
-            #     f=os.path.join(f,external_module_locations[module],'__filedata__',f)
-            # else:
-            #     f = parseTarget(r['target'], module,True)
-            #     folder = os.path.join(directories.vardir,"modules","filedata")
-            #     f=os.path.join(folder,'__filedata__',f)     
-            # if os.path.isfile:
-            #     os.remove(f)
+
 
         else:
             additionalTypes[r['resource-type']].ondelete(module,resource,r)

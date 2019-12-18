@@ -47,6 +47,11 @@ from src import tagpoints
 class TagInterface():
     def __getitem__(self,k):
         return tagpoints.Tag(k)
+
+    def StringTag(self,k):
+        return tagpoints.StringTag(k)
+
+    TagClass = tagpoints._TagPoint
             
 class Kaithem():
 
@@ -89,7 +94,12 @@ class Kaithem():
         def flushsyslog():
             import pylogginghandler
             pylogginghandler.syslogger.flush()
-            
+
+    class mqtt(object):
+        @staticmethod
+        def Connection(server,port=1883,alertPriority="info", alertAck=True):
+            from . import mqtt
+            return mqtt.getConnection(server,port,alertPriority=alertPriority, alertAck=alertAck)
     class misc(object):
         @staticmethod
         def lorem():

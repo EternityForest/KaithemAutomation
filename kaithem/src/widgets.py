@@ -298,10 +298,11 @@ class Widget():
     def read(self):
         return self.value
 
-    def write(self,value):
+    def write(self,value,push=True):
         self.value = value
         self.doCallback("__SERVER__",value,"__SERVER__")
-        self.send(value)
+        if push:
+            self.send(value)
         
 
     def send(self,value):
@@ -461,7 +462,7 @@ class Meter(Widget):
         Widget.__init__(self,*args,**kwargs)
         self.value = [0,'normal',self.formatForUser(0)]
 
-    def write(self,value):
+    def write(self,value,push=True):
         #Decide a class so it can show red or yellow with high or low values.
         self.c = "normal"
 
@@ -481,7 +482,7 @@ class Meter(Widget):
             if value <= self.k['low']:
                 self.c = 'error'
         self.value = [round(value,3),self.c, self.formatForUser(value)]
-        Widget.write(self,self.value)
+        Widget.write(self,self.value,push)
 
     def setup(self,min,max,high,low,unit=None,displayUnits=None):
         "On-the-fly change of parameters"

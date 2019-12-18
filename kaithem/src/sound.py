@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import subprocess,os,math,time,sys,threading, collections,logging,re
+import subprocess,os,math,time,sys,threading, collections,logging,re,uuid
 from . import  util, scheduling,directories,workers, registry,widgets,messagebus, midi
 from .config import config
 
@@ -224,6 +224,15 @@ def soundPath(fn,extrapaths=[]):
     filename = util.search_paths(fn, extrapaths)
     if not filename:
         filename = util.search_paths(fn, sound_paths)
+
+    #Search all module media folders
+    if not filename:
+        for i in os.listdir( os.path.join(directories.vardir,"modules",'data')):
+            p =os.path.join(directories.vardir,"modules",'data',i,"__filedata__",'media')
+            filename = util.search_paths(fn, [p])
+            if filename:
+                break
+
     #Raise an error if the file doesn't exist
     if not filename or not os.path.isfile(filename):
         raise ValueError("Specified audio file '"+fn+"' was not found")
@@ -241,6 +250,11 @@ class SoundWrapper(object):
 
     def readySound(self, *args,**kwargs):
         pass
+    
+    @staticmethod
+    def testAvailable():
+        #Default to command based test
+        return False
 
     #little known fact: Kaithem is actually a large collection of
     #mini garbage collectors and bookkeeping code...
@@ -861,7 +875,163 @@ class MPlayerWrapper(SoundWrapper):
             workers.do(f)
 
 
-l = {'sox':SOXWrapper, 'mpg123':Mpg123Wrapper, "mplayer":MPlayerWrapper, "madplay":MadPlayWrapper}
+from . import gstwrapper
+class GSTAudioFilePlayer(gstwrapper.Pipeline):
+    def __init__(self, file, volume=100, output="@auto"):
+        gstwrapper.Pipeline.__init__(self,str(uuid.uuid4()))
+        self.ended = False
+
+        self.src = self.addElement('filesrc',location=file)
+
+        self.addElement('decodebin')
+        self.addElement('audioconvert')
+        self.addElement('audioresample')
+
+        self.fader = self.addElement('volume', volume=volume)
+
+        if output=="@auto":
+            self.sink = self.addElement('autoaudiosink')
+        elif output.startswith("@alsa:"):
+            self.addElement('alsasink',device= output[6:])
+        elif ":" in output:
+            self.sink = self.addElement('jackaudiosink', buffer_time=8000, 
+            latency_time=4000, sync=False,slave_method=2,port_pattern="jhjkhhhfdrhtecytey",
+            connect=0)
+
+            self.aw = jackmanager.Airwire(self.name+"_out", i)
+        else:
+            raise RuntimeError("No idea how to connect to output")
+    
+    def setFader(self,level):
+        if self.fader:
+            self.fader.set_property('volume', level)
+
+    def pause(self):
+        self.pipeline.set_state(Gst.State.PAUSED)
+
+    def resume(self):
+        self.pipeline.set_state(Gst.State.PLAYING)
+  
+    def onStreamFinished(self):
+        self.ended=True
+
+
+class GStreamerBackend(SoundWrapper):
+    backendname = "Gstreamer"
+
+    @staticmethod
+    def testAvailable():
+        try:
+            gstwrapper.init()
+        except:
+            pass
+
+        return not gstwrapper.Gst==None
+    #What this does is it keeps a reference to the sound player process and
+    #If the object is destroyed it destroys the process stopping the sound
+    #It also abstracts checking if its playing or not.
+    class GStreamerContainer(object):
+        def __init__(self,filename,**kwargs):
+            self.pl = GSTAudioFilePlayer(filename, kwargs.get('volume',1))
+            if not  kwargs.get('pause',0):
+                self.pl.start()
+            else:
+                self.pl.pause()
+            
+        def __del__(self):
+            try:
+                self.pl.stop()
+            except:
+                pass
+
+        def isPlaying(self):
+            return not self.pl.ended
+        
+        def setVol(self,v):
+            self.pl.setFader(v)
+
+        def pause(self):
+            self.pl.pause()
+        
+        def resume(self):
+            self.pl.resume()
+       
+    def playSound(self,filename,handle="PRIMARY",extraPaths=[],**kwargs):
+        #Those old sound handles won't garbage collect themselves
+        self.deleteStoppedSounds()            
+        fn = soundPath(filename,extraPaths)
+
+        if 'volume' in kwargs:
+            #odd way of throwing errors on non-numbers
+            v  = float(kwargs['volume'])
+        else:
+            v =1;
+
+        if 'start' in kwargs:
+            #odd way of throwing errors on non-numbers
+            start  = float(kwargs['start'])
+        else:
+            start =0
+
+        if 'end' in kwargs:
+            #odd way of throwing errors on non-numbers
+            end  = float(kwargs['end'])
+        else:
+            end = None
+
+        if "output" in kwargs and kwargs['output']:
+                x = kwargs['output']
+
+                #Try to resolve it as an identifier.
+                getAvailableCards()
+                if x in commonSoundAliases:
+                    if jackClientsFound:
+                        x = commonSoundAliases[x].jackName
+                    else:
+                        x = "@alsa:"+commonSoundAliases[x].alsaName
+                output=x
+        else:
+            output = "@auto"
+        #Play the sound with a background process and keep a reference to it
+        self.runningSounds[handle] = self.GStreamerContainer(fn,volume=v,output=output)
+
+    def stopSound(self, handle ="PRIMARY"):
+        #Delete the sound player reference object and its destructor will stop the sound
+            if handle in self.runningSounds:
+                #Instead of using a lock lets just catch the error is someone else got there first.
+                try:
+                    del self.runningSounds[handle]
+                except KeyError:
+                    pass
+        
+    def stopAllSounds(self):
+        x = list(self.runningSounds.keys())
+        for i in x:
+            try:
+                self.runningSounds[i].end = True
+                self.runningSounds.pop(i)
+            except KeyError:
+                raise
+    def setVolume(self,vol,channel = "PRIMARY"):
+            "Return true if a sound is playing on channel"
+            try:
+                return self.runningSounds[channel].setVol(vol)
+            except KeyError:
+                pass
+    
+    def pause(self,channel = "PRIMARY" ):
+        try:
+            return self.runningSounds[channel].pause()
+        except KeyError:
+            pass
+
+    def resume(self,channel = "PRIMARY" ):
+        try:
+            return self.runningSounds[channel].pause()
+        except KeyError:
+            pass
+    
+l = {'sox':SOXWrapper, 'mpg123':Mpg123Wrapper, "mplayer":MPlayerWrapper, "madplay":MadPlayWrapper, 'gstreamer':GStreamerBackend}
 
 
 backend = SoundWrapper()
@@ -872,7 +1042,7 @@ else:
     
     
 for i in config['audio-backends']:
-    if util.which(i):
+    if util.which(i) or l[i].testAvailable():
         backend = l[i]()
         break
 

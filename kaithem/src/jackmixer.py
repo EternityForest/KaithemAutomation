@@ -15,7 +15,7 @@
 
 import re,time,json,logging,copy, subprocess
 
-from . import widgets, messagebus,util,registry
+from . import widgets, messagebus,util,registry, tagpoints
 from . import jackmanager, gstwrapper,mixerfx
 
 import threading
@@ -220,11 +220,21 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
         self.sends = []
         self.sendAirwires ={}
   
+        self.faderTag = tagpoints.Tag("/jackmixer/channels/"+name+"/fader")
+        self.faderTag.subscribe(self._faderTagHandler)
+        self.faderTag.max = 20
+        self.faderTag.min= -60
+        self.faderTag.lo = -59
+        self.faderTag.hi = 3
+
+        self.effectParamTags = {}
+
 
         self.usingJack=True
 
 
 
+   
 
 
     def finalize(self):
@@ -340,8 +350,9 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                     else:
                         self.setProperty(self.effectsById[i['id']],j, i['params'][j]['value'])
 
+        self.faderTag.value=d['fader']
+        self.setFader(self.faderTag.value)
 
-        self.setFader(d["fader"])
         self.setInput(d['input'])
         self.setOutputs(d['output'].split(","))
 
@@ -396,12 +407,20 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                 self.board.pushLevel(self.name, l)
         return True
 
-    def setFader(self,level):
+    def _faderTagHandler(self,level,t,a):
+        #Note: We don't set the configured data fader level here.
         if self.fader:
             if level>-60:
                 self.fader.set_property('volume', 10**(float(level)/20))
             else:
                 self.fader.set_property('volume', 0)
+        
+        self.board.api.send(['fader', channel, level])
+    
+    def setFader(self,level):
+        #Let the _faderTagHandler handle it.
+        self.faderTag.value=level
+        
 
     def addSend(self,target, id,volume=-60):
             with self.lock:
@@ -586,10 +605,14 @@ class MixingBoard():
         if not self.running:
             return
         with self.lock:
-            self.channels[channel]['fader']= float(level)
-            self.api.send(['fader', channel, level])
             c = self.channelObjects[channel]
             c.setFader(level)
+
+            #Push the real current value, not just repeating what was sent
+            self.api.send(['fader', channel, c.faderTag.value])
+
+            if c.faderTag.currentSource=='default':
+                self.channels[channel]['fader']= float(level)
             
 
     def savePreset(self, presetName):

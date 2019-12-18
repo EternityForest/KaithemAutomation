@@ -48,6 +48,23 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+
+### 0.65.1
+- Prevent tagpoint widget send from blocking up the process
+- New StringTag objects, like tagpoints but for strings
+- Chandler Scene alpha and current cue are now exposed as read/writable tagpoints
+- Properly handle resource-timestamps
+- BREAKING: Message topics now work more like MQTT topics. They have to end with # if you want all subtopics(+ is not supported)
+- Gstreamer based audio playback is now the default
+- =expression based polled ChandlerScript events(Dynamically eveluated when needed)
+- Chandler tagValue(tagName) function
+- Chandler setTag(name,value, priority) command to set tags and stringtags 
+- Semi-breaking: File resources are stored in __filedata__ and managed immediately, not on system state save. They are no longer atomic.
+- Messagebus timestamp and annotation
+- MQTT support via eclipse paho
+- Jack mixer fader tagpoints
+- Fix gpio output ignoring pre-existing tagpoints
+
 ### 0.65.0
 - Fix the emedded file resources
 - Warning on missing file resources
@@ -56,19 +73,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 ### 0.64.9
 - Add automationhat to the included libraries(In lowpriority)
 - Fix the link to the tagpoint documentation
-
-### 0.64.9
-- Add automationhat to the included libraries(In lowpriority)
-- Fix the link to the tagpoint documentation
-
-
-### 0.64.8
-- Fix "Bad record mac" nuisiance errors by making widgets properly threadsafe
-- Autoscroll in Chandler event log
-- Fix bug where persist module could create folder with same name as file you wanted to save
-- Chandler sends events in background thread to avoind blocking rendering
-- Send only the necessary chandler metadata on every cue change
-
 
 License Terms
 =============
