@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1576711240426741
+resource-timestamp: 1576909277345707
 resource-type: event
 versions: {}
 
@@ -196,6 +196,7 @@ if __name__=='__setup__':
     
     
     def listsoundfolder(path):
+        " return format [ [subfolderfolder,displayname],[subfolder2,displayname]  ], [file,file2,etc]"
         soundfolders = getSoundFolders()
     
         if not path.endswith("/"):
@@ -219,7 +220,7 @@ if __name__=='__setup__':
     
         x = os.listdir(path)
         return(
-            sorted([ os.path.join(path,i)+'/' for i in x if os.path.isdir(os.path.join(path,i))]),
+            sorted([ [os.path.join(path,i)+'/',os.path.join(path,i)+'/'] for i in x if os.path.isdir(os.path.join(path,i))]),
             sorted([i for i in x if os.path.isfile(os.path.join(path,i))])
         ) 
     
@@ -3422,6 +3423,36 @@ if __name__=='__setup__':
                 self.rerender = True
                 self.pushMeta(statusOnly=True)
     
+                self.preloadNextCueSound()
+                
+    
+        def preloadNextCueSound(self):
+            #Preload the next cue's sound if we know what it is
+            nextcue = None
+            if self.cue.nextCue =='': 
+                nextCue=self.getDefaultNext()            
+            elif self.cue.nextCue in self.cues:
+                nextCue =  self.cue.nextCue
+        
+    
+            if nextCue:
+                c= self.cues[nextCue]
+                sound = c.sound
+                try:
+                    sound = self.resolveSound(sound)
+                except:
+                    return
+                if os.path.isfile(sound):
+                    out = self.cue.soundOutput
+                    if not out:
+                        out = self.soundOutput
+                    if not out:
+                        out = "@auto"
+    
+                    try:
+                        kaithem.sound.preload(sound, out)
+                    except:
+                        pass
     
         def resolveSound(self, sound):
             #Allow relative paths
