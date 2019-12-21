@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1576650424956492
+resource-timestamp: 1576491387814610
 resource-type: page
 template-engine: mako
 
@@ -35,156 +35,164 @@ from src import tagpoints
             break
         limitedTagsListing.append(i)
 %>
-    <title>Chandler Console</title>
+<title>Chandler Console</title>
 
-    <style>
-        /*https://allthingssmitty.com/2016/10/03/responsive-table-layout/*/
+<style>
+    /*https://allthingssmitty.com/2016/10/03/responsive-table-layout/*/
+
     @media screen and (max-width: 820px) {
-    
-    table.reflow tr {
-        border-bottom: 3px solid #ddd;
-        display: block;
-        margin-bottom: 1em;
+        table.reflow tr {
+            border-bottom: 3px solid #ddd;
+            display: block;
+            margin-bottom: 1em;
+        }
+        table.reflow thead {
+            display: none;
+        }
+        table.reflow td {
+            border-bottom: 1px solid #ddd;
+            display: block;
+            text-align: right;
+        }
+        td.rowname {
+            font-size: 135%;
+            font-weight: bold;
+        }
+        table.reflow td::before {
+            content: attr(data-label);
+            float: left;
+        }
+        td {
+            font-family: B612;
+        }
     }
-    
-    table.reflow thead{
-        display:none;
+
+</style>
+<style>
+    .grey {
+        color: grey;
+        font-size: 70%;
     }
-    table.reflow td {
-        border-bottom: 1px solid #ddd;
-        display: block;
-        text-align: right;
-    }
-    
-    td.rowname{
-        font-size: 135%;
-        font-weight:bold;
-    }
-    table.reflow td::before {
-        content: attr(data-label);
+
+    div.hfader {
+        border-style: solid;
+        border-radius: 5px;
+        overflow: auto;
+        border-width: 1px;
+        border-color: grey;
+        margin: 3px;
         float: left;
+        width: 15em;
+        height: 2em;
     }
 
-    td{
-        font-family: B612;
+    div.hfader input {
+        float: right;
     }
 
+    div.hfader span.indicator {
+        float: right;
     }
-    </style>
-    <style>
-        .grey {
-            color: grey;
-            font-size: 70%;
-        }
-        
 
-        div.hfader {
-            border-style: solid;
-            border-radius: 5px;
-            overflow: auto;
-            border-width: 1px;
-            border-color: grey;
-            margin: 3px;
-            float:left;
-            width:15em;
-            height:2em;
-        }
-        div.hfader input{
-            float: right;
-        }
-        div.hfader span.indicator{
-            float: right;
-        }
-        
-        .fadersbox {
-            background-color: rgba(200, 200, 255, 0.1);
-        }
-        
-        .evlisting {
-            background-color: rgba(180, 230, 200, 0.8);
-        }
-        
-        .evlisting_err {
-            background-color: rgba(220, 180, 30, 0.8);
-        }
-        
-        p.scene {
-            border-style: solid;
-            border-radius: 5px;
-            border-width: 1px;
-            border-color: grey;
-            background-color: rgba(128, 128, 128, 0.4);
-            !important
-        }
-        
-        p.run {
-            background-color: rgba(128, 190, 128, 0.4);
-            !important
-        }
-        
-        div.universe {
-            border-style: solid;
-            border-radius: 5px;
-            float: left;
-            overflow: auto;
-            border-width: 1px;
-            border-color: grey;
-            margin: 3px;
-            width: 95%;
-            display: inline-block; //background-color: rgba(128, 128, 128, 0.4);
-            !important
-        }
-        
-        div.fixture {
-            border-style: solid;
-            border-radius: 5px;
-            float: left;
-            overflow: auto;
-            border-width: 2px;
-            border-color: darkgrey;
-            margin: 3px;
-            display: inline-block;
-            background-color: rgba(128, 128, 128, 0.4);
-            !important
-        }
-        
-        .indicator {
-            border-color: black;
-            border-radius: 0.2em;
-            display: inline-block;
-            width: 0.9em;
-            height: 0.9em;
-            border-style: dashed;
-            border-width: 1.5px;
-        }
+    .fadersbox {
+        background-color: rgba(200, 200, 255, 0.1);
+    }
 
-        label{
-            display:inline-block;
-            border: 1px solid grey;
-            margin: 3px;
-            border-radius: 2px;
-            padding: 2px;
-        }
-        .labelbox
-        {
-            display: flex;
-            flex-wrap: wrap;
-        }
-        .break {
-            flex-basis: 100%;
-            height: 0;
-        }
-        .blinking{
-    animation:blinkingText 1s infinite;
+    .evlisting {
+        background-color: rgba(180, 230, 200, 0.8);
     }
-    @keyframes blinkingText{
-        0%{     opacity: 0.5;    }
-        50%{    opacity: 1; }
-        100%{   opacity: 0.5;    }
+
+    .evlisting_err {
+        background-color: rgba(220, 180, 30, 0.8);
     }
-    </style>
-    <script>
-        function findMatching(l, k, v)
+
+    p.scene {
+        border-style: solid;
+        border-radius: 5px;
+        border-width: 1px;
+        border-color: grey;
+        background-color: rgba(128, 128, 128, 0.4);
+        !important
+    }
+
+    p.run {
+        background-color: rgba(128, 190, 128, 0.4);
+        !important
+    }
+
+    div.universe {
+        border-style: solid;
+        border-radius: 5px;
+        float: left;
+        overflow: auto;
+        border-width: 1px;
+        border-color: grey;
+        margin: 3px;
+        width: 95%;
+        display: inline-block; //background-color: rgba(128, 128, 128, 0.4);
+        !important
+    }
+
+    div.fixture {
+        border-style: solid;
+        border-radius: 5px;
+        float: left;
+        overflow: auto;
+        border-width: 2px;
+        border-color: darkgrey;
+        margin: 3px;
+        display: inline-block;
+        background-color: rgba(128, 128, 128, 0.4);
+        !important
+    }
+
+    .indicator {
+        border-color: black;
+        border-radius: 0.2em;
+        display: inline-block;
+        width: 0.9em;
+        height: 0.9em;
+        border-style: dashed;
+        border-width: 1.5px;
+    }
+
+    label {
+        display: inline-block;
+        border: 1px solid grey;
+        margin: 3px;
+        border-radius: 2px;
+        padding: 2px;
+    }
+
+    .labelbox {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .break {
+        flex-basis: 100%;
+        height: 0;
+    }
+
+    .blinking {
+        animation: blinkingText 1s infinite;
+    }
+
+    @keyframes blinkingText {
+        0% {
+            opacity: 0.5;
+        }
+        50% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0.5;
+        }
+    }
+
+</style>
+<script>
+    function findMatching(l, k, v)
     {
         for (i of l)
         {
@@ -195,23 +203,23 @@ from src import tagpoints
         }
     }
 
-    </script>
+</script>
 
-    <script src="/static/js/vue2.js"></script>
-    <script src="/static/js/http-vue-loader.js"></script>
+<script src="/static/js/vue2.js"></script>
+<script src="/static/js/http-vue-loader.js"></script>
 
-    <script src="/static/js/sortable.min.js"></script>
-    <script src="/static/js/vuedraggable.umd.min.js"></script>
+<script src="/static/js/sortable.min.js"></script>
+<script src="/static/js/vuedraggable.umd.min.js"></script>
 
-    <script type="text/javascript" src="/static/widget.js"></script>
-    <script src="/static/js/keyboard.min.js"></script>
-    <script src="/static/js/js-yaml.min.js"></script>
-    
-    <script src="ui/cuetable.jsvue"></script>
+<script type="text/javascript" src="/static/widget.js"></script>
+<script src="/static/js/keyboard.min.js"></script>
+<script src="/static/js/js-yaml.min.js"></script>
+
+<script src="ui/cuetable.jsvue"></script>
 
 
-    <script>
-        function set(o, k, v)
+<script>
+    function set(o, k, v)
     {
 
         if (o[k] == undefined)
@@ -235,30 +243,37 @@ from src import tagpoints
 
     function useBlankDescriptions(l)
     {
-        var l2=[];
-        for(i in l)
+        var l2 = [];
+        for (i in l)
         {
-            l2.push([i,'']);
+            l2.push([i, '']);
         }
         return l2;
     }
 
-    </script>
+</script>
 
 
-    <link rel="stylesheet" href="/static/img/icons/iconicss/iconicss.min.css">
-    <link rel="stylesheet" href="/static/img/icons/fontawesome/css/fontawesome-all.min.css">
+<link rel="stylesheet" href="/static/img/icons/iconicss/iconicss.min.css">
+<link rel="stylesheet" href="/static/img/icons/fontawesome/css/fontawesome-all.min.css">
 
 
-    <div id="app">
-        <div v-if="showevents" class="sectionbox" style="position:fixed; bottom:0px; width:78%;background-color:rgba(220,255,240,0.85)">
-            <h2> <button v-on:click="showevents=0"><img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button>Event
-                Log</h2>
-            <input v-model="evfilt" placeholder="Filter events"><label>Autoscroll<input type="checkbox" v-model="eventlogautoscroll"></label><br>
-            <div class="scrollbox" id="eventlogbox" style="height:6em">
-                <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
-                    v-for="i in evlog" v-if="i[1].search(evfilt)>-1 || i[0].search(evfilt)>-1">{{i[2]}}: <b>{{i[0]}}</b> at {{i[1]}}: {{i[3]}}
-                    <pre>{{i[4]}}</div>
+<div id="app">
+    <div v-if="showevents" class="sectionbox" style="position:fixed; bottom:0px; width:78%;background-color:rgba(220,255,240,0.85)">
+        <h2>
+            <button v-on:click="showevents=0">
+                <img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button>Event Log
+        </h2>
+        <input v-model="evfilt" placeholder="Filter events">
+        <label>Autoscroll
+            <input type="checkbox" v-model="eventlogautoscroll">
+        </label><br>
+        <div class="scrollbox" id="eventlogbox" style="height:6em">
+            <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
+                v-for="i in evlog" v-if="i[1].search(evfilt)>-1 || i[0].search(evfilt)>-1">{{i[2]}}: <b>{{i[0]}}</b> at {{i[1]}}:
+                <span v-if="!typeof(i[3])=='string' || (typeof(i[3])=='string'&& (i[3].length < 32))">{{i[3]}}</span>
+                <pre v-if="typeof(i[3])=='string' && i[3].length>32">{{i[3]}}<pre>
+            </div>
         </div>
         <label>Send Global Event:
             <input v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name" title="Event Name">
@@ -273,7 +288,7 @@ from src import tagpoints
             </select>
 
             <button v-on:click="sendev('__global__')">Send</button>
-    </div>
+        </div>
 
 
     <div style="background-color:rgba(255,255,255,0.3); display:block;">
@@ -369,13 +384,17 @@ from src import tagpoints
         <h4>Configure Universes</h4>
 
         <datalist id="artnettargets">
-            %if kaithem.web.hasPermission("/admin/settings.edit"):     
-            %for i in kaithem.devices:
-            %if hasattr(kaithem.devices[i],"pclient"):
+%if kaithem.web.hasPermission("/admin/settings.edit"):     
+
+%for i in kaithem.devices:
+
+%if hasattr(kaithem.devices[i],"pclient"):
             <option value="pavillion://${i}:6454" ></option>
-            %endif
-            %endfor
-            %endif
+%endif
+
+%endfor
+
+%endif
         </datalist>
 
         <datalist id="utypes">     
@@ -632,9 +651,10 @@ from src import tagpoints
 
         <div v class="sectionbox" style="float:left;overflow: auto; width:20%; min-width: 15em; height:90%; resize:both;">
             <label>
-            <input size=8 title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected." placeholder="Shortcut"
-                v-model="sc_code" v-on:keydown.enter="shortcut()" v-on:focus="keyboardJS.pause();" v-on:blur="keyboardJS.resume();"></input>
-        </label>
+                <input size=8 title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected."
+                    placeholder="Shortcut" v-model="sc_code" v-on:keydown.enter="shortcut()"
+                    v-on:focus="keyboardJS.pause();" v-on:blur="keyboardJS.resume();"></input>
+            </label>
             <button v-on:click="shortcut()">Go!</button>
 
             <h3 title="All currently active scenes and all scenes that were created through the light board ar shown">Scenes</h3>
@@ -649,16 +669,17 @@ from src import tagpoints
                     style="border-style:solid; border-width:1px;">
                     <button v-bind:class="{specialentry:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])"><i v-if="i[1].syncKey" class="icss-wifi" style="color:blue;"> </i>
 
-                    <span v-if="(i[1].subs!==-1)" title="Scene is synced with external servers">({{i[1].subs}})</span>
-                    <b>{{i[1].name}}</b><span v-if="i[1].ext" class="grey"> (external)</span></button>
+                        <span v-if="(i[1].subs!==-1)" title="Scene is synced with external servers">({{i[1].subs}})</span>
+                        <b>{{i[1].name}}</b><span v-if="i[1].ext" class="grey"> (external)</span></button>
                     <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}<img v-if="cuemeta[i[1].cue].script" src="/zipstatic/img/icons/fugue.zip/script-text.png"></img></span><br>
                     <br>
                     <button v-on:click="go(i[0])"><i class="icss-arrow-right" style="color:green;"></i>Go!</button>
                     <button v-on:click="nextcue(i[0])"><i class="fas fa-forward" style="color:lightgreen"></i>Next</button>
                     <button class="stopbutton" v-on:click="stop(i[0])"><i class="fas fa-stop" style="color:darkgrey"></i> Stop</button>
                     <button class="deletebutton" v-on:click="delscene(i[0])">
-                    </i>del</button>
-                    <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));" :value="alphas[i[0]]"><br>
+                        </i>del</button>
+                    <input type="range" max=1 step=0.01 min=0 v-on:input="setalpha(i[0],parseFloat($event.target.value));"
+                        :value="alphas[i[0]]"><br>
                     <cue-countdown :unixtime="unixtime" :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
                     <span v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext)">Next Cue: {{cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultnext}}
                     <br></span>
@@ -666,109 +687,128 @@ from src import tagpoints
                     <small v-if="i[1].blend!=='normal'">Blend:<b>{{i[1].blend}}</b></small>
                     <small v-if="cuemeta[i[1].cue]&&(cuemeta[i[1].cue].sound) & showSoundControls"><br>Sound:<b>{{cuemeta[i[1].cue].sound.match(/([^\/]+)$/)[1]}}</b></small>
 
-                    </p>
+                </p>
             </div>
 
 
             <hr>
             <input v-model="newscenename" placeholder="New scene name">
-            <button v-on:click="addScene()"><img src="/zipstatic/img/icons/fugue.zip/plus-octagon-frame.png"></img>Add</button>
-            <button v-on:click="addMonitorScene()"><img src="/zipstatic/img/icons/fugue.zip/binocular--plus.png"></img>Add Monitor</button>
+            <button v-on:click="addScene()">
+                <img src="/zipstatic/img/icons/fugue.zip/plus-octagon-frame.png"></img>Add</button>
+            <button v-on:click="addMonitorScene()">
+                <img src="/zipstatic/img/icons/fugue.zip/binocular--plus.png"></img>Add Monitor</button>
 
         </div>
 
 
         <div class="sectionbox" v-if="editingScene && cuemeta[editingScene.cue]" style="display:inline-block; width:75%; max-width:98vw; resize:both; overflow:auto;">
-            <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name"><span v-if="editingScene.blend=='monitor'">Monitor</span>                Scene: {{editingScene.name}}</span> <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>Current Cue:
+            <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
+                <span v-if="editingScene.blend=='monitor'">Monitor</span>
+                </span> {{editingScene.name}}</span>
+                <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
+                <p v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
+
+                Current Cue:
                 <button v-on:click="selectcue(scenename,cuemeta[editingScene.cue].name)">{{cuemeta[editingScene.cue].name}}</span>
-                <meter v-if="editingScene.active && cuemeta[editingScene.cue].length" min=0 max=1
-                    v-bind:value="(unixtime-editingScene.enteredCue)/editingScene.cuelen"></meter>
-                <button v-on:click="nextcue(scenename)">Next</button>
+                    <meter v-if="editingScene.active && cuemeta[editingScene.cue].length" min=0 max=1
+                        v-bind:value="(unixtime-editingScene.enteredCue)/editingScene.cuelen"></meter>
+                    <button v-on:click="nextcue(scenename)">Next</button>
 
 
-                <span class="virtual" v-if="editingScene.doingHandoff">(fading out)</span>
+                    <span class="virtual" v-if="editingScene.doingHandoff">(fading out)</span>
             </h3>
 
             <input v-model="cuefilter" placeholder="Search Cues" />
             <button v-on:click="cuefilter=''">X</button>
             <div style="overflow-y: scroll;max-height:12em;">
-            <table class="reflow" border="1" style="resize:both; width:100%;">
-              
-                <thead>
-                 <tr>
-                    <th title="Click the cue name to edit that cue">Cue Name</th>
-                    <th>Number</th>
-                    <th>Shortcut</th>
-                    <th>Fadein</th>
-                    <th title="Length, 0 indicates until stopped">Length</th>
-                    <th title="The next cue, after this one ends">Next</th>
-                    <th>Randomize</th>
-                    <th>Track</th>
-                    <th>Jump to</th>
-                </tr>
-                </thead>
+                <table class="reflow" border="1" style="resize:both; width:100%;">
 
-                <tbody>
-                    <tr v-for="i in formatCues(1)" v-if="i[1].id" v-bind:style="{'background-color':((selectedCues[scenename]==i[1].name)?'lightblue':'')}">
-                        <td class="rowname" data-label="Cue: " style=" user-select: none;" title="Click the cue name to edit that cue" v-on:click="selectcue(scenename,i[1].name)"><i v-if="cuemeta[editingScene.cue].name==i[1].name" class="fas fa-play-circle" style="color:green;"></i>
-                            <img v-if="selectedCues[scenename]==i[1].name" src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>
-                            <b>{{i[1].name}}</b>
-                        </td>
+                    <thead>
+                        <tr>
+                            <th title="Click the cue name to edit that cue">Cue Name</th>
+                            <th>Number</th>
+                            <th>Shortcut</th>
+                            <th>Fadein</th>
+                            <th title="Length, 0 indicates until stopped">Length</th>
+                            <th title="The next cue, after this one ends">Next</th>
+                            <th>Randomize</th>
+                            <th>Track</th>
+                            <th>Jump to</th>
+                        </tr>
+                    </thead>
 
-                        <td data-label="Cue #:"><b title="Cue number, double click to change." style="width:6em" v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</b></td>
+                    <tbody>
+                        <tr v-for="i in formatCues(1)" v-if="i[1].id" v-bind:style="{'background-color':((selectedCues[scenename]==i[1].name)?'lightblue':'')}">
+                            <td class="rowname" data-label="Cue: " style=" user-select: none;" title="Click the cue name to edit that cue"
+                                v-on:click="selectcue(scenename,i[1].name)"><i v-if="cuemeta[editingScene.cue].name==i[1].name" class="fas fa-play-circle"
+                                    style="color:green;"></i>
+                                <img v-if="selectedCues[scenename]==i[1].name" src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>
+                                <b>{{i[1].name}}</b>
+                            </td>
 
-                        <td data-label="Shortcut:" >
-                            <input title="Shortcut code" style="width:6em" v-on:change="setshortcut(i[1].id,$event.target.value)" min=0 step=0.1 v-model="i[1].shortcut">
-                        </td>
+                            <td data-label="Cue #:"><b title="Cue number, double click to change." style="width:6em"
+                                    v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</b></td>
 
-                        <td data-label="Fade In:">
-                            <input type="number" v-on:input="setfadein(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].fadein">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
+                            <td data-label="Shortcut:">
+                                <input title="Shortcut code" style="width:6em" v-on:change="setshortcut(i[1].id,$event.target.value)"
+                                    min=0 step=0.1 v-model="i[1].shortcut">
+                            </td>
 
-                        <td data-label="Length:">
-                            <input type="number" v-on:change="setlength(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].length">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
+                            <td data-label="Fade In:">
+                                <input type="number" v-on:input="setfadein(i[1].id,$event.target.value)" style="width:3em"
+                                    min=0 v-model="i[1].fadein">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
 
-                        <td data-label="Next Cue:">
-                            <select style="width:100%" v-model="i[1].next" v-if="Object.keys(scenecues[scenename]).length<600" autocomplete=off title="Select a cue to activate when this one ends"
-                                v-on:input="setnext(i[1].id,$event.target.value)">
-                                <option value="">&gt&gt&gt</option>
-                                <option v-for="j in formatCues(1)" v-bind:value="j[1].name">{{j[1].number}}: {{j[1].name}}</option>
-                                <option v-bind:value="i[1].next">Current: {{i[1].next}}</option>
+                            <td data-label="Length:">
+                                <input type="number" v-on:change="setlength(i[1].id,$event.target.value)" style="width:3em"
+                                    min=0 v-model="i[1].length">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
+
+                            <td data-label="Next Cue:">
+                                <select style="width:100%" v-model="i[1].next" v-if="Object.keys(scenecues[scenename]).length<600"
+                                    autocomplete=off title="Select a cue to activate when this one ends"
+                                    v-on:input="setnext(i[1].id,$event.target.value)">
+                                    <option value="">&gt&gt&gt</option>
+                                    <option v-for="j in formatCues(1)" v-bind:value="j[1].name">{{j[1].number}}: {{j[1].name}}</option>
+                                    <option v-bind:value="i[1].next">Current: {{i[1].next}}</option>
 
                                 </select>
 
-                                <input v-if="Object.keys(scenecues[scenename]).length>40" autocomplete=off list="cues_in_scene" title="Select a cue to activate when this one ends"
-                                    v-on:input="setnext(i[1].id,$event.target.value)" v-model="i[1].next" v-bind:placeholder="i[1].defaultnext">
-                                    </input>
-                        </td>
+                                <input v-if="Object.keys(scenecues[scenename]).length>40" autocomplete=off list="cues_in_scene"
+                                    title="Select a cue to activate when this one ends"
+                                    v-on:input="setnext(i[1].id,$event.target.value)"
+                                    v-model="i[1].next" v-bind:placeholder="i[1].defaultnext">
+                                </input>
+                            </td>
 
 
 
-                        <td data-label="Randomize" >
-                            <input type="number" v-on:input="setrandomize(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].lengthRandomize">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
-                        <td data-label="Track vals from prev: ">
-                            <input type="checkbox" v-on:change="settrack(i[1].id,currentcue.track)" v-model="i[1].track" title="Track values from previous cue? If false, values not present are always transparent">
-                        </td>
-                        <td data-label="Goto:">
-                            <button v-on:click="jumptocue(i[1].id)">Go</button>
-                        </td>
+                            <td data-label="Randomize">
+                                <input type="number" v-on:input="setrandomize(i[1].id,$event.target.value)" style="width:3em"
+                                    min=0 v-model="i[1].lengthRandomize">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
+                            <td data-label="Track vals from prev: ">
+                                <input type="checkbox" v-on:change="settrack(i[1].id,currentcue.track)" v-model="i[1].track"
+                                    title="Track values from previous cue? If false, values not present are always transparent">
+                            </td>
+                            <td data-label="Goto:">
+                                <button v-on:click="jumptocue(i[1].id)">Go</button>
+                            </td>
 
-                    </tr>
-                </tbody>
+                        </tr>
+                    </tbody>
 
-            </table>
+                </table>
             </div>
 
 
 
             <input v-model="newcuename" placeholder="New cue name">
             <button v-on:click="addcue(scenename,newcuename)">
-            <img src="/zipstatic/img/icons/fugue.zip/plus-octagon-frame.png"></img>Add Cue</button>
+                <img src="/zipstatic/img/icons/fugue.zip/plus-octagon-frame.png"></img>Add Cue</button>
             <button v-on:click="clonecue(scenename,currentcueid,newcuename)">
-            <img src="/zipstatic/img/icons/fugue.zip/document-copy.png"></img>Clone Cue</button>
+                <img src="/zipstatic/img/icons/fugue.zip/document-copy.png"></img>Clone Cue</button>
             <button v-on:click="rmcue(currentcueid)">
-            <img src="/zipstatic/img/icons/fugue.zip/minus-circle.png"></img>Delete Current</button>
+                <img src="/zipstatic/img/icons/fugue.zip/minus-circle.png"></img>Delete Current</button>
             <button v-on:click="jumptocue(currentcueid)">
-            <img src="/zipstatic/img/icons/fugue.zip/arrow.png"></img>Goto Selected</button>
+                <img src="/zipstatic/img/icons/fugue.zip/arrow.png"></img>Goto Selected</button>
             <button v-on:click="gotonext(currentcueid)">Edit Next Cue</button>
 
 
@@ -780,28 +820,38 @@ from src import tagpoints
                 <span class="help" v-if="editingScene.ext">This is an external scene that is defined somewhere in code. Any changes made here may be overwritten by the code at any time.</span>
 
                 <div style="overflow: scroll; max-height:30em;" class="fadersbox" v-if="showLightingControls&&(scenetab!='logic')">
-                    <div class="universe" v-for="(h,uname) in cuevals[currentcueid]" v-if="uname[0]!='@'" style="border-style:solid">
+                    <div class="universe" v-for="(h,uname) in cuevals[currentcueid]" v-if="uname[0]!='@'"
+                        style="border-style:solid">
                         <h3>{{uname}}</h3>
-                        <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid" :showdelete="scenetab=='channels'" v-for="i in h"></h-fader>
+                        <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'"
+                            :currentcueid="currentcueid" :showdelete="scenetab=='channels'"
+                            v-for="i in h"></h-fader>
                     </div>
 
 
-                    <div class="fixture" v-for="(h,fname) in cuevals[currentcueid]" v-if="fname[0]=='@'" style="border-style:solid">
+                    <div class="fixture" v-for="(h,fname) in cuevals[currentcueid]" v-if="fname[0]=='@'"
+                        style="border-style:solid">
                         <h4>{{fname}}</h4>
                         <button v-on:click="rmFixCue(currentcueid, fname)">
                             <img src="/zipstatic/img/icons/fugue.zip/minus-circle.png">
                         </button>
-                        <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid" :showdelete="scenetab=='channels'" v-for="i in h"></h-fader>
+                        <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)" :monitor="editingScene.blend=='monitor'"
+                            :currentcueid="currentcueid" :showdelete="scenetab=='channels'"
+                            v-for="i in h"></h-fader>
                     </div>
                 </div>
 
                 <div style="overflow: scroll; max-height:30em;" v-if="scenetab=='notes'">
                     <vue-ace-editor v-model:value="editingScene.notes" v-bind:options="mdooptions"></vue-ace-editor><br>
-                    <button  v-on:click="setSceneNotes(scenename,editingScene.notes)">Save</button>
+                    <button v-on:click="setSceneNotes(scenename,editingScene.notes)">Save</button>
                 </div>
 
                 <div style="overflow: scroll; max-height:30em;" v-if="scenetab=='page'">
-                    <p class="help">Pages are an Advanced Feature requiring /admin/modules.edit, that allows you to create status pages for any scene. See the <a href="/pages/Chandler/docs/Pages">Documentation</a></p>\
+                    <p class="help">Pages are an Advanced Feature requiring /admin/modules.edit,
+                        that allows you to create status pages for any scene. See
+                        the
+                        <a href="/pages/Chandler/docs/Pages">Documentation</a>
+                    </p>\
                     <h4>Vue/HTML</h4>
                     <vue-ace-editor v-model:value="editingScene.page.html" v-bind:options="htmloptions"></vue-ace-editor>
                     <h4>Style</h4>
@@ -815,27 +865,34 @@ from src import tagpoints
                         <iframe style="display:block" width="100%" height="100%" v-bind:src="'rawpage/?sc='+scenename"></iframe>
                     </div>
                 </div>
-                
+
                 <div style="overflow: scroll; max-height:30em;" class="logicbox" v-if="scenetab=='logic'">
-                   <div>
+                    <div>
                         <h3>Automation Logic</h3>
-                        <p class="help">Here you can create rules that apply whenever the scene is in this cue, to do things like trigger other cues when this
-                            one enters or exits. <a href="/pages/Chandler/docs/RulesEngine">Documentation</a></p>
+                        <p class="help">Here you can create rules that apply whenever the scene is
+                            in this cue, to do things like trigger other cues when
+                            this one enters or exits.
+                            <a href="/pages/Chandler/docs/RulesEngine">Documentation</a>
+                        </p>
                     </div>
                     <div>
-                        <label>Inherit rules from cue in same scene: <input v-model="currentcue.inheritRules" v-on:input="setCueInheritRules(currentcueid, $event.target.value);"></label>
+                        <label>Inherit rules from cue in same scene:
+                            <input v-model="currentcue.inheritRules" v-on:input="setCueInheritRules(currentcueid, $event.target.value);">
+                        </label>
                     </div>
                     <script-editor v-model="currentcue.rules" v-on:input="setCueRules(currentcueid, $event);"
-                     v-bind:commands="availableCommands"  v-bind:scenes="cueNamesBySceneName()"
-                      v-bind:pinnedvars="specialvars" v-bind:vars="editingScene.vars"> </script-editor>
+                        v-bind:commands="availableCommands" v-bind:scenes="cueNamesBySceneName()"
+                        v-bind:pinnedvars="specialvars" v-bind:vars="editingScene.vars">
+                    </script-editor>
                     <div style="display:flex;flex-wrap:wrap;">
                         <div style="border-style:solid;flex-grow:3;margin:0.5em;padding:0.5em;">
                             <h3>Scene Variables</h3>
                             <table border="1">
 
                                 <tr v-for="(v,i) in editingScene.vars">
-                                    <td>{{i}}</td>  <td>{{v}}</td>
-                                <tr>
+                                    <td>{{i}}</td>
+                                    <td>{{v}}</td>
+                                    <tr>
                             </table>
                         </div>
 
@@ -844,14 +901,39 @@ from src import tagpoints
                             <table border="1" style="width:100%">
 
                                 <tr v-for="(v,i) in editingScene.timers">
-                                    <td>{{i}}</td>  
+                                    <td>{{i}}</td>
                                     <td style="width:8em;" v-bind:class="{highlight:(v-unixtime)<60, blinking:(v-unixtime)<5}">
                                         {{formatInterval((v-unixtime))}}
                                     </td>
-                                <tr>
+                                    <tr>
                             </table>
                         </div>
                     </div>
+
+                    <h3>Event Log</h3>
+                    <label>Autoscroll
+                        <input type="checkbox" v-model="eventlogautoscroll">
+                    </label><br>
+                    <div class="scrollbox" id="eventlogbox_scene" style="height:6em">
+                        <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
+                            v-for="i in evlog" v-if="i[1]==editingScene.name">{{i[2]}}: <b>{{i[0]}}</b> at {{i[1]}}:
+                            <span v-if="!typeof(i[3])=='string' || (typeof(i[3])=='string'&& (i[3].length < 32))">{{i[3]}}</span>
+                            <pre v-if="typeof(i[3])=='string' && i[3].length>32">{{i[3]}}<pre>
+                        </div>
+                    </div>
+                    <label>Send event to this scene:
+                                <input v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name" title="Event Name">
+
+                                <input v-model="evval" v-on:keydown.enter="sendev" title="Event Value" placeholder="value">
+
+                                <select v-model="evtypetosend">
+                                    <option value="int">Integer</option>
+                                    <option value="float">Real Number</option>
+                                    <option value="str">Text</option>
+                                </select>
+
+                                <button v-on:click="sendev(scenename)">Send</button>
+                     </label>
                 </div>
 
                    
@@ -1162,6 +1244,12 @@ from src import tagpoints
                         <label v-if="showSoundControls"> Sound Output: <input title="If not set by a cue, the global setting for the scene is used" v-on:input="setSceneSoundOutput(scenename,$event.target.value)"
                                 v-model="editingScene.soundOutput" placeholder="default" list="soundcards"></input></label>
                         </br>
+                    
+
+                        <label>MQTT Server:
+                            <input style="width:25em"  v-on:change="setmqtt(scenename,$event.target.value)"
+                                v-model="editingScene.mqttServer"></input>
+                        </label>
 
                         <hr v-if="editingScene.blend!='normal' & showLightingControls" style="border-style:solid;border-width:1px;border-color:grey;">
                         <p>{{editingScene.blendDesc}}</p>
@@ -2465,6 +2553,12 @@ from src import tagpoints
                 appData.scenemeta[sc].alpha = v;
                 api_link.send(['setdalpha', sc, v]);
             },
+            'setmqtt': function(sc, v)
+            {
+
+                appData.scenemeta[sc].mqttServer = v;
+                api_link.send(['setMqttServer', sc, v]);
+            },
             'setpriority': function(sc, v)
             {
                 api_link.send(['setpriority', sc, v]);
@@ -2663,10 +2757,25 @@ from src import tagpoints
                    {
                        var element = document.getElementById('eventlogbox');
                        setTimeout(function(){
-                       element.scrollTop = element.scrollHeight-element.clientHeight;
+                        if(element){
+                            element.scrollTop = element.scrollHeight-element.clientHeight;
+                        }
                        },150)
-                   }
+
+                   }              
+                    
                }
+                var element = document.getElementById('eventlogbox_scene');
+
+                if(element)
+                {
+                    setTimeout(function(){
+                        if(element)
+                        {
+                    element.scrollTop = element.scrollHeight-element.clientHeight;
+                        }
+                    },150)
+                }
             }
             if (c == "serports")
             {
@@ -2967,3 +3076,4 @@ from src import tagpoints
         }
 
     </script>
+

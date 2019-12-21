@@ -347,7 +347,7 @@ class Pipeline():
             self.pipeline.set_state(Gst.State.NULL)
             if not self.running:
                 self.bus.remove_signal_watch()
-                for i in elements:
+                for i in self.elements:
                     i.unref()
                     del self.elements
 

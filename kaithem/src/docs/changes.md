@@ -4,7 +4,7 @@ Change Log
 ### 0.65.2
 - Chandler soundfile listing bugfix
 - Chandler sound prefetch
-
+- Various merge-related fixes
 ### 0.65.1
 - Prevent tagpoint widget send from blocking up the process
 - New StringTag objects, like tagpoints but for strings

@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import threading,weakref,logging,time,uuid,traceback
+import threading,weakref,logging,time,uuid,traceback,json
 
 logger = logging.getLogger("system.mqtt")
 
@@ -187,7 +187,7 @@ class Connection():
                 t = t[len("/mqtt/"+self.server+":"+str(self.port)+"/in/"):]
                 function()(t,json.loads(m))
 
-        if encoding=='utf8':
+        elif encoding=='utf8':
             def f(t,m):
                 #Get rid of the extra kaithem framing part of the topic
                 t = t[len("/mqtt/"+self.server+":"+str(self.port)+"/in/"):]
@@ -208,18 +208,18 @@ class Connection():
 
         logging.debug("MQTT subscribe to "+topic+" at "+self.server)
         #Ref to f exists as long as the original does because it's kept in subscribeWrappers
-        messagebus.subscribe(internalTopic,f,timestamp, annotation)
+        messagebus.subscribe(internalTopic,f)
 
     def publish(self,topic, message,qos=2,encoding="json"):
         if encoding=='json':
             message=json.dumps(message)
-        if encoding=='utf8':
+        elif encoding=='utf8':
             message=message.encode("utf8")
         elif encoding=='raw':
             pass
         else:
             raise ValueError("Invalid encoding!")
-        messagebus.postMessage("/mqtt/"+self.server+":"+str(self.port)+"/out/"+topic, message,annotation=2)
+        messagebus.postMessage("/mqtt/"+self.server+":"+str(self.port)+"/out/"+topic, message,annotation=qos)
 
 
 

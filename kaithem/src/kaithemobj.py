@@ -98,7 +98,7 @@ class Kaithem():
     class mqtt(object):
         @staticmethod
         def Connection(server,port=1883,alertPriority="info", alertAck=True):
-            from . import mqtt
+            from src import mqtt
             return mqtt.getConnection(server,port,alertPriority=alertPriority, alertAck=alertAck)
     class misc(object):
         @staticmethod
