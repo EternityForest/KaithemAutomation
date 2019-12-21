@@ -427,7 +427,10 @@ class Kaithem():
         def fadeTo(*args,**kwargs):
             return sound.fadeTo(*args,**kwargs)
 
-
+        @staticmethod
+        def preload(*args,**kwargs):
+            return sound.preload(*args,**kwargs)
+    
     class message():
         @staticmethod
         def post(topic,message):

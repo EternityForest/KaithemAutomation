@@ -415,7 +415,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
             else:
                 self.fader.set_property('volume', 0)
         
-        self.board.api.send(['fader', channel, level])
+        self.board.api.send(['fader', self.name, level])
     
     def setFader(self,level):
         #Let the _faderTagHandler handle it.

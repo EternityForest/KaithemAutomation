@@ -37,14 +37,21 @@ def installThreadLogging():
         init_old(self, *args, **kwargs)
         run_old = self.run
         def run_with_except_hook(*args, **kw):
-            try:
-                threadlogger.info("Thread starting: "+self.name)
-                run_old(*args, **kw)
-                threadlogger.info("Thread stopping: "+self.name)
+            if self.name.startswith("nostartstoplog."):
+                try:
+                    run_old(*args, **kw)
+                except Exception as e:
+                    threadlogger.exception("Thread stopping due to exception: "+self.name)
+                    raise e
+            else:
+                try:
+                    threadlogger.info("Thread starting: "+self.name)
+                    run_old(*args, **kw)
+                    threadlogger.info("Thread stopping: "+self.name)
 
-            except Exception as e:
-                threadlogger.exception("Thread stopping due to exception: "+self.name)
-                raise e
+                except Exception as e:
+                    threadlogger.exception("Thread stopping due to exception: "+self.name)
+                    raise e
         #Rename thread so debugging works
         try:
             if self._target:

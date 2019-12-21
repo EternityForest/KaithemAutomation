@@ -298,10 +298,10 @@ def onPortConnect(a,b,connected):
 
 def onPortRegistered(port,registered):
     if registered:
-        log.info("JACK port registered: "+port.name)
+        log.debug("JACK port registered: "+port.name)
         messagebus.postMessage("/system/jack/newport",[port.name, port.is_input] )
     else:
-        log.info("JACK port unregistered: "+port.name)
+        log.debug("JACK port unregistered: "+port.name)
         messagebus.postMessage("/system/jack/delport",port.name)
 
 class ChannelStrip():

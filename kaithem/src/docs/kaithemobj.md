@@ -655,9 +655,15 @@ This dict may also contain JACK ports that it discovers. These obviously
 will not have an alsa name. Be patient, it may take 30 seconds for
 kaithem to discover new cards.
 
+#### kaithem.sound.play(filename,output="@auto")
+Spins up a paused player for that filename and player. Garbage collecting old cache entries is handled for you.
+Will be used when sound.play is called for the same filename and output.
+
+Does nothing on non-gstreamer backends.
+
 #### kaithem.sound.play(filename,handle="PRIMARY",volume=1,start=0,end=-0.0001, eq=None, output=None,fs=False,extraPaths=\[\])
 
-If you have mpg123 or SOX installed, play the file, otherwise do
+If you have a backend installed, play the file, otherwise do
 nothing. The handle parameter lets you name the new sound instance to
 stop it later. If you try to play a sound under the same handle as a
 stil-playing sound, the old one will be stopped. Defaults to PRIMARY.
@@ -679,27 +685,37 @@ Searching is not recursive, but relative paths work. If searching for "foo/bar" 
 If you want to search paths for relative files other than the default
 abd the ones in the config, add them to extraPaths.
 
+
+Volume is a dimensionless multiplier that only works if using SOX or
+mplayer or Gstreamer. Otherwise it is ignored. Start and end times are in seconds,
+negative means relative to sound end. Start and end times are also
+SOX/mplayer specific and are ignored(full sound will always play) with
+other players.
+
+
+On the recommended gstreamer backend, output is a jack client or port if JACK is running, otherwise 
+it is an alsa  device. The special string @auto(the default) autoselects an appropriate output.
+
+##### mplayer specific
+
+output must be a string that selects an
+output device. A typical value on linx would be pulse::n where n is the
+pulse sink index, see mplayer's -ao option for more details.
+
+You may also use one of kaithem's soundcard aliases found in
+kaithem.outputs.
+
+
+eq is mplayer specific and does nothing with other backends.
+eq if present can take the value 'party' causing the EQ to be set to
+allow easier conversation.
+
 With the mplayer backend, if you give it a video file, it will likely
 open a window and play it. Passing fs=True may allow you to play
 fullscreen, but any use of this "hidden feature" is very experimental.
 results may be undefined if you attempt to play a video in an
 environment that does not support it. All the features that work with
 audio should also work with video.
-
-Volume is a dimensionless multiplier that only works if using SOX or
-mplayer. Otherwise it is ignored. Start and end times are in seconds,
-negative means relative to sound end. Start and end times are also
-SOX/mplayer specific and are ignored(full sound will always play) with
-other players.
-
-output and eq are mplayer specific and do nothing with other backends.
-eq if present can take the value 'party' causing the EQ to be set to
-allow easier conversation. output must be a string that selects an
-output device. A typical value on linx would be pulse::n where n is the
-pulse sink index, see mplayer's -ao option for more details.
-
-You may also use one of kaithem's soundcard aliases found in
-kaithem.outputs.
 
 #### kaithem.sound.builtinSounds
 
