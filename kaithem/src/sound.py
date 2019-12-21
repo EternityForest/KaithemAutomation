@@ -22,6 +22,10 @@ from . import gstwrapper, jackmanager, jackmixer
 from . import registry
 log= logging.getLogger("system.sound")
 
+MAX_PRELOADED = 8
+gst_preloaded = {}
+preloadlock = threading.Lock()
+
 if registry.get("/system/sound/usejack",None)=="manage":
     def f():
         try:        
@@ -305,7 +309,9 @@ class SoundWrapper(object):
     
     def fadeTo(self, handle="PRIMARY"):
         self.playSound(self,handle)
-        
+    
+    def preload(self, filename):
+        pass
         
 class MadPlayWrapper(SoundWrapper):
     backendname = "MadPlay Sound Player"
@@ -877,7 +883,11 @@ class MPlayerWrapper(SoundWrapper):
 
 from . import gstwrapper
 class GSTAudioFilePlayer(gstwrapper.Pipeline):
-    def __init__(self, file, volume=100, output="@auto"):
+    def __init__(self, file, volume=1, output="@auto"):
+        "WARNING THESE WILL MEMORY LEAK IF NOT CLEANED WITH STOP"
+
+        if output==None:
+            output="@auto"
         gstwrapper.Pipeline.__init__(self,str(uuid.uuid4()))
         self.ended = False
 
@@ -893,27 +903,37 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
             self.sink = self.addElement('autoaudiosink')
         elif output.startswith("@alsa:"):
             self.addElement('alsasink',device= output[6:])
-        elif ":" in output:
+
+        #No jack clients at all means it probably isn't running
+        elif not jackClientsFound:
+            self.addElement('alsasink',device= output)
+        
+        #Default to just using jack
+        else:
+            cname="player"+str(time.monotonic())+"_out"
+
             self.sink = self.addElement('jackaudiosink', buffer_time=8000, 
             latency_time=4000, sync=False,slave_method=2,port_pattern="jhjkhhhfdrhtecytey",
-            connect=0)
+            connect=0,client_name=cname)
 
-            self.aw = jackmanager.Airwire(self.name+"_out", i)
-        else:
-            raise RuntimeError("No idea how to connect to output")
-    
+            self.aw = jackmanager.Airwire(cname, output)
+            self.aw.connect()
+        #Get ready!
+        self.pause()
+
     def setFader(self,level):
-        if self.fader:
-            self.fader.set_property('volume', level)
-
-    def pause(self):
-        self.pipeline.set_state(Gst.State.PAUSED)
+        with self.lock:
+            if self.fader:
+                self.fader.set_property('volume', level)
 
     def resume(self):
-        self.pipeline.set_state(Gst.State.PLAYING)
+        self.start()
   
     def onStreamFinished(self):
         self.ended=True
+
+    def isPlaying(self):
+        return self.running
 
 
 class GStreamerBackend(SoundWrapper):
@@ -931,8 +951,17 @@ class GStreamerBackend(SoundWrapper):
     #If the object is destroyed it destroys the process stopping the sound
     #It also abstracts checking if its playing or not.
     class GStreamerContainer(object):
-        def __init__(self,filename,**kwargs):
-            self.pl = GSTAudioFilePlayer(filename, kwargs.get('volume',1))
+        def __init__(self,filename,output="@auto",**kwargs):
+
+            with preloadlock:
+                if (filename,output) in gst_preloaded:
+                    self.pl = gst_preloaded[filename,output][0]
+                    del gst_preloaded[filename,output]
+                else:
+                    self.pl = GSTAudioFilePlayer(filename, kwargs.get('volume',1),output=output)
+
+
+            self.pl.setFader(kwargs.get('volume',1))
             if not  kwargs.get('pause',0):
                 self.pl.start()
             else:
@@ -955,7 +984,62 @@ class GStreamerBackend(SoundWrapper):
         
         def resume(self):
             self.pl.resume()
+
+        def stop(self):
+            self.pl.stop()
        
+    def preload(self,filename,output="@auto"):
+        if not os.path.exists(filename):
+            return
+
+        #Has to be in a background thread to actually make sense
+
+        def f():
+            with preloadlock:
+                if (filename,output) in gst_preloaded:
+                    return
+                t=time.monotonic()
+                torm = {}
+
+                #Clean up any unused preload requests
+                for i in gst_preloaded:
+                    if t-gst_preloaded[i][1]>60:
+                        torm[i]=1
+
+                for i in gst_preloaded:
+                    if not gst_preloaded[i][0].running:
+                        torm[i]=1
+
+                #Out of space, but nothing marked for deletion, now we shorten
+                #The window to find something deletable
+                if len(gst_preloaded)>MAX_PRELOADED and not torm:
+                    for i in gst_preloaded:
+                        if t-gst_preloaded[i][1]>5:
+                            torm[i]=1
+                            break
+                        
+                #Actually remove from list
+                for i in torm:
+                    try:
+                        gst_preloaded[i][0].stop()
+                        del gst_preloaded[i]
+                    except:
+                        logging.exception("Error cleaning up preloaded sound")
+                    
+
+                #We still might not have anything to delete. Assume in that case
+                #It's nonsense churn spamming up everything, and that we can safely
+                #just ignore the preload and load it on demand
+                if len(gst_preloaded)<MAX_PRELOADED:
+                    try:
+                        if not os.path.exists(filename):
+                            return
+                        p =GSTAudioFilePlayer(filename,output=output)
+                        gst_preloaded[(filename,output)] = (p,time.monotonic())
+                    except:
+                        logging.exception("Error preloading sound")
+        workers.do(f)
+    
     def playSound(self,filename,handle="PRIMARY",extraPaths=[],**kwargs):
         #Those old sound handles won't garbage collect themselves
         self.deleteStoppedSounds()            
@@ -1062,4 +1146,4 @@ setEQ = backend.setEQ
 position = backend.getPosition
 fadeTo = backend.fadeTo
 readySound = backend.readySound
-
+preload= backend.preload

@@ -17,7 +17,7 @@
 #This file really shouldn't have too many non-essential dependancies onthe rest of kaithem,
 #Aside from the threadpool and the message bus.
 
-import threading,time,logging,uuid
+import threading,time,logging,uuid,weakref
 
 from . import jackmanager,workers
 
@@ -95,7 +95,57 @@ def doesElementExist(n):
     return True
 
 
+def wrfunc(f):
+    def f2(*a,**k):
+        f()(*a,**k)
 
+def makeWeakrefPoller(selfref):
+
+
+    def pollerf():
+        alreadyStarted = False
+        while selfref():
+            self=selfref()
+            
+            if not self.running:
+                return
+            if self.running:
+                #Assumption: this is threadsafe?
+                t=time.monotonic()
+                while time.monotonic()-t<5:
+                    self.bus.poll(Gst.MessageType.ANY,5)
+                
+                if not self.pipeline.get_state(1)==Gst.State.NULL:
+                    self.wasEverRunning=True
+
+                #Set the flag if anything ever drives us into the null state
+                if self.wasEverRunning and self.pipeline.get_state(1)==Gst.State.NULL:
+                    self.running=False
+                    return
+                    
+                #Some of this other stuff should be threadsafe but isn't
+                with self.lock:
+                    if self.systemTime:
+                        #Closed loop adjust the pipeline time.
+                        t = self.pipeline.query_position(Gst.Format.TIME)/10**9
+                        m = time.monotonic()
+
+                        sysElapsed = (m-self.startTime)/self.targetRate
+                        diff = t-sysElapsed
+                        needAdjust = False
+                        if diff>0.005:
+                            self.pipelineRate = self.targetRate - 0.0003
+                            needAdjust=True
+                        elif diff<-0.005:
+                            self.pipelineRate = self.targetRate + 0.0003
+                            needAdjust=True
+
+                        if needAdjust:
+                            self.pipeline.seek (self.pipelineRate, Gst.Format.TIME,
+                        Gst.SeekFlags.SKIP, Gst.SeekType.NONE,0,
+                        Gst.SeekType.NONE, -1)
+            del self
+    return pollerf
 
 
 
@@ -108,7 +158,10 @@ def getCaps(e):
     e.getSinks()[0].getNegotiatedCaps()
 
 class Pipeline():
-    "Semi-immutable pipeline. You can only add stuff to it"
+    """Semi-immutable pipeline. You can only add stuff to it.
+    WARNING THESE WILL MEMORY LEAK IF NOT CLEANED WITH STOP
+
+    """
     def __init__(self, name, realtime=70, systemTime =False):
         init()
         self.realtime = 70
@@ -132,12 +185,13 @@ class Pipeline():
         self.waitingCallbacks= []
 
         self.running = False
+        self.wasEverRunning = True
         
         self.knownThreads= {}
         self.startTime = 0
         def dummy(*a,**k):
             pass
-        self.bus.set_sync_handler(self.syncMessage,0,dummy)
+        self.bus.set_sync_handler(wrfunc(weakref.WeakMethod(self.syncMessage)),0,dummy)
         self.pollthread=None
 
         self.lastElementType = None
@@ -193,38 +247,12 @@ class Pipeline():
             self.pipeline.add(e)
             return e
 
-    def pollerf(self):
-        alreadyStarted = False
-        while self.running:
-            with self.lock:
-                if self.running:
-                    self.bus.poll(Gst.MessageType.ANY,0.1)
-
-                    if self.systemTime:
-                        #Closed loop adjust the pipeline time.
-                        t = self.pipeline.query_position(Gst.Format.TIME)/10**9
-                        m = time.monotonic()
-
-                        sysElapsed = (m-self.startTime)/self.targetRate
-                        diff = t-sysElapsed
-                        needAdjust = False
-                        if diff>0.005:
-                            self.pipelineRate = self.targetRate - 0.0003
-                            needAdjust=True
-                        elif diff<-0.005:
-                            self.pipelineRate = self.targetRate + 0.0003
-                            needAdjust=True
-
-                        if needAdjust:
-                            self.pipeline.seek (self.pipelineRate, Gst.Format.TIME,
-                        Gst.SeekFlags.SKIP, Gst.SeekType.NONE,0,
-                        Gst.SeekType.NONE, -1)
+    
     
     def on_eos(self,*a,**k):
         #Some kinda deadlock happened here between this and the delete function.
         #So we just try our best to stop and excpect the del function to catch it in cases of deadlock.
         #Our backup plan is to try doing it from another thread
-        
         def f():
             if self.lock.acquire(timeout=0.1):
                 try:
@@ -237,7 +265,12 @@ class Pipeline():
         
         def f2():
             try:
-                f()
+                with self.lock:
+                    if self.running:
+                        self.running=False
+                        self.stop()
+                        return True
+              
             except:
                 pass
         if not f():
@@ -288,10 +321,7 @@ class Pipeline():
 
             self.pipeline.set_state(Gst.State.PLAYING)
             self.running=True
-            if not self.pollthread:
-                self.pollthread = threading.Thread(target=self.pollerf,daemon=True,name="GSTPoller")
-                self.pollthread.daemon=True
-                self.pollthread.start()
+            self.maybeStartPoller()
 
     def play(self):
         with self.lock:
@@ -304,15 +334,27 @@ class Pipeline():
         with self.lock:
             self.pipeline.set_state(Gst.State.PAUSED)
             self.running=True
-            if not self.pollthread:
-                self.pollthread = threading.Thread(target=self.pollerf,daemon=True,name="GSTPoller")
-                self.pollthread.daemon=True
-                self.pollthread.start()
+            self.maybeStartPoller()
+    
+    def maybeStartPoller(self):
+        if not self.pollthread:
+            self.pollthread = threading.Thread(target=makeWeakrefPoller(weakref.ref(self)),daemon=True,name="nostartstoplog.GSTPoller")
+            self.pollthread.daemon=True
+            self.pollthread.start()
 
     def stop(self):
-        self.running=False
         with self.lock:
             self.pipeline.set_state(Gst.State.NULL)
+            if not self.running:
+                self.bus.remove_signal_watch()
+                for i in elements:
+                    i.unref()
+                    del self.elements
+
+                self.pipeline.unref()
+                del self.pipeline
+        self.running=False
+
 
     def addElement(self,t,name=None,**kwargs):
 

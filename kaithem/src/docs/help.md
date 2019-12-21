@@ -12,8 +12,8 @@ Kaithem is written in pure Python and will run in either 2.6+ or 3.xx
 without modification, the difference being that unicode resource and
 user names are not allowed in Kaithem on 2.xx
 
-Kaithem includes all dependancies(except the optional mpg123 or SOX or
-mplayer for sound support)
+Kaithem includes almost all dependancies(except the optional mpg123, SOX,
+mplayer, or GStreamer for sound support)
 
 In addition, Kaithem provides TLS/SSL encryption, user management, and
 serves as a basic IDE to create web pages that can interact with your
