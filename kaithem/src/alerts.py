@@ -294,13 +294,14 @@ class Alert(virtualresource.VirtualResource):
 
     def _onTrip(self):
         if self.priority in ("error, critical"):
-            logger.error("Alarm "+self.name +" tripped")
+            logger.error("Alarm "+self.name +" tripped:\n "+self.tripMessage)
         if self.priority in ("warning"):
-            logger.warning("Alarm "+self.name +" tripped")
+            logger.warning("Alarm "+self.name +" tripped:\n"+self.tripMessage)
         else:
-            logger.info("Alarm "+self.name +" tripped")
+            logger.info("Alarm "+self.name +" tripped:\n"+self.tripMessage)
 
-    def trip(self):
+    def trip(self, message=""):
+        self.tripMessage = str(message)[:4096]
         self.sm.event("trip")
         self.trippedAt = time.time()
         

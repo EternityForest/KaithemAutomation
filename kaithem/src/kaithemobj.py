@@ -322,6 +322,18 @@ class Kaithem():
         def listSend(list,subject,message):
             mail.rawlistsend(subject,message,list)
 
+    class Serial(object):
+        @staticmethod
+        def Port(*a,**k):
+            #Import on demand
+            from src import serialports
+            return serialports.port(*a,**k)
+        
+        @staticmethod
+        def list():
+            import serial.tools.list_ports
+            return serial.tools.list_ports.comports()
+
     class web(object):
         @staticmethod
         def resource(name):

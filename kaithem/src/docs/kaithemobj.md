@@ -601,6 +601,55 @@ a value that is invalid acording to a schema, it will raise an error.
 Delete a key and and data and schema assosiated with it
 
 
+### kaithem.serial
+
+This namespace deals with serial port objects. It requires pyserial to work, which is imported on demand.
+
+#### kaithem.serial.Port(portname,alertPriority="warning", alertZone="", *, **settings)
+
+Open a port object.Portname is the name as would be passed to serial.Serial. It does not have to be connected,
+and connections are automatically reestablished when the device is reconnected.
+
+The idea is to create the illusion of a hardware COM port, which is always present, ensuring that writes and reads
+never fail, although they may be meaningless if no device is physically connected.
+
+Settings may include any param you would pass to serial.Serial, like baudrate.
+
+By default, the port blocks and has a short timeout, which is different from the endless blocking
+raw pyserial uses.
+
+The object has a lock property, and acts as a context manager.
+
+
+#### kaithem.serial.Port.isConnected()
+Return True if the port is actually connected, False otherwise.
+
+#### kaithem.serial.Port.read()
+Read all available data. Never raises errors. In case of exception, returns b''
+
+#### kaithem.serial.Port.write(s)
+Write the bytestring. All errors are ignored.
+
+#### kaithem.serial.Port.sendBreak(t=0.002)
+Send a break condition for the given duration.
+
+#### kaithem.serial.Port.alert
+This alert object is tripped when the port is disconnected.
+
+#### kaithem.serial.Port.tag
+This tagpoint's value is 'connected' when the port is connected. The default claim is used.
+
+#### kaithem.serial.Port.port
+
+This is either None, if the port has not yet connected, or the raw pyserial port object.
+Will not change while the lock is held.
+
+#### kaithem.serial.Port.lock
+This is just a lock. Read and write do not use this lock! You are meant to manually use the port
+as a context manager for "transactions"
+
+
+
 ### kaithem.midi
 This namespace deals with MIDI.
 
