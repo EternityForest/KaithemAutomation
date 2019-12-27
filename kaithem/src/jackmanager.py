@@ -34,8 +34,7 @@ import logging
 log = logging.getLogger("system.jack")
 
 jackclient =None
-#from, to pairs.
-connections=[]
+
 
 lock = threading.RLock()
 
@@ -85,7 +84,7 @@ def ensureConnections(*a,**k):
     "Auto restore connections in the connection list"
     try:
         with lock:
-            for i in allConnections:
+            for i in list(allConnections.keys()):
                 try:
                     allConnections[i].reconnect()
                 except:
@@ -280,7 +279,7 @@ def onPortConnect(a,b,connected):
     #Whem things are manually disconnected we don't
     #Want to always reconnect every time
     if not connected:
-        log.info("JACK port "+ a.name+" disconnected from "+b.name)
+        log.debug("JACK port "+ a.name+" disconnected from "+b.name)
         i = (a.name,b.name)
         #Try to stop whatever airwire or set therof
         #from remaking the connection
@@ -294,7 +293,7 @@ def onPortConnect(a,b,connected):
             except:
                 pass
     else:
-        log.info("JACK port "+ a.name+" connected to "+b.name)
+        log.debug("JACK port "+ a.name+" connected to "+b.name)
 
 def onPortRegistered(port,registered):
     if registered:

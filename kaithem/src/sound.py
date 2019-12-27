@@ -17,7 +17,7 @@ import subprocess,os,math,time,sys,threading, collections,logging,re,uuid
 from . import  util, scheduling,directories,workers, registry,widgets,messagebus, midi
 from .config import config
 
-
+import gc
 from . import gstwrapper, jackmanager, jackmixer
 from . import registry
 log= logging.getLogger("system.sound")
@@ -894,6 +894,8 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         self.src = self.addElement('filesrc',location=file)
 
         self.addElement('decodebin')
+        #self.addElement('audiotestsrc')
+
         self.addElement('audioconvert')
         self.addElement('audioresample')
 
