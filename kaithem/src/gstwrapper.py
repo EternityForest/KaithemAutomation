@@ -128,6 +128,11 @@ def makeWeakrefPoller(selfref):
                 t=time.monotonic()
                
                 try:
+                    with self.lock:
+                        state = self.pipeline.get_state(1000000000)[1]
+                    
+                    #Paused stuff can be a bit less quick to respond to messages
+                    rtime = 1/48 if state==Gst.State.PLAYING else 0.15
                     while time.monotonic()-t<5:
                       
 
@@ -137,15 +142,15 @@ def makeWeakrefPoller(selfref):
                             if not self.running:
                                 self.exited=True
                                 return
-                            self.bus.poll(Gst.MessageType.ANY,1/48.0)
+                            self.bus.poll(Gst.MessageType.ANY,0.001)
                         #No hogging the lock
-                        time.sleep(1/48)
+                        time.sleep(rtime)
 
-                    if not self.pipeline.get_state(1000000000)[1]==Gst.State.NULL:
+                    if not state==Gst.State.NULL:
                         self.wasEverRunning=True
 
                     #Set the flag if anything ever drives us into the null state
-                    if self.wasEverRunning and self.pipeline.get_state(1000000000)[1]==Gst.State.NULL:
+                    if self.wasEverRunning and state==Gst.State.NULL:
                         self.running=False
                         self.exited=True
                         return
@@ -197,6 +202,7 @@ class Pipeline():
     """
     def __init__(self, name, realtime=70, systemTime =False):
         init()
+        self.exiting = False
 
         self.uuid = uuid.uuid4()
         gc.collect()
@@ -256,6 +262,8 @@ class Pipeline():
     def seek(self, time=None,rate=1.0):
         "Seek the pipeline to a position in seconds, set the playback rate, or both"
         with self.lock:
+            if self.exiting:
+                return
             if not self.running:
                 return
 
@@ -278,19 +286,23 @@ class Pipeline():
         "Synchronous message, so we can enable realtime priority on individual threads."
         #Stop the poorly performing sync messages after a while.
         #Wait till we have at least one thread though.
-        if self.knownThreads and time.monotonic()-self.startTime>3:
-            def f():
-                with self.lock:
-                    self.bus.set_sync_handler(None,0,None)
-            workers.do(f)
-        if not threading.currentThread().ident in self.knownThreads:
-            self.knownThreads[threading.currentThread().ident] = True
-            if self.realtime:
-                try:
-                    setPririority(1,self.realtime)
-                except:
-                    log.exception("Error setting realtime priority")
-        return Gst.BusSyncReply.PASS
+        try:
+            if self.knownThreads and time.monotonic()-self.startTime>3:
+                #This can't use the lock, we don't know what thread it might be called in.
+                def f():
+                    with self.lock:
+                        self.bus.set_sync_handler(None,0,None)
+                workers.do(f)
+            if not threading.currentThread().ident in self.knownThreads:
+                self.knownThreads[threading.currentThread().ident] = True
+                if self.realtime:
+                    try:
+                        setPririority(1,self.realtime)
+                    except:
+                        log.exception("Error setting realtime priority")
+            return Gst.BusSyncReply.PASS
+        except:
+            print(traceback.format_exc())
     
     def makeElement(self,n,name=None):
         with self.lock:
@@ -340,6 +352,8 @@ class Pipeline():
     def start(self, effectiveStartTime=None):
         "effectiveStartTime is used to keep multiple players synced when used with systemTime"
         with self.lock:
+            if self.exiting:
+                return
             x = effectiveStartTime or time.time()
             timeAgo = time.time()-x
             #Convert to monotonic time that the nternal APIs use
@@ -357,6 +371,8 @@ class Pipeline():
 
     def play(self):
         with self.lock:
+            if self.exiting:
+                return
             if not self.running:
                 raise RuntimeError("Pipeline is not paused, or running, call start()")
             self.pipeline.set_state(Gst.State.PLAYING)
@@ -364,6 +380,8 @@ class Pipeline():
     def pause(self):
         "Not that we can start directly into paused without playing first, to preload stuff"
         with self.lock:
+            if self.exiting:
+                return
             self.pipeline.set_state(Gst.State.PAUSED)
             self.running=True
             self.maybeStartPoller()
@@ -375,9 +393,18 @@ class Pipeline():
             self.pollthread.start()
 
     def stop(self):
-        try:
+
+        #Actually stop as soon as we can
+        with self.lock:
+            self.pipeline.set_state(Gst.State.NULL)
+            self.exiting = True
+
+        #Now we're going to do the cleanup stuff
+        #In the background, because it involves a lot of waiting
+        def gstStopCleanupTask():
             self.running=False
             t = time.monotonic()
+            time.sleep(0.01)
             while not self.exited:
                 time.sleep(0.1)
                 if time.monotonic()-t> 10:
@@ -395,7 +422,6 @@ class Pipeline():
 
                 if self.hasSignalWatch:
                     self.bus.remove_signal_watch()
-                self.pipeline.set_state(Gst.State.NULL)
                 while not self.pipeline.get_state(1000_000_000)[1]==Gst.State.NULL:
                     if time.monotonic()-t> 10:
                         raise RuntimeError("Timeout")
@@ -410,11 +436,9 @@ class Pipeline():
                 except:
                     pass
                 self._stopped=True
-                gc.collect()
-        except:
-            print(traceback.format_exc())
 
-    
+        workers.do(gstStopCleanupTask)
+        
        
 
 
