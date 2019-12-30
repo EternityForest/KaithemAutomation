@@ -102,10 +102,10 @@ def makeWorker(e,q):
                 global lastWorkersError
                 try:
                     if lastWorkersError<time.monotonic()-60:
-                        syslogger.exception("Error in function. This message is ratelimited, see debug logs for full.\r\nIn "+f.__name__ +" from " + f.__module__ +"\r\n")
+                        syslogger.exception("Error in function. This message is ratelimited, see debug logs for full.\r\nIn "+f[0].__name__ +" from " + f[0].__module__ +"\r\n")
                         lastWorkersError= time.monotonic()
 
-                    logger.exception("Error in function running in thread pool "+f.__name__ +" from " + f.__module__)
+                    logger.exception("Error in function running in thread pool "+f[0].__name__ +" from " + f[0].__module__)
                 except:
                     print("Failed to handle error: "+traceback.format_exc(6))
 

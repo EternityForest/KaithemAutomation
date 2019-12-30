@@ -13,11 +13,11 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import threading,weakref,logging,time,uuid,traceback
+import threading,weakref,logging,time,uuid,traceback,json
 
 logger = logging.getLogger("system.mqtt")
 
-from . import tagpoints,messagebus,alerts,util
+from . import tagpoints,messagebus,alerts,util,workers
 
 connections = {}
 lock = threading.RLock()
@@ -29,10 +29,13 @@ def getWeakrefHandlers(self):
         self().statusTagClaim.set("connected")
         self().alert.clear()
 
-        with self().lock:
-            for i in self().subscriptions:
-                #Refresh all subscriptions
-                self().connection.subscribe(i,self().subscriptions[i])
+        #Don't block the network thread too long
+        def f():
+            with self().lock:
+                for i in self().subscriptions:
+                    #Refresh all subscriptions
+                    self().connection.subscribe(i,self().subscriptions[i])
+        workers.do(f)
 
 
     def on_disconnect(client, userdata, flags, rc):
@@ -168,8 +171,10 @@ class Connection():
             self.connection.unsubscribe(topic)
 
     def subscribe(self,topic, function, qos=2, encoding="json"):
-        self.connection.subscribe(topic,qos)
+        print("s")
+        print("sb")
         with self.lock:
+            print("gjhfg")
             self.subscriptions[topic]=qos
         x = str(uuid.uuid4())
         
@@ -180,6 +185,13 @@ class Connection():
             self.unsubscribe(topic, None)
 
         function = util.universal_weakref(function, handleDel)
+
+        #Connection.subscribe was blocking forever.
+        #Use a different thread, to hopefully avoid deadlocks
+        def backgroundSubscribeTask():
+            with self.lock:
+                self.connection.subscribe(topic,qos)
+        workers.do(backgroundSubscribeTask)
         
         if encoding=='json':
             def f(t,m):
@@ -187,7 +199,7 @@ class Connection():
                 t = t[len("/mqtt/"+self.server+":"+str(self.port)+"/in/"):]
                 function()(t,json.loads(m))
 
-        if encoding=='utf8':
+        elif encoding=='utf8':
             def f(t,m):
                 #Get rid of the extra kaithem framing part of the topic
                 t = t[len("/mqtt/"+self.server+":"+str(self.port)+"/in/"):]
@@ -208,12 +220,12 @@ class Connection():
 
         logging.debug("MQTT subscribe to "+topic+" at "+self.server)
         #Ref to f exists as long as the original does because it's kept in subscribeWrappers
-        messagebus.subscribe(internalTopic,f,timestamp, annotation)
+        messagebus.subscribe(internalTopic,f)
 
     def publish(self,topic, message,qos=2,encoding="json"):
         if encoding=='json':
             message=json.dumps(message)
-        if encoding=='utf8':
+        elif encoding=='utf8':
             message=message.encode("utf8")
         elif encoding=='raw':
             pass

@@ -559,7 +559,7 @@ def serializeResource(obj):
         t = r['trigger']
         del r['trigger']
         d="## Code outside the data string, and the setup and action blocks is ignored\n"
-        d+="## If manually editing, you must reload the code through the web UI\n"
+        d+="## If manually editing, you must reload the code. Delete the resource timestamp so kaithem knows it's new\n"
 
         d += '__data__="""\n'
         d += yaml.dump(r).replace("\\","\\\\").replace('"""',r'\"""') + '\n"""\n\n'
@@ -622,9 +622,18 @@ def saveResource2(obj,fn:str):
             logger.exception("err, continuing")
 
     util.ensure_dir(fn)
+    data = d.encode("utf-8")
+
+    #Check if anything is actually new
+    if os.path.isfile(fn):
+        with open(fn,"rb") as f:
+            if f.read()==data:
+                obj['resource-loadedfrom']=fn
+                return fn
+
     with open(fn,"wb") as f:
         util.chmod_private_try(fn,execute = False)
-        f.write(d.encode("utf-8"))
+        f.write(data)
 
     logger.debug("saved resource to file "+ fn)
     obj['resource-loadedfrom']=fn
@@ -1077,6 +1086,8 @@ def loadModule(folder:str, modulename:str, ignore_func=None, resource_folder=Non
         for root, dirs, files in os.walk(folder):
                 #Function used to ignore things like VCS folders and such
                 if ignore_func and ignore_func(root):
+                    continue
+                if root.startswith(resource_folder):
                     continue
                 for i in files:
                     if ignore_func and ignore_func(i):

@@ -12,7 +12,7 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import sys,os,weakref,threading,gzip,bz2,json, time,logging,hashlib
+import sys,os,weakref,threading,gzip,bz2,json, time,logging,hashlib,threading
 
 
 ###THIS FILE IS INTENDED TO BE USABLE AS A STANDALONE LIBRARY. DON'T ADD DEPENDANCIES
@@ -33,6 +33,7 @@ def resolvePath(fn,expand=True):
 
 
 
+#TODO: Ensure only one thread can save a file at a time
 
 #todo: factor out the need filesystem stuff in util.
 from src import util
