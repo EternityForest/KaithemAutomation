@@ -925,9 +925,12 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
     def setFader(self,level):
         with self.lock:
-            if self.fader:
-                self.fader.set_property('volume', level)
-
+            try:
+                if self.fader:
+                    self.fader.set_property('volume', level)
+            except ReferenceError:
+                pass
+            
     def resume(self):
         self.start()
   
@@ -1102,7 +1105,7 @@ class GStreamerBackend(SoundWrapper):
             "Return true if a sound is playing on channel"
             try:
                 return self.runningSounds[channel].setVol(vol)
-            except KeyError:
+            except (KeyError,ReferenceError):
                 pass
     
     def pause(self,channel = "PRIMARY" ):

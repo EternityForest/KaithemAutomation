@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1577663380474874
+resource-timestamp: 1577683984284857
 resource-type: page
 template-engine: mako
 
@@ -774,7 +774,7 @@ from src import tagpoints
                                 <td data-label="Randomize">
                                     <input type="number" v-on:input="setrandomize(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].lengthRandomize">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
                                 <td data-label="Track vals from prev: ">
-                                    <input type="checkbox" v-on:change="settrack(i[1].id,currentcue.track)" v-model="i[1].track" title="Track values from previous cue? If false, values not present are always transparent">
+                                    <input type="checkbox" v-on:change="settrack(i[1].id,i[1].track)" v-model="i[1].track" title="Track values from previous cue? If false, values not present are always transparent">
                                 </td>
                                 <td data-label="Goto:">
                                     <button v-on:click="jumptocue(i[1].id)">Go</button>
@@ -1223,7 +1223,7 @@ from src import tagpoints
                             <label v-if="showSoundControls"> Sound Output: <input title="If not set by a cue, the global setting for the scene is used" v-on:input="setSceneSoundOutput(scenename,$event.target.value)"
                                 v-model="editingScene.soundOutput" placeholder="default" list="soundcards"></input></label>
                             </br>
-		
+        
    <label>MQTT Server:
                             <input style="width:25em"  v-on:change="setmqtt(scenename,$event.target.value)"
                                 v-model="editingScene.mqttServer"></input>

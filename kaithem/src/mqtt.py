@@ -30,12 +30,12 @@ def getWeakrefHandlers(self):
         self().alert.clear()
 
         #Don't block the network thread too long
-        def f():
+        def subscriptionRefresh():
             with self().lock:
                 for i in self().subscriptions:
                     #Refresh all subscriptions
                     self().connection.subscribe(i,self().subscriptions[i])
-        workers.do(f)
+        workers.do(subscriptionRefresh)
 
 
     def on_disconnect(client, userdata, flags, rc):
@@ -194,19 +194,19 @@ class Connection():
         workers.do(backgroundSubscribeTask)
         
         if encoding=='json':
-            def f(t,m):
+            def wrapper(t,m):
                 #Get rid of the extra kaithem framing part of the topic
                 t = t[len("/mqtt/"+self.server+":"+str(self.port)+"/in/"):]
                 function()(t,json.loads(m))
 
         elif encoding=='utf8':
-            def f(t,m):
+            def wrapper(t,m):
                 #Get rid of the extra kaithem framing part of the topic
                 t = t[len("/mqtt/"+self.server+":"+str(self.port)+"/in/"):]
                 function()(t,m.decode("utf8"))
 
         elif encoding=='raw':
-            def f(t,m):
+            def wrapper(t,m):
                 #Get rid of the extra kaithem framing part of the topic
                 t = t[len("/mqtt/"+self.server+":"+str(self.port)+"/in/"):]
                 function()(t,m)
@@ -216,11 +216,11 @@ class Connection():
         internalTopic = "/mqtt/"+self.server+":"+str(self.port)+"/in/"+topic
 
         #Extra data is mostly used for unsubscription
-        self.subscribeWrappers[x]=(function,f,topic,internalTopic)
+        self.subscribeWrappers[x]=(function,wrapper,topic,internalTopic)
 
         logging.debug("MQTT subscribe to "+topic+" at "+self.server)
         #Ref to f exists as long as the original does because it's kept in subscribeWrappers
-        messagebus.subscribe(internalTopic,f)
+        messagebus.subscribe(internalTopic,wrapper)
 
     def publish(self,topic, message,qos=2,encoding="json"):
         if encoding=='json':

@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1577673769491855
+resource-timestamp: 1577969757159514
 resource-type: event
 versions: {}
 
@@ -42,6 +42,42 @@ if __name__=='__setup__':
     
     rootContext = ChandlerScriptContext()
     
+    
+    def refresh_scenes(t,v):
+        """Stop and restart all active scenes, because some caches might need to be updated
+            when a new universes is added
+        """
+        with module.lock:
+            for i in module.activeScenes:
+                #Attempt to restart all scenes.
+                #Try to put them back in the same state
+                #A lot of things are written assuming the list stays constant,
+                #this is needed for refreshing.
+                x = i.started
+                y = i.enteredCue
+                i.stop()
+                i.go()
+                i.render()
+                i.started = x
+                i.enteredCue = y
+    kaithem.message.subscribe("/chandler/command/refreshScenes", refresh_scenes)
+    
+    def refreshFixtures(topic, val):
+        #Deal with fixtures in this universe that aren't actually attached to this object yet.
+        for i in range(0,5):
+            try:
+                with fixtureslock:
+                    for i in module.fixtures:
+                        f = module.fixtures[i]()
+                        if not f:
+                            continue
+                        if f.universe==val or val==None:
+                            f.assign(f.universe,f.startAddress)
+            except RuntimeError:
+                #Should there be some kind of dict changed size problem, retry
+                time.sleep(0.1)
+    kaithem.message.subscribe("/chandler/command/refreshFixtures", refreshFixtures)
+    
     def mapUniverse(u):
         if not u.startswith("@"):
             return u
@@ -57,7 +93,7 @@ if __name__=='__setup__':
     def mapChannel(u,c):
         if not u.startswith("@"):
             if isinstance(c,str):
-                universe=module.universes.get(u,None)
+                universe=getUniverse(u)
                 if universe:
                     c= universe.channelNames.get(c,None)
                     if not c:
@@ -101,10 +137,7 @@ if __name__=='__setup__':
     
     module.boards = []
     
-    universesLock = threading.RLock()
-    #in the del and init we copy data from this slow weakrefd thing to a fast not-weakref thing.
-    module.universes=weakref.WeakValueDictionary()
-    module.fastUniverses = {}
+    
     module.lock = threading.RLock()
     boardsListLock = threading.Lock()
     
@@ -384,7 +417,8 @@ if __name__=='__setup__':
                     multiplier = float(x[1])
                 else:
                     multiplier = 1.0
-                return module.universes[cv[0]].values[int(x[0])]*multiplier
+                u = getUniverse(cv[0])
+                return u.values[int(x[0])]*multiplier
             except Exception as e:
                 if not default is None:
                     return default
@@ -393,6 +427,30 @@ if __name__=='__setup__':
     fixtureslock = threading.Lock()
     module.fixtures ={}
     fixtureschanged = {}
+    
+    def getUniverse(u):
+        "Get strong ref to universe if it exists, else get none."
+        try:
+            oldUniverseObj = module.universes[u]()
+        except KeyError:
+            oldUniverseObj = None
+        return oldUniverseObj
+    
+    def getUniverses():
+        "Returns dict of strong refs to universes, filtered to exclude weak refs"
+        m = module.universes
+        u = {}
+        for i in m:
+            x = m[i]()
+            if x:
+                u[i]=x
+    
+        return u
+    
+    def rerenderUniverse(i):
+        universe = getUniverse(i)
+        if universe:
+           universe.full_rerender = True
     
     def unpack_np_vals(v):
         "Given a set of dicts that might contain either lists or np arrays, convert to normal lists of numbers"
@@ -467,586 +525,51 @@ if __name__=='__setup__':
     
         def assign(self,universe, channel):
             with module.lock:
-                self.assignment=universe, channel
+                
+                # First just clear the old assignment, if any
+                if self.universe and self.startAddress:
+                    oldUniverseObj=getUniverse(self.universe)
     
-                if self.universe and self.startAddress and (self.universe in module.universes):
-                    #Delete current assignments
-                    for i in range(self.startAddress,self.startAddress+len(self.channels)):
-                        if i in module.universes[self.universe].channels:
-                            if module.universes[self.universe].channels[i] is self:
-                                del module.universes[self.universe].channels[i]
-                            else:
-                                print("Unexpected channel data corruption",universe, i, module.universes[self.universe].channels[i])
+                    if oldUniverseObj:
+                        #Delete current assignments
+                        for i in range(self.startAddress,self.startAddress+len(self.channels)):
+                            if i in oldUniverseObj.channels:
+                                if oldUniverseObj.channels[i] is self:
+                                    del oldUniverseObj.channels[i]
+                                else:
+                                    print("Unexpected channel data corruption",universe, i, oldUniverseObj.channels[i])
+    
+                self.assignment=universe, channel
     
                 self.universe = universe
                 self.startAddress= channel
     
+                universeObj = getUniverse(universe)
+                    
+                if not universeObj:
+                    return
+    
+    
+    
                 global fixtureschanged
                 fixtureschanged = {}
     
-                if not universe in module.universes:
-                        return
-                module.universes[universe].channelsChanged()
+               
+                universeObj.channelsChanged()
     
                 if not channel:
                     return
                 #2 separate loops, first is just to check, so that we don't have half-completed stuff
                 for i in range(channel,channel+len(self.channels)):
-                    if i in module.universes[universe].channels:
-                        if module.universes[universe].channels[i]:
-                            raise ValueError("channel " +str(i)+ " of " +self.name+ " would overlap with "+module.universes[universe].channels[i].name)
+                    if i in universeObj.channels:
+                        if universeObj.channels[i]:
+                            raise ValueError("channel " +str(i)+ " of " +self.name+ " would overlap with "+universeObj.channels[i].name)
     
                 for i in range(channel,channel+len(self.channels)):
-                    module.universes[universe].channels[i]= self
+                   universeObj.channels[i]= self
     
     
-    class Universe():
-        "Represents a lighting universe, similar to a DMX universe, but is not limited to DMX. "
-        def __init__(self, name,count=512,number=0):
-            for i in ":/[]()*\\`~!@#$%^&*=+|{}'\";<>.,":
-                if i in name:
-                    raise ValueError("Name cannot contain special characters except _")
-            self.name = name
     
-            self.hidden=True
-    
-            #Let subclasses set these
-            if not hasattr(self,"status"):
-                self.status = "normal"
-            if not hasattr(self,"ok"):
-                self.ok = True
-    
-            #Represents the telemetry data back from the physical device of this universe.
-            self.telemetry = {}
-    
-            #Dict of all board ids that have already pushed a status update
-            self.statusChanged = {}
-            self.channels = {}
-    
-            #Maps names to numbers, mostly for tagpoint universes.
-            self.channelNames={}
-    
-            self.groups ={}
-            self.values = numpy.array([0.0]*count,dtype="f4")
-            self.count = count
-            #Maps fine channel numbers to coarse channel numbers
-            self.fine_channels = {}
-            #Used for the caching. It's the layer we want to save as the background state before we apply.
-            #Calculated as either the last scene rendered in the stack or the first scene that requests a rerender that affects the universe
-            self.save_before_layer = (0,0)
-            #Reset in pre_render, indicates if we've not rendered a layer that we think is going to change soon
-            #so far in this frame
-            self.all_static = True
-            with universesLock:
-                if name in module.universes:
-                    logger.warning("Replacing universe "+name)
-                    #Todo: just close the old one right here
-                    raise ValueError("Name "+name+ " is taken")
-                module.universes[name] =self
-                try:
-                    module.fastUniverses = {i:module.universes[i] for i in module.universes}
-                except IterationError:
-                    module.fastUniverses=module.universes
-                        
-            #flag to apply all scenes, even ones not marked as neding rerender
-            self.full_rerender = False
-            
-            #The priority, started of the top layer layer that's been applied to this scene.
-            self.top_layer= (0,0)
-    
-            #This is the priority, started of the "saved" layer that's been cached so we don't
-            #Have to rerender it or anything below it.
-            self.prerendered_layer= (0,0)
-    
-    
-            #A copy of the state of the universe just after prerendered_layer was rendered, so we can go back
-            #and start from there without rerendering lower layers.
-            self.prerendered_data= [0.0]*count
-            
-            #Maybe there might be an iteration error. But it's just a GUI convienence that
-            #A simple refresh solves, so ignore it.
-            try:
-                for i in module.boards:
-                    i().pushUniverses()
-            except Exception as e:
-                print(e)
-            
-            #Deal with fixtures in this universe that aren't actually attached to this object yet.
-            for i in range(0,5):
-                try:
-                    with fixtureslock:
-                        for i in module.fixtures:
-                            f = module.fixtures[i]()
-                            if not f:
-                                continue
-                            if f.universe==self.name:
-                                f.assign(f.universe,f.startAddress)
-                except RuntimeError:
-                    #Should there be some kind of dict changed size problem, retry
-                    time.sleep(0.1)
-    
-            self.refresh_scenes()
-    
-    
-        def __del__(self):
-            self.close()
-    
-        def close(self):
-            with universesLock:
-                #Don't delete the object that replaced this
-                if self.name in module.universes and (module.universes[self.name] is self):
-                    del module.universes[self.name]
-    
-                try:
-                    module.fastUniverses = {i:module.universes[i] for i in module.universes}
-                except IterationError:
-                    module.fastUniverses=module.universes
-                
-                def alreadyClosed(*a,**k):
-                    raise RuntimeError("This universe has been stopped, possibly because it was replaced wih a newer one")
-    
-                self.onFrame = alreadyClosed
-                self.setStatus= alreadyClosed
-                self.refresh_scenes=alreadyClosed
-                self.reset_to_cache = alreadyClosed
-                self.reset = alreadyClosed
-                self.preFrame= alreadyClosed
-                self.save_prerendered=alreadyClosed
-    
-        def setStatus(self,s,ok):
-            "Set the status shown in the gui. ok is a bool value that indicates if the object is able to transmit data to the fixtures"
-            #avoid pushing unneded statuses
-            if (self.status == s) and (self.ok == ok):
-                return
-            self.status = s
-            self.ok = ok
-            self.statusChanged = {}
-    
-        def refresh_scenes(self):
-            """Stop and restart all active scenes, because some caches might need to be updated
-                when a new universes is added
-            """
-            with module.lock:
-                for i in module.activeScenes:
-                    #Attempt to restart all scenes.
-                    #Try to put them back in the same state
-                    #A lot of things are written assuming the list stays constant,
-                    #this is needed for refreshing.
-                    x = i.started
-                    y = i.enteredCue
-                    i.stop()
-                    i.go()
-                    i.render()
-                    i.started = x
-                    i.enteredCue = y
-    
-        def __del__(self):
-            #Do as little as possible in the undefined __del__ thread
-            try:
-                kaithem.misc.do(self.refresh_scenes)
-            #Eliminate the nuisance error
-            except NameError:
-                pass
-        def channelsChanged(self):
-            "Call this when fixtures are added, moved, or modified."
-            with module.lock:
-                self.fine_channels = {}
-                for i in self.channels:
-                    fixture = self.channels[i]
-                    if not fixture.startAddress:
-                        continue
-                    data = fixture.channels[i-fixture.startAddress]
-                    if (data[1]== "fine") and (i>1):
-                        if len(data==2):
-                            self.fine_channels[i]= i-1
-                        else:
-                            self.fine_channels[i]= fixture.startAddress+data[2]
-        
-        def reset_to_cache(self):
-            "Remove all changes since the prerendered layer."
-            self.values = copy.deepcopy(self.prerendered_data)
-            self.top_layer = self.prerendered_layer
-        
-        def save_prerendered(self, p, s):
-            "Save this layer as the cached layer. Called in the render functions"
-            self.prerendered_layer = (p,s)
-            self.prerendered_data  = copy.deepcopy(self.values)
-        
-        def reset(self):
-            "Reset all values to 0 including the prerendered data"
-            self.prerendered_layer = (0,0)
-            self.values = numpy.array([0.0]*self.count,dtype="f4")
-            self.top_layer = (0,0)
-    
-        
-        def preFrame(self):
-            "Frame preprocessor, uses fixture-specific info, generally only called under lock"
-            #Assign fine channels their value based on the coarse channel
-            for i in self.fine_channels:
-                self.values[i] = (self.values[self.fine_channels[i]]%1)*255
-    
-    
-        def onFrame(self):
-            pass
-    
-    def message(data):
-        "An enttec DMX message from a set of values"
-        data = numpy.maximum(numpy.minimum(data,255),0)
-        data = data.astype(numpy.uint8)
-        data = data.tobytes()[:512]
-        return (b'\x7e\x06'+struct.pack('<H',len(data))+data+b'\xe7')
-    
-    module.Universe = Universe
-    
-    class EnttecUniverse(Universe):
-        #Thanks to https://github.com/c0z3n/pySimpleDMX
-        #I didn't actually use the code, but it was a very useful resouurce
-        #For protocol documentation.
-        def __init__(self,name,channels=128,portname="",framerate=44,number=0):
-            self.ok = False
-            self.number=number
-            self.status = "Disconnect"
-            self.statusChanged = {}
-            #Sender needs the values to be there for setup
-            self.values = numpy.array([0.0]*channels,dtype="f4")
-            self.sender = DMXSender(self,portname,framerate)
-            self.sender.connect()
-            
-            Universe.__init__(self,name,channels)
-    
-            self.hidden=False
-    
-        def onFrame(self):
-            data = message(self.values)
-            self.sender.onFrame(data)
-    
-        def __del__(self):
-            #Stop the thread when this gets deleted
-            self.sender.onFrame(None)
-    
-    module.EnttecUniverse_dbg= weakref.WeakValueDictionary()
-    
-    class DMXSender():
-        """This object is used by the universe object to send data to the enttec adapter.
-            It runs in it's own thread because the frame rate might have nothing to do with
-            the rate at which the data actually gets rendered.
-        """
-        def __init__(self,universe,port,framerate):
-            module.EnttecUniverse_dbg[str(module.timefunc())]= self
-            self.frame = threading.Event()
-            self.universe= weakref.ref(universe)
-            self.data = message(universe.values)
-            self.thread = threading.Thread(target =self.run)
-            self.thread.daemon = True
-            self.thread.name = "DMXSenderThread_"+self.thread.name
-            self.portname = port
-            self.framerate = float(framerate)
-            self.lock = threading.Lock()
-            self.port = None
-            self.connect()
-            self.thread.start()
-    
-    
-        def setStatus(self,s,ok):
-            try:
-                self.universe().setStatus(s,ok)
-            except:
-                pass
-                
-        def connect(self):
-            #Different status message first time
-            try:
-                self.reconnect()
-            except Exception as e:
-                self.setStatus('Could not connect, '+str(e)[:100]+'...',False)
-    
-    
-        def reconnect(self):
-            "Try to reconnect to the adapter"
-            try:
-                import serial
-                if not self.portname:
-                    import serial.tools.list_ports
-    
-                    p = serial.tools.list_ports.comports()
-                    if p:
-                        if len(p)>1:
-                            self.setStatus('More than one device found, refusing to guess. Please specify a device.',False)
-                            return
-                        else:
-                            p =p[0].device
-                    else:
-                        self.setStatus('No device found',False)
-                        return
-                else:
-                    p = self.portname
-                time.sleep(0.1)
-                try:
-                    self.port.close()
-                except:
-                    pass
-                self.port = serial.Serial(p,57600, timeout=1.0, write_timeout=1.0)
-    
-                #This is a flush to try to re-sync recievers that don't have any kind of time out detection
-                #We do this by sending a frame where each value is the packet end code,
-                #Hoping that it lines up with the end of whatever unfinished data we don't know about.
-                self.setStatus('Found port, writing sync data',True)
-    
-                for i in range(0,8):
-                    self.port.write(message(numpy.array([231]*120)))
-                    time.sleep(0.05)
-                self.port.write(message(numpy.zeros(max(128,len(self.universe().values)))))
-                time.sleep(0.1)
-                self.port.read(self.port.inWaiting())
-                time.sleep(0.05)
-                self.port.write(self.data)
-                self.setStatus('connected to '+p,True)
-            except Exception as e:
-                try:
-                    self.setStatus('disconnected, '+str(e)[:100]+'...',False)
-                except:
-                    pass
-    
-        def run(self):
-            while 1:
-                try:
-                    s = module.timefunc()
-                    self.port.read(self.port.inWaiting())
-                    x =self.frame.wait(1)
-                    if not x:
-                        continue
-                    with self.lock:
-                        if self.data is None:
-                            try:
-                                self.port.close()
-                            except:
-                                pass
-                            return
-                        self.port.write(self.data)
-                        self.frame.clear()
-                    time.sleep(max(((1.0/self.framerate)-(module.timefunc()-s)), 0))
-                except Exception as e:
-                    try:
-                        self.port.close()
-                    except:
-                        pass
-                    try:
-                        if self.data is None:
-                            return
-                        if self.port:
-                            self.setStatus('disconnected, '+str(e)[:100]+'...',False)
-                        self.port=None
-                        #reconnect is designed not to raise Exceptions, so if there's0
-                        #an error here it's probably because the whole scope is being cleaned
-                        time.sleep(1)
-                        self.reconnect()
-                        time.sleep(1)
-                        self.reconnect()
-                        time.sleep(1)
-                    except:
-                        return
-    
-    
-        def onFrame(self,data):
-            with self.lock:
-                self.data = data
-                self.frame.set()
-    
-    class ArtNetUniverse(Universe):
-        def __init__(self,name,channels=128,address="255.255.255.255:6454",framerate=44,number=0):
-            self.ok = True
-            self.status = "OK"
-            self.number=number
-            self.statusChanged = {}
-    
-            x = address.split("://")
-            if len(x)>1:
-                scheme = x[0]
-            else:
-                scheme=''
-            
-            addr,port = x[-1].split(":")
-            port = int(port)
-    
-            
-    
-            #Sender needs the values to be there for setup
-    
-            #Channel 0 is a dummy to make math easier.
-            self.values = numpy.array([0.0]*(channels+1),dtype="f4")
-            self.sender = ArtNetSender(self,addr,port,framerate,scheme)
-            
-            Universe.__init__(self,name,channels)
-    
-            self.hidden=False
-    
-        def onFrame(self):
-            data = (self.values)
-            self.sender.onFrame(data,None,self.number)
-    
-        def __del__(self):
-            #Stop the thread when this gets deleted
-            self.sender.onFrame(None)
-    
-    
-    
-    class TagpointUniverse(Universe):
-        "Used for outputting lighting to Kaithem's internal Tagpoint system"
-        def __init__(self,name,channels=128,tagpoints={},framerate=44,number=0):
-            self.ok = True
-            self.status = "OK"
-            self.number=number
-            self.statusChanged = {}
-            self.tagpoints=tagpoints
-            self.channelCount=channels
-            
-            self.claims = {}
-            self.hidden=False
-            
-            #Put a claim on all the tags
-            for i in self.tagpoints:
-                #One higher than default
-                try:
-                    self.claims[int(i)]= kaithem.tags[self.tagpoints[i]].claim(0,"Chandler_"+name, 51)
-                except Exception as e:
-                    self.status="error, "+i+" "+ str(e)
-                    logger.exception("Error related to tag point "+i)
-                    print(traceback.format_exc())
-                    event("board.error",traceback.format_exc())
-    
-            #Sender needs the values to be there for setup
-            self.values = numpy.array([0.0]*channels,dtype="f4")
-            
-            Universe.__init__(self,name,channels)
-    
-    
-        def onFrame(self):
-            for i in range(self.channelCount):
-                if i in self.claims:
-                    try:
-                        x = float(self.values[i])
-                        if x>-1:
-                            self.claims[i].set(x)
-                    except:
-                        rl_log_exc("Error in tagpoint universe")
-                        print(traceback.format_exc())
-    
-    
-    
-    
-    module.EnttecUniverse_dbg= weakref.WeakValueDictionary()
-    
-    class ArtNetSender():
-        """This object is used by the universe object to send data to the enttec adapter.
-            It runs in it's own thread because the frame rate might have nothing to do with
-            the rate at which the data actually gets rendered.
-        """
-        def __init__(self,universe,addr,port,framerate,scheme):
-            module.EnttecUniverse_dbg[str(module.timefunc())]= self
-            self.frame = threading.Event()
-            self.scheme=scheme
-    
-    
-            self.universe= weakref.ref(universe)
-            self.data = False
-            self.running = 1
-            #The last telemetry we didn't ignore
-            self.lastTelemetry = 0
-            if self.scheme == "pavillion":
-                def onBatteryStatus(v):
-                    self.universe().telemetry['battery']=v
-                    if self.lastTelemetry<(time.time()-10):
-                        self.universe().statusChanged={}
-                
-                def onConnectionStatus(v):
-                    self.universe().telemetry['rssi']=v
-                    if self.lastTelemetry<(time.time()-10):
-                        self.universe().statusChanged={}
-                
-                self.connectionTag = kaithem.tags["/devices/"+addr+".rssi"]
-                self._oncs = onConnectionStatus
-                self.connectionTag.subscribe(onConnectionStatus)
-    
-                self.batteryTag = kaithem.tags["/devices/"+addr+".battery"]
-                self._onb = onBatteryStatus
-                self.batteryTag.subscribe(onBatteryStatus)
-                
-            def run():
-                import time, traceback
-                interval = 1.1/self.framerate
-    
-                while self.running:
-                    try:
-                        s = time.time()
-                        x =self.frame.wait(interval)
-                        if not x:
-                            interval= min(60, interval*1.3)
-                        else:
-                            interval = 1.5/self.framerate
-                        if self.data is False:
-                            continue
-                        with self.lock:
-                            if self.data is None:
-                                print("Stopping ArtNet Sender for "+self.addr)
-                                return
-                            #Here we have the option to use a Pavillion device
-                            if self.scheme=="pavillion":
-                                try:
-                                    addr=kaithem.devices[self.addr].data['address']
-                                except:
-                                    time.sleep(3)
-                                    continue
-                            else:
-                                addr=self.addr
-    
-                            self.frame.clear()
-                        try:
-                            self.sock.sendto(self.data, (addr, self.port))
-                        except:
-                            time.sleep(5)
-                            raise
-    
-                        time.sleep(max(((1.0/self.framerate)-(time.time()-s)), 0))
-                    except Exception as e:
-                        rl_log_exc("Error in artnet universe")
-                        print(traceback.format_exc())
-            self.thread = threading.Thread(target =run)
-            self.thread.name = "ArtnetSenderThread_"+self.thread.name
-    
-            self.thread.daemon = True
-            self.framerate = float(framerate)
-            self.lock = threading.Lock()
-    
-    
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  
-            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1) 
-            # Bind to the server address
-            self.sock.bind(('',0))
-            self.sock.settimeout(1)
-    
-            self.addr = addr
-            self.port = port
-            self.thread.start()
-        
-        def __del__(self):
-            self.running=0
-    
-        def setStatus(self,s,ok):
-            try:
-                self.universe().setStatus(s,ok)
-            except:
-                pass
-    
-        def onFrame(self,data,physical = None, universe=0):
-            with self.lock:
-                if not (data is None):
-                    #DMX starts at 1, don't send element 0 even though it exists.
-                    p = b'Art-Net\x00\x00\x50\x00\x0E\0' + struct.pack("<BH", physical if not physical is None else universe, universe) +struct.pack(">H",len(data)) + (data.astype(numpy.uint8).tobytes()[1:])
-                    self.data = p
-                else:
-                    self.data =data
-                self.frame.set()
     
     def fixturesFromOldListStyle(l):
         "Convert fixtures from the older list of tuples style to the new dict style"
@@ -1143,7 +666,7 @@ if __name__=='__setup__':
             if not isinstance(self.fixtureAssignments,dict):
                 self.fixtureAssignments = fixturesFromOldListStyle(self.fixtureAssignments)
             try:
-                self.createUniverses()
+                self.createUniverses(self.configuredUniverses)
             except Exception as e:
                 logger.exception("Error creating universes")
                 print(traceback.format_exc(6))
@@ -1185,7 +708,7 @@ if __name__=='__setup__':
                         self.fixtures[i].assign(None,None)
                         self.fixtures[i].rm()
                 except:
-                    self.ferrs+= 'Error deleting old assignments:\n'+traceback.format_exc(2)
+                    self.ferrs+= 'Error deleting old assignments:\n'+traceback.format_exc()
                 try:
                     del i
                 except:
@@ -1201,13 +724,12 @@ if __name__=='__setup__':
                         module.fixtures[i['name']]= weakref.ref(x)                    
                     except:
                         logger.exception("Error setting up fixture")
-                        print(traceback.format_exc(4))
-                        self.ferrs += str(i)+'\n'+traceback.format_exc(2)
+                        print(traceback.format_exc())
+                        self.ferrs += str(i)+'\n'+traceback.format_exc()
     
     
-                with universesLock:
-                    for u in module.universes:
-                        self.pushChannelNames(u)
+                for u in module.universes:
+                    self.pushChannelNames(u)
     
                 with fixtureslock:
                     for f in module.fixtures:
@@ -1218,7 +740,7 @@ if __name__=='__setup__':
                 self.pushfixtures()
     
             
-        def createUniverses(self):
+        def createUniverses(self,data):
             for i in self.universeObjs:
                 self.universeObjs[i].close()
                 
@@ -1226,14 +748,14 @@ if __name__=='__setup__':
             import gc 
             gc.collect()
             l ={}
-            u = self.configuredUniverses
+            u = data
             for i in u:
                 if u[i]['type'] == 'enttec':
-                    l[i] = EnttecUniverse(i,channels=int(u[i].get('channels',128)),portname=u[i].get('interface',None),framerate=float(u[i].get('framerate',44)))
+                    l[i] = module.EnttecUniverse(i,channels=int(u[i].get('channels',128)),portname=u[i].get('interface',None),framerate=float(u[i].get('framerate',44)))
                 if u[i]['type'] == 'artnet':
-                    l[i] = ArtNetUniverse(i,channels=int(u[i].get('channels',128)),address=u[i].get('interface',"255.255.255.255:6454"),framerate=float(u[i].get('framerate',44)),number=int(u[i].get('number',0)))
+                    l[i] = module.ArtNetUniverse(i,channels=int(u[i].get('channels',128)),address=u[i].get('interface',"255.255.255.255:6454"),framerate=float(u[i].get('framerate',44)),number=int(u[i].get('number',0)))
                 if u[i]['type']=='tagpoints':
-                    l[i]=TagpointUniverse(i,channels=int(u[i].get('channels',128)),tagpoints=u[i].get('channelConfig',{}),framerate=float(u[i].get('framerate',44)),number=int(u[i].get('number',0)))
+                    l[i]=module.TagpointUniverse(i,channels=int(u[i].get('channels',128)),tagpoints=u[i].get('channelConfig',{}),framerate=float(u[i].get('framerate',44)),number=int(u[i].get('number',0)))
     
             self.universeObjs = l
             self.pushUniverses()
@@ -1360,9 +882,11 @@ if __name__=='__setup__':
                 pass
                 
         def pushUniverses(self):
-            self.link.send(["universes",{i:{'count':len(module.universes[i].values), 
-                        'status':module.universes[i].status, 
-                        'ok':module.universes[i].ok,"telemetry":module.universes[i].telemetry} for i in module.universes}])   
+            snapshot = getUniverses()
+    
+            self.link.send(["universes",{i:{'count':len(snapshot[i].values), 
+                        'status':snapshot[i].status, 
+                        'ok':snapshot[i].ok,"telemetry":snapshot[i].telemetry} for i in snapshot}])   
     
         def getScenes(self):
             "Return serializable version of scenes list"
@@ -1419,16 +943,22 @@ if __name__=='__setup__':
     
         def pushChannelNames(self,u):
             "This has expanded to push more data than names"
-            if not u[0]=='@':      
-                if u in module.fastUniverses:
-                    d = {}
-                    for i in module.fastUniverses[u].channels:
-                        fixture = module.fastUniverses[u].channels[i]
-                        if not fixture.startAddress:
-                            return
-                        data= [fixture.name]+fixture.channels[i-fixture.startAddress]
-                        d[i]=data
-                    self.link.send(['cnames',u,d])
+            if not u[0]=='@':
+    
+                uobj=getUniverse(u)
+    
+                if not uobj:
+                    return
+    
+    
+                d = {}
+                for i in uobj.channels:
+                    fixture = uobj.channels[i]
+                    if not fixture.startAddress:
+                        return
+                    data= [fixture.name]+fixture.channels[i-fixture.startAddress]
+                    d[i]=data
+                self.link.send(['cnames',u,d])
             else:
                 d={}
                 if u[1:] in module.fixtures:
@@ -1624,7 +1154,7 @@ if __name__=='__setup__':
                     if kaithem.users.checkPermission(user,"/admin/settings.edit"):
                         self.configuredUniverses = msg[1]
                         kaithem.registry.set("lighting/universes",msg[1])
-                        self.createUniverses()
+                        self.createUniverses(self.configuredUniverses)
                     else:
                         raise RuntimeError("User does not have permission")
     
@@ -1727,7 +1257,6 @@ if __name__=='__setup__':
                     s = Scene(msg[2])
                     self.scenememory[s.id]=s
                     s0 =module.scenes[msg[1]]
-                    s.values = copy.deepcopy(s0.values)
                     s.fadein = s0.fadein
                     s.length = s0.length
                     s.defaultalpha = s0.defaultalpha
@@ -1743,9 +1272,9 @@ if __name__=='__setup__':
     
                 if msg[0] == "namechannel":
                     if msg[3]:
-                        module.universes[msg[1]].channels[msg[2]] = msg[3]
+                        module.universes[msg[1]]().channels[msg[2]] = msg[3]
                     else:
-                        del module.universes[msg[1]].channels[msg[2]]
+                        del module.universes[msg[1]]().channels[msg[2]]
     
                     
                 if msg[0] == "addcueval":
@@ -1807,7 +1336,7 @@ if __name__=='__setup__':
                     s.setValue(msg[2],None)
     
                 if msg[0] == "setscenelight":
-                    module.universes[msg[1]][msg[2]]=float(msg[3])
+                    module.universes[msg[1]]()[msg[2]]=float(msg[3])
     
                 if msg[0] == "gsd":
                     #Could be long-running, so we offload to a workerthread
@@ -2161,10 +1690,11 @@ if __name__=='__setup__':
                 for i in self.newDataFunctions:
                     i(self)
                 self.newDataFunctions = []
-                for i in module.universes:
-                    if not self.id in module.universes[i].statusChanged:
-                        self.link.send(["universe_status",i,module.universes[i].status,module.universes[i].ok,module.universes[i].telemetry])
-                        module.universes[i].statusChanged[self.id]=True
+                snapshot = getUniverses()
+                for i in snapshot:
+                    if not self.id in snapshot[i].statusChanged:
+                        self.link.send(["universe_status",i,snapshot[i].status,snapshot[i].ok,snapshot[i].telemetry])
+                        snapshot[i].statusChanged[self.id]=True
     
                 for i in self.scenememory:
                     #Tell clients about any changed alpha values and stuff.
@@ -2231,7 +1761,9 @@ if __name__=='__setup__':
         #Here we find out what universes can be reset to a cached layer and which need to be fully rerendered.
         changedUniverses = {}
         to_reset ={}
-        universes = module.fastUniverses
+    
+        universes = getUniverses()
+    
         #Important to reverse, that way scenes that need a full reset come after and don't get overwritten
         for i in reversed(module.activeScenes):
             for u in i.affect:
@@ -2258,7 +1790,7 @@ if __name__=='__setup__':
                 to_reset[u]=1
     
         for u in to_reset:
-            if to_reset[u]==1 or not universes[u].prerendered_layer[1]:
+            if (to_reset[u]==1) or not universes[u].prerendered_layer[1]:
                 universes[u].reset()
                 changedUniverses[u]=(0,0)
             else:
@@ -2272,6 +1804,8 @@ if __name__=='__setup__':
         
         t = t or module.timefunc()
         
+        universesSnapshot=getUniverses()
+    
         #Remember that scenes get rendered in ascending priority order here
         for i in module.activeScenes:
     
@@ -2293,40 +1827,42 @@ if __name__=='__setup__':
                 if u.startswith("__") and u.endswith("__"):
                     continue
     
-                if not u in module.universes:
+                if not u in universesSnapshot:
                     continue
-                if (i.priority,i.started) > module.fastUniverses[u].top_layer:
-                    #If this layer we are about to render was found to be the highest layer that won't need rerendering,
+        
+                universeObject=universesSnapshot[u]
+    
+                #If this is above the prerendered stuff we try to avoid doing every frame
+                if (i.priority,i.started) > universeObject.top_layer:
+                    #If this layer we are about to render was found to be the highest layer that likely won't need rerendering,
                     #Save the state just befor we apply that layer.
-                    if (module.fastUniverses[u].save_before_layer==(i.priority,i.started)) and not((i.priority,i.started)==(0,0)):
-                        module.fastUniverses[u].save_prerendered(module.fastUniverses[u].top_layer[0], module.fastUniverses[u].top_layer[1])
+                    if (universeObject.save_before_layer==(i.priority,i.started)) and not((i.priority,i.started)==(0,0)):
+                        universeObject.save_prerendered(universeObject.top_layer[0], universeObject.top_layer[1])
     
                     changedUniverses[u]=(i.priority, i.started)
-                    if not u in module.universes:
-                        continue
-                    
-                    universe = module.fastUniverses[u]
-                    universe.values = applyLayer(u, universe.values, i)
-                    universe.top_layer = (i.priority, i.started)
+                    universeObject.values = applyLayer(u, universeObject.values, i)
+                    universeObject.top_layer = (i.priority, i.started)
     
                     #If this is the first nonstatic layer, meaning it's render function requested a rerender next frame
                     #or if this is the last one, mark it as the one we should save just before
                     if i.rerender or (i is module.activeScenes[-1]):
-                        if module.fastUniverses[u].all_static:
+                        if universeObject.all_static:
                             #Copy it and set to none as a flag that we already found it
-                            module.fastUniverses[u].all_static = False
-                            module.fastUniverses[u].save_before_layer = module.fastUniverses[u].top_layer
+                            universeObject.all_static = False
+                            universeObject.save_before_layer = universeObject.top_layer
             
     
         for i in changedUniverses:
             try:
-                if i in module.universes:
-                    module.universes[i].preFrame()
-                    module.universes[i].onFrame()
+                if i in universesSnapshot:
+                    x =universesSnapshot[i]
+                    x.preFrame()
+                    x.onFrame()
             except:
                 raise
-        for i in module.universes:
-            module.universes[i].full_rerender  =False
+    
+        for i in universesSnapshot:
+           universesSnapshot[i].full_rerender  =False
         changedUniverses={}
     
     
@@ -2346,7 +1882,7 @@ if __name__=='__setup__':
             self.a2 = {}
     
         
-        def paint(self,scene,fade,vals=None,alphas=None):
+        def paint(self,fade,vals=None,alphas=None):
             """
             Makes v2 and a2 equal to the current background overlayed with values from scene which is any object that has dicts of dicts of vals and and
             alpha.
@@ -2365,13 +1901,15 @@ if __name__=='__setup__':
             for i in vals:
                 #Add existing universes to canvas, skip non existing ones
                 if not i in self.v:
-                    if i in module.universes:
-                        self.v[i] = makeBlankArray(len(module.universes[i].values))
-                        self.a[i] = makeBlankArray(len(module.universes[i].values))
-                        self.v2[i] = makeBlankArray(len(module.universes[i].values))
-                        self.a2[i] = makeBlankArray(len(module.universes[i].values))
-                    else:
-                        continue
+                    obj=getUniverse(i)
+                    
+                    if obj:
+                        l =len(obj.values)
+                        self.v[i] = makeBlankArray(l)
+                        self.a[i] = makeBlankArray(l)
+                        self.v2[i] = makeBlankArray(l)
+                        self.a2[i] = makeBlankArray(l)
+    
                 else:
                     #We don't want to fade any values that have 0 alpha in the scene,
                     #because that's how we mark "not present", and we want to track the old val.
@@ -2397,11 +1935,6 @@ if __name__=='__setup__':
                     aset = alphas[i]
                 self.a2[i] = self.a[i]*(1-fade) + fade*aset
     
-    
-    
-        def paintFadeout(self,scene,fade):
-            for i in self.v:
-                self.a2[i]= self.a[i]*(1-fade) 
     
         def save(self):
             self.v = copy.deepcopy(self.v2)
@@ -2455,11 +1988,11 @@ if __name__=='__setup__':
     
     class Cue():
         "A static set of values with a fade in and out duration"
-        __slots__=['id','changed','next_ll','alpha','fadein','fadeout','length','lengthRandomize','name','values','scene',
+        __slots__=['id','changed','next_ll','alpha','fadein','length','lengthRandomize','name','values','scene',
         'nextCue','track','shortcut','number','inherit','sound','rel_length','script',
         'soundOutput','onEnter','onExit','influences','associations',"rules","reentrant","inheritRules",
         '__weakref__']
-        def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, fadeout=0, length=0,track=True, nextCue = None,shortcut=None,sound='',soundOutput='',rel_length=False, id=None,number=None,
+        def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, length=0,track=True, nextCue = None,shortcut=None,sound='',soundOutput='',rel_length=False, id=None,number=None,
             lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,reentrant=True,inheritRules='',**kw):
             #This is so we can loop through them and push to gui
             self.id = uuid.uuid4().hex
@@ -2704,9 +2237,10 @@ if __name__=='__setup__':
     
                     if self.scene().cue==self and self.scene().isActive():
                         self.scene().rerender=True    
-                        if (not universe in self.scene().cue_cached_alphas_as_arrays) and universe in module.universes and not value is None:
-                            self.scene().cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
-                            self.scene().cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
+                        if (not universe in self.scene().cue_cached_alphas_as_arrays) and not value is None:
+                            uobj = getUniverse(universe)
+                            self.scene().cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*len(uobj.values),dtype="f4")
+                            self.scene().cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*len(uobj.values),dtype="f4")
                         if universe in self.scene().cue_cached_alphas_as_arrays:
                             self.scene().cue_cached_alphas_as_arrays[universe][channel] = 1 if not value is None else 0
                             self.scene().cue_cached_vals_as_arrays[universe][channel] =  self.scene().evalExpr(value if not value is None else 0)
@@ -2720,33 +2254,7 @@ if __name__=='__setup__':
                 #change the list of values without resetting
                 if reset:
                     self.scene().setBlend(self.scene().blend)
-    
-    
-                    
-        def clearValues(self):
-            "THIS FUNCTION DOESNT WORK"
-            self.values= {}
-    
-            if self.scene().cue==self and self.scene().isActive():
-                self.scene().rerender=True    
-                if (not universe in self.scene().cue_cached_alphas_as_arrays) and universe in module.universes and not value is None:
-                    self.scene().cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
-                    self.scene().cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*len(module.universes[universe].values),dtype="f4")
-                if universe in self.scene().cue_cached_alphas_as_arrays:
-                    self.scene().cue_cached_alphas_as_arrays[universe][channel] = 1 if not value is None else 0
-                    self.scene().cue_cached_vals_as_arrays[universe][channel] =  self.scene().evalExpr(value if not value is None else 0)
-                if not universe in self.scene().affect:
-                    self.scene().affect.append(universe)
-    
-                #The FadeCanvas needs to know about this change
-                self.scene().render(force_repaint=True)
-    
-            #For blend modes that don't like it when you
-            #change the list of values without resetting
-            self.scene().setBlend(self.scene().blend)
-            for i in module.boards:
-                if len(i().newDataFunctions)<100:
-                    i().newDataFunctions.append(lambda s:s.pushCueData(self.id))                
+                
     
     class ClosedScene():
         pass
@@ -2861,7 +2369,7 @@ if __name__=='__setup__':
             self.active = False
             self.defaultalpha = alpha
             self.name = name
-            self.values = values or {}
+            #self.values = values or {}
             self.canvas = None
             self.backtrack = backtrack
             self.bpm = bpm
@@ -2887,7 +2395,7 @@ if __name__=='__setup__':
     
             self.cues = {}
             if defaultCue:
-                self.cue = Cue(self,"default",self.values)
+                self.cue = Cue(self,"default",values)
                 self.cueTagClaim.set(self.cue.name,annotation="SceneObject")  
     
     
@@ -3217,7 +2725,8 @@ if __name__=='__setup__':
         def _event(self, s,value=None,info=''):
             "Manually trigger any script bindings on an event"
             try:
-                self.scriptContext.event(s,value)
+                if self.scriptContext:
+                    self.scriptContext.event(s,value)
             except Exception as e:
                 rl_log_exc("Error handling event")
                 print(traceback.format_exc(6))
@@ -3298,14 +2807,13 @@ if __name__=='__setup__':
                     if self.canvas:
                         self.canvas.save()
     
-                    self.fadeInCompleted = False
+                    
                     #There might be universes we affect that we don't anymore,
                     #We need to rerender those because otherwise the system might think absolutely nothing has changed.
                     #A full rerender on every cue change isn't the most efficient, but it shouldn't be too bad
                     #since most frames don't have a cue change in them
                     for i in self.affect:
-                        if i in module.universes:
-                            module.universes[i].full_rerender = True
+                        rerenderUniverse(i)
     
                     if cue == "__stop__":
                         self.stop()
@@ -3334,7 +2842,7 @@ if __name__=='__setup__':
     
                     if not (cue==self.cue.name):
                         if generateEvents:
-                            if self.active:
+                            if self.active and self.scriptContext:
                                 self.event("cue.exit", value=self.cue.name)
     
                     #We return if some the enter transition already
@@ -3352,12 +2860,6 @@ if __name__=='__setup__':
                     self.sound_end = 0
     
                     
-    
-                    self.fadeout_start =False
-    
-                    
-    
-    
     
                     try:
                         #Take rules from new cue, don't actually set this as the cue we are in
@@ -3390,7 +2892,7 @@ if __name__=='__setup__':
                     #And the fade means we might still affect them for a brief time.
     
     
-    
+                    #TODO backtracking these variables?
                     cuevars = self.cues[cue].values.get("__variables__",{})
                     for i in cuevars:
                         try:
@@ -3399,34 +2901,8 @@ if __name__=='__setup__':
                             print(traceback.format_exc())
                             rl_log_exc("Error with cue variable "+i)
     
-                    
-                    #When jumping to a cue that isn't directly the next one, apply and "parent" cues.
-                    #We go backwards until we find a cue that has no parent. A cue has a parent if and only if it has either
-                    #an explicit parent or the previous cue in the numbered list either has the default next cue or explicitly
-                    #references this cue.
-                    cobj = self.cues[cue]
-    
-                    if self.backtrack and not cue == (self.cue.nextCue or self.getDefaultNext()) and cobj.track:
-                        l = []
-                        safety = 10000
-                        x = self.getParent(cue)
-                        while x:
-                            #No l00ps
-                            if x in l:
-                                break
-    
-                            #Don't backtrack past the current cue for no reason
-                            if x is self.cue:
-                                break
-    
-                            l.append(self.cues[x])
-                            x = self.getParent(x)
-                            safety -= 1
-                            if not safety:
-                                break
-    
-                        for cuex in reversed(l):
-                            self.cueValsToNumpyCache(cuex)
+                    if self.cues[cue].track:
+                        self.applyTrackedValues(cue)
     
                     
     
@@ -3465,14 +2941,53 @@ if __name__=='__setup__':
                     
                     self.recalcRandomizeModifier()
                     self.recalcCueLen()
+    
+                    #Recalc what universes are affected by this scene.
+                    #We don't clear the old universes, we do that when we're done fading in.
+                    for i in self.cue.values:
+                        i = mapUniverse(i)
+                        if i and i in module.universes:
+                            if not i in self.affect:
+                                self.affect.append(i)
+                    
                     
                     self.cueValsToNumpyCache(self.cue, not self.cue.track)
-            
+                    self.fadeInCompleted = False
+    
                     self.rerender = True
                     self.pushMeta(statusOnly=True)
     
                     self.preloadNextCueSound()
                 
+        def applyTrackedValues(self,cue):
+            #When jumping to a cue that isn't directly the next one, apply and "parent" cues.
+            #We go backwards until we find a cue that has no parent. A cue has a parent if and only if it has either
+            #an explicit parent or the previous cue in the numbered list either has the default next cue or explicitly
+            #references this cue.
+            cobj = self.cues[cue]
+    
+            if self.backtrack and not cue == (self.cue.nextCue or self.getDefaultNext()) and cobj.track:
+                l = []
+                safety = 10000
+                x = self.getParent(cue)
+                while x:
+                    #No l00ps
+                    if x in l:
+                        break
+    
+                    #Don't backtrack past the current cue for no reason
+                    if x is self.cue:
+                        break
+    
+                    l.append(self.cues[x])
+                    x = self.getParent(x)
+                    safety -= 1
+                    if not safety:
+                        break
+                
+                #Apply all the lighting changes we would have seen if we had gone through the list one at a time.
+                for cuex in reversed(l):
+                    self.cueValsToNumpyCache(cuex)
     
         def preloadNextCueSound(self):
             #Preload the next cue's sound if we know what it is
@@ -3551,11 +3066,13 @@ if __name__=='__setup__':
                 if not universe:
                     continue
     
-                if not universe in module.universes:
+                uobj = getUniverse(universe)
+    
+                if not uobj:
                     continue
     
                 if not universe in self.cue_cached_vals_as_arrays:
-                    l = len(module.universes[universe].values)
+                    l = len(uobj.values)
                     self.cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*l,dtype="f4")
                     self.cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*l,dtype="f4")
                     
@@ -3629,7 +3146,7 @@ if __name__=='__setup__':
             except:
                 self.event("$badmqtt:"+topic, message)
                 
-        def doMqttSubscriptions(self):
+        def doMqttSubscriptions(self,keepUnused=60):
             if self.mqttConnection and self.scriptContext:
                 
     
@@ -3646,8 +3163,17 @@ if __name__=='__setup__':
     
                 for i in self.mqttSubscribed:
                     if not "$mqtt:"+i in self.scriptContext.eventListeners:
+                        if not i in self.unusedMqttTopics:
+                            self.unusedMqttTopics[i]= time.monotonic()
+                            continue
+                        elif self.unusedMqttTopics[i]> time.monotonic()-keepUnused:
+                            continue
                         self.mqttConnection.unsubscribe(i,self.onMqttMessage)
+                        del self.unusedMqttTopics[i]
                         torm.append(i)
+                    else:
+                        if i in self.unusedMqttTopics:
+                            del self.unusedMqttTopics[i]
                         
                 for i in torm:
                     del self.mqttSubscribed[i]
@@ -3693,7 +3219,7 @@ if __name__=='__setup__':
                     #Re-enter cue to create the cache
                     self.gotoCue(self.cue.name)
                 #Bug workaround for bug where scenes do nothing when first activated
-                self.canvas.paint(self.cue, 0,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)
+                self.canvas.paint( 0,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)
     
                 self.enteredCue = module.timefunc()
     
@@ -3730,8 +3256,7 @@ if __name__=='__setup__':
                 module.activeScenes = module._activeScenes[:]
                 try:
                     for i in self.affect:
-                        if i in module.universes:
-                            module.universes[i].full_rerender = True
+                        rerenderUniverse(i)
                 except:
                     pass
     
@@ -3765,10 +3290,12 @@ if __name__=='__setup__':
                     port=1883
     
                 self.mqttServer = mqttServer
+                self.unusedMqttTopics={}
                 if mqttServer:
                     
                     self.mqttConnection = kaithem.mqtt.Connection(server, port,alertPriority='warning')
                     self.mqttSubscribed={}
+    
                     t= self.mqttConnection.statusTag
     
                     if t.value:
@@ -3887,8 +3414,7 @@ if __name__=='__setup__':
                 
                 try:
                     for i in self.affect:
-                        if i in module.universes:
-                            module.universes[i].full_rerender = True
+                        rerenderUniverse(i)
                 except:
                     pass
         
@@ -3914,6 +3440,7 @@ if __name__=='__setup__':
                 
                 self.cue=None
                 self.cueTagClaim.set("__stopped__",annotation="SceneObject")
+                self.doMqttSubscriptions(keepUnused=0)
     
             
         def setAlpha(self,val,sd=False):
@@ -4027,7 +3554,10 @@ if __name__=='__setup__':
     
             if fadePosition<1:
                 self.rerender = True
-    
+            
+            #TODO: We absolutely should not have to do this every time we rerender.
+            #Bugfix is in order!
+            self.canvas.paint(fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)
     
             if self.cue.length and(module.timefunc()-self.enteredCue)> self.cuelen*(60/self.bpm):
                 #rel_length cues end after the sound in a totally different part of code
@@ -4036,26 +3566,24 @@ if __name__=='__setup__':
                 self.nextCue(round(self.enteredCue+self.cuelen*(60/self.bpm),3))
             else:
                 if force_repaint or not self.fadeInCompleted:
-                    self.canvas.paint(self.cue, fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)
-                    
+                    self.canvas.paint(fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)
                     if fadePosition >= 1:
+                        #We no longer affect universes from the previous cue we are fading from
+                        
+                        #But we *do* still keep tracked and backtracked values.
+                        self.affect = []
+                        for i in self.cue_cached_vals_as_arrays:
+                            u = mapUniverse(i)
+                            if u and u in module.universes:
+                                if not u in self.affect:
+                                    self.affect.append(u)
     
-                        #Check if there could be effects from other cues
-                        if not self.cue.track:
-                            #We no longer affect universes from anything else
-                            self.affect = []
-                            for i in self.cue.values:
-                                i = mapUniverse(i)
-                                if i in module.universes:
-                                    if not i in self.affect:
-                                        self.affect.append(i)
-    
-                            #Remove unused universes from the cue
-                            self.canvas.clean(self.cue.values)
-    
+                        #Remove unused universes from the cue
+                        self.canvas.clean(self.cue_cached_vals_as_arrays)
                         self.fadeInCompleted = True
                         self.rerender=True
-    
+            
+          
         def updateMonitorValues(self):
             if self.blend == "monitor":
                 data =  self.cue.values
@@ -4063,8 +3591,9 @@ if __name__=='__setup__':
                     for j in data[i]:
                         x = mapChannel(i,j)
                         if x:
-                            if x[0] in module.universes:
-                                v = module.universes[x[0]].values[x[1]]
+                            u = getUniverse(x[0])
+                            if u:
+                                v = u.values[x[1]]
                                 self.cue.values[i][j] = float(v)
                 self.valueschanged={}
     
@@ -4088,7 +3617,7 @@ if __name__=='__setup__':
     kaithem.chandler.Scene = module.Scene
     kaithem.chandler.scenesByUUID = module.scenes
     kaithem.chandler.scenes = module.scenes_by_name
-    kaithem.chandler.Universe = Universe
+    kaithem.chandler.Universe = module.Universe
     kaithem.chandler.blendmodes = module.blendmodes
     kaithem.chandler.fixture = Fixture
     kaithem.chandler.shortcut = shortcutCode
@@ -4097,8 +3626,9 @@ if __name__=='__setup__':
     kaithem.chandler.event = event
     
     
-    module.controluniverse = module.Universe("control")
-    module.varsuniverse = module.Universe("__variables__")
+    controluniverse = module.Universe("control")
+    module.controluniverse= weakref.proxy(controluniverse)
+    varsuniverse = module.Universe("__variables__")
 
 def eventAction():
     with module.lock:

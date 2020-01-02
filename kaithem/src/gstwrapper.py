@@ -78,9 +78,10 @@ def Element(n,name=None):
         return e
     else:
         raise ValueError("No such element exists: "+n)
+loop = None
 def init():
     "On demand loading, for startup speed but also for compatibility if Gstreamer isn't there"
-    global initialized, Gst
+    global initialized, Gst,loop
     #Quick check outside the lock
     if initialized:
         return
@@ -91,9 +92,13 @@ def init():
             gi.require_version('GstBase', '1.0')
             gi.require_version('Gtk', '3.0')
             from gi.repository import Gst as gst
-            from gi.repository import GObject, GstBase, Gtk, GObject
+            from gi.repository import GObject, GstBase, Gtk, GObject,GLib
             Gst = gst
             Gst.init(None)
+            glibloop = GLib.MainLoop()
+
+            loop=threading.Thread(target=glibloop.run,daemon=True)
+            loop.start()
             initialized = True
 
 
@@ -105,11 +110,12 @@ def doesElementExist(n):
     return True
 
 
-def wrfunc(f):
+def wrfunc(f,fail_return=None):
     def f2(*a,**k):
         try:
             return f()(*a,**k)
         except:
+            return fail_return
             print(traceback.format_exc())
     return f2
 
@@ -124,27 +130,12 @@ def makeWeakrefPoller(selfref):
                 self.exited=True
                 return
             if self.running:
-                #Assumption: this is threadsafe?
                 t=time.monotonic()
                
                 try:
                     with self.lock:
                         state = self.pipeline.get_state(1000000000)[1]
                     
-                    #Paused stuff can be a bit less quick to respond to messages
-                    rtime = 1/48 if state==Gst.State.PLAYING else 0.15
-                    while time.monotonic()-t<5:
-                      
-
-                        #This is very bad inefficiency here to use so many short
-                        #Lock/unlocks, but we need to stay responsive
-                        with self.lock:
-                            if not self.running:
-                                self.exited=True
-                                return
-                            self.bus.poll(Gst.MessageType.ANY,0.001)
-                        #No hogging the lock
-                        time.sleep(rtime)
 
                     if not state==Gst.State.NULL:
                         self.wasEverRunning=True
@@ -185,6 +176,7 @@ def makeWeakrefPoller(selfref):
                         return
             self.exited=True
             del self
+            time.sleep(5)
     return pollerf
 
 
@@ -228,9 +220,10 @@ class Pipeline():
         self.hasSignalWatch=0
         self.bus.add_signal_watch()
         self.hasSignalWatch = 1
-        self.pgbcobj = self.bus.connect('message',wrfunc(weakref.WeakMethod(self.on_message)))
-        self.pgbcobj2 = self.bus.connect("message::eos", wrfunc(weakref.WeakMethod(self.on_eos)))
-        self.pgbcobj3 = self.bus.connect("message::error", wrfunc(weakref.WeakMethod(self.on_error)))
+        #1 is dummy user data, because some have reported segfaults if it is missing
+        self.pgbcobj = self.bus.connect('message',wrfunc(weakref.WeakMethod(self.on_message)),1)
+        self.pgbcobj2 = self.bus.connect("message::eos", wrfunc(weakref.WeakMethod(self.on_eos)),1)
+        self.pgbcobj3 = self.bus.connect("message::error", wrfunc(weakref.WeakMethod(self.on_error)),1)
         self.name = name
 
         self.elements = []
@@ -246,7 +239,7 @@ class Pipeline():
         self.startTime = 0
         def dummy(*a,**k):
             pass
-        self.bus.set_sync_handler(wrfunc(weakref.WeakMethod(self.syncMessage)),0,dummy)
+        self.bus.set_sync_handler(wrfunc(weakref.WeakMethod(self.syncMessage), fail_return=Gst.BusSyncReply.PASS ),0,dummy)
         self.pollthread=None
 
         self.lastElementType = None
@@ -289,10 +282,10 @@ class Pipeline():
         try:
             if self.knownThreads and time.monotonic()-self.startTime>3:
                 #This can't use the lock, we don't know what thread it might be called in.
-                def f():
+                def noSyncHandler():
                     with self.lock:
                         self.bus.set_sync_handler(None,0,None)
-                workers.do(f)
+                workers.do(noSyncHandler)
             if not threading.currentThread().ident in self.knownThreads:
                 self.knownThreads[threading.currentThread().ident] = True
                 if self.realtime:
@@ -302,6 +295,7 @@ class Pipeline():
                         log.exception("Error setting realtime priority")
             return Gst.BusSyncReply.PASS
         except:
+            return Gst.BusSyncReply.PASS
             print(traceback.format_exc())
     
     def makeElement(self,n,name=None):
@@ -347,7 +341,12 @@ class Pipeline():
 
 
 
-   
+    def waitForState(self,s,timeout=10):
+        t=time.monotonic()
+        while not self.pipeline.get_state(1000_000_000)[1]==s:
+            if time.monotonic()-t> timeout:
+                raise RuntimeError("Timeout")
+            time.sleep(0.1)
 
     def start(self, effectiveStartTime=None):
         "effectiveStartTime is used to keep multiple players synced when used with systemTime"
@@ -359,13 +358,15 @@ class Pipeline():
             #Convert to monotonic time that the nternal APIs use
             self.startTime= time.monotonic()-timeAgo
             self.pipeline.set_state(Gst.State.PAUSED)
-
+            self.waitForState(Gst.State.PAUSED)
+            
             #Seek to where we should be, if we had actually
             #Started when we should have.
             if self.systemTime:
                 self.seek(time.monotonic()-self.startTime)
 
             self.pipeline.set_state(Gst.State.PLAYING)
+            self.waitForState(Gst.State.PLAYING)
             self.running=True
             self.maybeStartPoller()
 
@@ -376,13 +377,16 @@ class Pipeline():
             if not self.running:
                 raise RuntimeError("Pipeline is not paused, or running, call start()")
             self.pipeline.set_state(Gst.State.PLAYING)
-            
+            self.waitForState(Gst.State.PAUSED)
+
     def pause(self):
         "Not that we can start directly into paused without playing first, to preload stuff"
         with self.lock:
             if self.exiting:
                 return
             self.pipeline.set_state(Gst.State.PAUSED)
+            self.waitForState(Gst.State.PAUSED)
+
             self.running=True
             self.maybeStartPoller()
     
@@ -397,6 +401,7 @@ class Pipeline():
         #Actually stop as soon as we can
         with self.lock:
             self.pipeline.set_state(Gst.State.NULL)
+            self.waitForState(Gst.State.NULL)
             self.exiting = True
 
         #Now we're going to do the cleanup stuff
@@ -477,14 +482,14 @@ class Pipeline():
                 if self.lastElementType=='decodebin':
                     xx = uuid.uuid4()
                     def closureMaker(src, dest):
-                        def f(element, pad):
+                        def linkFunction(element, pad,dummy):
                             link(element,dest)
                             del self.waitingCallbacks[xx]
-                        return f
+                        return linkFunction
                     f = closureMaker(self.elements[-1],e)
 
                     self.waitingCallbacks[xx]=f
-                    self.elements[-1].connect("pad-added",f)
+                    self.elements[-1].connect("pad-added",f,1)
                 else:
                     link(self.elements[-1],e)
             self.elements.append(e)

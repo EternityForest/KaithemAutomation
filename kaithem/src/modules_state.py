@@ -286,6 +286,51 @@ def ls_folder(m,d):
 "this lock protects the activemodules thing. Any changes at all should go through this."
 modulesLock = RLock()
 
+
+#For passing thigs to that owning thread
+mlockFunctionQueue=[]
+
+#Allows the owner f the lock to let other threads run things in it,
+#By overriding this, them setting it back.
+
+#This is because USER code may want to use this lock, q=while it is taken by the page handler compiling it.
+#As the user init code is a different thread, they have to pass requests to us
+def runWithModulesLock(f):
+    return f()
+
+def listenForMlockRequests():
+    global runWithModulesLock
+    def f(g):
+        g._ret = None
+        g._err = None
+        mlockFunctionQueue.append(g)
+        while(mlockFunctionQueue):
+            time.sleep(0.01)
+        if g._err:
+            raise g._err
+        return g._ret
+
+    runWithModulesLock=f
+
+def stopMlockRequests():
+    "ALWAYS call this before you stop polling for requests "
+    global runWithModulesLock
+    def f(g):
+        return g()
+    runWithModulesLock = f
+
+def pollMlockRequests():
+    while mlockFunctionQueue:
+        f = mlockFunctionQueue[-1]
+    
+        try:
+            f._ret = f()
+        except Exception as e:
+            f._err = e
+        mlockFunctionQueue.pop()
+        
+
+
 #Define a place to keep the module private scope obects.
 #Every module has a object of class object that is used so user code can share state between resources in
 #a module

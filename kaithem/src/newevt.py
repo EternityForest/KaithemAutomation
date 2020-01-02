@@ -609,18 +609,32 @@ class CompileCodeStringsMixin():
                     logging.exception("Error in event code for "+self.module+":"+self.resource)
                     e.storedError = traceback.format_exc(chain=True)
                     err.append(e)
+              
 
+        modules_state.listenForMlockRequests()
         workers.do(runInit)
-        #Wait for it to get the lock
-        while(len(l))==0:
-            time.sleep(0.001)
+        try:
+            #Wait for it to get the lock
+            while(len(l))==0:
+                time.sleep(0.001)
+              
 
-        #Now wait for it to release it
-        if not fooLock.acquire(timeout=15):
-            raise UnrecoverableEventInitError("The event initializer is stuck in a loop or blocken more than 15s, and may still be running. Undefined behavior?")
+            t = time.monotonic()
+            #Now wait for it to release it
+            while fooLock.acquire(timeout=0.1):
+                #The function in RunInit might want to do something involving the moduleslock.
+                #It can't, because we have it, so we let it delegate some things to us.
+                modules_state.pollMlockRequests()
+
+                if time.monotonic()-t> 15:
+                    raise UnrecoverableEventInitError("The event initializer is stuck in a loop or blocken more than 15s, and may still be running. Undefined behavior? ")
+        finally:
+            modules_state.stopMlockRequests()
+            modules_state.pollMlockRequests()
 
         if err:
             raise err[0]
+
 
         body = "def _event_action():\n"
         for line in action.split('\n'):

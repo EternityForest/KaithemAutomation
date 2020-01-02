@@ -274,6 +274,8 @@ class VirtualResourceReference(weakref.ref):
         else:
             raise KeyError(name)
 
+        
+
 class ModuleObject(object):
     """
     These are the objects acessible as 'module' within pages, events, etc.
@@ -316,45 +318,45 @@ class ModuleObject(object):
 
 
         module = self.__kaithem_modulename__
-
-        with modulesLock:
-            #Delete dead weakrefs
-            if isinstance(value, VirtualResource):
-                insertVirtualResource(module,name,value)
-                return
-            else:
-                if not 'resource-type' in value:
-                    raise ValueError("Supplied dict has no resource-type")
-                resourcetype= value['resource-type']
-                #Raise an exception on anything non-serializable or without a resource-type,
-                #As those could break something.
-                json.dumps({name:value})
-                unsaved_changed_obj[(module,name)] = "User code inserted or modified module"
-                #Insert the new item into the global modules thing
-                ActiveModules[module][name]=value
-                modules_state.createRecoveryEntry(module,name,value)
-                modulesHaveChanged()
-
-                #Make sure we recognize the resource-type, or else we can't load it.
-                if (not resourcetype in ['event','page','permission','directory']) and (not resourcetype in additionalTypes):
-                    raise ValueError("Unknown resource-type")
-
-                #Do the type-specific init action
-                if resourcetype == 'event':
-                    e = newevt.make_event_from_resource(module,name)
-                    newevt.updateOneEvent(module,name,e)
-
-                elif resourcetype == 'page':
-                    #Yes, module and resource really are backwards, and no, it wasn't a good idea to do that.
-                    usrpages.updateOnePage(name,module)
-
-                elif resourcetype == 'permission':
-                    auth.importPermissionsFromModules()
-
+        def f():
+            with modulesLock:
+                #Delete dead weakrefs
+                if isinstance(value, VirtualResource):
+                    insertVirtualResource(module,name,value)
+                    return
                 else:
-                    additionalTypes[resourcetype].onload(module,name, value)
+                    if not 'resource-type' in value:
+                        raise ValueError("Supplied dict has no resource-type")
+                    resourcetype= value['resource-type']
+                    #Raise an exception on anything non-serializable or without a resource-type,
+                    #As those could break something.
+                    json.dumps({name:value})
+                    unsaved_changed_obj[(module,name)] = "User code inserted or modified module"
+                    #Insert the new item into the global modules thing
+                    ActiveModules[module][name]=value
+                    modules_state.createRecoveryEntry(module,name,value)
+                    modulesHaveChanged()
 
+                    #Make sure we recognize the resource-type, or else we can't load it.
+                    if (not resourcetype in ['event','page','permission','directory']) and (not resourcetype in additionalTypes):
+                        raise ValueError("Unknown resource-type")
 
+                    #Do the type-specific init action
+                    if resourcetype == 'event':
+                        e = newevt.make_event_from_resource(module,name)
+                        newevt.updateOneEvent(module,name,e)
+
+                    elif resourcetype == 'page':
+                        #Yes, module and resource really are backwards, and no, it wasn't a good idea to do that.
+                        usrpages.updateOnePage(name,module)
+
+                    elif resourcetype == 'permission':
+                        auth.importPermissionsFromModules()
+
+                    else:
+                        additionalTypes[resourcetype].onload(module,name, value)
+
+        modules_state.runWithModulesLock(f)
 
 #This is used for the kaithem object.
 class ResourceAPI(object):
@@ -603,7 +605,7 @@ def saveResource2(obj,fn:str):
         try:
             #Don't overwrite more recent manual changes
             if 'resource-timestamp' in obj:
-                t = int(r['resource-timestamp'])/10**6
+                t = int(obj['resource-timestamp'])/10**6
                 if t<os.path.getmtime(fn):
                     #If the file is newer than the current time,
                     #The clock is all kinds of wrong, and we can't use the conflict

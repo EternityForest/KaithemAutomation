@@ -147,6 +147,8 @@ def webRoot():
     #WE have to get the workers set up early because a lot of things depend on it.
     from src import workers
   
+    from src import messagelogging
+    from src import notifications
 
 
     #Attempt to make pavillion work in a sane way that takes advantage of the thread pooling
@@ -170,8 +172,6 @@ def webRoot():
 
 
 
-    from src import messagelogging
-    from src import notifications
 
     from src import pylogginghandler
     from src import logviewer
