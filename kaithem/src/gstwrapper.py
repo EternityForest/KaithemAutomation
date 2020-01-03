@@ -115,8 +115,8 @@ def wrfunc(f,fail_return=None):
         try:
             return f()(*a,**k)
         except:
-            return fail_return
             print(traceback.format_exc())
+            return fail_return
     return f2
 
 def makeWeakrefPoller(selfref):
@@ -333,10 +333,10 @@ class Pipeline():
        
         
 
-    def on_message(self, bus, message):
+    def on_message(self, bus, message,userdata):
         return True
 
-    def on_error(self,bus,msg):
+    def on_error(self,bus,msg,userdata):
         logging.debug('Error {}: {}, {}'.format(msg.src.name, *msg.parse_error()))
 
 

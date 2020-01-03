@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1578011220651748
+resource-timestamp: 1578055218549861
 resource-type: event
 versions: {}
 
@@ -534,10 +534,10 @@ if __name__=='__setup__':
                         #Delete current assignments
                         for i in range(self.startAddress,self.startAddress+len(self.channels)):
                             if i in oldUniverseObj.channels:
-                                if oldUniverseObj.channels[i] is self:
+                                if oldUniverseObj.channels[i]() and oldUniverseObj.channels[i]()  is self:
                                     del oldUniverseObj.channels[i]
                                 else:
-                                    print("Unexpected channel data corruption",universe, i, oldUniverseObj.channels[i])
+                                    print("Unexpected channel data corruption",universe, i, oldUniverseObj.channels[i]())
     
                 self.assignment=universe, channel
     
@@ -562,11 +562,12 @@ if __name__=='__setup__':
                 #2 separate loops, first is just to check, so that we don't have half-completed stuff
                 for i in range(channel,channel+len(self.channels)):
                     if i in universeObj.channels:
-                        if universeObj.channels[i]:
-                            raise ValueError("channel " +str(i)+ " of " +self.name+ " would overlap with "+universeObj.channels[i].name)
+                        if universeObj.channels[i] and universeObj.channels[i]():
+                            if not self.name == universeObj.channels[i]().name:
+                                raise ValueError("channel " +str(i)+ " of " +self.name+ " would overlap with "+universeObj.channels[i]().name)
     
                 for i in range(channel,channel+len(self.channels)):
-                   universeObj.channels[i]= self
+                   universeObj.channels[i]= weakref.ref(self)
     
     
     
@@ -654,13 +655,41 @@ if __name__=='__setup__':
             self.lock = threading.RLock()
             
             self.configuredUniverses = kaithem.registry.get("lighting/universes",{})
+    
+            saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "universes")
+            if os.path.isdir(saveLocation):
+                for i in os.listdir(saveLocation):
+                    fn = os.path.join(saveLocation,i)
+                    if os.path.isfile(fn) and fn.endswith(".yaml"):
+                        self.configuredUniverses[i[:-len('.yaml')]] = kaithem.persist.load(fn)
+    
             self.universeObjs = {}
     
             self.fixtureClasses =kaithem.registry.get("lighting/fixturetypes",{})
+    
+            saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "fixturetypes")
+            if os.path.isdir(saveLocation):
+                for i in os.listdir(saveLocation):
+                    fn = os.path.join(saveLocation,i)
+                    if os.path.isfile(fn) and fn.endswith(".yaml"):
+                        self.fixtureClasses[i[:-len('.yaml')]] = kaithem.persist.load(fn)
+    
+    
             self.fixtureAssignments = {}
             self.fixtures ={}
             
+    
             self.fixtureAssignments = kaithem.registry.get("lighting/fixtures",{})
+    
+            saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "fixtures")
+            if os.path.isdir(saveLocation):
+                for i in os.listdir(saveLocation):
+                    fn = os.path.join(saveLocation,i)
+                    if os.path.isfile(fn) and fn.endswith(".yaml"):
+                        self.fixtureAssignments[i[:-len('.yaml')]] = kaithem.persist.load(fn)
+    
+    
+    
     
             #This used to be a list of [name, fixturetype, startAddress] triples
             if not isinstance(self.fixtureAssignments,dict):
@@ -709,6 +738,8 @@ if __name__=='__setup__':
                         self.fixtures[i].rm()
                 except:
                     self.ferrs+= 'Error deleting old assignments:\n'+traceback.format_exc()
+                    print(traceback.format_exc())
+                    
                 try:
                     del i
                 except:
@@ -750,6 +781,8 @@ if __name__=='__setup__':
             l ={}
             u = data
             for i in u:
+                if u[i]['type'] == 'enttecopen' or u[i]['type'] == 'rawdmx':
+                    l[i] = module.EnttecOpenUniverse(i,channels=int(u[i].get('channels',128)),portname=u[i].get('interface',None),framerate=float(u[i].get('framerate',44)))
                 if u[i]['type'] == 'enttec':
                     l[i] = module.EnttecUniverse(i,channels=int(u[i].get('channels',128)),portname=u[i].get('interface',None),framerate=float(u[i].get('framerate',44)))
                 if u[i]['type'] == 'artnet':
@@ -760,6 +793,26 @@ if __name__=='__setup__':
             self.universeObjs = l
             self.pushUniverses()
     
+    
+        def loadSetupFile(self,data,_asuser=False, filename=None,errs=False):
+            if not kaithem.users.checkPermission(kaithem.web.user(),"/admin/modules.edit"):
+                raise ValueError("You cannot change the setup without /admin/modules.edit" )
+    
+            if 'fixturetypes' in data:
+                self.fixtureClasses.update(data['fixturetypes'])
+            
+            if 'universes' in data:
+                self.configuredUniverses = data['universes']
+                self.createUniverses(self.configuredUniverses)
+    
+            if 'fixtures' in data:
+                self.fixtureAssignments = data['fixtures']
+                self.refreshFixtures()
+    
+    
+        def loadLibraryFile(self,data,_asuser=False, filename=None,errs=False):
+            if 'fixturetypes' in data:
+                self.fixtureClasses.update(data['fixturetypes'])
     
         def loadSceneFile(self,data,_asuser=False, filename=None,errs=False):
     
@@ -773,7 +826,7 @@ if __name__=='__setup__':
             
     
             for i in data:
-                if 'page' in data[i] and data[i]['page']['html'].strip() or data[i]['page']['js'].strip():
+                if 'page' in data[i] and data[i]['page']['html'].strip() or data[i]['page']['js'].strip() or data[i]['page']['rawhtml'].strip():
                     if not kaithem.users.checkPermission(kaithem.web.user(),"/admin/modules.edit"):
                         raise ValueError("You cannot upload this scene without /admin/modules.edit, because it uses advanced features: pages" )
                 if 'mqttServer' in data[i] and data[i]['page']['mqttServer'].strip():
@@ -914,9 +967,13 @@ if __name__=='__setup__':
     
                 return sd
     
-        def save(self):
-            sd = self.getScenes()
-            saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "scenes")
+    
+    
+        def saveAsFiles(self,dirname, data, legacyKey=None):
+            sd = data
+            saveLocation = os.path.join(kaithem.misc.vardir,"chandler",dirname)
+            if not os.path.exists(saveLocation):
+                os.mkdir(saveLocation)
     
             saved = {}
             #Lock used to prevent conflict, saving over each other with nonsense data.
@@ -932,12 +989,14 @@ if __name__=='__setup__':
                     if not i in saved:
                         os.remove(fn)
             try:
-                #Remove the registry entry for the legacy way of saving things.                    
-                kaithem.registry.delete("lighting/scenes")
+                #Remove the registry entry for the legacy way of saving things.
+                if legacyKey:                
+                    kaithem.registry.delete(legacyKey)
             except KeyError:
                 pass
         
-        
+    
+    
         def pushTracks(self):
             self.link.send(['tracks',{i:module.runningTracks[i].name for i in module.runningTracks}])
     
@@ -953,7 +1012,10 @@ if __name__=='__setup__':
     
                 d = {}
                 for i in uobj.channels:
-                    fixture = uobj.channels[i]
+                    fixture = uobj.channels[i]()
+                    if not fixture:
+                        return
+    
                     if not fixture.startAddress:
                         return
                     data= [fixture.name]+fixture.channels[i-fixture.startAddress]
@@ -969,8 +1031,8 @@ if __name__=='__setup__':
     
     
     
-        def pushMeta(self,sceneid, statusOnly=False):
-            "Statusonly=only the stuff relevant to a cue change"
+        def pushMeta(self,sceneid, statusOnly=False, keys=None):
+            "Statusonly=only the stuff relevant to a cue change. Keys is iterabe of what to send, or None for all"
             scene = module.scenes[sceneid]
             
             try:
@@ -1015,8 +1077,7 @@ if __name__=='__setup__':
                 except:
                     print(traceback.format_exc())
             if not statusOnly:
-                self.link.send(["scenemeta",sceneid,     
-                                {
+                data ={
                                 'ext':not sceneid in self.scenememory ,
                                 'dalpha':scene.defaultalpha,
                                 'alpha':scene.alpha,
@@ -1047,10 +1108,9 @@ if __name__=='__setup__':
                                 "mqttServer": scene.mqttServer,
                                 'status': scene.getStatusString()
     
-                        }])
+                        }
             else:
-                self.link.send(["scenemeta",sceneid,     
-                                {
+                data={
                                 'alpha':scene.alpha,
                                 'active': scene.isActive(),
                                 'defaultActive': scene.defaultActive,
@@ -1059,7 +1119,13 @@ if __name__=='__setup__':
                                 'cue': scene.cue.id if scene.cue else scene.cues['default'].id,
                                 'cuelen': scene.cuelen,
                                 'status': scene.getStatusString()
-                        }])
+                        }
+            if keys:
+                for i in keys:
+                    if not i in data:
+                        raise KeyError(i)
+            self.link.send(["scenemeta",sceneid, {i:data[i] for i in data if (not keys or(i in keys))}]) 
+                                
                     
         def pushCueMeta(self,cueid):
             try:
@@ -1122,9 +1188,18 @@ if __name__=='__setup__':
             #Adds a light to a scene
             try:
     
-                if msg[0] == "saveAll":
-                    self.save()
+                if msg[0] == "saveScenes":
+                    self.saveAsFiles('scenes', self.getScenes(),"lighting/scenes")
                     
+                if msg[0] == "saveSetup":
+                    self.saveAsFiles('fixturetypes', self.fixtureClasses,"lighting/fixtureclasses")
+                    self.saveAsFiles('universes', self.configuredUniverses,"lighting/universes")
+                    self.saveAsFiles('fixtures', self.fixtureAssignments,"lighting/fixtures")
+                
+                if msg[0] == "saveLibrary":
+                    self.saveAsFiles('fixturetypes', self.fixtureClasses,"lighting/fixtureclasses")
+    
+    
                 if msg[0] == "addscene":
                     s = Scene(msg[1].strip())
                     self.scenememory[s.id]=s
@@ -1153,7 +1228,6 @@ if __name__=='__setup__':
                 if msg[0] == "setconfuniverses":
                     if kaithem.users.checkPermission(user,"/admin/settings.edit"):
                         self.configuredUniverses = msg[1]
-                        kaithem.registry.set("lighting/universes",msg[1])
                         self.createUniverses(self.configuredUniverses)
                     else:
                         raise RuntimeError("User does not have permission")
@@ -1171,7 +1245,6 @@ if __name__=='__setup__':
     
                 if msg[0] == "setfixturesfromcode":
                     self.fixtureAssignments = fixturesFromOldListStyle([[j.strip() for j in i.split(',')] for i in msg[1].split("\n") if len(i)])
-                    kaithem.registry.set("lighting/fixtures", self.fixtureAssignments)
                     self.link.send(['fixtureAssignments', self.fixtureAssignments])
                     self.pushFixtureAssignmentCode()
                     self.refreshFixtures()
@@ -1179,7 +1252,6 @@ if __name__=='__setup__':
     
                 if msg[0] == "setFixtureAssignment":
                     self.fixtureAssignments[msg[1]]=msg[2]
-                    kaithem.registry.set("lighting/fixtures", self.fixtureAssignments)
                     self.link.send(['fixtureAssignments', self.fixtureAssignments])
                     self.pushFixtureAssignmentCode()
                     self.refreshFixtures()
@@ -1189,7 +1261,6 @@ if __name__=='__setup__':
     
                     self.link.send(['fixtureAssignments', self.fixtureAssignments])
                     self.pushFixtureAssignmentCode()
-                    kaithem.registry.set("lighting/fixtures", self.fixtureAssignments)
                     self.link.send(['fixtureAssignments', self.fixtureAssignments])
     
                     
@@ -1239,18 +1310,17 @@ if __name__=='__setup__':
     
                 if msg[0] == "setNotes":
                     module.scenes[msg[1]].notes=msg[2]
-                    self.pushMeta(msg[1])
+                    self.pushMeta(msg[1],keys={'notes'})
     
     
                 if msg[0] == "setPage":
                     if kaithem.users.checkPermission(user,"/admin/modules.edit"):
-                        module.scenes[msg[1]].setPage(msg[2],msg[3],msg[4])
-                        self.pushMeta(msg[1])
+                        module.scenes[msg[1]].setPage(msg[2],msg[3],msg[4],msg[5])
     
                 if msg[0] == "setMqttServer":
                     if kaithem.users.checkPermission(user,"/admin/modules.edit"):
                         module.scenes[msg[1]].setMqttServer(msg[2])
-                        self.pushMeta(msg[1])
+                        self.pushMeta(msg[1], keys={'mqttServer'})
     
     
                 if msg[0] == "clonescene":
@@ -1392,10 +1462,11 @@ if __name__=='__setup__':
                             s = self.scenememory[i]
                             self.pushCueList(s.id)
                             self.pushMeta(i)
-                            try:
-                                self.pushCueMeta(self.scenememory[i].cue.id)
-                            except:
-                                print(traceback.format_exc())
+                            if self.scenememory[i].cue:
+                                try:
+                                    self.pushCueMeta(self.scenememory[i].cue.id)
+                                except:
+                                    print(traceback.format_exc())
                             try:
                                 self.pushCueMeta(self.scenememory[i].cues['default'].id)
                             except:
@@ -1565,15 +1636,15 @@ if __name__=='__setup__':
     
                 if msg[0] == "setdefaultactive":
                     module.scenes[msg[1]].defaultActive=bool(msg[2])
-                    self.pushMeta(msg[1])
+                    self.pushMeta(msg[1],keys={'active'})
                     
                 if msg[0] == "setbacktrack":
                     module.scenes[msg[1]].setBacktrack(bool(msg[2]))
-                    self.pushMeta(msg[1])
+                    self.pushMeta(msg[1],keys='backtrack')
                 
                 if msg[0] == "setscenesoundout":
                     module.scenes[msg[1]].soundOutput=msg[2]
-                    self.pushMeta(msg[1])
+                    self.pushMeta(msg[1],keys={'soundOutput'})
     
                 if msg[0] == "setlength":
                     try:
@@ -1620,7 +1691,7 @@ if __name__=='__setup__':
                 if msg[0] == "del":
                     #X is there in case the activeScenes listing was the last string reference, we want to be able to push the data still
                     x = module.scenes[msg[1]]
-                    if x.page['html'].strip() or x.page['css'].strip() or x.page['js'].strip():
+                    if x.page['html'].strip() or x.page['css'].strip() or x.page['js'].strip() or x.page['rawhtml'].strip():
                         if not kaithem.users.checkPermission(user,"/admin/modules.edit"):
                             raise ValueError("You cannot delete this scene without /admin/modules.edit, because it uses advanced features: pages" )
                     
@@ -1653,7 +1724,7 @@ if __name__=='__setup__':
                 if msg[0] == "stop":
                     x = module.scenes[msg[1]]
                     x.stop()
-                    self.pushMeta(msg[1])
+                    self.pushMeta(msg[1],statusOnly=True)
     
                     
                 if msg[0] == "next":
@@ -1910,21 +1981,20 @@ if __name__=='__setup__':
                         self.v2[i] = makeBlankArray(l)
                         self.a2[i] = makeBlankArray(l)
     
-                else:
-                    #We don't want to fade any values that have 0 alpha in the scene,
-                    #because that's how we mark "not present", and we want to track the old val.
-                    #faded = self.v[i]*(1-(fade*alphas[i]))+ (alphas[i]*fade)*vals[i]
-                    
-                    faded = self.v[i]*(1-fade) + (fade*vals[i])
-                    
-                    
-                    
-                    #We always want to jump straight to the value if alpha was previously 0.
-                    #That's because a 0 alpha would mean the last scene released that channel, and there's
-                    #nothing to fade from, so we want to fade in from transparent not from black
-                    is_new = self.a == 0
-                    self.v2[i] = numpy.where(is_new, vals[i], faded)
-                    
+                #We don't want to fade any values that have 0 alpha in the scene,
+                #because that's how we mark "not present", and we want to track the old val.
+                #faded = self.v[i]*(1-(fade*alphas[i]))+ (alphas[i]*fade)*vals[i]
+                
+                faded = self.v[i]*(1-fade) + (fade*vals[i])
+                
+                
+                
+                #We always want to jump straight to the value if alpha was previously 0.
+                #That's because a 0 alpha would mean the last scene released that channel, and there's
+                #nothing to fade from, so we want to fade in from transparent not from black
+                is_new = self.a == 0
+                self.v2[i] = numpy.where(is_new, vals[i], faded)
+                
                     
             #Now we calculate the alpha values. Including for
             #Universes the cue doesn't affect.
@@ -2239,8 +2309,9 @@ if __name__=='__setup__':
                         self.scene().rerender=True    
                         if (not universe in self.scene().cue_cached_alphas_as_arrays) and not value is None:
                             uobj = getUniverse(universe)
-                            self.scene().cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*len(uobj.values),dtype="f4")
-                            self.scene().cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*len(uobj.values),dtype="f4")
+                            if uobj:
+                                self.scene().cue_cached_vals_as_arrays[universe] = numpy.array([0.0]*len(uobj.values),dtype="f4")
+                                self.scene().cue_cached_alphas_as_arrays[universe] = numpy.array([0.0]*len(uobj.values),dtype="f4")
                         if universe in self.scene().cue_cached_alphas_as_arrays:
                             self.scene().cue_cached_alphas_as_arrays[universe][channel] = 1 if not value is None else 0
                             self.scene().cue_cached_vals_as_arrays[universe][channel] =  self.scene().evalExpr(value if not value is None else 0)
@@ -2277,9 +2348,9 @@ if __name__=='__setup__':
             self.notes=notes
     
             if page and isinstance(page, str):
-                page = {'html':page,'css':'','js':''}
+                page = {'html':page,'css':'','js':'','rawhtml':''}
     
-            self.page=page or {'html':'','css':'','js':''}
+            self.page=page or {'html':'','css':'','js':'','rawhtml':''}
     
     
             self.id = id or uuid.uuid4().hex
@@ -2705,7 +2776,7 @@ if __name__=='__setup__':
                 if len(i().newDataFunctions)<100:
                     i().newDataFunctions.append(lambda s:s.pushCueData(cue.id))
     
-        def pushMeta(self,cue=False,statusOnly=False):
+        def pushMeta(self,cue=False,statusOnly=False,keys=None):
             #Push cue first so the client already has that data when we jump to the new display
             if cue:
                 for i in module.boards:
@@ -2714,7 +2785,7 @@ if __name__=='__setup__':
     
             for i in module.boards:
                 if len(i().newDataFunctions)<100:
-                    i().newDataFunctions.append(lambda s:s.pushMeta(self.id,statusOnly=statusOnly))
+                    i().newDataFunctions.append(lambda s:s.pushMeta(self.id,statusOnly=statusOnly,keys=keys))
     
         def event(self,s,value=None, info=''):
             #No error loops allowed!
@@ -2953,7 +3024,8 @@ if __name__=='__setup__':
                     
                     self.cueValsToNumpyCache(self.cue, not self.cue.track)
                     self.fadeInCompleted = False
-    
+                    
+                    self.render(force_repaint=True)
                     self.rerender = True
                     self.pushMeta(statusOnly=True)
     
@@ -3069,6 +3141,7 @@ if __name__=='__setup__':
                 uobj = getUniverse(universe)
     
                 if not uobj:
+                    print("Nope",universe)
                     continue
     
                 if not universe in self.cue_cached_vals_as_arrays:
@@ -3110,6 +3183,7 @@ if __name__=='__setup__':
                     self.scriptContext.sceneName = self.name
                     def sendMQTT(t,m):
                         self.sendMqttMessage(t,m)
+                        return True
                     self.wrMqttCmdSendWrapper = sendMQTT
                     self.scriptContext.commands['sendMQTT'] = sendMQTT
     
@@ -3261,13 +3335,15 @@ if __name__=='__setup__':
                     pass
     
         @typechecked
-        def setPage(self,page: str,style:str, script:str):
+        def setPage(self,page: str,style:str, script:str,rawhtml:str=''):
             self.page= {
                     'html':page,
                     'css': style,
-                    'js': script
+                    'js': script,
+                    'rawhtml': rawhtml
                 }
             self.pageLink.send(['refresh'])
+            self.pushMeta(self.id,keys={'page'})
     
         
         def mqttStatusEvent(self, value, timestamp, annotation):
@@ -3457,7 +3533,7 @@ if __name__=='__setup__':
                 self.defaultalpha = val
             self.hasNewInfo = {}
             #If setting default, push everything
-            self.pushMeta(statusOnly=(not sd))
+            self.pushMeta(keys={'alpha'} if not sd else {'alpha','dalpha'})
     
         def setSyncKey(self, key):
             if key and not isinstance(key,bytes) and not (len(key)==32):
@@ -3559,7 +3635,7 @@ if __name__=='__setup__':
             
             #TODO: We absolutely should not have to do this every time we rerender.
             #Bugfix is in order!
-            self.canvas.paint(fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)
+            #self.canvas.paint(fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)
     
             if self.cue.length and(module.timefunc()-self.enteredCue)> self.cuelen*(60/self.bpm):
                 #rel_length cues end after the sound in a totally different part of code
@@ -3567,7 +3643,7 @@ if __name__=='__setup__':
                 #Then round to the nearest millisecond to prevent long term drift due to floating point issues.
                 self.nextCue(round(self.enteredCue+self.cuelen*(60/self.bpm),3))
             else:
-                if force_repaint or not self.fadeInCompleted:
+                if force_repaint or (not self.fadeInCompleted):
                     self.canvas.paint(fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)
                     if fadePosition >= 1:
                         #We no longer affect universes from the previous cue we are fading from

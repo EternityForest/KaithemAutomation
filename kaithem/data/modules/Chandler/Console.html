@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1577683984284857
+resource-timestamp: 1578051115249969
 resource-type: page
 template-engine: mako
 
@@ -290,7 +290,8 @@ from src import tagpoints
                 <div class="menubar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;"><b>File:</b>
                     <a class="button" href="download" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Download</a>
                     <a class="button" href="upload" title="Upload a scenes file"><img src="/zipstatic/img/icons/fugue.zip/folder-horizontal-open.png"></img>Upload</a>
-                    <button v-on:click="saveToDisk()" title="Save the state to disk as the default when the Lightboard boots"><img src="/zipstatic/img/icons/fugue.zip/quill.png"></img>Save State as Default</a>
+                    <button v-on:click="saveToDisk()" title="Save the scenes to disk as the default when the Lightboard boots, but not the universes or fixtures."><img src="/zipstatic/img/icons/fugue.zip/quill.png"></img>Save Scenes as the Default</a>
+                    <button v-on:click="saveSetup()" title="Save the fixtures and universes to disk as the default when the Lightboard boots"><img src="/zipstatic/img/icons/fugue.zip/quill.png"></img>Save Setup as the Default</a>
         </div>
 
 
@@ -351,7 +352,7 @@ from src import tagpoints
                     <button v-on:click="showDMXSetup=0">
                 <img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button> Universe Setup</h3>
                 <p class="help">These settings are saved immediately to the Kaithem registry when you click "Update Settings". To save them to disk,
-                    go to the system settings page and save the server state to disk. Note: Configuring these universes requires /admin/settings.edit,
+                    use "save setup" Note: Configuring these universes requires /admin/settings.edit,
                     however you do not need that permission to use the lightboard after it's configured.</p>
                 <button v-on:click="refreshPorts">Refresh Serial Ports</button>
                 <button v-on:click="pushSettings">Update Settings</button><br>
@@ -387,6 +388,8 @@ from src import tagpoints
                 </datalist>
 
                 <datalist id="utypes">
+                    <option value="enttecopen" title="Enttec Open DMX and most cheap FTDI based adapters, or raw serial ports"></option>
+                    <option value="tagpoints" title="Control tagpoints based on the values"></option>
                     <option value="enttec"></option>
                     <option value="artnet"></option>
                 </datalist>
@@ -474,14 +477,13 @@ from src import tagpoints
                         </tr>
 
                         <tr>
-                            <td><input type="number" placeholder="CH # or number:Name" v-model="newTagPointChannelNumber"></td>
+                            <td><input  placeholder="CH # or number:Name" v-model="newTagPointChannelNumber"></td>
                             <td><input placeholder="Tagpoint" v-model="newTagPoint" list="tagslisting"></td>
                             <td><button v-on:click="configuredUniverses[universeFullSettings]['channelConfig'][newTagPointChannelNumber]=newTagPoint">Add</button></td>
                         </tr>
 
 
                     </table>
-                    <button v-on:click="pushSettings">Update Settings</button><br>
 
                 </div>
             </div>
@@ -835,13 +837,17 @@ from src import tagpoints
                             See the
                             <a href="/pages/Chandler/docs/Pages">Documentation</a>
                         </p>\
-                        <h4>Vue/HTML</h4>
-                        <vue-ace-editor v-model:value="editingScene.page.html" v-bind:options="htmloptions"></vue-ace-editor>
+                        <h4 title="This code is included as-is">Raw HTML</h4>
+                        <vue-ace-editor v-model:value="editingScene.page.rawhtml" v-bind:options="htmloptions"  v-on:change="setScenePage(scenename,editingScene.page['html'], editingScene.page['css'], editingScene.page['js'],editingScene.page['rawhtml'])" ></vue-ace-editor>
+                        
+                        <h4 title="This code is rendered as a Vue template">Vue/HTML</h4>
+                        <vue-ace-editor v-model:value="editingScene.page.html" v-bind:options="htmloptions"  v-on:change="setScenePage(scenename,editingScene.page['html'], editingScene.page['css'], editingScene.page['js'],editingScene.page['rawhtml'])" ></vue-ace-editor>
+                        
                         <h4>Style</h4>
-                        <vue-ace-editor v-model:value="editingScene.page.css" v-bind:options="htmloptions"></vue-ace-editor>
-                        <h4>JS</h4>
-                        <vue-ace-editor v-model:value="editingScene.page.js" v-bind:options="htmloptions"></vue-ace-editor>
-                        <button v-on:click="setScenePage(scenename,editingScene.page['html'], editingScene.page['css'], editingScene.page['js'])">Update Page</button>
+                        <vue-ace-editor v-model:value="editingScene.page.css" v-bind:options="htmloptions"  v-on:change="setScenePage(scenename,editingScene.page['html'], editingScene.page['css'], editingScene.page['js'],editingScene.page['rawhtml'])" ></vue-ace-editor>
+                        
+                        <h4 title="This code is included in a script tag near the bottom of the page">JS</h4>
+                        <vue-ace-editor v-model:value="editingScene.page.js" v-bind:options="htmloptions" v-on:change="setScenePage(scenename,editingScene.page['html'], editingScene.page['css'], editingScene.page['js'],editingScene.page['rawhtml'])" ></vue-ace-editor>
                         <a v-bind:href="'scenepage?sc='+scenename" target="_blank">Go to page</a>
                         <h4>Preview</h4>
                         <div style="width:90%;height:40em;">
@@ -1374,14 +1380,21 @@ from src import tagpoints
             `,
 
             watch:{
-                value() { 
-                    //  two way binding – emit changes to parent
-                    this.$emit('input', this.value);
-                    
+                value(){
+                    //This is the forward 
                     //  update value on external model changes
                     if(this.oldValue !== this.value){ 
-                        this.editor.setValue(this.value, 1); 
+                        this.oldValue=this.value;
+                        if(this.ivalue !== this.value){
+                            if(!this.locked)
+                            {
+                                this.editor.setValue(this.value, 1);
+                                return;
+                            }
+                        }
                     }
+                    //We don't accept the change, so we emit an event to change it back
+                    this.$emit('input', this.ivalue);
                 }
             },
         
@@ -1390,7 +1403,8 @@ from src import tagpoints
                 this.editor = window.ace.edit(this.$el.id);
                 
                 //  deprecation fix
-                this.editor.$blockScrolling = Infinity;        
+                this.editor.$blockScrolling = Infinity;
+                this.locked =0     
 
                 //  ignore doctype warnings
                 const session = this.editor.getSession();
@@ -1429,16 +1443,30 @@ from src import tagpoints
                 //  if no model value found – use slot content
                 if(!this.value || this.value === ''){
                     this.$emit('input', this.editor.getValue());
+                    this.$emit('change', this.editor.getValue());
+                    this.ivalue = this.ivalue = this.oldValue = this.editor.getValue();
                 } else {
                     this.editor.setValue(this.value, -1);
+                    this.ivalue = this.oldValue = this.value;
                 }        
                 
                 //  editor value changes   
                 this.editor.on('change', () => {
                     //  oldValue set to prevent internal updates
-                    this.value = this.oldValue = this.editor.getValue();
+                    this.ivalue = this.oldValue = this.editor.getValue();
                 });
-                
+                //  editor value changes   
+                this.editor.on('input', () => {
+                    //  oldValue set to prevent internal updates
+                    this.locked =1;
+                    this.ivalue = this.oldValue = this.editor.getValue();
+                    this.$emit('input', this.ivalue);
+                });
+                 //  editor value changes   
+                this.editor.on('blur', () => {
+                    this.$emit('change', this.ivalue);
+                    this.locked =0;
+                });
 
             },
             methods: { editor(){ return this.editor } }
@@ -1652,7 +1680,18 @@ from src import tagpoints
                     }
                     this.savedThisSession=true;
                 }
-                api_link.send(['saveAll'])
+                api_link.send(['saveScenes'])
+            },
+            
+            'saveSetup': function()
+            {
+               
+                api_link.send(['saveSetup'])
+            },
+             'saveLibrary': function()
+            {
+               
+                api_link.send(['saveLibrary'])
             },
             'sendev': function(where)
 
@@ -1773,10 +1812,10 @@ from src import tagpoints
                 api_link.send(['setNotes', sc, i])
             },
 
-            'setScenePage': function(sc, p, st,js)
+            'setScenePage': function(sc, p, st,js,raw)
             {
 
-                api_link.send(['setPage', sc, p,st,js])
+                api_link.send(['setPage', sc, p,st,js,raw])
             },
             'getValueRange': getValueRange,
             //Returns new value mapped into the range when user clicks to change the range of a custom val
@@ -2660,25 +2699,33 @@ from src import tagpoints
             }
             if (c == "scenemeta")
             {
-                if (appData.cuemeta[v[2].cue] == undefined)
+                if (v[2].cue)
                 {
-                    appData.getcuemeta(v[2].cue)
+                    if (appData.cuemeta[v[2].cue] == undefined)
+                    {
+                        appData.getcuemeta(v[2].cue)
+                    }
                 }
-                if (!appData.lockedFaders[v[1]])
+
+                if(v[2].alpha!=undefined)
                 {
-                    Vue.set(appData.alphas, v[1], v[2].alpha);
+                    if (!appData.lockedFaders[v[1]])
+                    {
+                        Vue.set(appData.alphas, v[1], v[2].alpha);
+                    }
                 }
                 
                 //Just update existing data if we can
                 if(appData.scenemeta[v[1]])
                 {
-                    var meta = Object.assign(appData.scenemeta[v[1]], v[2])
+                    Object.assign(appData.scenemeta[v[1]], v[2])
                 }
                 else
                 {
                     var meta = v[2];
+                    set(appData.scenemeta, v[1], meta);
                 }
-                set(appData.scenemeta, v[1], meta);
+                
                 if (appData.selectedCues[v[1]] == undefined)
                 {
                     Vue.set(appData.selectedCues, v[1], 'default')
