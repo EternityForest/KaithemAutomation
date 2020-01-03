@@ -489,6 +489,7 @@ class Pipeline():
                     f = closureMaker(self.elements[-1],e)
 
                     self.waitingCallbacks[xx]=f
+                    #Dummy 1 param because some have claimed to get segfaults without
                     self.elements[-1].connect("pad-added",f,1)
                 else:
                     link(self.elements[-1],e)
@@ -521,15 +522,3 @@ class Pipeline():
                 self.weakrefs[str(target)+"fromgetter"]=target
             else:
                 element.set_property(prop[0], value)
-
-
-
-
-# import time
-# p = Pipeline("test", outputs=["system"])
-# p.finalize()
-# time.sleep(2)
-# p.connect()
-
-# while(1):
-#     pass

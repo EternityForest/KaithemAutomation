@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1577969757159514
+resource-timestamp: 1578011220651748
 resource-type: event
 versions: {}
 
@@ -3456,6 +3456,8 @@ if __name__=='__setup__':
             if sd:
                 self.defaultalpha = val
             self.hasNewInfo = {}
+            #If setting default, push everything
+            self.pushMeta(statusOnly=(not sd))
     
         def setSyncKey(self, key):
             if key and not isinstance(key,bytes) and not (len(key)==32):
