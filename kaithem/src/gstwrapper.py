@@ -341,7 +341,7 @@ class Pipeline():
 
 
 
-    def waitForState(self,s,timeout=10):
+    def _waitForState(self,s,timeout=10):
         t=time.monotonic()
         while not self.pipeline.get_state(1000_000_000)[1]==s:
             if time.monotonic()-t> timeout:
@@ -358,7 +358,7 @@ class Pipeline():
             #Convert to monotonic time that the nternal APIs use
             self.startTime= time.monotonic()-timeAgo
             self.pipeline.set_state(Gst.State.PAUSED)
-            self.waitForState(Gst.State.PAUSED)
+            self._waitForState(Gst.State.PAUSED)
             
             #Seek to where we should be, if we had actually
             #Started when we should have.
@@ -366,7 +366,7 @@ class Pipeline():
                 self.seek(time.monotonic()-self.startTime)
 
             self.pipeline.set_state(Gst.State.PLAYING)
-            self.waitForState(Gst.State.PLAYING)
+            self._waitForState(Gst.State.PLAYING)
             self.running=True
             self.maybeStartPoller()
 
@@ -377,7 +377,7 @@ class Pipeline():
             if not self.running:
                 raise RuntimeError("Pipeline is not paused, or running, call start()")
             self.pipeline.set_state(Gst.State.PLAYING)
-            self.waitForState(Gst.State.PAUSED)
+            self._waitForState(Gst.State.PAUSED)
 
     def pause(self):
         "Not that we can start directly into paused without playing first, to preload stuff"
@@ -385,7 +385,7 @@ class Pipeline():
             if self.exiting:
                 return
             self.pipeline.set_state(Gst.State.PAUSED)
-            self.waitForState(Gst.State.PAUSED)
+            self._waitForState(Gst.State.PAUSED)
 
             self.running=True
             self.maybeStartPoller()
@@ -401,7 +401,7 @@ class Pipeline():
         #Actually stop as soon as we can
         with self.lock:
             self.pipeline.set_state(Gst.State.NULL)
-            self.waitForState(Gst.State.NULL)
+            self._waitForState(Gst.State.NULL)
             self.exiting = True
 
         #Now we're going to do the cleanup stuff
@@ -431,6 +431,7 @@ class Pipeline():
                     if time.monotonic()-t> 10:
                         raise RuntimeError("Timeout")
                     time.sleep(0.1)
+
                 del self.elements
                 del self.namedElements
                 del self.pipeline

@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1576153123575211
+resource-timestamp: 1578097869146897
 resource-type: page
 template-engine: markdown
 
@@ -44,12 +44,21 @@ you can have running at once.
 Scenes are made up of Cues, each of which can have a different
 configuration for the lights, sound, and logic.
 
-A scene has an alpha blend slider that affects how much of an affect the
-scene has on the overall look.
+#### Blending
 
 By default, scenes blend in "normal" mode, which is true alpha blending
 as might be found in an image editor. HTP and Inhinbt modes are provided,
 allowing you to use them as traditional submasters.
+
+Scenes have a priority that determines render order.
+
+If two scenes have the same priority, the scene changed cues most recently
+goes "on top".
+
+
+#### The Alpha Slider
+A scene has an alpha blend slider that affects how much of an affect the
+scene has on the overall look.
 
 The alpha slider also controls the volume of the cue's sound.
 
@@ -65,19 +74,9 @@ Scenes are generally fully transparent to all channels the current cue
 does not affect.
 
 
-Scenes have a priority that determines render order.
-
-If two scenes have the same priority, the scene changed cues most recently
-goes "on top".
 
 #### Start/Stop logic
-Scenes can be "active" or stopped.  You can still use the goto operation to set the cue of a
-stopped scene, but it will not affect lights, sounds, trigger or respond to events, or auto-advance to the next cue.
-
-In effect, it acts as a memory to store whatever cue you set it to. When the cue becomes active, the current cue
-is freshly re-entered, restarting its timer(if any) from scratch, and retriggering the enter events.
-
-This happens even for non-reentrant cues.
+Scenes can be "active" or stopped.  The Goto operation has no effect on stopped scenes.
 
 ### Cues
 
@@ -203,7 +202,9 @@ You can also save the current set of scenes as the default with one click.
 Every scene is saved to disk as an individual version controllable YAML file. 
 These are found in Kaithem's VarDir/chandler/scenes/
 
-Universes are saved to the registry automatically and commited when the server state is saved.
+Universes, fixtures, and fixture types are saved in their respective folders imn the same way, but they are saved when you click
+"save setup".
+
 They are kept separate from the scenes to allow portability and use with different interfaces.
 
 
@@ -254,43 +255,6 @@ below themselves, and only update while running.
 See [API Docs](/pages/Chandler/docs/api)
 
 ### Script Bindings(Legacy)
-
-
-    Scripts are no longer suggested, use the graphical logic editor instead.
-    
-A cue may have a script that defines a set of event responses while that
-cue is active. Cue scripts follow the same general format as
-Keybindings, with each line mapping an event to an action. Currently,
-there are 2 builtin events that can be responded to, cue.enter, and
-cue.exit, however you can set up bindings to arbitrary event names and
-trigger them in code.
-
-Special characters in general are reserved. Spaces delimit
-arguments(except when escaped or between quotes), and backslashes
-escape.
-
-You can trigger an event by calling the .event(s) method of a Scene
-object, where s is the name you want to trigger. kaithem.chandler.event(s)
-will trigger an event for all active scenes.
-
-Note that the set of commands and triggers is slightly different from
-the in-browser Keybindings.
-
-The cue.enter event fires when entering a cue, and the cue.exit event
-fires when exiting.
-
-Currently, only the goto \[scene\] \[cue\] and setalpha \[scene\]
-\[alpha\] commands are supported. For example, the line "cue.enter:
-setalpha scene4 0.8" sets the alpha of scene4 to 0.8 whenever that cue
-begins.
-
-If a binding does not contain a colon, it is assumed to be for
-cue.enter. Example: "setalpha scene4 0.8"
-
-Arguments are delimited by spaces, however quote marks and backslashes
-override this behavior and work much as they do in a UNIX command line.
-To use a literal quote of backslash you must escape it.
-
-
+See [Script Editor](/pages/Chandler/scripts)
 
 
