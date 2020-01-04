@@ -17,7 +17,7 @@
 #This file really shouldn't have too many non-essential dependancies onthe rest of kaithem,
 #Aside from the threadpool and the message bus.
 
-import threading,time,logging,uuid,weakref
+import threading,time,logging,uuid,weakref,gc,uuid,traceback
 
 from . import jackmanager,workers
 
@@ -26,6 +26,8 @@ initlock = threading.Lock()
 Gst = None
 lock = threading.RLock()
 jackChannels = {}
+
+pipes = weakref.WeakValueDictionary()
 
 log = logging.getLogger("gstwrapper")
 #Try to import a cython extension that only works on Linux
@@ -39,25 +41,33 @@ except:
 
 
 def link(a,b):
+    unref = False
+    try:
+        if not a or not b:
+            raise ValueError("Cannot link None")
+        if isinstance(a, Gst.Pad):
+            if not isinstance(b,Gst.Pad):
+                b = b.get_static_pad("sink")
+                unref=True
+                if not b:
+                    raise RuntimeError("B has no pad named sink and A is a pad") 
+            if not a.link(b)==Gst.PadLinkReturn.OK:
+                raise RuntimeError("Could not link")
 
-    if not a or not b:
-        raise ValueError("Cannot link None")
-    if isinstance(a, Gst.Pad):
-        if not isinstance(b,Gst.Pad):
-            b = b.get_static_pad("sink")
-            if not b:
-                raise RuntimeError("B has no pad named sink and A is a pad") 
-        if not a.link(b)==Gst.PadLinkReturn.OK:
+        elif not a.link(b):
             raise RuntimeError("Could not link")
-
-    elif not a.link(b):
-        raise RuntimeError("Could not link")
+    finally:
+        if unref:
+            pass#b.unref()
 
 def stopAllJackUsers():
     #It seems best to stop everything using jack before stopping and starting the daemon.
     with lock:
         for i in jackChannels:
-            jackChannels[i].stop()
+            x=jackChannels[i]()
+            if x:
+                x.stop()
+            del x
 
 def elementInfo(e):
     r=Gst.Registry.get()
@@ -68,9 +78,10 @@ def Element(n,name=None):
         return e
     else:
         raise ValueError("No such element exists: "+n)
+loop = None
 def init():
     "On demand loading, for startup speed but also for compatibility if Gstreamer isn't there"
-    global initialized, Gst
+    global initialized, Gst,loop
     #Quick check outside the lock
     if initialized:
         return
@@ -81,9 +92,13 @@ def init():
             gi.require_version('GstBase', '1.0')
             gi.require_version('Gtk', '3.0')
             from gi.repository import Gst as gst
-            from gi.repository import GObject, GstBase, Gtk, GObject
+            from gi.repository import GObject, GstBase, Gtk, GObject,GLib
             Gst = gst
             Gst.init(None)
+            glibloop = GLib.MainLoop()
+
+            loop=threading.Thread(target=glibloop.run,daemon=True)
+            loop.start()
             initialized = True
 
 
@@ -91,16 +106,20 @@ def init():
 def doesElementExist(n):
     n =Gst.ElementFactory.make(n)
     if n:
-        n.unref()
+        pass#n.unref()
     return True
 
 
-def wrfunc(f):
+def wrfunc(f,fail_return=None):
     def f2(*a,**k):
-        f()(*a,**k)
+        try:
+            return f()(*a,**k)
+        except:
+            print(traceback.format_exc())
+            return fail_return
+    return f2
 
 def makeWeakrefPoller(selfref):
-
 
     def pollerf():
         alreadyStarted = False
@@ -108,43 +127,56 @@ def makeWeakrefPoller(selfref):
             self=selfref()
             
             if not self.running:
+                self.exited=True
                 return
             if self.running:
-                #Assumption: this is threadsafe?
                 t=time.monotonic()
-                while time.monotonic()-t<5:
-                    self.bus.poll(Gst.MessageType.ANY,5)
-                
-                if not self.pipeline.get_state(1)==Gst.State.NULL:
-                    self.wasEverRunning=True
-
-                #Set the flag if anything ever drives us into the null state
-                if self.wasEverRunning and self.pipeline.get_state(1)==Gst.State.NULL:
-                    self.running=False
-                    return
+               
+                try:
+                    with self.lock:
+                        state = self.pipeline.get_state(1000000000)[1]
                     
-                #Some of this other stuff should be threadsafe but isn't
-                with self.lock:
-                    if self.systemTime:
-                        #Closed loop adjust the pipeline time.
-                        t = self.pipeline.query_position(Gst.Format.TIME)/10**9
-                        m = time.monotonic()
 
-                        sysElapsed = (m-self.startTime)/self.targetRate
-                        diff = t-sysElapsed
-                        needAdjust = False
-                        if diff>0.005:
-                            self.pipelineRate = self.targetRate - 0.0003
-                            needAdjust=True
-                        elif diff<-0.005:
-                            self.pipelineRate = self.targetRate + 0.0003
-                            needAdjust=True
+                    if not state==Gst.State.NULL:
+                        self.wasEverRunning=True
 
-                        if needAdjust:
-                            self.pipeline.seek (self.pipelineRate, Gst.Format.TIME,
-                        Gst.SeekFlags.SKIP, Gst.SeekType.NONE,0,
-                        Gst.SeekType.NONE, -1)
+                    #Set the flag if anything ever drives us into the null state
+                    if self.wasEverRunning and state==Gst.State.NULL:
+                        self.running=False
+                        self.exited=True
+                        return
+                        
+                    #Some of this other stuff should be threadsafe but isn't
+                    with self.lock:
+                        if self.systemTime:
+                            #Closed loop adjust the pipeline time.
+                            t = self.pipeline.query_position(Gst.Format.TIME)/10**9
+                            m = time.monotonic()
+
+                            sysElapsed = (m-self.startTime)/self.targetRate
+                            diff = t-sysElapsed
+                            needAdjust = False
+                            if diff>0.005:
+                                self.pipelineRate = self.targetRate - 0.0003
+                                needAdjust=True
+                            elif diff<-0.005:
+                                self.pipelineRate = self.targetRate + 0.0003
+                                needAdjust=True
+
+                            if needAdjust:
+                                self.pipeline.seek (self.pipelineRate, Gst.Format.TIME,
+                            Gst.SeekFlags.SKIP, Gst.SeekType.NONE,0,
+                            Gst.SeekType.NONE, -1)
+                except:
+                    #After pipeline deleted, we clean up
+                    if hasattr(self,'pipeline') and  hasattr(self,'bus'):
+                        raise
+                    else:
+                        self.exited=True
+                        return
+            self.exited=True
             del self
+            time.sleep(5)
     return pollerf
 
 
@@ -159,30 +191,46 @@ def getCaps(e):
 
 class Pipeline():
     """Semi-immutable pipeline. You can only add stuff to it.
-    WARNING THESE WILL MEMORY LEAK IF NOT CLEANED WITH STOP
-
     """
     def __init__(self, name, realtime=70, systemTime =False):
         init()
+        self.exiting = False
+
+        self.uuid = uuid.uuid4()
+        gc.collect()
         self.realtime = 70
         self.lock = threading.RLock()
+        self._stopped=True
         self.pipeline = Gst.Pipeline()
+        
+        self.weakrefs = weakref.WeakValueDictionary()
+
+        self.exited=False
+
+        self.weakrefs[str(self.pipeline)]=self.pipeline
         if not self.pipeline:
             raise RuntimeError("Could not create pipeline")
         if not initialized:
             raise RuntimeError("Gstreamer not set up")
         self.bus = self.pipeline.get_bus()
+        self._stopped=False
+
+        self.weakrefs[str(self.bus)]=self.bus
+
+        self.hasSignalWatch=0
         self.bus.add_signal_watch()
-        self.pgbcobj = self.bus.connect('message',self.on_message)
-        self.pgbcobj2 = self.bus.connect("message::eos", self.on_eos)
-        self.bus.connect("message::error", self.on_error)
+        self.hasSignalWatch = 1
+        #1 is dummy user data, because some have reported segfaults if it is missing
+        self.pgbcobj = self.bus.connect('message',wrfunc(weakref.WeakMethod(self.on_message)),1)
+        self.pgbcobj2 = self.bus.connect("message::eos", wrfunc(weakref.WeakMethod(self.on_eos)),1)
+        self.pgbcobj3 = self.bus.connect("message::error", wrfunc(weakref.WeakMethod(self.on_error)),1)
         self.name = name
 
         self.elements = []
         self.namedElements = {}
 
         #Just a place to store refs
-        self.waitingCallbacks= []
+        self.waitingCallbacks= {}
 
         self.running = False
         self.wasEverRunning = True
@@ -191,7 +239,7 @@ class Pipeline():
         self.startTime = 0
         def dummy(*a,**k):
             pass
-        self.bus.set_sync_handler(wrfunc(weakref.WeakMethod(self.syncMessage)),0,dummy)
+        self.bus.set_sync_handler(wrfunc(weakref.WeakMethod(self.syncMessage), fail_return=Gst.BusSyncReply.PASS ),0,dummy)
         self.pollthread=None
 
         self.lastElementType = None
@@ -200,11 +248,15 @@ class Pipeline():
         self.systemTime = systemTime
         self.targetRate = 1.0
         self.pipelineRate = 1.0
+
+
         
     
     def seek(self, time=None,rate=1.0):
         "Seek the pipeline to a position in seconds, set the playback rate, or both"
         with self.lock:
+            if self.exiting:
+                return
             if not self.running:
                 return
 
@@ -227,19 +279,24 @@ class Pipeline():
         "Synchronous message, so we can enable realtime priority on individual threads."
         #Stop the poorly performing sync messages after a while.
         #Wait till we have at least one thread though.
-        if self.knownThreads and time.monotonic()-self.startTime>3:
-            def f():
-                with self.lock:
-                    self.bus.set_sync_handler(None,0,None)
-            workers.do(f)
-        if not threading.currentThread().ident in self.knownThreads:
-            self.knownThreads[threading.currentThread().ident] = True
-            if self.realtime:
-                try:
-                    setPririority(1,self.realtime)
-                except:
-                    log.exception("Error setting realtime priority")
-        return Gst.BusSyncReply.PASS
+        try:
+            if self.knownThreads and time.monotonic()-self.startTime>3:
+                #This can't use the lock, we don't know what thread it might be called in.
+                def noSyncHandler():
+                    with self.lock:
+                        self.bus.set_sync_handler(None,0,None)
+                workers.do(noSyncHandler)
+            if not threading.currentThread().ident in self.knownThreads:
+                self.knownThreads[threading.currentThread().ident] = True
+                if self.realtime:
+                    try:
+                        setPririority(1,self.realtime)
+                    except:
+                        log.exception("Error setting realtime priority")
+            return Gst.BusSyncReply.PASS
+        except:
+            return Gst.BusSyncReply.PASS
+            print(traceback.format_exc())
     
     def makeElement(self,n,name=None):
         with self.lock:
@@ -250,89 +307,86 @@ class Pipeline():
     
     
     def on_eos(self,*a,**k):
-        #Some kinda deadlock happened here between this and the delete function.
-        #So we just try our best to stop and excpect the del function to catch it in cases of deadlock.
-        #Our backup plan is to try doing it from another thread
-        def f():
-            if self.lock.acquire(timeout=0.1):
-                try:
-                    if self.running:
-                        self.running=False
-                        self.stop()
-                        return True
-                finally:
-                    self.lock.release()
-        
         def f2():
             try:
-                with self.lock:
-                    if self.running:
-                        self.running=False
-                        self.stop()
-                        return True
-              
+                self.stop()
             except:
                 pass
-        if not f():
-            workers.do(f2)
+        workers.do(f2)
 
         self.onStreamFinished()
+
     def onStreamFinished(self):
         pass
 
     def __del__(self):
+        self.running=False
+        t=time.monotonic()
+        while not self.exited:
+            time.sleep(0.1)
+            if time.monotonic()-t> 10:
+                raise RuntimeError("Timeout")
         with self.lock:
-            try:
-                if self.running:
-                    self.running=False
-                    self.pipeline.set_state(Gst.State.NULL)
-            except:
-                pass
-        with lock:
-            try:
-                del jackChannels[self]
-            except:
-                pass
-        self.pipeline.unref()
+            if not self._stopped:
+                self.stop()
 
-    def on_message(self, bus, message):
+       
+        
+
+    def on_message(self, bus, message,userdata):
         return True
 
-    def on_error(self,bus,message):
-        logging.debug(str(message))
+    def on_error(self,bus,msg,userdata):
+        logging.debug('Error {}: {}, {}'.format(msg.src.name, *msg.parse_error()))
 
 
 
-   
+    def _waitForState(self,s,timeout=10):
+        t=time.monotonic()
+        while not self.pipeline.get_state(1000_000_000)[1]==s:
+            if time.monotonic()-t> timeout:
+                raise RuntimeError("Timeout")
+            time.sleep(0.1)
 
     def start(self, effectiveStartTime=None):
         "effectiveStartTime is used to keep multiple players synced when used with systemTime"
         with self.lock:
+            if self.exiting:
+                return
             x = effectiveStartTime or time.time()
             timeAgo = time.time()-x
             #Convert to monotonic time that the nternal APIs use
             self.startTime= time.monotonic()-timeAgo
             self.pipeline.set_state(Gst.State.PAUSED)
-
+            self._waitForState(Gst.State.PAUSED)
+            
             #Seek to where we should be, if we had actually
             #Started when we should have.
             if self.systemTime:
                 self.seek(time.monotonic()-self.startTime)
 
             self.pipeline.set_state(Gst.State.PLAYING)
+            self._waitForState(Gst.State.PLAYING)
             self.running=True
             self.maybeStartPoller()
 
     def play(self):
         with self.lock:
+            if self.exiting:
+                return
             if not self.running:
                 raise RuntimeError("Pipeline is not paused, or running, call start()")
             self.pipeline.set_state(Gst.State.PLAYING)
-            
+            self._waitForState(Gst.State.PAUSED)
+
     def pause(self):
         "Not that we can start directly into paused without playing first, to preload stuff"
         with self.lock:
+            if self.exiting:
+                return
             self.pipeline.set_state(Gst.State.PAUSED)
+            self._waitForState(Gst.State.PAUSED)
+
             self.running=True
             self.maybeStartPoller()
     
@@ -343,17 +397,55 @@ class Pipeline():
             self.pollthread.start()
 
     def stop(self):
+
+        #Actually stop as soon as we can
         with self.lock:
             self.pipeline.set_state(Gst.State.NULL)
-            if not self.running:
-                self.bus.remove_signal_watch()
-                for i in self.elements:
-                    i.unref()
-                    del self.elements
+            self._waitForState(Gst.State.NULL)
+            self.exiting = True
 
-                self.pipeline.unref()
+        #Now we're going to do the cleanup stuff
+        #In the background, because it involves a lot of waiting
+        def gstStopCleanupTask():
+            self.running=False
+            t = time.monotonic()
+            time.sleep(0.01)
+            while not self.exited:
+                time.sleep(0.1)
+                if time.monotonic()-t> 10:
+                    raise RuntimeError("Timeout")
+            with self.lock:
+                if self._stopped:
+                    return
+                try:
+                    self.bus.disconnect(self.pgbcobj)
+                    self.bus.disconnect(self.pgbcobj2)
+                    self.bus.disconnect(self.pgbcobj3)
+                    self.bus.set_sync_handler(None,0,None)
+                except:
+                    print(traceback.format_exc())
+
+                if self.hasSignalWatch:
+                    self.bus.remove_signal_watch()
+                while not self.pipeline.get_state(1000_000_000)[1]==Gst.State.NULL:
+                    if time.monotonic()-t> 10:
+                        raise RuntimeError("Timeout")
+                    time.sleep(0.1)
+
+                del self.elements
+                del self.namedElements
                 del self.pipeline
-        self.running=False
+                del self.bus
+
+                try:
+                    del jackChannels[self.uuid]
+                except:
+                    pass
+                self._stopped=True
+
+        workers.do(gstStopCleanupTask)
+        
+       
 
 
     def addElement(self,t,name=None,**kwargs):
@@ -369,7 +461,7 @@ class Pipeline():
                 raise ValueError("Element type must be string")
 
             e = Gst.ElementFactory.make(t,name)
-
+            self.weakrefs[str(e)]=e
             if e==None:
                 raise ValueError("Nonexistant element type")
 
@@ -389,15 +481,17 @@ class Pipeline():
             if self.elements:
                 #Decodeboin doesn't have a pad yet for some awful reason
                 if self.lastElementType=='decodebin':
-
+                    xx = uuid.uuid4()
                     def closureMaker(src, dest):
-                        def f(element, pad):
+                        def linkFunction(element, pad,dummy):
                             link(element,dest)
-                        return f
+                            del self.waitingCallbacks[xx]
+                        return linkFunction
                     f = closureMaker(self.elements[-1],e)
 
-                    self.waitingCallbacks.append(f)
-                    self.elements[-1].connect("pad-added",f)
+                    self.waitingCallbacks[xx]=f
+                    #Dummy 1 param because some have claimed to get segfaults without
+                    self.elements[-1].connect("pad-added",f,1)
                 else:
                     link(self.elements[-1],e)
             self.elements.append(e)
@@ -407,16 +501,18 @@ class Pipeline():
             #Stuff
             if t.startswith("jackaudio"):
                 with lock:
-                    jackChannels[self.name] = self
+                    jackChannels[self.uuid] = weakref.ref(self)
 
             self.lastElementType = t
-            return e
+            return weakref.proxy(e)
 
     def setProperty(self, element, prop,value):
         with self.lock:
 
             if prop=='caps':
                 value=Gst.caps(value)
+                self.weakrefs[str(value)]=value
+
             prop=prop.replace("_","-")
 
             prop=prop.split(":")
@@ -424,17 +520,6 @@ class Pipeline():
                 childIndex=int(prop[0])
                 target= element.get_child_by_index(childIndex)
                 target.set_property(prop[1], value)
+                self.weakrefs[str(target)+"fromgetter"]=target
             else:
                 element.set_property(prop[0], value)
-
-
-
-
-# import time
-# p = Pipeline("test", outputs=["system"])
-# p.finalize()
-# time.sleep(2)
-# p.connect()
-
-# while(1):
-#     pass

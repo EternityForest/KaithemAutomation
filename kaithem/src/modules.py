@@ -274,6 +274,8 @@ class VirtualResourceReference(weakref.ref):
         else:
             raise KeyError(name)
 
+        
+
 class ModuleObject(object):
     """
     These are the objects acessible as 'module' within pages, events, etc.
@@ -316,45 +318,45 @@ class ModuleObject(object):
 
 
         module = self.__kaithem_modulename__
-
-        with modulesLock:
-            #Delete dead weakrefs
-            if isinstance(value, VirtualResource):
-                insertVirtualResource(module,name,value)
-                return
-            else:
-                if not 'resource-type' in value:
-                    raise ValueError("Supplied dict has no resource-type")
-                resourcetype= value['resource-type']
-                #Raise an exception on anything non-serializable or without a resource-type,
-                #As those could break something.
-                json.dumps({name:value})
-                unsaved_changed_obj[(module,name)] = "User code inserted or modified module"
-                #Insert the new item into the global modules thing
-                ActiveModules[module][name]=value
-                modules_state.createRecoveryEntry(module,name,value)
-                modulesHaveChanged()
-
-                #Make sure we recognize the resource-type, or else we can't load it.
-                if (not resourcetype in ['event','page','permission','directory']) and (not resourcetype in additionalTypes):
-                    raise ValueError("Unknown resource-type")
-
-                #Do the type-specific init action
-                if resourcetype == 'event':
-                    e = newevt.make_event_from_resource(module,name)
-                    newevt.updateOneEvent(module,name,e)
-
-                elif resourcetype == 'page':
-                    #Yes, module and resource really are backwards, and no, it wasn't a good idea to do that.
-                    usrpages.updateOnePage(name,module)
-
-                elif resourcetype == 'permission':
-                    auth.importPermissionsFromModules()
-
+        def f():
+            with modulesLock:
+                #Delete dead weakrefs
+                if isinstance(value, VirtualResource):
+                    insertVirtualResource(module,name,value)
+                    return
                 else:
-                    additionalTypes[resourcetype].onload(module,name, value)
+                    if not 'resource-type' in value:
+                        raise ValueError("Supplied dict has no resource-type")
+                    resourcetype= value['resource-type']
+                    #Raise an exception on anything non-serializable or without a resource-type,
+                    #As those could break something.
+                    json.dumps({name:value})
+                    unsaved_changed_obj[(module,name)] = "User code inserted or modified module"
+                    #Insert the new item into the global modules thing
+                    ActiveModules[module][name]=value
+                    modules_state.createRecoveryEntry(module,name,value)
+                    modulesHaveChanged()
 
+                    #Make sure we recognize the resource-type, or else we can't load it.
+                    if (not resourcetype in ['event','page','permission','directory']) and (not resourcetype in additionalTypes):
+                        raise ValueError("Unknown resource-type")
 
+                    #Do the type-specific init action
+                    if resourcetype == 'event':
+                        e = newevt.make_event_from_resource(module,name)
+                        newevt.updateOneEvent(module,name,e)
+
+                    elif resourcetype == 'page':
+                        #Yes, module and resource really are backwards, and no, it wasn't a good idea to do that.
+                        usrpages.updateOnePage(name,module)
+
+                    elif resourcetype == 'permission':
+                        auth.importPermissionsFromModules()
+
+                    else:
+                        additionalTypes[resourcetype].onload(module,name, value)
+
+        modules_state.runWithModulesLock(f)
 
 #This is used for the kaithem object.
 class ResourceAPI(object):
@@ -559,7 +561,7 @@ def serializeResource(obj):
         t = r['trigger']
         del r['trigger']
         d="## Code outside the data string, and the setup and action blocks is ignored\n"
-        d+="## If manually editing, you must reload the code through the web UI\n"
+        d+="## If manually editing, you must reload the code. Delete the resource timestamp so kaithem knows it's new\n"
 
         d += '__data__="""\n'
         d += yaml.dump(r).replace("\\","\\\\").replace('"""',r'\"""') + '\n"""\n\n'
@@ -603,7 +605,7 @@ def saveResource2(obj,fn:str):
         try:
             #Don't overwrite more recent manual changes
             if 'resource-timestamp' in obj:
-                t = int(r['resource-timestamp'])/10**6
+                t = int(obj['resource-timestamp'])/10**6
                 if t<os.path.getmtime(fn):
                     #If the file is newer than the current time,
                     #The clock is all kinds of wrong, and we can't use the conflict
@@ -622,9 +624,18 @@ def saveResource2(obj,fn:str):
             logger.exception("err, continuing")
 
     util.ensure_dir(fn)
+    data = d.encode("utf-8")
+
+    #Check if anything is actually new
+    if os.path.isfile(fn):
+        with open(fn,"rb") as f:
+            if f.read()==data:
+                obj['resource-loadedfrom']=fn
+                return fn
+
     with open(fn,"wb") as f:
         util.chmod_private_try(fn,execute = False)
-        f.write(d.encode("utf-8"))
+        f.write(data)
 
     logger.debug("saved resource to file "+ fn)
     obj['resource-loadedfrom']=fn
@@ -1077,6 +1088,8 @@ def loadModule(folder:str, modulename:str, ignore_func=None, resource_folder=Non
         for root, dirs, files in os.walk(folder):
                 #Function used to ignore things like VCS folders and such
                 if ignore_func and ignore_func(root):
+                    continue
+                if root.startswith(resource_folder):
                     continue
                 for i in files:
                     if ignore_func and ignore_func(i):

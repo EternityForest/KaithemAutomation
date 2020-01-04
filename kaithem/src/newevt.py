@@ -572,6 +572,8 @@ class BaseEvent():
 class DummyModuleScope():
     pass
 
+class UnrecoverableEventInitError(RuntimeError):
+    pass
 class CompileCodeStringsMixin():
     "This mixin lets a class take strings of code for its setup and action"
     def _init_setup_and_action(self,setup,action,params={}):
@@ -594,7 +596,45 @@ class CompileCodeStringsMixin():
             self.pymodule.__dict__.update(params)
         except KeyError as e:
             raise e
-        exec(initializer,self.pymodule.__dict__)
+        fooLock = threading.Lock()
+        l = []
+        err = []
+        def runInit():
+            with fooLock:
+                #Just a marker so we know it got called
+                l.append(0)
+                try:
+                    exec(initializer,self.pymodule.__dict__)
+                except Exception as e:
+                    logging.exception("Error in event code for "+self.module+":"+self.resource)
+                    e.storedError = traceback.format_exc(chain=True)
+                    err.append(e)
+              
+
+        modules_state.listenForMlockRequests()
+        workers.do(runInit)
+        try:
+            #Wait for it to get the lock
+            while(len(l))==0:
+                time.sleep(0.001)
+              
+
+            t = time.monotonic()
+            #Now wait for it to release it
+            while fooLock.acquire(timeout=0.1):
+                #The function in RunInit might want to do something involving the moduleslock.
+                #It can't, because we have it, so we let it delegate some things to us.
+                modules_state.pollMlockRequests()
+
+                if time.monotonic()-t> 15:
+                    raise UnrecoverableEventInitError("The event initializer is stuck in a loop or blocken more than 15s, and may still be running. Undefined behavior? ")
+        finally:
+            modules_state.stopMlockRequests()
+            modules_state.pollMlockRequests()
+
+        if err:
+            raise err[0]
+
 
         body = "def _event_action():\n"
         for line in action.split('\n'):
@@ -1349,10 +1389,11 @@ def getEventsFromModules(only = None):
                         logging.debug("Loaded "+i.module + ":"+i.resource +" in "+str(round(time.time()-slt, 2))+"s")
                         time.sleep(0.005)
                     
-                    except SyntaxError:
+                    except (SyntaxError, UnrecoverableEventInitError) as e:
                         i.loadingTraceback = traceback.format_exc(chain=True)
                         i.error = traceback.format_exc(chain = True)
                         logging.exception("Could not load "+i.module + ":"+i.resource)
+
 
                     #If there is an error, add it t the list of things to be retried.
                     except Exception as e:
@@ -1362,17 +1403,21 @@ def getEventsFromModules(only = None):
                             i.error = traceback.format_exc()
                         if baz == attempts-1:
                             i.loadingTraceback = traceback.format_exc()
+                        if hasattr(e, "storedTraceback"):
+                            i.error=e.storedTraceback
+                     
 
                         nextRound.append(i)
                         logging.debug("Could not load "+i.module + ":"+i.resource+" in this round, deferring to next round\n"+"failed after"+str(round(time.time()-slt, 2))+"s\n"+traceback.format_exc(chain=True))
-
+                        gc.collect()
                         pass
                 toLoad = nextRound
                 nextRound =[]
             #Iterate over the failures after trying the max number of times to fix them
             #and make the dummy events and notifications
             for i in toLoad:
-                makeDummyEvent(i.module,i.resource)
+                d=makeDummyEvent(i.module,i.resource)
+                d._handle_exception(tb=i.error)
                 #Add the reason for the error to the actual object so it shows up on the page.
                 __EventReferences[i.module , i.resource].errors.append([time.strftime(config['time-format']),str(i.error)])
                 messagebus.postMessage("/system/notifications/errors","Failed to load event resource: " + i.resource +" module: " + i.module + "\n" +str(i.error)+"\n"+"please edit and reload.")

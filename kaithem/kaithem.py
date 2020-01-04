@@ -16,8 +16,8 @@
 
 #
 
-__version__ = "0.65.2 Production"
-__version_info__ = (0,65,2,"release",0)
+__version__ = "0.65.3 Production"
+__version_info__ = (0,65,3,"release",0)
 
 #Library that makes threading and lock operations, which we use a lot of, use native code on linux
 try:
@@ -147,6 +147,8 @@ def webRoot():
     #WE have to get the workers set up early because a lot of things depend on it.
     from src import workers
   
+    from src import messagelogging
+    from src import notifications
 
 
     #Attempt to make pavillion work in a sane way that takes advantage of the thread pooling
@@ -170,8 +172,6 @@ def webRoot():
 
 
 
-    from src import messagelogging
-    from src import notifications
 
     from src import pylogginghandler
     from src import logviewer

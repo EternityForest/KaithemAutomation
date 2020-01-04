@@ -1,5 +1,5 @@
 ## Code outside the data string, and the setup and action blocks is ignored
-## If manually editing, you must reload the code through the web UI
+## If manually editing, you must reload the code. Delete the resource timestamp so kaithem knows it's new
 __data__="""
 {continual: false, disabled: false, enable: true, once: true, priority: interactive,
   rate-limit: 0.0, resource-timestamp: 1566264981106420, resource-type: event}

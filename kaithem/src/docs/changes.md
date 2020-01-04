@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.65.3
+- Gstreamer audio backend resource leak and segfault fix
+- Restore lost chandler MQTT features
+- Chandler lighting value rendering buxfixes
+
 ### 0.65.2
 - Chandler soundfile listing bugfix
 - Chandler sound prefetch

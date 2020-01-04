@@ -2084,7 +2084,7 @@ class HTTPServer:
             if time.time()-_lastGC>60:
                 _lastGC = time.time()
                 gc.collect()
-                raise
+            raise
 
     @property
     def interrupt(self):

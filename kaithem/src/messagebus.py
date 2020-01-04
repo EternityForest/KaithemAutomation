@@ -43,7 +43,8 @@ def handleError(f,topic):
     log.exception("Error in subscribed function for "+topic)
     try:
         from . import newevt
-        newevt.eventByModuleName(f.__module__)._handle_exception()
+        if f.__module__ in newevt.eventsByModuleName:
+            newevt.eventsByModuleName[f.__module__]._handle_exception()
     except Exception as e:
         print(e)
 

@@ -198,7 +198,7 @@ class Alert(virtualresource.VirtualResource):
         
         self.sm = statemachines.StateMachine("normal")
 
-        self.sm.addState("normal")
+        self.sm.addState("normal", enter=self._onNormal)
         self.sm.addState("tripped",enter=self._onTrip)
         self.sm.addState("active", enter=self._onActive)
         self.sm.addState("acknowledged", enter=self._onAck)
@@ -283,7 +283,6 @@ class Alert(virtualresource.VirtualResource):
 
            
     def _onAck(self):
-        "Called both when acknowledged, and when released."
         global unacknowledged
         with lock:
             cleanup()
@@ -292,15 +291,30 @@ class Alert(virtualresource.VirtualResource):
             unacknowledged = _unacknowledged.copy()
         calcNextBeep()
 
+    def _onNormal(self):
+        "Mostly defensivem but also cleans up if the autoclear occurs and we skio the acknowledged state"
+        global unacknowledged,active
+        with lock:
+            cleanup()
+            if self.id in _unacknowledged:
+                del _unacknowledged[self.id]
+            unacknowledged = _unacknowledged.copy()
+
+            if self.id in _active:
+                del _active[self.id]
+            active = _active.copy()
+        calcNextBeep()
+
     def _onTrip(self):
         if self.priority in ("error, critical"):
-            logger.error("Alarm "+self.name +" tripped")
+            logger.error("Alarm "+self.name +" tripped:\n "+self.tripMessage)
         if self.priority in ("warning"):
-            logger.warning("Alarm "+self.name +" tripped")
+            logger.warning("Alarm "+self.name +" tripped:\n"+self.tripMessage)
         else:
-            logger.info("Alarm "+self.name +" tripped")
+            logger.info("Alarm "+self.name +" tripped:\n"+self.tripMessage)
 
-    def trip(self):
+    def trip(self, message=""):
+        self.tripMessage = str(message)[:4096]
         self.sm.event("trip")
         self.trippedAt = time.time()
         

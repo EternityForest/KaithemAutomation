@@ -9,7 +9,7 @@ no-header: true
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1572399839854169
+resource-timestamp: 1578097276349435
 resource-type: page
 template-engine: mako
 
@@ -97,10 +97,16 @@ strftime=function(sFormat, date) {
       }[sMatch] || '') + '') || sMatch;
     });
   }
+lastErr = 0;
 </script>
 
 <body style="padding:0px;margin:0px;overflow:hidden;overscroll-behavior: none;">
+    <div id="chandlerAlertBox">
+    </div>
+    ${module.scenes[kwargs['sc']].page.get('rawhtml','')}
+
     <div id="KaithemSceneVueApp" style="width:100%;height:100%;padding:0px;margin:0px">
+  
         <div v-bind:style="{width:'100%', height:'100%', padding:'5px','margin':'0px', display:'flex'}">
             ${module.scenes[kwargs['sc']].page['html']}
         </div>
@@ -111,16 +117,24 @@ strftime=function(sFormat, date) {
     <script type="text/javascript" src="/static/js/vue2.js"></script>
     <script type="text/javascript" src="/static/widget.js"></script>
     <script type="text/javascript" src="/static/js/keyboard.min.js"></script>
-        <script type="text/javascript" src="/static/js/strftime.js"></script>
+    <script type="text/javascript" src="/static/js/strftime.js"></script>
 
     ${module.scenes[kwargs['sc']].pageLink.render("api")}
 
     <script>
+        setInterval(function(){if(date.now()-lastErr>10000){ document.getElementById('chandlerAlertBox').innerHTML=""}},5000)
+
+        Vue.config.errorHandler = function(err, vm, info) {
+            document.getElementById('chandlerAlertBox').innerHTML ="Error: "+err.toString()+"Info: \n"+info;
+            lastErr = date.now()
+        }
+
         appData = {
 
             pagevars: {},
             cue: '',
             unixtime: 0,
+
             sendEvent: function(e,v)
             {
                 if(!e.startsWith("page"))

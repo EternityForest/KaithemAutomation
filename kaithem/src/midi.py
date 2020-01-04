@@ -145,7 +145,8 @@ class FluidSynth():
         self.fs.program_select(channel, self.sfid, bank, insNumber)
 
     def __del__(self):
-        self.fs.delete()
+        if hasattr(self,'fs'):
+            self.fs.delete()
 
 class MidiAPI():
     instrumentSearch = getGMInstruments
