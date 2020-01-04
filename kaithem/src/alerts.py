@@ -198,7 +198,7 @@ class Alert(virtualresource.VirtualResource):
         
         self.sm = statemachines.StateMachine("normal")
 
-        self.sm.addState("normal")
+        self.sm.addState("normal", enter=self._onNormal)
         self.sm.addState("tripped",enter=self._onTrip)
         self.sm.addState("active", enter=self._onActive)
         self.sm.addState("acknowledged", enter=self._onAck)
@@ -283,13 +283,26 @@ class Alert(virtualresource.VirtualResource):
 
            
     def _onAck(self):
-        "Called both when acknowledged, and when released."
         global unacknowledged
         with lock:
             cleanup()
             if self.id in _unacknowledged:
                 del _unacknowledged[self.id]
             unacknowledged = _unacknowledged.copy()
+        calcNextBeep()
+
+    def _onNormal(self):
+        "Mostly defensivem but also cleans up if the autoclear occurs and we skio the acknowledged state"
+        global unacknowledged,active
+        with lock:
+            cleanup()
+            if self.id in _unacknowledged:
+                del _unacknowledged[self.id]
+            unacknowledged = _unacknowledged.copy()
+
+            if self.id in _active:
+                del _active[self.id]
+            active = _active.copy()
         calcNextBeep()
 
     def _onTrip(self):

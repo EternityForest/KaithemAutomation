@@ -1050,6 +1050,11 @@ Includes external open-source libraries by third parties.
     This enables machine processing of license information based on the SPDX
     License Identifiers that are here available: http://spdx.org/licenses/
 
+#### [autoslot](https://github.com/cjrh/autoslot)
+                Apache License
+        Version 2.0, January 2004
+    http://www.apache.org/licenses/
+
 
 #### [qrcode.js](https://davidshimjs.github.io/qrcodejs/)
     The MIT License (MIT)

@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1578055218549861
+resource-timestamp: 1578096687043520
 resource-type: event
 versions: {}
 
@@ -302,8 +302,8 @@ if __name__=='__setup__':
     def getSerPorts():
         try:
             import serial.tools.list_ports
-            if os.path.exists("/dev/serial/by-id"):
-                return [os.path.join('/dev/serial/by-id',i) for i in os.listdir("/dev/serial/by-id")]
+            if os.path.exists("/dev/serial/by-path"):
+                return [os.path.join('/dev/serial/by-path',i) for i in os.listdir("/dev/serial/by-path")]
             else:
                 return [i.device for i in serial.tools.list_ports.comports()]
         except Exception as e:
@@ -3025,7 +3025,10 @@ if __name__=='__setup__':
                     self.cueValsToNumpyCache(self.cue, not self.cue.track)
                     self.fadeInCompleted = False
                     
-                    self.render(force_repaint=True)
+                    #We don't render here. Very short cues coupt create loops of rerendering and goto
+                    #self.render(force_repaint=True)
+    
+                    #Instead we set the flag
                     self.rerender = True
                     self.pushMeta(statusOnly=True)
     
@@ -3141,7 +3144,6 @@ if __name__=='__setup__':
                 uobj = getUniverse(universe)
     
                 if not uobj:
-                    print("Nope",universe)
                     continue
     
                 if not universe in self.cue_cached_vals_as_arrays:

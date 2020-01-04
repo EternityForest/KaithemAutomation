@@ -67,7 +67,7 @@ ${alertsapi.render("alertapi")}
     
         %for i in l:
         <div style="background-color:rgba(255,240,220,0.2);border-style:solid;"><b>${i.name}</b>
-             Priority: ${i.priority}, Zone: ${i.zone}<br>
+             Priority: ${i.priority}, Zone: ${i.zone}, State: ${i.sm.state}<br>
              Tripped at:${unitsofmeasure.strftime(i.trippedAt)}(about ${formatTimeInterval(time.time()-i.trippedAt,2)} ago)<br>
         %if not i.sm.state=="acknowledged":    
         <a class="button" href=".?ackalarm=${i.id}">ACK</a>

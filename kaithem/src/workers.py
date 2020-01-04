@@ -112,7 +112,8 @@ def makeWorker(e,q):
                 #If we can, try to send the exception back whence it came
                 try:
                     from . import newevt
-                    newevt.eventByModuleName(f.__module__)._handle_exception()
+                    if f.__module__ in newevt.eventsByModuleName:
+                        newevt.eventsByModuleName[f.__module__]._handle_exception()
                 except:
                     pass
 
