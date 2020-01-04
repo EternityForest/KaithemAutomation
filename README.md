@@ -49,6 +49,15 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.3
+- Gstreamer audio backend resource leak and segfault fix
+- Restore lost chandler MQTT features
+- Chandler lighting value rendering buxfixes
+
+### 0.65.2
+- Chandler soundfile listing bugfix
+- Chandler sound prefetch
+
 ### 0.65.1
 - Prevent tagpoint widget send from blocking up the process
 - New StringTag objects, like tagpoints but for strings
