@@ -12,7 +12,8 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import weakref,time,json,base64,cherrypy,os, traceback,random,threading,logging,socket,copy
+import weakref,time,json,base64,cherrypy,os, traceback,random,threading,logging,socket,copy,struct
+import random
 from . import auth,pages,unitsofmeasure,config,util,messagebus
 from src.config import config
 
@@ -21,10 +22,13 @@ logger = logging.getLogger("system.widgets")
 #Modify lock for any websocket's subscriptions
 subscriptionLock = threading.Lock()
 from ws4py.websocket import WebSocket
+import ws4py
+import ws4py.messaging
 widgets = weakref.WeakValueDictionary()
 n = 0
 
 from .unitsofmeasure import convert, unitTypes
+
 
 
 defaultDisplayUnits={
@@ -109,6 +113,13 @@ def subsc_closure(self,i, widget):
 
 clients_info = weakref.WeakValueDictionary()
 
+usingmp=False
+try:
+    import msgpack
+    usingmp=True
+except:
+    pass
+
 if config['enable-websockets']:
     class websocket(WebSocket):
         def __init__(self,*args,**kwargs):
@@ -120,7 +131,7 @@ if config['enable-websockets']:
 
         def send(self,*a,**k):
             with self.widget_wslock:
-                WebSocket.send(self, *a,**k)
+                WebSocket.send(self, *a,**k,binary=isinstance(a[0],bytes))
 
         def closed(self,code,reason):
             with subscriptionLock:
@@ -133,7 +144,11 @@ if config['enable-websockets']:
 
         def received_message(self,message):
             try:
-                o = json.loads(message.data.decode('utf8'))
+                if isinstance(message,ws4py.messaging.BinaryMessage):
+                    o = msgpack.unpackb(message.data,raw=False)
+                else:
+                    o = json.loads(message.data.decode('utf8'))
+
                 resp = []
                 user = self.user
                 req = o['req']
@@ -164,10 +179,16 @@ if config['enable-websockets']:
 
 
             except Exception as e:
+                print(message.data)
                 logging.exception('Error in widget')
                 messagebus.postMessage("system/errors/widgets/websocket", traceback.format_exc(6))
                 self.send(json.dumps({'__WIDGETERROR__':repr(e)}))
 
+def randID():
+    "Generate a base64 id"
+    return base64.b64encode(os.urandom(8))[:-1].decode()
+
+idlock = threading.Lock()
 class Widget():
     def __init__(self,*args,**kwargs):
         self.value = None
@@ -189,15 +210,21 @@ class Widget():
         self._callback = f
         self._callback2 = f2
 
+        with idlock:
+            #Give the widget an ID for the client to refer to it by
+            #Note that it's no longer always a  uuid!!
+            if not 'id' in kwargs:
+                for i in range(0,250000):
+                    self.uuid = randID()
+                    if not self.uuid in widgets:
+                        break
+                    if range>240000:
+                        raise RuntimeError("No more IDs?")
+            else:
+                self.uuid = kwargs['id']
 
-        #Give the widget an ID for the client to refer to it by
-        if not 'id' in kwargs:
-            self.uuid = "id"+base64.b64encode(os.urandom(16)).decode().replace("/",'').replace("-",'').replace('+','')[:-2]
-        else:
-            self.uuid = kwargs['id']
-
-        #Insert self into the widgets list
-        widgets[self.uuid] = self
+            #Insert self into the widgets list
+            widgets[self.uuid] = self
 
     def onNewSubscriber(self,user, cid, **kw):
         pass
@@ -307,7 +334,10 @@ class Widget():
 
     def send(self,value):
         "Send a value to all subscribers without invoking the local callback"
-        d = json.dumps([[self.uuid,value]])
+        if usingmp:
+            d=msgpack.packb([[self.uuid,value]])
+        else:
+            d = json.dumps([[self.uuid,value]])
         #Not sure what the actual cause of the ssl segfault is, but maybe it's this?
         if (len(d)>128*1024):
             raise ValueError("Data is too large, refusing to send")
@@ -320,7 +350,10 @@ class Widget():
 
     def sendTo(self,value,target):
         "Send a value to one subscriber by the connection ID"
-        d = json.dumps([[self.uuid,value]])
+        if usingmp:
+            d=msgpack.packb([[self.uuid,value]])
+        else:
+            d = json.dumps([[self.uuid,value]])
         #Not sure what the actual cause of the ssl segfault is, but maybe it's this?
         if (len(d)>128*1024):
             raise ValueError("Data is too large, refusing to send")

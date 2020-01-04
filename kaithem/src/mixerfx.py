@@ -266,7 +266,7 @@ effectTemplates_data={
     "tenband":
     {
         "displayType":"10-Band EQ",
-        "type": "gverb",
+        "type": "tenband",
         "stereoGstElement": "ladspa-caps-so-eq10x2",
         'help': "Stereo 10-band (CAPS)",
         "params": {

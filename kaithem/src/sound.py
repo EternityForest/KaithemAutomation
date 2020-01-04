@@ -888,7 +888,7 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
         if output==None:
             output="@auto"
-        gstwrapper.Pipeline.__init__(self,str(uuid.uuid4()))
+        gstwrapper.Pipeline.__init__(self,str(uuid.uuid4()),systemTime=True)
         self.ended = False
 
         self.src = self.addElement('filesrc',location=file)
@@ -930,7 +930,7 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
                     self.fader.set_property('volume', level)
             except ReferenceError:
                 pass
-            
+
     def resume(self):
         self.start()
   

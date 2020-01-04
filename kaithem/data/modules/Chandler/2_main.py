@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1578096687043520
+resource-timestamp: 1578152677551165
 resource-type: event
 versions: {}
 
@@ -1155,7 +1155,7 @@ if __name__=='__setup__':
                                 }])
             except Exception as e:
                 rl_log_exc("Error pushing cue data")
-                print("cue data push error", cueid,e)
+                print("cue data push error", cueid,traceback.format_exc())
     
         def pushCueMetaAttr(self,cueid,attr):
             "Be careful with this, some attributes can't be sent directly and need preprocessing"
@@ -1712,14 +1712,14 @@ if __name__=='__setup__':
                     
                 if msg[0] == "stopbyname":
                     module.scenes_by_name[msg[1]].stop()
-                    self.pushMeta(msg[1])
+                    self.pushMeta(msg[1],statusOnly=True)
                     
                 if msg[0] == "togglebyname":
                     if module.scenes_by_name[msg[1]].isActive():
                         module.scenes_by_name[msg[1]].stop()
                     else:
                         module.scenes_by_name[msg[1]].go()
-                    self.pushMeta(msg[1])
+                    self.pushMeta(msg[1],)
                     
                 if msg[0] == "stop":
                     x = module.scenes[msg[1]]
@@ -1770,7 +1770,7 @@ if __name__=='__setup__':
                 for i in self.scenememory:
                     #Tell clients about any changed alpha values and stuff.
                     if not self.id in self.scenememory[i].hasNewInfo:
-                        self.pushMeta(i)
+                        self.pushMeta(i,statusOnly=True)
                         self.scenememory[i].hasNewInfo[self.id]=False
     
                     #special case the monitor scenes.
@@ -1782,7 +1782,7 @@ if __name__=='__setup__':
                 for i in module.activeScenes:
                     #Tell clients about any changed alpha values and stuff.
                     if not self.id in i.hasNewInfo:
-                        self.pushMeta(i.id)
+                        self.pushMeta(i.id,statusOnly=True)
                         i.hasNewInfo[self.id]=False
     
     
@@ -2352,6 +2352,9 @@ if __name__=='__setup__':
     
             self.page=page or {'html':'','css':'','js':'','rawhtml':''}
     
+            if not 'rawhtml' in self.page:
+                self.page['rawhtml'] = ''
+    
     
             self.id = id or uuid.uuid4().hex
     
@@ -2906,9 +2909,17 @@ if __name__=='__setup__':
                         self.cue = self.cues['default']
                         self.cueTagClaim.set(self.cue.name,annotation="SceneObject")  
             
-                    #Allow specifying an "Exact" time to enter for zero-drift stuff
+    
+                    self.enteredCue=module.timefunc()
+    
+                    #Allow specifying an "Exact" time to enter for zero-drift stuff, so things stay in sync
                     #I don't know if it's fully correct to set the timestamp before exit...
-                    self.enteredCue = t or module.timefunc()
+                    #However we really don't want to queue up a bazillion transitions
+                    #If we can't keep up, so we limit that to 3s
+                    #if t and t>module.timefunc()-3:
+                        #Also, limit to 500ms in the future, seems like there could be bugs otherwise
+                     #   self.enteredCue = min(t,self.enteredCue+0.5)
+    
                     entered = self.enteredCue
     
                     if not (cue==self.cue.name):
@@ -3534,8 +3545,7 @@ if __name__=='__setup__':
             if sd:
                 self.defaultalpha = val
             self.hasNewInfo = {}
-            #If setting default, push everything
-            self.pushMeta(keys={'alpha'} if not sd else {'alpha','dalpha'})
+    
     
         def setSyncKey(self, key):
             if key and not isinstance(key,bytes) and not (len(key)==32):

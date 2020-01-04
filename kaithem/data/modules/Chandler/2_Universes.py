@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1577681442798847
+resource-timestamp: 1578052277093545
 resource-type: event
 versions: {}
 
@@ -160,7 +160,9 @@ if __name__=='__setup__':
             with module.lock:
                 self.fine_channels = {}
                 for i in self.channels:
-                    fixture = self.channels[i]
+                    fixture = self.channels[i]()
+                    if not fixture:
+                        continue
                     if not fixture.startAddress:
                         continue
                     data = fixture.channels[i-fixture.startAddress]
@@ -204,6 +206,13 @@ if __name__=='__setup__':
         data = data.tobytes()[:512]
         return (b'\x7e\x06'+struct.pack('<H',len(data))+data+b'\xe7')
     
+    
+    def rawmessage(data):
+        "An enttec open DMX message from a set of values"
+        data = numpy.maximum(numpy.minimum(data,255),0)
+        data = data.astype(numpy.uint8)
+        data = data.tobytes()[:512]
+        return (b'\0'+data)
     
     class EnttecUniverse(Universe):
         #Thanks to https://github.com/c0z3n/pySimpleDMX
@@ -357,6 +366,8 @@ if __name__=='__setup__':
                 self.data = data
                 self.frame.set()
     
+    
+    
     class ArtNetUniverse(Universe):
         def __init__(self,name,channels=128,address="255.255.255.255:6454",framerate=44,number=0):
             self.ok = True
@@ -412,7 +423,7 @@ if __name__=='__setup__':
             for i in self.tagpoints:
                 #One higher than default
                 try:
-                    self.claims[int(i)]= kaithem.tags[self.tagpoints[i]].claim(0,"Chandler_"+name, 51)
+                    self.claims[int(i.split(':')[0])]= kaithem.tags[self.tagpoints[i]].claim(0,"Chandler_"+name, 51)
                 except Exception as e:
                     self.status="error, "+i+" "+ str(e)
                     logger.exception("Error related to tag point "+i)
@@ -552,8 +563,160 @@ if __name__=='__setup__':
                 self.frame.set()
     
     
+    
+    
+    
+    
+    
+    
+    class EnttecOpenUniverse(Universe):
+        #Thanks to https://github.com/c0z3n/pySimpleDMX
+        #I didn't actually use the code, but it was a very useful resouurce
+        #For protocol documentation.
+        def __init__(self,name,channels=128,portname="",framerate=44,number=0):
+            self.ok = False
+            self.number=number
+            self.status = "Disconnect"
+            self.statusChanged = {}
+            #Sender needs the values to be there for setup
+            self.values = numpy.array([0.0]*channels,dtype="f4")
+            self.sender = RawDMXSender(self,portname,framerate)
+            self.sender.connect()
+            
+            Universe.__init__(self,name,channels)
+    
+            self.hidden=False
+    
+        def onFrame(self):
+            data = rawmessage(self.values)
+            self.sender.onFrame(data)
+    
+        def __del__(self):
+            #Stop the thread when this gets deleted
+            self.sender.onFrame(None)
+    
+    
+    class RawDMXSender():
+        """This object is used by the universe object to send data to the enttec adapter.
+            It runs in it's own thread because the frame rate might have nothing to do with
+            the rate at which the data actually gets rendered.
+        """
+        def __init__(self,universe,port,framerate):
+            self.frame = threading.Event()
+            self.universe= weakref.ref(universe)
+            self.data = rawmessage(universe.values)
+            self.thread = threading.Thread(target =self.run)
+            self.thread.daemon = True
+            self.thread.name = "DMXSenderThread_"+self.thread.name
+            self.portname = port
+            self.framerate = float(framerate)
+            self.lock = threading.Lock()
+            self.port = None
+            self.connect()
+            self.thread.start()
+    
+    
+        def setStatus(self,s,ok):
+            try:
+                self.universe().setStatus(s,ok)
+            except:
+                pass
+                
+        def connect(self):
+            #Different status message first time
+            try:
+                self.reconnect()
+            except Exception as e:
+                self.setStatus('Could not connect, '+str(e)[:100]+'...',False)
+    
+    
+        def reconnect(self):
+            "Try to reconnect to the adapter"
+            try:
+                import serial
+                if not self.portname:
+                    import serial.tools.list_ports
+    
+                    p = serial.tools.list_ports.comports()
+                    if p:
+                        if len(p)>1:
+                            self.setStatus('More than one device found, refusing to guess. Please specify a device.',False)
+                            return
+                        else:
+                            p =p[0].device
+                    else:
+                        self.setStatus('No device found',False)
+                        return
+                else:
+                    p = self.portname
+                time.sleep(0.1)
+                try:
+                    self.port.close()
+                except:
+                    pass
+                self.port = serial.Serial(p,250000, timeout=1.0, write_timeout=1.0,stopbits=2)
+    
+       
+                self.port.read(self.port.inWaiting())
+                time.sleep(0.05)
+                self.port.send_break(0.002)
+                self.port.write(self.data)
+                self.setStatus('connected to '+p,True)
+    
+            except Exception as e:
+                try:
+                    self.setStatus('disconnected, '+str(e)[:100]+'...',False)
+                except:
+                    pass
+    
+        def run(self):
+            while 1:
+                try:
+                    s = module.timefunc()
+                    self.port.read(self.port.inWaiting())
+                    x =self.frame.wait(1)
+                    if not x:
+                        continue
+                    with self.lock:
+                        if self.data is None:
+                            try:
+                                self.port.close()
+                            except:
+                                pass
+                            return
+                        self.port.write(self.data)
+                        self.frame.clear()
+                    time.sleep(max(((1.0/self.framerate)-(module.timefunc()-s)), 0))
+                except Exception as e:
+                    try:
+                        self.port.close()
+                    except:
+                        pass
+                    try:
+                        if self.data is None:
+                            return
+                        if self.port:
+                            self.setStatus('disconnected, '+str(e)[:100]+'...',False)
+                        self.port=None
+                        #reconnect is designed not to raise Exceptions, so if there's0
+                        #an error here it's probably because the whole scope is being cleaned
+                        time.sleep(1)
+                        self.reconnect()
+                        time.sleep(1)
+                        self.reconnect()
+                        time.sleep(1)
+                    except:
+                        return
+    
+    
+        def onFrame(self,data):
+            with self.lock:
+                self.data = data
+                self.frame.set()
+    
     module.Universe = Universe
     module.EnttecUniverse = EnttecUniverse
+    module.EnttecOpenUniverse = EnttecOpenUniverse
     module.TagpointUniverse = TagpointUniverse
     module.ArtNetUniverse = ArtNetUniverse
 

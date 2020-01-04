@@ -1,3 +1,19 @@
+function include(scriptUrl)
+{
+    var xmlhttp = new XMLHttpRequest();
+    xmlhttp.open("GET", scriptUrl);
+    xmlhttp.onreadystatechange = function()
+    {
+        if ((xmlhttp.status == 200) && (xmlhttp.readyState == 4))
+        {
+            eval(xmlhttp.responseText);
+        }
+    };
+    xmlhttp.send();
+}
+
+include("/static/js/msgpack.min.js")
+
 KWidget_toSend = [];
 KWidget_polled = [];
 var justSet ={};
@@ -15,7 +31,7 @@ KWidget_serverMsgCallbacks= {
 
 KWidget_subscriptions = []
 KWidget_connection = 0
-
+KWidget_use_mp=0
 
 function KWidget_subscribe(key,callback)
 {
@@ -88,15 +104,36 @@ KWidget_connect = function()
 
 		KWidget_connection.onmessage = function(e){
 			try{
-		        var resp = JSON.parse(e.data);
+				if(typeof(e.data)=='object')
+				{
+					KWidget_use_mp=1;
+					
+					var resp =[0];
+					e.data.arrayBuffer().then(function(buffer)
+					{
+						var buffer2=new Uint8Array(buffer);
+						KWidget_connection.handleIncoming(msgpack.decode(buffer2));
+					})
+					
+				}
+				else
+				{
+					var resp = JSON.parse(e.data);
+					KWidget_connection.handleIncoming(resp)
+				}
 			}
 			catch(err)
 			{
 				console.log("JSON Parse Error in websocket response:\n"+e.data);
 			}
 
-        //Iterate messages
-		for (var n=0;n<resp.length; n++)
+        
+		}
+
+		KWidget_connection.handleIncoming=function(resp)
+		{
+			//Iterate messages
+			for (var n=0;n<resp.length; n++)
 			{
 				i=resp[n]
 				for(j in KWidget_serverMsgCallbacks[i[0]])
@@ -105,7 +142,6 @@ KWidget_connect = function()
 					}
 			}
 		}
-
 		KWidget_connection.onopen = function(e)
 		{
 			var j = JSON.stringify({"subsc":Object.keys(KWidget_serverMsgCallbacks),"req":[],"upd":{}})
@@ -123,7 +159,15 @@ KWidget_connect = function()
 				if(KWidget_toSend.length>0 || KWidget_polled.length>0)
 				{
 					var toSend = {'upd':KWidget_toSend,'req':Object.keys(KWidget_polled)};
-					var j = JSON.stringify(toSend);
+					if(KWidget_use_mp)
+						{
+							var j = new Blob([msgpack.encode(toSend)]);
+						}
+						else
+						{
+							var j = JSON.stringify(toSend);
+						}
+					
 					KWidget_connection.send(j);
 					justSet = KWidget_toSend;
 					KWidget_toSend=[];

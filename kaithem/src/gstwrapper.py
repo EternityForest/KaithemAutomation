@@ -150,23 +150,25 @@ def makeWeakrefPoller(selfref):
                     with self.lock:
                         if self.systemTime:
                             #Closed loop adjust the pipeline time.
-                            t = self.pipeline.query_position(Gst.Format.TIME)/10**9
-                            m = time.monotonic()
+                            try:
+                                t = self.getPosition()
+                                m = time.monotonic()
 
-                            sysElapsed = (m-self.startTime)/self.targetRate
-                            diff = t-sysElapsed
-                            needAdjust = False
-                            if diff>0.005:
-                                self.pipelineRate = self.targetRate - 0.0003
-                                needAdjust=True
-                            elif diff<-0.005:
-                                self.pipelineRate = self.targetRate + 0.0003
-                                needAdjust=True
+                                sysElapsed = (m-self.startTime)/self.targetRate
+                                diff = t-sysElapsed
+                                needAdjust = False
+                                if diff>0.005:
+                                    self.pipelineRate = self.targetRate - 0.0003
+                                    needAdjust=True
+                                elif diff<-0.005:
+                                    self.pipelineRate = self.targetRate + 0.0003
+                                    needAdjust=True
 
-                            if needAdjust:
-                                self.pipeline.seek (self.pipelineRate, Gst.Format.TIME,
-                            Gst.SeekFlags.SKIP, Gst.SeekType.NONE,0,
-                            Gst.SeekType.NONE, -1)
+                                if needAdjust:
+                                    self.seek (rate=self.pipelineRate)
+                            except:
+                                logging.exception("GST time sync error")
+                                continue
                 except:
                     #After pipeline deleted, we clean up
                     if hasattr(self,'pipeline') and  hasattr(self,'bus'):
@@ -221,9 +223,16 @@ class Pipeline():
         self.bus.add_signal_watch()
         self.hasSignalWatch = 1
         #1 is dummy user data, because some have reported segfaults if it is missing
-        self.pgbcobj = self.bus.connect('message',wrfunc(weakref.WeakMethod(self.on_message)),1)
-        self.pgbcobj2 = self.bus.connect("message::eos", wrfunc(weakref.WeakMethod(self.on_eos)),1)
-        self.pgbcobj3 = self.bus.connect("message::error", wrfunc(weakref.WeakMethod(self.on_error)),1)
+        #Note that we keep strong refs to the functions, so they don't go away when we unregister,
+        #Leading to a segfault in libffi because of a race condition
+        self._onmessage = wrfunc(weakref.WeakMethod(self.on_message))
+        self.pgbcobj = self.bus.connect('message',self._onmessage,1)
+        
+        self._oneos = wrfunc(weakref.WeakMethod(self.on_eos))
+        self.pgbcobj2 = self.bus.connect("message::eos", self._oneos,1)
+
+        self._onerror = wrfunc(weakref.WeakMethod(self.on_error))
+        self.pgbcobj3 = self.bus.connect("message::error", self._onerror,1)
         self.name = name
 
         self.elements = []
@@ -239,7 +248,8 @@ class Pipeline():
         self.startTime = 0
         def dummy(*a,**k):
             pass
-        self.bus.set_sync_handler(wrfunc(weakref.WeakMethod(self.syncMessage), fail_return=Gst.BusSyncReply.PASS ),0,dummy)
+        self._syncmessage = wrfunc(weakref.WeakMethod(self.syncMessage),fail_return=Gst.BusSyncReply.PASS)
+        self.bus.set_sync_handler(self._syncmessage,0,dummy)
         self.pollthread=None
 
         self.lastElementType = None
@@ -252,7 +262,7 @@ class Pipeline():
 
         
     
-    def seek(self, time=None,rate=1.0):
+    def seek(self, t=None,rate=1.0):
         "Seek the pipeline to a position in seconds, set the playback rate, or both"
         with self.lock:
             if self.exiting:
@@ -261,19 +271,26 @@ class Pipeline():
                 return
 
             #Set effective start time so that the system clock sync keeps working.
-            if not time is None:
-                self.startTime = time.monotonic()-time
+            if not t is None:
+                self.startTime = time.monotonic()-t
 
             self.targetRate = rate
             self.pipelineRate = rate
             self.pipeline.seek (rate, Gst.Format.TIME,
-            Gst.SeekFlags.SKIP, Gst.SeekType.NONE if time is None else Gst.SeekType.SET, time*10**9,
+            Gst.SeekFlags.SKIP|Gst.SeekFlags.FLUSH, Gst.SeekType.NONE if t is None else Gst.SeekType.SET, max((t or 0)*10**9,0),
             Gst.SeekType.NONE, -1)
     
     def getPosition(self):
         "Returns stream position in seconds"
         with self.lock:
-            return self.pipeline.query_position(Gst.Format.TIME)/10**9
+            ret,current = self.pipeline.query_position(Gst.Format.TIME)
+            if not ret:
+               raise RuntimeError(ret)
+            if current <0:
+                raise RuntimeError("Nonsense position: "+str(current))
+            if current==Gst.CLOCK_TIME_NONE:
+                raise RuntimeError("gst.CLOCK_TIME_NONE")
+            return current/10**9
 
     def syncMessage(self,*arguments):
         "Synchronous message, so we can enable realtime priority on individual threads."
@@ -284,7 +301,8 @@ class Pipeline():
                 #This can't use the lock, we don't know what thread it might be called in.
                 def noSyncHandler():
                     with self.lock:
-                        self.bus.set_sync_handler(None,0,None)
+                        if hasattr(self,'bus'):
+                            self.bus.set_sync_handler(None,0,None)
                 workers.do(noSyncHandler)
             if not threading.currentThread().ident in self.knownThreads:
                 self.knownThreads[threading.currentThread().ident] = True
@@ -357,17 +375,36 @@ class Pipeline():
             timeAgo = time.time()-x
             #Convert to monotonic time that the nternal APIs use
             self.startTime= time.monotonic()-timeAgo
-            self.pipeline.set_state(Gst.State.PAUSED)
-            self._waitForState(Gst.State.PAUSED)
+            
+            
+            if not self.pipeline.get_state(1000_000_000)[1] ==Gst.State.PAUSED:
+                self.pipeline.set_state(Gst.State.PAUSED)
+                self._waitForState(Gst.State.PAUSED)
             
             #Seek to where we should be, if we had actually
-            #Started when we should have.
+            #Started when we should have. We want to get everything set up in the pause state
+            #First so we have the right "effective" start time.
+
+            #We accept cutting off a few 100 milliseconds if it means
+            #staying synced.
             if self.systemTime:
                 self.seek(time.monotonic()-self.startTime)
 
             self.pipeline.set_state(Gst.State.PLAYING)
             self._waitForState(Gst.State.PLAYING)
             self.running=True
+
+            for i in range(0,50):
+                try:
+                    #Test that we can actually read the clock
+                    self.getPosition()
+                    break
+                except:
+                    if i>48:
+                        raise RuntimeError("Clock still not valid")
+                    time.sleep(0.1)
+
+            #Don't start the thread until we have a valid clock
             self.maybeStartPoller()
 
     def play(self):
@@ -376,8 +413,15 @@ class Pipeline():
                 return
             if not self.running:
                 raise RuntimeError("Pipeline is not paused, or running, call start()")
+            if not self.pipeline.get_state(1000_000_000)[1] in (Gst.State.PLAYING,Gst.State.PAUSED,Gst.State.READY):
+                raise RuntimeError("Pipeline is not paused, or running, call start()")
+            
+            #Hopefully this willl raise an error if the clock is invalid for some reason,
+            #Instead of potentially causing a segfault, if that was the problem
+            self.getPosition()
+            
             self.pipeline.set_state(Gst.State.PLAYING)
-            self._waitForState(Gst.State.PAUSED)
+            self._waitForState(Gst.State.PLAYING)
 
     def pause(self):
         "Not that we can start directly into paused without playing first, to preload stuff"
@@ -386,7 +430,7 @@ class Pipeline():
                 return
             self.pipeline.set_state(Gst.State.PAUSED)
             self._waitForState(Gst.State.PAUSED)
-
+            self.getPosition()
             self.running=True
             self.maybeStartPoller()
     
@@ -401,7 +445,6 @@ class Pipeline():
         #Actually stop as soon as we can
         with self.lock:
             self.pipeline.set_state(Gst.State.NULL)
-            self._waitForState(Gst.State.NULL)
             self.exiting = True
 
         #Now we're going to do the cleanup stuff
@@ -417,6 +460,12 @@ class Pipeline():
             with self.lock:
                 if self._stopped:
                     return
+
+                self.pipeline.set_state(Gst.State.NULL)
+                self._waitForState(Gst.State.NULL,10000)
+
+                #This stuff happens in the NULL state, because we prefer not to mess with stuff while it's
+                #Running
                 try:
                     self.bus.disconnect(self.pgbcobj)
                     self.bus.disconnect(self.pgbcobj2)
@@ -427,10 +476,7 @@ class Pipeline():
 
                 if self.hasSignalWatch:
                     self.bus.remove_signal_watch()
-                while not self.pipeline.get_state(1000_000_000)[1]==Gst.State.NULL:
-                    if time.monotonic()-t> 10:
-                        raise RuntimeError("Timeout")
-                    time.sleep(0.1)
+               
 
                 del self.elements
                 del self.namedElements

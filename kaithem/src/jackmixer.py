@@ -203,7 +203,8 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
     def __init__(self, name,board=None,channels= 2, input=None, outputs=[]):
         gstwrapper.Pipeline.__init__(self,name)
         self.board =board
-        self.lastLevel = 0
+        self.levelTag = tagpoints.Tag("/jackmixer/channels/"+name+"/level")
+        self.lastLevel =0
         self.lastPushedLevel = time.monotonic()
         self.effectsById = {}
         self.effectDataById = {}
@@ -317,7 +318,8 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                 i['id']=str(uuid.uuid4())
             if i['type']=="fader":
                 self.fader= self.addElement("volume")
-                self.fader.set_property('volume', 0)
+                #We have to set it here and can't rely on the tagpoint, it only does anything on *changes*
+                self.fader.set_property('volume', 10**(float(d['fader'])/20))
             #Special case this, it's made of multiple gstreamer blocks and also airwires
             elif i['type']=="send":
                 self.addSend(i['params']['*destination']['value'], i['id'], i['params']['volume']['value'])
@@ -395,6 +397,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
         if  s.get_name() == 'level':
             if self.board:
                 l = sum([i for i in s['decay']])/len(s['decay'])
+                self.levelTag.value = l
                 if l<-45 or abs(l-self.lastLevel)<6:
                     if time.monotonic()-self.lastPushedLevel< 1:
                         return True
