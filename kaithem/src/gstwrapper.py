@@ -79,6 +79,9 @@ def Element(n,name=None):
     else:
         raise ValueError("No such element exists: "+n)
 loop = None
+
+
+
 def init():
     "On demand loading, for startup speed but also for compatibility if Gstreamer isn't there"
     global initialized, Gst,loop
@@ -348,6 +351,7 @@ class Pipeline():
             if not self._stopped:
                 self.stop()
 
+
        
         
 
@@ -441,12 +445,15 @@ class Pipeline():
             self.pollthread.start()
 
     def stop(self):
-
         #Actually stop as soon as we can
         with self.lock:
             self.pipeline.set_state(Gst.State.NULL)
             self.exiting = True
-
+            self.bus.set_sync_handler(None,0,None)
+            if self.hasSignalWatch:
+                self.bus.remove_signal_watch()
+                self.hasSignalWatch = False
+        
         #Now we're going to do the cleanup stuff
         #In the background, because it involves a lot of waiting
         def gstStopCleanupTask():
@@ -468,15 +475,14 @@ class Pipeline():
                 #Running
                 try:
                     self.bus.disconnect(self.pgbcobj)
+                    del self.pgbcobj
                     self.bus.disconnect(self.pgbcobj2)
+                    del self.pgbcobj2
                     self.bus.disconnect(self.pgbcobj3)
-                    self.bus.set_sync_handler(None,0,None)
+                    del self.pgbcobj3
                 except:
                     print(traceback.format_exc())
-
-                if self.hasSignalWatch:
-                    self.bus.remove_signal_watch()
-               
+    
 
                 del self.elements
                 del self.namedElements

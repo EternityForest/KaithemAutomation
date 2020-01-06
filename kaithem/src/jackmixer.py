@@ -204,6 +204,9 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
         gstwrapper.Pipeline.__init__(self,name)
         self.board =board
         self.levelTag = tagpoints.Tag("/jackmixer/channels/"+name+"/level")
+        self.levelTag.min=-90
+        self.levelTag.max =3
+        self.levelTag.hi = -3
         self.lastLevel =0
         self.lastPushedLevel = time.monotonic()
         self.effectsById = {}
@@ -393,13 +396,14 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
     def on_message(self, bus, message,userdata):
         s = message.get_structure()
         if not s:
-            return
+            return True
         if  s.get_name() == 'level':
             if self.board:
                 l = sum([i for i in s['decay']])/len(s['decay'])
-                self.levelTag.value = l
+                rms = sum([i for i in s['rms']])/len(s['rms'])
+                self.levelTag.value = max(rms,-90)
                 if l<-45 or abs(l-self.lastLevel)<6:
-                    if time.monotonic()-self.lastPushedLevel< 1:
+                    if time.monotonic()-self.lastPushedLevel< 0.3:
                         return True
                 else:
                     if time.monotonic()-self.lastPushedLevel< 0.07:
