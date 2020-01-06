@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1578152677551165
+resource-timestamp: 1578305182624998
 resource-type: event
 versions: {}
 
@@ -456,9 +456,14 @@ if __name__=='__setup__':
         "Given a set of dicts that might contain either lists or np arrays, convert to normal lists of numbers"
         return {j:[float(k) for k in v[j]] for j in v}
     
+    
     class Fixture():
-        def __init__(self,name,channels=None):
+        def __init__(self,name,data=None):
             """Represents a contiguous range of channels each with a defined role in one universe.
+    
+                data is the definition of the type of fixture. It can be a list of channels, or
+                a dict having a 'channels' property.
+    
                 Each channel must be described by a [name, type, [arguments]] list, where type is one of:
     
                 red
@@ -475,8 +480,14 @@ if __name__=='__setup__':
                 If the coarse channel is not the immediate preceding channel, use the first argument to specify the number of the coarse channel,
                 with 0 being the fixture's first channel.        
             """
-            if channels:
-                self.channels = json.loads(json.dumps(channels))
+            if data:
+                #Normalize and raise errors on nonsense
+                channels = json.loads(json.dumps(data))
+    
+                if not isinstance(channels,list):
+                    channels=channels['channels']
+                self.channels=channels
+                
             else:
                 self.channels = None
             self.universe = None
@@ -1782,7 +1793,7 @@ if __name__=='__setup__':
                 for i in module.activeScenes:
                     #Tell clients about any changed alpha values and stuff.
                     if not self.id in i.hasNewInfo:
-                        self.pushMeta(i.id,statusOnly=True)
+                        self.pushMeta(i.id)
                         i.hasNewInfo[self.id]=False
     
     
@@ -3481,7 +3492,7 @@ if __name__=='__setup__':
             elif self.tapSequence:
                 #Just change enteredCue to match the phase.
                 self.enteredCue = x
-            self.hasNewInfo = {}
+            self.pushMeta(keys={'bpm'})
     
     
         def stop(self):
@@ -3544,8 +3555,9 @@ if __name__=='__setup__':
             self.alphaTagClaim.set(val,annotation="SceneObject")
             if sd:
                 self.defaultalpha = val
-            self.hasNewInfo = {}
-    
+                self.pushMeta(keys={'alpha','dalpha'} )
+            else:
+                self.pushMeta(keys={'alpha','dalpha'} )
     
         def setSyncKey(self, key):
             if key and not isinstance(key,bytes) and not (len(key)==32):
@@ -3724,7 +3736,7 @@ def eventAction():
     with module.lock:
         render()
     global lastrendered
-    if module.timefunc() -lastrendered > 1/48.0:
+    if module.timefunc() -lastrendered > 1/14.0:
         with module.lock:
             pollsounds()
         with boardsListLock:

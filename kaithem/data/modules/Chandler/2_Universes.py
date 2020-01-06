@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1578052277093545
+resource-timestamp: 1578304452853833
 resource-type: event
 versions: {}
 
@@ -203,7 +203,7 @@ if __name__=='__setup__':
         "An enttec DMX message from a set of values"
         data = numpy.maximum(numpy.minimum(data,255),0)
         data = data.astype(numpy.uint8)
-        data = data.tobytes()[:512]
+        data = data.tobytes()[1:513]
         return (b'\x7e\x06'+struct.pack('<H',len(data))+data+b'\xe7')
     
     
@@ -211,7 +211,8 @@ if __name__=='__setup__':
         "An enttec open DMX message from a set of values"
         data = numpy.maximum(numpy.minimum(data,255),0)
         data = data.astype(numpy.uint8)
-        data = data.tobytes()[:512]
+        data = data.tobytes()[1:513]
+        #Remove the 0 position as DMX starts at 1
         return (b'\0'+data)
     
     class EnttecUniverse(Universe):
@@ -654,13 +655,17 @@ if __name__=='__setup__':
                     self.port.close()
                 except:
                     pass
-                self.port = serial.Serial(p,250000, timeout=1.0, write_timeout=1.0,stopbits=2)
+                self.port = serial.Serial(p,baudrate=250000, timeout=1.0, write_timeout=1.0,stopbits=2)
     
        
                 self.port.read(self.port.inWaiting())
                 time.sleep(0.05)
-                self.port.send_break(0.002)
+                self.port.break_condition=True
+                time.sleep(0.0001)
+                self.port.break_condition=False
+                time.sleep(0.0003)
                 self.port.write(self.data)
+                self.port.flush()
                 self.setStatus('connected to '+p,True)
     
             except Exception as e:
@@ -674,9 +679,7 @@ if __name__=='__setup__':
                 try:
                     s = module.timefunc()
                     self.port.read(self.port.inWaiting())
-                    x =self.frame.wait(1)
-                    if not x:
-                        continue
+                    x =self.frame.wait(0.1)
                     with self.lock:
                         if self.data is None:
                             try:
@@ -684,8 +687,15 @@ if __name__=='__setup__':
                             except:
                                 pass
                             return
+                        
+                        self.port.break_condition=True
+                        time.sleep(0.0001)
+                        self.port.break_condition=False
+                        time.sleep(0.0003)
+    
                         self.port.write(self.data)
-                        self.frame.clear()
+                        if x:
+                            self.frame.clear()
                     time.sleep(max(((1.0/self.framerate)-(module.timefunc()-s)), 0))
                 except Exception as e:
                     try:
