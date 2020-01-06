@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.65.4
+- Enttec open DMX support(Any cheap FTDI DMX adapter)
+- Properly show changed alpha vals on server
+- Reduce lagginess with fast changing chandler cues
+
 ### 0.65.3
 - Gstreamer audio backend resource leak and segfault fix
 - Restore lost chandler MQTT features

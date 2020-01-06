@@ -1,12 +1,12 @@
 ## Code outside the data string, and the setup and action blocks is ignored
-## If manually editing, you must reload the code through the web UI
+## If manually editing, you must reload the code. Delete the resource timestamp so kaithem knows it's new
 __data__="""
 continual: false
 enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1566264981146428
+resource-timestamp: 1578305779085465
 resource-type: event
 versions: {}
 
@@ -22,6 +22,15 @@ if __name__=='__setup__':
     
     import numpy
     import time,random, math,weakref
+    
+    def getUniverse(u):
+        "Get strong ref to universe if it exists, else get none."
+        try:
+            oldUniverseObj = module.universes[u]()
+        except KeyError:
+            oldUniverseObj = None
+        return oldUniverseObj
+    
     
     
     if not hasattr(module,"blendmodes"):
@@ -92,9 +101,10 @@ if __name__=='__setup__':
     
     
             if not u in self.heights:
-                if u in module.universes:
-                    self.heights[u] = makeBlankArray(len(module.universes[u].values))
-                    self.heights_lp[u] = makeBlankArray(len(module.universes[u].values))
+                uobj = getUniverse(u)
+                if uobj:
+                    self.heights[u] = makeBlankArray(len(uobj.values))
+                    self.heights_lp[u] = makeBlankArray(len(uobj.values))
                     self.last_per[u]=module.timefunc()-(1/60)
                 else:
                     return
@@ -174,9 +184,10 @@ if __name__=='__setup__':
         
         def frame(self,u,old,values,alphas,alpha):
             if not u in self.vals:
-                if u in module.universes:
-                    self.vals[u] = makeBlankArray(len(module.universes[u].values))
-                    self.vals_lp[u] = makeBlankArray(len(module.universes[u].values))
+                uobj = getUniverse(u)
+                if uobj:
+                    self.vals[u] = makeBlankArray(len(uobj.values))
+                    self.vals_lp[u] = makeBlankArray(len(uobj.values))
                     self.last_per[u]=module.timefunc()-(1/60)
     
                 else:
@@ -237,9 +248,10 @@ if __name__=='__setup__':
         
         def frame(self,u,old,values,alphas,alpha):
             if not u in self.vals_lp:
-                if u in module.universes:
-                    self.sparktimes[u] = makeBlankArray(len(module.universes[u].values))
-                    self.vals_lp[u] = makeBlankArray(len(module.universes[u].values))
+                uobj = getUniverse(u)
+                if uobj:
+                    self.sparktimes[u] = makeBlankArray(len(uobj.values))
+                    self.vals_lp[u] = makeBlankArray(len(uobj.values))
                     self.last_per[u]=module.timefunc()-(1/60)
     
                 else:
