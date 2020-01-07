@@ -1,6 +1,6 @@
 
 from . import scheduling,workers, virtualresource,widgets
-import time, threading,weakref,logging,types
+import time, threading,weakref,logging,types,traceback
 
 from typing import Callable,Optional,Union
 from threading import setprofile
@@ -22,6 +22,7 @@ allTagsAtomic = {}
 
 providers = {}
 
+subscriberErrorHandlers=[]
 
 
 
@@ -292,11 +293,13 @@ class _TagPoint(virtualresource.VirtualResource):
                 except:
                     logger.exception("Tag subscriber error")
                     #Return the error from whence it came to display in the proper place
-                    try:
-                        from . import newevt
-                        newevt.eventByModuleName(f.__module__)._handle_exception()
-                    except:
-                        pass
+
+                    for i in subscriberErrorHandlers:
+                        try:
+                            i(self, f,val)
+                        except:
+                            print("Failed to handle error: "+traceback.format_exc(6))
+                   
             del f
 
     def processValue(self,value):

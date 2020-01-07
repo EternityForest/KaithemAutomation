@@ -170,6 +170,20 @@ def webRoot():
 
     workers.backgroundFunctionErrorHandlers=[workersErrorHandler]
 
+    from src import tagpoints
+    
+    def tagErrorHandler(tag,f, val):
+        try:
+            from src import newevt
+            if f.__module__ in newevt.eventsByModuleName:
+                newevt.eventsByModuleName[f.__module__]._handle_exception()
+        except:
+            print(traceback.format_exc(chain=True))
+
+    tagpoints.subscriberErrorHandlers = [tagErrorHandler]
+    
+
+
     from src import messagelogging
     from src import notifications
 
