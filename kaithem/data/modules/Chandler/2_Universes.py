@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1578304452853833
+resource-timestamp: 1578394549261636
 resource-type: event
 versions: {}
 
@@ -18,7 +18,7 @@ if __name__=='__setup__':
     #This code runs once when the event loads. It also runs when you save the event during the test compile
     #and may run multiple times when kaithem boots due to dependancy resolution
     __doc__=''
-    import numpy, time, threading, weakref, socket,logging,traceback,gc,copy
+    import numpy, time, threading, weakref, socket,logging,traceback,gc,copy,struct
     
     logger = logging.getLogger("system.chandler")
     

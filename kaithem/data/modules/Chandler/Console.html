@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1578386973935595
+resource-timestamp: 1578395561394062
 resource-type: page
 template-engine: mako
 
@@ -287,12 +287,24 @@ from src import tagpoints
 
             <div style="background-color:rgba(255,255,255,0.3); display:block;">
 
+                <div class="menubar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;"><b>Download:</b>
+                    <a class="button" href="download" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Scenes</a>
+                    <a class="button" href="downloadSetup" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Setup</a>
+                    <a class="button" href="downloadLibrary" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Fixture Lib</a>
+                </div>
+                
+                <div class="menubar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;"><b>Upload:</b>
+
+                    <a class="button" href="upload" title="Upload a scenes file"><img src="/zipstatic/img/icons/fugue.zip/folder-horizontal-open.png"></img>Scenes</a>
+                    <a class="button" href="uploadSetup" title="Upload a scenes file"><img src="/zipstatic/img/icons/fugue.zip/folder-horizontal-open.png"></img>Setup</a>
+                    <a class="button" href="uploadLibrary" title="Upload a scenes file"><img src="/zipstatic/img/icons/fugue.zip/folder-horizontal-open.png"></img>Fixture Lib</a>
+                </div>
+                
                 <div class="menubar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;"><b>File:</b>
-                    <a class="button" href="download" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Download</a>
-                    <a class="button" href="upload" title="Upload a scenes file"><img src="/zipstatic/img/icons/fugue.zip/folder-horizontal-open.png"></img>Upload</a>
-                    <button v-on:click="saveToDisk()" title="Save the scenes to disk as the default when the Lightboard boots, but not the universes or fixtures."><img src="/zipstatic/img/icons/fugue.zip/quill.png"></img>Save Scenes as the Default</a>
-                    <button v-on:click="saveSetup()" title="Save the fixtures and universes to disk as the default when the Lightboard boots"><img src="/zipstatic/img/icons/fugue.zip/quill.png"></img>Save Setup as the Default</a>
-        </div>
+
+                            <button v-on:click="saveToDisk()" title="Save the scenes to disk as the default when the Lightboard boots, but not the universes or fixtures."><img src="/zipstatic/img/icons/fugue.zip/quill.png"></img>Save Scenes as the Default</a>
+                            <button v-on:click="saveSetup()" title="Save the fixtures and universes to disk as the default when the Lightboard boots"><img src="/zipstatic/img/icons/fugue.zip/quill.png"></img>Save Setup as the Default</a>
+                </div>
 
 
         <div class="menubar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px; float:left;"><b>Windows:</b>
@@ -560,14 +572,14 @@ from src import tagpoints
                                         <input v-on:change="pushfixture(selectedFixtureClass)" v-model.number="fixtureClasses[selectedFixtureClass][i][j+2][2]">
                                     </td>
                                     <td>
-                                        <button v-on:click="del(fixtureClasses[selectedFixtureClass][i],j+2)">Del</button>
+                                        <button v-on:click="del(fixtureClasses[selectedFixtureClass][i],j+2);pushfixture(selectedFixtureClass)">Del</button>
                                     </td>
                                 </tr>
                             </table>
-                            <button v-on:click="fixtureClasses[selectedFixtureClass][i].push([0,0,'optionName'])">Add Range</button>
+                            <button v-on:click="fixtureClasses[selectedFixtureClass][i].push([0,0,'optionName']);pushfixture(selectedFixtureClass)">Add Range</button>
                         </div>
                     </div>
-                    <button v-on:click="fixtureClasses[selectedFixtureClass].push(['red','red'])">Add Channel</button>
+                    <button v-on:click="fixtureClasses[selectedFixtureClass].push(['red','red']);pushfixture(selectedFixtureClass);">Add Channel</button>
                 </div>
             </div>
 
@@ -1914,17 +1926,24 @@ from src import tagpoints
             },
             'getfixtureclass': function(i)
             {
+                if(i=='')
+                {
+                    return;
+                }
                 //Reset the textbox when it changes
                 appData.fixturecode = '';
                 api_link.send(['getfixtureclass', i])
             },
+
             'addfixturetype': function()
             {
-                x = prompt("New Fixture Type Name:")
+                x = prompt("New Fixture Type Name:",appData.selectedFixtureType)
                 if (x)
                 {
                     Vue.set(appData.fixtureClasses, x, [])
                     appData.selectedFixtureType = x
+                    api_link.send(['setfixtureclass', x, appData.fixtureClasses[x]])
+                    api_link.send(['getfixtureclass', x])
                 }
             },
             'delfixturetype': function()
@@ -1933,8 +1952,9 @@ from src import tagpoints
                 if (x)
                 {
                     Vue.delete(appData.fixtureClasses, appData.selectedFixtureType)
+                    api_link.send(['rmfixtureclass', appData.selectedFixtureType])
+                    appData.selectedFixtureType='';
                 }
-                api_link.send(['delfixtureclass', appData.selectedFixtureType])
             },
             'dictView': function(dict, sorts)
             {

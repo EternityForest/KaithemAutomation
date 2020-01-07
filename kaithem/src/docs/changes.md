@@ -5,6 +5,10 @@ Change Log
 - Enttec open DMX support(Any cheap FTDI DMX adapter)
 - Properly show changed alpha vals on server
 - Reduce lagginess with fast changing chandler cues
+- Better error reporting for functions that run in the background
+- A few builtin Chandler fixtures
+- Versionable saving for chandler fixtures, universes, and assignments
+- Uploadable chandler setup and fixture library files
 
 ### 0.65.3
 - Gstreamer audio backend resource leak and segfault fix
@@ -15,6 +19,7 @@ Change Log
 - Chandler soundfile listing bugfix
 - Chandler sound prefetch
 - Various merge-related fixes
+
 ### 0.65.1
 - Prevent tagpoint widget send from blocking up the process
 - New StringTag objects, like tagpoints but for strings

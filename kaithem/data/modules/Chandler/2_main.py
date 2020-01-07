@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1578386134917344
+resource-timestamp: 1578395811470737
 resource-type: event
 versions: {}
 
@@ -489,7 +489,9 @@ if __name__=='__setup__':
                 self.channels=channels
                 
             else:
-                self.channels = None
+                channels = []
+    
+            self.channels = channels
             self.universe = None
             self.startAddress = 0
             self.assignment = None
@@ -638,6 +640,25 @@ if __name__=='__setup__':
             except:
                 rl_log_exc("Error handling timer set notification")
                 print(traceback.format_exc())
+    
+        def canGetTagpoint(self,t):
+            if not t in self.tagpoints and len(self.tagpoints)>128:
+                raise RuntimeError("Too many tagpoints in one scene")
+            if t.startswith(self.tagDefaultPrefix) or t.startswith("/chandler/") or t.startswith("/jackmixer/"):
+                return t
+    
+    
+    def checkPermissionsForSceneData(data):
+        """Check if used can upload or edit the scene, ekse raise an error if it uses advanced features that would prevent that action.
+           We disallow delete because we don't want unprivelaged users to delete something important that they can't fix.
+           
+        """
+        if 'page' in data and data['page']['html'].strip() or data['page']['js'].strip() or data['page'].get('rawhtml','').strip():
+            if not kaithem.users.checkPermission(kaithem.web.user(),"/admin/modules.edit"):
+                raise ValueError("You cannot modify this scene without /admin/modules.edit, because it uses advanced features: pages" )
+        if 'mqttServer' in data and data['mqttServer'].strip():
+            if not kaithem.users.checkPermission(kaithem.web.user(),"/admin/modules.edit"):
+                raise ValueError("You cannot modify this scene without /admin/modules.edit, because it uses advanced features: MQTT" )
     
     
     class ChandlerConsole():
@@ -807,11 +828,13 @@ if __name__=='__setup__':
     
     
         def loadSetupFile(self,data,_asuser=False, filename=None,errs=False):
+    
             if not kaithem.users.checkPermission(kaithem.web.user(),"/admin/modules.edit"):
                 raise ValueError("You cannot change the setup without /admin/modules.edit" )
+            data=yaml.load(data)
     
-            if 'fixturetypes' in data:
-                self.fixtureClasses.update(data['fixturetypes'])
+            if 'fixtureTypes' in data:
+                self.fixtureClasses.update(data['fixtureTypes'])
             
             if 'universes' in data:
                 self.configuredUniverses = data['universes']
@@ -821,10 +844,32 @@ if __name__=='__setup__':
                 self.fixtureAssignments = data['fixtures']
                 self.refreshFixtures()
     
+        def getSetupFile(self):
+            with module.lock:
+                return ({
+    
+                    "fixtureTypes": self.fixtureClasses,
+                    "universes": self.configuredUniverses,
+                    "fixures": self.fixtureAssignments
+                })
+    
     
         def loadLibraryFile(self,data,_asuser=False, filename=None,errs=False):
-            if 'fixturetypes' in data:
-                self.fixtureClasses.update(data['fixturetypes'])
+            data=yaml.load(data)
+    
+            if 'fixtureTypes' in data:
+                self.fixtureClasses.update(data['fixtureTypes'])
+            else:
+                raise ValueError("No fixture types in that file")
+    
+        def getLibraryFile(self):
+            with module.lock:
+                return({
+                    "fixtureTypes": self.fixtureClasses,
+                    "universes": self.configuredUniverses,
+                    "fixures": self.fixtureAssignments
+                })
+    
     
         def loadSceneFile(self,data,_asuser=False, filename=None,errs=False):
     
@@ -835,15 +880,10 @@ if __name__=='__setup__':
             if 'uuid' in data and isinstance(data['uuid'],str):
                 #Remove the .yaml
                 data = {filename[:-5]: data}
-            
-    
             for i in data:
-                if 'page' in data[i] and data[i]['page']['html'].strip() or data[i]['page']['js'].strip() or data[i]['page']['rawhtml'].strip():
-                    if not kaithem.users.checkPermission(kaithem.web.user(),"/admin/modules.edit"):
-                        raise ValueError("You cannot upload this scene without /admin/modules.edit, because it uses advanced features: pages" )
-                if 'mqttServer' in data[i] and data[i]['page']['mqttServer'].strip():
-                    if not kaithem.users.checkPermission(kaithem.web.user(),"/admin/modules.edit"):
-                        raise ValueError("You cannot upload this scene without /admin/modules.edit, because it uses advanced features: MQTT" )
+                checkPermissionsForSceneData(data)
+    
+            
     
             self.loadDict(data,errs)
         
@@ -959,22 +999,7 @@ if __name__=='__setup__':
                 sd = {}
                 for i in self.scenememory:
                     x = self.scenememory[i]
-                    sd[x.name] = {   
-                                    'bpm':x.bpm,
-                                    'alpha':x.defaultalpha,
-                                    'cues': {j:x.cues[j].serialize() for j in x.cues},
-                                    'priority'  : x.priority,
-                                    'active': x.defaultActive,
-                                    'blend':  x.blend,
-                                    'blendArgs': x.blendArgs,
-                                    'backtrack': x.backtrack,
-                                    'soundOutput': x.soundOutput,
-                                    'syncKey':x.syncKey, 'syncPort': x.syncPort, 'syncAddr':x.syncAddr,
-                                    'uuid': i,
-                                    'notes': x.notes,
-                                    'page': x.page,
-                                    'mqttServer': x.mqttServer
-                    }               
+                    sd[x.name] = x.toDict()
                     
     
                 return sd
@@ -1252,7 +1277,11 @@ if __name__=='__setup__':
                         else:
                             l.append(i)
                     self.fixtureClasses[msg[1]] =l
-                    kaithem.registry.set("lighting/fixturetypes", self.fixtureClasses)
+                    self.refreshFixtures()
+    
+    
+                if msg[0] == "rmfixtureclass":
+                    del self.fixtureClasses[msg[1]]
                     self.refreshFixtures()
     
                 if msg[0] == "setfixturesfromcode":
@@ -1703,13 +1732,7 @@ if __name__=='__setup__':
                 if msg[0] == "del":
                     #X is there in case the activeScenes listing was the last string reference, we want to be able to push the data still
                     x = module.scenes[msg[1]]
-                    if x.page['html'].strip() or x.page['css'].strip() or x.page['js'].strip() or x.page['rawhtml'].strip():
-                        if not kaithem.users.checkPermission(user,"/admin/modules.edit"):
-                            raise ValueError("You cannot delete this scene without /admin/modules.edit, because it uses advanced features: pages" )
-                    
-                    if x.mqttServer.strip():
-                        if not kaithem.users.checkPermission(user,"/admin/modules.edit"):
-                            raise ValueError("You cannot delete this scene without /admin/modules.edit, because it uses advanced features: MQTT" )
+                    checkPermissionsForSceneData(x.toDict())
     
                     x.stop()
                     self.delscene(msg[1])
@@ -2568,6 +2591,24 @@ if __name__=='__setup__':
             
             else:
                 self.cueTagClaim.set("__stopped__",annotation="SceneObject")
+    
+        def toDict(self):
+            return{   
+                        'bpm':self.bpm,
+                        'alpha':self.defaultalpha,
+                        'cues': {j:self.cues[j].serialize() for j in self.cues},
+                        'priority'  : self.priority,
+                        'active': self.defaultActive,
+                        'blend':  self.blend,
+                        'blendArgs': self.blendArgs,
+                        'backtrack': self.backtrack,
+                        'soundOutput': self.soundOutput,
+                        'syncKey':self.syncKey, 'syncPort': self.syncPort, 'syncAddr':self.syncAddr,
+                        'uuid': self.id,
+                        'notes': self.notes,
+                        'page': self.page,
+                        'mqttServer': self.mqttServer
+                    }         
     
         def __del__(self):
             try:
