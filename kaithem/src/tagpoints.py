@@ -1,6 +1,6 @@
 
-from . import scheduling,workers, virtualresource,widgets,util
-import time, threading,weakref,logging
+from . import scheduling,workers, virtualresource,widgets
+import time, threading,weakref,logging,types
 
 from typing import Callable,Optional,Union
 from threading import setprofile
@@ -196,6 +196,12 @@ class _TagPoint(virtualresource.VirtualResource):
             except:
                 pass
 
+    def __call__(self,*args,**kwargs):
+        if not args:
+            return self.value
+        else:
+            return self.setClaimVal(*args,**kwargs)
+
 
     def interface(self):
         "Override the VResource thing"
@@ -222,7 +228,15 @@ class _TagPoint(virtualresource.VirtualResource):
     @typechecked
     def subscribe(self,f:Callable):
         with self.lock:
-            self.subscribers.append(util.universal_weakref(f))
+            
+            if isinstance(f,types.MethodType):
+                ref=weakref.WeakMethod(f)
+            else:
+                ref = weakref.ref(f)
+
+            self.subscribers.append(ref)
+
+
             torm = []
             for i in self.subscribers:
                 if not i():
@@ -704,7 +718,11 @@ class Claim():
     def release(self):
         self.tag.release(self.name)
 
-
+    def __call__(self,*args,**kwargs):
+        if not args:
+            raise ValueError("No arguments")
+        else:
+            return self.set(*args,**kwargs)
 class NumericClaim(Claim):
     "Represents a claim on a tag point's value"
     @typechecked

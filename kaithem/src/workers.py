@@ -27,6 +27,7 @@ logger = logging.getLogger("workers")
 syslogger = logging.getLogger("system")
 
 lastWorkersError = 0 
+backgroundFunctionErrorHandlers=[]
 
 def inWaiting():
     return len(__queue)
@@ -38,6 +39,8 @@ if sys.version_info < (3,0):
 else:
     import queue
 
+def handleErrorInFunction(f):
+    print("Error in: " +str(f))
 
 def stop():
     global run
@@ -109,14 +112,11 @@ def makeWorker(e,q):
                 except:
                     print("Failed to handle error: "+traceback.format_exc(6))
 
-                #If we can, try to send the exception back whence it came
-                try:
-                    from . import newevt
-                    if f.__module__ in newevt.eventsByModuleName:
-                        newevt.eventsByModuleName[f.__module__]._handle_exception()
-                except:
-                    pass
-
+                for i in backgroundFunctionErrorHandlers:
+                    try:
+                        i(f)
+                    except:
+                        print("Failed to handle error: "+traceback.format_exc(6))
             finally:
                 #We do not want f staying around, if might hold references that should be GCed away immediatly
                 f=None

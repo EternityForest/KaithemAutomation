@@ -107,8 +107,14 @@ age.
 
 Should a claim already exist by that name, the exact same claim object as the previous claim is returned.
 
+##### TagPoint(v,t,a)
+Equivalent to calling set() on the default handler. If no args are provided, just returns the tag's value.
+
 ##### Claim.set(value,timestamp=None,annotation=None)
 Set the value of a claim. You can optionally also set the timestamp of the message.
+
+##### Claim()
+Equivalent to claim.set(). This allows claims themselves to be subscribers for another tagpoint
 
 ##### Claim.setAs(value,unit,timestamp=None,annotation=None)
 Set the value of a claim with a value of the given unit, if neccesary, converts to the tag's

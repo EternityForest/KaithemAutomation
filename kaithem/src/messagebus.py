@@ -39,14 +39,15 @@ def normalize_topic(topic):
     else:
         return topic
 
-def handleError(f,topic):
-    log.exception("Error in subscribed function for "+topic)
-    try:
-        from . import newevt
-        if f.__module__ in newevt.eventsByModuleName:
-            newevt.eventsByModuleName[f.__module__]._handle_exception()
-    except Exception as e:
-        print(e)
+
+subscriberErrorHandlers = []
+
+def handleError(f,topic,value):
+    for i in subscriberErrorHandlers:
+        try:
+            i(f,topic,value)
+        except:
+            print(traceback.format_exc())
 
 class MessageBus(object):
     def __init__(self,executor:Optional[Callable] = None):
@@ -203,7 +204,7 @@ class MessageBus(object):
                     try:
                         if errors:
                             if not alreadyLogged[0]:
-                                handleError(f, topic)
+                                handleError(f2, topic,message)
                             alreadyLogged[0]=True
                     except Exception as e:
                             print("err",e)
@@ -217,7 +218,7 @@ class MessageBus(object):
                     try:
                         if errors:
                             if not alreadyLogged[0]:
-                                handleError(f,topic)
+                                handleError(f,topic,message)
                             alreadyLogged[0]=True
 
                     except Exception as e:
@@ -232,7 +233,7 @@ class MessageBus(object):
                     try:
                         if errors:
                             if not alreadyLogged[0]:
-                                handleError(f,topic)
+                                handleError(f,topic,message)
                             alreadyLogged[0]=True
 
                     except Exception as e:
@@ -247,7 +248,7 @@ class MessageBus(object):
                     try:
                         if errors:
                             if not alreadyLogged[0]:
-                                handleError(f,topic)
+                                handleError(f,topic,message)
                             alreadyLogged[0]=True
                     except Exception as e:
                             print("err",e)
