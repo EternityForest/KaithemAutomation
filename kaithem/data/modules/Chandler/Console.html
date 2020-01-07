@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1578306197711512
+resource-timestamp: 1578386973935595
 resource-type: page
 template-engine: mako
 
@@ -494,10 +494,7 @@ from src import tagpoints
                 <h3><button v-on:click="showhidefixtures()"><img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button>Fixture
                     Setup</h3>
 
-                <select v-model="selectedFixtureClass" v-on:change="getfixtureclass(selectedFixtureClass)">
-            <option v-for="(v,i) in fixtureClasses" :value="i">{{i}}
-            </option>
-        </select>
+                <combo-box v-model="selectedFixtureClass" v-on:change="getfixtureclass(selectedFixtureClass)" :options="useBlankDescriptions(fixtureClasses)"></combo-box>
                 <button v-on:click="addfixturetype"><img src="/zipstatic/img/icons/fugue.zip/plus-octagon-frame.png"></img>Add fixture type</button>
 
                 <div v-if="selectedFixtureClass">

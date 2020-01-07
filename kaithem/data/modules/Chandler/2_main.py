@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1578305182624998
+resource-timestamp: 1578386134917344
 resource-type: event
 versions: {}
 
@@ -676,7 +676,8 @@ if __name__=='__setup__':
     
             self.universeObjs = {}
     
-            self.fixtureClasses =kaithem.registry.get("lighting/fixturetypes",{})
+            self.fixtureClasses= copy.deepcopy(module.genericFixtureClasses)
+            self.fixtureClasses.update(kaithem.registry.get("lighting/fixturetypes",{}))
     
             saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "fixturetypes")
             if os.path.isdir(saveLocation):
