@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1578395811470737
+resource-timestamp: 1578457909886743
 resource-type: event
 versions: {}
 
@@ -827,6 +827,43 @@ if __name__=='__setup__':
             self.pushUniverses()
     
     
+        def loadShow(self, showName):
+            saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "shows", showName)
+            if os.path.isdir(saveLocation):
+                for i in os.listdir(saveLocation):
+                    fn = os.path.join(saveLocation,i)
+    
+                    if os.path.isfile(fn) and fn.endswith(".yaml"):
+                        d[i[:-len('.yaml')]] = kaithem.persist.load(fn)
+    
+            self.loadDict(d)
+            self.refreshFixtures()
+    
+        def loadSetup(self, setupName):
+            saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "setups", setupName, "universes")
+            if os.path.isdir(saveLocation):
+                for i in os.listdir(saveLocation):
+                    fn = os.path.join(saveLocation,i)
+                    if os.path.isfile(fn) and fn.endswith(".yaml"):
+                        self.configuredUniverses[i[:-len('.yaml')]] = kaithem.persist.load(fn)
+    
+            self.universeObjs = {}
+            self.fixtureAssignments = {}
+            self.fixtures ={}
+            
+    
+            self.fixtureAssignments = {}
+    
+            saveLocation = os.path.join(kaithem.misc.vardir,"chandler","setups", setupName, "fixtures")
+            if os.path.isdir(saveLocation):
+                for i in os.listdir(saveLocation):
+                    fn = os.path.join(saveLocation,i)
+                    if os.path.isfile(fn) and fn.endswith(".yaml"):
+                        self.fixtureAssignments[i[:-len('.yaml')]] = kaithem.persist.load(fn)
+            
+            self.refreshFixtures()
+            self.createUniverses(self.configuredUniverses)
+    
         def loadSetupFile(self,data,_asuser=False, filename=None,errs=False):
     
             if not kaithem.users.checkPermission(kaithem.web.user(),"/admin/modules.edit"):
@@ -1221,17 +1258,30 @@ if __name__=='__setup__':
         def pushFixtureAssignmentCode(self):
             d = [[i['name'],i['type'],i['universe'],i['addr']] for i in self.fixtureAssignments.values()]
             self.link.send(['fixtureascode','\n'.join([', '.join(i) for  i in d])]  )
+            
         def _onmsg(self,user,msg):
             #Adds a light to a scene
             try:
     
                 if msg[0] == "saveScenes":
                     self.saveAsFiles('scenes', self.getScenes(),"lighting/scenes")
-                    
+    
+                if msg[0] == "saveShow":
+                    self.saveAsFiles(os.path.join('shows',msg[1],'scenes', self.getScenes()))
+    
+                if msg[0]== "loadShow":
+                    self.loadShow(msg[1])
+                
                 if msg[0] == "saveSetup":
                     self.saveAsFiles('fixturetypes', self.fixtureClasses,"lighting/fixtureclasses")
                     self.saveAsFiles('universes', self.configuredUniverses,"lighting/universes")
                     self.saveAsFiles('fixtures', self.fixtureAssignments,"lighting/fixtures")
+                
+                if msg[0] == "saveSetupPreset":
+                    self.saveAsFiles('fixturetypes', self.fixtureClasses,"lighting/fixtureclasses",noRm=True)
+                    self.saveAsFiles(os.path.join('setups',msg[1],'universes'),self.configuredUniverses)
+                    self.saveAsFiles(os.path.join('setups',msg[1],'fixtures'), self.fixtureAssignments)
+        
                 
                 if msg[0] == "saveLibrary":
                     self.saveAsFiles('fixturetypes', self.fixtureClasses,"lighting/fixtureclasses")
@@ -1525,6 +1575,14 @@ if __name__=='__setup__':
                                 self.pushMeta(i.id)
                         self.pushConfiguredUniverses()
                     self.link.send(["serports",getSerPorts()])   
+    
+                    shows = os.path.join(kaithem.misc.vardir,"chandler", "shows")
+                    if os.path.isdir(shows):
+                        self.link.send(['shows', [ i for i in os.listdir(shows) if os.path.isdir(os.path.join(shows,i))]])
+    
+                    setups = os.path.join(kaithem.misc.vardir,"chandler", "setups")
+                    if os.path.isdir(setups):
+                        self.link.send(['setups', [ i for i in os.listdir(setups) if os.path.isdir(os.path.join(setups,i))]])
     
     
     

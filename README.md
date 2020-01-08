@@ -49,6 +49,16 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.4
+- Enttec open DMX support(Any cheap FTDI DMX adapter)
+- Properly show changed alpha vals on server
+- Reduce lagginess with fast changing chandler cues
+- Better error reporting for functions that run in the background
+- A few builtin Chandler fixtures
+- Versionable saving for chandler fixtures, universes, and assignments
+- Uploadable chandler setup and fixture library files
+
+
 ### 0.65.3
 - Gstreamer audio backend resource leak and segfault fix
 - Restore lost chandler MQTT features
@@ -58,26 +68,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - Chandler soundfile listing bugfix
 - Chandler sound prefetch
 
-### 0.65.1
-- Prevent tagpoint widget send from blocking up the process
-- New StringTag objects, like tagpoints but for strings
-- Chandler Scene alpha and current cue are now exposed as read/writable tagpoints
-- Properly handle resource-timestamps
-- BREAKING: Message topics now work more like MQTT topics. They have to end with # if you want all subtopics(+ is not supported)
-- Gstreamer based audio playback is now the default
-- =expression based polled ChandlerScript events(Dynamically eveluated when needed)
-- Chandler tagValue(tagName) function
-- Chandler setTag(name,value, priority) command to set tags and stringtags 
-- Semi-breaking: File resources are stored in __filedata__ and managed immediately, not on system state save. They are no longer atomic.
-- Messagebus timestamp and annotation
-- MQTT support via eclipse paho
-- Jack mixer fader tagpoints
-- Fix gpio output ignoring pre-existing tagpoints
-
-### 0.65.0
-- Fix the emedded file resources
-- Warning on missing file resources
-- Nicer formatting for zip downloads(Backwards compatible but new zips don't work in old kaithem)
 
 
 License Terms
