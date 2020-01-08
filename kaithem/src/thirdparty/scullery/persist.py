@@ -30,9 +30,6 @@ def resolvePath(fn,expand=True):
 
 #TODO: Ensure only one thread can save a file at a time
 
-#todo: factor out the need filesystem stuff in util.
-from src import util
-
 if sys.version_info <(3,0):
     import StringIO
     strio = StringIO.StringIO
@@ -56,6 +53,19 @@ def saveAllAtExit():
             i.save()
         except:
             logging.exception()
+
+def chmod_private_try(p, execute=True):
+    try:
+        if execute:
+            os.chmod(p,stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IXGRP)
+        else:
+            os.chmod(p,stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IWGRP)
+    except Exception as e:
+        raise e
+def ensure_dir(f):
+    d = os.path.dirname(f)
+    if not os.path.exists(d):
+        os.makedirs(d)
 
 class Persister():
     def __init__(self,fn,default=None):
@@ -103,7 +113,6 @@ def save(data,fn, *,private=False,backup=True, expand=True, md5=False):
 
         #Safety counter to stop really wierd loops
         for i in range(64):
-            print(x)
             if os.path.isfile(x):
                 raise RuntimeError("Required intermediate directory is already present as a file, refusing to overwrite file")
             x = os.path.split(fn)[0]
@@ -163,7 +172,7 @@ def save(data,fn, *,private=False,backup=True, expand=True, md5=False):
                 if f.read() == data:
                     return
 
-        util.ensure_dir(os.path.split(fn)[0])
+        ensure_dir(os.path.split(fn)[0])
 
         if backup:
             tempfn = fn+str(time.time())
@@ -183,7 +192,7 @@ def save(data,fn, *,private=False,backup=True, expand=True, md5=False):
 
             #Chmod it before we write anything to it.
             if private:
-                util.chmod_private_try(tempfn)
+                chmod_private_try(tempfn)
             f.write(data)
             f.flush()
             os.fsync(f.fileno())
