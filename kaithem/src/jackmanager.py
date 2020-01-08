@@ -27,7 +27,12 @@ from . import util, workers,registry
 wordlist = util.mnemonic_wordlist
 
 #This is an acceptable dependamcy, it will be part of libkaithem if such a thing exists
-from . import messagebus
+from . import messagebus, gstwrapper
+
+def shouldAllowGstJack(*a):
+    return True if getPorts() else False
+
+gstwrapper.Pipeline.shouldAllowGstJack = shouldAllowGstJack
 
 import logging
 

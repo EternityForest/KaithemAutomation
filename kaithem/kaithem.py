@@ -87,12 +87,6 @@ from src import util,workers
 from src import config as cfg
 from src.config import config
 
-qsize = cfg.config['task-queue-size']
-count = cfg.config['worker-threads']
-wait =  cfg.config['wait-for-workers']
-workers.start(count,qsize,wait)
-
-
 from src import auth
 
 #Initialize the authorization module
@@ -113,19 +107,8 @@ kaithemobj.kaithem.states.StateMachine = statemachines.StateMachine
 kaithemobj.kaithem.misc.version      = __version__
 kaithemobj.kaithem.misc.version_info = __version_info__
 
-from src import messagebus
+from scullery import messagebus
 
-
-def handleMsgbusError(f,topic,message):
-    messagebus.log.exception("Error in subscribed function for "+topic)
-    try:
-        from src import newevt
-        if f.__module__ in newevt.eventsByModuleName:
-            newevt.eventsByModuleName[f.__module__]._handle_exception()
-    except Exception as e:
-        print(traceback.format_exc())
-
-messagebus.subscriberErrorHandlers = [handleMsgbusError]
 
 import importlib
 plugins = {}
@@ -159,16 +142,6 @@ def webRoot():
     #WE have to get the workers set up early because a lot of things depend on it.
     from src import workers
   
-    def workersErrorHandler(f):
-       #If we can, try to send the exception back whence it came
-        try:
-            from src import newevt
-            if f[0].__module__ in newevt.eventsByModuleName:
-                newevt.eventsByModuleName[f[0].__module__]._handle_exception()
-        except:
-            print(traceback.format_exc())
-
-    workers.backgroundFunctionErrorHandlers=[workersErrorHandler]
 
     from src import tagpoints
     

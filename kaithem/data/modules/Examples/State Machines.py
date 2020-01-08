@@ -1,12 +1,12 @@
 ## Code outside the data string, and the setup and action blocks is ignored
-## If manually editing, you must reload the code through the web UI
+## If manually editing, you must reload the code. Delete the resource timestamp so kaithem knows it's new
 __data__="""
 continual: true
 enable: true
 once: true
 priority: interactive
 rate-limit: 5.0
-resource-timestamp: 1566264980998398
+resource-timestamp: 1578462343497841
 resource-type: event
 versions: {}
 
@@ -32,8 +32,8 @@ if __name__=='__setup__':
     sm.addRule("on", "toggle", "off")
     #Rules can target a function that returns the actual destination or None for no change.
     sm.addRule("off", "toggle", lambda sm: 'on' if enableTurningOn else None)
-    import time
+    
 
 def eventAction():
     sm.event("toggle")
-    print(time.time())
+    

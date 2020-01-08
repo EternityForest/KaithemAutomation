@@ -29,8 +29,15 @@ channels = {}
 log =logging.getLogger("system.mixer")
 
 
+#Try to import a cython extension that only works on Linux
+try:
+    from . import threadpriority
+    setPriority = threadpriority.setThreadPriority
+except:
+    log.exception("Cython import failed, gstreamer realtime priority is disabled")
+    setPriority = lambda p,po:None
 
-
+gstwrapper.Pipeline.setCurrentThreadPriority = setPriority
 
 def replaceClientNameForDisplay(i):
     x = i.split(':')[0]

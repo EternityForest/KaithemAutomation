@@ -883,13 +883,19 @@ class MPlayerWrapper(SoundWrapper):
 
 from . import gstwrapper
 class GSTAudioFilePlayer(gstwrapper.Pipeline):
-    def __init__(self, file, volume=1, output="@auto"):
+    def __init__(self, file, volume=1, output="@auto",onBeat=None):
         "WARNING THESE WILL MEMORY LEAK IF NOT CLEANED WITH STOP"
 
         if output==None:
             output="@auto"
         gstwrapper.Pipeline.__init__(self,str(uuid.uuid4()),systemTime=True)
         self.ended = False
+
+        self.lastBeat = 0
+        self.peakDetect = 0
+        self.detectedBeatInterval = 1/60
+        self.beat = onBeat
+
 
         self.src = self.addElement('filesrc',location=file)
 
@@ -898,6 +904,9 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
         self.addElement('audioconvert')
         self.addElement('audioresample')
+        
+        if onBeat:
+            self.addLevelDetector()
 
         self.fader = self.addElement('volume', volume=volume)
 
@@ -941,17 +950,35 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         return self.running
 
 
+    def addLevelDetector(self):
+        self.addElement("level", post_messages=True, peak_ttl=300*1000*1000,peak_falloff=60)
+
+    def on_message(self, bus, message,userdata):
+        s = message.get_structure()
+        if not s:
+            return True
+        if  s.get_name() == 'level':
+            if self.board:
+                rms = sum([i for i in s['rms']])/len(s['rms'])
+                self.peakDetect = max(self.peakDetect, rms)
+                timeSinceBeat = time.monotonic()-self.lastBeat
+
+                threshold =self.peakDetect-(1+ (3*max(1,timeSinceBeat/self.detectedBeatInterval)))
+                if timeSinceBeat> self.detectedBeatInterval/8:
+                    if rms>threshold:
+                        self.beat()
+                        self.detectedBeatInterval = (self.detectedBeatInterval*3 + timeSinceBeat)/4
+                        self.peakDetect*=0.996
+        return True
+
+
 class GStreamerBackend(SoundWrapper):
     backendname = "Gstreamer"
 
     @staticmethod
     def testAvailable():
-        try:
-            gstwrapper.init()
-        except:
-            pass
-
-        return not gstwrapper.Gst==None
+       
+        return not gstwrapper.testGst()==None
     #What this does is it keeps a reference to the sound player process and
     #If the object is destroyed it destroys the process stopping the sound
     #It also abstracts checking if its playing or not.
