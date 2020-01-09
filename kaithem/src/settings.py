@@ -428,11 +428,13 @@ class Settings():
         from . import jackmanager
         if registry.get("/system/sound/usejack",None)=="manage":
             try:
-                jackmanager.startManagingJack(registry.get("/system/sound/jackperiodsize",128), registry.get("/system/sound/jackperiods",3))
+                jackmanager.startManaging()
+                jackmanager.startJackServer()
             except:
                 syslogger.exception("Error managing JACK")
         else:
-            jackmanager.stopJack()
+            jackmanager.stopJackServer()
+            jackmanager.stopManaging()
         raise cherrypy.HTTPRedirect('/settings/system')
 
 

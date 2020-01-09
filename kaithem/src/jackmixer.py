@@ -208,7 +208,7 @@ import uuid
 class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
 
     def __init__(self, name,board=None,channels= 2, input=None, outputs=[]):
-        gstwrapper.Pipeline.__init__(self,name)
+        gstwrapper.Pipeline.__init__(self,name,realtime=70)
         self.board =board
         self.levelTag = tagpoints.Tag("/jackmixer/channels/"+name+"/level")
         self.levelTag.min=-90

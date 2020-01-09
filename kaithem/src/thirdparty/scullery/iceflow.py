@@ -45,10 +45,10 @@ def link(a,b):
                 if not b:
                     raise RuntimeError("B has no pad named sink and A is a pad") 
             if not a.link(b)==Gst.PadLinkReturn.OK:
-                raise RuntimeError("Could not link")
+                raise RuntimeError("Could not link: "+str(a)+str(b))
 
         elif not a.link(b):
-            raise RuntimeError("Could not link")
+            raise RuntimeError("Could not link"+str(a)+str(b))
     finally:
         if unref:
             pass#b.unref()
@@ -248,6 +248,9 @@ class GstreamerPipeline():
         self.elements = []
         self.namedElements = {}
 
+        self.elementTypesById= {}
+
+
         #Just a place to store refs
         self.waitingCallbacks= {}
 
@@ -333,6 +336,7 @@ class GstreamerPipeline():
     def makeElement(self,n,name=None):
         with self.lock:
             e = Element(n,name)
+            self.elementTypesById[id(e)] = n
             self.pipeline.add(e)
             return e
 
@@ -518,7 +522,7 @@ class GstreamerPipeline():
     def shouldAllowGstJack():
         raise RuntimeError("You must override this method to return True if jackd is running and can be used")
 
-    def addElement(self,t,name=None,connectWhenSrcAvailable=False,**kwargs):
+    def addElement(self,t,name=None,connectWhenAvailable=False, connectToOutput=None, **kwargs):
 
         #Don't let the user use JACK if it's not running,
         #For fear of gstreamer undefined behavior
@@ -531,9 +535,11 @@ class GstreamerPipeline():
                 raise ValueError("Element type must be string")
 
             e = Gst.ElementFactory.make(t,name)
+            
             if e==None:
                 raise ValueError("Nonexistant element type: "+t)
             self.weakrefs[str(e)]=e
+            self.elementTypesById[id(e)] = t
 
 
             for i in kwargs:
@@ -547,23 +553,36 @@ class GstreamerPipeline():
                 
             self.pipeline.add(e)
 
+        
+            if connectToOutput:
+                if not id(connectToOutput) in self.elementTypesById:
+                    raise ValueError("Cannot connect to the output of: "+str(connectToOutput))
+
             #This could be the first element
             if self.elements:
-                #Decodeboin doesn't have a pad yet for some awful reason
-                if self.lastElementType=='decodebin' or connectWhenSrcAvailable:
+                connectToOutput=connectToOutput or self.elements[-1]
+                #Decodebin doesn't have a pad yet for some awful reason
+                if (self.elementTypesById[id(connectToOutput)]=='decodebin') or connectWhenAvailable:
                     xx = uuid.uuid4()
+
                     def closureMaker(src, dest):
                         def linkFunction(element, pad,dummy):
-                            link(element,dest)
+                            s = pad.query_caps(None).to_string()
+                            if isinstance(connectWhenAvailable,str):
+                                if not connectWhenAvailable in s:
+                                    return
+
+                            if xx in self.waitingCallbacks:
+                                link(element,dest)
                             del self.waitingCallbacks[xx]
                         return linkFunction
-                    f = closureMaker(self.elements[-1],e)
+                    f = closureMaker(connectToOutput,e)
 
                     self.waitingCallbacks[xx]=f
                     #Dummy 1 param because some have claimed to get segfaults without
-                    self.elements[-1].connect("pad-added",f,1)
+                    connectToOutput.connect("pad-added",f,1)
                 else:
-                    link(self.elements[-1],e)
+                    link(connectToOutput,e)
             self.elements.append(e)
             self.namedElements[name]=e
 
@@ -574,7 +593,11 @@ class GstreamerPipeline():
                     jackChannels[self.uuid] = weakref.ref(self)
 
             self.lastElementType = t
-            return weakref.proxy(e)
+            p= weakref.proxy(e)
+            #List it under the proxy as well
+            self.elementTypesById[id(p)] = t
+            return p
+
 
     def setProperty(self, element, prop,value):
         with self.lock:

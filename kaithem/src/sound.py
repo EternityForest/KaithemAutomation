@@ -29,7 +29,8 @@ preloadlock = threading.Lock()
 if registry.get("/system/sound/usejack",None)=="manage":
     def f():
         try:        
-            jackmanager.startManagingJack(registry.get("/system/sound/jackperiodsize",128), registry.get("/system/sound/jackperiods",3))
+            jackmanager.startManaging()
+            jackmanager.startJackServer()
         except:
             log.exception("Error managing JACK")
     workers.do(f)
@@ -888,7 +889,7 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
         if output==None:
             output="@auto"
-        gstwrapper.Pipeline.__init__(self,str(uuid.uuid4()),systemTime=True)
+        gstwrapper.Pipeline.__init__(self,str(uuid.uuid4()),systemTime=True,realtime=70)
         self.ended = False
 
         self.lastBeat = 0
