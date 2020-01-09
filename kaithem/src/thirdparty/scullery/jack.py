@@ -47,16 +47,22 @@ lock = threading.RLock()
 jackPeriods = 3
 periodSize = 128
 
-
+#These apply to soundcards other than the main system card
 usbPeriodSize = 384
 usbLatency = 384
 
 realtimePriority = 70
+
+#Do we want to run PulseAudio and the pulse jack backend?
 usePulse= True
+
 sharePulse = None
 
-
+#Should we create alsa_in and alsa_out ports for every soundcard, with persistant names?
 manageSoundcards = True
+
+#Should we auto restart the jack process?
+#No by default, gets auto set to True by startJackServer()
 manageJackProcess = False
 
 def settingsReloader():
@@ -323,13 +329,28 @@ def onPortConnect(a,b,connected):
     else:
         log.debug("JACK port "+ a.name+" connected to "+b.name)
 
+class PortInfo():
+    def __init__(self, name,isInput,sname):
+        self.isOutput = not isInput
+        self.isInput=isInput
+        self.name=name
+        self.shortname = sname
+        self.clientName = name[:-len(":"+sname)]
+
+
 def onPortRegistered(port,registered):
+    "Same function for register and unregister"
+    if not port:
+        return
+
+    p = PortInfo(port.name, port.is_input)
+
     if registered:
         log.debug("JACK port registered: "+port.name)
-        messagebus.postMessage("/system/jack/newport",[port.name, port.is_input] )
+        messagebus.postMessage("/system/jack/newport",p )
     else:
         log.debug("JACK port unregistered: "+port.name)
-        messagebus.postMessage("/system/jack/delport",port.name)
+        messagebus.postMessage("/system/jack/delport",p)
 
 
 
@@ -777,6 +798,10 @@ jackShouldBeRunning = False
 def stopJackServer():
     global jackShouldBeRunning
     jackShouldBeRunning =False
+
+    global manageJackProcess
+    manageJackProcess = False
+    
     _stopJackProcess()
 
 jackp = None
@@ -831,10 +856,6 @@ def _startJackProcess(p=None, n=None):
     global jackp
     global periodSize
     global jackPeriods
-    global manageJackProcess
-
-    manageJackProcess = True
-
 
     period = p or periodSize
     jackPeriods = n or jackPeriods
@@ -1197,6 +1218,10 @@ def _doPatch():
 def startJackServer(p=None,n=None):
     global jackShouldBeRunning
     jackShouldBeRunning = True
+
+    global manageJackProcess
+    manageJackProcess = True
+
     for i in range(10):
         try:
             _stopJackProcess()
@@ -1273,6 +1298,7 @@ def _checkJackClient():
             _jackclient.set_port_registration_callback(onPortRegistered)
             _jackclient.set_port_connect_callback(onPortConnect)
             _jackclient.activate()
+            _jackclient.get_ports()
      
     if not _jackclient:
         return []

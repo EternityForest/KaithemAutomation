@@ -48,11 +48,13 @@ def replaceClientNameForDisplay(i):
 
 def onPortAdd(t,m):
     #m[1] is true of input
-    global_api.send(['newport', m[0],{},m[1]])  
+    global_api.send(['newport', m.name,{},m.isInput])  
 
 def onPortRemove(t,m):
     #m[1] is true of input
-    global_api.send(['rmport', m[0]])
+    global_api.send(['rmport', m.name])
+
+
 
 messagebus.subscribe("/system/jack/newport/", onPortAdd)
 messagebus.subscribe("/system/jack/rmport/", onPortRemove)
