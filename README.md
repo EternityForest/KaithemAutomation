@@ -49,6 +49,10 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.5
+- Move some core functionality to the unit testable scullery library
+- Add missing msgpack js file
+
 ### 0.65.4
 - Enttec open DMX support(Any cheap FTDI DMX adapter)
 - Properly show changed alpha vals on server
