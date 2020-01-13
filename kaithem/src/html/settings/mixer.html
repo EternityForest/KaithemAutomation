@@ -206,7 +206,7 @@ from src import jackmixer
         <input v-model="channel.fader" v-on:input="setFader(channelname, parseFloat($event.target.value))"
         orient="vertical" type="range" step="0.5" value="-60" min="-60" max="20" style="width:98%;" v-bind:title="channel.fader"><br>
     <br>
-      <meter style="width:98%" min="-50" max="0" high="-5" v-bind:value="channel.level"></meter></br>
+      <meter style="width:98%" min="-50" max="0" high="-5" v-bind:value="channel.level"></meter>{{channel.level}}dB</br>
       Connect output: <input  v-model="channel.output" list="inports"
         v-on:input="setOutput(channelname, $event.target.value)">
 

@@ -24,7 +24,7 @@ import os,re,time,subprocess,hashlib,struct,threading,atexit,select,traceback
 
 #Util is not used anywhere else
 from . import workers,mnemonics,util
-wordlist = mnemonics.mnemonic_wordlist
+wordlist = mnemonics.wordlist
 
 #This is an acceptable dependamcy, it will be part of libkaithem if such a thing exists
 from . import messagebus, iceflow
@@ -84,9 +84,9 @@ def isConnected(f,t):
 
 def setupPulse():
     try:
-        subprocess.check_call(['pulseaudio','-k'],timeout=5)
+        subprocess.call(['pulseaudio','-k'],timeout=5,stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
     except:
-        pass
+        print(traceback.format_exc())
 
     if not usePulse:
         return
@@ -103,7 +103,7 @@ def setupPulse():
         try:
             subprocess.check_call(['pulseaudio','-D'],timeout=5)
         except:
-            subprocess.check_call(['killall','-9','pulseaudio'],timeout=5)
+            subprocess.call(['killall','-9','pulseaudio'],timeout=5,stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
             subprocess.check_call(['pulseaudio','-D'],timeout=5)
             pass
         time.sleep(0.1)
@@ -343,7 +343,7 @@ def onPortRegistered(port,registered):
     if not port:
         return
 
-    p = PortInfo(port.name, port.is_input)
+    p = PortInfo(port.name, port.is_input,port.shortname)
 
     if registered:
         log.debug("JACK port registered: "+port.name)
@@ -815,29 +815,29 @@ def _stopJackProcess():
     #Get rid of old stuff
     iceflow.stopAllJackUsers()
     try:
-        subprocess.check_call(['killall','alsa_in'])
+        subprocess.call(['killall','alsa_in'],stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
     except:
-        pass
+        print(traceback.format_exc())
     try:
-        subprocess.check_call(['killall','alsa_out'])
+        subprocess.call(['killall','alsa_out'],stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
     except:
-        pass
+        print(traceback.format_exc())
     try:
-        subprocess.check_call(['killall','a2jmidid'])
+        subprocess.call(['killall','a2jmidid'],stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
     except:
-        pass
+        print(traceback.format_exc())
 
     try:
-        subprocess.check_call(['killall', 'jackd'])
+        subprocess.call(['killall', 'jackd'],stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
     except:
         logging.exception("Failed to stop, retrying with -9")
 
     time.sleep(1)
 
     try:
-        subprocess.check_call(['killall','-9', 'jackd'])
+        subprocess.call(['killall','-9', 'jackd'],stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
     except:
-        pass
+        print(traceback.format_exc())
     try:
         #Close any existing stuff
         if _jackclient:
@@ -851,7 +851,7 @@ def _stopJackProcess():
 
 
 
-def _startJackProcess(p=None, n=None):
+def _startJackProcess(p=None, n=None,logErrs=True):
     #Start the JACK server, and related processes
     global jackp
     global periodSize
@@ -866,12 +866,12 @@ def _startJackProcess(p=None, n=None):
             try:
                 midip.kill()
             except:
-                pass
+                print(traceback.format_exc())
 
         try:
-            subprocess.check_call(['pulseaudio','-k'])
+            subprocess.call(['pulseaudio','-k'],stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
         except:
-            pass
+            print(traceback.format_exc())
 
         #TODO: Explicitly close all the FDs we open!
         f = open(os.devnull,"w")
@@ -895,10 +895,10 @@ def _startJackProcess(p=None, n=None):
 
         if jackp.poll() != None:
             x = readAllErrSoFar(jackp)
-            if x:
+            if x and logErrs:
                 log.error("jackd:\n"+x.decode('utf8','ignore'))
             x=readAllErrSoFar(jackp)
-            if x:
+            if x and logErrs:
                 log.info("jackd:\n"+x.decode('utf8','ignore'))
             tryCloseFds(jackp)
 
@@ -1043,9 +1043,9 @@ def handleManagedSoundcards():
                         #Pulse likes to take over cards so we have to stop it, take the card, then start it. It sucks
                         startPulse = True
                         try:
-                            subprocess.check_call(['pulseaudio','-k'])
+                            subprocess.call(['pulseaudio','-k'],stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
                         except:
-                            pass
+                            print(traceback.format_exc())
                         time.sleep(2)
 
 
@@ -1066,9 +1066,9 @@ def handleManagedSoundcards():
                     if not i in alsa_out_instances:
                         startPulse=True
                         try:
-                            subprocess.check_call(['pulseaudio','-k'])
+                            subprocess.call(['pulseaudio','-k'],stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
                         except:
-                            pass
+                            print(traceback.format_exc())
 
                         x = subprocess.Popen(["alsa_out"]+getIOOptionsForAdditionalSoundcard()+["-d", op[i][0], "-j",i+"o"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
                         alsa_out_instances[i]=x
@@ -1225,7 +1225,8 @@ def startJackServer(p=None,n=None):
     for i in range(10):
         try:
             _stopJackProcess()
-            _startJackProcess(p,n)
+            #Only log on the last attempt
+            _startJackProcess(p,n,logErrs=i==9)
             break
         except:
             log.exception("Failed to start JACK?")
@@ -1294,6 +1295,7 @@ def _checkJackClient():
                 _jackclient=jack.Client("Overseer")
             except:
                 log.exception("Error creating JACK client")
+                return
 
             _jackclient.set_port_registration_callback(onPortRegistered)
             _jackclient.set_port_connect_callback(onPortConnect)

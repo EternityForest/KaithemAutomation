@@ -13,11 +13,7 @@
 
 #You should have received a copy of the GNU General Public License
 
-
-#This file really shouldn't have too many non-essential dependancies onthe rest of kaithem,
-#Aside from the threadpool and the message bus.
-
-import threading,time,logging,uuid,weakref,gc,uuid,traceback
+import threading,time,logging,uuid,weakref,gc,uuid,traceback,os
 
 from . import workers
 
@@ -120,19 +116,19 @@ def wrfunc(f,fail_return=None):
             return fail_return
     return f2
 
-def makeWeakrefPoller(selfref):
+def makeWeakrefPoller(selfref,exitSignal):
 
     def pollerf():
         alreadyStarted = False
         while selfref():
             self=selfref()
             
+            self.threadStarted = True
             if not self.running:
-                self.exited=True
+                exitSignal.append(True)
                 return
             if self.running:
                 t=time.monotonic()
-               
                 try:
                     with self.lock:
                         state = self.pipeline.get_state(1000000000)[1]
@@ -144,7 +140,7 @@ def makeWeakrefPoller(selfref):
                     #Set the flag if anything ever drives us into the null state
                     if self.wasEverRunning and state==Gst.State.NULL:
                         self.running=False
-                        self.exited=True
+                        exitSignal.append(True)
                         return
                         
                     #Some of this other stuff should be threadsafe but isn't
@@ -155,31 +151,54 @@ def makeWeakrefPoller(selfref):
                                 t = self.getPosition()
                                 m = time.monotonic()
 
+                                #adjust taking into account the desired rate
                                 sysElapsed = (m-self.startTime)/self.targetRate
                                 diff = t-sysElapsed
                                 needAdjust = False
-                                if diff>0.005:
-                                    self.pipelineRate = self.targetRate - 0.0003
+                                
+                                #Large change, we set the rate by a third of a percent,
+                                #And set it in absolute units, to override any nonsense windup that has accumulated.
+                                if diff>0.025:
+                                    self.pipelineRate = self.targetRate - 0.003
+                                    needAdjust=True
+                                elif diff<-0.025:
+                                    self.pipelineRate = self.targetRate + 0.003
+                                    needAdjust=True
+                                
+                                #Otherwise we make small adjustments, in relative units, that should not 
+                                #Be noticable at all
+                                elif diff>0.005:
+                                    self.pipelineRate = self.pipelineRate - 0.0003
                                     needAdjust=True
                                 elif diff<-0.005:
                                     self.pipelineRate = self.targetRate + 0.0003
                                     needAdjust=True
+                                else:
+                                    #We want to set things back, if we can. to preserve some sanity
+                                    #And avoid poor quality from running at a different rate
+                                    if not self.pipelineRate==self.targetRate:
+                                        needAdjust=True
+                                    self.pipelineRate=self.targetRate
+                                
+            
 
                                 if needAdjust:
-                                    self.seek (rate=self.pipelineRate)
+                                    #Don't actually set the target rate of anything like that
+                                    self.seek(rate=self.pipelineRate,_raw=True)
                             except:
                                 logging.exception("GST time sync error")
                                 continue
                 except:
+                    #Todo actually handle some errors?
+                    exitSignal.append(True)
                     #After pipeline deleted, we clean up
                     if hasattr(self,'pipeline') and  hasattr(self,'bus'):
                         raise
                     else:
-                        self.exited=True
                         return
-            self.exited=True
+            
             del self
-            time.sleep(5)
+            time.sleep(1)
     return pollerf
 
 
@@ -195,21 +214,25 @@ def getCaps(e):
 class GstreamerPipeline():
     """Semi-immutable pipeline that presents a nice subclassable GST pipeline You can only add stuff to it.
     """
-    def __init__(self, name=None, realtime=70, systemTime =False):
+    def __init__(self, name=None, realtime=None, systemTime =False):
         init()
         self.exiting = False
 
         self.uuid = uuid.uuid4()
         name=name or "Pipeline"+str(time.monotonic())
         gc.collect()
-        self.realtime = 70
+        self.realtime = realtime
         self.lock = threading.RLock()
         self._stopped=True
         self.pipeline = Gst.Pipeline()
-        
+        self.threadStarted=False
         self.weakrefs = weakref.WeakValueDictionary()
 
-        self.exited=False
+        #This WeakValueDictionary is mostly for testing purposes
+        pipes[id(self)]=self
+        
+        #Thread puts something in this so we know we exited
+        self.exitSignal  =[]
 
         self.weakrefs[str(self.pipeline)]=self.pipeline
         if not self.pipeline:
@@ -275,20 +298,23 @@ class GstreamerPipeline():
 
         
     
-    def seek(self, t=None,rate=1.0):
+    def seek(self, t=None,rate=None, _raw=False):
         "Seek the pipeline to a position in seconds, set the playback rate, or both"
         with self.lock:
             if self.exiting:
                 return
             if not self.running:
                 return
+            
+            if rate is None:
+                rate=self.targetRate
 
             #Set effective start time so that the system clock sync keeps working.
             if not t is None:
                 self.startTime = time.monotonic()-t
-
-            self.targetRate = rate
-            self.pipelineRate = rate
+            if not _raw:
+                self.targetRate = rate
+                self.pipelineRate = rate
             self.pipeline.seek (rate, Gst.Format.TIME,
             Gst.SeekFlags.SKIP|Gst.SeekFlags.FLUSH, Gst.SeekType.NONE if t is None else Gst.SeekType.SET, max((t or 0)*10**9,0),
             Gst.SeekType.NONE, -1)
@@ -358,10 +384,20 @@ class GstreamerPipeline():
     def __del__(self):
         self.running=False
         t=time.monotonic()
-        while not self.exited:
-            time.sleep(0.1)
-            if time.monotonic()-t> 10:
-                raise RuntimeError("Timeout")
+        
+        #Give it some time, in case it really was started
+        if not self.threadStarted:
+            time.sleep(0.01)
+            time.sleep(0.01)
+            time.sleep(0.01)
+            time.sleep(0.01)
+            
+        if self.threadStarted:
+            while not self.exitSignal:
+                time.sleep(0.1)
+                if time.monotonic()-t> 10:
+                    raise RuntimeError("Timeout")
+                
         with self.lock:
             if not self._stopped:
                 self.stop()
@@ -371,10 +407,12 @@ class GstreamerPipeline():
         
 
     def on_message(self, bus, message,userdata):
-        self.onMessage(message)
+        s = message.get_structure()
+        if s:
+            self.onMessage(message.src,s.get_name(), s)
         return True
 
-    def onMessage(self,message):
+    def onMessage(self,src,name, structure):
         pass
 
     def on_error(self,bus,msg,userdata):
@@ -459,7 +497,7 @@ class GstreamerPipeline():
     
     def maybeStartPoller(self):
         if not self.pollthread:
-            self.pollthread = threading.Thread(target=makeWeakrefPoller(weakref.ref(self)),daemon=True,name="nostartstoplog.GSTPoller")
+            self.pollthread = threading.Thread(target=makeWeakrefPoller(weakref.ref(self),self.exitSignal),daemon=True,name="nostartstoplog.GSTPoller")
             self.pollthread.daemon=True
             self.pollthread.start()
 
@@ -479,10 +517,24 @@ class GstreamerPipeline():
             self.running=False
             t = time.monotonic()
             time.sleep(0.01)
-            while not self.exited:
-                time.sleep(0.1)
-                if time.monotonic()-t> 10:
-                    raise RuntimeError("Timeout")
+            
+            
+            if not self.threadStarted:
+                time.sleep(0.01)
+                time.sleep(0.01)
+                time.sleep(0.01)
+                time.sleep(0.01)
+            
+            #On account of the race condition, it is possible that the thread actually never did start yet
+            #So we have to ignore the exit flag stuff.
+            
+            #It shouldn't really be critical, most likely the thread can stop on it's own time anyway, because it doesn't do anything without getting the lock.
+            if self.threadStarted:
+                while not self.exitSignal:
+                    time.sleep(0.1)
+                    if time.monotonic()-t> 10:
+                        break
+                
             with self.lock:
                 if self._stopped:
                     return
@@ -543,13 +595,8 @@ class GstreamerPipeline():
 
 
             for i in kwargs:
-                if not ":" in i:
-                    if t=="capsfilter" and i=="caps" and isinstance(i,str):
-                        e.set_property(i,Gst.Caps(kwargs[i]))
-                    else:
-                        v = kwargs[i]
-                        i=i
-                        e.set_property(i,v)
+                v = kwargs[i]
+                self.setProperty(e,i,v)
                 
             self.pipeline.add(e)
 
@@ -602,8 +649,12 @@ class GstreamerPipeline():
     def setProperty(self, element, prop,value):
         with self.lock:
 
+            if prop=="location" and self.elementTypesById[id(element)]=='filesrc':
+                if not os.path.isfile(value):
+                    raise ValueError("No such file: "+value)
+                
             if prop=='caps':
-                value=Gst.caps(value)
+                value=Gst.Caps(value)
                 self.weakrefs[str(value)]=value
 
             prop=prop.replace("_","-")

@@ -28,7 +28,6 @@ syslogger = logging.getLogger("system")
 
 lastWorkersError = 0 
 backgroundFunctionErrorHandlers=[]
-do =None
 
 def inWaiting():
     return len(__queue)
