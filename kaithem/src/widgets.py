@@ -30,6 +30,14 @@ n = 0
 from .unitsofmeasure import convert, unitTypes
 
 
+def eventErrorHandler(f):
+    #If we can, try to send the exception back whence it came
+    try:
+        from . import newevt
+        if f.__module__ in newevt.eventsByModuleName:
+            newevt.eventsByModuleName[f.__module__]._handle_exception()
+    except:
+        print(traceback.format_exc())
 
 defaultDisplayUnits={
     "temperature": "degC|degF",
@@ -288,8 +296,8 @@ class Widget():
         "Run the callback, and if said callback fails, post a message about it."
         try:
             self._callback(user,value)
-            self._callback2(user,value,uuid)
         except Exception as e:
+            eventErrorHandler(self._callback)
             logger.exception("Error in widget callback for "+repr(self))
             if not (self.errored_function == id(self._callback)):
                 messagebus.postMessage("/system/notifications/errors", "Error in widget callback function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
@@ -297,6 +305,18 @@ class Widget():
                 self.errored_function = id(self._callback)
             raise e
 
+
+
+        try:
+            self._callback2(user,value,uuid)
+        except Exception as e:
+            logger.exception("Error in widget callback for "+repr(self))
+            eventErrorHandler(self._callback2)
+            if not (self.errored_function == id(self._callback)):
+                messagebus.postMessage("/system/notifications/errors", "Error in widget callback function %s defined in module %s, see logs for traceback.\nErrors only show the first time a function has an error until it is modified or you restart Kaithem."
+                                    %(self._callback.__name__, self._callback.__module__))
+                self.errored_function = id(self._callback)
+            raise e
 
     #Return True if this user can write to it
     def isWritable(self):
