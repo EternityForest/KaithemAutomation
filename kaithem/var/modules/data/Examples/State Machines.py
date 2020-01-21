@@ -32,8 +32,6 @@ if __name__=='__setup__':
     sm.addRule("on", "toggle", "off")
     #Rules can target a function that returns the actual destination or None for no change.
     sm.addRule("off", "toggle", lambda sm: 'on' if enableTurningOn else None)
-    
 
 def eventAction():
     sm.event("toggle")
-    

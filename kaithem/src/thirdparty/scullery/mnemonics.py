@@ -28,6 +28,3 @@ def memorableBlakeHash(x, num=3, separator=""):
         o+= wordlist[n] + separator
         x=x[2:]   
     return o[:-len(separator)] if separator else o
-
-
-print(memorableBlakeHash(b'',8))

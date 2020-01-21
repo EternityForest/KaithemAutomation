@@ -243,6 +243,7 @@ def load(filename, *,expand=True):
                 f.close()
             except:
                 pass
+            raise
         try:
             f.close()
         except:

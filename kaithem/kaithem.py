@@ -558,7 +558,12 @@ def webRoot():
             "tools.sessions.on": False,
             "tools.addheader.on": True
             },
-
+        '/static/vue':
+            {'tools.staticdir.on': True,
+            'tools.staticdir.dir':os.path.join(sdn,'vue'),
+            "tools.sessions.on": False,
+            "tools.addheader.on": True
+            },
         '/static/css':
             {'tools.staticdir.on': True,
             'tools.staticdir.dir':os.path.join(sdn,'css'),
@@ -566,7 +571,7 @@ def webRoot():
             "tools.addheader.on": True
             },
 
-            '/static/docs':
+        '/static/docs':
             {'tools.staticdir.on': True,
             'tools.staticdir.dir':os.path.join(sdn,'docs'),
             "tools.sessions.on": False,

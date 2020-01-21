@@ -1072,6 +1072,17 @@ Includes external open-source libraries by third parties.
 
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#### [vue-qrcode](https://github.com/fengyuanchen/vue-qrcode)
+    /*!
+    * vue-qrcode v1.0.1
+    * https://fengyuanchen.github.io/vue-qrcode
+    *
+    * Copyright 2018-present Chen Fengyuan
+    * Released under the MIT license
+    *
+    * Date: 2019-06-29T08:20:19.827Z
+    */
+    
 #### [js-yaml](https://github.com/nodeca/js-yaml)
 
 (The MIT License)

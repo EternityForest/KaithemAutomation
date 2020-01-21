@@ -56,7 +56,7 @@ def mkid():
 
 
 class ClientInfo():
-    def __init__(self,user,cookie):
+    def __init__(self,user,cookie=None):
         self.user = user
         self.cookie=cookie
 
@@ -89,6 +89,7 @@ class WebInterface():
             handler.user = pages.getAcessingUser()
             handler.cookie = cherrypy.request.cookie
         else:
+            handler.cookie = None
             handler.user = "__guest__"
         handler.clientinfo = ClientInfo(handler.user, handler.cookie)
         clients_info[handler.uuid] =  handler.clientinfo
