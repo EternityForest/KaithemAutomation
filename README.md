@@ -49,6 +49,9 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.6
+- Fix widgets on unencrypted connections
+
 ### 0.65.5
 - Move some core functionality to the unit testable scullery library
 - Add missing msgpack js file

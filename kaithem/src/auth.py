@@ -553,7 +553,7 @@ def assignNewToken(user):
     """Log user out by defining a new token"""
     with lock:
         #Generate new token
-        x = str(base64.b64encode(os.urandom(24)))
+        x = base64.b64encode(os.urandom(24)).decode()
         #Get the old token, delete it, and assign a new one
         if hasattr(Users[user],'token'):
             oldtoken = Users[user].token

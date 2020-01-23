@@ -153,6 +153,7 @@ def getAcessingUser():
             try:
                 return auth.whoHasToken(cherrypy.request.cookie['auth'].value)
             except:
+                logging.exception("Error finding accessing user")
                 return "<unknown>"
                 
     #Handle token based auth

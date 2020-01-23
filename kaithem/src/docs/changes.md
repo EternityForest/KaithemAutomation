@@ -1,6 +1,9 @@
 Change Log
 ----------
 
+### 0.65.6
+- Fix widgets on unencrypted connections
+
 ### 0.65.5
 - Move some core functionality to the unit testable scullery library
 - Add missing msgpack js file
