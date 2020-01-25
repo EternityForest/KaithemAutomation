@@ -437,7 +437,9 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
     def doSoundFuse(self,rms):
         #Highly dynamic stuff is less likely to be feedback.
         #Don't count feedback if there's any decrease
-        if not (self.lastRMS<rms and rms> self.soundFuseSetting):
+        #Aside from very small decreases, there's likely other stuff happening too.
+        #But if we are close to clipping ignore that
+        if not ( ((self.lastRMS<(rms+1.5)) or rms>-2) and rms> self.soundFuseSetting):
             self.lastNormalVolumeLevel = time.monotonic()
         self.lastRMS = rms
         if time.monotonic()-self.lastNormalVolumeLevel > 0.3:

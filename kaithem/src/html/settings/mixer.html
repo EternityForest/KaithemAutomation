@@ -208,9 +208,9 @@ from src import jackmixer
     <br>
       <meter style="width:calc(100% - 5em);" min="-70" max="10" high="-5" v-bind:value="channel.level"></meter><span  style="width:5em;">{{channel.level}}db</span></br>
       Connect output: <input  v-model="channel.output" list="inports"
-        v-on:input="setOutput(channelname, $event.target.value)"><br>
-      FBX Threshold:<input type="number" v-model="channel.soundFuse" 
-        v-on:input="setFuse(channelname, $event.target.value)">
+        v-on:input="setOutput(channelname, $event.target.value)" title="The output of this channel will be automatically connected to this port"><br>
+      FBX Threshold:<input style="width: 3em;" type="number" v-model="channel.soundFuse" title="Steady or increasing values above this will result in the volume being automatically lowered."
+        v-on:input="setFuse(channelname, $event.target.value)">dB
 
       </div>
 
