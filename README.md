@@ -49,6 +49,12 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.7
+- Fix not waiting long enough to see if events have errors
+- Tagpoint Filter/Soft Tags API
+- Tagpoint.poll() function
+- Save Jack mixer data as YAML, one file per preset
+
 ### 0.65.6
 - Fix widgets on unencrypted connections
 
@@ -64,16 +70,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - A few builtin Chandler fixtures
 - Versionable saving for chandler fixtures, universes, and assignments
 - Uploadable chandler setup and fixture library files
-
-
-### 0.65.3
-- Gstreamer audio backend resource leak and segfault fix
-- Restore lost chandler MQTT features
-- Chandler lighting value rendering buxfixes
-
-### 0.65.2
-- Chandler soundfile listing bugfix
-- Chandler sound prefetch
 
 
 
