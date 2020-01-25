@@ -94,7 +94,7 @@ class Connection():
 
                 self.statusTag = tagpoints.StringTag("/system/mqtt/"+n+"/status")
                 self.statusTagClaim = self.statusTag.claim("disconnected", "status",90)
-                self.configureAlert(alertPriority,alertAck)
+                
 
                 #We don't want the connection to stringly reference us, that would interfere with GC
                 on_connect,on_disconnect,on_message = getWeakrefHandlers(self)
@@ -112,7 +112,7 @@ class Connection():
                 messagebus.subscribe("/mqtt/"+server+":"+str(port)+"/out/#", out_handler)
                 self._thread = threading.Thread(target=makeThread(self.connection.loop_forever), name=server+":"+str(port), daemon=True)
                 #We have 5s to connect before the alert actually does anything
-                self.alert.trip()
+                self.configureAlert(alertPriority,alertAck)
                 self._thread.start()
             
             except:
@@ -133,9 +133,12 @@ class Connection():
         #Possible race condition here with a false trip just after connect. That is why we release on every recieved msg.
         if not self.statusTag.value == 'connected':
             self.alert.trip()
+
         time.sleep(0.05)
         if not self.statusTag.value == 'connected':
             self.alert.trip()
+        else:
+            self.alert.clear()
 
 
     def __del__(self):

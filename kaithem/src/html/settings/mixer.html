@@ -206,9 +206,11 @@ from src import jackmixer
         <input v-model="channel.fader" v-on:input="setFader(channelname, parseFloat($event.target.value))"
         orient="vertical" type="range" step="0.5" value="-60" min="-60" max="20" style="width:98%;" v-bind:title="channel.fader"><br>
     <br>
-      <meter style="width:98%" min="-50" max="0" high="-5" v-bind:value="channel.level"></meter>{{channel.level}}dB</br>
+      <meter style="width:calc(100% - 5em);" min="-70" max="10" high="-5" v-bind:value="channel.level"></meter><span  style="width:5em;">{{channel.level}}db</span></br>
       Connect output: <input  v-model="channel.output" list="inports"
-        v-on:input="setOutput(channelname, $event.target.value)">
+        v-on:input="setOutput(channelname, $event.target.value)"><br>
+      FBX Threshold:<input type="number" v-model="channel.soundFuse" 
+        v-on:input="setFuse(channelname, $event.target.value)">
 
       </div>
 
@@ -338,6 +340,10 @@ from src import jackmixer
         api.send(['setOutput', channel, value]);
       },
 
+      setFuse: function (channel, value) {
+        api.send(['setFuse', channel, value]);
+      },
+
       setUSBSettings: function() {
         api.send(['setUSBAlsa', this.usbsize, this.usblatency]);
       },
@@ -449,6 +455,9 @@ from src import jackmixer
       app.$data.channels[msg[1]].level=msg[2];
     }
 
+    if (msg[0] == "fader") {
+      app.$data.channels[msg[1]].fader=msg[2];
+    }
     if (msg[0] == "usbalsa") {
       app.$data.usbsize = msg[1]
       app.$data.usblatency = msg[2]

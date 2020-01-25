@@ -157,6 +157,9 @@ class Alert(virtualresource.VirtualResource):
         not acknowledged, meaning the issue that caused the alarm is no longer present
         will will still show up until acknowledged.
 
+        An alarm that is tripped while in the cleared state enters the "retripped" state, which
+        can return to active, like tripped, but otherwise acts like cleared.
+
         Alarms can self-acknowledge after a certain delay after being cleared, set this
         delay using autoAck. False or 0 disables autoAck.
 
@@ -203,10 +206,12 @@ class Alert(virtualresource.VirtualResource):
         self.sm.addState("active", enter=self._onActive)
         self.sm.addState("acknowledged", enter=self._onAck)
         self.sm.addState("cleared", enter=self._onClear)
+        self.sm.addState("retripped", enter=self._onTrip)
         self.sm.addState("error")
 
         #After N seconds in the trip state, we go active
         self.sm.setTimer("tripped", tripDelay, "active")
+        self.sm.setTimer("retripped", tripDelay, "active")
 
         #Automatic acknowledgement makes an alarm go away when it's cleared.
         if autoAck:
@@ -215,10 +220,18 @@ class Alert(virtualresource.VirtualResource):
             self.sm.setTimer("cleared",autoAck,"normal")
         
         self.sm.addRule("normal", "trip","tripped")
+        self.sm.addRule("tripped","release","normal")
+
+        self.sm.addRule("cleared", "trip","retripped")
+        self.sm.addRule("retripped","release","cleared")
+
         self.sm.addRule("active","acknowledge","acknowledged")
         self.sm.addRule("active","release","cleared")
         self.sm.addRule("acknowledged","release","normal")
         self.sm.addRule("error","acknowledge","normal")
+
+        self.sm.addRule("cleared", "acknowledge","normal")
+
         self.description = description
 
         self.id = id or str(time.time())
@@ -317,7 +330,10 @@ class Alert(virtualresource.VirtualResource):
         self.tripMessage = str(message)[:4096]
         self.sm.event("trip")
         self.trippedAt = time.time()
-        
+    
+    def release(self):
+        self.clear()
+
     def clear(self):
         global active
         with lock:

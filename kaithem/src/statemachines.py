@@ -270,7 +270,7 @@ class StateMachine(virtualresource.VirtualResource):
             if event in self.states[start]['rules']:
                 del self.states[start]['rules'][event]
             elif event in self.states[start]['conditions']:
-                del self.states[start]['rules'][event]
+                del self.states[start]['conditions'][event]
             else:
                 raise KeyError("No such rule")
 

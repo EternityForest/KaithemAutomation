@@ -1,6 +1,6 @@
 
 from . import scheduling,workers, virtualresource,widgets
-import time, threading,weakref,logging,types,traceback
+import time, threading,weakref,logging,types,traceback,math
 
 from typing import Callable,Optional,Union
 from threading import setprofile
@@ -95,7 +95,7 @@ class _TagPoint(virtualresource.VirtualResource):
         #The cached output of processValue
         self.lastValue = self.defaultData
         self.lastGotValue = 0
-        self.interval =0
+        self._interval =0
         self.activeClaim =None
         self.claims = {}
         self.lock = threading.RLock()
@@ -104,10 +104,6 @@ class _TagPoint(virtualresource.VirtualResource):
        
         self.lastError = 0
         
-
-
-      
-
         #String describing the "owner" of the tag point
         #This is not a precisely defined concept
         self.owner = ""
@@ -143,6 +139,16 @@ class _TagPoint(virtualresource.VirtualResource):
         self.manualOverrideClaim = None
 
         self._alarms = {}
+
+    @property
+    def interval(self):
+        return self._interval
+
+    @interval.setter
+    def interval(self,val):
+        self._interval=val
+        with self.lock:
+            self._managePolling() 
 
 
     @classmethod
@@ -217,13 +223,14 @@ class _TagPoint(virtualresource.VirtualResource):
         return
 
 
-    def _managePolling(self):        
-        if self.subscribers or self.handler:
-            if not self.poller or not (self.interval == self.poller.interval):
-                self.poller = scheduling.scheduler.scheduleRepeating(self.p, self.interval)
+    def _managePolling(self):       
+        if (self.subscribers or self.handler) and self._interval>0:
+            if not self.poller or not (self._interval == self.poller.interval):
+                self.poller = scheduling.scheduler.scheduleRepeating(self.poll, self._interval)
         else:
-            self.poller.unregister()
-            self.poller = None
+            if self.poller:
+                self.poller.unregister()
+                self.poller = None
 
 
     @typechecked
@@ -244,6 +251,8 @@ class _TagPoint(virtualresource.VirtualResource):
                     torm.append(i)
             for i in torm:
                 self.subscribers.remove(i)
+            
+            self._managePolling()
     
     def unsubscribe(self,f):
         with self.lock:
@@ -253,6 +262,8 @@ class _TagPoint(virtualresource.VirtualResource):
                     x = i
             if x:
                 self.subscribers.remove(x)
+            
+            self._managePolling()
 
     @typechecked
     def setHandler(self, f:Callable):
@@ -261,15 +272,22 @@ class _TagPoint(virtualresource.VirtualResource):
     def _guiPush(self, value):
         pass
 
-    def _push(self,val,timestamp,annotation):
+    def poll(self):
+        with self.lock:
+            self._getValue()
+            self._push()
+
+    def _push(self):
         """Push to subscribers. Only call under the same lock you changed value
             under. Otherwise the push might happen in the opposite order as the set, and
             subscribers would see the old data as most recent.
+
+            Also, keep setting the timestamp and annotation under that lock, to stay atomic
         """
        
         #This is not threadsafe, but I don't think it matters.
         #A few unnecessary updates shouldn't affect anything.
-        if val==self.lastPushedValue:
+        if self.lastValue==self.lastPushedValue:
             if not self.pushOnRepeats:
                 return
         
@@ -278,34 +296,33 @@ class _TagPoint(virtualresource.VirtualResource):
         if self.handler:
             f=self.handler()
             if f:
-                f(val, timestamp, annotation)
+                f(self.lastValue, self.timestamp, self.annotation)
             else:
                 self.handler=None
-        self._guiPush(val)
+        self._guiPush(self.lastValue)
 
-        self.lastPushedValue = val
+        self.lastPushedValue = self.lastValue
 
         for i in self.subscribers:
             f=i()
             if f:
                 try:
-                    f(val,timestamp,annotation)
+                    f(self.lastValue,self.timestamp,self.annotation)
                 except:
                     logger.exception("Tag subscriber error")
                     #Return the error from whence it came to display in the proper place
 
                     for i in subscriberErrorHandlers:
                         try:
-                            i(self, f,val)
+                            i(self, f,self.lastValue)
                         except:
                             print("Failed to handle error: "+traceback.format_exc(6))
-                   
             del f
 
     def processValue(self,value):
 
         """Represents the transform from the claim input to the output.
-            Can be stateful, for things like digital filters.
+            Must be a pure-ish function
         """
         #Functions are special valid types of value.
         #They are automatically resolved.
@@ -323,16 +340,18 @@ class _TagPoint(virtualresource.VirtualResource):
         return self._getValue()
 
     def _getValue(self):
-        #Get the numeric value of the tag. It is meant to be called under lock.
+        "Get the processed value of the tag, and update lastValue, It is meant to be called under lock."
 
         activeClaimValue = self._value
         if not callable(activeClaimValue):
+            #We no longer are aiming to support using the processor for impure functions
+            pass
             self.lastValue= self.processValue(activeClaimValue)
         else:
             #Rate limited tag getter logic. We ignore the possibility for
             #Race conditions and assume that calling a little too often is fine, since
             #It shouldn't affect correctness
-            if time.time()-self.lastGotValue> self.interval:
+            if time.time()-self.lastGotValue> self._interval:
                 #Set this flag immediately, or else a function with an error could defeat the cacheing
                 #And just flood everything with errors
                 self.lastGotValue = time.time()
@@ -352,7 +371,7 @@ class _TagPoint(virtualresource.VirtualResource):
                             self.annotation=None
 
                         self.cachedRawClaimVal= x or self.cachedRawClaimVal
-
+                        self.lastValue = self.processValue(self.cachedRawClaimVal)
                 except:
                     #We treat errors as no new data.
                     logger.exception("Error getting tag value")
@@ -366,9 +385,7 @@ class _TagPoint(virtualresource.VirtualResource):
                         newevt.eventByModuleName(activeClaimValue.__module__)._handle_exception()
                     except:
                         pass
-            else:
-                #processValue is responsible for it's own threadsafe-ness if any is needed
-                self.lastValue = self.processValue(self.cachedRawClaimVal)
+            
         return self.lastValue
     
     @value.setter
@@ -434,6 +451,9 @@ class _TagPoint(virtualresource.VirtualResource):
                 self.activeClaim = self.claims[name]
                 self.handleSourceChanged(name)
 
+                if callable(self._value) or callable(value):
+                    self._managePolling()
+
                 self._value = value
                 self.timestamp = timestamp
                 self.annotation = annotation
@@ -453,7 +473,9 @@ class _TagPoint(virtualresource.VirtualResource):
                         self.activeClaim=i
                         self.handleSourceChanged(i[2])
                         break
-            self._push(self._getValue(),self.timestamp, self.annotation)           
+            
+            self._getValue()
+            self._push()           
             return claim
 
     def setClaimVal(self,claim,val,timestamp,annotation):
@@ -472,13 +494,19 @@ class _TagPoint(virtualresource.VirtualResource):
                 upd=False
             #Grab the claim obj and set it's val
             x= c[3]()
+            if callable(x.value) or callable(val):
+                self._managePolling()
             x.value = val
+         
             x.annotation=annotation
             if upd:
                 self.timestamp = timestamp
                 self._value=val
                 self.annotation=annotation
-                self._push(self._getValue(),timestamp,annotation)           
+                self._getValue()
+                self._push()
+
+              
 
 
     #Get the specific claim object for this class
@@ -512,7 +540,10 @@ class _TagPoint(virtualresource.VirtualResource):
                     self.timestamp = o.timestamp
                     self.annotation =o.annotation
                     break
-            self._push(self.value, self.timestamp, self.annotation)
+
+            self._getValue()
+            self._push()
+            self._managePolling()
 
 
 class _NumericTagPoint(_TagPoint):
@@ -729,7 +760,7 @@ class Claim():
 class NumericClaim(Claim):
     "Represents a claim on a tag point's value"
     @typechecked
-    def __init__(self,tag:_TagPoint, value:Union[int,float], 
+    def __init__(self,tag:_TagPoint, value, 
         name:str='default',priority:Union[int,float]=50,
         timestamp:Union[int,float,None]=None, annotation=None):
 
@@ -740,6 +771,119 @@ class NumericClaim(Claim):
         "Convert a value in the given unit to the tag's native unit"
         self.set(convert(value,unit,self.tag.unit), timestamp, annotation)
 
+# Math for the first order filter
+# v is our state, k is a constant, and i is input.
+
+# At each timestep of one, we do:
+# v = v*(1-k) + i*k
+
+# moving towards the input with sped determined by k.
+# We can reformulate that as explicitly taking the difference, and moving along portion of it
+# v = (v+((i-v)*k))
+
+# We can show this reformulation is correct with XCas:
+# solve((v*(1-k) + i*k) - (v+((i-v)*k)) =x,x)
+
+# x is 0, because the two equations are always the same.
+
+
+# Now we use 1-k instead, such that k now represents the amount of difference allowed to remain.
+# Higher k is slower.
+# (v+((i-v)*(1-k)))
+
+
+# Twice the time means half the remaining difference, so we are going to raise k to the power of the number of timesteps
+# at each round to account for the uneven timesteps we are using:
+# v = (v+((i-v)*(1-(k**t))))
+
+# Now we need k such that v= 1/e when starting at 1 going to 0, with whatever our value of t is.
+# So we substitute 1 for v and 0 for i, and solve for k:
+# solve(1/e = (1+((0-1)*(1-(k**t)))),k)
+
+# Which gives us k=exp(-(1/t))
+
+
+class Filter():
+    def subscribe(f):
+        self.tag.subscribe
+    
+class LowpassFilter(Filter):
+    def __init__(self, name, inputTag, timeConstant, priority=60,interval=-1):
+        self.state = inputTag.value
+        self.filtered = self.state
+        self.lastRanFilter = time.monotonic()
+        self.lastState = self.state
+
+        #All math derived with XCas
+        self.k = math.exp(-(1/timeConstant))
+        self.lock = threading.Lock()
+
+        self.inputTag =inputTag
+        inputTag.subscribe(self.doInput)
+
+        self.tag= _NumericTagPoint(name)
+        self.claim = self.tag.claim(self.getter, name=inputTag.name+".lowpass",priority=priority)
+        
+        if interval==None:
+            self.tag.interval = timeConstant/2
+        else:
+            self.tag.interval=interval
+
+    
+    def doInput(self,val, ts,annotation):
+        "On new data, we poll the output tag which also loads the input tag data."
+        self.tag.poll()
+    
+    def getter(self):
+        self.state=self.inputTag.value
+
+        #Get the average state over the last period
+        state = (self.state+self.lastState)/2
+        t=time.monotonic()-self.lastRanFilter
+        self.filtered= (self.filtered+((state-self.filtered)*(1-(self.k**t))))
+        self.lastRanFilter+=t
+
+        self.lastState = self.state
+
+        #Suppress extremely small changes that lead to ugly decimals and network traffic
+        if abs(self.filtered-self.state)<(self.filtered/1000000.0):
+            return self.state
+        else:
+            return self.filtered
+
+
+class HysteresisFilter(Filter):
+    def __init__(self, name, inputTag,  hysteresis=0, priority=60):
+        self.state = inputTag.value
+
+        #Start at midpoint with the window centered
+        self.hysteresisUpper = self.state+hysteresis/2
+        self.hysteresisLower = self.state+hysteresis/2
+        self.lock = threading.Lock()
+
+        self.inputTag =inputTag
+        inputTag.subscribe(self.doInput)
+    
+        self.tag= _NumericTagPoint(name)
+        self.claim = self.tag.claim(self.getter, name=inputTag.name+".hysteresis",priority=priority)
+    
+    def doInput(self,val, ts,annotation):
+        "On new data, we poll the output tag which also loads the input tag data."
+        self.tag.poll()
+    
+    def getter(self):
+        with self.lock:
+            self.lastState = self.state
+            
+            if val>=self.hysteresisUpper:
+                self.state=val
+                self.hysteresisUpper = val
+                self.hysteresisLower = val-self.hysteresis
+            elif val<=self.hysteresisLower:
+                self.state=val
+                self.hysteresisUpper = val+self.hysteresis
+                self.hysteresisLower = val
+            return self.state
 
 Tag = _NumericTagPoint.Tag
 ObjectTag = _TagPoint.Tag

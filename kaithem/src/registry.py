@@ -171,6 +171,8 @@ class PersistanceArea():
                     completeFileTimestamp=os.stat(os.path.join(folder,"data",'kaithem_dump_valid.txt')).st_mtime
                 else:
                     completeFileTimestamp=0
+                global registry
+                registry = self
                 #If there are any unsaved registry changes, recover them now
                 self.loadRecoveryDbInfo(completeFileTimestamp)
 
@@ -357,7 +359,7 @@ def ls(key):
     with reglock:
         f = registry.open(prefix)
         if not 'keys' in f:
-            return False
+            return []
         k= f['keys']
         return([i.split("/")[-1] for i in k if (i.startswith(key) or i.startswith('/'+key))])
 

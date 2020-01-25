@@ -52,6 +52,8 @@ class TagInterface():
         return tagpoints.StringTag(k)
 
     TagClass = tagpoints._TagPoint
+    HysteresisFilter = tagpoints.HysteresisFilter
+    LowpassFilter = tagpoints.LowpassFilter
             
 class Kaithem():
 

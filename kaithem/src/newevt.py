@@ -621,7 +621,7 @@ class CompileCodeStringsMixin():
 
             t = time.monotonic()
             #Now wait for it to release it
-            while fooLock.acquire(timeout=0.1):
+            while not fooLock.acquire(timeout=0.1):
                 #The function in RunInit might want to do something involving the moduleslock.
                 #It can't, because we have it, so we let it delegate some things to us.
                 modules_state.pollMlockRequests()

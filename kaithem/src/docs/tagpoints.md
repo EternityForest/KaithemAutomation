@@ -132,3 +132,26 @@ Release a claim.
 StringTags are created on demand by kaithem.tags.StringTags(name). They function exactly like regular tagpoints,
 minus all features relating to unit conversion.
 
+
+
+## Soft tags and Filtering
+
+Kaithem has a specific API for filters. Custpom filters are encouraged to use this pattern:
+
+### Filter(name, inputTag, *,priority=60,interval=-1)
+
+Create a tag with the name(Or use any existing tag), claim it with priority 60, and manage it as a filtered version of the input tag. 
+Both pull and push data must be supported.
+
+interval only affects output tags, -1 indicates automatic.
+
+
+
+### Filter.tag
+This is always the output tag.
+
+
+#### kaithem.tags.LowpassFilter(name, inputTag, timeConstant, priority=60,interval=-1)
+BETA: My math could be off in this implementation
+
+First-order lowpass filter with the given time constant in seconds

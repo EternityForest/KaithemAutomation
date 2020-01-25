@@ -89,7 +89,7 @@ effectTemplates_data={
 
     "3beq":{"type":"3beq", "displayType":"3 Band EQ","help": "Basic builtin EQ", "gstElement": "equalizer-nbands",
         "params": {
-          "0:gain": {
+           "0:gain": {
                 "type":"float",
                 "displayName": "Low",
                 "value": 0,
@@ -109,7 +109,7 @@ effectTemplates_data={
             "1:freq": {
                 "type":"float",
                 "displayName": "MidFreq",
-                "value": 0,
+                "value": 2000,
                 "min": 200,
                 "max": 8000,
                 "sort":1
@@ -127,12 +127,12 @@ effectTemplates_data={
         "gstSetup":
         {
             "num-bands":3,
-            "band1::freq": 180,
-            "band2::freq": 2000,
-            "band3::freq": 12000,
-            "band1::bandwidth": 360,
-            "band2::bandwidth": 3600,
-            "band3::bandwidth": 19000,
+            "0:freq": 180,
+            "1:freq": 2000,
+            "2:freq": 12000,
+            "0:bandwidth": 360,
+            "1:bandwidth": 500,
+            "2:bandwidth": 16000,
         }
     },
     "plateReverb":
@@ -352,7 +352,7 @@ effectTemplates_data={
                 "step":0.25,
                 "sort":0
             },
-          "param-16-hz": {
+          "param-16-khz": {
                 "type":"float",
                 "displayName": "16KHz",
                 "value": 0,
@@ -479,7 +479,28 @@ effectTemplates_data={
             "max-delay":3000*1000*1000
         }
     },
+ "volume":
+    {
+        "type": "volume",
+        "gstElement":"volume",
+        "help":"Volume Control(0 to 2)",
+        "displayType":"Volume Control",
+        "params": {
 
+            "volume": {
+                "type":"float",
+                "displayName": "volume",
+                "value": 1,
+                "min": 0,
+                "max": 2,
+                "step":0.01,
+                "sort":0
+            },
+        },
+        'gstSetup':{
+            "volume":1
+        }
+    },
     "pitchshift":
     {
         "type": "pitchshift",

@@ -157,6 +157,7 @@ class CompiledPage():
         d={'kaithem': kaithemobj.kaithem}
         if m in modules_state.scopes:
             d['module']= modules_state.scopes[m]
+
         if not 'template-engine' in resource or resource['template-engine']=='mako':
             self.template = mako.template.Template(templatesource, uri="Template"+m+'_'+r, global_vars=d)
         
@@ -168,8 +169,11 @@ class CompiledPage():
         else:
             self.text = template
 
-    def new_print(self,d):
-        self.printoutput+=str(d)+"\n"
+    def new_print(self,*d):
+        if len(d)==1:
+            self.printoutput+=str(d[0])+"\n"
+        else:
+            self.printoutput+=str(d)
         self.printoutput = self.printoutput[-2500:]
 
 
@@ -362,6 +366,7 @@ class KaithemPage():
                     module = modules_state.scopes[module],
                     path = args,
                     kwargs = kwargs,
+                    print=page.new_print
                     ).encode("utf-8")
             else:
                 return page.text.encode('utf-8')

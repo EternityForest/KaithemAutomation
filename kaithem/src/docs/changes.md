@@ -1,6 +1,13 @@
 Change Log
 ----------
 
+### 0.65.7
+- Fix not waiting long enough to see if events have errors
+- Tagpoint Filter/Soft Tags API
+- Tagpoint.poll() function
+- Save Jack mixer data as YAML, one file per preset
+
+
 ### 0.65.6
 - Fix widgets on unencrypted connections
 

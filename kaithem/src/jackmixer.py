@@ -13,9 +13,9 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import re,time,json,logging,copy, subprocess
+import re,time,json,logging,copy, subprocess,os
 
-from . import widgets, messagebus,util,registry, tagpoints
+from . import widgets, messagebus,util,registry, tagpoints,persist,directories,alerts,workers
 from . import jackmanager, gstwrapper,mixerfx
 
 import threading
@@ -28,6 +28,7 @@ channels = {}
 
 log =logging.getLogger("system.mixer")
 
+presetsDir = os.path.join(directories.vardir, "system.mixer", "presets")
 
 #Try to import a cython extension that only works on Linux
 try:
@@ -104,7 +105,7 @@ def cleanupEffectData(fx):
     if not 'gstSetup' in fx:
         fx['gstSetup'] = {}
 
-channelTemplate = {"type":"audio","effects":[effectTemplates['fader']], "input": '', 'output': '', "fader":-60}
+channelTemplate = {"type":"audio","effects":[effectTemplates['fader']], "input": '', 'output': '', "fader":-60, "soundFuse":3}
 
 specialCaseParamCallbacks={}
 
@@ -113,8 +114,8 @@ specialCaseParamCallbacks={}
 
 #Returning true enables the default param setting action
 def beq3(e, p, v):
-    if p =="band2::freq":
-        e.set_property("band2::bandwidth", v*0.3)
+    if p =="2:freq":
+        e.set_property("2:bandwidth", v*0.3)
     return True
 
 def echo(e, p, v):
@@ -209,7 +210,7 @@ class FluidSynthChannel(BaseChannel):
 import uuid
 class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
 
-    def __init__(self, name,board=None,channels= 2, input=None, outputs=[]):
+    def __init__(self, name,board=None,channels= 2, input=None, outputs=[],soundFuse=3):
         gstwrapper.Pipeline.__init__(self,name,realtime=70)
         self.board =board
         self.levelTag = tagpoints.Tag("/jackmixer/channels/"+name+"/level")
@@ -217,11 +218,19 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
         self.levelTag.max =3
         self.levelTag.hi = -3
         self.lastLevel =0
+        self.lastRMS=0
+        self.lastNormalVolumeLevel=time.monotonic()
+        #Limit how often we can clear the alert
+        self.alertRatelimitTime=time.monotonic()+10
+        self.soundFuseSetting=soundFuse
         self.lastPushedLevel = time.monotonic()
         self.effectsById = {}
         self.effectDataById = {}
         self.faderLevel = -60
         self.channels = channels
+
+        #Are we already doing a loudness cutoff?
+        self.doingFeedbackCutoff = False
 
         self.src=self.addElement("jackaudiosrc",buffer_time=10, latency_time=10, port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=name+"_in",connect=0) 
         self.capsfilter = self.addElement("capsfilter", caps="audio/x-raw,channels="+str(channels))
@@ -245,6 +254,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
 
         self.usingJack=True
 
+        self.loudnessAlert = alerts.Alert(self.name+".abnormalvolume", priority='info')
 
 
    
@@ -411,6 +421,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                 l = sum([i for i in s['decay']])/len(s['decay'])
                 rms = sum([i for i in s['rms']])/len(s['rms'])
                 self.levelTag.value = max(rms,-90)
+                self.doSoundFuse(rms)
                 if l<-45 or abs(l-self.lastLevel)<6:
                     if time.monotonic()-self.lastPushedLevel< 0.3:
                         return True
@@ -423,6 +434,86 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                 self.board.pushLevel(self.name, l)
         return True
 
+    def doSoundFuse(self,rms):
+        #Highly dynamic stuff is less likely to be feedback.
+        #Don't count feedback if there's any decrease
+        if not (self.lastRMS<rms and rms> self.soundFuseSetting):
+            self.lastNormalVolumeLevel = time.monotonic()
+        self.lastRMS = rms
+        if time.monotonic()-self.lastNormalVolumeLevel > 0.3:
+            self.loudnessAlert.trip()
+            self.alertRatelimitTime=time.monotonic()
+
+            if not self.doingFeedbackCutoff:
+                self.doingFeedbackCutoff=True
+                def f():
+                    "Greatly reduce volume, then slowly increase it, till the user does something about it"
+                    try:
+                        print("FEEDBACK DETECTED!!!!")
+                        l = self.faderTag.value
+                        self.setFader(l-8)
+                        c =self.faderTag.value
+                        time.sleep(0.25)
+                        #Detect manual action
+                        if not c==self.faderTag.value:
+                            return
+                        t = 8
+                        #Go down till we find a non horrible level
+                        for i in range(24):
+                            if(self.levelTag.value>self.soundFuseSetting-3):
+                                self.setFader(l-(i+8))
+                                t = i+8
+                                c =self.faderTag.value
+                                time.sleep(0.05)
+
+                                #Detect manual action
+                                if not c==self.faderTag.value:
+                                    return
+                       
+
+                        time.sleep(2.5)
+                        #Detect manual action
+                        if not c==self.faderTag.value:
+                            return
+                       
+                       #Slowly go back up
+                      
+                        while t:
+                            t-=1
+                            self.setFader(l-t)
+                            c =self.faderTag.value
+                            
+                            #Wait longer on that last one before we exit,
+                            #To ensure it worked
+                            if(t==1):
+                                time.sleep(1)
+                            time.sleep(0.1)
+                            #Detect manual action
+                            if not c==self.faderTag.value:
+                                return
+
+                            if(self.levelTag.value>self.soundFuseSetting-3):
+                                t+=3
+                                self.setFader(l-t)
+                                c =self.faderTag.value
+
+                                time.sleep(1)
+                                #Detect manual action
+                                if not c==self.faderTag.value:
+                                    return
+
+                        #Return to normal
+                        self.setFader(l)
+                    finally:
+                        print("FEEDBACK HANDLER EXIT")
+                        self.doingFeedbackCutoff=False
+                workers.do(f)
+
+        elif time.monotonic()-self.alertRatelimitTime> 10:
+            self.loudnessAlert.release()
+            self.alertRatelimitTime=time.monotonic()
+
+   
     def _faderTagHandler(self,level,t,a):
         #Note: We don't set the configured data fader level here.
         if self.fader:
@@ -561,9 +652,14 @@ class MixingBoard():
 
             self.api.send(['channels', self.channels])
             self.api.send(['effectTypes', effectTemplates])
-            self.api.send(['presets',registry.ls("/system.mixer/presets/")])
+            self.sendPresets()
+
+
             self.api.send(['loadedPreset', self.loadedPreset])
             self.api.send(['usbalsa', registry.get("/system/sound/jackusbperiod",128), registry.get("/system/sound/jackusblatency",384)])
+
+    def sendPresets(self):
+        self.api.send(['presets',registry.ls("/system.mixer/presets/")+ [i[:-len('.yaml')] for i in os.listdir(presetsDir) if i.endswith('.yaml') ] ])
 
     def createChannel(self, name, data={}):
         with self.lock:
@@ -587,7 +683,7 @@ class MixingBoard():
             time.sleep(0.01)
             time.sleep(0.01)
 
-            p = ChannelStrip(name,board=self, channels=data.get('channels',2))
+            p = ChannelStrip(name,board=self, channels=data.get('channels',2), soundFuse=data.get('soundFuse',3))
             self.channelObjects[name]=p
             p.fader=None
             p.loadData(data)
@@ -614,7 +710,7 @@ class MixingBoard():
         self.api.send(['channels', self.channels])
 
     def pushLevel(self,cn,d):
-        self.api.send(['lv',cn,d])
+        self.api.send(['lv',cn,round(d,2)])
 
     def setFader(self, channel,level):
         "Set the fader of a given channel to the given level"
@@ -636,19 +732,31 @@ class MixingBoard():
             raise ValueError("Empty preset name")
         with self.lock:
             util.disallowSpecialChars(presetName)
-            registry.set("/system.mixer/presets/"+presetName, self.channels)
+            persist.save(self.channels, os.path.join(presetsDir,presetName+".yaml"))
+            try:
+                #Remove legacy way of saving
+                registry.delete("/system.mixer/presets/"+presetName)
+            except KeyError:
+                pass
             self.loadedPreset=presetName
             self.api.send(['loadedPreset', self.loadedPreset])
 
     def deletePreset(self,presetName):
         registry.delete("/system.mixer/presets/"+presetName)
+        if os.path.exists( os.path.join(presetsDir,presetName+".yaml")):
+            os.remove( os.path.join(presetsDir,presetName+".yaml"))
 
     def loadPreset(self, presetName):
         with self.lock:
             x = list(self.channels)
             for i in x:
                 self._deleteChannel(i)
-            self._loadData(registry.get("/system.mixer/presets/"+presetName))
+                
+            if os.path.isfile( os.path.join(presetsDir,presetName+".yaml")):
+                self._loadData(persist.load( os.path.join(presetsDir,presetName+".yaml")))
+            else:
+                self._loadData(registry.get("/system.mixer/presets/"+presetName,None))
+
             self.loadedPreset=presetName
             self.api.send(['loadedPreset', self.loadedPreset])
 
@@ -675,6 +783,9 @@ class MixingBoard():
                 self.api.send(['channels', self.channels])
                 self._createChannel(data[1], self.channels[data[1]])
 
+        if data[0]== 'setFuse':
+            self.channels[data[1]]['soundFuse']= float(data[2])
+            self.channelObjects[data[1]].soundFuseSetting = float(data[2])
 
         if data[0]== 'setInput':
             self.channels[data[1]]['input']= data[2]
@@ -719,14 +830,14 @@ class MixingBoard():
 
         if data[0]=='savePreset':
             self.savePreset(data[1])
-            self.api.send(['presets',registry.ls("/system.mixer/presets/")])
+            self.sendPresets()
 
         if data[0]=='loadPreset':
             self.loadPreset(data[1])
 
-        if data[0]=='deletePreset':
+        if data[0]=='deletePreset': 
             self.deletePreset(data[1])
-            self.api.send(['presets',registry.ls("/system.mixer/presets/")])
+            self.sendPresets()
 
         if data[0]=='setUSBAlsa':
             registry.set("/system/sound/jackusbperiodsize",int(data[1]))
@@ -745,4 +856,5 @@ def killUSBCards():
         pass
 
 board = MixingBoard()
-board.loadData(registry.get("/system.mixer/presets/default",{}))
+
+board.loadPreset('default')
