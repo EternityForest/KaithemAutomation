@@ -18,10 +18,14 @@ from . import directories
 import os, yaml,logging,weakref
 
 #https://musical-artifacts.com/artifacts/639
-DEFAULT_SOUNDFONT = os.path.join(directories.datadir, "sounds/babyfont.sf3")
+
 
 from scullery import fluidsynth
-fluidsynth.FluidSynth.defaultSoundfont = DEFAULT_SOUNDFONT
+
+#Babyfont is small enough to include but doesn't sound as good.
+if not os.path.isfile("/usr/share/sounds/sf2/FluidR3_GM.sf2"):
+    DEFAULT_SOUNDFONT = os.path.join(directories.datadir, "sounds/babyfont.sf3")
+    fluidsynth.FluidSynth.defaultSoundfont = DEFAULT_SOUNDFONT
 
 from scullery.fluidsynth import *
 

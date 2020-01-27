@@ -70,9 +70,9 @@ def findGMInstrument(name, look_in_soundfont=None,bank=None):
             if match:
                 if bank==None:
                     return (sf2.raw.pdta['Phdr'][i][2],sf2.raw.pdta['Phdr'][i][1])
-                return (bank,i)
-    x= getGMInstruments()
+                return (bank,sf2.raw.pdta['Phdr'][i][1])
 
+    x= getGMInstruments()
     for i in x:
         n = x[i].lower()
         n=n.replace("(",'').replace(')','')
@@ -138,7 +138,7 @@ class FluidSynth():
             self.fs.start()
         self.fs.program_select(0, self.sfid, 0, 0)
 
-    def setInstrument(self,channel, instrument,bank=0):
+    def setInstrument(self,channel, instrument,bank=None):
         bank, insNumber = findGMInstrument(instrument,self.soundfont,bank)
         self.fs.program_select(channel, self.sfid, bank, insNumber)
 
