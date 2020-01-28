@@ -300,9 +300,6 @@ class ScriptActionKeeper():
 
 
 class Event():
-    #Appears to be the top event obj on the stack.
-    #It is actually a dynamic getter for that data.
-
     def __init__(self,name, val):
         self.name=name
         self.value = val
@@ -346,7 +343,9 @@ class ChandlerScriptContext():
         #Stack to keep track of the $event variable for the current event we are running,
         #For nested events
         self.eventValueStack = []
-     
+
+        #Look for rising edge detects that already fired
+        self.risingEdgeDetects ={}     
 
         if parentContext:
             def delf(*a,**K):
@@ -445,12 +444,14 @@ class ChandlerScriptContext():
             tn= self.canGetTagpoint(t)
             t = tagpoints.Tag(t)
             self.setupTag(t)
+            self.setVar("$tag:"+t,t.value,True)
             return t.value
             
         def stringtagpoint(t):
             tn= self.canGetTagpoint(t)
             t = tagpoints.StringTag(t)
             self.setupTag(t)
+            self.setVar("$tag:"+t,t.value,True)
             return t.value
        
         c['tagValue']= tagpoint
@@ -471,9 +472,28 @@ class ChandlerScriptContext():
         """
         with self.gil:
             for i in self.eventListeners:
-                if i.startswith("="):
-                    if self.preprocessArgument(i):
-                        self.event(i)
+                try:
+
+                    #Edge trigger
+                    if i.startswith("=/"):
+                        #Change =/ to just =
+                        r= self.preprocessArgument('='+ i[2:])
+                        if r:
+                            if (not i in self.risingEdgeDetects) or (not self.risingEdgeDetects[i]):
+                                self.risingEdgeDetects[i]=True
+                                self.event(i,r)
+                        else:
+                            self.risingEdgeDetects[i]=False
+
+                    #Level trigger
+                    elif i.startswith("="):
+                        r=self.preprocessArgument(i)
+                        if r:
+                            self.event(i,r)
+                except:
+                    self.event("script.error",self.contextName+"\n"+traceback.format_exc(chain=True))
+                    raise
+
 
     def setupTag(self,tag):
         if tag in self.tagpoints:
@@ -482,6 +502,7 @@ class ChandlerScriptContext():
             self.onTagChange(tag.name,v)
         tag.subscribe(onchange)
         self.tagHandlers[tag.name]=(tag,onchange)
+        
 
     def onTagChange(self,tagname, val):
         with self.gil:
@@ -538,8 +559,11 @@ class ChandlerScriptContext():
                 raise RecursionError("Cannot nest more than 8 events")
             self.eventRecursionDepth+=1
             
-
-            self.eventValueStack.append(Event(evt,val))
+            if not isinstance(val,Event):
+                self.eventValueStack.append(Event(evt,val))
+            else:
+                val.name = evt
+                self.eventValueStack.append(val)
             try:
                 if evt in self.eventListeners:
                     handled = True
@@ -641,6 +665,8 @@ class ChandlerScriptContext():
             ['eventname',[['command','arg1'],['command2']]
 
             When events happen commands run till one returns None.
+
+            Also immediately runs any now events
         """
         with self.gil:
             #Cache is invalidated, bindings have changed
@@ -651,12 +677,17 @@ class ChandlerScriptContext():
                     self.eventListeners[i[0]]=[]
                 self.eventListeners[i[0]].append(i[1])
                 self.onBindingAdded(i)
+            
+            if 'now' in self.eventListeners:
+                self.event('now')
+                del self.eventListeners['now']
 
     def onBindingAdded(self,evt):
         "Called when a binding is added that listens to evt"
         pass
 
     def startTimers(self):
+        needCheck =0
         with self.gil:
             for i in self.eventListeners:
                 if i and i.strip()[0]=='@':
@@ -669,7 +700,12 @@ class ChandlerScriptContext():
                 #Really just a fallback for various insta-check triggers like tag changes
                 if i.strip().startswith("="):
                     if not self.slowpoller:
+                        needCheck=True
                         self.slowpoller = scheduler.scheduleRepeating(self.checkPollEvents, 3)
+
+            #Run right away for faster response
+            if needCheck:
+                self.checkPollEvents()
 
     def poll(self):
         self.event('script.poll')
@@ -700,6 +736,9 @@ class ChandlerScriptContext():
             self.tagpoints={}
             self.needRefreshForVariable={}
             self.needRefreshForTag={}
+
+            #Odd behavior note: Clearing a binding resets the edge detect behavior
+            self.risingEdgeDetects={}
 
     def clearState(self):
         with self.gil:

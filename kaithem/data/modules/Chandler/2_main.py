@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1578457909886743
+resource-timestamp: 1580232164982459
 resource-type: event
 versions: {}
 
@@ -1144,10 +1144,11 @@ if __name__=='__setup__':
             if scene.scriptContext:
                 try:
                     for j in scene.scriptContext.variables:
-                        if isinstance(scene.scriptContext.variables[j],(int,float,str, bool)):
-                            v[j]=scene.scriptContext.variables[j]
-                        else:
-                            v[j]='__PYTHONDATA__'
+                        if not j =="_":
+                            if isinstance(scene.scriptContext.variables[j],(int,float,str, bool)):
+                                v[j]=scene.scriptContext.variables[j]
+                            else:
+                                v[j]='__PYTHONDATA__'
                 except:
                     print(traceback.format_exc())
             if not statusOnly:

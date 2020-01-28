@@ -9,7 +9,7 @@ no-header: true
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1576455615941295
+resource-timestamp: 1580229433391148
 resource-type: page
 template-engine: none
 
@@ -50,12 +50,14 @@ template-engine: none
         
         .inspector {
             background-color: rgba(255,255,255,0.5);
-            max-width: 15em;
+            max-width: 24em;
             border-style: solid;
             border-width: 1px;
             border-color: black;
             padding: 0.5em;
             border-radius: 5px;
+            overflow:auto;
+            margin-right:4px;
         }
         .rulesbox
         {
@@ -165,7 +167,8 @@ template-engine: none
                                             of the time,</br> otherwise
                                             stop.
                                         </div>
-                                        <div style="min-width:5em;max-width:22em;overflow:auto;" v-if="(!(j[0] in specialCommands)) && ((j[0] in commands))">
+
+                                        <div style="min-width:8em;max-width:30em;overflow:hidden" v-if="(!(j[0] in specialCommands)) && ((j[0] in commands))">
                                             {{j[0]}}<br>
                                             <table border=1 style="width:100%">
                                                 <tr v-for="i in commands[j[0]].args.keys()">

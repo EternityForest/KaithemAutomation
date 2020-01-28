@@ -1,5 +1,5 @@
 
-from . import scheduling,workers, virtualresource,widgets
+from . import scheduling,workers, virtualresource,widgets,messagebus
 import time, threading,weakref,logging,types,traceback,math
 
 from typing import Callable,Optional,Union
@@ -140,6 +140,9 @@ class _TagPoint(virtualresource.VirtualResource):
 
         self._alarms = {}
 
+        with lock:
+            messagebus.postMessage("/system/tags/created",self.name, synchronous=True)
+
     @property
     def interval(self):
         return self._interval
@@ -202,6 +205,8 @@ class _TagPoint(virtualresource.VirtualResource):
                 allTagsAtomic= allTags.copy()
             except:
                 pass
+            messagebus.postMessage("/system/tags/deleted",self.name, synchronous=True)
+
 
     def __call__(self,*args,**kwargs):
         if not args:

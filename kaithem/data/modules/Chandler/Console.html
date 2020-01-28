@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1578395561394062
+resource-timestamp: 1580228987993806
 resource-type: page
 template-engine: mako
 
@@ -312,7 +312,7 @@ from src import tagpoints
         <button v-on:click="showDMXSetup=!showDMXSetup"><img src="/zipstatic/img/icons/fugue.zip/globe-green.png"></img>Universes</button>
                     <button v-on:click="showhidefixtures"><img src="/zipstatic/img/icons/fugue.zip/traffic-light--pencil.png"></img> Fixture Types</button>
                     <button v-on:click="showhidefixtureassignments"><img src="/zipstatic/img/icons/fugue.zip/light-bulb.png"></img>Fixture Assignments</button>
-                    <button v-on:click="showevents=!showevents"><img src="/zipstatic/img/icons/fugue.zip/application-terminal.png"></img>Events Window</button>
+                    <button v-if="showAdvancedControls" v-on:click="showevents=!showevents"><img src="/zipstatic/img/icons/fugue.zip/application-terminal.png"></img>Events Window</button>
                     <a class="button" href="/pages/Chandler/docs/index" target="_blank"><img src="/zipstatic/img/icons/fugue.zip/book-question.png">Help</a>
                 </div>
 
@@ -670,9 +670,9 @@ from src import tagpoints
 
                 <h3 title="All currently active scenes and all scenes that were created through the light board ar shown">Scenes</h3>
 
-                <button v-on:click="scenefilter=''">X</button>
+                <button v-on:click="scenefilter=''">Clear Search</button>
                 <input v-model="scenefilter" placeholder="Search" list="tracks" />
-                <button v-bind:class="{highlight:showAll==false}" v-on:click="showAll=false" title="Show all active scenes">Active</button>
+                <button v-bind:class="{highlight:showAll==false}" v-on:click="showAll=false" title="Show all active scenes">Show All Active</button>
                 <button v-bind:class="{highlight:showAll}" v-on:click="showAll=true" title="Show all scenes owned by this board">Board</button>
                 <br/>
                 <div id="scene" style="overflow: scroll; max-height:450px;">
@@ -814,7 +814,7 @@ from src import tagpoints
                 <hr>
 
                 <div v-if="currentcue">
-                    <h3>{{currentcue.name}}</h3>
+                    <h3>Selected Cue: {{currentcue.name}}</h3>
 
                     <span class="help" v-if="editingScene.ext">This is an external scene that is defined somewhere in code. Any changes made here may be overwritten by the code at any time.</span>
 
@@ -922,11 +922,11 @@ from src import tagpoints
                             <button v-bind:class="{highlight:scenetab=='cue'}" v-on:click="scenetab='cue'">Cue</button>
                             <button v-bind:class="{highlight:scenetab=='sound'}" v-on:click="scenetab='sound'">Cue Sound</button>
                             <button v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'">Add/Remove Channels</button>
-                            <button v-bind:class="{highlight:scenetab=='data'}" v-on:click="scenetab='data'" title="Direct copy and pastable access to cue data"> Cue Data</button>
-                            <button v-bind:class="{highlight:scenetab=='logic'}" v-on:click="scenetab='logic'" title="If/then automation rules"> Cue Logic</button>
+                            <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='data'}" v-on:click="scenetab='data'" title="Direct copy and pastable access to cue data"> Cue Data</button>
+                            <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='logic'}" v-on:click="scenetab='logic'" title="If/then automation rules"> Cue Logic</button>
 
                             <button v-bind:class="{highlight:scenetab=='blend'}" v-on:click="scenetab='blend'">Scene Properties</button>
-                            <button v-bind:class="{highlight:scenetab=='sync'}" v-on:click="scenetab='sync'"> Scene Sync</button>
+                            <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='sync'}" v-on:click="scenetab='sync'"> Scene Sync</button>
                             <button v-bind:class="{highlight:scenetab=='notes'}" v-on:click="scenetab='notes'"> Scene Notes</button>
                             <button v-bind:class="{highlight:scenetab=='page'}" v-on:click="scenetab='page'"> Scene Page</button>
 
@@ -1239,7 +1239,7 @@ from src import tagpoints
                                 v-model="editingScene.soundOutput" placeholder="default" list="soundcards"></input></label>
                             </br>
         
-   <label>MQTT Server:
+   <label v-if="showAdvancedControls" >MQTT Server:
                             <input style="width:25em"  v-on:change="setmqtt(scenename,$event.target.value)"
                                 v-model="editingScene.mqttServer"></input>
                         </label>

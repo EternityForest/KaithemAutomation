@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1576476101108743
+resource-timestamp: 1580231296842172
 resource-type: page
 template-engine: markdown
 
@@ -43,45 +43,37 @@ Returns random number from 0 to 1
 Return a monotonic milliseconds counter. It will not go backwards till the system
 reboots.
 
-### tagValue(tagName)
-Returns the value of the tagpoint with that name, or 0 if the tag does not exist.
-Any tagpoint beginning with /chandler/ is allowed.
-
-Accessing a tag will add it to the list of tags being "watched" by that tag, until
-the next cue transition.
-
-The variable $tag:NAME will be updated to match the value, so long as the tag is watched.
-Also, all =expression events that use the tag(Currently just all of them) will be re-polled whenever a watched tag changes.
-
-### stringTagValue(tagName)
-Same as tagValue, for string tagpoints "" if the tag does not exist.
-
-
 ## Time Expressions
 
 Any event beginning with @ is a time expression. The event will fire as soon as the statement is true.
 Things like "@every 10 minutes between 5AM and 6PM" can be used for complex time rules.
 
-## Polled expressions
+## Poll Expressions
 
-Amy event beginning with = is a polled expression. It will be polled every few seconds at minimum,
-but will also be polled:
-* When a relevant tag point (One that is mentioned in any event name) changes.
-* Immediately on entering the cue
-* When updating it's scripting
-* When a relevant variable(One that is mentioned in any event name) changes
+### Level triggered
 
-It will fire whenever True.
+Any event beginning with = is a poll expression. It is evaluated at least once every few seconds, or when a variable or tagpoint
+that is relevant changes. The event will fire whenever the expression is true.
 
-Note that these are level-triggered, not edge triggered. The event should fire when it becomes true,
-but may also fire at any time again while it is true.
+### Edge Triggered
 
-The intent is to use them to trigger cue transitions as soon as an expression involving tags becomes True
+Events starting with =/ are the same, but only fire once, until the expression either goes false, you enter a new cue, or change the rules(Any of these will reset the edge detect logic).
 
-## MQTT Message Expressions
+## MQTT
 
-Any event like "$mqtt:topic/name" is an MQTT expression. If the scene is connected to an MQTT server, it fires when
-someone publishes a message on that topic. Wildcards are not currently not supported.
+YOu can set the MQTT server of a scene. It will auto manage reconnections and resubscriptions.
+
+Any $mqtt:topic/foo/bar event fires when topic/foo/bar is recieved via MQTT. The event's value will be the payload.
+
+## Tag Points
+
+setTag sets a tag. The claim remains till the scene is stopped.
+
+tagValue(n) returns the value of a tag. Both will add the tag to the list of "relevant tags"
+
+All relevant tags create a variable $tag:name that lets you spy on the current value. These cannot be written to and are mostly 
+for UI purposes.
+
 
 ## Dynamic lighting channel values
 
@@ -95,5 +87,6 @@ The special universe called __variables__ lets you set logic vars directly in th
 a scene variable with the same name as the channel is set to the value.
 
 As with several other features, anything starting with = is evaluated as an expression before setting the variable.
+
 
 

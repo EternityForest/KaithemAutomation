@@ -55,6 +55,9 @@ def handleError(f,topic,value):
         except:
             print(traceback.format_exc())
 
+def runFunction(f,a):
+    return f(*a)
+
 class MessageBus(object):
     def __init__(self,executor:Optional[Callable] = None):
         """You pass this a function of one argument that just calls its argument. Defaults to calling in
@@ -264,7 +267,10 @@ class MessageBus(object):
 
 
 
-    def _post(self, topic,message,errors,timestamp,annotation):
+    def _post(self, topic,message,errors,timestamp,annotation,executor=None):
+
+        executor = executor or self.executor
+
         matchingtopics = self.parseTopic(topic)
         #We can't iterate on anything that could possibly change so we make copies
         d = self.subscribers_immutable
@@ -278,9 +284,9 @@ class MessageBus(object):
                     #An error could happen in the subscriber
                     #Or a typeerror could because the weakref has been collected
                     #We ignore both of these errors and move on
-                    self.executor(f,(topic,message,errors,timestamp,annotation))
+                    executor(f,(topic,message,errors,timestamp,annotation))
 
-    def postMessage(self, topic, message,errors=True, timestamp=None,annotation=None):
+    def postMessage(self, topic, message,errors=True, timestamp=None,annotation=None, synchronous=False):
         #Use the executor to run the post message job
         #To allow for the possibility of it running in the background as a thread
         topic=normalize_topic(topic)
@@ -290,7 +296,7 @@ class MessageBus(object):
             raise TypeError("Topic must be a string or castable to a string.")
 
         timestamp = timestamp or time.monotonic()
-        self._post(topic,message,errors,timestamp, annotation)
+        self._post(topic,message,errors,timestamp, annotation, runFunction if synchronous else None)
 
 
 #Setup the default system messagebus
