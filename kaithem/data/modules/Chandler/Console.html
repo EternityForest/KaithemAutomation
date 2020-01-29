@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1580228987993806
+resource-timestamp: 1580333938446462
 resource-type: page
 template-engine: mako
 
@@ -1016,10 +1016,23 @@ from src import tagpoints
                         </label><br>
 
 
-                                <label>Length relative to sound:
+                        <label>Length relative to sound:
                             <input type="checkbox" v-on:change="setrellen(currentcueid,currentcue.rel_len)" v-model="currentcue.rel_len"
                                 title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
-                        </label><br>
+                        </label>
+
+
+
+                        <label>Fade sound after end:
+                            <input type="number" v-on:input="setSoundFadeOut(currentcueid,$event.target.value)" style="width:3em"
+                                min=0 v-model="currentcue.soundFadeOut"
+                                title="Sound should fade out starting when the cue ends, taking this long. Only works on the suggested GStreamer backend"
+                                >{{scenemeta[scenename].bpm?"beats":"s"}}
+                                
+                        </label>
+                        
+                        
+                        <br>
                             </div>
                             <input v-model="soundsearch" v-on:change="soundsearchresults=[]" v-on:keyup.enter="doSoundSearch(soundsearch)" placeholder="Filter Sounds"
                                 style="width:60%;">
@@ -1133,7 +1146,7 @@ from src import tagpoints
 
                                 <label>Reentrant:<input title="If false, dissallow entering cue if it's already running" type="checkbox" v-on:change="setreentrant(currentcueid,currentcue.reentrant)" v-model="currentcue.reentrant"></label>
 
-                                <label>Fadein:
+                        <label>Fadein:
                             <input type="number" v-on:input="setfadein(currentcueid,$event.target.value)" style="width:3em"
                                 min=0 v-model="currentcue.fadein">{{scenemeta[scenename].bpm?"beats":"s"}}
                         </label>
@@ -2531,6 +2544,12 @@ from src import tagpoints
             {
                 api_link.send(['setfadein', cue, v]);
             },
+
+            'setSoundFadeOut': function(cue, v)
+            {
+                api_link.send(['setSoundFadeOut', cue, v]);
+            },
+
             'setreentrant': function(cue, v)
             {
                 api_link.send(['setreentrant', cue, v]);

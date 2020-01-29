@@ -49,6 +49,11 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.8
+- Chandler UX improvements
+- Synchronous messages
+- Chandler edge triggered poll events
+
 ### 0.65.7
 - Fix not waiting long enough to see if events have errors
 - Tagpoint Filter/Soft Tags API

@@ -59,8 +59,6 @@ if __name__=='__setup__':
     filterTag.tag.interval=0.1
     
     filterTag.tag.subscribe(s)
-    
-    
 
 def eventAction():
     pass

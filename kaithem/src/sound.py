@@ -26,6 +26,14 @@ MAX_PRELOADED = 8
 gst_preloaded = {}
 preloadlock = threading.Lock()
 
+
+def volumeToDB(vol):
+    if vol<0.001:
+        return -100
+    #Calculated usiung curve fitting, assuming that 0 is 0db,
+    #0.5 is 10db below, etc.
+    return -38.33333 + 77.80645*vol- 39.56989*vol**2
+
 if registry.get("/system/sound/usejack",None)=="manage":
     def f():
         try:        
@@ -855,25 +863,32 @@ class MPlayerWrapper(SoundWrapper):
 
     def fadeTo(self,file,length=1.0, block=False, handle="PRIMARY",**kwargs):
         try:
-            x = self.runningSounds[channel]
+            x = self.runningSounds[handle]
         except KeyError:
             x = None
         if x and not length:
             x.stop()
-            return
-        self.playSound(file,handle=handle,**kwargs)
+        
+        #Allow fading to silence
+        if file:
+            self.playSound(file,handle=handle,**kwargs)
+
         if not x:
             return
+        if not length:
+            return
+
         def f():
-            t = time.time()
+            t = time.monotonic()
             try:
                 v = x.volume
             except:
-                pass
-            while x and time.time()-t<length:
-                x.setVol(max(0,v*  (1-(time.time()-t)/length)))
-                self.setVolume(min(1,kwargs.get('volume',1)*((time.time()-t)/length)),handle)
-                time.sleep(1/30.0)
+                return
+
+            while x and time.monotonic()-t<length:
+                x.setVol(max(0,v*  (1-(time.monotonic()-t)/length)))
+                self.setVolume(min(1,kwargs.get('volume',1)*((time.monotonic()-t)/length)),handle)
+                time.sleep(1/48.0)
             if x:
                 x.stop()
         if block:
@@ -884,18 +899,21 @@ class MPlayerWrapper(SoundWrapper):
 
 from . import gstwrapper
 class GSTAudioFilePlayer(gstwrapper.Pipeline):
-    def __init__(self, file, volume=1, output="@auto",onBeat=None):
+    def __init__(self, file, volume=1, output="@auto",onBeat=None, _prevPlayerObject=None):
         "WARNING THESE WILL MEMORY LEAK IF NOT CLEANED WITH STOP"
 
         if output==None:
             output="@auto"
         gstwrapper.Pipeline.__init__(self,str(uuid.uuid4()),systemTime=True,realtime=70)
+        self.aw =None
         self.ended = False
 
         self.lastBeat = 0
         self.peakDetect = 0
         self.detectedBeatInterval = 1/60
         self.beat = onBeat
+        
+        self._prevPlayerObject = _prevPlayerObject
 
 
         self.src = self.addElement('filesrc',location=file)
@@ -940,6 +958,23 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
                     self.fader.set_property('volume', level)
             except ReferenceError:
                 pass
+    
+    def stop(self):
+
+        #Prevent any ugly noise that GSTreamer might make when stopped at
+        #The wrong time
+        try:
+            if self.aw:
+                self.aw.disconnect()
+        except:
+            logging.exception("Err disconnecting airwire")
+
+        gstwrapper.Pipeline.stop(self)
+
+        if self._prevPlayerObject:
+            p = self._prevPlayerObject()
+            if p:
+                p.stop()
 
     def resume(self):
         self.start()
@@ -999,6 +1034,8 @@ class GStreamerBackend(SoundWrapper):
                 self.pl.start()
             else:
                 self.pl.pause()
+
+            self.volume= kwargs.get('volume',1)
             
         def __del__(self):
             try:
@@ -1010,7 +1047,14 @@ class GStreamerBackend(SoundWrapper):
             return not self.pl.ended
         
         def setVol(self,v):
-            self.pl.setFader(v)
+            #We are going to do a perceptual gain algorithm here
+            self.volume=v
+            db = volumeToDB(v)
+
+            #Now convert to a raw gain
+            vGain = 10**(db/20)
+
+            self.pl.setFader(vGain if not vGain<-99 else 0)
 
         def pause(self):
             self.pl.pause()
@@ -1073,7 +1117,7 @@ class GStreamerBackend(SoundWrapper):
                         logging.exception("Error preloading sound")
         workers.do(f)
     
-    def playSound(self,filename,handle="PRIMARY",extraPaths=[],**kwargs):
+    def playSound(self,filename,handle="PRIMARY",extraPaths=[],_prevPlayerObject=None, **kwargs):
         #Those old sound handles won't garbage collect themselves
         self.deleteStoppedSounds()            
         fn = soundPath(filename,extraPaths)
@@ -1110,7 +1154,7 @@ class GStreamerBackend(SoundWrapper):
         else:
             output = "@auto"
         #Play the sound with a background process and keep a reference to it
-        self.runningSounds[handle] = self.GStreamerContainer(fn,volume=v,output=output)
+        self.runningSounds[handle] = self.GStreamerContainer(fn,volume=v,output=output,_prevPlayerObject=_prevPlayerObject)
 
     def stopSound(self, handle ="PRIMARY"):
         #Delete the sound player reference object and its destructor will stop the sound
@@ -1122,6 +1166,7 @@ class GStreamerBackend(SoundWrapper):
                     pass
         
     def stopAllSounds(self):
+
         x = list(self.runningSounds.keys())
         for i in x:
             try:
@@ -1148,6 +1193,48 @@ class GStreamerBackend(SoundWrapper):
         except KeyError:
             pass
     
+    def fadeTo(self,file,length=1.0, block=False, detach=True, handle="PRIMARY",**kwargs):
+        try:
+            x = self.runningSounds[handle]
+            if detach:
+                #Detach from that handle name
+                del self.runningSounds[handle]
+        except KeyError:
+            x = None
+        if x and not length:
+            x.stop()
+        
+        #Allow fading to silence
+        if file:
+            self.playSound(file,handle=handle, _prevPlayerObject=x, **kwargs)
+
+        if not x:
+            return
+        if not length:
+            return
+
+        def f():
+            t = time.monotonic()
+            try:
+                v = x.volume
+            except:
+                return
+
+            while x and time.monotonic()-t<length:
+                ratio = ((time.monotonic()-t)/length)
+                x.setVol(max(0,v* (1-ratio)))
+
+                if file:
+                    self.setVolume(min(1,kwargs.get('volume',1)*ratio),handle)
+                time.sleep(1/48.0)
+            if x:
+                x.stop()
+
+        if block:
+            f()
+        else:
+            workers.do(f)
+   
 l = {'sox':SOXWrapper, 'mpg123':Mpg123Wrapper, "mplayer":MPlayerWrapper, "madplay":MadPlayWrapper, 'gstreamer':GStreamerBackend}
 
 

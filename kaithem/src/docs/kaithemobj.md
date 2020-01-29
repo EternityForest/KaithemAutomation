@@ -704,11 +704,27 @@ This dict may also contain JACK ports that it discovers. These obviously
 will not have an alsa name. Be patient, it may take 30 seconds for
 kaithem to discover new cards.
 
-#### kaithem.sound.play(filename,output="@auto")
+#### kaithem.sound.preload(filename,output="@auto")
 Spins up a paused player for that filename and player. Garbage collecting old cache entries is handled for you.
 Will be used when sound.play is called for the same filename and output.
 
 Does nothing on non-gstreamer backends.
+
+
+
+#### kaithem.sound.fadeTo(self,file,length=1.0, block=False, detach=True, handle="PRIMARY",**kwargs):
+
+Only guaranteed to work with GStreamer backend.
+
+Fades the current sound on a given channel to the file. **kwargs aare equivalent to those on playSound.
+
+Passing none for the file allows you to fade to silence, and if no sound is playing. it will fade FROM silence.
+
+Block will block till the fade ends. Detach lets you keep the faded copy attached to the handle(Which makes it end when a new sound plays,
+so it only makes sense if fading to silence).
+
+Fading is perceptually linear.
+
 
 #### kaithem.sound.play(filename,handle="PRIMARY",volume=1,start=0,end=-0.0001, eq=None, output=None,fs=False,extraPaths=\[\])
 
