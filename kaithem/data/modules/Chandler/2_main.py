@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1580333886376552
+resource-timestamp: 1580363579765837
 resource-type: event
 versions: {}
 
@@ -26,6 +26,8 @@ if __name__=='__setup__':
     
     
     logger = logging.getLogger("system.chandler")
+    
+    
     
     import numpy
     import hashlib
@@ -314,7 +316,8 @@ if __name__=='__setup__':
         
     def getSoundFolders():
         "path:displayname dict"
-        soundfolders = {i.strip():i.strip() for i in kaithem.registry.get("lighting/soundfolders",[])}
+        soundfolders = {i.strip():i.strip() for i in module.config['soundFolders']}
+    
         soundfolders[os.path.join(src.directories.datadir,"sounds")] = 'Builtin'
         soundfolders[musicLocation] = "Chandler music folder"
         for i in [i for i in kaithem.sound.directories if not i.startswith("__")]:
@@ -644,7 +647,7 @@ if __name__=='__setup__':
         def canGetTagpoint(self,t):
             if not t in self.tagpoints and len(self.tagpoints)>128:
                 raise RuntimeError("Too many tagpoints in one scene")
-            if t.startswith(self.tagDefaultPrefix) or t.startswith("/chandler/") or t.startswith("/jackmixer/"):
+            if t.startswith(self.tagDefaultPrefix) or t.startswith("/chandler/") or t.startswith("/jackmixer/") or module.config['allowAllTags']:
                 return t
     
     
@@ -1181,6 +1184,7 @@ if __name__=='__setup__':
                                 'notes': scene.notes,
                                 'page': scene.page,
                                 "mqttServer": scene.mqttServer,
+                                'crossfade': scene.crossfade,
                                 'status': scene.getStatusString()
     
                         }
@@ -1278,7 +1282,17 @@ if __name__=='__setup__':
                     self.saveAsFiles('fixturetypes', self.fixtureClasses,"lighting/fixtureclasses")
                     self.saveAsFiles('universes', self.configuredUniverses,"lighting/universes")
                     self.saveAsFiles('fixtures', self.fixtureAssignments,"lighting/fixtures")
-                
+    
+                    saveLocation = os.path.join(kaithem.misc.vardir,"chandler")
+                    if not os.path.exists(saveLocation):
+                        os.mkdir(saveLocation)
+    
+                    kaithem.persist.save(module.config, os.path.join(saveLocation,"config.yaml"))
+                    try:
+                        kaithem.registry.delete("lighting/soundfolders")
+                        kaithem.registry.delete("lighting/nettime")
+                    except KeyError:
+                        pass
                 if msg[0] == "saveSetupPreset":
                     self.saveAsFiles('fixturetypes', self.fixtureClasses,"lighting/fixtureclasses",noRm=True)
                     self.saveAsFiles(os.path.join('setups',msg[1],'universes'),self.configuredUniverses)
@@ -1625,6 +1639,9 @@ if __name__=='__setup__':
     
                 if msg[0] == "setalpha":
                     module.scenes[msg[1]].setAlpha(msg[2])
+                
+                if msg[0] == "setcrossfade":
+                    module.scenes[msg[1]].crossfade = float(msg[2])
     
                     
                 if msg[0] == "setdalpha":
@@ -2440,7 +2457,7 @@ if __name__=='__setup__':
         "An objecting representing one scene. DefaultCue says if you should auto-add a default cue"
         def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,
         blendArgs=None,backtrack=True,defaultCue=True, syncKey=None, bpm=60, syncAddr="239.255.28.12", syncPort=1783, 
-        soundOutput='',notes='',page=None, mqttServer=''):
+        soundOutput='',notes='',page=None, mqttServer='', crossfade=0):
     
             if name and name in module.scenes_by_name:
                 raise RuntimeError("Cannot have 2 scenes sharing a name: "+name)
@@ -2525,6 +2542,7 @@ if __name__=='__setup__':
             self._blend = None
             self.blendClass = None
             self.alpha = alpha if defaultActive else 0
+            self.crossfade = crossfade
     
             self.cuelen = 0
     
@@ -2678,7 +2696,8 @@ if __name__=='__setup__':
                         'uuid': self.id,
                         'notes': self.notes,
                         'page': self.page,
-                        'mqttServer': self.mqttServer
+                        'mqttServer': self.mqttServer,
+                        'crossfade': self.crossfade
                     }         
     
         def __del__(self):
@@ -3119,11 +3138,13 @@ if __name__=='__setup__':
                     else:
                         self.cuePointer = self.cues_ordered.index(self.cues[cue])
     
-    
-                    if self.cue.soundFadeOut:
-                        kaithem.sound.fadeTo(None, length=self.cue.soundFadeOut, handle=str(self.id))
-                    else:
-                        kaithem.sound.stop(str(self.id))
+                    
+                    #Don't stop audio of we're about to crossfade to the next track
+                    if not(self.crossfade and self.cues[cue].sound):
+                        if self.cue.soundFadeOut:
+                            kaithem.sound.fadeTo(None, length=self.cue.soundFadeOut, handle=str(self.id))
+                        else:
+                            kaithem.sound.stop(str(self.id))
     
                             
                     self.cue = self.cues[cue]
@@ -3145,7 +3166,12 @@ if __name__=='__setup__':
                                 out = self.soundOutput
                             if not out:
                                 out = None
-                            kaithem.sound.play(sound,handle=str(self.id),volume=self.alpha,output=out)
+    
+                            if not self.crossfade:
+                                kaithem.sound.play(sound,handle=str(self.id),volume=self.alpha,output=out)
+                            else:
+                                kaithem.sound.fadeTo(sound,length=self.crossfade, handle=str(self.id),volume=self.alpha,output=out)
+    
                             
                         else:
                             self.event("error", "File does not exist: "+sound)
@@ -3256,7 +3282,9 @@ if __name__=='__setup__':
                 if self.cue.sound and self.cue.rel_length:
                     path = self.resolveSound(self.cue.sound)
                     try:
-                        slen = TinyTag.get(path).duration+cuelen
+                        #If we are doing crossfading, we have to stop slightly early for
+                        #The crossfade to work
+                        slen = (TinyTag.get(path).duration - self.crossfade) +cuelen
                         self.cuelen=  max(0,self.randomizeModifier+slen)
                     except:
                         logging.exception("Error getting length for sound "+str(path))

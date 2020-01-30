@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1580333938446462
+resource-timestamp: 1580362420937729
 resource-type: page
 template-engine: mako
 
@@ -919,13 +919,12 @@ from src import tagpoints
 
                     <div>
                         <p style="background-color:rgba(250,250,250,0.5)">
+                            <button v-bind:class="{highlight:scenetab=='blend'}" v-on:click="scenetab='blend'">Scene</button>|
                             <button v-bind:class="{highlight:scenetab=='cue'}" v-on:click="scenetab='cue'">Cue</button>
                             <button v-bind:class="{highlight:scenetab=='sound'}" v-on:click="scenetab='sound'">Cue Sound</button>
                             <button v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'">Add/Remove Channels</button>
                             <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='data'}" v-on:click="scenetab='data'" title="Direct copy and pastable access to cue data"> Cue Data</button>
-                            <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='logic'}" v-on:click="scenetab='logic'" title="If/then automation rules"> Cue Logic</button>
-
-                            <button v-bind:class="{highlight:scenetab=='blend'}" v-on:click="scenetab='blend'">Scene Properties</button>
+                            <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='logic'}" v-on:click="scenetab='logic'" title="If/then automation rules"> Cue Logic</button>|
                             <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='sync'}" v-on:click="scenetab='sync'"> Scene Sync</button>
                             <button v-bind:class="{highlight:scenetab=='notes'}" v-on:click="scenetab='notes'"> Scene Notes</button>
                             <button v-bind:class="{highlight:scenetab=='page'}" v-on:click="scenetab='page'"> Scene Page</button>
@@ -1207,7 +1206,7 @@ from src import tagpoints
 
                         <div v-if="scenetab=='blend'">
 
-                            <h4 title="These properties are fixed per-scene and don't change between cues">Scene Properties</h4>
+                            <h4 title="These properties are fixed per-scene and don't change between cues">Global Scene Properties</h4>
                             <label v-if="showLightingControls">Default Alpha:
                         <input type="number" style="width:4em" max=1 step=0.01 min=0 v-on:input="setdalpha(scenename,parseFloat($event.target.value))"
                             v-model="editingScene.dalpha"></input>
@@ -1251,6 +1250,12 @@ from src import tagpoints
                             <label v-if="showSoundControls"> Sound Output: <input title="If not set by a cue, the global setting for the scene is used" v-on:input="setSceneSoundOutput(scenename,$event.target.value)"
                                 v-model="editingScene.soundOutput" placeholder="default" list="soundcards"></input></label>
                             </br>
+
+                        <label>
+                        Crossfade Sounds:
+                        <input type="number" style="width:4em" max=1 step=0.01 min=0 v-on:input="setcrossfade(scenename,parseFloat($event.target.value))"
+                            v-model="editingScene.crossfade"></input>s
+                        </label>
         
    <label v-if="showAdvancedControls" >MQTT Server:
                             <input style="width:25em"  v-on:change="setmqtt(scenename,$event.target.value)"
@@ -1668,9 +1673,9 @@ from src import tagpoints
             'newcueu': '',
             'newcuevnumber':'',
             'newscenename':'',
-            'specialvars':{
-                '_':["_","Output of the previous action"]   
-            },
+            'specialvars':[
+                ["_","Output of the previous action"]
+            ],
 
 
             //The code in the fixture edit as code box
@@ -2600,6 +2605,14 @@ from src import tagpoints
                 appData.scenemeta[sc].alpha = v;
                 api_link.send(['setdalpha', sc, v]);
             },
+
+    
+            'setcrossfade': function(sc, v)
+            {
+
+                appData.scenemeta[sc].crossfade = v;
+                api_link.send(['setcrossfade', sc, v]);
+            },
             'setmqtt': function(sc, v)
             {
 
@@ -3065,7 +3078,7 @@ from src import tagpoints
                 setInterval(function()
         {
             appData.unixtime = api_link.now() / 1000
-        }, 1000 / 14)
+        }, 1000 / 8)
         var shortcut = function(sc)
         {
             return function()

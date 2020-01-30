@@ -9,7 +9,7 @@ no-header: true
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1580229433391148
+resource-timestamp: 1580363182500894
 resource-type: page
 template-engine: none
 
@@ -122,7 +122,7 @@ template-engine: none
                                 </table>
                                 <h5>Docs</h5>
     
-                                <p style="word-wrap: break-word;">{{commands[selectedCommand[0]].doc}}</p>
+                                <pre style="white-space: pre-wrap;">{{commands[selectedCommand[0]].doc}}</pre>
     
                             </div>
                             <button v-on:click="rules[selectedBindingIndex][1].splice(selectedCommandIndex,1); selectedCommandIndex-=1;$emit('input',rules);">Delete</button>
@@ -135,7 +135,7 @@ template-engine: none
     
     
     
-                    <div style="display:flex;flex-direction:column;">
+                    <div style="display:flex;flex-direction:column;align-items: center;">
                         <h3>Event Actions</h3>
                         <div  class="rulesbox" style="overflow:scroll">
                             <div v-for="i in rules" style="display:flex;flex-direction:row; padding:3px;">
@@ -144,13 +144,13 @@ template-engine: none
                         {{i[0]}}
                         <p class="small">Occurs</p>
                     </button>
-                                <div style="align-self:center;color:grey; font-size:200%;font-weight:bolder; overflow:hidden;flex-shrink=8">&gt</div>
+                                <span style="align-self:center;color:grey; font-size:200%;font-weight:bolder; overflow:hidden;flex-shrink=8">&gt</span>
     
                                 <div v-for="j in i[1]" style="align-self:stretch;">
                                     <button v-bind:class="{action:1,selected:(selectedBinding==i&selectedCommand==j)}" v-on:click="selectedCommandIndex=i[1].indexOf(j);selectedBindingIndex=rules.indexOf(i)">
                             
                                         <div v-if="j[0]=='set'">
-                                            Set<br>{{j[1]}} to<br>{{j[2]}}
+                                            Set<br><b>{{j[1]}}</b> to<br><b>{{j[2]}}</b>
                                         </div>
     
                                         <div v-if="j[0]=='pass'">
@@ -183,8 +183,7 @@ template-engine: none
                                         {{j}}
                                         </div>
                                 </button>
-                                    <span style="margin-top:auto;margin-bottom:auto;color:grey; font-size:200%">&gt</span>
-    
+                                    <span style="align-self:center;color:grey; font-size:200%;font-weight:bolder; overflow:hidden;flex-shrink=8">&gt</span>    
                                 </div>
     
                                 <button class="action" style="align-self:center;" v-on:click="i[1].push(['pass']);$emit('input',rules)">Add Action</button>
@@ -371,7 +370,8 @@ template-engine: none
                     //Push the default values for the command
                     for(i in d)
                     {
-                        l.push(i[1]||'')
+                        console.log(i)
+                        l.push(i[1] ||'')
                     }
     
                 }
