@@ -49,6 +49,10 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.9
+- Chandler cues sound fadeout and crossfade
+- Minor refactoring
+
 ### 0.65.8
 - Chandler UX improvements
 - Synchronous messages
@@ -61,21 +65,7 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - Save Jack mixer data as YAML, one file per preset
 
 ### 0.65.6
-- Fix widgets on unencrypted connections
-
-### 0.65.5
-- Move some core functionality to the unit testable scullery library
-- Add missing msgpack js file
-
-### 0.65.4
-- Enttec open DMX support(Any cheap FTDI DMX adapter)
-- Properly show changed alpha vals on server
-- Reduce lagginess with fast changing chandler cues
-- Better error reporting for functions that run in the background
-- A few builtin Chandler fixtures
-- Versionable saving for chandler fixtures, universes, and assignments
-- Uploadable chandler setup and fixture library files
-
+- Fix widgets on unencrypted connectionsp
 
 
 License Terms

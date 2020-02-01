@@ -183,7 +183,7 @@ globalConstants={
 }
 
 def rval(x):
-    "Returns the parameter x, and continues the action"
+    "Returns the parameter x, and continues the action(Unless the value is None)"
     return x
 
 def passAction():
@@ -375,8 +375,10 @@ class ChandlerScriptContext():
         self.commands['set']=setter
 
         def setTag(tagName=self.tagDefaultPrefix, value="=0", priority=75):
-            """Set a Tagpoint named with the given claim priority. Use a value of None to unset existing tags.
+            """Set a Tagpoint with the given claim priority. Use a value of None to unset existing tags.
+
             If the tag does not exist, the type is auto-guessed based on the type of the value.
+
             None will silently return and do nothing if the tag does not exist.
             """
             tagType=None

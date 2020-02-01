@@ -1,9 +1,9 @@
 Change Log
 ----------
 
-
 ### 0.65.9
-- Chandler cues sound fadeout
+- Chandler cues sound fadeout and crossfade
+- Minor refactoring
 
 ### 0.65.8
 - Chandler UX improvements

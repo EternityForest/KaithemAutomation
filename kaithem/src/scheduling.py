@@ -15,7 +15,6 @@
 
 import threading,sys,re,time,datetime,weakref,os,traceback, collections,random,logging,types
 from . import workers,util
-from .repeatingevents import *
 
 logger = logging.getLogger("system.scheduling")
 
@@ -314,7 +313,15 @@ class NewScheduler(threading.Thread):
         self.name = 'SchedulerThread'
         self.lastrecheckedschedules = time.time()
         self.lf = time.time()
+        self.running=False
 
+    def start(self):
+        with self.lock:
+            if self.running:
+                return
+            self.running=True
+            threading.Thread.start(self)
+            
     def everySecond(self,f):
         e = RepeatingEvent(f,1)
         e.register()
@@ -390,30 +397,6 @@ class NewScheduler(threading.Thread):
             except:
                 logger.exception("failed to remove event")
 
-    # def remove_function(self, f):
-    #     "Remove any events that trigger the given function"
-    #     with self.lock:
-    #         torm = []
-    #         try:
-    #             try:
-    #                 for i in self.tasks:
-    #                     if isinstance(i,weakref.ref):
-    #                         if i()==f:
-    #                             torm.append(i)
-    #                     else:
-    #                         if i==f:
-    #                             torm.append(i)
-    #             except KeyError:
-    #                 pass
-    #
-    #             try:
-    #                 if event in self.tasks:
-    #
-    #
-    #             except KeyError:
-    #                 pass
-    #         except:
-    #             logger.exception("failed to remove event")
     def register_repeating(self, event):
         "Register a RepeatingEvent class"
         with self.lock:
@@ -528,10 +511,5 @@ class NewScheduler(threading.Thread):
             except:
                     logger.exception("Exception while scheduling event")
 
-
-
-#Newscheduler is a total rewrite and allows intervals less than 1s, probably has less bugs, etc.
-#The only problem is that it is totally untested.
 scheduler = NewScheduler()
-#scheduler = Scheduler()
 scheduler.start()
