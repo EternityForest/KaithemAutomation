@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1580363579765837
+resource-timestamp: 1580967822210467
 resource-type: event
 versions: {}
 
@@ -202,13 +202,13 @@ if __name__=='__setup__':
     
     
     
-    def gotoCommand(scene, cue):
+    def gotoCommand(scene="=SCENE", cue=""):
         "Triggers a scene to go to a cue"
         module.scenes_by_name[scene].gotoCue(cue)
         return True
     
     
-    def setAlphaCommand(scene, alpha):
+    def setAlphaCommand(scene="=SCENE", alpha=1):
         "Set the alpha value of a scene"
         module.scenes_by_name[scene].setAlpha(float(alpha))
         return True
@@ -218,9 +218,12 @@ if __name__=='__setup__':
         return True if module.scenes_by_name[scene].active and module.scenes_by_name[scene].cue.name == cue else None
     
     
-    def eventCommand(scene="=$scene", ev="DummyEvent", value=True):
-        "Send an event to a scene"
-        module.scenes_by_name[scene].event(ev,value)
+    def eventCommand(scene="=SCENE", ev="DummyEvent", value=""):
+        "Send an event to a scene, or to all scenes if scene is __global__"
+        if scene=="__global__":
+            event(ev,value)
+        else:
+            module.scenes_by_name[scene].event(ev,value)
         return True
     
     
@@ -3359,8 +3362,8 @@ if __name__=='__setup__':
     
                 self.scriptContext.clearBindings()
     
-                self.scriptContext.setVar("$scene", self.name)
-                self.scriptContext.setVar("$cue", (rulesFrom or self.cue).name)
+                self.scriptContext.setVar("SCENE", self.name)
+                self.scriptContext.setVar("CUE", (rulesFrom or self.cue).name)
                 self.runningTimers ={}
                 
                 if self.active:
@@ -3570,7 +3573,7 @@ if __name__=='__setup__':
                 self.name = name
                 module.scenes_by_name[name]=self
                 self.hasNewInfo = {}
-                self.scriptContext.setVar("$scene", self.name)
+                self.scriptContext.setVar("SCENE", self.name)
     
         def setBacktrack(self,b):
             b =bool(b)

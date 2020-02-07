@@ -49,6 +49,10 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.10
+- Fix bug that caused it to not boot up on new installs
+- Chandler logic editor defaults autofilled
+
 ### 0.65.9
 - Chandler cues sound fadeout and crossfade
 - Minor refactoring

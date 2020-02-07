@@ -123,8 +123,16 @@ def paramDefault(p):
         return '='+str(p)
 
     if isinstance(p, str):
-        if p.strip().startswith("="):
-            return("="+repr(p))
+        
+        #Wrap strings that look like numbers in quotes
+        if not p.strip().startswith("="):
+            try:
+                float(p)
+                return("="+"'"+repr(p)+"'")
+            except:
+                return("="+repr(p))
+
+        #Presever things starting with = unchanged
         else:
             return str(p)
 
@@ -142,6 +150,14 @@ def getFunctionInfo(f):
     d = {
         'doc': inspect.getdoc(f),
         'args': [[i, paramDefault(p[i].default)] for i in p]
+    }
+    return d
+    
+def getContextFunctionInfo(f):
+    p = inspect.signature(f).parameters
+    d = {
+        'doc': inspect.getdoc(f),
+        'args': [[i, paramDefault(p[i].default)] for i in p][1:]
     }
 
     return d
@@ -313,6 +329,8 @@ class ChandlerScriptContext():
         self.eventListeners = {}
         self.variables = variables if not variables is None else {}
         self.commands= ScriptActionKeeper()
+        self.contextCommands= ScriptActionKeeper()
+
         self.children = {}
         self.children_iterable = {}
         self.constants = constants if (not (constants is None)) else {}
@@ -364,17 +382,17 @@ class ChandlerScriptContext():
         # client about the current set of variables 
         self.changedVariables={}
 
-        def setter(k,v):
-            if not isinstance(k,str):
+        def setter(Variable,Value):
+            if not isinstance(Variable,str):
                 raise RuntimeError("Var name must be string")
-            if k in globalConstants or k in self.constants:
+            if Variable in globalConstants or Variable in self.constants:
                 raise NameError("Key "+k+" is a constant")
-            self.setVar(k,v)
+            self.setVar(Variable,Value)
 
         self.setter = setter
         self.commands['set']=setter
 
-        def setTag(tagName=self.tagDefaultPrefix, value="=0", priority=75):
+        def setTag(tagName=self.tagDefaultPrefix+"foo", value="=0", priority=75):
             """Set a Tagpoint with the given claim priority. Use a value of None to unset existing tags.
 
             If the tag does not exist, the type is auto-guessed based on the type of the value.
@@ -427,6 +445,7 @@ class ChandlerScriptContext():
         functions=functions.copy()
         functions.update(globalUsrFunctions)
         functions['defaultVar'] = defaultVar
+        functions['var'] = defaultVar
 
         c = {}
         #Wrap them, so the first param becomes this context object.
@@ -529,11 +548,16 @@ class ChandlerScriptContext():
         pass
 
     def _runCommand(self,c):
+
+        #ContextCommands take precendence
         a = self.commands.get(c[0],None)
+        a = self.contextCommands.get(c[0],a)
+
         if not a:
             p=self.parentContext
             if p:
                 a=p.commands.get(c[0],None)
+                a = p.contextCommands.get(c[0],a)
         if a:
             try:
                 return a(*[self.preprocessArgument(i) for i in c[1:]])

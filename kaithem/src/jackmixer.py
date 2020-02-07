@@ -859,4 +859,7 @@ def killUSBCards():
 
 board = MixingBoard()
 
-board.loadPreset('default')
+try:
+    board.loadPreset('default')
+except:
+    log.exception("Could not load default preset for JACK mixer. Maybe it doesn't exist?")

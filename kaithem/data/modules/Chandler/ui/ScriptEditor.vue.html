@@ -9,7 +9,7 @@ no-header: true
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1580363182500894
+resource-timestamp: 1581034217086901
 resource-type: page
 template-engine: none
 
@@ -113,7 +113,7 @@ template-engine: none
                                 return None and stop the action.
                             </div>
     
-                            <div v-if="(!(selectedCommand[0] in specialCommands)) && ((selectedCommand[0] in commands))">
+                            <div v-if="(!(selectedCommand[0] in specialCommands)) && ((commands[selectedCommand[0]] ))">
                                 <table>
                                     <tr v-for="i in commands[selectedCommand[0]].args.keys()">
                                         <td>{{commands[selectedCommand[0]].args[i][0]}}</td>
@@ -152,14 +152,14 @@ template-engine: none
                                         <div v-if="j[0]=='set'">
                                             Set<br><b>{{j[1]}}</b> to<br><b>{{j[2]}}</b>
                                         </div>
-    
-                                        <div v-if="j[0]=='pass'">
-                                            Do Nothing
-                                        </div>
-    
+                                        
                                         <div v-if="j[0]=='goto'">
                                             Scene {{j[1]}}<br>
                                             goes to {{j[2]}}
+                                        </div>
+    
+                                        <div v-if="j[0]=='pass'">
+                                            Do Nothing
                                         </div>
     
                                         <div v-if="j[0]=='maybe'">
@@ -168,7 +168,7 @@ template-engine: none
                                             stop.
                                         </div>
 
-                                        <div style="min-width:8em;max-width:30em;overflow:hidden" v-if="(!(j[0] in specialCommands)) && ((j[0] in commands))">
+                                        <div style="min-width:8em;max-width:30em;overflow:hidden" v-if="(!(j[0] in specialCommands)) && ((commands[j[0]]))">
                                             {{j[0]}}<br>
                                             <table border=1 style="width:100%">
                                                 <tr v-for="i in commands[j[0]].args.keys()">
@@ -203,7 +203,7 @@ template-engine: none
     <script>
         module.exports={
     
-        props: ['value','commands','scenes','pinnedvars'],
+        props: ['value','commands','scenes','pinnedvars', "inspector"],
         components:{
             "combo-box": httpVueLoader("ui/ComboBox.vue")
         },
@@ -275,10 +275,20 @@ template-engine: none
                 getPossibleActions: function()
                 {
                     var l =[];
-                     for (i in this.commands)
+                    for (i in this.commands)
                     {
-                        if(!(i in this.specialCommands))
-                        l.push([i,this.commands[i].doc])
+                        if(this.commands[i]==null)
+                        {
+                            console.log("Warning: Null entry for command info for"+i)
+                        }
+                        else
+                        {
+                            //Just use the special version if possible
+                            if(!(i in this.specialCommands))
+                            {
+                                l.push([i,this.commands[i].doc||''])
+                            }
+                        }
                     }
                     return l
                 },
@@ -289,15 +299,8 @@ template-engine: none
                     var l =[];
                     for (i in this.specialCommands)
                     {
-                        //Use the regular introspected documentation if possible
-                        if(!(i in this.commands))
-                        {
-                            l.push([i,this.specialCommands[i].description])
-                        }
-                        else
-                        {
-                            l.push([i,this.commands[i].doc])
-                        }
+                        //Prefer the special version
+                        l.push([i,this.specialCommands[i].description])
                     }
             
                     return l
@@ -310,15 +313,15 @@ template-engine: none
                 //Stuff we have built in HTML templating for
                 specialCommands : {
                         'set': {
-                                args:[['x',''],['y','']],
+                                args:[['var',''],['val','']],
                                 description: "Sets a variable"
+                            },
+                        'goto': {
+                                args:[['Scene',''],['Cue','']],
+                                description: "Trigger scene to go to cue"
                             },
                         'pass':{
                             args:[],
-                            description:""
-                        },
-                        'goto':{
-                            args:[['scene',''],['cue','']],
                             description:""
                         },
                         'maybe':{
@@ -364,16 +367,16 @@ template-engine: none
                     {
                         return;
                     }
-    
+                    
+                    //Get rid of everything except the command name
                     l.splice(1);
-    
+                    
                     //Push the default values for the command
-                    for(i in d)
+                    for(i of d)
                     {
-                        console.log(i)
                         l.push(i[1] ||'')
                     }
-    
+                    return l;
                 }
             })
         }
