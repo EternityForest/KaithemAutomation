@@ -120,6 +120,7 @@ def makeWeakrefPoller(selfref,exitSignal):
 
     def pollerf():
         alreadyStarted = False
+        lastAdjustment=0
         while selfref():
             self=selfref()
             
@@ -127,10 +128,12 @@ def makeWeakrefPoller(selfref,exitSignal):
             if not self.running:
                 exitSignal.append(True)
                 return
+            
             if self.running:
                 t=time.monotonic()
                 try:
                     with self.lock:
+                        self.loopCallback()
                         state = self.pipeline.get_state(1000000000)[1]
                     
 
@@ -156,23 +159,11 @@ def makeWeakrefPoller(selfref,exitSignal):
                                 diff = t-sysElapsed
                                 needAdjust = False
                                 
-                                #Large change, we set the rate by a third of a percent,
-                                #And set it in absolute units, to override any nonsense windup that has accumulated.
-                                if diff>0.025:
-                                    self.pipelineRate = self.targetRate - 0.003
+                                if diff>0.05:
                                     needAdjust=True
-                                elif diff<-0.025:
-                                    self.pipelineRate = self.targetRate + 0.003
+                                elif diff<-0.05:
                                     needAdjust=True
-                                
-                                #Otherwise we make small adjustments, in relative units, that should not 
-                                #Be noticable at all
-                                elif diff>0.005:
-                                    self.pipelineRate = self.pipelineRate - 0.0003
-                                    needAdjust=True
-                                elif diff<-0.005:
-                                    self.pipelineRate = self.targetRate + 0.0003
-                                    needAdjust=True
+                    
                                 else:
                                     #We want to set things back, if we can. to preserve some sanity
                                     #And avoid poor quality from running at a different rate
@@ -183,8 +174,10 @@ def makeWeakrefPoller(selfref,exitSignal):
             
 
                                 if needAdjust:
-                                    #Don't actually set the target rate of anything like that
-                                    self.seek(rate=self.pipelineRate,_raw=True)
+                                    if (time.monotonic()-lastAdjustment)>10:
+                                        lastAdjustment=time.monotonic()
+                                        #Don't actually set the target rate of anything like that
+                                        self.seek(sysElapsed, rate=self.pipelineRate,_offset=0.008,_raw=True)
                             except:
                                 logging.exception("GST time sync error")
                                 continue
@@ -227,6 +220,7 @@ class GstreamerPipeline():
         self.pipeline = Gst.Pipeline()
         self.threadStarted=False
         self.weakrefs = weakref.WeakValueDictionary()
+
 
         #This WeakValueDictionary is mostly for testing purposes
         pipes[id(self)]=self
@@ -297,8 +291,10 @@ class GstreamerPipeline():
 
 
         
-    
-    def seek(self, t=None,rate=None, _raw=False):
+    def loopCallback(self):
+        #Meant to subclass. Gets called under the lock
+        pass
+    def seek(self, t=None,rate=None, _raw=False,_offset=0.008):
         "Seek the pipeline to a position in seconds, set the playback rate, or both"
         with self.lock:
             if self.exiting:
@@ -309,14 +305,15 @@ class GstreamerPipeline():
             if rate is None:
                 rate=self.targetRate
 
-            #Set effective start time so that the system clock sync keeps working.
+            #Set "effective start time" so that the system clock sync keeps working.
             if not t is None:
+                t= max(t,0)
                 self.startTime = time.monotonic()-t
             if not _raw:
                 self.targetRate = rate
                 self.pipelineRate = rate
             self.pipeline.seek (rate, Gst.Format.TIME,
-            Gst.SeekFlags.SKIP|Gst.SeekFlags.FLUSH, Gst.SeekType.NONE if t is None else Gst.SeekType.SET, max((t or 0)*10**9,0),
+            Gst.SeekFlags.SKIP|Gst.SeekFlags.FLUSH, Gst.SeekType.NONE if t is None else Gst.SeekType.SET, max((t+_offset or 0)*10**9,0),
             Gst.SeekType.NONE, -1)
     
     def getPosition(self):
@@ -367,8 +364,11 @@ class GstreamerPipeline():
             return e
 
     
-    
+    #Low level wrapper just for filtering out args we don't care about
     def on_eos(self,*a,**k):
+        self.onEOS()
+
+    def onEOS(self):
         def f2():
             try:
                 self.stop()
@@ -432,6 +432,8 @@ class GstreamerPipeline():
         with self.lock:
             if self.exiting:
                 return
+
+                        
             x = effectiveStartTime or time.time()
             timeAgo = time.time()-x
             #Convert to monotonic time that the nternal APIs use

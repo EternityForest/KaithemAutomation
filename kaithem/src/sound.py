@@ -14,6 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 import subprocess,os,math,time,sys,threading, collections,logging,re,uuid
+
 from . import  util, scheduling,directories,workers, registry,widgets,messagebus, midi
 from .config import config
 
@@ -897,13 +898,32 @@ class MPlayerWrapper(SoundWrapper):
             workers.do(f)
 
 
+
 from . import gstwrapper
 class GSTAudioFilePlayer(gstwrapper.Pipeline):
     def __init__(self, file, volume=1, output="@auto",onBeat=None, _prevPlayerObject=None):
-        "WARNING THESE WILL MEMORY LEAK IF NOT CLEANED WITH STOP"
 
         if output==None:
             output="@auto"
+        self.filename = file
+
+
+        self.lastFileSize = os.stat(file).st_size
+
+        if self.lastFileSize==0:
+            for i in range(10):
+                self.lastFileSize = os.stat(file).st_size
+                if self.lastFileSize>0:
+                    break
+                time.sleep(1)
+
+        if self.lastFileSize==0:
+            raise RuntimeError("File was still zero bytes after 10 seconds")
+        
+        self.lastPosition = 0
+       
+        self.lastFileSizeChange = 0
+
         gstwrapper.Pipeline.__init__(self,str(uuid.uuid4()),systemTime=True,realtime=70)
         self.aw =None
         self.ended = False
@@ -917,12 +937,28 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
 
         self.src = self.addElement('filesrc',location=file)
+        self.queue = self.addElement("queue")
 
-        self.addElement('decodebin')
+        decodeBin = self.addElement('decodebin',low_percent=15)
         #self.addElement('audiotestsrc')
+        isVideo=False
 
-        self.addElement('audioconvert')
+        for i in (".mkv",".flv",".wmv",".mp4",".avi"):
+            if file.endswith(i):
+                isVideo=True
+        if isVideo:
+            decodeBin.set_property("low-percent",80)
+            q=self.addElement('queue', connectToOutput=decodeBin, connectWhenAvailable="audio")
+        
+            self.addElement('audiorate')
+            self.addElement('audioconvert')
+
+        else:
+            self.addElement('audioconvert',connectToOutput=decodeBin,connectWhenAvailable="audio")
+    
         self.addElement('audioresample')
+
+
         
         if onBeat:
             self.addLevelDetector()
@@ -942,14 +978,35 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         else:
             cname="player"+str(time.monotonic())+"_out"
 
-            self.sink = self.addElement('jackaudiosink', buffer_time=8000, 
-            latency_time=4000, sync=False,slave_method=2,port_pattern="jhjkhhhfdrhtecytey",
+            self.sink = self.addElement('jackaudiosink', buffer_time=8000 if not isVideo else 80000, 
+            latency_time=4000 if not isVideo else 40000,slave_method=2,port_pattern="jhjkhhhfdrhtecytey",
             connect=0,client_name=cname)
 
             self.aw = jackmanager.Airwire(cname, output)
             self.aw.connect()
         #Get ready!
         self.pause()
+
+
+    def loopCallback(self):
+        size= os.stat(self.filename).st_size
+        if not size==self.lastFileSize:
+            self.lastFileSizeChange = time.monotonic()
+            self.lastFileSize=size
+
+        self.lastPosition = self.getPosition()
+
+    def onEOS(self):
+        #If the file has changed size recently, this might not be a real EOS,
+        #Just a buffer underrun. Lets just try again 
+        if self.lastFileSizeChange> (time.monotonic()-3):
+            self.pause()
+            self.seek(self.lastPosition-0.1)
+            time.sleep(3)
+            self.play()
+        else:
+            gstwrapper.Pipeline.onEOS(self)
+
 
     def setFader(self,level):
         with self.lock:

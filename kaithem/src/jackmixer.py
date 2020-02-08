@@ -676,8 +676,10 @@ class MixingBoard():
             backup = []
             if name in self.channelObjects:
                 backup =self.channelObjects[name].backup()
-                self.channelObjects[name].stop()
-
+                try:
+                    self.channelObjects[name].stop()
+                except:
+                    log.exception("Error stopping old channel with that name, continuing")
 
             time.sleep(0.01)
             time.sleep(0.01)

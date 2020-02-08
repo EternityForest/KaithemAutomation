@@ -1,4 +1,5 @@
 from src import statemachines, widgets, registry, sound,scheduling,workers,pages,messagebus,virtualresource,unitsofmeasure,auth
+from typeguard import typechecked
 
 import logging,threading,time, random, weakref
 logger = logging.getLogger("system.alerts")
@@ -57,7 +58,7 @@ api.attach(handleApiCall)
 def calcNextBeep():
     global nextbeep
     global sfile
-    x = _highestUnacknowledged()
+    x = _highestUnacknowledged(excludeSilent=True)
     if not x:
         x=0
     else:
@@ -87,7 +88,10 @@ def alarmBeep():
         s = sfile
         beepDevice = registry.get("system/alerts/soundcard",None)
         if s:
-            sound.playSound(s,handle="kaithem_sys_main_alarm",output=beepDevice)
+            try:
+                sound.playSound(s,handle="kaithem_sys_main_alarm",output=beepDevice)
+            except:
+                logger.exception("ERROR PLAYING ALERT SOUND")
 
 
 
@@ -107,7 +111,7 @@ def highestUnacknowledged():
         return l
 
 
-def _highestUnacknowledged():
+def _highestUnacknowledged(excludeSilent=False):
     #Pre check outside lock for efficiency. 
     if not unacknowledged:
         return
@@ -115,8 +119,11 @@ def _highestUnacknowledged():
     for i in unacknowledged.values():
         i = i()
         if i:
+            if excludeSilent:
+                if i.silent:
+                    continue
             #Handle the priority upgrading. Error alarms act like error priority
-            if (priorities[i.priority] if not i.sm.state=="error" else "error") > priorities[l]:
+            if (priorities[i.priority] if not i.sm.state=="error" else priorities["error"]) > priorities[l]:
                 l = i.priority
     return l
 
@@ -140,8 +147,9 @@ def cleanup():
                 pass
 
 class Alert(virtualresource.VirtualResource):
-    def __init__(self, name, priority="info", zone=None, tripDelay=0, autoAck=False,
-                permissions=[], ackPermissions=[], id=None,description=""
+    @typechecked
+    def __init__(self, name:str, priority:str="info", zone=None, tripDelay:(int,float)=0, autoAck:bool=False,
+                permissions:list=[], ackPermissions:list=[], id=None,description:str="", silent:bool=False
     ):
         """
         Create a new Alert object. An alert is a persistant notification 
@@ -190,6 +198,7 @@ class Alert(virtualresource.VirtualResource):
 
         self.permissions    = permissions + ['/users/alerts.view']
         self.ackPermissions = ackPermissions + ['users/alerts.acknowledge']
+        self.silent = silent
 
         self.priority = priority
         self.zone = zone
