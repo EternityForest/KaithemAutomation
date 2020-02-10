@@ -1,6 +1,9 @@
 Change Log
 ----------
 
+### 0.65.11
+- Better sound quality, especially when pleying videos
+
 ### 0.65.10
 - Fix bug that caused it to not boot up on new installs
 - Chandler logic editor defaults autofilled
