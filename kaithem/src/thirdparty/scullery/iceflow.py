@@ -27,6 +27,25 @@ pipes = weakref.WeakValueDictionary()
 
 log = logging.getLogger("IceFlow_gst")
 
+class PILCapture():
+    def __init__(self,appsink):
+        from PIL import Image
+
+        self.img = Image
+        self.appsink=appsink
+
+    def pull(self):
+        sample = self.appsink.emit('try-pull-sample', 0.1*10**9)
+        if not sample:
+            return None
+
+        buf = sample.get_buffer()
+        caps = sample.get_caps()
+        h=caps.get_structure(0).get_value('height')
+        w=caps.get_structure(0).get_value('width')
+
+        return self.img.frombytes("RGB", (w, h), buf.extract_dup(0, buf.get_size()))
+
 
 
 def link(a,b):
@@ -231,7 +250,21 @@ def getCaps(e):
         return "UNKNOWN"
     e.getSinks()[0].getNegotiatedCaps()
 
-class GstreamerPipeline():
+
+def linkClosureMaker(self, src, dest,connectWhenAvailable,eid):
+    "This has t be outside, it can't leak a ref to self's strong reference into the closure or it may leak memory"
+    def linkFunction(element, pad,dummy):
+        s = pad.query_caps(None).to_string()
+        if isinstance(connectWhenAvailable,str):
+            if not connectWhenAvailable in s:
+                return
+
+        if eid in self().waitingCallbacks:
+            link(element,dest)
+        del self().waitingCallbacks[eid]
+    return linkFunction
+
+class GStreamerPipeline():
     """Semi-immutable pipeline that presents a nice subclassable GST pipeline You can only add stuff to it.
     """
     def __init__(self, name=None, realtime=None, systemTime =False):
@@ -604,6 +637,15 @@ class GstreamerPipeline():
     def shouldAllowGstJack():
         raise RuntimeError("You must override this method to return True if jackd is running and can be used")
 
+    def addPILCapture(self,resolution,connectToOutput=None, buffer=1):
+        "Return a video capture object"
+        conv = self.addElement("videoconvert",connectToOutput=connectToOutput)
+        scale=self.addElement("videoscale")
+        caps = self.addElement("capsfilter",caps="video/x-raw,width="+str(resolution[0])+",height="+str(resolution[0])+", format=RGB")
+        appsink = self.addElement("appsink",drop=True,sync=False,max_buffers=buffer)
+
+        return PILCapture(appsink)
+    
     def addElement(self,t,name=None,connectWhenAvailable=False, connectToOutput=None, **kwargs):
 
         #Don't let the user use JACK if it's not running,
@@ -633,29 +675,17 @@ class GstreamerPipeline():
         
             if connectToOutput:
                 if not id(connectToOutput) in self.elementTypesById:
-                    raise ValueError("Cannot connect to the output of: "+str(connectToOutput))
+                    raise ValueError("Cannot connect to the output of: "+str(connectToOutput)+", no such element in pipeline.")
 
             #This could be the first element
             if self.elements:
                 connectToOutput=connectToOutput or self.elements[-1]
                 #Decodebin doesn't have a pad yet for some awful reason
                 if (self.elementTypesById[id(connectToOutput)]=='decodebin') or connectWhenAvailable:
-                    xx = uuid.uuid4()
+                    eid = uuid.uuid4()
+                    f = linkClosureMaker(weakref.ref(self),connectToOutput,e,connectWhenAvailable, eid)
 
-                    def closureMaker(src, dest):
-                        def linkFunction(element, pad,dummy):
-                            s = pad.query_caps(None).to_string()
-                            if isinstance(connectWhenAvailable,str):
-                                if not connectWhenAvailable in s:
-                                    return
-
-                            if xx in self.waitingCallbacks:
-                                link(element,dest)
-                            del self.waitingCallbacks[xx]
-                        return linkFunction
-                    f = closureMaker(connectToOutput,e)
-
-                    self.waitingCallbacks[xx]=f
+                    self.waitingCallbacks[eid]=f
                     #Dummy 1 param because some have claimed to get segfaults without
                     connectToOutput.connect("pad-added",f,1)
                 else:
@@ -697,3 +727,11 @@ class GstreamerPipeline():
                 self.weakrefs[str(target)+"fromgetter"]=target
             else:
                 element.set_property(prop[0], value)
+    def isActive(self):
+        with self.lock:
+            if self.pipeline.get_state(1000_000_000)[1] ==Gst.State.PAUSED:
+                return True
+            if self.pipeline.get_state(1000_000_000)[1] ==Gst.State.PLAYING:
+                return True
+#Legacy misspelling
+GstreamerPipeline= GStreamerPipeline

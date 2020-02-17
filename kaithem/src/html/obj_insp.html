@@ -1,7 +1,7 @@
 <%!
 from src.util import url
 from src import pages,newevt,usrpages,unitsofmeasure,util,widgets,kaithemobj
-import json,re,cherrypy,inspect,weakref,collections
+import json,re,cherrypy,inspect,weakref,collections,gc
 %>
 <%
 try:
@@ -45,6 +45,30 @@ ${obj.__class__|h}
 %endfor
 </div>
 %endif
+
+
+<h3>Objects Referring to this Object</h3>
+<div class="sectionbox">
+<a href="?objname=${objname}&objpath=${objpath}&gcinfo=1">Get Info</a>
+%if getGC:
+<p class="help">Greyed entries may be less interesting and more likely the rendering of this page itself.</p>
+<dl>
+%for i in gc.get_referrers(obj):
+<dt><a href="?objname=${objname}&objpath=${objpath},r${id(i)}&gcinfo=1">${id(i)}</a></dt
+    >
+<dd
+%if 'getGC' in util.saferepr(i) or 'objpath' in util.saferepr(i):
+style="color:grey;"
+%endif
+>${util.saferepr(i)|h}
+</dd>
+
+%endfor
+</dl>
+%endif
+
+</div>
+
 
 
 %if hasattr(obj,'__slots__') and obj.__slots__:

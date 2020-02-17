@@ -322,6 +322,13 @@ class SoundWrapper(object):
     
     def preload(self, filename):
         pass
+
+    def seek(self,position,channel = "PRIMARY"):
+        try:
+            return self.runningSounds[channel].seek(position)
+        except KeyError:
+            pass
+
         
 class MadPlayWrapper(SoundWrapper):
     backendname = "MadPlay Sound Player"
@@ -901,7 +908,7 @@ class MPlayerWrapper(SoundWrapper):
 
 from . import gstwrapper
 class GSTAudioFilePlayer(gstwrapper.Pipeline):
-    def __init__(self, file, volume=1, output="@auto",onBeat=None, _prevPlayerObject=None):
+    def __init__(self, file, volume=1, output="@auto",onBeat=None, _prevPlayerObject=None,systemTime=False):
 
         if output==None:
             output="@auto"
@@ -924,7 +931,7 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
        
         self.lastFileSizeChange = 0
 
-        gstwrapper.Pipeline.__init__(self,str(uuid.uuid4()),systemTime=True,realtime=70)
+        gstwrapper.Pipeline.__init__(self,str(uuid.uuid4()),systemTime=False,realtime=70)
         self.aw =None
         self.ended = False
 
@@ -978,8 +985,8 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         else:
             cname="player"+str(time.monotonic())+"_out"
 
-            self.sink = self.addElement('jackaudiosink', buffer_time=8000 if not isVideo else 80000, 
-            latency_time=4000 if not isVideo else 40000,slave_method=2,port_pattern="jhjkhhhfdrhtecytey",
+            self.sink = self.addElement('jackaudiosink', buffer_time=60000 if not isVideo else 80000, 
+            latency_time=30000 if not isVideo else 40000,slave_method=2,port_pattern="jhjkhhhfdrhtecytey",
             connect=0,client_name=cname)
 
             self.aw = jackmanager.Airwire(cname, output)
@@ -1006,6 +1013,15 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
             self.play()
         else:
             gstwrapper.Pipeline.onEOS(self)
+    
+    def setVol(self,v):
+        #We are going to do a perceptual gain algorithm here
+        db = volumeToDB(v)
+
+        #Now convert to a raw gain
+        vGain = 10**(db/20)
+
+        self.setFader(vGain if not vGain<-0.01 else 0)
 
 
     def setFader(self,level):
@@ -1086,7 +1102,7 @@ class GStreamerBackend(SoundWrapper):
                     self.pl = GSTAudioFilePlayer(filename, kwargs.get('volume',1),output=output)
 
 
-            self.pl.setFader(kwargs.get('volume',1))
+            self.pl.setVol(kwargs.get('volume',1))
             if not  kwargs.get('pause',0):
                 self.pl.start()
             else:
@@ -1104,14 +1120,8 @@ class GStreamerBackend(SoundWrapper):
             return not self.pl.ended
         
         def setVol(self,v):
-            #We are going to do a perceptual gain algorithm here
             self.volume=v
-            db = volumeToDB(v)
-
-            #Now convert to a raw gain
-            vGain = 10**(db/20)
-
-            self.pl.setFader(vGain if not vGain<-99 else 0)
+            self.pl.setVol(v)
 
         def pause(self):
             self.pl.pause()
@@ -1121,7 +1131,15 @@ class GStreamerBackend(SoundWrapper):
 
         def stop(self):
             self.pl.stop()
-       
+        def seek(self):
+            self.pl.seek()
+    
+        def position():
+            try:
+                return self.pl.getPosition()
+            except:
+                return 0
+
     def preload(self,filename,output="@auto"):
         if not os.path.exists(filename):
             return

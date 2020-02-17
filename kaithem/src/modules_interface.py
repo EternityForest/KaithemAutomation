@@ -70,7 +70,13 @@ def searchModuleResources(modulename,search,max_results=100,start=0):
 def followAttributes(root, path):
     l = util.split_escape(path,",",escape="\\")
     for i in l:
-        if i.startswith("t"):
+        #Following references works by specifying the exact obj id
+        if i.startswith("r"):
+            import gc
+            for ref in gc.get_referrers(root):
+                if str(id(ref)) in i:
+                    root=ref
+        elif i.startswith("t"):
             root =root[tuple(json.loads(i[1:]))]
         elif i.startswith("a"):
             root = getattr(root, i[1:])
@@ -331,7 +337,7 @@ class WebInterface():
                 if not "objpath" in kwargs:
                     return pages.get_template("modules/modulescope.html").render(kwargs=kwargs, name = root,obj=obj, objname=objname)
                 else:
-                    return pages.get_template("obj_insp.html").render(objpath = kwargs['objpath'],objname=objname, obj = followAttributes(obj,kwargs['objpath']))
+                    return pages.get_template("obj_insp.html").render(objpath = kwargs['objpath'],objname=objname, obj = followAttributes(obj,kwargs['objpath']),getGC=kwargs.get("gcinfo",False))
 
             #This gets the interface to add a page
             if path[0] == 'addresource':
