@@ -49,8 +49,12 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.12
+- No longer using system time sync for audio files
+- Object inspector can now find referrers for an object
+
 ### 0.65.11
-- Better sound quality, especially when pleying videos
+- Better sound quality, especially when playing videos
 
 ### 0.65.10
 - Fix bug that caused it to not boot up on new installs
@@ -64,15 +68,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - Chandler UX improvements
 - Synchronous messages
 - Chandler edge triggered poll events
-
-### 0.65.7
-- Fix not waiting long enough to see if events have errors
-- Tagpoint Filter/Soft Tags API
-- Tagpoint.poll() function
-- Save Jack mixer data as YAML, one file per preset
-
-### 0.65.6
-- Fix widgets on unencrypted connectionsp
 
 
 License Terms

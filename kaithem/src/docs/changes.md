@@ -1,8 +1,11 @@
 Change Log
 ----------
+### 0.65.12
+- No longer using system time sync for audio files
+- Object inspector can now find referrers for an object
 
 ### 0.65.11
-- Better sound quality, especially when pleying videos
+- Better sound quality, especially when playing videos
 
 ### 0.65.10
 - Fix bug that caused it to not boot up on new installs
