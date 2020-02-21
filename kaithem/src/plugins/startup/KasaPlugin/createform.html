@@ -1,0 +1,43 @@
+<%!
+import KasaPlugin
+import traceback
+%>
+
+<%
+KasaPlugin.maybeRefresh(30)
+%>
+<h2>Kasa Device Info</h2>
+
+<datalist id="devices">
+    %for i in KasaPlugin.lookup:
+    <option value="${i}"></option>
+    %endfor
+</datalist>
+
+
+<table border="1" style="width:40em">
+    <p>Changing name and WiFi credentials changes the on-device settings, one time when hitting submit. Passwords and name
+        change requests aren't stored anywhere but the server.
+    </p>
+    
+    <tr>
+        <td>Current Device locator(IP address or device alias)</td>
+        <td><input list="devices" name="temp.locator"></td>
+    </tr>
+
+    <tr>
+        <td>New Device Alias(Immediate only, Leave blank=unchanged)</td>
+        <td><input list="devices" name="device.locator"></td>
+    </tr>
+
+    <tr>
+        <td>New Device WiFI SSID(Immediate only, Leave blank=unchanged)</td>
+        <td><input list="devices" name="temp.ssid"></td>
+    </tr>
+
+    <tr>
+        <td>New Device WiFI WPA2 PSK(Immediate only, Leave blank=unchanged)</td>
+        <td><input list="devices" name="temp.psk"></td>
+    </tr>
+
+</table>

@@ -289,33 +289,6 @@ manage, list, and configure all your connected devices.
 Devices allow a certain amount of no-code GUI configuration for
 supported types, by adding them on the devices page.
 
-Devices are defined by a dict of configuration data and a name. At
-minimium, the device config data will have a "type" field that
-determines what class is used to construct the device object.
-
-The generated device objects are accessible at kaithem.devices.name or
-kaithem.devices\['name'\]
-
-Every device has a set of "descriptors", which are objects indexed by
-string keys that describe exactly what the device is capable of. String
-keys can be anything, but domain name based names help avoid collisions.
-
-To create your own device types, all you have to do is subclass
-remotedevices.RemoreDevice, and add your subclass to the weak dict
-remotedevices.deviceTypes.
-
-Device configuration pages are structured as HTML forms, and the field
-names map directly to data keys in the configuration. Every device has a
-getManagementForm() method that returns raw HTML that gets inserted into
-that form.
-
-Configuration keys are hierarchially namespaced. To be completely safe,
-use the "device." namespace for device specific stuff.
-
-Config keys of the form alerts.NAME.priority are used to set the
-priority of the corresponding alert in the device.alerts dict, allowing
-easy configurable alerting. The config page already has this section,
-you do not need to include it in your management form.
 
 <span id="fileref"></span>File Reference Resources
 --------------------------------------------------

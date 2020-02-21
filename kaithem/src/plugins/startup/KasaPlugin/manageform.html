@@ -6,7 +6,7 @@ import traceback
 %>
 
 <%
-KasaPlugin.maybeRefresh()
+KasaPlugin.maybeRefresh(30*60)
 
 try:
     en = obj.getEnergyStats(0)
@@ -28,14 +28,23 @@ except:
 <table border="1" style="width:40em">
 
 <tr>
-        <td>Device Type</td>
-        <td><input name="type" value="${data.get('type','')}"></td>
+    <td>Current Device locator(IP address or device alias)</td>
+    <td><input list="devices" name="temp.locator" value="${data.get('device.locator','')}"></td>
 </tr>
 
+<tr>
+    <td>Set New Locator(Immediate, leave blank to keep current)</td>
+    <td><input list="devices" name="device.locator" value=""></td>
+</tr>
 
 <tr>
-    <td>Device locator(IP address or device alias)</td>
-    <td><input list="devices" name="locator" value="${data.get('locator','')}"></td>
+    <td>Set New Wifi Network(Immediate, leave blank to keep current)</td>
+    <td><input name="temp.ssid" value=""></td>
+</tr>
+
+<tr>
+    <td>Set New Wifi Password(Immediate, leave blank to keep current)</td>
+    <td><input type="password" name="temp.psk" value=""></td>
 </tr>
 
 <tr>

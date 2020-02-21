@@ -1,6 +1,6 @@
 <%!
 from src.config import config
-from src import auth,util,notifications,pages,modules,registry,theming
+from src import auth,util,notifications,pages,modules,registry,theming,devices
 import cherrypy
 %>
 
@@ -88,7 +88,11 @@ import cherrypy
         %endif
       </div>
         <div><a class="pageslink" href="/pagelisting">Page Index</a></div>
-        <div><a class="deviceslink" href="/devices">Devices</a></div>
+        <div>
+          %if devices.unsaved_changes:
+          <span title="The modules have unsaved changes"><a href="/settings/save">*</a></span>
+          %endif
+          <a class="deviceslink" href="/devices">Devices</a></div>
 
 
 

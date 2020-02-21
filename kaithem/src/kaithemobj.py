@@ -19,7 +19,7 @@ import time,random,subprocess,threading,random,gzip,json,yaml,os,ntplib,bz2,weak
 
 import cherrypy
 from . import unitsofmeasure,workers,sound,messagebus,util,mail,widgets,registry,directories,pages,config,persist,auth,breakpoint
-from . import timesync, remotedevices, alerts,midi,gpio
+from . import timesync, devices, alerts,midi,gpio
 
 
 from . import astrallibwrapper as sky
@@ -57,7 +57,7 @@ class TagInterface():
             
 class Kaithem():
 
-    devices= remotedevices.DeviceNamespace()
+    devices= devices.DeviceNamespace()
 
     tags=TagInterface()
 

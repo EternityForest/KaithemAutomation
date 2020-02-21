@@ -49,6 +49,12 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.13
+- BREAKING: Devices stored as files, not in registry
+- Add support for Kasa Color smart bulbs
+- To support that, the render engine of Chandler has but upgraded to use on-bulb fades
+- Sound has more protection against invalid interfaces
+
 ### 0.65.12
 - No longer using system time sync for audio files
 - Object inspector can now find referrers for an object

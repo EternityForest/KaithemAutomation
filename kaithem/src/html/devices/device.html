@@ -9,10 +9,25 @@
 import traceback
 from src import unitsofmeasure
 %>
+<h2>Basic</h2>
+<table border="1" style="width:40em">
+
+<tr>
+        <td>Device Type</td>
+        <td><input name="type" disabled value="${data.get('type','')}"></td>
+</tr>
+<tr>
+        <td>Device Name</td>
+        <td><input name="name" value="${name}"></td>
+</tr>
+
+</table>
+<input type="hidden" name="type" value="${data.get('type','')}">
 
 %if hasattr(obj,"getManagementForm"):
 ${obj.getManagementForm()}
 %endif
+
 
 <h2>Alerts</h2>
 <p class="help">This section lists all alerts supported by the device and
@@ -75,11 +90,7 @@ ${obj.getManagementForm()}
         %>
         <h2>Device Info</h2>
         <table border="1" style="width:80em">
-        <tr>
-                <td>Device Type</td>
-                <td><input name="type" value="${data.get('type','')}"></td>
-        </tr>
-
+       
         <tr>
                 <td>Battery info(For one device if multiple)</td>
                 <td>${obj.batteryStatusTag.value if obj.batteryStatusTag else 100}% ${obj.batteryState}</td>

@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1578394549261636
+resource-timestamp: 1582307188496122
 resource-type: event
 versions: {}
 
@@ -43,11 +43,23 @@ if __name__=='__setup__':
     
             self.hidden=True
     
+            #If local fading is disabled, the rendering tries to compress everything down to a set of fade commands.
+            #This is the time at which the current fade is supposed to end.
+            self.fadeEndTime = 0
+    
+            #If False, lighting values don't fade in, they just jump straight to the target,
+            #For things like smart bulbs where we want to use the remote fade instead.
+            self.localFading = True
+    
             #Let subclasses set these
             if not hasattr(self,"status"):
                 self.status = "normal"
             if not hasattr(self,"ok"):
                 self.ok = True
+    
+            
+            # name:weakref(fixture) for every ficture that is mapped to this universe
+            self.fixtures = {}
     
             #Represents the telemetry data back from the physical device of this universe.
             self.telemetry = {}
@@ -61,6 +73,16 @@ if __name__=='__setup__':
     
             self.groups ={}
             self.values = numpy.array([0.0]*count,dtype="f4")
+            self.alphas = numpy.array([0.0]*count,dtype="f4")
+    
+            
+            #These channels should blend like Hue, which is normal blending but
+            #There's no "background" of zeros. If there's nothing "behind" it, we consider it
+            #100% opaque
+            #Type is bool
+            self.hueBlendMask = numpy.array([0.0]*count,dtype="?")
+    
+    
             self.count = count
             #Maps fine channel numbers to coarse channel numbers
             self.fine_channels = {}
@@ -98,7 +120,9 @@ if __name__=='__setup__':
     
             #A copy of the state of the universe just after prerendered_layer was rendered, so we can go back
             #and start from there without rerendering lower layers.
-            self.prerendered_data= [0.0]*count
+    
+            #The format is values,alphas
+            self.prerendered_data= ([0.0]*count,[0.0]*count)
             
             #Maybe there might be an iteration error. But it's just a GUI convienence that
             #A simple refresh solves, so ignore it.
@@ -174,13 +198,16 @@ if __name__=='__setup__':
         
         def reset_to_cache(self):
             "Remove all changes since the prerendered layer."
-            self.values = copy.deepcopy(self.prerendered_data)
+            values,alphas = self.prerendered_data
+            self.values = copy.deepcopy(values)
+            self.alphas = copy.deepcopy(alphas)
+    
             self.top_layer = self.prerendered_layer
         
         def save_prerendered(self, p, s):
             "Save this layer as the cached layer. Called in the render functions"
             self.prerendered_layer = (p,s)
-            self.prerendered_data  = copy.deepcopy(self.values)
+            self.prerendered_data  = (copy.deepcopy(self.values),copy.deepcopy(self.alphas))
         
         def reset(self):
             "Reset all values to 0 including the prerendered data"
@@ -226,7 +253,7 @@ if __name__=='__setup__':
             self.statusChanged = {}
             #Sender needs the values to be there for setup
             self.values = numpy.array([0.0]*channels,dtype="f4")
-            self.sender = DMXSender(self,portname,framerate)
+            self.sender = makeSender(DMXSender,weakref.ref(self),portname,framerate)
             self.sender.connect()
             
             Universe.__init__(self,name,channels)
@@ -249,7 +276,7 @@ if __name__=='__setup__':
         """
         def __init__(self,universe,port,framerate):
             self.frame = threading.Event()
-            self.universe= weakref.ref(universe)
+            self.universe= universe
             self.data = message(universe.values)
             self.thread = threading.Thread(target =self.run)
             self.thread.daemon = True
@@ -391,7 +418,7 @@ if __name__=='__setup__':
     
             #Channel 0 is a dummy to make math easier.
             self.values = numpy.array([0.0]*(channels+1),dtype="f4")
-            self.sender = ArtNetSender(self,addr,port,framerate,scheme)
+            self.sender = makeSender(ArtNetSender,weakref.ref(self),addr,port,framerate,scheme)
             
             Universe.__init__(self,name,channels)
     
@@ -450,6 +477,8 @@ if __name__=='__setup__':
     
     
     
+    def makeSender(c,uref,*a):
+        return c(uref,*a)
     
     
     class ArtNetSender():
@@ -462,7 +491,7 @@ if __name__=='__setup__':
             self.scheme=scheme
     
     
-            self.universe= weakref.ref(universe)
+            self.universe=universe
             self.data = False
             self.running = 1
             #The last telemetry we didn't ignore
@@ -581,7 +610,7 @@ if __name__=='__setup__':
             self.statusChanged = {}
             #Sender needs the values to be there for setup
             self.values = numpy.array([0.0]*channels,dtype="f4")
-            self.sender = RawDMXSender(self,portname,framerate)
+            self.sender = makeDMXSender(weakref.ref(self),portname,framerate)
             self.sender.connect()
             
             Universe.__init__(self,name,channels)
@@ -597,6 +626,9 @@ if __name__=='__setup__':
             self.sender.onFrame(None)
     
     
+    def makeDMXSender(uref, port, fr):
+        return RawDMXSender(uref,port, fr)
+    
     class RawDMXSender():
         """This object is used by the universe object to send data to the enttec adapter.
             It runs in it's own thread because the frame rate might have nothing to do with
@@ -604,8 +636,9 @@ if __name__=='__setup__':
         """
         def __init__(self,universe,port,framerate):
             self.frame = threading.Event()
-            self.universe= weakref.ref(universe)
-            self.data = rawmessage(universe.values)
+            self.data = rawmessage(universe().values)
+            self.universe= universe
+    
             self.thread = threading.Thread(target =self.run)
             self.thread.daemon = True
             self.thread.name = "DMXSenderThread_"+self.thread.name
@@ -724,11 +757,100 @@ if __name__=='__setup__':
                 self.data = data
                 self.frame.set()
     
+    
+    
+    
+    class HSVSmartBulbUniverse(Universe):
+        #Thanks to https://github.com/c0z3n/pySimpleDMX
+        #I didn't actually use the code, but it was a very useful resouurce
+        #For protocol documentation.
+        def __init__(self,name,channels=128,portname="",framerate=44,number=0):
+            self.ok = False
+            self.number=number
+            self.status = "Disconnect"
+            self.statusChanged = {}
+            #Limit framerate to protect flash memory, and bandwidth
+            self.framerate = min(framerate,8)
+            self.portname=portname
+            #Sender needs the values to be there for setup
+            self.values = numpy.array([0.0]*channels,dtype="f4")
+            self.lock = threading.Lock()
+    
+            Universe.__init__(self,name,channels)
+    
+            self.hidden=False
+    
+            self.lastSend = time.monotonic()
+            self.finishedSending = True
+            self.awaitingSend = False
+            self.assignDefaultFixture()
+            self.lastPostedErr=0
+            self.localFading=False
+    
+            self.lastCommand=0
+    
+        def assignDefaultFixture(self):
+            self.f = module.Fixture(self.name,[['hue','hue'],['sat','sat'],['val','dim']])
+            self.f.assign(self.name, 1)
+    
+        def getHSV(self):
+            return ((self.values[1]/255)*360), (self.values[2]/255), (self.values[3]/255)
+    
+    
+        def onFrame(self):
+       
+            
+    
+            def sendFunction():
+                while self.finishedSending==False:
+                    self.awaitingSend=True
+                    time.sleep(1/self.framerate)
+                with self.lock:
+                    self.awaitingSend=False
+    
+                h,s,v = self.getHSV()
+                cmd = (h,s,v,self.fadeEndTime)
+    
+                if cmd==self.lastCommand:
+                    return
+                self.lastCommand=cmd
+    
+                self.finishedSending=False
+                try:
+                    try:
+                        kaithem.devices[self.portname].setHSV(0,h,s,v, max(self.fadeEndTime-module.timefunc(),0))
+                        self.setStatus("OK",True)
+                    except:
+                        self.setStatus("Failed to send",False)
+                        if self.lastPostedErr< time.monotonic()-60:
+                            kaithem.chandler.event("board.error",self.name+"\n"+traceback.format_exc(chain=True))
+                            self.lastPostedErr=time.monotonic()
+                finally:        
+                    self.finishedSending = True
+    
+            with self.lock:
+                if not self.awaitingSend:
+                    kaithem.misc.do(sendFunction)
+            
+    
+    class RGBSmartBulbUniverse(HSVSmartBulbUniverse):
+        def getHSV(self):
+            c=(self.values[0]/255, self.values[1]/255, self.values[2]/255)
+    
+            return (c[0]*360,c[1],c[2])
+            
+        def assignDefaultFixture(self):
+            self.f = module.Fixture(self.name,[['red','red'],['green','green'],['blue','blue']])
+            self.f.assign(self.name, 1)
+    
+    
     module.Universe = Universe
     module.EnttecUniverse = EnttecUniverse
     module.EnttecOpenUniverse = EnttecOpenUniverse
     module.TagpointUniverse = TagpointUniverse
     module.ArtNetUniverse = ArtNetUniverse
+    module.HSVSmartBulbUniverse = HSVSmartBulbUniverse
+    module.RGBSmartBulbUniverse = RGBSmartBulbUniverse
 
 def eventAction():
     pass

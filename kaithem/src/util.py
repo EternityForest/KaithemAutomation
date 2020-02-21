@@ -130,6 +130,9 @@ def SaveAllState():
     with savelock:
         try:
             x = False
+
+            messagebus.postMessage("/system/save",None,synchronous=True)
+
             if modules.saveAll():
                 x=True
             if auth.dumpDatabase():

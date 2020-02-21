@@ -910,7 +910,7 @@ from . import gstwrapper
 class GSTAudioFilePlayer(gstwrapper.Pipeline):
     def __init__(self, file, volume=1, output="@auto",onBeat=None, _prevPlayerObject=None,systemTime=False):
 
-        if output==None:
+        if not output:
             output="@auto"
         self.filename = file
 
@@ -974,12 +974,18 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
         if output=="@auto":
             self.sink = self.addElement('autoaudiosink')
+        elif output=="@pulse":
+            self.sink = self.addElement('pulsesink')
+
         elif output.startswith("@alsa:"):
             self.addElement('alsasink',device= output[6:])
 
         #No jack clients at all means it probably isn't running
         elif not jackClientsFound:
-            self.addElement('alsasink',device= output)
+            if "hw:" in output or  "usb:" in output: 
+                self.addElement('alsasink',device= output)
+            else:
+                raise ValueError("Bad output: "+output)
         
         #Default to just using jack
         else:

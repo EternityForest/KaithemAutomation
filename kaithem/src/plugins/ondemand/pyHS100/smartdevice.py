@@ -391,6 +391,15 @@ class SmartDevice(object):
         """
         self._query_helper("system", "set_mac_addr", {"mac": mac})
 
+
+    
+    
+    def set_wifi(self,ssid,psk,key_type=3):
+        self._query_helper("netif","set_stainfo",{
+            'ssid':ssid, 'password':psk, 'key_type':key_type
+        })
+    
+
     def get_emeter_realtime(self) -> Optional[Dict]:
         """
         Retrieve current energy readings from device.

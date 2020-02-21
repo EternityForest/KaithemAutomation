@@ -1,0 +1,73 @@
+
+<%!
+
+import KasaPlugin
+import traceback
+%>
+
+<%
+KasaPlugin.maybeRefresh(30*60)
+%>
+<h2>Kasa Bulb Device Info</h2>
+<datalist id="devices">
+    %for i in KasaPlugin.lookup:
+    <option value="${i}"></option>
+    %endfor
+</datalist>
+
+<table border="1" style="width:40em">
+
+<tr>
+    <td>Current Device locator(IP address or device alias)</td>
+    <td><input list="devices" name="temp.locator" value="${data.get('device.locator','')}"></td>
+</tr>
+
+<tr>
+    <td>Change Device's Alias(Immediate, leave blank to keep current)</td>
+    <td><input list="devices" name="device.locator" value=""></td>
+</tr>
+
+<tr>
+    <td>Set New Wifi Network(Immediate, leave blank to keep current)</td>
+    <td><input name="temp.ssid" value=""></td>
+</tr>
+
+<tr>
+    <td>Set New Wifi Password(Immediate, leave blank to keep current)</td>
+    <td><input type="password" name="temp.psk" value=""></td>
+</tr>
+
+<tr>
+    <td>Tag Value</td>
+    <td>${obj.tagPoints['switch'].meterWidget.render()}</td>
+</tr>
+
+<tr>
+    <td>Control(Raw, overrides tag value until tag changes)</td>
+    <td>${obj.onButton.render("On")} ${obj.offButton.render("Off")}</td>
+</tr>
+<tr>
+    <td>Color(Webpage may not reflect actual color)</td>
+    <td>${obj.hwidget.render(label="Hue")}${obj.swidget.render(label="Saturation")}${obj.vwidget.render(label="Value")}
+
+        ${obj.csetButton.render("Set")}
+    </td>
+</tr>
+<tr>
+    <td>RSSI</td><td>
+    %try:
+    ${obj.rssi()}</td>
+    %except Exception as e:
+    ${e|h}</td>
+    %endtry
+</tr>
+
+</table>
+
+%try:
+<pre>
+${obj.getRawDevice().sys_info|h}
+</pre>
+%except:
+${traceback.format_exc()}
+%endtry

@@ -15,7 +15,7 @@
 
 import threading,urllib,shutil,sys,time,os,json,traceback, copy,mimetypes,uuid
 import cherrypy,yaml
-from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling, registry,remotedevices
+from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling, registry,devices
 from .modules import *
 from src import modules
 from src.config import config
@@ -598,7 +598,7 @@ def addResourceTarget(module,type,name,kwargs,path):
                 "prgid":name[-15:].replace("/","_")
                 })
 
-            remotedevices.updateProgram(root, escapedName,None, False)
+            devices.updateProgram(root, escapedName,None, False)
             raise cherrypy.HTTPRedirect("/modules/module/"+util.url(module))
 
         elif type == 'permission':
@@ -667,8 +667,8 @@ def resourceEditPage(module,resource,version='default',kwargs=None):
 
         if resourceinquestion['resource-type'] == 'k4dprog_sq':
             if not "preview" in kwargs:
-                d = remotedevices.remote_devices.get(resourceinquestion['device'], None)
-                p = remotedevices.loadedSquirrelPrograms.get((module,resource),None)
+                d = devices.remote_devices.get(resourceinquestion['device'], None)
+                p = devices.loadedSquirrelPrograms.get((module,resource),None)
                 return pages.get_template("modules/remoteprograms/sqprog.html").render(
                     module =module,
                     name =resource,
@@ -677,8 +677,8 @@ def resourceEditPage(module,resource,version='default',kwargs=None):
                     printout= p.print if p else None,
                     errs= p.errors if p else None
                     )
-            d = remotedevices.remote_devices.get(resourceinquestion['device'], None)
-            p = remotedevices.loadedSquirrelPrograms.get((module,resource),None)
+            d = devices.remote_devices.get(resourceinquestion['device'], None)
+            p = devices.loadedSquirrelPrograms.get((module,resource),None)
             return pages.get_template("modules/remoteprograms/sqprogprev.html").render(
                 code = p.getPreprocessedCode(kwargs['code'], True if kwargs['preview']=='2' else False),
                 module =module,
@@ -751,7 +751,7 @@ def resourceUpdateTarget(module,resource,kwargs):
             resourceobj['device'] = kwargs['device']
             resourceobj['prgid'] = kwargs['prgid']
             modules_state.createRecoveryEntry(module,resource, resourceobj)
-            remotedevices.updateProgram(module, resource, resourceobj)
+            devices.updateProgram(module, resource, resourceobj)
 
         elif t == 'event':
             evt = None

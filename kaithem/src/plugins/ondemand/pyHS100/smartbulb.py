@@ -136,6 +136,9 @@ class SmartBulb(SmartDevice):
 
     @hsv.setter
     def hsv(self, state: Tuple[int, int, int]):
+        self.set_hsv(state)
+
+    def set_hsv(self, state: Tuple[int, int, int],duration=1): 
         """
         Sets new HSV, if supported
 
@@ -163,7 +166,9 @@ class SmartBulb(SmartDevice):
             "hue": state[0],
             "saturation": state[1],
             "brightness": state[2],
-            "color_temp": 0
+            "color_temp": 0,
+            "ignore_default": 1,
+            "transition_period": max(min(int(duration*1000),10000),0)
             }
         self.set_light_state(light_state)
 
@@ -253,6 +258,9 @@ class SmartBulb(SmartDevice):
 
     @state.setter
     def state(self, bulb_state: str) -> None:
+        self.set_state(state)
+
+    def set_state(self, bulb_state: str,duration=1) -> None:
         """
         Set the new bulb state
 
@@ -269,6 +277,8 @@ class SmartBulb(SmartDevice):
 
         light_state = {
             "on_off": new_state,
+            "ignore_default": 1,
+            "transition_period": max(min(int(duration*1000),10000),0)
         }
         self.set_light_state(light_state)
 
@@ -295,17 +305,17 @@ class SmartBulb(SmartDevice):
     def is_on(self) -> bool:
         return bool(self.state == self.BULB_STATE_ON)
 
-    def turn_off(self) -> None:
+    def turn_off(self,duration=1) -> None:
         """
         Turn the bulb off.
         """
-        self.state = self.BULB_STATE_OFF
+        self.set_state(self.BULB_STATE_OFF,duration)
 
-    def turn_on(self) -> None:
+    def turn_on(self,duration=1) -> None:
         """
         Turn the bulb on.
         """
-        self.state = self.BULB_STATE_ON
+        self.set_state(self.BULB_STATE_ON,duration)
 
     @property
     def has_emeter(self) -> bool:

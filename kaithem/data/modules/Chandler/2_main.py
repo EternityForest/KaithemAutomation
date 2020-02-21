@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1580967822210467
+resource-timestamp: 1582307475860729
 resource-type: event
 versions: {}
 
@@ -19,7 +19,7 @@ if __name__=='__setup__':
     #This code runs once when the event loads. It also runs when you save the event during the test compile
     #and may run multiple times when kaithem boots due to dependancy resolutio n
     __doc__=''
-    import time,array,random,weakref, os,threading,uuid,logging,serial,traceback,yaml,copy,json,math,struct,socket,src
+    import time,array,random,weakref, os,threading,uuid,logging,serial,traceback,yaml,copy,json,math,struct,socket,src,json
     from decimal import Decimal
     from tinytag import TinyTag
     from typeguard import typechecked
@@ -43,7 +43,8 @@ if __name__=='__setup__':
     from src.scriptbindings import ChandlerScriptContext,getFunctionInfo
     
     rootContext = ChandlerScriptContext()
-    
+    fixtureslock = threading.RLock()
+    module.fixtures ={}
     
     def refresh_scenes(t,v):
         """Stop and restart all active scenes, because some caches might need to be updated
@@ -430,8 +431,7 @@ if __name__=='__setup__':
                     return default
                 raise
     
-    fixtureslock = threading.Lock()
-    module.fixtures ={}
+    
     fixtureschanged = {}
     
     def getUniverse(u):
@@ -510,13 +510,12 @@ if __name__=='__setup__':
                 self.nameToOffset[channels[i][0]]= i
     
     
-            with module.lock:
-                with fixtureslock:
-                    if name in module.fixtures:
-                        raise ValueError("Name in Use")
-                    else:
-                        module.fixtures[name]=weakref.ref(self)
-                        self.name=name
+            with fixtureslock:
+                if name in module.fixtures:
+                    raise ValueError("Name in Use")
+                else:
+                    module.fixtures[name]=weakref.ref(self)
+                    self.name=name
         
         def getChannelByName(self,name):
             if self.startAddress:
@@ -544,7 +543,6 @@ if __name__=='__setup__':
     
         def assign(self,universe, channel):
             with module.lock:
-                
                 # First just clear the old assignment, if any
                 if self.universe and self.startAddress:
                     oldUniverseObj=getUniverse(self.universe)
@@ -555,6 +553,8 @@ if __name__=='__setup__':
                             if i in oldUniverseObj.channels:
                                 if oldUniverseObj.channels[i]() and oldUniverseObj.channels[i]()  is self:
                                     del oldUniverseObj.channels[i]
+                                    #We just unassigned it, so it's not a hue channel anymore
+                                    oldUniverseObj.hueBlendMask[i]=0
                                 else:
                                     print("Unexpected channel data corruption",universe, i, oldUniverseObj.channels[i]())
     
@@ -585,11 +585,17 @@ if __name__=='__setup__':
                             if not self.name == universeObj.channels[i]().name:
                                 raise ValueError("channel " +str(i)+ " of " +self.name+ " would overlap with "+universeObj.channels[i]().name)
     
+                cPointer = 0
                 for i in range(channel,channel+len(self.channels)):
                    universeObj.channels[i]= weakref.ref(self)
+                   if self.channels[cPointer][1] in ('hue','sat','custom'):
+                       #Mark it as a hue channel that blends slightly differently
+                       universeObj.hueBlendMask[i]=1
+                       cPointer+=1
     
     
     
+    module.Fixture = Fixture
     
     def fixturesFromOldListStyle(l):
         "Convert fixtures from the older list of tuples style to the new dict style"
@@ -822,13 +828,16 @@ if __name__=='__setup__':
             for i in u:
                 if u[i]['type'] == 'enttecopen' or u[i]['type'] == 'rawdmx':
                     l[i] = module.EnttecOpenUniverse(i,channels=int(u[i].get('channels',128)),portname=u[i].get('interface',None),framerate=float(u[i].get('framerate',44)))
-                if u[i]['type'] == 'enttec':
+                elif u[i]['type'] == 'enttec':
                     l[i] = module.EnttecUniverse(i,channels=int(u[i].get('channels',128)),portname=u[i].get('interface',None),framerate=float(u[i].get('framerate',44)))
-                if u[i]['type'] == 'artnet':
+                elif u[i]['type'] == 'smartbulb':
+                    l[i] = module.HSVSmartBulbUniverse(i,channels=int(u[i].get('channels',3)),portname=u[i].get('interface',None),framerate=float(u[i].get('framerate',14)))
+                elif u[i]['type'] == 'artnet':
                     l[i] = module.ArtNetUniverse(i,channels=int(u[i].get('channels',128)),address=u[i].get('interface',"255.255.255.255:6454"),framerate=float(u[i].get('framerate',44)),number=int(u[i].get('number',0)))
-                if u[i]['type']=='tagpoints':
+                elif u[i]['type']=='tagpoints':
                     l[i]=module.TagpointUniverse(i,channels=int(u[i].get('channels',128)),tagpoints=u[i].get('channelConfig',{}),framerate=float(u[i].get('framerate',44)),number=int(u[i].get('number',0)))
-    
+                else:
+                    event("system.error","No universe type: "+u[i]['type'])
             self.universeObjs = l
             self.pushUniverses()
     
@@ -1916,24 +1925,40 @@ if __name__=='__setup__':
         return background
             
     
-    def applyLayer(universe, uvalues,scene):
+    def applyLayer(universe, uvalues,scene,uobj):
         "May happen in place, or not, but always returns the new version"
     
         if not universe in scene.canvas.v2:
             return uvalues
+    
         vals = scene.canvas.v2[universe]
         alphas = scene.canvas.a2[universe]
     
+        #The universe may need to know when it's current fade should end,
+        #if it handles fading in a different way.
+        #This will look really bad for complex things, to try and reduce them to a series of fades,
+        #but we just do the best we can, and assume there's mostly only 1 scene at a time affecting things
+        uobj.fadeEndTime = scene.cue.fadein+scene.enteredCue
+        
+        ualphas = uobj.alphas
     
         if scene.blend =="normal":
-            uvalues = composite(uvalues,vals,alphas,scene.alpha)
+            #todo: is it bad to multiply by bool?
+            unsetVals = (ualphas==0.0)
+            fade = numpy.maximum(scene.alpha, unsetVals&uobj.hueBlendMask)
+    
+            uvalues = composite(uvalues,vals,alphas, fade)
+            #Essetially calculate remaining light percent, then multiply layers and convert back to alpha
+            ualphas =  1-((1-(alphas*fade)) * (1-(ualphas))) 
     
     
         elif scene.blend == "HTP":
             uvalues = numpy.maximum(uvalues, vals*(alphas*scene.alpha))
+            ualphas =  (alphas*scene.alpha)>0
     
         elif scene.blend == "inhibit":
             uvalues = numpy.minimum(uvalues, vals*(alphas*scene.alpha))
+            ualphas =  (alphas*scene.alpha)>0
     
         elif scene.blend == "gel" or scene.blend=="multiply":
             if scene.alpha:
@@ -1941,10 +1966,17 @@ if __name__=='__setup__':
                 c= 255/scene.alpha
                 uvalues = (uvalues*(1-alphas*scene.alpha)) + (uvalues*vals)/c
     
+                #COMPLETELY incorrect, but we don't use alpha for that much, and the real math
+                #Is compliccated. #TODO
+                ualphas =  (alphas*scene.alpha)>0
+    
+    
     
         elif scene._blend:
             try:
                 uvalues = scene._blend.frame(universe,uvalues,vals,alphas,scene.alpha)
+                #Also incorrect-ish, but treating modified vals as fully opaque is good enough.
+                ualphas =  (alphas*scene.alpha)>0
             except:
                 print("Error in blend function")
                 print(traceback.format_exc())
@@ -2035,7 +2067,7 @@ if __name__=='__setup__':
                         universeObject.save_prerendered(universeObject.top_layer[0], universeObject.top_layer[1])
     
                     changedUniverses[u]=(i.priority, i.started)
-                    universeObject.values = applyLayer(u, universeObject.values, i)
+                    universeObject.values = applyLayer(u, universeObject.values, i,universeObject)
                     universeObject.top_layer = (i.priority, i.started)
     
                     #If this is the first nonstatic layer, meaning it's render function requested a rerender next frame
@@ -2094,24 +2126,30 @@ if __name__=='__setup__':
             #We assume a lot of these lists have the same set of universes. If it gets out of sync you
             #probably have to stop and restart the scenes.
             for i in vals:
+                effectiveFade = fade
+                obj=getUniverse(i)
+    
                 #Add existing universes to canvas, skip non existing ones
                 if not i in self.v:
-                    obj=getUniverse(i)
-                    
                     if obj:
                         l =len(obj.values)
                         self.v[i] = makeBlankArray(l)
                         self.a[i] = makeBlankArray(l)
                         self.v2[i] = makeBlankArray(l)
                         self.a2[i] = makeBlankArray(l)
+                
+    
+                #Some universes can disable local fading, like smart bulbs wehere we have remote fading.
+                #And we would rather use that. Of course, the disadvantage is we can't properly handle
+                #Multiple things fading all at once.
+                if not obj.localFading:
+                    effectiveFade=1
     
                 #We don't want to fade any values that have 0 alpha in the scene,
                 #because that's how we mark "not present", and we want to track the old val.
                 #faded = self.v[i]*(1-(fade*alphas[i]))+ (alphas[i]*fade)*vals[i]
-                
-                faded = self.v[i]*(1-fade) + (fade*vals[i])
-                
-                
+                faded = self.v[i]*(1-effectiveFade) + (effectiveFade*vals[i])
+         
                 
                 #We always want to jump straight to the value if alpha was previously 0.
                 #That's because a 0 alpha would mean the last scene released that channel, and there's
@@ -2123,11 +2161,15 @@ if __name__=='__setup__':
             #Now we calculate the alpha values. Including for
             #Universes the cue doesn't affect.
             for i in self.a:
+                effectiveFade=fade
+                obj=getUniverse(i)
+                if not obj.localFading:
+                    effectiveFade=1
                 if not i in alphas:
                     aset = 0
                 else:
                     aset = alphas[i]
-                self.a2[i] = self.a[i]*(1-fade) + fade*aset
+                self.a2[i] = self.a[i]*(1-effectiveFade) + effectiveFade*aset
     
     
         def save(self):

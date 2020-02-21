@@ -15,23 +15,32 @@
 
 
 
-import weakref, threading,time,logging,traceback,struct,hashlib,base64,gc
+import weakref, threading,time,logging,traceback,struct,hashlib,base64,gc,os
 import cherrypy,mako
 
-from . import virtualresource,pages,registry,modules_state,kaithemobj, workers,tagpoints, alerts
+from . import virtualresource,pages,registry,modules_state,kaithemobj, workers,tagpoints, alerts,persist,directories,messagebus
 
 remote_devices = {}
 remote_devices_atomic = {}
 
 lock = threading.RLock()
+device_data={}
 
-#shoould contain all data needed to create the device objects and connect to them
-device_data = registry.get("system_remotedevices.devices",{})
+saveLocation = os.path.join(directories.vardir,"devices")
+if os.path.isdir(saveLocation):
+    for i in os.listdir(saveLocation):
+        fn = os.path.join(saveLocation,i)
+        if os.path.isfile(fn) and fn.endswith(".yaml"):
+            d = persist.load(fn)
+            d ={i:d[i] for i in d if not i.startswith('temp.')}
+            device_data[i[:-len('.yaml')]] = d
+
 k4dlogger = logging.getLogger("system_k4d_errors")
 syslogger = logging.getLogger("system.devices")
 
 dbgd = weakref.WeakValueDictionary()
 
+unsaved_changes={}
 
 def getZombies():
     x =[]
@@ -42,6 +51,30 @@ def getZombies():
 #Indexed by module,resource tuples
 loadedSquirrelPrograms = {}
 
+
+def saveAsFiles():
+    global unsaved_changes
+    sd = device_data
+    saveLocation = os.path.join(directories.vardir,"devices")
+    if not os.path.exists(saveLocation):
+        os.mkdir(saveLocation)
+
+    saved = {}
+    #Lock used to prevent conflict, saving over each other with nonsense data.
+    with lock:    
+        for i in sd:
+            saved[i+".yaml"]=True
+            persist.save(sd[i], os.path.join(saveLocation,i+".yaml")  )
+
+        #Delete everything not in folder
+        for i in os.listdir(saveLocation):
+            fn=os.path.join(saveLocation,i)
+            if os.path.isfile(fn) and i.endswith(".yaml"):
+                if not i in saved:
+                    os.remove(fn)
+        unsaved_changes={}
+  
+messagebus.subscribe("/system/save",saveAsFiles)
 def getByDescriptor(d):
     x = {}
 
@@ -151,7 +184,7 @@ def updateProgram(module,resource, data, upload=True):
             workers.do(f)
 #This is the base class for a remote device of any variety.
 
-class RemoteDevice(virtualresource.VirtualResource):
+class Device(virtualresource.VirtualResource):
     """A Descriptor is something that describes a capability or attribute
     of a device. They are string names and object values,
     and names should be globally unique"""
@@ -162,6 +195,15 @@ class RemoteDevice(virtualresource.VirtualResource):
     def validateData(data):
         pass
 
+    @staticmethod
+    def getCreateForm():
+        """Method that should return HTML that may contain input tags.
+         Anything prefixed with data_ will be considered somthing that goes directly into
+         the device data, minus the prefix.
+
+         The contents will be added to the form used for creating new devices of this type.
+         """
+        return ""
     def setAlertPriorities(self):
         """Sets alert priorites for all alerts in the alerts dict
             based on the data key alerts.<alert_key>.priority
@@ -169,6 +211,14 @@ class RemoteDevice(virtualresource.VirtualResource):
         for i in self.alerts:
             if "alerts."+i+".priority" in self.data:
                 self.alerts[i].priority =  self.data["alerts."+i+".priority"]
+
+
+    def setDataKey(self,key,val):
+        "Lets a device set it's own persistent stored data"
+        with lock:
+            self.data[key]=val
+            device_data[self.name][key]=val
+            unsaved_changes[self.name]=True
 
     def __init__(self,name, data):
         if not data['type']==self.deviceTypeName:
@@ -233,35 +283,38 @@ class RemoteDevice(virtualresource.VirtualResource):
 
 ##Device data always has 2 constants. 1 is the required type, the other
 #is name, and that's optional but can be used to rename a device
-def updateDevice(name, kwargs,saveChanges=True):
-    name = name or kwargs['name']
+def updateDevice(devname, kwargs,saveChanges=True):
+    name =kwargs.get('name',None) or devname
+    
     getDeviceType(kwargs['type']).validateData(kwargs)
+
+    
+    
+    unsaved_changes[devname]=True
+
     with lock:
-        if name in remote_devices:
-            remote_devices[name].close()
-            del device_data[name]
+        if devname in remote_devices:
+            remote_devices[devname].close()
+            del device_data[devname]
         gc.collect()
         time.sleep(0.01)
         time.sleep(0.01)
         gc.collect()
 
-        #Allow name changing via data
-        name=kwargs.get("name") or name
-        device_data[name] = kwargs        
+        #Allow name changing via data, we save under new, not the old name
+        device_data[name] = {i:kwargs[i] for i in kwargs if not i.startswith('temp.')}        
+        unsaved_changes[kwargs['name']]=True
 
         remote_devices[name] = makeDevice(name, kwargs)
         global remote_devices_atomic
         remote_devices_atomic =remote_devices.copy()
-        if saveChanges:
-            registry.set("system_remotedevices.devices", device_data)
-
 
 class WebDevices():
     @cherrypy.expose
     def index(self):
         """Index page for web interface"""
         pages.require("/admin/settings.edit")
-        return pages.get_template("devices/index.html").render(devices=remote_devices_atomic)
+        return pages.get_template("devices/index.html").render(deviceData=remote_devices_atomic)
     
     @cherrypy.expose
     def device(self,name):
@@ -274,18 +327,24 @@ class WebDevices():
 
 
     @cherrypy.expose
-    def updateDevice(self,name,**kwargs):
+    def updateDevice(self,devname,**kwargs):
         pages.require("/admin/settings.edit")
-        updateDevice(name,kwargs)
+        updateDevice(devname,kwargs)
         raise cherrypy.HTTPRedirect("/devices")
 
 
     @cherrypy.expose
     def createDevice(self,name,**kwargs):
+        "Actually create the new device"
+
         pages.require("/admin/settings.edit")
         name = name or kwargs['name']
+
+
         with lock:
             device_data[name]=kwargs
+            unsaved_changes[name]=True
+
             if name in remote_devices:
                 remote_devices[name].close()
             remote_devices[name] = makeDevice(name, kwargs)
@@ -293,6 +352,21 @@ class WebDevices():
             remote_devices_atomic =remote_devices.copy()
 
         raise cherrypy.HTTPRedirect("/devices")
+
+
+    @cherrypy.expose
+    def customCreateDevicePage(self,name,**kwargs):
+        "Ether create a 'blank' device, or, if supported, show the custom page"
+        pages.require("/admin/settings.edit")
+
+        tp = getDeviceType(kwargs['type'])
+
+        if hasattr(tp,"getCreateForm"):
+            createForm = tp.getCreateForm()
+        else:
+            createForm=""
+
+        return pages.get_template("devices/createpage.html").render(customForm=createForm, name=name, type=kwargs['type'])
 
     @cherrypy.expose
     def deleteDevice(self,name,**kwargs):
@@ -317,7 +391,7 @@ class WebDevices():
             global remote_devices_atomic
             remote_devices_atomic =remote_devices.copy()
             gc.collect()
-            registry.set("system_remotedevices.devices", device_data)
+            unsaved_changes[name]=True
 
         raise cherrypy.HTTPRedirect("/devices")
 
@@ -331,15 +405,16 @@ except:
 
 
 
-class PavillionDevice(RemoteDevice):
+class PavillionDevice(Device):
     deviceTypeName="pavillion"
+    
     @staticmethod
     def validateData(data):
         data['port'] = int(data['port'])
 
 
     def close(self):
-        RemoteDevice.close(self)
+        Device.close(self)
         try:
             self.pclient.close()
         except:
@@ -406,7 +481,7 @@ class PavillionDevice(RemoteDevice):
 
     def __init__(self, name, data):
         import pavillion
-        RemoteDevice.__init__(self,name,data)
+        Device.__init__(self,name,data)
         self.pclient=None
         self.recievelock=threading.Lock()
         self.lastError = 0
@@ -475,7 +550,7 @@ class PavillionDevice(RemoteDevice):
             "lowBatteryAlert": self.lowSignalAlert,
         }
 
-        RemoteDeviceObject = self
+        DeviceObject = self
         #Has to be here so it doesn't mess everything else
         #up if we can't import Pavillion
         class Client2(pavillion.Client):
@@ -488,38 +563,38 @@ class PavillionDevice(RemoteDevice):
                 if self.connectCB:
                     workers.do(self.connectCB)
             def onServerStatusUpdate(self,server):
-                RemoteDeviceObject.batteryState = server.batteryState()
+                DeviceObject.batteryState = server.batteryState()
                 if not server.batteryState() =='unknown':
                     blevel = server.battery()
                     if blevel<15:
-                        RemoteDeviceObject.lowBatteryAlert.trip()
+                        DeviceObject.lowBatteryAlert.trip()
                     elif blevel>35:
-                        RemoteDeviceObject.lowBatteryAlert.clear()
+                        DeviceObject.lowBatteryAlert.clear()
 
                     #We create it the first time we actually get a battery status report
-                    if not RemoteDeviceObject.batteryStatusTag:
+                    if not DeviceObject.batteryStatusTag:
                         #here's a tagpoint for the battery level
-                        RemoteDeviceObject.batteryStatusTag = tagpoints.Tag("/devices/"+name+".battery")
-                        RemoteDeviceObject.batteryStatusTag.min=1
-                        RemoteDeviceObject.batteryStatusTag.max=100
-                    if not RemoteDeviceObject.batteryStatusClaim:
-                        RemoteDeviceObject.batteryStatusClaim = RemoteDeviceObject.batteryStatusTag.claim(blevel,"reported",51)
-                    RemoteDeviceObject.batteryStatusClaim.set(blevel)
+                        DeviceObject.batteryStatusTag = tagpoints.Tag("/devices/"+name+".battery")
+                        DeviceObject.batteryStatusTag.min=1
+                        DeviceObject.batteryStatusTag.max=100
+                    if not DeviceObject.batteryStatusClaim:
+                        DeviceObject.batteryStatusClaim = DeviceObject.batteryStatusTag.claim(blevel,"reported",51)
+                    DeviceObject.batteryStatusClaim.set(blevel)
 
-                RemoteDeviceObject.netType =server.netType()
+                DeviceObject.netType =server.netType()
                 if server.netType() in ('wwan','wlan'):
-                    RemoteDeviceObject.connectionTagClaim.set(server.rssi())
+                    DeviceObject.connectionTagClaim.set(server.rssi())
                     if server.rssi()<-89:
-                        RemoteDeviceObject.lowSignalAlert.trip()
+                        DeviceObject.lowSignalAlert.trip()
                     else:
-                        RemoteDeviceObject.lowSignalAlert.clear()
+                        DeviceObject.lowSignalAlert.clear()
                 #Doesn't really apply to non wireless
                 else:
                     #We have a tag for every pavillion device because we assume they
                     #Can roam to wireless because some can. On wired we set RSSI to the max
-                    RemoteDeviceObject.connectionTagClaim.set(20)
-                    RemoteDeviceObject.lowSignalAlert.clear()
-                RemoteDeviceObject.unreachableAlert.clear()
+                    DeviceObject.connectionTagClaim.set(20)
+                    DeviceObject.lowSignalAlert.clear()
+                DeviceObject.unreachableAlert.clear()
         #This client is passed a callback to autoload all new code onto the device upon connection
         self.pclient = Client2(self.onPavillionConnect, clientID=self.cid,psk=self.psk, address=(data['address'],data['port']))
 
@@ -755,10 +830,11 @@ def getDeviceType(t):
     elif t in deviceTypes:
         return deviceTypes[t]
     else:
-        return RemoteDevice
+        return Device
 
 
 def init_devices():
+    global remote_devices_atomic
     for i in device_data:
         try:
             remote_devices[i] = makeDevice(i, device_data[i])

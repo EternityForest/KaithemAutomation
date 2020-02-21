@@ -42,7 +42,6 @@ if __name__=='__setup__':
         module.maketimefunc = maketimefunc
     maketimefunc()
     module.timefunc = timefunc
-    
 
 def eventAction():
     pass

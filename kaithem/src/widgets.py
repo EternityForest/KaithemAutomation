@@ -418,7 +418,7 @@ class TimeWidget(Widget):
             </script>
             </div>"""%(self.uuid,self.uuid,auth.getUserSetting(pages.getAcessingUser(),'strftime').replace('%l','%I')))
 
-        if type=='inline':
+        elif type=='inline':
             return("""<span id="%s">
             <script type="text/javascript" src="/static/js/strftime-min.js">
             </script>
@@ -432,6 +432,8 @@ class TimeWidget(Widget):
             setInterval(f,70);
             </script>
             </span>"""%(self.uuid,self.uuid,auth.getUserSetting(pages.getAcessingUser(),'strftime').replace('%l','%I')))
+        else:
+            raise ValueError("Invalid type")
 
 time_widget = TimeWidget(Widget)
 
@@ -692,7 +694,7 @@ class Slider(Widget):
             orient = 'class="horizontalslider"'
         if type=='debug':
             return {'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self.value, 'unit':unit}
-        if type=='realtime':
+        elif type=='realtime':
             return """<div class="widgetcontainer sliderwidget" ontouchmove = function(e) {e.preventDefault()};>
             <b><p>%(label)s</p></b>
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
@@ -723,7 +725,7 @@ class Slider(Widget):
 
             </div>"""%{'label':label, 'orient':orient,'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self.value,  'value':self.value,'unit':unit}
 
-        if type=='onrelease':
+        elif type=='onrelease':
             return """<div class="widgetcontainer sliderwidget">
             <b><p">%(label)s</p></b>
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
@@ -755,7 +757,7 @@ class Slider(Widget):
             KWidget_subscribe("%(id)s",upd);
             </script>
             </div>"""%{'label':label, 'orient':orient,'en':self.isWritable(),'htmlid':mkid(), 'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self.value, 'unit':unit}
-            raise ValueError("Invalid slider type:"%str(type))
+        raise ValueError("Invalid slider type:"%str(type))
 
 class Switch(Widget):
     def __init__(self,*args,**kwargs):

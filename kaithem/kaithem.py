@@ -16,8 +16,8 @@
 
 #
 
-__version__ = "0.65.12 Production"
-__version_info__ = (0,65,12,"release",0)
+__version__ = "0.65.13 Production"
+__version_info__ = (0,65,13,"release",0)
 
 #Library that makes threading and lock operations, which we use a lot of, use native code on linux
 try:
@@ -124,8 +124,8 @@ except:
     messagebus.postMessage('/system/notifications/errors',"Error loading plugins")
     logger.exception("Error loading plugins")
 
-from src import remotedevices
-remotedevices.init_devices()
+from src import devices
+devices.init_devices()
 
 
 from src import wifimanager
@@ -482,7 +482,7 @@ def webRoot():
     import zipfile
 
 
-    from src import remotedevices
+    from src import devices
 
     #There are lots of other objects ad classes represeting subfolders of the website so we attatch them
     root = webapproot()
@@ -496,7 +496,7 @@ def webRoot():
     root.notifications = notifications.WI()
     root.widgets = widgets.WebInterface()
     root.syslog = logviewer.WebInterface()
-    root.devices = remotedevices.WebDevices()
+    root.devices = devices.WebDevices()
     
 
     if not os.path.abspath(__file__).startswith("/usr/bin"):

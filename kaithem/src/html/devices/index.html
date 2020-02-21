@@ -1,7 +1,7 @@
 <%include file="/pageheader.html"/>
 
 <%! 
-from src import remotedevices
+from src import devices
 
 def devStatString(d):
     #TODO this should be the responsibility of the individual devices
@@ -16,7 +16,7 @@ def devStatString(d):
         pass
 
     if hasattr(d,'pclient'):
-        s+=" offline" if  devices[i].pclient and devices[i].pclient.remoteAddress==None else ""
+        s+=" offline" if  deviceData[i].pclient and deviceData[i].pclient.remoteAddress==None else ""
 
     return s
     
@@ -38,24 +38,24 @@ def devStatString(d):
 <tr>
     <td>Name</td><td>Type</td>  <td>Edit</td> <td>Status</td> <td>Errors</td><td>Delete</td>
 </tr>
-%for i in sorted(devices.keys()):
+%for i in sorted(deviceData.keys()):
 <tr>
     <td>
         ${i}
     </td>
     <td>
-            ${devices[i].deviceTypeName}
+            ${deviceData[i].deviceTypeName}
     </td>
 
     <td>
         <a href="device/${i}">Edit</a>
     </td>
 
-    <td>${devStatString(devices[i])|h}</td>
+    <td>${devStatString(deviceData[i])|h}</td>
     
 
     <td>
-        ${len(devices[i].errors)}
+        ${len(deviceData[i].errors)}
     </td>
 
 
@@ -66,9 +66,9 @@ def devStatString(d):
 %endfor
 </table>
 
-%if remotedevices.getZombies():
+%if devices.getZombies():
 <h2>Zombie Devices</h2>
-%for i in sorted(remotedevices.getZombies()):
+%for i in sorted(devices.getZombies()):
 <h3>${i}</h3>
 <p>
 
@@ -77,16 +77,16 @@ def devStatString(d):
 %endif
 
 <datalist id="deviceTypes">
-    %for i in remotedevices.builtinDeviceTypes:
-    <option value="${i}" title=${remotedevices.builtinDeviceTypes[i].description} >
+    %for i in devices.builtinDeviceTypes:
+    <option value="${i}" title=${devices.builtinDeviceTypes[i].description} >
     %endfor
-    %for i in remotedevices.deviceTypes:
-    <option value="${i}" title=${remotedevices.deviceTypes[i].description} >
+    %for i in devices.deviceTypes:
+    <option value="${i}" title=${devices.deviceTypes[i].description} >
     %endfor
 </datalist>
 
-
-<form action="createDevice">
+<h2>Create New Device</h2>
+<form action="customCreateDevicePage">
 <Label>Name:<input name="name"></Label>
 <Label>Type:<input name="type" placeholder="Click for dropdown" list="deviceTypes"></Label>
 <input type="submit">

@@ -1,0 +1,26 @@
+<%include file="/pageheader.html"/>
+
+<%! 
+from src import devices
+%>
+
+<script src="/static/js/vue2.js"></script>
+<script src="/static/widget.js"></script>
+
+<title>Create Device</title>
+<h1>Create Device</h1>
+<div class="sectionbox">
+    <form action="createDevice">
+
+        <h2>Basic Info</h2>
+            <Label>Name:<input name="name" value="${name|h}"></Label>
+            <Label>Type:<input name="type" disabled value="${type|h}"></Label>
+            <input type="hidden" name="type" value="${type|h}">
+        <h2>Device</h2>
+            ${customForm}
+
+        <input type="submit">
+    </form>
+</div>
+<%include file="/pagefooter.html"/>
+

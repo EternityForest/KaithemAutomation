@@ -16,7 +16,7 @@
 #File for keeping track of and editing kaithem modules(not python modules)
 import threading,urllib,shutil,sys,time,os,json,traceback,copy,hashlib,logging,uuid, gc,re,weakref,sqlite3,ast
 import cherrypy,yaml
-from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling,modules_state,registry,remotedevices,persist
+from . import auth,pages,directories,util,newevt,kaithemobj,usrpages,messagebus,scheduling,modules_state,registry,devices,persist
 from .modules_state import ActiveModules,modulesLock,scopes,additionalTypes,fileResourceAbsPaths
 from .virtualresource import VirtualResource, VirtualResourceInterface
 import urllib.parse
@@ -765,7 +765,7 @@ def initModules():
     auth.importPermissionsFromModules()
     newevt.getEventsFromModules()
     usrpages.getPagesFromModules()
-    remotedevices.loadProgramsFromModules()
+    devices.loadProgramsFromModules()
     moduleshash = hashModules()
     logger.info("Initialized modules")
 
@@ -986,7 +986,7 @@ def handleResourceChange(module,resource):
         auth.importPermissionsFromModules() #sync auth's list of permissions
     
     if t=="k4dprog_sq":
-        remotedevices.updateProgram(module, resource, data)
+        devices.updateProgram(module, resource, data)
 
     elif t == 'event':
         evt = None
@@ -1314,7 +1314,7 @@ def bookkeeponemodule(module,update=False):
         scopes[module] = ModuleObject(module)
     for i in ActiveModules[module]:
         if ActiveModules[module][i]['resource-type'] == 'k4dprog_sq':
-            remotedevices.updateProgram(module, i, ActiveModules[module][i])
+            devices.updateProgram(module, i, ActiveModules[module][i])
 
 
 
@@ -1380,7 +1380,7 @@ def rmResource(module,resource,message="Resource Deleted"):
             newevt.removeOneEvent(module,resource)
 
         elif r['resource-type'] == "k4dprog_sq":
-            remotedevices.removeProgram(module,resource)
+            devices.removeProgram(module,resource)
 
         elif r['resource-type'] == 'permission':
             auth.importPermissionsFromModules() #sync auth's list of permissions
