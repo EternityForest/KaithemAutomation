@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1582178805674564
+resource-timestamp: 1582392351257541
 resource-type: page
 template-engine: mako
 
@@ -930,6 +930,7 @@ from src import tagpoints
                             <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='sync'}" v-on:click="scenetab='sync'"> Scene Sync</button>
                             <button v-bind:class="{highlight:scenetab=='notes'}" v-on:click="scenetab='notes'"> Scene Notes</button>
                             <button v-bind:class="{highlight:scenetab=='page'}" v-on:click="scenetab='page'"> Scene Page</button>
+                            <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Download Scene</a>
 
                         </p>
 
@@ -1209,6 +1210,7 @@ from src import tagpoints
                         <div v-if="scenetab=='blend'">
 
                             <h4 title="These properties are fixed per-scene and don't change between cues">Global Scene Properties</h4>
+    
                             <label v-if="showLightingControls">Default Alpha:
                         <input type="number" style="width:4em" max=1 step=0.01 min=0 v-on:input="setdalpha(scenename,parseFloat($event.target.value))"
                             v-model="editingScene.dalpha"></input>

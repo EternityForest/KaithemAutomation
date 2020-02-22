@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1582307188496122
+resource-timestamp: 1582390989283519
 resource-type: event
 versions: {}
 
@@ -50,7 +50,14 @@ if __name__=='__setup__':
             #If False, lighting values don't fade in, they just jump straight to the target,
             #For things like smart bulbs where we want to use the remote fade instead.
             self.localFading = True
-    
+            
+            #Used by blend modes to request that the
+            #remote device do onboard interpolation
+            #The longest time requested by any layer is used
+            #The final interpolation time is the greater of
+            #This and the time determined by fadeEndTime
+            self.interpolationTime=0
+            
             #Let subclasses set these
             if not hasattr(self,"status"):
                 self.status = "normal"
@@ -100,7 +107,6 @@ if __name__=='__setup__':
                         gc.collect()
                         #We retry, because the universes are often temporarily cached as strong refs
                         if name in _universes and _universes[name]():
-                            print(gc.get_referrers(_universes[name]()))
                             #Todo: just close the old one right here
                             raise ValueError("Name "+name+ " is taken")
                     _universes[name] = weakref.ref(self)
@@ -201,7 +207,7 @@ if __name__=='__setup__':
             values,alphas = self.prerendered_data
             self.values = copy.deepcopy(values)
             self.alphas = copy.deepcopy(alphas)
-    
+            
             self.top_layer = self.prerendered_layer
         
         def save_prerendered(self, p, s):
@@ -759,6 +765,8 @@ if __name__=='__setup__':
     
     
     
+    class BulbCommand():
+        pass
     
     class HSVSmartBulbUniverse(Universe):
         #Thanks to https://github.com/c0z3n/pySimpleDMX
@@ -770,7 +778,7 @@ if __name__=='__setup__':
             self.status = "Disconnect"
             self.statusChanged = {}
             #Limit framerate to protect flash memory, and bandwidth
-            self.framerate = min(framerate,8)
+            self.framerate = min(framerate,12)
             self.portname=portname
             #Sender needs the values to be there for setup
             self.values = numpy.array([0.0]*channels,dtype="f4")
@@ -787,7 +795,8 @@ if __name__=='__setup__':
             self.lastPostedErr=0
             self.localFading=False
     
-            self.lastCommand=0
+            self.lastCommand=(0,0,-1)
+            self.lastSendTime = 0
     
         def assignDefaultFixture(self):
             self.f = module.Fixture(self.name,[['hue','hue'],['sat','sat'],['val','dim']])
@@ -800,7 +809,12 @@ if __name__=='__setup__':
         def onFrame(self):
        
             
-    
+            c = BulbCommand()
+            h,s,v = self.getHSV()
+            t = max(self.fadeEndTime-module.timefunc(), self.interpolationTime,0)
+            
+            self.cmd=(h,s,v,t)
+            
             def sendFunction():
                 while self.finishedSending==False:
                     self.awaitingSend=True
@@ -808,21 +822,19 @@ if __name__=='__setup__':
                 with self.lock:
                     self.awaitingSend=False
     
-                h,s,v = self.getHSV()
-                cmd = (h,s,v,self.fadeEndTime)
-    
-                if cmd==self.lastCommand:
-                    return
-                self.lastCommand=cmd
-    
                 self.finishedSending=False
                 try:
                     try:
-                        kaithem.devices[self.portname].setHSV(0,h,s,v, max(self.fadeEndTime-module.timefunc(),0))
+                        if self.cmd==self.lastCommand:
+                            if self.lastSendTime> time.monotonic()-0.3:
+                                return
+                        self.lastSendTime=time.monotonic()
+                        self.lastCommand =self.cmd
+                        kaithem.devices[self.portname].setHSV(0,*self.cmd)
                         self.setStatus("OK",True)
                     except:
                         self.setStatus("Failed to send",False)
-                        if self.lastPostedErr< time.monotonic()-60:
+                        if self.lastPostedErr< time.monotonic()-(60*5):
                             kaithem.chandler.event("board.error",self.name+"\n"+traceback.format_exc(chain=True))
                             self.lastPostedErr=time.monotonic()
                 finally:        

@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1578305779085465
+resource-timestamp: 1582324257429981
 resource-type: event
 versions: {}
 
@@ -99,15 +99,20 @@ if __name__=='__setup__':
             #It's always changing so always rerender
             self.scene.rerender = True
     
+            uobj = getUniverse(u)
     
             if not u in self.heights:
-                uobj = getUniverse(u)
                 if uobj:
                     self.heights[u] = makeBlankArray(len(uobj.values))
                     self.heights_lp[u] = makeBlankArray(len(uobj.values))
                     self.last_per[u]=module.timefunc()-(1/60)
+                    
                 else:
                     return
+        
+            if uobj:
+                #Mark as interpolatable for Kasa bulb purposes
+                uobj.interpolationTime = 0.2
                     
             #Time in 60ths of a second since last frame, so we can keep a consistant frame rate
             t60 = (module.timefunc()-self.last)*60
@@ -183,8 +188,9 @@ if __name__=='__setup__':
             self.last_per = {}
         
         def frame(self,u,old,values,alphas,alpha):
+            uobj = getUniverse(u)
+    
             if not u in self.vals:
-                uobj = getUniverse(u)
                 if uobj:
                     self.vals[u] = makeBlankArray(len(uobj.values))
                     self.vals_lp[u] = makeBlankArray(len(uobj.values))
@@ -210,6 +216,11 @@ if __name__=='__setup__':
                 self.ntt = module.timefunc()+random.triangular(interval-rnd,interval+rnd,interval)
     
             lp = t60*self.scene.blendArgs['speed']
+            if uobj:
+                if not uobj.localFading:
+                    lp=1
+                    uobj.interpolationTime = (1/60)/self.scene.blendArgs['speed']
+                
             self.vals_lp[u] = self.vals_lp[u]*(1-lp) + self.vals[u]*lp
             old *= numpy.minimum((self.scene.alpha*self.vals_lp[u])+ 1-self.scene.alpha,255)
             return old

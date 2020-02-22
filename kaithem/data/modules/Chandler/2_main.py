@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1582307475860729
+resource-timestamp: 1582391821482083
 resource-type: event
 versions: {}
 
@@ -660,17 +660,17 @@ if __name__=='__setup__':
                 return t
     
     
-    def checkPermissionsForSceneData(data):
+    def checkPermissionsForSceneData(data,user):
         """Check if used can upload or edit the scene, ekse raise an error if it uses advanced features that would prevent that action.
            We disallow delete because we don't want unprivelaged users to delete something important that they can't fix.
            
         """
-        if 'page' in data and data['page']['html'].strip() or data['page']['js'].strip() or data['page'].get('rawhtml','').strip():
-            if not kaithem.users.checkPermission(kaithem.web.user(),"/admin/modules.edit"):
-                raise ValueError("You cannot modify this scene without /admin/modules.edit, because it uses advanced features: pages" )
+        if 'page' in data and (data['page']['html'].strip() or data['page']['js'].strip() or data['page'].get('rawhtml','').strip()):
+            if not kaithem.users.checkPermission(user,"/admin/modules.edit"):
+                raise ValueError("You cannot do this action on this scene without /admin/modules.edit, because it uses advanced features: pages. User:"+ str(kaithem.web.user()) )
         if 'mqttServer' in data and data['mqttServer'].strip():
-            if not kaithem.users.checkPermission(kaithem.web.user(),"/admin/modules.edit"):
-                raise ValueError("You cannot modify this scene without /admin/modules.edit, because it uses advanced features: MQTT" )
+            if not kaithem.users.checkPermission(user,"/admin/modules.edit"):
+                raise ValueError("You cannot do this action on this scene without /admin/modules.edit, because it uses advanced features: MQTT:"+ str(kaithem.web.user()) )
     
     
     class ChandlerConsole():
@@ -933,11 +933,13 @@ if __name__=='__setup__':
                 #Remove the .yaml
                 data = {filename[:-5]: data}
             for i in data:
-                checkPermissionsForSceneData(data)
+                checkPermissionsForSceneData(data, kaithem.web.user())
     
-            
+            with module.lock:
+                for i in self.scenememory:
+                     checkPermissionsForSceneData(self.scenememory[i].toDict(), kaithem.web.user())
     
-            self.loadDict(data,errs)
+                self.loadDict(data,errs)
         
         def loadDict(self,data,errs=False):
             with module.lock:
@@ -1319,6 +1321,7 @@ if __name__=='__setup__':
                     s = Scene(msg[1].strip())
                     self.scenememory[s.id]=s
                     self.link.send(["newscene",msg[1].strip(),s.id])
+                    self.pushMeta(s.id)
     
                 if msg[0] == "addmonitor":
                     s = Scene(msg[1].strip(),blend="monitor",priority=100)
@@ -1830,7 +1833,7 @@ if __name__=='__setup__':
                 if msg[0] == "del":
                     #X is there in case the activeScenes listing was the last string reference, we want to be able to push the data still
                     x = module.scenes[msg[1]]
-                    checkPermissionsForSceneData(x.toDict())
+                    checkPermissionsForSceneData(x.toDict(),user)
     
                     x.stop()
                     self.delscene(msg[1])
@@ -1938,7 +1941,7 @@ if __name__=='__setup__':
         #if it handles fading in a different way.
         #This will look really bad for complex things, to try and reduce them to a series of fades,
         #but we just do the best we can, and assume there's mostly only 1 scene at a time affecting things
-        uobj.fadeEndTime = scene.cue.fadein+scene.enteredCue
+        uobj.fadeEndTime = max(uobj.fadeEndTime,scene.cue.fadein+scene.enteredCue)
         
         ualphas = uobj.alphas
     
@@ -2015,6 +2018,9 @@ if __name__=='__setup__':
         for u in universes:
             if universes[u].full_rerender:
                 to_reset[u]=1
+                
+            universes[u].fadeEndTime = 0
+            universes[u].interpolationTime = 0
     
         for u in to_reset:
             if (to_reset[u]==1) or not universes[u].prerendered_layer[1]:

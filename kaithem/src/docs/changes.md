@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+### 0.65.14
+- Fix bug preventing deleting Changler scenes that used MQTT or pages
+- Device-side fading for flicker and vary blending modes
+- Up/Download individuial scenes
+
+
 ### 0.65.13
 - BREAKING: Devices stored as files, not in registry
 - Add support for Kasa Color smart bulbs

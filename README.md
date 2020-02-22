@@ -48,6 +48,10 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+### 0.65.14
+- Fix bug preventing deleting Changler scenes that used MQTT or pages
+- Device-side fading for flicker and vary blending modes
+- Up/Download individuial scenes
 
 ### 0.65.13
 - BREAKING: Devices stored as files, not in registry
@@ -61,19 +65,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 
 ### 0.65.11
 - Better sound quality, especially when playing videos
-
-### 0.65.10
-- Fix bug that caused it to not boot up on new installs
-- Chandler logic editor defaults autofilled
-
-### 0.65.9
-- Chandler cues sound fadeout and crossfade
-- Minor refactoring
-
-### 0.65.8
-- Chandler UX improvements
-- Synchronous messages
-- Chandler edge triggered poll events
 
 
 License Terms

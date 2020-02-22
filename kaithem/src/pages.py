@@ -15,7 +15,7 @@
 
 from mako.template import Template
 from mako.lookup import TemplateLookup
-import cherrypy,base64,weakref,threading,time
+import cherrypy,base64,weakref,threading,time,logging
 from . import auth,config
 from . import directories,util
 
