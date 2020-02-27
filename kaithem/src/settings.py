@@ -14,12 +14,13 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 import cherrypy,base64,os,time,subprocess,time,shutil,sys,logging
 from cherrypy.lib.static import serve_file
-from . import pages, util,messagebus,config,auth,registry,mail,kaithemobj, config,weblogin,systasks,gpio
+from . import pages, util,messagebus,config,auth,registry,mail,kaithemobj, config,weblogin,systasks,gpio,directories,persist
+import io
 
-if sys.version_info < (3,0):
-    import StringIO as io 
-else:
-    import io
+
+jacksettingsfile = os.path.join(directories.vardir, "system.mixer", "jacksettings.yaml")
+jacksettings = persist.getStateFile(jacksettingsfile)
+
 
 def validate_upload():
     #Allow 4gb uploads for admin users, otherwise only allow 64k 
@@ -420,13 +421,13 @@ class Settings():
         pages.require("/admin/settings.edit",noautoreturn=True)
         pages.postOnly()
 
-        registry.set("/system/sound/usejack",kwargs['jackmode'])
-        registry.set("/system/sound/pulsesharing",kwargs['pulsesharing'])
-        registry.set("/system/sound/jackperiodsize",max(32,int(kwargs['jackperiodsize'])))
-        registry.set("/system/sound/jackperiods",max(2,int(kwargs['jackperiods'])))
+        jacksettings.set("jackMode",kwargs['jackmode'])
+        jacksettings.set("sharePulse",kwargs['pulsesharing'])
+        jacksettings.set("jackPeriodSize",max(32,int(kwargs['jackperiodsize'])))
+        jacksettings.set("jackPeriods",max(2,int(kwargs['jackperiods'])))
 
         from . import jackmanager
-        if registry.get("/system/sound/usejack",None)=="manage":
+        if jacksettings.get("jackMode",None)=="manage":
             try:
                 jackmanager.startManaging()
                 jackmanager.startJackServer()

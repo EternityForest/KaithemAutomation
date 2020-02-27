@@ -19,15 +19,43 @@ from scullery import jack
 from scullery.jack import *
 import scullery
 
+from . import persist,directories
+settingsFile = os.path.join(directories.vardir, "system.mixer", "jacksettings.yaml")
+
+
+legacy_keys ={
+   "usbPeriodSize":"/system/sound/jackusbperiod",
+   "usbLatency":"/system/sound/jackusblatency",
+   "jackPeriodSize":"/system/sound/jackperiodsize",
+   "jackPeriods":"/system/sound/jackperiods"
+
+}
+
+default={
+    "usbPeriodSize": -1,
+    "usbPeriods": -1,
+
+    "usbLatency": -1,
+    "jackPeriods": 3,
+    "jackPeriodSize": 512,
+    "usbQuality": 0
+}
+
+settings = persist.getStateFile(settingsFile,default,legacy_keys)
+
+settingsFile = os.path.join(directories.vardir, "system.mixer", "jacksettings.yaml")
+settings = persist.getStateFile(settingsFile)
+
+
 
 def reloadSettings():
-    from . import registry
-    scullery.jack.usbPeriodSize = registry.get("/system/sound/jackusbperiodsize",128)
-    scullery.jack.usbLatency = max(registry.get("/system/sound/jackusblatency",384),scullery.jack.usbPeriodSize*2)
-    scullery.jack.periodSize = registry.get("/system/sound/jackperiodsize",128)
-    scullery.jack.jackPeriods = max(registry.get("/system/sound/jackperiods",2),2)
+    scullery.jack.usbPeriodSize = settings.get("usbPeriodSize",-1)
+    scullery.jack.usbLatency = max(settings.get("usbLatency",-1),scullery.jack.usbPeriodSize*2)
+    scullery.jack.usbPeriods = max(settings.get("usbPeriods",-1),scullery.jack.usbPeriodSize*2)
 
-    scullery.jack.sharePulse = registry.get("/system/sound/sharepulse",None)
+    scullery.jack.periodSize = settings.get("jackPeriodSize",512)
+    scullery.jack.jackPeriods = max(settings.get("jackPeriods",3),3)
+    scullery.jack.sharePulse = settings.get("sharePulse",None)
 
 scullery.jack.settingsReloader= reloadSettings
 

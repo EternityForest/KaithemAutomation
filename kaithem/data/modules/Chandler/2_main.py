@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1582391821482083
+resource-timestamp: 1582828005696954
 resource-type: event
 versions: {}
 
@@ -27,7 +27,17 @@ if __name__=='__setup__':
     
     logger = logging.getLogger("system.chandler")
     
+    soundLock = threading.Lock()
     
+    def playSound(*args,**kwargs):
+        def doFunction():
+            kaithem.sound.play(*args,**kwargs)
+        kaithem.misc.do(doFunction)
+    
+    def fadeSound(*args,**kwargs):
+        def doFunction():
+            kaithem.sound.fadeTo(*args,**kwargs)    
+        kaithem.misc.do(doFunction)
     
     import numpy
     import hashlib
@@ -272,7 +282,7 @@ if __name__=='__setup__':
     
     if not os.path.exists(musicLocation):
         try:
-            os.mkdir(musicLocation)
+            os.makedirs(musicLocation,mode=0o755)
         except:
             pass
     
@@ -1064,7 +1074,7 @@ if __name__=='__setup__':
             sd = data
             saveLocation = os.path.join(kaithem.misc.vardir,"chandler",dirname)
             if not os.path.exists(saveLocation):
-                os.mkdir(saveLocation)
+                os.makedirs(saveLocation,mode=0o755)
     
             saved = {}
             #Lock used to prevent conflict, saving over each other with nonsense data.
@@ -1299,7 +1309,7 @@ if __name__=='__setup__':
     
                     saveLocation = os.path.join(kaithem.misc.vardir,"chandler")
                     if not os.path.exists(saveLocation):
-                        os.mkdir(saveLocation)
+                        os.makedirs(saveLocation,mode=0o755)
     
                     kaithem.persist.save(module.config, os.path.join(saveLocation,"config.yaml"))
                     try:
@@ -1870,7 +1880,7 @@ if __name__=='__setup__':
                         pass           
     
                 if msg[0] == "testSoundCard":
-                    kaithem.sound.play("alert.ogg",output=msg[1], handle="lightboard_soundtest")
+                    playSound("alert.ogg",output=msg[1], handle="lightboard_soundtest")
         
     
             except Exception as e:
@@ -3219,9 +3229,9 @@ if __name__=='__setup__':
                                 out = None
     
                             if not self.crossfade:
-                                kaithem.sound.play(sound,handle=str(self.id),volume=self.alpha,output=out)
+                                playSound(sound,handle=str(self.id),volume=self.alpha,output=out)
                             else:
-                                kaithem.sound.fadeTo(sound,length=self.crossfade, handle=str(self.id),volume=self.alpha,output=out)
+                                fadeSound(sound,length=self.crossfade, handle=str(self.id),volume=self.alpha,output=out)
     
                             
                         else:

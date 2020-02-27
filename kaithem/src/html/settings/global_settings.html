@@ -1,7 +1,11 @@
 <%include file="/pageheader.html"/>
 <%!
-from src import config,registry,sound
-import yaml
+from src import config,registry,sound,persist,directories
+import yaml,os
+
+jacksettingsfile = os.path.join(directories.vardir, "system.mixer", "jacksettings.yaml")
+jacksettings = persist.getStateFile(jacksettingsfile)
+
 %>
 <h2>Options</h2>
 <p class="help">Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</p>
@@ -55,8 +59,8 @@ names.  Using this is required for Kaithem's integrated sound mixer to work corr
         <td>JACK Mode</td>
         <td>
             <select name="jackmode">
-                <option title="Kaithem will ignore JACK" value="off" ${'selected' if  registry.get('/system/sound/usejack','off')=='off' else ''}>off</option>
-                <option title="Kaithem will start and manage jackd" value="manage" ${'selected' if registry.get('/system/sound/usejack','off')=='manage' else ''}>manage</option>
+                <option title="Kaithem will ignore JACK" value="off" ${'selected' if  jacksettings.get('jackMode','off')=='off' else ''}>off</option>
+                <option title="Kaithem will start and manage jackd" value="manage" ${'selected' if jacksettings.get('jackMode','off')=='manage' else ''}>manage</option>
             </select>
            
         </td>
@@ -65,15 +69,15 @@ names.  Using this is required for Kaithem's integrated sound mixer to work corr
         <td>PulseAudio Sharing</td>
         <td>
             <select name="pulsesharing">
-                    <option title="Only Kaithem's user" value="off" ${'selected' if  registry.get('/system/sound/pulsesharing','off')=='off' else ''}>off</option>
-                    <option title="Any user on this machine" value="localhost" ${'selected' if  registry.get('/system/sound/pulsesharing','localhost')=='off' else ''}>localhost</option>
-                    <option title="Entire local network" value="network" ${'selected' if registry.get('/system/sound/pulsesharing','off')=='network' else ''}>network</option>
+                    <option title="Only Kaithem's user" value="off" ${'selected' if  jacksettings.get('sharePulse','off')=='off' else ''}>off</option>
+                    <option title="Any user on this machine" value="localhost" ${'selected' if  jacksettings.get('sharePulse','off')=='localhost' else ''}>localhost</option>
+                    <option title="Entire local network" value="network" ${'selected' if jacksettings.get('sharePulse','off')=='network' else ''}>network</option>
             </select>
         </td>
     </tr>
     <%
-    psize = registry.get('/system/sound/jackperiodsize',128)
-    periods  = registry.get('/system/sound/jackperiods',3)
+    psize = jacksettings.get('jackPeriodSize',512)
+    periods  = jacksettings.get('jackPeriods',3)
     %>
     <tr>
         <td>

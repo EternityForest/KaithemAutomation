@@ -49,6 +49,8 @@ subscriberErrorHandlers = []
 
 def handleError(f,topic,value):
     log.exception("Message bus subscriber error")
+    if hasattr(f,"messagebusWrapperFor"):
+        f= f.messagebusWrapperFor
     for i in subscriberErrorHandlers:
         try:
             i(f,topic,value)

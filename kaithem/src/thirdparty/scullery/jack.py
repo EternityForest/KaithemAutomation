@@ -48,8 +48,11 @@ jackPeriods = 3
 periodSize = 128
 
 #These apply to soundcards other than the main system card
-usbPeriodSize = 384
-usbLatency = 384
+usbPeriodSize = -1
+usbPeriods = -1
+
+usbLatency = -1
+usbQuality = 0
 
 realtimePriority = 70
 
@@ -937,11 +940,19 @@ def _startJackProcess(p=None, n=None,logErrs=True):
 def getIOOptionsForAdditionalSoundcard():
     settingsReloader()
     psize = usbPeriodSize
-    l = max(usbLatency,psize*2)
-    l = max(l,periodSize*2)
-    buf = int(2*(l/psize)+0.999)
+    iooptions=[]
+    
+    if not psize<0:
+        iooptions+=["-p",str(psize)]
 
-    iooptions=["-p",str(psize), "-t",str(l), "-m", str(l), "-q","1", "-r", "48000", "-n",'64']
+    if not usbLatency<0:
+        iooptions+=["-t",usbLatency]
+
+    if not usbPeriods<0:
+        iooptions+=["-n",str(usbPeriods)]
+
+    iooptions=["-q",usbQuality, "-r", "48000"]
+
     return iooptions
 
 lastFullScan=0

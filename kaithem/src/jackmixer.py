@@ -30,6 +30,12 @@ log =logging.getLogger("system.mixer")
 
 presetsDir = os.path.join(directories.vardir, "system.mixer", "presets")
 
+settingsFile = os.path.join(directories.vardir, "system.mixer", "jacksettings.yaml")
+
+
+
+settings = persist.getStateFile(settingsFile)
+
 #Try to import a cython extension that only works on Linux
 try:
     from . import threadpriority
@@ -336,6 +342,8 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
 
     def loadData(self,d):
         for i in d['effects']:
+            if d.get('bypass',False):
+                continue
             if not "id" in i or not i['id']:
                 i['id']=str(uuid.uuid4())
             if i['type']=="fader":
@@ -367,6 +375,8 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                         self.addElement(j['gstElement'],**j['gstSetup'])
                
                 for j in i['params']:
+                    if j=='bypass':
+                        continue
                     if i['type'] in specialCaseParamCallbacks:
                         x=specialCaseParamCallbacks[i['type']]
                         if x(self.effectsById[i['id']], j, i['params'][j]['value'] ):
@@ -383,6 +393,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
     def setEffectParam(self,effectId,param,value):
         "Set val after casting, and return properly typed val"
         with self.lock:
+
             paramData = self.effectDataById[effectId]['params'][param]
             paramData['value']=value
             t = self.effectDataById[effectId]['type']
@@ -401,7 +412,8 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                              self.sendAirwires[effectId].connect()
                         except:
                             pass
-
+            elif param=="bypass":
+                pass
             elif t in specialCaseParamCallbacks:
                 if specialCaseParamCallbacks[t](self.effectsById[effectId], param, value):
                     self.setProperty(self.effectsById[effectId], param, value)
@@ -658,7 +670,7 @@ class MixingBoard():
 
 
             self.api.send(['loadedPreset', self.loadedPreset])
-            self.api.send(['usbalsa', registry.get("/system/sound/jackusbperiod",128), registry.get("/system/sound/jackusblatency",384)])
+            self.api.send(['usbalsa', settings.data['usbPeriodSize'], settings.data['usbLatency'],settings.data['usbQuality'],settings.data['usbPeriods']])
 
     def sendPresets(self):
         self.api.send(['presets',registry.ls("/system.mixer/presets/")+ [i[:-len('.yaml')] for i in os.listdir(presetsDir) if i.endswith('.yaml') ] ])
@@ -819,11 +831,15 @@ class MixingBoard():
                 return
             self.channelObjects[data[1]].setEffectParam(data[2],data[3],data[4])
             self.api.send(['param', data[1],data[2], data[3], data[4]])
+            
+            if[data[3]]=="bypass":
+                self._createChannel(data[1], self.channels[data[1]])
 
 
         if data[0]=='addEffect':
             with self.lock:
                 fx = copy.deepcopy(effectTemplates[data[2]])
+
                 fx['id']=str(uuid.uuid4())
                 self.channels[data[1]]['effects'].append(fx)
                 self.api.send(['channels', self.channels])
@@ -844,9 +860,13 @@ class MixingBoard():
             self.sendPresets()
 
         if data[0]=='setUSBAlsa':
-            registry.set("/system/sound/jackusbperiodsize",int(data[1]))
-            registry.set("/system/sound/jackusblatency",int(data[2]))
-            self.api.send(['usbalsa',data[1], data[2]])
+            settings.set("usbPeriodSize",int(data[1]))
+            settings.set("usbLatency",int(data[2]))
+            settings.set("usbQuality",int(data[3]))
+            settings.set("usbPeriods",int(data[4]))
+
+
+            self.api.send(['usbalsa',data[1], data[2],data[3],data[4]])
             killUSBCards()
 
 def killUSBCards():

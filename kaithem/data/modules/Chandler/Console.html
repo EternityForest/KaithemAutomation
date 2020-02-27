@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1582392351257541
+resource-timestamp: 1582828598897976
 resource-type: page
 template-engine: mako
 
@@ -1009,7 +1009,11 @@ from src import tagpoints
                                 <label>Device:
                                 
                                 <datalist id="soundcards">
-                               <option v-for="i of soundCards" v-bind:value="i"></option>
+                                <option v-for="i of soundCards" v-bind:value="i"></option>
+                                <option value="@auto"></option>
+                                <option value="@pulse:hw:0,0"></option>
+                                <option value="@alsa:hw:0,0"></option>
+
                                 </datalist>
 
 
@@ -2282,7 +2286,6 @@ from src import tagpoints
             {
                 return (this.scenecues[sceneid][cuename])
             },
-            'scenedata': {},
             'setCueVal': function(sc, u, ch, val)
             {
                 this.lockedFaders[sc+":"+u+":"+ch]=true;
@@ -2750,6 +2753,7 @@ from src import tagpoints
             {
                 appData.scenemeta[v[1]].timers=v[2]
             }
+
             if (c == "scenemeta")
             {
                 if (v[2].cue)
@@ -3051,10 +3055,9 @@ from src import tagpoints
             {
                 Vue.delete(appData.selectedCues, v[1])
                 Vue.delete(appData.scenemeta, v[1])
-                Vue.delete(appData.scenedata, v[1])
-                Vue.delete(appData.scenevals, v[1])
                 Vue.delete(appData.running_scenes, v[1])
                 Vue.delete(appData.mtimes, v[1])
+                appData.editingScene= null
 
             }
 

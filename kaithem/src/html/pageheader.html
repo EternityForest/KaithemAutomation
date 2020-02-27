@@ -1,6 +1,6 @@
 <%!
 from src.config import config
-from src import auth,util,notifications,pages,modules,registry,theming,devices
+from src import auth,util,notifications,pages,modules,registry,theming,devices,persist
 import cherrypy
 %>
 
@@ -106,6 +106,10 @@ import cherrypy
 
           %if not registry.is_clean:
           <span title="The kaithem registry has unsaved changes"><a href="/settings/save">*</a></span>
+          %endif
+
+          %if  persist.dirty:
+          <span title="The there are persistance files with unsaved changes"><a href="/settings/save">*</a></span>
           %endif
         </div>
         <div><a class="helplink" href="/helpmenu">Help</a></div>

@@ -20,7 +20,6 @@ from .config import config
 
 import gc
 from . import gstwrapper, jackmanager, jackmixer
-from . import registry
 log= logging.getLogger("system.sound")
 
 MAX_PRELOADED = 8
@@ -35,7 +34,8 @@ def volumeToDB(vol):
     #0.5 is 10db below, etc.
     return -38.33333 + 77.80645*vol- 39.56989*vol**2
 
-if registry.get("/system/sound/usejack",None)=="manage":
+
+if jackmanager.settings.get('jackMode',None)=="manage":
     def f():
         try:        
             jackmanager.startManaging()
@@ -974,7 +974,12 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
         if output=="@auto":
             self.sink = self.addElement('autoaudiosink')
-        elif output=="@pulse":
+        elif output.startswith("@pulse"):
+            s = output.split(":")
+            if len(s)>1:
+                s=s[1]
+            else:
+                s=s[0]
             self.sink = self.addElement('pulsesink')
 
         elif output.startswith("@alsa:"):

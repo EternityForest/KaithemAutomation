@@ -86,9 +86,109 @@ effectTemplates_data={
         {"gstElement": "audioconvert", "gstSetup":{}}
     ]
     },
+    "3beqp":
+    {"type":"3beqp", "displayType":"3 Band Parametric EQ","help": "Basic builtin paramentric EQ", "gstElement": "equalizer-nbands",
+        "params": {
+           "0:gain": {
+                "type":"float",
+                "displayName": "Low",
+                "value": 0,
+                "min": -12,
+                "max": 12,
+                "sort":3
+            },
+
+             "0:freq": {
+                "type":"float",
+                "displayName": "LowFreq",
+                "value": 200,
+                "min": 32,
+                "max": 2000,
+                "sort":2.5
+            },
+
+            "0:bandwidth": {
+                "type":"float",
+                "displayName": "LowBW",
+                "value": 200,
+                "min": 50,
+                "max": 1000,
+                "sort":2.3
+            },
+
+            "1:gain": {
+                "type":"float",
+                "displayName": "Mid",
+                "value": 0,
+                "min": -12,
+                "max": 12,
+                "sort":2
+            },
+
+            "1:freq": {
+                "type":"float",
+                "displayName": "MidFreq",
+                "value": 2000,
+                "min": 500,
+                "max": 4000,
+                "sort":1.5
+            },
+
+            "1:bandwidth": {
+                "type":"float",
+                "displayName": "MidBW",
+                "value": 2000,
+                "min": 50,
+                "max": 8000,
+                "sort":1
+            },
+          
+            "2:gain": {
+                "type":"float",
+                "displayName": "High",
+                "value": 0,
+                "min": -12,
+                "max": 12,
+                "sort":0
+            },
+             "2:freq": {
+                "type":"float",
+                "displayName": "HighFreq",
+                "value": 8000,
+                "min": 4000,
+                "max": 16000,
+                "sort":0.5
+            },
+
+            "2:bandwidth": {
+                "type":"float",
+                "displayName": "HighBW",
+                "value": 2000,
+                "min": 80,
+                "max": 16000,
+                "sort":0
+            },
+        },
+        "gstSetup":
+        {
+            "num-bands":3,
+            "0:freq": 180,
+            "1:freq": 2000,
+            "2:freq": 12000,
+            "0:bandwidth": 360,
+            "1:bandwidth": 500,
+            "2:bandwidth": 16000,
+        }
+    },
 
     "3beq":{"type":"3beq", "displayType":"3 Band EQ","help": "Basic builtin EQ", "gstElement": "equalizer-nbands",
         "params": {
+            "bypass": {
+                "type":"bool",
+                "displayName": "Bypass",
+                "value": False,
+                "sort":-1
+            },
            "0:gain": {
                 "type":"float",
                 "displayName": "Low",
@@ -358,6 +458,114 @@ effectTemplates_data={
                 "value": 0,
                 "min": -48,
                 "max": 24,
+                "step":0.25,
+                "sort":0
+            },
+
+            },
+
+    "gstSetup":
+            {},
+       
+    },
+
+
+
+    "tenband12db":
+    {
+        "displayType":"10-Band EQ(12db range)",
+        "type": "tenband12db",
+        "stereoGstElement": "ladspa-caps-so-eq10x2",
+        'help': "Stereo 10-band (CAPS), +-12db per channel",
+        "params": {
+          "param-31-hz": {
+                "type":"float",
+                "displayName": "31Hz",
+                "value": 0,
+                "min": -12,
+                "max": 12,
+                "step":0.25,
+                "sort":0
+            },
+
+          "param-63-hz": {
+                "type":"float",
+                "displayName": "63Hz",
+                "value": 0,
+                "min": -12,
+                "max": 12,
+                "step":0.25,
+                "sort":0
+            },
+          "param-125-hz": {
+                "type":"float",
+                "displayName": "125Hz",
+                "value": 0,
+                "min": -12,
+                "max": 12,
+                "step":0.25,
+                "sort":0
+            },
+          "param-250-hz": {
+                "type":"float",
+                "displayName": "250Hz",
+                "value": 0,
+                "min": -12,
+                "max": 12,
+                "step":0.25,
+                "sort":0
+            },
+          "param-500-hz": {
+                "type":"float",
+                "displayName": "500Hz",
+                "value": 0,
+                "min": -12,
+                "max": 12,
+                "step":0.25,
+                "sort":0
+            },
+          "param-1-khz": {
+                "type":"float",
+                "displayName": "1KHz",
+                "value": 0,
+                "min": -12,
+                "max": 12,
+                "step":0.25,
+                "sort":0
+            },
+          "param-2-khz": {
+                "type":"float",
+                "displayName": "2KHz",
+                "value": 0,
+                "min": -12,
+                "max": 12,
+                "step":0.25,
+                "sort":0
+            },
+          "param-4-khz": {
+                "type":"float",
+                "displayName": "4KHz",
+                "value": 0,
+                "min": -12,
+                "max": 12,
+                "step":0.25,
+                "sort":0
+            },
+          "param-8-khz": {
+                "type":"float",
+                "displayName": "8KHz",
+                "value": 0,
+                "min": -12,
+                "max": 12,
+                "step":0.25,
+                "sort":0
+            },
+          "param-16-khz": {
+                "type":"float",
+                "displayName": "16KHz",
+                "value": 0,
+                "min": -12,
+                "max": 12,
                 "step":0.25,
                 "sort":0
             },

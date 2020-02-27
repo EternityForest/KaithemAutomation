@@ -213,6 +213,9 @@ class Connection():
                 function()(t,m)
         else:
             raise ValueError("Invalid encoding!")
+        
+        #Correctly call message bus error handlers
+        wrapper.messagebusWrapperFor = function
 
         internalTopic = "/mqtt/"+self.server+":"+str(self.port)+"/in/"+topic
 

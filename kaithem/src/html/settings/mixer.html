@@ -74,30 +74,63 @@ from src import jackmixer
       <h3>USB Soundcard Settings</h3>
       <table>
         <tr>
-          <td>Period Size(Lower is lower latency)</td>
+          <td>Period Size(Must be at least the JACK period size)</td>
           <td>
               <select v-model.number="usbsize">
-                  <option value="64">64(Usually doesn't work)</option>
-                  <option value="128">128(Usually works, may by choppy)</option>
-                  <option value="256">256(Usually good quality)</option>
+                  <option value="-1">Use the default</option>
+                  <option value="64">64</option>
+                  <option value="128">128</option>
+                  <option value="256">256</option>
                   <option value="512">512</option>
-            </select>
+                  <option value="1024">1024</option>
+                </select>
           </td>
         </tr>
 
 
         <tr>
-            <td>Target Latency(Does nothing if below period size)</td>
+            <td>Target Latency(Try auto or half of periods*periodsize)</td>
             <td>
                 <select v-model.number="usblatency">
-                    <option value="192">192(Usually doesn't work)</option>
-                    <option value="384">384(Usually works, may by choppy)</option>
-                    <option value="512">512(Usually good quality)</option>
+                    <option value="-1">Auto</option>
+                    <option value="64">64</option>
+                    <option value="128">128</option>
+                    <option value="256">256</option>
+                    <option value="512">512</option>
                     <option value="768">768</option>
                     <option value="1024">1024</option>
               </select>
-            </td>
+              </td>
           </tr>
+
+          <tr>
+            <td>Quality</td>
+            <td>
+                <select v-model.number="usbquality">
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+
+              </select>
+            </td>
+        </tr>
+
+
+        <tr>
+          <td>Number of Periods(Try 3 if you get noise)</td>
+          <td>
+              <select v-model.number="usbperiods">
+                 <option value="-1">Auto</option>
+
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+
+            </select>
+          </td>
+        </tr>
       </table>
       <button v-on:click="setUSBSettings()">Set</button>
     </div>
@@ -121,6 +154,10 @@ from src import jackmixer
       named "default" will be loaded if it exists. Presets are not commited to disk until you <a href="/settings/save">commit to disk</a> unless
       autosave is enabled.
     </p>
+
+    <datalist id="presets">
+      <option v-for="i in presets" v-bind:value="i">
+    </datalist>
     
     <table border="1">
       <tr><th>Name</th><th>Actions</th></tr>
@@ -136,7 +173,7 @@ from src import jackmixer
 
       <tr> 
         <td>
-          <input v-model="newpresetname" placeholder="New Preset">
+          <input datlist="presets" v-model="newpresetname" placeholder="New Preset">
         </td>
         <td><button v-on:click="createPreset(newpresetname)">Save</button></td>
         <td></td>
@@ -153,7 +190,8 @@ from src import jackmixer
           v-on:input="setInput(channelname, $event.target.value)">
         <div class="chain">
           <div v-for="effect, index in channel.effects" class="effect">
-            <h4 v-bind:title="effect.id">{{effect.displayType}}
+            <h4 v-bind:title="effect.id">
+              {{effect.displayType}}
               <button v-on:click="moveEffectUp(channelname, index)">Up</button>
               <button v-on:click="moveEffectDown(channelname, index)">Down</button>
               <button v-if="effect.type!='fader'" v-on:click="deleteEffect(channelname, index)">Del</button>
@@ -278,6 +316,8 @@ from src import jackmixer
 
       usblatency:384,
       usbsize: 128,
+      usbquality: 0,
+      usbperiods: 3,
 
       confirmDelete: function (c) {
         if (window.confirm("Do you really want to delete this channel?")) {
@@ -345,7 +385,7 @@ from src import jackmixer
       },
 
       setUSBSettings: function() {
-        api.send(['setUSBAlsa', this.usbsize, this.usblatency]);
+        api.send(['setUSBAlsa', this.usbsize, this.usblatency,this.usbquality,this.usbperiods]);
       },
       setParam: function (channel, effect,param,value) {
         api.send(['setParam', channel, effect,param,value]);
@@ -461,6 +501,8 @@ from src import jackmixer
     if (msg[0] == "usbalsa") {
       app.$data.usbsize = msg[1]
       app.$data.usblatency = msg[2]
+      app.$data.usbquality = msg[3]
+      app.$data.usbperiods = msg[4]
     }
   };
   gapi.upd = api.upd;
