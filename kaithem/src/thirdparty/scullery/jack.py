@@ -142,18 +142,6 @@ def _ensureConnections(*a,**k):
     except:
         log.exception("Probably just a weakref that went away.")
 
-def _checkNewPortConnectoins(port):
-    "Auto restore connections in the connection list"
-    try:
-        with lock:
-            for i in list(allConnections.keys()):
-                if port.clientName in i[0] or port.clientName in i[1]:
-                    try:
-                        allConnections[i].reconnect()
-                    except:
-                        print(traceback.format_exc())
-    except:
-        log.exception("Probably just a weakref that went away.")
 
 
 messagebus.subscribe("/system/jack/newport",_ensureConnections)
@@ -203,6 +191,11 @@ class MonoAirwire():
                 if isConnected(self.orig,self.to):
                     _jackclient.disconnect(self.orig, self.to)
                     del activeConnections[self.orig,self.to]
+                    try:
+                        del realConnections[self.orig,self.to]
+                    except KeyError:
+                        pass
+
         except:
             pass
 
@@ -226,6 +219,7 @@ class MonoAirwire():
                     if not isConnected(self.orig,self.to):
                         with lock:
                             _jackclient.connect(self.orig,self.to)
+                            realConnections[self.orig,self.to]=True
                 except:
                     print(traceback.format_exc())
 
@@ -265,7 +259,7 @@ class MultichannelAirwire(MonoAirwire):
                 for i in zip(outPorts,inPorts):
                     if not isConnected(i[0].name,i[1].name):
                         _jackclient.connect(i[0],i[1])
-                        activeConnections[i[0].name,i[1].name]=self
+                        realConnections[i[0].name,i[1].name]=True
 
     def disconnect(self):
         if not _jackclient:
@@ -313,6 +307,7 @@ def CombiningAirwire(MultichannelAirwire):
             for i in outPorts:
                 if not isConnected(i.name,inPort.name):
                     _jackclient.connect(i,inPort)
+                    realConnections[i.name,inPort.name]=True
 
 
 
@@ -1451,9 +1446,11 @@ def connect(f,t):
         t=t.name
         try:
             if f_input:
-                return _jackclient.connect(t,f)    
+                _jackclient.connect(t,f)
+                realConnections[t,f]=True
             else:
-                return _jackclient.connect(f,t)
+                _jackclient.connect(f,t)
+                realConnections[f,t]=True
         except:
             pass
             
