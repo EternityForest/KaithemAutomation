@@ -68,6 +68,10 @@ manageSoundcards = True
 #No by default, gets auto set to True by startJackServer()
 manageJackProcess = False
 
+
+
+
+
 def settingsReloader():
     pass
 
@@ -82,8 +86,10 @@ def isConnected(f,t):
     if not isinstance(t, str):
         t=t.name
 
-    with lock:
-        return _jackclient.get_port_by_name(t) in _jackclient.get_all_connections(_jackclient.get_port_by_name(f))
+    if (t,f) in realConnections:
+        return True
+    if (f,t) in realConnections:
+        return True
 
 def setupPulse():
     try:
@@ -136,12 +142,40 @@ def _ensureConnections(*a,**k):
     except:
         log.exception("Probably just a weakref that went away.")
 
+def _checkNewPortConnectoins(port):
+    "Auto restore connections in the connection list"
+    try:
+        with lock:
+            for i in list(allConnections.keys()):
+                if port.clientName in i[0] or port.clientName in i[1]:
+                    try:
+                        allConnections[i].reconnect()
+                    except:
+                        print(traceback.format_exc())
+    except:
+        log.exception("Probably just a weakref that went away.")
+
+
 messagebus.subscribe("/system/jack/newport",_ensureConnections)
 
 import weakref
 allConnections=weakref.WeakValueDictionary()
 
 activeConnections=weakref.WeakValueDictionary()
+
+#Things as they actually are
+realConnections ={}
+
+
+def findReal():
+    with lock:
+        realConnections.clear()
+        with lock:
+            p = _jackclient.get_ports(is_output=True)
+            for i in p:
+                for j in _jackclient.get_all_connections(i):
+                    realConnections[i.name, j.name]=True
+
 
 
 errlog = []
@@ -180,18 +214,20 @@ class MonoAirwire():
 
     def connect(self):
         allConnections[self.orig, self.to]= self
+        activeConnections[self.orig, self.to]= self
+
         self.connected=True
         self.reconnect()
 
     def reconnect(self):
-        if self.orig and self.to:
-            try:
-                if not isConnected(self.orig,self.to):
-                    with lock:
-                        _jackclient.connect(self.orig,self.to)
-                    activeConnections[self.orig, self.to]=self
-            except:
-                print(traceback.format_exc())
+        if (self.orig, self.to) in activeConnections:
+            if self.orig and self.to:
+                try:
+                    if not isConnected(self.orig,self.to):
+                        with lock:
+                            _jackclient.connect(self.orig,self.to)
+                except:
+                    print(traceback.format_exc())
 
 
 class MultichannelAirwire(MonoAirwire):
@@ -315,9 +351,30 @@ def Airwire(f,t):
 def onPortConnect(a,b,connected):
     #Whem things are manually disconnected we don't
     #Want to always reconnect every time
+
+    if connected:
+        if a.is_output:
+            realConnections[a.name, b.name]=True
+        else:
+            realConnections[b.name, a.name]=True
+
+
     if not connected:
         log.debug("JACK port "+ a.name+" disconnected from "+b.name)
         i = (a.name,b.name)
+
+        if (a.name,b.name) in realConnections:
+            try:
+                del realConnections[a.name,b.name]
+            except KeyError:
+                pass
+
+        if (b.name,a.name) in realConnections:
+            try:
+                del realConnections[b.name,a.name]
+            except KeyError:
+                pass
+
         #Try to stop whatever airwire or set therof
         #from remaking the connection
         if i in activeConnections:
@@ -946,12 +1003,12 @@ def getIOOptionsForAdditionalSoundcard():
         iooptions+=["-p",str(psize)]
 
     if not usbLatency<0:
-        iooptions+=["-t",usbLatency]
+        iooptions+=["-t",str(usbLatency)]
 
     if not usbPeriods<0:
         iooptions+=["-n",str(usbPeriods)]
 
-    iooptions=["-q",usbQuality, "-r", "48000"]
+    iooptions=["-q",str(usbQuality), "-r", "48000"]
 
     return iooptions
 
@@ -1186,12 +1243,24 @@ def handleManagedSoundcards():
 def work():
     while(_reconnecterThreadObjectStopper[0]):
         try:
-            if manageJackProcess:
-                _checkJack()
-            _checkJackClient()
-            if manageSoundcards:
-                handleManagedSoundcards()
-            _ensureConnections()
+            #The _checkJack stuf won't block, because we already have the lock
+            if lock.acquire(timeout=0.5):
+                try:
+                    if manageJackProcess:
+                        _checkJack()
+                    _checkJackClient()
+                    if manageSoundcards:
+                        handleManagedSoundcards()
+                finally:
+                    lock.release()
+                #_ensureConnections()
+            else:
+                if(_reconnecterThreadObjectStopper[0]):
+                    #Might be worth logging
+                    raise RuntimeError("Could not get lock,retrying in 5s")
+                else:
+                    #Already stopping anyway, ignore
+                    pass
             time.sleep(5)
         except:
             logging.exception("Error in jack manager")
@@ -1285,22 +1354,28 @@ def _checkJack():
     global jackp
     with lock:
         if manageJackProcess:
-            readAllSoFar(jackp)
-            readAllErrSoFar(jackp)
+            if jackp:
+                readAllSoFar(jackp)
+                readAllErrSoFar(jackp)
             if jackShouldBeRunning  and jackp and jackp.poll() !=None:
                 _startJackProcess()
 
 def _checkJackClient():
-    global _jackclient
+    global _jackclient, realConnections
     import jack
     with lock:
         try:
-            return _jackclient.get_ports()
+             
+            t=_jackclient.status.server_started
+            if not t:
+                raise RuntimeError("JACK Server not started or client failed")
+            return True
         except:
             try:
                 _jackclient.close()
             except:
                 pass
+            realConnections = {}
 
             try:
                 _jackclient=jack.Client("Overseer")
@@ -1312,7 +1387,8 @@ def _checkJackClient():
             _jackclient.set_port_connect_callback(onPortConnect)
             _jackclient.activate()
             _jackclient.get_ports()
-     
+            findReal()
+
     if not _jackclient:
         return []
 

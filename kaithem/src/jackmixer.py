@@ -867,6 +867,7 @@ class MixingBoard():
 
 
             self.api.send(['usbalsa',data[1], data[2],data[3],data[4]])
+            jackmanager.reloadSettings()
             killUSBCards()
 
 def killUSBCards():

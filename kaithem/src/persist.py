@@ -57,7 +57,7 @@ class SharedStateFile():
         for i in legacy_registry_key_mappings:
             km = legacy_registry_key_mappings[i]
             if not km in self.data:
-                self.data[km] = registry.get(i,defaults[i])
+                self.data[i] = registry.get(km,defaults[i])
         
         for i in defaults:
             if not i in self.data:

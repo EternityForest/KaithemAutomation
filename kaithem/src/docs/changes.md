@@ -1,6 +1,15 @@
 Change Log
 ----------
 
+
+### 0.65.14
+- MINOR BREAKING: The USB latency param is interpreted correctly now
+- Can directly set USB period size
+- Can use default alsa_out parameters
+- JACK settings are stored in system.mixer/jacksettings.yaml, not the registry
+- Chandler properly creates it's save folder if missing
+
+
 ### 0.65.14
 - Fix bug preventing deleting Changler scenes that used MQTT or pages
 - Device-side fading for flicker and vary blending modes

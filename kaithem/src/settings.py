@@ -12,7 +12,7 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import cherrypy,base64,os,time,subprocess,time,shutil,sys,logging
+import cherrypy,base64,os,time,subprocess,time,shutil,sys,logging,traceback
 from cherrypy.lib.static import serve_file
 from . import pages, util,messagebus,config,auth,registry,mail,kaithemobj, config,weblogin,systasks,gpio,directories,persist
 import io
@@ -23,8 +23,8 @@ jacksettings = persist.getStateFile(jacksettingsfile)
 
 
 def validate_upload():
-    #Allow 4gb uploads for admin users, otherwise only allow 64k 
-    return 64*1024 if not pages.canUserDoThis("/admin/settings.edit") else 1024*1024*4096
+    #Allow large uploads for admin users, otherwise only allow 64k 
+    return 64*1024 if not pages.canUserDoThis("/admin/settings.edit") else 1024*1024*8192*4
 syslogger = logging.getLogger("system")
 class Settings():
     @cherrypy.expose
@@ -89,32 +89,34 @@ class Settings():
     def files(self,*args,**kwargs):
         """Return a file manager. Kwargs may contain del=file to delete a file. The rest of the path is the directory to look in."""
         pages.require("/admin/settings.edit")
-        dir=os.path.join('/',*args)
+        try:
+            dir=os.path.join('/',*args)
 
-        if 'del' in kwargs:
-            node = os.path.join(dir,kwargs['del'])
-            if os.path.isfile(node):
-                os.remove(node)
+            if 'del' in kwargs:
+                node = os.path.join(dir,kwargs['del'])
+                if os.path.isfile(node):
+                    os.remove(node)
+                else:
+                    shutil.rmtree(node)
+                raise cherrypy.HTTPRedirect(cherrypy.request.path_info.split('?')[0])
+
+
+            if 'file' in kwargs:
+                if os.path.exists(os.path.join(dir,kwargs['file'].filename)):
+                    raise RuntimeError("Node with that name already exists")
+                with open(os.path.join(dir,kwargs['file'].filename),'wb') as f:
+                    while True:
+                        data = kwargs['file'].file.read(8192)
+                        if not data:
+                            break
+                        f.write(data)
+
+            if os.path.isdir(dir):
+                return pages.get_template("settings/files.html").render(dir=dir)
             else:
-                shutil.rmtree(node)
-            raise cherrypy.HTTPRedirect(cherrypy.request.path_info.split('?')[0])
-
-
-        if 'file' in kwargs:
-            if os.path.exists(os.path.join(dir,kwargs['file'].filename)):
-                raise RuntimeError("Node with that name already exists")
-            with open(os.path.join(dir,kwargs['file'].filename),'wb') as f:
-                while True:
-                    data = kwargs['file'].file.read(8192)
-                    if not data:
-                        break
-                    f.write(data)
-
-        if os.path.isdir(dir):
-            return pages.get_template("settings/files.html").render(dir=dir)
-        else:
-            return serve_file(dir)
-
+                return serve_file(dir)
+        except:
+            return(traceback.format_exc())
 
     @cherrypy.expose
     def cnfdel(self,*args,**kwargs):
