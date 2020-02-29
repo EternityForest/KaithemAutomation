@@ -86,9 +86,9 @@ def isConnected(f,t):
     if not isinstance(t, str):
         t=t.name
 
-    if (t,f) in realConnections:
+    if (t,f) in _realConnections:
         return True
-    if (f,t) in realConnections:
+    if (f,t) in _realConnections:
         return True
 
 def setupPulse():
@@ -154,15 +154,23 @@ activeConnections=weakref.WeakValueDictionary()
 #Things as they actually are
 realConnections ={}
 
+_realConnections={}
+
+realConnectionsLock=threading.RLock()
 
 def findReal():
     with lock:
-        realConnections.clear()
-        with lock:
-            p = _jackclient.get_ports(is_output=True)
+        p = _jackclient.get_ports(is_output=True)
+        with realConnectionsLock:
+            _realConnections.clear()
             for i in p:
-                for j in _jackclient.get_all_connections(i):
-                    realConnections[i.name, j.name]=True
+                try:
+                    for j in _jackclient.get_all_connections(i):
+                        _realConnections[i.name, j.name]=True
+                except:
+                    log.exception("Err")
+            global realConnections
+            realConnections=_realConnections.copy()
 
 
 
@@ -192,7 +200,10 @@ class MonoAirwire():
                     _jackclient.disconnect(self.orig, self.to)
                     del activeConnections[self.orig,self.to]
                     try:
-                        del realConnections[self.orig,self.to]
+                        with realConnectionsLock:
+                            del _realConnections[self.orig,self.to]
+                            global realConnections
+                            realConnections=_realConnections.copy()
                     except KeyError:
                         pass
 
@@ -219,7 +230,10 @@ class MonoAirwire():
                     if not isConnected(self.orig,self.to):
                         with lock:
                             _jackclient.connect(self.orig,self.to)
-                            realConnections[self.orig,self.to]=True
+                            with realConnectionsLock:
+                                _realConnections[self.orig,self.to]=True
+                                global realConnections
+                                realConnections=_realConnections.copy()
                 except:
                     print(traceback.format_exc())
 
@@ -259,7 +273,9 @@ class MultichannelAirwire(MonoAirwire):
                 for i in zip(outPorts,inPorts):
                     if not isConnected(i[0].name,i[1].name):
                         _jackclient.connect(i[0],i[1])
-                        realConnections[i[0].name,i[1].name]=True
+                        with realConnectionsLock:
+                            _realConnections[i[0].name,i[1].name]=True
+                            realConnections=_realConnections.copy()
 
     def disconnect(self):
         if not _jackclient:
@@ -307,7 +323,10 @@ def CombiningAirwire(MultichannelAirwire):
             for i in outPorts:
                 if not isConnected(i.name,inPort.name):
                     _jackclient.connect(i,inPort)
-                    realConnections[i.name,inPort.name]=True
+                    with realConnectionsLock:
+                        _realConnections[i.name,inPort.name]=True
+                        global realConnections
+                        realConnections=_realConnections.copy()
 
 
 
@@ -346,29 +365,34 @@ def Airwire(f,t):
 def onPortConnect(a,b,connected):
     #Whem things are manually disconnected we don't
     #Want to always reconnect every time
+    global realConnections
 
     if connected:
-        if a.is_output:
-            realConnections[a.name, b.name]=True
-        else:
-            realConnections[b.name, a.name]=True
-
+        with realConnectionsLock:
+            if a.is_output:
+                _realConnections[a.name, b.name]=True
+            else:
+                _realConnections[b.name, a.name]=True
+           
+            realConnections=_realConnections.copy()
 
     if not connected:
         log.debug("JACK port "+ a.name+" disconnected from "+b.name)
         i = (a.name,b.name)
+        with realConnectionsLock:
+            if (a.name,b.name) in _realConnections:
+                try:
+                    del _realConnections[a.name,b.name]
+                except KeyError:
+                    pass
 
-        if (a.name,b.name) in realConnections:
-            try:
-                del realConnections[a.name,b.name]
-            except KeyError:
-                pass
-
-        if (b.name,a.name) in realConnections:
-            try:
-                del realConnections[b.name,a.name]
-            except KeyError:
-                pass
+            if (b.name,a.name) in _realConnections:
+                try:
+                    del _realConnections[b.name,a.name]
+                except KeyError:
+                    pass
+            
+            realConnections=_realConnections.copy()
 
         #Try to stop whatever airwire or set therof
         #from remaking the connection
@@ -394,6 +418,7 @@ class PortInfo():
 
 
 def onPortRegistered(port,registered):
+    global realConnections
     "Same function for register and unregister"
     if not port:
         return
@@ -404,6 +429,12 @@ def onPortRegistered(port,registered):
         log.debug("JACK port registered: "+port.name)
         messagebus.postMessage("/system/jack/newport",p )
     else:
+        with realConnectionsLock:
+            for i in _realConnections:
+                if i[0]==port.name or i[1]==port.name:
+                    del _realConnections[i]
+            realConnections=_realConnections.copy()
+
         log.debug("JACK port unregistered: "+port.name)
         messagebus.postMessage("/system/jack/delport",p)
 
@@ -1003,7 +1034,7 @@ def getIOOptionsForAdditionalSoundcard():
     if not usbPeriods<0:
         iooptions+=["-n",str(usbPeriods)]
 
-    iooptions=["-q",str(usbQuality), "-r", "48000"]
+    iooptions+=["-q",str(usbQuality), "-r", "48000"]
 
     return iooptions
 
@@ -1111,7 +1142,7 @@ def handleManagedSoundcards():
                             print(traceback.format_exc())
                         time.sleep(2)
 
-
+                        log.debug("Starting alsa_in process, for "+inp[i][0])
                         x = subprocess.Popen(["alsa_in"]+getIOOptionsForAdditionalSoundcard()+["-d", inp[i][0], "-j",i+"i"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
                         try:
                             subprocess.check_call(['chrt', '-f','-p', '70', str(x.pid)])
@@ -1133,6 +1164,7 @@ def handleManagedSoundcards():
                         except:
                             print(traceback.format_exc())
 
+                        log.debug("Starting alsa_out process for "+op[i][0])
                         x = subprocess.Popen(["alsa_out"]+getIOOptionsForAdditionalSoundcard()+["-d", op[i][0], "-j",i+"o"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
                         alsa_out_instances[i]=x
 
@@ -1141,6 +1173,7 @@ def handleManagedSoundcards():
                         except:
                             log.exception("Error getting RT")
                         log.info("Added "+i+"o")
+            
             #If we stopped it, start it again
             if startPulse:
                 try:
@@ -1177,7 +1210,7 @@ def handleManagedSoundcards():
                         if usingDefaultCard:
                             continue
 
-                
+                    log.debug("Starting alsa_in process for "+inp[i][0])
                     x = subprocess.Popen(["alsa_in"]+getIOOptionsForAdditionalSoundcard()+["-d", inp[i][0], "-j",i+"i"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
                 
                     try:
@@ -1195,7 +1228,7 @@ def handleManagedSoundcards():
                         if usingDefaultCard:
                             continue
                     
-
+                    log.debug("Starting alsa_out process, for "+op[i][0])
                     x = subprocess.Popen(["alsa_out"]+getIOOptionsForAdditionalSoundcard()+["-d", op[i][0], "-j",i+'o'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
                 
                     try:
@@ -1370,7 +1403,7 @@ def _checkJackClient():
                 _jackclient.close()
             except:
                 pass
-            realConnections = {}
+            _realConnections = {}
 
             try:
                 _jackclient=jack.Client("Overseer")
@@ -1382,6 +1415,7 @@ def _checkJackClient():
             _jackclient.set_port_connect_callback(onPortConnect)
             _jackclient.activate()
             _jackclient.get_ports()
+            time.sleep(0.5)
             findReal()
 
     if not _jackclient:
@@ -1447,10 +1481,17 @@ def connect(f,t):
         try:
             if f_input:
                 _jackclient.connect(t,f)
-                realConnections[t,f]=True
+                with realConnectionsLock:
+                    _realConnections[t,f]=True
             else:
                 _jackclient.connect(f,t)
-                realConnections[f,t]=True
+                with realConnectionsLock:
+                    _realConnections[f,t]=True
+                    
+            with realConnectionsLock:
+                global realConnections  
+                realConnections=_realConnections.copy()
+
         except:
             pass
             

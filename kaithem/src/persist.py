@@ -50,6 +50,7 @@ class SharedStateFile():
         self.filename=filename
         self.legacy_registry_key_mappings={}
         self.lock=threading.RLock()
+        
         allFiles[filename]=self
     
     def setupDefaults(self,defaults={}, legacy_registry_key_mappings={}):

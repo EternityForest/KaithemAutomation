@@ -93,7 +93,7 @@ class LoggingHandler(logging.Handler):
         self.contextbuffer = []
         self.logbuffer = []
         self.lock = threading.Lock()
-        self.savelock = threading.Lock()
+        self.savelock = threading.RLock()
         self.compress = compress
         self.entries_per_file = entries_per_file
         self.flush_before_close = True

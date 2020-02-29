@@ -996,9 +996,9 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         else:
             cname="player"+str(time.monotonic())+"_out"
 
-            self.sink = self.addElement('jackaudiosink', buffer_time=60000 if not isVideo else 80000, 
-            latency_time=30000 if not isVideo else 40000,slave_method=0,port_pattern="jhjkhhhfdrhtecytey",
-            connect=0,client_name=cname)
+            self.sink = self.addElement('jackaudiosink', buffer_time=16000 if not isVideo else 80000, 
+            latency_time=8000 if not isVideo else 40000,slave_method=0,port_pattern="jhjkhhhfdrhtecytey",
+            connect=0,client_name=cname,sync=False)
 
             self.aw = jackmanager.Airwire(cname, output)
             self.aw.connect()

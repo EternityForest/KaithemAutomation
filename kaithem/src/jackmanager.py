@@ -50,8 +50,9 @@ settings = persist.getStateFile(settingsFile)
 
 def reloadSettings():
     scullery.jack.usbPeriodSize = settings.get("usbPeriodSize",-1)
-    scullery.jack.usbLatency = max(settings.get("usbLatency",-1),scullery.jack.usbPeriodSize*2)
-    scullery.jack.usbPeriods = max(settings.get("usbPeriods",-1),scullery.jack.usbPeriodSize*2)
+    scullery.jack.usbLatency = settings.get("usbLatency",-1)
+    scullery.jack.usbPeriods = settings.get("usbPeriods",-1)
+    scullery.jack.usbQuality = settings.get("usbQuality",0)
 
     scullery.jack.periodSize = settings.get("jackPeriodSize",512)
     scullery.jack.jackPeriods = max(settings.get("jackPeriods",3),3)
