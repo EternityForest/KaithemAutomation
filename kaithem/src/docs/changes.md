@@ -9,6 +9,7 @@ Change Log
 - JACK settings are stored in system.mixer/jacksettings.yaml, not the registry
 - Chandler properly creates it's save folder if missing
 - Fix deadlock with pylogginghandler by changing to an RLock
+- GStreamer jackaudiosink tweaks fix slight glightes with multiple soundcards
 
 ### 0.65.14
 - Fix bug preventing deleting Changler scenes that used MQTT or pages

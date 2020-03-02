@@ -48,6 +48,16 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+
+### 0.65.15
+- MINOR BREAKING: The USB latency param is interpreted correctly now
+- Can directly set USB period size
+- Can use default alsa_out parameters
+- JACK settings are stored in system.mixer/jacksettings.yaml, not the registry
+- Chandler properly creates it's save folder if missing
+- Fix deadlock with pylogginghandler by changing to an RLock
+- GStreamer jackaudiosink tweaks fix slight glightes with multiple soundcards
+
 ### 0.65.14
 - Fix bug preventing deleting Changler scenes that used MQTT or pages
 - Device-side fading for flicker and vary blending modes

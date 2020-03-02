@@ -44,6 +44,6 @@ mkdir /var/lib/kaithem/ssl
 chown -R  kaithem /var/lib/kaithem/ssl
 chmod -R 700 /var/lib/kaithem/ssl
 
-systemctl enable kaithem.service
+# systemctl enable kaithem.service
 kaithem --initialpackagesetup x
-systemctl start kaithem.service
+# systemctl start kaithem.service
