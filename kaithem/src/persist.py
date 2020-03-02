@@ -18,12 +18,10 @@ from scullery.messagebus import subscribe,postMessage
 from . import registry
 
 import weakref,threading
-
+import urllib.parse
 
 dirty = weakref.WeakValueDictionary()
-
 stateFileLock = threading.RLock()
-
 allFiles = weakref.WeakValueDictionary()
 
 
@@ -37,8 +35,38 @@ def getStateFile(fn,defaults={},legacy={}):
         s.setupDefaults(defaults,legacy)
     return s
 
+from . import config,util
+from pwd import getpwuid,getpwnam
+import os, stat
+
+
+
+selected_user= config.config['run-as-user'] if util.getUser()=='root' else util.getUser()
+recoveryDir= os.path.join("/dev/shm/SculleryRFRecovery",selected_user)
+if os.path.exists("/dev/shm"):
+    if not os.path.exists("/dev/shm/SculleryRFRecovery"):
+        os.mkdir("/dev/shm/SculleryRFRecovery")
+    if not os.path.exists(recoveryDir):
+        os.mkdir(recoveryDir)
+        #Nobody else van put stuff in there!!!
+        os.chmod(recoveryDir, stat.S_IREAD|stat.S_IWRITE|stat.S_IEXEC)
+        p=getpwnam(selected_user)
+        os.chown(recoveryDir, p.pw_uid,p.pw_gid)
+    else:
+        if not getpwuid(os.stat(recoveryDir).st_uid).pw_name==selected_user:
+            messagebus.postMessage("/system/notifications/errors","Hacking Detected? "+recoveryDir+" not owned by this user")
+            recoveryDir=None
+else:
+    recoveryDir=None
+
 class SharedStateFile():
     def __init__(self,filename):
+        #Save all changes immediately to /dev/shm, for crash recovery.
+        if not os.path.exists("/dev/shm") or not recoveryDir:
+            self.recoveryFile=None
+        else:
+            self.recoveryFile = os.path.join(recoveryDir,urllib.parse.quote(filename,safe=""))
+
         if os.path.exists(filename):
             try:
                 self.data = load(filename)
@@ -47,6 +75,12 @@ class SharedStateFile():
                 postMessage("/system/notifications/errors",filename+"\n"+traceback.format_exc())
         else:
             self.data = {}
+        try:
+            if os.path.exists(self.recoveryFile):
+                self.data = load(self.recoveryFile)
+                dirty[filename]=self
+        except:
+            print(traceback.format_exc())
         self.filename=filename
         self.legacy_registry_key_mappings={}
         self.lock=threading.RLock()
@@ -57,7 +91,7 @@ class SharedStateFile():
         self.legacy_registry_key_mappings.update(legacy_registry_key_mappings)
         for i in legacy_registry_key_mappings:
             km = legacy_registry_key_mappings[i]
-            if not km in self.data:
+            if not i in self.data:
                 self.data[i] = registry.get(km,defaults[i])
         
         for i in defaults:
@@ -82,6 +116,9 @@ class SharedStateFile():
                 registry.delete(self.legacy_registry_key_mappings[key])
             dirty[self.filename]=self
 
+            if self.recoveryFile:
+                save(self.data,self.recoveryFile)
+
 
     def delete(self,key):
         with self.lock:
@@ -90,6 +127,8 @@ class SharedStateFile():
             except KeyError:
                 pass
             dirty[self.filename]=self
+            if self.recoveryFile:
+                save(self.data,self.recoveryFile)
 
     def save(self):
         with self.lock:
@@ -98,6 +137,12 @@ class SharedStateFile():
                 del dirty[self.filename]
             except:
                 pass
+
+            if self.recoveryFile and os.path.exists(self.recoveryFile):
+                try:
+                    os.remove(self.recoveryFile)
+                except:
+                    pass
 
 
 

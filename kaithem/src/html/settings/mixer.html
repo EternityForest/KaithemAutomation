@@ -60,13 +60,18 @@ from src import jackmixer
       <option v-for="i in sortedConnectables(outports)">{{i}}</option>
     </datalist>
 
+    <datalist id="presets">
+      <option v-for="i in presets" v-bind:value="i">
+      <option value="default">
+    </datalist>
+
     <button class="{bold: activePane=='mixer'}" v-on:click="activePane='mixer'">Mixer</button>
     <button class="{bold: activePane=='presets'}" v-on:click="activePane='presets'">Presets/Defaults</button>
     <button class="{bold: activePane=='status'}" v-on:click="activePane='status'">Status</button>
     <button class="{bold: activePane=='settings'}" v-on:click="activePane='settings'">Settings</button>
 
     <button v-on:click="showAddEffect=true">Show Effects Menu</button>
-    <label>Preset:<input v-model="loadedPreset" placeholder="Preset name"><button v-on:click="confirmSavePreset(loadedPreset)">Save</button></label>
+    <label>Preset:<input list="presets" v-model="loadedPreset" placeholder="Preset name"><button v-on:click="confirmSavePreset(loadedPreset)">Save</button></label>
 
 
 
@@ -83,6 +88,7 @@ from src import jackmixer
                   <option value="256">256</option>
                   <option value="512">512</option>
                   <option value="1024">1024</option>
+                  <option value="2048">2048</option>
                 </select>
           </td>
         </tr>
@@ -99,10 +105,10 @@ from src import jackmixer
                     <option value="512">512</option>
                     <option value="768">768</option>
                     <option value="1024">1024</option>
-                    <option value="1024">2048</option>
-                    <option value="1024">3027</option>
-                    <option value="1024">4096</option>
-                    <option value="1024">8192</option>
+                    <option value="2048">2048</option>
+                    <option value="3027">3027</option>
+                    <option value="4096">4096</option>
+                    <option value="8192">8192</option>
                   </select>
               </td>
           </tr>
@@ -131,7 +137,10 @@ from src import jackmixer
                   <option value="2">2</option>
                   <option value="3">3</option>
                   <option value="4">4</option>
-
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                  <option value="8">8</option>
             </select>
           </td>
         </tr>
@@ -155,13 +164,10 @@ from src import jackmixer
     <div v-if="activePane=='presets'">
     <h2>Presets</h2>
     <p class="help">Presets let you load and save the entire state of the mixing board. When kaithem boots, the preset
-      named "default" will be loaded if it exists. Presets are not commited to disk until you <a href="/settings/save">commit to disk</a> unless
-      autosave is enabled.
+      named "default" will be loaded if it exists. Presets are saved immediately to vardir/system.mixer/presets
     </p>
 
-    <datalist id="presets">
-      <option v-for="i in presets" v-bind:value="i">
-    </datalist>
+   
     
     <table border="1">
       <tr><th>Name</th><th>Actions</th></tr>
@@ -177,7 +183,7 @@ from src import jackmixer
 
       <tr> 
         <td>
-          <input datlist="presets" v-model="newpresetname" placeholder="New Preset">
+          <input list="presets" v-model="newpresetname" placeholder="New Preset">
         </td>
         <td><button v-on:click="createPreset(newpresetname)">Save</button></td>
         <td></td>
@@ -339,7 +345,7 @@ from src import jackmixer
         }
       },
       confirmSavePreset: function (c) {
-        if (window.confirm("Do you really want to save this preset? Anything named 'default' will be loaded at startup. Presets are not commited to disk till the server state is saved!!!")) {
+        if (window.confirm("Do you really want to save this preset? Anything named 'default' will be loaded at startup.")) {
           api.send(['savePreset', c]);
         }
       },
