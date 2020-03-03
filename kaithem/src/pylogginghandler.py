@@ -353,7 +353,8 @@ if os.path.exists("/dev/shm"):
             entries_per_file=5000, 
             bufferlen= 0,
             keep=10**6,
-            compress= "none")
+            compress= "none",
+            doprint=False)
     shmhandler.isShmHandler=True
 
     def onUserChanged():

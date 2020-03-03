@@ -38,7 +38,8 @@ default={
     "usbLatency": -1,
     "jackPeriods": 3,
     "jackPeriodSize": 512,
-    "usbQuality": 0
+    "usbQuality": 0,
+    "jackMode": "off",
 }
 
 settings = persist.getStateFile(settingsFile,default,legacy_keys)
@@ -57,6 +58,16 @@ def reloadSettings():
     scullery.jack.periodSize = settings.get("jackPeriodSize",512)
     scullery.jack.jackPeriods = max(settings.get("jackPeriods",3),3)
     scullery.jack.sharePulse = settings.get("sharePulse",None)
+
+    scullery.jack.usePulse = settings.get("sharePulse",None) != "disable"
+
+    if settings.get("jackMode",None)=="use":
+        scullery.jack.manageJackProcess=False
+    if settings.get("jackMode",None)=="manage":
+         scullery.jack.manageJackProcess=True
+
+
+    
 
 scullery.jack.settingsReloader= reloadSettings
 

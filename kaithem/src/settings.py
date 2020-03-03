@@ -429,14 +429,12 @@ class Settings():
         jacksettings.set("jackPeriods",max(2,int(kwargs['jackperiods'])))
 
         from . import jackmanager
-        if jacksettings.get("jackMode",None)=="manage":
+        if jacksettings.get("jackMode",None) in("manage","use"):
             try:
                 jackmanager.startManaging()
-                jackmanager.startJackServer()
             except:
                 syslogger.exception("Error managing JACK")
         else:
-            jackmanager.stopJackServer()
             jackmanager.stopManaging()
         raise cherrypy.HTTPRedirect('/settings/system')
 

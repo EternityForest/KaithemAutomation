@@ -1,0 +1,9 @@
+load-module module-native-protocol-unix
+load-module module-jack-sink channels=2
+load-module module-jack-source channels=2
+load-module module-stream-restore
+load-module module-rescue-streams
+load-module module-always-sink
+load-module module-suspend-on-idle
+set-default-sink jack_out
+set-default-source jack_in

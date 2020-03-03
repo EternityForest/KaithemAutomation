@@ -37,11 +37,14 @@ KasaPlugin.maybeRefresh(30*60)
     <td><input type="password" name="temp.psk" value=""></td>
 </tr>
 
+%if 'switch' in (obj.tagPoints):
 <tr>
     <td>Tag Value</td>
     <td>${obj.tagPoints['switch'].meterWidget.render()}</td>
 </tr>
+%endif
 
+%if hasattr(obj,"onButton"):
 <tr>
     <td>Control(Raw, overrides tag value until tag changes)</td>
     <td>${obj.onButton.render("On")} ${obj.offButton.render("Off")}</td>
@@ -53,6 +56,7 @@ KasaPlugin.maybeRefresh(30*60)
         ${obj.csetButton.render("Set")}
     </td>
 </tr>
+%endif
 <tr>
     <td>RSSI</td><td>
     %try:

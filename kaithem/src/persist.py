@@ -113,11 +113,14 @@ class SharedStateFile():
             self.data[key] = value
 
             if key in self.legacy_registry_key_mappings:
-                registry.delete(self.legacy_registry_key_mappings[key])
+                try:
+                    registry.delete(self.legacy_registry_key_mappings[key])
+                except:
+                    pass
             dirty[self.filename]=self
 
             if self.recoveryFile:
-                save(self.data,self.recoveryFile)
+                save(self.data,self.recoveryFile,nolog=True)
 
 
     def delete(self,key):
@@ -126,6 +129,13 @@ class SharedStateFile():
                 del[self.data[key]]
             except KeyError:
                 pass
+
+
+            if key in self.legacy_registry_key_mappings:
+                try:
+                    registry.delete(self.legacy_registry_key_mappings[key])
+                except:
+                    pass
             dirty[self.filename]=self
             if self.recoveryFile:
                 save(self.data,self.recoveryFile)

@@ -39,13 +39,13 @@ class Discover:
         sock.settimeout(timeout)
 
         req = json.dumps(Discover.DISCOVERY_QUERY)
-        _LOGGER.debug("Sending discovery to %s:%s", target, port)
+        #_LOGGER.debug("Sending discovery to %s:%s", target, port)
 
         encrypted_req = protocol.encrypt(req)
         sock.sendto(encrypted_req[4:], (target, port))
 
         devices = {}
-        _LOGGER.debug("Waiting %s seconds for responses...", timeout)
+        #_LOGGER.debug("Waiting %s seconds for responses...", timeout)
 
         try:
             while True:
@@ -56,7 +56,7 @@ class Discover:
                 if device_class is not None:
                     devices[ip] = device_class(ip)
         except socket.timeout:
-            _LOGGER.debug("Got socket timeout, which is okay.")
+            pass#_LOGGER.debug("Got socket timeout, which is okay.")
         except Exception as ex:
             _LOGGER.error("Got exception %s", ex, exc_info=True)
         return devices

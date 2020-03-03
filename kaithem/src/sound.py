@@ -38,8 +38,8 @@ def volumeToDB(vol):
 if jackmanager.settings.get('jackMode',None)=="manage":
     def f():
         try:        
+            jackmanager.reloadSettings()
             jackmanager.startManaging()
-            jackmanager.startJackServer()
         except:
             log.exception("Error managing JACK")
     workers.do(f)

@@ -66,7 +66,7 @@ class KasaDevice(devices.Device):
         #If we were given separate temp and permanent names, then we use the temp
         #To find the device and set it to the proper permanent name
         if not data['device.locator']==data.get('temp.locator',data['device.locator']):
-            getDevice(data['temp.locator']).set_alias(data['device.locator'])
+            getDevice(data['temp.locator']).alias = data['device.locator']
             refresh()
 
 

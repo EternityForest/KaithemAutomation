@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.65.16
+- Overhaul scullery's JACK handling for more reliability in unusual raspberry pi setups
+- Avoid unnecccessariliy setting the process UID to the same value, which seems to have affected JACK
+- Remove some nuisance print output
 
 ### 0.65.15
 - MINOR BREAKING: The USB latency param is interpreted correctly now

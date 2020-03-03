@@ -71,11 +71,20 @@ def link(a,b):
 def stopAllJackUsers():
     #It seems best to stop everything using jack before stopping and starting the daemon.
     with lock:
-        for i in jackChannels:
-            x=jackChannels[i]()
-            if x:
-                x.stop()
-            del x
+        c = list(jackChannels.items())
+        for i in c:
+            try:
+                i[1]().stop()
+            except:
+                log.exception("Err stopping JACK user")
+        del c
+        #Defensive programming against a double stop, which might be something that
+        #No longer is in a state that can be touched without a segfault
+        try:
+            if i[0] in jackChannels:
+                del jackChannels[i[1]]
+        except:
+            pass
 
 def elementInfo(e):
     r=Gst.Registry.get()
@@ -509,7 +518,9 @@ class GStreamerPipeline():
     def stop(self):
         #Actually stop as soon as we can
         with self.lock:
-            self.pipeline.set_state(Gst.State.NULL)
+            #This was causing segfaults for some reasons
+            if not (self.pipeline.get_state(1000_000_000)[1]==Gst.State.NULL):
+                self.pipeline.set_state(Gst.State.NULL)
             self.exiting = True
             self.bus.set_sync_handler(None,0,None)
             if self.hasSignalWatch:

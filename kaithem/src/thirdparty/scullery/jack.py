@@ -65,9 +65,8 @@ sharePulse = None
 manageSoundcards = True
 
 #Should we auto restart the jack process?
-#No by default, gets auto set to True by startJackServer()
+#No by default, gets auto set to True by startJackProcess()
 manageJackProcess = False
-
 
 
 
@@ -92,6 +91,8 @@ def isConnected(f,t):
         return True
 
 def setupPulse():
+
+    log.debug("Setting pulseaudio integration for JACK")
     try:
         subprocess.call(['pulseaudio','-k'],timeout=5,stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
     except:
@@ -107,26 +108,31 @@ def setupPulse():
 
 
     time.sleep(0.1)
+    #-n prevents loading the defaults, which would otherwise
+    #Cause trouble with pulseaudio
+    cmd = ['pulseaudio',"-D", "-n","--file="+os.path.join(os.path.dirname(__file__),"pulse_jack_rc.txt")]
+
+    if sharePulse=="system-wide":
+        cmd.extend(["--system", "--disallow-exit","--disallow-module-loading"])
+
     try:
         #This may mean it's already running, but hanging in some way
         try:
-            subprocess.check_call(['pulseaudio','-D'],timeout=5)
+            subprocess.check_call(cmd,timeout=5)
         except:
             subprocess.call(['killall','-9','pulseaudio'],timeout=5,stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
-            subprocess.check_call(['pulseaudio','-D'],timeout=5)
+            subprocess.check_call(cmd,timeout=5)
             pass
         time.sleep(0.1)
         try:
             if sharePulse== "localhost":
-                subprocess.check_call("pactl load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1",timeout=5)
+                subprocess.check_call("pactl load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1",timeout=5,shell=True)
             elif sharePulse== "network":
-                subprocess.check_call("pactl load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1;192.168.0.0/24;10.0.0.0/24 auth-anonymous=1",timeout=5)
-                subprocess.check_call("load-module module-zeroconf-publish",timeout=5)
+                subprocess.check_call("pactl load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1;192.168.0.0/24;10.0.0.0/24 auth-anonymous=1",timeout=5,shell=True)
+                subprocess.check_call("pactl load-module module-zeroconf-publish",timeout=5,shell=True)
         except:
             log.exception("Error configuring pulseaudio sharing")
-
-
-        subprocess.check_call("pactl load-module module-jack-sink channels=2; pactl load-module module-jack-source channels=2; pacmd set-default-sink jack_out;",shell=True,timeout=5)
+    
     except:
         log.exception("Error configuring pulseaudio")
 
@@ -301,7 +307,7 @@ class MultichannelAirwire(MonoAirwire):
         self.disconnect()
 
 
-def CombiningAirwire(MultichannelAirwire):
+class CombiningAirwire(MultichannelAirwire):
     def reconnect(self):
         """Connects the outputs of channel strip f to the port t. As in all outputs
         to one input.
@@ -346,7 +352,10 @@ def CombiningAirwire(MultichannelAirwire):
             #Disconnect all the ports
             for i in outPorts:
                 if isConnected(i.name,inPort.name):
-                    i.disconnect(inPort)
+                    try:
+                        _jackclient.disconnect(i,inPort)
+                    except:
+                        print(traceback.format_exc())
                     try:
                         del activeConnections[i,inPort]
                     except KeyError:
@@ -868,6 +877,7 @@ def shortHash(x, num=8, separator=""):
 def cleanup():
     import subprocess
     try:
+        print("Killing jack process")
         jackp.kill()
     except:
         pass
@@ -882,15 +892,14 @@ jackShouldBeRunning = False
 
 
 def stopJackServer():
-    global jackShouldBeRunning
-    jackShouldBeRunning =False
-
-    global manageJackProcess
-    manageJackProcess = False
-    
-    _stopJackProcess()
+    with lock:
+        global jackShouldBeRunning
+        jackShouldBeRunning =False
+        
+        _stopJackProcess()
 
 jackp = None
+lastJackStartAttempt=0
 
 
 
@@ -898,6 +907,7 @@ jackp = None
 def _stopJackProcess():
     global _jackclient
     import subprocess
+    log.info("Stopping JACK and all related processes")
     #Get rid of old stuff
     iceflow.stopAllJackUsers()
     try:
@@ -945,7 +955,8 @@ def _startJackProcess(p=None, n=None,logErrs=True):
 
     period = p or periodSize
     jackPeriods = n or jackPeriods
-    
+
+    log.info("Attempting to start JACK")
     if not jackp or not jackp.poll()==None:
         tryCloseFds(jackp)
         if midip:
@@ -959,23 +970,31 @@ def _startJackProcess(p=None, n=None,logErrs=True):
         except:
             print(traceback.format_exc())
 
+        #Let's be real sure it's gone
+        try:
+            subprocess.call(['killall','-9', 'pulseaudio'],stderr=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
+        except:
+            print(traceback.format_exc())
+
         #TODO: Explicitly close all the FDs we open!
         f = open(os.devnull,"w")
         my_env = os.environ.copy()
  
         if not 'DBUS_SESSION_BUS_ADDRESS' in my_env or not my_env['DBUS_SESSION_BUS_ADDRESS']:
             my_env['DBUS_SESSION_BUS_ADDRESS'] = "unix:path=/run/dbus/system_bus_socket"
+            os.environ['DBUS_SESSION_BUS_ADDRESS'] ="1"
 
+        os.environ['JACK_NO_AUDIO_RESERVATION'] ="1"
         my_env['JACK_NO_AUDIO_RESERVATION'] ="1"
 
         settingsReloader()
 
+        lastJackStartAttempt=time.monotonic()
         if realtimePriority:
             jackp =subprocess.Popen(['jackd', '-S', '--realtime', '-P' ,str(realtimePriority) ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,str(period), '-n' ,str(jackPeriods) ,'-r','48000'],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE, stderr=subprocess.PIPE,env=my_env)    
         else:
             jackp =subprocess.Popen(['jackd', '-S', '--realtime' ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,str(period), '-n' ,str(jackPeriods) ,'-r','48000'],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE, stderr=subprocess.PIPE,env=my_env)    
 
-        _checkJackClient()
         
         time.sleep(0.5)
 
@@ -992,7 +1011,25 @@ def _startJackProcess(p=None, n=None,logErrs=True):
         if jackp.poll() != None:
             tryCloseFds(jackp)
             raise RuntimeError("Could not start JACK process")
-     
+
+        
+        startedClient = False
+
+        #Try to start the JACK client
+        for i in range(0,10):
+            try:
+                _checkJackClient(err=False)
+                startedClient=True
+                break
+            except:
+                pass
+                time.sleep(1)
+
+        #Try again, but this time don't just hide the error.
+        if not startedClient:
+            _checkJackClient()
+
+
         if realtimePriority:
             try:
                 subprocess.check_call(['chrt', '-f','-p', str(realtimePriority), str(jackp.pid)])
@@ -1281,7 +1318,7 @@ def work():
                         handleManagedSoundcards()
                 finally:
                     lock.release()
-                #_ensureConnections()
+                _ensureConnections()
             else:
                 if(_reconnecterThreadObjectStopper[0]):
                     #Might be worth logging
@@ -1323,26 +1360,25 @@ def _doPatch():
 
 
 
-def startJackServer(p=None,n=None):
-    global jackShouldBeRunning
-    jackShouldBeRunning = True
+def startJackProcess(p=None,n=None):
+    with lock:
+        global jackShouldBeRunning
+        jackShouldBeRunning = True
 
-    global manageJackProcess
-    manageJackProcess = True
-
-    for i in range(10):
-        try:
-            _stopJackProcess()
-            #Only log on the last attempt
-            _startJackProcess(p,n,logErrs=i==9)
-            break
-        except:
-            log.exception("Failed to start JACK?")
-            time.sleep(0.5)
-            if i==9:
-                raise
+        for i in range(10):
+            try:
+                _stopJackProcess()
+                #Only log on the last attempt
+                _startJackProcess(p,n,logErrs=i==9)
+                break
+            except:
+                log.exception("Failed to start JACK?")
+                time.sleep(0.5)
+                if i==9:
+                    raise
 
 def startManaging(p=None,n=None):
+    "Start mananaging JACK in whatever way was configured."
     import jack, re
     global _jackclient
     global _reconnecterThreadObject
@@ -1364,6 +1400,9 @@ def startManaging(p=None,n=None):
         _reconnecterThreadObject.daemon=True
         _reconnecterThreadObject.start()
 
+        if manageJackProcess:
+            startJackProcess()
+
 def stopManaging():
     with lock:
         #Stop the old thread if needed
@@ -1374,21 +1413,44 @@ def stopManaging():
         except:
             pass
         _reconnecterThreadObject=None
-            
+        
+        if manageJackProcess:
+            stopJackServer()
 
 
-
+jack_output = b''
 def _checkJack():
-    global jackp
+    global jackp,jack_output
     with lock:
         if manageJackProcess:
             if jackp:
-                readAllSoFar(jackp)
-                readAllErrSoFar(jackp)
-            if jackShouldBeRunning  and jackp and jackp.poll() !=None:
-                _startJackProcess()
+                try:
+                    jack_output+= readAllSoFar(jackp)
+                    jack_output+= readAllErrSoFar(jackp)
+                except:
+                    print(traceback.format_exc())
+                    print(jack_output)
 
-def _checkJackClient():
+                    try:
+                        print("Killing jack process, read fail")
+                        jackp.kill()
+                    except:
+                        pass
+                    jackp = None
+
+                if b"\n" in jack_output or len(jack_output)>1024:
+                    print("jackd:")
+                    print(jack_output)
+                    jack_output=b''
+
+            if manageJackProcess  and (not jackp) or (jackp and jackp.poll() !=None):
+                if time.monotonic()-lastJackStartAttempt > 10:
+                    log.warning("JACK appears to have stopped. Attempting restart.")
+                    _stopJackProcess()
+                    if jackShouldBeRunning:
+                        _startJackProcess()
+
+def _checkJackClient(err=True):
     global _jackclient, realConnections
     import jack
     with lock:
@@ -1406,9 +1468,10 @@ def _checkJackClient():
             _realConnections = {}
 
             try:
-                _jackclient=jack.Client("Overseer")
+                _jackclient=jack.Client("Overseer",no_start_server=True)
             except:
-                log.exception("Error creating JACK client")
+                if err:
+                    log.exception("Error creating JACK client")
                 return
 
             _jackclient.set_port_registration_callback(onPortRegistered)

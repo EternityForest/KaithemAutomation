@@ -480,8 +480,18 @@ def drop_perms(user, group = None):
     global currentUser 
     if os.name == 'nt':
         return
+
     if os.getuid() != 0:
+        #No perms to drop!!
         return
+    
+    if user.strip()=="root":
+        #Don't mess with stuff uneccesarily,
+        #Changing to the exact same user can cause problems
+        return
+    
+    logger.info("Changing user and group to: "+str(user)+" "+str(group))
+
 
     import grp, pwd
 

@@ -91,7 +91,7 @@ class Persister():
         if os.path.exists(self.fn):
             self.value = load(self.fn)
 
-def save(data,fn, *,private=False,backup=True, expand=True, md5=False):
+def save(data,fn, *,private=False,backup=True, expand=True, md5=False,nolog=False):
     """Save data to file. Filename must end in .json, .yaml, .txt, or .bin. Data will be encoded appropriately.
         Also supports compressed versions via filenames ending in .gz or .bz2.
         Args:
@@ -179,7 +179,8 @@ def save(data,fn, *,private=False,backup=True, expand=True, md5=False):
         else:
             tempfn = fn
 
-        logging.debug("Writing: "+fn)
+        if not nolog:
+            logging.debug("Writing: "+fn)
         #Actually write it
         with open(tempfn,'wb') as f:
 

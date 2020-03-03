@@ -100,7 +100,7 @@ def runtest():
     from .. import messagebus
     try:
         from . import eventsystem,statemachinestest,messagebustest,tagpointstest,testpersist
-
+        logging.info("Beginning self test")
         eventsystem.eventSystemTest()
         statemachinestest.stateMachinesTest()
         messagebustest.test()
