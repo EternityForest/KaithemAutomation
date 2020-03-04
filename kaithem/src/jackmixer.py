@@ -271,7 +271,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
             #self.addElement("audioconvert")
             #self.capsfilter2= self.addElement("capsfilter", caps="audio/x-raw,channels="+str(channels))
 
-            self.sink=self.addElement("jackaudiosink", buffer_time=1000, latency_time=500,sync=False,
+            self.sink=self.addElement("jackaudiosink", buffer_time=10, latency_time=10,sync=False,
                 slave_method=0, port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=self.name+"_out",connect=0, blocksize=self.channels*128) 
 
             #I think It doesn't like it if you start without jack
@@ -300,6 +300,12 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                     jackmanager.connect(i[0],j)
                 except:
                     pass
+        for i in self.sendAirwires:
+            try:
+                self.sendAirwires[i].connect()
+            except:
+                pass
+
     def stop(self):
         with self.lock:
             for i in self.sendAirwires:
@@ -556,15 +562,16 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                 q.leaky =2
                 q2.leaky = 2
                 l = self.makeElement('volume')
+                l.set_property('volume', 10**(volume/20))
                 self.effectsById[id] = l
 
                 e2 =self.makeElement("jackaudiosink","_send"+str(len(self.sends)))
-                e2.set_property("buffer-time",1000)
+                e2.set_property("buffer-time",10)
                 e2.set_property("port-pattern","fdgjkndgmkndfmfgkjkf")
                 e2.set_property("sync",False)
                 e2.set_property("slave-method",0)
                 e2.set_property('provide-clock',False)
-                e2.latency_time=4000
+                e2.latency_time=10
                 self.effectsById[id]= l
                 self.effectsById[id+"*destination"] = e2
                 

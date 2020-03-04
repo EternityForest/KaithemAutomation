@@ -14,7 +14,7 @@
 #You should have received a copy of the GNU General Public License
 
 from scullery.iceflow import GstreamerPipeline as Pipeline
-from scullery.iceflow import stopAllJackUsers
+from scullery.iceflow import stopAllJackUsers,link
 import scullery.iceflow
 
 def testGst():

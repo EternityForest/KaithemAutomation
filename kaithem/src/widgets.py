@@ -164,10 +164,12 @@ if config['enable-websockets']:
                 upd = o['upd']
 
                 for i in upd:
-                    widgets[i[0]]._onUpdate(user,i[1],self.uuid)
+                    if i[0] in widgets:
+                        widgets[i[0]]._onUpdate(user,i[1],self.uuid)
 
                 for i in req:
-                    resp.append([i, widgets[i]._onRequest(user,self.uuid)])
+                    if i in widget:
+                        resp.append([i, widgets[i]._onRequest(user,self.uuid)])
 
                 if 'subsc' in o:
                     for i in o['subsc']:
@@ -176,20 +178,25 @@ if config['enable-websockets']:
                         if i == "__WIDGETERROR__":
                             continue
 
+                        #TODO: DoS by filling memory with subscriptions??
 
                         with subscriptionLock:
-                            widgets[i].subscriptions[self.uuid] = subsc_closure(self,i,widgets[i])
-                            widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
-                            #This comes after in case it  sends data
-                            widgets[i].onNewSubscriber(user,{})
+                          if i in widgets:
+                                for p in widgets[i]._read_perms:
+                                    if not auth.canUserDoThis(user,p):
+                                        raise RuntimeError("Need permission: "+str(p))
 
-                        self.subscriptions.append(i)
-                        resp.append([i, widgets[i]._onRequest(user,self.uuid)])
+                                widgets[i].subscriptions[self.uuid] = subsc_closure(self,i,widgets[i])
+                                widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
+                                #This comes after in case it  sends data
+                                widgets[i].onNewSubscriber(user,{})
+
+                                self.subscriptions.append(i)
+                                resp.append([i, widgets[i]._onRequest(user,self.uuid)])
 
 
             except Exception as e:
-                print(message.data)
-                logging.exception('Error in widget')
+                logging.exception('Error in widget, responding to '+str(message.data))
                 messagebus.postMessage("system/errors/widgets/websocket", traceback.format_exc(6))
                 self.send(json.dumps({'__WIDGETERROR__':repr(e)}))
 

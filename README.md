@@ -49,6 +49,10 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.17
+- Fix jack mixer send elements
+- Faster startup for jack
+
 ### 0.65.16
 - Overhaul scullery's JACK handling for more reliability in unusual raspberry pi setups
 - Avoid unnecccessariliy setting the process UID to the same value, which seems to have affected JACK
