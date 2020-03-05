@@ -288,11 +288,11 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
     def connect(self, restore=[]):
         self._outputs = []
         for i in self.outputs:
-            x = jackmanager.Airwire(self.name+"_out", i)
+            x = jackmanager.Airwire(self.name+"_out", i,forceCombining=(self.channels==1))
             x.connect()
             self._outputs.append(x)
 
-        self._input = jackmanager.Airwire(self.input, self.name+"_in") 
+        self._input = jackmanager.Airwire(self.input, self.name+"_in", forceCombining=(self.channels==1)) 
         self._input.connect()
         for i in restore:
             for j in i[1]:
@@ -331,7 +331,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
             self.input=input
             if self._input:
                 self._input.disconnect()
-            self._input = jackmanager.Airwire(self.input, self.name+"_in") 
+            self._input = jackmanager.Airwire(self.input, self.name+"_in",forceCombining=(self.channels==1)) 
             self._input.connect()
 
     def setOutputs(self, outputs):
@@ -342,7 +342,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
             
             self._outputs = []
             for i in self.outputs:
-                x = jackmanager.Airwire(self.name+"_out", i)
+                x = jackmanager.Airwire(self.name+"_out", i,forceCombining=(self.channels==1))
                 x.connect()
                 self._outputs.append(x)
 
@@ -413,7 +413,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                     #Keep the old origin, just swap the destination
                     if effectId in self.sendAirwires:
                         self.sendAirwires[effectId].disconnect()
-                        self.sendAirwires[effectId] = jackmanager.Airwire(self.sendAirwires[effectId].orig, value)
+                        self.sendAirwires[effectId] = jackmanager.Airwire(self.sendAirwires[effectId].orig, value,forceCombining=(self.channels==1))
                         try:
                              self.sendAirwires[effectId].connect()
                         except:
@@ -583,7 +583,8 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                 #Sequentially number the sends
                 cname = self.name+"_send"+str(len(self.sends))
                 e2.set_property("client-name",cname)
-                self.sendAirwires[id] = jackmanager.Airwire(cname, target)
+            
+                self.sendAirwires[id] = jackmanager.Airwire(cname, target, forceCombining=(self.channels==1))
                 self.sends.append(e2)
                 
                 

@@ -311,7 +311,7 @@ class MultichannelAirwire(MonoAirwire):
 class CombiningAirwire(MultichannelAirwire):
     def reconnect(self):
         """Connects the outputs of channel strip f to the port t. As in all outputs
-        to one input.
+        to one input. If the destination is a client, connect all channnels of src to all of dest.
         """
         if not self.active:
             return
@@ -320,20 +320,18 @@ class CombiningAirwire(MultichannelAirwire):
             return
         with lock:
             outPorts = _jackclient.get_ports(f+":*",is_output=True,is_audio=True)
-        
-            inPort = _jackclient.get_ports(t)[0]
-            if not inPort:
-                return
-
+            
+            if not ":" in t:
+                t+=":*"
+            inPorts = _jackclient.get_ports(t,is_input=True,is_audio=True)
+          
 
             #Connect all the ports
             for i in outPorts:
-                if not isConnected(i.name,inPort.name):
-                    connect(i,inPort)
-                    with realConnectionsLock:
-                        _realConnections[i.name,inPort.name]=True
-                        global realConnections
-                        realConnections=_realConnections.copy()
+                for j in inPorts:
+                    if not isConnected(i.name,j.name):
+                        connect(i,j)
+                  
 
 
 
@@ -346,26 +344,32 @@ class CombiningAirwire(MultichannelAirwire):
         with lock:
             outPorts = _jackclient.get_ports(f+":*",is_output=True,is_audio=True)
         
-            inPort = _jackclient.get_ports(t)[0]
-            if not inPort:
+            if not ":" in t:
+                t+=":*"
+            inPorts = _jackclient.get_ports(t)
+            if not inPorts:
                 return
 
             #Disconnect all the ports
             for i in outPorts:
-                if isConnected(i.name,inPort.name):
-                    try:
-                        disconnect(i,inPort)
-                    except:
-                        print(traceback.format_exc())
-                    try:
-                        del activeConnections[i,inPort]
-                    except KeyError:
-                        pass
+                    for j in inPorts:
+                        if isConnected(i.name,j.name):
+                            try:
+                                disconnect(i,j)
+                            except:
+                                print(traceback.format_exc())
+                            try:
+                                del activeConnections[i,j.name]
+                            except KeyError:
+                                pass
 
-def Airwire(f,t):
-    if f==None or t==None:
+
+def Airwire(f,t,forceCombining=False):
+    if forceCombining:
+        return CombiningAirwire(f,t) 
+    elif f==None or t==None:
         return MonoAirwire(None,None)
-    if ":" in f:
+    elif ":" in f:
         if not ":" in t:
            return CombiningAirwire(f,t)
         return MonoAirwire(f,t)

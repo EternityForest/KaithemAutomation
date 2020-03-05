@@ -1,6 +1,8 @@
 Change Log
 ----------
 
+### 0.65.18
+- Mixer mono channels properly connect to stereo destinations
 
 ### 0.65.17
 - Fix jack mixer send elements
