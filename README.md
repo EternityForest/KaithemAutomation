@@ -48,6 +48,10 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+
+### 0.65.19
+- Fix the script bindings tagpoint support
+
 ### 0.65.18
 - Mixer mono channels properly connect to stereo destinations
 

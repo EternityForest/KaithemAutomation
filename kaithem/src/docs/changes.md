@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+
+### 0.65.19
+- Fix the script bindings tagpoint support
+
 ### 0.65.18
 - Mixer mono channels properly connect to stereo destinations
 

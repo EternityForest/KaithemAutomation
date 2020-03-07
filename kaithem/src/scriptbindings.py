@@ -461,18 +461,18 @@ class ChandlerScriptContext():
         self.tagHandlers = {}
         self.tagClaims = {}
 
-        def tagpoint(t):
-            tn= self.canGetTagpoint(t)
-            t = tagpoints.Tag(t)
+        def tagpoint(tagName):
+            tagName= self.canGetTagpoint(tagName)
+            t = tagpoints.Tag(tagName)
             self.setupTag(t)
-            self.setVar("$tag:"+t,t.value,True)
+            self.setVar("$tag:"+tagName,t.value,True)
             return t.value
             
         def stringtagpoint(t):
-            tn= self.canGetTagpoint(t)
-            t = tagpoints.StringTag(t)
+            tagName= self.canGetTagpoint(tagName)
+            t = tagpoints.StringTag(tagName)
             self.setupTag(t)
-            self.setVar("$tag:"+t,t.value,True)
+            self.setVar("$tag:"+tagName,t.value,True)
             return t.value
        
         c['tagValue']= tagpoint
@@ -756,6 +756,11 @@ class ChandlerScriptContext():
 
             for i in self.tagHandlers:
                 self.tagHandlers[i][0].unsubscribe(self.tagHandlers[i][1])
+
+                try:
+                    self.setVar("$tag:"+i, "Unsubscribed",force=True)
+                except:
+                    pass
             
             #Clear all the tagpoints that we may have been watching for changes
             self.tagHandlers={}
@@ -824,5 +829,3 @@ if not x==desired:
     raise RuntimeError("The ChandlerScript module isn't working as planned")
 if not c.variables['foo']=='bar':
     raise RuntimeError("The ChandlerScript module isn't working as planned")
-
-print(x)
