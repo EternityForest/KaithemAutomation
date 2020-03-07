@@ -16,7 +16,25 @@
 #NOTICE: A LOT OF LOCKS ARE USED IN THIS FILE. WHEN TWO LOCKS ARE USED, ALWAYS GET _event_list_lock LAST
 #IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
-import traceback,threading,sys,time,cherrypy,collections,os,base64,imp,types,weakref,dateutil,datetime,recur,recur,re,pytz,gc,random,logging
+import traceback
+import threading
+import sys
+import time
+import cherrypy
+import collections
+import os
+import base64
+import imp
+import types
+import weakref
+import dateutil
+import datetime
+import recur
+import re
+import pytz
+import gc
+import random
+import logging
 import dateutil.rrule
 import dateutil.tz
 from . import workers, kaithemobj,messagebus,util,modules_state,scheduling

@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.65.20
+- Startup speed improvements with JACK
+- Immediately update jack settings when changing via UI
+- Eliminate more useless print output
+- Add better logging for JACK status
 
 ### 0.65.19
 - Fix the script bindings tagpoint support

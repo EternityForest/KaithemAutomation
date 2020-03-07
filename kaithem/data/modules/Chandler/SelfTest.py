@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1582208662379375
+resource-timestamp: 1583571059283456
 resource-type: event
 versions: {}
 
@@ -20,47 +20,49 @@ if __name__=='__setup__':
     __doc__=''
     
     import uuid,time
+    
     sc = kaithem.chandler.Scene("ChandlerSelftestScene")
     sc2 = kaithem.chandler.Scene("ChandlerSelftestScene2")
-    uid = uuid.uuid4().hex
-    u = module.Universe(uid)
+    
+    try:
+        uid = uuid.uuid4().hex
+        u = module.Universe(uid)
     
     
-    cue1 = sc.cues["default"]
-    cue1.setValue(uid,7,100)
+        cue1 = sc.cues["default"]
+        cue1.setValue(uid,7,100)
     
-    if not u.values[7]==0:
-        raise RuntimeError("Expected 0 for universe background")
+        if not u.values[7]==0:
+            raise RuntimeError("Expected 0 for universe background")
     
-    sc.setAlpha(1)
+        sc.setAlpha(1)
     
-    time.sleep(0.2)
-    if not u.values[7]==100:
-        raise RuntimeError("Expected val 100 from cue1")
+        time.sleep(0.2)
+        if not u.values[7]==100:
+            raise RuntimeError("Expected val 100 from cue1")
     
-    sc2.setAlpha(1)
+        sc2.setAlpha(1)
     
-    time.sleep(0.2)
-    if not u.values[7]==100:
-        raise RuntimeError("Expected val 100 from cue1 still, sc2 should not affect it")
+        time.sleep(0.2)
+        if not u.values[7]==100:
+            raise RuntimeError("Expected val 100 from cue1 still, sc2 should not affect it")
     
     
-    cue = sc2.addCue("test")
-    sc2.gotoCue('test')
+        cue = sc2.addCue("test")
+        sc2.gotoCue('test')
     
-    time.sleep(0.2)
-    if not u.values[7]==100:
-        raise RuntimeError("Expected val 100 from cue1 still, sc2 should not affect it")
+        time.sleep(0.2)
+        if not u.values[7]==100:
+            raise RuntimeError("Expected val 100 from cue1 still, sc2 should not affect it")
     
-    cue1 = sc.cues["default"]
-    cue1.setValue(uid,7,50)
-    u.close()
-    
-    sc.stop()
-    sc2.stop()
-    
-    del sc
-    del sc2
+        cue1 = sc.cues["default"]
+        cue1.setValue(uid,7,50)
+        u.close()
+    finally:
+        sc.stop()
+        sc2.stop()
+        del sc
+        del sc2
 
 def eventAction():
     pass

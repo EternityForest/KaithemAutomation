@@ -16,6 +16,7 @@ __doc__=''
 
 #This is an acceptable dependamcy, it will be part of libkaithem if such a thing exists
 from scullery import jack
+from scullery import messagebus
 from scullery.jack import *
 import scullery
 
@@ -41,6 +42,16 @@ default={
     "usbQuality": 0,
     "jackMode": "off",
 }
+
+def onFail():
+    messagebus.postMessage("/system/notifications/errors","JACK server has failed")
+
+def onStart():
+    messagebus.postMessage("/system/notifications/important","JACK server connected")
+
+scullery.jack.onJackFailure = onFail
+scullery.jack.onJackStart = onStart
+
 
 settings = persist.getStateFile(settingsFile,default,legacy_keys)
 

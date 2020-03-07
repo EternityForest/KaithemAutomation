@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1582828005696954
+resource-timestamp: 1583571208206073
 resource-type: event
 versions: {}
 
@@ -2904,7 +2904,7 @@ if __name__=='__setup__':
                         return None
                 
                 #This is an optimization for if we already know the index
-                if cue==self.cue.name:
+                if self.cue and cue==self.cue.name:
                     v = self.cuePointer
                 else:
                     v = self.cues_ordered.index(self.cues[cue])

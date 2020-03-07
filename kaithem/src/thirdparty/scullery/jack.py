@@ -30,7 +30,17 @@ wordlist = mnemonics.wordlist
 from . import messagebus, iceflow
 
 def shouldAllowGstJack(*a):
-    return True if getPorts() else False
+    global _jackclient
+    with lock:
+        try:
+            t=getPorts()
+            if  t:
+                return True
+        except:
+            print(traceback.format_exc())
+            pass
+        return False
+
 
 iceflow.GstreamerPipeline.shouldAllowGstJack = shouldAllowGstJack
 
@@ -43,9 +53,20 @@ _jackclient =None
 
 lock = threading.RLock()
 
+
+def onJackFailure():
+    pass
+
+def onJackStart():
+    pass
+
+
+prevJackStatus=False
+
+
 #Default settings
 jackPeriods = 3
-periodSize = 128
+periodSize = 512
 
 #These apply to soundcards other than the main system card
 usbPeriodSize = -1
@@ -913,7 +934,7 @@ lastJackStartAttempt=0
 
 
 def _stopJackProcess():
-    global _jackclient
+    global _jackclient,jackp
     import subprocess
     log.info("Stopping JACK and all related processes")
     #Get rid of old stuff
@@ -951,6 +972,7 @@ def _stopJackProcess():
         print(traceback.format_exc())
         log.exception("Probably just already closed")
     tryCloseFds(jackp)
+    jackp=None
 
 
 
@@ -967,6 +989,7 @@ def _startJackProcess(p=None, n=None,logErrs=True):
     log.info("Attempting to start JACK")
     if not jackp or not jackp.poll()==None:
         tryCloseFds(jackp)
+        jackp=None
         if midip:
             try:
                 midip.kill()
@@ -998,6 +1021,7 @@ def _startJackProcess(p=None, n=None,logErrs=True):
         settingsReloader()
 
         lastJackStartAttempt=time.monotonic()
+        logging.debug("Attempting to start JACKD server")
         if realtimePriority:
             jackp =subprocess.Popen(['jackd', '-S', '--realtime', '-P' ,str(realtimePriority) ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,str(period), '-n' ,str(jackPeriods) ,'-r','48000'],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE, stderr=subprocess.PIPE,env=my_env)    
         else:
@@ -1014,10 +1038,12 @@ def _startJackProcess(p=None, n=None,logErrs=True):
             if x and logErrs:
                 log.info("jackd:\n"+x.decode('utf8','ignore'))
             tryCloseFds(jackp)
+            jackp=None
 
 
-        if jackp.poll() != None:
+        if jackp and jackp.poll() != None:
             tryCloseFds(jackp)
+            jackp=None
             raise RuntimeError("Could not start JACK process")
 
         
@@ -1026,18 +1052,29 @@ def _startJackProcess(p=None, n=None,logErrs=True):
         #Try to start the JACK client
         for i in range(0,10):
             try:
-                _checkJackClient(err=False)
-                startedClient=True
-                break
+                if _checkJackClient(err=False):
+                    startedClient=True
+                    break
             except:
                 time.sleep(1)
+        global prevJackStatus
 
         #Try again, but this time don't just hide the error.
         if not startedClient:
-            _checkJackClient()
+            if not _checkJackClient():
+                if prevJackStatus:
+                    prevJackStatus=False
+                    onJackFailure()
+        else:
+            if not prevJackStatus:
+                prevJackStatus=True
+                onJackStart()
+            logging.debug("Connected to JACKD server")
 
 
-        if realtimePriority:
+
+        
+        if realtimePriority and jackp:
             try:
                 subprocess.check_call(['chrt', '-f','-p', str(realtimePriority), str(jackp.pid)])
             except:
@@ -1454,7 +1491,13 @@ def _checkJack():
                     print(jack_output)
                     jack_output=b''
 
-            if manageJackProcess  and (not jackp) or (jackp and jackp.poll() !=None):
+
+            if manageJackProcess  and (not jackp) or (jackp and jackp.poll() !=None):          
+                global prevJackStatus
+                if not jackp:
+                    if prevJackStatus:
+                        prevJackStatus=False
+                        onJackFailure()
                 if time.monotonic()-lastJackStartAttempt > 10:
                     log.warning("JACK appears to have stopped. Attempting restart.")
                     _stopJackProcess()
@@ -1474,11 +1517,13 @@ def _checkJackClient(err=True):
         except:
             try:
                 _jackclient.close()
+                _jackclient=None
             except:
                 pass
             _realConnections = {}
 
             try:
+
                 _jackclient=jack.Client("Overseer",no_start_server=True)
             except:
                 if err:
@@ -1491,9 +1536,10 @@ def _checkJackClient(err=True):
             _jackclient.get_ports()
             time.sleep(0.5)
             findReal()
+            return True
 
     if not _jackclient:
-        return []
+        return False
 
 def getPorts(*a,**k):
     with lock:

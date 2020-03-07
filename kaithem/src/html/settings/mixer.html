@@ -149,16 +149,28 @@ from src import jackmixer
     </div>
 
     <div v-if="activePane=='status'">
+      <h3>Audio ports</h3>
+        <h4>Outputs(Sinks)</h4>
+        <table>
+          <tr v-for="v,i in outports"><td>{{i}}</td></tr>
+        </table>
+        <h4>Inputs(Sources)</h4>
+        <table>
+          <tr v-for="v,i in outports"><td>{{i}}</td></tr>
+        </table>
+
 
       <h3>MIDI ports</h3>
-      <h4>Outputs(Sinks)</h4>
-      <table>
-        <tr v-for="v,i in midioutports"><td>{{i}}</td></tr>
-      </table>
-      <h4>Inputs(Sources)</h4>
-      <table>
-        <tr v-for="v,i in midiinports"><td>{{i}}</td></tr>
-      </table>
+        <h4>Outputs(Sinks)</h4>
+        <table>
+          <tr v-for="v,i in midioutports"><td>{{i}}</td></tr>
+        </table>
+        <h4>Inputs(Sources)</h4>
+        <table>
+          <tr v-for="v,i in midiinports"><td>{{i}}</td></tr>
+        </table>
+
+
     </div>
 
     <div v-if="activePane=='presets'">

@@ -34,15 +34,27 @@ def volumeToDB(vol):
     #0.5 is 10db below, etc.
     return -38.33333 + 77.80645*vol- 39.56989*vol**2
 
-
-if jackmanager.settings.get('jackMode',None)=="manage":
+isStartDone = []
+if jackmanager.settings.get('jackMode',None) in ("manage","use"):
     def f():
-        try:        
+        try: 
+            logging.debug("Initializing JACK")
             jackmanager.reloadSettings()
             jackmanager.startManaging()
         except:
             log.exception("Error managing JACK")
+        try:
+            isStartDone.append(True)
+        except:
+            pass
     workers.do(f)
+    #Wait up to 3 seconds
+    t = time.monotonic()
+    while(time.monotonic()-t)< 3:
+        if len(isStartDone):
+            break
+        time.sleep(0.1)
+del isStartDone
 
 jackAPIWidget = None
 
