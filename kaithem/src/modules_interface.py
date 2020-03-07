@@ -331,6 +331,11 @@ class WebInterface():
                     obj = kaithem
                     objname = "PythonRoot"
 
+                if path[1] == "sysmodule":
+                    import sys
+                    obj = sys
+                    objname = "sys"
+
                 if 'objname' in kwargs:
                     objname = kwargs['objname']
 

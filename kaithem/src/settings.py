@@ -429,6 +429,7 @@ class Settings():
         jacksettings.set("jackPeriods",max(2,int(kwargs['jackperiods'])))
 
         from . import jackmanager
+        jackmanager.reloadSettings()
         if jacksettings.get("jackMode",None) in("manage","use"):
             try:
                 jackmanager.startManaging()

@@ -28,7 +28,7 @@ ${obj.__class__|h}
 <h3>Object Attributes</h3>
 <div class="sectionbox">
 <dl>
-%for i in obj.__dict__:
+%for i in sorted(obj.__dict__.keys(), key=str):
 <dt><a href="?objname=${objname}.${i}&objpath=${objpath},a${i}">${i|h}</a></dt>
 <dd>${util.saferepr(obj.__dict__[i])|h}<br>
     %if hasattr(obj.__dict__[i],'__doc__'):
@@ -134,7 +134,7 @@ ${getsource(obj)|h}
 <h3>Dict Contents (${len(obj)} items)</h3>
 <div class="sectionbox">
 <dl>
-%for i in obj:
+%for i in sorted(obj.keys(),key=str):
 %if isinstance(i,str):
 <dt><a href="?objname=${objname}['${i}']&objpath=${objpath|u},s${i.replace(",","\\,")|u}">${i|h}</a></dt>
 %elif isinstance(i,tuple):

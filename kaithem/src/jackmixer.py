@@ -779,7 +779,9 @@ class MixingBoard():
             if os.path.isfile( os.path.join(presetsDir,presetName+".yaml")):
                 self._loadData(persist.load( os.path.join(presetsDir,presetName+".yaml")))
             else:
-                self._loadData(registry.get("/system.mixer/presets/"+presetName,None))
+                x = registry.get("/system.mixer/presets/"+presetName,None)
+                if x:
+                    self._loadData(x)
 
             self.loadedPreset=presetName
             self.api.send(['loadedPreset', self.loadedPreset])

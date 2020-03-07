@@ -136,7 +136,13 @@ class PersistanceArea():
                     f = "data"
                 else:
                     for i in(0,15):
-                        f = util.getHighestNumberedTimeDirectory(folder)
+                        try:
+                            f = util.getHighestNumberedTimeDirectory(folder)
+                        except:
+                            f=None
+                            logging.exception("No registry data")
+                            break
+                            
                         if os.path.isfile(os.path.join(folder,f,"kaithem_dump_valid.txt")):
                             break
                         else:
