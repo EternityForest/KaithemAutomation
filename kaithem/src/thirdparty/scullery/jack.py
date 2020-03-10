@@ -31,15 +31,20 @@ from . import messagebus, iceflow
 
 def shouldAllowGstJack(*a):
     global _jackclient
-    with lock:
-        try:
-            t=getPorts()
-            if  t:
-                return True
-        except:
-            print(traceback.format_exc())
-            pass
-        return False
+    for i in range(0,10):
+        #Repeatedly retry, because this might just be a case
+        #Of jack not being ready at boot yet.
+        with lock:
+            try:
+                t=getPorts()
+                if  t:
+                    return True
+            except:
+                if i>8:
+                    print(traceback.format_exc())
+            time.sleep(1)
+
+    return False
 
 
 iceflow.GstreamerPipeline.shouldAllowGstJack = shouldAllowGstJack
