@@ -926,7 +926,8 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
             output="@auto"
         self.filename = file
 
-
+        self.finalGain = volume
+        
         self.lastFileSize = os.stat(file).st_size
 
         if self.lastFileSize==0:
@@ -1144,6 +1145,7 @@ class GStreamerBackend(SoundWrapper):
         
         def setVol(self,v):
             self.volume=v
+            self.pl.finalGain = v
             self.pl.setVol(v)
 
         def pause(self):
@@ -1252,7 +1254,9 @@ class GStreamerBackend(SoundWrapper):
         else:
             output = "@auto"
         #Play the sound with a background process and keep a reference to it
-        self.runningSounds[handle] = self.GStreamerContainer(fn,volume=v,output=output,_prevPlayerObject=_prevPlayerObject)
+        pl = self.GStreamerContainer(fn,volume=v,output=output,_prevPlayerObject=_prevPlayerObject)
+        pl.finalGain = v
+        self.runningSounds[handle] = pl
 
     def stopSound(self, handle ="PRIMARY"):
         #Delete the sound player reference object and its destructor will stop the sound
@@ -1302,13 +1306,17 @@ class GStreamerBackend(SoundWrapper):
         if x and not length:
             x.stop()
         
+        k = kwargs.copy()
+
+        if 'volume' in kwargs:
+            del k['volume']
+
         #Allow fading to silence
         if file:
-            self.playSound(file,handle=handle, _prevPlayerObject=x, **kwargs)
-
-        if not x:
-            return
+            self.playSound(file,handle=handle, _prevPlayerObject=x, **k)
+       
         if not length:
+            self.setVolume(min(1,kwargs.get('volume',1)),handle)
             return
 
         def f():
@@ -1316,11 +1324,18 @@ class GStreamerBackend(SoundWrapper):
             try:
                 v = x.volume
             except:
-                return
+                v=0
 
-            while x and time.monotonic()-t<length:
+            while time.monotonic()-t<length:
                 ratio = ((time.monotonic()-t)/length)
-                x.setVol(max(0,v* (1-ratio)))
+
+                try:
+                    v=self.runningSounds[handle].finalGain
+                except:
+                    pass
+
+                if x:
+                    x.setVol(max(0,v* (1-ratio)))
 
                 if file:
                     self.setVolume(min(1,kwargs.get('volume',1)*ratio),handle)
