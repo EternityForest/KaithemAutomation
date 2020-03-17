@@ -49,6 +49,13 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.20
+- Startup speed improvements with JACK
+- Immediately update jack settings when changing via UI
+- Eliminate more useless print output
+- Add better logging for JACK status
+
+
 ### 0.65.19
 - Fix the script bindings tagpoint support
 
