@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1582828598897976
+resource-timestamp: 1583896528218009
 resource-type: page
 template-engine: mako
 
@@ -1033,6 +1033,15 @@ from src import tagpoints
                             <input type="number" v-on:input="setSoundFadeOut(currentcueid,$event.target.value)" style="width:3em"
                                 min=0 v-model="currentcue.soundFadeOut"
                                 title="Sound should fade out starting when the cue ends, taking this long. Only works on the suggested GStreamer backend"
+                                >{{scenemeta[scenename].bpm?"beats":"s"}}
+                                
+                        </label><br>
+                        
+
+                        <label>Fade in sound at start(Ignored if scene crossfade is longer):
+                            <input type="number" v-on:input="setSoundFadeIn(currentcueid,$event.target.value)" style="width:3em"
+                                min=0 v-model="currentcue.soundFadeIn"
+                                title="Sound should fade in starting when the cue starts, taking this long. Only works on the suggested GStreamer backend."
                                 >{{scenemeta[scenename].bpm?"beats":"s"}}
                                 
                         </label>
@@ -2560,6 +2569,11 @@ from src import tagpoints
             'setSoundFadeOut': function(cue, v)
             {
                 api_link.send(['setSoundFadeOut', cue, v]);
+            },
+
+            'setSoundFadeIn': function(cue, v)
+            {
+                api_link.send(['setSoundFadeIn', cue, v]);
             },
 
             'setreentrant': function(cue, v)
