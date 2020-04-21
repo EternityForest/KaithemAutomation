@@ -36,12 +36,14 @@ Property that can get the tag's value, or set the value of the default claim.
 Errors in getters will never cause an error to be raised getting or setting this.
 
 
-
 #### TagPoint.min, TagPoint.max
-Set the range of the tag point. Out of range values are clipped.
+Set the range of the tag point. Out of range values are clipped. Default is None.
+Setting does bothing if overridden by configuration.
 
 #### TagPoint.interval
 Set the sample rate of the tags data in seconds. Affects polling and cacheing.
+Setting does nothing if overridden by configuration.
+
 
 #### TagPoint.subscribe(f)
 f will be called whe the value changes, as long as the function f still exists.

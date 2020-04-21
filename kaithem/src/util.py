@@ -139,6 +139,8 @@ def SaveAllState():
                 x=True
             if registry.sync():
                 x=True
+            
+            from . import directories
             messagelogging.saveLogList()
             pylogginghandler.syslogger.flush()
             #Always send the message, because there is almost always going to be at least some log entries saved

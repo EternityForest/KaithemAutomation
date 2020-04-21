@@ -25,7 +25,7 @@ stateFileLock = threading.RLock()
 allFiles = weakref.WeakValueDictionary()
 
 
-def getStateFile(fn,defaults={},legacy={}):
+def getStateFile(fn,defaults={},legacy={},deleteEmptyFiles=None):
     with stateFileLock:
         if fn in allFiles:
             s= allFiles[fn]
@@ -33,6 +33,8 @@ def getStateFile(fn,defaults={},legacy={}):
             s = SharedStateFile(fn)
     
         s.setupDefaults(defaults,legacy)
+        if not (deleteEmptyFiles is None):
+            s.noFileForEmpty=deleteEmptyFiles
     return s
 
 from . import config,util
@@ -59,13 +61,22 @@ if os.path.exists("/dev/shm"):
 else:
     recoveryDir=None
 
+def recoveryPath(f):
+    if f.startswith("/"):
+        f=f[1:]
+    return os.path.join(recoveryDir,urllib.parse.quote(f,safe="/"))
+
 class SharedStateFile():
+    """
+        This is a dict that is savable when the system state gets saved.
+        But it will aso use /dev/shm based recovery if the program crashes
+    """
     def __init__(self,filename):
         #Save all changes immediately to /dev/shm, for crash recovery.
         if not os.path.exists("/dev/shm") or not recoveryDir:
             self.recoveryFile=None
         else:
-            self.recoveryFile = os.path.join(recoveryDir,urllib.parse.quote(filename,safe=""))
+            self.recoveryFile = recoveryPath(filename)
 
         if os.path.exists(filename):
             try:
@@ -84,7 +95,7 @@ class SharedStateFile():
         self.filename=filename
         self.legacy_registry_key_mappings={}
         self.lock=threading.RLock()
-        
+        self.noFileForEmpty = False
         allFiles[filename]=self
     
     def setupDefaults(self,defaults={}, legacy_registry_key_mappings={}):
@@ -105,6 +116,19 @@ class SharedStateFile():
         with self.lock:
             return self.data.get(key, default)
     
+    def getAllData(self):
+        with self.lock:
+            return self.data.copy()
+
+    
+    def __getitem__(self,key):
+        return self.get(key)
+    
+    def __setitem__(self, key,value):
+        self.set(key,value)
+
+
+    
     def set(self,key:str,value):
         with self.lock:
             json.dumps(value)
@@ -122,6 +146,19 @@ class SharedStateFile():
             if self.recoveryFile:
                 save(self.data,self.recoveryFile,nolog=True)
 
+    def clear(self):
+        with self.lock:
+            self.data.clear()
+            dirty[self.filename]=self
+            if self.recoveryFile:
+                save(self.data,self.recoveryFile,nolog=True)
+
+    def pop(self,key,default=None):
+        with self.lock:
+            self.data.pop(key,default)
+            dirty[self.filename]=self
+            if self.recoveryFile:
+                save(self.data,self.recoveryFile,nolog=True)
 
     def delete(self,key):
         with self.lock:
@@ -142,17 +179,65 @@ class SharedStateFile():
 
     def save(self):
         with self.lock:
-            save(self.data, self.filename)
-            try:
-                del dirty[self.filename]
-            except:
-                pass
-
+            #NoFileForEmpty mode deleted
+            if self.noFileForEmpty and (not self.data):
+                self.tryDeleteFile()
+            else:
+                save(self.data, self.filename)
             if self.recoveryFile and os.path.exists(self.recoveryFile):
                 try:
                     os.remove(self.recoveryFile)
                 except:
                     pass
+            try:
+                del dirty[self.filename]
+            except:
+                pass
+
+    def isDirty(self):
+        "Return true if no unsaved data"
+        return self.filename in dirty
+    
+    def tryDeleteFile(self):
+        if self.recoveryFile and os.path.exists(self.recoveryFile):
+            try:
+                os.remove(self.recoveryFile)
+            except:
+                logging.exception("wat")
+
+        if os.path.exists(self.filename):
+            try:
+                os.remove(self.filename)
+            except:
+                logging.exception("wat")
 
 
+def loadAllStateFiles(f):
+    """For every yaml file, load it as a statefile named after the relative path to f,
+        Also checking recovery dirs for files that never made it,
+        return that dict.
 
+        if f is /foo/bar, foo/bar/test.yaml  becomes '/test.yaml' in the output dict.
+ 
+    """
+    d = {}
+    loadRecursiveFrom(f,d)
+    if recoveryDir:
+        loadRecursiveFrom(recoveryPath(f),d)
+    return d
+
+def loadRecursiveFrom(f,d):
+    if os.path.isdir(f):
+        for root,files, dirs in os.walk(f):
+            relroot = root[len(f):]
+            for i in files:
+                if i.endswith(".yaml"):
+                    x='???????????????????'
+                    try:
+                        x= relroot+i["-5"]
+                        fn = os.path.join(root,i)
+                        data = persist.getStateFile(fn)
+                        data.noFileForEmpty=True
+                        d[x]=data
+                    except:
+                        messagebus.postMessage("/system/notifications/errors","Failed to load data file"+x)

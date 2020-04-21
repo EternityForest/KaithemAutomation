@@ -1,9 +1,12 @@
 <%include file="/pageheader.html"/>
 
-<%
+<%!
 from src import tagpoints
 import gc
 %>
+
+
+
 <script src="/static/widget.js"></script>
 <h1>Tag Points</h1>
 <div class="sectionbox">
@@ -15,7 +18,7 @@ import gc
 %for i in tagpoints.allTagsAtomic:
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._NumericTagPoint):
 <tr>
-    <td>${i|h}</td>
+    <td><a href="/tagpoints/${i|u}">${i|h}</h></td>
     <td>${tagpoints.allTagsAtomic[i]().meterWidget.render()}</td>
     <td>${tagpoints.allTagsAtomic[i]().interval}</td>
     <td>${tagpoints.allTagsAtomic[i]().activeClaim[2]}</td>
@@ -27,13 +30,12 @@ import gc
 
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._StringTagPoint):
 <tr>
-    <td>${i|h}</td>
+    <td><a href="/tagpoints/${i|u}">${i|h}</h></td>
     <td>${tagpoints.allTagsAtomic[i]().spanWidget.render()}</td>
     <td>${tagpoints.allTagsAtomic[i]().interval}</td>
     <td>${tagpoints.allTagsAtomic[i]().activeClaim[2]}</td>
     <td>${tagpoints.allTagsAtomic[i]().owner}</td>
     <td>${len(tagpoints.allTagsAtomic[i]().subscribers)}</td>
-
 </tr>
 %endif
 

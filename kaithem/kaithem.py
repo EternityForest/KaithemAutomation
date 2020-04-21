@@ -86,6 +86,7 @@ import cherrypy
 from src import util,workers
 from src import config as cfg
 from src.config import config
+from src import directories
 
 from src import auth
 
@@ -142,7 +143,6 @@ def webRoot():
     #WE have to get the workers set up early because a lot of things depend on it.
     from src import workers
   
-
     from src import tagpoints
     
     def tagErrorHandler(tag,f, val):
@@ -155,6 +155,7 @@ def webRoot():
 
     tagpoints.subscriberErrorHandlers = [tagErrorHandler]
     
+    tagpoints.loadAllConfiguredTags(os.path.join(directories.vardir,"tags"))
 
 
     from src import messagelogging
@@ -203,7 +204,6 @@ def webRoot():
 
     from src import pages
     from src import weblogin
-    from src import directories
     from src import pages
 
 
@@ -365,7 +365,11 @@ def webRoot():
         @cherrypy.expose
         def tagpoints(self,*path,**data):
             pages.require("/admin/settings.view")
-            return pages.get_template('settings/tagpoints.html').render()
+            if path:
+                return pages.get_template('settings/tagpoint.html').render(tagname=path[0], tag=tagpoints.allTags[path[0]](),data=data)
+            else:
+                pages.require("/admin/settings.edit")
+                return pages.get_template('settings/tagpoints.html').render()
 
 
         @cherrypy.expose

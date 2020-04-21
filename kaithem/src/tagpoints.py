@@ -1,6 +1,5 @@
-
-from . import scheduling,workers, virtualresource,widgets,messagebus
-import time, threading,weakref,logging,types,traceback,math
+from . import scheduling,workers, virtualresource,widgets,messagebus,directories,persist,alerts
+import time, threading,weakref,logging,types,traceback,math,os,gc
 
 from typing import Callable,Optional,Union
 from threading import setprofile
@@ -24,9 +23,25 @@ providers = {}
 
 subscriberErrorHandlers=[]
 
+hasUnsavedData = [0]
+
+#Allows use to recalc entire lists of tags on the creation of another tag,
+#For dependancy resolution
+recalcOnCreate = weakref.WeakValueDictionary()
 
 
 from .unitsofmeasure import convert, unitTypes
+from . import widgets
+
+tagsAPI = widgets.APIWidget()
+
+def normalizeTagName(n):
+    if n.endswith("/"):
+        n=n[:-1]
+    if n.startswith("/"):
+        n=n[1:]
+    return n
+
 
 class TagProvider():
     def mount(self, path):
@@ -45,6 +60,85 @@ class TagProvider():
 
     def getTag(self, tagName):
         return _TagPoint(tagName)
+
+configTags ={}
+configTagData = {}
+
+def configTagFromData(name,data):
+    existingData = configTagData.get(name, {})
+
+    t = data.get("type","number")
+
+    #Get rid of any unused existing tag
+    try:
+        if name in configTags:
+            del configTags[name]
+            gc.collect()
+            time.sleep(0.01)
+            gc.collect()
+            time.sleep(0.01)
+            gc.collect()
+    except:
+        pass
+   
+
+    #Create or get the tag
+    if t=="number":
+        configTags[name]= Tag(name)
+    elif t=="string":
+        configTags[name]= StringTag(name)
+    elif name in allTags:
+        configTags[name]= allTags[name]()
+    else:
+        return
+    
+    #Now set it's config.
+    configTags[name].setConfigData(data)
+
+
+
+
+def getFilenameForTagConfig(i):
+    if i.startswith("/"):
+        n = i[1:]
+    else:
+        n=i
+    return os.path.join(directories.vardir,"tags",n+".yaml")
+
+
+def gcEmptyConfigTags():
+    torm= []                
+    #Empty dicts can be deleted from disk, letting us just revert to defaultsP
+    for i in configTagData:
+        if not configTagData[i].getAllData():
+            #Can't delete the actual data till the file on disk is gone,
+            #Which is handled by the persist libs
+            if not os.path.exists(configTagData[i].filename):
+                torm.append(i)
+
+    #Note that this is pretty much the only way something can ever be deleted,
+    #When it is empty we garbarge collect it.
+    #This means we never need to worry about what to keep config data for.
+    for i in torm:
+       configTagData.pop(i,0)
+
+
+def loadAllConfiguredTags(f=os.path.join(directories.vardir,"tags")):
+    with lock:
+        global configTagData
+        
+        configTagData= persist.loadAllStateFiles(f)
+
+        gcEmptyConfigTags()
+
+        for i in configTagData:
+            try:
+                configTagFromData(x, data.getAllData())
+            except:
+                logging.exception("Failure with configured tag")
+                messagebus.postMessage("/system/notifications/errors","Failed to preconfigure tag "+x)
+        
+       
 
 
 
@@ -80,15 +174,25 @@ class _TagPoint(virtualresource.VirtualResource):
 
         if name =="":
             raise ValueError("Tag with empty name")
-
-        for i in illegalCharsInName:
-            if i in name:
-                raise ValueError("Illegal char in tag point name: "+i)
+        if not name.strip().startswith("="):
+            for i in illegalCharsInName:
+                if i in name:
+                    raise ValueError("Illegal char in tag point name: "+i)
         virtualresource.VirtualResource.__init__(self)
         
         #Might be the number, or might be the getter function.
         #it's the current value of the active claim
         self._value = self.defaultData
+
+        #Used to track things like min and max, what has been changed by manual setting.
+        #And should not be overridden by code.
+        self.configOverrides = {}
+
+        self.dynamicAlarmData={}
+        self.configuredAlarmData = {}
+
+        self.alarms = {}
+
         self.name = name
         #The cached actual value from the claims
         self.cachedRawClaimVal = self.defaultData
@@ -109,7 +213,8 @@ class _TagPoint(virtualresource.VirtualResource):
         self.owner = ""
 
         #Stamp of when the tag's value was set
-        self.timestamp = time.monotonic()
+        #start at zero because the time has never been set
+        self.timestamp = 0
         self.annotation=None
 
         self.handler=None
@@ -142,6 +247,210 @@ class _TagPoint(virtualresource.VirtualResource):
 
         with lock:
             messagebus.postMessage("/system/tags/created",self.name, synchronous=True)
+            if self.name in recalcOnCreate:
+                for i in recalcOnCreate[self.name]:
+                    try:
+                        i()
+                    except:
+                        pass
+                
+        if self.name.startswith("="):
+            createGetterFromExpression(self.name, self)
+        with lock:
+            self.setConfigData(configTagData.get(self.name,{}))
+
+    def setConfigAttr(self,k,v):
+        "Currently converts everything to float or None if blank"
+        with lock:
+            if not v in (None,''):
+                self.configOverrides[v]=v
+                if not self.name in configTagData:
+                    configTagData[self.name]= persist.getStateFile(getFilenameForTagConfig(self.name))
+                    configTagData[self.name].noFileForEmpty = True
+                configTagData[self.name][k]=v
+            else:
+                #Setting at attr to none or an empty string
+                #Deletes it.
+                self.configOverrides.pop(k,0)
+                if self.name in configTagData:
+                    configTagData[self.name].pop(k,0)
+            if isinstance(v,str):
+                if v.strip()=='':
+                    v=None
+                else:
+                    v=float(v)
+            setattr(self,k,v)
+
+            hasUnsavedData[0]=True
+
+    def setAlarm(self,name, condition, priority="warning", autoAck='no', tripDelay='0',isConfigured=True,_refresh=True):
+        with lock:
+            if not name:
+                raise RuntimeError("Empty string name")
+            d={
+                'condition':condition,
+                'priority':priority,
+                'autoAck':autoAck,
+                'tripDelay':0
+            }
+            
+            if isConfigured:
+                if not isinstance(condition,str) and not condition==None:
+                    raise ValueError("Configurable alarms only str or none condition")
+                hasUnsavedData[0]=True
+
+                storage = self.configuredAlarmData
+            else:
+                storage= self.dynamicAlarmData
+
+            if condition:
+                storage[name]=d
+            else:
+                storage.pop(name,0)
+
+            #If we have configured alarms, there should be a configTagData entry.
+            #If not, delete, because when that is empty it's how we know
+            #to delete the actual file
+            if isConfigured:
+                if self.configuredAlarmData:
+                    if not self.name in configTagData:
+                        configTagData[self.name]=persist.getStateFile(getFilenameForTagConfig(self.name))    
+                        configTagData[self.name].noFileForEmpty = True
+
+                    configTagData[self.name]['alarms']= self.configuredAlarmData
+                else:
+                    if self.name in configTagData:
+                        configTagData[self.name].pop("alarms",0)
+            if _refresh:
+                self.createAlarms()
+
+
+    def createAlarms(self):
+        merged = {}
+        with lock:
+            for i in self.dynamicAlarmData:
+                merged[i] = merged.get(i,{})
+                for j in self.dynamicAlarmData[i]:
+                    merged[i][j]=self.dynamicAlarmData[i][j]
+
+            for i in self.configuredAlarmData:
+                merged[i] = merged.get(i,{})
+                for j in self.configuredAlarmData[i]:
+                    merged[i][j]=self.configuredAlarmData[i][j]
+
+            
+        for i in self.alarms:
+            try:
+                self.unsubscribe(self.alarms[i].tagSubscriber)
+            except:
+                pass
+            self.alarms[i].close()
+        
+        self.alarms ={}
+
+        for i in merged:
+            d =merged[i]
+            self._alarmFromData(i,d)
+
+    
+    def _alarmFromData(self,name,d):
+        if not d.get("condition",''):
+            return
+        tripCondition=d['condition']
+
+        releaseCondition = d.get('releaseCondition',None)
+        
+        priority=d.get("priority","warning")
+        autoAck= d.get("autoAck",'').lower() in ('yes', 'true','y','auto')
+        tripDelay = float(d.get("tripDelay",0))
+
+        context = {
+                "math": math,
+                "time": time,
+                'tag': self
+        }
+        
+        tripCondition = compile(tripCondition, self.name+".alarms."+name+"_trip","eval")
+        if releaseCondition:
+            releaseCondition = compile(tripCondition, self.name+".alarms."+name+"_trip","eval")
+
+        obj = alerts.Alert(self.name+".alarms."+name, 
+            priority=priority,
+            autoAck=autoAck,
+            tripDelay=tripDelay
+            )
+
+    
+        def pollf(value, annotation, timestamp):
+            context['value']= value
+            if eval(tripCondition,context, context):
+                obj.trip()
+            elif releaseCondition:
+                if eval(releaseCondition,context, context):
+                    obj.release()
+            else:
+                obj.release()
+
+        obj.tagSubscriber = pollf
+        self.subscribe(pollf)
+        self.alarms[name]= obj
+
+        try:
+            with self.lock:
+                pollf(self.value,self.timestamp,self.annotation)
+        except:
+            logging.exception("Problem with alarm?")
+
+    def setConfigData(self,data):
+        with lock:
+            hasUnsavedData[0]=True
+            #Only modify tags if the current data matches the existing
+            #Configured value and has not beed overwritten by code
+            if 'hi' in data:
+                self.setConfigAttr('hi',data['hi'])
+            else:
+                self.setConfigAttr('hi',None)
+            
+            if 'lo' in data:
+                self.setConfigAttr('lo',data['lo'])
+            else:
+                self.setConfigAttr('lo',None)
+
+            if 'interval' in data:
+                self.setConfigAttr('interval',data['interval'])
+            else:
+                self.setConfigAttr('interval',None)
+
+            if 'min' in data:
+                self.setConfigAttr('min',data['min'])
+            else:
+                self.setConfigAttr('min',None)
+
+            if 'max' in data:
+                self.setConfigAttr('max',data['max'])
+            else:
+                self.setConfigAttr('max',None)
+
+
+            alarms = data.get('alarms',{})
+            for i in alarms:
+              
+
+                if not alarms[i]==None:
+                    #Avoid duplicate param
+                    alarms[i].pop('name','')
+                    self.setAlarm(i, **alarms[i],isConfigured=True,_refresh=False)
+                else:
+                    self.setAlarm(i,None,isConfigured=True,_refresh=False)
+
+            #This one is a little different. If the timestamp is 0,
+            #We know it has never been set.
+            if 'value' in data:
+                if self.timestamp == 0:
+                    #Set timestamp to 0, this marks the tag as still using a default
+                    #Which can be further changed
+                    self.setClaimVal("default", data['value'],0,"Configured default")
+            self.createAlarms()
 
     @property
     def interval(self):
@@ -149,29 +458,42 @@ class _TagPoint(virtualresource.VirtualResource):
 
     @interval.setter
     def interval(self,val):
-        self._interval=val
+        if not val==self.configOverrides.get('interval',val):
+            return
+        if not val==None:
+            self._interval=val
+        else:
+            self._interval=0
         with self.lock:
             self._managePolling() 
 
 
+  
+
     @classmethod
-    def Tag(cls,name:str):
+    def Tag(cls,name:str, defaults={}):
         if not isinstance(name,str):
             raise TypeError("Name must be string")
+        #Normalize
+        if not name.startswith("/"):
+            name="/"+name
+        rval = None
         with lock:
             if name in allTags:
                 x=allTags[name]()
                 if x:
                     if not x.__class__ is cls:
                         raise TypeError("A tag of that name exists, but it is the wrong type.")
-                    return x
+                    rval=x
             
+           
             for i in sorted(providers.keys(),key =lambda p: len(p.path), reverse=True):
                 if name.startswith(i):
-                    return providers[i].getTag(i)
+                    rval= providers[i].getTag(i)
 
-            return cls(name)
+            rval= cls(name)
 
+            return rval
 
     @property
     def currentSource(self):
@@ -182,7 +504,7 @@ class _TagPoint(virtualresource.VirtualResource):
         return v
 
     def addAlarm(self,name, alarm):
-        with self.lock:
+        with lock:
             self._alarms[name]=weakref.ref(alarm)
 
             #Do some cleanup here
@@ -194,7 +516,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 del self._alarms[i]
 
     def removeAlarm(self,name):
-        with self.lock:
+        with lock:
             del self._alarms[name]
 
     def __del__(self):
@@ -228,10 +550,11 @@ class _TagPoint(virtualresource.VirtualResource):
         return
 
 
-    def _managePolling(self):       
-        if (self.subscribers or self.handler) and self._interval>0:
-            if not self.poller or not (self._interval == self.poller.interval):
-                self.poller = scheduling.scheduler.scheduleRepeating(self.poll, self._interval)
+    def _managePolling(self):
+        interval = self._interval or 0
+        if (self.subscribers or self.handler) and interval>0:
+            if not self.poller or not (interval == self.poller.interval):
+                self.poller = scheduling.scheduler.scheduleRepeating(self.poll, interval)
         else:
             if self.poller:
                 self.poller.unregister()
@@ -413,7 +736,8 @@ class _TagPoint(virtualresource.VirtualResource):
             active, or the value returned from the getter if the active claim is
             a function.
         """
-        timestamp = timestamp or time.monotonic()
+        if timestamp is None:
+            timestamp = time.monotonic()
 
         if priority and priority>100:
             raise ValueError("Maximum priority is 100")
@@ -485,7 +809,8 @@ class _TagPoint(virtualresource.VirtualResource):
 
     def setClaimVal(self,claim,val,timestamp,annotation):
         "Set the value of an existing claim"
-        timestamp = timestamp or time.monotonic()
+        if timestamp == None:
+            timestamp = time.monotonic()
         
         if not callable(val):
             val=self.filterValue(val)
@@ -560,8 +885,8 @@ class _NumericTagPoint(_TagPoint):
         self.meterWidget= widgets.Meter()
         self.meterWidget.setPermissions(['/users/tagpoints.view'],['/users/tagpoints.edit'])
         
-        self._hi = 10**16
-        self._lo = -10**16
+        self._hi = None
+        self._lo = None
         self._min=min
         self._max =max
         #Pipe separated list of how to display value
@@ -620,6 +945,8 @@ class _NumericTagPoint(_TagPoint):
     
     @min.setter
     def min(self,v):
+        if not v==self.configOverrides.get('min',v):
+            return
         self._min = v
         self._setupMeter()
 
@@ -629,6 +956,8 @@ class _NumericTagPoint(_TagPoint):
     
     @max.setter
     def max(self,v):
+        if not v==self.configOverrides.get('max',v):
+            return        
         self._max = v
         self._setupMeter()
 
@@ -638,6 +967,10 @@ class _NumericTagPoint(_TagPoint):
     
     @hi.setter
     def hi(self,v):
+        if not v==self.configOverrides.get('hi',v):
+            return
+        if v==None:
+            v=10**16
         self._hi = v
         self._setupMeter()
 
@@ -647,14 +980,22 @@ class _NumericTagPoint(_TagPoint):
     
     @lo.setter
     def lo(self,v):
+        if not v==self.configOverrides.get('lo',v):
+            return
+        if v==None:
+            v=-(10**16)
         self._lo = v
         self._setupMeter()
 
     def _setupMeter(self):
         self.meterWidget.setup(self._min if (not (self._min is None)) else -100,
         self._max if (not (self._max is None)) else 100,
-        self._hi, self._lo, unit = self.unit, displayUnits= self.displayUnits
-         )
+        self._hi if not (self._hi is None) else 10**16,
+        self._lo if not (self._lo is None) else -(10**16),
+        unit = self.unit,
+        displayUnits= self.displayUnits
+
+        )
     def convertTo(self, unit):
         "Return the tag's current vakue converted to the given unit"
         return convert(self.value,self.unit,unit)
@@ -890,6 +1231,48 @@ class HysteresisFilter(Filter):
                 self.hysteresisLower = val
             return self.state
 
+def createGetterFromExpression(e, t):
+    t.sourceTags = {}
+    def recalc(*a):
+        t()
+    t.recalcHelper = recalc
+    def t(n,t):
+        try:
+            return t.sourceTags[n].value
+        except KeyError:
+            if n in allTags:
+                try:
+                    #We aren't just going to create the tag, we don't know the type.
+                    t.sourceTags[n] = allTags[n]
+                    #When any source tag updates, we want to recalculate.
+                    t.sourceTags[n].subscribe(recalc)
+                    return t.sourceTags[n].value
+                except KeyError:
+                    #NOt in any way neccesary, but this lets us resolve dependancy in
+                    #A hurry
+                    if lock.accquire(timeout=1):
+                        try:
+                            if n in recalcOnCreate:
+                                t.recalcOnCreateList = recalcOnCreate[n]
+                            else:
+                                t.recalcOnCreateList=recalcOnCreate[n]=[]
+                            
+                            t.recalcOnCreateList.append(t)
+                        finally:
+                            lock.release()
+        return 0
+
+    evalContext ={
+        "time": time,
+        "math": math,
+        "t": t,
+    }
+
+    c = compile(e,t.name+"_expr","eval")
+    def f():
+        return(eval(c,evalContext, evalContext))
+    t.value=f
+    
 Tag = _NumericTagPoint.Tag
 ObjectTag = _TagPoint.Tag
 StringTag = _StringTagPoint.Tag
