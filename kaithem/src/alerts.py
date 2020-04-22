@@ -298,6 +298,7 @@ class Alert(virtualresource.VirtualResource):
             logger.error("Alarm "+self.name +" ACTIVE")
             messagebus.postMessage("/system/notifications/errors", "Alarm "+self.name+" is active")
         if self.priority in ("warning"):
+            messagebus.postMessage("/system/notifications/warnings", "Alarm "+self.name+" is active")
             logger.warning("Alarm "+self.name +" ACTIVE")
         else:
             logger.info("Alarm "+self.name +" active")
@@ -361,11 +362,18 @@ class Alert(virtualresource.VirtualResource):
         self.clear()
         cleanup()
     
-    def acknowledge(self,by="unknown"):
+    def acknowledge(self,by="unknown",notes=""):
+        notes=notes[:64]
+        if notes.strip():
+            notes=':\n'+notes
+        else:
+            notes=''
+
         self.sm.event("acknowledge")
-        logger.info("Alarm "+self.name +" acknowledged by" + by)
-        if self.priority in ("error, critical","warnings"):
-            messagebus.postMessage("/system/notifications", "Alarm "+self.name+" acknowledged by "+ by)
+        logger.info("Alarm "+self.name +" acknowledged by" + by+notes)
+        
+        if self.priority in ("error, critical","warning"):
+            messagebus.postMessage("/system/notifications", "Alarm "+self.name+" acknowledged by "+ by+notes)
 
     def error(self):
         global unacknowledged

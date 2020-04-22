@@ -1514,7 +1514,6 @@ def _checkJackClient(err=True):
     import jack
     with lock:
         try:
-             
             t=_jackclient.status.server_started
             if not t:
                 raise RuntimeError("JACK Server not started or client failed")

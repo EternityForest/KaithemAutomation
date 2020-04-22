@@ -90,6 +90,8 @@ def configTagFromData(name,data):
     elif name in allTags:
         configTags[name]= allTags[name]()
     else:
+        #Config later when the tag is actually created
+        configTagData[name]=data
         return
     
     #Now set it's config.
@@ -133,10 +135,10 @@ def loadAllConfiguredTags(f=os.path.join(directories.vardir,"tags")):
 
         for i in configTagData:
             try:
-                configTagFromData(x, data.getAllData())
+                configTagFromData(i, configTagData[i].getAllData())
             except:
                 logging.exception("Failure with configured tag")
-                messagebus.postMessage("/system/notifications/errors","Failed to preconfigure tag "+x)
+                messagebus.postMessage("/system/notifications/errors","Failed to preconfigure tag "+i)
         
        
 
@@ -283,7 +285,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
             hasUnsavedData[0]=True
 
-    def setAlarm(self,name, condition, priority="warning", autoAck='no', tripDelay='0',isConfigured=True,_refresh=True):
+    def setAlarm(self,name, condition, priority="warning", releaseCondition='',autoAck='no', tripDelay='0',isConfigured=True,_refresh=True):
         with lock:
             if not name:
                 raise RuntimeError("Empty string name")
@@ -291,7 +293,8 @@ class _TagPoint(virtualresource.VirtualResource):
                 'condition':condition,
                 'priority':priority,
                 'autoAck':autoAck,
-                'tripDelay':0
+                'tripDelay':tripDelay,
+                'releaseCondition': releaseCondition
             }
             
             if isConfigured:
@@ -344,7 +347,8 @@ class _TagPoint(virtualresource.VirtualResource):
                 self.unsubscribe(self.alarms[i].tagSubscriber)
             except:
                 pass
-            self.alarms[i].close()
+
+            self.alarms[i].release()
         
         self.alarms ={}
 
@@ -359,15 +363,18 @@ class _TagPoint(virtualresource.VirtualResource):
         tripCondition=d['condition']
 
         releaseCondition = d.get('releaseCondition',None)
-        
-        priority=d.get("priority","warning")
+    
+        priority=d.get("priority","warning") or 'warning'
         autoAck= d.get("autoAck",'').lower() in ('yes', 'true','y','auto')
-        tripDelay = float(d.get("tripDelay",0))
+        tripDelay = float(d.get("tripDelay",0) or 0) 
+
+        from . import kaithemobj
 
         context = {
                 "math": math,
                 "time": time,
-                'tag': self
+                'tag': self,
+                'kaithem': kaithemobj.kaithem,
         }
         
         tripCondition = compile(tripCondition, self.name+".alarms."+name+"_trip","eval")
@@ -377,9 +384,11 @@ class _TagPoint(virtualresource.VirtualResource):
         obj = alerts.Alert(self.name+".alarms."+name, 
             priority=priority,
             autoAck=autoAck,
-            tripDelay=tripDelay
+            tripDelay=tripDelay,
             )
 
+        #Give access to the alert obj itself
+        context['alert']=obj
     
         def pollf(value, annotation, timestamp):
             context['value']= value
@@ -434,8 +443,6 @@ class _TagPoint(virtualresource.VirtualResource):
 
             alarms = data.get('alarms',{})
             for i in alarms:
-              
-
                 if not alarms[i]==None:
                     #Avoid duplicate param
                     alarms[i].pop('name','')
@@ -445,11 +452,19 @@ class _TagPoint(virtualresource.VirtualResource):
 
             #This one is a little different. If the timestamp is 0,
             #We know it has never been set.
-            if 'value' in data:
+            if 'value' in data and not 'value'=='':
+                if not self.name in configTagData:
+                    configTagData[self.name]= persist.getStateFile(getFilenameForTagConfig(self.name))
+                    configTagData[self.name].noFileForEmpty = True
+                configTagData[self.name]['value']=data['value']
+
                 if self.timestamp == 0:
                     #Set timestamp to 0, this marks the tag as still using a default
                     #Which can be further changed
-                    self.setClaimVal("default", data['value'],0,"Configured default")
+                    self.setClaimVal("default", float(data['value']),0,"Configured default")
+            else:
+                if self.name in configTagData:
+                    configTagData[self.name].pop("value",0)
             self.createAlarms()
 
     @property

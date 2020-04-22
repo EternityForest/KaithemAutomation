@@ -116,6 +116,9 @@ class SharedStateFile():
         with self.lock:
             return self.data.get(key, default)
     
+    def __contains__(self,key):
+        if key in self.data:
+            return True
     def getAllData(self):
         with self.lock:
             return self.data.copy()
@@ -228,16 +231,19 @@ def loadAllStateFiles(f):
 
 def loadRecursiveFrom(f,d):
     if os.path.isdir(f):
-        for root,files, dirs in os.walk(f):
+        for root,dirs, files in os.walk(f):
             relroot = root[len(f):]
+            if not relroot.startswith("/"):
+                relroot = '/'+relroot
             for i in files:
                 if i.endswith(".yaml"):
                     x='???????????????????'
                     try:
-                        x= relroot+i["-5"]
+                        x= relroot+"/"+i[:-5]
                         fn = os.path.join(root,i)
-                        data = persist.getStateFile(fn)
+                        data = getStateFile(fn)
                         data.noFileForEmpty=True
                         d[x]=data
                     except:
+                        from . import messagebus
                         messagebus.postMessage("/system/notifications/errors","Failed to load data file"+x)
