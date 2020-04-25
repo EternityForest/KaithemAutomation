@@ -97,6 +97,8 @@ class SharedStateFile():
         self.lock=threading.RLock()
         self.noFileForEmpty = False
         allFiles[filename]=self
+        subscribe("/system/save", self.save)
+
     
     def setupDefaults(self,defaults={}, legacy_registry_key_mappings={}):
         self.legacy_registry_key_mappings.update(legacy_registry_key_mappings)
@@ -109,7 +111,6 @@ class SharedStateFile():
             if not i in self.data:
                 self.data[i]=defaults[i]
 
-        subscribe("/system/save", self.save)
 
 
     def get(self,key, default=None):
@@ -226,10 +227,11 @@ def loadAllStateFiles(f):
     d = {}
     loadRecursiveFrom(f,d)
     if recoveryDir:
-        loadRecursiveFrom(recoveryPath(f),d)
+        loadRecursiveFrom(recoveryPath(f),d,remapToDirForSave=f)
     return d
 
-def loadRecursiveFrom(f,d):
+def loadRecursiveFrom(f,d,remapToDirForSave=None):
+    remapToDirForSave = remapToDirForSave or f
     if os.path.isdir(f):
         for root,dirs, files in os.walk(f):
             relroot = root[len(f):]
@@ -240,7 +242,12 @@ def loadRecursiveFrom(f,d):
                     x='???????????????????'
                     try:
                         x= relroot+"/"+i[:-5]
+                       
+                        #So we need to be able to load files from the recovery dir
+                        #that don't exist in the real filesystem yet, but still when we save
+                        #things we need to save them back to the real FS
                         fn = os.path.join(root,i)
+                        fn = os.path.join(remapToDirForSave,os.path.relpath(fn, f))
                         data = getStateFile(fn)
                         data.noFileForEmpty=True
                         d[x]=data

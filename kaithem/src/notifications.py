@@ -133,7 +133,8 @@ def subscriber(topic,message):
         for i in handlers:
             if auth.canUserDoThis(handlers[i].user,'/admin/mainpage.view'):
                 handlers[i].send(json.dumps(countnew(handlers[i].since)))
-                handlersmp[i].send([time.time(),topic,message])
+                if i in handlersmp:
+                    handlersmp[i].send([time.time(),topic,message])
     except:
         logging.exception("Error pushing notifications")
 

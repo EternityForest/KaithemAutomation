@@ -359,8 +359,9 @@ class SmartDevice(object):
         :return: rssi
         :rtype: int
         """
-        if "rssi" in self.sys_info:
-            return int(self.sys_info["rssi"])
+        x = self.sys_info
+        if "rssi" in x:
+            return int(x["rssi"])
         return None
 
     @property

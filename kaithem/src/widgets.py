@@ -148,6 +148,9 @@ if config['enable-websockets']:
                     try:
                         widgets[i].subscriptions.pop(self.uuid)
                         widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
+
+                        if not widgets[i].subscriptions:
+                            widgets[i].lastSubscribedTo = time.monotonic()
                     except:
                         pass
 
@@ -190,6 +193,7 @@ if config['enable-websockets']:
                                 widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
                                 #This comes after in case it  sends data
                                 widgets[i].onNewSubscriber(user,{})
+                                widgets[i].lastSubscribedTo = time.monotonic()
 
                                 self.subscriptions.append(i)
                                 resp.append([i, widgets[i]._onRequest(user,self.uuid)])
@@ -217,6 +221,11 @@ class Widget():
         self.subscriptions_atomic = {}
         self.echo = True
 
+        #Used for GC, we have a fake subscriber right away so we can do a grace
+        #Period before trashing it.
+        #Also tracks unsubscribe, you need to combine this with if there are any subscribers
+        self.lastSubscribedTo = time.monotonic()
+
         def f(u,v):
             pass
 
@@ -242,6 +251,9 @@ class Widget():
             #Insert self into the widgets list
             widgets[self.uuid] = self
 
+    def stillActive(self):
+        if self.subscriptions or (self.lastSubscribedTo>(time.monotonic()-30)):
+            return True
     def onNewSubscriber(self,user, cid, **kw):
         pass
 

@@ -260,10 +260,23 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
 
         self.usingJack=True
 
-        self.loudnessAlert = alerts.Alert(self.name+".abnormalvolume", priority='info')
+        #General good practice to use this when creating a tag,
+        #If we don't know who else may have assigned alerts.
+        self.levelTag.clearDynamicAlarms()
+        self.levelTag.setAlarm("volume","value>soundFuseSetting",tripDelay=0.3)
+
+        #self.loudnessAlert = alerts.Alert(self.name+".abnormalvolume", priority='info')
 
 
-   
+
+    @property
+    def soundFuseSetting(self):
+        return self._soundFuseSetting
+    
+    @soundFuseSetting.setter
+    def soundFuseSetting(self,v):
+        self._soundFuseSetting=v
+        self.levelTag.evalContext['soundFuseSetting']=v
 
 
     def finalize(self):
@@ -461,7 +474,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
             self.lastNormalVolumeLevel = time.monotonic()
         self.lastRMS = rms
         if time.monotonic()-self.lastNormalVolumeLevel > 0.3:
-            self.loudnessAlert.trip()
+            #self.loudnessAlert.trip()
             self.alertRatelimitTime=time.monotonic()
 
             if not self.doingFeedbackCutoff:
@@ -530,7 +543,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                 workers.do(f)
 
         elif time.monotonic()-self.alertRatelimitTime> 10:
-            self.loudnessAlert.release()
+            #self.loudnessAlert.release()
             self.alertRatelimitTime=time.monotonic()
 
    
@@ -657,6 +670,7 @@ class MixingBoard():
             try:
                 self._createChannel(i,self.channels[i])
             except:
+                messagebus.postMessage("/system/notifications/errors","Failed to create mixer channel "+i+" see logs.")
                 log.exception("Could not create channel "+i)
 
        
@@ -895,4 +909,5 @@ board = MixingBoard()
 try:
     board.loadPreset('default')
 except:
+    messagebus.postMessage("Could not load default preset for JACK mixer")
     log.exception("Could not load default preset for JACK mixer. Maybe it doesn't exist?")

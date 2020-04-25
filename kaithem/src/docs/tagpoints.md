@@ -26,6 +26,17 @@ scale.
 It is suggested that you not do anything with annotations besides equality testing, or that you
 always typecheck the value as it defaults to None.
 
+### Expression Tags
+Any tag having a name that begins with an equals sign will be created with a getter that evaluates the name as an expression. You have access to time, math, random, re, and the kaithem object, plus the tag itself as 'tag', and anything else you put in tag.evalContext in code.
+
+#### the tv(n) function
+
+The tv function is used from within a tag expression. It returns the value of a numeric tag with the given name, and adds the tag to the list of source tags.
+
+The tag will re-eval the expression whenever a source tag has new data.
+
+Updating the config data via the interface will reset the list of source tags.
+
 ### Error Handling
 Errors in getters are logged, and the most recent value is used. Errors in setters are logged.
 
@@ -108,6 +119,9 @@ If a function is provided, it may return None to indicate no new data has arrive
 age.
 
 Should a claim already exist by that name, the exact same claim object as the previous claim is returned.
+
+##### TagPoint.evalContext
+Dict used as globals and locals for evaluating alarm conditions and expression tags.
 
 ##### TagPoint(v,t,a)
 Equivalent to calling set() on the default handler. If no args are provided, just returns the tag's value.

@@ -11,20 +11,46 @@ import gc
 <h1>Tag Points</h1>
 <div class="sectionbox">
 <p class="help">
-    This page lists all Tag Points currently managed by Kaithem.
+    This page lists all <a href="/docs/mdtemplate?page=tagpoints.md">Tag Points</a> currently managed by Kaithem. 
+    Creating a tag with a name beginning with "=" allows you to create expression tags,
+    similar to soft tags in many SCADA systems.
+
 </p>
+<p class="menubar">
+    <form method="GET" action="/tagpoints">
+        <input name="new_numtag"><input type="submit" value="New Number Tag"></form>
+    </form>
+    <form method="GET" action="/tagpoints">
+        <input name="new_strtag"><input type="submit" value="New String Tag"></form>
+    </form>
+</p>
+<h3>Configured but not used</h3>
+<p class="help">Empty configs go away when the server state is saved</p>
+<ul>
+%for i in tagpoints.configTagData:
+%if not i in tagpoints.allTags:
+<li><a href="/tagpoints/${i|u}">${i|h}</a></li>
+%endif
+%endfor
+</ul>
+<h3>Active Tags</h3>
 <table border="1">
-<tr><th>Name</th><th>Value</th><th>Interval</th><th>Active Claim</th><th>Owner</th><th>Subscribers</th></tr>
-%for i in tagpoints.allTagsAtomic:
+<tr><th>Name</th><th>Value(not realtime)</th><th>Interval</th><th>Active Claim</th><th>Owner</th><th>Subscribers</th>
+    <th>Alarms</th>
+
+</tr>
+%for i in sorted(list(tagpoints.allTagsAtomic.keys())):
+%if i in tagpoints.allTags:
+
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._NumericTagPoint):
 <tr>
-    <td><a href="/tagpoints/${i|u}">${i|h}</h></td>
-    <td>${tagpoints.allTagsAtomic[i]().meterWidget.render()}</td>
+    <td><a href="/tagpoints/${i|u}">${i|h}</a></td>
+    <td>${tagpoints.allTagsAtomic[i]().value}</td>
     <td>${tagpoints.allTagsAtomic[i]().interval}</td>
     <td>${tagpoints.allTagsAtomic[i]().activeClaim[2]}</td>
     <td>${tagpoints.allTagsAtomic[i]().owner}</td>
     <td>${len(tagpoints.allTagsAtomic[i]().subscribers)}</td>
-
+    <td>${len(tagpoints.allTagsAtomic[i]().alarms)}</td>
 </tr>
 %endif
 
@@ -48,7 +74,7 @@ import gc
     <td>DELETED</td>
 </tr>
 %endif
-
+%endif
 %endfor
 </table>
 </div>

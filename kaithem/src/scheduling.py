@@ -141,7 +141,7 @@ class RepeatingEvent(BaseEvent):
             finally:
                 self.lock.release()
         else:
-            logger.warning("Tried to schedule something that is still running")
+            logger.warning("Tried to schedule something that is still running: "+str(self.f()))
 
     def _schedule(self):
         """Calculate next runtime and put self into the queue.
@@ -373,8 +373,8 @@ class NewScheduler(threading.Thread):
         """
         
         #Soft rate limit to prevent filling memory in really bizzare cases.
-        if len(self.task_queue)>3000:
-            time.sleep(max(0,(len(self.task_queue)-3000)/2000.0))
+        if len(self.task_queue)>100000:
+            time.sleep(max(0,(len(self.task_queue)-100000)/2000.0))
         self.task_queue.append(event)
     
             

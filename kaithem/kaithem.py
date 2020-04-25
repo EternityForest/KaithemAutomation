@@ -150,6 +150,9 @@ def webRoot():
             from src import newevt
             if f.__module__ in newevt.eventsByModuleName:
                 newevt.eventsByModuleName[f.__module__]._handle_exception()
+            else:
+                if not hasattr(f, "_kaithemFirstErrorMarker"):
+                    messagebus.postMessage("/system/notifications/errors","First err in tag subscriber "+str(f)+ " from "+str(f.__module__)+" to "+ tag.name)
         except:
             print(traceback.format_exc(chain=True))
 
@@ -365,10 +368,17 @@ def webRoot():
         @cherrypy.expose
         def tagpoints(self,*path,**data):
             pages.require("/admin/settings.view")
-            if path:
-                return pages.get_template('settings/tagpoint.html').render(tagname=path[0], tag=tagpoints.allTags[path[0]](),data=data)
-            else:
+            if "new_numtag" in data:
                 pages.require("/admin/settings.edit")
+                return pages.get_template('settings/tagpoint.html').render(new_numtag=data['new_numtag'],tagname=data['new_numtag'])
+            if "new_strtag" in data:
+                pages.require("/admin/settings.edit")
+                return pages.get_template('settings/tagpoint.html').render(new_strtag=data['new_strtag'],tagname=data['new_strtag'])
+           
+            if path:
+                pages.require("/admin/settings.edit")
+                return pages.get_template('settings/tagpoint.html').render(foo='bar',tagName=path[0],data=data)
+            else:
                 return pages.get_template('settings/tagpoints.html').render()
 
 

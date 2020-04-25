@@ -38,14 +38,14 @@ def refresh():
     lookup=l
 
 
-def getDevice(locator):
+def getDevice(locator,timeout=10):
     """Since plugs can change name, you should't keep a reference
     to a plug for too long. Instead use this function.
     """
     if locator in lookup:
         return lookup[locator]
     else:
-        maybeRefresh()
+        maybeRefresh(timeout)
         return lookup[locator]
 
 
@@ -85,7 +85,7 @@ class KasaDevice(devices.Device):
                 return self.rssiCache
 
             try:
-                info = getDevice(self.data.get("device.locator")).get_sysinfo()
+                info = getDevice(self.data.get("device.locator"),3).get_sysinfo()
                 self.rssiCache= info['rssi']
                 #It's just a handy place to get this info because
                 #we're getting sysinfo anyway.
@@ -251,7 +251,7 @@ class KasaSmartplug(KasaDevice):
         if channel>0:
             raise ValueError("This is a 1 channel device")
         try:
-            s = getDevice(self.data.get("device.locator")).get_emeter_realtime()
+            s = getDevice(self.data.get("device.locator"),3).get_emeter_realtime()
             self.doOvercurrentHandling(s)
         except:
             #Try to get RSSI to test if it works at all and set the alert as needed.

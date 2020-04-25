@@ -64,8 +64,8 @@ def calcNextBeep():
     else:
         x = priorities.get(x,40)
     if x>=30 and x<40:
-            nextbeep = registry.get("system/alerts/warning/soundinterval",60*25) +time.time()
-            sfile = registry.get("system/alerts/warning/soundfile","alert.ogg")
+            nextbeep = registry.get("system/alerts/warning/soundinterval",60*30) +time.time()
+            sfile = registry.get("system/alerts/warning/soundfile","error.ogg")
     elif x>=40 and x<50:
             nextbeep = registry.get("system/alerts/error/soundinterval",120)* ((random.random()/5.0)+0.9) + time.time()
             sfile = registry.get("system/alerts/error/soundfile","error.ogg")
@@ -87,6 +87,8 @@ def alarmBeep():
         calcNextBeep()
         s = sfile
         beepDevice = registry.get("system/alerts/soundcard",None)
+        if beepDevice=="__disable__":
+            return
         if s:
             try:
                 sound.playSound(s,handle="kaithem_sys_main_alarm",output=beepDevice)

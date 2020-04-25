@@ -46,6 +46,7 @@ def searchModules(search,max_results=100,start=0,mstart=0):
 
 
 def searchModuleResources(modulename,search,max_results=100,start=0):
+    search = search.lower()
     m = ActiveModules[modulename]
     results = []
     pointer = start
@@ -54,12 +55,12 @@ def searchModuleResources(modulename,search,max_results=100,start=0):
             return(results,pointer)
         pointer += 1
         if m[i]['resource-type'] in searchable:
-            if search in i:
+            if search in i.lower():
                 results.append(i)
                 max_results -=1
                 continue
             for j in searchable[ m[i]['resource-type']]:
-                x= m[i][j].find(search)
+                x= m[i][j].lower().find(search)
                 if x>0:
                     results.append(i)
                     max_results -=1

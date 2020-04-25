@@ -1,6 +1,9 @@
 Change Log
 ----------
 
+### 0.65.21
+- Configurable alerts and parameters for tagpoints.
+
 ### 0.65.20
 - Startup speed improvements with JACK
 - Immediately update jack settings when changing via UI
