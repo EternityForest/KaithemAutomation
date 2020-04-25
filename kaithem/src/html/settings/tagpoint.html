@@ -1,0 +1,294 @@
+<%include file="/pageheader.html"/>
+
+<%!
+from src import tagpoints,unitsofmeasure,util
+import time
+import gc
+%>
+<%
+    pageGCListIgnoreFlag = True
+
+    tagConfig={}
+    ald = {}
+
+    if new_numtag:
+        tag=tagpoints.Tag(new_numtag)
+    elif new_strtag:
+        tag=tagpoints.StringTag(new_strtag)
+
+    else:
+        if data:
+            with tagpoints.lock:
+                for i in data:
+                    if i.startswith("alarm_"):
+                        x = i.split("_",1)[1]
+                        if x.count(":")>1:
+                            raise ValueError("Likely invalid alarm name containing :")
+
+                        alarmName, alarmProperty =x.split(":")
+                        
+                        
+                        #There's no row yet for the new alarm that might be happening
+                        if alarmName=="NEW":
+                            alarmName = data['alarm_NEW:name']
+                            if not alarmName:
+                                continue
+
+                        if not alarmName in ald:
+                            ald[alarmName]={}
+
+                        ald[alarmName][alarmProperty] = data[i]
+
+                for i in list(ald.keys()):
+                    #Changing name to empty
+                    #Setting an alarm to  none is how  you delete it  
+                    if 'name' in ald[i]:
+                        if not ald[i]['name'].strip():
+                            ald[i]=None
+
+                        #Rename
+                        elif ald[i]['name'] !=  i:
+                            ald[ald[i]['name']] =  ald[i]
+                            del  ald[i]
+                data['alarms']=ald
+
+                tagpoints.configTagFromData(tagName,data)
+        if tagName in tagpoints.allTags:
+            tag=tagpoints.allTags[tagName]()
+        else:
+            tag=tagpoints.Tag(tagName)
+    #normalize
+    normalizednormalizedTagName=tag.name
+
+    configData = tagpoints.configTagData.get(normalizednormalizedTagName,{})
+    ald= configData.get('alarms',{})
+
+
+    
+    
+        
+
+    if hasattr(tag, 'kweb_manualOverrideClaim'):
+        x  = tag.kweb_manualOverrideClaim
+        orval = x.value
+        orprio=x.priority
+        orname =x.name
+    else:
+        orval=''
+        orprio=90
+        orname="config"
+
+
+    eald = tag.effectiveAlarmData
+    
+
+
+%>
+${configData|h}h
+
+<script src="/static/widget.js"></script>
+<h1>Tag Point: <small>${normalizednormalizedTagName}</small></h1>
+<div class="sectionbox">
+<p class="help">
+    This page manages one tagpoint. To save configured defaults you must save the server state
+    to disk.
+</p>
+
+<p class="help">
+    Changing the default value will only take effect if the tag's value has never been set any other way(data timestamp==0)
+</p>
+
+<p class="help"><b>Tags dissapear if there are neither any references in code, nor any config vals set!</b></p>
+<form method="POST" action="/tagpoints/${normalizednormalizedTagName|u}">
+
+<h3>Override/Fixed Value</h3>
+<table border="1">
+    <tr>
+        <td>Claim Name</td>
+        <td><input name="overrideName" value="${configData.get('overrideName','')}" placeholder="config"></td>
+    </tr>
+    <tr>
+        <td>Claim Value(Blank for no Override)</td>
+        <td><input name="overrideValue" value="${configData.get('overrideValue','')}""></td>
+    </tr>
+    <tr>
+        <td>Claim Priority</td>
+        <td><input  name="overridePriority" value="${configData.get('overridePriority','')}" placeholder="90"></td>
+    </tr>
+</table>
+<h3>Info</h3>
+<table border="1">
+    <tr>
+        <td>Time Since Update</td>
+        <td>${((unitsofmeasure.formatTimeInterval(time.monotonic()-tag.timestamp,3)+" ago") if int(tag.timestamp) else 'never')}</td>
+    </tr>
+    <tr>
+        <td>Timestamp(monotonic time)</td>
+        <td>${tag.timestamp}</td>
+    </tr>
+    <tr>
+        <td>Active Claim</td>
+        <td>${tag.activeClaim[2]}(P${tag.activeClaim[0]})</td>
+    </tr>
+    <tr>
+        <td>Owner</td>
+        <td>${tag.owner}</td>
+    </tr>
+    <tr>
+        <td>Subscriber count</td>
+        <td>${len(tag.subscribers)}</td>
+    </tr>
+    <tr>
+        <td>Python3 Object ID</td>
+        <td>${id(tag)|h}</td>
+    </tr>
+</table>
+<h3>Config</h3>
+<p class="help">If you do not configure a type, the tag will not exist until requested via code.</p>
+<table border="1">
+<tr>
+    <th>Name</th>
+    <th>Type/Create As</th>
+    <th>Value</th>
+    <th>Interval</th>
+    <th>Min</th>
+    <th>Max</th>
+    <th>hi</th>
+    <th>lo</th>
+</tr>
+<tr><th>Current Values</th></tr>
+
+%if tag and isinstance(tag,tagpoints._NumericTagPoint):
+<tr>
+    <td><a href="/tagpoints/${normalizednormalizedTagName|u}">${normalizednormalizedTagName|h}</h></td>
+    <td>${tag.__class__|h}</td>
+    <td>${tag.meterWidget.render()}</td>
+    <td>${tag.interval}</td>
+    <td>${tag.min}</td>
+    <td>${tag.max}</td>
+    <td>${tag.hi}</td>
+    <td>${tag.lo}</td>
+</tr>
+%endif
+
+%if tag and isinstance(tag,tagpoints._StringTagPoint):
+<tr>
+    <td><a href="/tagpoints/${normalizednormalizedTagName|u}">${normalizednormalizedTagName|h}</h></td>
+    <td>${tag.__class__}</td>
+    <td>${tag.spanWidget.render()}</td>
+    <td>${tag.interval}</td>
+    <td>${tag.min}</td>
+    <td>${tag.max}</td>
+    <td>NA</td>
+    <td>NA</td>
+</tr>
+%endif
+
+%if tag==None:
+<tr>
+    <td>${normalizednormalizedTagName|h}</td>
+    <td>DELETED</td>
+    <td>DELETED</td>
+    <td>DELETED</td>
+    <td>DELETED</td>
+    <td>DELETED</td>
+    <td>DELETED</td>
+</tr>
+%endif
+
+<tr><th>Configured Values(Leave blank for default)</th></tr>
+<tr>
+    <td><a href="/tagpoints/${normalizednormalizedTagName|u}">${normalizednormalizedTagName|h}</h></td>
+    <td>
+        <select name="type">
+            <option value="string" ${'selected' if configData.get('type','')=='string' else ''}>String</option>
+            <option value="number" ${'selected' if configData.get('type','')=='number' else ''}>Number</option>
+            <option value="object" ${'selected' if configData.get('type','')=='' else ''}>Object</option>
+            <option value="" ${'selected' if configData.get('type','')=='' else ''}>No setting/Create in code </option>
+        </select>
+
+    </td>
+    <td><input name="value" value="${configData.get('value','')}"></td</td>
+    <td><input name="interval" value="${configData.get('interval','')}"></td>
+    <td><input name="min" value="${configData.get('min','')}"></td>
+    <td><input name="max" value="${configData.get('max','')}"></td>
+    <td><input name="hi" value="${configData.get('hi','')}"></td>
+    <td><input name="lo" value="${configData.get('lo','')}"></td>
+</tr>
+
+
+</table>
+
+<h3>Alerting</h3>
+<p class="help">A blank name deletes that alarm. Conditions are python expressions that can use the tag itself(tag), the value(value),
+     and the kaithem object.  Conditions are regular subscribers and poll at the tag's interval, if there's a getter.</p>
+<table border=1>
+    <tr>
+        <th>Name</th>
+        <th>Condition</th>
+        <th>Release Condition</th>
+        <th>Priority</th>
+        <th>autoAck</th>
+        <th>Trip Delay</th>
+    </tr>
+
+%for i in eald:
+<tr>
+    %if i in ald:
+    <td><input name="alarm_${i}:name" value="${i|h}"></td>
+    %else:
+    <td><input title="Cannot change name of alarm that was created in code" disabled=1 value="${i|h}"></td>
+    %endif    
+    <td><input name="alarm_${i}:condition" value="${ald.get(i,{}).get('condition','')|h}" placeholder="${eald[i].get('condition','')}"></td>
+    <td><input name="alarm_${i}:releaseCondition" value="${ald.get(i,{}).get('releaseCondition','')|h}" placeholder="${eald[i].get('releaseCondition','when tripCondition is False')}"></td>
+    <td>
+        <select name="alarm_${i}:priority">
+            <option value="" ${'selected' if ald.get(i,{}).get('priority')=='' else ''}>unchanged/default(${eald[i].get('priority','warning')})</option>
+            <option value="debug" ${'selected' if ald.get(i,{}).get('priority')=='debug' else ''}>debug</option>
+            <option value="info" ${'selected' if ald.get(i,{}).get('priority')=='info' else ''}>info</option>
+            <option value="warning" ${'selected' if ald.get(i,{}).get('priority')=='warning' else ''}>warning</option>
+            <option value="error" ${'selected' if ald.get(i,{}).get('priority')=='error' else ''}>error</option>
+            <option value="critical" ${'selected' if ald.get(i,{}).get('priority')=='critical' else ''}>critical</option>
+        </select>
+    </td>
+    <td><input name="alarm_${i}:autoAck" value="${ald.get(i,{}).get('autoAck','')|h}" placeholder="${eald[i].get('autoAck','False')}"></td>
+    <td><input name="alarm_${i}:tripDelay" value="${ald.get(i,{}).get('tripDelay','')|h}" placeholder="${eald[i].get('tripDelay','0')}"></td>
+
+</tr>
+%endfor
+
+<tr>
+    <td><input name="alarm_NEW:name" placeholder="New Alarm Name"></td>
+    <td><input name="alarm_NEW:condition" placeholder="New Alarm Condition"></td>
+</tr>
+
+</table>
+<h3>onChange Function</h3>
+<p class="help">This has access to the same vars that alerts do. It creates a tag
+    subscriber.
+</p>
+<textarea name="onChange">${configData.get('onChange','')|h}</textarea>
+<br>
+<input type="submit">
+</form>
+
+</div>
+<div class="sectionbox"></div>
+<h3>Objects Referring to this Tag</h3>
+<div class="scrollbox">
+<p class="help">Greyed entries may be less interesting and more likely the rendering of this page itself.</p>
+<dl>
+%for i in gc.get_referrers(obj):
+%if not( isinstance(i,dict) and 'UNDEFINED' in i):
+<dt><a href="">${id(i)}</a></dt
+    >
+<dd
+>${util.saferepr(i)|h}
+</dd>
+%endif
+
+
+%endfor
+</dl>
+</div>
+<%include file="/pagefooter.html"/>
