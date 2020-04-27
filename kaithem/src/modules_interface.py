@@ -814,7 +814,7 @@ def resourceUpdateTarget(module,resource,kwargs):
                 r2['priority'] = kwargs['priority']
                 r2['continual'] = 'continual' in kwargs
                 r2['rate-limit'] = float(kwargs['ratelimit'])
-                r2['enable'] = 'enable' in kwargs
+                r2['enable'] = False
 
                 #Remove the old event even before we do a test compile. If we can't do the new version just put the old one back.
                 newevt.removeOneEvent(module,resource)

@@ -159,7 +159,7 @@ class RepeatingEvent(BaseEvent):
         t = self.lastrun+offset
         #This is important in the next step. Here we add a fraction of the interval to push times like 59.95 over
         #otherwise it will schedule it for 60 when clearly a minute in the future should be 120
-        t += self.interval/10.0
+        t += self.interval/2
         #Calculate the last modulo of the interval. We do this by doing the module to see how far past it we are
         #then subtracting.
         last = t-(t%self.interval)
@@ -360,8 +360,12 @@ class NewScheduler(threading.Thread):
         e.schedule()
         return e
 
-    def scheduleRepeating(self, f, t):
-        e = RepeatingEvent(f,float(t))
+    def scheduleRepeating(self, f, t,sync=True):
+        if sync:
+            e = RepeatingEvent(f,float(t))
+        else:
+            e = UnscheduledRepeatingEvent(f,float(t))
+
         e.register()
         e.schedule()
         return e

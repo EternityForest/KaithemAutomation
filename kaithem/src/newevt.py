@@ -289,7 +289,12 @@ def parseTrigger(when):
 
 
 #Factory function that examines the type of trigger and chooses a class to handle it.
-def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setup = None,priority=1,**kwargs):
+def Event(when = "False",do="pass",scope= None ,continual=False,ratelimit=0,setup = None,priority=1,dummy=0,**kwargs):
+    if dummy:
+        when = 'False'
+        do='pass'
+        setup='pass'
+
     trigger = parseTrigger(when)
     if scope == None:
         scope = make_eventscope()
@@ -1476,16 +1481,20 @@ def make_event_from_resource(module,resource,subst=None):
 
     if 'enable' in r:
         if not r['enable']:
+            #TODO: What's going on here?
             if not parseTrigger(r['trigger'][0]) == '!function':
-                return Event(m=module,r=resource)
+                e= Event(m=module,r=resource)
             else:
-                return Event(r['trigger'],r['action'],make_eventscope(module),
+                e= Event(r['trigger'],r['action'],make_eventscope(module),
                 setup = setupcode,
                 continual = continual,
                 ratelimit=ratelimit,
                 priority=priority,
                 m=module,
                 r=resource,dummy=True)
+
+            e.disable=True
+            return e
 
     x = Event(r['trigger'],r['action'],make_eventscope(module),
                 setup = setupcode,

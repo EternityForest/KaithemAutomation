@@ -84,6 +84,8 @@ import src
 import cherrypy
 
 from src import util,workers
+from src import scheduling
+
 from src import config as cfg
 from src.config import config
 from src import directories
@@ -153,6 +155,7 @@ def webRoot():
             else:
                 if not hasattr(f, "_kaithemFirstErrorMarker"):
                     messagebus.postMessage("/system/notifications/errors","First err in tag subscriber "+str(f)+ " from "+str(f.__module__)+" to "+ tag.name)
+                    f._kaithemFirstErrorMarker=True
         except:
             print(traceback.format_exc(chain=True))
 

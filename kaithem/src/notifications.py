@@ -19,6 +19,8 @@ from . import messagebus,pages, auth,widgets
 from .unitsofmeasure import strftime
 from .config import config
 
+mlogger = logging.getLogger("system.msgbuslog")
+
 logger = logging.getLogger("system.notifications")
 ilogger = logging.getLogger("system.notifications.important")
 
@@ -144,13 +146,25 @@ messagebus.subscribe('/system/notifications/#',subscriber)
 
 def printer(t,m):
     if 'error' in t:
-        logger.error(m)
+        logger.error(t+':'+m)
     elif 'warning' in t:
-        logger.warning(m)
+        logger.warning(t+':'+m)
     elif 'important' in t:
-        ilogger.info(m)
+        ilogger.info(t+':'+m)
     else:
-        logger.info(m)
+        logger.info(t+':'+m)
+messagebus.subscribe('/system/notifications/#',printer)
+
+
+def mprinter(t,m):
+    if 'error' in t:
+        mlogger.error(t+':'+m)
+    elif 'warning' in t:
+        mlogger.warning(t+':'+m)
+    elif 'important' in t:
+        mlogger.info(t+':'+m)
+    else:
+        mlogger.info(t+':'+m)
 
 for i in config['print-topics']:
-    messagebus.subscribe(i,printer)
+    messagebus.subscribe(i,mprinter)

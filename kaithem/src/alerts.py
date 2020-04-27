@@ -296,7 +296,7 @@ class Alert(virtualresource.VirtualResource):
             s = calcNextBeep()
         if s:
             sound.playSound(s,handle="kaithem_sys_main_alarm")
-        if self.priority in ("error, critical"):
+        if self.priority in ("error", "critical"):
             logger.error("Alarm "+self.name +" ACTIVE")
             messagebus.postMessage("/system/notifications/errors", "Alarm "+self.name+" is active")
         if self.priority in ("warning"):
@@ -319,6 +319,9 @@ class Alert(virtualresource.VirtualResource):
     def _onNormal(self):
         "Mostly defensivem but also cleans up if the autoclear occurs and we skio the acknowledged state"
         global unacknowledged,active
+        if self.priority in ("error", "critical","warning"):
+            messagebus.postMessage("/system/notifications", "Alarm "+self.name+" returned to normal")
+
         with lock:
             cleanup()
             if self.id in _unacknowledged:
@@ -331,7 +334,7 @@ class Alert(virtualresource.VirtualResource):
         calcNextBeep()
 
     def _onTrip(self):
-        if self.priority in ("error, critical"):
+        if self.priority in ("error", "critical"):
             logger.error("Alarm "+self.name +" tripped:\n "+self.tripMessage)
         if self.priority in ("warning"):
             logger.warning("Alarm "+self.name +" tripped:\n"+self.tripMessage)
@@ -356,6 +359,9 @@ class Alert(virtualresource.VirtualResource):
         self.sm.event("release")
 
     def _onClear(self):
+        if self.priority in ("error", "critical","warning"):
+            messagebus.postMessage("/system/notifications", "Alarm "+self.name+" condition cleared, waiting for ACK")
+
         logger.info("Alarm "+self.name +" cleared")
 
 
@@ -374,15 +380,13 @@ class Alert(virtualresource.VirtualResource):
         self.sm.event("acknowledge")
         logger.info("Alarm "+self.name +" acknowledged by" + by+notes)
         
-        if self.priority in ("error, critical","warning"):
+        if self.priority in ("error", "critical","warning"):
             messagebus.postMessage("/system/notifications", "Alarm "+self.name+" acknowledged by "+ by+notes)
 
-    def error(self):
+    def error(self,msg=""):
         global unacknowledged
         self.sm.goto("error")
-        with lock:
-            if self.id in _unacknowledged:
-                del _unacknowledged[self.id]
-                unacknowledged = unacknowledged.copy()
+        self.tripMessage = msg
+        
 
 

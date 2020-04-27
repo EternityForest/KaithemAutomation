@@ -990,7 +990,6 @@ def handleResourceChange(module,resource):
 
     elif t == 'event':
         evt = None
-        #Test compile, throw error on fail.
 
         if 'enable' in data:
             try:

@@ -560,17 +560,23 @@ class _TagPoint(virtualresource.VirtualResource):
 
         def alarmPollFunction(value, annotation, timestamp):
             context['value']= value
-            if eval(tripCondition,context, context):
-                obj.trip()
-            elif releaseCondition:
-                if eval(releaseCondition,context, context):
+            try:
+                if eval(tripCondition,context, context):
+                    obj.trip("Tag value:"+str(value)[:128])
+                elif releaseCondition:
+                    if eval(releaseCondition,context, context):
+                        obj.release()
+                else:
                     obj.release()
-            else:
-                obj.release()
+            except Exception as e:
+                obj.error(str(e))
+                raise
 
         obj.tagSubscriber = alarmPollFunction
         self.subscribe(alarmPollFunction)
         self.alarms[name]= obj
+
+        alarmPollFunction(self.value, self.annotation, self.timestamp)
 
     def setConfigData(self,data):
         with lock:
@@ -735,6 +741,8 @@ class _TagPoint(virtualresource.VirtualResource):
         interval = self._interval or 0
         if (self.subscribers or self.handler) and interval>0:
             if not self.poller or not (interval == self.poller.interval):
+                if self.poller:
+                    self.poller.unregister()
                 self.poller = scheduling.scheduler.scheduleRepeating(self.poll, interval)
         else:
             if self.poller:
@@ -820,7 +828,6 @@ class _TagPoint(virtualresource.VirtualResource):
                 except:
                     logger.exception("Tag subscriber error")
                     #Return the error from whence it came to display in the proper place
-
                     for i in subscriberErrorHandlers:
                         try:
                             i(self, f,self.lastValue)

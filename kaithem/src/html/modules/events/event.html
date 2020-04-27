@@ -87,9 +87,9 @@ onsubmit="presubmit()"
 <label><b>Path:</b><input title="Backslashes are escapes and / is the path separator. You can move this resource to another directory by renaming." name="name" value="${name|h}" style="width:90%;"
 
 ></input></label><br>
- <label><input type="checkbox"  name="enable" value="false"
+ <label><input type="checkbox"  name="enable"
 
-         %if 'enable' in event:
+        %if 'enable' in event:
             %if event['enable'] == True:
             checked="yes"
             %endif

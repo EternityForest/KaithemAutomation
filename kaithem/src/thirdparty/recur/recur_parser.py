@@ -102,8 +102,8 @@ if __name__ == "__main__":
         f.write(tatsu.to_python_sourcecode(grammar))
 else:
     try:
-        #If this file has been changed don't use the old cache
-        if os.path.exists(compiled_path) and os.path.getmtime(__file__)< os.path.getmtime(compiled_path):
+        #Try precomputed if possible
+        if os.path.exists(compiled_path):
             from . compiledparser import UnknownParser as parser
             parser = parser()
         else:

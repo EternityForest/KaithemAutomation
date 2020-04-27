@@ -42,10 +42,12 @@ time.sleep(0.5)
 if not x.pymodule.y:
     common.fail("One time event did not delete itself properly")
 
-newevt.after(1,g)
-x.pymodule.y = True
+zyx = [1]
+def f2():
+    xyz[0]=0
+newevt.after(1,f2)
 time.sleep(1.2)
-if x.pymodule.y:
+if xyz[0]:
     common.fail("Time delay event did not trigger")
     
 x.pymodule.y = True

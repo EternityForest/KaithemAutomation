@@ -12,6 +12,7 @@
     import threading
 
     import kaithem
+    from scullery import workers as sworkers
     from src import unitsofmeasure
     from src import newevt
     from src import systasks
@@ -189,6 +190,10 @@ lanip =get_lan_ip()
         <tr>
             <td>HTTP Requests per minute(~5min avg)</td>
             <td>${round(systasks.pageviewcountsmoother.value,3)}</td>
+        </tr>
+        <tr>
+            <td>Thread pool latency</td>
+            <td>${round(workers.testLatency(),3)}</td>
         </tr>
         <tr>
             <td>Uncollectable garbage cycles</td>
