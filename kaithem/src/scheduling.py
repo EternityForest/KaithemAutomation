@@ -43,6 +43,10 @@ class BaseEvent():
 #run: use the worker pool to run an event, or run directly if fast enough(under 1ms)
 
 
+#We keep our own little task queue just for unregistering.
+#Otherwise we would be majorly clogged up by when events wanted to unregister other events,
+#but the scheduler was busy trying to push more events through, so no unregistration worked fast,creating a pseudo deadlocl
+simpleTasks = []
 
 class Event(BaseEvent):
     "Does function at time provided there is a strong referemce to f still by then"
@@ -51,6 +55,7 @@ class Event(BaseEvent):
         self.f = util.universal_weakref(function)
         self.time = time
         self.errored = False
+        self.stopped = False
 
     def schedule(self):
         scheduler.insert(self)
@@ -59,6 +64,8 @@ class Event(BaseEvent):
         workers.do(self._run)
 
     def _run(self):
+        if self.stopped:
+            return
         try:
             f = self.f()
             if not f:
@@ -88,7 +95,8 @@ class Event(BaseEvent):
     #We want to use the worker pool to unregister so that we know which thread the scheduler.unregister call is
     #going to be in to prevent deadlocks. Also, we take a dummy var so we can use this as a weakref callback
     def unregister(self,dummy=None):
-        workers.do(self._unregister)
+        self.stopped=True
+        simpleTasks.append(self._unregister)
 
 def shouldSkip(priority,interval,lateby,lastran):
     t = {'realtime':200, 'interactive':0.8, 'high':0.5, 'medium':0.3, 'low':0.2, "verylow":0.1}
@@ -183,7 +191,7 @@ class RepeatingEvent(BaseEvent):
     #going to be in to prevent deadlocks. Also, we take a dummy var so we can use this as a weakref callback
     def unregister(self,dummy=None):
         self.stop = True
-        workers.do(self._unregister)
+        simpleTasks.append(self._unregister)
 
 
     def run(self):
@@ -364,7 +372,7 @@ class NewScheduler(threading.Thread):
         if sync:
             e = RepeatingEvent(f,float(t))
         else:
-            e = UnscheduledRepeatingEvent(f,float(t))
+            e = UnsynchronizedRepeatingEvent(f,float(t))
 
         e.register()
         e.schedule()
@@ -455,6 +463,13 @@ class NewScheduler(threading.Thread):
                 self.tasks.append(self.task_queue.pop())
             with self.lock:
                 try:
+                    while simpleTasks:
+                        x=simpleTasks.pop(0)
+                        try:
+                            x()
+                        except:
+                            logger.exception("Error in simpleTasks queue function")
+                    
                     #Sort our list of tasks which should be mostly already sorted except the new stuff.
                     #If no new tasks have been inserted there;s no need to do a sort.
                     if need_sort:
@@ -470,6 +485,7 @@ class NewScheduler(threading.Thread):
                     else:
                         x=time_till_next
                 except:
+                    logging.exception("Error in scheduler loop?")
                     x = 0.01
 
             time.sleep(x)

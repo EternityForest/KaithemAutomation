@@ -160,6 +160,7 @@ configTags ={}
 configTagData = {}
 
 def configTagFromData(name,data):
+    name = normalizeTagName(name)
     existingData = configTagData.get(name, {})
 
     t = data.get("type","number")
@@ -743,7 +744,7 @@ class _TagPoint(virtualresource.VirtualResource):
             if not self.poller or not (interval == self.poller.interval):
                 if self.poller:
                     self.poller.unregister()
-                self.poller = scheduling.scheduler.scheduleRepeating(self.poll, interval)
+                self.poller = scheduling.scheduler.scheduleRepeating(self.poll, interval,sync=False)
         else:
             if self.poller:
                 self.poller.unregister()

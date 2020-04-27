@@ -422,11 +422,12 @@ def readResourceFromData(d,relative_name:str,ver:int=1,filename=None):
     fn = relative_name
     try:
         #This regex is meant to handle any combination of cr, lf, and trailing whitespaces
-        sections = re.split("\r?\n---[ |\t]*?\r?\n",d)
+        sections = re.split(r'\r?\n?----*\s*\r?\n*',d)
         
         shouldRemoveExtension = False
         
         isSpecialEncoded=False
+        wasProblem = False
         if fn.endswith('.py'):
             isSpecialEncoded=True
 
@@ -446,7 +447,8 @@ def readResourceFromData(d,relative_name:str,ver:int=1,filename=None):
                 shouldRemoveExtension = True
             except:
                 isSpecialEncoded= False
-                logging.exception("err loading as pyencoded: "+fn)
+                wasProblem=True
+                logger.exception("err loading as pyencoded: "+fn)
                 pass
         
         #Option to encode metadata as special script type
@@ -461,7 +463,8 @@ def readResourceFromData(d,relative_name:str,ver:int=1,filename=None):
                 shouldRemoveExtension = True
             except:
                 isSpecialEncoded= False
-                logging.exception("err loading as html encoded: "+fn)
+                wasProblem=True
+                logger.exception("err loading as html encoded: "+fn)
                 pass
 
         #Markdown and most html files files start with --- and are delimited by ---
@@ -469,14 +472,14 @@ def readResourceFromData(d,relative_name:str,ver:int=1,filename=None):
         elif fn.endswith(".md") or fn.endswith(".html"):
             isSpecialEncoded=True
             try:
-                x = d.split("---\n",2)
-                data = yaml.load(x[1])
-                data['body']= x[2]
+                data = yaml.load(sections[1])
+                data['body']= sections[2]
                 r=data
                 shouldRemoveExtension = True
             except:
                 isSpecialEncoded= False
-                logging.exception("err loading as html encoded: "+fn)
+                wasProblem=True
+                logger.exception("err loading as html encoded: "+fn)
                 pass
         elif fn.endswith('.yaml') or fn.endswith('.json'):
             shouldRemoveExtension = True
@@ -493,6 +496,9 @@ def readResourceFromData(d,relative_name:str,ver:int=1,filename=None):
                 if r['resource-type'] == 'event':
                     r['setup'] = sections[1]
                     r['action'] = sections[2]
+
+        if wasProblem:
+            messagebus.postMessage("/system/notifications/warnings","Potential problem or nonstandard encoding with file: "+fn)
     except:
         #This is a workaround for when dolphin puts .directory files in directories and gitignore files
         #and things like that. Also ignore attempts to load from filedata
@@ -611,7 +617,7 @@ def saveResource2(obj,fn:str):
                     #The clock is all kinds of wrong, and we can't use the conflict
                     #Resolution logic
                     if os.path.getmtime(fn) > time.time():
-                        logging.info(fn + " has been modified externally, on-disk version is more recent, not saving")
+                        logger.info(fn + " has been modified externally, on-disk version is more recent, not saving")
                         messagebus.postMessage("/system/notifications/",fn + " has been modified externally, on-disk version is more recent, not saving")
                         return fn
 
@@ -1033,6 +1039,7 @@ def loadOneResource(folder, relpath, module):
     try:
         r,resourcename = readResourceFromFile(os.path.join(folder,relpath), relpath)
     except:
+        messagebus.postMessage("/system/notifications/errors","Error loadingresource from: "+ fn)
         logger.exception("Error loading resource from file "+fn)
         raise
     if not r:
@@ -1191,7 +1198,7 @@ def getModuleAsYamlZip(module,noFiles=True):
         
                 else:
                     if not incompleteError:
-                        logging.error("Missing file(s) in module including: "+os.path.join(directories.vardir,"modules",'data',module,"__filedata__",target))
+                        logger.error("Missing file(s) in module including: "+os.path.join(directories.vardir,"modules",'data',module,"__filedata__",target))
                         incompleteError=True
         z.close()
         s = ram_file.getvalue()
