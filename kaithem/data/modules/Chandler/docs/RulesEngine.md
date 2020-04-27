@@ -69,7 +69,9 @@ Any $mqtt:topic/foo/bar event fires when topic/foo/bar is recieved via MQTT. The
 
 setTag sets a tag. The claim remains till the scene is stopped.
 
-tagValue(n) returns the value of a tag. Both will add the tag to the list of "relevant tags"
+tagValue(n) or tv(n) returns the value of a tag. Both will add the tag to the list of "relevant tags".
+
+stv(n) is the same, but for string tags.
 
 All relevant tags create a variable $tag:name that lets you spy on the current value. These cannot be written to and are mostly 
 for UI purposes.
