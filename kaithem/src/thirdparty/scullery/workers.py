@@ -180,7 +180,7 @@ def start(count=8, qsize=64, shutdown_wait=60):
 
         if len(overflow_q)>1000:
             #ratelimit if the queue gets over
-            time.sleep(max(0,(len(overflow_q)-1000)/2000.0))
+            time.sleep(max(0,(len(overflow_q)-1000)/50000.0))
         overflow_q.append((func,args))
 
         #Be sure there is an awake thread to deal with our overflow entry.

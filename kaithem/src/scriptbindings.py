@@ -476,7 +476,11 @@ class ChandlerScriptContext():
             return t.value
        
         c['tagValue']= tagpoint
+        c['tv']= tagpoint
+
         c['stringTagValue']= stringtagpoint
+        c['stv']= stringtagpoint
+
         functions.update(c)
 
 

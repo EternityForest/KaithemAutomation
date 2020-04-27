@@ -27,7 +27,11 @@ It is suggested that you not do anything with annotations besides equality testi
 always typecheck the value as it defaults to None.
 
 ### Expression Tags
-Any tag having a name that begins with an equals sign will be created with a getter that evaluates the name as an expression. You have access to time, math, random, re, and the kaithem object, plus the tag itself as 'tag', and anything else you put in tag.evalContext in code.
+Any tag having a name that begins with an equals sign will be created with a getter that evaluates the name as an expression.  The priority of the expression source will be 98.
+
+You have access to time, math, random, re, and the kaithem object, plus the tag itself as 'tag', and anything else you put in tag.evalContext in code.
+
+Note: tag point configuration is not part of a module and as such is a little harder to share, since you don't get the ZIP file uploads. You may want to create tags through code instead.
 
 #### the tv(n) function
 

@@ -223,6 +223,9 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
         self.levelTag.min=-90
         self.levelTag.max =3
         self.levelTag.hi = -3
+
+        #Set default
+        self.levelTag.value = -90
         self.lastLevel =0
         self.lastRMS=0
         self.lastNormalVolumeLevel=time.monotonic()
