@@ -1115,13 +1115,21 @@ class _NumericTagPoint(_TagPoint):
     def meterWidget(self):
         with self.lock:
             if self._meterWidget:
-                return self._meterWidget
-            else:
-                self._meterWidget= widgets.Meter()
-                self._meterWidget.setPermissions(['/users/tagpoints.view'],['/users/tagpoints.edit'])
-                self._setupMeter()
+                x = self._meterWidget
                 self._guiPush(self.value)
                 return self._meterWidget
+
+            self._meterWidget= widgets.Meter()
+            self._meterWidget.setPermissions(['/users/tagpoints.view'],['/users/tagpoints.edit'])
+            self._setupMeter()
+            #Try to immediately put the correct data in the gui
+            if self.guiLock.acquire():
+                try:
+                    #Note: this in-thread write could be slow
+                    self._meterWidget.write(self.lastValue)
+                finally:
+                    self.guiLock.release()
+            return self._meterWidget
     
     def _guiPush(self, value):
         if not self._meterWidget:
