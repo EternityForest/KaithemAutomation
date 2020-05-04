@@ -49,6 +49,15 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.21
+- Configurable alerts and parameters for tagpoints.
+- Much better tagpoint, worker loop, and scheduling performance
+- ChandlerScript compatibility with newer versions
+- Fix included YAML lib in wrong folder
+- Fix kaithem.sound.isPlaying on gstreamer backend
+- Fix fluidsynth 2.0 compatibilty.
+- Improve sound fading algorithm
+
 ### 0.65.20
 - Startup speed improvements with JACK
 - Immediately update jack settings when changing via UI
@@ -58,38 +67,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 
 ### 0.65.19
 - Fix the script bindings tagpoint support
-
-### 0.65.18
-- Mixer mono channels properly connect to stereo destinations
-
-### 0.65.17
-- Fix jack mixer send elements
-- Faster startup for jack
-
-### 0.65.16
-- Overhaul scullery's JACK handling for more reliability in unusual raspberry pi setups
-- Avoid unnecccessariliy setting the process UID to the same value, which seems to have affected JACK
-- Remove some nuisance print output
-
-### 0.65.15
-- MINOR BREAKING: The USB latency param is interpreted correctly now
-- Can directly set USB period size
-- Can use default alsa_out parameters
-- JACK settings are stored in system.mixer/jacksettings.yaml, not the registry
-- Chandler properly creates it's save folder if missing
-- Fix deadlock with pylogginghandler by changing to an RLock
-- GStreamer jackaudiosink tweaks fix slight glightes with multiple soundcards
-
-### 0.65.14
-- Fix bug preventing deleting Changler scenes that used MQTT or pages
-- Device-side fading for flicker and vary blending modes
-- Up/Download individuial scenes
-
-### 0.65.13
-- BREAKING: Devices stored as files, not in registry
-- Add support for Kasa Color smart bulbs
-- To support that, the render engine of Chandler has but upgraded to use on-bulb fades
-- Sound has more protection against invalid interfaces
 
 
 License Terms

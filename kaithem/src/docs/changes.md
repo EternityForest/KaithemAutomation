@@ -4,7 +4,7 @@ Change Log
 ### 0.65.21
 - Configurable alerts and parameters for tagpoints.
 - Much better tagpoint, worker loop, and scheduling performance
-- ChandlerScript ompatibility with newer versions
+- ChandlerScript compatibility with newer versions
 - Fix included YAML lib in wrong folder
 - Fix kaithem.sound.isPlaying on gstreamer backend
 - Fix fluidsynth 2.0 compatibilty.
