@@ -683,6 +683,9 @@ The kaithem.sound API is slightly different depending on which backend
 has been configured. By default mplayer will be used if available and is
 the recommended backed.
 
+#### kaithem.oggTest([output])
+Attempt to play an OGG test chime. May raise an error if it detects that it does not work.
+
 #### kaithem.sound.directories
 The `audio-paths` entry from the config YAML. May contain an entry called "__default__"
 

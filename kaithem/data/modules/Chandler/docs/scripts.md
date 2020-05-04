@@ -14,9 +14,7 @@ resource-type: page
 template-engine: markdown
 
 ---
-
-
-    Scripts are no longer suggested, use the graphical logic editor instead.
+Scripts are no longer suggested, use the graphical logic editor instead.
     
 A cue may have a script that defines a set of event responses while that
 cue is active. Cue scripts follow the same general format as

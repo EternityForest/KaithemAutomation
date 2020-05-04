@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1583897718621568
+resource-timestamp: 1588570501403193
 resource-type: event
 versions: {}
 
@@ -1889,7 +1889,7 @@ if __name__=='__setup__':
                         pass           
     
                 if msg[0] == "testSoundCard":
-                    playSound("alert.ogg",output=msg[1], handle="lightboard_soundtest")
+                    kaithem.sound.oggTest(output=msg[1])
         
     
             except Exception as e:
@@ -3218,15 +3218,15 @@ if __name__=='__setup__':
                             kaithem.sound.fadeTo(None, length=self.cue.soundFadeOut, handle=str(self.id))
                         else:
                             kaithem.sound.stop(str(self.id))
-    
-                            
+                            c = 0
+                            while c<50 and kaithem.sound.isPlaying(str(self.id)):
+                                c+=1
+                                time.sleep(0.017)
+                                
                     self.cue = self.cues[cue]
                     self.cueTagClaim.set(self.cue.name,annotation="SceneObject")  
     
-                    c = 0
-                    while c<50 and kaithem.sound.isPlaying(str(self.id)):
-                        c+=1
-                        time.sleep(0.017)
+                   
                     if self.cue.sound and self.active:
     
                         sound = self.cue.sound

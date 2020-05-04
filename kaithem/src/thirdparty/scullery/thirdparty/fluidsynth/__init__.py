@@ -1254,9 +1254,10 @@ class Synth:
         if midi_driver is not None:
             assert (midi_driver in ['alsa_seq','jack', 'alsa_raw', 'oss', 'winmidi', 'midishare', 'coremidi'])
             fluid_settings_setstr(self.settings, b'midi.driver', midi_driver.encode())
-            self.router = new_fluid_midi_router(self.settings, fluid_synth_handle_midi_event, self.synth)
-            fluid_synth_set_midi_router(self.synth, self.router)
-            self.midi_driver = new_fluid_midi_driver(self.settings, fluid_midi_router_handle_midi_event, self.router)
+            if fluid_synth_set_midi_router:
+                self.router = new_fluid_midi_router(self.settings, fluid_synth_handle_midi_event, self.synth)
+                fluid_synth_set_midi_router(self.synth, self.router)
+                self.midi_driver = new_fluid_midi_driver(self.settings, fluid_midi_router_handle_midi_event, self.router)
 
         if cmd_handler:
             if fluid_synth_set_midi_router:

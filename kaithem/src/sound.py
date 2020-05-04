@@ -889,21 +889,26 @@ class MPlayerWrapper(SoundWrapper):
         if x and not length:
             x.stop()
         
+        k = kwargs.copy()
+        k.pop('volume',0)
+
         #Allow fading to silence
         if file:
-            self.playSound(file,handle=handle,**kwargs)
+            self.playSound(file,handle=handle,volume=0,**kwargs)
 
         if not x:
             return
         if not length:
             return
 
+        try:
+            v = x.volume
+        except:
+            return
+
         def f():
             t = time.monotonic()
-            try:
-                v = x.volume
-            except:
-                return
+           
 
             while x and time.monotonic()-t<length:
                 x.setVol(max(0,v*  (1-(time.monotonic()-t)/length)))
@@ -1143,9 +1148,10 @@ class GStreamerBackend(SoundWrapper):
         def isPlaying(self):
             return not self.pl.ended
         
-        def setVol(self,v):
+        def setVol(self,v,final=True):
             self.volume=v
-            self.pl.finalGain = v
+            if final:
+                self.finalGain = v
             self.pl.setVol(v)
 
         def pause(self):
@@ -1217,7 +1223,7 @@ class GStreamerBackend(SoundWrapper):
                         logging.exception("Error preloading sound")
         workers.do(f)
     
-    def playSound(self,filename,handle="PRIMARY",extraPaths=[],_prevPlayerObject=None, **kwargs):
+    def playSound(self,filename,handle="PRIMARY",extraPaths=[],_prevPlayerObject=None, finalGain=None,**kwargs):
         #Those old sound handles won't garbage collect themselves
         self.deleteStoppedSounds()            
         fn = soundPath(filename,extraPaths)
@@ -1227,7 +1233,10 @@ class GStreamerBackend(SoundWrapper):
             v  = float(kwargs['volume'])
         else:
             v =1;
+        if finalGain is None:
+            finalGain=v
 
+        
         if 'start' in kwargs:
             #odd way of throwing errors on non-numbers
             start  = float(kwargs['start'])
@@ -1255,8 +1264,15 @@ class GStreamerBackend(SoundWrapper):
             output = "@auto"
         #Play the sound with a background process and keep a reference to it
         pl = self.GStreamerContainer(fn,volume=v,output=output,_prevPlayerObject=_prevPlayerObject)
-        pl.finalGain = v
+        pl.finalGain = finalGain
         self.runningSounds[handle] = pl
+    
+    def isPlaying(self,channel = "PRIMARY"):
+        "Return true if a sound is playing on channel"
+        try:
+            return self.runningSounds[channel].isPlaying()
+        except KeyError:
+            return False
 
     def stopSound(self, handle ="PRIMARY"):
         #Delete the sound player reference object and its destructor will stop the sound
@@ -1276,10 +1292,10 @@ class GStreamerBackend(SoundWrapper):
                 self.runningSounds.pop(i)
             except KeyError:
                 raise
-    def setVolume(self,vol,channel = "PRIMARY"):
+    def setVolume(self,vol,channel = "PRIMARY",final=True):
             "Return true if a sound is playing on channel"
             try:
-                return self.runningSounds[channel].setVol(vol)
+                return self.runningSounds[channel].setVol(vol,final)
             except (KeyError,ReferenceError):
                 pass
     
@@ -1313,12 +1329,9 @@ class GStreamerBackend(SoundWrapper):
 
         #Allow fading to silence
         if file:
-            self.playSound(file,handle=handle, _prevPlayerObject=x, **k)
-       
-        if not length:
-            self.setVolume(min(1,kwargs.get('volume',1)),handle)
-            return
-
+            #PrevplayerObject makes the new sound reference the old, so the old doesn't
+            #get GCed and stop
+            self.playSound(file,handle=handle, _prevPlayerObject=x, volume=0, finalGain=kwargs.get('volume',1),**k)
         def f():
             t = time.monotonic()
             try:
@@ -1330,7 +1343,7 @@ class GStreamerBackend(SoundWrapper):
                 ratio = ((time.monotonic()-t)/length)
 
                 try:
-                    v=self.runningSounds[handle].finalGain
+                    targetVol=self.runningSounds[handle].finalGain
                 except:
                     pass
 
@@ -1338,8 +1351,15 @@ class GStreamerBackend(SoundWrapper):
                     x.setVol(max(0,v* (1-ratio)))
 
                 if file:
-                    self.setVolume(min(1,kwargs.get('volume',1)*ratio),handle)
+                    self.setVolume(min(1,targetVol*ratio),handle,final=False)
                 time.sleep(1/48.0)
+            
+            try:
+                targetVol=self.runningSounds[handle].finalGain
+                self.setVolume(min(1,targetVol),handle)
+            except Exception as e:
+                print(e)
+
             if x:
                 x.stop()
 
@@ -1369,6 +1389,16 @@ for i in config['audio-backends']:
 def stopAllSounds():
     midi.allNotesOff()
     backend.stopAllSounds()
+
+
+def oggSoundTest(output=None):
+    t="test"+str(time.time())
+    playSound("alert.ogg",output=output, handle=t)
+    for i in range(100):
+        if isPlaying(t):
+            return
+        time.sleep(1)
+    raise RuntimeError("Sound did not report as playing within 100ms")
 
 #Make fake module functions mapping to the bound methods.
 playSound = backend.playSound
