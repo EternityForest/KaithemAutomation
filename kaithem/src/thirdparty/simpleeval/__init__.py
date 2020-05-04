@@ -1,5 +1,5 @@
 """
-SimpleEval - (C) 2013-2018 Daniel Fairhead
+SimpleEval - (C) 2013-2019 Daniel Fairhead
 -------------------------------------
 
 An short, easy to use, safe and reasonably extensible expression evaluator.
@@ -46,10 +46,12 @@ Contributors:
 - xaled (Khalid Grandi) method chaining correctly, double-eval bugfix.
 - EdwardBetts (Edward Betts) spelling correction.
 - charlax (Charles-Axel Dein charlax) Makefile and cleanups
-- mommothazaz123 (Andrew Zhu) f"string" support
+- mommothazaz123 (Andrew Zhu) f"string" support, Python 3.8 support
 - lubieowoce (Uryga) various potential vulnerabilities
 - JCavallo (Jean Cavallo) names dict shouldn't be modified
-
+- Birne94 (Daniel Birnstiel) for fixing leaking generators.
+- patricksurry (Patrick Surry) or should return last value, even if falsy.
+- shughes-uk (Samantha Hughes) python w/o 'site' should not fail to import.
 
 -------------------------------------
 Basic Usage:
@@ -92,8 +94,10 @@ well:
 import ast
 import operator as op
 import sys
+import warnings
 from random import random
-import collections
+
+PYTHON3 = sys.version_info[0] == 3
 
 ########################################
 # Module wide 'globals'
@@ -102,9 +106,26 @@ MAX_STRING_LENGTH = 100000
 MAX_COMPREHENSION_LENGTH = 10000
 MAX_POWER = 4000000  # highest exponent
 DISALLOW_PREFIXES = ['_', 'func_']
-DISALLOW_METHODS = ['format', 'mro']
+DISALLOW_METHODS = ['format', 'format_map', 'mro']
 
-PYTHON3 = sys.version_info[0] == 3
+# Disallow functions:
+# This, strictly speaking, is not necessary.  These /should/ never be accessable anyway,
+# if DISALLOW_PREFIXES and DISALLOW_METHODS are all right.  This is here to try and help
+# people not be stupid.  Allowing these functions opens up all sorts of holes - if any of
+# their functionality is required, then please wrap them up in a safe container.  And think
+# very hard about it first.  And don't say I didn't warn you.
+# builtins is a dict in python >3.6 but a module before
+DISALLOW_FUNCTIONS = {
+        type, isinstance, eval, getattr, setattr, repr, compile, open
+        }
+if hasattr(__builtins__, 'help') or \
+        (hasattr(__builtins__, '__contains__') and 'help' in __builtins__):
+    # PyInstaller environment doesn't include this module.
+    DISALLOW_FUNCTIONS.add(help)
+
+
+if PYTHON3:
+    exec('DISALLOW_FUNCTIONS.add(exec)') # exec is not a function in Python2...
 
 
 ########################################
@@ -172,6 +193,8 @@ class IterableTooLong(InvalidExpression):
 
     pass
 
+class AssignmentAttempted(UserWarning):
+    pass
 
 ########################################
 # Default simple functions to include:
@@ -232,7 +255,7 @@ DEFAULT_OPERATORS = {ast.Add: safe_add, ast.Sub: op.sub, ast.Mult: safe_mult,
 
 DEFAULT_FUNCTIONS = {"rand": random, "randint": random_int,
                      "int": int, "float": float,
-                     "str": str if PYTHON3 else str}
+                     "str": str if PYTHON3 else unicode}
 
 DEFAULT_NAMES = {"True": True, "False": False, "None": None}
 
@@ -257,19 +280,21 @@ class SimpleEval(object):  # pylint: disable=too-few-public-methods
             functions (add, random, get_val, whatever) and names. """
 
         if not operators:
-            operators = DEFAULT_OPERATORS
+            operators = DEFAULT_OPERATORS.copy()
         if not functions:
-            functions = DEFAULT_FUNCTIONS
+            functions = DEFAULT_FUNCTIONS.copy()
         if not names:
-            names = DEFAULT_NAMES
+            names = DEFAULT_NAMES.copy()
 
         self.operators = operators
         self.functions = functions
         self.names = names
 
-        self.astCache = collections.OrderedDict()
-
         self.nodes = {
+            ast.Expr: self._eval_expr,
+            ast.Assign: self._eval_assign,
+            ast.AugAssign: self._eval_aug_assign,
+            ast.Import: self._eval_import,
             ast.Num: self._eval_num,
             ast.Str: self._eval_str,
             ast.Name: self._eval_name,
@@ -288,16 +313,26 @@ class SimpleEval(object):  # pylint: disable=too-few-public-methods
 
         # py3k stuff:
         if hasattr(ast, 'NameConstant'):
-            self.nodes[ast.NameConstant] = self._eval_nameconstant
+            self.nodes[ast.NameConstant] = self._eval_constant
 
         # py3.6, f-strings
         if hasattr(ast, 'JoinedStr'):
             self.nodes[ast.JoinedStr] = self._eval_joinedstr  # f-string
             self.nodes[ast.FormattedValue] = self._eval_formattedvalue  # formatted value in f-string
 
+        # py3.8 uses ast.Constant instead of ast.Num, ast.Str, ast.NameConstant
+        if hasattr(ast, 'Constant'):
+            self.nodes[ast.Constant] = self._eval_constant
+
         # Defaults:
 
         self.ATTR_INDEX_FALLBACK = ATTR_INDEX_FALLBACK
+
+        # Check for forbidden functions:
+
+        for f in self.functions.values():
+            if f in DISALLOW_FUNCTIONS:
+                raise FeatureNotAvailable('This function {} is a really bad idea.'.format(f))
 
 
     def eval(self, expr):
@@ -308,25 +343,8 @@ class SimpleEval(object):  # pylint: disable=too-few-public-methods
 
         self.expr = expr
 
-        if expr in self.astCache:
-            try:
-                a = self.astCache[expr]
-            #If another thread did something
-            except KeyError:
-                a = ast.parse(expr.strip()).body[0].value
-        else:
-            a = ast.parse(expr.strip()).body[0].value
-
-            self.astCache[expr]=a
-            if len(self.astCache)>50:
-                #If some other thread is messing with it and
-                #It fails, just ignore, we will clean up eventually.
-                try:
-                    self.astCache.popitem(False)
-                except:
-                    pass
         # and evaluate:
-        return self._eval(a)
+        return self._eval(ast.parse(expr.strip()).body[0])
 
     def _eval(self, node):
         """ The internal evaluator used on each node in the parsed tree. """
@@ -338,6 +356,21 @@ class SimpleEval(object):  # pylint: disable=too-few-public-methods
                                       "evaluator".format(type(node).__name__))
 
         return handler(node)
+
+    def _eval_expr(self, node):
+        return self._eval(node.value)
+
+    def _eval_assign(self, node):
+        warnings.warn("Assignment ({}) attempted, but this is ignored".format(self.expr), AssignmentAttempted)
+        return self._eval(node.value)
+
+    def _eval_aug_assign(self, node):
+        warnings.warn("Assignment ({}) attempted, but this is ignored".format(self.expr), AssignmentAttempted)
+        return self._eval(node.value)
+
+    def _eval_import(self, node):
+        raise FeatureNotAvailable("Sorry, 'import' is not allowed.")
+        return self._eval(node.value)
 
     @staticmethod
     def _eval_num(node):
@@ -352,7 +385,10 @@ class SimpleEval(object):  # pylint: disable=too-few-public-methods
         return node.s
 
     @staticmethod
-    def _eval_nameconstant(node):
+    def _eval_constant(node):
+        if hasattr(node.value, '__len__') and len(node.value) > MAX_STRING_LENGTH:
+            raise IterableTooLong("Literal in statement is too long!"
+                                  " ({0}, when {1} is max)".format(len(node.value), MAX_STRING_LENGTH))
         return node.value
 
     def _eval_unaryop(self, node):
@@ -368,14 +404,14 @@ class SimpleEval(object):  # pylint: disable=too-few-public-methods
             for value in node.values:
                 vout = self._eval(value)
                 if not vout:
-                    return False
+                    return vout
             return vout
         elif isinstance(node.op, ast.Or):
             for value in node.values:
                 vout = self._eval(value)
                 if vout:
                     return vout
-            return False
+            return vout
 
     def _eval_compare(self, node):
         right = self._eval(node.left)
@@ -402,6 +438,9 @@ class SimpleEval(object):  # pylint: disable=too-few-public-methods
                 raise FunctionNotDefined(node.func.id, self.expr)
             except AttributeError as e:
                 raise FeatureNotAvailable('Lambda Functions not implemented')
+
+            if func in DISALLOW_FUNCTIONS:
+                raise FeatureNotAvailable('This function is forbidden')
 
         return func(
             *(self._eval(a) for a in node.args),
@@ -584,9 +623,10 @@ class EvalWithCompoundTypes(SimpleEval):
                     else:
                         to_return.append(self._eval(node.elt))
 
-        do_generator()
-
-        self.nodes.update({ast.Name: previous_name_evaller})
+        try:
+            do_generator()
+        finally:
+            self.nodes.update({ast.Name: previous_name_evaller})
 
         return to_return
 
