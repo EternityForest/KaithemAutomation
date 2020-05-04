@@ -17,7 +17,7 @@ from scullery.persist import *
 from scullery.messagebus import subscribe,postMessage
 from . import registry
 
-import weakref,threading
+import weakref,threading,logging,traceback
 import urllib.parse
 
 dirty = weakref.WeakValueDictionary()
@@ -56,7 +56,7 @@ if os.path.exists("/dev/shm"):
         os.chown(recoveryDir, p.pw_uid,p.pw_gid)
     else:
         if not getpwuid(os.stat(recoveryDir).st_uid).pw_name==selected_user:
-            messagebus.postMessage("/system/notifications/errors","Hacking Detected? "+recoveryDir+" not owned by this user")
+            postMessage("/system/notifications/errors","Hacking Detected? "+recoveryDir+" not owned by this user")
             recoveryDir=None
 else:
     recoveryDir=None
@@ -235,7 +235,7 @@ def loadRecursiveFrom(f,d,remapToDirForSave=None):
     if os.path.isdir(f):
         for root,dirs, files in os.walk(f):
             relroot = root[len(f):]
-            if not relroot.startswith("/"):
+            if relroot and not relroot.startswith("/"):
                 relroot = '/'+relroot
             for i in files:
                 if i.endswith(".yaml"):

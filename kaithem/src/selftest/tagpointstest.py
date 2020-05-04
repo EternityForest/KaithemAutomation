@@ -2,8 +2,16 @@
 
 def testTags():
     from src import tagpoints
+    import time
 
     t= tagpoints.Tag("/system/selftest")
+
+    t1 = time.time()
+
+    t2 = t.toMonotonic(t1)
+    if abs(t1- t.toWallClock(t2))> 0.1:
+        raise RuntimeError("Tagpoint timescale conversion selftest failed. This may not matter. Was the sytem time changed?")
+
     t.value = 30
 
     tester = [0]

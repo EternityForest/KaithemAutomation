@@ -267,7 +267,7 @@ class _TagPoint(virtualresource.VirtualResource):
     
     """
     defaultData=None
-   
+    type='object'
     @typechecked
     def __init__(self,name:str):
         global allTagsAtomic
@@ -375,6 +375,16 @@ class _TagPoint(virtualresource.VirtualResource):
             createGetterFromExpression(self.name, self)
         with lock:
             self.setConfigData(configTagData.get(self.name,{}))
+    @staticmethod
+    def toMonotonic(t):
+        offset = time.time()-time.monotonic()
+        return t-offset
+    
+    @staticmethod
+    def toWallClock(t):
+        offset = time.time()-time.monotonic()
+        return t+offset
+          
     
     def _recordConfigAttr(self,k,v):
         "Make sure a config attr setting gets saved"
@@ -625,6 +635,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 self.subscribe(ocf)
 
             alarms = data.get('alarms',{})
+            self.configuredAlarmData = {}
             for i in alarms:
                 if not alarms[i]==None:
                     #Avoid duplicate param
@@ -632,10 +643,11 @@ class _TagPoint(virtualresource.VirtualResource):
                     self.setAlarm(i, **alarms[i],isConfigured=True,_refresh=False)
                 else:
                     self.setAlarm(i,None,isConfigured=True,_refresh=False)
+          
 
             #This one is a little different. If the timestamp is 0,
             #We know it has never been set.
-            if 'value' in data and not 'value'=='':
+            if 'value' in data and not data['value'].strip()=='':
                 if not self.name in configTagData:
                     configTagData[self.name]= persist.getStateFile(getFilenameForTagConfig(self.name))
                     configTagData[self.name].noFileForEmpty = True
@@ -1067,6 +1079,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
 class _NumericTagPoint(_TagPoint):
     defaultData=0
+    type='number'
     @typechecked
     def __init__(self,name:str, 
         min:Union[float,int,None]=None, 
@@ -1253,6 +1266,7 @@ class _NumericTagPoint(_TagPoint):
 
 class _StringTagPoint(_TagPoint):
     defaultData=''
+    type='string'
     @typechecked
     def __init__(self,name:str):
         self.spanWidget = widgets.DynamicSpan()

@@ -380,9 +380,9 @@ def webRoot():
            
             if path:
                 pages.require("/admin/settings.edit")
-                return pages.get_template('settings/tagpoint.html').render(foo='bar',tagName=path[0],data=data)
+                return pages.get_template('settings/tagpoint.html').render(tagName=path[0],data=data)
             else:
-                return pages.get_template('settings/tagpoints.html').render()
+                return pages.get_template('settings/tagpoints.html').render(data=data)
 
 
         @cherrypy.expose

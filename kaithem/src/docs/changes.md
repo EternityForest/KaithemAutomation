@@ -3,6 +3,7 @@ Change Log
 
 ### 0.65.21
 - Configurable alerts and parameters for tagpoints.
+- Much better tagpoint, worker loop, and scheduling performance
 
 ### 0.65.20
 - Startup speed improvements with JACK

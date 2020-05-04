@@ -8,6 +8,7 @@ import gc
 <%
     pageGCListIgnoreFlag = True
 
+
     tagConfig={}
     ald = {}
 
@@ -84,7 +85,6 @@ import gc
 
 
 %>
-${configData|h}h
 
 <script src="/static/widget.js"></script>
 <h1>Tag Point: <small>${normalizednormalizedTagName}</small></h1>
@@ -135,6 +135,10 @@ ${configData|h}h
         <td>${tag.activeClaim[2]}(P${tag.activeClaim[0]})</td>
     </tr>
     <tr>
+        <td>Value at page load</td>
+        <td>${str(tag.value)[:128]}</td>
+    </tr>
+    <tr>
         <td>Owner</td>
         <td>${tag.owner}</td>
     </tr>
@@ -165,7 +169,7 @@ ${configData|h}h
 %if tag and isinstance(tag,tagpoints._NumericTagPoint):
 <tr>
     <td><a href="/tagpoints/${normalizednormalizedTagName|u}">${normalizednormalizedTagName|h}</h></td>
-    <td>${tag.__class__|h}</td>
+    <td>${tag.type|h}</td>
     <td>${tag.meterWidget.render()}</td>
     <td>${tag.interval}</td>
     <td>${tag.min}</td>
@@ -178,7 +182,7 @@ ${configData|h}h
 %if tag and isinstance(tag,tagpoints._StringTagPoint):
 <tr>
     <td><a href="/tagpoints/${normalizednormalizedTagName|u}">${normalizednormalizedTagName|h}</h></td>
-    <td>${tag.__class__}</td>
+    <td>${tag.type}</td>
     <td>${tag.spanWidget.render()}</td>
     <td>${tag.interval}</td>
     <td>${tag.min}</td>

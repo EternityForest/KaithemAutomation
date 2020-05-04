@@ -3,8 +3,17 @@
 <%!
 from src import tagpoints
 import gc
+
+def paginate(l,n):
+    return l[n*500: (n+1)*500]
 %>
 
+<%
+
+pageNumber=int(data.get('pageNumber',0))
+searchFilter=data.get('searchFilter','').strip()
+filteredTags = [i for i in tagpoints.allTagsAtomic.keys() if searchFilter.lower() in i.lower()]
+%>
 
 
 <script src="/static/widget.js"></script>
@@ -18,10 +27,14 @@ import gc
 </p>
 <p class="menubar">
     <form method="GET" action="/tagpoints">
-        <input name="new_numtag"><input type="submit" value="New Number Tag"></form>
+        <input name="new_numtag"><input type="submit" value="New Number Tag">
     </form>
     <form method="GET" action="/tagpoints">
-        <input name="new_strtag"><input type="submit" value="New String Tag"></form>
+        <input name="new_strtag"><input type="submit" value="New String Tag">
+    </form>
+
+    <form method="GET" action="/tagpoints?pageNumber=${pageNumber}">
+        <input name="searchFilter" value="${searchFilter|h}"> <input type="submit" value="Search">
     </form>
 </p>
 <h3>Configured but not used</h3>
@@ -34,12 +47,18 @@ import gc
 %endfor
 </ul>
 <h3>Active Tags</h3>
+<p class="menubar">
+Page:
+%for i in range(int(len(filteredTags)/500)+1):
+<a href="/tagpoints?pageNumber=${i}&searchFilter=${searchFilter|u}">${'<b>'+str(i)+'</b>' if i==pageNumber else str(i)}</a>
+%endfor
+</p>
 <table border="1">
 <tr><th>Name</th><th>Value(not realtime)</th><th>Interval</th><th>Active Claim</th><th>Owner</th><th>Subscribers</th>
     <th>Alarms</th>
 
 </tr>
-%for i in sorted(list(tagpoints.allTagsAtomic.keys())):
+%for i in paginate(sorted(filteredTags ), pageNumber):
 %if i in tagpoints.allTags:
 
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._NumericTagPoint):

@@ -8,11 +8,11 @@ if util.which("vcgencmd"):
 
     undervoltageTag = tagpoints.Tag("/system/pi/undervoltage")
     undervoltageTag.setAlarm("undervoltage","value>0.5")
-    undervoltageTagClaim = undervoltageTag.claim('sensor',0)
+    undervoltageTagClaim = undervoltageTag.claim(0,"HWSensor")
     
     overtemperatureTag = tagpoints.Tag("/system/pi/overtemperature")
     overtemperatureTag.setAlarm("temp","value>0.5",priority='error')
-    overtemperatureTag = overtemperatureTag.claim('sensor',0)
+    overtemperatureTagClaim = overtemperatureTag.claim(0,"HWSensor")
 
 
 
@@ -30,9 +30,9 @@ if util.which("vcgencmd"):
                 undervoltageTagClaim.set(0)
 
             if x&(2**3):
-                undervoltageTagClaim.set(1)
+                overtemperatureTagClaim.set(1)
             else:
-                undervoltageTagClaim.set(0)
+                overtemperatureTagClaim.set(0)
         except:
             logging.exception("err")
     checkPiFlags()

@@ -1359,9 +1359,12 @@ else:
     
     
 for i in config['audio-backends']:
-    if util.which(i) or l[i].testAvailable():
-        backend = l[i]()
-        break
+    try:
+        if util.which(i) or l[i].testAvailable():
+            backend = l[i]()
+            break
+    except:
+            messagebus.postMessage("/system/notifications/errors","Failed to initialize audio backend "+i," may be able to use fallback")
 
 def stopAllSounds():
     midi.allNotesOff()
