@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+
+### 0.65.22
+- Device drivers definable through var/devicedrivers
+- Unspecified ports default to jack
+
 ### 0.65.21
 - Configurable alerts and parameters for tagpoints.
 - Much better tagpoint, worker loop, and scheduling performance

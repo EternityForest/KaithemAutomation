@@ -15,12 +15,17 @@
 
 from mako.template import Template
 from mako.lookup import TemplateLookup
-import cherrypy,base64,weakref,threading,time,logging
+import cherrypy,base64,weakref,threading,time,logging,os
 from . import auth,config
 from . import directories,util
 
 _Lookup = TemplateLookup(directories=[directories.htmldir])
 get_template = _Lookup.get_template
+
+_varLookup = TemplateLookup(directories=[directories.vardir])
+
+def get_vardir_template(fn):
+    return _varLookup.get_template(os.path.relpath(fn,directories.vardir))
 
 webResources = {}
 

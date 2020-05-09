@@ -24,6 +24,7 @@ from src import unitsofmeasure
 </table>
 <input type="hidden" name="type" value="${data.get('type','')}">
 
+<h2>Device Specific</h2>
 %if hasattr(obj,"getManagementForm"):
 ${obj.getManagementForm()}
 %endif
@@ -33,6 +34,10 @@ ${obj.getManagementForm()}
 <p class="help">This section lists all alerts supported by the device and
         allows you to change the priorities for each.
 </p>
+<p class="help">For new device types, the alarms will likely be configured via the corresponding
+        tag point.
+</p>
+
 <table border="1" style="width:40em">
 <tr><td>Name</td><td>Priority</td><td>Status</td></tr>
 
@@ -52,6 +57,11 @@ ${obj.getManagementForm()}
 %endfor
 </table>
 
+<h2>Customize Code</h2>
+<p class="help">Here you can use Python code to create a custom subclass of a device, useful for attaching handlers to callbacks.
+</p>
+<p>The class must be named DeviceType, and must inherit from DeviceType.</p>
+<textarea name="subclass">${data.get("subclass",'')|h}</textarea>
 
 
 <h2>Tag Points</h2>
@@ -61,7 +71,7 @@ ${obj.getManagementForm()}
 <tr><td>Name</td><td>Value</td><td>Active Claim</td></tr>
 
 %for i in obj.tagPoints:
-<tr><td>${i|h}</td>
+<tr><td><a href="/tagpoints/${i|u}">${i|h}</a></td>
         <td>${obj.tagPoints[i].value}</td>
         <td>${obj.tagPoints[i].activeClaim[2]|h}</td>
 </tr>

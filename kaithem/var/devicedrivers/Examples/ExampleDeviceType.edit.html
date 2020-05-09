@@ -1,0 +1,9 @@
+<p class="help">This is generated from an HTML file allowing you to create custom management pages per-device.
+It renders within the context of a larger page, within a form.  Any form control with a name that doesn't start with ".temp"
+becomes part of the device data.</p>
+
+<p class="help">
+You have access to the device object as obj, the data dict as data, and the name of this particular device(Not the device type) 
+as name.
+</p>
+Choose a Color: <input name="color" value="${data.get('color','Colorless')|h}">

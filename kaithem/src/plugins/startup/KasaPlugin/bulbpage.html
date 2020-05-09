@@ -11,7 +11,7 @@ KasaPlugin.maybeRefresh(30*60)
 <h2>Kasa Bulb Device Info</h2>
 <datalist id="devices">
     %for i in KasaPlugin.lookup:
-    <option value="${i}"></option>
+    <option value="${i}" title="Discovered"></option>
     %endfor
 </datalist>
 
@@ -62,6 +62,7 @@ KasaPlugin.maybeRefresh(30*60)
     %try:
     ${obj.rssi()}</td>
     %except Exception as e:
+    RSSI FAIL
     ${e|h}</td>
     %endtry
 </tr>
@@ -73,5 +74,6 @@ KasaPlugin.maybeRefresh(30*60)
 ${obj.getRawDevice().sys_info|h}
 </pre>
 %except:
+SYSINFO FAIL
 ${traceback.format_exc()}
 %endtry

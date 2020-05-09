@@ -22,7 +22,7 @@ class TPLinkSmartHomeProtocol:
     """
     INITIALIZATION_VECTOR = 171
     DEFAULT_PORT = 9999
-    DEFAULT_TIMEOUT = 5
+    DEFAULT_TIMEOUT = 3
 
     @staticmethod
     def query(host: str,

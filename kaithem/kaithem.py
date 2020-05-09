@@ -112,6 +112,8 @@ kaithemobj.kaithem.misc.version_info = __version_info__
 
 from scullery import messagebus
 
+from src import messagelogging
+from src import notifications
 
 import importlib
 plugins = {}

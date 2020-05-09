@@ -21,12 +21,14 @@ def maybeRefresh(t=30):
     global lastRefreshed
     if lastRefreshed<time.time()-t:
         refresh()
+    elif lastRefreshed<time.time()-5:
+        refresh(1)
 
-def refresh():
+def refresh(timeout=3):
     global lastRefreshed,lookup
     from pyHS100 import Discover
     lastRefreshed= time.time()
-    allDevices=  Discover.discover()
+    allDevices=  Discover.discover(timeout=timeout)
     l={}
 
     #Build a structure that allows lookup by both type and IP address
@@ -42,10 +44,11 @@ def getDevice(locator,timeout=10):
     """Since plugs can change name, you should't keep a reference
     to a plug for too long. Instead use this function.
     """
+    global lookup
     if locator in lookup:
         return lookup[locator]
     else:
-        maybeRefresh(timeout)
+        maybeRefresh()
         return lookup[locator]
 
 
@@ -78,11 +81,15 @@ class KasaDevice(devices.Device):
     def getRawDevice(self):
         return getDevice(self.data.get("device.locator"))
 
-    def rssi(self):
+    def rssi(self,cacheFor=120):
         with self.lock:
             "Returns the current RSSI value of the device"
-            if time.time()-self.rssiCacheTime<5:
+            if time.time()-self.rssiCacheTime<cacheFor:
                 return self.rssiCache
+
+            #Not ideal, but we really can't be retrying this too often.
+            #if it's disconnected. Way too much slowdown
+            self.rssiCacheTime=time.time()
 
             try:
                 info = getDevice(self.data.get("device.locator"),3).get_sysinfo()
@@ -99,7 +106,6 @@ class KasaDevice(devices.Device):
 
             #Obviously not unreachable if we just got the RSSI!
             self.unreachableAlert.clear()
-            self.rssiCacheTime=time.time()
 
             if self.rssiCache>-85:
                 self.lowSignalAlert.clear()
@@ -203,6 +209,7 @@ class KasaSmartplug(KasaDevice):
         self.powerWidget = widgets.Meter(high_warn=float(data.get("alarmcurrent",1400)), max=1600,min=0)
 
     def getManagementForm(self):
+        self.rssi(2)
         return templateGetter.get_template("manageform.html").render(data=self.data,obj=self)
   
     def setSwitch(self,channel, state):
@@ -271,7 +278,7 @@ class KasaSmartplug(KasaDevice):
         if not self.data.get('device.locator',None):
             return
         try:
-            self.rssi()
+            self.rssi(cacheFor=10)
             #Also do this here as well
             self._pollEnergy()
         except:

@@ -1018,6 +1018,9 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
             latency_time=8000 if not isVideo else 40000,slave_method=0,port_pattern="jhjkhhhfdrhtecytey",
             connect=0,client_name=cname,sync=False)
 
+            #Default to the system outout if nothing selected, even if jack in use.
+            if not output:
+                output='system'
             self.aw = jackmanager.Airwire(cname, output)
             self.aw.connect()
         #Get ready!
