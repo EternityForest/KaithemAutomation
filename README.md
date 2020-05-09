@@ -48,6 +48,9 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+### 0.65.22
+- Device drivers definable through var/devicedrivers
+- Unspecified ports default to jack
 
 ### 0.65.21
 - Configurable alerts and parameters for tagpoints.

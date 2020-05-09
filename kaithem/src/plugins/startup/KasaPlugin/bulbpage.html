@@ -6,7 +6,7 @@ import traceback
 %>
 
 <%
-KasaPlugin.maybeRefresh(30*60)
+KasaPlugin.maybeRefresh(3)
 %>
 <h2>Kasa Bulb Device Info</h2>
 <datalist id="devices">
@@ -15,6 +15,13 @@ KasaPlugin.maybeRefresh(30*60)
     %endfor
 </datalist>
 
+<h3>Discovered Kasa Devices</h3>
+
+<ul>
+    %for i in KasaPlugin.lookup:
+    <li>${i|h}</li>
+    %endfor
+</ul>
 <table border="1" style="width:40em">
 
 <tr>

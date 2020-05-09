@@ -71,7 +71,7 @@ ${obj.getManagementForm()}
 <tr><td>Name</td><td>Value</td><td>Active Claim</td></tr>
 
 %for i in obj.tagPoints:
-<tr><td><a href="/tagpoints/${i|u}">${i|h}</a></td>
+<tr><td><a href="/tagpoints/${obj.tagPoints[i].name|u}">${i|h}</a></td>
         <td>${obj.tagPoints[i].value}</td>
         <td>${obj.tagPoints[i].activeClaim[2]|h}</td>
 </tr>

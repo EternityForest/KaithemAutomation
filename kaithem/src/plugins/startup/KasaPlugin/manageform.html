@@ -6,7 +6,7 @@ import traceback
 %>
 
 <%
-KasaPlugin.maybeRefresh(30*60)
+KasaPlugin.maybeRefresh(3)
 
 try:
     en = obj.getEnergyStats(0)
@@ -19,6 +19,14 @@ except:
     <option value="${i}"></option>
     %endfor
 </datalist>
+
+<h3>Discovered Kasa Devices</h3>
+
+<ul>
+    %for i in KasaPlugin.lookup:
+    <li>${i|h}</li>
+    %endfor
+</ul>
 
 <p class="help">Note: Once overcurrent has tripped, any attempt to turn the switch on
     will raise an error until the alert has been acknowledged.
