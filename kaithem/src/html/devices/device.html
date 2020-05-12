@@ -23,6 +23,10 @@ from src import unitsofmeasure
 
 </table>
 <input type="hidden" name="type" value="${data.get('type','')}">
+<h2>Help</h2>
+<ul>
+<li><a href="/devices/devicedocs/${name|u}">README</a></li>
+</ul>
 
 <h2>Device Specific</h2>
 %if hasattr(obj,"getManagementForm"):

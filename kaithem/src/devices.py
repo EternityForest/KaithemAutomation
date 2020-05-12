@@ -15,7 +15,7 @@
 
 
 
-import weakref, threading,time,logging,traceback,struct,hashlib,base64,gc,os
+import weakref, threading,time,logging,traceback,struct,hashlib,base64,gc,os,re
 import cherrypy,mako
 
 from . import virtualresource,pages,registry,modules_state,kaithemobj, workers,tagpoints, alerts,persist,directories,messagebus
@@ -100,6 +100,9 @@ class Device(virtualresource.VirtualResource):
 
     description= "Abstract base class for a device"
     deviceTypeName = "device"
+
+    readme=None
+
     @staticmethod
     def validateData(data):
         pass
@@ -232,6 +235,20 @@ class WebDevices():
         pages.require("/admin/settings.edit")
         return pages.get_template("devices/device.html").render(data=device_data[name], obj=remote_devices[name],name=name)
 
+    @cherrypy.expose
+    def devicedocs(self,name):
+        pages.require("/admin/settings.edit")
+        x = remote_devices[name].readme
+
+        if x is None:
+            x="No readme found"
+        if x.startswith("/"):
+            with open(x) as f:
+                x=f.read()
+
+        return pages.get_template("devices/devicedocs.html").render(docs=x)
+
+
     def readFile(self, name, file):
         pages.require("/admin/settings.edit")
         return remote_devices[name].readFile(file)
@@ -328,11 +345,22 @@ DeviceType(DeviceType):
     pass
 """
 
+
+class DeviceTypeLookup():
+    def __getitem__(self,k):
+        if k in builtinDeviceTypes:
+            dt = builtinDeviceTypes[k]
+        elif k in ("",'device','Device'):
+            dt = Device
+        else:
+            dt = deviceTypes[data['type']]
+        return dt
+
 def makeDevice(name, data):
 
     if data['type'] in builtinDeviceTypes:
         dt = builtinDeviceTypes[data['type']]
-    elif data['type'] in ("",'device','Devoce'):
+    elif data['type'] in ("",'device','Device'):
         dt = Device
     else:
         dt = deviceTypes[data['type']]
@@ -371,8 +399,41 @@ class TemplateGetter():
 
 
 deviceTypesFromData = {}
+
+
+def loadDeviceType(root,i):
+    name = i[:-3]
+    fn = os.path.join(root,i)
+    with open(fn) as f:
+        d= f.read()
+    codeEvalScope = {"Device": Device,'kaithem':kaithemobj.kaithem, 'deviceTypes':DeviceTypeLookup()}
+    exec(compile(d,"Driver_"+name,'exec'), codeEvalScope,codeEvalScope)
+
+    #Remove anything in parens
+    realname = re.sub(r'\(.*\)','',name).strip()
+    dt= codeEvalScope[realname]
+    #Fix missing devicetypename
+    dt.deviceTypeName = realname
+    deviceTypes[realname] = dt
+    deviceTypesFromData[realname] = dt
+
+    createfn = os.path.join(root,name+".create.html")
+    if os.path.exists(createfn):
+        dt.getCreateForm= TemplateGetter(createfn)
+
+    editfn = os.path.join(root,name+".edit.html")
+    if os.path.exists(editfn):
+        dt.getManagementForm= TemplateGetter(editfn)
+   
+    mdfn = os.path.join(root,"README.md")
+    if os.path.exists(mdfn):
+        dt.readme = mdfn
+
+
+                    
 def init_devices():
     global remote_devices_atomic
+    toLoad = []
     try:
         if os.path.isdir(driversLocation):
 
@@ -382,27 +443,16 @@ def init_devices():
                 root = os.path.join(driversLocation,root)
                 for i in os.listdir(root):
                     if i.endswith('.py'):
-                        name = i[:-3]
-                        fn = os.path.join(root,i)
-                        with open(fn) as f:
-                            d= f.read()
-                        codeEvalScope = {"Device": Device,'kaithem':kaithemobj.kaithem}
-                        exec(compile(d,"Driver_"+name,'exec'), codeEvalScope,codeEvalScope)
-                        dt= codeEvalScope[name]
-                        #Fix missing devicetypename
-                        dt.deviceTypeName = name
-                        deviceTypes[name] = dt
-                        deviceTypesFromData[name] = dt
+                        toLoad.append((root,i))
 
-                        createfn = os.path.join(root,name+".create.html")
-                        if os.path.exists(createfn):
-                            dt.getCreateForm= TemplateGetter(createfn)
+            # sort by len, such that foo(bar) comes after bar
+            toLoad=sorted(toLoad,key=lambda x:len(x[1]))
+            for i in toLoad:
+                try:
+                    loadDeviceType(*i)
+                except:
+                    messagebus.postMessage("/system/notifications/errors","Error with device driver :"+i[1]+"\n"+traceback.format_exc(chain=True))
 
-                        editfn = os.path.join(root,name+".edit.html")
-                        if os.path.exists(editfn):
-                            dt.getManagementForm= TemplateGetter(editfn)
-
-                    
         else:
             os.mkdir(driversLocation)
     except:

@@ -73,6 +73,12 @@ devices.deviceTypes.
 
 Java-style "com.foo.devicetype" names are suggested to avoid collisions.
 
+You cannot use special chars in device names, except for parenthesis.
+
+Anything within a matched set of parens will be excluded from the name.
+
+
+You cannot have two drivers for the same device name.
 
 ### VARDIR/devicedrivers
 
@@ -104,6 +110,28 @@ The device is the var obj, the name is name, and it's data is data.
 ```
 Choose a Color: <input name="color" value="${data.get('color','Colorless')|h}">
 ```
+
+
+#### README.md
+Device driver collections should use a README.md file for any documentation they may need to provide.
+
+#### Dependancy
+
+Python code has access to a dict deviceTypes, containing all device types loaded
+so far.   You can inherit from one of these, as long as you are careful about load order.
+
+Drivers from the vardir always load after plugins and after builtin base device types.
+
+Drivers in the devicedrivers folder are loaded in order of the length of the name,
+*before* stripping the part within parens.
+
+Therefore, foo.bar will always load after foo, and bar(foo) will always load after foo. Dependancies will be correct so long as *every name contains all the names of device types it depends on*.
+
+This allows traditional class style inheritance, just as `KX3209(GenericMultimeter).py`, if inhereting from a device type called GenericMultimeter.
+
+
+Note that this is entirely done based on length, there is no fancy resolution happening.
+
 
 ### HTML Config
 
