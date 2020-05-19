@@ -1026,12 +1026,13 @@ def _startJackProcess(p=None, n=None,logErrs=True):
         settingsReloader()
 
         lastJackStartAttempt=time.monotonic()
-        logging.debug("Attempting to start JACKD server")
         if realtimePriority:
-            jackp =subprocess.Popen(['jackd', '-S', '--realtime', '-P' ,str(realtimePriority) ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,str(period), '-n' ,str(jackPeriods) ,'-r','48000'],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE, stderr=subprocess.PIPE,env=my_env)    
+            cmdline = ['jackd', '-S', '--realtime', '-P' ,str(realtimePriority) ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,str(period), '-n' ,str(jackPeriods) ,'-r','48000']
         else:
-            jackp =subprocess.Popen(['jackd', '-S', '--realtime' ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,str(period), '-n' ,str(jackPeriods) ,'-r','48000'],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE, stderr=subprocess.PIPE,env=my_env)    
+            cmdline = ['jackd', '-S', '--realtime' ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,str(period), '-n' ,str(jackPeriods) ,'-r','48000']
+        logging.info("Attempting to start JACKD server with: \n"+' '.join(cmdline))
 
+        jackp = subprocess.Popen(cmdline,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE, stderr=subprocess.PIPE,env=my_env)
         
         time.sleep(0.5)
 
@@ -1355,6 +1356,15 @@ def handleManagedSoundcards():
 
 
 def work():
+    global _reconnecterThreadObjectStopper
+
+    #Wait 10s before actually doing anything to avoid nuisiance chattering errors.
+    #This thread mostly only fixes crashed stuff.
+    for i in range(100):
+        if not _reconnecterThreadObjectStopper[0]:
+            return
+        time.sleep(0.1)
+
     while(_reconnecterThreadObjectStopper[0]):
         try:
             #The _checkJack stuf won't block, because we already have the lock
@@ -1514,6 +1524,7 @@ def _checkJackClient(err=True):
     import jack
     with lock:
         try:
+             
             t=_jackclient.status.server_started
             if not t:
                 raise RuntimeError("JACK Server not started or client failed")
@@ -1527,7 +1538,6 @@ def _checkJackClient(err=True):
             _realConnections = {}
 
             try:
-
                 _jackclient=jack.Client("Overseer",no_start_server=True)
             except:
                 if err:

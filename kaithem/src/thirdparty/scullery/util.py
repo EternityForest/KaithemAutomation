@@ -1,4 +1,4 @@
-import sys,os
+import sys,os,weakref,types
 #Credit to Jay of stack overflow for this function
 def which(program):
     "Check if a program is installed like you would do with UNIX's which command."
@@ -27,3 +27,9 @@ def which(program):
 
     #If we got this far in execution, we assume the file is not there and return None
     return None
+
+def universal_weakref(f,cb=None):
+    if isinstance(f,types.MethodType):
+        return weakref.WeakMethod(f,cb)
+    else:
+        return weakref.ref(f,cb)

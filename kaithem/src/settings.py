@@ -12,7 +12,7 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import cherrypy,base64,os,time,subprocess,time,shutil,sys,logging,traceback
+import cherrypy,base64,os,time,subprocess,time,shutil,sys,logging,traceback,zipfile
 from cherrypy.lib.static import serve_file
 from . import pages, util,messagebus,config,auth,registry,mail,kaithemobj, config,weblogin,systasks,gpio,directories,persist
 import io
@@ -110,6 +110,20 @@ class Settings():
                         if not data:
                             break
                         f.write(data)
+
+            if 'zipfile' in kwargs:
+                # Unpack all zip members directly right here,
+                # Without creating a subfolder.
+                with zipfile.ZipFile(kwargs['zipfile'].file) as zf:
+                    for i in zf.namelist():
+                        with open(os.path.join(dir,i),'wb') as outf:
+                            f = zf.open(i)
+                            while True:
+                                data = f.read(8192)
+                                if not data:
+                                    break
+                                outf.write(data)
+                            f.close()
 
             if os.path.isdir(dir):
                 return pages.get_template("settings/files.html").render(dir=dir)

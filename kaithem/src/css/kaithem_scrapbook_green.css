@@ -220,10 +220,15 @@ cursor:help;
 }
 
 /*This is a paragraph serving a similar funtion to the menu bars at the top of desktop application windows*/
-p.menubar div.menubar{
-background-color:rgba(255,25,255,0.1);
+p.menubar,div.menubar{
+background-color:rgba(160, 64, 238, 0.1);
 border-radius: 7px;
+padding: 2px;
+border-width: 3px;
+border-color: #D0D0D0;
+border-style: inset;
 }
+
 
 /*A link styled to look like a button*/
 a.button{

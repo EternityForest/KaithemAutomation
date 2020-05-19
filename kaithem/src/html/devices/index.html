@@ -2,6 +2,9 @@
 
 <%! 
 from src import devices
+import os
+from src import directories
+driversLocation = os.path.join(directories.vardir,"devicedrivers")
 
 def devStatString(d):
     #TODO this should be the responsibility of the individual devices
@@ -30,6 +33,9 @@ def devStatString(d):
 
 <h2>Remote Devices</h2>
 <div class="sectionbox">
+<p class="menubar">
+<a class="button" href="/settings/files/${driversLocation|u}">Manage Drivers</a>
+</p>
 <p class="help">
     This section provides an easy way to configure devices supported
     by Kaithem's remote device abstraction layer.
