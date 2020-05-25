@@ -230,6 +230,10 @@ import gc
 <h3>Alerting</h3>
 <p class="help">A blank name deletes that alarm. Conditions are python expressions that can use the tag itself(tag), the value(value),
      and the kaithem object.  Conditions are regular subscribers and poll at the tag's interval, if there's a getter.</p>
+
+<p class="help">You can also use tv('name') to get any numeric tag value by name.
+</p>
+
 <table border=1>
     <tr>
         <th>Name</th>
@@ -238,6 +242,7 @@ import gc
         <th>Priority</th>
         <th>autoAck</th>
         <th>Trip Delay</th>
+        <th>State</th>
     </tr>
 
 %for i in eald:
@@ -261,7 +266,7 @@ import gc
     </td>
     <td><input name="alarm_${i}:autoAck" value="${ald.get(i,{}).get('autoAck','')|h}" placeholder="${eald[i].get('autoAck','False')}"></td>
     <td><input name="alarm_${i}:tripDelay" value="${ald.get(i,{}).get('tripDelay','')|h}" placeholder="${eald[i].get('tripDelay','0')}"></td>
-
+    <td style="background-color: ${'lightgreen' if tag.alarms[i].sm.state=='normal' else 'yellow'};">${tag.alarms[i].sm.state}</td>
 </tr>
 %endfor
 

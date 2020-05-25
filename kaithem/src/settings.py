@@ -186,6 +186,11 @@ class Settings():
         return pages.get_template("settings/user_settings.html").render()
 
     @cherrypy.expose
+    def imgmap(self):
+        pages.require("/admin/modules.view")
+        return pages.get_template("settings/util/imgmap.html").render()
+
+    @cherrypy.expose
     def changeprefs(self,**kwargs):
         pages.require("/users/accountsettings.edit")
         pages.postOnly()

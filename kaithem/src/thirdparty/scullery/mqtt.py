@@ -23,6 +23,11 @@ import json
 
 from scullery import messagebus, workers, util
 
+try:
+    import msgpack
+except:
+    pass
+
 logger = logging.getLogger("system.mqtt")
 
 
@@ -104,16 +109,16 @@ class Connection():
 
               
                 if not virtual:
-                    def out_handler(topic, message,annotation):
+                    def out_handler(topic, message,timestamp,annotation):
                         self.connection.publish(topic[len(
                             "/mqtt/"+server+":"+str(port)+"/out/"):], payload=message, qos=annotation, retain=False)
                 else:
                     #Virtual loopback server doesn't actually use a real server
-                    def out_handler(topic, message,annotation):
+                    def out_handler(topic, message,timestamp,annotation):
                         t = topic[len("/mqtt/"+server+":"+str(port)+"/out/"):]
                         messagebus.postMessage("/mqtt/"+server+":"+str(port)+"/in/"+t, message)
 
-                 messagebus.subscribe(
+                messagebus.subscribe(
                     "/mqtt/"+server+":"+str(port)+"/out/#", out_handler)
                 
 
@@ -136,6 +141,7 @@ class Connection():
                     self.configureAlert(alertPriority, alertAck)
                     self._thread.start()
                 else:
+                    self.connection=None
                     self.configureAlert(alertPriority, alertAck)
                     self.onStillConnected()
 
@@ -160,7 +166,8 @@ class Connection():
         pass
 
     def __del__(self):
-        self.connection.disconnect()
+        if self.connection:
+            self.connection.disconnect()
 
     def unsubscribe(self, topic, function):
         try:
@@ -188,13 +195,15 @@ class Connection():
             # We could not find even a single subscriber function
             # So we unsubscribe at the MQTT level
             logging.debug("MQTT Unsubscribe from "+topic+" at "+self.server)
-            self.connection.unsubscribe(topic)
+            if self.connection:
+                self.connection.unubscribe(topic)
 
     def configureAlert(self, *a):
         pass
 
     def subscribe(self, topic, function, qos=2, encoding="json"):
-        self.connection.subscribe(topic, qos)
+        if self.connection:
+            self.connection.subscribe(topic, qos)
         with self.lock:
             self.subscriptions[topic] = qos
         x = str(uuid.uuid4())
@@ -212,13 +221,20 @@ class Connection():
         def backgroundSubscribeTask():
             with self.lock:
                 self.connection.subscribe(topic, qos)
-        workers.do(backgroundSubscribeTask)
+        if self.connection:
+            workers.do(backgroundSubscribeTask)
 
         if encoding == 'json':
             def wrapper(t, m):
                 # Get rid of the extra kaithem framing part of the topic
                 t = t[len("/mqtt/"+self.server+":"+str(self.port)+"/in/"):]
                 function()(t, json.loads(m))
+
+        if encoding == 'msgpack':
+            def wrapper(t, m):
+                # Get rid of the extra kaithem framing part of the topic
+                t = t[len("/mqtt/"+self.server+":"+str(self.port)+"/in/"):]
+                function()(t, msgpack.unpackb(m,raw=False))
 
         elif encoding == 'utf8':
             def wrapper(t, m):
@@ -249,6 +265,8 @@ class Connection():
     def publish(self, topic, message, qos=2, encoding="json"):
         if encoding == 'json':
             message = json.dumps(message)
+        if encoding == 'msgpack':
+            message = msgpack.packb(message,use_bin_type=True)
         elif encoding == 'utf8':
             message = message.encode("utf8")
         elif encoding == 'raw':

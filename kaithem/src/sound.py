@@ -991,7 +991,18 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         self.fader = self.addElement('volume', volume=volume)
 
         if output=="@auto":
-            self.sink = self.addElement('autoaudiosink')
+            if jackClientsFound:
+                cname="player"+str(time.monotonic())+"_out"
+                self.sink = self.addElement('jackaudiosink', buffer_time=16000 if not isVideo else 80000, 
+                latency_time=8000 if not isVideo else 40000,slave_method=0,port_pattern="jhjkhhhfdrhtecytey",
+                connect=0,client_name=cname,sync=False)
+
+                self.aw = jackmanager.Airwire(cname, 'system')
+                self.aw.connect()
+
+            else:
+                self.sink = self.addElement('autoaudiosink')
+        
         elif output.startswith("@pulse"):
             s = output.split(":")
             if len(s)>1:

@@ -115,7 +115,7 @@ def save(data,fn, *,private=False,backup=True, expand=True, md5=False,nolog=Fals
         for i in range(64):
             if os.path.isfile(x):
                 raise RuntimeError("Required intermediate directory is already present as a file, refusing to overwrite file")
-            x = os.path.split(fn)[0]
+            x = os.path.split(x)[0]
             #Loop prevention
             if x in already:
                 break

@@ -1,0 +1,36 @@
+
+<%!
+
+import traceback
+%>
+
+<p class="help">This device manages one SG1 gateway directly connected via USB port.
+</p>
+
+
+<p class="help">If you are only using one gatway on the local server, you do not need to edit anything except the serial port.
+A real MQTT server is not local, as kaithem can use an internal "virtual" server(Names beginning with __virtual__).
+</p>
+
+<table border="1" style="width:40em">
+
+<tr>
+    <td>Serial Port</td>
+    <td><input name="device.serialport" value="${data.get('device.serialport','/dev/ttyUSB0')}"></td>
+</tr>
+
+<tr>
+    <td>Gateway ID(Determines MQTT topic names)</td>
+    <td><input name="device.gatewayID"  value="${data.get('device.gatewayID','default')}"></td>
+</tr>
+
+<tr>
+    <td>MQTT Server</td>
+    <td><input name="device.mqttServer"  value="${data.get('device.mqttServer','__virtual__SG1')}"></td>
+</tr>
+<tr>
+    <td>MQTT Port</td>
+    <td><input name="device.mqttPort"  value="${data.get('device.mqttPort','1883')}"></td>
+</tr>
+
+</table>

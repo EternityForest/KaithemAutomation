@@ -188,26 +188,26 @@ class StateMachine(virtualresource.VirtualResource):
 
 
     def checkTimer(self):
-            with self.lock:
-                if self.replacement:
-                    self.replacement.checkTimer()
-                    return
+        with self.lock:
+            if self.replacement:
+                self.replacement.checkTimer()
+                return
 
-                if self.states[self.state].get('timer'):
-                    if ((time.time()+self.time_offset)-self.enteredState) > self.states[self.state]['timer'][0]:
+            if self.states[self.state].get('timer'):
+                if ((time.time()+self.time_offset)-self.enteredState) > self.states[self.state]['timer'][0]:
 
-                        #Get the destination
-                        x = self.states[self.state]['timer'][1]
+                    #Get the destination
+                    x = self.states[self.state]['timer'][1]
 
-                        #If it's a function, call it to get the actual destination.
-                        if isinstance(x, str):
-                            self._goto(x)
-                        else:
-                            x = x(self)
-                            if x:
-                                self._goto(x)
+                    #If it's a function, call it to get the actual destination.
+                    if isinstance(x, str):
+                        self._goto(x)
                     else:
-                        self._configureTimer()
+                        x = x(self)
+                        if x:
+                            self._goto(x)
+                else:
+                    self._configureTimer()
 
     def _configureTimer(self):
         "Sets up the timer. Needs to be called under lock"

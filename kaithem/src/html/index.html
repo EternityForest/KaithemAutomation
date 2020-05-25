@@ -11,6 +11,12 @@ pcolor={
     "warning": 'orange',
     "info": 'lightgreen'
 }
+iclass={
+    "critical": "critical-icon",
+    "error": 'error-icon',
+    "warning": 'warning-icon',
+    "info": 'info-icon'
+}
 scolor={
     'active':'yellow',
     'acknowledged':'orange',
@@ -78,7 +84,9 @@ ${alertsapi.render("alertapi")}
         %>
     
         %for i in l:
-        <div style="background-color:rgba(255,240,220,0.2);border-style:solid;"><b><span style="background-color:${pcolor.get(i.priority,'purple')}">${i.name}</span></b>
+        <div style="background-color:rgba(255,240,220,0.2);border-style:solid;">
+            <span class="${iclass.get(i.priority,'')}"></span>
+            <b><span style="background-color:${pcolor.get(i.priority,'purple')}">${i.name}</span></b>
              Priority:  ${i.priority}, Zone: ${i.zone}, State: <span style="background-color:${scolor[i.sm.state]|h}">${i.sm.state}</span><br>
              Tripped at:${unitsofmeasure.strftime(i.trippedAt)}(about <b>${formatTimeInterval(time.time()-i.trippedAt,2)} ago</b>)<br>
              Message:<b>${i.tripMessage}</b>

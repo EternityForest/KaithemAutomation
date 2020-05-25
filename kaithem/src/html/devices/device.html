@@ -162,5 +162,20 @@ ${obj.getManagementForm()}
 %endif
 </form>
 
+%if obj.messages:
+<h2>Messages</h2>
+<p class="help">
+        These are not logged. Add a message with device.print(message). Old messages
+        are deleted.
+</p>
+
+%for i in obj.messages:
+<p>
+<b>${i[0]} at ${unitsofmeasure.strftime(i[2])}</b><br>
+<pre>${i[1]|h}</pre>
+</p>
+%endfor
+%endif
+
 </div>
 <%include file="/pagefooter.html"/>

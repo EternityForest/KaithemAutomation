@@ -260,7 +260,7 @@ class MessageBus(object):
                     except Exception as e:
                             print("err",e)
         else:
-            raise ValueError("Invalid function signature(0,1,2, or 4 args supported)")
+            raise ValueError("Invalid function signature(0,1,2, or 4 args supported, not "+str(args)+")")
 
         #Ref to the weakref so it's easy to check if the function we are wrapping
         #Still exists.

@@ -64,6 +64,26 @@ span.settings-icon::before
  content: url(/static/img/icons/silk/cog.png);
 }
 
+
+span.info-icon::before
+{
+	content: url(/zipstatic/img/icons/fugue.zip/exclamation-white.png);
+}
+span.warning-icon::before
+{
+	content: url(/zipstatic/img/icons/fugue.zip/monitor-network.png);
+}
+
+span.error-icon::before
+{
+	content: url(/zipstatic/img/icons/fugue.zip/exclamation-red.png);
+}
+
+span.critical-icon::before
+{
+	content: url(/zipstatic/img/icons/fugue.zip/exclamation-red-frame.png);
+}
+
 span.sqprog-icon::before
 {
 	content: url(/zipstatic/img/icons/fugue.zip/monitor-network.png);
@@ -82,6 +102,11 @@ a.moduleslink::before
 a.deviceslink::before
 {
 	content: url(/zipstatic/img/icons/fugue.zip/switch-network.png);
+}
+
+a.tagslink::before
+{
+	content: url(/zipstatic/img/icons/fugue.zip/system-monitor.png);
 }
 a.upload-module-button::before
 {

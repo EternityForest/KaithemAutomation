@@ -193,6 +193,10 @@ class Device(virtualresource.VirtualResource):
             The data should leave out defaults.
         """
         return {}
+    
+    def print(self, msg,title="Message"):
+        self.messages.append(time.time(),title, msg, "printfunction")
+
 
 
 

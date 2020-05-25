@@ -295,7 +295,13 @@ class Alert(virtualresource.VirtualResource):
             active = _active.copy()
             s = calcNextBeep()
         if s:
-            sound.playSound(s,handle="kaithem_sys_main_alarm")
+            #Sound drivers can actually use tagpoints, this was causing a
+            #deadlock with the tag's lock in the __del__ function GCing some
+            #other tag. I don't quite understand it but this should break the loop
+            def f():
+                sound.playSound(s,handle="kaithem_sys_main_alarm")
+            workers.do(f)
+
         if self.priority in ("error", "critical"):
             logger.error("Alarm "+self.name +" ACTIVE")
             messagebus.postMessage("/system/notifications/errors", "Alarm "+self.name+" is active")

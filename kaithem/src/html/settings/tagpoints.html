@@ -4,6 +4,10 @@
 from src import tagpoints
 import gc
 
+import os
+from src import directories
+tagsLocation = os.path.join(directories.vardir,"tags")
+
 def paginate(l,n):
     return l[n*500: (n+1)*500]
 %>
@@ -26,6 +30,10 @@ filteredTags = [i for i in tagpoints.allTagsAtomic.keys() if searchFilter.lower(
 
 </p>
 <p class="menubar">
+    <a class="button" href="/settings/files/${tagsLocation|u}">Tag Config Dir</a>
+</p>
+
+<div class="menubar">
     <form method="GET" action="/tagpoints">
         <input name="new_numtag"><input type="submit" value="New Number Tag">
     </form>
@@ -36,7 +44,7 @@ filteredTags = [i for i in tagpoints.allTagsAtomic.keys() if searchFilter.lower(
     <form method="GET" action="/tagpoints?pageNumber=${pageNumber}">
         <input name="searchFilter" value="${searchFilter|h}"> <input type="submit" value="Search">
     </form>
-</p>
+</div>
 <h3>Configured but not used</h3>
 <p class="help">Empty configs go away when the server state is saved</p>
 <ul>

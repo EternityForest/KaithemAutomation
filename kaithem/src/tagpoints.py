@@ -404,6 +404,19 @@ class _TagPoint(virtualresource.VirtualResource):
     def recalc(self,*a):
         "Just re-get the value as needed"
         x = self.value
+    
+    # def recalcAlarms(self):
+    #     with lock:
+    #         l = []
+    #         for i in self.alarms:
+    #             l.append(self.alarms[i])
+    #         v,t,a = self.value,self.timestamp,self.annotation
+        
+    #     def f():
+    #         #Call these outside lock so we don't jam up the works too long
+    #         for i in l:
+    #             l.tagSubscriber(v,t,a)
+    #     workers.do(f)
 
     def contextGetNumericTagValue(self,n):
         "Get the tag value, adding it to the list of source tags. Creates tag if it isn't there"
@@ -536,7 +549,8 @@ class _TagPoint(virtualresource.VirtualResource):
             for i in merged:
                 if not limitTo or i==limitTo:
                     d =merged[i]
-                    self._alarmFromData(i,d)
+                    r = self._alarmFromData(i,d)
+                    
             if limitTo and limitTo in self.alarms:
                 return self.alarms[limitTo]
 
@@ -587,7 +601,12 @@ class _TagPoint(virtualresource.VirtualResource):
         self.subscribe(alarmPollFunction)
         self.alarms[name]= obj
 
-        alarmPollFunction(self.value, self.annotation, self.timestamp)
+        try:
+            alarmPollFunction(self.value, self.annotation, self.timestamp)
+        except:
+            logger.exception("Error in test run of alarm function for :"+name)
+            
+        return alarmPollFunction
 
     def setConfigData(self,data):
         with lock:
