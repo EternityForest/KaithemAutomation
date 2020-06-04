@@ -27,6 +27,10 @@
 #include "utility/LimbUtil.h"
 #include <string.h>
 
+// Modified by Daniel Dunn, this isn't meant for top secret stuff,
+// I'm getting rid of all the clean calls.
+#define clean(x)  do { ; } while (0)
+
 /**
  * \class Ed25519 Ed25519.h <Ed25519.h>
  * \brief Digital signatures based on the elliptic curve modulo 2^255 - 19.

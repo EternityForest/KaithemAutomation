@@ -599,7 +599,7 @@ class GStreamerPipeline():
 
         return PILCapture(appsink)
     
-    def addElement(self,t,name=None,connectWhenAvailable=False, connectToOutput=None, **kwargs):
+    def addElement(self,t,name=None,connectWhenAvailable=False, connectToOutput=None, sidechain=False, **kwargs):
 
         #Don't let the user use JACK if it's not running,
         #For fear of gstreamer undefined behavior
@@ -643,7 +643,16 @@ class GStreamerPipeline():
                     connectToOutput.connect("pad-added",f,1)
                 else:
                     link(connectToOutput,e)
-            self.elements.append(e)
+            
+            #Sidechain means don't set this element as the
+            #automatic thing that the next entry links to
+            if not sidechain:
+                self.elements.append(e)
+            else:
+                x = self.elements[-1]
+                self.elements[-1]= e
+                self.elements.append(x)
+
             self.namedElements[name]=e
 
             #Mark as a JACK user so we can stop if needed for JACK

@@ -48,6 +48,11 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+
+### 0.65.23
+- Misc fixes
+- Beta voice recognition effect in the Mixer(gstreamer1.0-pocketsphinx based)
+
 ### 0.65.22
 - Device drivers definable through var/devicedrivers
 - Unspecified ports default to jack

@@ -6,6 +6,21 @@ effectTemplates_data={
     },
 
 
+    "speechrecognition":{
+        "type": "speechrecognition", 
+        "displayType": "Speech Recognition",
+        "help": "Speech Reecognition with a limited vocabulary", 
+        "gstElement": "pocketsphinx",
+        "params": {
+        },
+        "gstSetup":{},
+        "sidechain":True,
+        "preSupportElements":[
+            {"gstElement": "audioconvert", "gstSetup":{}},
+            {"gstElement": "audioresample", "gstSetup":{}},
+        ]
+    },
+
     "send":{
         "type":"send", 
         "displayType":"Send",

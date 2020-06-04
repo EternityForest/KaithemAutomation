@@ -430,9 +430,7 @@ class SG1Gateway():
         try:
             try:
                 b = self.portObj.read(1)
-                if not self.connected:
-                    self.connected = True
-                    self.onConnect()
+               
             except Exception:
                 if self.connected:
                     self.connected = False
@@ -463,6 +461,9 @@ class SG1Gateway():
         return True
 
     def _handle(self, cmd, data):
+         if not self.connected:
+            self.connected = True
+            self.onConnect()
         if cmd == MSG_RNG:
             self.rngData = data
             self.bus.publish("/SG1/RNG/"+self.gwid, data, encoding='raw')

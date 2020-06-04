@@ -46,7 +46,7 @@ from src import jackmixer
 
 
   <div id="app"
-    style="height:95%;overflow-x: scroll; overflow-y: hidden; min-width: 80%; max-width: 10000%; max-height: 98%;     white-space: nowrap;">
+    style="height:95%;overflow-x: scroll; overflow-y: auto; min-width: 80%; max-width: 10000%; max-height: 99%;     white-space: nowrap;">
     <datalist id="effectTypes">
       <option value="fader">Fader</option>
       <option value="3beq">3-Band EQ</option>
@@ -243,6 +243,14 @@ from src import jackmixer
                     v-on:input="setParam(channelname,effect.id,param.name,$event.target.value)">
                   </td>
                   <td>{{param.value}}</td>
+                </template>
+
+                <template v-if="param.type=='string'">
+                  <td>{{param.displayName}}</td>
+                  <td><input v-model="param.value"
+                    v-on:input="setParam(channelname,effect.id,param.name,$event.target.value)">
+                  </td>
+                  <td></td>
                 </template>
                 
               </tr>

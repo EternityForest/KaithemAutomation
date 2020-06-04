@@ -1,6 +1,9 @@
 Change Log
 ----------
 
+### 0.65.23
+- Misc fixes
+- Beta voice recognition effect in the Mixer(gstreamer1.0-pocketsphinx based)
 
 ### 0.65.22
 - Device drivers definable through var/devicedrivers

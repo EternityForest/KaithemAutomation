@@ -109,6 +109,7 @@ from src import statemachines
 kaithemobj.kaithem.states.StateMachine = statemachines.StateMachine
 kaithemobj.kaithem.misc.version      = __version__
 kaithemobj.kaithem.misc.version_info = __version_info__
+from src import pylogginghandler
 
 from scullery import messagebus
 
@@ -124,7 +125,7 @@ try:
             logger.info("Loaded plugin "+i)
         except:
             logger.exception("Error loading plugin "+i)
-            messagebus.postMessage('/system/notifications/errors',"Error loading plugin "+i)
+            messagebus.postMessage('/system/notifications/errors',"Error loading plugin "+i+"\n"+traceback.format_exc())
 except:
     messagebus.postMessage('/system/notifications/errors',"Error loading plugins")
     logger.exception("Error loading plugins")
@@ -192,7 +193,6 @@ def webRoot():
 
 
 
-    from src import pylogginghandler
     from src import logviewer
 
 

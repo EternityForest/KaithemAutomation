@@ -143,6 +143,21 @@ def queue(e, p, v):
         return False
     return True
 
+# with open("/dev/shm/kaithem_kw_file",'w') as f:
+#     f.write('hello /1e-30/\n')
+
+# with open("/dev/shm/kaithem_dummy_kw_file",'w') as f:
+#     f.write('hello /1e-30/\n')
+
+# def tmpKwFile(e,p,v):
+#     if p=='kws':
+#         v=v.split(",")
+#         with open("/dev/shm/kaithem_kw_file",'w') as f:
+#             for i in v:
+#                 f.write(v +" /1e-25/\n")
+#         return "pause"
+
+
 specialCaseParamCallbacks['3beq']= beq3
 specialCaseParamCallbacks['echo']= echo
 specialCaseParamCallbacks['queue']= queue
@@ -377,24 +392,35 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                 self.addSend(i['params']['*destination']['value'], i['id'], i['params']['volume']['value'])
 
             else:
+                
+                #Sidechain lets us split off a whole effect chain that does not
+                #feed the main chain, such as fir the speech recognition effect
+                if i.get('sidechain',0):
+                    linkTo = self.addElement("tee")
+                    sidechain=True
+                else:
+                    #Default link to prev
+                    linkTo = None
+                    sidechain=False
+
                 if "preSupportElements" in i:
                     for j in i['preSupportElements']:
-                        self.addElement(j['gstElement'],**j['gstSetup'])
+                        linkTo = self.addElement(j['gstElement'],**j['gstSetup'],sidechain=sidechain,connectToOutput=linkTo)
 
                 #Prioritize specific mono or stereo version of elements
                 if self.channels == 1 and 'monoGstElement' in i:
-                    self.effectsById[i['id']] = self.addElement(i['monoGstElement'],**i['gstSetup'])
+                    linkTo=self.effectsById[i['id']] = self.addElement(i['monoGstElement'],**i['gstSetup'],sidechain=sidechain,connectToOutput=linkTo)
                 elif self.channels == 2 and 'stereoGstElement' in i:
-                    self.effectsById[i['id']] = self.addElement(i['stereoGstElement'],**i['gstSetup'])
+                    linkTo=self.effectsById[i['id']] = self.addElement(i['stereoGstElement'],**i['gstSetup'],sidechain=sidechain,connectToOutput=linkTo)
                 else:
-                    self.effectsById[i['id']] = self.addElement(i['gstElement'],**i['gstSetup'])
+                    linkTo=self.effectsById[i['id']] = self.addElement(i['gstElement'],**i['gstSetup'],sidechain=sidechain,connectToOutput=linkTo)
 
 
                 self.effectDataById[i['id']]= i
                 
                 if "postSupportElements" in i:
                     for j in i['postSupportElements']:
-                        self.addElement(j['gstElement'],**j['gstSetup'])
+                        linkTo = self.addElement(j['gstElement'],**j['gstSetup'],sidechain=sidechain, connectToOutput=linkTo)
                
                 for j in i['params']:
                     if j=='bypass':
@@ -437,8 +463,14 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
             elif param=="bypass":
                 pass
             elif t in specialCaseParamCallbacks:
-                if specialCaseParamCallbacks[t](self.effectsById[effectId], param, value):
+                r= specialCaseParamCallbacks[t](self.effectsById[effectId], param, value)
+                if r:
+                    if r=="pause":
+                        self.pause()
                     self.setProperty(self.effectsById[effectId], param, value)
+                    if r =="pause":
+                        self.play()
+                    
             else:
                 self.setProperty(self.effectsById[effectId], param, value)
         return value
@@ -450,7 +482,8 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
         s = message.get_structure()
         if not s:
             return True
-        if  s.get_name() == 'level':
+        msgtype = s.get_name()
+        if  msgtype  == 'level':
             if self.board:
                 l = sum([i for i in s['decay']])/len(s['decay'])
                 rms = sum([i for i in s['rms']])/len(s['rms'])
@@ -466,6 +499,18 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                 self.lastPushedLevel = time.monotonic()
                 self.lastLevel = l
                 self.board.pushLevel(self.name, l)
+
+        #Speech recognition, forward it on to the message bus.
+        elif msgtype == 'pocketsphinx':
+            if message.get_structure().get_value('hypothesis'):
+                messagebus.postMessage("/system/mixer/channels/"+self.name+"/stt/hypothesis",
+                (message.get_structure().get_value('hypothesis'),))
+             
+            if message.get_structure().get_value('final'):
+                messagebus.postMessage("/system/mixer/channels/"+self.name+"/stt/final",
+                (message.get_structure().get_value('hypothesis'),message.get_structure().get_value('confidence')))
+             
+
         return True
 
     def doSoundFuse(self,rms):
@@ -564,7 +609,6 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
         #Let the _faderTagHandler handle it.
         self.faderTag.value=level
         
-
     def addSend(self,target, id,volume=-60):
             with self.lock:
                 if not isinstance(target, str):
@@ -705,6 +749,7 @@ class MixingBoard():
             self._createChannel(name,data)
 
     def _createChannel(self, name,data=channelTemplate):
+        "Create a channel given the name and the data for it"
         self.channels[name]=data
         self.api.send(['channels', self.channels])
         if not self.running:
@@ -737,6 +782,13 @@ class MixingBoard():
             if name in self.channelObjects:
                 self.channelObjects[name].stop()
             self.channelObjects[name]=MidiConnection(self, data['input'], data['output'])
+        
+        elif data['type']=='midiSynth':
+            from scullery import fluidsynth
+            self.channels[name]=data
+            self.channelObjects[name]= scullery.FluidSynthChannel(jackClientName=name, 
+            connectMidi=data.get("connectMidi",''), connectOutput=data.get('connectOutput',''))
+
 
     def deleteChannel(self,name):
         with self.lock:

@@ -1040,7 +1040,7 @@ def _startJackProcess(p=None, n=None,logErrs=True):
             x = readAllErrSoFar(jackp)
             if x and logErrs:
                 log.error("jackd:\n"+x.decode('utf8','ignore'))
-            x=readAllErrSoFar(jackp)
+            x=readAllSoFar(jackp)
             if x and logErrs:
                 log.info("jackd:\n"+x.decode('utf8','ignore'))
             tryCloseFds(jackp)

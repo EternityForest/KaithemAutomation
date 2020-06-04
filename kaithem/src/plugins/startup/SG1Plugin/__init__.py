@@ -14,6 +14,15 @@ logger = logging.Logger("plugins.sg1")
 templateGetter = TemplateLookup(os.path.dirname(__file__))
 
 
+class Gateway(sg1.SG1Gateway):
+    def onConnect(self):
+        self.kaithemInterface().onConnect()
+        return super().onConnect()
+
+    def onDisconnect(self):
+        self.kaithemInterface().onConnect()
+        return super().onDisconnect()
+
 class SG1Gateway(devices.Device):
     deviceTypeName = 'SG1Gateway'
 
@@ -21,7 +30,7 @@ class SG1Gateway(devices.Device):
         self.lock = threading.Lock()
         self.gatewayStatusTag = tagpoints.StringTag("/devices/"+name+".status")
         self.gatewayStatusTagClaim = self.gatewayStatusTag.claim('disconnected', "HWStatus", 60)
-        
+
         self.gw = sg1.SG1Gateway(port=data.get("device.serialport", "/dev/ttyUSB0"),
                                  id=data.get("device.gatewayID", "default"),
                                  mqttServer=data.get(
@@ -31,6 +40,14 @@ class SG1Gateway(devices.Device):
                                  )
        
         devices.Device.__init__(self, name, data)
+
+    def onConnect(self):
+        self.gatewayStatusTagClaim.set("connected")
+        self.print("Connected to gateway")
+
+    def onDisconnect(self):
+        self.gatewayStatusTagClaim.set("disconnected")
+        self.print("Disconnected from gateway")
 
     @staticmethod
     def getCreateForm():
