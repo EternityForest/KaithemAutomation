@@ -420,7 +420,7 @@ class WebInterface():
                     dataname = path[1]+'/'+dataname
 
                 if not module in external_module_locations:
-                    dataname = os.path.join(folder,module, dataname)
+                    dataname = os.path.join(folder, dataname)
                 else:
                     dataname = os.path.join(folder, dataname)
 

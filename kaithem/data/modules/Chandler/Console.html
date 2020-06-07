@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1583896528218009
+resource-timestamp: 1591507549969355
 resource-type: page
 template-engine: mako
 
@@ -875,10 +875,13 @@ from src import tagpoints
                             </p>
                         </div>
                         <div>
-                            <label>Inherit rules from cue in same scene: <input v-model="currentcue.inheritRules" v-on:input="setCueInheritRules(currentcueid, $event.target.value);"></label>
+                            <label>Inherit rules from cue in same scene:
+                            <combo-box v-model="currentcue.inheritRules" v-on:change="setCueInheritRules(currentcueid, currentcue.inheritRules)" :options="useBlankDescriptions(scenecues[scenename])"></combo-box>
+
+                            </label>
                         </div>
                         <script-editor v-model="currentcue.rules" v-on:input="setCueRules(currentcueid, $event);" v-bind:commands="availableCommands"
-                            v-bind:scenes="cueNamesBySceneName()" v-bind:pinnedvars="specialvars" v-bind:vars="editingScene.vars"> </script-editor>
+                            v-bind:scenes="cueNamesBySceneName()" v-bind:pinnedvars="specialvars" v-bind:vars="editingScene.vars" v-bind:parentScene="scenename"> </script-editor>
                             <div style="display:flex;flex-wrap:wrap;">
                                 <div style="border-style:solid;flex-grow:3;margin:0.5em;padding:0.5em;">
                                     <h3>Scene Variables</h3>

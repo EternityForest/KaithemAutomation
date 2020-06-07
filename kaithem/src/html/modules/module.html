@@ -273,7 +273,7 @@ continue
     %if (name,i) in modules.unsaved_changed_obj:
     *\
     %endif
-    <a href="/modules/module/${url(name)}/getfileresource/${url(i)}">${i}</a>
+    <a href="/modules/module/${url(name)}/getfileresource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
     <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
     %try:
     <span>Size: ${siFormatNumber(os.path.getsize(fileResourceAbsPaths[name,i]))}</span>\

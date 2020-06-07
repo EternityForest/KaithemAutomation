@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1580231296842172
+resource-timestamp: 1591508404593413
 resource-type: page
 template-engine: markdown
 
@@ -27,6 +27,8 @@ in which case they will answer with None(stopping the action) if the answer to t
 Any parameter for a block that starts with = is considered a math expression that may use variables,boolean logic, and text operations (Similar to spreadsheets).
 
 Some blocks may return an interesting number,boolean, or text value. You may access it expressions in the next block as the variable _ just like many scientific calculators.
+
+Scenes can also "inherit" rules from another cue. This works recursively, and loops are automatically detected and stopped.
 
 ## Available functions in expressions
 

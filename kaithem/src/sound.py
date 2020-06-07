@@ -1001,7 +1001,10 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
                 self.aw.connect()
 
             else:
-                self.sink = self.addElement('autoaudiosink')
+                if not jackmanager.settings.get('jackMode',None) in ("manage","use"):
+                    self.sink = self.addElement('autoaudiosink')
+                else:
+                    raise RuntimeError("JACK is enabled but not running, cannot autoselect non-jack driver as this could interfere with JACK")
         
         elif output.startswith("@pulse"):
             s = output.split(":")
@@ -1016,6 +1019,10 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
         #No jack clients at all means it probably isn't running
         elif not jackClientsFound:
+            
+            if not jackmanager.settings.get('jackMode',None) in ("manage","use"):
+                raise RuntimeError("JACK is enabled but not running, cannot autoselect non-jack driver as this could interfere with JACK")
+
             if "hw:" in output or  "usb:" in output: 
                 self.addElement('alsasink',device= output)
             else:
@@ -1404,6 +1411,13 @@ def stopAllSounds():
     midi.allNotesOff()
     backend.stopAllSounds()
 
+#Stop any old pulseaudio or something sound players that
+#May have been running before jack started, otherwise they will just sit
+#there doing nothing and that may be a problem.
+def sasWrapper(*a):
+    stopAllSounds()
+
+messagebus.subscribe("/system/sound/jackstart", sasWrapper)
 
 def oggSoundTest(output=None):
     t="test"+str(time.time())

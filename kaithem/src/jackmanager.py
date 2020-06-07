@@ -48,6 +48,7 @@ def onFail():
 
 def onStart():
     messagebus.postMessage("/system/notifications/important","JACK server connected")
+    messagebus.postMessage("/system/sound/jackstart","JACK server connected")
 
 scullery.jack.onJackFailure = onFail
 scullery.jack.onJackStart = onStart

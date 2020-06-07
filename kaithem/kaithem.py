@@ -328,18 +328,27 @@ def webRoot():
             #     vpath2 = vpath[:]
 
             sdpath=0
-            vpath2=vpath
+            vpath2=vpath[:]
 
             while vpath2:
                 if tuple(vpath2) in pages.nativeHandlers:
+                    # found match, remove N elements from the beginning of the path,
+                    # where n is the length of the "mountpoint", because the mountpoint
+                    #already consumed those
+                    for i in range(len(vpath2)):
+                        vpath.pop(0)
+
                     x =  pages.nativeHandlers[tuple(vpath2)]
                     if not isinstance(x, Exception):
                         return x
                     else:
                         raise x
-                vpath2.pop(0)
-                if vpath:
-                    vpath.pop(0)
+                #Successively remove things from the end till we get a
+                #prefix match
+                vpath2.pop(-1)
+
+
+              
 
             if sdpath:
                 raise ValueError("No handler found for this subdomain")

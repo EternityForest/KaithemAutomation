@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1588570501403193
+resource-timestamp: 1591508238826283
 resource-type: event
 versions: {}
 
@@ -2540,6 +2540,7 @@ if __name__=='__setup__':
     
             disallow_special(name)
             self.lock = threading.RLock()
+            self.randomizeModifier=0
     
             self.notes=notes
     
@@ -3444,8 +3445,16 @@ if __name__=='__setup__':
                         self.scriptContext.addBindings(parseCommandBindings((rulesFrom or self.cue).script))
                     #Actually add the bindings
                     self.scriptContext.addBindings((rulesFrom or self.cue).rules)
+    
+                    loopPrevent = {(rulesFrom or self.cue.name): True}
+                    
                     x = (rulesFrom or self.cue).inheritRules
                     while x and x.strip():
+                        #Avoid infinite loop should the user define a cycle of cue inheritance
+                        if x.strip() in loopPrevent:
+                            break
+                        loopPrevent[x.strip()]=True
+    
                         self.scriptContext.addBindings(self.cues[x].rules)
                         x = self.cues[x].inheritRules
     

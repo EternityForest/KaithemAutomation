@@ -4,6 +4,7 @@ Change Log
 ### 0.65.23
 - Misc fixes
 - Beta voice recognition effect in the Mixer(gstreamer1.0-pocketsphinx based)
+- Chandler no longer hangs if you accidentally create an infinite loop with rule inheritance
 
 ### 0.65.22
 - Device drivers definable through var/devicedrivers

@@ -742,8 +742,7 @@ First in the configured directories and a default
 builtin one(Unless you remove it from the config).
 
 Next in all folders named "media" in modules. For example,
-asking for "Music/foo.wav" will look for a file resource called media/Music/foo.wav
-in each loaded module.
+asking for "Music/foo.wav" will look for a file resource called media/Music/foo.wav in each loaded module.
 
 Searching is not recursive, but relative paths work. If searching for "foo/bar" in
 "/baz", it will look for "/baz/foo/bar".
