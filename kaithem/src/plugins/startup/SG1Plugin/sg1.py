@@ -461,7 +461,7 @@ class SG1Gateway():
         return True
 
     def _handle(self, cmd, data):
-         if not self.connected:
+        if not self.connected:
             self.connected = True
             self.onConnect()
         if cmd == MSG_RNG:

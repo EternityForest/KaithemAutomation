@@ -5,6 +5,8 @@ Change Log
 - Misc fixes
 - Beta voice recognition effect in the Mixer(gstreamer1.0-pocketsphinx based)
 - Chandler no longer hangs if you accidentally create an infinite loop with rule inheritance
+- konva.min.js is now part of the standard JS libs(/static/js/konva4.min.js)
+- pixi.min.js is now part of the standard JS libs(/static/js/pixi5.min.js)
 
 ### 0.65.22
 - Device drivers definable through var/devicedrivers

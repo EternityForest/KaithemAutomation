@@ -182,7 +182,11 @@ Also include is the complete Fugue icon pack, accessible as follows:
 
     /zipstatic/img/icons/fugue.zip/cross-button.png
 
-Also, the following JS libraries:
+Also, the following JS libraries. When JS libraries are included, the files are generally
+renamed after the major version number, such as "vue2.js", for the latest vue-2.x.x version.
+
+They are occasionally updated, but new major versions will get a new file, and the old file
+will be removed eventually.
 
 #### /static/js/vue2.js
 The Vue framework
@@ -203,6 +207,11 @@ Add this to your page, and you'll be able to include other HTML
 docs:
 
 `<include src="child.html"></include>`
+
+#### /static/js/konva4.min.js
+
+[konva.js](https://github.com/konvajs/konva/blob/master/LICENSE)
+JS Canvas drawing lib
 
 <span id="scope"></span>Scoping
 -------------------------------
