@@ -48,6 +48,17 @@ class PILCapture():
 
 
 
+class PILSource():
+    def __init__(self,appsrc,greyscale=False):
+        self.appsrc=appsrc
+        self.greyscale = greyscale
+
+
+    def push(self,img):
+        img = img.tobytes("raw","L" if self.greyscale else "rgb")
+        img = Gst.Buffer.new_wrapped(img)
+        self.appsrc.emit("push-buffer", img)
+
 def link(a,b):
     unref = False
     try:
@@ -598,6 +609,23 @@ class GStreamerPipeline():
         appsink = self.addElement("appsink",drop=True,sync=False,max_buffers=buffer)
 
         return PILCapture(appsink)
+
+    def addPILSource(self,resolution, buffer=1,greyscale=False):
+        "Return a video source object that we can use to put PIL buffers into the stream"
+
+        appsrc = self.addElement("appsrc",caps="video/x-raw,width="+str(resolution[0])+",height="+str(resolution[0])+", format="+"GREy8" if greyscale else "RGB",connectToOutput=False)
+        conv = self.addElement("videoconvert")
+        scale=self.addElement("videoscale")
+
+        #Start with a blck image to make things prerooll
+        if(greyscale):
+            appsrc.emit("push-buffer", Gst.Buffer.new_wrapped(bytes(resolution[0]*resolution[1])))
+        else:
+            appsrc.emit("push-buffer",Gst.Buffer.new_wrapped( bytes(resolution[0]*resolution[1]*3)))
+
+      
+
+        return PILSource(appsrc,greyscale)
     
     def addElement(self,t,name=None,connectWhenAvailable=False, connectToOutput=None, sidechain=False, **kwargs):
 
@@ -631,7 +659,7 @@ class GStreamerPipeline():
                     raise ValueError("Cannot connect to the output of: "+str(connectToOutput)+", no such element in pipeline.")
 
             #This could be the first element
-            if self.elements:
+            if self.elements and (not (connectToOutput is False)):
                 connectToOutput=connectToOutput or self.elements[-1]
                 #Decodebin doesn't have a pad yet for some awful reason
                 if (self.elementTypesById[id(connectToOutput)]=='decodebin') or connectWhenAvailable:

@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1591507549969355
+resource-timestamp: 1591591656336469
 resource-type: page
 template-engine: mako
 
@@ -855,10 +855,10 @@ from src import tagpoints
                         <vue-ace-editor v-model:value="editingScene.page.html" v-bind:options="htmloptions"  v-on:change="setScenePage(scenename,editingScene.page['html'], editingScene.page['css'], editingScene.page['js'],editingScene.page['rawhtml'])" ></vue-ace-editor>
                         
                         <h4>Style</h4>
-                        <vue-ace-editor v-model:value="editingScene.page.css" v-bind:options="htmloptions"  v-on:change="setScenePage(scenename,editingScene.page['html'], editingScene.page['css'], editingScene.page['js'],editingScene.page['rawhtml'])" ></vue-ace-editor>
+                        <vue-ace-editor v-model:value="editingScene.page.css" v-bind:options="cssoptions"  v-on:change="setScenePage(scenename,editingScene.page['html'], editingScene.page['css'], editingScene.page['js'],editingScene.page['rawhtml'])" ></vue-ace-editor>
                         
                         <h4 title="This code is included in a script tag near the bottom of the page">JS</h4>
-                        <vue-ace-editor v-model:value="editingScene.page.js" v-bind:options="htmloptions" v-on:change="setScenePage(scenename,editingScene.page['html'], editingScene.page['css'], editingScene.page['js'],editingScene.page['rawhtml'])" ></vue-ace-editor>
+                        <vue-ace-editor v-model:value="editingScene.page.js" v-bind:options="jsoptions" v-on:change="setScenePage(scenename,editingScene.page['html'], editingScene.page['css'], editingScene.page['js'],editingScene.page['rawhtml'])" ></vue-ace-editor>
                         <a v-bind:href="'scenepage?sc='+scenename" target="_blank">Go to page</a>
                         <h4>Preview</h4>
                         <div style="width:90%;height:40em;">
@@ -1652,7 +1652,7 @@ from src import tagpoints
                 highlightGutterLine: false              
               },                
               jsoptions:{
-                mode:'js',
+                mode:'javascript',
                 theme: 'tomorrow',
                 fontSize: 11,
                 fontFamily: 'monospace',

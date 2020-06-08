@@ -926,7 +926,7 @@ class MPlayerWrapper(SoundWrapper):
 from . import gstwrapper
 class GSTAudioFilePlayer(gstwrapper.Pipeline):
     def __init__(self, file, volume=1, output="@auto",onBeat=None, _prevPlayerObject=None,systemTime=False):
-
+        global jackClientsFound
         if not output:
             output="@auto"
         self.filename = file
@@ -991,6 +991,10 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         self.fader = self.addElement('volume', volume=volume)
 
         if output=="@auto":
+            #Recheck if we thing the server hasn't started yet
+            if not jackClientsFound:
+                jackClientsFound= len(jackmanager.getPorts())>0
+
             if jackClientsFound:
                 cname="player"+str(time.monotonic())+"_out"
                 self.sink = self.addElement('jackaudiosink', buffer_time=16000 if not isVideo else 80000, 

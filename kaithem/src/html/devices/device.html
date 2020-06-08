@@ -171,8 +171,8 @@ ${obj.getManagementForm()}
 
 %for i in obj.messages:
 <p>
-<b>${i[0]} at ${unitsofmeasure.strftime(i[2])}</b><br>
-<pre>${i[1]|h}</pre>
+<b>${i[1]} at ${unitsofmeasure.strftime(i[0])}</b><br>
+<pre>${i[2]|h}</pre>
 </p>
 %endfor
 %endif

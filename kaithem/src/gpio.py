@@ -137,6 +137,12 @@ class GPIOTag():
         from gpiozero import Device
         import gpiozero
 
+        kwargs = kwargs.copy()
+        #Rename because this was very confusing
+        if "pull" in kwargs:
+            kwargs['pull_up'] =kwargs['pull']
+            del kwargs['pull']
+
         if mock:
             if self.realGpio:
                 try:
@@ -317,7 +323,7 @@ class DigitalInput(GPIOTag):
             else:
                 self.activeState=False
         else:
-            if  kwargs.get('pull_up',True):
+            if kwargs.get("pull",kwargs.get('pull_up',True)):
                 self.activeState = False
             else:
                 self.activeState=True

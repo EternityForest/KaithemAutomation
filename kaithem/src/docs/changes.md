@@ -7,6 +7,7 @@ Change Log
 - Chandler no longer hangs if you accidentally create an infinite loop with rule inheritance
 - konva.min.js is now part of the standard JS libs(/static/js/konva4.min.js)
 - pixi.min.js is now part of the standard JS libs(/static/js/pixi5.min.js)
+- kaithem.gpio inputs now use `pull` not the badly named `pull_up`, but the old version still works
 
 ### 0.65.22
 - Device drivers definable through var/devicedrivers

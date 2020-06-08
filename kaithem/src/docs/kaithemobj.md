@@ -101,7 +101,7 @@ function in breakpoint.py, and put a breakpoint there.
 
 This namespace integrates the excellent GPIOZero into kaithem.
 
-### kaithem.gpio.DigitalInput(pin, *,mock=None, pull\_up=True, active\_state=None, bounce\_time=None, hold\_time=1, hold\_repeat=False, pin\_factory=None)
+### kaithem.gpio.DigitalInput(pin, *,mock=None, pull=True, active\_state=None, bounce\_time=None, hold\_time=1, hold\_repeat=False, pin\_factory=None)
 
 Creates an object that acts as an interface to the specified GPIO. Acts generally like gpiozero.button.
 
@@ -110,6 +110,10 @@ It creates a tag point at /system/gpio/PIN where you can view the status of the 
 If the platform doesn't have GPIO, it will instead use gpiozero's Mock factory, and you'll
 be able to use setRawMockValue. Calling this on a platform that DOES have mocking will auto-switch to
 mock mode.
+
+Pull is by default True, meaning pull-up, but can also be None for floating. This used to be called pull_up, but that was wrongly named and is now deprecated. 
+
+Active state is normally guessed from the pull state(If the pull is up, active is low)
 
 You can force mock mode with mock=True
 
@@ -135,7 +139,7 @@ The raw gpiozero.button object. Do not override any of the callbacks if you want
 native messagebus/tagpoint based API.
 
 
-### kaithem.GPIO.DigitalOutput(pin, mock=False, comment=False,*, active\_high=True, initial\_value=0, frequency=100, pin\_factory=None)
+### kaithem.gpio.DigitalOutput(pin, mock=False, comment=False,*, active\_high=True, initial\_value=0, frequency=100, pin\_factory=None)
 
 Wrapper for PWMLED or LED if a non-PWM pin is selected.
 

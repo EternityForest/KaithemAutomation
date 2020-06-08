@@ -61,7 +61,7 @@ def getZombies():
     x = []
     for i in dbgd:
         if not i in remote_devices:
-            x.append[i]
+            x.append(i)
     return x
 
 
@@ -205,7 +205,12 @@ class Device(virtualresource.VirtualResource):
         return {}
 
     def print(self, msg, title="Message"):
-        self.messages.append(time.time(), title, msg, "printfunction")
+        self.messages.append((time.time(), title, msg, "printfunction"))
+        if len(self.messages)> 100:
+            try:
+                self.messages.pop(0)
+            except Exception:
+                pass
 
 
 # Device data always has 2 constants. 1 is the required type, the other

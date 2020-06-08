@@ -65,7 +65,7 @@ class Kaithem():
         if name in plugins:
             return pluginInterface(plugins[name])
         else:
-            raise AttributeError()
+            raise AttributeError(name)
 
     class units():
         convert = unitsofmeasure.convert

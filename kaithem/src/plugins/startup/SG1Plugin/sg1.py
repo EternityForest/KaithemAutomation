@@ -198,7 +198,7 @@ class SG1Device():
         self.nodeID = nodeID
 
         self.bus.subscribe(
-            "/SG1/i/"+b64(channelKey), self.onMessage, encoding="msgpack")
+            "/SG1/i/"+b64(channelKey), self._onMessage, encoding="msgpack")
 
         self.bus.subscribe(
             "/SG1/ri/"+b64(channelKey), self.onRTMessage, encoding="msgpack")
@@ -217,17 +217,26 @@ class SG1Device():
         self.bus.publish(
             "/SG1/registerDevice/", self.key, encoding="msgpack")
 
-    def onMessage(self, t, m):
+    def _onMessage(self, t, m):
         print(t, m)
         t = time.monotonic()
         # If we get multiple copies of a message in rapid succession,
         # We want to mark the strongest gateway as the one we use for outgoing stuff
         if t > self.lastMessageInfo[1]-1 or m['rssi'] > self.lastMessageInfo[2]:
             self.lastMessageInfo = (m['gw'], t, m['rssi'])
+        self.onMessage(m)
 
-    def onRTMessage(self, t, m):
-        print(t, m)
+
+    def _onRTMessage(self, t, m):
+        self.onRTMessage(m)
         pass
+
+    def onMessage(self,m):
+        pass
+
+    def onRTMessage(self,m):
+        pass
+
 
     def sendMessage(self, data, rt=False):
         t = time.monotonic()
@@ -269,13 +278,17 @@ class SG1WakeRequest():
 
 
 class SG1Gateway():
-    def __init__(self, port, id="default", mqttServer="__virtual__SG1", mqttPort="default"):
+    def __init__(self, port, id="default", mqttServer="__virtual__SG1", mqttPort="default", channelNumber=3, rfProfile=7):
         self.bus = mqtt.getConnection(mqttServer, mqttPort)
         self.lock = threading.RLock()
         self.port = port
+        self.gwid = id
+
+        self.running= True
+
 
         def debugMessage(m):
-            self.bus.publish("/SG1/hwmsg/"+self.gwid, m)
+            self.bus.publish("/SG1/hwmsg/"+self.gwid, m, encoding="msgpack")
         self.debugMessage = debugMessage
         self.parser = NanoframeParser(debugMessage)
         self.connected = False
@@ -289,7 +302,6 @@ class SG1Gateway():
         self.waitingTypes = {}
 
         self.connect()
-        self.gwid = id
         # Devices that have been discovered via the bus, plus their
         # last announce timestamp
         self.discoveredDevices = {}
@@ -298,15 +310,15 @@ class SG1Gateway():
         self.thread.start()
         try:
             self.sync()
-        except:
-            pass
+        except Exception:
+            logger.exception("Error connecting to SG1 Gateway at: "+str(port)+",retrying later")
         self.lastSentTime = 0
 
         self.waitOnSyncLock = threading.Lock()
 
         self.currentKey = b'\0'*32
-        self.currentProfile = 5
-        self.currentChannel = 3
+        self.currentProfile = rfProfile
+        self.currentChannel = channelNumber
 
         # Indexed by channel key, ordered by timestamp, wake requests expire after
         # 30 seconds. Only change this list under lock.
@@ -334,6 +346,9 @@ class SG1Gateway():
             self.hintlookup.channelKeys = keys.copy()
             self.hintlookup.compute(True)
 
+    def close(self):
+        self.running=False
+        
     def onMessage(self, channel, data, rssi, pathloss):
         n = "/SG1/i/"+b64(channel)
         m = {
@@ -359,12 +374,12 @@ class SG1Gateway():
         self.bus.publish(n, m, encoding="msgpack")
 
     def onConnect(self):
-        n = "/SG1/gwDisconnected"
+        n = "/SG1/gwConnected"
         m = self.gwid
         self.bus.publish(n, m, encoding="msgpack")
 
     def onWakeRequest(self, topic, message):
-        with lock:
+        with self.lock:
             t = time.monotonic()
             self.wakeRequests[base64.b64decode(message)] = t
 
@@ -393,18 +408,31 @@ class SG1Gateway():
             self.pair()
 
     def connect(self):
-        if self.lastSerConnectAttempt > time.monotonic()-5:
-            return
+        if self.lastSerConnectAttempt < time.monotonic()-5:
+            return 0
         self.lastSerConnectAttempt = time.monotonic()
 
         try:
             self.portObj = serial.Serial(self.port, 250000)
             self.portObj.timeout = 1
+            self.portObj.writeTimeout = 1
+
+            for i in range(0,100):
+                try:
+                    self.portObj.write(b'\x2b')
+                    print("WRITEEEEEEEEEEEEEEEEEEE!")
+                    break
+                except:
+                    time.sleep(0.01)
+
+
+            return 1
             # Re-sync the remote decoder
             logger.info("Reconnected to SG1 Gateway at "+self.port)
 
         except Exception:
             self.portObj = None
+            logging.exception("Reconnect fail to: "+self.port)
             print(traceback.format_exc())
 
     def handleAnnounce(self, topic, message):
@@ -430,7 +458,9 @@ class SG1Gateway():
         try:
             try:
                 b = self.portObj.read(1)
-               
+                if b:
+                    for i in self.parser.parse(b):
+                        self._handle(*i)
             except Exception:
                 if self.connected:
                     self.connected = False
@@ -438,12 +468,12 @@ class SG1Gateway():
 
                 time.sleep(1)
                 with self.lock:
-                    self.connect()
-                    self.sync()
+                    if self.connect():
+                        self.sync()
+                    else:
+                        return
                 time.sleep(1)
-            if b:
-                for i in self.parser.parse(b):
-                    self._handle(*i)
+           
 
             # The abs is there because we
             # want to send right away should the system time jump
@@ -458,9 +488,11 @@ class SG1Gateway():
 
         except Exception:
             print(traceback.format_exc())
-        return True
+
+        return self.running
 
     def _handle(self, cmd, data):
+        logger.info("pkt:",+str(cmd)+"  "+str(data))
         if not self.connected:
             self.connected = True
             self.onConnect()
@@ -532,13 +564,18 @@ class SG1Gateway():
 
     def _sendMessage(self, cmd, m):
         with self.lock:
-            self.portObj.write(b'\x2a')
-            # +1 for the cmd byte
-            self.portObj.write(bytes([len(m)+1]))
-            self.portObj.write(bytes([cmd]))
-            self.portObj.write(m)
-            self.portObj.write(b'\x2b')
-            self.portObj.flush()
+            try:
+                self.portObj.write(b'\x2a')
+                # +1 for the cmd byte
+                self.portObj.write(bytes([len(m)+1]))
+                self.portObj.write(bytes([cmd]))
+                self.portObj.write(m)
+                self.portObj.write(b'\x2b')
+                self.portObj.flush()
+            except:
+                print("ERRRRRRRRRRRRRRRRRRRr",self.portObj)
+                self.portObj=None
+                raise
 
     def sync(self):
 
@@ -559,6 +596,7 @@ class SG1Gateway():
 
         # Sync the time
         self.sendTime()
+        self.setRF(self.currentProfile, self.currentChannel)
 
     def setChannelKey(self, key):
         if not len(key) == 32:
@@ -597,7 +635,7 @@ class SG1Gateway():
             self._sendMessage(MSG_PAIR, bytes([newDeviceNodeId]))
             time.sleep(5)
 
-    def waitForMessage(self, t, timeout=3):
+    def waitForMessage(self, t, timeout=1):
         e = threading.Event()
         boxlist = []
         x = (e, boxlist)
