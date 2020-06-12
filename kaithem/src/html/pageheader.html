@@ -1,7 +1,7 @@
 <%!
 from src.config import config
 from src import auth,util,notifications,pages,modules,registry,theming,devices,persist
-import cherrypy
+import cherrypy,socket
 %>
 
 <!DOCTYPE html>
@@ -16,7 +16,7 @@ import cherrypy
 <body id="page">
 
   <div style="width: 100%;">
-    ${config['top-banner-html']}
+    ${config['top-banner-html'].replace("HOSTNAME",socket.gethostname())}
 
     <div border="" id="nav">
       <div><a class="link mainpagelink" href="/">Main</a>

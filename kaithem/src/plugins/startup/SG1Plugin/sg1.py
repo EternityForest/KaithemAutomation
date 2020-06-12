@@ -295,11 +295,13 @@ class SG1Gateway():
         self.lastDidDiscovery = 0
         self.lastSentTime = 0
 
-        self.lastSerConnectAttempt = 0
+        self.lastSerConnectAttempt = -9999999999
 
         self.thread = threading.Thread(
             target=makeThreadFunction(weakref.ref(self)), daemon=True)
         self.waitingTypes = {}
+
+        self.portObj = None
 
         self.connect()
         # Devices that have been discovered via the bus, plus their
@@ -408,7 +410,8 @@ class SG1Gateway():
             self.pair()
 
     def connect(self):
-        if self.lastSerConnectAttempt < time.monotonic()-5:
+        #If last attempt is too recent
+        if self.lastSerConnectAttempt > (time.monotonic()-5):
             return 0
         self.lastSerConnectAttempt = time.monotonic()
 
@@ -478,13 +481,14 @@ class SG1Gateway():
             # The abs is there because we
             # want to send right away should the system time jump
             # We do this every second so they stay tightly in sync.
-            if abs(time.time()-self.lastSentTime) > 1:
-                self.sendTime()
-                # Also check if a recompute is needed
-                self.hintlookup.compute()
+            with self.lock:
+                if abs(time.time()-self.lastSentTime) > 1:
+                    self.sendTime()
+                    # Also check if a recompute is needed
+                    self.hintlookup.compute()
 
-                self.listen()
-                self.lastSentTime = time.time()
+                    self.listen()
+                    self.lastSentTime = time.time()
 
         except Exception:
             print(traceback.format_exc())
@@ -580,10 +584,9 @@ class SG1Gateway():
     def sync(self):
 
         time.sleep(0.1)
-        self.sendTime()
-
+  
         # Wait till we are connected for real and the device is booted
-        m = self.waitForMessage(MSG_VERSION)
+        m = self.waitForMessage(MSG_VERSION,5)
         if not m:
             raise RuntimeError("Gateway did not publish version packet")
         ident = m[0:3]
@@ -592,10 +595,12 @@ class SG1Gateway():
         self.gwVersion = m[3]
 
         # Ensure decoder is in await_start state
-        self.portObj.write(b'\x2b'*256)
+        with self.lock:
+            self.portObj.write(b'\x2b'*256)
 
         # Sync the time
-        self.sendTime()
+        #self.sendTime()
+        print(self.readRNG(),"RNGDATAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
         self.setRF(self.currentProfile, self.currentChannel)
 
     def setChannelKey(self, key):

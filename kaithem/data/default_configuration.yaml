@@ -191,7 +191,7 @@ front-page-banner: |
 
 #This HTML is used as the top banner for deployment branding
 top-banner-html: |
-    <div id="topbanner"><h1 align="center">Kaithem Automation Server</h1></div>
+    <div id="topbanner"><h1 align="center">Kaithem Automation Server @ HOSTNAME</h1></div>
 
 #This text shows up in the about box. Good for misc info like copyrights of site specific data, lega stuff, etc
 about-box-banner: "This space can be customized with site specific data in the config file."
