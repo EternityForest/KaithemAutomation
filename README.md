@@ -52,6 +52,16 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 ### 0.65.23
 - Misc fixes
 - Beta voice recognition effect in the Mixer(gstreamer1.0-pocketsphinx based)
+- Chandler no longer hangs if you accidentally create an infinite loop with rule inheritance
+- konva.min.js is now part of the standard JS libs(/static/js/konva4.min.js)
+- pixi.min.js is now part of the standard JS libs(/static/js/pixi5.min.js)
+- kaithem.gpio inputs now use `pull` not the badly named `pull_up`, but the old version still works
+- Now you use CustomDeviceType, not DeviceType, to subclass a device from the web UI
+- Eliminate refusal to save if on-disk version is newer, it broke things on RTCless systems
+- Fix incorrect splitting of .md resource file header sections
+- fix chandler cue delete bug
+- Fix message bus logging page stopped working as soon as you went to an invalid topic page
+- Beta SG1Gateway device support
 
 ### 0.65.22
 - Device drivers definable through var/devicedrivers
@@ -65,16 +75,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - Fix kaithem.sound.isPlaying on gstreamer backend
 - Fix fluidsynth 2.0 compatibilty.
 - Improve sound fading algorithm
-
-### 0.65.20
-- Startup speed improvements with JACK
-- Immediately update jack settings when changing via UI
-- Eliminate more useless print output
-- Add better logging for JACK status
-
-
-### 0.65.19
-- Fix the script bindings tagpoint support
 
 
 License Terms

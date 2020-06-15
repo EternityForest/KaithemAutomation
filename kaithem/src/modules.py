@@ -467,7 +467,9 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
     fn = relative_name
     try:
         # This regex is meant to handle any combination of cr, lf, and trailing whitespaces
-        sections = re.split(r'\r?\n?----*\s*\r?\n*', d)
+        #We don't do anything with more that 3 sections yet, so limit just in case there's ----
+        # in a markdown file
+        sections = re.split(r'\r?\n?----*\s*\r?\n*', d,2)
 
         shouldRemoveExtension = False
 
@@ -502,6 +504,7 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
 
         # Option to encode metadata as special script type
         elif fn.endswith(".html") and "2b8c68ea-307c-4558-bf34-5e024c8306f4" in d:
+
             isSpecialEncoded = True
             try:
                 x = re.search(
@@ -521,6 +524,7 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
         # Markdown and most html files files start with --- and are delimited by ---
         # The first section is YAML and the second is the page body.
         elif fn.endswith(".md") or fn.endswith(".html"):
+
             isSpecialEncoded = True
             try:
                 data = yaml.load(sections[1])

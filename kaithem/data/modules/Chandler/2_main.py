@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1591508238826283
+resource-timestamp: 1592181200815296
 resource-type: event
 versions: {}
 
@@ -2936,8 +2936,9 @@ if __name__=='__setup__':
             with module.lock:
                 if not len(self.cues)>1:
                     raise RuntimeError("Cannot have scene with no cues")
+                    
                 if cue in cues:
-                    if cues[id].name=="default":
+                    if cues[cue].name=="default":
                         raise RuntimeError("Cannot delete the cue named default")
     
                 if self.cue and self.name == cue:

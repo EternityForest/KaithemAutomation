@@ -40,7 +40,7 @@ try:
 except:
     messagebus.postMessage("/system/notifications/errors", "Error loading logged topics list. using defaults:\n"+traceback.format_exc(6))
 
-log = defaultdict(deque)
+log = {}
 
 
 def saveLogList():
@@ -82,7 +82,11 @@ def messagelistener(topic,message):
             logger.warning(topic+" "+str(message))
         else:
             logger.info(topic+" "+str(message))
-    #Default dicts are good.
+
+    if not topic in log:
+        log[topic]= deque()
+
+    #Default dicts are *not* good here like I thought
     log[topic].append((time.time(),message))
 
     #Only keep recent messages.

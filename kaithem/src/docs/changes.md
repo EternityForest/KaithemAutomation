@@ -10,6 +10,11 @@ Change Log
 - kaithem.gpio inputs now use `pull` not the badly named `pull_up`, but the old version still works
 - Now you use CustomDeviceType, not DeviceType, to subclass a device from the web UI
 - Eliminate refusal to save if on-disk version is newer, it broke things on RTCless systems
+- Fix incorrect splitting of .md resource file header sections
+- fix chandler cue delete bug
+- Fix message bus logging page stopped working as soon as you went to an invalid topic page
+- Beta SG1Gateway device support
+
 
 ### 0.65.22
 - Device drivers definable through var/devicedrivers
