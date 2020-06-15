@@ -1,0 +1,74 @@
+
+<%!
+import traceback
+%>
+
+<p class="help">This device represents one SG1 device, which must be accessed through an SG1 Gateway, which is a separate device.
+    It will recieve any messages on it's channel key that are sent on the gateway's RF frequency and speed.
+</p>
+
+<p class="help">The SG1 Protocol itself has no clients or servers and is purely P2P, and as such,
+    you can communicate between two Kaithem servers using devices set to the same channel.
+</p>
+
+
+<h3>Gateway Connection</h3>
+<p class="help">If you are only using one gatway on the local server, you do not need to edit the MQTT settings
+A real MQTT server is not local, as kaithem can use an internal "virtual" server(Names beginning with __virtual__).
+</p>
+
+<table border="1" style="width:40em">
+
+<tr>
+    <td>Gateway ID(Determines MQTT topic names)</td>
+    <td><input name="device.gatewayID"  value="${data.get('device.gatewayID','default')}"></td>
+</tr>
+
+<tr>
+    <td>MQTT Server</td>
+    <td><input name="device.mqttServer"  value="${data.get('device.mqttServer','__virtual__SG1')}"></td>
+</tr>
+<tr>
+    <td>MQTT Port</td>
+    <td><input name="device.mqttPort"  value="${data.get('device.mqttPort','1883')}"></td>
+</tr>
+</table>
+
+<h3>Device settings</h3>
+<p class="help">The minimum expected message interval should include everything including beacons.
+    It is used to detect when a device goes offline. The RSSI tagpoint will be `-180` if no message
+    is seen for at least that interval.
+</p>
+
+<datalist id="nodeid">
+    <option value="2">SENSOR</option>
+    <option value="3">SWITCH</option>
+    <option value="4">LIGHT</option>
+    <option value="5">HANDHELD</option>
+    <option value="6">ROBOT</option>
+</datalist>
+
+<table border="1">
+    <tr>
+        <td>Channel key(base64 encoded or 32 ASCII chars)</td>
+        <td><input name="device.channelKey"  value="${data.get('device.channelKey','A'*32)}"></td>
+    </tr>
+
+    <tr>
+        <td>Node ID(1 is reserved for hubs)</td>
+        <td><input list="nodeid" name="device.nodeID"  value="${data.get('device.nodeID','0')}"></td>
+    </tr>
+
+    <tr>
+        <td>Min Expected Message Interval </td>
+        <td><input name="device.expectedMessageInterval"  value="${data.get('device.expectedMessageInterval','60')}">s</td>
+    </tr>
+
+    <tr>
+
+        <td>Set wake request(lasts 30s)</td>
+        <td>${obj.wakeButton.render("WAKE!")}</td>
+    </tr>
+
+
+</table>

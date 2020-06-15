@@ -8,6 +8,8 @@ Change Log
 - konva.min.js is now part of the standard JS libs(/static/js/konva4.min.js)
 - pixi.min.js is now part of the standard JS libs(/static/js/pixi5.min.js)
 - kaithem.gpio inputs now use `pull` not the badly named `pull_up`, but the old version still works
+- Now you use CustomDeviceType, not DeviceType, to subclass a device from the web UI
+- Eliminate refusal to save if on-disk version is newer, it broke things on RTCless systems
 
 ### 0.65.22
 - Device drivers definable through var/devicedrivers

@@ -48,6 +48,12 @@ sliders rendered from the same object will move in synch.
 
 
 
+### kaithem.widget.getConnectionRefForID(id, deleteCallback=None)
+
+Using the connection ID from Widget.attach2, return the actual
+websocket object.   This allows you to detect when a a particular session
+is closed.
+
 ### The Widget() Base Class
 
 All Kaithem widgets inherit from Widget. Widget provides security,

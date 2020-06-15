@@ -21,7 +21,7 @@ def handleMsgbusError(f,topic,message):
     scullery.messagebus.log.exception("Error in subscribed function for "+topic)
     try:
         from . import newevt
-        if f.__module__ in newevt.eventsByModuleName:
+        if f().__module__ in newevt.eventsByModuleName:
             newevt.eventsByModuleName[f.__module__]._handle_exception()
     except Exception as e:
         print(traceback.format_exc())

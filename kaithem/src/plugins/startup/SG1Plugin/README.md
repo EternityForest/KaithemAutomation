@@ -1,0 +1,40 @@
+# The SG1Device object
+
+## SG1Device.keepAwake
+If this is a callable returning non-falsy, the gateway should respond to SG1 beacons on the channel with wake requests, allowing you to wake up devices in deep sleep.
+
+The intent is that you use a weak ref to a controller object, to automatically cancel
+the wake requestwhen it dissapears.
+
+Set to None to disable wake.
+
+
+## SG1Device.onBeacon(m)
+Called on incoming beacons.  Note that gateways do not support sending beacons except as automatic replies.
+
+m is a data dict containing:
+
+```
+'gwid': "GatewayID',
+'rssi': -90,
+'loss': 96
+```
+
+## SG1Device.onMessage(m), SG1Device.onRTMessage(m)
+
+Called on incoming messages. m is a dict with the full message info. 
+
+```
+'data': b'TheActualPacketData,
+'rssi': -70,  
+'gw': "TheGatewayThisIsFrom",
+'loss': 60,   #dBm path loss(Not present for RT messages)
+'id': 7,      #Node ID of physical device that sent the packet
+"ts": timestamp  #In microseconds, normally since the epoch
+```
+
+## SG1Device.sendMessage(message, rt=False, [power])
+
+Send a message on the device's channel. The node ID will be 1, since the message is
+coming from a hub.  Power is generally automatic, but you can force a specific power level.
+

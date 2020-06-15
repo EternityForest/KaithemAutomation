@@ -122,6 +122,14 @@ def subsc_closure(self,i, widget):
 
 clients_info = weakref.WeakValueDictionary()
 
+ws_connections = weakref.WeakValueDictionary()
+
+def getConnectionRefForID(id,deleteCallback=None):
+    try:
+        return weakref.ref(ws_connections[id],deleteCallback)
+    except KeyError:
+        return None
+
 usingmp=False
 try:
     import msgpack
@@ -136,6 +144,7 @@ if config['enable-websockets']:
             self.lastPushedNewData = 0
             self.uuid = "id"+base64.b64encode(os.urandom(16)).decode().replace("/",'').replace("-",'').replace('+','')[:-2]
             self.widget_wslock = threading.Lock()
+            ws_connections[self.uuid] = self
             WebSocket.__init__(self,*args,**kwargs)
 
         def send(self,*a,**k):

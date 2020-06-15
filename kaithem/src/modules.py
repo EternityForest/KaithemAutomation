@@ -656,20 +656,6 @@ def saveResource2(obj, fn: str):
 
     if os.path.exists(fn):
         try:
-            # Don't overwrite more recent manual changes
-            if 'resource-timestamp' in obj:
-                t = int(obj['resource-timestamp'])/10**6
-                if t < os.path.getmtime(fn):
-                    # If the file is newer than the current time,
-                    # The clock is all kinds of wrong, and we can't use the conflict
-                    # Resolution logic
-                    if os.path.getmtime(fn) > time.time():
-                        logger.info(
-                            fn + " has been modified externally, on-disk version is more recent, not saving")
-                        messagebus.postMessage(
-                            "/system/notifications/", fn + " has been modified externally, on-disk version is more recent, not saving")
-                        return fn
-
             # Check for sameness, avoid useless write
             with open(fn, "rb") as f:
                 x = f.read().decode('utf8')
@@ -691,6 +677,9 @@ def saveResource2(obj, fn: str):
     with open(fn, "wb") as f:
         util.chmod_private_try(fn, execute=False)
         f.write(data)
+        f.flush()
+        os.fsync(f.fileno())
+
 
     logger.debug("saved resource to file " + fn)
     obj['resource-loadedfrom'] = fn
@@ -721,6 +710,9 @@ def saveAll():
                 util.chmod_private_try(os.path.join(
                     directories.moduledir, str(t), '__COMPLETE__'), execute=False)
                 x.write("This file certifies this folder as valid")
+                x.flush()
+                os.fsync(x.fileno())
+
 
         # This dumps the contents of the active modules in ram to a directory named data"""
         saveModules(os.path.join(directories.moduledir, "data"))
@@ -973,6 +965,9 @@ def saveModules(where: str, markSaved=True):
                         if not f.read() == external_module_locations[i]:
                             f.seek(0)
                             f.write(external_module_locations[i])
+                            f.flush()
+                            os.fsync(f.fileno())
+
             # This is kind of a hack to deal with deleted external modules
             for i in xxx:
                 if isinstance(i, str):
@@ -983,6 +978,8 @@ def saveModules(where: str, markSaved=True):
                     where, '__COMPLETE__'), execute=False)
                 f.write(
                     "By this string of contents quite arbitrary, I hereby mark this dump as consistant!!!")
+                f.flush()
+                os.fsync(f.fileno())
 
             # mark things that get created and deleted before ever saving so they don't persist in the unsaved list.
             # note that we skip things beginning with __ because that is reserved and migh not even represent a module.
@@ -1350,6 +1347,8 @@ def load_modules_from_zip(f, replace=False):
                             if not d:
                                 break
                             f.write(d)
+                        f.flush()
+                        os.fsync(f.fileno())
                 finally:
                     inputfile.close()
                 newfrpaths[p, n] = dataname

@@ -153,6 +153,10 @@ class Device(virtualresource.VirtualResource):
         global remote_devices_atomic
         dbgd[name] = self
 
+        # Time, title, text tuples for any "messages" a device might "print"
+        self.messages = []
+
+
         # This data dict represents all persistent configuration
         # for the alert object.
         self.data = data
@@ -172,8 +176,6 @@ class Device(virtualresource.VirtualResource):
         self.name = data.get('name', None) or name
         self.errors = []
 
-        # Time, title, text tuples for any "messages" a device might "print"
-        self.messages = []
 
         with lock:
             remote_devices[name] = self
@@ -353,7 +355,7 @@ builtinDeviceTypes = {'device': Device}
 deviceTypes = weakref.WeakValueDictionary()
 
 defaultSubclassCode = """
-DeviceType(DeviceType):
+CustomDeviceType(DeviceType):
     pass
 """
 
@@ -379,7 +381,6 @@ def makeDevice(name, data):
         dt = deviceTypes[data['type']]
     # Allow auto-subclassing to make customized v
     if 'subclass' in data and data['subclass'].strip():
-
         # Allow default code, without having to have an unneccesary layer of subclassing
         # If it is unused.
         stripped = data['subclass'].replace("\n", '').replace(
@@ -390,7 +391,7 @@ def makeDevice(name, data):
             from src import kaithemobj
             codeEvalScope = {"DeviceType": dt, 'kaithem': kaithemobj.kaithem}
             exec(data['subclass'], codeEvalScope, codeEvalScope)
-            dt = codeEvalScope["DeviceType"]
+            dt = codeEvalScope["CustomDeviceType"]
 
     return dt(name, data)
 
@@ -481,7 +482,7 @@ def init_devices():
             syslogger.info("Created device from config: "+i)
         except:
             messagebus.postMessage(
-                "/system/notifications/errors", "Error creating device: "+i)
+                "/system/notifications/errors", "Error creating device: "+i+"\n"+traceback.format_exc())
             syslogger.exception("Error initializing device "+str(i))
 
     remote_devices_atomic = remote_devices.copy()
