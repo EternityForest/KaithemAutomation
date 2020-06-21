@@ -8,6 +8,7 @@ import threading
 import logging
 import weakref
 import base64
+import traceback
 
 from src import widgets
 
@@ -15,6 +16,7 @@ logger = logging.Logger("plugins.sg1")
 
 templateGetter = TemplateLookup(os.path.dirname(__file__))
 
+# Message bus names: i=incoming msg, ri=incoming realtime, b=incoming beacon
 
 class Gateway(sg1.SG1Gateway):
     def __init__(self, *args,  kaithemInterface=None, **kwargs):
@@ -36,9 +38,11 @@ class Gateway(sg1.SG1Gateway):
 
 
 class Device(sg1.SG1Device):
+
     def __init__(self, *args,  kaithemInterface=None, **kwargs):
         self.kaithemInterface = kaithemInterface
         sg1.SG1Device.__init__(self, *args, **kwargs)
+
 
     def onMessage(self, m):
         self.kaithemInterface()._onMessage(m)
@@ -49,48 +53,54 @@ class Device(sg1.SG1Device):
 
 class SG1Device(devices.Device):
     deviceTypeName = 'SG1Device'
+    readme = os.path.join(os.path.dirname(__file__),"README.md")
+
 
     def __init__(self, name, data):
-        self.lock = threading.Lock()
-
-        self.lastSeen = 0
-        self.lastRSSI = -127
-        self.expectedMessageInterval = float(
-            data.get("device.expectedMessageInterval", 60))
-
-        self.rssiTag = tagpoints.Tag("/devices/"+name+".rssi")
-        self.rssiTagClaim = self.rssiTag.claim(self.rssi, "HWStatus", 60)
-        self.rssiTag.setAlarm("LowSignal: "+name, "value < -94")
-
-        self.wakeButton = widgets.Button()
-        self.wakeButton.attach(self.wakeButtonHandler)
-
-
-
-        # update just a bit faster than the expected message interval
-        self.rssiTag.interval = self.expectedMessageInterval*0.83
-
         devices.Device.__init__(self, name, data)
+        try:
+            self.lock = threading.Lock()
 
-        self.tagPoints['rssi']= self.rssiTag
 
-        d = str(data.get("device.channelKey", 'A'*32))
-        if len(d) <= 32:
-            d += 'A'*(32-len(d))
-            d = d.encode("ascii")
-        else:
-            d = base64.b64decode(d)
+            self.lastSeen = 0
+            self.lastRSSI = -127
+            self.expectedMessageInterval = float(
+                data.get("device.expectedMessageInterval", 60))
 
-        self.dev = Device(
-                kaithemInterface=weakref.ref(self),
-                channelKey=d,
-                nodeID=int(data.get("device.nodeID", '0')),
-                gateways=data.get("device.gateways", "__all__").split(","),
-                mqttServer=data.get(
-                    "device.mqttServer", "__virtual__SG1"),
-                mqttPort=int(
-                    data.get("device.mqttPort", 1883))
-                )
+            self.rssiTag = tagpoints.Tag("/devices/"+name+".rssi")
+            self.rssiTagClaim = self.rssiTag.claim(self.rssi, "HWStatus", 60)
+            self.rssiTag.setAlarm(name+'.SG1DeviceLowSignal', "value < -94",tripDelay= (self.expectedMessageInterval*1.3))
+
+            self.wakeButton = widgets.Button()
+            self.wakeButton.attach(self.wakeButtonHandler)
+
+
+
+            # update at 2x the rate because nyquist or something.
+            self.rssiTag.interval = self.expectedMessageInterval/2
+
+
+            self.tagPoints['rssi']= self.rssiTag
+
+            d = str(data.get("device.channelKey", 'A'*32))
+            if len(d) <= 32:
+                d += 'A'*(32-len(d))
+                d = d.encode("ascii")
+            else:
+                d = base64.b64decode(d)
+
+            self.dev = Device(
+                    kaithemInterface=weakref.ref(self),
+                    channelKey=d,
+                    nodeID=int(data.get("device.nodeID", '0')),
+                    gateways=data.get("device.gateways", "__all__").split(","),
+                    mqttServer=data.get(
+                        "device.mqttServer", "__virtual__SG1"),
+                    mqttPort=int(
+                        data.get("device.mqttPort", 1883))
+                    )
+        except:
+            self.handleError(traceback.format_exc(chain=True))
 
     def status(self):
         return str(self.rssiTag.value)+"dB"
@@ -116,28 +126,38 @@ class SG1Device(devices.Device):
             return -127
 
     def _onMessage(self, m):
-        self.rssi = m['rssi']
+        self.lastRSSI = m['rssi']
         self.lastSeen = time.monotonic()
         # Trigger the tag to refresh
         x = self.rssiTag.value
 
-        self.onMessage(m)
+        try:
+            self.onMessage(m)
+        except:
+            self.handleError(traceback.format_exc(chain=True))
+
 
     def _onRTMessage(self, m):
-        self.rssi = m['rssi']
+        self.lastRSSI = m['rssi']
         self.lastSeen = time.monotonic()
         # Trigger the tag to refresh
         x = self.rssiTag.value
+        
+        try:
+            self.onRTMessage(m)
+        except:            
+            d.handleError(traceback.format_exc(chain=True))
 
-        self.onRTMessage(m)
 
     def _onBeacon(self,m):
-        self.rssi = m['rssi']
+        self.lastRSSI = m['rssi']
         self.lastSeen = time.monotonic()
         # Trigger the tag to refresh
         x = self.rssiTag.value
-
-        self.onBeacon(m)
+        try:
+            self.onBeacon(m)
+        except:
+            d.handleError(traceback.format_exc(chain=True))
 
 
     def onMessage(self, m):
@@ -158,6 +178,10 @@ class SG1Device(devices.Device):
             raise ValueError("Message cannot be longer than "+str(limit)+" when rt="+str(rt))
         self.dev.sendMessage(msg,rt, power)
 
+    def close(self):
+        Device.close(self)
+        self.dev.close()
+
     @staticmethod
     def getCreateForm():
         return templateGetter.get_template("createform_device.html").render()
@@ -173,10 +197,18 @@ class SG1Gateway(devices.Device):
         self.lock = threading.Lock()
         self.gatewayStatusTag = tagpoints.StringTag("/devices/"+name+".status")
         self.gatewayStatusTagClaim = self.gatewayStatusTag.claim('disconnected', "HWStatus", 60)
-        self.gatewayStatusTag.setAlarm("GatewayDisconnected: "+name,"value != 'connected'", tripDelay=15)
+        self.gatewayStatusTag.setAlarm(name+".SG1GatewayDisconnected","value != 'connected'", tripDelay=15)
+
+
+        self.gatewayNoiseTag = tagpoints.Tag("/devices/"+name+".noiseFloor")
+        self.gatewayUtilizationTag = tagpoints.Tag("/devices/"+name+".rxUtilization")
 
         devices.Device.__init__(self, name, data)
         self.tagPoints['status']= self.gatewayStatusTag
+        self.tagPoints['noiseFloor']= self.gatewayNoiseTag
+        self.tagPoints['utilization']= self.gatewayUtilizationTag
+
+
 
 
         self.gw = Gateway(
@@ -199,6 +231,17 @@ class SG1Gateway(devices.Device):
        
         self.print("GW obj created")
 
+
+    def onNoiseMeasurement(self,noise):
+        if self.gatewayNoiseTag.value ==0:
+            self.gatewayNoiseTag.value=noise
+
+        self.gatewayNoiseTag.value = self.gatewayNoiseTag.value*0.99 + noise*0.01
+
+        b = noise>-95
+        self.gatewayUtilizationTag.value = self.gatewayUtilizationTag.value*0.99 + b*0.01
+
+        
     def status(self):
         return self.gatewayStatusTag.value
 

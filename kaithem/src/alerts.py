@@ -299,7 +299,8 @@ class Alert(virtualresource.VirtualResource):
             #deadlock with the tag's lock in the __del__ function GCing some
             #other tag. I don't quite understand it but this should break the loop
             def f():
-                sound.playSound(s,handle="kaithem_sys_main_alarm")
+                beepDevice = registry.get("system/alerts/soundcard",None)
+                sound.playSound(s,handle="kaithem_sys_main_alarm",output=beepDevice)
             workers.do(f)
 
         if self.priority in ("error", "critical"):

@@ -447,10 +447,10 @@ class GStreamerPipeline():
         t=time.monotonic()
         while not self.pipeline.get_state(1000_000_000)[1]==s:
             if time.monotonic()-t> timeout:
-                raise RuntimeError("Timeout")
+                raise RuntimeError("Timeout, pipeline still in: ", self.pipeline.get_state(1000_000_000)[1])
             time.sleep(0.1)
 
-    def start(self, effectiveStartTime=None):
+    def start(self, effectiveStartTime=None,timeout=10):
         "effectiveStartTime is used to keep multiple players synced when used with systemTime"
         with self.lock:
             if self.exiting:
@@ -477,16 +477,16 @@ class GStreamerPipeline():
                 self.seek(time.monotonic()-self.startTime)
 
             self.pipeline.set_state(Gst.State.PLAYING)
-            self._waitForState(Gst.State.PLAYING)
+            self._waitForState(Gst.State.PLAYING,timeout)
             self.running=True
 
-            for i in range(0,50):
+            for i in range(0,500):
                 try:
                     #Test that we can actually read the clock
                     self.getPosition()
                     break
                 except:
-                    if i>48:
+                    if i>150:
                         raise RuntimeError("Clock still not valid")
                     time.sleep(0.1)
 

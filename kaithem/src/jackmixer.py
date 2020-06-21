@@ -113,6 +113,8 @@ def cleanupEffectData(fx):
 
 channelTemplate = {"type":"audio","effects":[effectTemplates['fader']], "input": '', 'output': '', "fader":-60, "soundFuse":3}
 
+
+
 specialCaseParamCallbacks={}
 
 
@@ -149,13 +151,9 @@ def queue(e, p, v):
 # with open("/dev/shm/kaithem_dummy_kw_file",'w') as f:
 #     f.write('hello /1e-30/\n')
 
-# def tmpKwFile(e,p,v):
+# def tmpKwFile(e,p,v,c):
 #     if p=='kws':
-#         v=v.split(",")
-#         with open("/dev/shm/kaithem_kw_file",'w') as f:
-#             for i in v:
-#                 f.write(v +" /1e-25/\n")
-#         return "pause"
+#        
 
 
 specialCaseParamCallbacks['3beq']= beq3
@@ -446,8 +444,12 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
             paramData['value']=value
             t = self.effectDataById[effectId]['type']
 
+
             if t=='float':
                 value = float(value)
+
+            
+            
 
             #One type of special case
             if param[0]=='*':
@@ -462,17 +464,18 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                             pass
             elif param=="bypass":
                 pass
-            elif t in specialCaseParamCallbacks:
-                r= specialCaseParamCallbacks[t](self.effectsById[effectId], param, value)
-                if r:
-                    if r=="pause":
-                        self.pause()
-                    self.setProperty(self.effectsById[effectId], param, value)
-                    if r =="pause":
-                        self.play()
-                    
             else:
-                self.setProperty(self.effectsById[effectId], param, value)
+                if t in specialCaseParamCallbacks:
+                    r= specialCaseParamCallbacks[t](self.effectsById[effectId], param, value)
+                    if r:
+                        if r=="pause":
+                            self.pause()
+                        self.setProperty(self.effectsById[effectId], param, value)
+                        if r =="pause":
+                            self.play()
+                        
+                else:
+                    self.setProperty(self.effectsById[effectId], param, value)
         return value
     
     def addLevelDetector(self):

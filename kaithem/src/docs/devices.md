@@ -16,14 +16,30 @@ All Tagpoints the device exposes appear in the tags list under  /devices/<DEVNAM
 
 ### Device Objects
 
-#### dev.alerts
+#### dev.alerts(DEPRECATED, USE TAGPOINTS and setAlarm)
 
 Dict of Alert objects the device defines
 
-#### dev.__init__(name, data)
+#### dev.readme
+Should be a local filename of a README file for the device type.
+
+use `readme = os.path.join(os.path.dirname(__file__),"README.md")' to load the file from
+the same dir as the script.
+
+
+#### dev.\_\_init\_\_(name, data)
 Data will be the same kwargs from the HTTP POST used to create or delete.
 
 Keys starting with temp. do not become part of persistent config.
+
+Subclasses should never raise errors, and should instead just act as "dummy" devices,
+to allow the user to edit and correct any problems.
+
+handleError should be used to inform the user of issues.
+
+#### dev.print(msg)
+
+Print a string to the device's management page. Old messages are automatically cleared.
 
 #### dev.data
 
@@ -54,6 +70,10 @@ Tag points should usually be named relative to the device, like "/devices/NAME/p
 #### dev.handleError(string)
 
 Logs an error as a string. Old errors are automatically flushed to make room for new, and all recent errors will show on the device page.
+
+
+#### dev.close()
+Clean up the device. Must not fail.
 
 ## Adding new device types
 

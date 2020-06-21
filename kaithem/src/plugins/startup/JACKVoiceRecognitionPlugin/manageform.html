@@ -1,0 +1,17 @@
+<h3>Info</h3>
+<p>
+    This recognizer may raise an error that it is still in the paused state. I do not know why.
+</p>
+
+<p>
+    It will create a JACK sink under the name "DEVICENAME_in".  Recognized words
+    will be posted to "/devices/NAME/final", as (phrase, confidence) pairs, in addition
+    to being shown in the device's management page.
+</p>
+
+<h3>Keywords</h3>
+<p class="help">Keywords the voice recognizer will look for. One per line. 
+    multi-word keyphrases are allowed. Requires "gstreamer1.0-pocketsphinx" or equivalent installed.
+</p>
+<p class="help">Thresholds may be supplied in pocketsphinx /1e-25/ format at the end of a line</p>
+<textarea name="device.keywords">${data.get('device.keywords','')}</textarea>

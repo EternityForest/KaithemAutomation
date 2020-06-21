@@ -60,7 +60,7 @@ unsaved_changes = {}
 def getZombies():
     x = []
     for i in dbgd:
-        if not i in remote_devices:
+        if not dbgd[i].name in remote_devices:
             x.append(i)
     return x
 
@@ -103,6 +103,10 @@ def getByDescriptor(d):
 # This is the base class for a remote device of any variety.
 
 
+globalDefaultSubclassCode="""
+class CustomDeviceType(DeviceType):
+    pass
+"""
 class Device(virtualresource.VirtualResource):
     """A Descriptor is something that describes a capability or attribute
     of a device. They are string names and object values,
@@ -113,6 +117,9 @@ class Device(virtualresource.VirtualResource):
     deviceTypeName = "device"
 
     readme = None
+
+
+    defaultSubclassCode = globalDefaultSubclassCode
 
     @staticmethod
     def validateData(data):
@@ -151,7 +158,7 @@ class Device(virtualresource.VirtualResource):
             raise ValueError("Incorrect type in info dict")
         virtualresource.VirtualResource.__init__(self)
         global remote_devices_atomic
-        dbgd[name] = self
+        dbgd[name+str(time.time())] = self
 
         # Time, title, text tuples for any "messages" a device might "print"
         self.messages = []
@@ -159,7 +166,9 @@ class Device(virtualresource.VirtualResource):
 
         # This data dict represents all persistent configuration
         # for the alert object.
-        self.data = data
+        self.data = data.copy()
+        if not data.get("subclass",""):
+            data['subclass']= self.defaultSubclassCode
 
         # This dict cannot be changed, only replaced atomically.
         # It is a list of alert objects. Dict keys
@@ -181,10 +190,17 @@ class Device(virtualresource.VirtualResource):
             remote_devices[name] = self
             remote_devices_atomic = remote_devices.copy()
 
+    def handleException(self):
+        self.handleError(traceback.format_exc(chain=True))
     # Takes an error as a string and handles it
 
     def handleError(self, s):
         self.errors.append([time.time(), str(s)])
+
+        if len(self.errors)> 50:
+            self.errors.pop(0)
+        if len(self.errors)==1:
+            messagebus.postMessage("/system/notifications/errors","First error in device: "+self.name)
 
     # delete a device, it should not be used after this
     def close(self):
@@ -354,10 +370,7 @@ class DeviceNamespace():
 builtinDeviceTypes = {'device': Device}
 deviceTypes = weakref.WeakValueDictionary()
 
-defaultSubclassCode = """
-CustomDeviceType(DeviceType):
-    pass
-"""
+
 
 
 class DeviceTypeLookup():
@@ -379,21 +392,37 @@ def makeDevice(name, data):
         dt = Device
     else:
         dt = deviceTypes[data['type']]
+
     # Allow auto-subclassing to make customized v
     if 'subclass' in data and data['subclass'].strip():
         # Allow default code, without having to have an unneccesary layer of subclassing
-        # If it is unused.
+        # If it is unused.   These are just purely for comparision, we don't actually use them.
+
         stripped = data['subclass'].replace("\n", '').replace(
             "\r", '').replace("\t", '').replace(" ", '')
-        strippedTemplate = defaultSubclassCode.replace("\n", '').replace(
-            "\r", '').replace("\t", '').replace(" ", '')
-        if not stripped == strippedTemplate:
-            from src import kaithemobj
-            codeEvalScope = {"DeviceType": dt, 'kaithem': kaithemobj.kaithem}
-            exec(data['subclass'], codeEvalScope, codeEvalScope)
-            dt = codeEvalScope["CustomDeviceType"]
 
-    return dt(name, data)
+
+        strippedTemplate = dt.defaultSubclassCode.replace("\n", '').replace(
+            "\r", '').replace("\t", '').replace(" ", '')
+
+        originaldt = dt
+        try:
+            if not stripped == strippedTemplate:
+                from src import kaithemobj
+                codeEvalScope = {"DeviceType": dt, 'kaithem': kaithemobj.kaithem}
+                exec(data['subclass'], codeEvalScope, codeEvalScope)
+                dt = codeEvalScope["CustomDeviceType"]
+            d = dt(name, data)
+            
+
+        except:
+            d = originaldt(name, data)
+            d.handleError(traceback.format_exc(chain=True))
+            messagebus.postMessage('/system/notifications/error',"Error with customized behavior for: "+ name+" using default")
+    else:
+        d = dt(name, data)
+
+    return d
 
 
 def getDeviceType(t):

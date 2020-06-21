@@ -32,10 +32,11 @@ from src import jackmixer
       border-width: 1px;
       margin: 0.5em;
     }
-    button.bold{
+
+    button.bold {
       font-weight: bolder;
       text-shadow: 5px;
-      
+
     }
   </style>
 
@@ -71,7 +72,8 @@ from src import jackmixer
     <button class="{bold: activePane=='settings'}" v-on:click="activePane='settings'">Settings</button>
 
     <button v-on:click="showAddEffect=true">Show Effects Menu</button>
-    <label>Preset:<input list="presets" v-model="loadedPreset" placeholder="Preset name"><button v-on:click="confirmSavePreset(loadedPreset)">Save</button></label>
+    <label>Preset:<input list="presets" v-model="loadedPreset" placeholder="Preset name"><button
+        v-on:click="confirmSavePreset(loadedPreset)">Save</button></label>
 
 
 
@@ -81,66 +83,66 @@ from src import jackmixer
         <tr>
           <td>Period Size(Must be at least the JACK period size)</td>
           <td>
-              <select v-model.number="usbsize">
-                  <option value="-1">Use the default</option>
-                  <option value="64">64</option>
-                  <option value="128">128</option>
-                  <option value="256">256</option>
-                  <option value="512">512</option>
-                  <option value="1024">1024</option>
-                  <option value="2048">2048</option>
-                </select>
+            <select v-model.number="usbsize">
+              <option value="-1">Use the default</option>
+              <option value="64">64</option>
+              <option value="128">128</option>
+              <option value="256">256</option>
+              <option value="512">512</option>
+              <option value="1024">1024</option>
+              <option value="2048">2048</option>
+            </select>
           </td>
         </tr>
 
 
         <tr>
-            <td>Target Latency(Try auto or half of periods*periodsize)</td>
-            <td>
-                <select v-model.number="usblatency">
-                    <option value="-1">Auto</option>
-                    <option value="64">64</option>
-                    <option value="128">128</option>
-                    <option value="256">256</option>
-                    <option value="512">512</option>
-                    <option value="768">768</option>
-                    <option value="1024">1024</option>
-                    <option value="2048">2048</option>
-                    <option value="3027">3027</option>
-                    <option value="4096">4096</option>
-                    <option value="8192">8192</option>
-                  </select>
-              </td>
-          </tr>
+          <td>Target Latency(Try auto or half of periods*periodsize)</td>
+          <td>
+            <select v-model.number="usblatency">
+              <option value="-1">Auto</option>
+              <option value="64">64</option>
+              <option value="128">128</option>
+              <option value="256">256</option>
+              <option value="512">512</option>
+              <option value="768">768</option>
+              <option value="1024">1024</option>
+              <option value="2048">2048</option>
+              <option value="3027">3027</option>
+              <option value="4096">4096</option>
+              <option value="8192">8192</option>
+            </select>
+          </td>
+        </tr>
 
-          <tr>
-            <td>Quality</td>
-            <td>
-                <select v-model.number="usbquality">
-                    <option value="0">0</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
+        <tr>
+          <td>Quality</td>
+          <td>
+            <select v-model.number="usbquality">
+              <option value="0">0</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
 
-              </select>
-            </td>
+            </select>
+          </td>
         </tr>
 
 
         <tr>
           <td>Number of Periods(Try 3 if you get noise)</td>
           <td>
-              <select v-model.number="usbperiods">
-                 <option value="-1">Auto</option>
+            <select v-model.number="usbperiods">
+              <option value="-1">Auto</option>
 
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4</option>
-                  <option value="5">5</option>
-                  <option value="6">6</option>
-                  <option value="7">7</option>
-                  <option value="8">8</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
             </select>
           </td>
         </tr>
@@ -150,395 +152,408 @@ from src import jackmixer
 
     <div v-if="activePane=='status'">
       <h3>Audio ports</h3>
-        <h4>Outputs(Sinks)</h4>
-        <table>
-          <tr v-for="v,i in outports"><td>{{i}}</td></tr>
-        </table>
-        <h4>Inputs(Sources)</h4>
-        <table>
-          <tr v-for="v,i in outports"><td>{{i}}</td></tr>
-        </table>
+      <h4>Outputs(Sinks)</h4>
+      <table>
+        <tr v-for="v,i in outports">
+          <td>{{i}}</td>
+        </tr>
+      </table>
+      <h4>Inputs(Sources)</h4>
+      <table>
+        <tr v-for="v,i in outports">
+          <td>{{i}}</td>
+        </tr>
+      </table>
 
 
       <h3>MIDI ports</h3>
-        <h4>Outputs(Sinks)</h4>
-        <table>
-          <tr v-for="v,i in midioutports"><td>{{i}}</td></tr>
-        </table>
-        <h4>Inputs(Sources)</h4>
-        <table>
-          <tr v-for="v,i in midiinports"><td>{{i}}</td></tr>
-        </table>
+      <h4>Outputs(Sinks)</h4>
+      <table>
+        <tr v-for="v,i in midioutports">
+          <td>{{i}}</td>
+        </tr>
+      </table>
+      <h4>Inputs(Sources)</h4>
+      <table>
+        <tr v-for="v,i in midiinports">
+          <td>{{i}}</td>
+        </tr>
+      </table>
 
 
     </div>
 
     <div v-if="activePane=='presets'">
-    <h2>Presets</h2>
-    <p class="help">Presets let you load and save the entire state of the mixing board. When kaithem boots, the preset
-      named "default" will be loaded if it exists. Presets are saved immediately to vardir/system.mixer/presets
-    </p>
+      <h2>Presets</h2>
+      <p class="help">Presets let you load and save the entire state of the mixing board. When kaithem boots, the preset
+        named "default" will be loaded if it exists. Presets are saved immediately to vardir/system.mixer/presets
+      </p>
 
-   
-    
-    <table border="1">
-      <tr><th>Name</th><th>Actions</th></tr>
-      <tr v-for="i in presets">
-        <td>{{i}}</td>
-        <td>
-          <button v-on:click="confirmLoadPreset(i)">Load</button>
-        </td>
-        <td>
-          <button v-on:click="confirmDeletePreset(i)">Delete</button>
-        </td>
-      </tr>
 
-      <tr> 
-        <td>
-          <input list="presets" v-model="newpresetname" placeholder="New Preset">
-        </td>
-        <td><button v-on:click="createPreset(newpresetname)">Save</button></td>
-        <td></td>
-      </tr>
 
-    </table>
+      <table border="1">
+        <tr>
+          <th>Name</th>
+          <th>Actions</th>
+        </tr>
+        <tr v-for="i in presets">
+          <td>{{i}}</td>
+          <td>
+            <button v-on:click="confirmLoadPreset(i)">Load</button>
+          </td>
+          <td>
+            <button v-on:click="confirmDeletePreset(i)">Delete</button>
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <input list="presets" v-model="newpresetname" placeholder="New Preset">
+          </td>
+          <td><button v-on:click="createPreset(newpresetname)">Save</button></td>
+          <td></td>
+        </tr>
+
+      </table>
     </div>
 
 
     <div v-if="activePane=='mixer'">
       <div class="channel" v-for="(channel,channelname) in channels">
-        <h3>{{channelname}}({{channel.channels}}) <button v-on:click="confirmDelete(channelname)">X</button></h3>
-        Connect Input: <input v-model="channel.input" list="outports"
-          v-on:input="setInput(channelname, $event.target.value)">
-        <div class="chain">
-          <div v-for="effect, index in channel.effects" class="effect">
-            <h4 v-bind:title="effect.id">
-              {{effect.displayType}}
-              <button v-on:click="moveEffectUp(channelname, index)">Up</button>
-              <button v-on:click="moveEffectDown(channelname, index)">Down</button>
-              <button v-if="effect.type!='fader'" v-on:click="deleteEffect(channelname, index)">Del</button>
-            </h4>
-            <table style="width:98%;margin:auto;" border=1>
-              <tr v-for="param in sortedParams(effect.params)" class="param">
-                <template v-if="param.type=='float'">
-                  <td>{{param.displayName}}</td> 
-                  <td><input type="range" style="width:95%" v-model.number="param.value" 
-                    v-bind:min="param.min" v-bind:max="param.max" :step="(param.step)" v-on:input="setParam(channelname,effect.id,param.name,parseFloat($event.target.value))">
-                  </td>
-                    
+        
+        
+        <div v-if="channel.type=='audio' || !channel.type">
+          <h3>{{channelname}}({{channel.channels}}) <button v-on:click="confirmDelete(channelname)">X</button></h3>
+          Connect Input: <input v-model="channel.input" list="outports"
+            v-on:input="setInput(channelname, $event.target.value)">
+          <div class="chain">
+            <div v-for="effect, index in channel.effects" class="effect">
+              <h4 v-bind:title="effect.id">
+                {{effect.displayType}}
+                <button v-on:click="moveEffectUp(channelname, index)">Up</button>
+                <button v-on:click="moveEffectDown(channelname, index)">Down</button>
+                <button v-if="effect.type!='fader'" v-on:click="deleteEffect(channelname, index)">Del</button>
+              </h4>
+              <table style="width:98%;margin:auto;" border=1>
+                <tr v-for="param in sortedParams(effect.params)" class="param">
+                  <template v-if="param.type=='float'">
+                    <td>{{param.displayName}}</td>
+                    <td><input type="range" style="width:95%" v-model.number="param.value" v-bind:min="param.min"
+                        v-bind:max="param.max" :step="(param.step)"
+                        v-on:input="setParam(channelname,effect.id,param.name,parseFloat($event.target.value))">
+                    </td>
+
                     <td>{{param.value}}</td>
-                </template>
+                  </template>
 
-                <template v-if="param.type=='bool'">
-                  <td>{{param.displayName}}</td>
-                  <td><input type="checkbox" v-model.bool="param.value"
-                    v-on:input="setParam(channelname,effect.id,param.name,$event.target.checked)">
-                  </td>
-                  <td>{{param.value}}</td>
-                </template>
+                  <template v-if="param.type=='bool'">
+                    <td>{{param.displayName}}</td>
+                    <td><input type="checkbox" v-model.bool="param.value"
+                        v-on:input="setParam(channelname,effect.id,param.name,$event.target.checked)">
+                    </td>
+                    <td>{{param.value}}</td>
+                  </template>
 
-                <template v-if="param.type=='JackInput'">
-                  <td>{{param.displayName}}</td>
-                  <td><input list="inports" v-model="param.value"
-                    v-on:input="setParam(channelname,effect.id,param.name,$event.target.value)">
-                  </td>
-                  <td>{{param.value}}</td>
-                </template>
+                  <template v-if="param.type=='JackInput'">
+                    <td>{{param.displayName}}</td>
+                    <td><input list="inports" v-model="param.value"
+                        v-on:input="setParam(channelname,effect.id,param.name,$event.target.value)">
+                    </td>
+                    <td>{{param.value}}</td>
+                  </template>
 
-                <template v-if="param.type=='string'">
-                  <td>{{param.displayName}}</td>
-                  <td><input v-model="param.value"
-                    v-on:input="setParam(channelname,effect.id,param.name,$event.target.value)">
-                  </td>
-                  <td></td>
-                </template>
-                
-              </tr>
-            </table>
+                  <template v-if="param.type=='string'">
+                    <td>{{param.displayName}}</td>
+                    <td><input v-model="param.value"
+                        v-on:input="setParam(channelname,effect.id,param.name,$event.target.value)">
+                    </td>
+                    <td></td>
+                  </template>
 
-          </div>
+                </tr>
+              </table>
 
-          <div class="effect" v-if="showAddEffect">
-            <h3>Add Effect<button v-on:click="showAddEffect=false">Hide</button></h3>
+            </div>
+
+            <div class="effect" v-if="showAddEffect">
+              <h3>Add Effect<button v-on:click="showAddEffect=false">Hide</button></h3>
               <div style="height:8em;overflow: scroll;">
-              <div v-for="i in effectTypes" v-if="canUseEffect(i, channel.channels)">
-                <h4>{{i.displayType}}</h4>
-                <p>{{i.help}}</p>
-                <button v-on:click="api.send(['addEffect', channelname, i.type])">Add</button>
+                <div v-for="i in effectTypes" v-if="canUseEffect(i, channel.channels)">
+                  <h4>{{i.displayType}}</h4>
+                  <p>{{i.help}}</p>
+                  <button v-on:click="api.send(['addEffect', channelname, i.type])">Add</button>
+                </div>
               </div>
-              </div>
+            </div>
+
           </div>
 
+          <input v-model="channel.fader" v-on:input="setFader(channelname, parseFloat($event.target.value))"
+            orient="vertical" type="range" step="0.5" value="-60" min="-60" max="20" style="width:98%;"
+            v-bind:title="channel.fader"><br>
+          <br>
+          <meter style="width:calc(100% - 5em);" min="-70" max="10" high="-5" v-bind:value="channel.level"></meter><span
+            style="width:5em;">{{channel.level}}db</span></br>
+          Connect output: <input v-model="channel.output" list="inports"
+            v-on:input="setOutput(channelname, $event.target.value)"
+            title="The output of this channel will be automatically connected to this port"><br>
+          FBX Threshold:<input style="width: 3em;" type="number" v-model="channel.soundFuse"
+            title="Steady or increasing values above this will result in the volume being automatically lowered."
+            v-on:input="setFuse(channelname, $event.target.value)">dB
         </div>
-    
-        <input v-model="channel.fader" v-on:input="setFader(channelname, parseFloat($event.target.value))"
-        orient="vertical" type="range" step="0.5" value="-60" min="-60" max="20" style="width:98%;" v-bind:title="channel.fader"><br>
-    <br>
-      <meter style="width:calc(100% - 5em);" min="-70" max="10" high="-5" v-bind:value="channel.level"></meter><span  style="width:5em;">{{channel.level}}db</span></br>
-      Connect output: <input  v-model="channel.output" list="inports"
-        v-on:input="setOutput(channelname, $event.target.value)" title="The output of this channel will be automatically connected to this port"><br>
-      FBX Threshold:<input style="width: 3em;" type="number" v-model="channel.soundFuse" title="Steady or increasing values above this will result in the volume being automatically lowered."
-        v-on:input="setFuse(channelname, $event.target.value)">dB
-
       </div>
 
 
-  <div class="channel">
-    <h2>Soundboard</h2>
-    <p>This is the control strip.<br>
-      Kaithem's Soundboard is an</br>
-      Emulation of a traditional </br>
-      Analog board.</br>
-    </p>
-    <h3>New Channel</h3>
-    <input v-model="newchannelname"><button v-on:click="api.send(['addChannel', newchannelname,1])">Add Mono</button>
-    <button v-on:click="api.send(['addChannel', newchannelname,2])">Add Stereo</button>
+      <div class="channel">
+        <h2>Soundboard</h2>
+        <p>This is the control strip.<br>
+          Kaithem's Soundboard is an</br>
+          Emulation of a traditional </br>
+          Analog board.</br>
+        </p>
+        <h3>New Channel</h3>
+        <input v-model="newchannelname"><button v-on:click="api.send(['addChannel', newchannelname,1])">Add
+          Mono</button>
+        <button v-on:click="api.send(['addChannel', newchannelname,2])">Add Stereo</button><br>
+      </div>
+    </div>
   </div>
-</div>
-
-</div>
 
 
 
-<script src="/static/js/vue2.js"></script>
-<script src="/static/js/sortable.min.js"></script>
-<script src="/static/js/vuedraggable.umd.min.js"></script>
+  <script src="/static/js/vue2.js"></script>
+  <script src="/static/js/sortable.min.js"></script>
+  <script src="/static/js/vuedraggable.umd.min.js"></script>
 
 
-<script>
-  function compareParams(a, b) {
-    if (a.sort > b.sort) return 1;
-    if (b.sort < a.sort) return -1;
+  <script>
+    function compareParams(a, b) {
+      if (a.sort > b.sort) return 1;
+      if (b.sort < a.sort) return -1;
 
-    return 0;
-  };
+      return 0;
+    };
 
-  function sortedParams(pl) {
-    var l = [];
-    for (i in pl) {
-      pl[i].name = i;
-      l.push(pl[i]);
-    }
-    l.sort(compareParams);
-    return (l);
-  };
+    function sortedParams(pl) {
+      var l = [];
+      for (i in pl) {
+        pl[i].name = i;
+        l.push(pl[i]);
+      }
+      l.sort(compareParams);
+      return (l);
+    };
 
 
-  channels = {};
-  var app = new Vue({
-    el: '#app',
-    data: {
-      message: 'Hello Vue!',
-      inports: {},
-      outports: {},
-      channels:channels,
-      api: api,
-      newchannelname: "",
-      newpresetname:"",
-      neweffecttype: "",
-      activePane: "mixer",
-      effectTypes:{},
-      presets:[],
-      showAddEffect: false,
-      loadedPreset: '',
-      midiinports:[],
-      midioutports:[],
+    channels = {};
+    var app = new Vue({
+      el: '#app',
+      data: {
+        message: 'Hello Vue!',
+        inports: {},
+        outports: {},
+        channels: channels,
+        api: api,
+        newchannelname: "",
+        newpresetname: "",
+        neweffecttype: "",
+        activePane: "mixer",
+        effectTypes: {},
+        presets: [],
+        showAddEffect: false,
+        loadedPreset: '',
+        midiinports: [],
+        midioutports: [],
 
-      usblatency:384,
-      usbsize: 128,
-      usbquality: 0,
-      usbperiods: 3,
+        usblatency: 384,
+        usbsize: 128,
+        usbquality: 0,
+        usbperiods: 3,
 
-      confirmDelete: function (c) {
-        if (window.confirm("Do you really want to delete this channel?")) {
-          api.send(['rmChannel', c]);
-        }
-      },
-      confirmDeletePreset: function (c) {
-        if (window.confirm("Do you really want to delete this preset?")) {
-          api.send(['deletePreset', c]);
-        }
-      },
-      confirmLoadPreset: function (c) {
-        if (window.confirm("Do you really want to load this preset?")) {
-          api.send(['loadPreset', c]);
-        }
-      },
-      confirmSavePreset: function (c) {
-        if (window.confirm("Do you really want to save this preset? Anything named 'default' will be loaded at startup.")) {
-          api.send(['savePreset', c]);
-        }
-      },
+        confirmDelete: function (c) {
+          if (window.confirm("Do you really want to delete this channel?")) {
+            api.send(['rmChannel', c]);
+          }
+        },
+        confirmDeletePreset: function (c) {
+          if (window.confirm("Do you really want to delete this preset?")) {
+            api.send(['deletePreset', c]);
+          }
+        },
+        confirmLoadPreset: function (c) {
+          if (window.confirm("Do you really want to load this preset?")) {
+            api.send(['loadPreset', c]);
+          }
+        },
+        confirmSavePreset: function (c) {
+          if (window.confirm("Do you really want to save this preset? Anything named 'default' will be loaded at startup.")) {
+            api.send(['savePreset', c]);
+          }
+        },
 
-      createPreset: function (name) {
-        api.send(['savePreset', name]);
-      },
+        createPreset: function (name) {
+          api.send(['savePreset', name]);
+        },
 
-      moveEffectUp: function (channel, effectIndex) {
-        if (effectIndex > 0) {
-          var x = this.channels[channel].effects[effectIndex]
-          var y = this.channels[channel].effects[effectIndex - 1]
+        moveEffectUp: function (channel, effectIndex) {
+          if (effectIndex > 0) {
+            var x = this.channels[channel].effects[effectIndex]
+            var y = this.channels[channel].effects[effectIndex - 1]
 
-          this.channels[channel].effects[effectIndex] = y;
-          this.channels[channel].effects[effectIndex - 1] = x;
+            this.channels[channel].effects[effectIndex] = y;
+            this.channels[channel].effects[effectIndex - 1] = x;
+            api.send(['setEffects', channel, this.channels[channel].effects]);
+
+          }
+        },
+
+        moveEffectDown: function (channel, effectIndex) {
+          if (effectIndex < (this.channels[channel].effects.length - 1)) {
+            var x = this.channels[channel].effects[effectIndex]
+            var y = this.channels[channel].effects[effectIndex + 1]
+
+            this.channels[channel].effects[effectIndex] = y;
+            this.channels[channel].effects[effectIndex + 1] = x;
+            api.send(['setEffects', channel, this.channels[channel].effects]);
+
+          }
+        },
+        deleteEffect: function (channel, effectIndex) {
+          this.channels[channel].effects.splice(effectIndex, 1);
           api.send(['setEffects', channel, this.channels[channel].effects]);
+        },
 
-        }
-      },
+        setFader: function (channel, value) {
+          api.send(['setFader', channel, value]);
+        },
 
-      moveEffectDown: function (channel, effectIndex) {
-        if (effectIndex < (this.channels[channel].effects.length-1)) {
-          var x = this.channels[channel].effects[effectIndex]
-          var y = this.channels[channel].effects[effectIndex +1]
+        setOutput: function (channel, value) {
+          api.send(['setOutput', channel, value]);
+        },
 
-          this.channels[channel].effects[effectIndex] = y;
-          this.channels[channel].effects[effectIndex + 1] = x;
-          api.send(['setEffects', channel, this.channels[channel].effects]);
+        setFuse: function (channel, value) {
+          api.send(['setFuse', channel, value]);
+        },
 
-        }
-      },
-      deleteEffect: function (channel, effectIndex) {
-          this.channels[channel].effects.splice(effectIndex,1);
-          api.send(['setEffects', channel, this.channels[channel].effects]);
-      },
-
-      setFader: function (channel, value) {
-        api.send(['setFader', channel, value]);
-      },
-
-      setOutput: function (channel, value) {
-        api.send(['setOutput', channel, value]);
-      },
-
-      setFuse: function (channel, value) {
-        api.send(['setFuse', channel, value]);
-      },
-
-      setUSBSettings: function() {
-        api.send(['setUSBAlsa', this.usbsize, this.usblatency,this.usbquality,this.usbperiods]);
-      },
-      setParam: function (channel, effect,param,value) {
-        api.send(['setParam', channel, effect,param,value]);
-      },
-      setInput: function (channel, value) {
-        api.send(['setInput', channel, value]);
-      },
-      canUseEffect: function(fx, channels)
-      {
-        if(fx.gstElement)
-        {
-          return 1;
-        }
-        if(channels==2)
-        {
-          if(fx.stereoGstElement)
-          {
+        setUSBSettings: function () {
+          api.send(['setUSBAlsa', this.usbsize, this.usblatency, this.usbquality, this.usbperiods]);
+        },
+        setParam: function (channel, effect, param, value) {
+          api.send(['setParam', channel, effect, param, value]);
+        },
+        setInput: function (channel, value) {
+          api.send(['setInput', channel, value]);
+        },
+        canUseEffect: function (fx, channels) {
+          if (fx.gstElement) {
             return 1;
           }
-        }
-        if(channels==1)
-        {
-          if(fx.monoGstElement)
-          {
-            return 1;
+          if (channels == 2) {
+            if (fx.stereoGstElement) {
+              return 1;
+            }
           }
-        }
-        return 0;
-      },
-      sortedParams: function (pl) {
-        var l = [];
-        for (i in pl) {
-          pl[i].name = i;
-          l.push(pl[i]);
-        }
-        l.sort(compareParams);
-        return (l);
-      },
-      //Given dict of ports, return every connectable(Port and just client without port)
-      sortedConnectables: function (pl) {
-        var l = [];
-        var clients = {};
-        var x = Object.keys(pl);
-        x.sort();
-        for (i in pl) {
-          l.push(i);
-          if (!(i.split(':')[0] in clients)) {
-            l.push(i.split(":")[0])
-            clients[i.split(":")[0]] = 1;
+          if (channels == 1) {
+            if (fx.monoGstElement) {
+              return 1;
+            }
           }
+          return 0;
+        },
+        sortedParams: function (pl) {
+          var l = [];
+          for (i in pl) {
+            pl[i].name = i;
+            l.push(pl[i]);
+          }
+          l.sort(compareParams);
+          return (l);
+        },
+        //Given dict of ports, return every connectable(Port and just client without port)
+        sortedConnectables: function (pl) {
+          var l = [];
+          var clients = {};
+          var x = Object.keys(pl);
+          x.sort();
+          for (i in pl) {
+            l.push(i);
+            if (!(i.split(':')[0] in clients)) {
+              l.push(i.split(":")[0])
+              clients[i.split(":")[0]] = 1;
+            }
+          }
+          l.sort();
+          return (l);
         }
-        l.sort();
-        return (l);
       }
-    }
-  });
+    });
 
-  
-  api.upd = function (msg) {
 
-    if (msg[0] == "newport") {
+    api.upd = function (msg) {
 
-      if (msg[3]) {
-        app.$data.inports[msg[1]] = msg[2];
+      if (msg[0] == "newport") {
+
+        if (msg[3]) {
+          app.$data.inports[msg[1]] = msg[2];
+        }
+        else {
+          app.$data.outports[msg[1]] = msg[2];
+        }
       }
-      else {
-        app.$data.outports[msg[1]] = msg[2];
+
+      if (msg[0] == "rmport") {
+        delete app.$data.inports[msg[1]];
+        delete app.$data.outports[msg[1]]
       }
-    }
-
-    if (msg[0] == "rmport") {
-      delete app.$data.inports[msg[1]];
-      delete app.$data.outports[msg[1]]
-    }
 
 
-    if (msg[0] == "inports") {
-      app.$data.inports = msg[1];
-    }
+      if (msg[0] == "inports") {
+        app.$data.inports = msg[1];
+      }
 
-    if (msg[0] == "presets") {
-      app.$data.presets = msg[1];
-    }
+      if (msg[0] == "presets") {
+        app.$data.presets = msg[1];
+      }
 
-    if (msg[0] == "effectTypes") {
-      app.$data.effectTypes = msg[1];
-    }
-    if (msg[0] == "outports") {
-      app.$data.outports = msg[1];
-    }
-    if (msg[0] == "channels") {
-      app.$data.channels = msg[1];
-    }
-    if (msg[0] == "loadedPreset") {
-      app.$data.loadedPreset = msg[1];
-    }
+      if (msg[0] == "effectTypes") {
+        app.$data.effectTypes = msg[1];
+      }
+      if (msg[0] == "outports") {
+        app.$data.outports = msg[1];
+      }
+      if (msg[0] == "channels") {
+        app.$data.channels = msg[1];
+      }
+      if (msg[0] == "loadedPreset") {
+        app.$data.loadedPreset = msg[1];
+      }
 
-    if (msg[0] == "midiinports") {
-      app.$data.midiinports = msg[1];
-    }
+      if (msg[0] == "midiinports") {
+        app.$data.midiinports = msg[1];
+      }
 
-    if (msg[0] == "midioutports") {
-      app.$data.midioutports = msg[1];
-    }
+      if (msg[0] == "midioutports") {
+        app.$data.midioutports = msg[1];
+      }
 
-    if (msg[0] == "lv") {
-      app.$data.channels[msg[1]].level=msg[2];
-    }
+      if (msg[0] == "lv") {
+        app.$data.channels[msg[1]].level = msg[2];
+      }
 
-    if (msg[0] == "fader") {
-      app.$data.channels[msg[1]].fader=msg[2];
-    }
-    if (msg[0] == "usbalsa") {
-      app.$data.usbsize = msg[1]
-      app.$data.usblatency = msg[2]
-      app.$data.usbquality = msg[3]
-      app.$data.usbperiods = msg[4]
-    }
-  };
-  gapi.upd = api.upd;
+      if (msg[0] == "fader") {
+        app.$data.channels[msg[1]].fader = msg[2];
+      }
+      if (msg[0] == "usbalsa") {
+        app.$data.usbsize = msg[1]
+        app.$data.usblatency = msg[2]
+        app.$data.usbquality = msg[3]
+        app.$data.usbperiods = msg[4]
+      }
+    };
+    gapi.upd = api.upd;
 
-  api.send(['refresh']);
-</script>
+    api.send(['refresh']);
+  </script>
 
 </div>
 <%include file="/pagefooter.html"/>

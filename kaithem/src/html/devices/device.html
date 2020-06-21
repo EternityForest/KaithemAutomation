@@ -25,9 +25,10 @@ from src import unitsofmeasure
 <input type="hidden" name="type" value="${data.get('type','')}">
 <h2>Help</h2>
 <ul>
-<li><a href="/devices/devicedocs/${name|u}">README</a></li>
+<li><a href="/devices/devicedocs/${name|u}">README for this device type</a></li>
+<li><a href="/docs/mdtemplate?page=devices.md">Generic Device API and Subclassing</a></li>
 </ul>
-
+<title>${name|h}</title>
 <h2>Device Specific</h2>
 %if hasattr(obj,"getManagementForm"):
 ${obj.getManagementForm()}
@@ -65,8 +66,9 @@ ${obj.getManagementForm()}
 <p class="help">Here you can use Python code to create a custom subclass of a device, useful for attaching handlers to callbacks.
 </p>
 <p>The class must be named CustomDeviceType, and must inherit from DeviceType.</p>
-<textarea name="subclass">${data.get("subclass",'')|h}</textarea>
-
+<div>
+<textarea data-editor="python" name="subclass" style="width:80%" rows=25>${data.get("subclass",'')|h}</textarea>
+</div>
 
 <h2>Tag Points</h2>
 <p class="help">This section lists all the tag points owned 
@@ -178,4 +180,44 @@ ${obj.getManagementForm()}
 %endif
 
 </div>
+
+
+<script src="/static/js/src-min-noconflict/ace.js"></script>
+<script src="/static/js/jquery3.js"></script>
+
+<script>
+    // Hook up ACE editor to all textareas with data-editor attribute
+    $(function () {
+        $('textarea[data-editor]').each(function () {
+            var textarea = $(this);
+            var mode = textarea.data('editor');
+            var editDiv = $('<div>', {
+                position: 'absolute',
+                width: textarea.width(),
+                height: textarea.height(),
+                'class': textarea.attr('class')
+            }).insertBefore(textarea);
+            textarea.css('display', 'none');
+            var editor = ace.edit(editDiv[0]);
+            editor.renderer.setShowGutter(false);
+            editor.getSession().setValue(textarea.val());
+            editor.getSession().setMode("ace/mode/" + mode);
+            // editor.setTheme("ace/theme/idle_fingers");
+            editor.setOptions({
+             fontFamily: "Hack",
+            fontSize: "12pt"
+            });
+            editor.getSession().on('change', function() {
+                wasChanged=true;
+            })
+           // %if not pages.canUserDoThis("/admin/modules.edit"):
+            //editor.setReadOnly(true)
+            //%endif
+            // copy back to textarea on form submit...
+            textarea.closest('form').submit(function () {
+                textarea.val(editor.getSession().getValue());
+            })
+        });
+    });
+</script>
 <%include file="/pagefooter.html"/>
