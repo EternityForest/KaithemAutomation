@@ -27,7 +27,7 @@ def devStatString(d):
    
 
     if hasattr(d,'pclient'):
-        s.append(" offline" if  deviceData[i].pclient and deviceData[i].pclient.remoteAddress==None else "")
+        s.append(" offline" if  deviceData[i]().pclient and deviceData[i]().pclient.remoteAddress==None else "")
 
 
     return ", ".join(s)
@@ -59,18 +59,18 @@ def devStatString(d):
         ${i}
     </td>
     <td>
-            ${deviceData[i].deviceTypeName}
+            ${deviceData[i]().deviceTypeName}
     </td>
 
     <td>
         <a href="device/${i}">Edit</a>
     </td>
 
-    <td>${devStatString(deviceData[i])|h}</td>
+    <td>${devStatString(deviceData[i]())|h}</td>
     
 
-    <td style="color: ${'red' if len(deviceData[i].errors) else 'black' };">
-        ${len(deviceData[i].errors)}
+    <td style="color: ${'red' if len(deviceData[i]().errors) else 'black' };">
+        ${len(deviceData[i]().errors)}
     </td>
 
 

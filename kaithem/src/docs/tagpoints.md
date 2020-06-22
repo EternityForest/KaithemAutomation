@@ -124,6 +124,10 @@ age.
 
 Should a claim already exist by that name, the exact same claim object as the previous claim is returned.
 
+### tagPoint.pull()
+
+Return the value from a tag, forcing a new update from the getter without any caching. May also trigger the subscribers if the value changes.
+
 ##### TagPoint.evalContext
 Dict used as globals and locals for evaluating alarm conditions and expression tags.
 

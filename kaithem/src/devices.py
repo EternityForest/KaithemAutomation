@@ -60,7 +60,7 @@ unsaved_changes = {}
 def getZombies():
     x = []
     for i in dbgd:
-        if not dbgd[i].name in remote_devices:
+        if not dbgd[i] in remote_devices.values():
             x.append(i)
     return x
 
@@ -90,13 +90,17 @@ def saveAsFiles():
 
 messagebus.subscribe("/system/save", saveAsFiles)
 
+def wrcopy(x):
+    return {i:weakref.ref(x[i]) for i in x}
 
 def getByDescriptor(d):
     x = {}
 
     for i in remote_devices_atomic:
         if d in remote_devices_atomic[i].descriptors:
-            x[i] = remote_devices_atomic[i]
+            z= remote_devices_atomic[i]()
+            if z:
+                x[i]=z
 
     return x
 
@@ -158,6 +162,8 @@ class Device(virtualresource.VirtualResource):
             raise ValueError("Incorrect type in info dict")
         virtualresource.VirtualResource.__init__(self)
         global remote_devices_atomic
+        global remote_devices
+
         dbgd[name+str(time.time())] = self
 
         # Time, title, text tuples for any "messages" a device might "print"
@@ -167,8 +173,7 @@ class Device(virtualresource.VirtualResource):
         # This data dict represents all persistent configuration
         # for the alert object.
         self.data = data.copy()
-        if not data.get("subclass",""):
-            data['subclass']= self.defaultSubclassCode
+        
 
         # This dict cannot be changed, only replaced atomically.
         # It is a list of alert objects. Dict keys
@@ -188,7 +193,7 @@ class Device(virtualresource.VirtualResource):
 
         with lock:
             remote_devices[name] = self
-            remote_devices_atomic = remote_devices.copy()
+            remote_devices_atomic=wrcopy(remote_devices)
 
     def handleException(self):
         self.handleError(traceback.format_exc(chain=True))
@@ -207,7 +212,7 @@ class Device(virtualresource.VirtualResource):
         global remote_devices_atomic
         with lock:
             del remote_devices[self.name]
-            remote_devices_atomic = remote_devices.copy()
+            remote_devices_atomic=wrcopy(remote_devices)
 
     def status(self):
         return "norm"
@@ -238,6 +243,8 @@ def updateDevice(devname, kwargs, saveChanges=True):
 
     getDeviceType(kwargs['type']).validateData(kwargs)
 
+    if not kwargs.get("subclass","").replace("\n",'').replace("\r","").strip():
+            kwargs['subclass'] = getDeviceType(kwargs['type']).defaultSubclassCode
     unsaved_changes[devname] = True
 
     with lock:
@@ -256,7 +263,7 @@ def updateDevice(devname, kwargs, saveChanges=True):
 
         remote_devices[name] = makeDevice(name, kwargs)
         global remote_devices_atomic
-        remote_devices_atomic = remote_devices.copy()
+        remote_devices_atomic=wrcopy(remote_devices)
 
 
 class WebDevices():
@@ -309,7 +316,7 @@ class WebDevices():
                 remote_devices[name].close()
             remote_devices[name] = makeDevice(name, kwargs)
             global remote_devices_atomic
-            remote_devices_atomic = remote_devices.copy()
+            remote_devices_atomic=wrcopy(remote_devices)
 
         raise cherrypy.HTTPRedirect("/devices")
 
@@ -348,7 +355,7 @@ class WebDevices():
             except KeyError:
                 pass
             global remote_devices_atomic
-            remote_devices_atomic = remote_devices.copy()
+            remote_devices_atomic=wrcopy(remote_devices)
             gc.collect()
             unsaved_changes[name] = True
 
@@ -364,7 +371,7 @@ class DeviceNamespace():
         return remote_devices[name].interface()
 
     def __iter__(self):
-        return remote_devices_atomic.__iter__()
+        return (i() for i in remote_devices_atomic)
 
 
 builtinDeviceTypes = {'device': Device}
@@ -402,12 +409,12 @@ def makeDevice(name, data):
             "\r", '').replace("\t", '').replace(" ", '')
 
 
-        strippedTemplate = dt.defaultSubclassCode.replace("\n", '').replace(
+        strippedGenericTemplate = globalDefaultSubclassCode.replace("\n", '').replace(
             "\r", '').replace("\t", '').replace(" ", '')
 
         originaldt = dt
         try:
-            if not stripped == strippedTemplate:
+            if not stripped == strippedGenericTemplate:
                 from src import kaithemobj
                 codeEvalScope = {"DeviceType": dt, 'kaithem': kaithemobj.kaithem}
                 exec(data['subclass'], codeEvalScope, codeEvalScope)
@@ -514,4 +521,4 @@ def init_devices():
                 "/system/notifications/errors", "Error creating device: "+i+"\n"+traceback.format_exc())
             syslogger.exception("Error initializing device "+str(i))
 
-    remote_devices_atomic = remote_devices.copy()
+    remote_devices_atomic=wrcopy(remote_devices)

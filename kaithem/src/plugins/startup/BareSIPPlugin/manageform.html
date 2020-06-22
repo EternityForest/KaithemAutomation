@@ -2,8 +2,10 @@
 <p class="help">
     This is a local/serverless SIP softphone suitable
     for directly calling at the given address.  Use the subclass code
-    to accept incoming calls.  Use kaithem.devices.call("number") to place an outgoing call.
+    to accept incoming calls.  Use kaithem.devices['Name'].call("number") to place an outgoing call.
 </p>
+
+<p class="help">dev.hang() is used to hang up any active calls.</p>
 
 <p class="help">
 Creating multiple is not likely to work at all, as baresip always uses

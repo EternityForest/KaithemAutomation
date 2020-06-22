@@ -23,6 +23,9 @@ class Gateway(sg1.SG1Gateway):
         self.kaithemInterface = kaithemInterface
         sg1.SG1Gateway.__init__(self, *args, **kwargs)
 
+    def onNoiseMeasurement(self,noise):
+        self.kaithemInterface().onNoiseMeasurement(noise)
+
     def onConnect(self):
         self.kaithemInterface().onConnect()
         self.kaithemInterface().print("Connected to gateway")
@@ -33,9 +36,19 @@ class Gateway(sg1.SG1Gateway):
         return super().onConnect()
 
     def onDisconnect(self):
-        self.kaithemInterface().onConnect()
         return super().onDisconnect()
+        self.kaithemInterface().print("Disconnected from gateway")
+        self.kaithemInterface().onDisconnect()
 
+sc_code="""
+class CustomDeviceType(DeviceType):
+    def onMessage(self,m):
+        self.print(m, "Incoming SG1 Message")
+    def onRTMessage(self,m):
+        self.print(m, "Incoming SG1 RT Message")
+    def onBeacon(self,m):
+        self.print(m, "Incoming Beacon")
+"""
 
 class Device(sg1.SG1Device):
 
@@ -45,15 +58,27 @@ class Device(sg1.SG1Device):
 
 
     def onMessage(self, m):
-        self.kaithemInterface()._onMessage(m)
+        try:
+            self.kaithemInterface()._onMessage(m)
+        except:
+            self.kaithemInterface().handleException()
 
     def onRTMessage(self, m):
-        self.kaithemInterface()._onRTMessage(m)
-
+        try:
+            self.kaithemInterface()._onRTMessage(m)
+        except:
+            self.kaithemInterface().handleException()
+    
+    def onBeacon(self, m):
+        try:
+            self.kaithemInterface()._onBeacon(m)
+        except:
+            self.kaithemInterface().handleException()
 
 class SG1Device(devices.Device):
     deviceTypeName = 'SG1Device'
     readme = os.path.join(os.path.dirname(__file__),"README.md")
+    defaultSubclassCode = sc_code
 
 
     def __init__(self, name, data):
@@ -64,12 +89,17 @@ class SG1Device(devices.Device):
 
             self.lastSeen = 0
             self.lastRSSI = -127
+            self.lastPathLoss = 140
             self.expectedMessageInterval = float(
                 data.get("device.expectedMessageInterval", 60))
 
             self.rssiTag = tagpoints.Tag("/devices/"+name+".rssi")
             self.rssiTagClaim = self.rssiTag.claim(self.rssi, "HWStatus", 60)
             self.rssiTag.setAlarm(name+'.SG1DeviceLowSignal', "value < -94",tripDelay= (self.expectedMessageInterval*1.3))
+
+            #No redundant alarm, only alarm when auto tx power can no longer keep up
+            self.pathLossTag = tagpoints.Tag("/devices/"+name+".pathloss")
+            self.pathLossTagClaim = self.pathLossTag.claim(self.pathLoss, "HWStatus", 60)
 
             self.wakeButton = widgets.Button()
             self.wakeButton.attach(self.wakeButtonHandler)
@@ -78,9 +108,11 @@ class SG1Device(devices.Device):
 
             # update at 2x the rate because nyquist or something.
             self.rssiTag.interval = self.expectedMessageInterval/2
+            self.pathLossTag.interval = self.expectedMessageInterval/2
 
 
             self.tagPoints['rssi']= self.rssiTag
+            self.tagPoints['pathloss']= self.pathLossTag
 
             d = str(data.get("device.channelKey", 'A'*32))
             if len(d) <= 32:
@@ -125,11 +157,23 @@ class SG1Device(devices.Device):
         else:
             return -127
 
-    def _onMessage(self, m):
+    def pathLoss(self):
+        # Get the most recent RSSI from the device, or -127 if we have not recieved any correct
+        # Messages at all recently
+        if self.lastSeen > (time.monotonic()-self.expectedMessageInterval):
+            return self.lastPathLoss
+        else:
+            return 140          
+
+    
+    def _onMessage(self,m):
         self.lastRSSI = m['rssi']
+        self.lastPathLoss = m['loss']
+
         self.lastSeen = time.monotonic()
         # Trigger the tag to refresh
-        x = self.rssiTag.value
+        self.rssiTag.pull()
+        self.pathLossTag.pull()
 
         try:
             self.onMessage(m)
@@ -137,27 +181,31 @@ class SG1Device(devices.Device):
             self.handleError(traceback.format_exc(chain=True))
 
 
-    def _onRTMessage(self, m):
+    def _onRTMessage(self,m):
         self.lastRSSI = m['rssi']
         self.lastSeen = time.monotonic()
         # Trigger the tag to refresh
-        x = self.rssiTag.value
-        
+        self.rssiTag.pull()
+        self.pathLossTag.pull()
+
         try:
             self.onRTMessage(m)
         except:            
-            d.handleError(traceback.format_exc(chain=True))
+            self.handleError(traceback.format_exc(chain=True))
 
 
     def _onBeacon(self,m):
         self.lastRSSI = m['rssi']
+        self.lastPathLoss = m['loss']
         self.lastSeen = time.monotonic()
         # Trigger the tag to refresh
-        x = self.rssiTag.value
+        self.rssiTag.pull()
+        self.pathLossTag.pull()
+
         try:
             self.onBeacon(m)
         except:
-            d.handleError(traceback.format_exc(chain=True))
+            self.handleError(traceback.format_exc(chain=True))
 
 
     def onMessage(self, m):
@@ -236,10 +284,16 @@ class SG1Gateway(devices.Device):
         if self.gatewayNoiseTag.value ==0:
             self.gatewayNoiseTag.value=noise
 
-        self.gatewayNoiseTag.value = self.gatewayNoiseTag.value*0.99 + noise*0.01
 
-        b = noise>-95
+        b = 1 if(noise>-95) else 0
+
         self.gatewayUtilizationTag.value = self.gatewayUtilizationTag.value*0.99 + b*0.01
+
+        #Don't count anything above the threshold as noise, it is probably utilization.
+        #And we want to give the real floor.
+        if b==0:
+            self.gatewayNoiseTag.value = self.gatewayNoiseTag.value*0.99 + noise*0.01
+
 
         
     def status(self):

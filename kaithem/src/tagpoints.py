@@ -825,6 +825,13 @@ class _TagPoint(virtualresource.VirtualResource):
             self._getValue()
             self._push()
 
+    def pull(self):
+        with self.lock:
+            x = self._getValue(True)
+            self._push()
+            return x
+        
+
     def _push(self):
         """Push to subscribers. Only call under the same lock you changed value
             under. Otherwise the push might happen in the opposite order as the set, and
@@ -886,7 +893,10 @@ class _TagPoint(virtualresource.VirtualResource):
     def value(self):
         return self._getValue()
 
-    def _getValue(self):
+    def pull(self):
+        return self._getValue(True)
+
+    def _getValue(self,force=False):
         "Get the processed value of the tag, and update lastValue, It is meant to be called under lock."
 
         activeClaimValue = self._value
@@ -898,7 +908,7 @@ class _TagPoint(virtualresource.VirtualResource):
             #Rate limited tag getter logic. We ignore the possibility for
             #Race conditions and assume that calling a little too often is fine, since
             #It shouldn't affect correctness
-            if time.time()-self.lastGotValue> self._interval:
+            if (time.time()-self.lastGotValue> self._interval) or force:
                 #Set this flag immediately, or else a function with an error could defeat the cacheing
                 #And just flood everything with errors
                 self.lastGotValue = time.time()

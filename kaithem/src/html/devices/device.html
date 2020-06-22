@@ -65,7 +65,7 @@ ${obj.getManagementForm()}
 <h2>Customize Code</h2>
 <p class="help">Here you can use Python code to create a custom subclass of a device, useful for attaching handlers to callbacks.
 </p>
-<p>The class must be named CustomDeviceType, and must inherit from DeviceType.</p>
+<p class="help">The class must be named CustomDeviceType, and must inherit from DeviceType.  Only this instance of the device type is affected.  Clear this box and make it blank to reset to the example.</p>
 <div>
 <textarea data-editor="python" name="subclass" style="width:80%" rows=25>${data.get("subclass",'')|h}</textarea>
 </div>
@@ -78,7 +78,12 @@ ${obj.getManagementForm()}
 
 %for i in obj.tagPoints:
 <tr><td><a href="/tagpoints/${obj.tagPoints[i].name|u}">${i|h}</a></td>
-        <td>${obj.tagPoints[i].value}</td>
+        %if hasattr(obj.tagPoints[i],'meterWidget'):
+        <td>${obj.tagPoints[i].meterWidget.render()}</td>
+        %else:
+        <td>${obj.tagPoints[i].spanWidget.render()}</td>
+        %endif
+
         <td>${obj.tagPoints[i].activeClaim[2]|h}</td>
 </tr>
 %endfor
@@ -168,16 +173,18 @@ ${obj.getManagementForm()}
 <h2>Messages</h2>
 <p class="help">
         These are not logged. Add a message with device.print(message). Old messages
-        are deleted.
+        are deleted. Most recent is first.
 </p>
-
-%for i in obj.messages:
+<div class="scrollbox">
+%for i in reversed(obj.messages):
 <p>
 <b>${i[1]} at ${unitsofmeasure.strftime(i[0])}</b><br>
 <pre>${i[2]|h}</pre>
 </p>
 %endfor
+</div>
 %endif
+
 
 </div>
 

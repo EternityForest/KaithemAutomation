@@ -190,16 +190,22 @@ class NanoframeParser():
 def makeThreadFunction(wr):
     def f():
         while 1:
-            x = wr()
             try:
+                x = wr()
                 if x:
-                    if not x.loop():
+                    x.loop()
+                    if not x.running:
                         return
                 else:
                     return
+                del x
+
             except:
                 print(traceback.format_exc())
-            del x
+                try:
+                    del x
+                except:
+                    pass
     return f
 
 
@@ -217,10 +223,10 @@ class SG1Device():
             "/SG1/i/"+b64(channelKey), self._onMessage, encoding="msgpack")
 
         self.bus.subscribe(
-            "/SG1/ri/"+b64(channelKey), self.onRTMessage, encoding="msgpack")
+            "/SG1/ri/"+b64(channelKey), self._onRTMessage, encoding="msgpack")
 
         self.bus.subscribe(
-            "/SG1/b/"+b64(channelKey), self.onBeacon, encoding="msgpack")
+            "/SG1/b/"+b64(channelKey), self._onBeacon, encoding="msgpack")
 
         # This is how the gateway keeps track of what devices it's interested in.
         self.bus.subscribe(
@@ -243,7 +249,8 @@ class SG1Device():
 
         #Check if it's impossibly old.
         t = (time.time()-16)*10**6
-
+        if m['ts']<t:
+            return False
         
         self.rxMessageTimestamps[m['ts']]= True
 
@@ -256,6 +263,7 @@ class SG1Device():
                         torm.append(i)
                 for i in torm:
                     del self.rxMessageTimestamps[i]
+        return True
 
 
 
@@ -296,7 +304,7 @@ class SG1Device():
     def _onRTMessage(self, t, m):
         if self.running:
             if abs(self.lastMessageInfo[1]-m['ts'])> 10**6 or m['rssi'] > self.lastMessageInfo[2]:
-                self.lastMessageInfo = (m['gw'], m['ts'], m['rssi'],m['loss'])
+                self.lastMessageInfo = (m['gw'], m['ts'], m['rssi'],self.lastMessageInfo[3])
 
             if self.validateIncoming(m):
                 self.onRTMessage(m)
@@ -307,9 +315,11 @@ class SG1Device():
     def onRTMessage(self,m):
         pass
 
+    def _onBeacon(self,t,m):
+        self.onBeacon(m)
+
     def onBeacon(self,m):
         pass
-
 
     def sendMessage(self, data, rt=False,power=-127):
         t = time.monotonic()
@@ -665,7 +675,7 @@ class SG1Gateway():
         return((avg/10, mn, mx))
 
     def _handle(self, cmd, data):
-        logger.info("pkt:" +str(cmd)+"  "+str(data))
+        #logger.info("pkt:" +str(cmd)+"  "+str(data))
         if cmd== MSG_VERSION:
             if not self.connected:
                 self.connected = True
@@ -676,7 +686,7 @@ class SG1Gateway():
 
         elif cmd == MSG_NEWDATA:
             with self.lock:
-                rssi = struct.unpack("<b", data[:1])
+                rssi = struct.unpack("<b", data[:1])[0]
 
                 # We don't know what this packet is.
                 # So we have to try both the realtime and standard encoding
@@ -729,7 +739,7 @@ class SG1Gateway():
             channel = data[14:46]
             data = data[46:]
 
-            timestamp = struct.unpack("<Q",rxiv)
+            timestamp = struct.unpack("<Q",rxiv)[0]
             nodeID = rxiv[0]
 
             self.onMessage(channel, data, rssi, pathLoss,timestamp,nodeID,rxHeader1)
@@ -741,7 +751,7 @@ class SG1Gateway():
             channel = data[13:45]
             data = data[45:]
 
-            timestamp = struct.unpack("<Q",rxiv)
+            timestamp = struct.unpack("<Q",rxiv)[0]
             nodeID = rxiv[0]
 
             self.onRtMessage(channel, data, rssi, timestamp,nodeID)
@@ -758,7 +768,7 @@ class SG1Gateway():
                 i[0].set()
 
 
-    def onNoiseMeasurement(rssi):
+    def onNoiseMeasurement(self,rssi):
         pass
 
     def _sendMessage(self, cmd, m):
