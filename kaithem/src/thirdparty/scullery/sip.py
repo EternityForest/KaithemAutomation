@@ -97,6 +97,9 @@ class SipUserAgent():
 
     def call(self, number):
         self.agent.call(number)
+    
+    def hang(self):
+        self.agent.hang()
 
     def onIncomingCall(self, number):
         print(number)

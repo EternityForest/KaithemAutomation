@@ -70,6 +70,12 @@ class JackBareSipAgent(devices.Device):
     def call(self, number):
         self.print("Outgoing call to: "+str(number))
         self.agent.call(number)
+    
+    def hang(self):
+        self.print("Hanging up.")
+        self.agent.hang()
+
+
 
     def accept(self):
         self.print("Call Accepted")
