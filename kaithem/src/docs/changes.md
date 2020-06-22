@@ -7,7 +7,6 @@ Change Log
 - BareSip virtual softphone device type, support P2P LAN calling.
 - SG1 noise floor analysis
 - Fix "zombie" devices
-- 
 
 
 ### 0.65.23

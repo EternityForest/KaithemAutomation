@@ -49,6 +49,14 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.64.24
+- Voice recognition moved to a Device
+- Fix first alert beep going out default device no matter what
+- BareSip virtual softphone device type, support P2P LAN calling.
+- SG1 noise floor analysis
+- Fix "zombie" devices
+
+
 ### 0.65.23
 - Misc fixes
 - Beta voice recognition effect in the Mixer(gstreamer1.0-pocketsphinx based)
@@ -62,19 +70,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - fix chandler cue delete bug
 - Fix message bus logging page stopped working as soon as you went to an invalid topic page
 - Beta SG1Gateway device support
-
-### 0.65.22
-- Device drivers definable through var/devicedrivers
-- Unspecified ports default to jack
-
-### 0.65.21
-- Configurable alerts and parameters for tagpoints.
-- Much better tagpoint, worker loop, and scheduling performance
-- ChandlerScript compatibility with newer versions
-- Fix included YAML lib in wrong folder
-- Fix kaithem.sound.isPlaying on gstreamer backend
-- Fix fluidsynth 2.0 compatibilty.
-- Improve sound fading algorithm
 
 
 License Terms
