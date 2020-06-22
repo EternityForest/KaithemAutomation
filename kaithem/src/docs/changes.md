@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.64.24
+- Voice recognition moved to a Device
+- Fix first alert beep going out default device no matter what
+
 ### 0.65.23
 - Misc fixes
 - Beta voice recognition effect in the Mixer(gstreamer1.0-pocketsphinx based)

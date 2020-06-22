@@ -154,16 +154,16 @@ class CompiledPage():
             footer = ""
         templatesource = header + template + footer
 
-        d={'kaithem': kaithemobj.kaithem}
+        self.d={'kaithem': kaithemobj.kaithem}
         if m in modules_state.scopes:
-            d['module']= modules_state.scopes[m]
+            self.d['module']= modules_state.scopes[m]
 
         if not 'template-engine' in resource or resource['template-engine']=='mako':
-            self.template = mako.template.Template(templatesource, uri="Template"+m+'_'+r, global_vars=d)
+            self.template = mako.template.Template(templatesource, uri="Template"+m+'_'+r)
         
         elif resource['template-engine']=='markdown':
-            header = mako.template.Template(header, uri="Template"+m+'_'+r, global_vars=d).render()
-            footer = mako.template.Template(footer, uri="Template"+m+'_'+r, global_vars=d).render()
+            header = mako.template.Template(header, uri="Template"+m+'_'+r).render(**self.d)
+            footer = mako.template.Template(footer, uri="Template"+m+'_'+r).render(**self.d)
 
             self.text = header+"\r\n"+markdownToSelfRenderingHTML(template,r)+footer
         else:

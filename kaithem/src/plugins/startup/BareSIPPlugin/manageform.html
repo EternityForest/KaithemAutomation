@@ -1,0 +1,33 @@
+<h3>Info</h3>
+<p class="help">
+    This is a local/serverless SIP softphone suitable
+    for directly calling at the given address.  Use the subclass code
+    to accept incoming calls.
+</p>
+
+<p class="help">
+Creating multiple is not likely to work at all, as baresip always uses
+the same JACK name, although it may work if only one at a time is ever active.
+</p>
+
+<table>
+    <tr>
+        <td>SIP Listen port</td>
+        <td><input name="device.port" value="${data.get('device.port','5060')|h}"></td>
+    </tr>
+
+    <tr>
+        <td>SIP Username</td>
+        <td><input name="device.user" value="${data.get('device.user','kaithem')|h}"></td>
+    </tr>
+
+    <tr>
+        <td>JACK mic in</td>
+        <td><input name="device.jacksrc" value="${data.get('device.jacksrc','system')|h}"></td>
+    </tr>    
+    
+    <tr>
+        <td>JACK audio out</td>
+        <td><input name="device.jacksink" value="${data.get('device.jacksink','system')|h}"></td>
+    </tr>   
+</table>

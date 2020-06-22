@@ -385,7 +385,7 @@ class CombiningAirwire(MultichannelAirwire):
                             except:
                                 print(traceback.format_exc())
                             try:
-                                del activeConnections[i,j.name]
+                                del activeConnections[i.name,j.name]
                             except KeyError:
                                 pass
 

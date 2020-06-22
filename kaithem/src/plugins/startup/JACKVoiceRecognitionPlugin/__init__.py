@@ -22,16 +22,27 @@ try:
 except:
     pass
 
+try:
+    shutil.rmtree("/dev/shm/kaithem_voice_dict_files")
+except:
+    pass
+
 
 class JackVoicePipeline(iceflow.GStreamerPipeline):
-    def __init__(self, name, keywords=''):
+    def __init__(self, name, keywords='',dictionary=''):
         iceflow.GStreamerPipeline.__init__(self, name)
 
         if keywords:
             v = keywords.replace("\r",'').split("\n")
             with open("/dev/shm/kaithem_kw_file_"+name, 'w') as f:
                 for i in v:
-                    f.write(i + ("/1e-25/" if not "/" in i else '')+" \n")
+                    f.write(i.strip() + ("/1e-20/" if not "/" in i else '')+"\n")
+
+
+        if dictionary:
+            v = keywords.replace("\r",'')
+            with open("/dev/shm/kaithem_dict_file_"+name, 'w') as f:
+                f.write(v)
 
         self.src = self.addElement("jackaudiosrc", buffer_time=10, latency_time=10,
                                    port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=name+"_in", connect=0)
@@ -41,12 +52,13 @@ class JackVoicePipeline(iceflow.GStreamerPipeline):
         self.cnv = self.addElement("audioconvert")
         self.rs = self.addElement("audioresample")
         self.q = self.addElement("queue")
-        if keywords:
-            self.pocketsphinx = self.addElement(
-                "pocketsphinx", kws="/dev/shm/kaithem_kw_file_"+name)
-        else:
-            self.pocketsphinx = self.addElement(
-                "pocketsphinx")
+
+        self.pocketsphinx = self.addElement(
+            "pocketsphinx", 
+            kws=("/dev/shm/kaithem_kw_file_"+name) if keywords else None,
+            dict=("/dev/shm/kaithem_dict_file_"+name) if dictionary else '/usr/share/pocketsphinx/model/en-us/cmudict-en-us.dict',
+            )
+   
         self.addElement("fakesink", sync=False)
 
     def on_message(self, bus, message, userdata):

@@ -453,7 +453,6 @@ class _TagPoint(virtualresource.VirtualResource):
             if not name:
                 raise RuntimeError("Empty string name")
             
-           
             d={
                 'condition':condition,
                 'priority':priority,
