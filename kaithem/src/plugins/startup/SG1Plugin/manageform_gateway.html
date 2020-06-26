@@ -40,8 +40,13 @@ A real MQTT server is not local, as kaithem can use an internal "virtual" server
     <td><input name="device.rfProfile"  value="${data.get('device.rfProfile','7')}"></td>
 </tr>
 <tr>
-    <td>Channel Number(Determines the RF frequency(</td>
+    <td>Channel Number(Determines the RF frequency)</td>
     <td><input name="device.channelNumber"  value="${data.get('device.channelNumber','3')}"></td>
 </tr>
 
+
+<tr>
+    <td>CCA Threshold(Used for utilization % calc)</td>
+    <td><input name="device.ccaThreshold"  value="${data.get('device.ccaThreshold','-94')}"></td>
+</tr>
 </table>

@@ -196,11 +196,20 @@ class Device(virtualresource.VirtualResource):
             remote_devices_atomic=wrcopy(remote_devices)
 
     def handleException(self):
-        self.handleError(traceback.format_exc(chain=True))
+        try:
+            self.handleError(traceback.format_exc(chain=True))
+        except:
+            print(traceback.format_exc())
     # Takes an error as a string and handles it
 
     def handleError(self, s):
         self.errors.append([time.time(), str(s)])
+
+        if self.errors:
+            if time.time()> self.errors[-1][0]+15:
+                syslogger.error(s)
+            else:
+                logging.error(s)
 
         if len(self.errors)> 50:
             self.errors.pop(0)
@@ -251,6 +260,7 @@ def updateDevice(devname, kwargs, saveChanges=True):
         if devname in remote_devices:
             remote_devices[devname].close()
             del device_data[devname]
+        
         gc.collect()
         time.sleep(0.01)
         time.sleep(0.01)

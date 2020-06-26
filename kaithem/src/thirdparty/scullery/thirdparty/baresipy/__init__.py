@@ -435,8 +435,10 @@ class BareSIP(Thread):
                         self.handle_call_status(status)
                         self._call_status = status
 
-                    elif match:= re.search(r"jack: unique name \`(.*?)\' assigned", out):
-                        self.onJackAssigned(match.groups(1)[0])
+                    elif 'jack' in out: 
+                        match = re.search(r"jack: unique name \`(.*?)\' assigned", out)
+                        if match:
+                            self.onJackAssigned(match.groups(1)[0])
                     
                     elif "--- List of active calls (1): ---" in \
                             self._prev_output:

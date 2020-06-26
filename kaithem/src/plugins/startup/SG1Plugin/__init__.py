@@ -25,6 +25,11 @@ class Gateway(sg1.SG1Gateway):
 
     def onNoiseMeasurement(self,noise):
         self.kaithemInterface().onNoiseMeasurement(noise)
+    def onHWMessage(self,t):
+        try:
+            self.kaithemInterface().onHWMessage(t.decode('utf-8',errors='backslashreplace'))
+        except:
+            self.kaithemInterface().handleException()
 
     def onConnect(self):
         self.kaithemInterface().onConnect()
@@ -75,6 +80,9 @@ class Device(sg1.SG1Device):
         except:
             self.kaithemInterface().handleException()
 
+
+
+            
 class SG1Device(devices.Device):
     deviceTypeName = 'SG1Device'
     readme = os.path.join(os.path.dirname(__file__),"README.md")
@@ -103,7 +111,14 @@ class SG1Device(devices.Device):
 
             self.wakeButton = widgets.Button()
             self.wakeButton.attach(self.wakeButtonHandler)
+            self.wakeButton.require("/admin/settings.edit")
 
+            self.apiWidget = widgets.APIWidget()
+            self.apiWidget.attach(self.apiWidgetHandler)
+            self.apiWidget.require("/admin/settings.edit")
+
+            
+            
 
 
             # update at 2x the rate because nyquist or something.
@@ -140,6 +155,14 @@ class SG1Device(devices.Device):
     def wakeButtonHandler(self,u, v):
         #Note that this sends one wake request that lasts 30s only
         self.dev.sendWakeRequest()
+
+    def apiWidgetHandler(self,u, v):
+        #Note that this sends one wake request that lasts 30s only
+        if v[0]=="sendExpr":
+            x = [int(i) for i in v[1].split(",")]
+            self.sendMessage(bytes(x))
+            
+
 
     @property
     def keepAwake(self):
@@ -256,6 +279,11 @@ class SG1Gateway(devices.Device):
         self.tagPoints['noiseFloor']= self.gatewayNoiseTag
         self.tagPoints['utilization']= self.gatewayUtilizationTag
 
+        self.gatewayNoiseTag.setAlarm(name+'.RFNoiseFloor', "value > -98",tripDelay= 60)
+        self.gatewayUtilizationTag.setAlarm(name+'.RFExcessiveChannelUtilization', "value > 0.8",tripDelay= 60)
+
+        self.activityThreshold = float(data.get("device.ccaThreshold", "-94"))
+
 
 
 
@@ -285,17 +313,19 @@ class SG1Gateway(devices.Device):
             self.gatewayNoiseTag.value=noise
 
 
-        b = 1 if(noise>-95) else 0
+        b = 1 if(noise>=self.activityThreshold) else 0
 
-        self.gatewayUtilizationTag.value = self.gatewayUtilizationTag.value*0.99 + b*0.01
+        self.gatewayUtilizationTag.value = self.gatewayUtilizationTag.value*0.98 + b*0.02
 
         #Don't count anything above the threshold as noise, it is probably utilization.
         #And we want to give the real floor.
         if b==0:
-            self.gatewayNoiseTag.value = self.gatewayNoiseTag.value*0.99 + noise*0.01
+            self.gatewayNoiseTag.value = self.gatewayNoiseTag.value*0.98 + noise*0.02
 
 
-        
+    def onHWMessage(self,t):
+        self.print(t)
+
     def status(self):
         return self.gatewayStatusTag.value
 

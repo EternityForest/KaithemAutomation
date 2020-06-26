@@ -619,6 +619,32 @@ def getUserLimit(user,limit,maximum=2**64):
 
 def canUserDoThis(user,permission):
     """Return True if given user(by username) has access to the given permission"""
+    global noSecurityMode
+
+    if noSecurityMode:
+        if noSecurityMode==1:
+            if cherrypy.request.remote.ip.startswith("127."):
+                return True
+            elif cherrypy.request.remote.ip=="::1":
+                return True
+            else:
+                raise RuntimeError("Nosecurity 1 enabled, but got request from ext IP:"+str(cherrypy.request.remote.ip))
+                return False
+                
+        if noSecurityMode==2:
+            x = cherrypy.request.remote.ip
+            if cherrypy.request.remote.ip.startswith=="::1":
+                return True
+            if x.startswith("192."):
+                return True
+            if x.startswith("10."):
+                return True
+            if x.startswith("127."):
+                return True
+            return False
+
+        if noSecurityMode==3:
+            return True
 
     if not user in Users:
         if '__guest__' in Users and permission in Users["__guest__"].permissions:
@@ -627,21 +653,7 @@ def canUserDoThis(user,permission):
             if '__guest__' in Users and "__all_permissions__" in Users["__guest__"].permissions:
                 return True
 
-            if noSecurityMode==1:
-                if cherrypy.request.remote.ip.startswith("127."):
-                    return True
-                else:
-                    return False
-                    
-            if noSecurityMode==2:
-                x = cherrypy.request.remote.ip
-                if x.startswith("192."):
-                    return True
-                if x.startswith("10."):
-                    return True
-                if x.startswith("127."):
-                    return True
-                return False
+            
         return False
 
     if permission in Users[user].permissions:

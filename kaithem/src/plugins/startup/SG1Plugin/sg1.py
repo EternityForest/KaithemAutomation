@@ -42,6 +42,10 @@ MSG_PING = 19
 MSG_BGNOISE = 20
 
 
+MSG_DECODEDSPECIAL = 23
+MSG_SENDSPECIALREQUEST = 24
+
+
 HEADER_TYPE_FIELD = 0b1110000
 HEADER_TYPE_SPECIAL = 0b0000000
 HEADER_TYPE_UNRELIABLE =0b0010000
@@ -378,6 +382,12 @@ class SG1Gateway():
     def __init__(self, port, id="default", mqttServer="__virtual__SG1", mqttPort="default", channelNumber=3, rfProfile=7):
         self.bus = mqtt.getConnection(mqttServer, mqttPort)
         self.lock = threading.RLock()
+        
+        #Used for matching requests to responses.
+        self.reqID = 0
+
+        self.reqsAwaiting  = {}
+
         self.port = port
         self.gwid = id
 
@@ -389,10 +399,7 @@ class SG1Gateway():
         self.running= True
 
 
-        def debugMessage(m):
-            self.bus.publish("/SG1/hwmsg/"+self.gwid, m, encoding="msgpack")
-        self.debugMessage = debugMessage
-        self.parser = NanoframeParser(debugMessage)
+        self.parser = NanoframeParser(self.onHWMessage)
         self.connected = False
         self.lastDidDiscovery = 0
         self.lastSentTime = 0
@@ -455,6 +462,10 @@ class SG1Gateway():
     def close(self):
         self.running = False
 
+    
+    def onHWMessage(self,t):
+        logging.info("GW HW msg:" +str(t))
+
     def onBeacon(self, channel, rssi,pathLoss):
         n = "/SG1/b/"+b64(channel)
         m = {
@@ -466,6 +477,19 @@ class SG1Gateway():
 
     def onMessage(self, channel, data, rssi, pathloss, timestamp,nodeID,rxHeader1):
         n = "/SG1/i/"+b64(channel)
+        m = {
+            'data': data,
+            'rssi': rssi,
+            'gw': self.gwid,
+            'loss': pathloss,
+            'id': nodeID,
+            "ts": timestamp,
+            "h": rxHeader1
+        }
+        self.bus.publish(n, m, encoding="msgpack")
+
+    def onSpecialMessage(self, channel, data, rssi, pathloss, timestamp,nodeID,rxHeader1):
+        n = "/SG1/sp/"+b64(channel)
         m = {
             'data': data,
             'rssi': rssi,
@@ -517,7 +541,10 @@ class SG1Gateway():
                 if message['rt']:
                     self.sendSG1RT(message['data'],message['pwr'])
                 else:
-                    self.sendSG1(message['data'],message['pwr'])
+                    if message.get("sp","")=='req':
+                        self.sendSG1SpecialRequest(message['data'],message['pwr'])
+                    else:
+                        self.sendSG1(message['data'],message['pwr'])
 
                 #We have to keep track of outgoings so we can
                 #Handle incoming reply messages at some point.
@@ -533,6 +560,7 @@ class SG1Gateway():
         m = bytes([power,0,0,0]) + data
 
         self._sendMessage(MSG_SEND,m)
+
 
     def sendSG1RT(self, data, power=0):
         # 3 reserved bytes
@@ -743,7 +771,21 @@ class SG1Gateway():
             nodeID = rxiv[0]
 
             self.onMessage(channel, data, rssi, pathLoss,timestamp,nodeID,rxHeader1)
+        
+        elif cmd == MSG_DECODEDSPECIAL:
+            pathLoss = struct.unpack("<b", data[:1])[0]
+            rssi = struct.unpack("<b", data[1:2])[0]
+            rxiv = data[2:10]
+            rxHeader1 = data[10]
+            reserved = data[11:14]
+            channel = data[14:46]
+            data = data[46:]
 
+            timestamp = struct.unpack("<Q",rxiv)[0]
+            nodeID = rxiv[0]
+
+            self.onSpecialMessage(channel, data, rssi, pathLoss,timestamp,nodeID,rxHeader1)
+        
         elif cmd == MSG_DECODEDRT:
             rssi = struct.unpack("<b", data[:1])[0]
             rxiv  = data[1: 9]
@@ -759,6 +801,9 @@ class SG1Gateway():
         elif cmd == MSG_BGNOISE:
             rssi = struct.unpack("<b", data[:1])[0]
             self.onNoiseMeasurement(rssi)
+
+        #elif cmd == MSG_SENT:
+        #    reqID = struct.unpack("<B", data[0])
 
 
         if cmd in self.waitingTypes:

@@ -196,7 +196,7 @@ if config['enable-websockets']:
                           if i in widgets:
                                 for p in widgets[i]._read_perms:
                                     if not auth.canUserDoThis(user,p):
-                                        raise RuntimeError("Need permission: "+str(p))
+                                        raise RuntimeError(user +" missing permission: "+str(p) )
 
                                 widgets[i].subscriptions[self.uuid] = subsc_closure(self,i,widgets[i])
                                 widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
