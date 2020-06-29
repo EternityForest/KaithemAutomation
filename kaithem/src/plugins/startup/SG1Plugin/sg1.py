@@ -834,11 +834,8 @@ class SG1Gateway():
                     # Anything, we could have multiple keys with the same hint
                     for i in self.hintlookup.hintToChannelKeys[hint1]:
                         key = i
-                        # We need to make sure this can only be decoded once with
-                        # that key
-                        challenge = self.lastSentOnKey.get(key, b'')
                         self.setChannelKey(key)
-                        self.decode(self.wakeRequests.get(key, 0), challenge)
+                        self.decode(self.wakeRequests.get(key, 0))
                         # Give it time to actually decode, don't try to send
                         # More data than the gateway can handle.
 
@@ -851,10 +848,8 @@ class SG1Gateway():
                 if hint2 in self.hintlookup.hintToChannelKeys:
                     for i in self.hintlookup.hintToChannelKeys[hint2]:
                         key = i
-                        challenge = self.lastSentOnKey.pop(key, b'')
-
                         self.setChannelKey(key)
-                        self.decode(self.wakeRequests.get(key, 0), challenge)
+                        self.decode(self.wakeRequests.get(key, 0))
                         time.sleep(0.003)
                         d = True
 #                print(hint1, hint2)
@@ -901,6 +896,14 @@ class SG1Gateway():
 
             # Maybe race condition here, don't care, very rare dropped
             # packets are the worst it could do.
+
+            #This is under lock, we can't possibly decode, then send the gateway
+            #the same already used key.
+
+            #It may be possible to decode twice before the first one ever gets to us,
+
+            #That should be insanely rare and caught be the window of stored messages we keep
+            #For replay protection.
             if self.lastSentOnKey[channel] == challenge:
                 self.lastSentOnKey.pop(channel, None)
 

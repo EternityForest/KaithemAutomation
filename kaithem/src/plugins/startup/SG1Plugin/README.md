@@ -51,14 +51,13 @@ replyTo: 7884735, //The timestamp of the message this one is replying to,
 req: False //True if this is a request otherwise not present
 ```
 
-## SG1Device.sendMessage(message, ** rt=False, power=-127, replyTo=None,request=False, special=False)
+### Note
+For now request/response is not fully supported, or recommended, as there are probably better patterns to use here, like keeping messages independant.
+
+Native request/reply is rather complex when dealing with a gateway that could be
+accessed through an intermediate MQTT server.
+
+## SG1Device.sendMessage(message, ** rt=False, power=-127)
 
 Send a message on the device's channel. The node ID will be 1, since the message is
 coming from a hub.  Power is generally automatic, but you can force a specific power level.
-
-You can pass the entire message dict to m to reply to that dict, but you cannot reply
-to a reply.
-
-You can pass request=True to send a request, or rt=True to send a SG1  RT message.
-
-You can also send special messages this way.
