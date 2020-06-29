@@ -630,7 +630,8 @@ class Meter(Widget):
             return str(round(v,3))
         
 
-    def render(self,unit='',label=''):
+    def render(self,unit=None,label=None):
+        label= label or self.defaultLabel
         return("""
         <div class="widgetcontainer meterwidget">
         <b>{label}</b><br>
@@ -986,10 +987,13 @@ class ScrollingWindow(Widget):
         %(content)s
         </div>
         <script type="text/javascript">
+        var d=document.getElementById('%(htmlid)s');
+        d.scrollTop = d.scrollHeight;
         var upd=function(val){
             var d=document.getElementById('%(htmlid)s');
+
             //Detect end of scroll, so we can keep it there if that's where we are at
-            var isscrolled =d.scrollHeight - d.scrollTop === d.clientHeight;
+            var isscrolled =d.scrollTop+d.clientHeight+35 >= d.scrollHeight;
 
             if (d.childNodes.length>%(maxlen)d)
             {
@@ -1001,7 +1005,7 @@ class ScrollingWindow(Widget):
             //Scroll to bottom if user was already there.
             if (isscrolled)
             {
-            d.scrollTop = d.scrollHeight-d.clientHeight;
+                d.scrollTop = d.scrollHeight;
             }
         }
         KWidget_subscribe("%(id)s",upd);

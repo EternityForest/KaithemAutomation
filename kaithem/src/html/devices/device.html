@@ -30,10 +30,16 @@ from src import unitsofmeasure
 </ul>
 <title>${name|h}</title>
 <h2>Device Specific</h2>
+
+%try:
 %if hasattr(obj,"getManagementForm"):
 ${obj.getManagementForm()}
 %endif
-
+%except:
+<pre>
+${traceback.format_exc()}
+</pre>
+%endtry
 
 <h2>Alerts</h2>
 <p class="help">This section lists all alerts supported by the device and
@@ -90,16 +96,6 @@ ${obj.getManagementForm()}
 </table>
 
 
-%if obj.errors:
-<h2>Errors</h2>
-
-<div class="scrollbox">
-        %for i in obj.errors:
-        <h4 class="error">${unitsofmeasure.strftime(i[0])}</h4>
-        <pre  class="error">${i[1]|h}</pre>
-        %endfor
-</div>
-%endif
 <input type="submit" value="Save settings">
 
 %if data.get('type','FOOOOOOOOOOOOOOOOOOOOOO') in ("pavillion", "k4d"):
@@ -169,22 +165,12 @@ ${obj.getManagementForm()}
 %endif
 </form>
 
-%if obj.messages:
 <h2>Messages</h2>
 <p class="help">
         These are not logged. Add a message with device.print(message). Old messages
         are deleted. Most recent is first.
 </p>
-<div class="scrollbox">
-%for i in reversed(obj.messages):
-<p>
-<b>${i[1]} at ${unitsofmeasure.strftime(i[0])}</b><br>
-<pre>${i[2]|h}</pre>
-</p>
-%endfor
-</div>
-%endif
-
+${obj.logWindow.render()}
 
 </div>
 

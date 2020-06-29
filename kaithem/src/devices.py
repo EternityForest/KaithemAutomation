@@ -17,6 +17,7 @@
 import weakref
 import threading
 import time
+import textwrap
 import logging
 import traceback
 import struct
@@ -28,7 +29,7 @@ import re
 import cherrypy
 import mako
 
-from . import virtualresource, pages, registry, modules_state, kaithemobj, workers, tagpoints, alerts, persist, directories, messagebus
+from . import virtualresource, pages, registry, modules_state, kaithemobj, workers, tagpoints, alerts, persist, directories, messagebus,widgets,unitsofmeasure
 
 remote_devices = {}
 remote_devices_atomic = {}
@@ -111,6 +112,18 @@ globalDefaultSubclassCode="""
 class CustomDeviceType(DeviceType):
     pass
 """
+
+try:
+    try:
+        import html
+        esc= html.escape
+    except:
+        import cgi
+        esc=cgi.escape
+except:
+    esc = lambda t:t
+
+
 class Device(virtualresource.VirtualResource):
     """A Descriptor is something that describes a capability or attribute
     of a device. They are string names and object values,
@@ -163,6 +176,9 @@ class Device(virtualresource.VirtualResource):
         virtualresource.VirtualResource.__init__(self)
         global remote_devices_atomic
         global remote_devices
+        
+        self.logWindow = widgets.ScrollingWindow(2500)
+
 
         dbgd[name+str(time.time())] = self
 
@@ -213,6 +229,14 @@ class Device(virtualresource.VirtualResource):
 
         if len(self.errors)> 50:
             self.errors.pop(0)
+        
+        #Don't block everything up
+        def f():
+            t = textwrap.fill(s, 120)
+            self.logWindow.write('<div class="error"><b>Error at ' + unitsofmeasure.strftime(time.time())+"</b><br>"
+            + '<pre>'+t+'</pre></div>'
+            )
+        workers.do(f)
         if len(self.errors)==1:
             messagebus.postMessage("/system/notifications/errors","First error in device: "+self.name)
 
@@ -237,13 +261,12 @@ class Device(virtualresource.VirtualResource):
         return {}
 
     def print(self, msg, title="Message"):
-        self.messages.append((time.time(), title, msg, "printfunction"))
-        if len(self.messages)> 100:
-            try:
-                self.messages.pop(0)
-            except Exception:
-                pass
-
+        def f():
+            t = textwrap.fill(str(msg), 120)
+            self.logWindow.write('<b>'+ title+ " at " + unitsofmeasure.strftime(time.time())+"</b><br>"
+            + t
+            )
+        workers.do(f)
 
 # Device data always has 2 constants. 1 is the required type, the other
 # is name, and that's optional but can be used to rename a device

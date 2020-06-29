@@ -71,4 +71,81 @@ A real MQTT server is not local, as kaithem can use an internal "virtual" server
     </tr>
 
 
+    <tr>
+
+        <td>Send message(click for prompt)</td>
+        <td><button type="button" onclick="promptSend()">Send Binary</button>
+            <button type="button" onclick="promptSendText()">Send Text</button>
+        </td>
+    </tr>
+
+    <tr>
+        <td>Send request message(click for prompt)</td>
+        <td><button type="button" onclick="promptSendReq()">Send Binary</button>
+        </td>
+    </tr>
+    <tr>
+        <td>Send RT message(click for prompt)</td>
+        <td><button type="button" onclick="promptSendRT()">Send SG1RT Message</button>
+            <button type="button" onclick="promptSendTextRT()">Send Text</button>
+
+        </td>
+    </tr>
+
 </table>
+
+
+${obj.apiWidget.render("api")}
+
+<script>
+
+
+function promptSendText()
+{
+    x = prompt("Enter Text")
+    if (x!=null)
+    {
+        api.send(['sendText', x])
+    }
+}
+
+function promptSendTextRT()
+{
+    x = prompt("Enter Text")
+    if (x!=null)
+    {
+        api.send(['sendTextRT', x])
+    }
+}
+function promptSend()
+{
+    x = prompt("Enter comma separated byte values (0xXX for hex allowed)")
+    if (x!=null)
+    {
+        api.send(['sendExpr', x])
+    }
+}
+
+function promptSendReq()
+{
+    x = prompt("Enter comma separated byte values (0xXX for hex allowed)")
+    if (x!=null)
+    {
+        api.send(['sendExprReq', x])
+    }
+}
+
+function promptSendRT()
+{
+    x = prompt("Enter comma separated byte values (0xXX for hex allowed)")
+    if (x!=null)
+    {
+        api.send(['sendExprRT', x])
+    }
+}
+function sendPing()
+{
+
+    api.send(['ping'])
+}
+</script>

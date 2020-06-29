@@ -45,8 +45,20 @@ Called on incoming messages. m is a dict with the full message info.
         # message is a request or reply.
 ```
 
-## SG1Device.sendMessage(message, rt=False, [power])
+It could also contain:
+```
+replyTo: 7884735, //The timestamp of the message this one is replying to,
+req: False //True if this is a request otherwise not present
+```
+
+## SG1Device.sendMessage(message, ** rt=False, power=-127, replyTo=None,request=False, special=False)
 
 Send a message on the device's channel. The node ID will be 1, since the message is
 coming from a hub.  Power is generally automatic, but you can force a specific power level.
 
+You can pass the entire message dict to m to reply to that dict, but you cannot reply
+to a reply.
+
+You can pass request=True to send a request, or rt=True to send a SG1  RT message.
+
+You can also send special messages this way.

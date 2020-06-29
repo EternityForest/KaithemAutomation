@@ -1144,10 +1144,13 @@ class _NumericTagPoint(_TagPoint):
         with self.lock:
             if self._meterWidget:
                 x = self._meterWidget
-                self._guiPush(self.value)
-                return self._meterWidget
+                if x:
+                    self._guiPush(self.value)
+                    return self._meterWidget
 
             self._meterWidget= widgets.Meter()
+            self._meterWidget.defaultLabel = self.name.split(".")[-1][:16]
+            
             self._meterWidget.setPermissions(['/users/tagpoints.view'],['/users/tagpoints.edit'])
             self._setupMeter()
             #Try to immediately put the correct data in the gui

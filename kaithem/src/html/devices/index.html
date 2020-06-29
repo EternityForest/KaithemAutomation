@@ -16,13 +16,18 @@ def devStatString(d):
 
 
     try:
-       
-        if 'kaithem.device.rssi' in d.descriptors:
+
+        if 'rssi' in d.tagPoints:
+            s.append(d.tagPoints['rssi'].meterWidget.render(label="RSSI"))
+        elif 'kaithem.device.rssi' in d.descriptors:
             s.append("RSSI:" +str(d.rssi()))
-        elif 'rssi' in d.tagPoints:
-            s.append("RSSI:" +str(d.tagPoints['rssi']()))
+
+
+        elif 'status' in d.tagPoints:
+            s.append(d.tagPoints['status'].spanWidget.render())
+
     except Exception as e:
-        pass
+        s.append(str(e))
 
    
 
@@ -40,7 +45,7 @@ def devStatString(d):
 <h1>Devices</h1>
 
 
-<h2>Remote Devices</h2>
+<h2>Devices</h2>
 <div class="sectionbox">
 <p class="menubar">
 <a class="button" href="/settings/files/${driversLocation|u}">Manage Drivers</a>
@@ -66,7 +71,7 @@ def devStatString(d):
         <a href="device/${i}">Edit</a>
     </td>
 
-    <td>${devStatString(deviceData[i]())|h}</td>
+    <td>${devStatString(deviceData[i]())}</td>
     
 
     <td style="color: ${'red' if len(deviceData[i]().errors) else 'black' };">

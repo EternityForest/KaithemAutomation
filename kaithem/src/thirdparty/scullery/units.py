@@ -35,7 +35,10 @@ units ={
 
     #Voltage/Current
     "A": 1,
-    "V": 1
+    "V": 1,
+
+    #Power, base is W
+    "dBm": (lambda x: (10**(x/10))/1000, lambda x: 10*math.log10(x/0.001))
 }
 
 unitTypes={
@@ -54,7 +57,9 @@ unitTypes={
     "degC": "temperature",
     
     "V": "voltage",
-    "A": "current"
+    "A": "current",
+    "W": "power",
+    "dBm": "power"
 }
 
 _prefixes = {"n":10**-9,"u":10**-6, "m":0.001, "k":1000,"M":1000000,"G":1000000000,"T":1000000000000}

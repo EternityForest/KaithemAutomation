@@ -37,21 +37,26 @@ MSG_DECODEDRT = 13
 MSG_SENDRT = 14
 MSG_PAIR = 15
 MSG_VERSION = 16
-MSG_DECODEDBEACON= 18
+MSG_DECODEDBEACON = 18
 MSG_PING = 19
 MSG_BGNOISE = 20
-
+MSG_SENDREQUEST = 21
+MSG_SENDREPLY = 22
 
 MSG_DECODEDSPECIAL = 23
 MSG_SENDSPECIALREQUEST = 24
+MSG_SENDSPECIAL = 25
+MSG_SENDSPECIALREPLY = 26
+MSG_DECODEDREPLY = 27
+MSG_DECODEDSPECIALREPLY = 28
 
-
+#define MSG_DECODEDREPLY 27
 HEADER_TYPE_FIELD = 0b1110000
 HEADER_TYPE_SPECIAL = 0b0000000
-HEADER_TYPE_UNRELIABLE =0b0010000
+HEADER_TYPE_UNRELIABLE = 0b0010000
 HEADER_TYPE_RELIABLE = 0b0100000
 HEADER_TYPE_REPLY = 0b1000000
-HEADER_TYPE_REPLY_SPECIAL= 0b1010000
+HEADER_TYPE_REPLY_SPECIAL = 0b1010000
 
 # define RF_PROFILE_GFSK600 1
 # define RF_PROFILE_GFSK1200 2
@@ -235,8 +240,8 @@ class SG1Device():
         # This is how the gateway keeps track of what devices it's interested in.
         self.bus.subscribe(
             "/SG1/discoverDevices", self.replyToDiscovery, encoding="msgpack")
-        
-        self.running=True
+
+        self.running = True
 
         # Tell any listening gateways that we exist
         self.bus.publish("/SG1/registerDevice/", self.key, encoding="msgpack")
@@ -244,22 +249,21 @@ class SG1Device():
         #Gateway, time, rssi, pathloss
         self.lastMessageInfo = (None, 0, -127, 127)
 
-
-    def validateIncoming(self,m):
+    def validateIncoming(self, m):
         """Enforce once and only once on the messages.  
         Even though gateways already do this, we could have multiple gateways."""
         if m['ts'] in self.rxMessageTimestamps:
             return False
 
-        #Check if it's impossibly old.
+        # Check if it's impossibly old.
         t = (time.time()-16)*10**6
-        if m['ts']<t:
+        if m['ts'] < t:
             return False
-        
-        self.rxMessageTimestamps[m['ts']]= True
 
-        #Garbage collect old messages that would be caught by the window
-        if len(self.rxMessageTimestamps)> 2000:
+        self.rxMessageTimestamps[m['ts']] = True
+
+        # Garbage collect old messages that would be caught by the window
+        if len(self.rxMessageTimestamps) > 2000:
             with self.lock:
                 torm = []
                 for i in self.rxMessageTimestamps:
@@ -268,8 +272,6 @@ class SG1Device():
                 for i in torm:
                     del self.rxMessageTimestamps[i]
         return True
-
-
 
     def replyToDiscovery(self, t, m):
         if self.running:
@@ -284,66 +286,77 @@ class SG1Device():
             # If we get multiple copies of a message in rapid succession,
             # We want to mark the strongest gateway as the one we use for outgoing stuff
 
-            #Use abs to handle backwards time corrections
+            # Use abs to handle backwards time corrections
 
-            #Do before the replay attack prevention stuff because we need to look at multiple
-            #Gateways and find the strongest
-            if abs(self.lastMessageInfo[1]-m['ts'])> 10**6 or m['rssi'] > self.lastMessageInfo[2]:
-                self.lastMessageInfo = (m['gw'], m['ts'], m['rssi'],m['loss'])
+            # Do before the replay attack prevention stuff because we need to look at multiple
+            # Gateways and find the strongest
+            if abs(self.lastMessageInfo[1]-m['ts']) > 10**6 or m['rssi'] > self.lastMessageInfo[2]:
+                self.lastMessageInfo = (m['gw'], m['ts'], m['rssi'], m['loss'])
 
             if self.validateIncoming(m):
                 self.onMessage(m)
 
     def sendWakeRequest(self):
-        #Create a wake request at the selected gateway.
-        #This request will last for 30 seconds.
+        # Create a wake request at the selected gateway.
+        # This request will last for 30 seconds.
         t = time.monotonic()
         if self.lastMessageInfo[1] > (t-60):
             gw = self.lastMessageInfo[0]
         else:
-            gw = "__all__"   
+            gw = "__all__"
 
-        self.bus.publish("/SG1/wake/"+gw,self.key,encoding="msgpack")
+        self.bus.publish("/SG1/wake/"+gw, self.key, encoding="msgpack")
 
     def _onRTMessage(self, t, m):
         if self.running:
-            if abs(self.lastMessageInfo[1]-m['ts'])> 10**6 or m['rssi'] > self.lastMessageInfo[2]:
-                self.lastMessageInfo = (m['gw'], m['ts'], m['rssi'],self.lastMessageInfo[3])
+            if abs(self.lastMessageInfo[1]-m['ts']) > 10**6 or m['rssi'] > self.lastMessageInfo[2]:
+                self.lastMessageInfo = (
+                    m['gw'], m['ts'], m['rssi'], self.lastMessageInfo[3])
 
             if self.validateIncoming(m):
                 self.onRTMessage(m)
 
-    def onMessage(self,m):
+    def onMessage(self, m):
         pass
 
-    def onRTMessage(self,m):
+    def onRTMessage(self, m):
         pass
 
-    def _onBeacon(self,t,m):
+    def _onBeacon(self, t, m):
         self.onBeacon(m)
 
-    def onBeacon(self,m):
+    def onBeacon(self, m):
         pass
 
-    def sendMessage(self, data, rt=False,power=-127):
+    def sendMessage(self, data, rt=False, power=-127, special=False, request=False, replyTo=False):
         t = time.monotonic()
         # Select the gateway with the strongest signal, if we can
         # Otherwise we have to send from all gateways.
         if self.lastMessageInfo[1] > (t-60):
             gw = self.lastMessageInfo[0]
             if power == -127:
-                #Use path loss info to compute what to do.
-                power = min(8, (-75) +  self.lastMessageInfo[3])
+                # Use path loss info to compute what to do.
+                power = min(8, (-75) + self.lastMessageInfo[3])
         else:
             power = 8
             gw = "__all__"
+
+        m = {
+            "key": self.key,
+            "data": data,
+            "rt": rt,
+            "pwr": power
+        }
+
+        if request:
+            m['req'] = True
+        if replyTo:
+            m['replyTo'] = replyTo
+        if special:
+            m['special'] = special
+
         self.bus.publish("/SG1/send/"+gw,
-                         {
-                             "key": self.key,
-                             "data": data,
-                             "rt": rt,
-                             "pwr": power
-                         },
+                         m,
                          encoding="msgpack"
                          )
 
@@ -359,11 +372,11 @@ class SG1Device():
             "nodeID": self.nodeID
         }, encoding="msgpack"
         )
-    
-    def handleException(self,msg):
+
+    def handleException(self, msg):
         logger.exception(msg)
-        
-    def handleError(self,msg):
+
+    def handleError(self, msg):
         logger.error(msg)
 
     def close(self):
@@ -382,11 +395,11 @@ class SG1Gateway():
     def __init__(self, port, id="default", mqttServer="__virtual__SG1", mqttPort="default", channelNumber=3, rfProfile=7):
         self.bus = mqtt.getConnection(mqttServer, mqttPort)
         self.lock = threading.RLock()
-        
-        #Used for matching requests to responses.
+
+        # Used for matching requests to responses.
         self.reqID = 0
 
-        self.reqsAwaiting  = {}
+        self.reqsAwaiting = {}
 
         self.port = port
         self.gwid = id
@@ -396,8 +409,7 @@ class SG1Gateway():
 
         self.lastMessageSentPerChannelKey = collections.OrderedDict()
 
-        self.running= True
-
+        self.running = True
 
         self.parser = NanoframeParser(self.onHWMessage)
         self.connected = False
@@ -413,18 +425,40 @@ class SG1Gateway():
         self.portObj = None
         self.portRetryTimes = {}
 
+        # For each key, we are going to store the last IV of the message we sent
+        # This is slightly complicated, because we don't know the message
+        # IV until the gateway tells us what it is, after it's been sent
+
+        # For the gateway to be able to recieve challenge-response replies,
+        # We must tell it the challenge when we are decoding.
+        # This is because the gateway interface itself doesn't have enough memory
+        # to store multiple challenges.
+        self.lastSentOnKey = {}
+
+        # This maps send request IDs to the channel key that we were sending on.
+        # This means that when we get a "sent" packet, we can update our list of
+        # the most recent IV sent
+
+        # No GC needed, there are only 256 possible request IDs
+        self.sendReqIdToKey = {}
+
+        # Maps request for decoding to Key,challenge pair
+        self.decodeReqIdToKeyIV = {}
+
+        self.reqIDCounter = int(random.random()*255)
+
         self.connect()
         # Devices that have been discovered via the bus, plus their
         # last announce timestamp
         self.discoveredDevices = {}
         self.hintlookup = HintLookup()
 
-
         self.thread.start()
         try:
             self.sync()
         except Exception:
-            logger.exception("Error connecting to SG1 Gateway at: "+str(port)+",retrying later")
+            logger.exception(
+                "Error connecting to SG1 Gateway at: "+str(port)+",retrying later")
         self.lastSentTime = 0
 
         self.waitOnSyncLock = threading.Lock()
@@ -462,11 +496,10 @@ class SG1Gateway():
     def close(self):
         self.running = False
 
-    
-    def onHWMessage(self,t):
-        logging.info("GW HW msg:" +str(t))
+    def onHWMessage(self, t):
+        logging.info("GW HW msg:" + str(t))
 
-    def onBeacon(self, channel, rssi,pathLoss):
+    def onBeacon(self, channel, rssi, pathLoss):
         n = "/SG1/b/"+b64(channel)
         m = {
             'rssi': rssi,
@@ -475,7 +508,7 @@ class SG1Gateway():
         }
         self.bus.publish(n, m, encoding="msgpack")
 
-    def onMessage(self, channel, data, rssi, pathloss, timestamp,nodeID,rxHeader1):
+    def onMessage(self, channel, data, rssi, pathloss, timestamp, nodeID, rxHeader1, replyTo=None, request=False):
         n = "/SG1/i/"+b64(channel)
         m = {
             'data': data,
@@ -486,9 +519,15 @@ class SG1Gateway():
             "ts": timestamp,
             "h": rxHeader1
         }
+        if replyTo:
+            m['replyTo'] = replyTo
+
+        if request:
+            m['req'] = True
+
         self.bus.publish(n, m, encoding="msgpack")
 
-    def onSpecialMessage(self, channel, data, rssi, pathloss, timestamp,nodeID,rxHeader1):
+    def onSpecialMessage(self, channel, data, rssi, pathloss, timestamp, nodeID, rxHeader1,replyTo=None,request=False):
         n = "/SG1/sp/"+b64(channel)
         m = {
             'data': data,
@@ -499,15 +538,21 @@ class SG1Gateway():
             "ts": timestamp,
             "h": rxHeader1
         }
+
+        if replyTo:
+            m['replyTo'] = replyTo
+
+        if request:
+            m['req'] = True
         self.bus.publish(n, m, encoding="msgpack")
 
-    def onRtMessage(self, channel, data, rssi,timestamp,nodeID):
+    def onRtMessage(self, channel, data, rssi, timestamp, nodeID):
         n = "/SG1/ri/"+b64(channel)
         m = {
             'data': data,
             'rssi': rssi,
             'gw': self.gwid,
-            'id':nodeID,
+            'id': nodeID,
             "ts": timestamp
         }
         self.bus.publish(n, m, encoding="msgpack")
@@ -535,39 +580,103 @@ class SG1Gateway():
 
     def onSendRequest(self, topic, message):
         # Don't wait around forever to send RT messages
-        if self.lock.acquire(0.5 if message['rt'] else 3):
+        if self.lock.acquire(1 if message['rt'] else 3):
             try:
                 self.setChannelKey(message['key'])
                 if message['rt']:
-                    self.sendSG1RT(message['data'],message['pwr'])
+                    self.sendSG1RT(message['data'], message['pwr'])
                 else:
-                    if message.get("sp","")=='req':
-                        self.sendSG1SpecialRequest(message['data'],message['pwr'])
-                    else:
-                        self.sendSG1(message['data'],message['pwr'])
 
-                #We have to keep track of outgoings so we can
-                #Handle incoming reply messages at some point.
-                #self.lastMessageSentPerChannelKey[message['key']]=True
-                #if len(self.lastMessageSentPerChannelKey)>512:
-                #    self.lastMessageSentPerChannelKey.pop(0)
+                    # Determine which of the six message types to send
+                    # By combination of special, request, and reply attributes
+                    if message.get("sp", False):
+                        if message.get("req", False):
+                            self.sendSG1SpecialRequest(
+                                message['data'], message['pwr'])
+                        elif message.get("replyTo", False):
+                            self.sendSG1SpecialReply(
+                                message['data'], message.get("replyTo", False), message['pwr'])
+                        else:
+                            self.sendSG1Special(
+                                message['data'], message['pwr'])
+                    else:
+                        if message.get("req", False):
+                            self.sendSG1Request(
+                                message['data'], message['pwr'])
+
+                        elif message.get("replyTo", False):
+                            self.sendSG1Reply(
+                                message['data'], message.get("replyTo", False), message['pwr'])
+                        else:
+                            self.sendSG1(
+                                message['data'], message['pwr'])
 
             finally:
                 self.lock.release()
 
     def sendSG1(self, data, power=0):
-        # 3 reserved bytes
-        m = bytes([power,0,0,0]) + data
+        # 2 reserved bytes
 
-        self._sendMessage(MSG_SEND,m)
+        self.reqIDCounter = (self.reqIDCounter+1)%256
+        self.sendReqIdToKey[self.reqIDCounter]=self.currentKey
+
+        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, 0, 0]) + data
+
+        self._sendMessage(MSG_SEND, m)
+
+    def sendSG1Request(self, data, power=0):
+        # 2 reserved bytes
+        
+        self.reqIDCounter = (self.reqIDCounter+1)%256
+        self.sendReqIdToKey[self.reqIDCounter]=self.currentKey
+        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, 0, 0]) + data
+
+        self._sendMessage(MSG_SENDREQUEST, m)
+
+    def sendSG1Reply(self, data, challenge, power=0):
+
+        if isinstance(challenge, dict):
+            challenge = challenge['ts']
+
+        self.reqIDCounter = (self.reqIDCounter+1)%256
+        self.sendReqIdToKey[self.reqIDCounter]=self.currentKey
+
+        # 3 reserved bytes
+        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, 0, 0]) + challenge + data
+
+        self._sendMessage(MSG_SENDREPLY, m)
+
+
+    def sendSG1Special(self, data, power=0):
+        
+        self.reqIDCounter = (self.reqIDCounter+1)%256
+        self.sendReqIdToKey[self.reqIDCounter]=self.currentKey
+        # 2 reserved bytes
+        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, 0, 0]) + data
+
+        self._sendMessage(MSG_SENDSPECIAL, m)
+
+    def sendSG1SpecialRequest(self, data, power=0):
+        # 3 reserved bytes
+        self.reqIDCounter = (self.reqIDCounter+1)%256
+        self.sendReqIdToKey[self.reqIDCounter]=self.currentKey
+        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, 0, 0]) + data
+
+        self._sendMessage(MSG_SENDSPECIALREQUEST, m)
+
+    def sendSG1SpecialReply(self, data, challenge, power=0):
+        # 3 reserved bytes
+        self.reqIDCounter = (self.reqIDCounter+1)%256
+        self.sendReqIdToKey[self.reqIDCounter]=self.currentKey
+        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, 0, 0]) + challenge + data
+
+        self._sendMessage(MSG_SENDSPECIALREPLY, m)
 
 
     def sendSG1RT(self, data, power=0):
         # 3 reserved bytes
-        m = bytes([power,0,0,0]) + data
-        self._sendMessage(MSG_SENDRT,m)
-
-
+        m = bytes([struct.pack("<b",power)[0], 0, 0, 0]) + data
+        self._sendMessage(MSG_SENDRT, m)
 
     def onDeviceRequestPair(self, topic, message):
         "Used by a device object to request that the hub pair with a device"
@@ -581,20 +690,20 @@ class SG1Gateway():
             return 0
         self.lastSerConnectAttempt = time.monotonic()
 
-        #Basically tries a random one we haven't tried before
+        # Basically tries a random one we haven't tried before
         if self.port.strip() == "__auto__":
-            import serial.tools.list_ports  as serlisttools
+            import serial.tools.list_ports as serlisttools
 
             x = {i.device for i in serlisttools.comports()}
 
             port = random.choice(x)
 
-            #Remove and reinsert resets retry restrictions
+            # Remove and reinsert resets retry restrictions
             for i in list(self.portRetryTimes.keys()):
-                if not i in x:
+                if i not in x:
                     self.portRetryTimes.pop(i)
 
-            if self.portRetryTimes.get(port,0) > time.monotonic()- 1200:
+            if self.portRetryTimes.get(port, 0) > time.monotonic() - 1200:
                 return 0
         else:
             port = self.port
@@ -642,7 +751,6 @@ class SG1Gateway():
         try:
             try:
 
-
                 b = self.portObj.read(1)
                 if b:
                     for i in self.parser.parse(b):
@@ -660,13 +768,12 @@ class SG1Gateway():
                     else:
                         return
                 time.sleep(1)
-           
 
             # The abs is there because we
             # want to send right away should the system time jump
             # We do this every second so they stay tightly in sync.
 
-            #Don't block the loop though
+            # Don't block the loop though
             if self.lock.acquire(False):
                 try:
                     if abs(time.time()-self.lastSentTime) > 1:
@@ -686,25 +793,25 @@ class SG1Gateway():
 
     def testLatency(self):
         #Average, min, max
-        self._sendMessage(MSG_PING,b'')
-        self.waitForMessage(MSG_PING,5)
+        self._sendMessage(MSG_PING, b'')
+        self.waitForMessage(MSG_PING, 5)
 
-        avg= 0
+        avg = 0
         mn = 1000
         mx = 0
-        for i in range(0,10):
+        for i in range(0, 10):
             start = time.monotonic()
-            self._sendMessage(MSG_PING,b'')
+            self._sendMessage(MSG_PING, b'')
             self.waitForMessage(MSG_PING)
-            x =  time.monotonic()-start
-            mn = min(x,mn)
-            mx = max(x,mx)
-            avg+=x
+            x = time.monotonic()-start
+            mn = min(x, mn)
+            mx = max(x, mx)
+            avg += x
         return((avg/10, mn, mx))
 
     def _handle(self, cmd, data):
         #logger.info("pkt:" +str(cmd)+"  "+str(data))
-        if cmd== MSG_VERSION:
+        if cmd == MSG_VERSION:
             if not self.connected:
                 self.connected = True
                 self.onConnect()
@@ -727,9 +834,11 @@ class SG1Gateway():
                     # Anything, we could have multiple keys with the same hint
                     for i in self.hintlookup.hintToChannelKeys[hint1]:
                         key = i
-
+                        # We need to make sure this can only be decoded once with
+                        # that key
+                        challenge = self.lastSentOnKey.get(key, b'')
                         self.setChannelKey(key)
-                        self.decode(self.wakeRequests.get(key, 0))
+                        self.decode(self.wakeRequests.get(key, 0), challenge)
                         # Give it time to actually decode, don't try to send
                         # More data than the gateway can handle.
 
@@ -742,21 +851,23 @@ class SG1Gateway():
                 if hint2 in self.hintlookup.hintToChannelKeys:
                     for i in self.hintlookup.hintToChannelKeys[hint2]:
                         key = i
+                        challenge = self.lastSentOnKey.pop(key, b'')
+
                         self.setChannelKey(key)
-                        self.decode(self.wakeRequests.get(key, 0))
+                        self.decode(self.wakeRequests.get(key, 0), challenge)
                         time.sleep(0.003)
                         d = True
 #                print(hint1, hint2)
                 if not d:
-#                    print("UNKNOWN", hint1, hint2)
+                    #                    print("UNKNOWN", hint1, hint2)
                     # Tell gateway to discard packet and move on
                     self.listen()
 
-        elif cmd==MSG_DECODEDBEACON:
+        elif cmd == MSG_DECODEDBEACON:
             pathLoss = struct.unpack("<b", data[:1])[0]
             rssi = struct.unpack("<b", data[1:2])[0]
             channel = data[6:6+32]
-            self.onBeacon(channel,rssi,pathLoss)
+            self.onBeacon(channel, rssi, pathLoss)
 
         elif cmd == MSG_DECODED:
             pathLoss = struct.unpack("<b", data[:1])[0]
@@ -767,11 +878,35 @@ class SG1Gateway():
             channel = data[14:46]
             data = data[46:]
 
-            timestamp = struct.unpack("<Q",rxiv)[0]
+            timestamp = struct.unpack("<Q", rxiv)[0]
             nodeID = rxiv[0]
 
-            self.onMessage(channel, data, rssi, pathLoss,timestamp,nodeID,rxHeader1)
-        
+            request = rxHeader1 & HEADER_TYPE_RELIABLE
+
+            self.onMessage(channel, data, rssi, pathLoss,
+                           timestamp, nodeID, rxHeader1, request=request)
+
+        elif cmd == MSG_DECODEDREPLY:
+            pathLoss = struct.unpack("<b", data[:1])[0]
+            rssi = struct.unpack("<b", data[1:2])[0]
+            rxiv = data[2:10]
+            rxHeader1 = data[10]
+            reserved = data[11:14]
+            channel = data[14:46]
+            challenge = data[46:54]
+            data = data[54:]
+
+            timestamp = struct.unpack("<Q", rxiv)[0]
+            nodeID = rxiv[0]
+
+            # Maybe race condition here, don't care, very rare dropped
+            # packets are the worst it could do.
+            if self.lastSentOnKey[channel] == challenge:
+                self.lastSentOnKey.pop(channel, None)
+
+            self.onMessage(channel, data, rssi, pathLoss,
+                           timestamp, nodeID, rxHeader1, replyTo=challenge)
+
         elif cmd == MSG_DECODEDSPECIAL:
             pathLoss = struct.unpack("<b", data[:1])[0]
             rssi = struct.unpack("<b", data[1:2])[0]
@@ -781,39 +916,74 @@ class SG1Gateway():
             channel = data[14:46]
             data = data[46:]
 
-            timestamp = struct.unpack("<Q",rxiv)[0]
+            timestamp = struct.unpack("<Q", rxiv)[0]
             nodeID = rxiv[0]
 
-            self.onSpecialMessage(channel, data, rssi, pathLoss,timestamp,nodeID,rxHeader1)
-        
+            request = rxHeader1 & HEADER_TYPE_RELIABLE
+
+
+            self.onSpecialMessage(channel, data, rssi,
+                                  pathLoss, timestamp, nodeID, rxHeader1,request=request)
+
+
+
+        elif cmd == MSG_DECODEDSPECIALREPLY:
+            pathLoss = struct.unpack("<b", data[:1])[0]
+            rssi = struct.unpack("<b", data[1:2])[0]
+            rxiv = data[2:10]
+            rxHeader1 = data[10]
+            reserved = data[11:14]
+            channel = data[14:46]
+            challenge = data[46:54]
+            data = data[54:]
+
+            timestamp = struct.unpack("<Q", rxiv)[0]
+            nodeID = rxiv[0]
+
+            # Maybe race condition here, don't care, very rare dropped
+            # packets are the worst it could do.
+            if self.lastSentOnKey[channel] == challenge:
+                self.lastSentOnKey.pop(channel, None)
+
+            self.onSpecialMessage(channel, data, rssi, pathLoss,
+                           timestamp, nodeID, rxHeader1, replyTo=challenge)
+      
+
         elif cmd == MSG_DECODEDRT:
             rssi = struct.unpack("<b", data[:1])[0]
-            rxiv  = data[1: 9]
+            rxiv = data[1: 9]
             reserved = data[9: 13]
             channel = data[13:45]
             data = data[45:]
 
-            timestamp = struct.unpack("<Q",rxiv)[0]
+            timestamp = struct.unpack("<Q", rxiv)[0]
             nodeID = rxiv[0]
 
-            self.onRtMessage(channel, data, rssi, timestamp,nodeID)
-        
+            self.onRtMessage(channel, data, rssi, timestamp, nodeID)
+
         elif cmd == MSG_BGNOISE:
             rssi = struct.unpack("<b", data[:1])[0]
             self.onNoiseMeasurement(rssi)
 
-        #elif cmd == MSG_SENT:
-        #    reqID = struct.unpack("<B", data[0])
-
+        elif cmd == MSG_SENT:
+            # Let the gateway tell us the IV that it was sent with.
+            if data:
+                reqID = data[0]
+                iv = data[1:9]
+                # Store the IV we sent, we will need it later for
+                # challenge response
+                if iv:
+                    x = self.sendReqIdToKey.pop(reqID, None)
+                    if not x is None:
+                        self.lastSentOnKey[x] = iv
 
         if cmd in self.waitingTypes:
-            #Lock free here. Scary!
+            # Lock free here. Scary!
             for i in self.waitingTypes[cmd]:
                 i[1].append(data)
                 i[0].set()
 
-
-    def onNoiseMeasurement(self,rssi):
+    def onNoiseMeasurement(self, rssi):
         pass
 
     def _sendMessage(self, cmd, m):
@@ -827,16 +997,16 @@ class SG1Gateway():
                 self.portObj.write(b'\x2b')
                 self.portObj.flush()
             except:
-                print("ERRRRRRRRRRRRRRRRRRRr",self.portObj)
-                self.portObj=None
+                print("ERRRRRRRRRRRRRRRRRRRr", self.portObj)
+                self.portObj = None
                 raise
 
     def sync(self):
 
         time.sleep(0.1)
-  
+
         # Wait till we are connected for real and the device is booted
-        m = self.waitForMessage(MSG_VERSION,5)
+        m = self.waitForMessage(MSG_VERSION, 5)
         if not m:
             raise RuntimeError("Gateway did not publish version packet")
         ident = m[0:3]
@@ -868,10 +1038,13 @@ class SG1Gateway():
     def listen(self):
         self._sendMessage(MSG_RX, b'')
 
-    def decode(self, wakeUp=0):
+    def decode(self, wakeUp=0, challenge=b''):
         "WakeUp is the timestamp of the last wakerequest for the key we are decoding"
-        self._sendMessage(MSG_DECODE, b"\x01" if (
-            wakeUp > time.monotonic()-32) else b'\x00')
+
+        flags = b"\x01" if (
+            wakeUp > time.monotonic()-32) else b'\x00'
+
+        self._sendMessage(MSG_DECODE, flags+challenge)
 
     def sendTime(self):
         t = struct.pack("<q", int(time.time() * 10**6))
@@ -911,4 +1084,3 @@ class SG1Gateway():
         "This function basically exists just for testing"
         self._sendMessage(MSG_RNG, b'')
         return self.waitForMessage(MSG_RNG)
-

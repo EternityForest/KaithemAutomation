@@ -57,6 +57,7 @@ class WidgetHandler(logging.Handler):
             self.widget.write('<pre class="highlight">'+ t+"</pre>")
         else:
             self.widget.write('<pre>'+ t+"</pre>")
+            
 dbg = WidgetHandler()
 
 logging.getLogger().addHandler(dbg)
