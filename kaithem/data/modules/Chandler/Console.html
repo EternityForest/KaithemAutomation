@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1591591656336469
+resource-timestamp: 1593485144274613
 resource-type: page
 template-engine: mako
 
@@ -1047,6 +1047,12 @@ from src import tagpoints
                                 title="Sound should fade in starting when the cue starts, taking this long. Only works on the suggested GStreamer backend."
                                 >{{scenemeta[scenename].bpm?"beats":"s"}}
                                 
+                        </label>
+
+                        <label>Volume modifier for this cue(=expression allowed):
+                            <input v-on:change="setCueVolume(currentcueid,$event.target.value)" style="width:5em"
+                                min=0 v-model="currentcue.soundVolume"
+                                >
                         </label>
                         
                         
@@ -2579,6 +2585,10 @@ from src import tagpoints
                 api_link.send(['setSoundFadeIn', cue, v]);
             },
 
+            'setCueVolume': function(cue, v)
+            {
+                api_link.send(['setCueVolume', cue, v]);
+            },
             'setreentrant': function(cue, v)
             {
                 api_link.send(['setreentrant', cue, v]);

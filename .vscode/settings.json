@@ -8,5 +8,21 @@
     "python.linting.pylintEnabled": true,
     "python.linting.mypyEnabled": true,
     "python.linting.flake8Enabled": true,
-    "python.linting.flake8Args": ["--max-line-length=120"]
+    "python.linting.flake8Args": ["--max-line-length=120"],
+    "files.exclude": {
+        "helpers/debianpackaging/package/usr/**": true,
+        ".mypy_cache": true,
+        "kaithem/src/__pycache__": true,
+    },
+    "files.watcherExclude": {
+        "helpers/debianpackaging/package/usr": true,
+        ".mypy_cache": true,
+        "kaithem/src/__pycache__": true,
+        "kaithem/src/docs/thirdparty/python**": true,
+        "kaithem/src/js/vs**": true,
+        "kaithem/src/js/src-min-noconflict**": true,
+        "kaithem/data/static/img/icons/**": true,
+        "kaithem/src/thirdparty":true
+    }
+    
 }

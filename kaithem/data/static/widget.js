@@ -17,7 +17,7 @@ include("/static/js/msgpack.min.js")
 KWidget_toSend = [];
 KWidget_polled = [];
 var justSet ={};
-
+var KWidget_first_error = 1
 KWidget_serverMsgCallbacks= {
 	"__WIDGETERROR__":[
 		function(m)

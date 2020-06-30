@@ -1,7 +1,13 @@
 Change Log
 ----------
 
-### 0.64.24
+### 0.65.25
+- Sound volumes above 1 work correctly
+- Per-cue fades
+- Device print output boxes now have realtime scrolling
+
+
+### 0.65.24
 - Voice recognition moved to a Device
 - Fix first alert beep going out default device no matter what
 - BareSip virtual softphone device type, support P2P LAN calling.

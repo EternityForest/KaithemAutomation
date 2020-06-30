@@ -1,5 +1,6 @@
 <%!from src.config import config
 from src import theming
+import socket
 %>
 <!DOCTYPE html>
 <html>
@@ -10,8 +11,7 @@ from src import theming
 	</head>
 
   <body id="page">
-
 	<div style="width: 100%">
-	${config['top-banner-html']}
+  ${config['top-banner-html'].replace("HOSTNAME",socket.gethostname())}
 	</div>
 <main>

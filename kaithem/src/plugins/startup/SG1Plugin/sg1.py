@@ -219,11 +219,13 @@ def makeThreadFunction(wr):
 
 
 class SG1Device():
-    def __init__(self, channelKey, nodeID=7, gateways=None, mqttServer="__virtual__SG1", mqttPort="default"):
+    def __init__(self, channelKey, nodeID=0, gateways=None, mqttServer="__virtual__SG1", mqttPort="default",localNodeID=1):
         self.bus = mqtt.getConnection(mqttServer, mqttPort)
         self.gateways = ['__all__']
         self.key = channelKey
+        #Default 0, disable node ID filtering
         self.nodeID = nodeID
+        self.localNodeID= 1
         self.keepAwake = False
 
         self.rxMessageTimestamps = collections.OrderedDict()
@@ -354,6 +356,9 @@ class SG1Device():
             m['replyTo'] = replyTo
         if special:
             m['special'] = special
+        
+        if not self.localNodeID==1:
+            m['localID'] = self.localNodeID
 
         self.bus.publish("/SG1/send/"+gw,
                          m,
@@ -525,7 +530,8 @@ class SG1Gateway():
         if request:
             m['req'] = True
 
-        self.bus.publish(n, m, encoding="msgpack")
+        if self.nodeID< 1 or self.nodeID ==nodeID:
+            self.bus.publish(n, m, encoding="msgpack")
 
     def onSpecialMessage(self, channel, data, rssi, pathloss, timestamp, nodeID, rxHeader1,replyTo=None,request=False):
         n = "/SG1/sp/"+b64(channel)
@@ -583,8 +589,12 @@ class SG1Gateway():
         if self.lock.acquire(1 if message['rt'] else 3):
             try:
                 self.setChannelKey(message['key'])
+
+                #Normally anything from the gateway has an ID of 1, but sometimes we want local "virtual"
+                #devices to talk between gateways.
+                id = message.get('localID',1)
                 if message['rt']:
-                    self.sendSG1RT(message['data'], message['pwr'])
+                    self.sendSG1RT(message['data'], message['pwr'],id)
                 else:
 
                     # Determine which of the six message types to send
@@ -592,48 +602,48 @@ class SG1Gateway():
                     if message.get("sp", False):
                         if message.get("req", False):
                             self.sendSG1SpecialRequest(
-                                message['data'], message['pwr'])
+                                message['data'], message['pwr'],id)
                         elif message.get("replyTo", False):
                             self.sendSG1SpecialReply(
-                                message['data'], message.get("replyTo", False), message['pwr'])
+                                message['data'], message.get("replyTo", False), message['pwr'],id)
                         else:
                             self.sendSG1Special(
-                                message['data'], message['pwr'])
+                                message['data'], message['pwr'],id)
                     else:
                         if message.get("req", False):
                             self.sendSG1Request(
-                                message['data'], message['pwr'])
+                                message['data'], message['pwr'],id)
 
                         elif message.get("replyTo", False):
                             self.sendSG1Reply(
-                                message['data'], message.get("replyTo", False), message['pwr'])
+                                message['data'], message.get("replyTo", False), message['pwr'],id)
                         else:
                             self.sendSG1(
-                                message['data'], message['pwr'])
+                                message['data'], message['pwr'],id)
 
             finally:
                 self.lock.release()
 
-    def sendSG1(self, data, power=0):
+    def sendSG1(self, data, power=0, id=1):
         # 2 reserved bytes
 
         self.reqIDCounter = (self.reqIDCounter+1)%256
         self.sendReqIdToKey[self.reqIDCounter]=self.currentKey
 
-        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, 0, 0]) + data
+        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, id, 0]) + data
 
         self._sendMessage(MSG_SEND, m)
 
-    def sendSG1Request(self, data, power=0):
+    def sendSG1Request(self, data, power=0,id=1):
         # 2 reserved bytes
         
         self.reqIDCounter = (self.reqIDCounter+1)%256
         self.sendReqIdToKey[self.reqIDCounter]=self.currentKey
-        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, 0, 0]) + data
+        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, id, 0]) + data
 
         self._sendMessage(MSG_SENDREQUEST, m)
 
-    def sendSG1Reply(self, data, challenge, power=0):
+    def sendSG1Reply(self, data, challenge, power=0,id=1):
 
         if isinstance(challenge, dict):
             challenge = challenge['ts']
@@ -642,33 +652,33 @@ class SG1Gateway():
         self.sendReqIdToKey[self.reqIDCounter]=self.currentKey
 
         # 3 reserved bytes
-        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, 0, 0]) + challenge + data
+        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, id, 0]) + challenge + data
 
         self._sendMessage(MSG_SENDREPLY, m)
 
 
-    def sendSG1Special(self, data, power=0):
+    def sendSG1Special(self, data, power=0,id=1):
         
         self.reqIDCounter = (self.reqIDCounter+1)%256
         self.sendReqIdToKey[self.reqIDCounter]=self.currentKey
         # 2 reserved bytes
-        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, 0, 0]) + data
+        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, id, 0]) + data
 
         self._sendMessage(MSG_SENDSPECIAL, m)
 
-    def sendSG1SpecialRequest(self, data, power=0):
+    def sendSG1SpecialRequest(self, data, power=0,id=1):
         # 3 reserved bytes
         self.reqIDCounter = (self.reqIDCounter+1)%256
         self.sendReqIdToKey[self.reqIDCounter]=self.currentKey
-        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, 0, 0]) + data
+        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, id, 0]) + data
 
         self._sendMessage(MSG_SENDSPECIALREQUEST, m)
 
-    def sendSG1SpecialReply(self, data, challenge, power=0):
+    def sendSG1SpecialReply(self, data, challenge, power=0,id=1):
         # 3 reserved bytes
         self.reqIDCounter = (self.reqIDCounter+1)%256
         self.sendReqIdToKey[self.reqIDCounter]=self.currentKey
-        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, 0, 0]) + challenge + data
+        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, id, 0]) + challenge + data
 
         self._sendMessage(MSG_SENDSPECIALREPLY, m)
 

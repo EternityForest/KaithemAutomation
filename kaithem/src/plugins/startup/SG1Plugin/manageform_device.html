@@ -38,9 +38,11 @@ A real MQTT server is not local, as kaithem can use an internal "virtual" server
 <p class="help">The minimum expected message interval should include everything including beacons.
     It is used to detect when a device goes offline. The RSSI tagpoint will be `-180` if no message
     is seen for at least that interval.
+    <b>For security, use unique node IDs when sending between a pair of hubs on the same channel!!</b>
 </p>
 
 <datalist id="nodeid">
+    <option value="1">HUB</option>
     <option value="2">SENSOR</option>
     <option value="3">SWITCH</option>
     <option value="4">LIGHT</option>
@@ -55,9 +57,15 @@ A real MQTT server is not local, as kaithem can use an internal "virtual" server
     </tr>
 
     <tr>
-        <td>Node ID(1 is reserved for hubs)</td>
+        <td>Remote Node ID(0 accepts from any)</td>
         <td><input list="nodeid" name="device.nodeID"  value="${data.get('device.nodeID','0')}"></td>
     </tr>
+
+    <tr>
+        <td>Local Node ID(Used when sending FROM gateway, normally 1) </td>
+        <td><input list="nodeid" name="device.localNodeID"  value="${data.get('device.nodeID','1')}"></td>
+    </tr>
+
 
     <tr>
         <td>Min Expected Message Interval </td>

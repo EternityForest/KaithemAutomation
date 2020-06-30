@@ -30,9 +30,15 @@ preloadlock = threading.Lock()
 def volumeToDB(vol):
     if vol<0.001:
         return -100
-    #Calculated usiung curve fitting, assuming that 0 is 0db,
-    #0.5 is 10db below, etc.
-    return -38.33333 + 77.80645*vol- 39.56989*vol**2
+
+    #Note: Preserve legacy, but fix that crosover?
+    if vol<=1:
+        #Calculated usiung curve fitting, assuming that 0 is 0db,
+        #0.5 is 10db below, etc.
+        return -38.33333 + 77.80645*vol- 39.56989*vol**2
+    else:
+        #New high-volume curve
+        return -23.33333 + 17.98981*vol - 1.432762*vol**2
 
 isStartDone = []
 if jackmanager.settings.get('jackMode',None) in ("manage","use"):

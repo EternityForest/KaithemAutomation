@@ -404,7 +404,7 @@ class DeviceNamespace():
         return remote_devices[name].interface()
 
     def __iter__(self):
-        return (i() for i in remote_devices_atomic)
+        return (i for i in remote_devices_atomic)
 
 
 builtinDeviceTypes = {'device': Device}

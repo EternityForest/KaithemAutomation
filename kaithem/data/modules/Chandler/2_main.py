@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1592181200815296
+resource-timestamp: 1593488773697450
 resource-type: event
 versions: {}
 
@@ -1256,7 +1256,8 @@ if __name__=='__setup__':
                                 'reentrant': cue.reentrant,
                                 'inheritRules': cue.inheritRules,
                                 "soundFadeOut": cue.soundFadeOut,
-                                "soundFadeIn": cue.soundFadeIn
+                                "soundFadeIn": cue.soundFadeIn,
+                                'soundVolume': cue.soundVolume
     
                                 }])
             except Exception as e:
@@ -1736,6 +1737,18 @@ if __name__=='__setup__':
                         v=msg[2]
                     cues[msg[1]].soundFadeOut=v
                     self.pushCueMeta(msg[1])
+    
+                if msg[0] == "setCueVolume":
+                    try:
+                        v=float(msg[2])
+                    except:
+                        v=msg[2]
+                    cues[msg[1]].soundVolume=v
+                    self.pushCueMeta(msg[1])
+                    cues[msg[1]].scene().setAlpha(cues[msg[1]].scene().alpha)
+    
+    
+    
     
                 if msg[0] == "setSoundFadeIn":
                     try:
@@ -2247,16 +2260,17 @@ if __name__=='__setup__':
         'rules':[],
         'script':'',
         'values': {},
+        'soundVolume': 1
     }
     
     class Cue():
         "A static set of values with a fade in and out duration"
         __slots__=['id','changed','next_ll','alpha','fadein','length','lengthRandomize','name','values','scene',
         'nextCue','track','shortcut','number','inherit','sound','rel_length','script',
-        'soundOutput','onEnter','onExit','influences','associations',"rules","reentrant","inheritRules","soundFadeIn","soundFadeOut",
+        'soundOutput','onEnter','onExit','influences','associations',"rules","reentrant","inheritRules","soundFadeIn","soundFadeOut","soundVolume",
         '__weakref__']
         def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, length=0,track=True, nextCue = None,shortcut=None,sound='',soundOutput='',rel_length=False, id=None,number=None,
-            lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,reentrant=True, soundFadeIn=0,soundFadeOut=0,inheritRules='',**kw):
+            lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,reentrant=True, soundFadeIn=0,soundFadeOut=0,inheritRules='',soundVolume=1,**kw):
             #This is so we can loop through them and push to gui
             self.id = uuid.uuid4().hex
             self.name = name
@@ -2265,6 +2279,7 @@ if __name__=='__setup__':
             self.onExit = onExit
             self.inheritRules=inheritRules or ''
             self.reentrant=True
+            self.soundVolume = soundVolume
     
             ##Rules created via the GUI logic editor
             self.rules = rules or []
@@ -2337,7 +2352,7 @@ if __name__=='__setup__':
         def serialize(self):
                 x =  {"fadein":self.fadein,"length":self.length,'lengthRandomize':self.lengthRandomize,"shortcut":self.shortcut,"values":self.values,
                 "nextCue":self.nextCue,"track":self.track,"number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,'rel_length':self.rel_length, 'script':self.script, 'rules':self.rules,
-                'reentrant':self.reentrant, 'inheritRules': self.inheritRules,"soundFadeIn": self.soundFadeIn, "soundFadeOut": self.soundFadeOut
+                'reentrant':self.reentrant, 'inheritRules': self.inheritRules,"soundFadeIn": self.soundFadeIn, "soundFadeOut": self.soundFadeOut, "soundVolume": self.soundVolume
                 }
     
                 #Cleanup defaults
@@ -2567,6 +2582,8 @@ if __name__=='__setup__':
             self.cueTag.pushOnRepeats = True
             self.cueTagClaim = self.cueTag.claim("__stopped__","Scene", 51,annotation="SceneObject")
     
+            self.cueVolume = 1
+    
             #Allow GotoCue 
             def cueTagHandler(val,timestamp, annotation):
                 #We generated this event, that means we don't have to respond to it
@@ -2633,7 +2650,6 @@ if __name__=='__setup__':
                 #We generated this event, that means we don't have to respond to it
                 if annotation=="SceneObject":
                     return
-                #Just goto the cue
                 self.setAlpha(val)
             self.alphaTag.setHandler(alphaTagHandler)  
     
@@ -3232,7 +3248,11 @@ if __name__=='__setup__':
                     if self.cue.sound and self.active:
     
                         sound = self.cue.sound
-    
+                        try:
+                            self.cueVolume = min(5, max(0,float(self.evalExpr(self.cue.soundVolume))))
+                        except:
+                            self.event("script.error", self.name+" in cueVolume eval:\n"+traceback.format_exc())
+                            self.cueVolume=1
                         sound = self.resolveSound(sound)
     
                         if os.path.isfile(sound):
@@ -3245,9 +3265,9 @@ if __name__=='__setup__':
                             #Always fade in if the face in time set.
                             #Also fade in for crossfade, but in that case we only do it if there is something to fade in from.
                             if not (((self.crossfade>0) and  kaithem.sound.isPlaying(str(self.id))) or self.cue.soundFadeIn):
-                                playSound(sound,handle=str(self.id),volume=self.alpha,output=out)
+                                playSound(sound,handle=str(self.id),volume=self.alpha*self.cueVolume,output=out)
                             else:
-                                fadeSound(sound,length=max(self.crossfade, self.cue.soundFadeIn), handle=str(self.id),volume=self.alpha,output=out)
+                                fadeSound(sound,length=max(self.crossfade, self.cue.soundFadeIn), handle=str(self.id),volume=self.alpha*self.cueVolume,output=out)
     
                             
                         else:
@@ -3411,6 +3431,7 @@ if __name__=='__setup__':
                     try:
                         self.cue_cached_vals_as_arrays[universe][channel] = self.evalExpr(cuev if not cuev==None else 0)
                     except:
+                        print("err")
                         self.event("script.error", self.name+" cue "+cuex.name+" Val " +str((universe,channel))+"\n"+traceback.format_exc())
     
                     if isinstance(cuev, str) and cuev.startswith("="):
@@ -3776,7 +3797,14 @@ if __name__=='__setup__':
             
         def setAlpha(self,val,sd=False):
             val = min(1,max(0,val))
-            kaithem.sound.setvol(val, str(self.id))
+            try:
+                self.cueVolume = min(5, max(0,float(self.evalExpr(self.cue.soundVolume))))
+            except:
+                self.event("script.error", self.name+" in cueVolume eval:\n"+traceback.format_exc())
+                self.cueVolume=1
+    
+                
+            kaithem.sound.setvol(val*self.cueVolume, str(self.id))
             self.rerender = True
             
             if not self.isActive() and val>0:
