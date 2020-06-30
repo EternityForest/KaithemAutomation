@@ -1285,6 +1285,10 @@ class _NumericTagPoint(_TagPoint):
             if not self._unit==value:
                 if value:
                     raise ValueError("Cannot change unit of tagpoint. To override this, set to None first")
+        #TODO race condition in between check, but nobody will be setting this from different threads
+        #I don't think
+        if not self._displayUnits:
+            self._displayUnits = value
         self._unit = value
         self._setupMeter()
         if self._meterWidget:
