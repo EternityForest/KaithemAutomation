@@ -122,6 +122,9 @@ class SG1Device(devices.Device):
             self.expectedMessageInterval = float(
                 data.get("device.expectedMessageInterval", 60))
 
+            self.localNodeID = float(
+                data.get("device.localNodeID", 60))
+
             self.rssiTag = tagpoints.Tag("/devices/"+name+".rssi")
             self.rssiTagClaim = self.rssiTag.claim(self.rssi, "HWStatus", 60)
             self.rssiTag.setAlarm(name+'.SG1DeviceLowSignal', "value < -94",
@@ -335,6 +338,8 @@ class SG1Gateway(devices.Device):
             name+".SG1GatewayDisconnected", "value != 'connected'", tripDelay=15)
 
         self.gatewayNoiseTag = tagpoints.Tag("/devices/"+name+".noiseFloor")
+        self.gatewayNoiseTag.unit= "dBm"
+
         self.gatewayUtilizationTag = tagpoints.Tag(
             "/devices/"+name+".rxUtilization")
 

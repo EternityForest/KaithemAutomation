@@ -718,19 +718,18 @@ class SG1Gateway():
         else:
             port = self.port
         try:
-            self.portObj = serial.Serial(self.port, 250000)
-            self.portObj.timeout = 1
-            self.portObj.writeTimeout = 1
-
-            for i in range(0, 100):
+            self.portObj = serial.Serial(self.port, 250000,timeout=1, writeTimeout=1)
+            #Wait till we can actually open a connection
+            for i in range(0, 5):
                 try:
                     self.portObj.write(b'\x2b')
                     break
                 except:
                     time.sleep(0.01)
-            return 1
             # Re-sync the remote decoder
-            logger.info("Reconnected to SG1 Gateway at "+port)
+            logger.info("Connected to SG1 Gateway at "+port)
+            return 1
+
 
         except Exception:
             self.portRetryTimes[port] = time.monotonic()
@@ -1011,7 +1010,6 @@ class SG1Gateway():
                 self.portObj.flush()
             except:
                 print("ERRRRRRRRRRRRRRRRRRRr", self.portObj)
-                self.portObj = None
                 raise
 
     def sync(self):
@@ -1075,7 +1073,7 @@ class SG1Gateway():
             self._sendMessage(MSG_PAIR, bytes([newDeviceNodeId]))
             time.sleep(5)
 
-    def waitForMessage(self, t, timeout=1):
+    def waitForMessage(self, t, timeout=3):
         e = threading.Event()
         boxlist = []
         x = (e, boxlist)

@@ -45,7 +45,9 @@ defaultDisplayUnits={
     "weight":"g",
     "pressure": "psi|Pa",
     "voltage": "V",
-    "current":"A"
+    "current":"A",
+    "power": "W",
+    "frequency": "Hz"
 }
 
 server_session_ID= str(time.time())+str(os.urandom(8))
