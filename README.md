@@ -49,6 +49,9 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.26
+- Fix JSON MQTT support
+
 ### 0.65.25
 - Sound volumes above 1 work correctly
 - Per-cue fades

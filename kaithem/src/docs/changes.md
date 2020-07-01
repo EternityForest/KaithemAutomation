@@ -1,6 +1,9 @@
 Change Log
 ----------
 
+### 0.65.26
+- Fix JSON MQTT support
+
 ### 0.65.25
 - Sound volumes above 1 work correctly
 - Per-cue fades
