@@ -230,7 +230,7 @@ class Connection():
                 t = t[len("/mqtt/"+self.server+":"+str(self.port)+"/in/"):]
                 function()(t, json.loads(m))
 
-        if encoding == 'msgpack':
+        elif encoding == 'msgpack':
             def wrapper(t, m):
                 # Get rid of the extra kaithem framing part of the topic
                 t = t[len("/mqtt/"+self.server+":"+str(self.port)+"/in/"):]
@@ -248,7 +248,7 @@ class Connection():
                 t = t[len("/mqtt/"+self.server+":"+str(self.port)+"/in/"):]
                 function()(t, m)
         else:
-            raise ValueError("Invalid encoding!")
+            raise ValueError("Invalid encoding: "+encoding)
 
         # Correctly call message bus error handlers
         wrapper.messagebusWrapperFor = function
@@ -265,7 +265,7 @@ class Connection():
     def publish(self, topic, message, qos=2, encoding="json"):
         if encoding == 'json':
             message = json.dumps(message)
-        if encoding == 'msgpack':
+        elif encoding == 'msgpack':
             message = msgpack.packb(message,use_bin_type=True)
         elif encoding == 'utf8':
             message = message.encode("utf8")
