@@ -248,6 +248,9 @@ class Alert(virtualresource.VirtualResource):
         self.id = id or str(time.time())
         all[self.id]=self
 
+    def notificationHTML(self):
+        return ""
+
 
     def __html_repr__(self):
         return """<small>State machine object at %s<br></small>

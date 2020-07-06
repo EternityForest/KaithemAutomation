@@ -49,6 +49,11 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.27
+- Thread pool workers automatic spawning and stopping no longer clogs up the logs
+- Improve tag alarm configuration
+- Improve front page alert display
+
 ### 0.65.26
 - Fix JSON MQTT support
 

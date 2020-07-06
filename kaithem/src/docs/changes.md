@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.65.27
+- Thread pool workers automatic spawning and stopping no longer clogs up the logs
+- Improve tag alarm configuration
+- Improve front page alert display
+
 ### 0.65.26
 - Fix JSON MQTT support
 

@@ -4,6 +4,7 @@
 from src import tagpoints,unitsofmeasure,util
 import time
 import gc
+import collections
 %>
 <%
     pageGCListIgnoreFlag = True
@@ -81,6 +82,10 @@ import gc
 
 
     eald = tag.effectiveAlarmData
+
+    # Use to show the placeholders for what you'll get if you blank out something
+    defaultAlarmData = collections.defaultdict(lambda: {})
+    defaultAlarmData.update(tag.dynamicAlarmData)
     
 
 
@@ -256,13 +261,13 @@ import gc
 
 %for i in eald:
 <tr>
-    %if i in ald:
+    %if not i in tag.dynamicAlarmData:
     <td><input name="alarm_${i}:name" value="${i|h}"></td>
     %else:
-    <td><input title="Cannot change name of alarm that was created in code" disabled=1 value="${i|h}"></td>
+    <td><input title="Cannot change name of alarm that was created in code, set condition to None to disable" disabled=1 value="${i|h}"></td>
     %endif    
-    <td><input name="alarm_${i}:condition" value="${ald.get(i,{}).get('condition','')|h}" placeholder="${eald[i].get('condition','')}"></td>
-    <td><input name="alarm_${i}:releaseCondition" value="${ald.get(i,{}).get('releaseCondition','')|h}" placeholder="${eald[i].get('releaseCondition','when tripCondition is False')}"></td>
+    <td><input name="alarm_${i}:condition" value="${ald.get(i,{}).get('condition','')|h}" placeholder="${defaultAlarmData[i].get('condition','')}"></td>
+    <td><input name="alarm_${i}:releaseCondition" value="${ald.get(i,{}).get('releaseCondition','')|h}" placeholder="${defaultAlarmData[i].get('releaseCondition','when tripCondition is False')}"></td>
     <td>
         <select name="alarm_${i}:priority">
             <option value="" ${'selected' if ald.get(i,{}).get('priority')=='' else ''}>unchanged/default(${eald[i].get('priority','warning')})</option>
@@ -273,9 +278,15 @@ import gc
             <option value="critical" ${'selected' if ald.get(i,{}).get('priority')=='critical' else ''}>critical</option>
         </select>
     </td>
-    <td><input name="alarm_${i}:autoAck" value="${ald.get(i,{}).get('autoAck','')|h}" placeholder="${eald[i].get('autoAck','False')}"></td>
-    <td><input name="alarm_${i}:tripDelay" value="${ald.get(i,{}).get('tripDelay','')|h}" placeholder="${eald[i].get('tripDelay','0')}"></td>
+    <td><input name="alarm_${i}:autoAck" value="${ald.get(i,{}).get('autoAck','')|h}" placeholder="${defaultAlarmData[i].get('autoAck','False')}"></td>
+    <td><input name="alarm_${i}:tripDelay" value="${ald.get(i,{}).get('tripDelay','')|h}" placeholder="${defaultAlarmData[i].get('tripDelay','0')}"></td>
+
+    %if i in tag.alarms:
     <td style="background-color: ${'lightgreen' if tag.alarms[i].sm.state=='normal' else 'yellow'};">${tag.alarms[i].sm.state}</td>
+    %else:
+    <td>Null Alarm</td>
+    %endif
+
 </tr>
 %endfor
 

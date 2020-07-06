@@ -460,10 +460,13 @@ class _TagPoint(virtualresource.VirtualResource):
                 'tripDelay':tripDelay,
                 'releaseCondition': releaseCondition
             }
+
+            #Remove empties to make way for defaults
+            d = {i:d[i] for i in d if d[i]}
             
             if isConfigured:
                 if not isinstance(condition,str) and not condition==None:
-                    raise ValueError("Configurable alarms only str or none condition")
+                    raise ValueError("Configurable alarms only allow str or none condition")
                 hasUnsavedData[0]=True
 
                 storage = self.configuredAlarmData
@@ -474,10 +477,14 @@ class _TagPoint(virtualresource.VirtualResource):
                     #This is because we need somewhere to return the strong ref
                     raise RuntimeError("Cannot create dynamic alarm without the refresh option")
             
-            if condition:
-                storage[name]=d
+            if condition is None:
+                try:
+                    storage.pop(name)
+                except:
+                    pass
             else:
-                storage.pop(name,0)
+                storage[name]=d
+            
 
             #If we have configured alarms, there should be a configTagData entry.
             #If not, delete, because when that is empty it's how we know
@@ -557,7 +564,9 @@ class _TagPoint(virtualresource.VirtualResource):
     def _alarmFromData(self,name,d):
         if not d.get("condition",''):
             return
-
+        
+        if d.get("condition",'').strip() in ("False","None","0"):
+            return
         tripCondition=d['condition']
 
         releaseCondition = d.get('releaseCondition',None)
@@ -576,11 +585,23 @@ class _TagPoint(virtualresource.VirtualResource):
         n = self.name.replace("=",'expr_')
         for i in illegalCharsInName:
             n=n.replace(i,"_")
+
         obj = alerts.Alert(n+".alarms."+name, 
             priority=priority,
             autoAck=autoAck,
             tripDelay=tripDelay,
             )
+
+        def f():
+            try:
+                if hasattr(self,"meterWidget"):
+                    return self.meterWidget.render()
+                else:
+                    return self.spanWidget.render()
+            except Exception as e:
+                return str(e)
+
+        obj.notificationHTML= f
 
         def alarmPollFunction(value, annotation, timestamp):
             context['value']= value
@@ -1119,7 +1140,7 @@ class _NumericTagPoint(_TagPoint):
         self._max =max
         #Pipe separated list of how to display value
         self._displayUnits=None
-        self._unit = None
+        self._unit = ""
         self.guiLock = threading.Lock()
         self._meterWidget=None
         self._setupMeter()
@@ -1149,7 +1170,7 @@ class _NumericTagPoint(_TagPoint):
                     return self._meterWidget
 
             self._meterWidget= widgets.Meter()
-            self._meterWidget.defaultLabel = self.name.split(".")[-1][:16]
+            self._meterWidget.defaultLabel = self.name.split(".")[-1][:24]
             
             self._meterWidget.setPermissions(['/users/tagpoints.view'],['/users/tagpoints.edit'])
             self._setupMeter()
@@ -1284,7 +1305,7 @@ class _NumericTagPoint(_TagPoint):
         if self._unit:
             if not self._unit==value:
                 if value:
-                    raise ValueError("Cannot change unit of tagpoint. To override this, set to None first")
+                    raise ValueError("Cannot change unit of tagpoint. To override this, set to None or '' first")
         #TODO race condition in between check, but nobody will be setting this from different threads
         #I don't think
         if not self._displayUnits:

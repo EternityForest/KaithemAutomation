@@ -5,6 +5,7 @@ import cherrypy
 from src.config import config
 from src.unitsofmeasure import formatTimeInterval
 
+
 pcolor={
     "critical": "pink",
     "error": 'red',
@@ -84,15 +85,25 @@ ${alertsapi.render("alertapi")}
         %>
     
         %for i in l:
-        <div style="background-color:rgba(255,240,220,0.2);border-style:solid;">
-            <span class="${iclass.get(i.priority,'')}"></span>
-            <b><span style="background-color:${pcolor.get(i.priority,'purple')}">${i.name}</span></b>
-             Priority:  ${i.priority}, Zone: ${i.zone}, State: <span style="background-color:${scolor[i.sm.state]|h}">${i.sm.state}</span><br>
-             Tripped at:${unitsofmeasure.strftime(i.trippedAt)}(about <b>${formatTimeInterval(time.time()-i.trippedAt,2)} ago</b>)<br>
-             Message:<b>${i.tripMessage}</b>
-        %if not i.sm.state=="acknowledged":    
-        <a class="button" href=".?ackalarm=${i.id}">ACK</a>
-        %endif
+        <div style="background-color:rgba(255,240,220,0.2);border-style:solid;display:flex;">
+            <div style="align-self:center"><span class="${iclass.get(i.priority,'')}" style="width: 2em;"></span></div>
+            <div>
+                <b><span style="background-color:${pcolor.get(i.priority,'purple')}">${i.name}</span></b>
+                Priority:  ${i.priority}, Zone: ${i.zone}, State: <span style="background-color:${scolor[i.sm.state]|h}">${i.sm.state}</span><br>
+                Tripped at:${unitsofmeasure.strftime(i.trippedAt)}(about <b>${formatTimeInterval(time.time()-i.trippedAt,2)} ago</b>)<br>
+                Trip Message:<b>${i.tripMessage}</b> 
+            </div>
+                
+            %if not i.sm.state=="acknowledged":    
+            <div>
+                <a class="button" style="height: 80%;" href=".?ackalarm=${i.id}">ACK</a>
+            </div>
+            %endif
+            <div style="flex-grow:99"></div>
+
+            <div style="align-self: flex-end;">${i.notificationHTML()}</div>
+
+
         </div>
         %endfor
 

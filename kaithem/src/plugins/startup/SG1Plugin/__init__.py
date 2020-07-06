@@ -374,6 +374,7 @@ class SG1Gateway(devices.Device):
         self.tagpoints = {"status": self.gatewayStatusTag}
 
         self.print("GW obj created")
+
     def onNoiseMeasurement(self, noise):
         if self.gatewayNoiseTag.value == 0:
             self.gatewayNoiseTag.value = noise
@@ -385,7 +386,13 @@ class SG1Gateway(devices.Device):
         # Don't count anything above the threshold as noise, it is probably utilization.
         # And we want to give the real floor.
         if b == 0:
-            self.gatewayNoiseTag.value = self.gatewayNoiseTag.value*0.98 + noise*0.02
+            self.gatewayNoiseTag.value = self.gatewayNoiseTag.value*0.95 + noise*0.05
+        else:
+            #At the same time, under 100% utilization, we need to correctly show that the
+            #Background level is extremely high, so we still update the noise tag, just much slower
+            self.gatewayNoiseTag.value = self.gatewayNoiseTag.value*0.99 + noise*0.01
+
+
     def onHWMessage(self, t):
         self.print(t)
 

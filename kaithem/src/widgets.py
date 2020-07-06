@@ -632,7 +632,7 @@ class Meter(Widget):
             return str(round(v,3))
         
 
-    def render(self,unit=None,label=None):
+    def render(self,unit='',label=None):
         label= label or self.defaultLabel
         return("""
         <div class="widgetcontainer meterwidget">
@@ -643,7 +643,7 @@ class Meter(Widget):
         {{
             document.getElementById("{uuid}_m").value=val[0];
             document.getElementById("{uuid}").className=val[1]+" numericpv";
-            document.getElementById("{uuid}").innerHTML=val[2]+"{unit}";
+            document.getElementById("{uuid}").innerHTML=val[2]+"<span style="color:grey>{unit}</span>";
 
             if(val[3])
             {{
