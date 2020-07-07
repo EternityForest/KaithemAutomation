@@ -20,12 +20,12 @@ from . import tagpoints, messagebus, alerts, util, workers
 
 
 class EnhancedConnection(BaseConnection):
-    def __init__(self, server, port=1883, *, alertPriority="info", alertAck=True):
+    def __init__(self, server, port=1883,*, alertPriority="info", alertAck=True):
         self.statusTag = tagpoints.StringTag(
                     "/system/mqtt/"+n+"/status")
         self.statusTagClaim = self.statusTag.claim(
             "disconnected", "status", 90)
-        BaseConnection.__init__(self,server,port,*, alertPriority=alertPriority,alertAck=True)
+        BaseConnection.__init__(self,server,port, alertPriority=alertPriority,alertAck=True)
 
     def onStillConnected(self):
         self().statusTagClaim.set("connected")

@@ -52,6 +52,7 @@ import time
 import json
 import uuid as uuidModule
 import random
+import configparser
 
 # class DocumentView():
 #     def __init__(self,database,uuid):
@@ -78,8 +79,13 @@ import random
 class DocumentDatabase():
     def __init__(self, filename):
         self.conn = sqlite3.connect(filename)
+        self.config = configparser.ConfigParser()
+        if os.path.exists(filename+".conf"):
+            self.config.read((filename+".conf")
+       
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA wal_checkpoint=FULL")
+        self.conn.execute("PRAGMA schema.secure_delete = off")
 
         self.conn.execute('''CREATE TABLE IF NOT EXISTS document
              (uuid text PRIMARY KEY,parent text, link text, type text, name text, 
@@ -96,6 +102,17 @@ class DocumentDatabase():
             '''CREATE INDEX IF NOT EXISTS document_local_timestamp ON document(local_timestamp)''')
         self.conn.execute(
             '''CREATE INDEX IF NOT EXISTS document_type ON document(type)''')
+
+    def setConfig(self,section, key,value):
+        try:
+            self.config.addSection(section)
+        except:
+            pass
+        self.config.set(section,key,value)
+
+    def saveConfig(self):
+        with open(self.filename+".conf", 'w') as configfile:
+            config.write(configfile)
 
     def updateDocument(self, uuid, type, name, document, parent, link, ts_int, blob, localts_int):
         self.conn.execute("UPDATE document  SET parent=?, link=?, type=?, name=?,timestamp=?, local_timestamp=?, document=?, data=?, signature=? WHERE uuid=?",

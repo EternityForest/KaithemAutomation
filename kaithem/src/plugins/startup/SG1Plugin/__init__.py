@@ -49,7 +49,9 @@ class Gateway(sg1.SG1Gateway):
         self.kaithemInterface().print("Disconnected from gateway")
         self.kaithemInterface().onDisconnect()
 
-
+    def handleError(self, s):
+        self.kaithemInterface().print(s, "ERROR")
+        
 sc_code = """
 class CustomDeviceType(DeviceType):
     def onMessage(self,m):
@@ -105,6 +107,10 @@ class Device(sg1.SG1Device):
             self.kaithemInterface()._onBeacon(m)
         except:
             self.kaithemInterface().handleException()
+    
+    def handleError(self, s):
+        self.kaithemInterface().print(s, "ERROR")
+
 
 class SG1Device(devices.Device):
     deviceTypeName = 'SG1Device'

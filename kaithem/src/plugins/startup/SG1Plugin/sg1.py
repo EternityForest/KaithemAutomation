@@ -227,6 +227,7 @@ class SG1Device():
         self.nodeID = nodeID
         self.localNodeID= 1
         self.keepAwake = False
+        self.lock = threading.RLock()
 
         self.rxMessageTimestamps = collections.OrderedDict()
 
@@ -264,15 +265,20 @@ class SG1Device():
 
         self.rxMessageTimestamps[m['ts']] = True
 
-        # Garbage collect old messages that would be caught by the window
-        if len(self.rxMessageTimestamps) > 2000:
-            with self.lock:
-                torm = []
-                for i in self.rxMessageTimestamps:
-                    if i < t:
-                        torm.append(i)
-                for i in torm:
-                    del self.rxMessageTimestamps[i]
+        try:
+            # Garbage collect old messages that would be caught by the window
+            if len(self.rxMessageTimestamps) > 2000:
+                with self.lock:
+                    torm = []
+                    for i in self.rxMessageTimestamps:
+                        if i < t:
+                            torm.append(i)
+                    for i in torm:
+                        del self.rxMessageTimestamps[i]
+        except:
+            print(traceback.format_exc())
+            self.handleError(traceback.format_exc())
+            
         return True
 
     def replyToDiscovery(self, t, m):
@@ -295,8 +301,10 @@ class SG1Device():
             if abs(self.lastMessageInfo[1]-m['ts']) > 10**6 or m['rssi'] > self.lastMessageInfo[2]:
                 self.lastMessageInfo = (m['gw'], m['ts'], m['rssi'], m['loss'])
 
-            if self.validateIncoming(m):
-                self.onMessage(m)
+            if self.nodeID< 1 or or not 'id' in m or self.nodeID==m.get('id',0):
+
+                if self.validateIncoming(m):
+                    self.onMessage(m)
 
     def sendWakeRequest(self):
         # Create a wake request at the selected gateway.
@@ -493,6 +501,9 @@ class SG1Gateway():
         self.bus.subscribe("/SG1/registerDevice/",
                            self.handleAnnounce, encoding="msgpack")
 
+    def handleError(self, msg):
+        logger.error(msg)
+
     def setKeyList(self, keys):
         with self.lock:
             self.hintlookup.channelKeys = keys.copy()
@@ -530,8 +541,7 @@ class SG1Gateway():
         if request:
             m['req'] = True
 
-        if self.nodeID< 1 or self.nodeID ==nodeID:
-            self.bus.publish(n, m, encoding="msgpack")
+        self.bus.publish(n, m, encoding="msgpack")
 
     def onSpecialMessage(self, channel, data, rssi, pathloss, timestamp, nodeID, rxHeader1,replyTo=None,request=False):
         n = "/SG1/sp/"+b64(channel)
@@ -732,9 +742,12 @@ class SG1Gateway():
 
 
         except Exception:
-            self.portRetryTimes[port] = time.monotonic()
             self.portObj = None
-            logging.exception("Reconnect fail to: "+port)
+            if self.portRetryTimes.get(port,0)< time.monotonic()-600:
+                logging.exception("Reconnect fail (ratelimited message) to: "+port)
+                self.handleError("Could not connect to: "+port)
+            self.portRetryTimes[port] = time.monotonic()
+
             print(traceback.format_exc())
 
     def handleAnnounce(self, topic, message):
@@ -763,7 +776,10 @@ class SG1Gateway():
                 b = self.portObj.read(1)
                 if b:
                     for i in self.parser.parse(b):
-                        self._handle(*i)
+                        try:
+                            self._handle(*i)
+                        except:
+                            self.handleError(traceback.format_exc(chain=True))
             except Exception:
                 print(traceback.format_exc())
                 if self.connected:
