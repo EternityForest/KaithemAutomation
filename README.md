@@ -49,6 +49,11 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.28
+- Thread pool workers automatic spawning and stopping no longer clogs up the logs(for real)
+- Improve devices display page
+- Fix MQTT support
+
 ### 0.65.27
 - Thread pool workers automatic spawning and stopping no longer clogs up the logs
 - Improve tag alarm configuration
@@ -61,30 +66,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - Sound volumes above 1 work correctly
 - Per-cue fades
 - Device print output boxes now have realtime scrolling
-
-
-### 0.65.24
-- Voice recognition moved to a Device
-- Fix first alert beep going out default device no matter what
-- BareSip virtual softphone device type, support P2P LAN calling.
-- SG1 noise floor analysis
-- Fix "zombie" devices
-
-
-### 0.65.23
-- Misc fixes
-- Beta voice recognition effect in the Mixer(gstreamer1.0-pocketsphinx based)
-- Chandler no longer hangs if you accidentally create an infinite loop with rule inheritance
-- konva.min.js is now part of the standard JS libs(/static/js/konva4.min.js)
-- pixi.min.js is now part of the standard JS libs(/static/js/pixi5.min.js)
-- kaithem.gpio inputs now use `pull` not the badly named `pull_up`, but the old version still works
-- Now you use CustomDeviceType, not DeviceType, to subclass a device from the web UI
-- Eliminate refusal to save if on-disk version is newer, it broke things on RTCless systems
-- Fix incorrect splitting of .md resource file header sections
-- fix chandler cue delete bug
-- Fix message bus logging page stopped working as soon as you went to an invalid topic page
-- Beta SG1Gateway device support
-
 
 License Terms
 =============

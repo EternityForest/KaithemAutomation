@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.65.28
+- Thread pool workers automatic spawning and stopping no longer clogs up the logs(for real)
+- Improve devices display page
+- Fix MQTT support
+
 ### 0.65.27
 - Thread pool workers automatic spawning and stopping no longer clogs up the logs
 - Improve tag alarm configuration
