@@ -301,8 +301,7 @@ class SG1Device():
             if abs(self.lastMessageInfo[1]-m['ts']) > 10**6 or m['rssi'] > self.lastMessageInfo[2]:
                 self.lastMessageInfo = (m['gw'], m['ts'], m['rssi'], m['loss'])
 
-            if self.nodeID< 1 or or not 'id' in m or self.nodeID==m.get('id',0):
-
+            if (self.nodeID< 1) or (not 'id' in m) or (self.nodeID==m.get('id',0)):
                 if self.validateIncoming(m):
                     self.onMessage(m)
 

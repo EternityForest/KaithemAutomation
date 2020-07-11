@@ -207,7 +207,7 @@ def addWorker():
 
         id = time.time()
         #First worker always polls at 100hz 
-        t = threading.Thread(target = makeWorker(e,q,id), name = "ThreadPoolWorker-"+str(id))
+        t = threading.Thread(target = makeWorker(e,q,id), name = "nostartstoplog.ThreadPoolWorker-"+str(id))
         workersMutable[id] = t
         t.start()
         workers = workersMutable.copy()
