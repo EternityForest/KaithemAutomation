@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.65.30
+- Fix problem going from mock to real GPIO pins
+- Examples file no longer messes with GPIO
+
 ### 0.65.29
 - Fix bad lock ordering in Chandler
 - Fix bad param that prevented display of Raspberry Pi undervoltage during boot

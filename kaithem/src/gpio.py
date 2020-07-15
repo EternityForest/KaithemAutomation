@@ -443,7 +443,7 @@ class DigitalInput(GPIOTag):
                 raise NoRealGPIOError("Object has no real GPIO")
             if self.holdWaiter:
                 self.holdWaiter.join()
-            self.holdWaiter=None()
+            self.holdWaiter=None
             self.mockAlert.clear()
 
             self.fakeGpio.when_activated=None
