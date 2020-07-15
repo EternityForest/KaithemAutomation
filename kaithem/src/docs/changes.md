@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.65.29
+- Fix bad lock ordering in Chandler
+- Fix bad param that prevented display of Raspberry Pi undervoltage during boot
+
 ### 0.65.28
 - Thread pool workers automatic spawning and stopping no longer clogs up the logs(for real)
 - Improve devices display page

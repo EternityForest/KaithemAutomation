@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1593485144274613
+resource-timestamp: 1594793855502328
 resource-type: page
 template-engine: mako
 
@@ -1032,7 +1032,7 @@ from src import tagpoints
 
 
 
-                        <label>Fade sound after end:
+                        <label>Fade sound after end(If going to silence):
                             <input type="number" v-on:input="setSoundFadeOut(currentcueid,$event.target.value)" style="width:3em"
                                 min=0 v-model="currentcue.soundFadeOut"
                                 title="Sound should fade out starting when the cue ends, taking this long. Only works on the suggested GStreamer backend"
@@ -1041,10 +1041,10 @@ from src import tagpoints
                         </label><br>
                         
 
-                        <label>Fade in sound at start(Ignored if scene crossfade is longer):
+                        <label>Sound fade in(If silence before):
                             <input type="number" v-on:input="setSoundFadeIn(currentcueid,$event.target.value)" style="width:3em"
                                 min=0 v-model="currentcue.soundFadeIn"
-                                title="Sound should fade in starting when the cue starts, taking this long. Only works on the suggested GStreamer backend."
+                                title="Sound should fade in if starting from, taking this long. Only works on the suggested GStreamer backend. Use crossfade to control fading from another sound."
                                 >{{scenemeta[scenename].bpm?"beats":"s"}}
                                 
                         </label>
@@ -1278,7 +1278,7 @@ from src import tagpoints
                             </br>
 
                         <label>
-                        Crossfade Sounds:
+                        Crossfade for non-silent Sounds :
                         <input type="number" style="width:4em" max=1 step=0.01 min=0 v-on:input="setcrossfade(scenename,parseFloat($event.target.value))"
                             v-model="editingScene.crossfade"></input>s
                         </label>

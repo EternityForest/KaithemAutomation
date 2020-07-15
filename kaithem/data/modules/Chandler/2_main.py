@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1593488773697450
+resource-timestamp: 1594793167030628
 resource-type: event
 versions: {}
 
@@ -3099,9 +3099,8 @@ if __name__=='__setup__':
     
         def gotoCue(self, cue,t=None, sendSync=True,generateEvents=True):
             "Goto cue by name, number, or string repr of number"
-            with self.lock:
-                with module.lock:
-    
+            with module.lock:
+                with self.lock:
                     if not self.active:
                         return
                         
