@@ -130,7 +130,7 @@ defaultDisplayUnits={
 }
 
 @functools.lru_cache(500,False)
-def normalizeTagName(name):
+def normalizeTagName(name, replacementChar = None):
     name=name.strip()
     if name =="":
         raise ValueError("Tag with empty name")
@@ -141,7 +141,10 @@ def normalizeTagName(name):
     if not name.startswith("="):
         for i in illegalCharsInName:
             if i in name:
-                raise ValueError("Illegal char in tag point name: "+i+" in "+ name)
+                if replacementChar:
+                    name = name.replace(i,replacementChar)
+                else:
+                    raise ValueError("Illegal char in tag point name: "+i+" in "+ name)
         if not name.startswith("/"):
             name="/"+name
     else:

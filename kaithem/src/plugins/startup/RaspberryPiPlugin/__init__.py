@@ -54,7 +54,8 @@ if psutil:
                 peak=negpeak
 
             if not i in tempTags:
-                tempTags[i] = tagpoints.Tag("/system/sensors/temp/"+i)
+                #Fix the name
+                tempTags[i] = tagpoints.Tag(tagpoints.normalizeTagName("/system/sensors/temp/"+i,"_"))
                 tempTags[i].setAlarm("temperature", "value>85")
                 tempTags[i].unit='degC'
                 tempTags[i].max = 150

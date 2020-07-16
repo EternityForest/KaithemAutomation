@@ -61,6 +61,7 @@
                 "ppp0",
                 "tun0",
                 ]
+            s='unknown'
             for ifname in interfaces:
                 try:
                     ip = get_interface_ip(ifname)
