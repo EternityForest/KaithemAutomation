@@ -137,6 +137,8 @@ class SG1Device(devices.Device):
                                   tripDelay=(self.expectedMessageInterval*1.3))
             
             self.rssiTag.unit = "dBm"
+            self.rssiTag.min=-140
+            self.rssiTag.max = -20
 
             # No redundant alarm, only alarm when auto tx power can no longer keep up
             self.pathLossTag = tagpoints.Tag("/devices/"+name+".pathloss")
@@ -144,7 +146,9 @@ class SG1Device(devices.Device):
                 self.pathLoss, "HWStatus", 60)
             
             self.pathLossTag.unit= "dBm"
-
+            self.pathLossTag.min=0
+            self.pathLossTag.max = 180
+            self.pathLossTag.hi = 90
 
             # update at 2x the rate because nyquist or something.
             self.rssiTag.interval = self.expectedMessageInterval/2
@@ -345,9 +349,15 @@ class SG1Gateway(devices.Device):
 
         self.gatewayNoiseTag = tagpoints.Tag("/devices/"+name+".noiseFloor")
         self.gatewayNoiseTag.unit= "dBm"
+        self.gatewayNoiseTag.min= -140
+        self.gatewayNoiseTag.max= -60
+        self.gatewayNoiseTag.hi= -85
 
         self.gatewayUtilizationTag = tagpoints.Tag(
             "/devices/"+name+".rxUtilization")
+        self.gatewayUtilizationTag.max =1
+        self.gatewayUtilizationTag.min=0
+        self.gatewayUtilizationTag.hi = 0.75
 
         devices.Device.__init__(self, name, data)
         self.tagPoints['status'] = self.gatewayStatusTag

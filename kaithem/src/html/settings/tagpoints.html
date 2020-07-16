@@ -72,7 +72,7 @@ Page:
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._NumericTagPoint):
 <tr>
     <td><a href="/tagpoints/${i|u}">${i|h}</a></td>
-    <td>${tagpoints.allTagsAtomic[i]().value}</td>
+    <td>${tagpoints.allTagsAtomic[i]().value} <span style="color: grey">${tagpoints.allTagsAtomic[i]().unit}</span></td>
     <td>${tagpoints.allTagsAtomic[i]().interval}</td>
     <td>${tagpoints.allTagsAtomic[i]().activeClaim[2]}</td>
     <td>${tagpoints.allTagsAtomic[i]().owner}</td>

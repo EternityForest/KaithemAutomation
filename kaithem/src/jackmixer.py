@@ -236,6 +236,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
         self.levelTag.min=-90
         self.levelTag.max =3
         self.levelTag.hi = -3
+        self.levelTag.unit='dB'
 
         #Set default
         self.levelTag.value = -90
@@ -270,6 +271,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
         self.faderTag.min= -60
         self.faderTag.lo = -59
         self.faderTag.hi = 3
+        self.faderTag.unit = 'dB'
 
         self.effectParamTags = {}
 

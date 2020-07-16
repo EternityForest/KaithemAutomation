@@ -38,7 +38,14 @@ units ={
     "V": 1,
 
     #Power, base is W
-    "dBm": (lambda x: (10**(x/10))/1000, lambda x: 10*math.log10(x/0.001))
+    "dBm": (lambda x: (10**(x/10))/1000, lambda x: 10*math.log10(x/0.001)),
+
+
+    "U":1,
+    "%": 0.01,
+    "ppm": 100/10**6,
+    "ppb": 100/10**9,
+    "dB":  (lambda x: 10**(x*10), lambda x: 10*math.log10(x)),
 }
 
 unitTypes={
@@ -59,7 +66,12 @@ unitTypes={
     "V": "voltage",
     "A": "current",
     "W": "power",
-    "dBm": "power"
+    "dBm": "power",
+
+    "%": "ratio",
+    "ppm":"ratio",
+    "uno": "ratio",
+    "dB": 'ratio'
 }
 
 _prefixes = {"n":10**-9,"u":10**-6, "m":0.001, "k":1000,"M":1000000,"G":1000000000,"T":1000000000000}

@@ -346,11 +346,6 @@ class DigitalInput(GPIOTag):
         self.gpio.when_deactivated = self._onInactive
         self.gpio.when_held = self._onHold
 
-    def _clearInputCallbacks(self):
-        self.fakeGpio.when_activated=None
-        self.fakeGpio.when_deactivated=None
-        self.fakeGpio.when_deactivated=None
-
 
     def __del__(self):
         try:
@@ -446,9 +441,10 @@ class DigitalInput(GPIOTag):
             self.holdWaiter=None
             self.mockAlert.clear()
 
-            self.fakeGpio.when_activated=None
-            self.fakeGpio.when_deactivated=None
-            self.fakeGpio.when_deactivated=None
+            if self.fakeGpio:
+                self.fakeGpio.when_activated=None
+                self.fakeGpio.when_deactivated=None
+                self.fakeGpio.when_deactivated=None
 
             self.gpio = self.realGpio
             self.gpio.when_activated = self._onActive

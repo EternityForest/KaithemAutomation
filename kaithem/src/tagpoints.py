@@ -117,6 +117,18 @@ from . import widgets
 
 tagsAPI = widgets.APIWidget()
 
+defaultDisplayUnits={
+    "temperature": "degC|degF",
+    "length": "m",
+    "weight":"g",
+    "pressure": "psi|Pa",
+    "voltage": "V",
+    "current":"A",
+    "power": "W",
+    "frequency": "Hz",
+    "ratio": "%",
+}
+
 @functools.lru_cache(500,False)
 def normalizeTagName(name):
     name=name.strip()
@@ -1309,7 +1321,15 @@ class _NumericTagPoint(_TagPoint):
         #TODO race condition in between check, but nobody will be setting this from different threads
         #I don't think
         if not self._displayUnits:
-            self._displayUnits = value
+            #Rarely does anyone want alternate views of dB values
+            if not "dB" in value:
+                try:
+                    self._displayUnits = defaultDisplayUnits[unitTypes[value]]
+                except:
+                    self._displayUnits = value
+            else:
+                self._displayUnits = value
+
         self._unit = value
         self._setupMeter()
         if self._meterWidget:

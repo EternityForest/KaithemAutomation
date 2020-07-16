@@ -47,7 +47,8 @@ defaultDisplayUnits={
     "voltage": "V",
     "current":"A",
     "power": "W",
-    "frequency": "Hz"
+    "frequency": "Hz",
+    "ratio": "%",
 }
 
 server_session_ID= str(time.time())+str(os.urandom(8))
@@ -593,39 +594,45 @@ class Meter(Widget):
     def onUpdate(self,*a,**k):
         raise RuntimeError("Only the server can edit this widget")
 
-    def formatForUser(self,v):
+    def formatForUser(self,v,displayUnit=None):
         """Format the value into something for display, like 27degC, if we have a unit configured.
             Otherwise just return the value
         """
-        if self.unit:
+
+        unit= self.unit
+        if unit:
             s = ''
 
-            x=unitTypes[self.unit]
+            x=unitTypes[unit]
 
             if x in defaultDisplayUnits:
-                units = defaultDisplayUnits[x]
+                if not unit=='dBm':
+                    units = defaultDisplayUnits[x]
+                else:
+                    units='dBm'
             else:
-                return str(round(v,3))
+                return str(round(v,3))+unit
             #Overrides are allowed, we ignorer the user specified units
             if self.displayUnits:
                 units = self.displayUnits
             else:
-                if not self.unit in units:
-                    units+="|"+self.unit 
+                #Always show the base unit by default
+                if not unit in units:
+                    units+="|"+unit 
            # else:
-            #    units = auth.getUserSetting(pages.getAcessingUser(),dimensionality_strings[self.unit.dimensionality]+"_format").split("|")
+            #    units = auth.getUserSetting(pages.getAcessingUser(),dimensionality_strings[unit.dimensionality]+"_format").split("|")
 
             for i in units.split("|"):
                 if s:
                     s+=" | "
                 #Si abbreviations and symbols work with prefixes
                 if i in siUnits:
-                    s+=unitsofmeasure.siFormatNumber(convert(v, self.unit, i))+i
+                    s+=unitsofmeasure.siFormatNumber(convert(v, unit, i))+i
                 else:
                     #If you need more than three digits,
                     #You should probably use an SI prefix.
                     #We're just hardcoding this for now
-                    s += str(round(convert(v, self.unit, i),2))+i
+                    s += str(round(convert(v, unit, i),2))+i
             
             return s
         else:
@@ -659,7 +666,7 @@ class Meter(Widget):
         <meter id="{uuid}_m" value="{value:f}" min="{min:f}" max="{max:f}" high="{high:f}" low="{low:f}"></meter>
 
         </div>""".format(uuid=self.uuid, value=self.value[0], min=self.k['min'],
-        max=self.k['max'],high=self.k['high_warn'],low=self.k['low_warn'],label=label,unit=unit,valuestr=self.formatForUser(self.value[0])))
+        max=self.k['max'],high=self.k['high_warn'],low=self.k['low_warn'],label=label,unit=unit,valuestr=self.formatForUser(self.value[0],unit)))
 
 class Button(Widget):
 

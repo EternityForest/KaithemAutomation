@@ -4,6 +4,8 @@ Change Log
 ### 0.65.30
 - Fix problem going from mock to real GPIO pins
 - Examples file no longer messes with GPIO
+- Tag point monitoring and alarms for system temperature and battery status
+- C and F temperatures shown by default for tagpoint meter widgets.
 
 ### 0.65.29
 - Fix bad lock ordering in Chandler
