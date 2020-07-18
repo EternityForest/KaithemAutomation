@@ -134,7 +134,7 @@ from src import devices
 devices.init_devices()
 
 
-from src import wifimanager
+#from src import wifimanager
 
 def webRoot():
     #We don't want Cherrypy writing temp files for no reason
