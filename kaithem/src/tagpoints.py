@@ -84,7 +84,7 @@ class websocket(WebSocket):
 """
 
 configAttrs={
-            'hi','lo','min','max','interval'
+            'hi','lo','min','max','interval','displayUnits'
         }
 softConfigAttrs={
     'overrideName','overrideValue','overridePriority','type','onChange','value'
@@ -390,6 +390,7 @@ class _TagPoint(virtualresource.VirtualResource):
             createGetterFromExpression(self.name, self)
         with lock:
             self.setConfigData(configTagData.get(self.name,{}))
+
     @staticmethod
     def toMonotonic(t):
         offset = time.time()-time.monotonic()
@@ -403,7 +404,7 @@ class _TagPoint(virtualresource.VirtualResource):
     
     def _recordConfigAttr(self,k,v):
         "Make sure a config attr setting gets saved"
-        if not v in (None,''):
+        if not v in (None,'') and v.strip():
             self.configOverrides[v]=v
             if not self.name in configTagData:
                 configTagData[self.name]= persist.getStateFile(getFilenameForTagConfig(self.name))
@@ -455,11 +456,21 @@ class _TagPoint(virtualresource.VirtualResource):
                 if v.strip()=='':
                     v=None
                 else:
-                    v=float(v)
+                    try:
+                        v=float(v)
+                    except:
+                        pass
             #Attempt to go back to the values set by code
             if v==None:
                 v= self._dynConfigValues.get(k,v)
+            
+            x = self._dynConfigValues.get(k,None)
+
             setattr(self,k,v)
+
+            #Restore TODO race condition here!!!!!!
+            #We get the old dyn val if it is set by another thread in between
+            self._dynConfigValues[k]=x
 
             hasUnsavedData[0]=True
 
@@ -1345,6 +1356,12 @@ class _NumericTagPoint(_TagPoint):
 
     @displayUnits.setter
     def displayUnits(self,value):
+        if value and not isinstance(value,str):
+            raise RuntimeError("units must be str")
+        self._dynConfigValues['displayUnits']= value
+        if not value==self.configOverrides.get('displayUnits',value):
+            return
+
         self._displayUnits = value
         self._setupMeter()
         if self._meterWidget:

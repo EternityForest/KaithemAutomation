@@ -160,10 +160,6 @@ import collections
         <td>Base Unit</td>
         <td>${tag.unit|h}</td>
     </tr>
-    <tr>
-        <td>Display Units</td>
-        <td>${tag.displayUnits|h}</td>
-    </tr>
 </table>
 <h3>Config</h3>
 <p class="help">If you do not configure a type, the tag will not exist until requested via code.</p>
@@ -177,6 +173,7 @@ import collections
     <th>Max</th>
     <th>hi</th>
     <th>lo</th>
+    <th>displayUnits</th>
 </tr>
 <tr><th>Current Values</th></tr>
 
@@ -190,6 +187,7 @@ import collections
     <td>${tag.max}</td>
     <td>${tag.hi}</td>
     <td>${tag.lo}</td>
+    <td>${tag.displayUnits}
 </tr>
 %endif
 
@@ -201,6 +199,7 @@ import collections
     <td>${tag.interval}</td>
     <td>${tag.min}</td>
     <td>${tag.max}</td>
+    <td>NA</td>
     <td>NA</td>
     <td>NA</td>
 </tr>
@@ -215,6 +214,7 @@ import collections
     <td>DELETED</td>
     <td>DELETED</td>
     <td>DELETED</td>
+
 </tr>
 %endif
 
@@ -236,6 +236,7 @@ import collections
     <td><input name="max" value="${configData.get('max','')}"></td>
     <td><input name="hi" value="${configData.get('hi','')}"></td>
     <td><input name="lo" value="${configData.get('lo','')}"></td>
+    <td><input name="displayUnits" value="${configData.get('displayUnits','')}"><td></td>
 </tr>
 
 

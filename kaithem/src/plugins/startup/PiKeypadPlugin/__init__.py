@@ -51,12 +51,13 @@ def onKeyWrapper(o):
 
 
 def buttonPusher(dev, name):
-    w = widgets.ButtonWidget()
+    w = widgets.Button()
     w.require("/admin/settings.edit")
 
     def f(u, v):
         if 'pushed' in v:
             dev._onKeyPress(name, True)
+    w.attach(f)
     return w
 
 
@@ -80,24 +81,32 @@ class PiMatrixKeypad(devices.Device):
         self.testMode =  data.get("device.testMode", "") in ("true","yes","on","enable","test")
 
         try:
-            keys = [[numberIfPossible(k.strip()) for k in i.split(
-                ",")] for i in data.get("device.keys", "").split("\n")]
-            import pad4pi_patched
-
-            self.padFactory = rpi_gpio.KeypadFactory()
-
             rows = [int(i.strip())
-                    for i in data.get("device.rowPinsBCM", "").split(",")]
+                    for i in data.get("device.rowPins", "").split(",") if i.strip()]
             cols = [int(i.strip())
-                    for i in data.get("device.colPinsBCM", "").split(',')]
-
-            self.padFactory.create_keypad(
-                keypad=keys, row_pins=rows, col_pins=cols)
-            # Weakrefs to stop any garbage cycles
-            self.padFactory.registerKeyPressHandler(
-                onKeyWrapper(weakref.ref(self)))
+                    for i in data.get("device.colPins", "").split(',') if i.strip()]
+            self.keys = [[numberIfPossible(k.strip()) for k in i.split(
+                ",") if k.strip()] for i in data.get("device.keys", "1,2;3,4").replace("\n",';').split(";") if i.strip()]
         except:
+            rows=[]
+            cols=[]
+            self.keys=[]
             self.handleException()
+
+        if rows and cols:
+            try:        
+                from . import pad4pi_patched
+
+                self.padFactory = pad4pi_patched.KeypadFactory()
+
+        
+                self.padFactory.create_keypad(
+                    keypad=keys, row_pins=rows, col_pins=cols)
+                # Weakrefs to stop any garbage cycles
+                self.padFactory.registerKeyPressHandler(
+                    onKeyWrapper(weakref.ref(self)))
+            except:
+                self.handleException()
 
         self.keyWidgets = []
 
@@ -109,17 +118,24 @@ class PiMatrixKeypad(devices.Device):
 
     def _onKeyPress(self, key, fromUI=None):
         if fromUI or not self.testMode:
-            messagebus.postMessage("/devices/"+self.name+"/keypress", key)
-            self.onKeyPress()
+            #Synchronous must be true, no out of order messages allowed
+            messagebus.postMessage("/devices/"+self.name+"/keypress", key, synchronous=True)
+            self.onKeyPress(key)
 
-        else self.testMode:
+        else:
             self.print(key, "keypress[IGNORED]")
+    
+    def subscribe(self,f):
+        messagebus.subscribe("/devices/"+self.name+"/keypress",f)
 
-    def onKeyPress(self):
+    def unsubscribe(self,f):
+        messagebus.unsubscribe("/devices/"+self.name+"/keypress",f)
+
+    def onKeyPress(self,key):
         pass
 
     def getManagementForm(self):
         return templateGetter.get_template("manageform.html").render(data=self.data, obj=self)
 
 
-devices.deviceTypes["RPiGPIOKeypad"] = JackBareSipAgent
+devices.deviceTypes["PiMatrixKeypad"] = PiMatrixKeypad

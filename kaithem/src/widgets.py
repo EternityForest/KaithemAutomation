@@ -598,46 +598,48 @@ class Meter(Widget):
         """Format the value into something for display, like 27degC, if we have a unit configured.
             Otherwise just return the value
         """
+        try:
+            unit= self.unit
+            if unit:
+                s = ''
 
-        unit= self.unit
-        if unit:
-            s = ''
+                x=unitTypes[unit]
 
-            x=unitTypes[unit]
-
-            if x in defaultDisplayUnits:
-                if not unit=='dBm':
-                    units = defaultDisplayUnits[x]
+                if x in defaultDisplayUnits:
+                    if not unit=='dBm':
+                        units = defaultDisplayUnits[x]
+                    else:
+                        units='dBm'
                 else:
-                    units='dBm'
-            else:
-                return str(round(v,3))+unit
-            #Overrides are allowed, we ignorer the user specified units
-            if self.displayUnits:
-                units = self.displayUnits
-            else:
-                #Always show the base unit by default
-                if not unit in units:
-                    units+="|"+unit 
-           # else:
-            #    units = auth.getUserSetting(pages.getAcessingUser(),dimensionality_strings[unit.dimensionality]+"_format").split("|")
-
-            for i in units.split("|"):
-                if s:
-                    s+=" | "
-                #Si abbreviations and symbols work with prefixes
-                if i in siUnits:
-                    s+=unitsofmeasure.siFormatNumber(convert(v, unit, i))+i
+                    return str(round(v,3))+unit
+                #Overrides are allowed, we ignorer the user specified units
+                if self.displayUnits:
+                    units = self.displayUnits
                 else:
-                    #If you need more than three digits,
-                    #You should probably use an SI prefix.
-                    #We're just hardcoding this for now
-                    s += str(round(convert(v, unit, i),2))+i
-            
-            return s
-        else:
-            return str(round(v,3))
-        
+                    #Always show the base unit by default
+                    if not unit in units:
+                        units+="|"+unit 
+            # else:
+                #    units = auth.getUserSetting(pages.getAcessingUser(),dimensionality_strings[unit.dimensionality]+"_format").split("|")
+
+                for i in units.split("|"):
+                    if s:
+                        s+=" | "
+                    #Si abbreviations and symbols work with prefixes
+                    if i in siUnits:
+                        s+=unitsofmeasure.siFormatNumber(convert(v, unit, i))+i
+                    else:
+                        #If you need more than three digits,
+                        #You should probably use an SI prefix.
+                        #We're just hardcoding this for now
+                        s += str(round(convert(v, unit, i),2))+i
+                
+                return s
+            else:
+                return str(round(v,3))
+        except Exception as e:
+            print(traceback.format_exc())
+            return str(round(v,3))+ str(e)[:16]
 
     def render(self,unit='',label=None):
         label= label or self.defaultLabel

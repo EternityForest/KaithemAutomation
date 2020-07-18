@@ -12,16 +12,35 @@
 </p>
 
 
+<table>
+    <tr>
+        <td>Column Pins(BCM Numbering)</td>
+        <td><input name="device.colPins" value="${data.get('device.colPins','')|h}"></td>
+    </tr>
+    <tr>
+        <td>Row Pins(BCM Numbering)</td>
+        <td><input name="device.rowPins" value="${data.get('device.rowPins','')|h}"></td>
+    </tr>
+    <tr>
+        <td>Key Names(',' seperated columns, ';' separated rows )</td>
+        <td><textarea name="device.keys">${data.get('device.keys','1,2\n3,4')|h}</textarea></td>
+    </tr>
+
+    <tr>
+        <td>Test mode(Disable callbacks for the physical keypad)</td>
+        <td><input name="device.testMode" value="${data.get('device.testMode','no')|h}"></td>
+    </tr>
+</table>
+
 <h3>Virtual Keypad</h3>
 <p class="help">These keys have the same effect as pressing the real keys, except they still work in test mode.</p>
 
 <table border=1>
-
 %for i in obj.keyWidgets:
 <tr>
     %for j in i:
-    <td>${i[0].render(str(i[1])[:16])}</td>
+    <td>${j[0].render(str(j[1])[:16])|}</td>
     %endfor
 </tr>
-%for
+%endfor
 </table>

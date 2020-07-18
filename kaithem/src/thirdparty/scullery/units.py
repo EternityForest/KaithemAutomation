@@ -15,6 +15,7 @@
 
 
 _ureg = None
+import math
 #Units datafile.  All the units are all mixed together.  Every type of unit has to have a single base unit
 #and everything else is defined in terms of that
 units ={
@@ -38,14 +39,21 @@ units ={
     "V": 1,
 
     #Power, base is W
+    "W": 1,
     "dBm": (lambda x: (10**(x/10))/1000, lambda x: 10*math.log10(x/0.001)),
-
-
+    
+    #Nobody really uses the uno I don't think but it's the only namw we have
     "U":1,
+    "uno": 1,
     "%": 0.01,
     "ppm": 100/10**6,
     "ppb": 100/10**9,
     "dB":  (lambda x: 10**(x*10), lambda x: 10*math.log10(x)),
+    
+    'Pa': 1,
+    #Both these seem to be equally often used
+    'psi', 6894.76,
+    'PSI', 6894.76
 }
 
 unitTypes={
@@ -62,7 +70,7 @@ unitTypes={
     "K":    "temperature",
     #Offset unit. To convert FROM the base divide by the first and add the second number
     "degC": "temperature",
-    
+
     "V": "voltage",
     "A": "current",
     "W": "power",
@@ -70,8 +78,13 @@ unitTypes={
 
     "%": "ratio",
     "ppm":"ratio",
+    "ppb":"ratio",
+    "U": "ratio",
     "uno": "ratio",
-    "dB": 'ratio'
+
+    'psi': 'pressure',
+    'Pa': 'pressure',
+    "PSI": 'pressure'
 }
 
 _prefixes = {"n":10**-9,"u":10**-6, "m":0.001, "k":1000,"M":1000000,"G":1000000000,"T":1000000000000}
@@ -113,6 +126,7 @@ def defineUnit(unitname, multiplier, type, offset=0,base=None):
     unitTypes[unitname]= type
 
 defineUnit("degF", (lambda x: (x+459.67) * (5/9),  lambda x: (x*(9/5))-459.67), "temperature")
+
 defineUnit("ft", 12, "length", 0, "in")
 defineUnit("mile",1609.344, "length")
 

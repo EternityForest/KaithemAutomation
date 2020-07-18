@@ -433,6 +433,9 @@ def makeDevice(name, data):
     else:
         dt = deviceTypes[data['type']]
 
+    if not 'subclass' in data:
+        data['subclass']= dt.defaultSubclassCode
+
     # Allow auto-subclassing to make customized v
     if 'subclass' in data and data['subclass'].strip():
         # Allow default code, without having to have an unneccesary layer of subclassing
@@ -453,8 +456,7 @@ def makeDevice(name, data):
                 exec(data['subclass'], codeEvalScope, codeEvalScope)
                 dt = codeEvalScope["CustomDeviceType"]
             d = dt(name, data)
-            
-
+        
         except:
             d = originaldt(name, data)
             d.handleError(traceback.format_exc(chain=True))
