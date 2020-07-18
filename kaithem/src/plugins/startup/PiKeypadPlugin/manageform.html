@@ -1,0 +1,27 @@
+<h3>Info</h3>
+<p>
+    This driver handles a matrix keypad connected to a Raspberry Pi, via the rpi.gpio driver.
+
+    It will work on other platforms as well, as a "fake" keypad that can only be triggered manually via this page.
+</p>
+
+<p>
+    In test mode, keypresses will always be printed to this page(With [IGNORED] in the title), and they will not trigger callbacks or be posted to the message bus.
+
+   You can still send commands through this page while in test mode, and they will behave as usual.
+</p>
+
+
+<h3>Virtual Keypad</h3>
+<p class="help">These keys have the same effect as pressing the real keys, except they still work in test mode.</p>
+
+<table border=1>
+
+%for i in obj.keyWidgets:
+<tr>
+    %for j in i:
+    <td>${i[0].render(str(i[1])[:16])}</td>
+    %endfor
+</tr>
+%for
+</table>
