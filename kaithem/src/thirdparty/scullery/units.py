@@ -51,9 +51,8 @@ units ={
     "dB":  (lambda x: 10**(x*10), lambda x: 10*math.log10(x)),
     
     'Pa': 1,
-    #Both these seem to be equally often used
-    'psi', 6894.76,
-    'PSI', 6894.76
+    'psi': 6894.76,
+    'PSI': 6894.76
 }
 
 unitTypes={
