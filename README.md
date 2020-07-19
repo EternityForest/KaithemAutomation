@@ -49,6 +49,16 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.30
+- Fix problem going from mock to real GPIO pins
+- Examples file no longer messes with GPIO
+- Tag point monitoring and alarms for system temperature and battery status
+- C and F temperatures shown by default for tagpoint meter widgets.
+
+### 0.65.29
+- Fix bad lock ordering in Chandler
+- Fix bad param that prevented display of Raspberry Pi undervoltage during boot
+
 ### 0.65.28
 - Thread pool workers automatic spawning and stopping no longer clogs up the logs(for real)
 - Improve devices display page
