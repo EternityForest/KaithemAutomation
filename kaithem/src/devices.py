@@ -122,7 +122,20 @@ try:
         esc=cgi.escape
 except:
     esc = lambda t:t
+def makeBackgroundPrintFunction(p,t,title,self):
+    def f():
+        self.logWindow.write('<b>'+ title+ " at " +p +"</b><br>"
+            + t
+            )
+    return f
 
+def makeBackgroundErrorFunction(t,time,self):
+     #Don't block everything up
+    def f():
+        self.logWindow.write('<div class="error"><b>Error at ' + time+"</b><br>"
+        + '<pre>'+t+'</pre></div>'
+        )
+    return f
 
 class Device(virtualresource.VirtualResource):
     """A Descriptor is something that describes a capability or attribute
@@ -222,23 +235,18 @@ class Device(virtualresource.VirtualResource):
         self.errors.append([time.time(), str(s)])
 
         if self.errors:
-            if time.time()> self.errors[-1][0]+15:
-                syslogger.error(s)
+            if time.time() > self.errors[-1][0]+15:
+                syslogger.error("in device: "+self.name+"\n"+s)
             else:
-                logging.error(s)
+                logging.error("in device: "+self.name+"\n"+s)
 
         if len(self.errors)> 50:
             self.errors.pop(0)
         
-        #Don't block everything up
-        def f():
-            t = textwrap.fill(s, 120)
-            self.logWindow.write('<div class="error"><b>Error at ' + unitsofmeasure.strftime(time.time())+"</b><br>"
-            + '<pre>'+t+'</pre></div>'
-            )
-        workers.do(f)
+        workers.do(makeBackgroundErrorFunction(textwrap.fill(s,120),unitsofmeasure.strftime(time.time()),self))
         if len(self.errors)==1:
             messagebus.postMessage("/system/notifications/errors","First error in device: "+self.name)
+            syslogger.error("in device: "+self.name+"\n"+s)
 
     # delete a device, it should not be used after this
     def close(self):
@@ -261,12 +269,12 @@ class Device(virtualresource.VirtualResource):
         return {}
 
     def print(self, msg, title="Message"):
-        def f():
-            t = textwrap.fill(str(msg), 120)
-            self.logWindow.write('<b>'+ title+ " at " + unitsofmeasure.strftime(time.time())+"</b><br>"
-            + t
-            )
-        workers.do(f)
+        t = textwrap.fill(str(msg), 120)
+        tm= unitsofmeasure.strftime(time.time())
+    
+        #Can't use a def here, wouldn't want it to possibly capture more than just a string,
+        #And keep stuff from GCIng for too long
+        workers.do(makeBackgroundPrintFunction(t,tm,title,self))
 
 # Device data always has 2 constants. 1 is the required type, the other
 # is name, and that's optional but can be used to rename a device

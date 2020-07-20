@@ -100,11 +100,13 @@ class PiMatrixKeypad(devices.Device):
                 self.padFactory = pad4pi_patched.KeypadFactory()
 
         
-                self.padFactory.create_keypad(
-                    keypad=keys, row_pins=rows, col_pins=cols)
+                self.pad = self.padFactory.create_keypad(
+                    keypad=self.keys, row_pins=rows, col_pins=cols)
                 # Weakrefs to stop any garbage cycles
-                self.padFactory.registerKeyPressHandler(
+                self.pad.registerKeyPressHandler(
                     onKeyWrapper(weakref.ref(self)))
+
+                self.pad.testAllRowInputs()
             except:
                 self.handleException()
 

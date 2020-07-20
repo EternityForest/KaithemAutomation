@@ -69,6 +69,7 @@ class Keypad():
         self._repeat_delay = repeat_delay
         self._repeat_rate = repeat_rate
         self._repeat_timer = None
+        self.lock = Lock()
         if repeat:
             self._repeat_delay = repeat_delay if repeat_delay is not None else DEFAULT_REPEAT_DELAY
             self._repeat_rate = repeat_rate if repeat_rate is not None else DEFAULT_REPEAT_RATE
@@ -84,7 +85,8 @@ class Keypad():
         self._first_repeat = True
 
         GPIO.setmode(gpio_mode)
-
+        
+        self._noInterrupts()
         self._setRowsAsInput()
         self._setColumnsAsOutput()
 
@@ -127,10 +129,20 @@ class Keypad():
             GPIO.setup(self._row_pins[i], GPIO.IN, pull_up_down=GPIO.PUD_UP)
             GPIO.add_event_detect(self._row_pins[i], GPIO.FALLING, callback=self._onKeyPress, bouncetime=DEFAULT_DEBOUNCE_TIME)
 
+    def testAllRowInputs(self):
+        for i in self._row_pins:
+            if GPIO.input(i) == GPIO.HIGH:
+                return
+        raise RuntimeError("All row pins read low. This could be normal if many buttons are pressed, but can also occur if the pi hardware is failing.")
+
     def _noInterrupts(self):
         # Turn off interrupts so we don't get more of them while we are scanning
         for i in range(len(self._row_pins)):
-            GPIO.remove_event_detect(self._row_pins[i])
+            try:
+                GPIO.remove_event_detect(self._row_pins[i])
+            except RuntimeError:
+                pass
+                
 
     def _setColumnsAsOutput(self):
         # Set all columns as output low
@@ -196,6 +208,7 @@ class Keypad():
             try:
                 if self._repeat_timer is not None:
                     self._repeat_timer.cancel()
+                    self._repeat_timer=None
                 
                 #Don't use GPIO.cleanup, that would clean up *everything* not just the stuff we have changed.
                 self._noInterrupts()
@@ -206,6 +219,9 @@ class Keypad():
                 
         else:
             raise RuntimeError("Could not get lock")
+
+    def __del__(self):
+        self.cleanup()
         
 
     def getTimeInMillis(self):
