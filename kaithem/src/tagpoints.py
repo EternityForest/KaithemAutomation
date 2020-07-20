@@ -250,8 +250,8 @@ def loadAllConfiguredTags(f=os.path.join(directories.vardir,"tags")):
             try:
                 configTagFromData(i, configTagData[i].getAllData())
             except:
-                logging.exception("Failure with configured tag")
-                messagebus.postMessage("/system/notifications/errors","Failed to preconfigure tag "+i)
+                logging.exception("Failure with configured tag: "+i)
+                messagebus.postMessage("/system/notifications/errors","Failed to preconfigure tag "+i+"\n"+traceback.format_exc())
         
        
 
@@ -474,7 +474,8 @@ class _TagPoint(virtualresource.VirtualResource):
 
             hasUnsavedData[0]=True
 
-    def setAlarm(self,name, condition, priority="warning", releaseCondition='',autoAck='no', tripDelay='0',isConfigured=False,_refresh=True):
+    #Note the black default condition, that lets us override a normal alarm while using the default condition.
+    def setAlarm(self,name, condition='', priority="warning", releaseCondition='',autoAck='no', tripDelay='0',isConfigured=False,_refresh=True):
         with lock:
             if not name:
                 raise RuntimeError("Empty string name")
@@ -699,10 +700,14 @@ class _TagPoint(virtualresource.VirtualResource):
                 self.configuredOnChangeAction =ocf
                 self.subscribe(ocf)
 
+
+
+            #this is apparently just for the configured part, the dynamic part happens behind the scenes in
+            #setAlarm via createAlarma
             alarms = data.get('alarms',{})
             self.configuredAlarmData = {}
-            for i in alarms:
-                if not alarms[i]==None:
+            for i in alarms :
+                if alarms[i]:
                     #Avoid duplicate param
                     alarms[i].pop('name','')
                     self.setAlarm(i, **alarms[i],isConfigured=True,_refresh=False)
@@ -725,6 +730,8 @@ class _TagPoint(virtualresource.VirtualResource):
             else:
                 if self.name in configTagData:
                     configTagData[self.name].pop("value",0)
+
+            #Todo there's a duplication here, we refresh allthe alarms, not sure we need to
             self.createAlarms()
             
             #Val override last, in case it triggers an alarm
