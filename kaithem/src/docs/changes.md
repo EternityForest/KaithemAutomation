@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+
+### 0.65.31
+- Pi keypad matrix working on real hardware
+- Tag point preconfiguation bugfix
+- Better logging for devices
+
 ### 0.65.30
 - Fix problem going from mock to real GPIO pins
 - Examples file no longer messes with GPIO

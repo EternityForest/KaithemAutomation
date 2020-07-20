@@ -49,6 +49,11 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.31
+- Pi keypad matrix working on real hardware
+- Tag point preconfiguation bugfix
+- Better logging for devices
+
 ### 0.65.30
 - Fix problem going from mock to real GPIO pins
 - Examples file no longer messes with GPIO
