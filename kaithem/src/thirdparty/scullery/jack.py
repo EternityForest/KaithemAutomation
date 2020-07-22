@@ -1027,9 +1027,9 @@ def _startJackProcess(p=None, n=None,logErrs=True):
 
         lastJackStartAttempt=time.monotonic()
         if realtimePriority:
-            cmdline = ['jackd', '-S', '--realtime', '-P' ,str(realtimePriority) ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,str(period), '-n' ,str(jackPeriods) ,'-r','48000']
+            cmdline = ['jackd', '-s', '--realtime', '-P' ,str(realtimePriority) ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,str(period), '-n' ,str(jackPeriods) ,'-r','48000']
         else:
-            cmdline = ['jackd', '-S', '--realtime' ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,str(period), '-n' ,str(jackPeriods) ,'-r','48000']
+            cmdline = ['jackd', '-s', '--realtime' ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,str(period), '-n' ,str(jackPeriods) ,'-r','48000']
         logging.info("Attempting to start JACKD server with: \n"+' '.join(cmdline))
 
         jackp = subprocess.Popen(cmdline,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE, stderr=subprocess.PIPE,env=my_env)

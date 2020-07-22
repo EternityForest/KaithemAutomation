@@ -740,14 +740,14 @@ class MixingBoard():
 
             self.api.send(['channels', self.channels])
             self.api.send(['effectTypes', effectTemplates])
-            self.sendPresets()
 
 
             self.api.send(['loadedPreset', self.loadedPreset])
             self.api.send(['usbalsa', settings.data['usbPeriodSize'], settings.data['usbLatency'],settings.data['usbQuality'],settings.data['usbPeriods']])
+            self.sendPresets()
 
     def sendPresets(self):
-        self.api.send(['presets',registry.ls("/system.mixer/presets/")+ [i[:-len('.yaml')] for i in os.listdir(presetsDir) if i.endswith('.yaml') ] ])
+        self.api.send(['presets',registry.ls("/system.mixer/presets/")+ [i[:-len('.yaml')] for i in os.listdir(presetsDir) if i.endswith('.yaml') ] if os.path.exists(presetsDir) ]  )
 
     def createChannel(self, name, data={}):
         with self.lock:
