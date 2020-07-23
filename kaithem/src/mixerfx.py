@@ -5,11 +5,64 @@ effectTemplates_data={
     "params": {}
     },
 
+   "valvesaturation":{
+        "type": "valvesaturation", 
+        "displayType": "Valve Saturation",
+        "help": "Steve Harris, Valve saturation (valve, 1209)", 
+        "monoGstElement": "ladspa-valve-1209-so-valve",
+        "params": {
+            "distortion-level": {
+                "type":"float",
+                "displayName": "Level",
+                "value": 0,
+                "min": 0,
+                "max": 0.99,
+                "step": 0.025,
+                "sort": 0
+            },
+            "distortion-character": {
+                "type": "float",
+                "displayName": "Hardness",
+                "value": 0,
+                "min": 0,
+                "max": 0.99,
+                "step": 0.025,
+                "sort":1
+            }
+        },
+        "gstSetup":{},
+        "sidechain":False,
+        "preSupportElements":[
+        ]
+    },
+
+    "tonegenerator":{
+        "type": "tonegenerator", 
+        "displayType": "Tone Generator",
+        "help": "Tone gen", 
+        "gstElement": "audiotestsrc",
+        "params": {
+            "freq": {
+                "type":"float",
+                "displayName": "Frequency",
+                "value": 440,
+                "min": 10,
+                "max": 20000,
+                "sort":0
+            }
+        },
+        "gstSetup":{},
+        "sidechain":False,
+        "noConnectInput": True,
+        "preSupportElements":[
+            {"gstElement": "fakesink", "gstSetup":{}},
+        ]
+    },
 
     "speechrecognition":{
         "type": "speechrecognition", 
         "displayType": "Speech Recognition",
-        "help": "Speech Reecognition with a limited vocabulary", 
+        "help": "Speech Reecognition demo", 
         "gstElement": "pocketsphinx",
         "params": {
         },

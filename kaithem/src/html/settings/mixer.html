@@ -278,8 +278,9 @@ from src import jackmixer
 
             <div class="effect" v-if="showAddEffect">
               <h3>Add Effect<button v-on:click="showAddEffect=false">Hide</button></h3>
+              <input v-model="fxSearch" placeholder="Search"><button v-on:click="fxSearch=''">X</button>
               <div style="height:8em;overflow: scroll;">
-                <div v-for="i in effectTypes" v-if="canUseEffect(i, channel.channels)">
+                <div v-for="i in effectTypes" v-if="canUseEffect(i, channel.channels) && (i.displayType+i.help).toLowerCase().includes(fxSearch)">
                   <h4>{{i.displayType}}</h4>
                   <p>{{i.help}}</p>
                   <button v-on:click="api.send(['addEffect', channelname, i.type])">Add</button>
@@ -351,6 +352,7 @@ from src import jackmixer
       el: '#app',
       data: {
         message: 'Hello Vue!',
+        fxSearch: '',
         inports: {},
         outports: {},
         channels: channels,

@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.65.32
+- BREAKING CHANGE raw ALSA persistant device aliases re now the same as JACK names
+- BREAKING CHANGE ALSA "analog" is special case shortened to "anlg" instead of the obvious.
+- Allow selecting a specific primary JACK device
+- Allow only using the primary JACK device.
 
 ### 0.65.31
 - Pi keypad matrix working on real hardware

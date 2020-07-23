@@ -405,22 +405,22 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
 
                 if "preSupportElements" in i:
                     for j in i['preSupportElements']:
-                        linkTo = self.addElement(j['gstElement'],**j['gstSetup'],sidechain=sidechain,connectToOutput=linkTo)
+                        linkTo = self.addElement(j['gstElement'],**j['gstSetup'],sidechain=sidechain,connectToOutput=linkTo if (not j.get("noConnectInput",False)) else False)
 
                 #Prioritize specific mono or stereo version of elements
                 if self.channels == 1 and 'monoGstElement' in i:
-                    linkTo=self.effectsById[i['id']] = self.addElement(i['monoGstElement'],**i['gstSetup'],sidechain=sidechain,connectToOutput=linkTo)
+                    linkTo=self.effectsById[i['id']] = self.addElement(i['monoGstElement'],**i['gstSetup'],sidechain=sidechain,connectToOutput=linkTo if (not i.get("noConnectInput",False)) else False)
                 elif self.channels == 2 and 'stereoGstElement' in i:
-                    linkTo=self.effectsById[i['id']] = self.addElement(i['stereoGstElement'],**i['gstSetup'],sidechain=sidechain,connectToOutput=linkTo)
+                    linkTo=self.effectsById[i['id']] = self.addElement(i['stereoGstElement'],**i['gstSetup'],sidechain=sidechain,connectToOutput=linkTo if (not i.get("noConnectInput",False)) else False)
                 else:
-                    linkTo=self.effectsById[i['id']] = self.addElement(i['gstElement'],**i['gstSetup'],sidechain=sidechain,connectToOutput=linkTo)
+                    linkTo=self.effectsById[i['id']] = self.addElement(i['gstElement'],**i['gstSetup'],sidechain=sidechain,connectToOutput=linkTo if (not i.get("noConnectInput",False)) else False)
 
 
                 self.effectDataById[i['id']]= i
                 
                 if "postSupportElements" in i:
                     for j in i['postSupportElements']:
-                        linkTo = self.addElement(j['gstElement'],**j['gstSetup'],sidechain=sidechain, connectToOutput=linkTo)
+                        linkTo = self.addElement(j['gstElement'],**j['gstSetup'],sidechain=sidechain, connectToOutput=linkTo if (not j.get("noConnectInput",False)) else False)
                
                 for j in i['params']:
                     if j=='bypass':
@@ -747,7 +747,11 @@ class MixingBoard():
             self.sendPresets()
 
     def sendPresets(self):
-        self.api.send(['presets',registry.ls("/system.mixer/presets/")+ [i[:-len('.yaml')] for i in os.listdir(presetsDir) if i.endswith('.yaml') ] if os.path.exists(presetsDir) ]  )
+        if os.path.isdir(presetsDir):
+            x =[i[:-len('.yaml')] for i in os.listdir(presetsDir) if i.endswith('.yaml')]
+        else:
+            x=[]
+        self.api.send(['presets',registry.ls("/system.mixer/presets/")+ x  ])
 
     def createChannel(self, name, data={}):
         with self.lock:

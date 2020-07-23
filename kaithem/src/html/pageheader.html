@@ -120,7 +120,7 @@ import cherrypy,socket
         %if "auth" in cherrypy.request.cookie:
 
         %if cherrypy.request.cookie['auth'].value in auth.Tokens:
-        <div><a class="loginlink" href="/login/logout">Logout</a></div>
+        <div><a class="loginlink" href="/login/logout">Logout(${pages.getAcessingUser()[:10]|h})</a></div>
 
         %else:
         <div><a class="loginlink" href="/login?go=${util.url(cherrypy.url())}">Login</a></div>

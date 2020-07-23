@@ -70,6 +70,10 @@ def reloadSettings():
     scullery.jack.periodSize = settings.get("jackPeriodSize",512)
     scullery.jack.jackPeriods = max(settings.get("jackPeriods",3),3)
     scullery.jack.sharePulse = settings.get("sharePulse",None)
+    scullery.jack.jackDevice = settings.get("jackDevice","hw:0,0")
+
+    scullery.jack.useAdditionalSoundcards = settings.get("useAdditionalSoundcards","yes")
+
 
     scullery.jack.usePulse = settings.get("sharePulse",None) != "disable"
 

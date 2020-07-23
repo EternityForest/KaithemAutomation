@@ -11,10 +11,10 @@ import cherrypy
     <div style="text-align: center;">
       <form method="POST" action="/login/login?go=${target}" name="login"> <p>
         <span style="font-weight: bold;">Username:</span>
-        <input required="required" name="username"><br>
+        <input name="username" placeholder="admin"><br>
         <span style="font-weight: bold;">Password:</span>&nbsp;
-		<input name="password" type="password"></p>
-        <input value="Login as Registered User"type="submit">
+		<input name="password" type="password" placeholder="password"></p>
+        <input value="Login as Registered User"type="submit" placeholder="password" title="Leave username and password blank to quickly log in with the default admin/password">
       </form>
 	</div>
 </section>

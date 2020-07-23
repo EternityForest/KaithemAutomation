@@ -75,8 +75,17 @@ class LoginScreen():
     @cherrypy.expose
     def login(self,**kwargs):
         #Handle some nuisiance errors.
+
         if not 'username' in kwargs:
             raise cherrypy.HTTPRedirect("/")
+
+        #Empty fields try the default. But don't autofill username if password is set.
+        #If that actually worked because someone didn't fill the username in, they might be confused and
+        #feel like the thing wasn't validating input at all.
+        if not kwargs['username'] and not kwargs['password']:
+            kwargs['username']='admin'
+        if not kwargs['password']:
+            kwargs['password']='password'
 
         if auth.getUserSetting(pages.getAcessingUser(),"restrict-lan"):
             if not util.iis_private_ip(cherrypy.request.remote.ip):

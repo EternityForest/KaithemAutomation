@@ -72,7 +72,13 @@ prevJackStatus=False
 #Default settings
 jackPeriods = 3
 periodSize = 512
+jackDevice = "hw:0,0"
 
+useAdditionalSoundcards = 'yes'
+
+#Make sure the alsa_in manager knows what we select as the primary, so that
+#It doesn't get stepped on
+currentPrimaryDevice = "hw:0,0"
 #These apply to soundcards other than the main system card
 usbPeriodSize = -1
 usbPeriods = -1
@@ -687,9 +693,17 @@ def assignName(locator,longname, usedFirstWords,pciNumbers):
     #In the second step
     h = first+second
     return h
+
 def generateJackName(words,longname, numberstring,  taken, taken2):
     "Generate a name suitable for direct use as a jack client name"
     n = cleanupstring(longname)
+    n =n.lower()
+
+    #You can probably see why using the first four letters of this would be
+    #Unprofessional and not informative.
+    if n.startswith("analog"):
+        n = "anlg"
+
     jackname =n[:4]+'_'+words
     jackname+=numberstring
     jackname=jackname[:28]
@@ -817,6 +831,22 @@ def readAllErrSoFar(proc, retVal=b''):
         break
     counter -=1
   return retVal
+
+
+
+def getPersistentCardNames():
+    "Get a simple dict mapping persistent name to ALSA name, for all cards"
+    i,o,x = listSoundCardsByPersistentName()
+
+    d = {}
+
+    for c in i:
+        d[c] = i[c][0]
+    for c in o:
+        d[c] = o[c][0]
+
+    return d
+
 
 def listSoundCardsByPersistentName():
     """
@@ -987,6 +1017,8 @@ def _startJackProcess(p=None, n=None,logErrs=True):
     global jackp
     global periodSize
     global jackPeriods
+    global jackDevice
+    global currentPrimaryDevice 
 
     period = p or periodSize
     jackPeriods = n or jackPeriods
@@ -1026,10 +1058,24 @@ def _startJackProcess(p=None, n=None,logErrs=True):
         settingsReloader()
 
         lastJackStartAttempt=time.monotonic()
+
+        useDevice = "hw:0,0"
+        
+        #If the user supplied a perisistent name, translate it.
+        if jackDevice:
+            incards,outcards, x= listSoundCardsByPersistentName()
+            if jackDevice in incards:
+                useDevice = incards[jackDevice][0]
+
+            if jackDevice in outcards:
+                useDevice = outcards[jackDevice][0]
+        
+        currentPrimaryDevice = useDevice
+
         if realtimePriority:
-            cmdline = ['jackd', '-s', '--realtime', '-P' ,str(realtimePriority) ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,str(period), '-n' ,str(jackPeriods) ,'-r','48000']
+            cmdline = ['jackd', '-s', '--realtime', '-P' ,str(realtimePriority) ,'-d', 'alsa' ,'-d' ,useDevice ,'-p' ,str(period), '-n' ,str(jackPeriods) ,'-r','48000']
         else:
-            cmdline = ['jackd', '-s', '--realtime' ,'-d', 'alsa' ,'-d' ,'hw:0,0' ,'-p' ,str(period), '-n' ,str(jackPeriods) ,'-r','48000']
+            cmdline = ['jackd', '-s', '--realtime' ,'-d', 'alsa' ,'-d' ,useDevice ,'-p' ,str(period), '-n' ,str(jackPeriods) ,'-r','48000']
         logging.info("Attempting to start JACKD server with: \n"+' '.join(cmdline))
 
         jackp = subprocess.Popen(cmdline,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE, stderr=subprocess.PIPE,env=my_env)
@@ -1133,6 +1179,7 @@ def handleManagedSoundcards():
     global oldo
     global oldmidis
     global lastFullScan
+    global useAdditionalSoundcards
 
     #There seems to be a bug in reading errors from the process
     #Right now it's a TODO, but most of the time
@@ -1207,6 +1254,12 @@ def handleManagedSoundcards():
 
         ##HANDLE CREATING AND GC-ING things
         inp,op,midis = listSoundCardsByPersistentName()
+
+        #Ignore all except MIDI
+        if not useAdditionalSoundcards.lower() in ("true","yes",'on'):
+            inp = {}
+            op = {}
+
         #This is how we avoid constantky retrying to connect the same few
         #clients that fail, which might make a bad periodic click that nobody
         #wants to hear.
@@ -1291,7 +1344,7 @@ def handleManagedSoundcards():
             #HDMI doesn't do inputs as far as I know
             if not i.startswith("HDMI"):
                 if not i in alsa_in_instances:
-                    if inp[i][0]== "hw:0,0":
+                    if inp[i][0]== primaryDeviceAlsaName:
                         #We don't do an alsa in for this card because it
                         #Is already the JACK backend
                         if usingDefaultCard:
@@ -1311,7 +1364,7 @@ def handleManagedSoundcards():
             if not i.startswith("HDMI"):
                 if not i in alsa_out_instances:
                     #We do not want to mess with the 
-                    if op[i][0]== "hw:0,0":
+                    if op[i][0]== primaryDeviceAlsaName:
                         if usingDefaultCard:
                             continue
                     
@@ -1556,12 +1609,14 @@ def _checkJackClient(err=True):
         return False
 
 def getPorts(*a,**k):
-    with lock:
-        if not _jackclient:
-            return []
-        ports =[]
-        return _jackclient.get_ports(*a,**k)
-
+    if lock.acquire(timeout=10):
+        try:
+            if not _jackclient:
+                return []
+            ports =[]
+            return _jackclient.get_ports(*a,**k)
+        finally:
+            lock.release()
 
 def getPortNamesWithAliases(*a,**k):
     with lock:
@@ -1579,72 +1634,79 @@ def getPortNamesWithAliases(*a,**k):
 
 
 def getConnections(name,*a,**k):
-    with lock:
-        if not _jackclient:
-            return []
+    if lock.acquire(timeout=10):
         try:
-            return _jackclient.get_all_connections(name)
-        except:
-            log.exception("Error getting connections")
-            return []
-
+            if not _jackclient:
+                return []
+            try:
+                return _jackclient.get_all_connections(name)
+            except:
+                log.exception("Error getting connections")
+                return []
+        finally:
+            lock.release()
 
 def disconnect(f,t):
-    with lock:
-        if not _jackclient:
-            return
-
-        if not isConnected(f,t):
-            return
-
+    if lock.acquire(timeout=30):
         try:
-            if  isinstance(f,str):
-                f = _jackclient.get_port_by_name(f)
-            if  isinstance(t,str):
-                t = _jackclient.get_port_by_name(t)
-    
-            _jackclient.disconnect(f,t)
-        except:
-            pass
+            if not _jackclient:
+                return
+
+            if not isConnected(f,t):
+                return
+
+            try:
+                if  isinstance(f,str):
+                    f = _jackclient.get_port_by_name(f)
+                if  isinstance(t,str):
+                    t = _jackclient.get_port_by_name(t)
         
+                _jackclient.disconnect(f,t)
+            except:
+                pass
+        finally:
+            lock.release()
 
 def connect(f,t):
-      with lock:
-        if not _jackclient:
-            return 
+    if lock.acquire():
         try:
-            if  isinstance(f,str):
-                f = _jackclient.get_port_by_name(f)
-            if  isinstance(t,str):
-                t = _jackclient.get_port_by_name(t)
-        except:
-            return
+            if not _jackclient:
+                return 
+            try:
+                if  isinstance(f,str):
+                    f = _jackclient.get_port_by_name(f)
+                if  isinstance(t,str):
+                    t = _jackclient.get_port_by_name(t)
+            except:
+                return
 
-        f_input =  f.is_input
+            f_input =  f.is_input
 
-        if f.is_input:
-            if not t.is_output:
-                #Do a retry, there seems to be a bug somewhere
-                try:
-                    f = _jackclient.get_port_by_name(f.name)
-                    t = _jackclient.get_port_by_name(t.name)
-                except:
-                    return
-                if f.is_input:
-                    if not t.is_output:
-                         raise ValueError("Cannot connect two inputs",str((f,t)))
-        else:
-            if t.is_output:
-                raise ValueError("Cannot connect two outputs",str((f,t)))
-        f=f.name
-        t=t.name
-        try:
-            if f_input:
-                _jackclient.connect(t,f)
+            if f.is_input:
+                if not t.is_output:
+                    #Do a retry, there seems to be a bug somewhere
+                    try:
+                        f = _jackclient.get_port_by_name(f.name)
+                        t = _jackclient.get_port_by_name(t.name)
+                    except:
+                        return
+                    if f.is_input:
+                        if not t.is_output:
+                            raise ValueError("Cannot connect two inputs",str((f,t)))
             else:
-                _jackclient.connect(f,t)
-        except:
-            pass
+                if t.is_output:
+                    raise ValueError("Cannot connect two outputs",str((f,t)))
+            f=f.name
+            t=t.name
+            try:
+                if f_input:
+                    _jackclient.connect(t,f)
+                else:
+                    _jackclient.connect(f,t)
+            except:
+                pass
+        finally:
+            lock.release()
             
 #startManagingJack()
 

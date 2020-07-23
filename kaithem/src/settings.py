@@ -446,7 +446,11 @@ class Settings():
         jacksettings.set("sharePulse",kwargs['pulsesharing'])
         jacksettings.set("jackPeriodSize",max(32,int(kwargs['jackperiodsize'])))
         jacksettings.set("jackPeriods",max(2,int(kwargs['jackperiods'])))
+        jacksettings.set("jackDevice",kwargs['jackdevice'])
+        jacksettings.set("useAdditionalSoundcards",kwargs['jackuseadditional'])
 
+
+        
         from . import jackmanager
         jackmanager.reloadSettings()
         if jacksettings.get("jackMode",None) in("manage","use"):
