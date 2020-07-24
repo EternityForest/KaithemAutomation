@@ -80,8 +80,8 @@ names.  Using this is required for Kaithem's integrated sound mixer to work corr
         <td>Use Additional Soundcards</td>
         <td>
             <select name="jackuseadditional">
-                <option title="Only use primary JACK device" value="Only Primary" ${'selected' if  jacksettings.get('useAdditionalSoundcards','off')=='off' else ''}>off</option>
-                <option title="Use all soundcards with alsa_io" value="All Cards" ${'selected' if jacksettings.get('useAdditionalSoundcards','off') in ('on','yes','true') else ''}>manage</option>
+                <option title="Only use primary JACK device" value="off" ${'selected' if  jacksettings.get('useAdditionalSoundcards','on')=='off' else ''}>off</option>
+                <option title="Use all soundcards with alsa_io" value="yes" ${'selected' if jacksettings.get('useAdditionalSoundcards','on') in ('on','yes','true') else ''}>yes</option>
             </select>
            
         </td>

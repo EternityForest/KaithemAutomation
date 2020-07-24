@@ -1347,7 +1347,7 @@ def handleManagedSoundcards():
             #HDMI doesn't do inputs as far as I know
             if not i.startswith("HDMI"):
                 if not i in alsa_in_instances:
-                    if inp[i][0]== primaryDeviceAlsaName:
+                    if inp[i][0]== currentPrimaryDevice:
                         #We don't do an alsa in for this card because it
                         #Is already the JACK backend
                         if usingDefaultCard:
@@ -1367,7 +1367,7 @@ def handleManagedSoundcards():
             if not i.startswith("HDMI"):
                 if not i in alsa_out_instances:
                     #We do not want to mess with the 
-                    if op[i][0]== primaryDeviceAlsaName:
+                    if op[i][0]== currentPrimaryDevice:
                         if usingDefaultCard:
                             continue
                     

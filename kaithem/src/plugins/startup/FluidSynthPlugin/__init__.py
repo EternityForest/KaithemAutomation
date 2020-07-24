@@ -53,6 +53,9 @@ class JackFluidSynth(devices.Device):
     def __init__(self, name, data):
         devices.Device.__init__(self, name, data)
         try:
+            if len(name)==1:
+                self.handleError('Single letter names may not work correctly')
+
             self.synth = scullery.fluidsynth.FluidSynth(
                                           soundfont=data.get("device.soundfont", "").strip(),
                                           jackClientName= name,
@@ -128,8 +131,8 @@ class JackFluidSynth(devices.Device):
                             elif status >> 4 ==0b1011:
                                 cc(channel,pitch,vel)
 
-                            elif status >> 4 ==0b110:
-                                bend(channel,pitch+vel*256)
+                            elif status >> 4 ==0b1110:
+                                bend(channel,struct.unpack("<h",indata[1:])[0] )
 
                         if len(indata) == 2:
                             status, rg = struct.unpack('2B', indata)
