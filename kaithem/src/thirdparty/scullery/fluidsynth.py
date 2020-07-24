@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Scullery.  If not, see <http://www.gnu.org/licenses/>.
 
-import time,weakref,os
+import time,weakref,os,yaml
 gmInstruments = None
 
 players = weakref.WeakValueDictionary()
@@ -31,7 +31,7 @@ def getGMInstruments():
     global gmInstruments
     if gmInstruments:
         return gmInstruments
-    with os.path.join(os.path.dirname(os.path.abspath(__file__)),'gm_instruments.yaml') as f:
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'gm_instruments.yaml')) as f:
         gmInstruments = yaml.load(f.read())
     return gmInstruments
 
@@ -85,6 +85,16 @@ def findGMInstrument(name, look_in_soundfont=None,bank=None):
             return (bank or 0,i)
     raise ValueError("No matching instrument")
 
+def waitForJack():
+    from . import jack
+    for i in range(10):
+        if not jack.getPorts():
+            time.sleep(1)
+        else:
+            return
+
+    raise RuntimeError("It appears that JACK is not running")
+
 class FluidSynth():
     defaultSoundfont = "/usr/share/sounds/sf2/FluidR3_GM.sf2"
 
@@ -94,8 +104,7 @@ class FluidSynth():
 
         if jackClientName:
            from . import jack
-           if not jack.getPorts():
-               raise RuntimeError("It appears that JACK is not running")
+           waitForJack()
         
         self.soundfont = soundfont or self.defaultSoundfont
 
@@ -116,6 +125,8 @@ class FluidSynth():
 
         if jackClientName:
            self.fs.setting("audio.jack.id", jackClientName)
+           self.fs.setting("audio.midi.id", "KaithemFluidsynth")
+
            usingJack = True
 
         if connectMidi:
@@ -129,6 +140,8 @@ class FluidSynth():
         if usingJack:
            if not jackClientName:
                 self.fs.setting("audio.jack.id", "KaithemFluidsynth")
+                self.fs.setting("audio.midi.id", "KaithemFluidsynth")
+
 
            self.fs.setting("midi.driver", 'jack')
            self.fs.start(driver="jack", midi_driver="jack")
@@ -147,7 +160,14 @@ class FluidSynth():
 
     def noteOff(self,channel,note):
         self.fs.noteoff(channel, note)
+    def cc(self,channel,control, val):
+        self.fs.cc(channel, control, val)
 
+    def pitchBend(self,channel,val):
+        self.fs.pitch_bend(channel, val)
+
+    def programChange(self,channel,val):
+        self.fs.program_change(channel, val)
     def __del__(self):
         if hasattr(self,'fs'):
             self.fs.delete()

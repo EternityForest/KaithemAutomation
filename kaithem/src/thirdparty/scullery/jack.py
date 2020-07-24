@@ -464,29 +464,31 @@ class PortInfo():
 
 
 def onPortRegistered(port,registered):
-    global realConnections
-    "Same function for register and unregister"
-    if not port:
-        return
+    try:
+        global realConnections
+        "Same function for register and unregister"
+        if not port:
+            return
 
-    p = PortInfo(port.name, port.is_input,port.shortname)
+        p = PortInfo(port.name, port.is_input,port.shortname)
 
-    if registered:
-        log.debug("JACK port registered: "+port.name)
-        messagebus.postMessage("/system/jack/newport",p )
-    else:
-        torm = []
-        with realConnectionsLock:
-            for i in _realConnections:
-                if i[0]==port.name or i[1]==port.name:
-                    torm.append(i)
-            for i in torm:
-                del _realConnections[i]
-            realConnections=_realConnections.copy()
+        if registered:
+            log.debug("JACK port registered: "+port.name)
+            messagebus.postMessage("/system/jack/newport",p )
+        else:
+            torm = []
+            with realConnectionsLock:
+                for i in _realConnections:
+                    if i[0]==port.name or i[1]==port.name:
+                        torm.append(i)
+                for i in torm:
+                    del _realConnections[i]
+                realConnections=_realConnections.copy()
 
-        log.debug("JACK port unregistered: "+port.name)
-        messagebus.postMessage("/system/jack/delport",p)
-
+            log.debug("JACK port unregistered: "+port.name)
+            messagebus.postMessage("/system/jack/delport",p)
+    except:
+        print(traceback.format_exc())
 
 
 ############################################################################
@@ -1148,6 +1150,8 @@ def _startJackProcess(p=None, n=None,logErrs=True):
            
             if util.which("a2jmidid"):
                 midip = subprocess.Popen("a2jmidid -e",stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True,stdin=subprocess.DEVNULL) 
+            else:
+                logging.error("a2jmidid not installed, MIDI may not work as expected.")
         workers.do(f)
 
 
@@ -1334,7 +1338,6 @@ def handleManagedSoundcards():
                     if i[0] in j.name:
                         try:
                             if not i in j.aliases:
-                                print(j.aliases, i)
                                 j.set_alias(i)
                         except:
                             log.exception("Error setting MIDI alias")

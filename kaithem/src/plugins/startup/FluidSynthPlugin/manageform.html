@@ -1,0 +1,37 @@
+<h3>Info</h3>
+<p>
+ The device name is the JACK client name.  Instrument settings are the defaults when the device is created, runtime changes are possible.
+
+ Use device.synth to access the raw scullery.fluidsynth object. particularly, you can use synth.noteOn(ch,note,velocity) and noteOff(ch,note).
+
+ A M
+</p>
+
+
+<table>
+    <tr>
+        <td>Soundfont file path</td>
+        <td><input name="device.soundfont" value="${data.get('device.soundfont','')|h}" placeholder="default"></td>
+    </tr>
+
+    <tr>
+        <td>Connect to JACK Midi port</td>
+        <td><input name="device.connectMidi" value="${data.get('device.connectMidi','')|h}" placeholder="default"></td>
+    </tr>
+
+    <tr>
+        <td>Connect to JACK Audio port</td>
+        <td><input name="device.connectOutput" value="${data.get('device.connectOutput','')|h}" placeholder="default"></td>
+    </tr>
+
+    %for i in range(0,16):
+    <tr>
+        <td>Channel #${i} Instrument</td>
+        <td><input name="device.ch${i}instrument" value="${data.get('device.ch'+str(i)+'instrument','')|h}"></td>
+    </tr>
+    %endfor
+ 
+</table>
+
+
+</table>
