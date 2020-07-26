@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import re,time,json,logging,copy, subprocess,os
+import re,time,json,logging,copy, subprocess,os,weakref
 
 from . import widgets, messagebus,util,registry, tagpoints,persist,directories,alerts,workers,directories
 from . import jackmanager, gstwrapper,mixerfx
@@ -421,7 +421,9 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                 #feed the main chain, such as fir the speech recognition effect
                 if i.get('sidechain',0):
                     linkTo = self.addElement("tee")
+                    linkTo = self.addElement("queue",sidechain=True, connectToOutput=linkTo)
                     sidechain=True
+
                 else:
                     #Default link to prev
                     linkTo = None
@@ -431,7 +433,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                 if "preSupportElements" in i:
                     for j in i['preSupportElements']:
                         linkTo = self.addElement(j['gstElement'],**j['gstSetup'],sidechain=sidechain,connectToOutput=linkTo if (not j.get("noConnectInput",False)) else False)
-                        supports.append(weakref.ref(linkTo))
+                        supports.append(linkTo)
 
                 #Prioritize specific mono or stereo version of elements
                 if self.channels == 1 and 'monoGstElement' in i:
@@ -441,14 +443,19 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                 else:
                     linkTo=self.effectsById[i['id']] = self.addElement(i['gstElement'],**i['gstSetup'],sidechain=sidechain,connectToOutput=linkTo if (not i.get("noConnectInput",False)) else False)
                 
+                elmt = linkTo
                 linkTo.preSupports = supports
 
                 self.effectDataById[i['id']]= i
                 
+                supports = []
                 if "postSupportElements" in i:
                     for j in i['postSupportElements']:
                         linkTo = self.addElement(j['gstElement'],**j['gstSetup'],sidechain=sidechain, connectToOutput=linkTo if (not j.get("noConnectInput",False)) else False)
-               
+                        supports.append(linkTo)
+                elmt.postSupports  = supports
+
+
                 for j in i['params']:
                     if j=='bypass':
                         continue
@@ -457,13 +464,16 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                         if x(self.effectsById[i['id']], j, i['params'][j]['value'] ):
                             self.setProperty(self.effectsById[i['id']],j, i['params'][j]['value'])
                     else:
-                        self.setProperty(self.effectsById[i['id']],j, i['params'][j]['value'])
+                        self.setEffectParam(i['id'],j, i['params'][j]['value'])
 
         self.faderTag.value=d['fader']
         self.setFader(self.faderTag.value)
 
         self.setInput(d['input'])
         self.setOutputs(d['output'].split(","))
+    
+       
+                    
 
     def setEffectParam(self,effectId,param,value):
         "Set val after casting, and return properly typed val"
@@ -477,8 +487,19 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
             if t=='float':
                 value = float(value)
 
+            if t=='bool':
+                value = value>0.5
+
+            if t=='enum':
+                value=int(value)
             
-            
+            if t=='int':
+                value=int(value)
+            if t=='string.int':
+                try:
+                    value=int(value)
+                except:
+                    value=0
 
             #One type of special case
             if param[0]=='*':
@@ -504,7 +525,18 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                             self.play()
                         
                 else:
-                    self.setProperty(self.effectsById[effectId], param, value)
+                    fx = self.effectsById[effectId]
+                    if param.startswith("preSupport."):
+                        v =param.split(".",2)
+                        fx = fx.preSupports[int(v[1])]
+                        param=v[2]
+
+                    if param.startswith("postSupport."):
+                        v = param.split(".",2)
+                        fx = fx.postSupports[int(v[1])]
+                        param = v[2]
+
+                    self.setProperty(fx, param, value)
         return value
     
     def addLevelDetector(self):
@@ -663,6 +695,8 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                 e2.set_property("sync",False)
                 e2.set_property("slave-method",0)
                 e2.set_property('provide-clock',False)
+                e2.set_property('connect',False)
+
                 e2.latency_time=10
                 self.effectsById[id]= l
                 self.effectsById[id+"*destination"] = e2
@@ -718,7 +752,7 @@ class MixingBoard():
         self.api.attach(self.f)
         self.channels = {}
         self.channelObjects ={}
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         self.running=False
         def f(t,v):
             self.running=True

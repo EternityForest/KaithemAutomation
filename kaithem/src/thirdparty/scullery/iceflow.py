@@ -285,6 +285,7 @@ class GStreamerPipeline():
         self.name = name
 
         self.elements = []
+        self.sidechainElements = []
         self.namedElements = {}
 
         self.elementTypesById= {}
@@ -315,7 +316,7 @@ class GStreamerPipeline():
 
     def sendEOS(self):
         self.pipeline.send_event(Gst.Event.new_eos())    
-        
+
     def loopCallback(self):
         #Meant to subclass. Gets called under the lock
         pass
@@ -660,12 +661,24 @@ class GStreamerPipeline():
             if connectToOutput:
                 if not id(connectToOutput) in self.elementTypesById:
                     raise ValueError("Cannot connect to the output of: "+str(connectToOutput)+", no such element in pipeline.")
+            
+            #Element doesn't have an input pad, we want this to be usable as a fake source to go after a real source if someone
+            #wants to use it as a effect
+            if t=="audiotestsrc":
+                connectToOutput=False
+                
+
 
             #This could be the first element
             if self.elements and (not (connectToOutput is False)):
                 connectToOutput=connectToOutput or self.elements[-1]
+
+                #Fakesinks have no output, we automatically don't connect those
+                if self.elementTypesById[id(connectToOutput)]=='fakesink':
+                    connectToOutput=False
+
                 #Decodebin doesn't have a pad yet for some awful reason
-                if (self.elementTypesById[id(connectToOutput)]=='decodebin') or connectWhenAvailable:
+                elif (self.elementTypesById[id(connectToOutput)]=='decodebin') or connectWhenAvailable:
                     eid = uuid.uuid4()
                     f = linkClosureMaker(weakref.ref(self),connectToOutput,e,connectWhenAvailable, eid)
 
@@ -680,9 +693,7 @@ class GStreamerPipeline():
             if not sidechain:
                 self.elements.append(e)
             else:
-                x = self.elements[-1]
-                self.elements[-1]= e
-                self.elements.append(x)
+                self.sidechainElements.append(e)
 
             self.namedElements[name]=e
 

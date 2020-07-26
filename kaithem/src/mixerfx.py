@@ -6,6 +6,117 @@ effectTemplates_data = {
               },
 
 
+
+ "rtplistener": {
+        "type": "rtplistener",
+        "displayType": "RTP Reciever",
+        "help": "Recieve via RTP using the Opus codec",
+        "gstElement": "rtpjitterbuffer",
+        "params": {
+            "latency": {
+                "displayName":"Latency",
+                "type": "float",
+                "value": 100,
+                "min": 5,
+                "max":500,
+                "step":1,
+                "sort": 0
+            },
+             "preSupport.1.port": {
+                "displayName": "Port",
+                "type": "string.int",
+                "value": 5000,
+                "sort": 0
+            }
+            
+        },
+        "gstSetup": {},
+        "sidechain": False,
+        "preSupportElements": [
+             
+             #Whatever auto was in the channel before we have to just ignore, IceFlow will automatically not connect this to the next thing.
+             {"gstElement": "fakesink", "gstSetup": 
+             {
+             }},
+
+             {"gstElement": "udpsrc", "gstSetup": 
+             {
+                 'caps': "application/x-rtp, media=(string)audio, clock-rate=(int)48000, encoding-name=(string)X-GST-OPUS-DRAFT-SPITTKA-00, payload=(int)96, ssrc=(uint)950073154, clock-base=(uint)639610336, seqnum-base=(uint)55488" 
+             }},
+        ],
+        "postSupportElements": [
+            {"gstElement": "rtpopusdepay", "gstSetup": {}},
+            {"gstElement": "opusdec", "gstSetup": {}},
+             {"gstElement": "audioconvert", "gstSetup": {}},
+             {"gstElement": "audioresample", "gstSetup": {}},
+
+        ]
+   },
+   "rtpsender": {
+        "type": "rtpsender",
+        "displayType": "RTP Sender",
+        "help": "Send via RTP using the Opus codec",
+        "gstElement": "opusenc",
+        "params": {
+            "frame-size": {
+                "displayName":"Frame Size",
+                "type": "enum",
+                "value": '20',
+                "options":[["2.5ms",2], ['5ms',5], ["10ms",10], ["20ms",20], ["40ms",40], ["60ms",60]],
+                "sort": 0
+            },
+            "bitrate": {
+                "displayName":"Bit Rate",
+                "type": "enum",
+                "value": 128000,
+                "options":[["16k",16000], ["48k",48000], ['64k',64000], ["128k",128000], ["192k",192000]],
+                "sort": 0
+            },
+            "postSupport.1.host": {
+                "displayName": "Host",
+                "type": "string",
+                "value": '127.0.0.1',
+                "sort": 0
+            },
+            "postSupport.1.port": {
+                "displayName": "Port",
+                "type": "string.int",
+                "value": 5000,
+                "sort": 0
+            }
+            
+        },
+        "gstSetup": {},
+        "sidechain": True,
+        "preSupportElements": [
+             {"gstElement": "audioconvert", "gstSetup": {}},
+        ],
+        "postSupportElements": [
+             {"gstElement": "rtpopuspay", "gstSetup": {}},
+             {"gstElement": "udpsink", "gstSetup": {'sync':False}}
+
+        ]
+   },
+
+   "a2dpsink": {
+        "type": "a2dpsink",
+        "displayType": "A2DP Sender",
+        "help": "Send to a bluetooth speaker",
+        "monoGstElement": "a2dpsink",
+        "params": {
+            "device": {
+                "type": "string",
+                "value": '',
+                "sort": 0
+            }
+            
+        },
+        "gstSetup": {},
+        "sidechain": True,
+        "preSupportElements": [
+            
+        ]
+    },
  "autotune": {
         "type": "autotune",
         "displayType": "Autotune",
@@ -21,6 +132,15 @@ effectTemplates_data = {
                 "step": 0.1,
                 "sort": 0
             },
+            "bias": {
+                "type": "float",
+                "displayName": "Bias to current note",
+                "value": 0.1,
+                "min": 0,
+                "max": 1,
+                "step": 0.1,
+                "sort": 0
+            },
             "filter": {
                 "type": "float",
                 "displayName": "Filter",
@@ -30,9 +150,18 @@ effectTemplates_data = {
                 "step": 0.01,
                 "sort": 0.001
             },
+            "offset": {
+                "type": "float",
+                "displayName": "Shift",
+                "value": 0,
+                "min": -2,
+                "max": 2,
+                "step": 0.25,
+                "sort": 0.25
+            },
             
         },
-        "gstSetup": {},
+        "gstSetup": {'m00':True,'m01':True,'m02':True,'m03':True,'m04':True,'m05':True,'m06':True,'m07':True,'m08':True,'m09':True,'m10':True,'m11':True},
         "sidechain": False,
         "preSupportElements": [
         ]
@@ -135,7 +264,7 @@ effectTemplates_data = {
             "div": {
                 "type": "float",
                 "displayName": "Divisions",
-                "value": 0,
+                "value": 1,
                 "min": 1,
                 "max": 4,
                 "step": 0.25,
