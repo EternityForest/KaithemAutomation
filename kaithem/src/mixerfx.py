@@ -1,18 +1,311 @@
-#These are templates for effect data. Note that they contain everything needed to generate and interface for
-#And use a gstreamer element. Except fader, which is special cased.
-effectTemplates_data={
-    "fader":{"type":"fader", "displayType": "Fader", "help": "The main fader for the channel",
-    "params": {}
+# These are templates for effect data. Note that they contain everything needed to generate and interface for
+# And use a gstreamer element. Except fader, which is special cased.
+effectTemplates_data = {
+    "fader": {"type": "fader", "displayType": "Fader", "help": "The main fader for the channel",
+              "params": {}
+              },
+
+
+ "autotune": {
+        "type": "autotune",
+        "displayType": "Autotune",
+        "help": "gareus-org-oss-lv2-fat1 chromatic scale",
+        "monoGstElement": "gareus-org-oss-lv2-fat1",
+        "params": {
+            "corr": {
+                "type": "float",
+                "displayName": "Correction",
+                "value": 1,
+                "min": 0,
+                "max": 1,
+                "step": 0.1,
+                "sort": 0
+            },
+            "filter": {
+                "type": "float",
+                "displayName": "Filter",
+                "value": 0.1,
+                "min": 0.02,
+                "max": 0.5,
+                "step": 0.01,
+                "sort": 0.001
+            },
+            
+        },
+        "gstSetup": {},
+        "sidechain": False,
+        "preSupportElements": [
+        ]
     },
 
-   "valvesaturation":{
-        "type": "valvesaturation", 
+ "ringmod": {
+        "type": "ringmod",
+        "displayType": "Ring Mod",
+        "help": "Ring Modulation",
+        "monoGstElement": "ladspa-ringmod-1188-so-ringmod-1i1o1l",
+        "params": {
+            "frequency": {
+                "type": "float",
+                "displayName": "Model",
+                "value": 440,
+                "min": 1,
+                "max": 440,
+                "step": 1,
+                "sort": 0
+            },
+            "modulation-depth": {
+                "type": "float",
+                "displayName": "Deptch",
+                "value": 0,
+                "min": 0,
+                "max": 2,
+                "step": 1,
+                "sort": 1
+            },
+            "sawtooth-level": {
+                "type": "float",
+                "displayName": "Saw",
+                "value": 0,
+                "min": 0,
+                "max": 1,
+                "step": 0.025,
+                "sort": 3
+            },
+
+            "square-level": {
+                "type": "float",
+                "displayName": "Square",
+                "value": 0,
+                "min": 0,
+                "max": 1,
+                "step": 0.025,
+                "sort": 3
+            },
+                        
+            "sine-level": {
+                "type": "float",
+                "displayName": "Sine",
+                "value": 1,
+                "min": 0,
+                "max": 1,
+                "step": 0.025,
+                "sort": 2
+            },
+            "triangle-level": {
+                "type": "float",
+                "displayName": "Triangle",
+                "value": 1,
+                "min": 0,
+                "max": 1,
+                "step": 0.025,
+                "sort": 3
+            }
+        },
+        "gstSetup": {},
+        "sidechain": False,
+        "preSupportElements": [
+        ]
+    },
+
+
+    "swhmetronome": {
+        "type": "swhmetronome",
+        "displayType": "Metronome",
+        "help": "SWH plugins metronome",
+        "monoGstElement": "ladspasrc-caps-so-click",
+        "params": {
+            "model": {
+                "type": "float",
+                "displayName": "Model",
+                "value": 0,
+                "min": 0,
+                "max": 3,
+                "step": 1,
+                "sort": 0
+            },
+            "bpm": {
+                "type": "float",
+                "displayName": "BPM",
+                "value": 80,
+                "min": -0,
+                "max": 240,
+                "step": 1,
+                "sort": 1
+            },
+            "div": {
+                "type": "float",
+                "displayName": "Divisions",
+                "value": 0,
+                "min": 1,
+                "max": 4,
+                "step": 0.25,
+                "sort": 1
+            }
+        },
+        "gstSetup": {},
+        "sidechain": False,
+        "noConnectInput": True,
+        "preSupportElements": [
+                        {"gstElement": "fakesink", "gstSetup": {}},
+
+        ]
+    },
+
+
+    "cabinet3": {
+        "type": "cabinet3",
+        "displayType": "Cabinet III",
+        "help": "Amp cabinet sim",
+        "monoGstElement": "ladspa-caps-so-cabinetiii",
+        "params": {
+            "model": {
+                "type": "float",
+                "displayName": "Model",
+                "value": 0,
+                "min": 0,
+                "max": 16,
+                "step": 1,
+                "sort": 0
+            },
+            "gain": {
+                "type": "float",
+                "displayName": "Gain",
+                "value": 0,
+                "min": -24,
+                "max": 24,
+                "step": 0.25,
+                "sort": 1
+            }
+        },
+        "gstSetup": {},
+        "sidechain": False,
+        "preSupportElements": [
+        ]
+    },
+
+    "ampvts": {
+        "type": "ampvts",
+        "displayType": "Amp VTS",
+        "help": "CAPS Guitar amp sim(Heavy CPU?)",
+        "monoGstElement": "ladspa-caps-so-ampvts",
+        "params": {
+            "over": {
+                "type": "float",
+                "displayName": "Oversampling",
+                "value": 0,
+                "min": 0,
+                "max": 2,
+                "step": 1,
+                "sort": 0
+            },
+            "tonestack": {
+                "type": "float",
+                "displayName": "Tone Stack",
+                "value": 0,
+                "min": 0,
+                "max": 8,
+                "step": 1,
+                "sort": 0
+            },
+            "gain": {
+                "type": "float",
+                "displayName": "Gain",
+                "value": 0.25,
+                "min": 0,
+                "max": 1,
+                "step": 0.025,
+                "sort": 1
+            },
+            "bright": {
+                "type": "float",
+                "displayName": "Bright",
+                "value": 0.75,
+                "min": 0,
+                "max": 1,
+                "step": 0.025,
+                "sort": 1
+            },
+            "power": {
+                "type": "float",
+                "displayName": "Power",
+                "value": 0.5,
+                "min": 0,
+                "max": 1,
+                "step": 0.025,
+                "sort": 1
+            },
+            "bass": {
+                "type": "float",
+                "displayName": "Bass",
+                "value": 0.25,
+                "min": 0,
+                "max": 1,
+                "step": 0.025,
+                "sort": 1
+            },
+            "mid": {
+                "type": "float",
+                "displayName": "Mid",
+                "value": 0.75,
+                "min": 0,
+                "max": 1,
+                "step": 0.025,
+                "sort": 1
+            },
+            "treble": {
+                "type": "float",
+                "displayName": "Treble",
+                "value": 1,
+                "min": 0,
+                "max": 1,
+                "step": 0.025,
+                "sort": 1
+            },
+
+            "attack": {
+                "type": "float",
+                "displayName": "Attack",
+                "value": 0.25,
+                "min": 0,
+                "max": 1,
+                "step": 0.025,
+                "sort": 1
+            },
+            "squash": {
+                "type": "float",
+                "displayName": "Squash",
+                "value": 0.75,
+                "min": 0,
+                "max": 1,
+                "step": 0.025,
+                "sort": 1
+            },
+            "lowcut": {
+                "type": "float",
+                "displayName": "Low Cut",
+                "value": 0.75,
+                "min": 0,
+                "max": 1,
+                "step": 0.025,
+                "sort": 1
+            }
+
+        },
+        "gstSetup": {},
+        "sidechain": False,
+        "preSupportElements": [
+        ]
+    },
+
+
+    "valvesaturation": {
+        "type": "valvesaturation",
         "displayType": "Valve Saturation",
-        "help": "Steve Harris, Valve saturation (valve, 1209)", 
+        "help": "Steve Harris, Valve saturation (valve, 1209)",
         "monoGstElement": "ladspa-valve-1209-so-valve",
         "params": {
             "distortion-level": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Level",
                 "value": 0,
                 "min": 0,
@@ -27,219 +320,221 @@ effectTemplates_data={
                 "min": 0,
                 "max": 0.99,
                 "step": 0.025,
-                "sort":1
+                "sort": 1
             }
         },
-        "gstSetup":{},
-        "sidechain":False,
-        "preSupportElements":[
+        "gstSetup": {},
+        "sidechain": False,
+        "preSupportElements": [
         ]
     },
 
-    "tonegenerator":{
-        "type": "tonegenerator", 
+    "tonegenerator": {
+        "type": "tonegenerator",
         "displayType": "Tone Generator",
-        "help": "Tone gen", 
+        "help": "Tone gen",
         "gstElement": "audiotestsrc",
         "params": {
             "freq": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Frequency",
                 "value": 440,
                 "min": 10,
                 "max": 20000,
-                "sort":0
+                "sort": 0
             }
         },
-        "gstSetup":{},
-        "sidechain":False,
+        "gstSetup": {},
+        "sidechain": False,
         "noConnectInput": True,
-        "preSupportElements":[
-            {"gstElement": "fakesink", "gstSetup":{}},
+        "preSupportElements": [
+            {"gstElement": "fakesink", "gstSetup": {}},
         ]
     },
 
-    "speechrecognition":{
-        "type": "speechrecognition", 
+
+    "speechrecognition": {
+        "type": "speechrecognition",
         "displayType": "Speech Recognition",
-        "help": "Speech Reecognition demo", 
+        "help": "Speech Reecognition demo",
         "gstElement": "pocketsphinx",
         "params": {
         },
-        "gstSetup":{},
-        "sidechain":True,
-        "preSupportElements":[
-            {"gstElement": "audioconvert", "gstSetup":{}},
-            {"gstElement": "audioresample", "gstSetup":{}},
+        "gstSetup": {},
+        "sidechain": True,
+        "preSupportElements": [
+            {"gstElement": "audioconvert", "gstSetup": {}},
+            {"gstElement": "audioresample", "gstSetup": {}},
         ]
     },
 
-    "send":{
-        "type":"send", 
-        "displayType":"Send",
-        "help": "JACK mono/stereo send", 
+    "send": {
+        "type": "send",
+        "displayType": "Send",
+        "help": "JACK mono/stereo send",
         "gstElement": "SpecialCase",
         "params": {
-          "volume": {
-                "type":"float",
+            "volume": {
+                "type": "float",
                 "displayName": "Level",
                 "value": False,
-                "sort":0,
-                "min":-60,
-                "max":0,
-                "value":-60,
-                "step":1,
+                "sort": 0,
+                "min": -60,
+                "max": 0,
+                "value": -60,
+                "step": 1,
             },
-          "*destination": {
-                "type":"JackInput",
+            "*destination": {
+                "type": "JackInput",
                 "displayName": "Dest",
                 "value": "",
-                "sort":1
+                "sort": 1
             },
         }
     },
 
-    "voicedsp":{
-        "type":"voicedsp", 
-        "displayType":"Voice DSP",
-        "help": "Noise Removal, AGC, and AEC", 
+    "voicedsp": {
+        "type": "voicedsp",
+        "displayType": "Voice DSP",
+        "help": "Noise Removal, AGC, and AEC",
         "gstElement": "webrtcdsp",
-        
+
         "params": {
-          "gain-control": {
-                "type":"bool",
+            "gain-control": {
+                "type": "bool",
                 "displayName": "AGC",
                 "value": False,
-                "sort":0
+                "sort": 0
             },
-          "echo-cancel": {
-                "type":"bool",
+            "echo-cancel": {
+                "type": "bool",
                 "displayName": "Feedback Cancel",
                 "value": True,
-                "sort":1
+                "sort": 1
             },
-           "noise-suppression":
-           {
-                "type":"bool",
+            "noise-suppression":
+            {
+                "type": "bool",
                 "displayName": "Noise Suppression",
                 "value": True,
-                "sort":1          
+                "sort": 1
             }
 
         },
-        "gstSetup":{
+        "gstSetup": {
             "high-pass-filter": False,
             "delay-agnostic": True,
             'noise-suppression-level': 0
         },
-        "preSupportElements":[
-            {"gstElement": "queue", "gstSetup":{"min-threshold-time": 25*1000*000}},
-            {"gstElement": "audioconvert", "gstSetup":{}},
-            {"gstElement": "interleave", "gstSetup":{}}
+        "preSupportElements": [
+            {"gstElement": "queue", "gstSetup": {
+                "min-threshold-time": 25*1000*000}},
+            {"gstElement": "audioconvert", "gstSetup": {}},
+            {"gstElement": "interleave", "gstSetup": {}}
 
         ],
-        "postSupportElements":[
-            {"gstElement": "audioconvert", "gstSetup":{}}
+        "postSupportElements": [
+            {"gstElement": "audioconvert", "gstSetup": {}}
         ]
     },
 
-    "voicedsprobe":{"type":"voicedsprobe", "displayType":"Voice DSP Probe","help": "When using voice DSP, you must have one of these right before the main output.", "gstElement": "webrtcechoprobe",
-    "params":{}, "gstSetup":{},
-     "preSupportElements":[
-        {"gstElement": "audioconvert", "gstSetup":{}},
-        {"gstElement": "interleave", "gstSetup":{}}
+    "voicedsprobe": {"type": "voicedsprobe", "displayType": "Voice DSP Probe", "help": "When using voice DSP, you must have one of these right before the main output.", "gstElement": "webrtcechoprobe",
+                     "params": {}, "gstSetup": {},
+                     "preSupportElements": [
+                         {"gstElement": "audioconvert", "gstSetup": {}},
+                         {"gstElement": "interleave", "gstSetup": {}}
 
-        ],
-    "postSupportElements":[
-        {"gstElement": "audioconvert", "gstSetup":{}}
-    ]
-    },
+                     ],
+                     "postSupportElements": [
+                         {"gstElement": "audioconvert", "gstSetup": {}}
+                     ]
+                     },
     "3beqp":
-    {"type":"3beqp", "displayType":"3 Band Parametric EQ","help": "Basic builtin paramentric EQ", "gstElement": "equalizer-nbands",
+    {"type": "3beqp", "displayType": "3 Band Parametric EQ", "help": "Basic builtin paramentric EQ", "gstElement": "equalizer-nbands",
         "params": {
-           "0:gain": {
-                "type":"float",
+            "0:gain": {
+                "type": "float",
                 "displayName": "Low",
                 "value": 0,
                 "min": -12,
                 "max": 12,
-                "sort":3
+                "sort": 3
             },
 
-             "0:freq": {
-                "type":"float",
+            "0:freq": {
+                "type": "float",
                 "displayName": "LowFreq",
                 "value": 200,
                 "min": 32,
                 "max": 2000,
-                "sort":2.5
+                "sort": 2.5
             },
 
             "0:bandwidth": {
-                "type":"float",
+                "type": "float",
                 "displayName": "LowBW",
                 "value": 200,
                 "min": 50,
                 "max": 1000,
-                "sort":2.3
+                "sort": 2.3
             },
 
             "1:gain": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Mid",
                 "value": 0,
                 "min": -12,
                 "max": 12,
-                "sort":2
+                "sort": 2
             },
 
             "1:freq": {
-                "type":"float",
+                "type": "float",
                 "displayName": "MidFreq",
                 "value": 2000,
                 "min": 500,
                 "max": 4000,
-                "sort":1.5
+                "sort": 1.5
             },
 
             "1:bandwidth": {
-                "type":"float",
+                "type": "float",
                 "displayName": "MidBW",
                 "value": 2000,
                 "min": 50,
                 "max": 8000,
-                "sort":1
+                "sort": 1
             },
-          
+
             "2:gain": {
-                "type":"float",
+                "type": "float",
                 "displayName": "High",
                 "value": 0,
                 "min": -12,
                 "max": 12,
-                "sort":0
+                "sort": 0
             },
-             "2:freq": {
-                "type":"float",
+            "2:freq": {
+                "type": "float",
                 "displayName": "HighFreq",
                 "value": 8000,
                 "min": 4000,
                 "max": 16000,
-                "sort":0.5
+                "sort": 0.5
             },
 
             "2:bandwidth": {
-                "type":"float",
+                "type": "float",
                 "displayName": "HighBW",
                 "value": 2000,
                 "min": 80,
                 "max": 16000,
-                "sort":0
+                "sort": 0
             },
         },
         "gstSetup":
         {
-            "num-bands":3,
+            "num-bands": 3,
             "0:freq": 180,
             "1:freq": 2000,
             "2:freq": 12000,
@@ -247,677 +542,677 @@ effectTemplates_data={
             "1:bandwidth": 500,
             "2:bandwidth": 16000,
         }
-    },
+     },
 
-    "3beq":{"type":"3beq", "displayType":"3 Band EQ","help": "Basic builtin EQ", "gstElement": "equalizer-nbands",
-        "params": {
-            "bypass": {
-                "type":"bool",
-                "displayName": "Bypass",
-                "value": False,
-                "sort":-1
-            },
-           "0:gain": {
-                "type":"float",
-                "displayName": "Low",
-                "value": 0,
-                "min": -12,
-                "max": 12,
-                "sort":3
-            },
-            "1:gain": {
-                "type":"float",
-                "displayName": "Mid",
-                "value": 0,
-                "min": -12,
-                "max": 12,
-                "sort":2
-            },
+    "3beq": {"type": "3beq", "displayType": "3 Band EQ", "help": "Basic builtin EQ", "gstElement": "equalizer-nbands",
+             "params": {
+                 "bypass": {
+                     "type": "bool",
+                     "displayName": "Bypass",
+                     "value": False,
+                     "sort": -1
+                 },
+                 "0:gain": {
+                     "type": "float",
+                     "displayName": "Low",
+                     "value": 0,
+                     "min": -12,
+                     "max": 12,
+                     "sort": 3
+                 },
+                 "1:gain": {
+                     "type": "float",
+                     "displayName": "Mid",
+                     "value": 0,
+                     "min": -12,
+                     "max": 12,
+                     "sort": 2
+                 },
 
-            "1:freq": {
-                "type":"float",
-                "displayName": "MidFreq",
-                "value": 2000,
-                "min": 200,
-                "max": 8000,
-                "sort":1
-            },
-          
-            "2:gain": {
-                "type":"float",
-                "displayName": "High",
-                "value": 0,
-                "min": -12,
-                "max": 12,
-                "sort":0
-            }
-        },
-        "gstSetup":
-        {
-            "num-bands":3,
-            "0:freq": 180,
-            "1:freq": 2000,
-            "2:freq": 12000,
-            "0:bandwidth": 360,
-            "1:bandwidth": 500,
-            "2:bandwidth": 16000,
-        }
-    },
+                 "1:freq": {
+                     "type": "float",
+                     "displayName": "MidFreq",
+                     "value": 2000,
+                     "min": 200,
+                     "max": 8000,
+                     "sort": 1
+                 },
+
+                 "2:gain": {
+                     "type": "float",
+                     "displayName": "High",
+                     "value": 0,
+                     "min": -12,
+                     "max": 12,
+                     "sort": 0
+                 }
+             },
+             "gstSetup":
+             {
+                 "num-bands": 3,
+                 "0:freq": 180,
+                 "1:freq": 2000,
+                 "2:freq": 12000,
+                 "0:bandwidth": 360,
+                 "1:bandwidth": 500,
+                 "2:bandwidth": 16000,
+             }
+             },
     "plateReverb":
     {
-        "displayType":"Plate Reverb",
+        "displayType": "Plate Reverb",
         "type": "plateReverb",
         "monoGstElement": "ladspa-caps-so-plate",
         "stereoGstElement": "ladspa-caps-so-platex2",
         'help': "Basic plate reverb. From the CAPS plugins.",
         "params": {
-          "blend": {
-                "type":"float",
+            "blend": {
+                "type": "float",
                 "displayName": "Mix",
                 "value": 0.25,
                 "min": 0,
                 "max": 1,
-                "step":0.01,
-                "sort":0
+                "step": 0.01,
+                "sort": 0
             },
 
             "bandwidth": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Bandwidth",
                 "value": 0.5,
                 "min": 0,
                 "max": 1,
-                "step":0.01,
-                "sort":1
+                "step": 0.01,
+                "sort": 1
             },
 
             "tail": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Tail",
                 "value": 0.75,
                 "min": 0,
                 "max": 1,
-                "step":0.01,
-                "sort":2
+                "step": 0.01,
+                "sort": 2
             },
             "damping": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Damping",
                 "value": 0.5,
                 "min": 0,
                 "max": 1,
-                "step":0.01,
-                "sort":3
+                "step": 0.01,
+                "sort": 3
             }
         },
-          "gstSetup":
+        "gstSetup":
             {},
     },
     "gverb":
     {
-        "displayType":"GVerb",
+        "displayType": "GVerb",
         "type": "gverb",
         "gstElement": "ladspa-gverb-1216-so-gverb",
         'help': "Mono in stereo out GVerb(Steve Harris swh-plugins)",
         "params": {
-          "roomsize": {
-                "type":"float",
+            "roomsize": {
+                "type": "float",
                 "displayName": "Room Size",
                 "value": 75,
                 "min": 1,
                 "max": 300,
-                "step":5,
-                "sort":0
+                "step": 5,
+                "sort": 0
             },
 
             "reverb-time": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Bandwidth",
                 "value": 7.5,
                 "min": 0.1,
                 "max": 30,
-                "step":0.25,
-                "sort":1
+                "step": 0.25,
+                "sort": 1
             },
 
             "dry-signal-level": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Dry",
                 "value": -70,
                 "min": -70,
                 "max": 0,
-                "step":1,
-                "sort":2
+                "step": 1,
+                "sort": 2
             },
 
             "early-reflection-level": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Early",
                 "value": -70,
                 "min": -70,
                 "max": 0,
-                "step":1,
-                "sort":3
+                "step": 1,
+                "sort": 3
             },
             "tail-level": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Tail",
                 "value": -70,
                 "min": -70,
                 "max": 0,
-                "step":1,
-                "sort":3
+                "step": 1,
+                "sort": 3
             },
             "damping": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Damping",
                 "value": 0.5,
                 "min": 0,
                 "max": 1,
-                "step":0.01,
-                "sort":5
+                "step": 0.01,
+                "sort": 5
             }
 
-            },
-              "gstSetup":
+        },
+        "gstSetup":
             {},
-        #It's stereo out, we may need to mono-ify it.
-        "postSupportElements":[
-            {"gstElement": "audioconvert", "gstSetup":{}}
+        # It's stereo out, we may need to mono-ify it.
+        "postSupportElements": [
+            {"gstElement": "audioconvert", "gstSetup": {}}
         ],
-        #It's mono in, maybe we need to downmix?
-        "preSupportElements":[
-            {"gstElement": "audioconvert", "gstSetup":{}}
+        # It's mono in, maybe we need to downmix?
+        "preSupportElements": [
+            {"gstElement": "audioconvert", "gstSetup": {}}
         ]
     },
 
     "tenband":
     {
-        "displayType":"10-Band EQ",
+        "displayType": "10-Band EQ",
         "type": "tenband",
         "stereoGstElement": "ladspa-caps-so-eq10x2",
         'help': "Stereo 10-band (CAPS)",
         "params": {
-          "param-31-hz": {
-                "type":"float",
+            "param-31-hz": {
+                "type": "float",
                 "displayName": "31Hz",
                 "value": 0,
                 "min": -48,
                 "max": 24,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
 
-          "param-63-hz": {
-                "type":"float",
+            "param-63-hz": {
+                "type": "float",
                 "displayName": "63Hz",
                 "value": 0,
                 "min": -48,
                 "max": 24,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
-          "param-125-hz": {
-                "type":"float",
+            "param-125-hz": {
+                "type": "float",
                 "displayName": "125Hz",
                 "value": 0,
                 "min": -48,
                 "max": 24,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
-          "param-250-hz": {
-                "type":"float",
+            "param-250-hz": {
+                "type": "float",
                 "displayName": "250Hz",
                 "value": 0,
                 "min": -48,
                 "max": 24,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
-          "param-500-hz": {
-                "type":"float",
+            "param-500-hz": {
+                "type": "float",
                 "displayName": "500Hz",
                 "value": 0,
                 "min": -48,
                 "max": 24,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
-          "param-1-khz": {
-                "type":"float",
+            "param-1-khz": {
+                "type": "float",
                 "displayName": "1KHz",
                 "value": 0,
                 "min": -48,
                 "max": 24,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
-          "param-2-khz": {
-                "type":"float",
+            "param-2-khz": {
+                "type": "float",
                 "displayName": "2KHz",
                 "value": 0,
                 "min": -48,
                 "max": 24,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
-          "param-4-khz": {
-                "type":"float",
+            "param-4-khz": {
+                "type": "float",
                 "displayName": "4KHz",
                 "value": 0,
                 "min": -48,
                 "max": 24,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
-          "param-8-khz": {
-                "type":"float",
+            "param-8-khz": {
+                "type": "float",
                 "displayName": "8KHz",
                 "value": 0,
                 "min": -48,
                 "max": 24,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
-          "param-16-khz": {
-                "type":"float",
+            "param-16-khz": {
+                "type": "float",
                 "displayName": "16KHz",
                 "value": 0,
                 "min": -48,
                 "max": 24,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
 
-            },
+        },
 
-    "gstSetup":
+        "gstSetup":
             {},
-       
+
     },
 
 
 
     "tenband12db":
     {
-        "displayType":"10-Band EQ(12db range)",
+        "displayType": "10-Band EQ(12db range)",
         "type": "tenband12db",
         "stereoGstElement": "ladspa-caps-so-eq10x2",
         'help': "Stereo 10-band (CAPS), +-12db per channel",
         "params": {
-          "param-31-hz": {
-                "type":"float",
+            "param-31-hz": {
+                "type": "float",
                 "displayName": "31Hz",
                 "value": 0,
                 "min": -12,
                 "max": 12,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
 
-          "param-63-hz": {
-                "type":"float",
+            "param-63-hz": {
+                "type": "float",
                 "displayName": "63Hz",
                 "value": 0,
                 "min": -12,
                 "max": 12,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
-          "param-125-hz": {
-                "type":"float",
+            "param-125-hz": {
+                "type": "float",
                 "displayName": "125Hz",
                 "value": 0,
                 "min": -12,
                 "max": 12,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
-          "param-250-hz": {
-                "type":"float",
+            "param-250-hz": {
+                "type": "float",
                 "displayName": "250Hz",
                 "value": 0,
                 "min": -12,
                 "max": 12,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
-          "param-500-hz": {
-                "type":"float",
+            "param-500-hz": {
+                "type": "float",
                 "displayName": "500Hz",
                 "value": 0,
                 "min": -12,
                 "max": 12,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
-          "param-1-khz": {
-                "type":"float",
+            "param-1-khz": {
+                "type": "float",
                 "displayName": "1KHz",
                 "value": 0,
                 "min": -12,
                 "max": 12,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
-          "param-2-khz": {
-                "type":"float",
+            "param-2-khz": {
+                "type": "float",
                 "displayName": "2KHz",
                 "value": 0,
                 "min": -12,
                 "max": 12,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
-          "param-4-khz": {
-                "type":"float",
+            "param-4-khz": {
+                "type": "float",
                 "displayName": "4KHz",
                 "value": 0,
                 "min": -12,
                 "max": 12,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
-          "param-8-khz": {
-                "type":"float",
+            "param-8-khz": {
+                "type": "float",
                 "displayName": "8KHz",
                 "value": 0,
                 "min": -12,
                 "max": 12,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
-          "param-16-khz": {
-                "type":"float",
+            "param-16-khz": {
+                "type": "float",
                 "displayName": "16KHz",
                 "value": 0,
                 "min": -12,
                 "max": 12,
-                "step":0.25,
-                "sort":0
+                "step": 0.25,
+                "sort": 0
             },
 
-            },
+        },
 
-    "gstSetup":
+        "gstSetup":
             {},
-       
+
     },
 
     "sc1Compressor":
     {
         "type": "sc1Compressor",
-        "displayType":"SC1 Compressor",
+        "displayType": "SC1 Compressor",
         "help": "Steve Harris SC1 compressor",
         "monoGstElement": "ladspa-sc1-1425-so-sc1",
         "params": {
 
             "threshold-level": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Threshold",
                 "value": -12,
                 "min": -30,
                 "max": 0,
-                "step":0.01,
-                "sort":0
+                "step": 0.01,
+                "sort": 0
             },
-          "attack-time": {
-                "type":"float",
+            "attack-time": {
+                "type": "float",
                 "displayName": "Attack",
                 "value": 100,
                 "min": 1,
                 "max": 400,
-                "step":0.01,
-                "sort":1
+                "step": 0.01,
+                "sort": 1
             },
 
             "release-time": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Release",
-                "value":200,
+                "value": 200,
                 "min": 0,
                 "max": 800,
-                "step":0.01,
-                "sort":2
+                "step": 0.01,
+                "sort": 2
             },
 
-            
+
             "ratio": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Ratio",
                 "value": 2.5,
                 "min": 0,
                 "max": 10,
-                "step":0.1,
-                "sort":3
+                "step": 0.1,
+                "sort": 3
             },
             "knee-radius": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Knee",
                 "value": 8,
                 "min": 0,
                 "max": 10,
-                "step":0.1,
-                "sort":4
+                "step": 0.1,
+                "sort": 4
             },
             "makeup-gain": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Gain",
                 "value": 8,
                 "min": 0,
                 "max": 24,
-                "step":0.1,
-                "sort":5
+                "step": 0.1,
+                "sort": 5
             }
 
-            },
-      "gstSetup":
+        },
+        "gstSetup":
             {},
     },
     "echo":
     {
         "type": "echo",
-        "gstElement":"audioecho",
-        "help":"Simple echo",
-        "displayType":"echo",
+        "gstElement": "audioecho",
+        "help": "Simple echo",
+        "displayType": "echo",
         "params": {
 
             "delay": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Delay",
                 "value": 250,
                 "min": 10,
                 "max": 2500,
-                "step":10,
-                "sort":0
+                "step": 10,
+                "sort": 0
             },
-          "intensity": {
-                "type":"float",
+            "intensity": {
+                "type": "float",
                 "displayName": "Mix",
                 "value": 0.5,
                 "min": 0,
                 "max": 1,
-                "step":0.01,
-                "sort":1
+                "step": 0.01,
+                "sort": 1
             },
-         "feedback": {
-                "type":"float",
+            "feedback": {
+                "type": "float",
                 "displayName": "feedback",
                 "value": 0,
                 "min": 0,
                 "max": 1,
-                "step":0.01,
-                "sort":2
+                "step": 0.01,
+                "sort": 2
             },
         },
-        'gstSetup':{
-            "max-delay":3000*1000*1000
+        'gstSetup': {
+            "max-delay": 3000*1000*1000
         }
     },
- "volume":
+    "volume":
     {
         "type": "volume",
-        "gstElement":"volume",
-        "help":"Volume Control(0 to 2)",
-        "displayType":"Volume Control",
+        "gstElement": "volume",
+        "help": "Volume Control(0 to 2)",
+        "displayType": "Volume Control",
         "params": {
 
             "volume": {
-                "type":"float",
+                "type": "float",
                 "displayName": "volume",
                 "value": 1,
                 "min": 0,
                 "max": 2,
-                "step":0.01,
-                "sort":0
+                "step": 0.01,
+                "sort": 0
             },
         },
-        'gstSetup':{
-            "volume":1
+        'gstSetup': {
+            "volume": 1
         }
     },
     "pitchshift":
     {
         "type": "pitchshift",
-        "monoGstElement":"ladspa-tap-pitch-so-tap-pitch",
-        "help":"Pitch shift(TAP LADSPA)",
-        "displayType":"TAP Pitch Shifter",
+        "monoGstElement": "ladspa-tap-pitch-so-tap-pitch",
+        "help": "Pitch shift(TAP LADSPA)",
+        "displayType": "TAP Pitch Shifter",
         "params": {
             "semitone-shift": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Shift",
                 "value": 0,
                 "min": -12,
                 "max": 12,
-                "step":1,
-                "sort":0
+                "step": 1,
+                "sort": 0
             },
-          "dry-level": {
-                "type":"float",
+            "dry-level": {
+                "type": "float",
                 "displayName": "Dry",
                 "value": -90,
                 "min": -90,
                 "max": 20,
-                "step":1,
-                "sort":1
+                "step": 1,
+                "sort": 1
             },
-         "wet-level": {
-                "type":"float",
+            "wet-level": {
+                "type": "float",
                 "displayName": "Wet",
                 "value": 0,
                 "min": -90,
                 "max": 20,
-                "step":1,
-                "sort":2
+                "step": 1,
+                "sort": 2
             },
         },
-        'gstSetup':{
+        'gstSetup': {
         }
     },
 
     "hqpitchshift":
     {
         "type": "hqpitchshift",
-        "monoGstElement":"ladspa-pitch-scale-1194-so-pitchscalehq",
-        "help":"Pitch shift(Steve Harris/swh-plugins)",
-        "displayType":"FFT Pitch Shifter",
+        "monoGstElement": "ladspa-pitch-scale-1194-so-pitchscalehq",
+        "help": "Pitch shift(Steve Harris/swh-plugins)",
+        "displayType": "FFT Pitch Shifter",
         "params": {
             "pitch-co-efficient": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Scale",
                 "value": 0,
                 "min": -2,
                 "max": 2,
-                "step":0.01,
-                "sort":0
+                "step": 0.01,
+                "sort": 0
             },
         },
-        'gstSetup':{
+        'gstSetup': {
         }
     },
 
     "multichorus":
     {
         "type": "multichorus",
-        "monoGstElement":"ladspa-multivoice-chorus-1201-so-multivoicechorus",
-        "help":"Multivoice Chorus 1201 (Steve Harris/swh-plugins)",
-        "displayType":"Multivoice Chorus",
+        "monoGstElement": "ladspa-multivoice-chorus-1201-so-multivoicechorus",
+        "help": "Multivoice Chorus 1201 (Steve Harris/swh-plugins)",
+        "displayType": "Multivoice Chorus",
         "params": {
             "number-of-voices": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Voices",
                 "value": 1,
                 "min": 1,
                 "max": 8,
-                "step":1,
-                "sort":0
+                "step": 1,
+                "sort": 0
             },
- 
+
             "delay-base": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Delay",
                 "value": 10,
                 "min": 10,
                 "max": 40,
-                "step":1,
-                "sort":2
+                "step": 1,
+                "sort": 2
             },
             "voice-separation": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Separation",
                 "value": 0.5,
                 "min": 0,
                 "max": 2,
-                "step":0.1,
-                "sort":3
+                "step": 0.1,
+                "sort": 3
             },
 
             "detune": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Detune",
                 "value": 1,
                 "min": 0,
                 "max": 5,
-                "step":1,
-                "sort":4
+                "step": 1,
+                "sort": 4
             },
             "output-attenuation": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Level",
                 "value": 1,
                 "min": -20,
                 "max": 0,
-                "step":1,
-                "sort":5
+                "step": 1,
+                "sort": 5
             },
         },
-        'gstSetup':{
+        'gstSetup': {
         }
     },
 
-   "queue":
+    "queue":
     {
         "type": "queue",
-        "gstElement":"queue",
-        "help":"Queue that enables multicore if placed before heavy effects.",
-        "displayType":"queue",
+        "gstElement": "queue",
+        "help": "Queue that enables multicore if placed before heavy effects.",
+        "displayType": "queue",
         "params": {
 
             "min-threshold-time": {
-                "type":"float",
+                "type": "float",
                 "displayName": "Delay",
                 "value": 250,
                 "min": 10,
                 "max": 2500,
-                "step":10,
-                "sort":0
+                "step": 10,
+                "sort": 0
             },
 
         },
-        'gstSetup':{
+        'gstSetup': {
             "max-size-time": 5*1000*1000*1000,
-            "leaky":2
+            "leaky": 2
         }
     }
 

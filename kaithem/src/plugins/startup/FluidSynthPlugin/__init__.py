@@ -50,11 +50,23 @@ class JackFluidSynth(devices.Device):
     def __del__(self):
         self.close()
 
+    def makeWidgetHandler(self, c):
+        def f(u,v):
+            for i in v:
+                if v=='pushed':
+                    with self.synthLock:
+                        self.synth.noteOn(c,60,64)
+                else:
+                    with self.synthLock:
+                        self.synth.noteOff(c,60)
+        return f
+
     def __init__(self, name, data):
         devices.Device.__init__(self, name, data)
         try:
             if len(name)==1:
                 self.handleError('Single letter names may not work correctly')
+            self.synthLock=threading.Lock()
 
             self.synth = scullery.fluidsynth.FluidSynth(
                                           soundfont=data.get("device.soundfont", "").strip(),
@@ -66,11 +78,24 @@ class JackFluidSynth(devices.Device):
             for i in range(0,16):
                 try:
                     inst = ""
-                    inst = data.get("device.ch"+str(i)+"instrument", "").strip()
+                    inst = data.get("device.ch"+str(i)+"instrument", "")
+                    bank=None
+
+                    if ':' in inst:
+                        bank, inst= inst.split(":")
+                        bank=int(bank.strip())
+                    inst = inst.strip()
+
+                    try:
+                        inst= int(inst)
+                    except:
+                        pass
+
+                
                     if inst:
-                        self.synth.setInstrument(i,inst)
+                        self.synth.setInstrument(i,inst,bank=bank)
                 except:
-                    self.handleException("Error setting instrument:" +inst+" for channel "+str(i))
+                    self.handleError("Error setting instrument:" +inst+" for channel "+str(i)+"\n"+traceback.format_exc())
 
 
             import jack
@@ -89,29 +114,43 @@ class JackFluidSynth(devices.Device):
 
             self.midiAirwire = jackmanager.MonoAirwire(connectMidi, self.name+"_in:input")
             self.midiAirwire.connect()
+
+            self.widgets=[] 
+            
+            for i in range(16):
+                x=widgets.Button()
+                x.attach(self.makeWidgetHandler(i))
+                self.widgets.append(x)
+                
             
             def noteOn(c,p,v):
                 def f():
-                    self.synth.noteOn(c,p,v)
+                    with self.synthLock:
+                        self.synth.noteOn(c,p,v)
                 workers.do(f)
 
             def noteOff(c,p):
                 def f():
-                    self.synth.noteOff(c,p)
+                    with self.synthLock:
+                        self.synth.noteOff(c,p)
                 workers.do(f)
+
             def cc(c,p,v):
                 def f():
-                    self.synth.cc(c,p,v)
+                    with self.synthLock:
+                        self.synth.cc(c,p,v)
                 workers.do(f)
 
             def bend(c,v):
                 def f():
-                    self.synth.pitchBend(c,v)
+                    with self.synthLock:
+                        self.synth.pitchBend(c,v)
                 workers.do(f)
 
             def pgc(c,v):
                 def f():
-                    self.synth.programChange(c,v)
+                    with self.synthLock:
+                        self.synth.programChange(c,v)
                 workers.do(f)
 
 

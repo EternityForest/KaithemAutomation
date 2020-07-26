@@ -15,7 +15,7 @@
 
 import re,time,json,logging,copy, subprocess,os
 
-from . import widgets, messagebus,util,registry, tagpoints,persist,directories,alerts,workers
+from . import widgets, messagebus,util,registry, tagpoints,persist,directories,alerts,workers,directories
 from . import jackmanager, gstwrapper,mixerfx
 
 import threading
@@ -33,7 +33,7 @@ presetsDir = os.path.join(directories.vardir, "system.mixer", "presets")
 settingsFile = os.path.join(directories.vardir, "system.mixer", "jacksettings.yaml")
 
 
-
+recorder = None
 settings = persist.getStateFile(settingsFile)
 
 #Try to import a cython extension that only works on Linux
@@ -227,6 +227,30 @@ class FluidSynthChannel(BaseChannel):
 
 
 import uuid
+
+
+class Recorder(gstwrapper.Pipeline):
+    def __init__(self,name="krecorder",channels= 2, pattern="mixer_"):
+        gstwrapper.Pipeline.__init__(self,name,realtime=70)
+
+        self.src=self.addElement("jackaudiosrc",buffer_time=10, latency_time=10, port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name="krecorder",connect=0,slave_method=0) 
+        self.capsfilter = self.addElement("capsfilter", caps="audio/x-raw,channels="+str(channels))
+
+        filename = os.path.join(directories.vardir, "recordings","mixer",pattern+time.strftime("%Y%b%d%a%H%M%S",time.localtime())+".ogg")
+
+        if not os.path.exists(os.path.join(directories.vardir, "recordings","mixer")):
+            os.makedirs(os.path.join(directories.vardir, "recordings","mixer"))
+
+        self.addElement("queue")
+        self.addElement("audioconvert")
+        self.addElement("opusenc",bitrate=96000)
+
+        self.addElement("oggmux")
+        self.addElement("filesink",location=filename)
+
+
+
+
 class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
 
     def __init__(self, name,board=None,channels= 2, input=None, outputs=[],soundFuse=3):
@@ -403,9 +427,11 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                     linkTo = None
                     sidechain=False
 
+                supports = []
                 if "preSupportElements" in i:
                     for j in i['preSupportElements']:
                         linkTo = self.addElement(j['gstElement'],**j['gstSetup'],sidechain=sidechain,connectToOutput=linkTo if (not j.get("noConnectInput",False)) else False)
+                        supports.append(weakref.ref(linkTo))
 
                 #Prioritize specific mono or stereo version of elements
                 if self.channels == 1 and 'monoGstElement' in i:
@@ -414,7 +440,8 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                     linkTo=self.effectsById[i['id']] = self.addElement(i['stereoGstElement'],**i['gstSetup'],sidechain=sidechain,connectToOutput=linkTo if (not i.get("noConnectInput",False)) else False)
                 else:
                     linkTo=self.effectsById[i['id']] = self.addElement(i['gstElement'],**i['gstSetup'],sidechain=sidechain,connectToOutput=linkTo if (not i.get("noConnectInput",False)) else False)
-
+                
+                linkTo.preSupports = supports
 
                 self.effectDataById[i['id']]= i
                 
@@ -746,6 +773,13 @@ class MixingBoard():
             self.api.send(['usbalsa', settings.data['usbPeriodSize'], settings.data['usbLatency'],settings.data['usbQuality'],settings.data['usbPeriods']])
             self.sendPresets()
 
+            if recorder:
+                self.api.send(['recordingStatus',"recording"])
+            else:
+                self.api.send(['recordingStatus',"off"])
+
+
+
     def sendPresets(self):
         if os.path.isdir(presetsDir):
             x =[i[:-len('.yaml')] for i in os.listdir(presetsDir) if i.endswith('.yaml')]
@@ -865,6 +899,8 @@ class MixingBoard():
             self.api.send(['loadedPreset', self.loadedPreset])
 
     def f(self,user, data):
+        global recorder
+
         if data[0]== 'refresh':
             self.sendState()
 
@@ -957,6 +993,34 @@ class MixingBoard():
             self.api.send(['usbalsa',data[1], data[2],data[3],data[4]])
             jackmanager.reloadSettings()
             killUSBCards()
+
+        if data[0]=='record':
+            with self.lock:
+                if not recorder:
+                    try:
+                        recorder= Recorder(pattern=data[1],channels=int(data[2]))
+                        recorder.start()
+                    except Exception as e:
+                        self.api.send(['recordingStatus',str(e)])
+                        raise
+
+                self.api.send(['recordingStatus',"recording"])
+
+        if data[0]=='stopRecord':
+            with self.lock:
+                try:
+                    recorder.sendEOS()
+                except:
+                    pass
+                
+                try:
+                    recorder.stop()
+                except:
+                    pass
+                recorder=None
+                self.api.send(['recordingStatus',"off"])
+
+
 
 def killUSBCards():
     try:

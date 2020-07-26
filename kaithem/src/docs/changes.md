@@ -6,6 +6,7 @@ Change Log
 - BREAKING CHANGE ALSA "analog" is special case shortened to "anlg" instead of the obvious.
 - Allow selecting a specific primary JACK device
 - Allow only using the primary JACK device.
+- JackFluidSynth included plugin lets you create a synth through the UI without code.
 
 ### 0.65.31
 - Pi keypad matrix working on real hardware

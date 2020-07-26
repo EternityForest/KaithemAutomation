@@ -312,6 +312,9 @@ class GStreamerPipeline():
         self.pipelineRate = 1.0
 
 
+
+    def sendEOS(self):
+        self.pipeline.send_event(Gst.Event.new_eos())    
         
     def loopCallback(self):
         #Meant to subclass. Gets called under the lock

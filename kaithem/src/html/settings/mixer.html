@@ -3,6 +3,8 @@
 from src import systasks
 from src import timesync
 from src import jackmixer
+from src import directories
+import os
 %>
 <title>Mixing Board</title>
 <div class="sectionbox" style="height: 80vh">
@@ -59,6 +61,7 @@ from src import jackmixer
 
     <datalist id="outports">
       <option v-for="i in sortedConnectables(outports)">{{i}}</option>
+      <option>krecorder</option>
     </datalist>
 
     <datalist id="presets">
@@ -317,6 +320,13 @@ from src import jackmixer
         <input v-model="newchannelname"><button v-on:click="api.send(['addChannel', newchannelname,1])">Add
           Mono</button>
         <button v-on:click="api.send(['addChannel', newchannelname,2])">Add Stereo</button><br>
+
+        <h3>Recorder ({{recordStatus}})</h3>
+        <p class=help>Jack name: krecorder, channels will autoconnect. <br>Files in <a href="/settings/files/${os.path.join(directories.vardir,'recordings','mixer')|u}">VARDIR/recordings/mixer</a></p>
+        Channels:<input v-model="recordChannels"><br>
+        Filename Prefix<input v-model="recordName"><br>
+        <button v-on:click="api.send(['record',recordName,recordChannels])">Start</button>
+        <button v-on:click="api.send(['stopRecord'])">Stop</button>
       </div>
     </div>
   </div>
@@ -372,6 +382,10 @@ from src import jackmixer
         usbsize: 128,
         usbquality: 0,
         usbperiods: 3,
+
+        recordName: "mixer_",
+        recordChannels: 2,
+        recordStatus:"",
 
         confirmDelete: function (c) {
           if (window.confirm("Do you really want to delete this channel?")) {
@@ -494,6 +508,10 @@ from src import jackmixer
 
     api.upd = function (msg) {
 
+      if (msg[0] == "recordingStatus") {
+        app.recordStatus=msg[1]
+      }
+
       if (msg[0] == "newport") {
 
         if (msg[3]) {
@@ -511,32 +529,32 @@ from src import jackmixer
 
 
       if (msg[0] == "inports") {
-        app.$data.inports = msg[1];
+        app.inports = msg[1];
       }
 
       if (msg[0] == "presets") {
-        app.$data.presets = msg[1];
+        app.presets = msg[1];
       }
 
       if (msg[0] == "effectTypes") {
-        app.$data.effectTypes = msg[1];
+        app.effectTypes = msg[1];
       }
       if (msg[0] == "outports") {
-        app.$data.outports = msg[1];
+        app.outports = msg[1];
       }
       if (msg[0] == "channels") {
-        app.$data.channels = msg[1];
+        app.channels = msg[1];
       }
       if (msg[0] == "loadedPreset") {
-        app.$data.loadedPreset = msg[1];
+        app.loadedPreset = msg[1];
       }
 
       if (msg[0] == "midiinports") {
-        app.$data.midiinports = msg[1];
+        app.midiinports = msg[1];
       }
 
       if (msg[0] == "midioutports") {
-        app.$data.midioutports = msg[1];
+        app.midioutports = msg[1];
       }
 
       if (msg[0] == "lv") {
@@ -547,10 +565,10 @@ from src import jackmixer
         app.$data.channels[msg[1]].fader = msg[2];
       }
       if (msg[0] == "usbalsa") {
-        app.$data.usbsize = msg[1]
-        app.$data.usblatency = msg[2]
-        app.$data.usbquality = msg[3]
-        app.$data.usbperiods = msg[4]
+        app.usbsize = msg[1]
+        app.usblatency = msg[2]
+        app.usbquality = msg[3]
+        app.usbperiods = msg[4]
       }
     };
     gapi.upd = api.upd;
