@@ -939,6 +939,11 @@ class MixingBoard():
         if data[0]== 'refresh':
             self.sendState()
 
+        if data[0]=='test':
+            from src import sound
+            sound.oggSoundTest(output=data[1])
+
+
         if data[0]=='addChannel':
             #No overwrite
             if data[1] in self.channels:

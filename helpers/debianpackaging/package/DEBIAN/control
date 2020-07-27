@@ -1,5 +1,5 @@
 Package: kaithem
-Version: 0.65.31
+Version: 0.65.32
 Maintainer: Daniel Dunn
 Installed-Size: 35000
 Description: The KaithemAutomation Web GUI based automation platform.
@@ -13,6 +13,6 @@ Recommends: mplayer, pulseaudio, python3-pyserial,
  python3-netifaces,python3-jack-client,
  python3-gst-1.0, python3-libnacl, jack-tools,
  jackd2, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, a2jmidid,
- swh-plugins, tap-plugins, caps,  gstreamer1.0-plugins-ugly, python3-psutil, fluidsynth,
- network-manager,python3-paho-mqtt,python3-dbus,python3-lxml,gstreamer1.0-pocketsphinx
+ swh-plugins, tap-plugins, caps,  gstreamer1.0-plugins-ugly, python3-psutil, fluidsynth,libfluidsynth2,
+ network-manager,python3-paho-mqtt,python3-dbus,python3-lxml,gstreamer1.0-pocketsphinx,x42-plugins,baresip
 

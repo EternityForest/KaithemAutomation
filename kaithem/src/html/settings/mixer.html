@@ -227,7 +227,7 @@ import os
         
         
         <div v-if="channel.type=='audio' || !channel.type">
-          <h3>{{channelname}}({{channel.channels}}) <button v-on:click="confirmDelete(channelname)">X</button></h3>
+          <h3>{{channelname}}({{channel.channels}}) <button v-on:click="confirmDelete(channelname)">X</button> <button v-on:click="ding(channelname)">Ding</button></h3>
           Connect Input: <input v-model="channel.input" list="outports"
             v-on:input="setInput(channelname, $event.target.value)">
           <div class="chain">
@@ -396,6 +396,10 @@ import os
         recordName: "mixer_",
         recordChannels: 2,
         recordStatus:"",
+
+        ding: function (c) {
+            api.send(['test', c+"_in"]);
+        },
 
         confirmDelete: function (c) {
           if (window.confirm("Do you really want to delete this channel?")) {

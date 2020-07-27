@@ -125,7 +125,7 @@ effectTemplates_data = {
         "help": "gareus-org-oss-lv2-fat1 chromatic scale",
         "monoGstElement": "gareus-org-oss-lv2-fat1",
         "params": {
-            "corr": {
+             "corr": {
                 "type": "float",
                 "displayName": "Correction",
                 "value": 1,
@@ -154,16 +154,25 @@ effectTemplates_data = {
             },
             "offset": {
                 "type": "float",
-                "displayName": "Shift",
+                "displayName": "Offset",
                 "value": 0,
                 "min": -2,
                 "max": 2,
                 "step": 0.25,
                 "sort": 0.25
             },
+             "fastmode": {
+                "type": "bool",
+                "displayName": "Low latency",
+                "value": 1,
+                "min": 0,
+                "max": 1,
+                "step": 2,
+                "sort": 0
+            },
             
         },
-        "gstSetup": {'m00':True,'m01':True,'m02':True,'m03':True,'m04':True,'m05':True,'m06':True,'m07':True,'m08':True,'m09':True,'m10':True,'m11':True},
+        "gstSetup": {'mode':1},
         "sidechain": False,
         "preSupportElements": [
         ]
@@ -186,11 +195,11 @@ effectTemplates_data = {
             },
             "modulation-depth": {
                 "type": "float",
-                "displayName": "Deptch",
+                "displayName": "Depth",
                 "value": 0,
                 "min": 0,
                 "max": 2,
-                "step": 1,
+                "step": 0.1,
                 "sort": 1
             },
             "sawtooth-level": {

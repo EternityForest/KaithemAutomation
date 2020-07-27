@@ -2,11 +2,15 @@ Change Log
 ----------
 
 ### 0.65.32
-- BREAKING CHANGE raw ALSA persistant device aliases re now the same as JACK names
+- BREAKING CHANGE raw ALSA persistant device aliases are now the same as JACK names
 - BREAKING CHANGE ALSA "analog" is special case shortened to "anlg" instead of the obvious.
 - Allow selecting a specific primary JACK device
 - Allow only using the primary JACK device.
-- JackFluidSynth included plugin lets you create a synth through the UI without code.
+- JackFluidSynth included plugin lets you create a synth through the UI without code, and connect to a MIDI keyboard
+- Jack mixer RTP Opus send/recieve support
+- Jack mixer now suppots recording
+- Many more mixer FX, ring mod, amp sim, metronome, noise generator
+- Button to play test ding sound through any mixer channel
 
 ### 0.65.31
 - Pi keypad matrix working on real hardware
