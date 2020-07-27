@@ -397,6 +397,12 @@ class CombiningAirwire(MultichannelAirwire):
 
 
 def Airwire(f,t,forceCombining=False):
+
+    #Can't connect to nothing, for now lets use a hack and make these nonsense
+    #names so emoty strings don't connect to stuff
+    if not f or not t:
+        f="jdgdsjfgkldsf"
+        t="dsfjgjdsfjgkl"
     if forceCombining:
         return CombiningAirwire(f,t) 
     elif f==None or t==None:

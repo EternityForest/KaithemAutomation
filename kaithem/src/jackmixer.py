@@ -421,6 +421,7 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                 #feed the main chain, such as fir the speech recognition effect
                 if i.get('sidechain',0):
                     linkTo = self.addElement("tee")
+                    q =  self.addElement("queue")
                     linkTo = self.addElement("queue",sidechain=True, connectToOutput=linkTo)
                     sidechain=True
 

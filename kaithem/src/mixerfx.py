@@ -61,7 +61,7 @@ effectTemplates_data = {
             "frame-size": {
                 "displayName":"Frame Size",
                 "type": "enum",
-                "value": '20',
+                "value": 20,
                 "options":[["2.5ms",2], ['5ms',5], ["10ms",10], ["20ms",20], ["40ms",40], ["60ms",60]],
                 "sort": 0
             },
@@ -93,8 +93,7 @@ effectTemplates_data = {
         ],
         "postSupportElements": [
              {"gstElement": "rtpopuspay", "gstSetup": {}},
-             {"gstElement": "udpsink", "gstSetup": {'sync':False}}
-
+             {"gstElement": "udpsink", "gstSetup": {}},
         ]
    },
 
@@ -102,7 +101,7 @@ effectTemplates_data = {
         "type": "a2dpsink",
         "displayType": "A2DP Sender",
         "help": "Send to a bluetooth speaker",
-        "monoGstElement": "a2dpsink",
+        "gstElement": "a2dpsink",
         "params": {
             "device": {
                 "type": "string",
@@ -114,6 +113,9 @@ effectTemplates_data = {
         "gstSetup": {},
         "sidechain": True,
         "preSupportElements": [
+            {"gstElement": "audioconvert", "gstSetup": {}},
+            {"gstElement": "sbcenc", "gstSetup": {}},
+
             
         ]
     },
@@ -236,7 +238,34 @@ effectTemplates_data = {
         ]
     },
 
+    "audiotestsrc": {
+        "type": "audiotestsrc",
+        "displayType": "Noise generator",
+        "help": "Noise generator",
+        "monoGstElement": "audiotestsrc",
+        "params": {
+            "wave": {
+                "type": "enum",
+                "displayName": "Type",
+                "value": 0,
+                "options":[
+                    ['sine',0],
+                    ['white',5],
+                    ['pink',6],
+                    ['silence',0]
 
+                ],
+                "sort": 0
+            }
+        },
+        "gstSetup": {},
+        "sidechain": False,
+        "noConnectInput": True,
+        "preSupportElements": [
+                        {"gstElement": "fakesink", "gstSetup": {}},
+
+        ]
+    },
     "swhmetronome": {
         "type": "swhmetronome",
         "displayType": "Metronome",
