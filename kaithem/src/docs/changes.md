@@ -1,6 +1,14 @@
 Change Log
 ----------
 
+
+### 0.65.33
+- Mixing board pitch correction/robot voice effect
+- Fixes for RTP network audio streaming
+- Use soft AND synchronous JACK options
+- Segfault resilliance if user enteers bad jack settings
+
+
 ### 0.65.32
 - BREAKING CHANGE raw ALSA persistant device aliases are now the same as JACK names
 - BREAKING CHANGE ALSA "analog" is special case shortened to "anlg" instead of the obvious.

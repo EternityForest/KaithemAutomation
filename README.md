@@ -49,6 +49,12 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.33
+- Mixing board pitch correction/robot voice effect
+- Fixes for RTP network audio streaming
+- Use soft AND synchronous JACK options
+- Segfault resilliance if user enteers bad JACK settings
+
 ### 0.65.32
 
 - BREAKING CHANGE raw ALSA persistant device aliases are now the same as JACK names
