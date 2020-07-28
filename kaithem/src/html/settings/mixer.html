@@ -227,7 +227,9 @@ import os
         
         
         <div v-if="channel.type=='audio' || !channel.type">
-          <h3>{{channelname}}({{channel.channels}}) <button v-on:click="confirmDelete(channelname)">X</button> <button v-on:click="ding(channelname)">Ding</button></h3>
+          <h3>{{channelname}}({{channel.channels}}) <button v-on:click="confirmDelete(channelname)">X</button> <button v-on:click="ding(channelname)">Ding</button>
+            <button v-on:click="api.send(['refreshChannel', channelname])">Reload</button>
+          </h3>
           Connect Input: <input v-model="channel.input" list="outports"
             v-on:input="setInput(channelname, $event.target.value)">
           <div class="chain">
@@ -241,6 +243,16 @@ import os
               <table style="width:98%;margin:auto;" border=1>
                 <tr v-for="param in sortedParams(effect.params)" class="param">
                   <template v-if="param.type=='float'">
+                    <td>{{param.displayName}}</td>
+                    <td><input type="range" style="width:95%" v-model.number="param.value" v-bind:min="param.min"
+                        v-bind:max="param.max" :step="(param.step)"
+                        v-on:input="setParam(channelname,effect.id,param.name,parseFloat($event.target.value))">
+                    </td>
+
+                    <td>{{param.value}}</td>
+                  </template>
+                  
+                  <template v-if="param.type=='int'">
                     <td>{{param.displayName}}</td>
                     <td><input type="range" style="width:95%" v-model.number="param.value" v-bind:min="param.min"
                         v-bind:max="param.max" :step="(param.step)"

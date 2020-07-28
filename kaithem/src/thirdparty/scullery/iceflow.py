@@ -15,13 +15,18 @@
 
 import threading,time,logging,uuid,weakref,gc,uuid,traceback,os
 
-from . import workers
+from . import workers,messagebus
 
 initialized = False
 initlock = threading.Lock()
 Gst = None
 lock = threading.RLock()
 jackChannels = {}
+
+def tryToAvoidSegfaults(t,v):
+    if v.clientName=="system":
+        stopAllJackUsers()
+messagebus.subscribe("/system/jack/delport",tryToAvoidSegfaults)
 
 pipes = weakref.WeakValueDictionary()
 
@@ -84,7 +89,9 @@ def stopAllJackUsers():
     with lock:
         c = list(jackChannels.items())
         for i in c:
+            #Sync stop, we gotta wait
             try:
+                i[1]().syncStop=True
                 i[1]().stop()
             except:
                 log.exception("Err stopping JACK user")
@@ -239,9 +246,11 @@ class GStreamerPipeline():
         self.realtime = realtime
         self.lock = threading.RLock()
         self._stopped=True
+        self.syncStop=False
         self.pipeline = Gst.Pipeline()
         self.threadStarted=False
         self.weakrefs = weakref.WeakValueDictionary()
+
 
 
         #This WeakValueDictionary is mostly for testing purposes
@@ -533,17 +542,20 @@ class GStreamerPipeline():
     def stop(self):
         #Actually stop as soon as we can
         with self.lock:
-            #This was causing segfaults for some reasons
-            if not (self.pipeline.get_state(1000_000_000)[1]==Gst.State.NULL):
-                self.pipeline.set_state(Gst.State.NULL)
+            if hasattr(self,'pipeline'):
+                #This was causing segfaults for some reasons
+                if not (self.pipeline.get_state(1000_000_000)[1]==Gst.State.NULL):
+                    self.pipeline.set_state(Gst.State.NULL)
             self.exiting = True
-            self.bus.set_sync_handler(None,0,None)
-            if self.hasSignalWatch:
-                self.bus.remove_signal_watch()
-                self.hasSignalWatch = False
+            if hasattr(self,'bus'):
+                self.bus.set_sync_handler(None,0,None)
+                if self.hasSignalWatch:
+                    self.bus.remove_signal_watch()
+                    self.hasSignalWatch = False
         
         #Now we're going to do the cleanup stuff
-        #In the background, because it involves a lot of waiting
+        #In the background, because it involves a lot of waiting.
+        #This might fail, if it never even started, but we just kinda ignore that.
         def gstStopCleanupTask():
             self.running=False
             t = time.monotonic()
@@ -597,7 +609,11 @@ class GStreamerPipeline():
                     pass
                 self._stopped=True
 
-        workers.do(gstStopCleanupTask)
+        #Allow waiting so we can be real sure it's stopped
+        if not self.syncStop:
+            workers.do(gstStopCleanupTask)
+        else:
+            gstStopCleanupTask()
         
        
 

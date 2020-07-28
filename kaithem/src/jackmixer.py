@@ -466,6 +466,11 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
                             self.setProperty(self.effectsById[i['id']],j, i['params'][j]['value'])
                     else:
                         self.setEffectParam(i['id'],j, i['params'][j]['value'])
+                
+                #Sidechain FX have a bug where they always cause an output to the system channel, we have to work around
+                #That with a hack.  Basically sidechains only exist to let us to alternative outputs anyway.
+                if i.get('silenceMainChain',False):
+                    self.addElement('volume',volume=0)
 
         self.faderTag.value=d['fader']
         self.setFader(self.faderTag.value)
@@ -1008,6 +1013,10 @@ class MixingBoard():
                 self.channels[data[1]]['effects'].append(fx)
                 self.api.send(['channels', self.channels])
                 self._createChannel(data[1], self.channels[data[1]])
+
+        if data[0]=='refreshChannel':
+            self._createChannel(data[1], self.channels[data[1]])
+
 
         if data[0]=='rmChannel':
             self.deleteChannel(data[1])
