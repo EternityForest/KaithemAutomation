@@ -66,6 +66,73 @@ syslogger = logging.getLogger("system.events")
 eventsByModuleName = weakref.WeakValueDictionary()
 
 
+
+# def findCapitalizationIssues(src, event):
+
+    
+#     src = re.sub(r"^\s*#.*$", '', src,flags=re.MULTILINE)
+
+#     #Get rid of escaped quotes so they don't mess upi the regex
+#     #But first get rid of escaped escapes that mess up that!
+#     src = src.replace(r"\\","")
+
+#     src = src.replace(r"\'","")
+#     src = src.replace(r'\"',"")
+
+#     #Get rid of comments and string literals
+#     embeddedStrs =  r'\"\"\"[\s\S]*?\"\"\"'
+#     embeddedStrs2 = r"\'\'\'[\s\S]*?\'\'\'"
+
+#     #These can't be multiline, that keeps a ' in a " " string from opening a void that eats a huge amount of code
+#     embeddedStrs3 = r"\'[\t \S]*?\'"
+#     embeddedStrs4 = r'\"[\t \S]*?\"'
+
+
+#     src = re.sub(embeddedStrs, '', src)
+#     src = re.sub(embeddedStrs2, '', src)
+#     src = re.sub(embeddedStrs3, '', src)
+#     src = re.sub(embeddedStrs4, '', src)
+
+
+#     #Someone did't put any whitespace in between!
+#     src = src.replace("="," ")
+#     src = src.replace(":"," ")
+#     src = src.replace(","," ")
+#     src = src.replace("\r"," ")
+#     src = src.replace("\n"," ")
+
+
+#     uniqueWords ={}
+
+#     uniqueLower = {}
+    
+#     for i in src.split(" "):
+#         i = i.strip()
+#         if i:
+#             uniqueWords[i]=True
+
+#     problemWords = []
+
+#     for i in uniqueWords:
+
+#         #__ and _ are allowed to have dublicates with no other differences, other underscore positions are probably bad 
+#         if i.startswith("__"):
+#             i+"@@"+i
+#         elif i.startswith("_"):
+#             i+"@"+i
+
+#         x = i.lower().replace("_","")
+#         if x in uniqueLower:
+#             event._handle_exception(tb="Word: "+i+ " appears in multiple different capitalizations and cases. It is highly likely someone is confused")
+    
+#         uniqueLower[x] = True
+    
+    
+
+
+
+
+
 def makePrintFunction(ev):
     """For some unknown reason, new_print is involved in a 
        garbage cycle that was preventing event GC
@@ -1600,5 +1667,7 @@ def make_event_from_resource(module, resource, subst=None):
               priority=priority,
               m=module,
               r=resource)
+    
+    #findCapitalizationIssues(setupcode+" \n "+r['trigger']+ "\n "+r['action'], x)
     x.timeTakenToLoad = time.time()-t
     return x

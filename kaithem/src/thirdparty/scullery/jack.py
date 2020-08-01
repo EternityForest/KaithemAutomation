@@ -429,11 +429,10 @@ def onPortConnect(a,b,connected):
                 _realConnections[a.name, b.name]=True
             else:
                 _realConnections[b.name, a.name]=True
-           
+        
             realConnections=_realConnections.copy()
 
     if not connected:
-        log.debug("JACK port "+ a.name+" disconnected from "+b.name)
         i = (a.name,b.name)
         with realConnectionsLock:
             if (a.name,b.name) in _realConnections:
@@ -461,8 +460,14 @@ def onPortConnect(a,b,connected):
                 del activeConnections[i]
             except:
                 pass
-    else:
-        log.debug("JACK port "+ a.name+" connected to "+b.name)
+
+        # def f():
+        #     if not connected:
+        #         log.debug("JACK port "+ a.name+" disconnected from "+b.name)
+        #     else:
+        #         log.debug("JACK port "+ a.name+" connected to "+b.name)
+
+        # workers.do(f)
 
 class PortInfo():
     def __init__(self, name,isInput,sname):
@@ -483,7 +488,7 @@ def onPortRegistered(port,registered):
         p = PortInfo(port.name, port.is_input,port.shortname)
 
         if registered:
-            log.debug("JACK port registered: "+port.name)
+            #log.debug("JACK port registered: "+port.name)
             messagebus.postMessage("/system/jack/newport",p )
         else:
             torm = []
@@ -495,11 +500,9 @@ def onPortRegistered(port,registered):
                     del _realConnections[i]
                 realConnections=_realConnections.copy()
 
-            log.debug("JACK port unregistered: "+port.name)
             messagebus.postMessage("/system/jack/delport",p)
     except:
         print(traceback.format_exc())
-
 
 ############################################################################
 ####################### This section manages the actual sound IO and creates jack ports
@@ -1088,9 +1091,9 @@ def _startJackProcess(p=None, n=None,logErrs=True):
         currentPrimaryDevice = useDevice
 
         if realtimePriority:
-            cmdline = ['jackd', '-s','-S', '--realtime', '-P' ,str(realtimePriority) ,'-d', 'alsa' ,'-d' ,useDevice ,'-p' ,str(period), '-n' ,str(jackPeriods) ,'-r','48000']
+            cmdline = ['jackd','-S', '--realtime', '-P' ,str(realtimePriority) ,'-d', 'alsa' ,'-d' ,useDevice ,'-s','-p' ,str(period), '-n' ,str(jackPeriods) ,'-r','48000']
         else:
-            cmdline = ['jackd', '-s', '-S', '--realtime' ,'-d', 'alsa' ,'-d' ,useDevice ,'-p' ,str(period), '-n' ,str(jackPeriods) ,'-r','48000']
+            cmdline = ['jackd', '-S', '--realtime' ,'-d', 'alsa' ,'-d' ,useDevice ,'-p' ,str(period),'-s', '-n' ,str(jackPeriods) ,'-r','48000']
         logging.info("Attempting to start JACKD server with: \n"+' '.join(cmdline))
 
         jackp = subprocess.Popen(cmdline,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE, stderr=subprocess.PIPE,env=my_env)
@@ -1845,7 +1848,7 @@ def _checkJackClient(err=True):
                     log.exception("Error creating JACK client")
                 return
 
-            _jackclient.set_port_registration_callback(onPortRegistered)
+            _jackclient.set_port_registration_callback(onPortRegistered,only_available=True)
             _jackclient.set_port_connect_callback(onPortConnect)
             _jackclient.activate()
             _jackclient.get_ports()
@@ -1900,67 +1903,74 @@ def getConnections(name,*a,**k):
             lock.release()
 
 def disconnect(f,t):
-    if lock.acquire(timeout=30):
+    if iceflow.lock.acquire(timeout=30):
         try:
-            if not _jackclient:
-                return
+            if lock.acquire(timeout=30):
+                try:
+                    if not _jackclient:
+                        return
 
-            if not isConnected(f,t):
-                return
+                    if not isConnected(f,t):
+                        return
 
-            try:
-                if  isinstance(f,str):
-                    f = _jackclient.get_port_by_name(f)
-                if  isinstance(t,str):
-                    t = _jackclient.get_port_by_name(t)
-        
-                _jackclient.disconnect(f,t)
-            except:
-                pass
+                    try:
+                        if  isinstance(f,str):
+                            f = _jackclient.get_port_by_name(f)
+                        if  isinstance(t,str):
+                            t = _jackclient.get_port_by_name(t)
+                
+                        _jackclient.disconnect(f,t)
+                    except:
+                        pass
+                finally:
+                    lock.release()
         finally:
-            lock.release()
+            iceflow.lock.release()
 
 def connect(f,t):
-    if lock.acquire(timeout=10):
+    if iceflow.lock.acquire(timeout=10):
         try:
-            if not _jackclient:
-                return 
-            try:
-                if  isinstance(f,str):
-                    f = _jackclient.get_port_by_name(f)
-                if  isinstance(t,str):
-                    t = _jackclient.get_port_by_name(t)
-            except:
-                return
-
-            f_input =  f.is_input
-
-            if f.is_input:
-                if not t.is_output:
-                    #Do a retry, there seems to be a bug somewhere
+            if lock.acquire(timeout=10):
+                try:
+                    if not _jackclient:
+                        return 
                     try:
-                        f = _jackclient.get_port_by_name(f.name)
-                        t = _jackclient.get_port_by_name(t.name)
+                        if  isinstance(f,str):
+                            f = _jackclient.get_port_by_name(f)
+                        if  isinstance(t,str):
+                            t = _jackclient.get_port_by_name(t)
                     except:
                         return
+
+                    f_input =  f.is_input
+
                     if f.is_input:
                         if not t.is_output:
-                            raise ValueError("Cannot connect two inputs",str((f,t)))
-            else:
-                if t.is_output:
-                    raise ValueError("Cannot connect two outputs",str((f,t)))
-            f=f.name
-            t=t.name
-            try:
-                if f_input:
-                    _jackclient.connect(t,f)
-                else:
-                    _jackclient.connect(f,t)
-            except:
-                pass
+                            #Do a retry, there seems to be a bug somewhere
+                            try:
+                                f = _jackclient.get_port_by_name(f.name)
+                                t = _jackclient.get_port_by_name(t.name)
+                            except:
+                                return
+                            if f.is_input:
+                                if not t.is_output:
+                                    raise ValueError("Cannot connect two inputs",str((f,t)))
+                    else:
+                        if t.is_output:
+                            raise ValueError("Cannot connect two outputs",str((f,t)))
+                    f=f.name
+                    t=t.name
+                    try:
+                        if f_input:
+                            _jackclient.connect(t,f)
+                        else:
+                            _jackclient.connect(f,t)
+                    except:
+                        pass
+                finally:
+                    lock.release()
         finally:
-            lock.release()
-            
+            iceflow.lock.release()
 #startManagingJack()
 
 

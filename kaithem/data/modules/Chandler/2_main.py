@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1594793167030628
+resource-timestamp: 1596291363365216
 resource-type: event
 versions: {}
 
@@ -29,15 +29,36 @@ if __name__=='__setup__':
     
     soundLock = threading.Lock()
     
+    soundReferenceT = [0]
+    soundsPlayedSinceT= [0]
+    
+    #Too much stuff happening can crash jackd and bring everything down if it gets really bad.
+    #This adds delay, and finally just refused to play anything
+    def checkSoundRateLimit():
+        if soundReferenceT[0]< time.monotonic()-5:
+            soundsPlayedSinceT[0]=0
+            soundReferenceT[0]=time.monotonic()
+    
+        if soundsPlayedSinceT[0]>8:
+            return 0
+        if soundsPlayedSinceT[0]>5:
+            time.sleep(1)
+        soundsPlayedSinceT[0]+=1
+        return 1
+    
     def playSound(*args,**kwargs):
-        def doFunction():
-            kaithem.sound.play(*args,**kwargs)
-        kaithem.misc.do(doFunction)
+        if checkSoundRateLimit():
+            def doFunction():
+                kaithem.sound.play(*args,**kwargs)
+            kaithem.misc.do(doFunction)
     
     def fadeSound(*args,**kwargs):
-        def doFunction():
-            kaithem.sound.fadeTo(*args,**kwargs)    
-        kaithem.misc.do(doFunction)
+        if checkSoundRateLimit():
+            def doFunction():
+                kaithem.sound.fadeTo(*args,**kwargs)    
+            kaithem.misc.do(doFunction)
+        else:
+            kaithem.sound.stop(kwargs['handle'])
     
     import numpy
     import hashlib
@@ -293,7 +314,7 @@ if __name__=='__setup__':
         words = [i.strip() for i in s.lower().split(" ")]
     
         results = []
-        path = paths[:]
+        path = [i for i in paths]
         paths.append(musicLocation)
     
         for path in paths:
@@ -343,10 +364,14 @@ if __name__=='__setup__':
     
     
     
-    def disallow_special(s,allow=''):
+    def disallow_special(s,allow='',replaceMode=None):
         for i in '[]{}()!@#$%^&*()<>,./;\':"-=_+\\|`~?\r\n\t':
             if i in s and not i in allow:
-                raise ValueError("Special char "+i+" not allowed in this context(full str starts with "+s[:100]+")")
+                if replaceMode is None:
+                    raise ValueError("Special char "+i+" not allowed in this context(full str starts with "+s[:100]+")")
+                else:
+                    s =s.replace(i, replaceMode)
+        return s
     
     #These aren't used or tested yet, but should be enabled soon so we can save large amounts of data
     def writeCue(fobj, cue):
@@ -1691,6 +1716,16 @@ if __name__=='__setup__':
                             bn = tags.title +" ~ "+ tags.artist
                     except:
                         pass
+                    #Empty string is probably going to look best for that char
+                    bn=bn.replace("'","")
+                    #Usually going to be the number sign, we can ditch
+                    bn=bn.replace("#","")
+    
+                    #Handle spaces already there or not
+                    bn=bn.replace(" & "," and ")
+                    bn=bn.replace("&"," and ")
+    
+                    bn = disallow_special(bn,"_~",replaceMode=" ")
                     if not bn in module.scenes[msg[1]].cues:
                         module.scenes[msg[1]].addCue(bn)
                         module.scenes[msg[1]].cues[bn].rel_length=True
@@ -3328,7 +3363,7 @@ if __name__=='__setup__':
     
         def preloadNextCueSound(self):
             #Preload the next cue's sound if we know what it is
-            nextcue = None
+            nextCue = None
             if self.cue.nextCue =='': 
                 nextCue=self.getDefaultNext()            
             elif self.cue.nextCue in self.cues:

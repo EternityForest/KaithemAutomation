@@ -19,6 +19,8 @@ from . import workers,messagebus
 
 initialized = False
 initlock = threading.Lock()
+
+lock = threading.RLock()
 Gst = None
 lock = threading.RLock()
 jackChannels = {}
@@ -138,10 +140,10 @@ def init():
 
             #mainContext = GLib.MainContext()
 
-            glibloop = GLib.MainLoop()
+            #glibloop = GLib.MainLoop()
 
-            loop=threading.Thread(target=glibloop.run,daemon=True)
-            loop.start()
+            #loop=threading.Thread(target=glibloop.run,daemon=True)
+            #loop.start()
             initialized = True
 
 
@@ -166,12 +168,7 @@ def makeWeakrefPoller(selfref,exitSignal):
 
     def pollerf():
         alreadyStarted = False
-        lastAdjustment=0
-        #Last time we adjusted, how much error was left?
-        lastRemnantError=0
-        computeRemnant=False
-
-        avgDiff = 0
+        t=0
         while selfref():
             self=selfref()
             
@@ -181,32 +178,47 @@ def makeWeakrefPoller(selfref,exitSignal):
                 return
             
             if self.running:
-                t=time.monotonic()
-                try:
-                    with self.lock:
-                        self.loopCallback()
-                    
-                        state = self.pipeline.get_state(1000000000)[1]
-                    if not state==Gst.State.NULL:
-                        self.wasEverRunning=True
+                if t<time.monotonic()-3:
+                    t=time.monotonic()
+                    try:
+                        with self.lock:
+                            self.loopCallback()
+                        
+                            state = self.pipeline.get_state(1000000000)[1]
+                        if not state==Gst.State.NULL:
+                            self.wasEverRunning=True
 
-                    #Set the flag if anything ever drives us into the null state
-                    if self.wasEverRunning and state==Gst.State.NULL:
-                        self.running=False
+                        #Set the flag if anything ever drives us into the null state
+                        if self.wasEverRunning and state==Gst.State.NULL:
+                            self.running=False
+                            exitSignal.append(True)
+                            return
+
+                    except:
+                        #Todo actually handle some errors?
                         exitSignal.append(True)
-                        return
+                        #After pipeline deleted, we clean up
+                        if hasattr(self,'pipeline') and  hasattr(self,'bus'):
+                            raise
+                        else:
+                            return
+            with self.lock:
+                msg = self.bus.timed_pop(100*1000)
+                if msg:
+                    try:
+                        if msg.type == Gst.MessageType.ERROR:
+                            self.on_error(self.bus,msg,None)
+                        if msg.type == Gst.MessageType.EOS:
+                            self.on_eos(self.bus,msg,None)
+                        self.on_message(self.bus,msg,None)
+                    except:
+                        logging.exception("Err in pipeline:"+self.name)
+                    finally:
+                        pass
 
-                except:
-                    #Todo actually handle some errors?
-                    exitSignal.append(True)
-                    #After pipeline deleted, we clean up
-                    if hasattr(self,'pipeline') and  hasattr(self,'bus'):
-                        raise
-                    else:
-                        return
-            
             del self
-            time.sleep(1)
+
+            #time.sleep(1)
     return pollerf
 
 
@@ -310,8 +322,10 @@ class GStreamerPipeline():
         self.startTime = 0
         def dummy(*a,**k):
             pass
-        self._syncmessage = wrfunc(weakref.WeakMethod(self.syncMessage),fail_return=Gst.BusSyncReply.PASS)
-        self.bus.set_sync_handler(self._syncmessage,0,dummy)
+            
+        if realtime:
+            self._syncmessage = wrfunc(weakref.WeakMethod(self.syncMessage),fail_return=Gst.BusSyncReply.PASS)
+            self.bus.set_sync_handler(self._syncmessage,0,dummy)
         self.pollthread=None
 
         self.lastElementType = None
@@ -465,46 +479,47 @@ class GStreamerPipeline():
 
     def start(self, effectiveStartTime=None,timeout=10):
         "effectiveStartTime is used to keep multiple players synced when used with systemTime"
-        with self.lock:
-            if self.exiting:
-                return
+        with lock:
+            with self.lock:
+                if self.exiting:
+                    return
 
-                        
-            x = effectiveStartTime or time.time()
-            timeAgo = time.time()-x
-            #Convert to monotonic time that the nternal APIs use
-            self.startTime= time.monotonic()-timeAgo
-            
-            
-            if not self.pipeline.get_state(1000_000_000)[1] ==Gst.State.PAUSED:
-                self.pipeline.set_state(Gst.State.PAUSED)
-                self._waitForState(Gst.State.PAUSED)
-            
-            #Seek to where we should be, if we had actually
-            #Started when we should have. We want to get everything set up in the pause state
-            #First so we have the right "effective" start time.
+                            
+                x = effectiveStartTime or time.time()
+                timeAgo = time.time()-x
+                #Convert to monotonic time that the nternal APIs use
+                self.startTime= time.monotonic()-timeAgo
+                
+                
+                if not self.pipeline.get_state(1000_000_000)[1] ==Gst.State.PAUSED:
+                    self.pipeline.set_state(Gst.State.PAUSED)
+                    self._waitForState(Gst.State.PAUSED)
+                
+                #Seek to where we should be, if we had actually
+                #Started when we should have. We want to get everything set up in the pause state
+                #First so we have the right "effective" start time.
 
-            #We accept cutting off a few 100 milliseconds if it means
-            #staying synced.
-            if self.systemTime:
-                self.seek(time.monotonic()-self.startTime)
+                #We accept cutting off a few 100 milliseconds if it means
+                #staying synced.
+                if self.systemTime:
+                    self.seek(time.monotonic()-self.startTime)
 
-            self.pipeline.set_state(Gst.State.PLAYING)
-            self._waitForState(Gst.State.PLAYING,timeout)
-            self.running=True
+                self.pipeline.set_state(Gst.State.PLAYING)
+                self._waitForState(Gst.State.PLAYING,timeout)
+                self.running=True
 
-            for i in range(0,500):
-                try:
-                    #Test that we can actually read the clock
-                    self.getPosition()
-                    break
-                except:
-                    if i>150:
-                        raise RuntimeError("Clock still not valid")
-                    time.sleep(0.1)
+                for i in range(0,500):
+                    try:
+                        #Test that we can actually read the clock
+                        self.getPosition()
+                        break
+                    except:
+                        if i>150:
+                            raise RuntimeError("Clock still not valid")
+                        time.sleep(0.1)
 
-            #Don't start the thread until we have a valid clock
-            self.maybeStartPoller()
+                #Don't start the thread until we have a valid clock
+                self.maybeStartPoller()
 
     def play(self):
         with self.lock:
@@ -540,18 +555,19 @@ class GStreamerPipeline():
             self.pollthread.start()
 
     def stop(self):
-        #Actually stop as soon as we can
-        with self.lock:
-            if hasattr(self,'pipeline'):
-                #This was causing segfaults for some reasons
-                if not (self.pipeline.get_state(1000_000_000)[1]==Gst.State.NULL):
-                    self.pipeline.set_state(Gst.State.NULL)
-            self.exiting = True
-            if hasattr(self,'bus'):
-                self.bus.set_sync_handler(None,0,None)
-                if self.hasSignalWatch:
-                    self.bus.remove_signal_watch()
-                    self.hasSignalWatch = False
+        with lock:
+            #Actually stop as soon as we can
+            with self.lock:
+                if hasattr(self,'pipeline'):
+                    #This was causing segfaults for some reasons
+                    if not (self.pipeline.get_state(1000_000_000)[1]==Gst.State.NULL):
+                        self.pipeline.set_state(Gst.State.NULL)
+                self.exiting = True
+                if hasattr(self,'bus'):
+                    self.bus.set_sync_handler(None,0,None)
+                    if self.hasSignalWatch:
+                        self.bus.remove_signal_watch()
+                        self.hasSignalWatch = False
         
         #Now we're going to do the cleanup stuff
         #In the background, because it involves a lot of waiting.
@@ -654,78 +670,83 @@ class GStreamerPipeline():
         if t.startswith("jackaudio"):
             if not self.shouldAllowGstJack():
                 raise RuntimeError("JACK not running")
-        
-        with self.lock:
-            if not isinstance(t, str):
-                raise ValueError("Element type must be string")
+        if lock.acquire(timeout=10):
+            try:
+                with self.lock:
+                    if not isinstance(t, str):
+                        raise ValueError("Element type must be string")
 
-            e = Gst.ElementFactory.make(t,name)
-            
-            if e==None:
-                raise ValueError("Nonexistant element type: "+t)
-            self.weakrefs[str(e)]=e
-            self.elementTypesById[id(e)] = t
+                    e = Gst.ElementFactory.make(t,name)
+                    
+                    if e==None:
+                        raise ValueError("Nonexistant element type: "+t)
+                    self.weakrefs[str(e)]=e
+                    self.elementTypesById[id(e)] = t
 
 
-            for i in kwargs:
-                v = kwargs[i]
-                self.setProperty(e,i,v)
+                    for i in kwargs:
+                        v = kwargs[i]
+                        self.setProperty(e,i,v)
+                        
+                    self.pipeline.add(e)
+
                 
-            self.pipeline.add(e)
+                    if connectToOutput:
+                        if not id(connectToOutput) in self.elementTypesById:
+                            raise ValueError("Cannot connect to the output of: "+str(connectToOutput)+", no such element in pipeline.")
+                    
+                    #Element doesn't have an input pad, we want this to be usable as a fake source to go after a real source if someone
+                    #wants to use it as a effect
+                    if t=="audiotestsrc":
+                        connectToOutput=False
+                        
 
+
+                    #This could be the first element
+                    if self.elements and (not (connectToOutput is False)):
+                        connectToOutput=connectToOutput or self.elements[-1]
+
+                        #Fakesinks have no output, we automatically don't connect those
+                        if self.elementTypesById[id(connectToOutput)]=='fakesink':
+                            connectToOutput=False
+
+                        #Decodebin doesn't have a pad yet for some awful reason
+                        elif (self.elementTypesById[id(connectToOutput)]=='decodebin') or connectWhenAvailable:
+                            eid = uuid.uuid4()
+                            f = linkClosureMaker(weakref.ref(self),connectToOutput,e,connectWhenAvailable, eid)
+
+                            self.waitingCallbacks[eid]=f
+                            #Dummy 1 param because some have claimed to get segfaults without
+                            connectToOutput.connect("pad-added",f,1)
+                        else:
+                            link(connectToOutput,e)
+                    
+                    #Sidechain means don't set this element as the
+                    #automatic thing that the next entry links to
+                    if not sidechain:
+                        self.elements.append(e)
+                    else:
+                        self.sidechainElements.append(e)
+
+                    self.namedElements[name]=e
+
+                    #Mark as a JACK user so we can stop if needed for JACK
+                    #Stuff
+                    if t.startswith("jackaudio"):
+                        with lock:
+                            jackChannels[self.uuid] = weakref.ref(self)
+
+                    self.lastElementType = t
+                    p= weakref.proxy(e)
+                    #List it under the proxy as well
+                    self.elementTypesById[id(p)] = t
+                    return p
+
+            finally:
+                lock.release()
+        else:
+            raise RuntimeError("Getting lock")
         
-            if connectToOutput:
-                if not id(connectToOutput) in self.elementTypesById:
-                    raise ValueError("Cannot connect to the output of: "+str(connectToOutput)+", no such element in pipeline.")
-            
-            #Element doesn't have an input pad, we want this to be usable as a fake source to go after a real source if someone
-            #wants to use it as a effect
-            if t=="audiotestsrc":
-                connectToOutput=False
-                
-
-
-            #This could be the first element
-            if self.elements and (not (connectToOutput is False)):
-                connectToOutput=connectToOutput or self.elements[-1]
-
-                #Fakesinks have no output, we automatically don't connect those
-                if self.elementTypesById[id(connectToOutput)]=='fakesink':
-                    connectToOutput=False
-
-                #Decodebin doesn't have a pad yet for some awful reason
-                elif (self.elementTypesById[id(connectToOutput)]=='decodebin') or connectWhenAvailable:
-                    eid = uuid.uuid4()
-                    f = linkClosureMaker(weakref.ref(self),connectToOutput,e,connectWhenAvailable, eid)
-
-                    self.waitingCallbacks[eid]=f
-                    #Dummy 1 param because some have claimed to get segfaults without
-                    connectToOutput.connect("pad-added",f,1)
-                else:
-                    link(connectToOutput,e)
-            
-            #Sidechain means don't set this element as the
-            #automatic thing that the next entry links to
-            if not sidechain:
-                self.elements.append(e)
-            else:
-                self.sidechainElements.append(e)
-
-            self.namedElements[name]=e
-
-            #Mark as a JACK user so we can stop if needed for JACK
-            #Stuff
-            if t.startswith("jackaudio"):
-                with lock:
-                    jackChannels[self.uuid] = weakref.ref(self)
-
-            self.lastElementType = t
-            p= weakref.proxy(e)
-            #List it under the proxy as well
-            self.elementTypesById[id(p)] = t
-            return p
-
-
     def setProperty(self, element, prop,value):
         with self.lock:
 

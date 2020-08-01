@@ -911,7 +911,7 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
        
         self.lastFileSizeChange = 0
 
-        gstwrapper.Pipeline.__init__(self,str(uuid.uuid4()),systemTime=False,realtime=70)
+        gstwrapper.Pipeline.__init__(self,str(uuid.uuid4()),systemTime=False)
         self.aw =None
         self.ended = False
 
@@ -926,7 +926,12 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         self.src = self.addElement('filesrc',location=file)
         self.queue = self.addElement("queue")
 
-        decodeBin = self.addElement('decodebin',low_percent=15)
+        if not file.endswith(".mid"):
+            decodeBin = self.addElement('decodebin',low_percent=15)
+        else:
+            #Use FluidSynth to handle MIDI, the default seems to crash on the Pi and not have very good quality.
+            self.addElement("midiparse")
+            self.addElement("fluiddec", synth_chorus=False)
         #self.addElement('audiotestsrc')
         isVideo=False
 
@@ -959,8 +964,8 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
             if jackClientsFound:
                 cname="player"+str(time.monotonic())+"_out"
-                self.sink = self.addElement('jackaudiosink', buffer_time=16000 if not isVideo else 80000, 
-                latency_time=8000 if not isVideo else 40000,slave_method=0,port_pattern="jhjkhhhfdrhtecytey",
+                self.sink = self.addElement('jackaudiosink', buffer_time=64000 if not isVideo else 80000, 
+                latency_time=32000 if not isVideo else 40000,slave_method=0,port_pattern="jhjkhhhfdrhtecytey",
                 connect=0,client_name=cname,sync=False)
 
                 self.aw = jackmanager.Airwire(cname, 'system')
@@ -1011,13 +1016,13 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         self.pause()
 
 
-    def loopCallback(self):
-        size= os.stat(self.filename).st_size
-        if not size==self.lastFileSize:
-            self.lastFileSizeChange = time.monotonic()
-            self.lastFileSize=size
+    # def loopCallback(self):
+    #     size= os.stat(self.filename).st_size
+    #     if not size==self.lastFileSize:
+    #         self.lastFileSizeChange = time.monotonic()
+    #         self.lastFileSize=size
 
-        self.lastPosition = self.getPosition()
+    #     self.lastPosition = self.getPosition()
 
     def onEOS(self):
         #If the file has changed size recently, this might not be a real EOS,
