@@ -931,7 +931,7 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         else:
             #Use FluidSynth to handle MIDI, the default seems to crash on the Pi and not have very good quality.
             self.addElement("midiparse")
-            self.addElement("fluiddec", synth_chorus=False)
+            decodeBin= self.addElement("fluiddec", synth_chorus=False)
         #self.addElement('audiotestsrc')
         isVideo=False
 
@@ -955,6 +955,7 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         if onBeat:
             self.addLevelDetector()
 
+        self.addElement("audiorate")
         self.fader = self.addElement('volume', volume=volume)
 
         if output=="@auto":

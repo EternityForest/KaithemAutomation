@@ -325,7 +325,8 @@ class ChannelStrip(gstwrapper.Pipeline,BaseChannel):
         with self.lock:
             #self.addElement("audioconvert")
             #self.capsfilter2= self.addElement("capsfilter", caps="audio/x-raw,channels="+str(channels))
-
+            
+            self.addElement("audiorate")
             self.sink=self.addElement("jackaudiosink", buffer_time=10, latency_time=10,sync=False,
                 slave_method=0, port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=self.name+"_out",connect=0, blocksize=self.channels*128) 
 

@@ -2,6 +2,12 @@ Change Log
 ----------
 
 
+### 0.65.34
+- Allow creating cues from sound files with odd chars in the names
+- Protect against loops in Chandler playing a bazillion sounds and crashing JACK
+- Webm sound cues play properly
+
+
 ### 0.65.33
 - Mixing board pitch correction/robot voice effect
 - Fixes for RTP network audio streaming
