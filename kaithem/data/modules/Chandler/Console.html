@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1596593976194955
+resource-timestamp: 1596603885760944
 resource-type: page
 template-engine: mako
 
@@ -247,6 +247,8 @@ from src import tagpoints
         }
         return l2;
     }
+
+
         </script>
 
 
@@ -945,8 +947,8 @@ from src import tagpoints
 
                             <h4>Add Channel by Universe and Name/Number</h4>
                             <combo-box v-bind:options="useBlankDescriptions(universes)" v-model="newcueu"></combo-box>
+                            <combo-box v-bind:options="getChannelCompletions(newcueu)" v-model="newcuevnumber"></combo-box>
 
-                            <input v-model="newcuevnumber" title="Channel Number" style="width:5em" value="1">
 
                             <button v-on:click="addValToCue()"><img src="/zipstatic/img/icons/fugue.zip/plus-octagon-frame.png"></img>Add Channel to Cue</button>
 
@@ -1951,6 +1953,15 @@ from src import tagpoints
             'getfixtureassg': function()
             {
                 api_link.send(['getfixtureassg'])
+            },
+
+            'getChannelCompletions': function(u)
+            {
+                var x =appData.configuredUniverses[u];
+                if (x)
+                {
+                    return useBlankDescriptions(x.channelConfig);
+                }
             },
             'showhidefixtures': function()
             {
