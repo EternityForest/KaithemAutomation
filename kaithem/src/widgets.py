@@ -533,6 +533,7 @@ class Meter(Widget):
             self.k['max'] = 100
         
         self.displayUnits = None
+        self.defaultLabel=''
         if not 'unit' in kwargs:
             self.unit = None
         else:

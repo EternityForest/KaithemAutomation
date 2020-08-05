@@ -50,6 +50,12 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
 
+### 0.65.35
+- Fix Chandler tagpoint universe named channel support
+- Setting a tagpoint claim now steals the active status from the current active claim, if the priorities are the same.
+- Fix editing unreachable Kasa bulbs
+
+
 ### 0.65.34
 - Allow creating cues from sound files with odd chars in the names
 - Protect against loops in Chandler playing a bazillion sounds and crashing JACK
@@ -79,33 +85,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - Tag point preconfiguation bugfix
 - Better logging for devices
 
-### 0.65.30
-- Fix problem going from mock to real GPIO pins
-- Examples file no longer messes with GPIO
-- Tag point monitoring and alarms for system temperature and battery status
-- C and F temperatures shown by default for tagpoint meter widgets.
-
-### 0.65.29
-- Fix bad lock ordering in Chandler
-- Fix bad param that prevented display of Raspberry Pi undervoltage during boot
-
-### 0.65.28
-- Thread pool workers automatic spawning and stopping no longer clogs up the logs(for real)
-- Improve devices display page
-- Fix MQTT support
-
-### 0.65.27
-- Thread pool workers automatic spawning and stopping no longer clogs up the logs
-- Improve tag alarm configuration
-- Improve front page alert display
-
-### 0.65.26
-- Fix JSON MQTT support
-
-### 0.65.25
-- Sound volumes above 1 work correctly
-- Per-cue fades
-- Device print output boxes now have realtime scrolling
 
 License Terms
 =============

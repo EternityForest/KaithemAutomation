@@ -209,7 +209,10 @@ class KasaSmartplug(KasaDevice):
         self.powerWidget = widgets.Meter(high_warn=float(data.get("alarmcurrent",1400)), max=1600,min=0)
 
     def getManagementForm(self):
-        self.rssi(2)
+        try:
+            self.rssi(2)
+        except:
+            pass
         return templateGetter.get_template("manageform.html").render(data=self.data,obj=self)
   
     def setSwitch(self,channel, state):

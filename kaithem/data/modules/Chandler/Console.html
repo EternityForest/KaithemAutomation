@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1596603885760944
+resource-timestamp: 1596651127502344
 resource-type: page
 template-engine: mako
 
@@ -365,7 +365,7 @@ from src import tagpoints
                 <h3>
                     <button v-on:click="showDMXSetup=0">
                 <img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button> Universe Setup</h3>
-                <p class="help">These settings are saved immediately to the Kaithem registry when you click "Update Settings". To save them to disk,
+                <p class="help">These settings take effect immediately when you click "Update Settings". To save them to disk,
                     use "save setup" Note: Configuring these universes requires /admin/settings.edit,
                     however you do not need that permission to use the lightboard after it's configured.</p>
                 <button v-on:click="refreshPorts">Refresh Serial Ports</button>
@@ -417,7 +417,7 @@ from src import tagpoints
                         <th>Interface</th>
                         <th>Framerate</th>
                         <th>Channels</th>
-                        <th>Number</th>
+                        <th>Number(artnet)/Priority(tags)</th>
                         <th>Actions</th>
                         <th>Actions</th>
 
@@ -429,7 +429,7 @@ from src import tagpoints
                         </td>
 
                         <td v-if="v.type!='artnet'">
-                            <input list="serports" v-model="v.interface" title="The interface device that describes where to send the data. Usually a serial port, or a destination host:port in the case of ArtNet"
+                            <input list="serports" v-model="v.interface" title="The interface device that describes where to send the data. Usually a serial port, or a device name from the device manager for smartbulbs"
                                 placeholder="Default">
                         </td>
                         <td v-if="v.type=='artnet'">
@@ -594,9 +594,7 @@ from src import tagpoints
                     <button v-on:click="showfixtureassg=0"><img src="/zipstatic/img/icons/fugue.zip/cross-button.png"></img>Close</button>                    Fixture Assignments
                 </h3>
                 <p class="Help">Here is where you actually assign fixtures to channels after creating the desired fixture types. Clicking Update will
-                    cause the new assignments to take effect immediately. They are stored in the Kaithem registry, use the save server state
-                    button in Kaithem's settings to make them permanent.
-                </p>
+                    cause the new assignments to take effect immediately. Use the save settings button to make them permanent.
                 <p class="help">To Create a fixture, using codesimply add a line of the format "name, type,universe, startaddr", where name is freely
                     chosen(letters and numbers only), type is an existing fixture type, universe is the name of the universe you are putting
                     the fixture in, and startaddr is a number.</p>
