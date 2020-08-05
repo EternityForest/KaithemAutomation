@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1594793855502328
+resource-timestamp: 1596593976194955
 resource-type: page
 template-engine: mako
 
@@ -2748,7 +2748,7 @@ from src import tagpoints
             el: '#app',
             data: appData,
             components: {
-                "combo-box": httpVueLoader('ui/ComboBox.vue'),
+                "combo-box": httpVueLoader('/static/vue/ComboBox.vue'),
                 "script-editor": httpVueLoader('ui/ScriptEditor.vue'),
                 'vue-ace-editor': VueAceEditor
 

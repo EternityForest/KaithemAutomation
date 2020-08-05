@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1582390989283519
+resource-timestamp: 1596601116459103
 resource-type: event
 versions: {}
 
@@ -76,7 +76,8 @@ if __name__=='__setup__':
             self.channels = {}
     
             #Maps names to numbers, mostly for tagpoint universes.
-            self.channelNames={}
+            if not hasattr(self,"channelNames"):
+                self.channelNames={}
     
             self.groups ={}
             self.values = numpy.array([0.0]*count,dtype="f4")
@@ -453,11 +454,34 @@ if __name__=='__setup__':
             self.claims = {}
             self.hidden=False
             
+            self.channelNames={}
             #Put a claim on all the tags
             for i in self.tagpoints:
                 #One higher than default
                 try:
-                    self.claims[int(i.split(':')[0])]= kaithem.tags[self.tagpoints[i]].claim(0,"Chandler_"+name, 51)
+                    if not i.strip():
+                        continue
+    
+                    x = i.split(':')
+    
+                    chname=''
+                    try:
+                        num = int(x[0].strip())
+                    except:
+                        num = len(self.claims)+1
+                        chname = x[0].strip()
+                    
+                    if len(x)==2:
+                        chname = x[1].strip()
+                    else:
+                        if not chname:
+                            chname = 'tp'+str(num)
+                    
+                    tpn = self.tagpoints[i]
+                    if tpn:
+                        self.claims[num]= kaithem.tags[tpn].claim(0,"Chandler_"+name,  50 if number < 2 else number)
+                        self.channelNames[chname]=num
+                        
                 except Exception as e:
                     self.status="error, "+i+" "+ str(e)
                     logger.exception("Error related to tag point "+i)
@@ -471,15 +495,14 @@ if __name__=='__setup__':
     
     
         def onFrame(self):
-            for i in range(self.channelCount):
-                if i in self.claims:
-                    try:
-                        x = float(self.values[i])
-                        if x>-1:
-                            self.claims[i].set(x)
-                    except:
-                        rl_log_exc("Error in tagpoint universe")
-                        print(traceback.format_exc())
+            for i in self.claims:
+                try:
+                    x = float(self.values[i])
+                    if x>-1:
+                        self.claims[i].set(x)
+                except:
+                    rl_log_exc("Error in tagpoint universe")
+                    print(traceback.format_exc())
     
     
     

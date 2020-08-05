@@ -2,6 +2,10 @@ Change Log
 ----------
 
 
+### 0.65.35
+- Fix Chandler tagpoint universe named channel support
+- Setting a tagpoint claim now steals the active status from the current active claim, if the priorities are the same.
+
 ### 0.65.34
 - Allow creating cues from sound files with odd chars in the names
 - Protect against loops in Chandler playing a bazillion sounds and crashing JACK

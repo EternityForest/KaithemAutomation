@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1596291363365216
+resource-timestamp: 1596602980488048
 resource-type: event
 versions: {}
 
@@ -133,7 +133,7 @@ if __name__=='__setup__':
                     if not c:
                         return None
                     else:
-                        return universe,c
+                        return u,c
             else:
                 return u,c
         try:
@@ -2615,7 +2615,7 @@ if __name__=='__setup__':
             
             #Important for reentrant cues
             self.cueTag.pushOnRepeats = True
-            self.cueTagClaim = self.cueTag.claim("__stopped__","Scene", 51,annotation="SceneObject")
+            self.cueTagClaim = self.cueTag.claim("__stopped__","Scene", 50,annotation="SceneObject")
     
             self.cueVolume = 1
     
@@ -2678,7 +2678,7 @@ if __name__=='__setup__':
             self.alphaTag.max=1
             self.alphaTag.pushOnRepeats = False
     
-            self.alphaTagClaim = self.alphaTag.claim(self.alpha,"Scene", 51, annotation="SceneObject")
+            self.alphaTagClaim = self.alphaTag.claim(self.alpha,"Scene", 50, annotation="SceneObject")
     
             #Allow setting the alpha 
             def alphaTagHandler(val,timestamp, annotation):
@@ -3050,7 +3050,7 @@ if __name__=='__setup__':
     
         def pushMeta(self,cue=False,statusOnly=False,keys=None):
             #Push cue first so the client already has that data when we jump to the new display
-            if cue:
+            if cue and self.cue:
                 for i in module.boards:
                     if len(i().newDataFunctions)<100:
                         i().newDataFunctions.append(lambda s:s.pushCueMeta(self.cue.id))
@@ -3405,6 +3405,8 @@ if __name__=='__setup__':
     
         def recalcCueLen(self):
                 "Calculate the actual cue len, without changing the randomizeModifier"
+                if not self.active:
+                    return
                 cuelen = self.scriptContext.preprocessArgument(self.cue.length)
                 
                 if not isinstance(cuelen,(int, float)):
@@ -3461,12 +3463,12 @@ if __name__=='__setup__':
                     if x:
                         universe, channel = x[0],x[1]
     
-                    self.cue_cached_alphas_as_arrays[universe][channel] = 1.0 if not cuev==None else 0
-                    try:
-                        self.cue_cached_vals_as_arrays[universe][channel] = self.evalExpr(cuev if not cuev==None else 0)
-                    except:
-                        print("err")
-                        self.event("script.error", self.name+" cue "+cuex.name+" Val " +str((universe,channel))+"\n"+traceback.format_exc())
+                        try:
+                            self.cue_cached_alphas_as_arrays[universe][channel] = 1.0 if not cuev==None else 0
+                            self.cue_cached_vals_as_arrays[universe][channel] = self.evalExpr(cuev if not cuev==None else 0)
+                        except:
+                            print("err", traceback.format_exc())
+                            self.event("script.error", self.name+" cue "+cuex.name+" Val " +str((universe,channel))+"\n"+traceback.format_exc())
     
                     if isinstance(cuev, str) and cuev.startswith("="):
                         self.rerenderOnVarChange = True
@@ -3954,7 +3956,7 @@ if __name__=='__setup__':
             #Bugfix is in order!
             #self.canvas.paint(fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)
     
-            if self.cue.length and(module.timefunc()-self.enteredCue)> self.cuelen*(60/self.bpm):
+            if self.cuelen and(module.timefunc()-self.enteredCue)> self.cuelen*(60/self.bpm):
                 #rel_length cues end after the sound in a totally different part of code
                 #Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
                 #Then round to the nearest millisecond to prevent long term drift due to floating point issues.

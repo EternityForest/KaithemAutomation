@@ -193,6 +193,7 @@ class Device(virtualresource.VirtualResource):
         self.logWindow = widgets.ScrollingWindow(2500)
 
 
+
         dbgd[name+str(time.time())] = self
 
         # Time, title, text tuples for any "messages" a device might "print"
@@ -219,10 +220,25 @@ class Device(virtualresource.VirtualResource):
         self.name = data.get('name', None) or name
         self.errors = []
 
+        # self.scriptContext = scriptbindings.ChandlerScriptContext(variables={
+        #     'tags': self.tagPoints,
+        #     "device": self
+        # })
 
+        # self.scriptContext.commands['print'] = self.print
+
+       
         with lock:
             remote_devices[name] = self
             remote_devices_atomic=wrcopy(remote_devices)
+
+
+    # def loadScriptBindings(self):
+    #     try:
+    #         if 'rules' in self.data:
+    #             self.scriptContext.addBindings(json.loads(self.data['rules']))
+    #     except:
+    #         self.handleException()
 
     def handleException(self):
         try:
@@ -269,6 +285,7 @@ class Device(virtualresource.VirtualResource):
         return {}
 
     def print(self, msg, title="Message"):
+        "Print a message to the Device's management page"
         t = textwrap.fill(str(msg), 120)
         tm= unitsofmeasure.strftime(time.time())
     
