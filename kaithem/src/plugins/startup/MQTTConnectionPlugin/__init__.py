@@ -1,3 +1,4 @@
+import scullery.mqtt
 from mako.lookup import TemplateLookup
 from src import devices, alerts, scheduling, messagebus, workers
 from scullery import workers
@@ -11,14 +12,14 @@ import weakref
 import base64
 import traceback
 import shutil
+from src.kaithemobj import kaithem
 
-from src import widgets,jackmanager
+from src import widgets, jackmanager
 
 logger = logging.Logger("plugins.jackmidi")
 
 templateGetter = TemplateLookup(os.path.dirname(__file__))
 
-import scullery.mqtt
 
 defaultSubclassCode = """
 class CustomDeviceType(DeviceType):
@@ -57,24 +58,29 @@ class SculleryMQTTConnection(devices.Device):
     def __init__(self, name, data):
         devices.Device.__init__(self, name, data)
         try:
-            self.connection= kaithem.mqtt.Connection(
+            self.connection = kaithem.mqtt.Connection(
                 data.get("device.server", "localhost"),
                 int(data.get("device.port", "1883").strip() or 1883),
-                messageBusName = data.get("device.localBusName", "").strip(),
-                password = data.get("device.password", "").strip(),
+                messageBusName=data.get("device.localBusName", "").strip(),
+                password=data.get("device.password", "").strip(),
 
             )
-            self.tagpoints['status']=self.connection.statusTag
+            self.tagPoints['status'] = self.connection.statusTag
 
             for i in data.get("device.watchTopics", "").split("\n"):
-                i=i.strip()
+                i = i.strip()
                 if i:
-                    self.connection.subscribe(i,self.onDebugIncoming)
-            except:
+                    self.connection.subscribe(
+                        i, self.onDebugIncoming, encoding="raw")
+        except:
             self.handleException()
 
-    def onDebugIncoming(t,v):
-        self.print(str(v), title="In: "+t)
+    def onDebugIncoming(self,t, v):
+        try:
+            self.print(str(v)[:512], title="In: "+str(t))
+        except:
+            self.handleException()
+
     def getManagementForm(self):
         return templateGetter.get_template("manageform.html").render(data=self.data, obj=self)
 

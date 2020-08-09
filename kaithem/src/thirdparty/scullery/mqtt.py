@@ -328,8 +328,7 @@ class Connection():
         def backgroundSubscribeTask():
             with self.lock:
                 self.connection.subscribe(topic, qos)
-        if self.connection:
-            workers.do(backgroundSubscribeTask)
+        
 
         if encoding == 'json':
             def wrapper(t, m):
@@ -368,6 +367,12 @@ class Connection():
         logging.debug("MQTT subscribe to "+topic+" at "+self.server)
         # Ref to f exists as long as the original does because it's kept in subscribeWrappers
         messagebus.subscribe(internalTopic, wrapper)
+
+        #Important we do this *after*, because the server might auto-send us something that could be important for.
+        #Only the first function will get it, but whatever, at least we can see certain things when manually subscribing, for test purposes.
+        #Or should we do it before, to resolve that bit of ambiguity and never get the message???
+        if self.connection:
+            workers.do(backgroundSubscribeTask)
 
     def publish(self, topic, message, qos=2, encoding="json"):
         if encoding == 'json':

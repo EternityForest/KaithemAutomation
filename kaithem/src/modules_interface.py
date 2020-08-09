@@ -45,6 +45,23 @@ def searchModules(search,max_results=100,start=0,mstart=0):
     return(results,max(0,pointer-1),x[1])
 
 
+def searchDevices(search):
+    p=[]
+    from src import devices
+    for i in devices.device_data:
+        if search in json.dumps(devices.device_data[i]):
+            p.append(i)
+    return p
+        
+
+def searchTags(search):
+    p=[]
+    from src import tagpoints
+    for i in tagpoints.configTagData:
+        if search in json.dumps(tagpoints.configTagData[i]):
+            p.append(i)
+    return p
+        
 def searchModuleResources(modulename,search,max_results=100,start=0):
     search = search.lower()
     m = ActiveModules[modulename]
@@ -103,7 +120,8 @@ class WebInterface():
         if not module=="__all__":
             return pages.get_template("modules/search.html").render(search=kwargs['search'], name=module,results=searchModuleResources(module,kwargs['search'],100,start))
         else:
-            return pages.get_template("modules/search.html").render(search=kwargs['search'], name=module,results=searchModules(kwargs['search'],100,start,mstart))
+            return pages.get_template("modules/search.html").render(search=kwargs['search'], name=module,results=searchModules(kwargs['search'],100,start,mstart), 
+            tagr=searchTags(kwargs['search']), devr=searchDevices(kwargs['search']))
 
     @cherrypy.expose
     def nextrun(self,**kwargs):

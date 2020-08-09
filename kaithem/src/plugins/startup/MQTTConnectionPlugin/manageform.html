@@ -22,7 +22,7 @@ If you use an empty Local Name, one is generated based on the server:port, but s
     </tr>
     <tr>
         <td>Port</td>
-        <td><input name="device.port" value="${data.get('device.server','1883')|h}" placeholder="Port"></td>
+        <td><input name="device.port" value="${data.get('device.port','1883')|h}" placeholder="Port"></td>
     </tr>
  
     <tr>
@@ -32,7 +32,7 @@ If you use an empty Local Name, one is generated based on the server:port, but s
  
     <tr>
         <td>Local Name</td>
-        <td><input name="device.localBusName" value="${data.get('device.localBusName',name)|h}" placeholder="Server"></td>
+        <td><input name="device.localBusName" value="${data.get('device.localBusName',obj.name)|h}" placeholder="Server"></td>
     </tr>
  
 </table>

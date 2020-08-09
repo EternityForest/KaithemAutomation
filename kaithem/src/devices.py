@@ -124,8 +124,8 @@ except:
     esc = lambda t:t
 def makeBackgroundPrintFunction(p,t,title,self):
     def f():
-        self.logWindow.write('<b>'+ title+ " at " +p +"</b><br>"
-            + t
+        self.logWindow.write('<b>'+ title+ " at " +t +"</b><br>"
+            + p
             )
     return f
 
@@ -246,6 +246,11 @@ class Device(virtualresource.VirtualResource):
         except:
             print(traceback.format_exc())
     # Takes an error as a string and handles it
+
+    @property
+    def tagpoints(self):
+        "This property is because it's not really obvious which spelling should be used"
+        return self.tagPoints
 
     def handleError(self, s):
         self.errors.append([time.time(), str(s)])
