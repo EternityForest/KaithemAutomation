@@ -20,7 +20,7 @@ from . import tagpoints, messagebus, alerts, util, workers
 
 
 class EnhancedConnection(BaseConnection):
-    def __init__(self, server, port=1883,*, alertPriority="info", alertAck=True):
+    def __init__(self, server, port=1883,*, alertPriority="warning", alertAck=True):
         self.statusTag = tagpoints.StringTag(
                     "/system/mqtt/"+n+"/status")
         self.statusTagClaim = self.statusTag.claim(
@@ -36,14 +36,4 @@ class EnhancedConnection(BaseConnection):
         self().alert.trip()
 
     def configureAlert(self, alertPriority, alertAck):
-        self.alert = alerts.Alert(name="/system/mqtt/"+self.server+":"+str(self.port)+"/disconnected/",
-                                  description="MQTT client is disconnected", priority=alertPriority, autoAck=alertAck, tripDelay=5)
-        # Possible race condition here with a false trip just after connect. That is why we release on every recieved msg.
-        if not self.statusTag.value == 'connected':
-            self.alert.trip()
-
-        time.sleep(0.05)
-        if not self.statusTag.value == 'connected':
-            self.alert.trip()
-        else:
-            self.alert.clear()
+        self.alert.setAlarm("disconnected","status != 'connected'",priority=alertPriority, autoAck=alertAck, tripDelay=5)

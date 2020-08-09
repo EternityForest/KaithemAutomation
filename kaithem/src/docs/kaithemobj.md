@@ -171,25 +171,35 @@ to access resources by module, resource tuple.
 
 This namespace depends on Paho-MQTT and provides very easy access to MQTT.
 
-#### kaithem.mqtt.Connection(server,port=1883,*, alertPriority="warning", alertAck=True)
+#### kaithem.mqtt.Connection(server,port=1883,messageBusName=None,password=None, *)
 
 Create a connection object, if no connection to that server exists, or else the existing one is returned(The alert will be reconfigured).
-Connections are closed and cleaned up when no references exist.
+Connections are closed and cleaned up when no references exist(Which may include any subscribers).
+
+You can use user@server syntax to specify a username.  If a connection already exists, the password must either be None, or the same as the existing password.
+
+The internal bus name, if not explicit, is:
+`"/mqtt/"+self.server+":"+str(self.port)`
 
 Internally, messages recieved are handled through
-`"/mqtt/"+self.server+":"+str(self.port)+"/in/"+topic`
+`busName+"/in/"+topic`
 
 And sent messages go through
-`"/mqtt/"+self.server+":"+str(self.port)+"/out/"+topic`
+`busName+"/out/"+topic`
 
 On the internal message bus. No matter the encoding chosen, the message bus always carries the raw mqtt
-bytes data.
+bytes data.  The advantage of using an explicit bus name is that any subscribers will respond to messages on the new object, if you
+close a connection and open a new one with the same bus name.
 
 This is only used for logging and debugging, you should usually not directly send or recieve on these topics.
 Mqtt uses the annotations in an opaque way, so sending directly may not work.
 
-alertAck and alertPriority determine the auto-ack and priority of the alert that is raised
-when disconnected.
+
+Resubscriptions are stored in a master list.  If you subscribe, then delete the connection and recreate a new connection with the same message bus
+name, everything will carry on like nothing happened, so long as you kept a reference to the subscribed function.
+
+You can even create one connection, delete it, make a new one with the same internal messageBusName, to a different server, and all the old subscriptions
+will be "remade" at the new server, as the system knows that the new connection is a "replacement" for the old name.
 
 ##### Connection.subscribe(topic, callable, encoding='json'):
 Subscribe callable(topic, message) to the topic. Uses internal message bus,
@@ -201,6 +211,13 @@ Messages will be decoded according to the encoding, json, utf8, or raw.
 Push msg to the broker under the given topic.
 
 Messages will be encoded according to the encoding, json, utf8, or raw.
+
+
+##### Connection.close()
+
+Close the connection. This does not unsubscribe any subscribers, they are bound to the internal message bus.  This
+means any subscribers will carry forward to any new connection with the same message bus name.
+
 
 
 ### kaithem.states

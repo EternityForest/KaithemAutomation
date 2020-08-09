@@ -1,0 +1,45 @@
+<h3>Info</h3>
+<p>
+This device just provides web configurability for an MQTT connection, acessible as device.connection, which is the same as a kaithem.mqtt.Connection.
+</p>
+
+</p>Note that if you delete and recreate this, all subscribers will continue
+to work the same so long as you keep the same messagebus name.  The system tracks subscriptions to busNames independant of any particular connection object, until subscribers
+are deleted or unsubscribed.
+
+</p>
+
+<p>
+If you use an empty Local Name, one is generated based on the server:port, but subscribers will not automatically carry over if you change the server or port.
+</p>
+
+
+<table>
+
+    <tr>
+        <td>Server(user@server or just server for anon)</td>
+        <td><input name="device.server" value="${data.get('device.server','localhost')|h}" placeholder="Server"></td>
+    </tr>
+    <tr>
+        <td>Port</td>
+        <td><input name="device.port" value="${data.get('device.server','1883')|h}" placeholder="Port"></td>
+    </tr>
+ 
+    <tr>
+        <td>Password(Empty for anon)</td>
+        <td><input name="device.password" value="${data.get('device.password','')|h}" placeholder="PW"></td>
+    </tr>
+ 
+    <tr>
+        <td>Local Name</td>
+        <td><input name="device.localBusName" value="${data.get('device.localBusName',name)|h}" placeholder="Server"></td>
+    </tr>
+ 
+</table>
+
+<h3>Print these topics to the log on this page(one per line)</h3>
+
+<textarea name="device.watchTopics">${data.get('device.watchTopics','')}</textarea>
+
+
+</table>
