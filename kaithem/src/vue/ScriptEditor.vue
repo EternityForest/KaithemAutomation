@@ -88,7 +88,7 @@
     
                             <div v-if="selectedCommand[0]=='goto'">
                                 Trigger scene:<combo-box v-bind:options="sceneNames" v-model="selectedCommand[1]" v-on:change="$emit('input',rules)"></combo-box> <br>to go to cue:<br> 
-                                <combo-box v-bind:options="cueNames(selectedCommand[1],parentScene)" v-model="selectedCommand[2]"  v-on:change="$emit('input',rules)"></combo-box><br> and always return True.
+                                <combo-box v-bind:options="cueNames(selectedCommand[1],parentscene)" v-model="selectedCommand[2]"  v-on:change="$emit('input',rules)"></combo-box><br> and always return True.
                             </div>
     
     
@@ -187,7 +187,7 @@
     <script>
         module.exports={
     
-        props: ['value','commands','scenes','pinnedvars', "inspector","parentScene"],
+        props: ['value','commands','scenes','pinnedvars', "inspector","parentscene"],
         components:{
             "combo-box": httpVueLoader("/static/vue/ComboBox.vue")
         },
@@ -234,11 +234,11 @@
         data:function(){
             return({
     
-                  "cueNames":function(s, parentScene)
+                  "cueNames":function(s, parentscene)
                     {
                         if(s=="=SCENE")
                         {
-                            s = parentScene;
+                            s = parentscene;
                         }
                         if(this.scenes[s]==undefined)
                         {

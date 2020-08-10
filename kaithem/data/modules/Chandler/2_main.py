@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1596602980488048
+resource-timestamp: 1597049329357890
 resource-type: event
 versions: {}
 
@@ -314,7 +314,7 @@ if __name__=='__setup__':
         words = [i.strip() for i in s.lower().split(" ")]
     
         results = []
-        path = [i for i in paths]
+        paths = [i for i in paths]
         paths.append(musicLocation)
     
         for path in paths:
@@ -1707,6 +1707,7 @@ if __name__=='__setup__':
                 
                 if msg[0]=="searchsounds":
                     self.link.send(['soundsearchresults', msg[1], searchPaths(msg[1], getSoundFolders()) ])
+    
                 if msg[0]=="newFromSound":
                     bn = os.path.basename(msg[2])
                     bn=fnToCueName(bn)
@@ -1718,6 +1719,17 @@ if __name__=='__setup__':
                         pass
                     #Empty string is probably going to look best for that char
                     bn=bn.replace("'","")
+                    #Also the double quotesif they show up
+                    bn=bn.replace('"',"")
+                    bn=bn.replace('(',"")
+                    bn=bn.replace(')',"")
+                    bn=bn.replace('[',"")
+                    bn=bn.replace(']',"")
+    
+                    #Sometimes used as a stylized S
+                    bn=bn.replace('$',"S")
+                    bn=bn.replace('@'," at ")
+    
                     #Usually going to be the number sign, we can ditch
                     bn=bn.replace("#","")
     
@@ -1742,6 +1754,8 @@ if __name__=='__setup__':
                                 s= s[len(i):]
                                 break
                         module.scenes[msg[1]].cues[bn].sound = s
+                        module.scenes[msg[1]].cues[bn].namedForSound = True
+    
                         self.pushCueMeta(module.scenes[msg[1]].cues[bn].id)
                 
     
@@ -1809,7 +1823,7 @@ if __name__=='__setup__':
                     self.pushCueMeta(msg[1])
     
                 if msg[0]=="setcuesound":
-                
+    
                     soundfolders = getSoundFolders()
     
                     for i in soundfolders:
@@ -1820,7 +1834,10 @@ if __name__=='__setup__':
                         if s.startswith(i):
                             s= s[len(i):]
                             break
-    
+                    
+                    if s.strip() and cues[msg[1]].sound and cues[msg[1]].namedForSound:
+                        self.pushCueMeta(msg[1])
+                        raise RuntimeError("This cue was named for a specific sound file, forbidding change to avoid confusion.  To override, set to no sound first")
                     cues[msg[1]].sound=s
                     self.pushCueMeta(msg[1])
     
@@ -2295,17 +2312,18 @@ if __name__=='__setup__':
         'rules':[],
         'script':'',
         'values': {},
-        'soundVolume': 1
+        'soundVolume': 1,
+        'namedForSound': False
     }
     
     class Cue():
         "A static set of values with a fade in and out duration"
         __slots__=['id','changed','next_ll','alpha','fadein','length','lengthRandomize','name','values','scene',
         'nextCue','track','shortcut','number','inherit','sound','rel_length','script',
-        'soundOutput','onEnter','onExit','influences','associations',"rules","reentrant","inheritRules","soundFadeIn","soundFadeOut","soundVolume",
+        'soundOutput','onEnter','onExit','influences','associations',"rules","reentrant","inheritRules","soundFadeIn","soundFadeOut","soundVolume",'namedForSound',
         '__weakref__']
         def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, length=0,track=True, nextCue = None,shortcut=None,sound='',soundOutput='',rel_length=False, id=None,number=None,
-            lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,reentrant=True, soundFadeIn=0,soundFadeOut=0,inheritRules='',soundVolume=1,**kw):
+            lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,reentrant=True, soundFadeIn=0,soundFadeOut=0,inheritRules='',soundVolume=1,namedForSound=False,**kw):
             #This is so we can loop through them and push to gui
             self.id = uuid.uuid4().hex
             self.name = name
@@ -2315,6 +2333,7 @@ if __name__=='__setup__':
             self.inheritRules=inheritRules or ''
             self.reentrant=True
             self.soundVolume = soundVolume
+            self.namedForSound=namedForSound
     
             ##Rules created via the GUI logic editor
             self.rules = rules or []
@@ -2387,7 +2406,7 @@ if __name__=='__setup__':
         def serialize(self):
                 x =  {"fadein":self.fadein,"length":self.length,'lengthRandomize':self.lengthRandomize,"shortcut":self.shortcut,"values":self.values,
                 "nextCue":self.nextCue,"track":self.track,"number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,'rel_length':self.rel_length, 'script':self.script, 'rules':self.rules,
-                'reentrant':self.reentrant, 'inheritRules': self.inheritRules,"soundFadeIn": self.soundFadeIn, "soundFadeOut": self.soundFadeOut, "soundVolume": self.soundVolume
+                'reentrant':self.reentrant, 'inheritRules': self.inheritRules,"soundFadeIn": self.soundFadeIn, "soundFadeOut": self.soundFadeOut, "soundVolume": self.soundVolume, 'namedForSound':self.namedForSound
                 }
     
                 #Cleanup defaults
@@ -2449,6 +2468,9 @@ if __name__=='__setup__':
             if self.shortcut ==number_to_shortcut(self.number):
                 self.setShortcut(number_to_shortcut(int((Decimal(n)*Decimal(1000)).quantize(1))))
             self.number = int((Decimal(n)*Decimal(1000)).quantize(1))
+    
+            #re-sort the cuelist
+            self.scene().insertSorted(None)
     
             self.push()
     
@@ -2933,17 +2955,21 @@ if __name__=='__setup__':
     
     
         def insertSorted(self,c):
+            "Insert a None to just recalt the whole ordering"
             with module.lock:
-                self.cues_ordered.append(c)
+    
+                if c:
+                    self.cues_ordered.append(c)
+    
                 self.cues_ordered.sort(key=lambda i: i.number)
                 try:
                     self.cuePointer = self.cues_ordered.index(self.cue)
                 except:
                     pass
-            #Regenerate linked list by brute force when a new cue is added.
-            for i in range(len(self.cues_ordered)-1):
-                self.cues_ordered[i].next_ll= self.cues_ordered[i+1]
-            self.cues_ordered[-1].next_ll = None
+                #Regenerate linked list by brute force when a new cue is added.
+                for i in range(len(self.cues_ordered)-1):
+                    self.cues_ordered[i].next_ll= self.cues_ordered[i+1]
+                self.cues_ordered[-1].next_ll = None
     
         def getDefaultNext(self):
             try:

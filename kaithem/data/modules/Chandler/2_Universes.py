@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1596601116459103
+resource-timestamp: 1597045786883071
 resource-type: event
 versions: {}
 
@@ -284,7 +284,7 @@ if __name__=='__setup__':
         def __init__(self,universe,port,framerate):
             self.frame = threading.Event()
             self.universe= universe
-            self.data = message(universe.values)
+            self.data = message(universe().values)
             self.thread = threading.Thread(target =self.run)
             self.thread.daemon = True
             self.thread.name = "DMXSenderThread_"+self.thread.name

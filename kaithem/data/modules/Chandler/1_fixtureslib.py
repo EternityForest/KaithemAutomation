@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1578386048937657
+resource-timestamp: 1597049324162236
 resource-type: event
 versions: {}
 
@@ -23,6 +23,7 @@ if __name__=='__setup__':
         "7ch DGBR": [["dim","intensity"],["green","green"],["blue","blue"],["red","red"],["unused1","unused"],["unused2","unused"],["unused3","unused"],["unused4","unused"]],
         "7ch DBGR": [["dim","intensity"],["blue","blue"],["green","green"],["red","red"],["unused1","unused"],["unused2","unused"],["unused3","unused"],["unused4","unused"]],
         "7ch DRGB": [["dim","intensity"],["red","red"],["green","green"],["blue","blue"],["unused1","unused"],["unused2","unused"],["unused3","unused"],["unused4","unused"]],
+        "3ch RGB": [["red","red"],["green","green"],["blue","blue"]],
     }
 
 def eventAction():

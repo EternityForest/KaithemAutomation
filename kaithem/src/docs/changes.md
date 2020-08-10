@@ -1,6 +1,13 @@
 Change Log
 ----------
 
+### 0.65.36
+- SculleryMQTTConnection devices let you configure MQTT through the webUI
+- Chandler sound search working
+- Fix enttec universes (Enttec open was already fine)
+- Fix Gamma blend mode
+- Fix chandler cue renumbering, nextCue is now correctly recalculated
+- Chandler now refuses to allow you to change the sound for a cue created from a sound, to avoid confusion. Override by setting to silence, then the new sound.
 
 ### 0.65.35
 - Fix Chandler tagpoint universe named channel support
@@ -17,7 +24,7 @@ Change Log
 - Mixing board pitch correction/robot voice effect
 - Fixes for RTP network audio streaming
 - Use soft AND synchronous JACK options
-- Segfault resilliance if user enteers bad jack settings
+- Segfault resilliance if user enters bad jack settings
 
 
 ### 0.65.32

@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1582324257429981
+resource-timestamp: 1597045751302609
 resource-type: event
 versions: {}
 
@@ -232,8 +232,8 @@ if __name__=='__setup__':
         default_channel_value = 165
         def __init__(self,scene):
             self.scene = scene
-            for i in self.scene.values:
-                self.affect[i] = sorted(self.scene.values[i].keys())
+            # for i in self.scene.values:
+            #     self.affect[i] = sorted(self.scene.values[i].keys())
             self.last = module.timefunc()
     
         def frame(self,u, below, values, alphas, alpha):

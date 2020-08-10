@@ -49,6 +49,14 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.36
+- SculleryMQTTConnection devices let you configure MQTT through the webUI
+- Chandler sound search working
+- Fix enttec universes (Enttec open was already fine)
+- Fix Gamma blend mode
+- Fix chandler cue renumbering, nextCue is now correctly recalculated
+- Chandler now refuses to allow you to change the sound for a cue created from a sound, to avoid confusion. Override by setting to silence, then the new sound.
+
 
 ### 0.65.35
 - Fix Chandler tagpoint universe named channel support
@@ -67,23 +75,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - Fixes for RTP network audio streaming
 - Use soft AND synchronous JACK options
 - Segfault resilliance if user enteers bad JACK settings
-
-### 0.65.32
-
-- BREAKING CHANGE raw ALSA persistant device aliases are now the same as JACK names
-- BREAKING CHANGE ALSA "analog" is special case shortened to "anlg" instead of the obvious.
-- Allow selecting a specific primary JACK device
-- Allow only using the primary JACK device.
-- JackFluidSynth included plugin lets you create a synth through the UI without code, and connect to a MIDI keyboard
-- Jack mixer RTP Opus send/recieve support
-- Jack mixer now suppots recording
-- Many more mixer FX, ring mod, amp sim, metronome, noise generator
-- Button to play test ding sound through any mixer channel
-
-### 0.65.31
-- Pi keypad matrix working on real hardware
-- Tag point preconfiguation bugfix
-- Better logging for devices
 
 
 License Terms

@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1596651127502344
+resource-timestamp: 1597048120094415
 resource-type: page
 template-engine: mako
 
@@ -722,7 +722,7 @@ from src import tagpoints
 
                 Current Cue:
                 <button v-on:click="selectcue(scenename,cuemeta[editingScene.cue].name)">{{cuemeta[editingScene.cue].name}}</span>
-                    <meter v-if="editingScene.active && cuemeta[editingScene.cue].length" min=0 max=1
+                    <meter v-if="editingScene.active && (cuemeta[editingScene.cue].length || cuemeta[editingScene.cue].rel_len)" min=0 max=1
                         v-bind:value="(unixtime-editingScene.enteredCue)/editingScene.cuelen"></meter>
                     <button v-on:click="nextcue(scenename)">Next</button>
 
@@ -881,7 +881,7 @@ from src import tagpoints
                             </label>
                         </div>
                         <script-editor v-model="currentcue.rules" v-on:input="setCueRules(currentcueid, $event);" v-bind:commands="availableCommands"
-                            v-bind:scenes="cueNamesBySceneName()" v-bind:pinnedvars="specialvars" v-bind:vars="editingScene.vars" v-bind:parentScene="scenename"> </script-editor>
+                            v-bind:scenes="cueNamesBySceneName()" v-bind:pinnedvars="specialvars" v-bind:vars="editingScene.vars" v-bind:parentscene="editingScene.name"> </script-editor>
                             <div style="display:flex;flex-wrap:wrap;">
                                 <div style="border-style:solid;flex-grow:3;margin:0.5em;padding:0.5em;">
                                     <h3>Scene Variables</h3>
@@ -1009,7 +1009,7 @@ from src import tagpoints
                             <input placeholder="No sound file" v-model="currentcue.sound" style="width:32em;"
                                 v-on:change="setSoundfile(currentcueid,currentcue.sound)">
                         </label><br>
-                                <label>Device:
+                                <label>Device:<a target="_blank" href="/settings/mixer">(mixer)</a>
                                 
                                 <datalist id="soundcards">
                                 <option v-for="i of soundCards" v-bind:value="i"></option>
@@ -1186,11 +1186,11 @@ from src import tagpoints
                                 <div class="break"></div>
                                 <h5 style="flex-basis:100%">Sound</h5>
                                 <label v-if="showSoundControls">Soundfile:
-                            <input placeholder="No sound file" v-model="currentcue.sound"
+                            <input placeholder="No sound file" v-model="currentcue.sound" title="File paths are resolved relative to any of the confg sound folders, searching all until a match is found"
                                 style="width:32em;" v-on:change="setSoundfile(currentcueid,currentcue.sound)">
                         </label>
-                                <label v-if="showSoundControls">Device:
-                            <input title="Using mplayer -ao syntax, set the output device" v-on:input="setSoundOutput(currentcueid,$event.target.value)"
+                                <label v-if="showSoundControls">Device:<a target="_blank" href="/settings/mixer">(mixer)</a>
+                            <input title="set the output device" v-on:input="setSoundOutput(currentcueid,$event.target.value)"
                                 v-model="cuemeta[currentcueid].soundOutput" placeholder="default"></input>
                         </label>
 

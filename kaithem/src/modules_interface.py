@@ -49,7 +49,7 @@ def searchDevices(search):
     p=[]
     from src import devices
     for i in devices.device_data:
-        if search in json.dumps(devices.device_data[i]):
+        if search in json.dumps(devices.device_data[i]) or search in i:
             p.append(i)
     return p
         
@@ -58,7 +58,7 @@ def searchTags(search):
     p=[]
     from src import tagpoints
     for i in tagpoints.configTagData:
-        if search in json.dumps(tagpoints.configTagData[i]):
+        if search in json.dumps(tagpoints.configTagData[i].data) or search in i:
             p.append(i)
     return p
         
