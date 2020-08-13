@@ -4,6 +4,231 @@ import time, threading,weakref,logging,types,traceback,math,os,gc,functools,re,r
 from typing import Callable,Optional,Union
 from threading import setprofile
 from typeguard import typechecked
+import sqlite3
+
+
+logdir=os.path.join(directories.vardir,"logs")
+
+if not os.path.exists(logdir):
+    try:
+        os.mkdir(logdir)
+    except:
+        pass
+
+
+historyDBFile = os.path.join(logdir, "history.ldb")
+
+class TagLogger():
+    accumType = 'replace'
+
+    def __init__(self,tag,interval):
+        self.h = historian
+        self.accumVal = 0
+        self.accumCount = 0
+
+        #To avoid extra lock calls, the historian actually briefly takes over the tag's lock.
+        self.lock=tag.lock
+
+        self.lastLogged = 0
+        self.interval = interval
+
+        self.getChannelID(tag)
+
+        with historian.lock:
+            historian.children[id(self)]= weakref.ref(self)
+
+        tag.subscribe(self.accumulate)
+        
+        
+
+    def __del__(self):
+        with historian.lock:
+            del historian.children[id(self)]
+
+
+    def accumulate(self, value, timestamp, annotation):
+        "Only ever called by the tag"
+        self.accumVal = value
+        self.accumTime = timestamp
+        self.accumCount = 1
+
+        self.flush()
+
+    #Only call from accumulate or from within the historian, which will use the taglock to call this.
+    def flush(self):
+        #Ratelimit how often we log, continue accumulating if nothing to log.
+        if self.lastLogged > time.monotonic()-self.interval:
+            return
+
+        offset = time.time()-time.monotonic()
+        self.h.insertData((self.chID, self.accumTime+offset, self.accumVal))
+        self.lastLogged = time.monotonic()
+        self.accumCount = 0
+
+
+    def getChannelID(self, tag):
+        #Either get our stored channel name, or create a new onw
+        with self.h.lock:
+            #Have to make our own, we are in a new thread now.
+            conn = sqlite3.Connection(historyDBFile)
+            conn.row_factory = sqlite3.Row
+
+            c = conn.cursor()
+            c.execute("SELECT rowid,tagName,unit,accumulate from channel WHERE tagName=?",(tag.name,))
+            self.chID = None
+
+            for i in c:
+                if i['tagName'] == tag.name and i['unit']==tag.unit and i['accumulate']==self.accumType:
+                    self.chID = i['rowid']
+
+            if not self.chID:
+                conn.execute("INSERT INTO channel VALUES (?,?,?,?)",(tag.name,tag.unit, self.accumType,'{}'))
+                conn.commit()
+
+            c = conn.cursor()
+            c.execute("SELECT rowid from channel WHERE tagName=? AND unit=? AND accumulate=?",(tag.name,tag.unit,self.accumType))
+            self.chID = c.fetchone()[0]
+
+            conn.close()
+
+class AverageLogger(TagLogger):
+        accumType='mean'
+        def accumulate(self,value,timestamp,annotation):
+            "Only ever called by the tag"
+            self.accumVal += value
+            self.accumTime +=timestamp
+            self.accumCount+=1
+
+            self.flush()
+
+        #Only call from accumulate or from within the historian, which will use the taglock to call this.
+        def flush(self):
+            #Ratelimit how often we log, continue accumulating if nothing to log.
+            if self.lastLogged > time.monotonic()-self.interval:
+                return
+            offset = time.time()-time.monotonic()
+
+
+            self.h.insertData((self.chID, (self.accumTime/self.accumCount)-offset,self.accumVal/self.accumCount))
+            self.lastLogged = time.monotonic()
+            self.accumCount=0
+            self.accumVal=0
+
+
+class MinLogger(TagLogger):
+        accumType=min
+        def accumulate(self,value,timestamp,annotation):
+            "Only ever called by the tag"
+            self.accumVal =min(self.accumVal, value)
+            self.accumTime +=timestamp
+            self.accumCount+=1
+
+            self.flush()
+
+        #Only call from accumulate or from within the historian, which will use the taglock to call this.
+        def flush(self):
+            #Ratelimit how often we log, continue accumulating if nothing to log.
+            if self.lastLogged > time.monotonic()-self.interval:
+                return
+
+            offset = time.time()-time.monotonic()
+            self.h.insertData((self.chID, (self.accumTime/self.accumCount)+offset,self.accumVal))
+            self.lastLogged = time.monotonic()
+            self.accumCount=0
+            self.accumVal=0
+
+
+class MaxLogger(MinLogger):
+        accumType='max'
+        def accumulate(self,value,timestamp,annotation):
+            "Only ever called by the tag"
+            self.accumVal =max(self.accumVal, value)
+            self.accumTime +=timestamp
+            self.accumCount+=1
+
+            self.flush()
+
+accumTypes={'replace':TagLogger, 'mean': AverageLogger, 'max': MaxLogger, 'min': MinLogger}
+        
+class TagHistorian():
+    #Generated puely randomly
+    appID = 707898159
+    def __init__(self, file):
+        if not os.path.exists(file):
+            newfile=True
+        else:
+            newfile=False
+
+        self.history =  sqlite3.Connection(file)
+        self.history.row_factory = sqlite3.Row
+
+        if newfile:
+            self.history.execute("PRAGMA application_id = 707898159")
+        self.lock = threading.Lock()
+        self.children = {}
+
+        self.history.execute("CREATE TABLE IF NOT EXISTS channel  (tagName text, unit text, accumulate text, metadata text)")
+        self.history.execute("CREATE TABLE IF NOT EXISTS record  (channel INTEGER, timestamp INTEGER, value REAL)")
+
+        self.history.execute("CREATE VIEW IF NOT EXISTS SimpleViewLocalTime AS SELECT channel.tagName as Channel, channel.accumulate as Type, datetime(record.timestamp,'unixepoch','localtime') as LocalTime, record.value as Value, channel.unit as Unit FROM record INNER JOIN channel ON channel.rowid = record.channel;")
+        self.history.execute("CREATE VIEW IF NOT EXISTS SimpleViewUTC AS SELECT channel.tagName as Channel, channel.accumulate as Type,  datetime(record.timestamp,'unixepoch','utc') as UTCTime, record.value as Value, channel.unit as Unit FROM record INNER JOIN channel ON channel.rowid = record.channel;")
+
+        self.pending = []
+
+        self.history.close()
+
+        self.lastFlushed = 0
+
+        self.flushInterval = 10*60
+        messagebus.subscribe("/system/save",self.forceFlush)
+
+        def f():
+            self.flush()
+
+        self.flusher_f = f
+        self.flusher = scheduling.scheduler.everyMinute(f)
+
+
+    def insertData(self,d):
+        self.pending.append(d)
+
+    def forceFlush(self):
+        self.flush(True)
+
+    def flush(self,force=False):
+        if not force:
+            if time.monotonic()-self.lastFlushed< self.flushInterval:
+                return
+
+            self.lastFlushed = time.monotonic()
+        with self.lock:
+
+            #Unfortunately, we still have to do some polling here.
+            #The reason is that we could havea change immediately followed by another change, and it is important that we eventually
+            #record that new change.
+            for i in self.children:
+                x = self.children[i]()
+                if x:
+                    with x.lock:
+                        if x.accumCount:
+                            x.flush()
+
+            l = self.pending
+            self.pending = []
+            #Hopefully let any other threads finish
+            #inserting. Note that here we consider very rarely losing a record
+            #to be better than bad performace
+            time.sleep(0.001)
+            time.sleep(0.001)
+            time.sleep(0.001)
+            self.history =  sqlite3.Connection(historyDBFile)
+            with self.history:
+                for i in l:
+                    self.history.execute('INSERT INTO record VALUES (?,?,?)',i)
+            self.history.close()
+
+historian = TagHistorian(historyDBFile)
+
 
 """
 class WebInterface():
@@ -534,8 +759,6 @@ class _TagPoint(virtualresource.VirtualResource):
                     x._tag_config_ref = d
                     return x
 
-
-
     def clearDynamicAlarms(self):
         with lock:
             if self.dynamicAlarmData:
@@ -686,6 +909,8 @@ class _TagPoint(virtualresource.VirtualResource):
             if data.get("type",None):
                 configTags[self.name]=self
             else:
+                #Pop from that storage, this shouldn't exist if there is no
+                #external reference
                 configTags.pop(self.name,0)
 
             if hasattr(self, 'configuredOnChangeAction'):
@@ -699,6 +924,26 @@ class _TagPoint(virtualresource.VirtualResource):
                     exec(ocfc, self.evalContext, self.evalContext)
                 self.configuredOnChangeAction =ocf
                 self.subscribe(ocf)
+
+            
+            loggers = data.get('loggers',[])
+
+            if loggers:
+                configTagData[self.name]['loggers']=data['loggers']
+            else:
+                try:
+                    del configTagData[self.name]['loggers']
+                except KeyError:
+                    pass
+            self.configLoggers = []
+            for i in loggers:
+                interval = float(i.get("interval",60) or 60)
+                accum = i['accumulate']
+
+                c = accumTypes[accum](self, interval)
+
+                self.configLoggers.append(c) 
+                
 
 
 
@@ -1511,7 +1756,7 @@ class LowpassFilter(Filter):
         self.inputTag =inputTag
         inputTag.subscribe(self.doInput)
 
-        self.tag= _NumericTagPoint(name)
+        self.tag= Tag(name)
         self.claim = self.tag.claim(self.getter, name=inputTag.name+".lowpass",priority=priority)
         
         if interval==None:

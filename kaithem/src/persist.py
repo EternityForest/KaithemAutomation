@@ -136,6 +136,9 @@ class SharedStateFile():
     def __setitem__(self, key, value):
         self.set(key, value)
 
+    def __delitem__(self,key):
+        self.pop(key)
+
     def set(self, key: str, value):
         with self.lock:
             json.dumps(value)
@@ -170,7 +173,7 @@ class SharedStateFile():
     def delete(self, key):
         with self.lock:
             try:
-                del[self.data[key]]
+                del self.data[key]
             except KeyError:
                 pass
 

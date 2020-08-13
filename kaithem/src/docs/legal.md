@@ -1386,6 +1386,14 @@ THE SOFTWARE.
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 
+#### [Chart.js](https://www.chartjs.org/docs/latest/)
+    /*!
+    * Chart.js v2.9.3
+    * https://www.chartjs.org
+    * (c) 2019 Chart.js Contributors
+    * Released under the MIT License
+    */
+    
 #### [UpUp(Offline JS)](https://github.com/TalAter/UpUp/blob/master/LICENSE)
 
 Copyright (c) 2016 Tal Ater

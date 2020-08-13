@@ -21,6 +21,8 @@ import collections
     else:
         if data:
             with tagpoints.lock:
+                loggers = {}
+
                 for i in data:
                     if i.startswith("alarm_"):
                         x = i.split("_",1)[1]
@@ -41,6 +43,25 @@ import collections
 
                         ald[alarmName][alarmProperty] = data[i]
 
+
+                    if i.startswith("logger_"):
+                        x = i.split("_",1)[1]
+
+                        loggerNumber, loggerProperty =x.split(":")
+
+                        # Nonempty props indicate we don't get rid of it
+                        if not loggerNumber in loggers:
+                            loggers[loggerNumber]={}
+                        loggers[loggerNumber][loggerProperty] = data[i]
+
+                loggersList = []
+                
+                for i in sorted(list(loggers.keys())):
+                    interval = float(loggers[i]['interval'])
+                    accumulate = loggers[i]['accumulate']
+                    if interval:
+                        loggersList.append({'interval':interval, 'accumulate':accumulate})
+
                 for i in list(ald.keys()):
                     #Changing name to empty
                     #Setting an alarm to  none is how  you delete it  
@@ -52,9 +73,12 @@ import collections
                         elif ald[i]['name'] !=  i:
                             ald[ald[i]['name']] =  ald[i]
                             del  ald[i]
+
                 data['alarms']=ald
+                data['loggers']=loggersList
 
                 tagpoints.configTagFromData(tagName,data)
+
         if tagName in tagpoints.allTags:
             tag=tagpoints.allTags[tagName]()
         else:
@@ -259,6 +283,7 @@ import collections
         <th>Trip Delay</th>
         <th>State</th>
     </tr>
+    
 
 %for i in eald:
 <tr>
@@ -297,6 +322,43 @@ import collections
 </tr>
 
 </table>
+
+<h3>Loggers</h3>
+<p class="help">These loggers control the logging of tag data to history.db</p>
+<p class="help">Interval is the maximum rate to log at. No logs are created if there are no changes. Tags that change more often than the interval will always 'flush' the most recent value after sufficient time.</p>
+<p class="help">Accumulate determines what happens to multiple readings within an interval.  To store the latest, use replace. To store the mean for the whole interval, use average./</p>
+<p class="help">Set the interval to 0 to delete the logger./</p>
+
+${configData.data|h}
+
+
+
+${tag.configLoggers|h}
+
+<table border=1>
+    <tr>
+        <th>Interval</th>
+        <th>Accumulate Mode</th>
+    </tr>
+    %for n,i in enumerate(configData.get('loggers',[]) + [{'interval':0, 'accumulate': 'replace'}]):
+
+    <tr>
+        <td><input type="number" step="0.1" value="${i['interval']}" name="logger_${n}:interval"</td>
+    <td>
+        <select name="logger_${n}:accumulate">
+            <option value="replace" ${'selected' if i['accumulate']=='replace' else ''}>Latest</option>
+            %if isinstance(tag,tagpoints._NumericTagPoint):
+            <option value="mean" ${'selected' if i['accumulate']=='mean' else ''}>Average</option>
+            <option value="min" ${'selected' if i['accumulate']=='min' else ''}>Minimum</option>
+            <option value="max" ${'selected' if i['accumulate']=='max' else ''}>Maximum</option>
+            %endif
+        </select> 
+    </td>
+
+    </tr>
+    %endfor
+</table>
+
 <h3>onChange Function</h3>
 <p class="help">This has access to the same vars that alerts do. It creates a tag
     subscriber.

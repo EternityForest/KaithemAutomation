@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.65.37
+- Tag data historian configurable from web UI(Everything is saved to history.db if configured)
+- Fix SG1 gateway tagpoint error from previous version
+
 ### 0.65.36
 - SculleryMQTTConnection devices let you configure MQTT through the webUI
 - Chandler sound search working

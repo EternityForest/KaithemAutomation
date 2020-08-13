@@ -252,6 +252,10 @@ class Device(virtualresource.VirtualResource):
         "This property is because it's not really obvious which spelling should be used"
         return self.tagPoints
 
+    @tagpoints.setter
+    def tagpoints(self,v):
+        self.tagPoints = v
+        
     def handleError(self, s):
         self.errors.append([time.time(), str(s)])
 
