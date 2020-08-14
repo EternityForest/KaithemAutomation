@@ -378,10 +378,10 @@ def webRoot():
             cherrypy.response.cookie['LastSawMainPage'] = time.time()
             return pages.get_template('index.html').render(api=notifications.api,alertsapi=alerts.api)
         
-        #"/" is mapped to this
         @cherrypy.expose
         def tagpoints(self,*path,**data):
-            pages.require("/admin/settings.view")
+            #This page could be slow because of the db stuff, so we restrict it more
+            pages.require("/admin/settings.edit")
             if "new_numtag" in data:
                 pages.require("/admin/settings.edit")
                 return pages.get_template('settings/tagpoint.html').render(new_numtag=data['new_numtag'],tagname=data['new_numtag'])
@@ -395,6 +395,11 @@ def webRoot():
             else:
                 return pages.get_template('settings/tagpoints.html').render(data=data)
 
+        @cherrypy.expose
+        def tagpointlog(self,*path,**data):
+            #This page could be slow because of the db stuff, so we restrict it more
+            pages.require("/admin/settings.edit")
+            return pages.get_template('settings/tagpointlog.html').render(tagName=path[0],data=data)
 
         @cherrypy.expose
         def zipstatic(self,*path,**data):

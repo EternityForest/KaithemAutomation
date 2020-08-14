@@ -37,7 +37,7 @@
                 "restrict-lan": false,
                 "strftime": "%A, %B %d, %Y at %I:%M:%S %p %Z",
                 "tabtospace": true,
-                "timezone": "UTC",
+                "timezone": "US/Pacific",
                 "useace": true,
                 "usemonaco": false
             },

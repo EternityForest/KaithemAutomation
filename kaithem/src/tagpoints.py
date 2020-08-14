@@ -19,12 +19,14 @@ if not os.path.exists(logdir):
 historyDBFile = os.path.join(logdir, "history.ldb")
 
 class TagLogger():
-    accumType = 'replace'
+    accumType = 'latest'
 
-    def __init__(self,tag,interval):
+    def __init__(self,tag,interval,historyLength=3*30*24*3600):
         self.h = historian
         self.accumVal = 0
         self.accumCount = 0
+        self.accumTime = 0
+        self.historyLength = historyLength
 
         #To avoid extra lock calls, the historian actually briefly takes over the tag's lock.
         self.lock=tag.lock
@@ -39,7 +41,50 @@ class TagLogger():
 
         tag.subscribe(self.accumulate)
         
-        
+
+    def clearOldData(self):
+        "Only called by the historian, that's why we can reuse the connection and do everything in one transaction"
+        if not self.historyLength:
+            return
+        with self.h.lock:
+            d = []
+            conn = self.h.history
+
+            c = conn.cursor()
+            c.execute("SELECT count(*) FROM record WHERE channel=? AND timestamp<?",(self.chID,time.time()-self.historyLength))
+            count = c.fetchone()[0]
+
+            #Only delete records in large blocks. To do otherwise would create too much disk wear
+            if count > 8192:
+                c.execute("DELETE FROM record WHERE channel=? AND timestamp<?",(self.chID,minTime))
+
+
+    def getDataRange(self,minTime, maxTime, maxRecords=10000):
+        with self.h.lock:
+            d = []
+            conn = sqlite3.Connection(historyDBFile)
+
+            c = conn.cursor()
+            c.execute("SELECT timestamp,value FROM record WHERE timestamp>? AND timestamp<? AND channel=? ORDER BY timestamp ASC LIMIT ?",(minTime, maxTime, self.chID,maxRecords))
+            for i in c:
+                d.append(i)
+
+            x=[]
+            for i in range(5):
+                x = []
+                #Best-effort attempt to include recent stuff.
+                #We don't want to use another lock and slow stuff down
+                try:
+                    for i in self.h.pending:
+                        if i[0]==self.chID:
+                            if i[1]>=minTime and i[1]<-maxTime:
+                                x.append((i[1],i[2]))
+                #Can fail due to iterationerror, we don't lock the pending list,
+                #We just hope we can finish very fast.
+                except:
+                    pass
+
+            return d+x
 
     def __del__(self):
         with historian.lock:
@@ -55,10 +100,11 @@ class TagLogger():
         self.flush()
 
     #Only call from accumulate or from within the historian, which will use the taglock to call this.
-    def flush(self):
+    def flush(self,force=False):
         #Ratelimit how often we log, continue accumulating if nothing to log.
-        if self.lastLogged > time.monotonic()-self.interval:
-            return
+        if not force:
+            if self.lastLogged > time.monotonic()-self.interval:
+                return
 
         offset = time.time()-time.monotonic()
         self.h.insertData((self.chID, self.accumTime+offset, self.accumVal))
@@ -98,14 +144,14 @@ class AverageLogger(TagLogger):
             self.accumVal += value
             self.accumTime +=timestamp
             self.accumCount+=1
-
             self.flush()
 
         #Only call from accumulate or from within the historian, which will use the taglock to call this.
-        def flush(self):
+        def flush(self,force=False):
             #Ratelimit how often we log, continue accumulating if nothing to log.
-            if self.lastLogged > time.monotonic()-self.interval:
-                return
+            if not force:
+                if self.lastLogged > time.monotonic()-self.interval:
+                    return
             offset = time.time()-time.monotonic()
 
 
@@ -113,6 +159,7 @@ class AverageLogger(TagLogger):
             self.lastLogged = time.monotonic()
             self.accumCount=0
             self.accumVal=0
+            self.accumTime=0
 
 
 class MinLogger(TagLogger):
@@ -126,16 +173,18 @@ class MinLogger(TagLogger):
             self.flush()
 
         #Only call from accumulate or from within the historian, which will use the taglock to call this.
-        def flush(self):
+        def flush(self,force=False):
             #Ratelimit how often we log, continue accumulating if nothing to log.
-            if self.lastLogged > time.monotonic()-self.interval:
-                return
+            if not force:
+                if self.lastLogged > time.monotonic()-self.interval:
+                    return
 
             offset = time.time()-time.monotonic()
             self.h.insertData((self.chID, (self.accumTime/self.accumCount)+offset,self.accumVal))
             self.lastLogged = time.monotonic()
             self.accumCount=0
             self.accumVal=0
+            self.accumTime=0
 
 
 class MaxLogger(MinLogger):
@@ -148,7 +197,7 @@ class MaxLogger(MinLogger):
 
             self.flush()
 
-accumTypes={'replace':TagLogger, 'mean': AverageLogger, 'max': MaxLogger, 'min': MinLogger}
+accumTypes={'replace':TagLogger, 'latest':TagLogger, 'mean': AverageLogger, 'max': MaxLogger, 'min': MinLogger}
         
 class TagHistorian():
     #Generated puely randomly
@@ -164,7 +213,7 @@ class TagHistorian():
 
         if newfile:
             self.history.execute("PRAGMA application_id = 707898159")
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         self.children = {}
 
         self.history.execute("CREATE TABLE IF NOT EXISTS channel  (tagName text, unit text, accumulate text, metadata text)")
@@ -179,7 +228,12 @@ class TagHistorian():
 
         self.lastFlushed = 0
 
+        self.lastGarbageCollected = 0
+
         self.flushInterval = 10*60
+        
+        self.gcInterval = 3600*2
+
         messagebus.subscribe("/system/save",self.forceFlush)
 
         def f():
@@ -199,19 +253,25 @@ class TagHistorian():
         if not force:
             if time.monotonic()-self.lastFlushed< self.flushInterval:
                 return
-
             self.lastFlushed = time.monotonic()
+
         with self.lock:
+            needsGC= self.lastGarbageCollected<time.monotonic()-self.gcInterval
+            if needsGC:
+                self.lastGarbageCollected= time.monotonic()
+            if force:
+                needsGC=1
 
             #Unfortunately, we still have to do some polling here.
-            #The reason is that we could havea change immediately followed by another change, and it is important that we eventually
+            #The reason is that we could have a change immediately followed by another change, and it is important that we eventually
             #record that new change.
             for i in self.children:
                 x = self.children[i]()
                 if x:
                     with x.lock:
                         if x.accumCount:
-                            x.flush()
+                            x.flush(force)
+                        
 
             l = self.pending
             self.pending = []
@@ -221,8 +281,16 @@ class TagHistorian():
             time.sleep(0.001)
             time.sleep(0.001)
             time.sleep(0.001)
+
             self.history =  sqlite3.Connection(historyDBFile)
             with self.history:
+                if needsGC:
+                    for i in self.children:
+                        x = self.children[i]()
+                        if x:
+                            with x.lock:
+                                x.clearOldData()
+
                 for i in l:
                     self.history.execute('INSERT INTO record VALUES (?,?,?)',i)
             self.history.close()
@@ -882,6 +950,11 @@ class _TagPoint(virtualresource.VirtualResource):
         with lock:
             self.sourceTags = {}
             hasUnsavedData[0]=True
+
+            if data and not self.name in configTagData:
+                configTagData[self.name]= persist.getStateFile(getFilenameForTagConfig(self.name))
+                configTagData[self.name].noFileForEmpty = True
+
             if 'type' in data:
                 if data['type']=='number' and not isinstance(self,_NumericTagPoint):
                     raise RuntimeError("Tag already exists and is not a numeric tag")
@@ -938,9 +1011,11 @@ class _TagPoint(virtualresource.VirtualResource):
             self.configLoggers = []
             for i in loggers:
                 interval = float(i.get("interval",60) or 60)
+                length = float(i.get("historyLength",3*30*24*3600) or 3*30*24*3600)
+
                 accum = i['accumulate']
 
-                c = accumTypes[accum](self, interval)
+                c = accumTypes[accum](self, interval,length)
 
                 self.configLoggers.append(c) 
                 
@@ -963,9 +1038,6 @@ class _TagPoint(virtualresource.VirtualResource):
             #This one is a little different. If the timestamp is 0,
             #We know it has never been set.
             if 'value' in data and not data['value'].strip()=='':
-                if not self.name in configTagData:
-                    configTagData[self.name]= persist.getStateFile(getFilenameForTagConfig(self.name))
-                    configTagData[self.name].noFileForEmpty = True
                 configTagData[self.name]['value']=data['value']
 
                 if self.timestamp == 0:

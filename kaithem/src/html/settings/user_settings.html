@@ -55,7 +55,7 @@ Restricted to LAN IP addresses(Only admin can change): ${auth.getUserSetting(pag
  <input type="submit" value="Save"></input>
 
 </div>
-<h2>Time Formatting</h2>
+<h2>Time Formatting(Current: <span style="color: darkgreen">${unitsofmeasure.strftime()}</span>)</h2>
 <div class="sectionbox">
 <table border=1>
 <%tz = auth.getUserSetting(pages.getAcessingUser(),'timezone')%>

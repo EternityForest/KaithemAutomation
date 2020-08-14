@@ -1,6 +1,6 @@
 from mako.lookup import TemplateLookup
 from src import devices, alerts, scheduling, messagebus, workers
-from scullery import iceflow, workers, sip
+from scullery import iceflow, workers
 import os
 import mako
 import time
@@ -13,19 +13,10 @@ import shutil
 
 from src import widgets
 
-logger = logging.Logger("plugins.baresip")
+logger = logging.Logger("plugins.pikeypad")
 
 templateGetter = TemplateLookup(os.path.dirname(__file__))
 
-
-class JackBareSipAgentRunner(sip.SipUserAgent):
-    def __init__(self, username, port=5060, jackSource='system', jackSink='system'):
-        sip.SipUserAgent.__init__(
-            self, username, audioDriver="jack", port=5060, jackSource=jackSource, jackSink=jackSink)
-
-    def onIncomingCall(self, number):
-        self.controller().print("Incoming call from: "+str(number))
-        self.controller().onIncomingCall(number)
 
 
 defaultSubclassCode = """

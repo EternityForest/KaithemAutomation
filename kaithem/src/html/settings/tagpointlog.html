@@ -1,0 +1,108 @@
+<%include file="/pageheader.html"/>
+
+<%!
+from src import tagpoints,unitsofmeasure,util,auth,pages
+import time
+import gc
+import collections
+import dateutil.parser
+import datetime
+import pytz
+
+
+def combineLogs(a):
+    op = []
+
+    for i in a:
+        for j in a[i]:
+            op.append((unitsofmeasure.strftime(j[0]),i,j[1]))
+    
+    return sorted(op)
+    
+%>
+<%
+    tz=pytz.timezone(auth.getUserSetting(pages.getAcessingUser(),'timezone'))
+
+    logtime=time.time()-3600
+    if data and 'logtime' in data:
+        logtime = tz.localize(dateutil.parser.parse(data['logtime'])).timestamp()
+
+    if tagName in tagpoints.allTags:
+        tag=tagpoints.allTags[tagName]()
+    else:
+        raise ValueError("No such tag")
+%>
+
+<script src="/static/widget.js"></script>
+<h1>Tag Point: <small>${tag.name}</small></h1>
+<div class="sectionbox">
+<p class="help">
+    This page show logs for one tag.
+</p>
+
+<form method="GET" action="/tagpointlog/${tag.name|u}">
+
+<h3>Info</h3>
+<table border="1">
+    <tr>
+        <td>Time Since Update</td>
+        <td>${((unitsofmeasure.formatTimeInterval(time.monotonic()-tag.timestamp,3)+" ago") if int(tag.timestamp) else 'never')}</td>
+    </tr>
+    <tr>
+        <td>Timestamp(monotonic time)</td>
+        <td>${tag.timestamp}</td>
+    </tr>
+    <tr>
+        <td>Annotation</td>
+        <td>${tag.annotation|h}</td>
+    </tr>
+    <tr>
+        <td>Active Claim</td>
+        <td>${tag.activeClaim[2]}(P${tag.activeClaim[0]})</td>
+    </tr>
+    <tr>
+        <td>Value at page load</td>
+        <td>${str(tag.value)[:128]}</td>
+    </tr>
+    <tr>
+        <td>Owner</td>
+        <td>${tag.owner}</td>
+    </tr>
+    <tr>
+        <td>Subscriber count</td>
+        <td>${len(tag.subscribers)}</td>
+    </tr>
+    <tr>
+        <td>Python3 Object ID</td>
+        <td>${id(tag)|h}</td>
+    </tr>
+
+    <tr>
+        <td>Base Unit</td>
+        <td>${tag.unit|h}</td>
+    </tr>
+</table>
+
+%if hasattr(tag, 'configLoggers'):
+<h3>Recent Log Data from ${unitsofmeasure.strftime(logtime)}</h3>
+<p class="help">All times use the time zone and format from your user settings.</p>
+<form action="/tagpointlog/${tag.name|u}">
+    <input name="logtime" type='datetime-local' value="${pytz.utc.localize(datetime.datetime.utcnow()).astimezone(tz).replace(microsecond=0).replace(tzinfo=None).isoformat()}">UTC <button type="submit">Goto Time</button>
+</form>
+
+<table border=1>
+    <tr><th>Time</th><th>Type</th><th>Val</th></tr>
+
+    %for i in combineLogs({i.accumType:i.getDataRange(logtime, time.time(), 1000) for i in tag.configLoggers}):
+    <tr>
+        <td>${i[0]}</td>
+        <td>${i[1]}</td>
+        <td>${i[2]}</td>
+    </tr>
+    %endfor
+</table>
+%endif
+
+
+</div>
+<%include file="/pagefooter.html"/>

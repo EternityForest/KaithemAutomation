@@ -5,8 +5,26 @@ from src import tagpoints,unitsofmeasure,util
 import time
 import gc
 import collections
+import dateutil
+
+
+def combineLogs(a):
+    op = []
+
+    for i in a:
+        for j in a[i]:
+            op.append((unitsofmeasure.strftime(j[0]),i,j[1]))
+    
+    return sorted(op)
+    
 %>
 <%
+    logtime=time.time()-3600
+    if data and 'logtime' in data:
+        logtime = dateutil.parser.parse(data['logtime']).timestamp()
+
+        
+        
     pageGCListIgnoreFlag = True
 
 
@@ -55,12 +73,20 @@ import collections
                         loggers[loggerNumber][loggerProperty] = data[i]
 
                 loggersList = []
+
+                loggerTypes={}
                 
                 for i in sorted(list(loggers.keys())):
                     interval = float(loggers[i]['interval'])
+                    historyLength = float(loggers[i]['historyLength'])
                     accumulate = loggers[i]['accumulate']
                     if interval:
-                        loggersList.append({'interval':interval, 'accumulate':accumulate})
+                        #It would create confusing output if you did this
+                        if accumulate in loggerTypes:
+                            raise RuntimeError("Can't have two loggers of the same type")
+                        loggerTypes[accumulate]=True
+
+                        loggersList.append({'interval':interval, 'accumulate':accumulate,'historyLength':historyLength})
 
                 for i in list(ald.keys()):
                     #Changing name to empty
@@ -326,27 +352,23 @@ import collections
 <h3>Loggers</h3>
 <p class="help">These loggers control the logging of tag data to history.db</p>
 <p class="help">Interval is the maximum rate to log at. No logs are created if there are no changes. Tags that change more often than the interval will always 'flush' the most recent value after sufficient time.</p>
-<p class="help">Accumulate determines what happens to multiple readings within an interval.  To store the latest, use replace. To store the mean for the whole interval, use average./</p>
-<p class="help">Set the interval to 0 to delete the logger./</p>
+<p class="help">Accumulate determines what happens to multiple readings within an interval.  To store the latest, use latest. To store the mean for the whole interval, use average./</p>
+<p class="help">Set the interval to 0 to delete the logger. Set history length to 0 to disable deleting old data.</p>
 
-${configData.data|h}
-
-
-
-${tag.configLoggers|h}
 
 <table border=1>
     <tr>
-        <th>Interval</th>
+        <th>Interval(s)</th>
         <th>Accumulate Mode</th>
+        <th>Keep History</th>
     </tr>
-    %for n,i in enumerate(configData.get('loggers',[]) + [{'interval':0, 'accumulate': 'replace'}]):
+    %for n,i in enumerate(configData.get('loggers',[]) + [{'interval':0, 'accumulate': 'latest'}]):
 
     <tr>
         <td><input type="number" step="0.1" value="${i['interval']}" name="logger_${n}:interval"</td>
     <td>
         <select name="logger_${n}:accumulate">
-            <option value="replace" ${'selected' if i['accumulate']=='replace' else ''}>Latest</option>
+            <option value="latest" ${'selected' if i['accumulate']=='latest' else ''}>Latest</option>
             %if isinstance(tag,tagpoints._NumericTagPoint):
             <option value="mean" ${'selected' if i['accumulate']=='mean' else ''}>Average</option>
             <option value="min" ${'selected' if i['accumulate']=='min' else ''}>Minimum</option>
@@ -354,10 +376,28 @@ ${tag.configLoggers|h}
             %endif
         </select> 
     </td>
+    <td><input type="number" step="1800" value="${i.get('historyLength',3*30*24*3600)}" name="logger_${n}:historyLength"</td>
 
     </tr>
     %endfor
 </table>
+
+%if hasattr(tag, 'configLoggers'):
+<h3>Recent Log Data <a href="/tagpointlog/${normalizednormalizedTagName|u}">Full Logs</a></a></h3>
+
+<table border=1>
+    <tr><th>Time</th><th>Type</th><th>Val</th></tr>
+
+    %for i in combineLogs({i.accumType:i.getDataRange(logtime, time.time(), 15) for i in tag.configLoggers}):
+    <tr>
+        <td>${i[0]}</td>
+        <td>${i[1]}</td>
+        <td>${i[2]}</td>
+
+    </tr>
+    %endfor
+</table>
+%endif
 
 <h3>onChange Function</h3>
 <p class="help">This has access to the same vars that alerts do. It creates a tag
