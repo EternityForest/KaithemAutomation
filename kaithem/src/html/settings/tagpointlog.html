@@ -93,13 +93,29 @@ def combineLogs(a):
 <table border=1>
     <tr><th>Time</th><th>Type</th><th>Val</th></tr>
 
-    %for i in combineLogs({i.accumType:i.getDataRange(logtime, time.time(), 1000) for i in tag.configLoggers}):
-    <tr>
-        <td>${i[0]}</td>
-        <td>${i[1]}</td>
-        <td>${i[2]}</td>
-    </tr>
-    %endfor
+    %if isinstance(tag,tagpoints._NumericTagPoint):
+        %for i in combineLogs({i.accumType:i.getRecent(logtime, time.time(), 1000) for i in tag.configLoggers}):
+        <tr>
+            <td>${i[0]}</td>
+            <td>${i[1]}</td>
+
+            %if i[2]>tag.hi or i[2]<tag.lo:
+            <td><span class="error">${i[2]}</span></td>
+            %else:
+            <td>${i[2]}</td>
+            %endif
+
+        </tr>
+        %endfor
+    %else:
+        %for i in combineLogs({i.accumType:i.getRecent(logtime, time.time(), 1000) for i in tag.configLoggers}):
+        <tr>
+            <td>${i[0]}</td>
+            <td>${i[1]}</td>
+            <td>${i[2][:128]}</td>
+        </tr>
+        %endfor
+    %endif
 </table>
 %endif
 

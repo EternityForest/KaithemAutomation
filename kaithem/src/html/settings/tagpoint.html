@@ -40,6 +40,8 @@ def combineLogs(a):
         if data:
             with tagpoints.lock:
                 loggers = {}
+                loggersList = []
+                loggerTypes={}
 
                 for i in data:
                     if i.startswith("alarm_"):
@@ -72,9 +74,7 @@ def combineLogs(a):
                             loggers[loggerNumber]={}
                         loggers[loggerNumber][loggerProperty] = data[i]
 
-                loggersList = []
-
-                loggerTypes={}
+              
                 
                 for i in sorted(list(loggers.keys())):
                     interval = float(loggers[i]['interval'])
@@ -140,7 +140,6 @@ def combineLogs(a):
 
 
 %>
-
 <script src="/static/widget.js"></script>
 <h1>Tag Point: <small>${normalizednormalizedTagName}</small></h1>
 <div class="sectionbox">
@@ -281,12 +280,12 @@ def combineLogs(a):
 
     </td>
     <td><input name="value" value="${configData.get('value','')}"></td</td>
-    <td><input name="interval" value="${configData.get('interval','')}"></td>
-    <td><input name="min" value="${configData.get('min','')}"></td>
-    <td><input name="max" value="${configData.get('max','')}"></td>
-    <td><input name="hi" value="${configData.get('hi','')}"></td>
-    <td><input name="lo" value="${configData.get('lo','')}"></td>
-    <td><input name="displayUnits" value="${configData.get('displayUnits','')}"><td></td>
+    <td><input name="interval" value="${configData.get('interval','')}" style="width:6em"></td>
+    <td><input name="min" value="${configData.get('min','')}" style="width:6em"></td>
+    <td><input name="max" value="${configData.get('max','')}" style="width:6em"></td>
+    <td><input name="hi" value="${configData.get('hi','')}" style="width:6em"></td>
+    <td><input name="lo" value="${configData.get('lo','')}" style="width:6em"></td>
+    <td><input name="displayUnits" value="${configData.get('displayUnits','')}" style="width:6em"><td></td>
 </tr>
 
 
@@ -382,20 +381,35 @@ def combineLogs(a):
     %endfor
 </table>
 
+
 %if hasattr(tag, 'configLoggers'):
 <h3>Recent Log Data <a href="/tagpointlog/${normalizednormalizedTagName|u}">Full Logs</a></a></h3>
 
 <table border=1>
     <tr><th>Time</th><th>Type</th><th>Val</th></tr>
+    %if isinstance(tag,tagpoints._NumericTagPoint):
+        %for i in combineLogs({i.accumType:i.getRecent(logtime, time.time(), 15) for i in tag.configLoggers}):
+        <tr>
+            <td>${i[0]}</td>
+            <td>${i[1]}</td>
 
-    %for i in combineLogs({i.accumType:i.getDataRange(logtime, time.time(), 15) for i in tag.configLoggers}):
-    <tr>
-        <td>${i[0]}</td>
-        <td>${i[1]}</td>
-        <td>${i[2]}</td>
+            %if i[2]>tag.hi or i[2]<tag.lo:
+            <td><span class="error">${i[2]}</span></td>
+            %else:
+            <td>${i[2]}</td>
+            %endif
 
-    </tr>
-    %endfor
+        </tr>
+        %endfor
+    %else:
+        %for i in combineLogs({i.accumType:i.getRecent(logtime, time.time(), 15) for i in tag.configLoggers}):
+        <tr>
+            <td>${i[0]}</td>
+            <td>${i[1]}</td>
+            <td>${i[2][:128]}</td>
+        </tr>
+        %endfor
+    %endif
 </table>
 %endif
 

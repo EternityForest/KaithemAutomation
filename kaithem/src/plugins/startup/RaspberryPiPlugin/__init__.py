@@ -31,8 +31,8 @@ try:
         acPowerTag.setAlarm("runningOnBattery", "(not value) and (tv('/system/power/batteryLevel')< 80)", priority='info')
 
 
-
 except ImportError:
+    logging.exception("Cant load system info plugin")
     psutil=None
 
 if psutil:

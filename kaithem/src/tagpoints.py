@@ -42,10 +42,15 @@ class TagLogger():
         tag.subscribe(self.accumulate)
         
 
-    def clearOldData(self):
+    def clearOldData(self,force=False):
         "Only called by the historian, that's why we can reuse the connection and do everything in one transaction"
         if not self.historyLength:
             return
+
+        #Attempt to detect impossible times indicating the clock is wrong.
+        if time.time()<1597447271:
+            return
+
         with self.h.lock:
             d = []
             conn = self.h.history
@@ -55,8 +60,8 @@ class TagLogger():
             count = c.fetchone()[0]
 
             #Only delete records in large blocks. To do otherwise would create too much disk wear
-            if count > 8192:
-                c.execute("DELETE FROM record WHERE channel=? AND timestamp<?",(self.chID,minTime))
+            if count > 8192 if not force else 1024:
+                c.execute("DELETE FROM record WHERE channel=? AND timestamp<?",(self.chID,time.time()-self.historyLength))
 
 
     def getDataRange(self,minTime, maxTime, maxRecords=10000):
@@ -70,21 +75,51 @@ class TagLogger():
                 d.append(i)
 
             x=[]
-            for i in range(5):
+            for l in range(5):
                 x = []
                 #Best-effort attempt to include recent stuff.
                 #We don't want to use another lock and slow stuff down
                 try:
                     for i in self.h.pending:
                         if i[0]==self.chID:
-                            if i[1]>=minTime and i[1]<-maxTime:
+                            if i[1]>=minTime and i[1]<=maxTime:
                                 x.append((i[1],i[2]))
+                    break
                 #Can fail due to iterationerror, we don't lock the pending list,
                 #We just hope we can finish very fast.
                 except:
-                    pass
+                    raise
 
-            return d+x
+            return (d+x)[:maxRecords]
+
+
+    def getRecent(self,minTime, maxTime, maxRecords=10000):
+        with self.h.lock:
+            d = []
+            conn = sqlite3.Connection(historyDBFile)
+
+            c = conn.cursor()
+            c.execute("SELECT timestamp,value FROM record WHERE timestamp>? AND timestamp<? AND channel=? ORDER BY timestamp DESC LIMIT ?",(minTime, maxTime, self.chID,maxRecords))
+            for i in c:
+                d.append(i)
+
+            x=[]
+            for l in range(5):
+                x = []
+                #Best-effort attempt to include recent stuff.
+                #We don't want to use another lock and slow stuff down
+                try:
+                    for i in self.h.pending:
+                        if i[0]==self.chID:
+                            if i[1]>=minTime and i[1]<=maxTime:
+                                x.append((i[1],i[2]))
+                    break
+                #Can fail due to iterationerror, we don't lock the pending list,
+                #We just hope we can finish very fast.
+                except:
+                    raise
+
+            return (list(reversed(d))+x)[-maxRecords:]
 
     def __del__(self):
         with historian.lock:
@@ -155,7 +190,7 @@ class AverageLogger(TagLogger):
             offset = time.time()-time.monotonic()
 
 
-            self.h.insertData((self.chID, (self.accumTime/self.accumCount)-offset,self.accumVal/self.accumCount))
+            self.h.insertData((self.chID, (self.accumTime/self.accumCount)+offset,self.accumVal/self.accumCount))
             self.lastLogged = time.monotonic()
             self.accumCount=0
             self.accumVal=0
@@ -289,7 +324,7 @@ class TagHistorian():
                         x = self.children[i]()
                         if x:
                             with x.lock:
-                                x.clearOldData()
+                                x.clearOldData(force)
 
                 for i in l:
                     self.history.execute('INSERT INTO record VALUES (?,?,?)',i)
