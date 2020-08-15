@@ -31,7 +31,7 @@ def workersErrorHandler(f):
         print(traceback.format_exc())
 
 workers.backgroundFunctionErrorHandlers=[workersErrorHandler]
-
+backgroundFunctionErrorHandlers
 #Get the relevant config
 from . import config as cfg
 from .config import config

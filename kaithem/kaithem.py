@@ -158,8 +158,8 @@ def webRoot():
                 newevt.eventsByModuleName[f.__module__]._handle_exception()
             else:
                 if not hasattr(f, "_kaithemFirstErrorMarker"):
-                    messagebus.postMessage("/system/notifications/errors","First err in tag subscriber "+str(f)+ " from "+str(f.__module__)+" to "+ tag.name)
                     f._kaithemFirstErrorMarker=True
+                    messagebus.postMessage("/system/notifications/errors","First err in tag subscriber "+str(f)+ " from "+str(f.__module__)+" to "+ tag.name)
         except:
             print(traceback.format_exc(chain=True))
 

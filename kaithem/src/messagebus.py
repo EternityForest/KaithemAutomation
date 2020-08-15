@@ -21,10 +21,19 @@ def handleMsgbusError(f,topic,message):
     scullery.messagebus.log.exception("Error in subscribed function for "+topic)
     try:
         from . import newevt
-        if f().__module__ in newevt.eventsByModuleName:
+        if f.__module__ in newevt.eventsByModuleName:
             newevt.eventsByModuleName[f.__module__]._handle_exception()
+        else:
+            try:
+                x = hasattr(f,"_kaithemAlreadyPostedNotificatonError")
+                f._kaithemAlreadyPostedNotificatonError=True
+                if x:
+                    messagebus.postMessage("First message bus subscriber error in: " +str(f))
+            except:
+                pass
     except Exception as e:
         print(traceback.format_exc())
+        del f
 
 
 def _shouldReRaiseAttrErr():
