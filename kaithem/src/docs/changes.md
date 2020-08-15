@@ -2,8 +2,9 @@ Change Log
 ----------
 
 ### 0.65.37
-- Tag data historian configurable from web UI(Everything is saved to history.db if configured)
+- Tag data historian configurable from web UI(Everything is saved to history.db if configured, CSV export is possible)
 - Fix SG1 gateway tagpoint error from previous version
+- Chandler Rules engine supports isLight and isDark functions.
 
 ### 0.65.36
 - SculleryMQTTConnection devices let you configure MQTT through the webUI

@@ -190,7 +190,12 @@ globalUsrFunctions={
     "log10":math.log10,
     "sin":math.sin,
     "cos":math.cos,
-    "sqrt":safesqrt
+    "sqrt":safesqrt,
+    "isDark": kaithem.time.isDark,
+    "isNight": kaithem.time.isNight,
+    "isLight": kaithem.time.isLight,
+    "isDay": kaithem.time.isDay
+
 }
 
 globalConstants={

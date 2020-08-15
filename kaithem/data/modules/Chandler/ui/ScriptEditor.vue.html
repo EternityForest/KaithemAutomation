@@ -9,7 +9,7 @@ no-header: true
 no-navheader: false
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1597047044685975
+resource-timestamp: 1597471317645776
 resource-type: page
 template-engine: none
 
@@ -273,7 +273,9 @@ template-engine: none
                     arr[indexB] = temp;
                 },
                 rules:this.value,
-                eventsList: [['now', "Run when script loads"],['cue.exit','When exiting a cue'],['cue.enter','When entering a cue'], ['keydown.a',"When a lowercase A is pressed in the Send Events mode"]],
+                eventsList: [['now', "Run when script loads"],['cue.exit','When exiting a cue'],['cue.enter','When entering a cue'], 
+                ['keydown.a',"When a lowercase A is pressed in the Send Events mode"], ["=log(90)", 'Example polled expression. =Expressions are polled every few seconds or on certain triggers.'], ["=isNight()", 'Run if it is nighttime(polled)'], ["=isNight()", 'Run if it is nighttime(polled)'],
+                ["=isDark()", 'Run if it is civil twilight'], ["=tv('TagPointName')", 'Run when tag point becomes nonzero(instant, poll is triggered on change)'], ["script.poll", 'Run every fast(~24Hz) polling cycle of the script, not the same as =expressions']],
                 
     
                 getPossibleActions: function()

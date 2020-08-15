@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1591508404593413
+resource-timestamp: 1597471528260584
 resource-type: page
 template-engine: markdown
 
@@ -40,6 +40,12 @@ Scenes can also "inherit" rules from another cue. This works recursively, and lo
 Returns random number from 0 to 1
 ### log(a,[b])
 ### log10(a)
+
+### isDark(lat=None,lon=None)
+Returns True if it is past civil twilight. This may be more useful than isNight for lighting control purposes.
+
+### isNight(lat=None,lon=None)
+Returns True if it is past sunset.
 
 ### millis()
 Return a monotonic milliseconds counter. It will not go backwards till the system
@@ -76,7 +82,7 @@ tagValue(n) or tv(n) returns the value of a tag. Both will add the tag to the li
 stv(n) is the same, but for string tags.
 
 All relevant tags create a variable $tag:name that lets you spy on the current value. These cannot be written to and are mostly 
-for UI purposes.
+for UI purposes, but they can be read.
 
 
 ## Dynamic lighting channel values

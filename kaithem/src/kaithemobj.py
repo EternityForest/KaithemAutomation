@@ -113,6 +113,15 @@ class Kaithem():
         def do(f):
             workers.do(f)
 
+
+        @staticmethod
+        def location():
+            lat = float(registry.get("system/location/lat",None))
+            lon = float(registry.get("system/location/lon",None))
+            if not lon or not lat:
+                raise RuntimeError("No location set")
+            return((lat,lon))
+
         @staticmethod
         def uptime():
             return time.time()-bootTime
@@ -200,8 +209,95 @@ class Kaithem():
         def dayofweek():
             return (unitsofmeasure.DayOfWeek())
 
+
+
+        @staticmethod
+        def sunsetTime(lat=None,lon=None,date=None):
+            if lon == None:
+                lat = registry.get("system/location/lat",None)
+                lon = registry.get("system/location/lon",None)
+            else:
+                raise ValueError("You set lon, but not lst?")
+            if lat == None or lon ==None:
+                raise RuntimeError("No server location set, fix this in system settings")
+
+            return (sky.sunset(lat,lon,date))
+
+    
+        @staticmethod
+        def sunriseTime(lat=None,lon=None,date=None):
+            if lon == None:
+                lat = registry.get("system/location/lat",None)
+                lon = registry.get("system/location/lon",None)
+            else:
+                raise ValueError("You set lon, but not lst?")
+            if lat == None or lon ==None:
+                raise RuntimeError("No server location set, fix this in system settings")
+
+            return (sky.sunrise(lat,lon,date))
+
+
+        @staticmethod
+        def civilDuskTime(lat=None,lon=None,date=None):
+            if lon == None:
+                lat = registry.get("system/location/lat",None)
+                lon = registry.get("system/location/lon",None)
+            else:
+                raise ValueError("You set lon, but not lst?")
+            if lat == None or lon ==None:
+                raise RuntimeError("No server location set, fix this in system settings")
+
+            return (sky.dusk(lat,lon,date))
+
+        @staticmethod
+        def civilDawnTime(lat=None,lon=None,date=None):
+            if lon == None:
+                lat = registry.get("system/location/lat",None)
+                lon = registry.get("system/location/lon",None)
+            else:
+                raise ValueError("You set lon, but not lst?")
+            if lat == None or lon ==None:
+                raise RuntimeError("No server location set, fix this in system settings")
+
+            return (sky.dawn(lat,lon,date))
+
+
+
+        @staticmethod
+        def rahuStart(lat=None,lon=None,date=None):
+            if lon == None:
+                lat = registry.get("system/location/lat",None)
+                lon = registry.get("system/location/lon",None)
+            else:
+                raise ValueError("You set lon, but not lst?")
+            if lat == None or lon ==None:
+                raise RuntimeError("No server location set, fix this in system settings")
+
+            return (sky.rahu(lat,lon,date)[0])
+
+        @staticmethod
+        def rahuEnd(lat=None,lon=None,date=None):
+            if lon == None:
+                lat = registry.get("system/location/lat",None)
+                lon = registry.get("system/location/lon",None)
+            else:
+                raise ValueError("You set lon, but not lst?")
+            if lat == None or lon ==None:
+                raise RuntimeError("No server location set, fix this in system settings")
+
+            return (sky.rahu(lat,lon,date)[1])
+
+
         @staticmethod
         def isDark(lat=None,lon=None):
+            if lon == None:
+                lat = registry.get("system/location/lat",None)
+                lon = registry.get("system/location/lon",None)
+            else:
+                raise ValueError("You set lon, but not lst?")
+            if lat == None or lon ==None:
+                raise RuntimeError("No server location set, fix this in system settings")
+
             return (sky.isDark(lat,lon))
 
         @staticmethod
@@ -210,8 +306,11 @@ class Kaithem():
                 if lon == None:
                     lat = registry.get("system/location/lat",None)
                     lon = registry.get("system/location/lon",None)
+                else:
+                    raise ValueError("You set lon, but not lst?")
                 if lat == None or lon ==None:
                     raise RuntimeError("No server location set, fix this in system settings")
+
 
             return (sky.isRahu(lat,lon))
 
@@ -258,6 +357,16 @@ class Kaithem():
         @staticmethod
         def moonPhase():
             return sky.moon()
+        
+        @staticmethod
+        def moonPercent():
+            x = sky.moon()
+            if x>14:
+                x-=14
+                x=14-x
+
+            return 100*(x/14.0)
+
 
         @staticmethod
         def accuracy():

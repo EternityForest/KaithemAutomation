@@ -149,6 +149,7 @@ def webRoot():
     from src import workers
   
     from src import tagpoints
+    #from src import builtintags
     
     def tagErrorHandler(tag,f, val):
         try:

@@ -490,18 +490,28 @@ Returns the day of the month in the server's time zone.
 
 #### kaithem.time.moonPhase()
 
-Returns the current moon phase as a number:
+Returns the current moon phase as a float number:
 
     0  = New moon
     7  = First quarter
     14 = Full moon
-    21 = Last quarter
+    21-28 = Last quarter
 
-**NOTE: isDay,isNight,isDark, and isLight may raise an exception if
+
+#### kaithem.time.sunriseTime(lat=None,lon=None,date=None)
+Returns the sunrise time on today's date, regardless of whether it is already passed or not.
+Defaults to the server location, right now.  Date can be a date object.
+
+#### kaithem.time.sunsetTime()
+#### kaithem.time.civilDawnTime()
+#### kaithem.time.civilDuskTime()
+See above.
+
+**NOTE: any of these may raise an exception if
 there is no sunrise or sunset in the current day(as in some regions in
 the arctic circle during some seasons).**
 
-#### kaithem.time.isDay(lat,lon)
+#### kaithem.time.isDay(lat=None,lon=None)
 
 Return true if it is before sunset in the given lat-lon location. If no
 coordinates are supplied, the server location configured in the settings
