@@ -16,6 +16,7 @@ if not os.path.exists(logdir):
         pass
 
 
+
 historyDBFile = os.path.join(logdir, "history.ldb")
 
 class TagLogger():
@@ -131,6 +132,8 @@ class TagLogger():
         self.accumVal = value
         self.accumTime = timestamp
         self.accumCount = 1
+        if isinstance(value,str):
+            value=value[:128]
 
         self.flush()
 
@@ -278,7 +281,7 @@ class TagHistorian():
         self.flusher = scheduling.scheduler.everyMinute(f)
 
 
-    def insertData(self,d):
+    def insertData(self,d):    
         self.pending.append(d)
 
     def forceFlush(self):
@@ -330,7 +333,11 @@ class TagHistorian():
                     self.history.execute('INSERT INTO record VALUES (?,?,?)',i)
             self.history.close()
 
-historian = TagHistorian(historyDBFile)
+
+try:
+    historian = TagHistorian(historyDBFile)
+except:
+    messagebus.postMessage("/system/notifications/errors","Failed to create tag historian, logging will not work."+"\n"+traceback.format_exc())
 
 
 """
@@ -1049,11 +1056,12 @@ class _TagPoint(virtualresource.VirtualResource):
                 length = float(i.get("historyLength",3*30*24*3600) or 3*30*24*3600)
 
                 accum = i['accumulate']
-
-                c = accumTypes[accum](self, interval,length)
-
-                self.configLoggers.append(c) 
-                
+                try:
+                    c = accumTypes[accum](self, interval,length)
+                    self.configLoggers.append(c)
+                except:
+                    messagebus.postMessage("/system/notifications/errors","Error creating logger for: "+self.name+"\n"+traceback.format_exc())
+                    
 
 
 

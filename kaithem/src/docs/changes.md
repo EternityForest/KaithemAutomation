@@ -12,6 +12,7 @@ Change Log
 - The mixing board now has a top bar entry
 - Main "Kaithem" banner is now a link to the main page by default
 - Shorten "Settings and Tools" to just "tools"
+- Message logging and notifications work way earlier in boot
 
 ### 0.65.36
 - SculleryMQTTConnection devices let you configure MQTT through the webUI

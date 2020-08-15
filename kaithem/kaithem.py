@@ -19,6 +19,8 @@
 __version__ = "0.65.36 Production"
 __version_info__ = (0,65,36,"release",0)
 
+
+
 #Library that makes threading and lock operations, which we use a lot of, use native code on linux
 try:
     import pthreading
@@ -62,6 +64,8 @@ from src import pathsetup
 #This must be done before CherryPy
 pathsetup.setupPath(linuxpackage = os.path.abspath(__file__).startswith("/usr/bin"))
 
+from src import messagelogging
+from src import notifications
 #Enable Cython JIT imports, needed by a few optional features.
 #Pyximport may become required in the future.
 pathsetup.setupCython()
@@ -113,8 +117,7 @@ from src import pylogginghandler
 
 from scullery import messagebus
 
-from src import messagelogging
-from src import notifications
+
 
 import importlib
 plugins = {}
@@ -145,6 +148,9 @@ def webRoot():
     logging.getLogger("cherrypy.access").propagate = False
 
 
+    from src import messagelogging
+    from src import notifications
+    
     #WE have to get the workers set up early because a lot of things depend on it.
     from src import workers
   
@@ -168,8 +174,7 @@ def webRoot():
     tagpoints.loadAllConfiguredTags(os.path.join(directories.vardir,"tags"))
 
 
-    from src import messagelogging
-    from src import notifications
+
 
 
     #Attempt to make pavillion work in a sane way that takes advantage of the thread pooling
