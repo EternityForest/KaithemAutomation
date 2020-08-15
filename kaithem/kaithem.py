@@ -384,7 +384,7 @@ def webRoot():
             pages.require("/admin/settings.edit")
             if "new_numtag" in data:
                 pages.require("/admin/settings.edit")
-                return pages.get_template('settings/tagpoint.html').render(new_numtag=data['new_numtag'],tagname=data['new_numtag'])
+                return pages.get_template('settitagpoinngs/tagpoint.html').render(new_numtag=data['new_numtag'],tagname=data['new_numtag'])
             if "new_strtag" in data:
                 pages.require("/admin/settings.edit")
                 return pages.get_template('settings/tagpoint.html').render(new_strtag=data['new_strtag'],tagname=data['new_strtag'])
@@ -399,7 +399,30 @@ def webRoot():
         def tagpointlog(self,*path,**data):
             #This page could be slow because of the db stuff, so we restrict it more
             pages.require("/admin/settings.edit")
-            return pages.get_template('settings/tagpointlog.html').render(tagName=path[0],data=data)
+            if not 'exportRows' in data:
+                return pages.get_template('settings/tagpointlog.html').render(tagName=path[0],data=data)
+            else:
+
+                import pytz,datetime
+                import dateutil.parser
+
+
+                for i in tagpoints.allTags[path[0]]().configLoggers:
+                    if i.accumType == data['exportType']:
+                        tz=pytz.timezone(auth.getUserSetting(pages.getAcessingUser(),'timezone'))
+                        logtime = tz.localize(dateutil.parser.parse(data['logtime'])).timestamp()
+                        raw = i.getDataRange(logtime, time.time()+10000000, int(data['exportRows']))
+
+                        if data['exportFormat']== "csv.iso":
+                            cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="%s"'%path[0].replace("/","_").replace(".","_").replace(":","_")[1:]+"_"+data['exportType']+ tz.localize(dateutil.parser.parse(data['logtime'])).isoformat()+".csv"
+                            cherrypy.response.headers['Content-Type']= 'text/csv'
+                            d = ["Time(ISO), "+path[0].replace(",",'')+' <accum '+data['exportType']+'>']
+                            for i in raw:
+                                dt = datetime.datetime.fromtimestamp(i[0])
+                                d.append(dt.isoformat()+","+str(i[1])[:128] )
+                            return '\r\n'.join(d)+'\r\n'
+
+      
 
         @cherrypy.expose
         def zipstatic(self,*path,**data):

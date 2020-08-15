@@ -86,8 +86,28 @@ def combineLogs(a):
 %if hasattr(tag, 'configLoggers'):
 <h3>Recent Log Data from ${unitsofmeasure.strftime(logtime)}</h3>
 <p class="help">All times use the time zone and format from your user settings.</p>
+
+<h4>Export Data</h4>
 <form action="/tagpointlog/${tag.name|u}">
-    <input name="logtime" type='datetime-local' value="${pytz.utc.localize(datetime.datetime.utcnow()).astimezone(tz).replace(microsecond=0).replace(tzinfo=None).isoformat()}">UTC <button type="submit">Goto Time</button>
+    <label>Starting Time:<input name="logtime" type='datetime-local' value="${pytz.utc.localize(datetime.datetime.utcnow()-datetime.timedelta(days=1)).astimezone(tz).replace(microsecond=0,second=0).replace(tzinfo=None).isoformat()}"></label>
+    <label>Max Values:<input type=number name="exportRows" value="10000"></label>
+    <label>Export As:<select name='exportFormat'>
+        <option value="csv.iso">CSV File(ISODate, Value)</option>
+    </select></label>
+
+    <label>Data to export:<select name='exportType'>
+        <option value="mean">Mean/Average</option>
+        <option value="latest">Latest</option>
+        <option value="max">Max</option>
+        <option value="min">Min</option>
+    </select></label>
+
+    <button type="submit">Get File</button>
+</form>
+<h4>Goto</h4>
+
+<form action="/tagpointlog/${tag.name|u}">
+    <input name="logtime" type='datetime-local' value="${pytz.utc.localize(datetime.datetime.utcnow()).astimezone(tz).replace(microsecond=0,second=0).replace(tzinfo=None).isoformat()}"> <button type="submit">Goto Time</button>
 </form>
 
 <table border=1>
