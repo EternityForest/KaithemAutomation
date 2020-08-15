@@ -456,6 +456,8 @@ class Kaithem():
 
         controllers = pages.nativeHandlers
 
+        navBarPlugins = pages.navBarPlugins
+
         @staticmethod
         def unurl(s):
             return util.unurl(s)

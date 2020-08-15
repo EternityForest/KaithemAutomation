@@ -5,6 +5,13 @@ Change Log
 - Tag data historian configurable from web UI(Everything is saved to history.db if configured, CSV export is possible)
 - Fix SG1 gateway tagpoint error from previous version
 - Chandler Rules engine supports isLight and isDark functions.
+- Fix bug that made some errors not get reported to the parent event
+- Modules can now add pages to the main bar with kaithem.web.navBarPlugins
+- No more link to the page index on the top
+- Chandler now creates a toolbar entry
+- The mixing board now has a top bar entry
+- Main "Kaithem" banner is now a link to the main page by default
+- Shorten "Settings and Tools" to just "tools"
 
 ### 0.65.36
 - SculleryMQTTConnection devices let you configure MQTT through the webUI

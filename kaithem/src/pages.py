@@ -35,6 +35,10 @@ def get_vardir_template(fn):
     return _varLookup.get_template(os.path.relpath(fn, directories.vardir))
 
 
+
+navBarPlugins = weakref.WeakValueDictionary()
+
+
 webResources = {}
 
 webResourceLock = threading.Lock()

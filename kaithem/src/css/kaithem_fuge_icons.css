@@ -44,6 +44,7 @@ span.page-icon::before
  content: url(/static/img/icons/silk/page.png);
 }
 
+
 span.permission-icon::before
 {
  content: url(/static/img/icons/silk/key.png);
@@ -64,6 +65,11 @@ span.settings-icon::before
  content: url(/static/img/icons/silk/cog.png);
 }
 
+
+span.sound-icon::before
+{
+	content: url(/zipstatic/img/icons/fugue.zip/speaker-volume.png);
+}
 
 span.info-icon::before
 {

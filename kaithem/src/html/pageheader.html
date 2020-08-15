@@ -14,81 +14,99 @@ import cherrypy,socket
 </head>
 
 <body id="page">
-
   <div style="width: 100%;">
     ${config['top-banner-html'].replace("HOSTNAME",socket.gethostname())}
 
     <div border="" id="nav">
-      <div><a class="link mainpagelink" href="/">Main</a>
-        %if config['enable-js'] and pages.canUserDoThis("/admin/mainpage.view"):
-        <span id="notifications">
-          <script type="text/javascript">
-            function getCookie(c_name) {
-              var c_value = document.cookie;
-              var c_start = c_value.indexOf(" " + c_name + "=");
-              if (c_start == -1) {
-                c_start = c_value.indexOf(c_name + "=");
-              }
-              if (c_start == -1) {
-                c_value = null;
-              }
-              else {
-                c_start = c_value.indexOf("=", c_start) + 1;
-                var c_end = c_value.indexOf(";", c_start);
-                if (c_end == -1) {
-                  c_end = c_value.length;
-                }
-                c_value = unescape(c_value.substring(c_start, c_end));
-              }
-              return c_value;
+
+
+  <div style="flex-grow: 0.05;">
+    %if config['enable-js'] and pages.canUserDoThis("/admin/mainpage.view"):
+    <a id="notifications" href="/" title="New Notifications">
+      <script type="text/javascript">
+        function getCookie(c_name) {
+          var c_value = document.cookie;
+          var c_start = c_value.indexOf(" " + c_name + "=");
+          if (c_start == -1) {
+            c_start = c_value.indexOf(c_name + "=");
+          }
+          if (c_start == -1) {
+            c_value = null;
+          }
+          else {
+            c_start = c_value.indexOf("=", c_start) + 1;
+            var c_end = c_value.indexOf(";", c_start);
+            if (c_end == -1) {
+              c_end = c_value.length;
             }
+            c_value = unescape(c_value.substring(c_start, c_end));
+          }
+          return c_value;
+        }
 
 
-            if (!getCookie("LastSawMainPage")) {
-              y = 0
+        if (!getCookie("LastSawMainPage")) {
+          y = 0
+        }
+        else {
+          y = getCookie("LastSawMainPage");
+        }
+        notifications_socket = new WebSocket(window.location.protocol.replace("http", "ws") + "//" + window.location.host + '/notifications/ws?since=' + y);
+
+        notifications_socket.onmessage = function (e) {
+          try {
+            var k = JSON.parse(e.data);
+
+            if (k[0] > 0) {
+              document.getElementById("notifications").innerHTML = "Main (" + k[0] + ")";
+
+              if (k[2] > 0) {
+                document.getElementById("notifications").className = "warning";
+              }
+
+              if (k[3] > 0) {
+                document.getElementById("notifications").className = "error";
+              }
+
             }
             else {
-              y = getCookie("LastSawMainPage");
+              document.getElementById("notifications").innerHTML = 'Main (0)';
             }
-            notifications_socket = new WebSocket(window.location.protocol.replace("http", "ws") + "//" + window.location.host + '/notifications/ws?since=' + y);
+          }
+          catch (err) {
+            console.log("JSON Parse Error in websocket response:\n" + e.data);
+          }
+        }
 
-            notifications_socket.onmessage = function (e) {
-              try {
-                var k = JSON.parse(e.data);
+      </script>
+    </a>
+    %endif
 
-                if (k[0] > 0) {
-                  document.getElementById("notifications").innerHTML = "(" + k[0] + ")";
+  </div>
 
-                  if (k[2] > 0) {
-                    document.getElementById("notifications").className = "warning";
-                  }
 
-                  if (k[3] > 0) {
-                    document.getElementById("notifications").className = "error";
-                  }
+      
 
-                }
-                else {
-                  document.getElementById("notifications").innerHTML = '';
-                }
-              }
-              catch (err) {
-                console.log("JSON Parse Error in websocket response:\n" + e.data);
-              }
-            }
+      <%
+      nbp = []
+      for i in pages.navBarPlugins:
+        x = pages.navBarPlugins[i]()
+        if x:
+          nbp.append(x)
+        nbp=sorted(nbp)
+      %>
+      %for i in nbp:
+      <div>${i[1]}</div>
+      %endfor
 
-          </script>
-        </span>
-        %endif
 
-      </div>
-      <div><a class="moduleslink" href="/modules/">Modules</a>
+
+      <div ><a class="moduleslink" href="/modules/">Modules</a>
         %if modules.unsaved_changed_obj:
         <span title="The modules have unsaved changes"><a href="/settings/save">*</a></span>
         %endif
       </div>
-        <div><a class="pageslink" href="/pagelisting">Page Index</a></div>
-        <div>
+        <div >
           %if devices.unsaved_changes:
           <span title="The modules have unsaved changes"><a href="/settings/save">*</a></span>
           %endif
@@ -96,10 +114,13 @@ import cherrypy,socket
         </div>
 
 
-        <div>
-          <a class="tagslink" href="/tagpoints">Tag Points</a>
+        <div >
+          <a  class="tagslink" href="/tagpoints">Tags</a>
         </div>
-        <div><a class="settingslink" href="/settings">Settings and Tools</a>
+
+        <div ><span class="sound-icon"></span><a href="/settings/mixer">Mixer</a></div>
+
+        <div style="flex-grow: 0.05;" ><a class="settingslink" href="/settings" >Tools</a>
 
 
           %if auth.authchanged:
@@ -115,20 +136,27 @@ import cherrypy,socket
           <span title="The there are persistance files with unsaved changes"><a href="/settings/save">*</a></span>
           %endif
         </div>
-        <div><a class="helplink" href="/helpmenu">Help</a></div>
+
+
+        <div style="flex-grow: 0.05;"><a class="helplink" href="/helpmenu">Help</a></div>
 
         %if "auth" in cherrypy.request.cookie:
 
         %if cherrypy.request.cookie['auth'].value in auth.Tokens:
-        <div><a class="loginlink" href="/login/logout">Logout(${pages.getAcessingUser()[:10]|h})</a></div>
+        <div style="flex-grow: 0.05;" ><a class="loginlink" href="/login/logout">Logout(${pages.getAcessingUser()[:10]|h})</a></div>
 
         %else:
-        <div><a class="loginlink" href="/login?go=${util.url(cherrypy.url())}">Login</a></div>
+        <div style="flex-grow: 0.05;"><a class="loginlink" href="/login?go=${util.url(cherrypy.url())}">Login</a></div>
         %endif
 
         %else:
-        <div><a class="loginlink" href="/login?go=${util.url(cherrypy.url())}">Login</a></div>
+        <div style="flex-grow: 0.05;"><a class="loginlink" href="/login?go=${util.url(cherrypy.url())}">Login</a></div>
         %endif
+
+
+  
+        
+
       </div>
     </div>
     <main>

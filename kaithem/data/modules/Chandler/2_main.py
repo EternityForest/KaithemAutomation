@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1597049329357890
+resource-timestamp: 1597531396174859
 resource-type: event
 versions: {}
 
@@ -24,6 +24,10 @@ if __name__=='__setup__':
     from tinytag import TinyTag
     from typeguard import typechecked
     
+    
+    def nbr():
+        return(50, '<a href="/pages/Chandler/Console"><img src="/static/img/icons/kenny/tent.png" style="height:1.8ex;" ></img>Chandler</a>')
+    kaithem.web.navBarPlugins['chandler']=nbr
     
     logger = logging.getLogger("system.chandler")
     
