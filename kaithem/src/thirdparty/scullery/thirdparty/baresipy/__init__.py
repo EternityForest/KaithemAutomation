@@ -1,9 +1,6 @@
 from time import sleep
 import pexpect,re,traceback,shutil
 from os.path import join, expanduser
-from opentone import ToneGenerator
-from responsive_voice import ResponsiveVoice
-from pydub import AudioSegment
 import tempfile
 import logging
 import subprocess
@@ -39,7 +36,11 @@ class BareSIP(Thread):
         if tts:
             self.tts = tts
         else:
-            self.tts = ResponsiveVoice(gender=ResponsiveVoice.MALE)
+			try:
+				from responsive_voice import ResponsiveVoice
+				self.tts = ResponsiveVoice(gender=ResponsiveVoice.MALE)
+			except ImportError:
+				logging.exception("No responsive_voice module, some features will not work")
         self._login = "sip:{u}:{p}@{g}".format(u=self.user, p=self.pwd,
                                                g=self.gateway)
         self._prev_output = ""
@@ -193,6 +194,7 @@ class BareSIP(Thread):
         self.abort = True
 
     def send_dtmf(self, number):
+		from opentone import ToneGenerator
         number = str(number)
         for n in number:
             if n not in "0123456789":
@@ -226,6 +228,7 @@ class BareSIP(Thread):
 
     @staticmethod
     def convert_audio(input_file, outfile=None):
+		from pydub import AudioSegment
         input_file = expanduser(input_file)
         sound = AudioSegment.from_file(input_file)
         sound += AudioSegment.silent(duration=500)
@@ -234,7 +237,7 @@ class BareSIP(Thread):
         while sound.duration_seconds < 3:
             sound += AudioSegment.silent(duration=500)
 
-        outfile = outfile or join(tempfile.gettempdir(), "pybaresip.wav")
+		outfile = outfile or join(tempfile.gettempdir(), "pybaresip.wav")
         sound = sound.set_frame_rate(48000)
         sound = sound.set_channels(2)
         sound.export(outfile, format="wav")

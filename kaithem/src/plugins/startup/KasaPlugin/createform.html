@@ -7,7 +7,11 @@ import traceback
 KasaPlugin.maybeRefresh(30)
 %>
 <h2>Kasa Device Info</h2>
-
+<p class="warning">WARNING: All kinds of annoyances have been seen with these Kasa devices, including discovery not working at all.
+    This plugin will remain for legacy reasons, but unless there is some kind of reverse engineering breakthrough, you may experience issues,
+    and may want to avoid devices that lack an open protocol. Without discovery, you may not
+    be able to get them to work, except by connecting directly to it in the unconfigured open hotspot mode.
+</p>
 <datalist id="devices">
     %for i in KasaPlugin.lookup:
     <option value="${i}"></option>
@@ -17,12 +21,15 @@ KasaPlugin.maybeRefresh(30)
 
 <table border="1" style="width:40em">
     <p>Changing name and WiFi credentials changes the on-device settings, one time when hitting submit. Passwords and name
-        change requests aren't stored anywhere but the server.
+        change requests aren't stored anywhere but the bulb.
+    </p>
+    
+	<p>When the bulb acts as a hotspot, you can use 192.168.0.1 as the locator to configure it.
     </p>
     
     <tr>
         <td>Current Device locator(IP address or device alias)</td>
-        <td><input list="devices" name="temp.locator"></td>
+        <td><input list="devices" name="temp.locator" value="192.168.0.1"></td>
     </tr>
 
     <tr>
