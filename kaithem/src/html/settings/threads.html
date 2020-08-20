@@ -17,9 +17,10 @@ info = sys._current_frames()
 %if i.daemon:
 <i>(daemon)</i>
 %endif
-%if 0:
-<a class="button warning" title="Kill using SystemExit" href="/settings/killThread/${str(id(i))|u}">Kill</a>
-%endif
+<form action="/settings/killThread/${str(id(i))|u}" method="POST" onsubmit="return confirm('Are you sure? This uses ugly hacks, you maybe should not')" >
+<button class="warning" title="Kill using SystemExit">Kill</button>
+</form>
+
 </dt>
 <dd>
 
