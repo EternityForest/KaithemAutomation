@@ -350,6 +350,9 @@ class ChandlerScriptContext():
         #Used for detecting loops
         self.eventRecursionDepth = 0
 
+
+        self.eventQueue("Used for doing stuff in the background")
+
         #Should we propagate events to children
         self.propagateEvents=False
 
@@ -534,8 +537,22 @@ class ChandlerScriptContext():
         self.tagHandlers[tag.name]=(tag,onchange)
         
 
+    def doEventQueue(self):
+        #Run all events in the queue, under the gil.
+        #
+        while self.eventQueue:
+            if self.gil.acquire(timeout=5):
+                try:
+                    if self.eventQueue:
+                        self.eventQueue.pop(False)()
+                finally:
+                    self.gil.release()
+
     def onTagChange(self,tagname, val):
-        with self.gil:
+        """ We make a best effort to run this synchronously. If we cannot,
+            We let the background thread handle it.
+        """     
+        def f():
             if isinstance(val,str) and len(val)>16000:
                 raise RuntimeError(tagname+" val too long for chandlerscript")
             self.setVar("$tag:"+tagname,val,True)
@@ -546,6 +563,16 @@ class ChandlerScriptContext():
                         self.needRefreshForTag[tagname]=True
             if self.needRefreshForTag[tagname]:
                 self.checkPollEvents()
+        
+        if self.gil.acquire(timeout=0.05):
+            try:
+                f()
+            finally:
+                self.gil.release()
+        else:
+            self.eventQueue.append(f)
+            workers.do(self.doEventQueue)
+            
 
     def canGetTagpoint(self,t):
         if not t in self.tagpoints and len(self.tagpoints)>128:
@@ -578,9 +605,22 @@ class ChandlerScriptContext():
 
 
         
-    def event(self,evt,val=None):
-        with self.gil:
-            return self._event(evt,val)
+    def event(self,evt,val=None, timeout=20):
+        if self.gil.acquire(timeout=20):
+            try:
+                return self._event(evt,val)
+            finally:
+                self.gil.release()
+        else:
+            raise RuntimeError("Could not get GIL to run this event")
+
+    def queueEvent(self,evt,val=None):
+        "Queue an event to run in the background. Queued events run in FIFO"
+        def f():
+            self._event(evt,val)
+        
+        self.eventQueue.append(f)
+        workers.do(self.doEventQueue)
 
     def _event(self,evt, val):
         handled = False
@@ -612,7 +652,8 @@ class ChandlerScriptContext():
                 self.event("script.error",self.contextName+"\n"+traceback.format_exc(chain=True))
                 raise
         finally:
-            self.eventValueStack.pop()
+            if self.eventValueStack:
+                self.eventValueStack.pop()
             if isOuter:
                 self.eventRecursionDepth=0
 
@@ -667,7 +708,9 @@ class ChandlerScriptContext():
         raise NameError("No such name: "+n)
 
     def setVar(self,k,v,force=False):
-        with self.gil:
+        if not self.gil.acquire(timeout=10):
+            raise RuntimeError("Could not get lock")
+        try:
             if k.startswith("$tag:"):
                 if not force:
                     raise NameError("Tagpoint variables are not writable. Use setTag(name, value, claimPriority)")
@@ -682,6 +725,8 @@ class ChandlerScriptContext():
                         self.needRefreshForVariable[k]=True
             if self.needRefreshForVariable[k]:
                 self.checkPollEvents()
+       finally:
+           self.gil.release()
 
     
     def onVarSet(self,k,v):

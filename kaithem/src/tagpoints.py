@@ -1197,36 +1197,46 @@ class _TagPoint(virtualresource.VirtualResource):
 
     @typechecked
     def subscribe(self,f:Callable):
-        with self.lock:
-            
-            if isinstance(f,types.MethodType):
-                ref=weakref.WeakMethod(f)
-            else:
-                ref = weakref.ref(f)
+        if self.lock.acquire(timeout=20):
+            try:
+                
+                if isinstance(f,types.MethodType):
+                    ref=weakref.WeakMethod(f)
+                else:
+                    ref = weakref.ref(f)
 
-            self.subscribers.append(ref)
+                self.subscribers.append(ref)
 
 
-            torm = []
-            for i in self.subscribers:
-                if not i():
-                    torm.append(i)
-            for i in torm:
-                self.subscribers.remove(i)
-            
-            self._managePolling()
-    
+                torm = []
+                for i in self.subscribers:
+                    if not i():
+                        torm.append(i)
+                for i in torm:
+                    self.subscribers.remove(i)
+                
+                self._managePolling()
+            finally:
+                self.lock.release()
+        else:
+            raise RuntimeError("Cannot get lock to subscribe to this tag. Is there a long running subscriber?")
+        
     def unsubscribe(self,f):
-        with self.lock:
-            x = None
-            for i in self.subscribers:
-                if i()==f:
-                    x = i
-            if x:
-                self.subscribers.remove(x)
+        if self.lock.acquire(timeout=20):
+            try:
+                x = None
+                for i in self.subscribers:
+                    if i()==f:
+                        x = i
+                if x:
+                    self.subscribers.remove(x)
+                
+                self._managePolling()
+            finally:
+                self.lock.release()
+        else:
+            raise RuntimeError("Cannot get lock to subscribe to this tag. Is there a long running subscriber?")
             
-            self._managePolling()
-
     @typechecked
     def setHandler(self, f:Callable):
         self.handler=weakref.ref(f)
@@ -1235,16 +1245,24 @@ class _TagPoint(virtualresource.VirtualResource):
         pass
 
     def poll(self):
-        with self.lock:
-            self._getValue()
-            self._push()
+        if self.lock.acquire(timeout=5):
+            try:
+                self._getValue()
+                self._push()
+            finally:
+                self.lock.release()
 
     def pull(self):
-        with self.lock:
-            x = self._getValue(True)
-            self._push()
-            return x
-        
+        if self.lock.acquire(timeout=30):
+            try:
+                x = self._getValue(True)
+                self._push()
+                return x
+            finally:
+                self.lock.release()
+        else:
+            raise RuntimeError("Could not get lock")
+
 
     def _push(self):
         """Push to subscribers. Only call under the same lock you changed value
@@ -1331,7 +1349,9 @@ class _TagPoint(virtualresource.VirtualResource):
                     #However, the actual logic IS ratelimited
                     #Note the lock is IN the try block so we don' handle errors under it and
                     #Cause bugs that way
-                    with self.lock:
+                    if not self.lock.acquire(timeout=20):
+                        raise RuntimeError("Error getting lock")
+                    try:
                         #None means no new data
                         x = activeClaimValue()
                         t = time.monotonic()
@@ -1343,6 +1363,9 @@ class _TagPoint(virtualresource.VirtualResource):
 
                         self.cachedRawClaimVal= x or self.cachedRawClaimVal
                         self.lastValue = self.processValue(self.cachedRawClaimVal)
+                    finally:
+                        self.lock.release()
+                        
                 except:
                     #We treat errors as no new data.
                     logger.exception("Error getting tag value")
@@ -1388,7 +1411,9 @@ class _TagPoint(virtualresource.VirtualResource):
         if not callable(value):
             value=self.filterValue(value)
             
-        with self.lock:
+        if not self.lock.acquire(timeout=15):
+            raise RuntimeError("Could not get lock")
+        try:
             #we're changing the value of an existing claim,
             #We need to get the claim object, which we stored by weakref
             claim=None
@@ -1449,6 +1474,8 @@ class _TagPoint(virtualresource.VirtualResource):
             self._getValue()
             self._push()           
             return claim
+        finally:
+            self.lock.release()
 
     def setClaimVal(self,claim,val,timestamp,annotation):
         "Set the value of an existing claim"
@@ -1457,8 +1484,11 @@ class _TagPoint(virtualresource.VirtualResource):
         
         if not callable(val):
             val=self.filterValue(val)
+
+        if not self.lock.acquire(timeout=10):
+            raise RuntimeError("Could not get lock!")
         
-        with self.lock:
+        try:
             c=self.claims[claim]
             #If we're setting the active claim
             if c==self.activeClaim:
@@ -1478,7 +1508,8 @@ class _TagPoint(virtualresource.VirtualResource):
                 self.annotation=annotation
                 self._getValue()
                 self._push()
-
+        finally:
+            self.lock.release()
               
 
 
@@ -1487,7 +1518,10 @@ class _TagPoint(virtualresource.VirtualResource):
         return Claim(self, value,name,priority,timestamp,annotation)
 
     def release(self, name):
-        with self.lock:
+        if not self.lock.acquire(timeout=10):
+            raise RuntimeError("Could not get lock!")
+
+        try:
             #Ifid lets us filter by ID, so that a claim object that has
             #Long since been overriden can't delete one with the same name
             #When it gets GCed
@@ -1517,7 +1551,8 @@ class _TagPoint(virtualresource.VirtualResource):
             self._getValue()
             self._push()
             self._managePolling()
-
+        finally:
+            self.lock.release()
 
 class _NumericTagPoint(_TagPoint):
     defaultData=0
@@ -1555,7 +1590,9 @@ class _NumericTagPoint(_TagPoint):
    
     @property
     def meterWidget(self):
-        with self.lock:
+        if not self.lock.acquire(timeout=5):
+            raise RuntimeError("Error getting lock")
+        try:
             if self._meterWidget:
                 x = self._meterWidget
                 if x:
@@ -1575,7 +1612,9 @@ class _NumericTagPoint(_TagPoint):
                 finally:
                     self.guiLock.release()
             return self._meterWidget
-    
+        finally:
+            self.lock.release()
+
     def _guiPush(self, value):
         if not self._meterWidget:
             return
