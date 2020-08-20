@@ -17,6 +17,9 @@ info = sys._current_frames()
 %if i.daemon:
 <i>(daemon)</i>
 %endif
+%if 0:
+<a class="button warning" title="Kill using SystemExit" href="/settings/killThread/${str(id(i))|u}">Kill</a>
+%endif
 </dt>
 <dd>
 

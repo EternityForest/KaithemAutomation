@@ -26,6 +26,19 @@ scale.
 It is suggested that you not do anything with annotations besides equality testing, or that you
 always typecheck the value as it defaults to None.
 
+### Locking
+
+When you write to a tag, it will call all subscribers under a reentrant lock.
+This of course, means that it is possible to create deadlocks.
+
+To prevent this, tags have a timeout, of around ten seconds after which they will give up on most actions and raise a RuntimeError. As kaithem is all about auto-retry in case of error, this shoud save you from most mistaks, but you should still be aware.
+
+Reading from tags may or may not involve the lock, due to caching. 
+
+You can always break possible lock cycles by doing something in a background thread,
+if the application can handle it.
+
+
 ### Expression Tags
 Any tag having a name that begins with an equals sign will be created with a getter that evaluates the name as an expression.  The priority of the expression source will be 98.
 

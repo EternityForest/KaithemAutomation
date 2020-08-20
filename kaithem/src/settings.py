@@ -12,7 +12,7 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import cherrypy,base64,os,time,subprocess,time,shutil,sys,logging,traceback,zipfile
+import cherrypy,base64,os,time,subprocess,time,shutil,sys,logging,traceback,zipfile,threading
 from cherrypy.lib.static import serve_file
 from . import pages, util,messagebus,config,auth,registry,mail,kaithemobj, config,weblogin,systasks,gpio,directories,persist
 import io
@@ -51,6 +51,14 @@ class Settings():
         """Return a page showing all of kaithem's current running threads"""
         pages.require("/admin/settings.view", noautoreturn=True)
         return pages.get_template("settings/threads.html").render()
+
+    @cherrypy.expose
+    def killThread(self, a):
+        pages.require("/admin/settings.edit", noautoreturn=True)
+        for i in threading.enumerate():
+            if str(id(i))== a:
+                i.exit()
+        raise cherrypy.HTTPRedirect("/settings/threads")
 
     @cherrypy.expose
     def mixer(self):

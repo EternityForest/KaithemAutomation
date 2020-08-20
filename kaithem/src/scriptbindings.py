@@ -331,6 +331,10 @@ class ChandlerScriptContext():
     tagDefaultPrefix = '/sandbox/'
     def __init__(self,parentContext=None, gil=None,functions={},variables=None, constants=None,contextFunctions={},contextName="script"):
         self.pipelines = []
+        
+        #Used as a backup plan to be able to do things in a background thread
+        #when doing so directly would cause a deadlock
+        self.eventQueue=[]
         self.eventListeners = {}
         self.variables = variables if not variables is None else {}
         self.commands= ScriptActionKeeper()
@@ -351,7 +355,6 @@ class ChandlerScriptContext():
         self.eventRecursionDepth = 0
 
 
-        self.eventQueue("Used for doing stuff in the background")
 
         #Should we propagate events to children
         self.propagateEvents=False
@@ -469,18 +472,22 @@ class ChandlerScriptContext():
         self.tagHandlers = {}
         self.tagClaims = {}
 
-        def tagpoint(tagName):
-            tagName= self.canGetTagpoint(tagName)
+        def tagpoint(t):
+            tagName= self.canGetTagpoint(tn)
+            if not tagName:
+                raise RuntimeError("It seems you do not have access to:"+t)
             t = tagpoints.Tag(tagName)
             self.setupTag(t)
-            self.setVar("$tag:"+tagName,t.value,True)
+            self.setVar("$tag:"+t.name,t.value,True)
             return t.value
             
         def stringtagpoint(t):
-            tagName= self.canGetTagpoint(tagName)
+            tagName= self.canGetTagpoint(t)
+            if not tagName:
+                raise RuntimeError("It seems you do not have access to:"+t)
             t = tagpoints.StringTag(tagName)
             self.setupTag(t)
-            self.setVar("$tag:"+tagName,t.value,True)
+            self.setVar("$tag:"+t.name,t.value,True)
             return t.value
        
         c['tagValue']= tagpoint
@@ -542,11 +549,13 @@ class ChandlerScriptContext():
         #
         while self.eventQueue:
             if self.gil.acquire(timeout=5):
-                try:
-                    if self.eventQueue:
-                        self.eventQueue.pop(False)()
-                finally:
-                    self.gil.release()
+                #Run them all as one block
+                while self.eventQueue:
+                    try:
+                        if self.eventQueue:
+                            self.eventQueue.pop(False)()
+                    finally:
+                        self.gil.release()
 
     def onTagChange(self,tagname, val):
         """ We make a best effort to run this synchronously. If we cannot,
@@ -725,7 +734,7 @@ class ChandlerScriptContext():
                         self.needRefreshForVariable[k]=True
             if self.needRefreshForVariable[k]:
                 self.checkPollEvents()
-       finally:
+        finally:
            self.gil.release()
 
     

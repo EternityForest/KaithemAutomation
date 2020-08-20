@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1597528821477077
+resource-timestamp: 1597913868946125
 resource-type: page
 template-engine: mako
 
@@ -2868,12 +2868,19 @@ from src import tagpoints
                {
                    if(appData.eventlogautoscroll)
                    {
-                       var element = document.getElementById('eventlogbox');
-                       setTimeout(function(){
-                        if(element){
-                            element.scrollTop = element.scrollHeight-element.clientHeight;
-                        }
+                       var d = document.getElementById('eventlogbox');
+                        var isscrolled =d.scrollTop+d.clientHeight+35 >= d.scrollHeight;
+
+                        if(isscrolled)
+                            {
+                           setTimeout(function(){
+                            if(d){
+                         
+                                    d.scrollTop = d.scrollHeight;
+    
+                        } 
                        },150)
+                       }
 
                    }              
                     

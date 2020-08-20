@@ -625,6 +625,12 @@ class _TagPoint(virtualresource.VirtualResource):
         if name in allTags:
             raise RuntimeError("Tag with this name already exists, use the getter function to get it instead")
         virtualresource.VirtualResource.__init__(self)
+
+
+        #True if there is already a copy of the deadlock diagnostics running
+        self.testingForDeadlock=False
+
+        self.alreadyPostedDeadlock = False
         
         #Might be the number, or might be the getter function.
         #it's the current value of the active claim
@@ -736,7 +742,27 @@ class _TagPoint(virtualresource.VirtualResource):
         offset = time.time()-time.monotonic()
         return t+offset
           
-    
+    def testForDeadlock(self):
+        "Run a check in the background to make sure this lock isn't clogged up"
+        def f():
+            #Approx check, more than one isn't the worst thing
+            if self.testingForDeadlock:
+                return
+
+            
+            self.testingForDeadlock=True
+
+            if self.lock.acquire(timeout=30):
+                self.lock.release()
+            else:
+                if not self.alreadyPostedDeadlock:
+                    messagebus.postMessage("/system/notifications/errors","Tag point: "+self.name+" has been unavailable for 30s and may be involved in a deadlock. see threads view.")
+                    self.alreadyPostedDeadlock=True
+
+            self.testingForDeadlock=False
+        workers.do(f)
+
+        
     def _recordConfigAttr(self,k,v):
         "Make sure a config attr setting gets saved"
         if not v in (None,'') and v.strip():
@@ -992,6 +1018,8 @@ class _TagPoint(virtualresource.VirtualResource):
         with lock:
             self.sourceTags = {}
             hasUnsavedData[0]=True
+            #New config, new chance to see if there's a problem.
+            self.alreadyPostedDeadlock=False
 
             if data and not self.name in configTagData:
                 configTagData[self.name]= persist.getStateFile(getFilenameForTagConfig(self.name))
@@ -1219,6 +1247,7 @@ class _TagPoint(virtualresource.VirtualResource):
             finally:
                 self.lock.release()
         else:
+            self.testForDeadlock()
             raise RuntimeError("Cannot get lock to subscribe to this tag. Is there a long running subscriber?")
         
     def unsubscribe(self,f):
@@ -1235,6 +1264,7 @@ class _TagPoint(virtualresource.VirtualResource):
             finally:
                 self.lock.release()
         else:
+            self.testForDeadlock()
             raise RuntimeError("Cannot get lock to subscribe to this tag. Is there a long running subscriber?")
             
     @typechecked
@@ -1251,6 +1281,8 @@ class _TagPoint(virtualresource.VirtualResource):
                 self._push()
             finally:
                 self.lock.release()
+        else:
+            self.testForDeadlock()
 
     def pull(self):
         if self.lock.acquire(timeout=30):
@@ -1261,6 +1293,7 @@ class _TagPoint(virtualresource.VirtualResource):
             finally:
                 self.lock.release()
         else:
+            self.testForDeadlock()
             raise RuntimeError("Could not get lock")
 
 
@@ -1349,8 +1382,19 @@ class _TagPoint(virtualresource.VirtualResource):
                     #However, the actual logic IS ratelimited
                     #Note the lock is IN the try block so we don' handle errors under it and
                     #Cause bugs that way
-                    if not self.lock.acquire(timeout=20):
-                        raise RuntimeError("Error getting lock")
+
+                    #Viewing the state is pretty critical, we don't want to block
+                    #that too long or we might interfere with manual recovery
+                    if not self.lock.acquire(timeout=10 if force else 1):
+                
+                        self.testForDeadlock()
+                        if force:
+                            raise RuntimeError("Error getting lock")
+                        #We extend the idea that cache is allowed to also
+                        #mean we can fall back to cache in case of a timeout.
+                        else:
+                            logging.error("tag point:"+ self.name+" took too long getting lock to get value, falling back to cache")
+                            return self.lastValue
                     try:
                         #None means no new data
                         x = activeClaimValue()
@@ -1597,6 +1641,8 @@ class _NumericTagPoint(_TagPoint):
                 x = self._meterWidget
                 if x:
                     self._guiPush(self.value)
+                    #Put if back if the function tried to GC it.
+                    self._meterWidget =x
                     return self._meterWidget
 
             self._meterWidget= widgets.Meter()

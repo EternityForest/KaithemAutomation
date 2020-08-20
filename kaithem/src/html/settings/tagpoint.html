@@ -230,7 +230,13 @@ def combineLogs(a):
 <tr>
     <td><a href="/tagpoints/${normalizednormalizedTagName|u}">${normalizednormalizedTagName|h}</a></td>
     <td>${tag.type|h}</td>
+    %try:
     <td>${tag.meterWidget.render()}</td>
+    %except Exception as e:
+    ${e|h}</td>
+    %endtry
+
+
     <td>${tag.interval}</td>
     <td>${tag.min}</td>
     <td>${tag.max}</td>

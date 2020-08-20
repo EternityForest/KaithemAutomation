@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+### 0.65.38
+- Tags will raise errors instead of deadlocking
+- Changler tag events are handled in a separate thread if needed, to prevent deadlocks
+- Fix autoscroll in chandler
+- Fox tag point page if an error causes the meter widget to be unavailable
+
 ### 0.65.37
 - Tag data historian configurable from web UI(Everything is saved to history.db if configured, CSV export is possible)
 - Fix SG1 gateway tagpoint error from previous version
