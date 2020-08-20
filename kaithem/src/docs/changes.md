@@ -3,10 +3,10 @@ Change Log
 
 ### 0.65.38
 - Tags will raise errors instead of deadlocking
-- Changler tag events are handled in a separate thread if needed, to prevent deadlocks
 - Fix autoscroll in chandler
 - Fix tag point page if an error causes the meter widget to be unavailable
 - Ability to send SystemExit to threads from a settings page, to try to fix inifinite loops
+- ChandlerScript/Logic editor events and tag changes are queued and ran in the background.
 
 ### 0.65.37
 - Tag data historian configurable from web UI(Everything is saved to history.db if configured, CSV export is possible)

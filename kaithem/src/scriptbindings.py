@@ -67,12 +67,12 @@ If there is an unrecognized type, it is treated as a string.
 
 
 from types import MethodType
-from . import tagpoints,util
+from . import tagpoints,util,workers
 import simpleeval
 
 simpleeval.MAX_POWER = 1024
 
-import weakref,threading, inspect,traceback
+import weakref,threading, inspect,traceback,logging
 
 
 
@@ -473,7 +473,7 @@ class ChandlerScriptContext():
         self.tagClaims = {}
 
         def tagpoint(t):
-            tagName= self.canGetTagpoint(tn)
+            tagName= self.canGetTagpoint(t)
             if not tagName:
                 raise RuntimeError("It seems you do not have access to:"+t)
             t = tagpoints.Tag(tagName)
@@ -505,6 +505,10 @@ class ChandlerScriptContext():
             self.gil = threading.RLock()
         else:
             self.gil = gil
+
+    def waitForEvents(self):
+        while self.eventQueue:
+            time.sleep(0.001)
     
     def checkPollEvents(self):
         """Check every event that is actually an expression, to see if it should
@@ -550,12 +554,15 @@ class ChandlerScriptContext():
         while self.eventQueue:
             if self.gil.acquire(timeout=5):
                 #Run them all as one block
-                while self.eventQueue:
-                    try:
-                        if self.eventQueue:
-                            self.eventQueue.pop(False)()
-                    finally:
-                        self.gil.release()
+                try:
+                    while self.eventQueue:
+                        try:
+                            if self.eventQueue:
+                                self.eventQueue.pop(False)()
+                        except:
+                            logging.exception("Error in script context")
+                finally:
+                    self.gil.release()
 
     def onTagChange(self,tagname, val):
         """ We make a best effort to run this synchronously. If we cannot,
@@ -573,15 +580,10 @@ class ChandlerScriptContext():
             if self.needRefreshForTag[tagname]:
                 self.checkPollEvents()
         
-        if self.gil.acquire(timeout=0.05):
-            try:
-                f()
-            finally:
-                self.gil.release()
-        else:
-            self.eventQueue.append(f)
-            workers.do(self.doEventQueue)
-            
+        #All tag point changes happen async
+        self.eventQueue.append(f)
+        workers.do(self.doEventQueue)
+        
 
     def canGetTagpoint(self,t):
         if not t in self.tagpoints and len(self.tagpoints)>128:
@@ -614,7 +616,8 @@ class ChandlerScriptContext():
 
 
         
-    def event(self,evt,val=None, timeout=20):
+    def syncEvent(self,evt,val=None, timeout=20):
+        "Handle an event synchronously, in the current thread."
         if self.gil.acquire(timeout=20):
             try:
                 return self._event(evt,val)
@@ -623,7 +626,7 @@ class ChandlerScriptContext():
         else:
             raise RuntimeError("Could not get GIL to run this event")
 
-    def queueEvent(self,evt,val=None):
+    def event(self,evt,val=None):
         "Queue an event to run in the background. Queued events run in FIFO"
         def f():
             self._event(evt,val)
@@ -887,6 +890,8 @@ c.addBindings(b)
 
 c.event('window')
 c.event('test')
+
+c.waitForEvents()
 
 if not x==desired:
     raise RuntimeError("The ChandlerScript module isn't working as planned")
