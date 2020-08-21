@@ -49,6 +49,13 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.38
+- Tags will raise errors instead of deadlocking, if you manage to somehow create a deadlock
+- Fix autoscroll in chandler
+- Fix tag point page if an error causes the meter widget to be unavailable
+- Ability to send SystemExit to threads from a settings page, to try to fix inifinite loops
+- ChandlerScript/Logic editor events and tag changes are queued and ran in the background.
+
 ### 0.65.37
 - Tag data historian configurable from web UI(Everything is saved to history.db if configured, CSV export is possible)
 - Fix SG1 gateway tagpoint error from previous version
@@ -71,24 +78,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - Fix chandler cue renumbering, nextCue is now correctly recalculated
 - Chandler now refuses to allow you to change the sound for a cue created from a sound, to avoid confusion. Override by setting to silence, then the new sound.
 
-
-### 0.65.35
-- Fix Chandler tagpoint universe named channel support
-- Setting a tagpoint claim now steals the active status from the current active claim, if the priorities are the same.
-- Fix editing unreachable Kasa bulbs
-
-
-### 0.65.34
-- Allow creating cues from sound files with odd chars in the names
-- Protect against loops in Chandler playing a bazillion sounds and crashing JACK
-- Webm sound cues play properly
-
-
-### 0.65.33
-- Mixing board pitch correction/robot voice effect
-- Fixes for RTP network audio streaming
-- Use soft AND synchronous JACK options
-- Segfault resilliance if user enteers bad JACK settings
 
 
 License Terms
