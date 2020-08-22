@@ -1,6 +1,17 @@
 Change Log
 ----------
 
+### 0.65.39
+- Fix instant response to Chandler tag point changes, no need to wait for 3s polling.
+
+### 0.65.38
+- Tags will raise errors instead of deadlocking, if you manage to somehow create a deadlock
+- Fix autoscroll in chandler
+- Fix tag point page if an error causes the meter widget to be unavailable
+- Ability to send SystemExit to threads from a settings page, to try to fix inifinite loops
+- ChandlerScript/Logic editor events and tag changes are queued and ran in the background.
+
+
 ### 0.65.38
 - Tags will raise errors instead of deadlocking, if you manage to somehow create a deadlock
 - Fix autoscroll in chandler

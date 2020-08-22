@@ -545,6 +545,7 @@ class ChandlerScriptContext():
         def onchange(v,ts,an):
             self.onTagChange(tag.name,v)
         tag.subscribe(onchange)
+        self.needRefreshForTag[tag.name]=True
         self.tagHandlers[tag.name]=(tag,onchange)
         
 
