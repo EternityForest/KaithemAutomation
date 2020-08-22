@@ -85,7 +85,7 @@ def combineLogs(a):
 
 %if hasattr(tag, 'configLoggers'):
 <h3>Recent Log Data from ${unitsofmeasure.strftime(logtime)}</h3>
-<p class="help">All times use the time zone and format from your user settings.</p>
+<p class="help">All times use the time zone and format from your user settings. Very recent data may be shown, but data is buffered to disk for 10 minutes. Saving the server state flushes all data to disk.</p>
 
 <h4>Export Data</h4>
 <form action="/tagpointlog/${tag.name|u}">

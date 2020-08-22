@@ -147,6 +147,7 @@ def paramDefault(p):
 
 def getFunctionInfo(f):
     p = inspect.signature(f).parameters
+  
     d = {
         'doc': inspect.getdoc(f),
         'args': [[i, paramDefault(p[i].default)] for i in p]
@@ -547,7 +548,19 @@ class ChandlerScriptContext():
         tag.subscribe(onchange)
         self.needRefreshForTag[tag.name]=True
         self.tagHandlers[tag.name]=(tag,onchange)
-        
+
+    
+    def getCommandDataForEditor():
+        "Get the data, as python dict which can be JSONed, which must be bound to the commands prop of the editor, so that the editor can know what commands we have"
+        with self.gil:
+            c = self.commands.scriptcommands
+            l = {}
+            for i in c:
+                f = c[i]
+                l[i]=getFunctionInfo(f)
+
+            return l
+
 
     def doEventQueue(self):
         #Run all events in the queue, under the gil.
@@ -580,6 +593,10 @@ class ChandlerScriptContext():
                         self.needRefreshForTag[tagname]=True
             if self.needRefreshForTag[tagname]:
                 self.checkPollEvents()
+
+
+        if len(self.eventQueue) > 128:
+            raise RuntimeError("Too Many queued events!!!")
         
         #All tag point changes happen async
         self.eventQueue.append(f)
@@ -631,6 +648,9 @@ class ChandlerScriptContext():
         "Queue an event to run in the background. Queued events run in FIFO"
         def f():
             self._event(evt,val)
+        
+        if len(self.eventQueue) > 128:
+            raise RuntimeError("Too Many queued events!!!")
         
         self.eventQueue.append(f)
         workers.do(self.doEventQueue)
