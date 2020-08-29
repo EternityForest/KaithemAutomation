@@ -1,11 +1,12 @@
 <%include file="/pageheader.html"/>
 
 <%!
-from src import tagpoints,unitsofmeasure,util
+from src import tagpoints,unitsofmeasure,util,pages
 import time
 import gc
 import collections
 import dateutil
+import cherrypy
 
 
 def combineLogs(a):
@@ -38,6 +39,7 @@ def combineLogs(a):
 
     else:
         if data:
+            pages.postOnly()
             with tagpoints.lock:
                 loggers = {}
                 loggersList = []
@@ -104,6 +106,8 @@ def combineLogs(a):
                 data['loggers']=loggersList
 
                 tagpoints.configTagFromData(tagName,data)
+            
+            raise cherrypy.HTTPRedirect("/tagpoints/"+ util.url(tagName))
 
         if tagName in tagpoints.allTags:
             tag=tagpoints.allTags[tagName]()
