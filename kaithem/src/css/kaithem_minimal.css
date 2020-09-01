@@ -302,3 +302,18 @@ div.scrollbox {
 	padding-left:0.5%;
 	margin:3px;
 }
+
+div.k-laterality-reminder-left, div.k-laterality-reminder-right 	{
+	color:rgba(0,0,0, 0.4);
+	flex-grow:0;
+	font-size: 200%;
+}
+
+
+div.k-laterality-reminder-left:hover{
+	color:rgba(255,0,0, 0.5);
+}
+
+div.k-laterality-reminder-right:hover{
+	color:rgba(0,255,0, 0.5);
+}

@@ -191,7 +191,7 @@ front-page-banner: |
 
 #This HTML is used as the top banner for deployment branding
 top-banner-html: |
-    <div id="topbanner"><h1 align="center"><a href="/" style="text-decoration:none;color:inherit;">Kaithem Automation</a> @ HOSTNAME</h1></div>
+    <div id="topbanner" style="display:flex;flex-direction:row;"><div title="Left/Port side of screen"  class="k-laterality-reminder-left">L</div><div style="flex-grow:10"><h1 align="center"><a href="/" style="text-decoration:none;color:inherit;">Kaithem Automation</a> @ HOSTNAME</h1></div><div class="k-laterality-reminder-right" title="Right/Starboard side of screen">R</div></div>
 
 #This text shows up in the about box. Good for misc info like copyrights of site specific data, lega stuff, etc
 about-box-banner: "This space can be customized with site specific data in the config file."
