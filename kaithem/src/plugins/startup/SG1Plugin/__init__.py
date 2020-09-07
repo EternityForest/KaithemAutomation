@@ -13,6 +13,7 @@ import traceback
 from src import widgets
 
 logger = logging.Logger("plugins.sg1")
+syslogger = logging.Logger("system")
 
 templateGetter = TemplateLookup(os.path.dirname(__file__))
 
@@ -75,6 +76,9 @@ class CustomDeviceType(DeviceType):
     
     def onBeacon(self,m):
         self.print(m, "Incoming Beacon")
+
+    def onStructuredMessage(self,m):
+        self.print(m, "Incoming Structured Message")
 """
 
 
@@ -87,6 +91,13 @@ class Device(sg1.SG1Device):
     def onMessage(self, m):
         try:
             self.kaithemInterface()._onMessage(m)
+        except:
+            self.kaithemInterface().handleException()
+
+
+    def onStructuredMessage(self, m):
+        try:
+            self.kaithemInterface()._onStructuredMessage(m)
         except:
             self.kaithemInterface().handleException()
 
@@ -186,6 +197,8 @@ class SG1Device(devices.Device):
         self.apiWidget.attach(self.apiWidgetHandler)
         self.apiWidget.require("/admin/settings.edit")
 
+        self.currentConfigData = bytearray(256)
+
     def status(self):
         return str(self.rssiTag.value)+"dB"
 
@@ -219,6 +232,22 @@ class SG1Device(devices.Device):
         if v[0] == "sendTextRT":
             self.sendMessage(bytes(v[1],'utf8'), rt=True)
             self.print('User sent request data: '+str(v[1]))
+
+
+
+    def _onStructuredMessage(self,m):
+        for i in m['data']:
+
+
+            #config declaration, we must update our local copy of what we think config should be
+            if i[0]==8:
+                if i[1]>31:
+                    continue
+                for j,k in enumerate(i[2]):
+                    self.currentConfigData[i*8 +j]=k
+
+    def onStructuredMessage(self,m):
+        print(m)
 
 
     @property
@@ -326,7 +355,12 @@ class SG1Device(devices.Device):
 
     def close(self):
         Device.close(self)
-        self.dev.close()
+
+        try:
+            self.dev.close()
+        except:
+            syslogger.exception("Could not close device")
+            messagebus.postMessage("/system/notifications/errors","Failed to close device:"+self.name)
 
     @staticmethod
     def getCreateForm():
@@ -360,9 +394,9 @@ class SG1Gateway(devices.Device):
         self.gatewayUtilizationTag.hi = 0.75
 
         devices.Device.__init__(self, name, data)
-        self.tagPoints['status'] = self.gatewayStatusTag
-        self.tagPoints['noiseFloor'] = self.gatewayNoiseTag
-        self.tagPoints['utilization'] = self.gatewayUtilizationTag
+        self.tagpoints['status'] = self.gatewayStatusTag
+        self.tagpoints['noiseFloor'] = self.gatewayNoiseTag
+        self.tagpoints['utilization'] = self.gatewayUtilizationTag
 
         self.gatewayNoiseTag.setAlarm(
             name+'.RFNoiseFloor', "value > -98", tripDelay=60)
@@ -387,7 +421,6 @@ class SG1Gateway(devices.Device):
 
         self.gw.kaithemInterface = weakref.ref(self)
 
-        self.tagpoints = {"status": self.gatewayStatusTag}
 
         self.print("GW obj created")
 
@@ -416,7 +449,12 @@ class SG1Gateway(devices.Device):
         return self.gatewayStatusTag.value
 
     def close(self):
-        self.gw.close()
+        try:
+            self.gw.close()
+        except:
+            syslogger.exception("Could not close device")
+            messagebus.postMessage("/system/notifications/errors","Failed to close device:"+self.name)
+
         devices.Device.close(self)
 
     def onConnect(self):

@@ -23,6 +23,8 @@ def handleMsgbusError(f,topic,message):
         from . import newevt
         if f.__module__ in newevt.eventsByModuleName:
             newevt.eventsByModuleName[f.__module__]._handle_exception()
+
+        #If we can't handle it whence it came
         else:
             try:
                 x = hasattr(f,"_kaithemAlreadyPostedNotificatonError")

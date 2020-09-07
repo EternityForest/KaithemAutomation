@@ -19,13 +19,8 @@ def devStatString(d):
 
         if 'rssi' in d.tagPoints:
             s.append(d.tagPoints['rssi'].meterWidget.render(label="RSSI"))
-        elif 'kaithem.device.rssi' in d.descriptors:
-            s.append("RSSI:" +str(d.rssi()))
 
-
-        elif 'status' in d.tagPoints:
-            s.append(d.tagPoints['status'].spanWidget.render())
-
+       
     except Exception as e:
         s.append(str(e))
 

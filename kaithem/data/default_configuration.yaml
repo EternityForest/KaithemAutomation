@@ -95,7 +95,7 @@ audio-backends:
     - mpv #Not actually  supported
 
 #How many times to retry loading an event before marking it as a failure and moving on
-max-load-attempts: 25
+max-load-attempts: 6
 
 #allow websocket connections? This is now the only non-deprecated widget interface
 enable-websockets: true

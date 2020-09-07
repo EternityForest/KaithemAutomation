@@ -14,7 +14,7 @@
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 import subprocess,os,math,time,sys,threading, collections,logging,re,uuid
-
+import scullery
 from . import  util, scheduling,directories,workers, registry,widgets,messagebus, midi
 from .config import config
 
@@ -955,6 +955,8 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         if onBeat:
             self.addLevelDetector()
 
+        
+
         self.addElement("audiorate")
         self.fader = self.addElement('volume', volume=volume)
 
@@ -973,7 +975,7 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
                 self.aw.connect()
 
             else:
-                if not jackmanager.settings.get('jackMode',None) in ("manage","use"):
+                if not scullery.jack.manageJackProcess:
                     self.sink = self.addElement('autoaudiosink')
                 else:
                     raise RuntimeError("JACK is enabled but not running, cannot autoselect non-jack driver as this could interfere with JACK")
