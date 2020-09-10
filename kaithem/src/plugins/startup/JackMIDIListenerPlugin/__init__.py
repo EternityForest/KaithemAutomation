@@ -23,21 +23,21 @@ defaultSubclassCode = """
 class CustomDeviceType(DeviceType):
 
     #These functions are called for the corresponding MIDI events
-
     def noteOn(self,channel, pitch, vel):
-        print("Note On: CH# "+str(channel)+ " Pitch: "+ str(pitch)+" Vel: "+str(vel))
+        self.print("CH# "+str(channel)+ " Pitch: "+ str(pitch)+" Vel: "+str(vel),title="Note On")
 
     def noteOff(self,channel, pitch ):
-        print("Note On: CH# "+str(channel)+ " Pitch: "+ str(pitch))
+        self.print("CH# "+str(channel)+ " Pitch: "+ str(pitch),title="Note Off")
 
     def cc(self,channel, cc,val ):
-        print("Note On: CH# "+str(channel)+ " CC#: "+ str(cc)+" Val: "+str(val))
+        self.print("CH# "+str(channel)+ " CC#: "+ str(cc)+" Val: "+str(val),title="Control Change")
 
     def programChange(self,channel,prg):
-        print("Note On: CH# "+str(channel)+ " Program: "+ str(prg))
+        self.print("CH# "+str(channel)+ " Program: "+ str(prg),title="Program Change")
 
     def pitchBend(self,channel,bend):
-        print("Pitch Bend: CH# "+str(channel)+ " Bend: "+ str(bend))
+        self.print("CH# "+str(channel)+ " Bend: "+ str(bend), title="Pitch Bend")
+
 """
 
 

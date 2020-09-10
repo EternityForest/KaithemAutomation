@@ -499,6 +499,10 @@ class SG1Gateway():
 
         self.thread = threading.Thread(
             target=makeThreadFunction(weakref.ref(self)), daemon=True)
+        try:
+            self.thread.name="SG1Thread"
+        except:
+            pass
         self.waitingTypes = {}
 
         self.portObj = None
@@ -741,9 +745,9 @@ class SG1Gateway():
         self._sendMessage(MSG_SENDSPECIALREPLY, m)
 
 
-    def sendSG1RT(self, data, power=0):
+    def sendSG1RT(self, data, power=0,id=1):
         # 3 reserved bytes
-        m = bytes([struct.pack("<b",power)[0], 0, 0, 0]) + data
+        m = bytes([struct.pack("<b",power)[0], id, 0, 0]) + data
         self._sendMessage(MSG_SENDRT, m)
 
     def onDeviceRequestPair(self, topic, message):
@@ -1095,6 +1099,10 @@ class SG1Gateway():
     def setRF(self, profile, channel):
         if profile in profiles:
             profile = profiles[profile]
+        else:
+            #Distinguis bitrates from profile numbers
+            if profile> 100:
+                raise ValueError("Bad profile value")
         self.currentProfile = profile
         self.currentChannel = channel
         self._sendMessage(MSG_CFG, struct.pack("<BH", profile, channel))

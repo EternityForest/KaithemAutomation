@@ -217,21 +217,16 @@ class SG1Device(devices.Device):
 
         if v[0] == "sendText":
             self.sendMessage(bytes(v[1],'utf8'))
-            self.print('User sent request data: '+str(v[1]))
-
-        if v[0] == "sendExprReq":
-            x = [int(i, 16 if 'x' in i else 10) for i in v[1].split(",")]
-            self.sendMessage(bytes(x), request=True)
-            self.print('User sent request data: '+str(x))
+            self.print('User sent text data: '+str(v[1]))
 
         if v[0] == "sendExprRT":
             x = [int(i, 16 if 'x' in i else 10) for i in v[1].split(",")]
             self.sendMessage(bytes(x), rt=True)
-            self.print('User sent request data: '+str(x))
+            self.print('User sent RT data: '+str(x))
 
         if v[0] == "sendTextRT":
             self.sendMessage(bytes(v[1],'utf8'), rt=True)
-            self.print('User sent request data: '+str(v[1]))
+            self.print('User sent RT text data: '+str(v[1]))
 
 
 

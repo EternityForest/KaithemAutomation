@@ -105,7 +105,7 @@ class KasaDevice(devices.Device):
 	def getRawDevice(self):
 		return getDevice(self.data.get("device.locator"),3,self.kdClass)
 
-	def rssi(self,cacheFor=120):
+	def rssi(self,cacheFor=120,timeout=3):
 		with self.lock:
 			"Returns the current RSSI value of the device"
 			if time.time()-self.rssiCacheTime<cacheFor:
@@ -116,7 +116,7 @@ class KasaDevice(devices.Device):
 			self.rssiCacheTime=time.time()
 
 			try:
-				info = getDevice(self.data.get("device.locator"),3,self.kdClass).get_sysinfo()
+				info = getDevice(self.data.get("device.locator"),timeout,self.kdClass).get_sysinfo()
 				self.rssiCache= info['rssi']
 				#It's just a handy place to get this info because
 				#we're getting sysinfo anyway.

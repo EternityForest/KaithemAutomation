@@ -4,6 +4,10 @@
 import traceback
 %>
 
+<datalist id="profiles_all">
+    <option value="7">US 250k</option>
+</datalist>
+
 <p class="help">This device manages one SG1 gateway directly connected via USB port. Gateways
     interface the server with the SG1 RF  protocol, typically at 915MHz with RFM69 modules,
     but any other RF interface like ESP-NOW could be used.
@@ -37,8 +41,10 @@ A real MQTT server is not local, as kaithem can use an internal "virtual" server
 
 <tr>
     <td>RF Profile(7=250k default, lower for longer range and less speed)</td>
-    <td><input name="device.rfProfile"  value="${data.get('device.rfProfile','7')}"></td>
+    <td><input name="device.rfProfile" datalist="profiles_all" value="${data.get('device.rfProfile','7')}"></td>
 </tr>
+
+
 <tr>
     <td>Channel Number(Determines the RF frequency)</td>
     <td><input name="device.channelNumber"  value="${data.get('device.channelNumber','3')}"></td>

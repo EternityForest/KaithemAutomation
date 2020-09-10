@@ -978,8 +978,10 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
                 if not scullery.jack.manageJackProcess:
                     self.sink = self.addElement('autoaudiosink')
                 else:
-                    raise RuntimeError("JACK is enabled but not running, cannot autoselect non-jack driver as this could interfere with JACK")
-        
+                    self.stop()
+                    logging.error("JACK is enabled but not running, cannot autoselect non-jack driver as this could interfere with JACK")
+                    return
+
         elif output.startswith("@pulse"):
             s = output.split(":")
             if len(s)>1:
@@ -995,8 +997,9 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         elif not jackClientsFound:
             
             if not jackmanager.settings.get('jackMode',None) in ("manage","use"):
-                raise RuntimeError("JACK is enabled but not running, cannot autoselect non-jack driver as this could interfere with JACK")
-
+                self.stop()
+                logging.error("JACK is enabled but not running, cannot autoselect non-jack driver as this could interfere with JACK")
+                return
             if "hw:" in output or  "usb:" in output: 
                 self.addElement('alsasink',device= output)
             else:

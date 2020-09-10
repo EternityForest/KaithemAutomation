@@ -274,6 +274,8 @@ continue
     *\
     %endif
     <a href="/modules/module/${url(name)}/getfileresource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
+    <a class="button settingsbuttton" href="/modules/module/${url(name)}/resource/${url(i)}">Properties</a>
+
     <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a>
     %try:
     <span>Size: ${siFormatNumber(os.path.getsize(fileResourceAbsPaths[name,i]))}</span>\

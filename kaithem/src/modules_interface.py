@@ -470,7 +470,7 @@ class WebInterface():
                         modules_state.createRecoveryEntry(root,escapedName,r)
                     ####END BLOCK OF COPY PASTED CODE.
 
-                    insertResource({'resource-type':'internal-fileref', 'target':"$MODULERESOURCES/"+url(escapedName,modules.safeFnChars)})
+                    insertResource({'resource-type':'internal-fileref', 'target':"$MODULERESOURCES/"+url(escapedName,modules.safeFnChars), 'serve': 'serve' in kwargs})
                     if len(path)>1:
                         x = path[1]+"/"
                     else:

@@ -376,7 +376,7 @@ class Alert(virtualresource.VirtualResource):
 
 
     def __del__(self):
-        self.acknowledge()
+        self.acknowledge("<DELETED>")
         self.clear()
         cleanup()
     
@@ -388,10 +388,11 @@ class Alert(virtualresource.VirtualResource):
             notes=''
 
         self.sm.event("acknowledge")
-        logger.info("Alarm "+self.name +" acknowledged by" + by+notes)
-        
-        if self.priority in ("error", "critical","warning"):
-            messagebus.postMessage("/system/notifications", "Alarm "+self.name+" acknowledged by "+ by+notes)
+        if not by=="<DELETED>":
+            logger.info("Alarm "+self.name +" acknowledged by" + by+notes)
+            
+            if self.priority in ("error", "critical","warning"):
+                messagebus.postMessage("/system/notifications", "Alarm "+self.name+" acknowledged by "+ by+notes)
 
     def error(self,msg=""):
         global unacknowledged
