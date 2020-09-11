@@ -45,6 +45,10 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 /var/lib/kaithem/ssl/certificate.key that you can replace with a real one if you don't want to go self-signed.
 
 
+### Debugging
+
+It shouldn't happen, but if things get real messed up, use SIGUSR1 to dump hte state of all threads to /dev/shm/
+"killall -s USR1 kaithem" works if you have setproctitle.
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============

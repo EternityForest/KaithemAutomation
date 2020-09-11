@@ -4,6 +4,8 @@ Change Log
 ### 0.65.39
 - Fix instant response to Chandler tag point changes, no need to wait for 3s polling.
 - Refreshing a tag page after changing something no longer resends the form
+- Fix tag point logging with the min accumulator
+- SIGUSR1 dumps the state of all threeads to /dev/shm/
 
 ### 0.65.38
 - Tags will raise errors instead of deadlocking, if you manage to somehow create a deadlock

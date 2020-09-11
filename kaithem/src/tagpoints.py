@@ -161,6 +161,12 @@ class TagLogger():
             c.execute("SELECT rowid,tagName,unit,accumulate from channel WHERE tagName=?",(tag.name,))
             self.chID = None
 
+            if not isinstance(tag.unit,str):
+                raise ValueError('bad tag unit '+str(tag.unit))
+
+            if not isinstance(self.accumType,str):
+                raise ValueError('bad tag accum '+str(self.accumType))
+
             for i in c:
                 if i['tagName'] == tag.name and i['unit']==tag.unit and i['accumulate']==self.accumType:
                     self.chID = i['rowid']
@@ -201,7 +207,7 @@ class AverageLogger(TagLogger):
 
 
 class MinLogger(TagLogger):
-        accumType=min
+        accumType='min'
         def accumulate(self,value,timestamp,annotation):
             "Only ever called by the tag"
             self.accumVal =min(self.accumVal, value)
@@ -1986,6 +1992,27 @@ class LowpassFilter(Filter):
         else:
             return self.filtered
 
+
+class HighpassFilter(LowpassFilter):
+  
+    def getter(self):
+        self.state=self.inputTag.value
+
+        #Get the average state over the last period
+        state = (self.state+self.lastState)/2
+        t=time.monotonic()-self.lastRanFilter
+        self.filtered= (self.filtered+((state-self.filtered)*(1-(self.k**t))))
+        self.lastRanFilter+=t
+
+        self.lastState = self.state
+
+        s = self.state-self.filtered
+
+        #Suppress extremely small changes that lead to ugly decimals and network traffic
+        if abs(s)<(0.0000000000000001):
+           return 0
+        else:
+            return s
 
 class HysteresisFilter(Filter):
     def __init__(self, name, inputTag,  hysteresis=0, priority=60):

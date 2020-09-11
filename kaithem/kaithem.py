@@ -137,6 +137,36 @@ from src import devices
 devices.init_devices()
 
 
+def dumpThreads(*a):
+    from src import pages
+    try:
+        n = "/dev/shm/kaithemExitThreadsDump."+str(time.time())+".html"
+        with open(n,'w') as f:
+            f.write(pages.get_template("settings/threads.html").render())
+        os.chmod(n,0o600)
+    except:
+        pass
+
+def sigquit(*a):
+    from src import pages
+
+    try:
+        n = "/dev/shm/kaithemExitThreadsDump."+str(time.time())+".html"
+        with open(n,'w') as f:
+            f.write(pages.get_template("settings/threads.html").render())
+        os.chmod(n,0o600)
+
+    except:
+        raise
+    cherrypy.bus.exit()
+
+
+signal.signal(signal.SIGQUIT,sigquit)
+signal.signal(signal.SIGUSR1,dumpThreads)
+
+
+def nop():
+    pass
 #from src import wifimanager
 
 def webRoot():
@@ -277,6 +307,8 @@ def webRoot():
     #Load all modules from the active modules directory
     modules.initModules()
     logger.info("Loaded modules")
+
+
 
 
     def save():
@@ -710,6 +742,7 @@ def webRoot():
     cherrypy.tools.addheader = cherrypy.Tool('before_finalize', addheader)
 
     if hasattr(cherrypy.engine, 'signal_handler'):
+        del cherrypy.engine.signal_handler.handlers['SIGUSR1']
         cherrypy.engine.signal_handler.subscribe()
 
     cherrypy.tree.mount(root,config=cnf)

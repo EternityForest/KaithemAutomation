@@ -47,16 +47,17 @@ class WidgetHandler(logging.Handler):
             self.emit(record)
         return r
     def emit(self,r):
-        t = textwrap.fill(pylogginghandler.syslogger.format(r),120)
-        t = esc(t)
-        if r.levelname in ["ERROR", "CRITICAL"]:
-            self.widget.write('<pre class="error">'+t+"</pre>")
-        elif r.levelname in ["WARNING"]:
-            self.widget.write('<pre class="error">'+ t+"</pre>")
-        elif r.name =='system.notifications.important':
-            self.widget.write('<pre class="highlight">'+ t+"</pre>")
-        else:
-            self.widget.write('<pre>'+ t+"</pre>")
+        if r:
+            t = textwrap.fill(pylogginghandler.syslogger.format(r),120)
+            t = esc(t)
+            if r.levelname in ["ERROR", "CRITICAL"]:
+                self.widget.write('<pre class="error">'+t+"</pre>")
+            elif r.levelname in ["WARNING"]:
+                self.widget.write('<pre class="error">'+ t+"</pre>")
+            elif r.name =='system.notifications.important':
+                self.widget.write('<pre class="highlight">'+ t+"</pre>")
+            else:
+                self.widget.write('<pre>'+ t+"</pre>")
             
 dbg = WidgetHandler()
 

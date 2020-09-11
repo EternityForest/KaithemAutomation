@@ -54,6 +54,7 @@ class TagInterface():
     TagClass = tagpoints._TagPoint
     HysteresisFilter = tagpoints.HysteresisFilter
     LowpassFilter = tagpoints.LowpassFilter
+    HighpassFilter = tagpoints.HighpassFilter
             
 class Kaithem():
 

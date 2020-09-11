@@ -192,3 +192,19 @@ This is always the output tag.
 BETA: My math could be off in this implementation
 
 First-order lowpass filter with the given time constant in seconds
+
+
+
+#### kaithem.tags.HighpassFilter(name, inputTag, timeConstant, priority=60,interval=-1)
+BETA: My math could be off in this implementation
+
+First-order highpass filter with the given time constant in seconds
+
+
+#### kaithem.tags.HysteresisFilter(name, inputTag, hysteresis, priority=60,interval=-1)
+BETA: My math could be off in this implementation
+
+Suppress small changes with a hysteresis window.  If window is 3, and you set input to ten, respond immediately to positive change, but ignore negative change till
+you get to 7.
+
+Once at 7, the output will be 7, and positive changes will be ignored till you get back up to 10.  If you go to 11, the back of the window will then move to 8.
