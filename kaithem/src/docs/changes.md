@@ -14,14 +14,6 @@ Change Log
 - Ability to send SystemExit to threads from a settings page, to try to fix inifinite loops
 - ChandlerScript/Logic editor events and tag changes are queued and ran in the background.
 
-
-### 0.65.38
-- Tags will raise errors instead of deadlocking, if you manage to somehow create a deadlock
-- Fix autoscroll in chandler
-- Fix tag point page if an error causes the meter widget to be unavailable
-- Ability to send SystemExit to threads from a settings page, to try to fix inifinite loops
-- ChandlerScript/Logic editor events and tag changes are queued and ran in the background.
-
 ### 0.65.37
 - Tag data historian configurable from web UI(Everything is saved to history.db if configured, CSV export is possible)
 - Fix SG1 gateway tagpoint error from previous version

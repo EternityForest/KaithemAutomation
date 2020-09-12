@@ -38,7 +38,9 @@ import random
 import logging
 import dateutil.rrule
 import dateutil.tz
-from . import workers, kaithemobj, messagebus, util, modules_state, scheduling
+import textwrap
+
+from . import workers, kaithemobj, messagebus, util, modules_state, scheduling,unitsofmeasure
 from .config import config
 from .scheduling import scheduler
 ctime = time.time
@@ -141,7 +143,7 @@ def makePrintFunction(ev):
     """
     ev = weakref.ref(ev)
 
-    def new_print(*args, **kwargs):
+    def new_print(*args, title='msg', **kwargs):
         # No, we cannot just do print(*args), because it breaks on python2
         if 'local' in kwargs and kwargs['local']:
             local = True
@@ -151,12 +153,20 @@ def makePrintFunction(ev):
         if len(args) == 1:
             if not local:
                 print(args[0])
-            ev().printoutput += str(args[0])+"\n"
+            x= str(args[0])+"\n"
         else:
             if not local:
                 print(args)
-            ev().printoutput += str(args)+"\n"
-        ev().printoutput = ev().printoutput[-2500:]
+            x = str(args)+"\n"
+
+        "Print a message to the Device's management page"
+        t = textwrap.fill(str(x), 120)
+        tm= unitsofmeasure.strftime(time.time())
+    
+        #Can't use a def here, wouldn't want it to possibly capture more than just a string,
+        #And keep stuff from GCIng for too long
+        workers.do(makeBackgroundPrintFunction(t,tm,title,ev))
+
     return new_print
 
 
@@ -460,6 +470,21 @@ class PersistentData():
 fps = config['max-frame-rate']
 
 
+def makeBackgroundPrintFunction(p,t,title,self):
+    def f():
+        self().logWindow.write('<b>'+ title+ " at " +t +"</b><br>"
+            + p
+            )
+    return f
+
+def makeBackgroundErrorFunction(t,time,self):
+     #Don't block everything up
+    def f():
+        self.logWindow.write('<div class="error"><b>Error at ' + time+"</b><br>"
+        + '<pre>'+t+'</pre></div>'
+        )
+    return f
+
 class BaseEvent():
     """Base Class representing one event.
     scope must be a dict representing the scope in which both the trigger and action will be executed.
@@ -534,6 +559,10 @@ class BaseEvent():
         # A place to put errors
         self.errors = []
 
+        from src import widgets
+        self.logWindow = widgets.ScrollingWindow(2500)
+
+
     def __repr__(self):
         try:
             return "<"+type(self).__name__ + "object at"+hex(id(self))+" for module,resource "+repr((self.module, self.resource))+">"
@@ -603,11 +632,16 @@ class BaseEvent():
                 tb = traceback.format_exc(chain=True)
             else:
                 tb = traceback.format_exc()
+
+        #TODO: Get rid of legacy error stuff
         # When an error happens, log it and save the time
         # Note that we are logging to the compiled event object
         self.errors.append([time.strftime(config['time-format']), tb])
         # Keep only the most recent errors
         self.errors = self.errors[-(config['errors-to-keep']):]
+        
+        workers.do(makeBackgroundErrorFunction(textwrap.fill(tb,120),unitsofmeasure.strftime(time.time()),self))
+
         try:
             messagebus.postMessage('/system/errors/events/' +
                                    self.module+'/' +

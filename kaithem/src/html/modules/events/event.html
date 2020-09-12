@@ -13,6 +13,7 @@ import cherrypy
 <%
 using_js_editor = config['enable-js'] and auth.getUserSetting(pages.getAcessingUser(),'usemonaco') and not "Mobile" in cherrypy.request.headers['User-Agent']
 %>
+<script src="/static/widget.js"></script>
 
 %if using_js_editor:
 <script src="/static/js/vs/loader.js"></script>
@@ -276,32 +277,11 @@ document.getElementById("actionbox").style="display:none;";
 %endif
 
 
-%if newevt.getEventErrors(module,name) and version == "__live__":
-%if (pages.canUserDoThis("/users/logs.view") or  pages.canUserDoThis("/admin/modules.edit") or pages.canUserDoThis("/admin/errors.view")):
-<h3 class="error">Errors[${len(newevt.getEventErrors(module,name))}]</h3>
-<p class ="help">
-This section the most recent errors that ocurred while executing the event or trigger.
-</p>
-<div class="scrollbox">
-%for i in newevt.getEventErrors(module,name):
-    <h4>${i[0]|h}</h4>
-    <pre>${i[1]|h}</pre>
-%endfor
-</div>
-%else:
-<p class="error">Some Errors Hidden because you are not logged in or do not have the permissions to view them.</p>
-%endif
-%endif
-<hr>
+<h3>Output</h3>
 
-<%
-p = newevt.getPrintOutput((module,name))
-%>
+${newevt.EventReferences[module,name].logWindow.render()}
 
-%if p and pages.canUserDoThis("/admin/eventoutput.view"):
-<h3>Output(${len(p)} bytes)</h3>
-<pre>${p|h}</pre>
-%endif
+
 <h3>Info</h3>
 <p>
 This event last ran:
