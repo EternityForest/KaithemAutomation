@@ -1,6 +1,6 @@
 
 <%!
-import traceback
+import traceback,textwrap
 %>
 
 <p class="help">This device represents one SG1 device, which must be accessed through an SG1 Gateway, which is a separate device.
@@ -95,6 +95,19 @@ A real MQTT server is not local, as kaithem can use an internal "virtual" server
         </td>
     </tr>
 
+
+
+    <tr>
+        <td>Current config data on device as reported(May not be up to date)</td>
+        <td>
+            <button type="button" onclick="api.send(['getConfigData'])">Read from device</button>
+            <button type="button" onclick="promptSetConfig()">Set new running config</button>
+            <button type="button" onclick="promptSaveConfig()">Save running config</button><br>
+            ${obj.configDataWidget.render()}
+
+        </td>
+    </tr>
+
 </table>
 
 
@@ -128,6 +141,25 @@ function promptSend()
         api.send(['sendExpr', x])
     }
 }
+
+function promptSetConfig()
+{
+    x = prompt("Enter hex data to configure remote device with")
+    if (x!=null)
+    {
+        api.send(['setConfig', x])
+    }
+}
+
+function promptSaveConfig()
+{
+    x = prompt("Save the device's configuration?")
+    if (x!=null)
+    {
+        api.send(['saveConfig', x])
+    }
+}
+
 
 function promptSendReq()
 {

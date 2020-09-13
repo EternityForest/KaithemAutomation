@@ -40,26 +40,28 @@ MSG_VERSION = 16
 MSG_DECODEDBEACON = 18
 MSG_PING = 19
 MSG_BGNOISE = 20
-# MSG_SENDREQUEST = 21
-# MSG_SENDREPLY = 22
 
 MSG_DECODEDSPECIAL = 23
-MSG_SENDSPECIALREQUEST = 24
 MSG_SENDSPECIAL = 25
-MSG_SENDSPECIALREPLY = 26
-# MSG_DECODEDREPLY = 27
-MSG_DECODEDSPECIALREPLY = 28
+
 
 MSG_DECODEDSTRUCTURED = 29
 MSG_SEND_STRUCTURED = 30
 
-# define MSG_DECODEDREPLY 27
 HEADER_TYPE_FIELD = 0b1110000
 HEADER_TYPE_SPECIAL = 0b0000000
 HEADER_TYPE_UNRELIABLE = 0b0010000
 # HEADER_TYPE_RELIABLE = 0b0100000
 HEADER_TYPE_STRUCTURED = 0b1000000
 HEADER_TYPE_REPLY_SPECIAL = 0b1010000
+
+
+
+RECORD_CONFIG_SET =6 
+RECORD_CONFIG_GET =7
+RECORD_CONFIG_SAVE =8
+RECORD_CONFIG_DECLARE =9
+
 
 # define RF_PROFILE_GFSK600 1
 # define RF_PROFILE_GFSK1200 2
@@ -190,13 +192,15 @@ class NanoframeParser():
                 if len(self.buf) == self.len:
                     self.state = 3
                     buf = self.buf
-                    self.buf = []
                     yield (buf[0], bytes(buf[1:]))
+
             elif self.state == 3:
                 if b == 43:
                     self.state = 0
+                    self.buf = []
+
                 else:
-                    print("overrun")
+                    print("overrun", self.buf[:3])
 
 
 def makeThreadFunction(wr):
@@ -226,12 +230,12 @@ def decodeStructuredMessage(m):
     msg = []
 
     while d:
-        l = 2 + (1 >> (d[1] & 0b11))
+        l = 2 + (1 << (d[1] & 0b11))
         c = d[:l]
-        d = d[l:]
-        msg.append(d[0], d[1] >> 2, d[2:])
+        d = d[l+2:]
+        msg.append((c[0], c[1] >> 2, c[2:]))
 
-    m['data'] = d
+    m['data'] = msg
     return m
 
 
@@ -244,7 +248,7 @@ class StructuredMessageWriter():
         self.dev = dev
 
     def write(self, type, data, channel=0):
-        b = bytes([type, channel << 2 | len_to_cope(len(data))])+data
+        b = bytes([type, channel << 2 | len_to_cope[len(data)]])+data
         b2 = self.buffer+b
 
         if len(b2) > 12:
@@ -253,9 +257,9 @@ class StructuredMessageWriter():
         else:
             self.buffer = b2
 
-    def flush(self):
-        self.dev.sendSG1Structured(self.buffer)
-        self.buffer = []
+    def flush(self,power=-127):
+        self.dev.sendMessage(self.buffer,power, structured=True)
+        self.buffer = b''
 
 class SG1Device():
     def __init__(self, channelKey, nodeID=0, gateways=None, mqttServer="__virtual__SG1", mqttPort="default", localNodeID=1):
@@ -394,13 +398,16 @@ class SG1Device():
     def onRTMessage(self, m):
         pass
 
+    def onStructuredMessage(self, m):
+        pass
+
     def _onBeacon(self, t, m):
         self.onBeacon(m)
 
     def onBeacon(self, m):
         pass
 
-    def sendMessage(self, data, rt = False, power =-127, special=False, request=False, replyTo=False,structured=False):
+    def sendMessage(self, data, rt = False, power =-127, special=False,structured=False):
         t=time.monotonic()
         # Select the gateway with the strongest signal, if we can
         # Otherwise we have to send from all gateways.
@@ -419,11 +426,6 @@ class SG1Device():
             "rt": rt,
             "pwr": power
         }
-
-        if request:
-            m['req'] = True
-        if replyTo:
-            m['replyTo'] = replyTo
 
         if special:
             m['special'] = special
@@ -508,26 +510,7 @@ class SG1Gateway():
         self.portObj = None
         self.portRetryTimes = {}
 
-        # For each key, we are going to store the last IV of the message we sent
-        # This is slightly complicated, because we don't know the message
-        # IV until the gateway tells us what it is, after it's been sent
-
-        # For the gateway to be able to recieve challenge-response replies,
-        # We must tell it the challenge when we are decoding.
-        # This is because the gateway interface itself doesn't have enough memory
-        # to store multiple challenges.
-        self.lastSentOnKey = {}
-
-        # This maps send request IDs to the channel key that we were sending on.
-        # This means that when we get a "sent" packet, we can update our list of
-        # the most recent IV sent
-
-        # No GC needed, there are only 256 possible request IDs
-        self.sendReqIdToKey = {}
-
-        # Maps request for decoding to Key,challenge pair
-        self.decodeReqIdToKeyIV = {}
-
+    
         self.reqIDCounter = int(random.random()*255)
 
         self.connect()
@@ -596,7 +579,7 @@ class SG1Gateway():
         }
         self.bus.publish(n, m, encoding="msgpack")
 
-    def onMessage(self, channel, data, rssi, pathloss, timestamp, nodeID, rxHeader1, replyTo=None, request=False):
+    def onMessage(self, channel, data, rssi, pathloss, timestamp, nodeID, rxHeader1):
         if not rxHeader1&HEADER_TYPE_FIELD == HEADER_TYPE_STRUCTURED:
             n = "/SG1/i/"+b64(channel)
         else:
@@ -611,15 +594,10 @@ class SG1Gateway():
             "ts": timestamp,
             "h": rxHeader1
         }
-        if replyTo:
-            m['replyTo'] = replyTo
-
-        if request:
-            m['req'] = True
 
         self.bus.publish(n, m, encoding="msgpack")
 
-    def onSpecialMessage(self, channel, data, rssi, pathloss, timestamp, nodeID, rxHeader1,replyTo=None,request=False):
+    def onSpecialMessage(self, channel, data, rssi, pathloss, timestamp, nodeID, rxHeader1):
         n = "/SG1/sp/"+b64(channel)
         m = {
             'data': data,
@@ -631,11 +609,6 @@ class SG1Gateway():
             "h": rxHeader1
         }
 
-        if replyTo:
-            m['replyTo'] = replyTo
-
-        if request:
-            m['req'] = True
         self.bus.publish(n, m, encoding="msgpack")
 
     def onRtMessage(self, channel, data, rssi, timestamp, nodeID):
@@ -682,21 +655,14 @@ class SG1Gateway():
                 if message['rt']:
                     self.sendSG1RT(message['data'], message['pwr'],id)
 
-                elif message['structured']:
+                elif message.get('structured',False):
                     self.sendSG1Structured(message['data'], message['pwr'],id)
                 else:
 
-                    # Determine which of the six message types to send
-                    # By combination of special, request, and reply attributes
+                    # Determine which of the  message types to send
+                    # By combination of attributes
                     if message.get("sp", False):
-                        if message.get("req", False):
-                            self.sendSG1SpecialRequest(
-                                message['data'], message['pwr'],id)
-                        elif message.get("replyTo", False):
-                            self.sendSG1SpecialReply(
-                                message['data'], message.get("replyTo", False), message['pwr'],id)
-                        else:
-                            self.sendSG1Special(
+                        self.sendSG1Special(
                                 message['data'], message['pwr'],id)
                     else:
                         self.sendSG1(
@@ -707,42 +673,23 @@ class SG1Gateway():
 
     def sendSG1(self, data, power=0, id=1):
         # 2 reserved bytes
-        self.reqIDCounter = (self.reqIDCounter+1)%256
-        self.sendReqIdToKey[self.reqIDCounter]=self.currentKey
+       
         m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, id, 0]) + data
         self._sendMessage(MSG_SEND, m)
 
     def sendSG1Structured(self, data, power=0, id=1):
         # 2 reserved bytes
-        self.reqIDCounter = (self.reqIDCounter+1)%256
-        self.sendReqIdToKey[self.reqIDCounter]=self.currentKey
+      
         m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, id, 0]) + data
         self._sendMessage(MSG_SEND_STRUCTURED, m)
 
     def sendSG1Special(self, data, power=0,id=1):
         
-        self.reqIDCounter = (self.reqIDCounter+1)%256
-        self.sendReqIdToKey[self.reqIDCounter]=self.currentKey
+      
         # 2 reserved bytes
         m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, id, 0]) + data
 
         self._sendMessage(MSG_SENDSPECIAL, m)
-
-    def sendSG1SpecialRequest(self, data, power=0,id=1):
-        # 3 reserved bytes
-        self.reqIDCounter = (self.reqIDCounter+1)%256
-        self.sendReqIdToKey[self.reqIDCounter]=self.currentKey
-        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, id, 0]) + data
-
-        self._sendMessage(MSG_SENDSPECIALREQUEST, m)
-
-    def sendSG1SpecialReply(self, data, challenge, power=0,id=1):
-        # 3 reserved bytes
-        self.reqIDCounter = (self.reqIDCounter+1)%256
-        self.sendReqIdToKey[self.reqIDCounter]=self.currentKey
-        m = bytes([struct.pack("<b",power)[0], self.reqIDCounter, id, 0]) + challenge + data
-
-        self._sendMessage(MSG_SENDSPECIALREPLY, m)
 
 
     def sendSG1RT(self, data, power=0,id=1):
@@ -988,35 +935,12 @@ class SG1Gateway():
             timestamp = struct.unpack("<Q", rxiv)[0]
             nodeID = rxiv[0]
 
-            request = rxHeader1 & HEADER_TYPE_RELIABLE
 
-
+            #No longer support user level reliable messages
             self.onSpecialMessage(channel, data, rssi,
-                                  pathLoss, timestamp, nodeID, rxHeader1,request=request)
+                                  pathLoss, timestamp, nodeID, rxHeader1)
 
 
-
-        elif cmd == MSG_DECODEDSPECIALREPLY:
-            pathLoss = struct.unpack("<b", data[:1])[0]
-            rssi = struct.unpack("<b", data[1:2])[0]
-            rxiv = data[2:10]
-            rxHeader1 = data[10]
-            reserved = data[11:14]
-            channel = data[14:46]
-            challenge = data[46:54]
-            data = data[54:]
-
-            timestamp = struct.unpack("<Q", rxiv)[0]
-            nodeID = rxiv[0]
-
-            # Maybe race condition here, don't care, very rare dropped
-            # packets are the worst it could do.
-            if self.lastSentOnKey[channel] == challenge:
-                self.lastSentOnKey.pop(channel, None)
-
-            self.onSpecialMessage(channel, data, rssi, pathLoss,
-                           timestamp, nodeID, rxHeader1, replyTo=challenge)
-      
 
         elif cmd == MSG_DECODEDRT:
             rssi = struct.unpack("<b", data[:1])[0]
@@ -1034,17 +958,7 @@ class SG1Gateway():
             rssi = struct.unpack("<b", data[:1])[0]
             self.onNoiseMeasurement(rssi)
 
-        elif cmd == MSG_SENT:
-            # Let the gateway tell us the IV that it was sent with.
-            if data:
-                reqID = data[0]
-                iv = data[1:9]
-                # Store the IV we sent, we will need it later for
-                # challenge response
-                if iv:
-                    x = self.sendReqIdToKey.pop(reqID, None)
-                    if not x is None:
-                        self.lastSentOnKey[x] = iv
+      
 
         if cmd in self.waitingTypes:
             # Lock free here. Scary!

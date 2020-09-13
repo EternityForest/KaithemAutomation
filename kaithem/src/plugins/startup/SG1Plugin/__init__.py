@@ -9,6 +9,7 @@ import logging
 import weakref
 import base64
 import traceback
+import textwrap
 
 from src import widgets
 
@@ -55,29 +56,28 @@ class Gateway(sg1.SG1Gateway):
         
 sc_code = """
 class CustomDeviceType(DeviceType):
+    #def  writeStructured(type,channel, data): write a structured record to the structured TX buffer
+    #def flushStructured(): flush the structured TX buffer
+    #def sendMessage(self, msg, rt=False, power=-127): Send msg with the specified power, -127 for automatic.  If rt is true, send an RT message instead.
+
+    #keepAwake: this must be a callable.  While it is true, the gawteway should respond to beacons by keeping the device awake.
+    #def sendWakeRequest():  Tell the gw to keep the device awake for 30 seconds. May do nothing if the device does not beacon in that time
+
     def onMessage(self,m):
         title= "Incoming SG1 Message"
 
-        if m.get("req"):
-            title= "Incoming SG1 Request"
-            # Uncommemt respond with empty message
-            # self.sendMessage(b'', replyTo=m)
-
-        if m.get("replyTo"):
-            title= "Incoming SG1 Reply"
-
         self.print(m,title)
-
-    def onSpecialMessage(self,m):
-        self.print(m, "Incoming SG1 Special Message")  
 
     def onRTMessage(self,m):
         self.print(m, "Incoming SG1 RT Message")
     
     def onBeacon(self,m):
+        # Low power beacons.  Generally you would use this to know when a device is wake-able
+        # to send it data.   Not all devices use beacons or sleep though.
         self.print(m, "Incoming Beacon")
 
     def onStructuredMessage(self,m):
+        # m['data'] will be a list of [type, channel, data] tuples
         self.print(m, "Incoming Structured Message")
 """
 
@@ -122,6 +122,18 @@ class Device(sg1.SG1Device):
     def handleError(self, s):
         self.kaithemInterface().print(s, "ERROR")
 
+def formatConfigData(d):
+
+
+    d = d.hex()
+    x=''
+    while d:
+        b =d[:16]
+        d=d[16:]
+        x+=(b+(' ' if d else ''))
+        
+    
+    return '<br>'.join(textwrap.wrap(x,16*4+3))
 
 class SG1Device(devices.Device):
     deviceTypeName = 'SG1Device'
@@ -197,7 +209,56 @@ class SG1Device(devices.Device):
         self.apiWidget.attach(self.apiWidgetHandler)
         self.apiWidget.require("/admin/settings.edit")
 
+        self.configDataWidget = widgets.DynamicSpan()
+
+
         self.currentConfigData = bytearray(256)
+
+        self.configDataWidget.write(formatConfigData(self.currentConfigData))
+
+        #We can detect missing config data by noting whether the sequence is continuous or not
+        self.lastRecievedConfigPage = 0
+        self.lastSavedConfigData=0
+
+
+        self.writeStructured = self.dev.writeStructured
+        self.flushStructured = self.dev.flushStructured
+
+    
+    def getConfigDataFromDevice(self):
+        "Request that the device return it's config data string"
+        self.dev.writeStructured(sg1.RECORD_CONFIG_GET,b'\0', 0)
+        self.dev.flushStructured()
+
+    def writeConfigData(self,c):
+        "Write the entire config data string to the remote devicve"
+
+        s=time.monotonic()
+        while not bytes(self.currentConfigData).startswith(c):
+            if time.monotonic()-s>5:
+                raise RuntimeError("Timeout while setting device config")
+
+            c2 = c
+            b=0
+            while c2:
+                x = c2[:8]
+                c2=c2[8:]
+                self.dev.writeStructured(sg1.RECORD_CONFIG_SET,c2,b)
+                b+=1
+            self.dev.flushStructured()
+            time.sleep(0.5)
+
+    
+    def saveConfigData(self):
+        "Tell the remote device to save it's config data in nonvolatile memory"
+        x = self.lastSavedConfigData
+        s=time.monotonic()
+        while x == self.lastSavedConfigData:
+            if time.monotonic()-s>5:
+                raise RuntimeError("Timeout while saving device config")
+            self.dev.writeStructured(sg1.RECORD_CONFIG_SAVE,b' ',0)
+            self.dev.flushStructured()
+            time.sleep(0.5)
 
     def status(self):
         return str(self.rssiTag.value)+"dB"
@@ -228,21 +289,48 @@ class SG1Device(devices.Device):
             self.sendMessage(bytes(v[1],'utf8'), rt=True)
             self.print('User sent RT text data: '+str(v[1]))
 
+        if v[0] == "getConfigData":
+            self.getConfigDataFromDevice()
 
+        if v[0] == "setConfig":
+            self.writeConfigData(bytes.fromhex(v[1]))
+
+
+        if v[0] == "saveConfig":
+            self.saveConfigData()
 
     def _onStructuredMessage(self,m):
         for i in m['data']:
-
-
             #config declaration, we must update our local copy of what we think config should be
-            if i[0]==8:
-                if i[1]>31:
-                    continue
+            if i[0]==sg1.RECORD_CONFIG_DECLARE:
+                
+                if i[1]<32 and i[1] and not i[1]==self.lastRecievedConfigPage:
+                    self.handleError("Recieved config page:"+str(i[i])+ "Expected: "+str(i[self.lastRecievedConfigPage])+ " please refresh the config data")
+                    self.lastRecievedConfigPage = i[1]
+                
+                #Discard the random access bit
+                p = i[1]&31
+                
+                
+
                 for j,k in enumerate(i[2]):
-                    self.currentConfigData[i*8 +j]=k
+                    self.currentConfigData[p*8 +j]=k
+                
+                self.configDataWidget.write(formatConfigData(self.currentConfigData))
+
+            if i[0]==7:
+                if i[1]==1:
+                    self.lastSavedConfigData=time.monotonic()
+
+
+
+        try:
+            self.onStructuredMessage(m)
+        except:
+            self.handleError(traceback.format_exc(chain=True))
 
     def onStructuredMessage(self,m):
-        print(m)
+        self.print(m,'Structured Message')
 
 
     @property
@@ -334,7 +422,7 @@ class SG1Device(devices.Device):
     def onBeacon(self, m):
         self.print(m)
 
-    def sendMessage(self, msg, rt=False, power=-127, special=False, request=False,replyTo=False):
+    def sendMessage(self, msg, rt=False, power=-127):
         if rt:
             limit = 64 - (3+4+4)
         else:
@@ -343,10 +431,7 @@ class SG1Device(devices.Device):
             raise ValueError("Message cannot be longer than " +
                              str(limit)+" when rt="+str(rt))
 
-        if request and replyTo:
-            raise ValueError("Message cannot be both request and reply")
-
-        self.dev.sendMessage(msg, rt, power, request=request, special=special, replyTo=replyTo)
+        self.dev.sendMessage(msg, rt, power, special=False)
 
     def close(self):
         Device.close(self)
