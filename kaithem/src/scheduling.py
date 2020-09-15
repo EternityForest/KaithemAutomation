@@ -213,7 +213,7 @@ class RepeatingEvent(BaseEvent):
                     self.unregister()
                 else:
                     f()
-                self._schedule()
+                #self._schedule()
             except:
 
                  #If we can, try to send the exception back whence it came
@@ -242,6 +242,15 @@ class RepeatingEvent(BaseEvent):
                         logging.exception("Error handling first error in repeating event")
                 self.errored = True
             finally:
+                #We have to reschedule no matter what.
+                try:
+                    self._schedule()
+                except:
+                    #Don't even trust logging here. I'm being extremely paranoid about a deadlock.
+                    try:
+                        logging.exception("Error scheduling")
+                    except:
+                        pass
                 self.lock.release()
                 del f
                 sys.last_traceback=None
@@ -513,8 +522,8 @@ class NewScheduler(threading.Thread):
 
                 #We have to run in a try block because we don't want a bad schedule function to take out the whole thread.
 
-                #We only need to do this every 5 seconds or so, because it's only an error recovery thing.
-                if time.time()-self.lastrecheckedschedules>5:
+                #We only need to do this every 30 seconds or so, because it's only an error recovery thing.
+                if time.time()-self.lastrecheckedschedules>30:
                     self._dorErrorRecovery()
                     self.lastrecheckedschedules = time.time()
 
@@ -522,12 +531,14 @@ class NewScheduler(threading.Thread):
         for i in self.repeatingtasks:
             try:
                 if not i.scheduled:
-                    xyz = time.time()
-                    #Let's maybe not block the entire scheduling thread
-                    #If one event takes a long time to schedule or if it
-                    #Is already running and can't schedule yet.
-                    workers.do(i.schedule)
-                    logger.debug("Rescheduled "+str(i)+"using error recovery, could indicate a bug somewhere, or just a long running event.")
+                    #Give them 30 seconds to finish what they are doing and schedule themselves.
+                    if i.lastrun< time.time()-30:
+                        xyz = time.time()
+                        #Let's maybe not block the entire scheduling thread
+                        #If one event takes a long time to schedule or if it
+                        #Is already running and can't schedule yet.
+                        workers.do(i.schedule)
+                        logger.debug("Rescheduled "+str(i)+"using error recovery, could indicate a bug somewhere, or just a long running event.")
             except:
                     logger.exception("Exception while scheduling event")
 

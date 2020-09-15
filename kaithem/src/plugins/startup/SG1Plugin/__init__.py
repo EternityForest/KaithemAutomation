@@ -210,6 +210,7 @@ class SG1Device(devices.Device):
         self.apiWidget.require("/admin/settings.edit")
 
         self.configDataWidget = widgets.DynamicSpan()
+        self.configDataWidget.attrs= 'style="font-family:monospace;"'
 
 
         self.currentConfigData = bytearray(256)
@@ -232,6 +233,11 @@ class SG1Device(devices.Device):
 
     def writeConfigData(self,c):
         "Write the entire config data string to the remote devicve"
+        self.getConfigDataFromDevice()
+        time.sleep(3)
+        if isinstance(c,str):
+            #Cleanup allows directly inputting hyman readable data
+            c =bytes.fromhex(c.replace("0x",'').replace(' ','').replace('\n','').replace('\r','').replace('\t',''))
 
         s=time.monotonic()
         while not bytes(self.currentConfigData).startswith(c):
@@ -243,9 +249,10 @@ class SG1Device(devices.Device):
             while c2:
                 x = c2[:8]
                 c2=c2[8:]
-                self.dev.writeStructured(sg1.RECORD_CONFIG_SET,c2,b)
+                self.dev.writeStructured(sg1.RECORD_CONFIG_SET,x,b)
                 b+=1
-            self.dev.flushStructured()
+                self.dev.flushStructured()
+                time.sleep(0.1)
             time.sleep(0.5)
 
     
@@ -271,41 +278,44 @@ class SG1Device(devices.Device):
 
     def apiWidgetHandler(self, u, v):
         # Note that this sends one wake request that lasts 30s only
-        if v[0] == "sendExpr":
-            x = [int(i, 16 if 'x' in i else 10) for i in v[1].split(",")]
-            self.sendMessage(bytes(x))
-            self.print('User sent data: '+str(x))
+        try:
+            if v[0] == "sendExpr":
+                x = [int(i, 16 if 'x' in i else 10) for i in v[1].split(",")]
+                self.sendMessage(bytes(x))
+                self.print('User sent data: '+str(x))
 
-        if v[0] == "sendText":
-            self.sendMessage(bytes(v[1],'utf8'))
-            self.print('User sent text data: '+str(v[1]))
+            if v[0] == "sendText":
+                self.sendMessage(bytes(v[1],'utf8'))
+                self.print('User sent text data: '+str(v[1]))
 
-        if v[0] == "sendExprRT":
-            x = [int(i, 16 if 'x' in i else 10) for i in v[1].split(",")]
-            self.sendMessage(bytes(x), rt=True)
-            self.print('User sent RT data: '+str(x))
+            if v[0] == "sendExprRT":
+                x = [int(i, 16 if 'x' in i else 10) for i in v[1].split(",")]
+                self.sendMessage(bytes(x), rt=True)
+                self.print('User sent RT data: '+str(x))
 
-        if v[0] == "sendTextRT":
-            self.sendMessage(bytes(v[1],'utf8'), rt=True)
-            self.print('User sent RT text data: '+str(v[1]))
+            if v[0] == "sendTextRT":
+                self.sendMessage(bytes(v[1],'utf8'), rt=True)
+                self.print('User sent RT text data: '+str(v[1]))
 
-        if v[0] == "getConfigData":
-            self.getConfigDataFromDevice()
+            if v[0] == "getConfigData":
+                self.getConfigDataFromDevice()
 
-        if v[0] == "setConfig":
-            self.writeConfigData(bytes.fromhex(v[1]))
+            if v[0] == "setConfig":
+                self.writeConfigData(v[1])
 
 
-        if v[0] == "saveConfig":
-            self.saveConfigData()
+            if v[0] == "saveConfig":
+                self.saveConfigData()
+        except:
+            self.handleException()
 
     def _onStructuredMessage(self,m):
         for i in m['data']:
             #config declaration, we must update our local copy of what we think config should be
             if i[0]==sg1.RECORD_CONFIG_DECLARE:
                 
-                if i[1]<32 and i[1] and not i[1]==self.lastRecievedConfigPage:
-                    self.handleError("Recieved config page:"+str(i[i])+ "Expected: "+str(i[self.lastRecievedConfigPage])+ " please refresh the config data")
+                if i[1]<32 and i[1] and (not i[1]==(self.lastRecievedConfigPage+1)):
+                    self.handleError("Recieved config page:"+str(i[i])+ "Expected: "+str(self.lastRecievedConfigPage)+ " please refresh the config data")
                     self.lastRecievedConfigPage = i[1]
                 
                 #Discard the random access bit

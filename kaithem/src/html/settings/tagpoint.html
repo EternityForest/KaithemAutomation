@@ -144,6 +144,8 @@ def combineLogs(a):
 
 
 %>
+
+<title>${normalizednormalizedTagName|h}</title>
 <script src="/static/widget.js"></script>
 <h1>Tag Point: <small>${normalizednormalizedTagName}</small></h1>
 <div class="sectionbox">
@@ -209,10 +211,12 @@ def combineLogs(a):
         <td>${id(tag)|h}</td>
     </tr>
 
+    %if hasattr(tag,'unit'):
     <tr>
         <td>Base Unit</td>
         <td>${tag.unit|h}</td>
     </tr>
+    %endif
 </table>
 <h3>Config</h3>
 <p class="help">If you do not configure a type, the tag will not exist until requested via code.</p>

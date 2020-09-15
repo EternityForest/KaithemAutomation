@@ -470,12 +470,13 @@ time_widget = TimeWidget(Widget)
 
 
 class DynamicSpan(Widget):
+    attrs=''
     def render(self):
         """
         Returns:
             string: An HTML and JS string that can be directly added as one would add any HTML inline block tag
         """
-        return("""<span id="%s">
+        return("""<span id="%s" %s>
         <script type="text/javascript">
         var upd = function(val)
         {
@@ -483,7 +484,7 @@ class DynamicSpan(Widget):
         }
         KWidget_subscribe('%s',upd);
         </script>%s
-        </span>"""%(self.uuid,self.uuid,self.uuid,self.value))
+        </span>"""%(self.uuid,self.attrs, self.uuid,self.uuid,self.value))
 
 class TextDisplay(Widget):
     def render(self,height='4em',width='24em'):

@@ -239,7 +239,7 @@ def decodeStructuredMessage(m):
     return m
 
 
-len_to_cope = {1: 0, 2: 1, 4: 3, 8: 4}
+len_to_cope = {1: 0, 2: 1, 4: 2, 8: 3}
 
 
 class StructuredMessageWriter():
@@ -258,7 +258,7 @@ class StructuredMessageWriter():
             self.buffer = b2
 
     def flush(self,power=-127):
-        self.dev.sendMessage(self.buffer,power, structured=True)
+        self.dev.sendMessage(self.buffer,power=power, structured=True)
         self.buffer = b''
 
 class SG1Device():
@@ -431,6 +431,8 @@ class SG1Device():
             m['special'] = special
         if structured:
             m['structured'] = True
+            if rt:
+                raise ValueError("message can't be rt and structured")
 
         if not self.localNodeID == 1:
             m['localID'] = self.localNodeID

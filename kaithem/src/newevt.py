@@ -728,9 +728,12 @@ class BaseEvent():
             try:
                 self._check()
             except Exception as e:
-                logger.exception("Error in event " +
-                                 self.resource+" of " + self.module)
-                self._handle_exception(e)
+                try:
+                    logger.exception("Error in event " +
+                                    self.resource+" of " + self.module)
+                    self._handle_exception(e)
+                except:
+                    logging.exception("Error handling exception in event")
         finally:
             self.lock.release()
 

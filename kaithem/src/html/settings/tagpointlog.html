@@ -35,6 +35,8 @@ def combineLogs(a):
 
 <script src="/static/widget.js"></script>
 <h1>Tag Point: <small>${tag.name}</small></h1>
+<title>Tag Logs</title>
+
 <div class="sectionbox">
 <p class="help">
     This page show logs for one tag.
@@ -76,11 +78,12 @@ def combineLogs(a):
         <td>Python3 Object ID</td>
         <td>${id(tag)|h}</td>
     </tr>
-
+    %if hasattr(tag,'unit'):
     <tr>
         <td>Base Unit</td>
         <td>${tag.unit|h}</td>
     </tr>
+    %endif
 </table>
 
 %if hasattr(tag, 'configLoggers'):
