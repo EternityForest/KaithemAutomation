@@ -53,8 +53,19 @@ It shouldn't happen, but if things get real messed up, use SIGUSR1 to dump hte s
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.39
+- Fix instant response to Chandler tag point changes, no need to wait for 3s polling.
+- Refreshing a tag page after changing something no longer resends the form
+- Fix tag point logging with the min accumulator
+- SIGUSR1 dumps the state of all threeads to /dev/shm/
+- Fix bug where continually repeating events could stop if there was a long delay followed by an exception
+- SG1 now supports reading and writing the config data area of devices.
+- Breaking change:  The MQTT interface between SG1 devies and gateways has changed.  The APIs have not.
+- YeeLight RGB bulbs are now supported
+
+
 ### 0.65.38
-- Tags will raise errors instead of deadlocking, if you manage to somehow create a deadlock
+- Tags will raise errors instead of deadlocking, if you manage to somehow create a deadlock, it is pretty hard.
 - Fix autoscroll in chandler
 - Fix tag point page if an error causes the meter widget to be unavailable
 - Ability to send SystemExit to threads from a settings page, to try to fix inifinite loops

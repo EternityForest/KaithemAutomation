@@ -9,6 +9,7 @@ Change Log
 - Fix bug where continually repeating events could stop if there was a long delay followed by an exception
 - SG1 now supports reading and writing the config data area of devices.
 - Breaking change:  The MQTT interface between SG1 devies and gateways has changed.  The APIs have not.
+- YeeLight RGB bulbs are now supported
 
 ### 0.65.38
 - Tags will raise errors instead of deadlocking, if you manage to somehow create a deadlock
