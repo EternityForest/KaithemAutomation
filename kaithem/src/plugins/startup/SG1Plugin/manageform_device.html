@@ -58,12 +58,12 @@ A real MQTT server is not local, as kaithem can use an internal "virtual" server
 
     <tr>
         <td>Remote Node ID(0 accepts from any)</td>
-        <td><input list="nodeid" name="device.nodeID"  value="${data.get('device.nodeID','0')}"></td>
+        <td><input list="nodeid" name="device.remoteNodeID"  value="${int(data.get('device.remoteNodeID', int(data.get('device.nodeID', '0'))))}"></td>
     </tr>
 
     <tr>
         <td>Local Node ID(Used when sending FROM gateway, normally 1) </td>
-        <td><input list="nodeid" name="device.localNodeID"  value="${data.get('device.nodeID','1')}"></td>
+        <td><input list="nodeid" name="device.localNodeID"  value="${data.get('device.localNodeID','1')}"></td>
     </tr>
 
 

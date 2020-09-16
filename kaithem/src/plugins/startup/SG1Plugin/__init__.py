@@ -186,15 +186,18 @@ class SG1Device(devices.Device):
             else:
                 d = base64.b64decode(d)
 
+            #legacy: nodeID, new: localNodeID
             self.dev = Device(
                 kaithemInterface=weakref.ref(self),
                 channelKey=d,
-                nodeID=int(data.get("device.nodeID", '0')),
+                remoteNodeID=int(data.get("device.remoteNodeID", int(data.get("device.nodeID", '0')))),
                 gateways=data.get("device.gateways", "__all__").split(","),
                 mqttServer=data.get(
                     "device.mqttServer", "__virtual__SG1"),
                 mqttPort=int(
-                    data.get("device.mqttPort", 1883))
+                    data.get("device.mqttPort", 1883)),
+                localNodeID=int(data.get("device.localNodeID", '0')),
+
             )
         except:
             self.handleError(traceback.format_exc(chain=True))
@@ -215,7 +218,7 @@ class SG1Device(devices.Device):
 
         self.currentConfigData = bytearray(256)
 
-        self.configDataWidget.write(formatConfigData(self.currentConfigData))
+        self.configDataWidget.write("Unknown or loading")
 
         #We can detect missing config data by noting whether the sequence is continuous or not
         self.lastRecievedConfigPage = 0
@@ -235,9 +238,17 @@ class SG1Device(devices.Device):
         "Write the entire config data string to the remote devicve"
         self.getConfigDataFromDevice()
         time.sleep(3)
+        self.configDataWidget.write("Writing")
+
         if isinstance(c,str):
             #Cleanup allows directly inputting hyman readable data
-            c =bytes.fromhex(c.replace("0x",'').replace(' ','').replace('\n','').replace('\r','').replace('\t',''))
+            c=c.replace("0x",'').replace(' ','').replace('\n','').replace('\r','').replace('\t','')
+            if not len(c) %2 == 0:
+                raise ValueError('Odd number of hex chars in '+repr(c[:1024]))
+            try:
+                c =bytes.fromhex(c)
+            except:
+                raise ValueError("Bad hex str: "+repr(c[:1024]))
 
         s=time.monotonic()
         while not bytes(self.currentConfigData).startswith(c):
@@ -255,6 +266,8 @@ class SG1Device(devices.Device):
                 time.sleep(0.1)
             time.sleep(0.5)
 
+        self.configDataWidget.write("Reading back")
+        self.getConfigDataFromDevice()
     
     def saveConfigData(self):
         "Tell the remote device to save it's config data in nonvolatile memory"
@@ -314,21 +327,36 @@ class SG1Device(devices.Device):
             #config declaration, we must update our local copy of what we think config should be
             if i[0]==sg1.RECORD_CONFIG_DECLARE:
                 
+                if i[1] == 0:
+                    self.configDataWidget.write("Unknown or loading")
+
                 if i[1]<32 and i[1] and (not i[1]==(self.lastRecievedConfigPage+1)):
                     self.handleError("Recieved config page:"+str(i[i])+ "Expected: "+str(self.lastRecievedConfigPage)+ " please refresh the config data")
+                    self.configDataWidget.write("Read err or packet loss, try again")
+
+                    inSequence=False
+                else:
+                    inSequence=True
+                    #Only update this if it'ts the right one. One missing one, and no sucessiver ones are valid till we start over at zero.
+                    #  we DO want to break the sequence if we get a random access message.
                     self.lastRecievedConfigPage = i[1]
                 
                 #Discard the random access bit
                 p = i[1]&31
                 
                 
-
-                for j,k in enumerate(i[2]):
-                    self.currentConfigData[p*8 +j]=k
+                if len(i[2])==8:
+                    for j,k in enumerate(i[2]):
+                        self.currentConfigData[p*8 +j]=k
                 
-                self.configDataWidget.write(formatConfigData(self.currentConfigData))
+                #If this is the last one, either marked by the max val of 32, or a 1 byte dummy record, then we know we got eeverything.
+                #Also update the UI if we got a random-access write.
+                if (len(i[2])< 8) or i[1] >31:
+                    if inSequence:
+                        self.configDataWidget.write(formatConfigData(self.currentConfigData))
+   
 
-            if i[0]==7:
+            if i[0]==8:
                 if i[1]==1:
                     self.lastSavedConfigData=time.monotonic()
 

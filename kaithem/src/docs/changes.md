@@ -6,6 +6,9 @@ Change Log
 - Refreshing a tag page after changing something no longer resends the form
 - Fix tag point logging with the min accumulator
 - SIGUSR1 dumps the state of all threeads to /dev/shm/
+- Fix bug where continually repeating events could stop if there was a long delay followed by an exception
+- SG1 now supports reading and writing the config data area of devices.
+- Breaking change:  The MQTT interface between SG1 devies and gateways has changed.  The APIs have not.
 
 ### 0.65.38
 - Tags will raise errors instead of deadlocking, if you manage to somehow create a deadlock

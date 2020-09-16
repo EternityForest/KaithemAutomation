@@ -226,6 +226,7 @@ def makeThreadFunction(wr):
 
 
 def decodeStructuredMessage(m):
+    "Decode a message and replace the data with a list of type,channel, data structured tuples representing each record in the message"
     d = m['data']
     msg = []
 
@@ -243,6 +244,7 @@ len_to_cope = {1: 0, 2: 1, 4: 2, 8: 3}
 
 
 class StructuredMessageWriter():
+    "Object which is associated with a device and can be used to send structured messages"
     def __init__(self, dev):
         self.buffer = b''
         self.dev = dev
@@ -262,13 +264,32 @@ class StructuredMessageWriter():
         self.buffer = b''
 
 class SG1Device():
-    def __init__(self, channelKey, nodeID=0, gateways=None, mqttServer="__virtual__SG1", mqttPort="default", localNodeID=1):
+    """
+        Represents one local virtual SG1 device.  Note that this does not directly talk to any hardware devices directly.
+        Instead, it uses MQTT to talk to a gateway.  If device and gateway are it the same program, it can use a "virtual mqtt server" provided by scullery.
+
+        There can be multiple gateways on any given MQTT server, and a device can use all of them(the default) or a list of any subset of them by their gateway ID.
+
+        Note: the SG1 encryption keys are sent currently sent in total plaintext via the gateway, so your connection must be secure, and attackers must not be able to connect to it.
+        Even localhost is not safe if you allow connections to the local server from unsafe networks.
+
+        The reason for this is that the gateway does most of the real decoding work, and needs to actuallly know the keys
+
+        This is somewhat of a feature, because it makes debugging and reverse engineering your own devices easy.
+
+        All MQTT traffic uses topics starting with /SG1/.
+    
+
+        Virtual connections never leave the process.
+
+    """
+    def __init__(self, channelKey, remoteNodeID=0, gateways=None, mqttServer="__virtual__SG1", mqttPort="default", localNodeID=None):
         self.bus = mqtt.getConnection(mqttServer, mqttPort)
-        self.gateways = ['__all__']
+        self.gateways = gateways or ['__all__']
         self.key = channelKey
         # Default 0, disable node ID filtering
-        self.nodeID = nodeID
-        self.localNodeID= 1
+        self.nodeID = remoteNodeID
+        self.localNodeID= localNodeID or 1
         self.keepAwake = False
         self.lock = threading.RLock()
 
@@ -288,7 +309,7 @@ class SG1Device():
 
         # This is how the gateway keeps track of what devices it's interested in.
         self.bus.subscribe(
-            "/SG1/discoverDevices", self.replyToDiscovery, encoding = "msgpack")
+            "/SG1/discoverDevices", self._replyToDiscovery, encoding = "msgpack")
 
         self.running=True
 
@@ -303,95 +324,11 @@ class SG1Device():
         self.writeStructured=self.StructuredMessageWriter.write
         self.flushStructured=self.StructuredMessageWriter.flush
 
-    def validateIncoming(self, m):
-        """Enforce once and only once on the messages.
-        Even though gateways already do this, we could have multiple gateways."""
-        if m['ts'] in self.rxMessageTimestamps:
-            return False
 
-        # Check if it's impossibly old.
-        t=(time.time()-16)*10**6
-        if m['ts'] < t:
-            return False
 
-        self.rxMessageTimestamps[m['ts']]=True
 
-        try:
-            # Garbage collect old messages that would be caught by the window
-            if len(self.rxMessageTimestamps) > 2000:
-                with self.lock:
-                    torm=[]
-                    for i in self.rxMessageTimestamps:
-                        if i < t:
-                            torm.append(i)
-                    for i in torm:
-                        del self.rxMessageTimestamps[i]
-        except:
-            print(traceback.format_exc())
-            self.handleError(traceback.format_exc())
 
-        return True
-
-    def replyToDiscovery(self, t, m):
-        if self.running:
-            self.bus.publish(
-                "/SG1/registerDevice/", self.key, encoding = "msgpack")
-
-            if self.keepAwake and self.keepAwake():
-                self.sendWakeRequest()
-
-    def _onMessage(self, t, m):
-        if self.running:
-            # If we get multiple copies of a message in rapid succession,
-            # We want to mark the strongest gateway as the one we use for outgoing stuff
-
-            # Use abs to handle backwards time corrections
-
-            # Do before the replay attack prevention stuff because we need to look at multiple
-            # Gateways and find the strongest
-            if abs(self.lastMessageInfo[1]-m['ts']) > 10**6 or m['rssi'] > self.lastMessageInfo[2]:
-                self.lastMessageInfo=(m['gw'], m['ts'], m['rssi'], m['loss'])
-
-            if (self.nodeID < 1) or (not 'id' in m) or (self.nodeID == m.get('id',0)):
-                if self.validateIncoming(m):
-                    self.onMessage(m)
-
-    def _onStructuredMessage(self, t, m):
-        if self.running:
-            # If we get multiple copies of a message in rapid succession,
-            # We want to mark the strongest gateway as the one we use for outgoing stuff
-
-            # Use abs to handle backwards time corrections
-
-            # Do before the replay attack prevention stuff because we need to look at multiple
-            # Gateways and find the strongest
-            if abs(self.lastMessageInfo[1]-m['ts']) > 10**6 or m['rssi'] > self.lastMessageInfo[2]:
-                self.lastMessageInfo=(m['gw'], m['ts'], m['rssi'], m['loss'])
-
-            if (self.nodeID < 1) or (not 'id' in m) or (self.nodeID == m.get('id',0)):
-                if self.validateIncoming(m):
-                    self.onStructuredMessage(decodeStructuredMessage(m))
-
-    def sendWakeRequest(self):
-        # Create a wake request at the selected gateway.
-        # This request will last for 30 seconds.
-        t=time.monotonic()
-        if self.lastMessageInfo[1] > (t-60):
-            gw=self.lastMessageInfo[0]
-        else:
-            gw="__all__"
-
-        self.bus.publish("/SG1/wake/"+gw, self.key, encoding = "msgpack")
-
-    def _onRTMessage(self, t, m):
-        if self.running:
-            if abs(self.lastMessageInfo[1]-m['ts']) > 10**6 or m['rssi'] > self.lastMessageInfo[2]:
-                self.lastMessageInfo=(
-                    m['gw'], m['ts'], m['rssi'], self.lastMessageInfo[3])
-
-            if self.validateIncoming(m):
-                self.onRTMessage(m)
-
+    #These are called whith message objects when we gat the different kinds of message
     def onMessage(self, m):
         pass
 
@@ -399,15 +336,17 @@ class SG1Device():
         pass
 
     def onStructuredMessage(self, m):
+        """m['data'] is  a list of type,channel, data tuples, one for each record in the message"""
         pass
-
-    def _onBeacon(self, t, m):
-        self.onBeacon(m)
 
     def onBeacon(self, m):
         pass
 
+
     def sendMessage(self, data, rt = False, power =-127, special=False,structured=False):
+        """
+            Send some bytes as an SG1 message.  -127 indicates auto TX power control
+        """
         t=time.monotonic()
         # Select the gateway with the strongest signal, if we can
         # Otherwise we have to send from all gateways.
@@ -423,16 +362,22 @@ class SG1Device():
         m={
             "key": self.key,
             "data": data,
-            "rt": rt,
             "pwr": power
         }
 
         if special:
-            m['special'] = special
-        if structured:
-            m['structured'] = True
+            m['type'] = 'special'
+
+        elif structured:
+            m['type'] = 'struct'
             if rt:
                 raise ValueError("message can't be rt and structured")
+        elif rt:
+             m['type'] = 'rt'
+        else:
+             m['type'] = 'sg1'
+
+
 
         if not self.localNodeID == 1:
             m['localID'] = self.localNodeID
@@ -466,6 +411,112 @@ class SG1Device():
         self.running = False
 
 
+    def sendWakeRequest(self):
+        """ Create a wake request at the selected gateway. This request will last for 30 seconds.
+           While active, the gateway will try ot wake up the devices on this channel if they are in low power beacon mode
+        """
+        t=time.monotonic()
+        if self.lastMessageInfo[1] > (t-60):
+            gw=self.lastMessageInfo[0]
+        else:
+            gw="__all__"
+
+        self.bus.publish("/SG1/wake/"+gw, self.key, encoding = "msgpack")
+
+
+
+
+
+
+
+
+
+    def _validateIncoming(self, m):
+        """Enforce once and only once on the messages.
+        Even though gateways already do this, we could have multiple gateways."""
+        if m['ts'] in self.rxMessageTimestamps:
+            return False
+
+        # Check if it's impossibly old.
+        t=(time.time()-16)*10**6
+        if m['ts'] < t:
+            return False
+
+        self.rxMessageTimestamps[m['ts']]=True
+
+        try:
+            # Garbage collect old messages that would be caught by the window
+            if len(self.rxMessageTimestamps) > 2000:
+                with self.lock:
+                    torm=[]
+                    for i in self.rxMessageTimestamps:
+                        if i < t:
+                            torm.append(i)
+                    for i in torm:
+                        del self.rxMessageTimestamps[i]
+        except:
+            print(traceback.format_exc())
+            self.handleError(traceback.format_exc())
+
+        return True
+
+    def _replyToDiscovery(self, t, m):
+        if self.running:
+            self.bus.publish(
+                "/SG1/registerDevice/", self.key, encoding = "msgpack")
+
+            if self.keepAwake and self.keepAwake():
+                self.sendWakeRequest()
+
+    def _onMessage(self, t, m):
+        if self.running:
+            # If we get multiple copies of a message in rapid succession,
+            # We want to mark the strongest gateway as the one we use for outgoing stuff
+
+            # Use abs to handle backwards time corrections
+
+            # Do before the replay attack prevention stuff because we need to look at multiple
+            # Gateways and find the strongest
+            if abs(self.lastMessageInfo[1]-m['ts']) > 10**6 or m['rssi'] > self.lastMessageInfo[2]:
+                self.lastMessageInfo=(m['gw'], m['ts'], m['rssi'], m['loss'])
+
+            if (self.nodeID < 1) or (not 'id' in m) or (self.nodeID == m.get('id',0)):
+                if self._validateIncoming(m):
+                    self.onMessage(m)
+
+    def _onStructuredMessage(self, t, m):
+        if self.running:
+            # If we get multiple copies of a message in rapid succession,
+            # We want to mark the strongest gateway as the one we use for outgoing stuff
+
+            # Use abs to handle backwards time corrections
+
+            # Do before the replay attack prevention stuff because we need to look at multiple
+            # Gateways and find the strongest
+            if abs(self.lastMessageInfo[1]-m['ts']) > 10**6 or m['rssi'] > self.lastMessageInfo[2]:
+                self.lastMessageInfo=(m['gw'], m['ts'], m['rssi'], m['loss'])
+
+            if (self.nodeID < 1) or (not 'id' in m) or (self.nodeID == m.get('id',0)):
+                if self._validateIncoming(m):
+                    self.onStructuredMessage(decodeStructuredMessage(m))
+
+    def _onRTMessage(self, t, m):
+        if self.running:
+            if abs(self.lastMessageInfo[1]-m['ts']) > 10**6 or m['rssi'] > self.lastMessageInfo[2]:
+                self.lastMessageInfo=(
+                    m['gw'], m['ts'], m['rssi'], self.lastMessageInfo[3])
+
+            if self._validateIncoming(m):
+                self.onRTMessage(m)
+
+    
+    def _onBeacon(self, t, m):
+        self.onBeacon(m)
+
+
+
+
+
 # These objects represent a request from a device to the gateway to
 # keep an object awake.
 
@@ -475,6 +526,9 @@ class SG1WakeRequest():
 
 
 class SG1Gateway():
+    """Represents an interface to an SG1 gateway hardware device.  You can't do anything application level with this directly,
+       you just have 
+    """
     def __init__(self, port, id="default", mqttServer="__virtual__SG1", mqttPort="default", channelNumber=3, rfProfile=7):
         self.bus = mqtt.getConnection(mqttServer, mqttPort)
         self.lock = threading.RLock()
@@ -647,28 +701,26 @@ class SG1Gateway():
 
     def onSendRequest(self, topic, message):
         # Don't wait around forever to send RT messages
-        if self.lock.acquire(1 if message['rt'] else 3):
+        if self.lock.acquire(1 if message['type'] == 'rt' else 3):
             try:
                 self.setChannelKey(message['key'])
 
                 # Normally anything from the gateway has an ID of 1, but sometimes we want local "virtual"
                 # devices to talk between gateways.
                 id = message.get('localID',1)
-                if message['rt']:
+                if message['type'] == 'rt':
                     self.sendSG1RT(message['data'], message['pwr'],id)
 
-                elif message.get('structured',False):
+                elif message['type']=='struct':
                     self.sendSG1Structured(message['data'], message['pwr'],id)
+                elif message['type']=='sp':
+                    self.sendSG1Special(
+                                message['data'], message['pwr'],id)
+                elif message['type']=='sg1':
+                    self.sendSG1(
+                                message['data'], message['pwr'],id)
                 else:
-
-                    # Determine which of the  message types to send
-                    # By combination of attributes
-                    if message.get("sp", False):
-                        self.sendSG1Special(
-                                message['data'], message['pwr'],id)
-                    else:
-                        self.sendSG1(
-                                message['data'], message['pwr'],id)
+                    raise RuntimeError("Invalid type:"+ message['type'])
 
             finally:
                 self.lock.release()
