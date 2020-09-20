@@ -723,10 +723,16 @@ def resourceEditPage(module,resource,version='default',kwargs=None):
                 version=version)
 
         if resourceinquestion['resource-type'] == 'internal-fileref':
+            if 'require-permissions' in resourceinquestion:
+                requiredpermissions = resourceinquestion['require-permissions']
+            else:
+                requiredpermissions = []
             return pages.get_template("modules/fileresources/fileresource.html").render(
                 module =module,
                 resource =resource,
-                resourceobj =resourceinquestion)
+                resourceobj =resourceinquestion,
+                requiredpermissions = requiredpermissions
+                )
 
         if resourceinquestion['resource-type'] == 'page':
             if 'require-permissions' in resourceinquestion:
@@ -769,8 +775,30 @@ def resourceUpdateTarget(module,resource,kwargs):
             #has its own lock
             modules_state.createRecoveryEntry(module,resource, resourceobj)
             auth.importPermissionsFromModules() #sync auth's list of permissions
+
+    
+
+        elif t == 'internal-fileref':
+            resourceobj['serve'] = 'serve' in kwargs
+            #has its own lock
+            resourceobj['allow-xss'] = 'allow-xss' in kwargs
+            resourceobj['allow-origins'] = [i.strip() for i in kwargs['allow-origins'].split(',')]
+            resourceobj['mimetype'] = kwargs['mimetype']
+
+            #Just like pages, file resources are permissioned
+            resourceobj['require-permissions'] = []
+            for i in kwargs:
+                #Since HTTP args don't have namespaces we prefix all the permission checkboxes with permission
+                if i[:10] == 'Permission':
+                    if kwargs[i] == 'true':
+                        resourceobj['require-permissions'].append(i[10:])
+
+
+            modules_state.createRecoveryEntry(module,resource, resourceobj)
+            usrpages.updateOnePage(resource,module)
+
         
-        if t=="k4dprog_sq":
+        elif t=="k4dprog_sq":
             resourceobj['code'] = kwargs['code']
             resourceobj['device'] = kwargs['device']
             resourceobj['prgid'] = kwargs['prgid']

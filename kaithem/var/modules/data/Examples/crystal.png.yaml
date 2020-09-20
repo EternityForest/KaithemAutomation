@@ -1,1 +1,8 @@
-{resource-timestamp: 1576006576284979, resource-type: internal-fileref, target: $MODULERESOURCES/crystal.png}
+allow-origins: ['*']
+allow-xss: false
+mimetype: text/html
+require-permissions: []
+resource-timestamp: 1600630466898336
+resource-type: internal-fileref
+serve: true
+target: $MODULERESOURCES/crystal.png

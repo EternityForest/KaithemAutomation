@@ -15,7 +15,7 @@
 
 
 #This file handles the display of user-created pages
-import time,os,threading,traceback,gc
+import time,os,threading,traceback,gc,mimetypes
 from .import kaithemobj,util,pages,directories,messagebus,systasks,modules_state
 import mako, cherrypy,sys
 
@@ -105,10 +105,9 @@ def url_for_resource(module,resource):
 class CompiledPage():
     def __init__(self, resource,m='unknown',r='unknown'):
 
-        template = resource['body']
         self.errors = []
         self.printoutput=''
-        self.mime = resource.get("mimetype","text/html")
+        
         #For compatibility with older versions, we provide defaults
         #In case some attributes are missing
         if 'require-permissions' in resource:
@@ -126,48 +125,61 @@ class CompiledPage():
         else:
             self.origins = []
 
-        if 'require-method' in resource:
-            self.methods = resource['require-method']
-        else:
-            self.methods = ['POST','GET']
+        self.directServeFile=None
 
-        #Yes, I know this logic is ugly.
-        if 'no-navheader' in resource:
-            if resource['no-navheader']:
-                header = util.readfile(os.path.join(directories.htmldir,'pageheader_nonav.html'))
+        if resource['resource-type']=='page':
+            template = resource['body']
+
+            self.mime = resource.get("mimetype","text/html")
+            if 'require-method' in resource:
+                self.methods = resource['require-method']
+            else:
+                self.methods = ['POST','GET']
+
+            #Yes, I know this logic is ugly.
+            if 'no-navheader' in resource:
+                if resource['no-navheader']:
+                    header = util.readfile(os.path.join(directories.htmldir,'pageheader_nonav.html'))
+                else:
+                    header = util.readfile(os.path.join(directories.htmldir,'pageheader.html'))
             else:
                 header = util.readfile(os.path.join(directories.htmldir,'pageheader.html'))
-        else:
-            header = util.readfile(os.path.join(directories.htmldir,'pageheader.html'))
 
-        if 'no-header' in resource:
-            if resource['no-header']:
-                header = ""
+            if 'no-header' in resource:
+                if resource['no-header']:
+                    header = ""
 
-        if 'auto-reload' in resource:
-            if resource['auto-reload']:
-                header += '<meta http-equiv="refresh" content="%d">' % resource['auto-reload-interval']
+            if 'auto-reload' in resource:
+                if resource['auto-reload']:
+                    header += '<meta http-equiv="refresh" content="%d">' % resource['auto-reload-interval']
 
-        if not ('no-header' in resource) or not (resource['no-header']):
-            footer = util.readfile(os.path.join(directories.htmldir,'pagefooter.html'))
-        else:
-            footer = ""
-        templatesource = header + template + footer
+            if not ('no-header' in resource) or not (resource['no-header']):
+                footer = util.readfile(os.path.join(directories.htmldir,'pagefooter.html'))
+            else:
+                footer = ""
+            templatesource = header + template + footer
 
-        self.d={'kaithem': kaithemobj.kaithem}
-        if m in modules_state.scopes:
-            self.d['module']= modules_state.scopes[m]
+            self.d={'kaithem': kaithemobj.kaithem}
+            if m in modules_state.scopes:
+                self.d['module']= modules_state.scopes[m]
 
-        if not 'template-engine' in resource or resource['template-engine']=='mako':
-            self.template = mako.template.Template(templatesource, uri="Template"+m+'_'+r)
-        
-        elif resource['template-engine']=='markdown':
-            header = mako.template.Template(header, uri="Template"+m+'_'+r).render(**self.d)
-            footer = mako.template.Template(footer, uri="Template"+m+'_'+r).render(**self.d)
+            if not 'template-engine' in resource or resource['template-engine']=='mako':
+                self.template = mako.template.Template(templatesource, uri="Template"+m+'_'+r)
+            
+            elif resource['template-engine']=='markdown':
+                header = mako.template.Template(header, uri="Template"+m+'_'+r).render(**self.d)
+                footer = mako.template.Template(footer, uri="Template"+m+'_'+r).render(**self.d)
 
-            self.text = header+"\r\n"+markdownToSelfRenderingHTML(template,r)+footer
-        else:
-            self.text = template
+                self.text = header+"\r\n"+markdownToSelfRenderingHTML(template,r)+footer
+            else:
+                self.text = template
+
+        elif resource['resource-type']=='internal-fileref':
+            self.methods = ['GET']
+            self.name = os.path.basename(modules_state.fileResourceAbsPaths[m,r])
+
+            self.directServeFile= modules_state.fileResourceAbsPaths[m,r]
+            self.mime= self.mime = resource.get("mimetype",mimetypes.guess_type(self.name))
 
     def new_print(self,*d):
         if len(d)==1:
@@ -247,7 +259,7 @@ def updateOnePage(resource,module):
             pass
         #Get the page resource in question
         j = modules_state.ActiveModules[module][resource]
-        _Pages[module][resource] = CompiledPage(j)
+        _Pages[module][resource] = CompiledPage(j, module, resource)
         lookup.invalidate_cache()
 
 def makeDummyPage(resource,module):
@@ -259,7 +271,7 @@ def makeDummyPage(resource,module):
                     "resource-type":"page",
                     "body":"Content here",
                     'no-navheader':True}
-        _Pages[module][resource] = CompiledPage(j)
+        _Pages[module][resource] = CompiledPage(j,module, resource)
 
 
 #look in the modules and compile all the event code
@@ -275,7 +287,7 @@ def getPagesFromModules():
                 #now we loop over all the resources o the module to see which ones are pages
                 for m in modules_state.ActiveModules[i].copy():
                     j=modules_state.ActiveModules[i][m]
-                    if j['resource-type']=='page':
+                    if j['resource-type'] =='page':
                         try:
                             _Pages[i][m] = CompiledPage(j,i,m)
                         except Exception as e:
@@ -298,6 +310,36 @@ def getPagesFromModules():
                                 messagebus.postMessage('/system/notifications/errors',
                                                     "Page \""+m+"\" of module \""+i+
                                                     "\" may need attention")
+                    elif j['resource-type'] in 'internal-fileref':
+                        if j.get('serve',False):
+                            try:
+                                _Pages[i][m] = CompiledPage(j,i,m)
+                            except Exception as e:
+                                makeDummyPage(m,i)
+                                tb = traceback.format_exc(chain=True)
+                                #When an error happens, log it and save the time
+                                #Note that we are logging to the compiled event object
+                                _Pages[i][m].errors.append([time.strftime(config['time-format']),tb,"Error while initializing"])
+                                try:
+                                    messagebus.postMessage('system/errors/pages/'+
+                                                    i+'/'+
+                                                    m,str(tb))
+                                except Exception as e:
+                                    print (e)
+                                #Keep only the most recent 25 errors
+
+                                #If this is the first error(high level: transition from ok to not ok)
+                                #send a global system messsage that will go to the front page.
+                                if len(_Pages[i][m].errors)==1:
+                                    messagebus.postMessage('/system/notifications/errors',
+                                                        "Page \""+m+"\" of module \""+i+
+                                                        "\" may need attention")
+                        else:
+                            try:
+                                del _Pages[i][m]
+                            except KeyError:
+                                pass
+
     lookup.invalidate_cache()
 
 
@@ -359,6 +401,10 @@ class KaithemPage():
             raise cherrypy.HTTPRedirect('/errors/wrongmethod')
         try:
             cherrypy.response.headers['Content-Type'] = page.mime
+
+            if page.directServeFile:
+                return cherrypy.lib.static.serve_file(page.directServeFile, page.mime, os.path.basename(page.directServeFile))
+
             if hasattr(page,"template"):
                 return page.template.render(
                     kaithem = kaithemobj.kaithem,

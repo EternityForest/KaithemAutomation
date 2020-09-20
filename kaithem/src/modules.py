@@ -1500,6 +1500,8 @@ def rmResource(module, resource, message="Resource Deleted"):
                 pass
 
             del fileResourceAbsPaths[module, resource]
+            usrpages.removeOnePage(module, resource)
+
 
         else:
             additionalTypes[r['resource-type']].ondelete(module, resource, r)

@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.65.40
+- File resources can now be directly served, using the same URL pattern of pages, with full permissions and XSS
+
+
 ### 0.65.39
 - Fix instant response to Chandler tag point changes, no need to wait for 3s polling.
 - Refreshing a tag page after changing something no longer resends the form

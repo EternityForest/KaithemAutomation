@@ -1,6 +1,6 @@
 <%!
     from src.util import url
-    from src import unitsofmeasure
+    from src import unitsofmeasure,pages,auth,usrpages
     from src.modules import fileResourceAbsPaths
     import os
 %>
@@ -21,18 +21,102 @@
     Link to raw file
     </th>
     </tr>
+    
+    <tr>
+        <td>
+            <a href="${fileResourceAbsPaths[module,resource]|h}">${resource|h}</a>
+    </td>
+    <td>
     %try:
     ${unitsofmeasure.siFormatNumber(os.path.getsize(fileResourceAbsPaths[module,resource]))}
     %except:
     File not acessible or does not exist
     %endtry
-    <td>
-    <a href="${fileResourceAbsPaths[module,resource]|h}">${resource|h}</a>
-    </td>
+   
     <td>
     ${fileResourceAbsPaths[module,resource]}
     </td>
     </tr>
     </table>
+
+
+    <form action="/modules/module/${url(module)}/updateresource/${url(resource)}" method="POST">
+    
+    <label><input type="checkbox"  name="serve"
+
+       %if 'serve' in resourceobj:
+           %if resourceobj['serve'] == True:
+           checked="yes"
+           %endif
+       %else:
+        %endif
+      ></input>Serve file with the same URL pattern as you would expect for a page: <a class="gobutton" href="${usrpages.url_for_resource(module,resource)}">User acessible link</a>
+    </label>
+
+<p class="help"><span class="permission-icon"></span>Require the following permissions to access this resource</p>
+<div class="scrollbox">
+<ul>
+%for i in sorted(auth.Permissions.keys()):
+    <li> <input type="checkbox"  name="Permission${i}" value="true"
+        %if i in requiredpermissions:
+            checked="yes"
+        %endif
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
+        ></input>${i|h}</li>
+%endfor
+</ul>
+</div>
+
+
+MIME type:<input step=0.1 name="mimetype" size=6em
+        %if 'mimetype' in resourceobj:
+                value= ${resourceobj['mimetype']|h}
+        %else:
+                value= "text/html"
+        %endif
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
+       ></input><br>
+
+
+<input type="checkbox" name="allow-xss"
+        %if 'allow-xss' in resourceobj:
+            %if resourceobj['allow-xss']:
+                checked="yes"
+            %endif
+        %endif
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
+       ></input>Allow cross-origin requests from(comma separated, * means any)<
+<%
+origins = ""
+if 'allow-origins' in resourceobj:
+    for i in resourceobj['allow-origins']:
+        origins = origins+i+", "
+    origins = origins[:-2]
+else:
+    origins = "*"
+%>
+<input type="text"  name="allow-origins"
+        value= "${origins|h}"
+        %if not pages.canUserDoThis("/admin/modules.edit"):
+                    disabled=1\
+        %endif
+        ></input>
+</div>
+%if pages.canUserDoThis("/admin/modules.edit"):
+<br>
+<input type="submit" value="Save Changes" onclick="wasChanged=false">
+</input>
+%else:
+<p class="warning">You will not be able to save any change made as you are either not logged in or do not have permissions.</p>
+%endif
+</form>
+
+
 </section>
 <%include file="/pagefooter.html"/>
