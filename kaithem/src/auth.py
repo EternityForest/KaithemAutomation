@@ -26,23 +26,6 @@ of a valid token"""
 
 from . import util,directories,modules_state,registry,messagebus
 import json,base64,os,time,shutil,hashlib,base64,sys,yaml,hmac,struct,logging, threading
-from src import config as cfg
-
-noSecurityMode=False
-
-mode = int(cfg.argcmd.nosecurity) if cfg.argcmd.nosecurity else None
-#limit nosecurity to localhost
-if mode == 1:
-    bindto = '127.0.0.1'
-    noSecurityMode = 1
-
-#Unless it's mode 2
-if mode == 2:
-    noSecurityMode=2
-
-#Unless it's mode 2
-if mode == 3:
-    noSecurityMode=3
 
 
 
@@ -619,32 +602,6 @@ def getUserLimit(user,limit,maximum=2**64):
 
 def canUserDoThis(user,permission):
     """Return True if given user(by username) has access to the given permission"""
-    global noSecurityMode
-
-    if noSecurityMode:
-        if noSecurityMode==1:
-            if cherrypy.request.remote.ip.startswith("127."):
-                return True
-            elif cherrypy.request.remote.ip=="::1":
-                return True
-            else:
-                raise RuntimeError("Nosecurity 1 enabled, but got request from ext IP:"+str(cherrypy.request.remote.ip))
-                return False
-                
-        if noSecurityMode==2:
-            x = cherrypy.request.remote.ip
-            if cherrypy.request.remote.ip.startswith=="::1":
-                return True
-            if x.startswith("192."):
-                return True
-            if x.startswith("10."):
-                return True
-            if x.startswith("127."):
-                return True
-            return False
-
-        if noSecurityMode==3:
-            return True
 
     if not user in Users:
         if '__guest__' in Users and permission in Users["__guest__"].permissions:

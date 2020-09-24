@@ -198,7 +198,7 @@ if config['enable-websockets']:
                         with subscriptionLock:
                           if i in widgets:
                                 for p in widgets[i]._read_perms:
-                                    if not auth.canUserDoThis(user,p):
+                                    if not pages.canUserDoThis(p, user):
                                         raise RuntimeError(user +" missing permission: "+str(p) )
 
                                 widgets[i].subscriptions[self.uuid] = subsc_closure(self,i,widgets[i])
@@ -290,7 +290,7 @@ class Widget():
                 the username of the user who is tring to access things.
         """
         for i in self._read_perms:
-            if not auth.canUserDoThis(user,i):
+            if not pages.canUserDoThis(i,user):
                 return
         try:
             return self.onRequest(user,uuid)
@@ -315,11 +315,11 @@ class Widget():
     def _onUpdate(self,user,value,uuid):
         """Called internally to write a value to the widget. Responisble for verifying permissions. Returns if user does not have permission"""
         for i in self._read_perms:
-            if not auth.canUserDoThis(user,i):
+            if not pages.canUserDoThis(i,user):
                 return
 
         for i in self._write_perms:
-            if not auth.canUserDoThis(user,i):
+            if not pages.canUserDoThis(i,user):
                 return
 
         self.onUpdate(user,value,uuid)

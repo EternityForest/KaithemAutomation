@@ -3,13 +3,13 @@ Change Log
 
 ### 0.65.40
 - File resources can now be directly served, using the same URL pattern of pages, with full permissions and XSS
-
+- Unencrypted HTTP access is now allowed for secure pages, from localhost, or from the 200:: and 300:: IP ranges used by the Yggdrasil mesh. 
 
 ### 0.65.39
 - Fix instant response to Chandler tag point changes, no need to wait for 3s polling.
 - Refreshing a tag page after changing something no longer resends the form
 - Fix tag point logging with the min accumulator
-- SIGUSR1 dumps the state of all threeads to /dev/shm/
+- SIGUSR1 dumps the state of all threads to /dev/shm/
 - Fix bug where continually repeating events could stop if there was a long delay followed by an exception
 - SG1 now supports reading and writing the config data area of devices.
 - Breaking change:  The MQTT interface between SG1 devies and gateways has changed.  The APIs have not.

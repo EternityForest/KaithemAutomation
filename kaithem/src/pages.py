@@ -34,6 +34,24 @@ _varLookup = TemplateLookup(directories=[directories.vardir])
 def get_vardir_template(fn):
     return _varLookup.get_template(os.path.relpath(fn, directories.vardir))
 
+from src import config as cfg
+
+noSecurityMode=False
+
+mode = int(cfg.argcmd.nosecurity) if cfg.argcmd.nosecurity else None
+#limit nosecurity to localhost
+if mode == 1:
+    bindto = '127.0.0.1'
+    noSecurityMode = 1
+
+#Unless it's mode 2
+if mode == 2:
+    noSecurityMode=2
+
+#Unless it's mode 2
+if mode == 3:
+    noSecurityMode=3
+
 
 
 navBarPlugins = weakref.WeakValueDictionary()
@@ -97,8 +115,35 @@ def postOnly():
     if not cherrypy.request.method == "POST":
         raise cherrypy.HTTPRedirect("/errors/wrongmethod")
 
-# Redirect user to an error message if he does not have the proper permission.
 
+def canOverrideSecurity():
+    "Check if nosecuritymode overrides for this request"
+    global noSecurityMode
+
+    if noSecurityMode:
+        if noSecurityMode==1:
+            if cherrypy.request.remote.ip.startswith("127."):
+                return True
+            elif cherrypy.request.remote.ip=="::1":
+                return True
+            else:
+                raise RuntimeError("Nosecurity 1 enabled, but got request from ext IP:"+str(cherrypy.request.remote.ip))
+                return False
+                
+        if noSecurityMode==2:
+            x = cherrypy.request.remote.ip
+            if cherrypy.request.remote.ip.startswith=="::1":
+                return True
+            if x.startswith("192."):
+                return True
+            if x.startswith("10."):
+                return True
+            if x.startswith("127."):
+                return True
+            return False
+
+        if noSecurityMode==3:
+            return True
 
 def require(permission, noautoreturn=False):
     """Get the user that is making the request bound to this thread,
@@ -124,7 +169,11 @@ def require(permission, noautoreturn=False):
 
         # Anything guest can't do needs https
         if not cherrypy.request.scheme == 'https':
-            raise cherrypy.HTTPRedirect("/errors/gosecure")
+            x = cherrypy.request.remote.ip
+            #Allow localhost, and Yggdrasil mesh. This check is really just to be sure nobody accidentally uses HTTP,
+            #But localhost and encrypted mesh are legitamate uses of HTTP.
+            if not x.startswith=="::1" or  x.startswith("127.") or x.startswith("200::") or x.startswith("300::"):
+                raise cherrypy.HTTPRedirect("/errors/gosecure")
 
         user = getAcessingUser()
 
@@ -144,14 +193,23 @@ def require(permission, noautoreturn=False):
             raise cherrypy.HTTPRedirect("/errors/permissionerror?")
 
 
-if config.argcmd.nosecurity:
+
+#In NoSecurity mode we do things a bit differently
+def canUserDoThis(permission,user=None):
+    "None means get the user from the request context"
+    return auth.canUserDoThis(user or getAcessingUser(), permission)
+
+if noSecurityMode:
     def require(*args, **kwargs):
-        return
+        if canOverrideSecurity():
+            return True
+        raise cherrypy.HTTPRedirect("/errors/permissionerror?")
 
 
-def canUserDoThis(permission):
-    return auth.canUserDoThis(getAcessingUser(), permission)
-
+    def require(*args, **kwargs):
+        if canOverrideSecurity():
+            return True
+        raise auth.canUserDoThis(getAcessingUser(), permission)
 
 def getAcessingUser():
     """Return the username of the user making the request bound to this thread or <UNKNOWN> if not logged in.

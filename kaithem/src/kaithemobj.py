@@ -78,7 +78,7 @@ class Kaithem():
         @staticmethod
         def checkPermission(user,permission):
             try:
-                if auth.canUserDoThis(user, permission):
+                if pages.canUserDoThis(permission,user):
                     return True
                 else:
                     return False

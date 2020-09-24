@@ -50,7 +50,7 @@ api.require("/users/alerts.view")
 
 def handleApiCall(u,v):
     if v[0]=="ack":
-        if auth.canUserDoThis(u, all[v[1]].ackPermissions):
+        if pages.canUserDoThis(all[v[1]].ackPermissions,u):
             all[v[1]].acknowledge()
 api.attach(handleApiCall)
 

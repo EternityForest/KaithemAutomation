@@ -34,7 +34,7 @@ def rawlistsend(subject,message,list):
     for i in auth.Users:
         x = auth.getUserSetting(i,'mailinglists')
         if list in x:
-            if auth.canUserDoThis(i,"/users/mail/lists/"+list+"/subscribe"):
+            if pages.canUserDoThis("/users/mail/lists/"+list+"/subscribe",i):
                 l.append(auth.getUserSetting(i,'email'))
     raw_send(message,l,subject,registry.get('system/mail/lists')[list]['name'])
     
