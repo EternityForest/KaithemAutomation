@@ -278,7 +278,7 @@ document.getElementById("actionbox").style="display:none;";
 
 
 <h3>Output</h3>
-
+%if (module,name) in newevt.EventReferences:
 ${newevt.EventReferences[module,name].logWindow.render()}
 
 
@@ -302,6 +302,8 @@ This event last ran:
 %>
 %if c:
     <br>Average Time(Last ${c} runs): ${unitsofmeasure.formatTimeInterval(avg_time,2)}<br>
+%endif
+
 %endif
 
 
@@ -334,6 +336,20 @@ This event last ran:
 %endtry
 </table>
 </div>
+
+%if newevt.getEventErrors(module,name):
+<h3 class="error">Errors[${len(newevt.getEventErrors(module,name))}]</h3>
+<p class ="help">
+This section the most recent errors that ocurred while executing the event or trigger.
+</p>
+<div class="scrollbox">
+%for i in newevt.getEventErrors(module,name):
+    <h4>${i[0]|h}</h4>
+    <pre>${i[1]|h}</pre>
+%endfor
+</div>
+%endif
+
 
 
 <hr>

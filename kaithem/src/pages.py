@@ -234,6 +234,9 @@ def getAcessingUser():
                 logging.exception("Error finding accessing user")
                 return "<unknown>"
 
+    if noSecurityMode:
+        if canOverrideSecurity():
+            return "admin"
     # Handle token based auth
     if not 'auth' in cherrypy.request.cookie or (not cherrypy.request.cookie['auth'].value):
         return "<unknown>"

@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1597913868946125
+resource-timestamp: 1600933011976856
 resource-type: page
 template-engine: mako
 
@@ -238,12 +238,20 @@ from src import tagpoints
         return true;
     }
 
-    function useBlankDescriptions(l)
+    function useBlankDescriptions(l, additional)
     {
         var l2=[];
         for(i in l)
         {
             l2.push([i,'']);
+        }
+        if(additional)
+        {
+            for(i in additional)
+            {
+                l2.push([i,additional[i]]);
+
+            }
         }
         return l2;
     }
@@ -1156,10 +1164,16 @@ from src import tagpoints
                             <h4 title="These properties belong to the selected cue and can vary between cues">Cue Properties</h4>
                             <h5>Basic</h5>
                             <div class="labelbox">
-                                <label>Number:
+                        <label>Number:
                         <input type="number" title="Cue number" style="width:6em" v-on:input="setnumber(currentcueid,$event.target.value)"
                             min=0 step=0.1 v-model="currentcue.number">
                         </label>
+                        
+                           <label>Probability:
+                        <input title="Probability this cue is selected in random selections. =expressions allowed" style="width:6em" v-on:input="setprobability(currentcueid,$event.target.value)"
+                            v-model="currentcue.probability" placeholder="1">
+                        </label>
+                        
                                 <label>Code:
                             <input title="Shortcut code used to quickly activate a cue" size="8" v-on:input="setshortcut(currentcueid,$event.target.value)"
                                 v-model="currentcue.shortcut">
@@ -1202,8 +1216,9 @@ from src import tagpoints
 
                                 <h5 style="flex-basis:100%">Cue Advance</h5>
                                 <label>Next Cue:
-                        <input list="cues_in_scene" title="Select a cue to activate when this one ends" v-on:input="setnext(currentcueid,$event.target.value)"
-                            v-model="cuemeta[currentcueid].next" v-bind:placeholder="currentcue.defaultnext"></input>
+                            <combo-box v-model="cuemeta[currentcueid].next" v-on:change="setnext(currentcueid,cuemeta[currentcueid].next)" :options="useBlankDescriptions(scenecues[scenename],{'__random__':'','__shuffle__':'Avoid Recent','*':'Wildcard match'})"></combo-box>
+
+                       
                     </label>
 
                                 <button v-on:click="gotonext(currentcueid)">
@@ -2558,6 +2573,10 @@ from src import tagpoints
             'setscript': function(sc, cue, v)
             {
                 api_link.send(['setscript', sc, cue, v]);
+            },
+            'setprobability': function(sc, cue, v)
+            {
+                api_link.send(['setprobability', sc, cue, v]);
             },
             'setcuevaldata': function(cue, v)
             {

@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1597531396174859
+resource-timestamp: 1600932514459366
 resource-type: event
 versions: {}
 
@@ -1281,6 +1281,8 @@ if __name__=='__setup__':
                                 'defaultnext': cue.scene().getAfter(cue.name),
                                 'prev': cue.scene().getParent(cue.name),
                                 'script': cue.script,
+                                'probability': cue.probability,
+                                
                                 'rules': cue.rules,
                                 'reentrant': cue.reentrant,
                                 'inheritRules': cue.inheritRules,
@@ -1902,6 +1904,12 @@ if __name__=='__setup__':
                         c = None
                     cues[msg[1]].nextCue= c
                     self.pushCueMeta(msg[1])
+                    
+                
+                if msg[0] == "setprobability":
+                    cues[msg[1]].probability=msg[2][:2048]
+                    self.pushCueMeta(msg[1])
+    
     
                 if msg[0] == "setscript":
                     cues[msg[1]].setScript(msg[2][:2048],allow_bad=False)
@@ -2315,6 +2323,7 @@ if __name__=='__setup__':
         'inheritRules':'',
         'rules':[],
         'script':'',
+        'probability': '',
         'values': {},
         'soundVolume': 1,
         'namedForSound': False
@@ -2324,10 +2333,10 @@ if __name__=='__setup__':
         "A static set of values with a fade in and out duration"
         __slots__=['id','changed','next_ll','alpha','fadein','length','lengthRandomize','name','values','scene',
         'nextCue','track','shortcut','number','inherit','sound','rel_length','script',
-        'soundOutput','onEnter','onExit','influences','associations',"rules","reentrant","inheritRules","soundFadeIn","soundFadeOut","soundVolume",'namedForSound',
+        'soundOutput','onEnter','onExit','influences','associations',"rules","reentrant","inheritRules","soundFadeIn","soundFadeOut","soundVolume",'namedForSound','probability',
         '__weakref__']
         def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, length=0,track=True, nextCue = None,shortcut=None,sound='',soundOutput='',rel_length=False, id=None,number=None,
-            lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,reentrant=True, soundFadeIn=0,soundFadeOut=0,inheritRules='',soundVolume=1,namedForSound=False,**kw):
+            lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,reentrant=True, soundFadeIn=0,soundFadeOut=0,inheritRules='',soundVolume=1,namedForSound=False,probability='',**kw):
             #This is so we can loop through them and push to gui
             self.id = uuid.uuid4().hex
             self.name = name
@@ -2338,6 +2347,7 @@ if __name__=='__setup__':
             self.reentrant=True
             self.soundVolume = soundVolume
             self.namedForSound=namedForSound
+            self.probability=probability
     
             ##Rules created via the GUI logic editor
             self.rules = rules or []
@@ -2409,7 +2419,7 @@ if __name__=='__setup__':
     
         def serialize(self):
                 x =  {"fadein":self.fadein,"length":self.length,'lengthRandomize':self.lengthRandomize,"shortcut":self.shortcut,"values":self.values,
-                "nextCue":self.nextCue,"track":self.track,"number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,'rel_length':self.rel_length, 'script':self.script, 'rules':self.rules,
+                "nextCue":self.nextCue,"track":self.track,"number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,'rel_length':self.rel_length, 'script':self.script, 'probability':self.probability, 'rules':self.rules,
                 'reentrant':self.reentrant, 'inheritRules': self.inheritRules,"soundFadeIn": self.soundFadeIn, "soundFadeOut": self.soundFadeOut, "soundVolume": self.soundVolume, 'namedForSound':self.namedForSound
                 }
     
@@ -3104,51 +3114,73 @@ if __name__=='__setup__':
                 rl_log_exc("Error handling event")
                 print(traceback.format_exc(6))
                 
+                
+        def pickRandomCueFromNames(self, cues):
+            names = []
+            weights = []
+            
+            for i in cues:
+                i=i.strip()
+                if i in self.cues:
+                    weights.append(self.evalExpr(self.cues[i].probability.strip() or 1))
+                    names.append(i)
+                    
+            return random.choices(names, weights=weights)[0]
     
         def _parseCueName(self,cue):
-            if cue == "__random__":
-                for i in range(0,100 if len(self.cues)>2 else 1):
-                    x = [i.name for i in self.cues_ordered]
-                    for i in reversed(self.cueHistory):
-                        if len(x)<3:
-                            break
-                        elif i in x:
-                            x.remove(i)
-                    cue = random.choice(x)
-                    if not cue == self.cue.name:
-                        break
-    
-            #Handle random selection option cues
-            elif "|" in cue:
-                x = cue.split("|")
-                for i in reversed(self.cueHistory):
-                    if len(x)<3:
+            print(cue)
+            if cue == "__shuffle__":
+                x = [i.name for i in self.cues_ordered if not (i.name == self.cue.name)]
+                for i in list(reversed(self.cueHistory))[:15]:
+                    if len(x)<2:
                         break
                     elif i in x:
                         x.remove(i)
-                cue = random.choice(x).strip()
+                cue = self.pickRandomCueFromNames(x)
                 
-            elif "*" in cue:
-                import fnmatch
-                x = []
+            elif cue == "__random__":
+                x = [i.name for i in self.cues_ordered if not i.name == self.cue.name]
+                cue = self.pickRandomCueFromNames(x)
     
-                for i in self.cues_ordered:
-                    if fnmatch.fnmatch(i.name, cue):
-                        x.append(i.name)
-                if not x:
-                    raise ValueError("No matching cue for pattern: "+cue)
-                                
-                #Do the "Shuffle logic" that avoids  recently used cues.
-                #Eliminate until only two remain, the min to not get stuck in
-                #A fixed pattern. Sometimes allow three to mix things up more.
-    
-                optionsNeeded = 2
-                for i in reversed(self.cueHistory):
-                    if len(x)<=optionsNeeded:
-                        break
-                    elif i in x:
-                        x.remove(i)
-                cue = random.choice(x)
+            else:
+                #Handle random selection option cues
+                if "|" in cue:
+                    x = cue.split("|")
+                    if random.random()>0.3:
+                        for i in reversed(self.cueHistory):
+                            if len(x)<3:
+                                break
+                            elif i in x:
+                                x.remove(i)
+                    cue = self.pickRandomCueFromNames(x)
+                    
+                elif "*" in cue:
+                    import fnmatch
+                    x = []
+                    
+                    if cue.startswith("shuffle:"):
+                        cue = cue[len("shuffle:"):]
+                        shuffle=True
+                    else:
+                        shuffle=False
+        
+                    for i in self.cues_ordered:
+                        if fnmatch.fnmatch(i.name, cue):
+                            x.append(i.name)
+                    if not x:
+                        raise ValueError("No matching cue for pattern: "+cue)
+                                    
+                    if shuffle:
+                        #Do the "Shuffle logic" that avoids  recently used cues.
+                        #Eliminate until only two remain, the min to not get stuck in
+                        #A fixed pattern.
+                        optionsNeeded = 2
+                        for i in reversed(self.cueHistory)[:15]:
+                            if len(x)<=optionsNeeded:
+                                break
+                            elif i in x:
+                                x.remove(i)
+                    cue = cue = self.pickRandomCueFromNames(x)
     
                         
             if not cue in self.cues:

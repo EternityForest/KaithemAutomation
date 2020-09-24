@@ -205,8 +205,8 @@ def getEventErrors(module, event):
     with _event_list_lock:
         try:
             return __EventReferences[module, event].errors
-        except (KeyError, AttributeError):
-            return[['0', 'Event does not exist or was not properly initialized']]
+        except (KeyError, AttributeError) as e:
+            return[['0', 'Event does not exist or was not properly initialized:'+str(e)]]
 
 
 def fastGetEventErrors(module, event):
@@ -738,6 +738,23 @@ class BaseEvent():
             self.lock.release()
 
 
+def test_compile(setup, action):
+        # Compile the action and run the initializer
+        if setup is None:
+            setup = "pass"
+
+
+        # initialize the module scope with the kaithem object and the module thing.
+        initializer = compile(
+            setup, "TestCompileSetup", "exec")
+
+        
+        body = "def _event_action():\n"
+        for line in action.split('\n'):
+            body += ("    "+line+'\n')
+        body = compile(body, "TestCompile", 'exec')
+
+
 class DummyModuleScope():
     pass
 
@@ -748,6 +765,9 @@ class UnrecoverableEventInitError(RuntimeError):
 
 class CompileCodeStringsMixin():
     "This mixin lets a class take strings of code for its setup and action"
+
+
+   
 
     def _init_setup_and_action(self, setup, action, params={}):
         # Compile the action and run the initializer
@@ -1521,10 +1541,9 @@ def updateOneEvent(resource, module, o=None):
                 x.register()
                 # Update index
                 __EventReferences[module, resource] = x
-        except Exception as e:
-            if not(module, resource) in __EventReferences:
-                d = makeDummyEvent(module, resource)
-                d._handle_exception(e)
+        except Exception as e:  
+            d = makeDummyEvent(module, resource)
+            d._handle_exception(e)
 
 # makes a dummy event for when there is an error loading and puts it in the right place
 # The dummy does nothing but is in the right place
@@ -1679,31 +1698,36 @@ def make_event_from_resource(module, resource, subst=None):
         priority = r['priority']
     else:
         priority = 1
+    try:
+        if 'enable' in r:
+            if not r['enable']:
+                # TODO: What's going on here?
+                if not parseTrigger(r['trigger'][0]) == '!function':
+                    e = Event(m=module, r=resource)
+                else:
+                    e = Event(r['trigger'], r['action'], make_eventscope(module),
+                            setup=setupcode,
+                            continual=continual,
+                            ratelimit=ratelimit,
+                            priority=priority,
+                            m=module,
+                            r=resource, dummy=True)
 
-    if 'enable' in r:
-        if not r['enable']:
-            # TODO: What's going on here?
-            if not parseTrigger(r['trigger'][0]) == '!function':
-                e = Event(m=module, r=resource)
-            else:
-                e = Event(r['trigger'], r['action'], make_eventscope(module),
-                          setup=setupcode,
-                          continual=continual,
-                          ratelimit=ratelimit,
-                          priority=priority,
-                          m=module,
-                          r=resource, dummy=True)
+                e.disable = True
+                return e
 
-            e.disable = True
-            return e
-
-    x = Event(r['trigger'], r['action'], make_eventscope(module),
-              setup=setupcode,
-              continual=continual,
-              ratelimit=ratelimit,
-              priority=priority,
-              m=module,
-              r=resource)
+        x = Event(r['trigger'], r['action'], make_eventscope(module),
+                setup=setupcode,
+                continual=continual,
+                ratelimit=ratelimit,
+                priority=priority,
+                m=module,
+                r=resource)
+    except Exception as e:
+        if not (module,resource) in __EventReferences:
+            d = makeDummyEvent(module, resource)
+            d._handle_exception(e)
+        raise
     
     #findCapitalizationIssues(setupcode+" \n "+r['trigger']+ "\n "+r['action'], x)
     x.timeTakenToLoad = time.time()-t

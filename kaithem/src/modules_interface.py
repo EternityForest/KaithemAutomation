@@ -828,7 +828,12 @@ def resourceUpdateTarget(module,resource,kwargs):
                     r2['rate-limit'] = float(kwargs['ratelimit'])
                     r2['enable'] = 'enable' in kwargs
 
-                    #Remove the old event even before we even do a test compile. If we can't do the new version just put the old one back.
+                    #Test for syntax errors at least, before we do anything more
+                    newevt.test_compile(setupcode, actioncode)
+
+
+                    #Remove the old event even before we even do a test run of setup. If we can't do the new version just put the old one back.
+                    #Todo actually put old one back
                     newevt.removeOneEvent(module,resource)
                     #Leave a delay so that effects of cleanup can fully propagate.
                     time.sleep(0.08)

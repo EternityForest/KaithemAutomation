@@ -16,8 +16,8 @@
 
 #
 
-__version__ = "0.65.38 Production"
-__version_info__ = (0,65,38,"release",0)
+__version__ = "0.65.40 Production"
+__version_info__ = (0,65,40,"release",0)
 
 
 

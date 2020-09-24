@@ -53,6 +53,17 @@ It shouldn't happen, but if things get real messed up, use SIGUSR1 to dump hte s
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+
+### 0.65.40
+- File resources can now be directly served, using the same URL pattern of pages, with full permissions and XSS
+- Unencrypted HTTP access is now allowed for secure pages, from localhost, or from the 200:: and 300:: IP ranges used by the Yggdrasil mesh. 
+- Chandler now has separate shuffle and random options
+- Chandler has a better combobox for the next cue
+- Chandler now supports changing the probability for any random cue
+- Fix bug preventing the changing events after an error occurs creating them
+- Bring back the error log in addition to the realtime log, on event pages
+
+
 ### 0.65.39
 - Fix instant response to Chandler tag point changes, no need to wait for 3s polling.
 - Refreshing a tag page after changing something no longer resends the form
