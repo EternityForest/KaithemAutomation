@@ -12,7 +12,7 @@
 
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import weakref,time,json,base64,cherrypy,os, traceback,random,threading,logging,socket,copy,struct
+import weakref,time,json,base64,cherrypy,os, traceback,random,threading,logging,socket,copy,struct,collections
 import random
 from . import auth,pages,unitsofmeasure,config,util,messagebus
 from src.config import config
@@ -147,8 +147,21 @@ if config['enable-websockets']:
             self.lastPushedNewData = 0
             self.uuid = "id"+base64.b64encode(os.urandom(16)).decode().replace("/",'').replace("-",'').replace('+','')[:-2]
             self.widget_wslock = threading.Lock()
+            self.subCount = 0
             ws_connections[self.uuid] = self
+            messagebus.subscribe("/system/permissions/rmfromuser", self.onPermissionRemoved)
+            self.user = '__guest__'
+
+            self.usedPermissions = collections.defaultdict(lambda :0)
+
             WebSocket.__init__(self,*args,**kwargs)
+
+        
+        def onPermissionRemoved(self,t,v):
+            "Close the socket if the user no longer has the permission"
+            if v[0]==self.user and v[1] in self.usedPermissions:
+                self.close()
+
 
         def send(self,*a,**k):
             with self.widget_wslock:
@@ -176,6 +189,7 @@ if config['enable-websockets']:
                 resp = []
                 user = self.user
                 req = o['req']
+                #Todo allow messages with no req?
                 upd = o['upd']
 
                 for i in upd:
@@ -193,13 +207,17 @@ if config['enable-websockets']:
                         if i == "__WIDGETERROR__":
                             continue
 
-                        #TODO: DoS by filling memory with subscriptions??
+                        #TODO: DoS by filling memory with subscriptions?? This should at least stop accidental attacks
+                        if self.subCount>1024:
+                            raise RuntimeError("Too many subscriptions for this connnection")
 
                         with subscriptionLock:
-                          if i in widgets:
+                            if i in widgets:
                                 for p in widgets[i]._read_perms:
                                     if not pages.canUserDoThis(p, user):
                                         raise RuntimeError(user +" missing permission: "+str(p) )
+                                    self.usedPermissions[p]+=1
+                                    
 
                                 widgets[i].subscriptions[self.uuid] = subsc_closure(self,i,widgets[i])
                                 widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
@@ -209,7 +227,26 @@ if config['enable-websockets']:
 
                                 self.subscriptions.append(i)
                                 resp.append([i, widgets[i]._onRequest(user,self.uuid)])
+                                self.subCount+=1
 
+                if 'unsub' in o:
+                    for i in o['unsub']:
+                        if not i in self.subscriptions:
+                            continue
+                     
+                        #TODO: DoS by filling memory with subscriptions??
+                        with subscriptionLock:
+                          if i in widgets:
+                                if widgets[i].subscriptions.pop(self.uuid,None):
+                                    self.subCount-=1
+
+                                    for p in widgets[i].permissions:
+                                        self.usedPermissions[p]-=1
+                                        if  self.usedPermissions[p]==0:
+                                            del  self.usedPermissions[p]
+                                widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
+                                
+                            
 
             except Exception as e:
                 logging.exception('Error in widget, responding to '+str(message.data))
@@ -482,9 +519,16 @@ class DynamicSpan(Widget):
         {
             document.getElementById("%s").innerHTML=val;
         }
-        KWidget_subscribe('%s',upd);
+        kaithemapi.subscribe('%s',upd);
         </script>%s
         </span>"""%(self.uuid,self.attrs, self.uuid,self.uuid,self.value))
+
+
+class DataSource(Widget):
+    attrs=''
+    def render(self):
+        raise RuntimeError("This is not a real widget, you must manually subscribe to this widget's ID and build your own handling for it.")
+
 
 class TextDisplay(Widget):
     def render(self,height='4em',width='24em'):
@@ -508,7 +552,7 @@ class TextDisplay(Widget):
                 KWidget_%s_prev = val;
             }
         }
-        KWidget_subscribe('%s',upd);
+        kaithemapi.subscribe('%s',upd);
         </script>%s
         </div>"""%(height,width, self.uuid, self.uuid, self.uuid, self.uuid,self.uuid,self.uuid,self.value))
 
@@ -664,7 +708,7 @@ class Meter(Widget):
                 document.getElementById("{uuid}_m").max = val[3].max;
             }}
         }}
-        KWidget_subscribe('{uuid}',upd);
+        kaithemapi.subscribe('{uuid}',upd);
         </script>{valuestr}
         </span></br>
         <meter id="{uuid}_m" value="{value:f}" min="{min:f}" max="{max:f}" high="{high:f}" low="{low:f}"></meter>
@@ -677,7 +721,7 @@ class Button(Widget):
     def render(self,content,type="default"):
         if type=="default":
             return("""
-            <button %s type="button" id="%s" onmousedown="KWidget_sendValue('%s','pushed')" onmouseleave="KWidget_sendValue('%s','released')" onmouseup="KWidget_sendValue('%s','released')">%s</button>
+            <button %s type="button" id="%s" onmousedown="kaithemapi.sendValue('%s','pushed')" onmouseleave="kaithemapi.sendValue('%s','released')" onmouseup="kaithemapi.sendValue('%s','released')">%s</button>
              """%(self.isWritable(),self.uuid,self.uuid,self.uuid,self.uuid,content))
 
         if type=="trigger":
@@ -706,7 +750,7 @@ class Button(Widget):
 
             </script>
             <button type="button" id="%s_1" onmousedown="%s_toggle()">ARM</button><br/>
-            <button type="button" class="triggerbuttonwidget" disabled=true id="%s_2" onmousedown="KWidget_setValue('%s','pushed')" onmouseleave="KWidget_setValue('%s','released')" onmouseup="KWidget_setValue('%s','released')" %s>
+            <button type="button" class="triggerbuttonwidget" disabled=true id="%s_2" onmousedown="kaithemapi.setValue('%s','pushed')" onmouseleave="kaithemapi.setValue('%s','released')" onmouseup="kaithemapi.setValue('%s','released')" %s>
             <span id="%s_3">%s</span>
             </button>
             </div>
@@ -741,10 +785,10 @@ class Slider(Widget):
             <b><p>%(label)s</p></b>
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
             %(orient)s
-            onchange="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));"
+            onchange="kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));"
             oninput="
             %(htmlid)s_clean=%(htmlid)s_cleannext=false;
-            KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
+            kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
             document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s';
             setTimeout(function(){%(htmlid)s_cleannext=true},150);"
             ><br>
@@ -762,7 +806,7 @@ class Slider(Widget):
             %(htmlid)s_clean =%(htmlid)s_cleannext;
             }
 
-            KWidget_subscribe("%(id)s",upd);
+            kaithemapi.subscribe("%(id)s",upd);
             </script>
 
             </div>"""%{'label':label, 'orient':orient,'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self.value,  'value':self.value,'unit':unit}
@@ -773,12 +817,12 @@ class Slider(Widget):
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
             %(orient)s
             oninput="document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s'; document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();"
-            onmouseup="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
+            onmouseup="kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
             onmousedown="document.getElementById('%(htmlid)s').jsmodifiable = false;"
-            onkeyup="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
-            ontouchend="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
+            onkeyup="kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
+            ontouchend="kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
             ontouchstart="document.getElementById('%(htmlid)s').jsmodifiable = false;"
-            ontouchleave="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
+            ontouchleave="kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
 
 
             ><br>
@@ -796,7 +840,7 @@ class Slider(Widget):
             }
             document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();
             document.getElementById('%(htmlid)s').jsmodifiable = true;
-            KWidget_subscribe("%(id)s",upd);
+            kaithemapi.subscribe("%(id)s",upd);
             </script>
             </div>"""%{'label':label, 'orient':orient,'en':self.isWritable(),'htmlid':mkid(), 'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self.value, 'unit':unit}
         raise ValueError("Invalid slider type:"%str(type))
@@ -822,7 +866,7 @@ class Switch(Widget):
         onchange="
         %(htmlid)s_clean = %(htmlid)s_cleannext= false;
         setTimeout(function(){%(htmlid)s_cleannext = true},350);
-        KWidget_setValue('%(id)s',document.getElementById('%(htmlid)s').checked)" %(x)s>%(label)s</label>
+        kaithemapi.setValue('%(id)s',document.getElementById('%(htmlid)s').checked)" %(x)s>%(label)s</label>
         <script type="text/javascript">
         %(htmlid)s_clean=%(htmlid)s_cleannext = true;
         var upd=function(val){
@@ -833,7 +877,7 @@ class Switch(Widget):
             %(htmlid)s_clean=%(htmlid)s_cleannext;
 
         }
-        KWidget_subscribe("%(id)s",upd);
+        kaithemapi.subscribe("%(id)s",upd);
         </script>
         </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self.value, 'label':label}
 
@@ -858,7 +902,7 @@ class TagPoint(Widget):
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
             oninput="
             %(htmlid)s_clean=%(htmlid)s_cleannext=false;
-            KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
+            kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));
             document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s';
             setTimeout(function(){%(htmlid)s_cleannext=true},150);"
             ><br>
@@ -876,7 +920,7 @@ class TagPoint(Widget):
             %(htmlid)s_clean =%(htmlid)s_cleannext;
            }
 
-           KWidget_subscribe("%(id)s",upd);
+           kaithemapi.subscribe("%(id)s",upd);
            </script>
 
             </div>"""%{'label':label,'en':self.isWritable(), 'htmlid':mkid(),'id':self.uuid, 'min':self.tag.min, 'step':self.step, 'max':self.tag.max, 'value':self.value, 'unit':unit}
@@ -886,12 +930,12 @@ class TagPoint(Widget):
             <b><p">%(label)s</p></b>
             <input %(en)s type="range" value="%(value)f" id="%(htmlid)s" min="%(min)f" max="%(max)f" step="%(step)f"
             oninput="document.getElementById('%(htmlid)s_l').innerHTML= document.getElementById('%(htmlid)s').value+'%(unit)s'; document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();"
-            onmouseup="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
+            onmouseup="kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
             onmousedown="document.getElementById('%(htmlid)s').jsmodifiable = false;"
-            onkeyup="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
-            ontouchend="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
+            onkeyup="kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
+            ontouchend="kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
             ontouchstart="document.getElementById('%(htmlid)s').jsmodifiable = false;"
-            ontouchleave="KWidget_setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
+            ontouchleave="kaithemapi.setValue('%(id)s',parseFloat(document.getElementById('%(htmlid)s').value));document.getElementById('%(htmlid)s').jsmodifiable = true;"
 
 
             ><br>
@@ -909,7 +953,7 @@ class TagPoint(Widget):
             }
             document.getElementById('%(htmlid)s').lastmoved=(new Date).getTime();
             document.getElementById('%(htmlid)s').jsmodifiable = true;
-            KWidget_subscribe("%(id)s",upd);
+            kaithemapi.subscribe("%(id)s",upd);
             </script>
             </div>"""%{'label':label,'en':self.isWritable(),'htmlid':mkid(), 'id':self.uuid, 'min':self.min, 'step':self.step, 'max':self.max, 'value':self.value, 'unit':unit}
 
@@ -920,7 +964,7 @@ class TagPoint(Widget):
         onchange="
         %(htmlid)s_clean = %(htmlid)s_cleannext= false;
         setTimeout(function(){%(htmlid)s_cleannext = true},350);
-        KWidget_setValue('%(id)s',(document.getElementById('%(htmlid)sman').checked))" %(x)s>Manual</label>
+        kaithemapi.setValue('%(id)s',(document.getElementById('%(htmlid)sman').checked))" %(x)s>Manual</label>
         <script type="text/javascript">
         %(htmlid)s_clean=%(htmlid)s_cleannext = true;
         var upd=function(val){
@@ -931,7 +975,7 @@ class TagPoint(Widget):
             %(htmlid)s_clean=%(htmlid)s_cleannext;
 
         }
-        KWidget_subscribe("%(id)s",upd);
+        kaithemapi.subscribe("%(id)s",upd);
         </script>
         </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self.value, 'label':label}
 
@@ -956,7 +1000,7 @@ class TextBox(Widget):
         onblur="%(htmlid)s_clean= true;"
         onfocus=" %(htmlid)s_clean = false;"
         oninput="
-        KWidget_setValue('%(id)s',document.getElementById('%(htmlid)s').value)
+        kaithemapi.setValue('%(id)s',document.getElementById('%(htmlid)s').value)
         "
                 ></label>
         <script type="text/javascript">
@@ -967,7 +1011,7 @@ class TextBox(Widget):
             document.getElementById('%(htmlid)s').value= val;
             }
         }
-        KWidget_subscribe("%(id)s",upd);
+        kaithemapi.subscribe("%(id)s",upd);
         </script>
         </div>"""%{'en':self.isWritable(),'htmlid':mkid(),'id':self.uuid,'x':x, 'value':self.value, 'label':label}
 
@@ -1021,7 +1065,7 @@ class ScrollingWindow(Widget):
                 d.scrollTop = d.scrollHeight;
             }
         }
-        KWidget_subscribe("%(id)s",upd);
+        kaithemapi.subscribe("%(id)s",upd);
         </script>
         </div>"""%{'htmlid':mkid(), 'maxlen':self.maxlen, 'content':content, 
                     'cssclass':cssclass, 'style':style, 'id':self.uuid}
@@ -1085,7 +1129,7 @@ class APIWidget(Widget):
                     {
                         var x = performance.now()
                         %(htmlid)s._txtime =x;
-                        KWidget_sendValue("_ws_timesync_channel",x)
+                        kaithemapi.sendValue("_ws_timesync_channel",x)
                     }
 
 
@@ -1101,18 +1145,18 @@ class APIWidget(Widget):
 
                 %(htmlid)s.set = function(val)
                     {
-                         KWidget_setValue("%(id)s", val);
+                         kaithemapi.setValue("%(id)s", val);
                          %(htmlid)s.clean = 2;
                     }
 
                 %(htmlid)s.send = function(val)
                     {
-                         KWidget_sendValue("%(id)s", val);
+                         kaithemapi.sendValue("%(id)s", val);
                          %(htmlid)s.clean = 2;
                     }
 
-                    KWidget_subscribe("_ws_timesync_channel",onTimeResponse)
-                    KWidget_subscribe("%(id)s",_upd);
+                    kaithemapi.subscribe("_ws_timesync_channel",onTimeResponse)
+                    kaithemapi.subscribe("%(id)s",_upd);
                     setTimeout(%(htmlid)s.getTime,500)
                     setTimeout(%(htmlid)s.getTime,1500)
                     setTimeout(%(htmlid)s.getTime,3000)

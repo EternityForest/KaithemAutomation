@@ -53,6 +53,7 @@ except:
     pass
 
 
+
 def lock(f):
     t = time.time()
     while time.time()-t > 5:
@@ -235,6 +236,9 @@ def modulesHaveChanged():
     modulewordhashes = {}
     modules_state.ls_folder.invalidate_cache()
 
+
+modules_state.modulesHaveChanged = modulesHaveChanged
+modules_state.unsavedChanges = unsaved_changed_obj
 
 class ResourceObject():
     def __init__(self, m: str = None, r: str = None, o=None):

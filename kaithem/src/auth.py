@@ -361,14 +361,16 @@ def generateUserPermissions(username = None):
         global Users
         for i in Users:
             limits = {}
-            Users[i].permissions = []
+            
+
+            newp = []
             for j in Users[i]['groups']:
                 #Handle nonexistant groups
                 if not j in Groups:
                     logger.warning("User "+i+" is member of nonexistant group "+ j)
 
                 for k in Groups[j]['permissions']:
-                    Users[i].permissions.append(k)
+                    newp.append(k)
 
                 #A user has access to the highest limit of all the groups he's in
                 for k in Groups[j].get('limits',{}):
@@ -378,6 +380,15 @@ def generateUserPermissions(username = None):
             if hasattr(Users[i],'token'):
                 Tokens[Users[i].token] = Users[i]
                 tokenHashes[hashToken(Users[i].token)] = Users[i]
+
+
+            for j in Users[i].permissions:
+                if not j in newp:
+                    messagebus.postMessage("/system/permissions/rmfromuser",(i,j))
+
+        
+            #Speed up by using a set
+            Users[i].permissions = set(newp)
 
 def userLogin(username,password):
     """return a base64 authentication token on sucess or return False on failure"""
@@ -558,7 +569,7 @@ def setUserSetting(user,setting,value):
         global authchanged
         authchanged = True
         un=user
-        if user == "<unknown>":
+        if user == "__guest__":
             return
         user = Users[user]
         #This line is just there to raise an error on bad data.
@@ -570,7 +581,7 @@ def setUserSetting(user,setting,value):
 
 def getUserSetting(user,setting):
     #I suppose this doesnt need a lock?
-    if user == '<unknown>':
+    if user == '__guest__':
         return defaultusersettings[setting]
     user = Users[user]
     if not 'settings' in user:

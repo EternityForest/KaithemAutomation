@@ -646,11 +646,10 @@ def addResourceTarget(module,type,name,kwargs,path):
             newevt.updateOneEvent(escapedName,root)
 
         elif type == 'page':
+                from src import pageresourcetemplates
+                template = kwargs['template']
                 basename=util.split_escape(name,'/','\\')[-1]
-                insertResource({
-                    "resource-type":"page",
-                    "body":'<%!\n#Code Here runs once when page is first rendered. Good place for import statements.\n__doc__= ""\n%>\n<%\n#Python Code here runs every page load\n%>\n<h2>'+basename+'</h2>\n'+'<title>'+basename+'</title>\n\n<div class="sectionbox">\nContent here\n</div>',
-                    'no-navheader':True})
+                insertResource(pageresourcetemplates.templates[template](basename))
                 usrpages.updateOnePage(escapedName,root)
 
         else:
@@ -934,6 +933,8 @@ def resourceUpdateTarget(module,resource,kwargs):
         if 'name' in kwargs:
             if not kwargs['name'] == resource:
                 mvResource(module,resource,module,kwargs['name'])
+             
+
     
 
     messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + " modified resource " +

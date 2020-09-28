@@ -177,7 +177,7 @@ def require(permission, noautoreturn=False):
 
         user = getAcessingUser()
 
-        if user == "<unknown>":
+        if user == "__guest__":
             # The login page can auto return people to what they were doing before logging in
             # Don't autoreturn users that came here from a POST call.
             if noautoreturn or cherrypy.request.method == 'POST':
@@ -195,9 +195,16 @@ def require(permission, noautoreturn=False):
 
 
 #In NoSecurity mode we do things a bit differently
-def canUserDoThis(permission,user=None):
+def canUserDoThis(permissions,user=None):
     "None means get the user from the request context"
-    return auth.canUserDoThis(user or getAcessingUser(), permission)
+
+    if not isinstance(permissions,(list,tuple)):
+        permissions = (permissions,)
+    
+    for permission in permissions:
+        if not auth.canUserDoThis(user or getAcessingUser(), permission):
+            return False
+    return True
 
 if noSecurityMode:
     def require(*args, **kwargs):
@@ -212,7 +219,7 @@ if noSecurityMode:
         raise auth.canUserDoThis(getAcessingUser(), permission)
 
 def getAcessingUser():
-    """Return the username of the user making the request bound to this thread or <UNKNOWN> if not logged in.
+    """Return the username of the user making the request bound to this thread or __guest__ if not logged in.
         The result of this function can be trusted because it uses the authentication token.
     """
     # Handle HTTP Basic Auth
@@ -232,15 +239,15 @@ def getAcessingUser():
                 return auth.whoHasToken(cherrypy.request.cookie['auth'].value)
             except:
                 logging.exception("Error finding accessing user")
-                return "<unknown>"
+                return "__guest__"
 
     if noSecurityMode:
         if canOverrideSecurity():
             return "admin"
     # Handle token based auth
     if not 'auth' in cherrypy.request.cookie or (not cherrypy.request.cookie['auth'].value):
-        return "<unknown>"
+        return "__guest__"
     try:
         return auth.whoHasToken(cherrypy.request.cookie['auth'].value)
     except:
-        return "<unknown>"
+        return "__guest__"

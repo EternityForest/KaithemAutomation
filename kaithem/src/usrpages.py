@@ -102,90 +102,134 @@ def url_for_resource(module,resource):
     s+= "/".join([util.url(i) for i in util.split_escape(resource,"/")])
     return s
 
+
+class CompiledPageAPIObject():
+    def __init__(self,p):
+        self.page =p
+        self.url = url_for_resource(p.module, p.resourceName)
+
+    def setContent(self, c):
+        """This allows self-modifying pages, as many things are best edited directly.  The intended use is for replacing the contents of custom html-elements with a simple regex.
+           One must be careful to use elements that actually can be replaced like that, which only have one instance.
+        
+        """
+
+        pages.require("/admin/modules.edit")
+        pages.postOnly()
+
+        if not isinstance(c, str):
+            raise RuntimeError("Content must be a string")
+        modules_state.modulesHaveChanged()
+        modules_state.unsavedChanges[(self.page.module,self.page.resourceName)] = "Resource modified by"+ pages.getAcessingUser()+" via self-modifying content feature"
+        self.page.resource['body']=c
+        self.page.refreshFromResource()
+    
+    def getContent(self):
+        return self.page.resource['body']
+
+
+
 class CompiledPage():
     def __init__(self, resource,m='unknown',r='unknown'):
 
         self.errors = []
         self.printoutput=''
         
-        #For compatibility with older versions, we provide defaults
-        #In case some attributes are missing
-        if 'require-permissions' in resource:
-            self.permissions = resource["require-permissions"]
-        else:
-            self.permissions = []
+        self.resource = resource
+        self.module = m
+        self.resourceName = r
 
-        if 'allow-xss' in resource:
-            self.xss = resource["allow-xss"]
-        else:
-            self.xss = False
+        #This API is available as 'page' from within
+        #Mako template code.   It's main use is for self modifying pages, mostly just for implementing
+        #FreeBoard.
 
-        if 'allow-origins' in resource:
-            self.origins = resource["allow-origins"]
-        else:
-            self.origins = []
+        self.localAPI = CompiledPageAPIObject(self)
 
-        self.directServeFile=None
-
-        if resource['resource-type']=='page':
-            template = resource['body']
-
-            self.mime = resource.get("mimetype","text/html")
-            if 'require-method' in resource:
-                self.methods = resource['require-method']
+        def refreshFromResource():
+            #For compatibility with older versions, we provide defaults
+            #In case some attributes are missing
+            if 'require-permissions' in resource:
+                self.permissions = resource["require-permissions"]
             else:
-                self.methods = ['POST','GET']
+                self.permissions = []
 
-            #Yes, I know this logic is ugly.
-            if 'no-navheader' in resource:
-                if resource['no-navheader']:
-                    header = util.readfile(os.path.join(directories.htmldir,'pageheader_nonav.html'))
+            if 'allow-xss' in resource:
+                self.xss = resource["allow-xss"]
+            else:
+                self.xss = False
+
+            if 'allow-origins' in resource:
+                self.origins = resource["allow-origins"]
+            else:
+                self.origins = []
+
+            self.directServeFile=None
+
+            if resource['resource-type']=='page':
+                template = resource['body']
+
+                self.mime = resource.get("mimetype","text/html")
+                if 'require-method' in resource:
+                    self.methods = resource['require-method']
+                else:
+                    self.methods = ['POST','GET']
+
+                #Yes, I know this logic is ugly.
+                if 'no-navheader' in resource:
+                    if resource['no-navheader']:
+                        header = util.readfile(os.path.join(directories.htmldir,'pageheader_nonav.html'))
+                    else:
+                        header = util.readfile(os.path.join(directories.htmldir,'pageheader.html'))
                 else:
                     header = util.readfile(os.path.join(directories.htmldir,'pageheader.html'))
-            else:
-                header = util.readfile(os.path.join(directories.htmldir,'pageheader.html'))
 
-            if 'no-header' in resource:
-                if resource['no-header']:
-                    header = ""
+                if 'no-header' in resource:
+                    if resource['no-header']:
+                        header = ""
 
-            if 'auto-reload' in resource:
-                if resource['auto-reload']:
-                    header += '<meta http-equiv="refresh" content="%d">' % resource['auto-reload-interval']
+                if 'auto-reload' in resource:
+                    if resource['auto-reload']:
+                        header += '<meta http-equiv="refresh" content="%d">' % resource['auto-reload-interval']
 
-            if not ('no-header' in resource) or not (resource['no-header']):
-                footer = util.readfile(os.path.join(directories.htmldir,'pagefooter.html'))
-            else:
-                footer = ""
-            templatesource = header + template + footer
+                if not ('no-header' in resource) or not (resource['no-header']):
+                    footer = util.readfile(os.path.join(directories.htmldir,'pagefooter.html'))
+                else:
+                    footer = ""
+                templatesource = header + template + footer
 
-            self.d={'kaithem': kaithemobj.kaithem}
-            if m in modules_state.scopes:
-                self.d['module']= modules_state.scopes[m]
+                self.d={'kaithem': kaithemobj.kaithem, 'page': self.localAPI, 'print': self.new_print}
+                if m in modules_state.scopes:
+                    self.d['module']= modules_state.scopes[m]
 
-            if not 'template-engine' in resource or resource['template-engine']=='mako':
-                self.template = mako.template.Template(templatesource, uri="Template"+m+'_'+r)
-            
-            elif resource['template-engine']=='markdown':
-                header = mako.template.Template(header, uri="Template"+m+'_'+r).render(**self.d)
-                footer = mako.template.Template(footer, uri="Template"+m+'_'+r).render(**self.d)
+                if not 'template-engine' in resource or resource['template-engine']=='mako':
+                    self.template = mako.template.Template(templatesource, uri="Template"+m+'_'+r)
+                
+                elif resource['template-engine']=='markdown':
+                    header = mako.template.Template(header, uri="Template"+m+'_'+r).render(**self.d)
+                    footer = mako.template.Template(footer, uri="Template"+m+'_'+r).render(**self.d)
 
-                self.text = header+"\r\n"+markdownToSelfRenderingHTML(template,r)+footer
-            else:
-                self.text = template
+                    self.text = header+"\r\n"+markdownToSelfRenderingHTML(template,r)+footer
+                else:
+                    self.text = template
 
-        elif resource['resource-type']=='internal-fileref':
-            self.methods = ['GET']
-            self.name = os.path.basename(modules_state.fileResourceAbsPaths[m,r])
+            elif resource['resource-type']=='internal-fileref':
+                self.methods = ['GET']
+                self.name = os.path.basename(modules_state.fileResourceAbsPaths[m,r])
 
-            self.directServeFile= modules_state.fileResourceAbsPaths[m,r]
-            self.mime= self.mime = resource.get("mimetype",mimetypes.guess_type(self.name))
+                self.directServeFile= modules_state.fileResourceAbsPaths[m,r]
+                self.mime= self.mime = resource.get("mimetype",mimetypes.guess_type(self.name))
+        
+        self.refreshFromResource = refreshFromResource
+        self.refreshFromResource()
 
     def new_print(self,*d):
-        if len(d)==1:
-            self.printoutput+=str(d[0])+"\n"
-        else:
-            self.printoutput+=str(d)
+        try:
+            if len(d)==1:
+                self.printoutput+=str(d[0])+"\n"
+            else:
+                self.printoutput+=str(d)
+        except:
+            self.printoutput+=repr(d)
         self.printoutput = self.printoutput[-2500:]
 
 
@@ -412,7 +456,8 @@ class KaithemPage():
                     module = modules_state.scopes[module],
                     path = args,
                     kwargs = kwargs,
-                    print=page.new_print
+                    print=page.new_print,
+                    page= page.localAPI
                     ).encode("utf-8")
             else:
                 return page.text.encode('utf-8')

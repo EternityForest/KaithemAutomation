@@ -5,10 +5,19 @@ from src.util import url
 <h2>Add Page</h2>
 <title>Add Page</title>
 <section>
-<p class ="help">The new page will be empty.</p>
+<p class ="help">The new page will be created basded on a template. Use freeboard for easy no-code dashboards.</p>
 <hr>
 <form action="/modules/module/${url(module)}/addresourcetarget/page/${url(path)}" method="POST" name="new">
 <h3>Name</h3><input required="required" name="name" class="name" type="text"></input><br>
+
+<label>Template:
+
+
+    <select name="template">
+        <option>default</option>
+        <option>freeboard<option>
+    </select>
+</label>
 <br><input value="Create Page" type="submit">
 </form>
 </section>

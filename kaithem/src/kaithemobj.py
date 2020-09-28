@@ -459,6 +459,19 @@ class Kaithem():
 
         navBarPlugins = pages.navBarPlugins
 
+
+        @staticmethod
+        def freeboard(page, kwargs, plugins=[]):
+            "Returns the ready-to-embed code for freeboard.  Used to unclutter user created pages that use it."
+            if cherrypy.request.method == "POST":
+                import re,html
+                pages.require("/admin/modules.edit")
+                c=re.sub(r"<\s*freeboard-data\s*>[\s\S]*<\s*\/freeboard-data\s*>","<freeboard-data>\n" + html.escape(yaml.dump(json.loads(kwargs['bd'])))+"\n</freeboard-data>", page.getContent())
+                page.setContent(c)
+            else:
+                return pages.get_template("freeboard/app.html").render(plugins=plugins)
+
+
         @staticmethod
         def unurl(s):
             return util.unurl(s)
