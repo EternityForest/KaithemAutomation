@@ -144,6 +144,43 @@ Return the value from a tag, forcing a new update from the getter without any ca
 ##### TagPoint.evalContext
 Dict used as globals and locals for evaluating alarm conditions and expression tags.
 
+
+
+#### tagPoint.expose(readPerm, writePerm, priority, configured=False)
+Expose the tag to web APIs, with the permissions specified. Permissions must be strings, but can use commas for multiple.
+
+Priority must be an integer, and determines the priority at which the web API may set the tag's value.
+
+
+The way this works is that tag.dataSourceWidget is created, a Widgets.DataSource instance having id "tag:TAGNAME", with the given permissions.
+The data, is always a value, timestamp(wall clock time) pair. This format is 100% directly compatible with the format that Kaithem's Dashboard Builder widgets use.
+
+
+TO the server will set a claim at the permitted priority, or release any claim if the data is None.
+FROM the server indicates the actual current value of the tag.
+
+
+You must always have at least one read permission, and writePerms defaults to `__admin__`.   Note that if the user
+sets or configures any permissions via the web API, they will override those set in code.
+
+If readPerms or writePerms is empty, disable exposure.
+
+You cannot have different priority levels for different users this way, that would be highly confusing. Use multiple tags
+or code your own API for that.
+
+If configured is True, will actually set the persistant config rather than the runtime config. This will not be made permanent till the user clicks "save server state to disk".
+
+#### tagPoint.getEffectivePermissions()
+
+Returns the read, write, and max priority permissions that are currently in effect, after merging in the web GUI config settings.  If nothing is set up, read abd write will be "",
+and you should interpret this as meaning the tag should not be exposed.
+
+Use this as a way to implement your own APIs, but keep the ability to use the standard web config.
+
+
+#### tagPoint.expose()
+Cancels any API exposure
+
 ##### TagPoint(v,t,a)
 Equivalent to calling set() on the default handler. If no args are provided, just returns the tag's value.
 
@@ -162,6 +199,7 @@ Return the Claim object that is currently controlling the tag
 
 ##### Claim.release()
 Release a claim.
+
 
 
 ### StringTags

@@ -15,7 +15,8 @@ Copyright (c) 2015 Yusuke Kawasaki
 	}, {}, [1])(1)
 });
 
-KaithemApi =function(){ return {
+KaithemApi =function(){ 
+	var x = {
 
 	toSend: [],
 	polled: [],
@@ -25,9 +26,22 @@ KaithemApi =function(){ return {
 			function (m) {
 				console.error(m);
 			}
+		],
 
+		"__KEYMAP__":[
+				function(m)
+				{
+					self.uuidToWidgetId[m[0]]=m[1];
+					self.widgetIDtoUUID[m[1]]=m[0];
+				}
 		]
+
+		
 	},
+
+	//Unused for now
+	uuidToWidgetId:{},
+	widgetIDtoUUID:{},
 
 
 	subscriptions :[],
@@ -57,12 +71,23 @@ KaithemApi =function(){ return {
 	unsubscribe:function (key, callback) {
 		var arr = this.serverMsgCallbacks[key];
 
+	
 		if (key in arr) {
 
 			for( var i = 0; i < arr.length; i++){ if ( arr[i] === callback) { arr.splice(i, 1); }}
 		}
-
+		
 		if(arr.length==0){
+
+			//Delete the now unused mapping
+			if (key in this.uuidToWidgetId)
+			{
+				delete this.widgetIDtoUUID[this.uuidToWidgetId[key]];
+				delete this.uuidToWidgetId[key];
+			}
+
+
+
 			delete this.serverMsgCallbacks[key]
 		
 
@@ -134,7 +159,7 @@ KaithemApi =function(){ return {
 					}
 				}
 				catch (err) {
-					console.log("JSON Parse Error in websocket response:\n" + e.data);
+					console.log("Parse Error in websocket response:\n" + e.data);
 				}
 
 
@@ -211,7 +236,10 @@ KaithemApi =function(){ return {
 			pollLoop();
 		}
 	}
-}}
+}
+x.self=x
+return x
+}
 kaithemapi=KaithemApi()
 //Backwards compatibility hack
 //Todo deprecate someday? or not.

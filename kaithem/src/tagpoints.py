@@ -19,6 +19,8 @@ if not os.path.exists(logdir):
 
 historyDBFile = os.path.join(logdir, "history.ldb")
 
+exposedTags = weakref.WeakValueDictionary()
+
 class TagLogger():
     accumType = 'latest'
 
@@ -712,11 +714,17 @@ class _TagPoint(virtualresource.VirtualResource):
             allTagsAtomic= allTags.copy()
 
 
-        self.defaultClaim = self.claim(self.defaultData)
+        self.defaultClaim = self.claim(self.defaultData,'default')
         
         #What permissions are needed to 
-        #manually override this tag 
-        self.permissions = []
+        #read or override this tag, as a tuple of 2 permission strings and an int representing the priority
+        #that api clients can use.
+        #As always, configured takes priority
+        self.permissions = ['','',50]
+        self.configuredPermissions = ['','',50]
+
+        self.dataSourceWidget = None
+        self.apiClaim= None
 
         #This is where we can put a manual override
         #claim from the web UI.
@@ -737,6 +745,125 @@ class _TagPoint(virtualresource.VirtualResource):
             createGetterFromExpression(self.name, self)
         with lock:
             self.setConfigData(configTagData.get(self.name,{}))
+
+
+    def expose(self, r='', w='__admin__',p=50, configured=False):
+        """If not r, disable web API.  Otherwise, set read and write permissions.  
+           If configured permissions are set, they totally override code permissions.
+           
+           
+        """
+
+        #Handle different falsy things someone might use to try and disable this
+        if not r:
+            r=''
+        if not w:
+            w=''
+
+        if isinstance(r, list):
+            r=','.join(r)
+        if isinstance(w,list):
+            w=','.join(w)
+            
+        if not p:
+            p=50
+        #Make set we don't somehow save bad data and break everything
+        p=int(p)
+        w=str(w)
+        r=str(r)
+        
+
+        if not r or not w:
+            d=['','','']
+        else:
+            d=[r,w,p]
+
+        with lock:
+            with self.lock:
+                if configured:
+                    self.configuredPermissions=d
+                    configTagData[self.name]['permissions']= self.permissions
+                    hasUnsavedData[0]=True
+                else:
+                    self.permissions = d
+
+                
+                #Merge config and direct
+                d2 =  self.getEffectivePermissions()
+
+                #Be safe, only allow non-admim writes if user specifies a permission
+                d2[1]=d2[1] or '__admin__'
+                
+                if not d2[0]:
+                    self.dataSourceWidget = None
+                    try:
+                        del exposedTags[self.name]
+                    except KeyError:
+                        pass
+                    if self.apiClaim:
+                        self.apiClaim.release()
+                else:
+                    w = widgets.DataSource(id="tag:"+self.name)
+                    w.setPermissions([i.strip() for i in d2[0].split(",")], [i.strip() for i in d2[1].split(",")])
+
+                    exposedTags[self.name]= self
+                    if self.apiClaim:
+                        self.apiClaim.setPriority(p)
+                    self._apiPush()
+                    
+                    w.attach(self.apiHandler)
+                    self.dataSourceWidget = w
+            
+
+    def apiHandler(self,u,v):
+        print("****************************",v)
+        if v is None:
+            if self.apiClaim:
+                self.apiClaim.release()
+        else:
+           self.apiClaim = self.claim(v[0], 'WebAPIClaim', priority=(self.getEffectivePermissions())[2], timestamp=v[1], annotation=u)
+
+           #They tried to set the value but could not, so inform them of such.
+           if not self.currentSource == self.apiClaim.name:
+               self._apiPush()
+    
+
+
+    def getEffectivePermissions(self):
+        d2 =   [self.configuredPermissions[0] or self.permissions[0],
+                self.configuredPermissions[1] or self.permissions[1],
+                self.configuredPermissions[2] or self.permissions[2]]
+        return d2
+
+    def _apiPush(self):
+        "If the expose function was used, push this to the dataSourceWidget"
+        if not self.dataSourceWidget:
+            return
+
+        if not self.dataSourceWidget.stillActive():
+            self.dataSourceWidget = None
+            return
+
+        #Immediate write, don't push yet, do that in a thread because TCP can block
+        def pushFunction():
+            t = self.valueTuple
+            self.dataSourceWidget.write([t[0], self.toWallClock(t[1])],push=False)
+            if self.guiLock.acquire(timeout=1):
+                try:
+                    #Use the cached literal computed value, not what we were passed,
+                    #Because it could have changed by the time we actually get to push
+                    self.dataSourceWidget.write(self.lastValue)
+                finally:
+                    self.guiLock.release()
+            
+
+        #Should there already be a function queued for this exact reason, we just let
+        #That one do it's job
+        if self.guiLock.acquire(timeout=0.001):
+            try:
+                workers.do(pushFunction)
+            finally:
+                self.guiLock.release()    
 
     @staticmethod
     def toMonotonic(t):
@@ -1027,6 +1154,8 @@ class _TagPoint(virtualresource.VirtualResource):
             #New config, new chance to see if there's a problem.
             self.alreadyPostedDeadlock=False
 
+
+
             if data and not self.name in configTagData:
                 configTagData[self.name]= persist.getStateFile(getFilenameForTagConfig(self.name))
                 configTagData[self.name].noFileForEmpty = True
@@ -1134,6 +1263,9 @@ class _TagPoint(virtualresource.VirtualResource):
             elif hasattr(self, 'kweb_manualOverrideClaim'):
                 self.kweb_manualOverrideClaim.release()
                 del self.kweb_manualOverrideClaim
+
+            p = data.get('permissions',(False,False))
+            self.expose(*p,True)
     
     @property
     def interval(self):
@@ -1277,7 +1409,7 @@ class _TagPoint(virtualresource.VirtualResource):
     def setHandler(self, f:Callable):
         self.handler=weakref.ref(f)
 
-    def _guiPush(self, value):
+    def _debugAdminPush(self, value):
         pass
 
     def poll(self):
@@ -1325,7 +1457,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 f(self.lastValue, self.timestamp, self.annotation)
             else:
                 self.handler=None
-        self._guiPush(self.lastValue)
+        self._debugAdminPush(self.lastValue)
 
         self.lastPushedValue = self.lastValue
 
@@ -1444,7 +1576,7 @@ class _TagPoint(virtualresource.VirtualResource):
             except:
                 logging.exception("Error handling changed source")
 
-    def claim(self, value, name="default", priority=None,timestamp=None, annotation=None):
+    def claim(self, value, name=None, priority=None,timestamp=None, annotation=None):
         """Adds a 'claim', a request to set the tag's value either to a literal 
             number or to a getter function.
 
@@ -1452,6 +1584,8 @@ class _TagPoint(virtualresource.VirtualResource):
             active, or the value returned from the getter if the active claim is
             a function.
         """
+
+        name = name or 'claim'+str(time.time())
         if timestamp is None:
             timestamp = time.monotonic()
 
@@ -1505,6 +1639,8 @@ class _TagPoint(virtualresource.VirtualResource):
                 self.timestamp = timestamp
                 self.annotation = annotation
 
+                self.valueTuple = (value,timestamp,annotation)
+
             #If priority has been changed on the existing active claim
             #We need to handle it
             elif name==self.activeClaim[2]:
@@ -1517,6 +1653,8 @@ class _TagPoint(virtualresource.VirtualResource):
                         self._value=x.value
                         self.timestamp = x.timestamp
                         self.annotation = x.annotation
+                        self.valueTuple = (value,timestamp,annotation)
+
                         self.activeClaim=i
                         self.handleSourceChanged(i[2])
                         break
@@ -1646,7 +1784,7 @@ class _NumericTagPoint(_TagPoint):
             if self._meterWidget:
                 x = self._meterWidget
                 if x:
-                    self._guiPush(self.value)
+                    self._debugAdminPush(self.value)
                     #Put if back if the function tried to GC it.
                     self._meterWidget =x
                     return self._meterWidget
@@ -1667,7 +1805,7 @@ class _NumericTagPoint(_TagPoint):
         finally:
             self.lock.release()
 
-    def _guiPush(self, value):
+    def _debugAdminPush(self, value):
         if not self._meterWidget:
             return
 
@@ -1849,7 +1987,7 @@ class _StringTagPoint(_TagPoint):
     def filterValue(self,v):
         return str(v)
 
-    def _guiPush(self, value):
+    def _debugAdminPush(self, value):
         #Immediate write, don't push yet, do that in a thread because TCP can block
         self.spanWidget.write(value,push=False)
         def pushFunction():
@@ -1893,11 +2031,15 @@ class Claim():
     def release(self):
         self.tag.release(self.name)
 
+    def setPriority(self, priority):
+        with self.tag.lock:
+            self.tag.claim(priority, self.name, )
     def __call__(self,*args,**kwargs):
         if not args:
             raise ValueError("No arguments")
         else:
             return self.set(*args,**kwargs)
+
 class NumericClaim(Claim):
     "Represents a claim on a tag point's value"
     @typechecked

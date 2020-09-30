@@ -17,10 +17,10 @@ line:
 <script type="text/javascript" src="/static/widget.js"></script>
 ```
 
-This will include a small JS library that will automatically handle
-polling for you.
+This will include a small JS library that will automatically handle just aboud everything for you.
 
-### Widget Objects
+
+### Widget Objects on the server side.
 
 A widget object represents one widget, and handles AJAX for you
 automatically. Each widget type is slightly different, but all widgets

@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.5
-resource-timestamp: 1579903577103784
+resource-timestamp: 1601460035278517
 resource-type: event
 versions: {}
 
@@ -23,6 +23,12 @@ if __name__=='__setup__':
     
     #If the tag doesn't exist it's created
     t = kaithem.tags["TestTagPointExample"]
+    
+    
+    #Anyone can read and write this tag from the web API
+    t.expose("__guest__","__guest__")
+    
+    
     t.unit = "degF"
     t.displayUnits="degF|degC|K"
     claim = t.claim(75,"foo")

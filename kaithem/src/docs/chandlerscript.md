@@ -26,6 +26,10 @@ When events happen commands run till one returns None.
 
 Also immediately runs any 'now' bindings, the 'now' event is special
 
+### ChandlerScriptContext.clearBindings(b)
+
+Clear the bindings. But don't clear variables.
+
 ### ChandlerScriptContext.onBindingAdded(self, evt):
     Called when a binding is added that listens to evt. Does nothing, used for subclassing.
 

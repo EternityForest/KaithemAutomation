@@ -105,6 +105,12 @@ def combineLogs(a):
                 data['alarms']=ald
                 data['loggers']=loggersList
 
+                data['permissions']= [data['readPerms'],data['writePerms'],data['apiPriority'] ]
+
+                del data['readPerms']
+                del data['writePerms']
+                del data['apiPriority']
+
                 tagpoints.configTagFromData(tagName,data)
             
             raise cherrypy.HTTPRedirect("/tagpoints/"+ util.url(tagName))
@@ -206,6 +212,23 @@ def combineLogs(a):
         <td>Subscriber count</td>
         <td>${len(tag.subscribers)}</td>
     </tr>
+
+    <tr>
+        <td>WebAPI read perms</td>
+        <td>${tag.getEffectivePermissions()[0]}</td>
+    </tr>
+
+    <tr>
+        <td>WebAPI write perms</td>
+        <td>${tag.getEffectivePermissions()[1]}</td>
+    </tr>
+
+
+    <tr>
+        <td>WebAPI priority</td>
+        <td>${tag.getEffectivePermissions()[2]}</td>
+    </tr>
+
     <tr>
         <td>Python3 Object ID</td>
         <td>${id(tag)|h}</td>
@@ -218,7 +241,8 @@ def combineLogs(a):
     </tr>
     %endif
 </table>
-<h3>Config</h3>
+
+<h3>Basic Config</h3>
 <p class="help">If you do not configure a type, the tag will not exist until requested via code.</p>
 <table border="1">
 <tr>
@@ -304,6 +328,36 @@ def combineLogs(a):
 
 
 </table>
+
+
+<h3>WebAPI exposure</h3>
+<p class="help">Empty read perms disable exposing the tag, unless it is exposed via code.   Any valus set here override those in code.   These settings control access to the tag in the FreeBoard dashboard creator</p>
+<p class="help">For security, at least one read permisson has to be defined to enable the api.</p>
+
+<table border="1">
+    <tr>
+        td>Read Permissions(comma separated, empty to disable API)</td>
+    </tr>
+    <td>
+        <input name="readPerms" value="${configData.get('permissions',['','',''])[0] |h}" placeholder="${tag.getEffectivePermissions()[0]|h}" style="width:24em">
+    </td>
+
+    <tr>
+        <td>Write Permissions(comma separated, empty for admin-only)</td>
+    </tr>
+    <td>
+        <input name="writePerms" value="${configData.get('permissions',['','',''])[1]|h}" placeholder="${tag.getEffectivePermissions()[1]|h}" style="width:24em">
+    </td>
+
+    <tr>
+        <td>Priority of claims set by the API</td>
+    </tr>
+    <td>
+        <input name="apiPriority" value="${configData.get('permissions',['','',''])[2]|h}" placeholder="${tag.getEffectivePermissions()[2]|h}" style="width:24em">
+    </td>
+
+</table>
+
 
 <h3>Alerting</h3>
 <p class="help">A blank name deletes that alarm. Conditions are python expressions that can use the tag itself(tag), the value(value),
