@@ -1,6 +1,9 @@
 Change Log
 ----------
 
+### 0.65.41
+- Integrate FreeBoard for no-code dashboard and control interface creation
+
 ### 0.65.40
 - File resources can now be directly served, using the same URL pattern of pages, with full permissions and XSS
 - Unencrypted HTTP access is now allowed for secure pages, from localhost, or from the 200:: and 300:: IP ranges used by the Yggdrasil mesh. 
