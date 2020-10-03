@@ -1,18 +1,18 @@
 ## Code outside the data string, and the setup and action blocks is ignored
-## If manually editing, you must reload the code through the web UI
+## If manually editing, you must reload the code. Delete the resource timestamp so kaithem knows it's new
 __data__="""
 continual: false
 enable: true
 once: true
 priority: interactive
-rate-limit: 0.0
-resource-timestamp: 1566264981054410
+rate-limit: 0.5
+resource-timestamp: 1601460035278517
 resource-type: event
 versions: {}
 
 """
 
-__trigger__='False'
+__trigger__='True'
 
 if __name__=='__setup__':
     #This code runs once when the event loads. It also runs when you save the event during the test compile
@@ -23,6 +23,12 @@ if __name__=='__setup__':
     
     #If the tag doesn't exist it's created
     t = kaithem.tags["TestTagPointExample"]
+    
+    
+    #Anyone can read and write this tag from the web API
+    t.expose("__guest__","__guest__")
+    
+    
     t.unit = "degF"
     t.displayUnits="degF|degC|K"
     claim = t.claim(75,"foo")
@@ -38,6 +44,27 @@ if __name__=='__setup__':
     print(t.value)
     
     print("Tag point example stuff took(us):", (time.time()-ts)*10**6)
+    
+    
+    #Auto bg polling
+    
+    randomTag = kaithem.tags['RandomTag']
+    import random
+    randomTag.value = random.random
+    
+    #Need at least 1 subscriber for polling to work
+    def s(v, t,a):
+        pass
+    
+    #Also needs a nonzero interval
+    randomTag.interval = 1
+    randomTag.subscribe(s)
+    
+    
+    filterTag = kaithem.tags.LowpassFilter("LowpassFilterTest", randomTag, timeConstant=3)
+    filterTag.tag.interval=0.1
+    
+    filterTag.tag.subscribe(s)
 
 def eventAction():
     pass
