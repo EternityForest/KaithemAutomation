@@ -18,9 +18,7 @@ kaithem.web.freeboard() handles the real work of generating the page, and also h
 <%!
 #Add your plugins here.
 plugins=[
-    "/static/js/freeboard/freeboard-plugins/slider-plugin.js",
     '/static/js/freeboard/extralibs/math.min.js',
-    '/static/js/freeboard/extralibs/strftime.js',
     '/static/js/freeboard/extralibs/keyboard.min.js',
     '/static/js/freeboard/extralibs/luxon.min.js'
 ]
