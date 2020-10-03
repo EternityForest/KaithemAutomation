@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.65.42
+- FreeBoard can now autocomplete tag point names
+- Fix FreeBoard bugs
+
 ### 0.65.41
 - Integrate FreeBoard for no-code dashboard and control interface creation
 

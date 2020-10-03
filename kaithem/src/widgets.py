@@ -226,7 +226,9 @@ if config['enable-websockets']:
                                 widgets[i].lastSubscribedTo = time.monotonic()
 
                                 self.subscriptions.append(i)
-                                resp.append([i, widgets[i]._onRequest(user,self.uuid)])
+                                x = widgets[i]._onRequest(user,self.uuid)
+                                if not x is None:
+                                    widgets[i].send(x)
                                 self.subCount+=1
 
                 if 'unsub' in o:
@@ -328,7 +330,7 @@ class Widget():
         """
         for i in self._read_perms:
             if not pages.canUserDoThis(i,user):
-                return
+                return "PERMISSIONDENIED"
         try:
             return self.onRequest(user,uuid)
         except Exception as e:
@@ -422,7 +424,7 @@ class Widget():
         
 
     def send(self,value):
-        "Send a value to all subscribers without invoking the local callback"
+        "Send a value to all subscribers without invoking the local callback or setting the value"
         if usingmp:
             d=msgpack.packb([[self.uuid,value]])
         else:
@@ -1079,6 +1081,13 @@ class APIWidget(Widget):
             Widget.__init__(self,*args,**kwargs)
             self.value = None
             self.echo=echo
+
+        def write(self,value,push=True):
+            #Don't set the value, because we don't have a value just a pipe of messages
+            #self.value = value
+            self.doCallback("__SERVER__",value,"__SERVER__")
+            if push:
+                self.send(value)
 
         def render(self,htmlid):
             return """

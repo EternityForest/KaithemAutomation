@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1600932514459366
+resource-timestamp: 1601714008791739
 resource-type: event
 versions: {}
 
@@ -2647,7 +2647,8 @@ if __name__=='__setup__':
             self.pageLink.require("users.chandler.pageview")
     
             #TagPoint for managing the current cue
-            self.cueTag = kaithem.tags.StringTag("/chandler/scenes/"+name+"/cue")
+            self.cueTag = kaithem.tags.StringTag("/chandler/scenes/"+name+".cue")
+            self.cueTag.expose("users.chandler.admin","users.chandler.admin")
             
             #Important for reentrant cues
             self.cueTag.pushOnRepeats = True
@@ -2666,8 +2667,9 @@ if __name__=='__setup__':
                 else:
                     #Just goto the cue
                     self.gotoCue(val)
+            self.cueTagHandler = cueTagHandler
     
-            self.cueTag.setHandler(cueTagHandler)
+            self.cueTag.subscribe(cueTagHandler)
     
     
     
@@ -2709,10 +2711,12 @@ if __name__=='__setup__':
             self.cuelen = 0
     
             #TagPoint for managing the current alpha
-            self.alphaTag = kaithem.tags["/chandler/scenes/"+name+"/alpha"]
+            self.alphaTag = kaithem.tags["/chandler/scenes/"+name+".alpha"]
             self.alphaTag.min=0
             self.alphaTag.max=1
             self.alphaTag.pushOnRepeats = False
+            self.alphaTag.expose("users.chandler.admin","users.chandler.admin")
+    
     
             self.alphaTagClaim = self.alphaTag.claim(self.alpha,"Scene", 50, annotation="SceneObject")
     
@@ -2722,7 +2726,10 @@ if __name__=='__setup__':
                 if annotation=="SceneObject":
                     return
                 self.setAlpha(val)
-            self.alphaTag.setHandler(alphaTagHandler)  
+                
+            self.alphaTag.subscribe(alphaTagHandler)
+            self.alphaTagHandler=alphaTagHandler
+            
     
     
             self.active = False

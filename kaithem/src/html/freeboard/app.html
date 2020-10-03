@@ -1,3 +1,8 @@
+<%!
+from src import tagpoints
+import json
+%>
+
 <!DOCTYPE html>
 <html>
 
@@ -79,17 +84,24 @@
         }
     </script>
     <style>
-        freeboard-data{
+        freeboard-data, tags-list-data{
             display: none;
         }
     </style>
 
+    <tags-list-data>${json.dumps({"tag:"+i:'' for i in tagpoints.exposedTags.keys()})|h}</tags-list-data>
+
     <script src="/static/js/freeboard/js/freeboard.thirdparty.min.js"></script>
+    <script src="/static/js/js-yaml.min.js"></script>
     <script type="text/javascript">
+        KaithemDataSourcesListing = jsyaml.load($('tags-list-data').text())
 
         function showFreeboardHelp() {
             freeboard.showDialog(generateFreeboardHelp(), "Help", "Close")
         }
+
+
+
         saveToKaithem= function(){
                 var d = freeboard.serialize();
                 $.post(window.location.pathname, {'bd':JSON.stringify(d)}).done(function() {
@@ -98,11 +110,11 @@
             };
         head.js("/static/js/freeboard/js/freeboard_plugins.min.js",
             "/static/js/freeboard/kaithem_plugin.js",
-            "/static/js/js-yaml.min.js",
                
             function(){
                     $(function()
                     { //DOM Ready
+
                         freeboard.initialize(true);
                         freeboard.loadDashboard(jsyaml.load($('freeboard-data').text()), function() {
                                     freeboard.setEditing(false);

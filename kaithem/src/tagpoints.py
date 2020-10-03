@@ -634,6 +634,7 @@ class _TagPoint(virtualresource.VirtualResource):
             raise RuntimeError("Tag with this name already exists, use the getter function to get it instead")
         virtualresource.VirtualResource.__init__(self)
 
+        self.dataSourceWidget = None
 
         #True if there is already a copy of the deadlock diagnostics running
         self.testingForDeadlock=False
@@ -643,6 +644,8 @@ class _TagPoint(virtualresource.VirtualResource):
         #Might be the number, or might be the getter function.
         #it's the current value of the active claim
         self._value = self.defaultData
+        self.valueTuple = (self.defaultData,time.monotonic(),None)
+
 
         #Used to track things like min and max, what has been changed by manual setting.
         #And should not be overridden by code.
@@ -723,7 +726,6 @@ class _TagPoint(virtualresource.VirtualResource):
         self.permissions = ['','',50]
         self.configuredPermissions = ['','',50]
 
-        self.dataSourceWidget = None
         self.apiClaim= None
 
         #This is where we can put a manual override
@@ -805,6 +807,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 else:
                     w = widgets.DataSource(id="tag:"+self.name)
                     w.setPermissions([i.strip() for i in d2[0].split(",")], [i.strip() for i in d2[1].split(",")])
+                    w.value=self.value
 
                     exposedTags[self.name]= self
                     if self.apiClaim:
@@ -816,12 +819,15 @@ class _TagPoint(virtualresource.VirtualResource):
             
 
     def apiHandler(self,u,v):
-        print("****************************",v)
-        if v is None:
+        #Fix timestamps that somehow got to be strings because of js insanity
+        v[1]=float(v[1])
+        if v[0] is None:
             if self.apiClaim:
                 self.apiClaim.release()
         else:
-           self.apiClaim = self.claim(v[0], 'WebAPIClaim', priority=(self.getEffectivePermissions())[2], timestamp=v[1], annotation=u)
+           #No locking things up if the times are way mismatched and it sets a time way in the future
+           t=time.monotonic()+10
+           self.apiClaim = self.claim(v[0], 'WebAPIClaim', priority=(self.getEffectivePermissions())[2], timestamp=min(self.toMonotonic(v[1]),t), annotation=u)
 
            #They tried to set the value but could not, so inform them of such.
            if not self.currentSource == self.apiClaim.name:
@@ -840,19 +846,17 @@ class _TagPoint(virtualresource.VirtualResource):
         if not self.dataSourceWidget:
             return
 
-        if not self.dataSourceWidget.stillActive():
-            self.dataSourceWidget = None
-            return
-
         #Immediate write, don't push yet, do that in a thread because TCP can block
         def pushFunction():
             t = self.valueTuple
-            self.dataSourceWidget.write([t[0], self.toWallClock(t[1])],push=False)
+
+            #Set value immediately, for later page loads
+            self.dataSourceWidget.value = [t[0], self.toWallClock(t[1])]
             if self.guiLock.acquire(timeout=1):
                 try:
                     #Use the cached literal computed value, not what we were passed,
                     #Because it could have changed by the time we actually get to push
-                    self.dataSourceWidget.write(self.lastValue)
+                    self.dataSourceWidget.send([t[0], self.toWallClock(t[1])])
                 finally:
                     self.guiLock.release()
             
@@ -1458,6 +1462,7 @@ class _TagPoint(virtualresource.VirtualResource):
             else:
                 self.handler=None
         self._debugAdminPush(self.lastValue)
+        self._apiPush()
 
         self.lastPushedValue = self.lastValue
 
@@ -1598,20 +1603,23 @@ class _TagPoint(virtualresource.VirtualResource):
         if not self.lock.acquire(timeout=15):
             raise RuntimeError("Could not get lock")
         try:
+
             #we're changing the value of an existing claim,
             #We need to get the claim object, which we stored by weakref
             claim=None
-            try:
-                ##If there's an existing claim by that name we're just going to modify it
-                if name in self.claims:
-                    claim= self.claims[name][3]()
-                    #No priority change, set and return
-                    if priority == claim.priority:
-                        claim.set(value,timestamp, annotation)
-                        return claim
-                    priority= priority or claim.priority
-            except:
-                logger.exception("Probably a race condition and safe to ignore this")
+            # try:
+            #     ##If there's an existing claim by that name we're just going to modify it
+            if name in self.claims:
+                claim= self.claims[name][3]()
+
+            #Unused old optimization
+            #         #No priority change, set and return
+            #         if priority == claim.priority:
+            #             claim.set(value,timestamp, annotation)
+            #             return claim
+            #         priority= priority or claim.priority
+            # except:
+            #     logger.exception("Probably a race condition and safe to ignore this")
 
             #If the weakref obj disappeared it will be None
             if claim ==None:
@@ -1625,10 +1633,11 @@ class _TagPoint(virtualresource.VirtualResource):
 
 
             #Note  that we use the time, so that the most recent claim is
-            #Always the winner in case of conflicts
+            #Always the winner in case of conflictsclaim
             self.claims[name] = (priority, t(),name,weakref.ref(claim))
 
-            if self.activeClaim==None or priority >= self.activeClaim[0]:
+            #If we have priortity on them, or if we have the same priority but are newer
+            if (self.activeClaim==None) or (priority > self.activeClaim[0]) or ((priority == self.activeClaim[0]) and( timestamp>self.activeClaim[1])):
                 self.activeClaim = self.claims[name]
                 self.handleSourceChanged(name)
 
@@ -1656,7 +1665,8 @@ class _TagPoint(virtualresource.VirtualResource):
                         self.valueTuple = (value,timestamp,annotation)
 
                         self.activeClaim=i
-                        self.handleSourceChanged(i[2])
+                        if not i==self.activeClaim:
+                            self.handleSourceChanged(i[2])
                         break
             
             self._getValue()
@@ -1683,6 +1693,12 @@ class _TagPoint(virtualresource.VirtualResource):
                 upd=True
             else:
                 upd=False
+                #We can "steal" control if we have the same priority and are more recent, byt to do that we have to use the slower claim function that handles creating
+                #and switching claims
+                if c[0] >=self.activeClaim[0] and timestamp>self.activeClaim[1]:
+                    self.claim(val,claim, c[0], timestamp,  annotation)
+                    return
+
             #Grab the claim obj and set it's val
             x= c[3]()
             if callable(x.value) or callable(val):
@@ -1693,6 +1709,7 @@ class _TagPoint(virtualresource.VirtualResource):
             if upd:
                 self.timestamp = timestamp
                 self._value=val
+                self.valueTuple = (val,timestamp,annotation)
                 self.annotation=annotation
                 self._getValue()
                 self._push()
@@ -1732,6 +1749,7 @@ class _TagPoint(virtualresource.VirtualResource):
                     del self.claims[self.activeClaim[2]]
                 else:
                     self._value = o.value
+                    self.valueTuple = (o.value,o.timestamp,o.annotation)
                     self.timestamp = o.timestamp
                     self.annotation =o.annotation
                     break

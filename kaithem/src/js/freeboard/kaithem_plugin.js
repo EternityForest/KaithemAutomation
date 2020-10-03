@@ -40,7 +40,8 @@
 						{
 							"name"        : "name",
 							"display_name": "Widget ID",
-							"type"        : "text"
+							"type"        : "text",
+							"options": function(){return KaithemDataSourcesListing}
 						}
 					],
                     // **default_value** : A default value for this setting.
@@ -81,9 +82,16 @@
         self.handler={
 			set: function(obj,prop,val)
 			{
-				obj[prop]=val;
-				updateCallback(self.proxy);
 				kaithemapi.sendValue(prop, val);
+
+				if(obj[prop]==val)
+				{
+					return;
+				}
+				obj[prop]=val;
+
+				updateCallback(self.proxy);
+
 			}
 
         }

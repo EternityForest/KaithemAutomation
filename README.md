@@ -53,6 +53,9 @@ It shouldn't happen, but if things get real messed up, use SIGUSR1 to dump hte s
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.42
+- FreeBoard can now autocomplete tag point names
+- Fix FreeBoard bugs
 
 ### 0.65.41
 - Integrate FreeBoard for no-code dashboard and control interface creation
