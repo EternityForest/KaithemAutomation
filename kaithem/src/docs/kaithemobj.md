@@ -1060,17 +1060,40 @@ them in this dict "Mounts" them at a given path.
 The controller with a key of ("hello","test") would map to
 /hello/test, and would also be used for hello/test/foo, etc.
 
-To set up a default handler for all requests, you may also mount something at
-None, essentially overlaying it with the / root.
-
 The handler which is mounted at the longest path is chosen.
-
 
 You may also mount Exception objects this way. These will be raised if anyone
 tries to go to that path.
 
 Note that these are just straight up native Cherrypy handlers. You cannot
 use kaithem.web.serveFile like you can in a page created as a Page Resource.
+
+Also note that you can't traverse objects via the path, but you can access all the handlers on the root.
+
+Visiting mountpoint/foo will access the foo methond on the controller, and mountpoint/foo/bar/ will pass bar as a path arg to foo,  but you can't have a second
+object baz as a property of the controller and to mountpoint/foo/baz.
+
+
+You can't bind to the root / path, because there is already a default index page.
+
+
+##### Subdomains
+
+Normally, the subdomain is entirely ignored, they act exactly like the main domain.  However, you can capture requests to a specific subdomain with:
+a tuple like ("subdomain", "/","mountpoint").
+For consistency, multiple subdomains are specified top-to-bottom, opposite the way URLs do them.  foo.bar.localhost/baz  maps to ('bar','foo', '/','baz).
+
+You have to bind to an exact subdomain, entries do not match sub-subdomains of the one you specify.
+
+
+Note that this does not allow you to bind to different main domains, only subdomains.  Ignoring the main domain simplifies access from multiple IPs.
+
+Also note that you cannot capture ALL requests to a subdomain, only ones that do not map to an existing page so this cannot be a means of sandboxing. 
+However, as different subdomains have different cookies, you can create a certain level of safety if users never log into an "untrusted" subdomain.
+
+Relying on users not to do this, however, seems like a fairly bad idea, so kaithem forbids logging in if the subdomain contains `__nologin__` as a path component.
+
+Note that even with this protection, XSS can still do anything that a guest can do.
 
 #### kaithem.web.url(url)
 

@@ -56,6 +56,9 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 ### 0.65.42
 - FreeBoard can now autocomplete tag point names
 - Fix FreeBoard bugs
+- Can now bind native page handlers to subdomains
+- Disallow logging in from any subdomain that contains `__nologin__`, sandboxing those pages down to only what a guest can do.
+
 
 ### 0.65.41
 - Integrate FreeBoard for no-code dashboard and control interface creation

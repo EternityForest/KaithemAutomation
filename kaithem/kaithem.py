@@ -16,8 +16,8 @@
 
 #
 
-__version__ = "0.65.41 Production"
-__version_info__ = (0,65,41,"release",0)
+__version__ = "0.65.42 Production"
+__version_info__ = (0,65,42,"release",0)
 
 
 
@@ -330,6 +330,8 @@ def webRoot():
     #Just mostly eliminate zips and use files directly?
     zipcache = collections.OrderedDict()
 
+
+
     #This class represents the "/" root of the web app
     class webapproot():
 
@@ -340,35 +342,38 @@ def webRoot():
         # bar.com/foo is just foo  
         def _cp_dispatch(self, vpath):
 
-            # x = cherrypy.request.base.split("://",1)[-1]
-            
-            # sdpath = reversed(x.split("."))
+            sdpath= pages.getSubdomain()
 
-            # x = []
-            # for i in sdpath:
-            #     if not i:
-            #         continue
-            #     x.append(i)
-            #     #Only put one part of the ip addr, host,tld need to be exactly
-            #     #2 entries
-            #     if i.isnumeric():
-            #         #Pad with fake TLD for numeric ip addr
-            #         x.append(".faketld") 
-            #         break
+            vpath2 = vpath[:]
 
-            # #Get rid of last two parts, the host and tld
-            # sdpath = x[:2]
-
-            # if sdpath:
-            #     vpath2 = sdpath+["/"]+vpath
-            #     print(sdpath)
-            # else:
-            #     vpath2 = vpath[:]
-
-            sdpath=0
-            vpath2=vpath[:]
+            #For binding the root of subdomains
+    
 
             while vpath2:
+                #Check for any subdomain specific handling.
+                if tuple(sdpath+['/']+vpath2) in pages.nativeHandlers:
+                    # found match, remove N elements from the beginning of the path,
+                    # where n is the length of the "mountpoint", becsause the mountpoint
+                    #already consumed those.
+
+                    #Don't do it for the fake one we add just to make this loop work though
+                    for i in vpath2:
+                        vpath.pop(0)
+
+                    x =  pages.nativeHandlers[tuple(sdpath+['/']+vpath2)]
+
+                    #Traverse to the actual function, if there is a match, else return the index.
+
+                    if vpath and hasattr(x, vpath[0]):
+                        x2=getattr(x, vpath[0])
+                        if hasattr(x2, 'exposed') and x2.exposed:
+                            vpath.pop(0)
+                            x=x2
+                    if not isinstance(x, Exception):
+                        return x
+                    else:
+                        raise x
+
                 if tuple(vpath2) in pages.nativeHandlers:
                     # found match, remove N elements from the beginning of the path,
                     # where n is the length of the "mountpoint", because the mountpoint
@@ -376,27 +381,33 @@ def webRoot():
                     for i in range(len(vpath2)):
                         vpath.pop(0)
 
+                    
+
                     x =  pages.nativeHandlers[tuple(vpath2)]
+                    if vpath and hasattr(x, vpath[0]):
+                        x2=getattr(x, vpath[0])
+                        if vpath and hasattr(x2, 'exposed') and x2.exposed:
+                            vpath.pop(0)
+                            x=x2
                     if not isinstance(x, Exception):
                         return x
                     else:
                         raise x
+                
+                if None in pages.nativeHandlers:
+                    return pages.nativeHandlers[None]
+
                 #Successively remove things from the end till we get a
                 #prefix match
                 vpath2.pop(-1)
 
-
-              
-
-            if sdpath:
-                raise ValueError("No handler found for this subdomain")
-            else:
-                if None in pages.nativeHandlers:
-                    return pages.nativeHandlers[None]
-
             return None
 
 
+
+        @cherrypy.expose
+        def default(self,*path,**data):
+            return self._cp_dispatch(list(path))(*path, **data)
 
         #Keep the dispatcher from freaking out. The actual handling
         #Is done by a cherrypy tool. These just keeo cp_dispatch from being called

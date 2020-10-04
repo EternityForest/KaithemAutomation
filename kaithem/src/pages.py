@@ -109,6 +109,26 @@ vue3 = WebResource("vue2-default", "/static/js/vue-2.6.10.js")
 #
 nativeHandlers = weakref.WeakValueDictionary()
 
+def getSubdomain():
+    x = cherrypy.request.base.split("://",1)[-1]
+        
+    sdpath = x.split(".")
+
+    x = []
+    for i in sdpath:
+        if not i:
+            continue
+        x.append(i)
+        #Only put one part of the ip addr, host,tld need to be exactly
+        #2 entries
+        if i.isnumeric() or i.startswith('localhost:') or '[' in i:
+            #Pad with fake TLD for numeric ip addr
+            x.append(".faketld") 
+            break
+
+    #Get rid of last two parts, the host and tld
+    return list(reversed(x[:-2]))
+
 
 def postOnly():
     """Redirect user to main page if the request is anything but POST"""

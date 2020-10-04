@@ -78,6 +78,9 @@ class LoginScreen():
 
         if not 'username' in kwargs:
             raise cherrypy.HTTPRedirect("/")
+        
+        if "__nologin__" in pages.getSubdomain():
+            raise RuntimeError("To prevent XSS attacks, login is forbidden from any subdomain containing __nologin__")
 
         #Empty fields try the default. But don't autofill username if password is set.
         #If that actually worked because someone didn't fill the username in, they might be confused and
