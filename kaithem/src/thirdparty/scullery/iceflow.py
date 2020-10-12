@@ -202,19 +202,19 @@ def makeWeakrefPoller(selfref,exitSignal):
                             raise
                         else:
                             return
-            with self.lock:
-                msg = self.bus.timed_pop(100*1000)
-                if msg:
-                    try:
-                        if msg.type == Gst.MessageType.ERROR:
-                            self.on_error(self.bus,msg,None)
-                        if msg.type == Gst.MessageType.EOS:
-                            self.on_eos(self.bus,msg,None)
-                        self.on_message(self.bus,msg,None)
-                    except:
-                        logging.exception("Err in pipeline:"+self.name)
-                    finally:
-                        pass
+            #with self.lock:
+            msg = self.bus.timed_pop(500*1000*1000)
+            if msg:
+                try:
+                    if msg.type == Gst.MessageType.ERROR:
+                        self.on_error(self.bus,msg,None)
+                    if msg.type == Gst.MessageType.EOS:
+                        self.on_eos(self.bus,msg,None)
+                    self.on_message(self.bus,msg,None)
+                except:
+                    logging.exception("Err in pipeline:"+self.name)
+                finally:
+                    pass
 
             del self
 
@@ -386,6 +386,7 @@ class GStreamerPipeline():
         "Synchronous message, so we can enable realtime priority on individual threads."
         #Stop the poorly performing sync messages after a while.
         #Wait till we have at least one thread though.
+    
         try:
             if self.knownThreads and time.monotonic()-self.startTime>3:
                 #This can't use the lock, we don't know what thread it might be called in.
@@ -416,7 +417,8 @@ class GStreamerPipeline():
     
     #Low level wrapper just for filtering out args we don't care about
     def on_eos(self,*a,**k):
-        self.onEOS()
+        with  self.lock:
+            self.onEOS()
 
     def onEOS(self):
         def f2():
@@ -457,16 +459,18 @@ class GStreamerPipeline():
         
 
     def on_message(self, bus, message,userdata):
-        s = message.get_structure()
-        if s:
-            self.onMessage(message.src,s.get_name(), s)
-        return True
+        with self.lock:
+            s = message.get_structure()
+            if s:
+                self.onMessage(message.src,s.get_name(), s)
+            return True
 
     def onMessage(self,src,name, structure):
         pass
 
     def on_error(self,bus,msg,userdata):
-        logging.debug('Error {}: {}, {}'.format(msg.src.name, *msg.parse_error()))
+        with self.lock:
+            logging.debug('Error {}: {}, {}'.format(msg.src.name, *msg.parse_error()))
 
 
 

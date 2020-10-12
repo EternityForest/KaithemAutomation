@@ -891,6 +891,8 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         global jackClientsFound
         if not output:
             output="@auto"
+
+        self.outputName=output
         self.filename = file
 
         self.finalGain = volume
@@ -940,6 +942,7 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
                 isVideo=True
         if isVideo:
             decodeBin.set_property("low-percent",80)
+            #TODO queue in a better place
             q=self.addElement('queue', connectToOutput=decodeBin, connectWhenAvailable="audio")
         
             self.addElement('audiorate')
@@ -947,9 +950,10 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
         else:
             self.addElement('audioconvert',connectToOutput=decodeBin,connectWhenAvailable="audio")
-    
+
         self.addElement('audioresample')
 
+        self.lastQueue=self.addElement('queue')
 
         
         if onBeat:
@@ -958,7 +962,9 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         
 
         self.addElement("audiorate")
-        self.fader = self.addElement('volume', volume=volume)
+        self.fader = self.addElement('volume')
+        #Jump to the proper perceptual gain
+        self.setFader(volume)
 
         if output=="@auto":
             #Recheck if we thing the server hasn't started yet
@@ -967,8 +973,8 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
             if jackClientsFound:
                 cname="player"+str(time.monotonic())+"_out"
-                self.sink = self.addElement('jackaudiosink', buffer_time=64000 if not isVideo else 80000, 
-                latency_time=32000 if not isVideo else 40000,slave_method=0,port_pattern="jhjkhhhfdrhtecytey",
+                self.sink = self.addElement('jackaudiosink', buffer_time=12800, 
+                latency_time=48000,slave_method=0,port_pattern="jhjkhhhfdrhtecytey",
                 connect=0,client_name=cname,sync=False)
 
                 self.aw = jackmanager.Airwire(cname, 'system')
@@ -1033,6 +1039,18 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
     def onEOS(self):
         #If the file has changed size recently, this might not be a real EOS,
         #Just a buffer underrun. Lets just try again 
+
+        #For extremely small files, return to the preload queue. It may be a quick sound effect that should have the best response time
+        #Probably best not to do this on early stop.  If the user is hammering a button maybe something is wrong.
+        # try:
+        #     if os.stat(self.filename).st_size< 300000:
+        #         self.pause()
+        #         self.seek(0)
+        #         gst_preloaded[self.filename, self.outputName] = (self,time.monotonic())
+        #         return
+        # except:
+        #     logging.exception("Preload logic err")
+
         if self.lastFileSizeChange> (time.monotonic()-3):
             self.pause()
             self.seek(self.lastPosition-0.1)
@@ -1044,16 +1062,15 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
     def setVol(self,v):
         #We are going to do a perceptual gain algorithm here
         db = volumeToDB(v)
-
         #Now convert to a raw gain
         vGain = 10**(db/20)
-
         self.setFader(vGain if not vGain<-0.01 else 0)
 
 
     def setFader(self,level):
         with self.lock:
             try:
+                self.faderLevel = level
                 if self.fader:
                     self.fader.set_property('volume', level)
             except ReferenceError:
@@ -1062,7 +1079,16 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
     def stop(self):
 
         #Prevent any ugly noise that GSTreamer might make when stopped at
-        #The wrong time
+        #The wrong time.  First an ultrafast fade, then disconnect, then stop,
+        #For the best possible sound
+        try:
+            setFader(self.faderLevel/1.5)
+            setFader(self.faderLevel/2)
+            setFader(self.faderLevel/3)
+            setFader(self.faderLevel/4)
+        except:
+            pass
+
         try:
             if self.aw:
                 self.aw.disconnect()
