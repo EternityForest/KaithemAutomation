@@ -36,10 +36,10 @@ def shouldAllowGstJack(*a):
         #Of jack not being ready at boot yet.
         with lock:
             try:
-                t=getPorts()
-                if  t:
+                if getPortsListCache():
                     return True
             except:
+                time.sleep(1)
                 if i>8:
                     print(traceback.format_exc())
             time.sleep(1)
@@ -100,6 +100,7 @@ manageSoundcards = True
 #No by default, gets auto set to True by startJackProcess()
 manageJackProcess = False
 
+portsList = {}
 
 
 
@@ -479,7 +480,6 @@ class PortInfo():
         self.clientName = name[:-len(":"+sname)]
 
 
-portsList = {}
 
 
     
@@ -1112,6 +1112,7 @@ def _startJackProcess(p=None, n=None,logErrs=True):
         
         time.sleep(0.5)
 
+
         if jackp.poll() != None:
             x = readAllErrSoFar(jackp)
             if x and logErrs:
@@ -1681,7 +1682,7 @@ def work():
     while(_reconnecterThreadObjectStopper[0]):
         try:
             #The _checkJack stuf won't block, because we already have the lock
-            if lock.acquire(timeout=0.5):
+            if lock.acquire(timeout=2):
                 try:
                     if manageJackProcess:
                         _checkJack()
@@ -1849,6 +1850,7 @@ def _checkJackClient(err=True):
             try:
                 _jackclient.close()
                 _jackclient=None
+                portsList.clear()
             except:
                 pass
             _realConnections = {}
@@ -1864,6 +1866,7 @@ def _checkJackClient(err=True):
             _jackclient.set_port_connect_callback(onPortConnect)
             _jackclient.activate()
             _jackclient.get_ports()
+            getPorts()
             time.sleep(0.5)
             findReal()
             return True
@@ -1873,6 +1876,17 @@ def _checkJackClient(err=True):
     if not _jackclient:
         return False
 
+
+def getPortsListCache():
+    "We really should not need to have this refreser, it is only there in case of erro, hence the 1 hour."
+    global portsList,portsCacheTime
+    if time.monotonic() - portsCacheTime< 3600:
+        return portsList
+    portsCacheTime=time.monotonic()
+    getPorts()
+    return portsList
+
+portsCacheTime = 0
 def getPorts(*a,**k):
     global portsList
 

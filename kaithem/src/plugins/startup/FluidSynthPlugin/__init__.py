@@ -65,7 +65,7 @@ class JackFluidSynth(devices.Device):
         devices.Device.__init__(self, name, data)
         try:
             if len(name)==1:
-                self.handleError('Single letter names may not work correctly')
+                self.handleError('Single letter names may not work correctly.  JACK in general may have subpar performace with this plugin badly configured.')
             self.synthLock=threading.Lock()
 
             self.synth = scullery.fluidsynth.FluidSynth(

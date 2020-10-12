@@ -40,27 +40,7 @@ def volumeToDB(vol):
         #New high-volume curve
         return -23.33333 + 17.98981*vol - 1.432762*vol**2
 
-isStartDone = []
-if jackmanager.settings.get('jackMode',None) in ("manage","use"):
-    def f():
-        try: 
-            logging.debug("Initializing JACK")
-            jackmanager.reloadSettings()
-            jackmanager.startManaging()
-        except:
-            log.exception("Error managing JACK")
-        try:
-            isStartDone.append(True)
-        except:
-            pass
-    workers.do(f)
-    #Wait up to 3 seconds
-    t = time.monotonic()
-    while(time.monotonic()-t)< 3:
-        if len(isStartDone):
-            break
-        time.sleep(0.1)
-del isStartDone
+
 
 jackAPIWidget = None
 
@@ -973,8 +953,8 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
             if jackClientsFound:
                 cname="player"+str(time.monotonic())+"_out"
-                self.sink = self.addElement('jackaudiosink', buffer_time=12800, 
-                latency_time=48000,slave_method=0,port_pattern="jhjkhhhfdrhtecytey",
+                self.sink = self.addElement('jackaudiosink', buffer_time=32000, 
+                latency_time=32000,slave_method=0,port_pattern="jhjkhhhfdrhtecytey",
                 connect=0,client_name=cname,sync=False)
 
                 self.aw = jackmanager.Airwire(cname, 'system')
@@ -1431,6 +1411,8 @@ def oggSoundTest(output=None):
         time.sleep(1)
     raise RuntimeError("Sound did not report as playing within 100ms")
 
+
+
 #Make fake module functions mapping to the bound methods.
 playSound = backend.playSound
 stopSound = backend.stopSound
@@ -1444,3 +1426,26 @@ position = backend.getPosition
 fadeTo = backend.fadeTo
 readySound = backend.readySound
 preload= backend.preload
+
+isStartDone = []
+if jackmanager.settings.get('jackMode',None) in ("manage","use"):
+    def f():
+        try: 
+            logging.debug("Initializing JACK")
+            jackmanager.reloadSettings()
+            jackmanager.startManaging()
+
+        except:
+            log.exception("Error managing JACK")
+        try:
+            isStartDone.append(True)
+        except:
+            pass
+    workers.do(f)
+    #Wait up to 3 seconds
+    t = time.monotonic()
+    while(time.monotonic()-t)< 3:
+        if len(isStartDone):
+            break
+        time.sleep(0.1)
+del isStartDone

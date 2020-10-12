@@ -4,7 +4,10 @@
  Use device.synth to access the raw scullery.fluidsynth object. particularly, you can use synth.noteOn(ch,note,velocity) and noteOff(ch,note).
 </p>
 
-
+<p class="warning">
+    Sometimes this plugin bogs down JACK and causes a bad awful noise whenever the port graph changes. Also, single letter device names don't seem to be
+    supported for some reason.
+</p>
 <table>
     <tr>
         <td>Soundfont file path</td>
