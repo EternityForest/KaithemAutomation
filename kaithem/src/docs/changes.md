@@ -1,6 +1,9 @@
 Change Log
 ----------
 
+### 0.65.43
+- FreeBoard supports theme creation, uses sinpler direct bvalues for widgets, not value,time pairs
+
 ### 0.65.42
 - FreeBoard can now autocomplete tag point names
 - Fix FreeBoard bugs
