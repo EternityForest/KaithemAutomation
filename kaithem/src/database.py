@@ -53,6 +53,12 @@ import json
 import uuid as uuidModule
 import random
 import configparser
+import os
+import libnacl
+import base64
+import struct
+
+from scullery import messagebus
 
 # class DocumentView():
 #     def __init__(self,database,uuid):
@@ -77,45 +83,112 @@ import configparser
 #                 return x[0][key]
 
 class DocumentDatabase():
-    def __init__(self, filename):
+    def __init__(self, filename, publicKey=None):
+
+        self.mbname = "/drayerDB/db/"+os.path.abspath(filename)
+
         self.conn = sqlite3.connect(filename)
         self.config = configparser.ConfigParser()
+
         if os.path.exists(filename+".conf"):
-            self.config.read((filename+".conf")
-       
+            self.config.read(filename+".conf")
+
         self.conn.row_factory = sqlite3.Row
-        self.conn.execute("PRAGMA wal_checkpoint=FULL")
+        #self.conn.execute("PRAGMA wal_checkpoint=FULL")
         self.conn.execute("PRAGMA schema.secure_delete = off")
 
         self.conn.execute('''CREATE TABLE IF NOT EXISTS document
-             (uuid text PRIMARY KEY,parent text, link text, type text, name text, 
-             timestamp integer, local_timestamp integer, document text, data blob, signature blob)''')
-        self.conn.execute(
-            '''CREATE INDEX IF NOT EXISTS document_parent ON document(parent) WHERE parent IS NOT "" ''')
-        self.conn.execute(
-            '''CREATE INDEX IF NOT EXISTS document_link ON document(link) WHERE link IS NOT "" ''')
-        self.conn.execute(
-            '''CREATE INDEX IF NOT EXISTS document_name ON document(name)''')
-        self.conn.execute(
-            '''CREATE INDEX IF NOT EXISTS document_timestamp ON document(timestamp)''')
-        self.conn.execute(
-            '''CREATE INDEX IF NOT EXISTS document_local_timestamp ON document(local_timestamp)''')
-        self.conn.execute(
-            '''CREATE INDEX IF NOT EXISTS document_type ON document(type)''')
+             (_uuid text PRIMARY KEY,_time integer, _arrival integer, _parent text, _link text, _type text, _name text, 
+              document text, data blob, signature blob)''')
 
-    def setConfig(self,section, key,value):
+        self.conn.execute('''CREATE TABLE IF NOT EXISTS meta
+             (key text, value  text)''')
+
+        self.conn.execute(
+            '''CREATE INDEX IF NOT EXISTS document_parent ON document(_parent) WHERE _parent IS NOT "" ''')
+        self.conn.execute(
+            '''CREATE INDEX IF NOT EXISTS document_link ON document(_link) WHERE _link IS NOT "" ''')
+        self.conn.execute(
+            '''CREATE INDEX IF NOT EXISTS document_name ON document(_name)''')
+        self.conn.execute(
+            '''CREATE INDEX IF NOT EXISTS document_timestamp ON document(_uuid)''')
+        self.conn.execute(
+            '''CREATE INDEX IF NOT EXISTS document_type ON document(_type)''')
+
+        self.keys = configparser.ConfigParser()
+        secretKey=None
+
+        if os.path.exists(filename+".keys"):
+            self.keys.read(filename+".keys")
+
+        if publicKey:
+            if self.keys.get('key', 'public', fallback=None):
+                pk = base64.b64decode(self.keys.get('key', 'public'))
+                if not pk == publicKey:
+                    raise ValueError("Supplied key does not match keyfile")
+            else:
+                self.keys.set('key', 'public',
+                              base64.b64encode(publicKey).decode())
+        else:
+            publicKey = self.keys.get('key', 'public', fallback=None)
+            if not publicKey:
+                publicKey = self.getMeta("publicKey")
+            if not publicKey:
+                publicKey, secretKey = libnacl.crypto_keypair()
+
+        if not self.keys.get('key', 'public', fallback=None):
+            try:
+                self.keys.addSection('key')
+            except:
+                pass
+            self.keys.set('key', 'public',
+                          base64.b64encode(publicKey).decode())
+            self.saveConfig()
+
+        if secretKey and not self.keys.get('key', 'private', fallback=None):
+            try:
+                self.keys.addSection('key')
+            except:
+                pass
+            self.keys.set('key', 'private',
+                          base64.b64encode(secretKey).decode())
+            self.saveConfig()
+
+        if not self.getMeta('publicKey'):
+            self.setMeta("publicKey", base64.b64encode(pk).decode())
+
+        
+        self.publicKey = publicKey
+        self.secretKey = secretKey
+
+    def getMeta(self, key):
+        cur = self.conn.cursor()
+        cur.execute(
+            "SELECT value FROM meta WHERE key=?", (key,))
+        x = cur.fetchone()
+        if x:
+            return x[0]
+
+    def setMeta(self, key, value):
+        self.conn.execute(
+            "INSERT INTO meta VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=?", (key, value, value))
+
+    def setConfig(self, section, key, value):
         try:
             self.config.addSection(section)
         except:
             pass
-        self.config.set(section,key,value)
+        self.config.set(section, key, value)
 
     def saveConfig(self):
         with open(self.filename+".conf", 'w') as configfile:
-            config.write(configfile)
+            self.config.write(configfile)
+        with open(self.filename+".keys", 'w') as configfile:
+            self.keys.write(configfile)
+
 
     def updateDocument(self, uuid, type, name, document, parent, link, ts_int, blob, localts_int):
-        self.conn.execute("UPDATE document  SET parent=?, link=?, type=?, name=?,timestamp=?, local_timestamp=?, document=?, data=?, signature=? WHERE uuid=?",
+        self.conn.execute("UPDATE document  SET _parent=?, _link=?, _type=?, _name=?, _time=?, _arrival=?, document=?, data=?, signature=? WHERE _uuid=?",
                           (parent, link, type, name, ts_int, localts_int, json.dumps(document), blob, b'', uuid))
 
     def __enter__(self):
@@ -124,43 +197,23 @@ class DocumentDatabase():
 
     def __exit__(self, *a):
         self.conn.__exit__
-    def getMergedDocument(self, uuid):
-        cur = self.conn.cursor()
-        cur.execute("SELECT document,type FROM document WHERE uuid=?", (uuid,))
-        x = cur.fetchone()
 
-        if x:
-            # Get the document itself
-            doc = json.loads(x[0])
-            t = x[1]
-            cur = self.conn.cursor()
-            # Now merge in all defaults from the template
-            cur.execute(
-                "SELECT document FROM document WHERE name=? AND type=? ORDER BY timestamp DESC", (t, '.template'))
-            c = cur.fetchone()
-            if c:
-                template = json.loads(c[0])
-                template.update(doc)
-                doc = template
-
-            cur = self.conn.cursor()
-            # Now merge in all props
-            cur.execute(
-                "SELECT document FROM document WHERE parent=? AND type=? ORDER BY timestamp ASC", (uuid, '.prop'))
-            for i in cur:
-                doc.update(json.loads(i[0]))
-
-            return doc
+    def recordToSigningBytes(self, type, name, document, parent='', link='', uuid=None, timestamp=None, arrival=None, blob=b''):
+        # Hash everything, put it together, then sign it.
+        return (libnacl.crypto_generichash(uuid)+libnacl.crypto_generichash(type)+libnacl.crypto_generichash(name) +
+                struct.pack("<Q", timestamp)+struct.pack("<Q", arrival) + libnacl.crypto_generichash(document)+libnacl.crypto_generichash(blob))
 
     def deleteDocument(self, uuid):
         ts = int((time.time())*10**6)
 
-        #Clear everything, but keep the parent field, we can use that to let us fully GC it when the parent is deleted.
+        # Clear everything, but keep the parent field, we can use that to let us fully GC it when the parent is deleted.
         self.conn.execute("UPDATE document  SET link=?, type=?, name=?,timestamp=?, local_timestamp=?, document=?, data=?, signature=? WHERE uuid=?",
                           ("", ".null", "", ts, ts, "{}", b'', b'', uuid))
         self.conn.execute("DELETE FROM document WHERE parent=?", (uuid,))
 
-    def insertDocument(self, type, name, document, parent='', link='', uuid=None, timestamp=None, blob=b''):
+    def insertDocument(self, type, name, document, parent='', link='', uuid=None, timestamp=None, blob=b'', signature=b''):
+        if not signature and not self.secretKey:
+            raise ValueError("Cannot sign any new documents, you do not have the keys")
         ts = int((timestamp or time.time())*10**6)
         localts = int((timestamp or time.time())*10**6)
 
@@ -168,7 +221,7 @@ class DocumentDatabase():
         if uuid:
             cur = self.conn.cursor()
             cur.execute(
-                "SELECT timestamp FROM document WHERE uuid=?", (uuid,))
+                "SELECT _time FROM document WHERE _uuid=?", (uuid,))
             x = cur.fetchone()
 
             if x:
@@ -182,7 +235,7 @@ class DocumentDatabase():
                     # is enough for other nodes to know this shouldn't exist anymore.
                     if type == ".null":
                         self.conn.execute(
-                            "DELETE FROM document WHERE parent=?", (uuid,))
+                            "DELETE FROM document WHERE _parent=?", (uuid,))
 
                     return uuid
                 else:
@@ -191,7 +244,7 @@ class DocumentDatabase():
         if type in (".prop", ".elink"):
             cur = self.conn.cursor()
             cur.execute(
-                "SELECT timestamp,uuid FROM document WHERE parent=? AND name=? AND type=?", (parent, name, type))
+                "SELECT _time,_uuid FROM document WHERE _parent=? AND _name=? AND _type=?", (parent, name, type))
             x = cur.fetchone()
             if x:
                 # If a uuid was explicitly specified we can't update some other record, we have
@@ -204,12 +257,12 @@ class DocumentDatabase():
                 else:
                     # If we have to just insert a new record then we just clear out the old records, they have been obsoleted.
                     cur.execute(
-                        "DELETE FROM document WHERE parent=? AND name=? AND type=?", (parent, name, type))
+                        "DELETE FROM document WHERE _parent=? AND _name=? AND _type=?", (parent, name, type))
 
         uuid = uuid or str(uuidModule.uuid4())
 
         self.conn.execute("INSERT INTO document VALUES (?,?,?,?,?,?,?,?,?,?)",
-                          (uuid, parent, link, type, name, ts, localts, json.dumps(document), blob, b''))
+                          (uuid, ts, localts, parent, link, type, name,  json.dumps(document), blob, b''))
         return uuid
 
 

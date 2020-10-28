@@ -278,7 +278,7 @@ def combineLogs(a):
 </tr>
 %endif
 
-%if tag and isinstance(tag,tagpoints._StringTagPoint):
+%if tag and isinstance(tag,(tagpoints._StringTagPoint, tagpoints._ObjectTagPoint)):
 <tr>
     <td><a href="/tagpoints/${normalizednormalizedTagName|u}">${normalizednormalizedTagName|h}</h></td>
     <td>${tag.type}</td>

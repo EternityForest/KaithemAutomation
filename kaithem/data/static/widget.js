@@ -179,7 +179,7 @@ KaithemApi =function(){
 				apiobj.connection.send(j)
 				console.log("WS Connection Initialized");
 				apiobj.reconnect_timeout = 1500;
-				window.setTimeout(apiobj.wpoll, 250);
+				window.setTimeout(function(){apiobj.wpoll()}, 250);
 			}
 
 			this.wpoll = function () {

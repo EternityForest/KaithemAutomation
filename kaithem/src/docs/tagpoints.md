@@ -149,11 +149,13 @@ Dict used as globals and locals for evaluating alarm conditions and expression t
 #### tagPoint.expose(readPerm, writePerm, priority, configured=False)
 Expose the tag to web APIs, with the permissions specified. Permissions must be strings, but can use commas for multiple.
 
-Priority must be an integer, and determines the priority at which the web API may set the tag's value.
+Priority must be an integer, and determines the priority at which the web API may set the tag's value.  The web API cannot control the priority, but can
+release the claim entirely by sending a null, or reclaim by sending real data again.
 
 
 The way this works is that tag.dataSourceWidget is created, a Widgets.DataSource instance having id "tag:TAGNAME", with the given permissions.
-The data, is always a value, timestamp(wall clock time) pair. This format is 100% directly compatible with the format that Kaithem's Dashboard Builder widgets use.
+
+The data was formerly always a value, timestamp(wall clock time) pair. It is now just the raw value, to simplify and match changes in the Freeboard fork.
 
 
 TO the server will set a claim at the permitted priority, or release any claim if the data is None.

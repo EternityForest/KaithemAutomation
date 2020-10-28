@@ -1,5 +1,5 @@
 from . import scheduling,workers, virtualresource,widgets,messagebus,directories,persist,alerts,auth
-import time, threading,weakref,logging,types,traceback,math,os,gc,functools,re,random
+import time, threading,weakref,logging,types,traceback,math,os,gc,functools,re,random,json,types, copy
 
 from typing import Callable,Optional,Union
 from threading import setprofile
@@ -643,8 +643,8 @@ class _TagPoint(virtualresource.VirtualResource):
         
         #Might be the number, or might be the getter function.
         #it's the current value of the active claim
-        self._value = self.defaultData
-        self.valueTuple = (self.defaultData,time.monotonic(),None)
+        self._value = copy.deepcopy(self.defaultData)
+        self.valueTuple = (self._value,time.monotonic(),None)
 
 
         #Used to track things like min and max, what has been changed by manual setting.
@@ -663,9 +663,9 @@ class _TagPoint(virtualresource.VirtualResource):
 
         self.name = name
         #The cached actual value from the claims
-        self.cachedRawClaimVal = self.defaultData
+        self.cachedRawClaimVal =  copy.deepcopy(self.defaultData)
         #The cached output of processValue
-        self.lastValue = self.defaultData
+        self.lastValue = self.cachedRawClaimVal
         self.lastGotValue = 0
         self._interval =0
         self.activeClaim =None
@@ -717,7 +717,7 @@ class _TagPoint(virtualresource.VirtualResource):
             allTagsAtomic= allTags.copy()
 
 
-        self.defaultClaim = self.claim(self.defaultData,'default')
+        self.defaultClaim = self.claim( copy.deepcopy(self.defaultData),'default')
         
         #What permissions are needed to 
         #read or override this tag, as a tuple of 2 permission strings and an int representing the priority
@@ -819,15 +819,13 @@ class _TagPoint(virtualresource.VirtualResource):
             
 
     def apiHandler(self,u,v):
-        #Fix timestamps that somehow got to be strings because of js insanity
-        v[1]=float(v[1])
-        if v[0] is None:
+        if v is None:
             if self.apiClaim:
                 self.apiClaim.release()
         else:
            #No locking things up if the times are way mismatched and it sets a time way in the future
            t=time.monotonic()+10
-           self.apiClaim = self.claim(v[0], 'WebAPIClaim', priority=(self.getEffectivePermissions())[2], timestamp=min(self.toMonotonic(v[1]),t), annotation=u)
+           self.apiClaim = self.claim(v, 'WebAPIClaim', priority=(self.getEffectivePermissions())[2], annotation=u)
 
            #They tried to set the value but could not, so inform them of such.
            if not self.currentSource == self.apiClaim.name:
@@ -851,12 +849,12 @@ class _TagPoint(virtualresource.VirtualResource):
             t = self.valueTuple
 
             #Set value immediately, for later page loads
-            self.dataSourceWidget.value = [t[0], self.toWallClock(t[1])]
+            self.dataSourceWidget.value = t[0]
             if self.guiLock.acquire(timeout=1):
                 try:
                     #Use the cached literal computed value, not what we were passed,
                     #Because it could have changed by the time we actually get to push
-                    self.dataSourceWidget.send([t[0], self.toWallClock(t[1])])
+                    self.dataSourceWidget.send(t[0])
                 finally:
                     self.guiLock.release()
             
@@ -2023,7 +2021,71 @@ class _StringTagPoint(_TagPoint):
             try:
                 workers.do(pushFunction)
             finally:
+                self.guiLock.release()
+
+
+
+class _ObjectTagPoint(_TagPoint):
+    defaultData={}
+    type='object'
+    @typechecked
+    def __init__(self,name:str):
+        self.spanWidget = widgets.DynamicSpan()
+        self.spanWidget.setPermissions(['/users/tagpoints.view'],['/users/tagpoints.edit'])
+        self.guiLock=threading.Lock()
+
+        self.validate = None
+
+        _TagPoint.__init__(self,name)
+    
+    def processValue(self,value):
+        #Functions are special valid types of value.
+        #They are automatically resolved.
+        if callable(value):
+            value = value()
+        
+        if isinstance(value,str):
+            value= json.loads(value)
+        else:
+            #
+            value= copy.deepcopy(value)
+
+        if self.validate:
+            v=self.validate(v)
+        
+
+        return types.MappingProxyType(value)
+   
+
+    def filterValue(self,v):
+        
+        return v
+
+    def _debugAdminPush(self, value):
+        #Immediate write, don't push yet, do that in a thread because TCP can block
+        value = json.dumps(value)
+        #Limit the length
+        value=value[:256]
+        self.spanWidget.write(value,push=False)
+        def pushFunction():
+            self.spanWidget.value=value
+            if self.guiLock.acquire(timeout=1):
+                try:
+                    #Use the cached literal computed value, not what we were passed,
+                    #Because it could have changed by the time we actually get to push
+                    self.spanWidget.write(self.lastValue)
+                finally:
+                    self.guiLock.release()
+        #Should there already be a function queued for this exact reason, we just let
+        #That one do it's job
+        if self.guiLock.acquire(timeout=0.001):
+            try:
+                workers.do(pushFunction)
+            finally:
                 self.guiLock.release()    
+
+
+
 class Claim():
     "Represents a claim on a tag point's value"
     @typechecked
@@ -2051,7 +2113,8 @@ class Claim():
 
     def setPriority(self, priority):
         with self.tag.lock:
-            self.tag.claim(priority, self.name, )
+            self.priority =priority
+            self.tag.claim(self.value, self.timestamp, self.annotation,priority=self.priority, name=self.name)
     def __call__(self,*args,**kwargs):
         if not args:
             raise ValueError("No arguments")
@@ -2223,5 +2286,5 @@ def createGetterFromExpression(e, t):
     t.exprClaim=t.claim(f,"ExpressionTag",98)
     
 Tag = _NumericTagPoint.Tag
-ObjectTag = _TagPoint.Tag
+ObjectTag = _ObjectTagPoint.Tag
 StringTag = _StringTagPoint.Tag

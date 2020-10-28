@@ -13,7 +13,7 @@
 #You should have received a copy of the GNU General Public License
 #along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-import subprocess,os,math,time,sys,threading, collections,logging,re,uuid
+import subprocess,os,math,time,sys,threading, collections,logging,re,uuid,traceback
 import scullery
 from . import  util, scheduling,directories,workers, registry,widgets,messagebus, midi
 from .config import config
@@ -1388,7 +1388,7 @@ for i in config['audio-backends']:
             backend = l[i]()
             break
     except:
-            messagebus.postMessage("/system/notifications/errors","Failed to initialize audio backend "+i," may be able to use fallback")
+            messagebus.postMessage("/system/notifications/errors","Failed to initialize audio backend "+i+" may be able to use fallback:\n"+traceback.format_exc())
 
 def stopAllSounds():
     midi.allNotesOff()
