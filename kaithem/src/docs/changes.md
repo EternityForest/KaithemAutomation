@@ -2,7 +2,8 @@ Change Log
 ----------
 
 ### 0.65.43
-- FreeBoard supports theme creation, uses sinpler direct bvalues for widgets, not value,time pairs
+- FreeBoard supports theme creation, uses simpler direct bvalues for widgets, not value,time pairs
+- Realtime DRAM bit error detection(I expect one or two hits per year in the 1MB average window we use)
 
 ### 0.65.42
 - FreeBoard can now autocomplete tag point names
