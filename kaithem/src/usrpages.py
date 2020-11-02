@@ -461,6 +461,9 @@ class KaithemPage():
                     ).encode("utf-8")
             else:
                 return page.text.encode('utf-8')
+            
+        except kaithemobj.ServeFileInsteadOfRenderingPageException as e:
+                return cherrypy.lib.static.serve_file(e.f_filepath,e.f_MIME,e.f_name)
 
         except Exception as e:
             #The HTTPRedirect is NOT an error, and should not be handled like one.

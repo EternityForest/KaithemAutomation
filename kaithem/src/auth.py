@@ -110,6 +110,9 @@ authchanged = False
 #the timing attack might be even worse.
 __local_secret= os.urandom(24)
 
+
+
+
 def resist_timing_attack(data, maxdelay=0.0001):
     """Input dependant deterministic pseudorandom delay. Use to make sure delay
         is constant for a given user input, so that averaging won't work.

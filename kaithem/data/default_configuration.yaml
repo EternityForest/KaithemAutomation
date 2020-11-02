@@ -187,7 +187,7 @@ audio-paths:
 front-page-banner: |
     <b>Kaithem is free software licensed under the GPLv3.<br>
     Kaithem was not designed for mission critical or safety of life systems and no warranty is expressed or implied.<br>
-    Use entirely at your own risk.</b>
+    Use entirely at your own risk.  Any and all activities on this server may be monitored and logged by the machine's admin.</b>
 
 #This HTML is used as the top banner for deployment branding
 top-banner-html: |

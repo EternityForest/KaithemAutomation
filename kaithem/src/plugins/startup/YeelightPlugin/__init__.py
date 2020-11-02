@@ -93,12 +93,12 @@ class YeelightDevice(devices.Device):
             
             #If we were given separate temp and permanent names, then we use the temp
             #To find the device and set it to the proper permanent name
-            if not data['device.locator']==data.get('temp.locator',data['device.locator']):
+            if not data.get("device.locator",'')==data.get('temp.locator',data['device.locator']):
                 getDevice(data['temp.locator'],5,self.kdClass).alias = data['device.locator']
                 refresh()
 
         except:
-            self.handleError()
+            self.handleError("Error in setup")
             
     def getRawDevice(self):
         return getDevice(self.data.get("device.locator"),3,self.kdClass)
@@ -216,6 +216,9 @@ class YeelightRGB(YeelightDevice):
         self.wasOff=True
         self.oldTransitionRate = -1
 
+        self.hsvTag= tagpoints.ObjectTag("/devices/"+self.name+".color")
+        self.hsvTag.subscribe(self.handleTagChange)
+
     def getSwitch(self,channel, state):
         if channel>0:
             raise ValueError("Bulb has 1 master power channel only")
@@ -248,9 +251,25 @@ class YeelightRGB(YeelightDevice):
             #Obviously not unreachable
             self.rssiTag.value =-70
     
+    
     def setHSV(self,channel, hue,sat,val,duration=1):
         if channel>0:
             raise ValueError("Bulb has 1 color only")
+        self.hsvTag.value ={
+            'h':hue,
+            's':sat,
+            'v':val,
+            'fade': duration,
+        }
+
+    def handleTagChange(self,v,t,a):
+        if v.get('_type','hsv')=="hsv":
+            hue = v['h']
+            sat = v['s']
+            val = v['v']
+            duration = v.get('fade',0)
+        else:
+            raise RuntimeError("Invalid _type in dict")
 
         #The idea here is that if the color has not changed, 
         #We can issue a direct on/off command instead, which is both more semantic,

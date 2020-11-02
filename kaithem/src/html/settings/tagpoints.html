@@ -94,6 +94,18 @@ Page:
 </tr>
 %endif
 
+%if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._ObjectTagPoint):
+<tr>
+    <td><a href="/tagpoints/${i|u}">${i|h}</h></td>
+    <td>${tagpoints.allTagsAtomic[i]().spanWidget.render()}</td>
+    <td>${tagpoints.allTagsAtomic[i]().interval}</td>
+    <td>${tagpoints.allTagsAtomic[i]().activeClaim[2]}</td>
+    <td>${tagpoints.allTagsAtomic[i]().owner}</td>
+    <td>${len(tagpoints.allTagsAtomic[i]().subscribers)}</td>
+</tr>
+%endif
+
+
 %if tagpoints.allTagsAtomic[i]()==None:
 <tr>
     <td>${i|h}</td>

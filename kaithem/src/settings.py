@@ -234,6 +234,11 @@ class Settings():
         return pages.get_template("settings/util/imgmap.html").render()
 
     @cherrypy.expose
+    def leaflet(self):
+        pages.require("/admin/mainpage.view")
+        return pages.get_template("settings/util/leaflet.html").render()
+
+    @cherrypy.expose
     def changeprefs(self,**kwargs):
         pages.require("/users/accountsettings.edit")
         pages.postOnly()

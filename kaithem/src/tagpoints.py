@@ -2047,14 +2047,13 @@ class _ObjectTagPoint(_TagPoint):
         if isinstance(value,str):
             value= json.loads(value)
         else:
-            #
             value= copy.deepcopy(value)
 
         if self.validate:
             v=self.validate(v)
         
 
-        return types.MappingProxyType(value)
+        return value
    
 
     def filterValue(self,v):
@@ -2073,7 +2072,7 @@ class _ObjectTagPoint(_TagPoint):
                 try:
                     #Use the cached literal computed value, not what we were passed,
                     #Because it could have changed by the time we actually get to push
-                    self.spanWidget.write(self.lastValue)
+                    self.spanWidget.write(json.dumps(self.lastValue))
                 finally:
                     self.guiLock.release()
         #Should there already be a function queued for this exact reason, we just let

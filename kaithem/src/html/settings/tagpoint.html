@@ -171,15 +171,15 @@ def combineLogs(a):
 <table border="1">
     <tr>
         <td>Claim Name</td>
-        <td><input name="overrideName" value="${configData.get('overrideName','')}" placeholder="config"></td>
+        <td><input name="overrideName" value="${configData.get('overrideName','')|h}" placeholder="config"></td>
     </tr>
     <tr>
         <td>Claim Value(Blank for no Override)</td>
-        <td><input name="overrideValue" value="${configData.get('overrideValue','')}""></td>
+        <td><input name="overrideValue" value="${configData.get('overrideValue','')|h}""></td>
     </tr>
     <tr>
         <td>Claim Priority</td>
-        <td><input  name="overridePriority" value="${configData.get('overridePriority','')}" placeholder="90"></td>
+        <td><input  name="overridePriority" value="${configData.get('overridePriority','')|h}" placeholder="90"></td>
     </tr>
 </table>
 <h3>Info</h3>
