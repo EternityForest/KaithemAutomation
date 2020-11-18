@@ -941,6 +941,8 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         self.addElement('audioresample')
 
         self.lastQueue=self.addElement('queue')
+        self.lastQueue.set_property("max-size-buffers", 100000)
+        self.lastQueue.set_property("max-size-time", 20*10**9)
 
         self.loopsRemaining = loop
 
@@ -1039,8 +1041,10 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
             try:
             
                 if self.loopsRemaining > 0:
-                    self.seek(0,flush=flush,segment=self.loopsRemaining>0)
-                    self.play(segment=self.loopsRemaining>0)
+                    # if self.getPosition()<0.35:
+                    #     time.sleep(0.25)
+                    self.seek(0,_offset=0,flush=flush,segment=self.loopsRemaining>0, sync=True)
+                    #self.play(segment=self.loopsRemaining>0)
                     self.loopsRemaining-=1
                 else:
                     self.exitSegmentMode()
@@ -1073,10 +1077,11 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
             if self.loopsRemaining <=0:
                 gstwrapper.Pipeline.onEOS(self)
             else:
+                pass
                 #Can;t just seek, have to entirely restart.  This should only
                 #Happen if we are too slow and can't queue the new data fast enough
-                self.restart(segment=True)
-                self.loopsRemaining -= 1
+                # self.restart(segment=True)
+                # self.loopsRemaining -= 1
     
     def  onSegmentDone(self):
         #If the file has changed size recently, this might not be a real EOS,

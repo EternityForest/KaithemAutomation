@@ -139,6 +139,7 @@ autorunMainloop = True
 mainContext = None
 
 
+
 def init():
     "On demand loading, for startup speed but also for compatibility if Gstreamer isn't there"
     global initialized, Gst, loop, mainContext
@@ -194,6 +195,15 @@ def makeWeakrefPoller(selfref, exitSignal):
             self.threadStarted = True
             if not self.shouldRunThread:
                 exitSignal.append(True)
+
+                #We can't allow returns to happen till the pipeline is null.  That could cause a segfault
+                #on garbage collection.  So we choose a memory leak instead.
+                try:
+                    with self.seeklock:
+                        self.pipeline.set_state(Gst.State.NULL)
+                except:
+                    pass
+                self._waitForState(Gst.State.NULL,3600000)
                 return
 
             if self.shouldRunThread:
@@ -216,15 +226,23 @@ def makeWeakrefPoller(selfref, exitSignal):
                             self.shouldRunThread = False
                             exitSignal.append(True)
                             return
-
                     except:
                         # Todo actually handle some errors?
                         exitSignal.append(True)
                         # After pipeline deleted, we clean up
                         if hasattr(self, 'pipeline') and hasattr(self, 'bus'):
+                            try:
+                                with self.seeklock:
+                                    self.pipeline.set_state(Gst.State.NULL)
+                            except:
+                                pass
+                            self._waitForState(Gst.State.NULL,3600000)
+                           
                             raise
                         else:
-                            return
+                           return
+
+
             # with self.lock:
             msg = self.bus.timed_pop(500*1000*1000)
             if msg:
@@ -308,8 +326,6 @@ class GStreamerPipeline():
         self.threadStarted = False
         self.weakrefs = weakref.WeakValueDictionary()
 
-        self.ignoreSegmentDone = 0
-
         # This WeakValueDictionary is mostly for testing purposes
         pipes[id(self)] = self
 
@@ -389,7 +405,7 @@ class GStreamerPipeline():
         # Meant to subclass. Gets called under the lock
         pass
 
-    def seek(self, t=None, rate=None, _raw=False, _offset=0.008, flush=True, segment=False):
+    def seek(self, t=None, rate=None, _raw=False, _offset=0.008, flush=True, segment=False, sync=False,skip=False):
         "Seek the pipeline to a position in seconds, set the playback rate, or both"
         with self.lock:
             if self.exiting:
@@ -408,14 +424,17 @@ class GStreamerPipeline():
                 self.targetRate = rate
                 self.pipelineRate = rate
 
-            flags = Gst.SeekFlags.SKIP
+            flags = Gst.SeekFlags.NONE
 
             if flush:
                 flags |= Gst.SeekFlags.FLUSH
 
             if segment:
                 flags |= Gst.SeekFlags.SEGMENT
-                self.ignoreSegmentDone+=1
+            
+            if skip:
+                #Use skip to speed up, but segment mode 
+                flags |= Gst.SeekFlags.SKIP
 
             if (not flush) and self.pipeline.get_state(1000_000_000)[1] == Gst.State.PAUSED:
                 raise RuntimeError(
@@ -437,8 +456,10 @@ class GStreamerPipeline():
                                         ((t or 0)+_offset)*10**9, 0),
                                     Gst.SeekType.NONE, 0)
                     e.set()
-
-            workers.do(f)
+            if sync:
+                f()
+            else:
+                workers.do(f)
             #If it got blocked because a race condition that made it paused, try to unblock
             if not e.wait(0.5):
                 if not flush:
@@ -546,7 +567,7 @@ class GStreamerPipeline():
                 msg.src.name, *msg.parse_error()))
 
     def on_segment_done(self, *a):
-        with self.lock:
+        with self.lock:          
             self.onSegmentDone()
             return True
 
@@ -557,11 +578,13 @@ class GStreamerPipeline():
 
     def _waitForState(self, s, timeout=10):
         t = time.monotonic()
+        i = 0.001
         while not self.pipeline.get_state(1000_000_000)[1] == s:
             if time.monotonic()-t > timeout:
                 raise RuntimeError("Timeout, pipeline still in: ",
                                    self.pipeline.get_state(1000_000_000)[1])
-            time.sleep(0.1)
+            time.sleep(min(i,0.1))
+            i*=2
 
     def exitSegmentMode(self):
         with self.lock:
@@ -590,7 +613,7 @@ class GStreamerPipeline():
             # Convert to monotonic time that the nternal APIs use
             self.startTime = time.monotonic()-timeAgo
 
-            if not self.pipeline.get_state(1000_000_000)[1] == Gst.State.PAUSED:
+            if not self.pipeline.get_state(1000_000_000)[1] == (Gst.State.PAUSED,Gst.State.PLAYING):
                 with self.seeklock:
                     self.pipeline.set_state(Gst.State.PAUSED)
                 self._waitForState(Gst.State.PAUSED)
@@ -676,15 +699,6 @@ class GStreamerPipeline():
         if not self.exiting:
             if hasattr(self, 'pipeline'):
                 with self.seeklock:
-                    if not (self.pipeline.get_state(1000_000_000)[1] == Gst.State.PAUSED):
-                        self.pipeline.set_state(Gst.State.PAUSED)
-                    self._waitForState(Gst.State.PAUSED, 10)
-
-                    if not (self.pipeline.get_state(1000_000_000)[1] == Gst.State.READY):
-                        self.pipeline.set_state(Gst.State.READY)
-                        
-                    self._waitForState(Gst.State.READY, 10)
-
                     # This was causing segfaults for some reasons
                     if not (self.pipeline.get_state(1000_000_000)[1] == Gst.State.NULL):
                         self.pipeline.set_state(Gst.State.NULL)
@@ -748,11 +762,6 @@ class GStreamerPipeline():
                     del self.pgbcobj3
                 except:
                     print(traceback.format_exc())
-
-                #del self.elements
-                #del self.namedElements
-                #del self.pipeline
-                #del self.bus
 
                 def f():
                     with lock:
