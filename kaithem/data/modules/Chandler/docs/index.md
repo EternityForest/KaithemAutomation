@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1578097869146897
+resource-timestamp: 1598075486090884
 resource-type: page
 template-engine: markdown
 
@@ -160,6 +160,8 @@ A rule is just a list of actions to perform when an event occurs.
 Actions have a return value, and so can be used to as questions.
 
 Actions happen in sequence until one returns None.
+
+Events are handled in a queue, so the first event that fires is always handled first, however they may not be processed immediately if there are many events going.
 
 
 

@@ -9,13 +9,13 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1600933011976856
+resource-timestamp: 1605507547018612
 resource-type: page
 template-engine: mako
 
 ---
 <%!
-#Code Here runs once when page is first rendered. Good place for import statements.
+#Code Here runs once when page is first rendered. Good place for import statements. 
 __doc__= ""
 boardname = "default"
 import json
@@ -1061,6 +1061,12 @@ from src import tagpoints
                         <label>Volume modifier for this cue(=expression allowed):
                             <input v-on:change="setCueVolume(currentcueid,$event.target.value)" style="width:5em"
                                 min=0 v-model="currentcue.soundVolume"
+                                >
+                        </label>
+                        
+                         <label>Loop Sound(-1 for forever)
+                            <input v-on:change="setCueLoops(currentcueid,$event.target.value)" style="width:5em"
+                                min=-1 v-model="currentcue.soundLoops"
                                 >
                         </label>
                         
@@ -2617,6 +2623,10 @@ from src import tagpoints
             'setCueVolume': function(cue, v)
             {
                 api_link.send(['setCueVolume', cue, v]);
+            },
+            'setCueLoops': function(cue, v)
+            {
+                api_link.send(['setCueLoops', cue, v]);
             },
             'setreentrant': function(cue, v)
             {

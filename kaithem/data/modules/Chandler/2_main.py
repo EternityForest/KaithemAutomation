@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1601714008791739
+resource-timestamp: 1605507663016272
 resource-type: event
 versions: {}
 
@@ -1288,7 +1288,8 @@ if __name__=='__setup__':
                                 'inheritRules': cue.inheritRules,
                                 "soundFadeOut": cue.soundFadeOut,
                                 "soundFadeIn": cue.soundFadeIn,
-                                'soundVolume': cue.soundVolume
+                                'soundVolume': cue.soundVolume,
+                                'soundLoops': cue.soundLoops
     
                                 }])
             except Exception as e:
@@ -1802,6 +1803,17 @@ if __name__=='__setup__':
                     self.pushCueMeta(msg[1])
                     cues[msg[1]].scene().setAlpha(cues[msg[1]].scene().alpha)
     
+    
+    
+                if msg[0] == "setCueLoops":
+                    try:
+                        v=float(msg[2])
+                    except:
+                        v=msg[2]
+                    cues[msg[1]].soundLoops= v if (not v==-1) else 99999999999999999
+                    
+                    self.pushCueMeta(msg[1])
+                    cues[msg[1]].scene().setAlpha(cues[msg[1]].scene().alpha)
     
     
     
@@ -2326,6 +2338,8 @@ if __name__=='__setup__':
         'probability': '',
         'values': {},
         'soundVolume': 1,
+        'soundLoops': 0,
+    
         'namedForSound': False
     }
     
@@ -2333,10 +2347,10 @@ if __name__=='__setup__':
         "A static set of values with a fade in and out duration"
         __slots__=['id','changed','next_ll','alpha','fadein','length','lengthRandomize','name','values','scene',
         'nextCue','track','shortcut','number','inherit','sound','rel_length','script',
-        'soundOutput','onEnter','onExit','influences','associations',"rules","reentrant","inheritRules","soundFadeIn","soundFadeOut","soundVolume",'namedForSound','probability',
+        'soundOutput','onEnter','onExit','influences','associations',"rules","reentrant","inheritRules","soundFadeIn","soundFadeOut","soundVolume",'soundLoops','namedForSound','probability',
         '__weakref__']
         def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, length=0,track=True, nextCue = None,shortcut=None,sound='',soundOutput='',rel_length=False, id=None,number=None,
-            lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,reentrant=True, soundFadeIn=0,soundFadeOut=0,inheritRules='',soundVolume=1,namedForSound=False,probability='',**kw):
+            lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,reentrant=True, soundFadeIn=0,soundFadeOut=0,inheritRules='',soundVolume=1,soundLoops=0,namedForSound=False,probability='',**kw):
             #This is so we can loop through them and push to gui
             self.id = uuid.uuid4().hex
             self.name = name
@@ -2346,6 +2360,7 @@ if __name__=='__setup__':
             self.inheritRules=inheritRules or ''
             self.reentrant=True
             self.soundVolume = soundVolume
+            self.soundLoops = soundLoops
             self.namedForSound=namedForSound
             self.probability=probability
     
@@ -2420,7 +2435,7 @@ if __name__=='__setup__':
         def serialize(self):
                 x =  {"fadein":self.fadein,"length":self.length,'lengthRandomize':self.lengthRandomize,"shortcut":self.shortcut,"values":self.values,
                 "nextCue":self.nextCue,"track":self.track,"number":self.number,'sound':self.sound,'soundOutput':self.soundOutput,'rel_length':self.rel_length, 'script':self.script, 'probability':self.probability, 'rules':self.rules,
-                'reentrant':self.reentrant, 'inheritRules': self.inheritRules,"soundFadeIn": self.soundFadeIn, "soundFadeOut": self.soundFadeOut, "soundVolume": self.soundVolume, 'namedForSound':self.namedForSound
+                'reentrant':self.reentrant, 'inheritRules': self.inheritRules,"soundFadeIn": self.soundFadeIn, "soundFadeOut": self.soundFadeOut, "soundVolume": self.soundVolume, "soundLoops":self.soundLoops,'namedForSound':self.namedForSound
                 }
     
                 #Cleanup defaults
@@ -3368,9 +3383,9 @@ if __name__=='__setup__':
                             #Always fade in if the face in time set.
                             #Also fade in for crossfade, but in that case we only do it if there is something to fade in from.
                             if not (((self.crossfade>0) and  kaithem.sound.isPlaying(str(self.id))) or self.cue.soundFadeIn):
-                                playSound(sound,handle=str(self.id),volume=self.alpha*self.cueVolume,output=out)
+                                playSound(sound,handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops)
                             else:
-                                fadeSound(sound,length=max(self.crossfade, self.cue.soundFadeIn), handle=str(self.id),volume=self.alpha*self.cueVolume,output=out)
+                                fadeSound(sound,length=max(self.crossfade, self.cue.soundFadeIn), handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops)
     
                             
                         else:

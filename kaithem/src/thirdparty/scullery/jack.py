@@ -173,11 +173,12 @@ def _ensureConnections(*a,**k):
     "Auto restore connections in the connection list"
     try:
         with lock:
-            for i in list(allConnections.keys()):
-                try:
-                    allConnections[i].reconnect()
-                except:
-                    print(traceback.format_exc())
+            x = list(allConnections.keys())
+        for i in x:
+            try:
+                allConnections[i].reconnect()
+            except:
+                print(traceback.format_exc())
     except:
         log.exception("Probably just a weakref that went away.")
 
@@ -1937,74 +1938,68 @@ def getConnections(name,*a,**k):
             lock.release()
 
 def disconnect(f,t):
-    if iceflow.lock.acquire(timeout=30):
+    if lock.acquire(timeout=30):
         try:
-            if lock.acquire(timeout=30):
-                try:
-                    if not _jackclient:
-                        return
+            if not _jackclient:
+                return
 
-                    if not isConnected(f,t):
-                        return
+            if not isConnected(f,t):
+                return
 
-                    try:
-                        if  isinstance(f,str):
-                            f = _jackclient.get_port_by_name(f)
-                        if  isinstance(t,str):
-                            t = _jackclient.get_port_by_name(t)
-                
-                        _jackclient.disconnect(f,t)
-                    except:
-                        pass
-                finally:
-                    lock.release()
+            try:
+                if  isinstance(f,str):
+                    f = _jackclient.get_port_by_name(f)
+                if  isinstance(t,str):
+                    t = _jackclient.get_port_by_name(t)
+        
+                _jackclient.disconnect(f,t)
+            except:
+                pass
         finally:
-            iceflow.lock.release()
+            lock.release()
+    
 
 def connect(f,t):
-    if iceflow.lock.acquire(timeout=10):
+    if lock.acquire(timeout=10):
         try:
-            if lock.acquire(timeout=10):
-                try:
-                    if not _jackclient:
-                        return 
+            if not _jackclient:
+                return 
+            try:
+                if  isinstance(f,str):
+                    f = _jackclient.get_port_by_name(f)
+                if  isinstance(t,str):
+                    t = _jackclient.get_port_by_name(t)
+            except:
+                return
+
+            f_input =  f.is_input
+
+            if f.is_input:
+                if not t.is_output:
+                    #Do a retry, there seems to be a bug somewhere
                     try:
-                        if  isinstance(f,str):
-                            f = _jackclient.get_port_by_name(f)
-                        if  isinstance(t,str):
-                            t = _jackclient.get_port_by_name(t)
+                        f = _jackclient.get_port_by_name(f.name)
+                        t = _jackclient.get_port_by_name(t.name)
                     except:
                         return
-
-                    f_input =  f.is_input
-
                     if f.is_input:
                         if not t.is_output:
-                            #Do a retry, there seems to be a bug somewhere
-                            try:
-                                f = _jackclient.get_port_by_name(f.name)
-                                t = _jackclient.get_port_by_name(t.name)
-                            except:
-                                return
-                            if f.is_input:
-                                if not t.is_output:
-                                    raise ValueError("Cannot connect two inputs",str((f,t)))
-                    else:
-                        if t.is_output:
-                            raise ValueError("Cannot connect two outputs",str((f,t)))
-                    f=f.name
-                    t=t.name
-                    try:
-                        if f_input:
-                            _jackclient.connect(t,f)
-                        else:
-                            _jackclient.connect(f,t)
-                    except:
-                        pass
-                finally:
-                    lock.release()
+                            raise ValueError("Cannot connect two inputs",str((f,t)))
+            else:
+                if t.is_output:
+                    raise ValueError("Cannot connect two outputs",str((f,t)))
+            f=f.name
+            t=t.name
+            try:
+                if f_input:
+                    _jackclient.connect(t,f)
+                else:
+                    _jackclient.connect(f,t)
+            except:
+                pass
         finally:
-            iceflow.lock.release()
+            lock.release()
+      
 #startManagingJack()
 
 

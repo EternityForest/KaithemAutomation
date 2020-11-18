@@ -50,6 +50,17 @@ At some point, you should probably set up a proper SSL certificate in kaithem/va
 It shouldn't happen, but if things get real messed up, use SIGUSR1 to dump hte state of all threads to /dev/shm/
 "killall -s USR1 kaithem" works if you have setproctitle.
 
+#### with GDB
+If using GDB python, you may need to use "handle SIG32 nostop" to suppress abboying notifications:
+
+gdb python3
+$handle SIG32 nostop
+$run YOUR_KAITHEM_PY_FILE
+
+
+
+
+
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 

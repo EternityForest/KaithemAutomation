@@ -15,6 +15,7 @@
 
 import subprocess,os,math,time,sys,threading, collections,logging,re,uuid,traceback
 import scullery
+from scullery import iceflow
 from . import  util, scheduling,directories,workers, registry,widgets,messagebus, midi
 from .config import config
 
@@ -867,8 +868,12 @@ class MPlayerWrapper(SoundWrapper):
 
 from . import gstwrapper
 class GSTAudioFilePlayer(gstwrapper.Pipeline):
-    def __init__(self, file, volume=1, output="@auto",onBeat=None, _prevPlayerObject=None,systemTime=False):
+    def __init__(self, file, volume=1, output="@auto",onBeat=None, _prevPlayerObject=None,systemTime=False,loop=False):
         global jackClientsFound
+
+        self.lock=None
+
+
         if not output:
             output="@auto"
 
@@ -878,6 +883,7 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         self.finalGain = volume
         
         self.lastFileSize = os.stat(file).st_size
+
 
         if self.lastFileSize==0:
             for i in range(10):
@@ -892,9 +898,8 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         self.lastPosition = 0
        
         self.lastFileSizeChange = 0
-
-        gstwrapper.Pipeline.__init__(self,str(uuid.uuid4()),systemTime=False)
         self.aw =None
+        gstwrapper.Pipeline.__init__(self,str(uuid.uuid4()),systemTime=False)
         self.ended = False
 
         self.lastBeat = 0
@@ -910,6 +915,8 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
         if not file.endswith(".mid"):
             decodeBin = self.addElement('decodebin',low_percent=15)
+            # if loop:
+            #     decodeBin.connect('drained',self.doLoop)
         else:
             #Use FluidSynth to handle MIDI, the default seems to crash on the Pi and not have very good quality.
             self.addElement("midiparse")
@@ -935,6 +942,9 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
         self.lastQueue=self.addElement('queue')
 
+        self.loopsRemaining = loop
+
+
         
         if onBeat:
             self.addLevelDetector()
@@ -946,7 +956,10 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         #Jump to the proper perceptual gain
         self.setFader(volume)
 
-        if output=="@auto":
+        if output=="__disable__":
+            self.addElement("fakesink",sync=False)
+
+        elif output=="@auto":
             #Recheck if we thing the server hasn't started yet
             if not jackClientsFound:
                 jackClientsFound= len(jackmanager.getPorts())>0
@@ -978,6 +991,8 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
         elif output.startswith("@alsa:"):
             self.addElement('alsasink',device= output[6:])
+
+        
 
         #No jack clients at all means it probably isn't running
         elif not jackClientsFound:
@@ -1016,6 +1031,23 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
     #     self.lastPosition = self.getPosition()
 
+    
+
+    def doLoop(self,flush=False,*a,**k):
+        #Implement native loop support
+        if self.lock.acquire(timeout=1):
+            try:
+            
+                if self.loopsRemaining > 0:
+                    self.seek(0,flush=flush,segment=self.loopsRemaining>0)
+                    self.play(segment=self.loopsRemaining>0)
+                    self.loopsRemaining-=1
+                else:
+                    self.exitSegmentMode()
+
+            finally:
+                self.lock.release()
+
     def onEOS(self):
         #If the file has changed size recently, this might not be a real EOS,
         #Just a buffer underrun. Lets just try again 
@@ -1037,7 +1069,41 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
             time.sleep(3)
             self.play()
         else:
-            gstwrapper.Pipeline.onEOS(self)
+            #Don't shut everything off if we must loop!
+            if self.loopsRemaining <=0:
+                gstwrapper.Pipeline.onEOS(self)
+            else:
+                #Can;t just seek, have to entirely restart.  This should only
+                #Happen if we are too slow and can't queue the new data fast enough
+                self.restart(segment=True)
+                self.loopsRemaining -= 1
+    
+    def  onSegmentDone(self):
+        #If the file has changed size recently, this might not be a real EOS,
+        #Just a buffer underrun. Lets just try again 
+
+        #For extremely small files, return to the preload queue. It may be a quick sound effect that should have the best response time
+        #Probably best not to do this on early stop.  If the user is hammering a button maybe something is wrong.
+        # try:
+        #     if os.stat(self.filename).st_size< 300000:
+        #         self.pause()
+        #         self.seek(0)
+        #         gst_preloaded[self.filename, self.outputName] = (self,time.monotonic())
+        #         return
+        # except:
+        #     logging.exception("Preload logic err")
+
+        if self.lastFileSizeChange> (time.monotonic()-3):
+            self.pause()
+            self.seek(self.lastPosition-0.1)
+            time.sleep(3)
+            self.play(segment=self.loopsRemaining>0)
+        else:
+            #Don't shut everything off if we must loop!
+            if self.loopsRemaining <=0:
+                gstwrapper.Pipeline.onEOS(self)
+            else:
+                self.doLoop(False)
     
     def setVol(self,v):
         #We are going to do a perceptual gain algorithm here
@@ -1048,25 +1114,35 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
 
     def setFader(self,level):
-        with self.lock:
+        if self.lock.acquire(timeout=1):
             try:
                 self.faderLevel = level
                 if self.fader:
                     self.fader.set_property('volume', level)
             except ReferenceError:
                 pass
+
+            finally:
+                self.lock.release()
+        else:
+            raise RuntimeError("Could not get lock")
+
     
     def stop(self):
 
         #Prevent any ugly noise that GSTreamer might make when stopped at
         #The wrong time.  First an ultrafast fade, then disconnect, then stop,
         #For the best possible sound
+        if not self.lock:
+            return
+
         try:
-            setFader(self.faderLevel/1.5)
-            setFader(self.faderLevel/2)
-            setFader(self.faderLevel/3)
-            setFader(self.faderLevel/4)
+            self.setFader(self.faderLevel/1.5)
+            self.setFader(self.faderLevel/2)
+            self.setFader(self.faderLevel/3)
+            self.setFader(self.faderLevel/4)
         except:
+            print(traceback.format_exc())
             pass
 
         try:
@@ -1083,7 +1159,7 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
                 p.stop()
 
     def resume(self):
-        self.start()
+        self.play(segment=self.loopsRemaining>0)
   
     def onStreamFinished(self):
         self.ended=True
@@ -1099,6 +1175,8 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         s = message.get_structure()
         if not s:
             return True
+
+
         if  s.get_name() == 'level':
             if self.board:
                 rms = sum([i for i in s['rms']])/len(s['rms'])
@@ -1128,16 +1206,16 @@ class GStreamerBackend(SoundWrapper):
         def __init__(self,filename,output="@auto",**kwargs):
 
             with preloadlock:
-                if (filename,output) in gst_preloaded:
+                if not kwargs.get('loop',0) and (filename,output) in gst_preloaded:
                     self.pl = gst_preloaded[filename,output][0]
                     del gst_preloaded[filename,output]
                 else:
-                    self.pl = GSTAudioFilePlayer(filename, kwargs.get('volume',1),output=output)
+                    self.pl = GSTAudioFilePlayer(filename, kwargs.get('volume',1),output=output,loop=kwargs.get('loop',0))
 
 
             self.pl.setVol(kwargs.get('volume',1))
             if not  kwargs.get('pause',0):
-                self.pl.start()
+                self.pl.start(segment=kwargs.get('loop',0)>0)
             else:
                 self.pl.pause()
 
@@ -1162,10 +1240,12 @@ class GStreamerBackend(SoundWrapper):
             self.pl.pause()
         
         def resume(self):
-            self.pl.resume()
+            self.pl.start(segment=self.pl.loopsRemaining>0)
 
         def stop(self):
+            self.loopsRemaining=0
             self.pl.stop()
+
         def seek(self):
             self.pl.seek()
     
@@ -1267,7 +1347,7 @@ class GStreamerBackend(SoundWrapper):
         else:
             output = "@auto"
         #Play the sound with a background process and keep a reference to it
-        pl = self.GStreamerContainer(fn,volume=v,output=output,_prevPlayerObject=_prevPlayerObject)
+        pl = self.GStreamerContainer(fn,volume=v,output=output,_prevPlayerObject=_prevPlayerObject,loop=kwargs.get('loop',0))
         pl.finalGain = finalGain
         self.runningSounds[handle] = pl
     
@@ -1283,12 +1363,12 @@ class GStreamerBackend(SoundWrapper):
             if handle in self.runningSounds:
                 #Instead of using a lock lets just catch the error is someone else got there first.
                 try:
+                    self.runningSounds[handle].loopsRemaining=0
                     del self.runningSounds[handle]
                 except KeyError:
                     pass
         
     def stopAllSounds(self):
-
         x = list(self.runningSounds.keys())
         for i in x:
             try:
@@ -1296,6 +1376,7 @@ class GStreamerBackend(SoundWrapper):
                 self.runningSounds.pop(i)
             except KeyError:
                 raise
+
     def setVolume(self,vol,channel = "PRIMARY",final=True):
             "Return true if a sound is playing on channel"
             try:
@@ -1403,13 +1484,13 @@ def sasWrapper(*a):
 messagebus.subscribe("/system/sound/jackstart", sasWrapper)
 
 def oggSoundTest(output=None):
-    t="test"+str(time.time())
+    t="KaithemOggSoundTest"
     playSound("alert.ogg",output=output, handle=t)
     for i in range(100):
         if isPlaying(t):
             return
-        time.sleep(1)
-    raise RuntimeError("Sound did not report as playing within 100ms")
+        time.sleep(0.01)
+    raise RuntimeError("Sound did not report as playing within 1000ms")
 
 
 

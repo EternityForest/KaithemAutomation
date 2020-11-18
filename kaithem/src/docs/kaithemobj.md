@@ -815,6 +815,11 @@ results may be undefined if you attempt to play a video in an
 environment that does not support it. All the features that work with
 audio should also work with video.
 
+
+#### Gstreamer Specific
+
+The loop attribute can be set to a number of times to loop.  To loop forever, just use 999999999 or some other crazy number.
+
 #### kaithem.sound.builtinSounds
 
 A list of filenames of sounds included with Kaithem. They are found in

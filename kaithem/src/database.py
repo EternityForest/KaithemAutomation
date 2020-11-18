@@ -40,13 +40,126 @@ import uuid
 #             if key in x[0]:
 #                 return x[0][key]
 
+import socket
+import re
+import threading
+import weakref
+import uuid
+import time
+import struct
+
+
+import jaraco
+import cherrypy
+
+
+
+databaseBySyncKey = weakref.WeakValueDictionary()
+
+def expose(f):
+    f.exposed = True
+    return f
+
+class WebAPI():
+    @expose
+    def index(self,a):
+        return json.dumps(databaseBySyncKey[a[8:40]].apiCall(a))
+
+
+
+
+def makeLoopWorker(o):
+    def f():
+        while 1:
+            x = o()
+            if x:
+                x.poll()
+            else:
+                return
+
+            del x
+    return f
+
+class LPDPeer():
+    def parseLPD(self, m):
+        if not 'BT-SEARCH' in m:
+            return {}
+        d = {}
+        for i in re.findall('^(.*)?: *(.*)\r+$', m, re.MULTILINE):
+            d[i[0]] = i[1]
+        print(d)
+        return d
+
+    def makeLPD(self, m):
+        return "BT-SEARCH * HTTP/1.1\r\nHost:{Host}\r\nPort: {Port}\r\nInfohash: {Infohash}\r\ncookie: {cookie}>\r\n\r\n\r\n".format(**m).encode('utf8')
+
+    def poll(self):
+        try:
+            d, addr = self.msock.recvfrom(4096)
+        except socket.timeout:
+            return
+
+        msg = self.parseLPD(d.decode('utf-8', errors='ignore'))
+
+        if msg:
+            if not msg.get('cookie', '') == self.cookie:
+                with self.lock:
+                    if msg['Infohash'] in self.activeHashes:
+                        self.discoveries.append(
+                            (msg['Infohash'], addr[0], msg['Port'], time.time()))
+                        if len(self.discoveries) > 1024*64:
+                            self.discoveries.pop(False)
+                        self.advertise(msg['Infohash'])
+
+    def advertise(self, hash, port=None):
+        if not hash in self.activeHashes:
+            raise ValueError("Unknown hash, must specify port")
+
+        if self.lastAdvertised.get(hash, 0) > time.time()+10:
+            return
+        self.msock.sendto(self.makeLPD(
+            {'Infohash': hash, 'Port': self.activeHashes[hash], 'cookie': self.cookie, 'Host': '239.192.152.143'}), ("239.192.152.143", 6771))
+        self.lastAdvertised[hash] = time.time()
+
+    def getByHash(self, hash):
+        with self.lock:
+            return [i for i in self.discoveries if i[0] == hash]
+
+    def __init__(self):
+        self.msock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.msock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        self.msock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.msock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        # Bind to the server address
+        self.msock.bind(("239.192.152.143", 6771))
+        self.msock.settimeout(1)
+
+        group = socket.inet_aton("239.192.152.143")
+        mreq = struct.pack('4sL', group, socket.INADDR_ANY)
+        self.msock.setsockopt(
+            socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+
+        self.cookie = str(uuid.uuid4())
+
+        self.lastAdvertised = {}
+
+        # hash:port mapping
+        self.activeHashes = {}
+        self.discoveries = []
+
+        self.lock = threading.Lock()
+
+        self.thread = threading.Thread(
+            target=makeLoopWorker(weakref.ref(self)))
+        self.thread.start()
+
 
 def jsonEncode(d):
     return json.dumps(d, sort_keys=True, indent=4, separators=(',', ': '))
 
 
 class DocumentDatabase():
-    def __init__(self, filename, publicKey=None):
+    def __init__(self, filename):
 
         self.filename = os.path.abspath(filename)
 
@@ -104,63 +217,93 @@ class DocumentDatabase():
         )
 
         self.keys = configparser.ConfigParser()
-        secretKey = None
 
         if os.path.exists(filename+".keys"):
             self.keys.read(filename+".keys")
 
-        try:
-            publicKey = base64.b64decode(publicKey)
-        except:
-            pass
+        pk = base64.b64decode(self.keys.get('key', 'public', fallback=''))
+        sk = base64.b64decode(self.keys.get('key', 'secret', fallback=''))
 
-        #Have a pubkey directly specified, ensure match
-        if publicKey:
-            if self.keys.get('key', 'public', fallback=None):
-                pk = base64.b64decode(self.keys.get('key', 'public'))
-                if not pk == publicKey:
-                    raise ValueError("Supplied key does not match keyfile")
-            else:
-                self.keys.set('key', 'public',
-                              base64.b64encode(publicKey).decode())
-        else:
-            publicKey = self.keys.get('key', 'public', fallback=None)
-            if not publicKey:
-                publicKey = self.getMeta("publicKey")
-            if not publicKey:
-                publicKey, secretKey = libnacl.crypto_sign_keypair()
-            else:
-                publicKey = base64.b64decode(publicKey)
-
-        if not self.keys.get('key', 'public', fallback=None):
+        # Generate a keypair for this particular node.
+        if not (pk and sk):
+            pk, sk = libnacl.crypto_sign_keypair()
             try:
-                self.keys.add_section('key')
+                self.keys.add_section("key")
             except:
                 pass
-            self.keys.set('key', 'public',
-                          base64.b64encode(publicKey).decode())
+            self.keys.set('key', 'public', base64.b64encode(pk).decode('utf8'))
+            self.keys.set('key', 'secret', base64.b64encode(sk).decode('utf8'))
+
+            # Add our new key to the approved list, for our local copy.
+            if 'approved' not in self.config:
+                self.config.add_section('approved')
+                self.config.set('approved', 'autogenerated',
+                                base64.b64encode(pk).decode())
             self.saveConfig()
 
-        sk =  self.keys.get('key', 'private', fallback=None)
-        if sk:
-            secretKey = secretKey or base64.b64decode(sk)
+        self.publicKey = pk
+        self.secretKey = sk
 
-        if secretKey and not self.keys.get('key', 'private', fallback=None):
-            try:
-                self.keys.add_section('key')
-            except:
-                pass
-
-            self.keys.set('key', 'private',
-                          base64.b64encode(secretKey).decode())
+        if 'sync' not in self.config:
+            self.config.add_section('sync')
+            self.config.set('sync', 'syncKey', str(uuid.uuid4()))
+            self.config.set('sync', 'writePassword', str(uuid.uuid4()))
             self.saveConfig()
 
-        if not self.getMeta('publicKey'):
-            self.setMeta("publicKey", base64.b64encode(publicKey).decode())
+        self.syncKey = self.config.get('sync','syncKey',fallback=None)
 
-        self.publicKey = publicKey
-        self.secretKey = secretKey
+        if self.syncKey:
+            databaseBySyncKey[libnacl.crypto_generichash(self.syncKey)] = self
 
+        self.approvedPublicKeys = {}
+
+        if 'approved' in self.config:
+            for i in self.config['approved']:
+                # Reverse lookup
+                self.approvedPublicKeys[self.config['approved'][i]] = i
+
+    def apiCall(self, a):
+        # Process one incoming binary API message
+
+        # Get timestamp which is also the nonce
+        t = a[:8]
+        t = struct.unpack("<Q", t)
+        # reject very old stuff
+        if t < (time.time()-3600)*1000000:
+            return {}
+
+        # Get the key ID, which is just the hash of the key.
+        k = a[8:40]
+
+        # Get the data
+        d = a[40:]
+
+        if not k == libnacl.crypto_generichash(self.syncKey):
+            return
+
+        d = libnacl.crypto_secretbox_open(d, a[:8]+'\0'+16, self.secretKey)
+        d = json.loads(d)
+
+        writePassword = d.get("writePassword", '')
+
+        if writePassword and not writePassword == self.config.get('sync', 'writePassword',fallback=None):
+            raise RuntimeError("Bad Password")
+
+        r = {'records': []}
+        if "getNewArrivals" in d:
+            cur = self.conn.cursor()
+            cur.execute(
+                "SELECT json,signature FROM document WHERE json_extract(json,'$._time')>?", (d['getNewArrivals'],))
+
+            for i in cur:
+                r['records'].append([i])
+
+        if "insertDocuments" in d:
+            for i in 'insertDocuments':
+                if writePassword:
+                    self.setDocument(i[0], i[1])
+        
+        return r
 
     def getMeta(self, key):
         cur = self.conn.cursor()
@@ -199,7 +342,20 @@ class DocumentDatabase():
     def setDocument(self, doc, signature=b''):
         if not signature and not self.secretKey:
             raise ValueError(
-                "Cannot sign any new documents, you do not have the keys")
+                "Cannot sign any new documents, you do not have the keys:"+str(self.secretKey))
+
+        if signature:
+            if not isinstance(doc, str):
+                raise ValueError(
+                    "Doc ,ust be an exact JSON string when providing a signature")
+            key = signature.split(":")
+            if not key in self.approvedPublicKeys:
+                raise RuntimeError("Message was signed with a bad key")
+
+            libnacl.crypto_sign_verify_detached(base64.b64decode(
+                signature.split(":")[1], doc.encode('utf8'), b64.b64decode(key)))
+
+            doc = json.loads(doc)
 
         doc['_time'] = doc.get('_time', time.time()*1000000)
         doc['_arrival'] = doc.get('_arrival', time.time()*1000000)
@@ -232,30 +388,38 @@ class DocumentDatabase():
 
         # If we are generating a new message, sign it automatically.
         if not signature:
-            print(self.secretKey)
-            signature = libnacl.crypto_sign(jsonEncode(doc).encode('utf8'), self.secretKey)
+            signature = libnacl.crypto_sign(
+                jsonEncode(doc).encode('utf8'), self.secretKey)
 
         self.conn.execute(
-            "INSERT INTO document VALUES (null,?,?,?)", (jsonEncode(doc), signature,''))
+            "INSERT INTO document VALUES (null,?,?,?)", (jsonEncode(doc), signature, ''))
 
         return doc['_id']
 
+    def getDocumentByID(self, key):
+        cur = self.conn.cursor()
+        cur.execute(
+            "SELECT json from document WHERE json_extract(json,'$._id')=?", (key,))
+        x = cur.fetchone()
+        if x:
+            return x[0]
 
 d = DocumentDatabase("test.db")
 
 with d:
     for i in range(1):
 
-        #Parent document
+        # Parent document
         id = d.setDocument({
-                'someUserData': 9908            
-            })
-        
-        #Child document
+            'someUserData': 9908
+        })
+
+        # Child document
         d.setDocument({
             '_parent': id
         })
-    
+
+        print(d.getDocumentByID(id))
 
 
 d.conn.commit()

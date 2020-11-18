@@ -82,6 +82,7 @@ class YeelightDevice(devices.Device):
         self.tagPoints["rssi"] = self.rssiTag
 
         self.rssiTag.value =-120
+        self.rssiTag.expose(["/admin/settings.view"])
         self.rssiCacheTime = 0
 
         self.lastLoggedUnreachable = 0
@@ -182,6 +183,8 @@ class YeelightRGB(YeelightDevice):
         #We probably don't need to poll this too often
         self.switchTagPoint.interval= 5
 
+        self.switchTagPoint.expose(["/admin/settings.edit"],["/admin/settings.edit"])
+
         self.tagPoints["switch"]=self.switchTagPoint
     
         def onf(user,value):
@@ -217,6 +220,7 @@ class YeelightRGB(YeelightDevice):
         self.oldTransitionRate = -1
 
         self.hsvTag= tagpoints.ObjectTag("/devices/"+self.name+".color")
+        self.hsvTag.expose(["/admin/settings.edit"],["/admin/settings.edit"])
         self.hsvTag.subscribe(self.handleTagChange)
 
     def getSwitch(self,channel, state):
