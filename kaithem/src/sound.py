@@ -911,12 +911,12 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
 
         self.src = self.addElement('filesrc',location=file)
-        self.queue = self.addElement("queue")
+        #self.queue = self.addElement("queue")
 
         if not file.endswith(".mid"):
             decodeBin = self.addElement('decodebin',low_percent=15)
-            # if loop:
-            #     decodeBin.connect('drained',self.doLoop)
+            #if loop:
+            #    decodeBin.connect('drained',self.doLoop)
         else:
             #Use FluidSynth to handle MIDI, the default seems to crash on the Pi and not have very good quality.
             self.addElement("midiparse")
@@ -930,9 +930,8 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         if isVideo:
             decodeBin.set_property("low-percent",80)
             #TODO queue in a better place
-            q=self.addElement('queue', connectToOutput=decodeBin, connectWhenAvailable="audio")
         
-            self.addElement('audiorate')
+            self.addElement('audiorate',connectToOutput=decodeBin, connectWhenAvailable="audio")
             self.addElement('audioconvert')
 
         else:
@@ -1041,8 +1040,9 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
             try:
             
                 if self.loopsRemaining > 0:
-                    # if self.getPosition()<0.35:
-                    #     time.sleep(0.25)
+                    #HideousHack!
+                    if self.getPosition() < 1:
+                        time.sleep(max(0,1-self.getPosition()))
                     self.seek(0,_offset=0,flush=flush,segment=self.loopsRemaining>0, sync=True)
                     #self.play(segment=self.loopsRemaining>0)
                     self.loopsRemaining-=1
@@ -1108,8 +1108,8 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
             if self.loopsRemaining <=0:
                 gstwrapper.Pipeline.onEOS(self)
             else:
-                self.doLoop(False)
-    
+                self.doLoop()
+          
     def setVol(self,v):
         #We are going to do a perceptual gain algorithm here
         db = volumeToDB(v)

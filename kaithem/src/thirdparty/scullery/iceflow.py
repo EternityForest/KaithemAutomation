@@ -326,6 +326,8 @@ class GStreamerPipeline():
         self.threadStarted = False
         self.weakrefs = weakref.WeakValueDictionary()
 
+        self.proxyToElement = weakref.WeakValueDictionary()
+
         # This WeakValueDictionary is mostly for testing purposes
         pipes[id(self)] = self
 
@@ -880,6 +882,7 @@ class GStreamerPipeline():
 
             self.lastElementType = t
             p = weakref.proxy(e)
+            self.proxyToElement[id(p)] = e
             # List it under the proxy as well
             self.elementTypesById[id(p)] = t
 
