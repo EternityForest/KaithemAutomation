@@ -16,86 +16,28 @@ import json
     <link href="/static/js/freeboard/css/freeboard.min.css" rel="stylesheet" />
     <script src="/static/widget.js"></script>
 
-    <style>
-        :root {
-            --main-bg-color: #534d5c;
-            --main-bg-size: default;
-            /*--main-bg-image: */
-            /*Default is a data URI*/
-            --box-bg-color: #444659d7;
-            --widget-bg-color: #A1A1A1;
-            --border-color: #26362f;
-            --bar-bg-color: #534152;
-            --fg-color: #cfcfcf;
-            --reverseout-bg: #dddddd;
-            --reverseout-fg: black;
-            --greyout-color: rgba(200, 200, 200, 0.8);
-            --dialog-bg: rgba(0, 0, 0, 0.25);
-            --highlight-color: rgb(153, 235, 0);
-            --main-font: B612;
-
-            --pane-border-radius: 1.2em;
-            --pane-padding: 0.6em;
-            --dialog-border-radius: 2em;
-            --border-width: 2px;
-            --border-style: solid;
-            --button-fg-color: #b1b1b1;
-
-            --header-fg-color: white;
-            --header-bg-color: #444659;
-
-        }
-
-    </style>
-
-    <script>
-        function generateFreeboardHelp() {
-
-
-        var x = `
-        <div style="overflow:scroll; height:50em;">
-
-        <h2>Data targets</h2>
-
-        <p>Input widgets use a data target to do something with the data.
-        If the target is just the name of a field of a datasource, it will try to write it there.</p>
-
-        <p>If the target contains any javascript, like assignments or function calls,
-        it will be interpreted as a function to call to handle new data.
-        You can access the value itself simply by using the variable called 'value'.</p>
-
-        <p>The actual data input widgets put there is always a list of two values, the first being
-            the value the user entered, the second being the timestamp that the interaction happened.</p>
-
-       <h2>Calculated values</h2>
-
-        <p>These update in real time if the value of the expression changes.
-        Much like a spreadsheet, they must begin with an equals sign,
-        or else they get interpreted as just literal data.</p>
-
-        </div>
-        `
-
-            return $(x)
-        }
-    </script>
-    <style>
-        freeboard-data, tags-list-data{
-            display: none;
-        }
-    </style>
+    <script src="/static/js/freeboard/js/freeboard.thirdparty.min.js"></script>
+<script src="/static/js/js-yaml.min.js"></script>
+ <style>
+tags-list-data{
+   display: none;
+}
+</style>
 
     <tags-list-data>${json.dumps({"tag:"+i:'' for i in tagpoints.exposedTags.keys()})|h}</tags-list-data>
 
-    <script src="/static/js/freeboard/js/freeboard.thirdparty.min.js"></script>
-    <script src="/static/js/js-yaml.min.js"></script>
     <script type="text/javascript">
-        KaithemDataSourcesListing = jsyaml.load($('tags-list-data').text())
+        KaithemDataSourcesListing =jsyaml.load($('tags-list-data').text())
 
         function showFreeboardHelp() {
             freeboard.showDialog(generateFreeboardHelp(), "Help", "Close")
         }
-
+        function showFreeboadTemplatesMenu() {
+            freeboard.showTemplatesPage()
+        }
+        function showEmoji() {
+            freeboard.showDialog(generateFreeboardEmojiCheats(), "Help", "Close")
+        }
 
 
         saveToKaithem= function(){
@@ -116,6 +58,17 @@ import json
                         freeboard.loadDashboard(jsyaml.load($('freeboard-data').text()), function() {
                                     freeboard.setEditing(false);
                                 });
+                    GlobalSettingsEditor = new JSONEditor(document.getElementById('fb-global-settings-editor'), {
+                        schema: globalSettingsSchema
+                    });
+                    GlobalSettingsEditor.setValue(freeboard.globalSettings)
+                    //External changes, like if we upload a new board
+                    freeboard.globalSettingsHandlers['gs-editor'] = function (a) { GlobalSettingsEditor.setValue(a) }
+
+                    document.getElementById('gs-submit').addEventListener('click', function () {
+                        // Get the value from the editor
+                        freeboard.setGlobalSettings(GlobalSettingsEditor.getValue());
+                    });
                            
                     }
                     );
@@ -127,6 +80,17 @@ import json
 </head>
 
 <body>
+
+    <div id="globalSettingsDialog"
+        style="position: absolute; z-index: 100; background-color: var(--box-bg-color); display: none; height: 100%; width: 45%;">
+        <h2>Global Settings</h2>
+        <p>Tip: Click object properties to see more setting</p>
+        <button onclick="$('#globalSettingsDialog').css({display:'none'})">Close</button>
+        <div id="fb-global-settings-editor"></div>
+
+        <button id="gs-submit">Update</button>
+    </div>
+
     <div id="board-content">
         <img id="dash-logo" data-bind="attr:{src: header_image}, visible:header_image()">
         <div class="gridster responsive-column-width">
@@ -135,13 +99,17 @@ import json
         </div>
     </div>
     <header id="main-header" data-bind="if:allow_edit">
+    <div id="main-header-inner">
         <div id="admin-bar">
             <div id="admin-menu">
                 <div id="board-tools">
-                    <h1 id="board-logo" class="title bordered">freeboard</h1>
+                    <div id="board-logo" class="title freeboard-branding">freeboard</div>
                     <div id="board-actions">
                         <ul class="board-toolbar vertical">
-                            <li data-bind="click: showFreeboardHelp"><label>Show Help</label></li>
+                            <li data-bind="click: showFreeboadTemplatesMenu"><label>📂 Load Example</label></li>
+                            <li data-bind="click: showFreeboardHelp"><label> Show Help</label></li>
+                            <li data-bind="click: showEmoji"><label>🍄 Show Emoji</label></li>
+
                             <li data-bind="click: loadDashboardFromLocalFile"><i id="full-screen-icon"
                                     class="icon-folder-open icon-white"></i><label id="full-screen">Upload a
                                     board</label></li>
@@ -157,10 +125,12 @@ import json
                             <li id="add-pane" data-bind="click: createPane"><i
                                     class="icon-plus icon-white"></i><label>Add Pane</label></li>
                         </ul>
+                        <button onclick="$('#globalSettingsDialog').css({display:'block'})">Board Settings</button>
+
                     </div>
                 </div>
                 <div id="datasources">
-                    <h2 class="title">DATASOURCES</h2>
+                    <h2 class="title">Data Sources</h2>
 
                     <div class="datasource-list-container">
                         <table class="table table-condensed sub-table" id="datasources-list"
@@ -212,6 +182,7 @@ import json
         </div>
         <div id="toggle-header" data-bind="click: toggleEditing">
             <i id="toggle-header-icon" class="icon-wrench icon-white"></i></div>
+    </div>
     </header>
 
     <div style="display:hidden">
@@ -255,6 +226,8 @@ import json
     </li>
 </script>
 
+
+    <div id="freeboard-extra-tools"></div>
 </body>
 
 </html>
