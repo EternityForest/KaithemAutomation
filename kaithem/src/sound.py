@@ -15,7 +15,7 @@
 
 import subprocess,os,math,time,sys,threading, collections,logging,re,uuid,traceback
 import scullery
-from scullery import iceflow
+from scullery import iceflow,fluidsynth
 from . import  util, scheduling,directories,workers, registry,widgets,messagebus, midi
 from .config import config
 
@@ -920,7 +920,7 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         else:
             #Use FluidSynth to handle MIDI, the default seems to crash on the Pi and not have very good quality.
             self.addElement("midiparse")
-            decodeBin= self.addElement("fluiddec", synth_chorus=False)
+            decodeBin= self.addElement("fluiddec", synth_chorus=False,soundfont=fluidsynth.findSoundFont())
         #self.addElement('audiotestsrc')
         isVideo=False
 

@@ -46,7 +46,9 @@ tags-list-data{
                     alert( "Page has been modified! Save Kaithem's server state to make changes permanent." );}).fail(function() {
                 alert( "Error Saving" ); })
             };
-
+	 function showPages() {
+		    freeboard.showPageManager();
+		}
         head.js("/static/js/freeboard/js/freeboard_plugins.min.js",
             "/static/js/freeboard/kaithem_plugin.js",
                
@@ -55,6 +57,7 @@ tags-list-data{
                     { //DOM Ready
 
                         freeboard.initialize(true);
+                        freeboard.builtinSoundsFolder="/static/freeboardsounds";
                         freeboard.loadDashboard(jsyaml.load($('freeboard-data').text()), function() {
                                     freeboard.setEditing(false);
                                 });
@@ -106,26 +109,25 @@ tags-list-data{
                     <div id="board-logo" class="title freeboard-branding">freeboard</div>
                     <div id="board-actions">
                         <ul class="board-toolbar vertical">
-                            <li data-bind="click: showFreeboadTemplatesMenu"><label>📂 Load Example</label></li>
-                            <li data-bind="click: showFreeboardHelp"><label> Show Help</label></li>
-                            <li data-bind="click: showEmoji"><label>🍄 Show Emoji</label></li>
+                            <li data-bind="click: showFreeboadTemplatesMenu"><label> Load Example</label></li>
+                            <li data-bind="click: showFreeboardHelp"><label> Show Help</label></li>
+                            <li data-bind="click: showEmoji"><label> Show Emoji</label></li>
 
-                            <li data-bind="click: loadDashboardFromLocalFile"><i id="full-screen-icon"
-                                    class="icon-folder-open icon-white"></i><label id="full-screen">Upload a
+                            <li data-bind="click: loadDashboardFromLocalFile"><label id="full-screen"> Upload a
                                     board</label></li>
-                            <li><i class="icon-download-alt icon-white"></i>
-                                <label data-bind="click: downloadDashboardClicked">Download this board</label>
+                            <li>
+                                <label data-bind="click: downloadDashboardClicked"> Download this board</label>
                                 <label style="display: none;" data-bind="click: downloadDashboard"
                                     data-pretty="true">[Pretty]</label>
                                 <label style="display: none;" data-bind="click: downloadDashboard"
                                     data-pretty="false">[Minified]</label>
-                            </li>
+                            </li>	
                             <li data-bind="click: saveToKaithem"><label>Write changes back to the kaithem page</label></li>
-
-                            <li id="add-pane" data-bind="click: createPane"><i
-                                    class="icon-plus icon-white"></i><label>Add Pane</label></li>
+                            <li id="add-pane" data-bind="click: createPane"><label> Add Pane to Page</label></li>
+                            <li data-bind="click: showPages"><label> Show Page Manager</label></li>
+                            <li onclick="$('#globalSettingsDialog').css({display:'block'})"> Board Settings</li>
                         </ul>
-                        <button onclick="$('#globalSettingsDialog').css({display:'block'})">Board Settings</button>
+                     
 
                     </div>
                 </div>
@@ -151,10 +153,10 @@ tags-list-data{
                                     <td data-bind="text: last_updated"></td>
                                     <td>
                                         <ul class="board-toolbar">
-                                            <li data-bind="click: updateNow"><i class="icon-refresh icon-white"></i>
+                                            <li data-bind="click: updateNow">
                                             </li>
                                             <li data-bind="pluginEditor: {operation: 'delete', type: 'datasource'}">
-                                                <i class="icon-trash icon-white"></i></li>
+                                                </li>
                                         </ul>
                                     </td>
                                 </tr>
@@ -168,20 +170,16 @@ tags-list-data{
         </div>
         <div id="column-tools" class="responsive-column-width">
             <ul class="board-toolbar left-columns">
-                <li class="column-tool add" data-bind="click: addGridColumnLeft"><span
-                        class="column-icon right"></span><i class="icon-arrow-left icon-white"></i></li>
-                <li class="column-tool sub" data-bind="click: subGridColumnLeft"><span
-                        class="column-icon left"></span><i class="icon-arrow-right icon-white"></i></li>
+                <li class="column-tool add" data-bind="click: addGridColumnLeft"></li>
+                <li class="column-tool sub" data-bind="click: subGridColumnLeft"></li>
             </ul>
             <ul class="board-toolbar right-columns">
-                <li class="column-tool sub" data-bind="click: subGridColumnRight"><span
-                        class="column-icon right"></span><i class="icon-arrow-left icon-white"></i></li>
-                <li class="column-tool add" data-bind="click: addGridColumnRight"><span
-                        class="column-icon left"></span><i class="icon-arrow-right icon-white"></i></li>
+                <li class="column-tool sub" data-bind="click: subGridColumnRight"></li>
+                <li class="column-tool add" data-bind="click: addGridColumnRight"></li>
             </ul>
         </div>
         <div id="toggle-header" data-bind="click: toggleEditing">
-            <i id="toggle-header-icon" class="icon-wrench icon-white"></i></div>
+            </div>
     </div>
     </header>
 
@@ -196,13 +194,13 @@ tags-list-data{
             <h1 data-bind="text: title"></h1>
             <ul class="board-toolbar pane-tools">
                 <li data-bind="pluginEditor: {operation: 'add', type: 'widget'}">
-                    <i class="icon-plus icon-white"></i>
+                    
                 </li>
                 <li data-bind="pluginEditor: {operation: 'edit', type: 'pane'}">
-                    <i class="icon-wrench icon-white"></i>
+                    </i>
                 </li>
                 <li data-bind="pluginEditor: {operation: 'delete', type: 'pane'}">
-                    <i class="icon-trash icon-white"></i>
+                    
                 </li>
             </ul>
         </header>
@@ -212,13 +210,13 @@ tags-list-data{
                 <div class="sub-section-tools">
                     <ul class="board-toolbar">
                         <!-- ko if:$parent.widgetCanMoveUp($data) -->
-                        <li data-bind="click:$parent.moveWidgetUp"><i class="icon-chevron-up icon-white"></i></li>
+                        <li data-bind="click:$parent.moveWidgetUp"></li>
                         <!-- /ko -->
                         <!-- ko if:$parent.widgetCanMoveDown($data) -->
-                        <li data-bind="click:$parent.moveWidgetDown"><i class="icon-chevron-down icon-white"></i></li>
+                        <li data-bind="click:$parent.moveWidgetDown"></li>
                         <!-- /ko -->
-                        <li data-bind="pluginEditor: {operation: 'edit', type: 'widget'}"><i class="icon-wrench icon-white"></i></li>
-                        <li data-bind="pluginEditor: {operation: 'delete', type: 'widget'}"><i class="icon-trash icon-white"></i></li>
+                        <li data-bind="pluginEditor: {operation: 'edit', type: 'widget'}"></i></li>
+                        <li data-bind="pluginEditor: {operation: 'delete', type: 'widget'}"></li>
                     </ul>
                 </div>
             </div>

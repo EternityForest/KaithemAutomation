@@ -1071,15 +1071,12 @@ You may also mount Exception objects this way. These will be raised if anyone
 tries to go to that path.
 
 Note that these are just straight up native Cherrypy handlers. You cannot
-use kaithem.web.serveFile like you can in a page created as a Page Resource.
+use kaithem.web.serveFile like you can in a page created as a Page Resource, you must use CherryPy's API for this.
 
-Also note that you can't traverse objects via the path, but you can access all the handlers on the root.
-
-Visiting mountpoint/foo will access the foo methond on the controller, and mountpoint/foo/bar/ will pass bar as a path arg to foo,  but you can't have a second
-object baz as a property of the controller and to mountpoint/foo/baz.
+You can't mount objects with levels of heirarchy this way. Visiting mountpoint/foo will access the foo methond on the controller, and /foo/bar/ will pass bar as a path arg to foo,  but you can't have a second object baz as a property of the controller.
 
 
-You can't bind to the root / path, because there is already a default index page.
+You can't bind to the root / path, because there is already a default index page there.
 
 
 ##### Subdomains
