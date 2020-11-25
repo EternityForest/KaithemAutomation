@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.65.44
+- Many small improvements to the sounds engine, including true seamless looping
+- FreeBoaard has been greatly enhanced
+
 ### 0.65.43
 - FreeBoard supports theme creation, uses simpler direct bvalues for widgets, not value,time pairs
 - Realtime DRAM bit error detection(I expect one or two hits per year in the 1MB average window we use)
