@@ -86,7 +86,7 @@ BasePermissions = {
 "/admin/modules.view":  "View and download all module contents but not make any changes.",
 "/admin/modules.edit":  "Create, Edit, Import, Upload, and Download modules and module contents. Gives full access essentially so watch out.",
 "/admin/settings.view": "View but not change settings.",
-"/admin/settings.edit": "Change core settings.",
+"/admin/settings.edit": "Change settings. Also serves as a generic admin permission for several misc thingas. Implies full access.",
 "/admin/logging.edit": "Modify settings in the logging subsystem",
 "/admin/eventoutput.view": "View the message logs.",
 "/users/logs.view": "View the message logs.",

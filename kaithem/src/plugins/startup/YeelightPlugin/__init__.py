@@ -10,6 +10,7 @@ except:
     messagebus.postMessage("/system/notifications/errors","Problem loading YeeLight support")
 
 from src import widgets
+import colorzero
 
 logger = logging.Logger("plugins.yeelight")
 
@@ -84,6 +85,7 @@ class YeelightDevice(devices.Device):
         self.rssiTag.value =-120
         self.rssiTag.expose(["/admin/settings.view"])
         self.rssiCacheTime = 0
+
 
         self.lastLoggedUnreachable = 0
 
@@ -183,9 +185,17 @@ class YeelightRGB(YeelightDevice):
         #We probably don't need to poll this too often
         self.switchTagPoint.interval= 5
 
-        self.switchTagPoint.expose(["/admin/settings.edit"],["/admin/settings.edit"])
+        self.switchTagPoint.expose(["/admin/settings.view"],["/admin/settings.edit"])
 
         self.tagPoints["switch"]=self.switchTagPoint
+    
+        self.fadeTagPoint = tagpoints.Tag("/devices/"+self.name+".fade")
+        self.fadeTagPoint.min=0
+        self.fadeTagPoint.max=10
+        self.fadeTagPoint.owner= "YeeLight"
+
+        self.fadeTagPoint.expose(["/admin/settings.view"],["/admin/settings.edit"])
+        self.tagPoints["fade"]=self.fadeTagPoint
     
         def onf(user,value):
             if 'pushed' in value:
@@ -219,9 +229,11 @@ class YeelightRGB(YeelightDevice):
         self.wasOff=True
         self.oldTransitionRate = -1
 
-        self.hsvTag= tagpoints.ObjectTag("/devices/"+self.name+".color")
-        self.hsvTag.expose(["/admin/settings.edit"],["/admin/settings.edit"])
-        self.hsvTag.subscribe(self.handleTagChange)
+        self.colorTag= tagpoints.StringTag("/devices/"+self.name+".color")
+        self.colorTag.expose(["/admin/settings.edit"],["/admin/settings.edit"])
+        self.colorTag.subscribe(self.handleTagChange)
+
+        self.tagpoints['color']=self.colorTag
 
     def getSwitch(self,channel, state):
         if channel>0:
@@ -233,16 +245,17 @@ class YeelightRGB(YeelightDevice):
 
     def setSwitch(self,channel, state,duration=1):
         logger.debug("Setting smartplug "+self.data.get("device.locator")+ "to state "+str(state))
+        self.fadeTagPoint.value= duration
         with self.lock:
             "Set the state of switch channel N"
             if channel>0:
                 raise ValueError("This is a 1 channel device")
             try:
                 if state:
-                    getDevice(self.data.get("device.locator"),3,self.kdClass).turn_on(effect="smooth", duration=duration)
+                    getDevice(self.data.get("device.locator"),3,self.kdClass).turn_on(effect="smooth", duration=int(self.fadeTagPoint.value*1000))
                     self.wasOff=False
                 else:
-                    getDevice(self.data.get("device.locator"),3,self.kdClass).turn_off(effect="smooth",duration=duration)
+                    getDevice(self.data.get("device.locator"),3,self.kdClass).turn_off(effect="smooth",duration=int(self.fadeTagPoint.value*1000))
                     self.wasOff=True
                 self.oldTransitionRate=duration
             except:
@@ -259,48 +272,30 @@ class YeelightRGB(YeelightDevice):
     def setHSV(self,channel, hue,sat,val,duration=1):
         if channel>0:
             raise ValueError("Bulb has 1 color only")
-        self.hsvTag.value ={
-            'h':hue,
-            's':sat,
-            'v':val,
-            'fade': duration,
-        }
+        self.fadeTagPoint.value=duration
+        self.colorTag.value = colorzero.Color.from_hsv(hue/360, sat,val).html
 
     def handleTagChange(self,v,t,a):
-        if v.get('_type','hsv')=="hsv":
-            hue = v['h']
-            sat = v['s']
-            val = v['v']
-            duration = v.get('fade',0)
-        else:
-            raise RuntimeError("Invalid _type in dict")
-
+        
         #The idea here is that if the color has not changed, 
         #We can issue a direct on/off command instead, which is both more semantic,
         #And in theory less damaging to flash memory if they did it right.
-        huesat = (int(hue),int(sat*100))
+        
+        color = colorzero.Color(v).rgb
+        rgb = [int(i*255) for i in color]
 
-        if huesat == self.huesat or val < 0.01 or (val==self.lastVal):
-            if val < 0.01:
-                self.wasOff = True
-                self.setSwitch(0,False,duration)
-            else:
-                if self.wasOff and (huesat == self.huesat) and (val==self.lastVal):
-                    self.setSwitch(0,True,duration)
-                else:
-                    self.getRawDevice().set_hsv(int(hue),int(sat*100),int(val*100),effect="smooth", duration=duration)
-                    self.lastVal=val
-                    self.huesat = huesat
-                self.wasOff=False
+        val=sum(color)
 
+        duration = self.fadeTagPoint.value
+
+        if val < 0.01:
+            self.wasOff = True
+            self.setSwitch(0,False,duration)
         else:
-            self.getRawDevice().set_hsv(int(hue),int(sat*100),int(val*100),effect="smooth", duration=duration if not self.wasOff else 0)
+            self.getRawDevice().set_rgb(rgb[0],rgb[1],rgb[2],effect="smooth", duration=int(self.fadeTagPoint.value*1000) if not self.wasOff else 0)
             if self.wasOff:
                 self.wasOff=False
                 self.setSwitch(0,True,duration)
-
-            self.huesat = huesat
-            self.lastVal = val
 
     @staticmethod
     def getCreateForm():

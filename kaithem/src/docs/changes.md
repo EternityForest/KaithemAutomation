@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+
+### 0.65.44
+- YeeLight plugin now uses a StringTag to represent color as hex, because strings are an extremely common solution.
+
 ### 0.65.44
 - Many small improvements to the sounds engine, including true seamless looping
 - FreeBoaard has been greatly enhanced
