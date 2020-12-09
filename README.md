@@ -66,7 +66,8 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 
 ### 0.65.44
 - Many small improvements to the sounds engine, including true seamless looping
-- FreeBoaard has been greatly enhanced
+- FreeBoard has been greatly enhanced
+- If gmediarender is installed, the DLNARenderAgent plugin accepts media streams from a phone and plays them through the JACK mixer
 
 ### 0.65.43
 - FreeBoard supports theme creation, uses simpler direct bvalues for widgets, not value,time pairs

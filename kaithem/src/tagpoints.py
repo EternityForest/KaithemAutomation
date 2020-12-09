@@ -1297,7 +1297,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 x=allTags[name]()
                 if x:
                     if not x.__class__ is cls:
-                        raise TypeError("A tag of that name exists, but it is the wrong type.")
+                        raise TypeError("A tag of that name exists, but it is the wrong type. Existing: "+ str(x.__class__)+" New: "+ str(cls))
                     rval=x
             
             else:
