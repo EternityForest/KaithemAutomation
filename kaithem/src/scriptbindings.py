@@ -220,7 +220,8 @@ def continueIf(v):
     "Continue if the first parameter is True"
     return True if v else None
 
-
+#Use contextInfo.event from inside any function, the value will be a (name,value) tuple for the event
+contextInfo = threading.local()
 
 predefinedcommands={
     'return':rval,
@@ -352,8 +353,16 @@ class ChandlerScriptContext():
         self.needRefreshForVariable ={}
         self.needRefreshForTag ={}
 
-        #Used for detecting loops
-        self.eventRecursionDepth = 0
+        #Used for detecting loops.  .d Must be 0 whenever we are not CURRENTLY, as in right now, in this thread, executing an event.
+        #Not a pure stack or semaphor, when you queue up an event, that event will run at one higher than the event that created it,
+        #And always return to 0 when it is not actively executing event code, to ensure that things not caused directly by an event
+        #Don't have a nonzero depth.
+
+        #It'ts not even tracking recursion really, more like async causation, or parenthood back to an event not caused my another event.
+
+        #The whole point is not to let an event create another event, which runs the first event, etc.
+        self.eventRecursionDepth = threading.local()
+
 
 
 
@@ -642,7 +651,13 @@ class ChandlerScriptContext():
         "Handle an event synchronously, in the current thread."
         if self.gil.acquire(timeout=20):
             try:
-                return self._event(evt,val)
+                depth = self.eventRecursionDepth.d
+            except:
+                #Hasn't been set in this thread
+                depth = 0
+
+            try:
+                return self._event(evt,val,depth)
             finally:
                 self.gil.release()
         else:
@@ -650,8 +665,17 @@ class ChandlerScriptContext():
 
     def event(self,evt,val=None):
         "Queue an event to run in the background. Queued events run in FIFO"
+
+        #Capture the depth we are at, so we can make sure that _event knows if it was caused by another event.
+        #
+        try:
+            depth = self.eventRecursionDepth.d
+        except:
+            #Hasn't been set in this thread
+            depth = 0
+
         def f():
-            self._event(evt,val)
+            self._event(evt,val,depth)
         
         if len(self.eventQueue) > 128:
             raise RuntimeError("Too Many queued events!!!")
@@ -659,23 +683,24 @@ class ChandlerScriptContext():
         self.eventQueue.append(f)
         workers.do(self.doEventQueue)
 
-    def _event(self,evt, val):
+    def _event(self,evt, val,depth):
         handled = False
-        #Reset to 0 when the outer returns
-        if self.eventRecursionDepth==0:
-            isOuter = True
-        else:
-            isOuter=False
+
+        #Tell any functions we call that they are running at elevated depth.
+        self.eventRecursionDepth.d = depth+1
+
         try:
-            if self.eventRecursionDepth>8:
-                raise RecursionError("Cannot nest more than 8 events")
-            self.eventRecursionDepth+=1
+            if self.eventRecursionDepth.d>8:
+                raise RecursionError("Cannot nest more than 8 events directly causing each other")
             
             if not isinstance(val,Event):
                 self.eventValueStack.append(Event(evt,val))
             else:
                 val.name = evt
                 self.eventValueStack.append(val)
+
+
+            contextInfo.event = (evt,val)
             try:
                 if evt in self.eventListeners:
                     handled = True
@@ -688,11 +713,17 @@ class ChandlerScriptContext():
             except:
                 self.event("script.error",self.contextName+"\n"+traceback.format_exc(chain=True))
                 raise
+           
+
         finally:
             if self.eventValueStack:
                 self.eventValueStack.pop()
-            if isOuter:
-                self.eventRecursionDepth=0
+
+            #We are done running the event, now we can set to 0
+            #The depth must be 0, because there is no event currently running till the queued ones happen.
+            #This is not a stack or semaphore!
+            self.eventRecursionDepth.d=0
+            contextInfo.event = None
 
         # #Propagate events to all children
         # if self.propagateEvents:

@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1605507663016272
+resource-timestamp: 1609279411507936
 resource-type: event
 versions: {}
 
@@ -76,10 +76,31 @@ if __name__=='__setup__':
     allowedCueNameSpecials = '_~.'
     
     from src.scriptbindings import ChandlerScriptContext,getFunctionInfo
+    import src.scriptbindings as scripting
+    
     
     rootContext = ChandlerScriptContext()
     fixtureslock = threading.RLock()
     module.fixtures ={}
+    
+    
+    
+    cueTransitionsLimitCount=0
+    cueTransitionsHorizon =0
+    
+    def doTransitionRateLimit():
+        global cueTransitionsHorizon,cueTransitionsLimitCount
+        #This doesn't need locking. It can tolerate being approximate.
+        if time.monotonic()> cueTransitionsHorizon-0.3:
+            cueTransitionsHorizon=time.monotonic()
+            cueTransitionsLimitCount=0
+        
+        #Limit to less than 2 per 100ms
+        if cueTransitionsLimitCount > 6:
+            raise RuntimeError("Too many cue transitions extremely fast.  You may have a problem somewhere.")
+        cueTransitionsLimitCount+=2
+    
+    
     
     def refresh_scenes(t,v):
         """Stop and restart all active scenes, because some caches might need to be updated
@@ -240,7 +261,23 @@ if __name__=='__setup__':
     
     def gotoCommand(scene="=SCENE", cue=""):
         "Triggers a scene to go to a cue"
-        module.scenes_by_name[scene].gotoCue(cue)
+    
+        #Track layers of recursion
+        newcause = 'script.0'
+        print("llll",scripting.contextInfo.event)
+        if scripting.contextInfo.event[0] in ('cue.enter', 'cue.exit'):
+            cause = scripting.contextInfo.event[1][1]
+            #Nast hack, but i don't thing we need more layers and parsing might be slower.
+            if cause == 'script.0':
+                newcause = 'script.1'
+    
+            elif cause == 'script.1':
+                newcause = 'script.2'
+    
+            elif cause == 'script.2':
+                raise RuntimeError("More than 3 layers of redirects in cue.enter or cue.exit")
+    
+        module.scenes_by_name[scene].gotoCue(cue,cause=newcause)
         return True
     
     
@@ -431,7 +468,7 @@ if __name__=='__setup__':
                     if not kaithem.sound.isPlaying(str(i.id)) and not i.sound_end:
                         i.sound_end = module.timefunc()
                     if i.sound_end and (module.timefunc()-i.sound_end>(i.cue.length*i.bpm)):
-                        i.nextCue()
+                        i.nextCue(cause='sound')
     
     class ObjPlugin():
         pass
@@ -1445,16 +1482,16 @@ if __name__=='__setup__':
                     cues[msg[1]].clone(msg[2])
     
                 if msg[0] == "jumptocue":
-                    cues[msg[1]].scene().gotoCue(cues[msg[1]].name)
+                    cues[msg[1]].scene().gotoCue(cues[msg[1]].name,cause='manual')
     
                 if msg[0] == "jumpbyname":
-                    module.scenes_by_name[msg[1]].gotoCue(msg[2])
+                    module.scenes_by_name[msg[1]].gotoCue(msg[2],cause='manual')
                                     
                 if msg[0] == "nextcue":
-                    module.scenes[msg[1]].nextCue()
+                    module.scenes[msg[1]].nextCue(cause='manual')
     
                 if msg[0] == "nextcuebyname":
-                    module.scenes_by_name[msg[1]].nextCue()
+                    module.scenes_by_name[msg[1]].nextCue(cause='manual')
     
                 if msg[0] == "shortcut":
                     shortcutCode(msg[1])
@@ -1769,7 +1806,7 @@ if __name__=='__setup__':
                 if msg[0] == "gotonext":
                     if cues[msg[1]].nextCue:
                         try:
-                            cues[msg[1]].scene().nextCue()
+                            cues[msg[1]].scene().nextCue(cause='manual')
                         except:
                             pass
     
@@ -2316,7 +2353,7 @@ if __name__=='__setup__':
                     x=i.scene()
                     if x:
                         x.go()
-                        x.gotoCue(i.name)
+                        x.gotoCue(i.name,cause='manual')
     
     cues =weakref.WeakValueDictionary()
     
@@ -2681,7 +2718,7 @@ if __name__=='__setup__':
                     self.stop()
                 else:
                     #Just goto the cue
-                    self.gotoCue(val)
+                    self.gotoCue(val,cause='tagpoint')
             self.cueTagHandler = cueTagHandler
     
             self.cueTag.subscribe(cueTagHandler)
@@ -2856,7 +2893,7 @@ if __name__=='__setup__':
                 pass
     
             if active:
-                self.gotoCue('default',sendSync=False)
+                self.gotoCue('default',sendSync=False,cause='start')
                 self.go()
                 if isinstance(active, float):
                     self.started = module.timefunc()-active
@@ -2967,7 +3004,7 @@ if __name__=='__setup__':
                         return
                     
                     if data[0] in self.cues:
-                        self.gotoCue(data[0],t,sendSync=False)
+                        self.gotoCue(data[0],t,sendSync=False,cause='sync')
             self.msgtarget = self.pavillions.messageTarget(msgtarget,f)
     
     
@@ -3056,9 +3093,9 @@ if __name__=='__setup__':
     
                 if self.cue and self.name == cue:
                     try:
-                        self.gotoCue("default")
+                        self.gotoCue("default",cause='deletion')
                     except:
-                        self.gotoCue(self.cues_ordered[0].name)
+                        self.gotoCue(self.cues_ordered[0].name,cause='deletion')
     
                 if cue in cues:
                     id = cue
@@ -3216,8 +3253,11 @@ if __name__=='__setup__':
                         break
             return cue
     
-        def gotoCue(self, cue,t=None, sendSync=True,generateEvents=True):
+        def gotoCue(self, cue,t=None, sendSync=True,generateEvents=True, cause='generic'):
             "Goto cue by name, number, or string repr of number"
+            #Globally raise an error if there's a big horde of cue transitions happening
+            doTransitionRateLimit()
+    
             with module.lock:
                 with self.lock:
                     if not self.active:
@@ -3277,7 +3317,7 @@ if __name__=='__setup__':
                     if not (cue==self.cue.name):
                         if generateEvents:
                             if self.active and self.scriptContext:
-                                self.event("cue.exit", value=self.cue.name)
+                                self.event("cue.exit", value=[self.cue.name,cause])
     
                     #We return if some the enter transition already
                     #Changed to a new cue
@@ -3313,7 +3353,7 @@ if __name__=='__setup__':
                             cobj.onEnter(t)
                         
                         if generateEvents:
-                            self.event('cue.enter', cobj.name)
+                            self.event('cue.enter', [cobj.name,cause])
     
             #We return if some the enter transition already
                     #Changed to a new cue
@@ -3656,10 +3696,10 @@ if __name__=='__setup__':
     
     
     
-        def nextCue(self,t=None):
+        def nextCue(self,t=None,cause='generic'):
             with module.lock:
                 if self.cue.nextCue and ((self.cue.nextCue in self.cues) or self.cue.nextCue.startswith("__") or "|" in self.cue.nextCue or "*" in self.cue.nextCue):
-                    self.gotoCue(self.cue.nextCue,t)
+                    self.gotoCue(self.cue.nextCue,t, cause=cause)
                 elif not self.cue.nextCue:
                     x= self.getDefaultNext()
                     if x:
@@ -3684,10 +3724,10 @@ if __name__=='__setup__':
     
                 
                 if not self.cue:
-                    self.gotoCue('default',sendSync=False)
+                    self.gotoCue('default',sendSync=False,cause='start')
                 else:
                     #Re-enter cue to create the cache
-                    self.gotoCue(self.cue.name)
+                    self.gotoCue(self.cue.name,cause='start')
                 #Bug workaround for bug where scenes do nothing when first activated
                 self.canvas.paint( 0,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)
     
@@ -4044,7 +4084,7 @@ if __name__=='__setup__':
                 #rel_length cues end after the sound in a totally different part of code
                 #Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
                 #Then round to the nearest millisecond to prevent long term drift due to floating point issues.
-                self.nextCue(round(self.enteredCue+self.cuelen*(60/self.bpm),3))
+                self.nextCue(round(self.enteredCue+self.cuelen*(60/self.bpm),3),cause='auto')
             else:
                 if force_repaint or (not self.fadeInCompleted):
                     self.canvas.paint(fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)

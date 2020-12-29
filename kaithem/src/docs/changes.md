@@ -1,8 +1,12 @@
 Change Log
 ----------
 
+### 0.65.46
+- Better Mako formatting
+- Tag logging bugfixes
 
-### 0.65.44
+
+### 0.65.45
 - Many small improvements to the sounds engine, including true seamless looping
 - FreeBoard has been greatly enhanced
 - If gmediarender is installed, the DLNARenderAgent plugin accepts media streams from a phone and plays them through the JACK mixer

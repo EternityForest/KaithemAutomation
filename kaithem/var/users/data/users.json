@@ -39,7 +39,7 @@
                 "tabtospace": true,
                 "timezone": "US/Pacific",
                 "useace": true,
-                "usemonaco": false
+                "usemonaco": true
             },
             "username": "admin"
         },
