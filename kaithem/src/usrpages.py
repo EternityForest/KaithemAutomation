@@ -21,6 +21,8 @@ import mako, cherrypy,sys
 
 from .config import config
 
+from mako import exceptions
+
 errors = {}
 
 
@@ -476,7 +478,8 @@ class KaithemPage():
             if isinstance(e,kaithemobj.ServeFileInsteadOfRenderingPageException):
                 return cherrypy.lib.static.serve_file(e.f_filepath,e.f_MIME,e.f_name)
 
-            tb = traceback.format_exc(chain=True)
+            #tb = traceback.format_exc(chain=True)
+            tb = exceptions.text_error_template().render()
             data= "Request from: "+cherrypy.request.remote.ip+"("+pages.getAcessingUser()+")\n"+cherrypy.request.request_line+"\n"
             #When an error happens, log it and save the time
             #Note that we are logging to the compiled event object

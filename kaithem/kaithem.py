@@ -86,6 +86,7 @@ import src
 
 #This is a very slightly modified version with better socket cleanup properties
 import cherrypy
+import mako.exceptions
 
 from src import util,workers
 from src import scheduling
@@ -578,10 +579,11 @@ def webRoot():
 
     def cpexception():
         cherrypy.response.status = 500
-        if sys.version_info < (3,0):
-            cherrypy.response.body= bytes(pages.get_template('errors/cperror.html').render(e=_cperror.format_exc()))
-        else:
-            cherrypy.response.body= bytes(pages.get_template('errors/cperror.html').render(e=_cperror.format_exc()),'utf8')
+        try:
+            cherrypy.response.body= bytes(pages.get_template('errors/cperror.html').render(e=_cperror.format_exc(), mk=mako.exceptions.html_error_template().render().decode()),'utf8')
+        except:
+            cherrypy.response.body= bytes(pages.get_template('errors/cperror.html').render(e=_cperror.format_exc(), mk=""),'utf8')
+
 
 
     import zipfile

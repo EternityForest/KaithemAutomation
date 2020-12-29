@@ -25,6 +25,10 @@ import os
 from . import auth, config
 from . import directories, util
 
+from mako import exceptions
+
+
+
 _Lookup = TemplateLookup(directories=[directories.htmldir])
 get_template = _Lookup.get_template
 
@@ -63,6 +67,9 @@ webResourceLock = threading.Lock()
 
 # Indexed by (time, name, url) pairs
 allWebResources = {}
+
+
+
 
 
 class WebResource():

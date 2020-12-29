@@ -68,6 +68,7 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - Many small improvements to the sounds engine, including true seamless looping
 - FreeBoard has been greatly enhanced
 - If gmediarender is installed, the DLNARenderAgent plugin accepts media streams from a phone and plays them through the JACK mixer
+- YeeLight plugin now uses a StringTag to represent color as hex, because strings are an extremely common solution.
 
 ### 0.65.43
 - FreeBoard supports theme creation, uses simpler direct bvalues for widgets, not value,time pairs

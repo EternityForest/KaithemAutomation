@@ -562,11 +562,10 @@ class ChandlerScriptContext():
             return l
 
 
-    def doEventQueue(self):
+    def doEventQueue(self,allowAsync=True):
         #Run all events in the queue, under the gil.
-        #
         while self.eventQueue:
-            if self.gil.acquire(timeout=5):
+            if self.gil.acquire(timeout=20):
                 #Run them all as one block
                 try:
                     while self.eventQueue:
@@ -577,6 +576,11 @@ class ChandlerScriptContext():
                             logging.exception("Error in script context")
                 finally:
                     self.gil.release()
+            else:
+                raise RuntimeError("Event queue stalled, cannot execute, timed out waiting for the lock. Queued events are still buffered and may run later")
+    
+                    
+            
 
     def onTagChange(self,tagname, val):
         """ We make a best effort to run this synchronously. If we cannot,

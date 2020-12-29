@@ -23,10 +23,11 @@ exposedTags = weakref.WeakValueDictionary()
 
 class TagLogger():
     accumType = 'latest'
+    defaultAccum =0
 
     def __init__(self,tag,interval,historyLength=3*30*24*3600):
         self.h = historian
-        self.accumVal = 0
+        self.accumVal = self.defaultAccum
         self.accumCount = 0
         self.accumTime = 0
         self.historyLength = historyLength
@@ -43,6 +44,13 @@ class TagLogger():
             historian.children[id(self)]= weakref.ref(self)
 
         tag.subscribe(self.accumulate)
+
+        #Log immediately when we setup logger settings.  Helps avoid confusion for tags that never change.
+        if tag.lock.acquire():
+            try:
+                self.accumulate(tag.value,tag.timestamp,tag.annotation)
+            finally:
+                tag.lock.release()
         
 
     def clearOldData(self,force=False):
@@ -150,6 +158,7 @@ class TagLogger():
         self.h.insertData((self.chID, self.accumTime+offset, self.accumVal))
         self.lastLogged = time.monotonic()
         self.accumCount = 0
+        self.accumVal = self.defaultAccum
 
 
     def getChannelID(self, tag):
@@ -210,6 +219,7 @@ class AverageLogger(TagLogger):
 
 class MinLogger(TagLogger):
         accumType='min'
+        defaultAccum= 10**18
         def accumulate(self,value,timestamp,annotation):
             "Only ever called by the tag"
             self.accumVal =min(self.accumVal, value)
@@ -229,12 +239,13 @@ class MinLogger(TagLogger):
             self.h.insertData((self.chID, (self.accumTime/self.accumCount)+offset,self.accumVal))
             self.lastLogged = time.monotonic()
             self.accumCount=0
-            self.accumVal=0
+            self.accumVal=10**18
             self.accumTime=0
 
 
 class MaxLogger(MinLogger):
         accumType='max'
+        defaultAccum = -10**18
         def accumulate(self,value,timestamp,annotation):
             "Only ever called by the tag"
             self.accumVal =max(self.accumVal, value)
@@ -242,6 +253,20 @@ class MaxLogger(MinLogger):
             self.accumCount+=1
 
             self.flush()
+
+        #Only call from accumulate or from within the historian, which will use the taglock to call this.
+        def flush(self,force=False):
+            #Ratelimit how often we log, continue accumulating if nothing to log.
+            if not force:
+                if self.lastLogged > time.monotonic()-self.interval:
+                    return
+
+            offset = time.time()-time.monotonic()
+            self.h.insertData((self.chID, (self.accumTime/self.accumCount)+offset,self.accumVal))
+            self.lastLogged = time.monotonic()
+            self.accumCount=0
+            self.accumVal=-10**18
+            self.accumTime=0
 
 accumTypes={'replace':TagLogger, 'latest':TagLogger, 'mean': AverageLogger, 'max': MaxLogger, 'min': MinLogger}
         
