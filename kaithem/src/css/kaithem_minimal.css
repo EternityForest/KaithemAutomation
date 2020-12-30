@@ -209,6 +209,8 @@ border-style:solid;
 border-width:1px;
 padding:3px;
 cursor:help;
+word-wrap: normal;
+max-width:40em;
 }
 
 
