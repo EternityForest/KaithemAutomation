@@ -134,12 +134,13 @@ firstrun = True
 checked = False
 
 
-# Allocate random chunks of memory, try to detect bit errors.   
+# Allocate random chunks of memory, try to detect bit errors.
 # We expect this to fire about once a year on normal systems.
 # Randomize size so it can fit in fragmented places for max coverage, if ran for a very long time.
 ramTestData = b''
 lastRamTestValue = 0
 bitErrorTestLock = threading.Lock()
+
 
 @scheduling.scheduler.everyHour
 def checkBitErrors():
@@ -148,7 +149,7 @@ def checkBitErrors():
 
         if not lastRamTestValue:
             for i in ramTestData:
-                if(not i==0):
+                if(not i == 0):
                     messagebus.postMessage(
                         "/system/notifications/errors", "RAM Bitflip 0>1 detected: val"+str(i))
 
@@ -163,7 +164,6 @@ def checkBitErrors():
 
             ramTestData = b'\0'*int(1024*2048*random.random())
             lastRamTestValue = 0
-
 
 
 @scheduling.scheduler.everyHour

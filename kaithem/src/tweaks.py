@@ -1,24 +1,27 @@
 #!/usr/bin/python3
-#Copyright Daniel Dunn 2013-2015
-#This file is part of Kaithem Automation.
+# Copyright Daniel Dunn 2013-2015
+# This file is part of Kaithem Automation.
 
-#Kaithem Automation is free software: you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation, version 3.
+# Kaithem Automation is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
 
-#Kaithem Automation is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
+# Kaithem Automation is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 
-#You should have received a copy of the GNU General Public License
-#along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License
+# along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 
-
-import logging,traceback,threading
+import logging
+import traceback
+import threading
 
 threadlogger = logging.getLogger("system.threading")
+
+
 def installThreadLogging():
     """
     Workaround for sys.excepthook thread bug
@@ -33,15 +36,18 @@ def installThreadLogging():
     What our version does is posts to the message bus when a thread starts, stops, or has an exception.
     """
     init_old = threading.Thread.__init__
+
     def init(self, *args, **kwargs):
         init_old(self, *args, **kwargs)
         run_old = self.run
+
         def run_with_except_hook(*args, **kw):
             if self.name.startswith("nostartstoplog."):
                 try:
                     run_old(*args, **kw)
                 except Exception as e:
-                    threadlogger.exception("Thread stopping due to exception: "+self.name)
+                    threadlogger.exception(
+                        "Thread stopping due to exception: "+self.name)
                     raise e
             else:
                 try:
@@ -50,13 +56,14 @@ def installThreadLogging():
                     threadlogger.info("Thread stopping: "+self.name)
 
                 except Exception as e:
-                    threadlogger.exception("Thread stopping due to exception: "+self.name)
+                    threadlogger.exception(
+                        "Thread stopping due to exception: "+self.name)
                     raise e
-        #Rename thread so debugging works
+        # Rename thread so debugging works
         try:
             if self._target:
                 run_with_except_hook.__name__ = self._target.__name__
-                run_with_except_hook.__module__ =self._target.__module__
+                run_with_except_hook.__module__ = self._target.__module__
         except:
             try:
                 run_with_except_hook.__name__ = "run"
@@ -64,4 +71,3 @@ def installThreadLogging():
                 pass
         self.run = run_with_except_hook
     threading.Thread.__init__ = init
-

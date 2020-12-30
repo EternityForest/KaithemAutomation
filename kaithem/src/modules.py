@@ -53,7 +53,6 @@ except:
     pass
 
 
-
 def lock(f):
     t = time.time()
     while time.time()-t > 5:
@@ -239,6 +238,7 @@ def modulesHaveChanged():
 
 modules_state.modulesHaveChanged = modulesHaveChanged
 modules_state.unsavedChanges = unsaved_changed_obj
+
 
 class ResourceObject():
     def __init__(self, m: str = None, r: str = None, o=None):
@@ -439,10 +439,10 @@ def insertVirtualResource(modulename: str, name: str, value: VirtualResource):
 
         module[name] = VirtualResourceReference(value)
 
-        # Set the value's "name". A virtual resource may only have 
-        # one "hard link". 
+        # Set the value's "name". A virtual resource may only have
+        # one "hard link".
         # The rest of the links, if you insert under multiple
-        # names, will work, but won't be the "real" name, and 
+        # names, will work, but won't be the "real" name, and
         # subscriptions and things like that are always to the real name.
 
         # VResources can have names set elsewhere, and those are respected
@@ -471,9 +471,9 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
     fn = relative_name
     try:
         # This regex is meant to handle any combination of cr, lf, and trailing whitespaces
-        #We don't do anything with more that 3 sections yet, so limit just in case there's ----
+        # We don't do anything with more that 3 sections yet, so limit just in case there's ----
         # in a markdown file
-        sections = re.split(r'\r?\n?----*\s*\r?\n*', d,2)
+        sections = re.split(r'\r?\n?----*\s*\r?\n*', d, 2)
 
         shouldRemoveExtension = False
 
@@ -688,7 +688,6 @@ def saveResource2(obj, fn: str):
         f.flush()
         os.fsync(f.fileno())
 
-
     logger.debug("saved resource to file " + fn)
     obj['resource-loadedfrom'] = fn
     return fn
@@ -720,7 +719,6 @@ def saveAll():
                 x.write("This file certifies this folder as valid")
                 x.flush()
                 os.fsync(x.fileno())
-
 
         # This dumps the contents of the active modules in ram to a directory named data"""
         saveModules(os.path.join(directories.moduledir, "data"))
@@ -1008,6 +1006,7 @@ def saveModules(where: str, markSaved=True):
         except:
             raise
 
+
 def loadModules(modulesdir: str):
     "Load all modules in the given folder to RAM."
     logger.debug("Loading modules from "+modulesdir)
@@ -1057,6 +1056,7 @@ def _detect_ignorable(path: str):
         return True
     if os.path.basename(path) in [".gitignore", ".gitconfig"]:
         return True
+
 
 def handleResourceChange(module, resource):
     t = ActiveModules[module][resource]['resource-type']
@@ -1505,7 +1505,6 @@ def rmResource(module, resource, message="Resource Deleted"):
 
             del fileResourceAbsPaths[module, resource]
             usrpages.removeOnePage(module, resource)
-
 
         else:
             additionalTypes[r['resource-type']].ondelete(module, resource, r)

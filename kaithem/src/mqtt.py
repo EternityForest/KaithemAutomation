@@ -19,20 +19,23 @@ from . import tagpoints, messagebus, alerts, util, workers
 
 
 class EnhancedConnection(BaseConnection):
-    def __init__(self, server,port=1883,password=None, *, alertPriority="warning", alertAck=True,messageBusName=None):
+    def __init__(self, server, port=1883, password=None, *, alertPriority="warning", alertAck=True, messageBusName=None):
         self.statusTag = tagpoints.StringTag(
-                    "/system/mqtt/"+(messageBusName or server+":"+str(port))+"/status")
+            "/system/mqtt/"+(messageBusName or server+":"+str(port))+"/status")
         self.statusTagClaim = self.statusTag.claim(
             "disconnected", "status", 90)
-        BaseConnection.__init__(self,server=server, password=password,port=port,alertPriority=alertPriority,alertAck=True,messageBusName=messageBusName,)
+        BaseConnection.__init__(self, server=server, password=password, port=port,
+                                alertPriority=alertPriority, alertAck=True, messageBusName=messageBusName,)
 
     def onStillConnected(self):
         self.statusTagClaim.set("connected")
-    
+
     def onDisconnected(self):
         self.statusTagClaim.set("disconnected")
 
     def configureAlert(self, alertPriority, alertAck):
-        self.statusTag.setAlarm("disconnected","value != 'connected'",priority=alertPriority, autoAck="yes" if alertAck else 'no', tripDelay=5)
+        self.statusTag.setAlarm("disconnected", "value != 'connected'",
+                                priority=alertPriority, autoAck="yes" if alertAck else 'no', tripDelay=5)
 
-scullery.mqtt.Connection= EnhancedConnection
+
+scullery.mqtt.Connection = EnhancedConnection

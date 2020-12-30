@@ -1,5 +1,6 @@
 
-from src import kaithemobj,tagpoints
+from src import kaithemobj, tagpoints
+
 
 def civilTwilight():
     try:
@@ -10,11 +11,13 @@ def civilTwilight():
     except:
         return -1
 
+
 twilightTag = tagpoints.Tag("/sky/civilTwilight")
-twilightTag.min =-1
+twilightTag.min = -1
 twilightTag.max = 1
 twilightTag.interval = 60
-twilightTag.description="Unless overridden, 1 if dark, else 0, -1 if no location is set"
+twilightTag.description = "Unless overridden, 1 if dark, else 0, -1 if no location is set"
+
 
 def night():
     try:
@@ -25,8 +28,9 @@ def night():
     except:
         return -1
 
+
 nTag = tagpoints.Tag("/sky/night")
-nTag.min =-1
+nTag.min = -1
 nTag.max = 1
 nTag.interval = 60
-nTag.description="Unless overridden, 1 if night, else 0, -1 if no location is set"
+nTag.description = "Unless overridden, 1 if night, else 0, -1 if no location is set"

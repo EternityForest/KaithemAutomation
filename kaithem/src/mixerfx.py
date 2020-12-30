@@ -256,7 +256,7 @@ effectTemplates_data = {
         },
         "gstSetup": {},
         "sidechain": True,
-        "silenceMainChain":True,
+        "silenceMainChain": True,
         "preSupportElements": [
             {"gstElement": "audioconvert", "gstSetup": {}},
         ],

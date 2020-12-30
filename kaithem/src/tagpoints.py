@@ -1,13 +1,29 @@
-from . import scheduling,workers, virtualresource,widgets,messagebus,directories,persist,alerts,auth
-import time, threading,weakref,logging,types,traceback,math,os,gc,functools,re,random,json,types, copy
+from . import widgets
+from .unitsofmeasure import convert, unitTypes
+from . import scheduling, workers, virtualresource, widgets, messagebus, directories, persist, alerts, auth
+import time
+import threading
+import weakref
+import logging
+import types
+import traceback
+import math
+import os
+import gc
+import functools
+import re
+import random
+import json
+import types
+import copy
 
-from typing import Callable,Optional,Union
+from typing import Callable, Optional, Union
 from threading import setprofile
 from typeguard import typechecked
 import sqlite3
 
 
-logdir=os.path.join(directories.vardir,"logs")
+logdir = os.path.join(directories.vardir, "logs")
 
 if not os.path.exists(logdir):
     try:
@@ -16,24 +32,24 @@ if not os.path.exists(logdir):
         pass
 
 
-
 historyDBFile = os.path.join(logdir, "history.ldb")
 
 exposedTags = weakref.WeakValueDictionary()
 
+
 class TagLogger():
     accumType = 'latest'
-    defaultAccum =0
+    defaultAccum = 0
 
-    def __init__(self,tag,interval,historyLength=3*30*24*3600):
+    def __init__(self, tag, interval, historyLength=3*30*24*3600):
         self.h = historian
         self.accumVal = self.defaultAccum
         self.accumCount = 0
         self.accumTime = 0
         self.historyLength = historyLength
 
-        #To avoid extra lock calls, the historian actually briefly takes over the tag's lock.
-        self.lock=tag.lock
+        # To avoid extra lock calls, the historian actually briefly takes over the tag's lock.
+        self.lock = tag.lock
 
         self.lastLogged = 0
         self.interval = interval
@@ -41,25 +57,24 @@ class TagLogger():
         self.getChannelID(tag)
 
         with historian.lock:
-            historian.children[id(self)]= weakref.ref(self)
+            historian.children[id(self)] = weakref.ref(self)
 
         tag.subscribe(self.accumulate)
 
-        #Log immediately when we setup logger settings.  Helps avoid confusion for tags that never change.
+        # Log immediately when we setup logger settings.  Helps avoid confusion for tags that never change.
         if tag.lock.acquire():
             try:
-                self.accumulate(tag.value,tag.timestamp,tag.annotation)
+                self.accumulate(tag.value, tag.timestamp, tag.annotation)
             finally:
                 tag.lock.release()
-        
 
-    def clearOldData(self,force=False):
+    def clearOldData(self, force=False):
         "Only called by the historian, that's why we can reuse the connection and do everything in one transaction"
         if not self.historyLength:
             return
 
-        #Attempt to detect impossible times indicating the clock is wrong.
-        if time.time()<1597447271:
+        # Attempt to detect impossible times indicating the clock is wrong.
+        if time.time() < 1597447271:
             return
 
         with self.h.lock:
@@ -67,66 +82,68 @@ class TagLogger():
             conn = self.h.history
 
             c = conn.cursor()
-            c.execute("SELECT count(*) FROM record WHERE channel=? AND timestamp<?",(self.chID,time.time()-self.historyLength))
+            c.execute("SELECT count(*) FROM record WHERE channel=? AND timestamp<?",
+                      (self.chID, time.time()-self.historyLength))
             count = c.fetchone()[0]
 
-            #Only delete records in large blocks. To do otherwise would create too much disk wear
+            # Only delete records in large blocks. To do otherwise would create too much disk wear
             if count > 8192 if not force else 1024:
-                c.execute("DELETE FROM record WHERE channel=? AND timestamp<?",(self.chID,time.time()-self.historyLength))
+                c.execute("DELETE FROM record WHERE channel=? AND timestamp<?",
+                          (self.chID, time.time()-self.historyLength))
 
-
-    def getDataRange(self,minTime, maxTime, maxRecords=10000):
+    def getDataRange(self, minTime, maxTime, maxRecords=10000):
         with self.h.lock:
             d = []
             conn = sqlite3.Connection(historyDBFile)
 
             c = conn.cursor()
-            c.execute("SELECT timestamp,value FROM record WHERE timestamp>? AND timestamp<? AND channel=? ORDER BY timestamp ASC LIMIT ?",(minTime, maxTime, self.chID,maxRecords))
+            c.execute("SELECT timestamp,value FROM record WHERE timestamp>? AND timestamp<? AND channel=? ORDER BY timestamp ASC LIMIT ?",
+                      (minTime, maxTime, self.chID, maxRecords))
             for i in c:
                 d.append(i)
 
-            x=[]
+            x = []
             for l in range(5):
                 x = []
-                #Best-effort attempt to include recent stuff.
-                #We don't want to use another lock and slow stuff down
+                # Best-effort attempt to include recent stuff.
+                # We don't want to use another lock and slow stuff down
                 try:
                     for i in self.h.pending:
-                        if i[0]==self.chID:
-                            if i[1]>=minTime and i[1]<=maxTime:
-                                x.append((i[1],i[2]))
+                        if i[0] == self.chID:
+                            if i[1] >= minTime and i[1] <= maxTime:
+                                x.append((i[1], i[2]))
                     break
-                #Can fail due to iterationerror, we don't lock the pending list,
-                #We just hope we can finish very fast.
+                # Can fail due to iterationerror, we don't lock the pending list,
+                # We just hope we can finish very fast.
                 except:
                     raise
 
             return (d+x)[:maxRecords]
 
-
-    def getRecent(self,minTime, maxTime, maxRecords=10000):
+    def getRecent(self, minTime, maxTime, maxRecords=10000):
         with self.h.lock:
             d = []
             conn = sqlite3.Connection(historyDBFile)
 
             c = conn.cursor()
-            c.execute("SELECT timestamp,value FROM record WHERE timestamp>? AND timestamp<? AND channel=? ORDER BY timestamp DESC LIMIT ?",(minTime, maxTime, self.chID,maxRecords))
+            c.execute("SELECT timestamp,value FROM record WHERE timestamp>? AND timestamp<? AND channel=? ORDER BY timestamp DESC LIMIT ?",
+                      (minTime, maxTime, self.chID, maxRecords))
             for i in c:
                 d.append(i)
 
-            x=[]
+            x = []
             for l in range(5):
                 x = []
-                #Best-effort attempt to include recent stuff.
-                #We don't want to use another lock and slow stuff down
+                # Best-effort attempt to include recent stuff.
+                # We don't want to use another lock and slow stuff down
                 try:
                     for i in self.h.pending:
-                        if i[0]==self.chID:
-                            if i[1]>=minTime and i[1]<=maxTime:
-                                x.append((i[1],i[2]))
+                        if i[0] == self.chID:
+                            if i[1] >= minTime and i[1] <= maxTime:
+                                x.append((i[1], i[2]))
                     break
-                #Can fail due to iterationerror, we don't lock the pending list,
-                #We just hope we can finish very fast.
+                # Can fail due to iterationerror, we don't lock the pending list,
+                # We just hope we can finish very fast.
                 except:
                     raise
 
@@ -136,20 +153,19 @@ class TagLogger():
         with historian.lock:
             del historian.children[id(self)]
 
-
     def accumulate(self, value, timestamp, annotation):
         "Only ever called by the tag"
         self.accumVal = value
         self.accumTime = timestamp
         self.accumCount = 1
-        if isinstance(value,str):
-            value=value[:128]
+        if isinstance(value, str):
+            value = value[:128]
 
         self.flush()
 
-    #Only call from accumulate or from within the historian, which will use the taglock to call this.
-    def flush(self,force=False):
-        #Ratelimit how often we log, continue accumulating if nothing to log.
+    # Only call from accumulate or from within the historian, which will use the taglock to call this.
+    def flush(self, force=False):
+        # Ratelimit how often we log, continue accumulating if nothing to log.
         if not force:
             if self.lastLogged > time.monotonic()-self.interval:
                 return
@@ -160,126 +176,138 @@ class TagLogger():
         self.accumCount = 0
         self.accumVal = self.defaultAccum
 
-
     def getChannelID(self, tag):
-        #Either get our stored channel name, or create a new onw
+        # Either get our stored channel name, or create a new onw
         with self.h.lock:
-            #Have to make our own, we are in a new thread now.
+            # Have to make our own, we are in a new thread now.
             conn = sqlite3.Connection(historyDBFile)
             conn.row_factory = sqlite3.Row
 
             c = conn.cursor()
-            c.execute("SELECT rowid,tagName,unit,accumulate from channel WHERE tagName=?",(tag.name,))
+            c.execute(
+                "SELECT rowid,tagName,unit,accumulate from channel WHERE tagName=?", (tag.name,))
             self.chID = None
 
-            if not isinstance(tag.unit,str):
+            if not isinstance(tag.unit, str):
                 raise ValueError('bad tag unit '+str(tag.unit))
 
-            if not isinstance(self.accumType,str):
+            if not isinstance(self.accumType, str):
                 raise ValueError('bad tag accum '+str(self.accumType))
 
             for i in c:
-                if i['tagName'] == tag.name and i['unit']==tag.unit and i['accumulate']==self.accumType:
+                if i['tagName'] == tag.name and i['unit'] == tag.unit and i['accumulate'] == self.accumType:
                     self.chID = i['rowid']
 
             if not self.chID:
-                conn.execute("INSERT INTO channel VALUES (?,?,?,?)",(tag.name,tag.unit, self.accumType,'{}'))
+                conn.execute("INSERT INTO channel VALUES (?,?,?,?)",
+                             (tag.name, tag.unit, self.accumType, '{}'))
                 conn.commit()
 
             c = conn.cursor()
-            c.execute("SELECT rowid from channel WHERE tagName=? AND unit=? AND accumulate=?",(tag.name,tag.unit,self.accumType))
+            c.execute("SELECT rowid from channel WHERE tagName=? AND unit=? AND accumulate=?",
+                      (tag.name, tag.unit, self.accumType))
             self.chID = c.fetchone()[0]
 
             conn.close()
 
+
 class AverageLogger(TagLogger):
-        accumType='mean'
-        def accumulate(self,value,timestamp,annotation):
-            "Only ever called by the tag"
-            self.accumVal += value
-            self.accumTime +=timestamp
-            self.accumCount+=1
-            self.flush()
+    accumType = 'mean'
 
-        #Only call from accumulate or from within the historian, which will use the taglock to call this.
-        def flush(self,force=False):
-            #Ratelimit how often we log, continue accumulating if nothing to log.
-            if not force:
-                if self.lastLogged > time.monotonic()-self.interval:
-                    return
-            offset = time.time()-time.monotonic()
+    def accumulate(self, value, timestamp, annotation):
+        "Only ever called by the tag"
+        self.accumVal += value
+        self.accumTime += timestamp
+        self.accumCount += 1
+        self.flush()
 
+    # Only call from accumulate or from within the historian, which will use the taglock to call this.
+    def flush(self, force=False):
+        # Ratelimit how often we log, continue accumulating if nothing to log.
+        if not force:
+            if self.lastLogged > time.monotonic()-self.interval:
+                return
+        offset = time.time()-time.monotonic()
 
-            self.h.insertData((self.chID, (self.accumTime/self.accumCount)+offset,self.accumVal/self.accumCount))
-            self.lastLogged = time.monotonic()
-            self.accumCount=0
-            self.accumVal=0
-            self.accumTime=0
+        self.h.insertData(
+            (self.chID, (self.accumTime/self.accumCount)+offset, self.accumVal/self.accumCount))
+        self.lastLogged = time.monotonic()
+        self.accumCount = 0
+        self.accumVal = 0
+        self.accumTime = 0
 
 
 class MinLogger(TagLogger):
-        accumType='min'
-        defaultAccum= 10**18
-        def accumulate(self,value,timestamp,annotation):
-            "Only ever called by the tag"
-            self.accumVal =min(self.accumVal, value)
-            self.accumTime +=timestamp
-            self.accumCount+=1
+    accumType = 'min'
+    defaultAccum = 10**18
 
-            self.flush()
+    def accumulate(self, value, timestamp, annotation):
+        "Only ever called by the tag"
+        self.accumVal = min(self.accumVal, value)
+        self.accumTime += timestamp
+        self.accumCount += 1
 
-        #Only call from accumulate or from within the historian, which will use the taglock to call this.
-        def flush(self,force=False):
-            #Ratelimit how often we log, continue accumulating if nothing to log.
-            if not force:
-                if self.lastLogged > time.monotonic()-self.interval:
-                    return
+        self.flush()
 
-            offset = time.time()-time.monotonic()
-            self.h.insertData((self.chID, (self.accumTime/self.accumCount)+offset,self.accumVal))
-            self.lastLogged = time.monotonic()
-            self.accumCount=0
-            self.accumVal=10**18
-            self.accumTime=0
+    # Only call from accumulate or from within the historian, which will use the taglock to call this.
+    def flush(self, force=False):
+        # Ratelimit how often we log, continue accumulating if nothing to log.
+        if not force:
+            if self.lastLogged > time.monotonic()-self.interval:
+                return
+
+        offset = time.time()-time.monotonic()
+        self.h.insertData(
+            (self.chID, (self.accumTime/self.accumCount)+offset, self.accumVal))
+        self.lastLogged = time.monotonic()
+        self.accumCount = 0
+        self.accumVal = 10**18
+        self.accumTime = 0
 
 
 class MaxLogger(MinLogger):
-        accumType='max'
-        defaultAccum = -10**18
-        def accumulate(self,value,timestamp,annotation):
-            "Only ever called by the tag"
-            self.accumVal =max(self.accumVal, value)
-            self.accumTime +=timestamp
-            self.accumCount+=1
+    accumType = 'max'
+    defaultAccum = -10**18
 
-            self.flush()
+    def accumulate(self, value, timestamp, annotation):
+        "Only ever called by the tag"
+        self.accumVal = max(self.accumVal, value)
+        self.accumTime += timestamp
+        self.accumCount += 1
 
-        #Only call from accumulate or from within the historian, which will use the taglock to call this.
-        def flush(self,force=False):
-            #Ratelimit how often we log, continue accumulating if nothing to log.
-            if not force:
-                if self.lastLogged > time.monotonic()-self.interval:
-                    return
+        self.flush()
 
-            offset = time.time()-time.monotonic()
-            self.h.insertData((self.chID, (self.accumTime/self.accumCount)+offset,self.accumVal))
-            self.lastLogged = time.monotonic()
-            self.accumCount=0
-            self.accumVal=-10**18
-            self.accumTime=0
+    # Only call from accumulate or from within the historian, which will use the taglock to call this.
+    def flush(self, force=False):
+        # Ratelimit how often we log, continue accumulating if nothing to log.
+        if not force:
+            if self.lastLogged > time.monotonic()-self.interval:
+                return
 
-accumTypes={'replace':TagLogger, 'latest':TagLogger, 'mean': AverageLogger, 'max': MaxLogger, 'min': MinLogger}
-        
+        offset = time.time()-time.monotonic()
+        self.h.insertData(
+            (self.chID, (self.accumTime/self.accumCount)+offset, self.accumVal))
+        self.lastLogged = time.monotonic()
+        self.accumCount = 0
+        self.accumVal = -10**18
+        self.accumTime = 0
+
+
+accumTypes = {'replace': TagLogger, 'latest': TagLogger,
+              'mean': AverageLogger, 'max': MaxLogger, 'min': MinLogger}
+
+
 class TagHistorian():
-    #Generated puely randomly
+    # Generated puely randomly
     appID = 707898159
+
     def __init__(self, file):
         if not os.path.exists(file):
-            newfile=True
+            newfile = True
         else:
-            newfile=False
+            newfile = False
 
-        self.history =  sqlite3.Connection(file)
+        self.history = sqlite3.Connection(file)
         self.history.row_factory = sqlite3.Row
 
         if newfile:
@@ -287,8 +315,10 @@ class TagHistorian():
         self.lock = threading.RLock()
         self.children = {}
 
-        self.history.execute("CREATE TABLE IF NOT EXISTS channel  (tagName text, unit text, accumulate text, metadata text)")
-        self.history.execute("CREATE TABLE IF NOT EXISTS record  (channel INTEGER, timestamp INTEGER, value REAL)")
+        self.history.execute(
+            "CREATE TABLE IF NOT EXISTS channel  (tagName text, unit text, accumulate text, metadata text)")
+        self.history.execute(
+            "CREATE TABLE IF NOT EXISTS record  (channel INTEGER, timestamp INTEGER, value REAL)")
 
         self.history.execute("CREATE VIEW IF NOT EXISTS SimpleViewLocalTime AS SELECT channel.tagName as Channel, channel.accumulate as Type, datetime(record.timestamp,'unixepoch','localtime') as LocalTime, record.value as Value, channel.unit as Unit FROM record INNER JOIN channel ON channel.rowid = record.channel;")
         self.history.execute("CREATE VIEW IF NOT EXISTS SimpleViewUTC AS SELECT channel.tagName as Channel, channel.accumulate as Type,  datetime(record.timestamp,'unixepoch','utc') as UTCTime, record.value as Value, channel.unit as Unit FROM record INNER JOIN channel ON channel.rowid = record.channel;")
@@ -302,10 +332,10 @@ class TagHistorian():
         self.lastGarbageCollected = 0
 
         self.flushInterval = 10*60
-        
+
         self.gcInterval = 3600*2
 
-        messagebus.subscribe("/system/save",self.forceFlush)
+        messagebus.subscribe("/system/save", self.forceFlush)
 
         def f():
             self.flush()
@@ -313,47 +343,45 @@ class TagHistorian():
         self.flusher_f = f
         self.flusher = scheduling.scheduler.everyMinute(f)
 
-
-    def insertData(self,d):    
+    def insertData(self, d):
         self.pending.append(d)
 
     def forceFlush(self):
         self.flush(True)
 
-    def flush(self,force=False):
+    def flush(self, force=False):
         if not force:
-            if time.monotonic()-self.lastFlushed< self.flushInterval:
+            if time.monotonic()-self.lastFlushed < self.flushInterval:
                 return
             self.lastFlushed = time.monotonic()
 
         with self.lock:
-            needsGC= self.lastGarbageCollected<time.monotonic()-self.gcInterval
+            needsGC = self.lastGarbageCollected < time.monotonic()-self.gcInterval
             if needsGC:
-                self.lastGarbageCollected= time.monotonic()
+                self.lastGarbageCollected = time.monotonic()
             if force:
-                needsGC=1
+                needsGC = 1
 
-            #Unfortunately, we still have to do some polling here.
-            #The reason is that we could have a change immediately followed by another change, and it is important that we eventually
-            #record that new change.
+            # Unfortunately, we still have to do some polling here.
+            # The reason is that we could have a change immediately followed by another change, and it is important that we eventually
+            # record that new change.
             for i in self.children:
                 x = self.children[i]()
                 if x:
                     with x.lock:
                         if x.accumCount:
                             x.flush(force)
-                        
 
             l = self.pending
             self.pending = []
-            #Hopefully let any other threads finish
-            #inserting. Note that here we consider very rarely losing a record
-            #to be better than bad performace
+            # Hopefully let any other threads finish
+            # inserting. Note that here we consider very rarely losing a record
+            # to be better than bad performace
             time.sleep(0.001)
             time.sleep(0.001)
             time.sleep(0.001)
 
-            self.history =  sqlite3.Connection(historyDBFile)
+            self.history = sqlite3.Connection(historyDBFile)
             with self.history:
                 if needsGC:
                     for i in self.children:
@@ -363,14 +391,16 @@ class TagHistorian():
                                 x.clearOldData(force)
 
                 for i in l:
-                    self.history.execute('INSERT INTO record VALUES (?,?,?)',i)
+                    self.history.execute(
+                        'INSERT INTO record VALUES (?,?,?)', i)
             self.history.close()
 
 
 try:
     historian = TagHistorian(historyDBFile)
 except:
-    messagebus.postMessage("/system/notifications/errors","Failed to create tag historian, logging will not work."+"\n"+traceback.format_exc())
+    messagebus.postMessage("/system/notifications/errors",
+                           "Failed to create tag historian, logging will not work."+"\n"+traceback.format_exc())
 
 
 """
@@ -451,19 +481,19 @@ class websocket(WebSocket):
 
 """
 
-configAttrs={
-            'hi','lo','min','max','interval','displayUnits'
-        }
-softConfigAttrs={
-    'overrideName','overrideValue','overridePriority','type','onChange','value'
+configAttrs = {
+    'hi', 'lo', 'min', 'max', 'interval', 'displayUnits'
+}
+softConfigAttrs = {
+    'overrideName', 'overrideValue', 'overridePriority', 'type', 'onChange', 'value'
 }
 logger = logging.getLogger("tagpoints")
 syslogger = logging.getLogger("system")
 
 t = time.monotonic
 
-#This is used for messing with the set of tags.
-#We just accept that creating and deleting tags and claims is slow.
+# This is used for messing with the set of tags.
+# We just accept that creating and deleting tags and claims is slow.
 lock = threading.RLock()
 
 allTags = {}
@@ -471,38 +501,36 @@ allTagsAtomic = {}
 
 providers = {}
 
-subscriberErrorHandlers=[]
+subscriberErrorHandlers = []
 
 hasUnsavedData = [0]
 
-#Allows use to recalc entire lists of tags on the creation of another tag,
-#For dependancy resolution
+# Allows use to recalc entire lists of tags on the creation of another tag,
+# For dependancy resolution
 recalcOnCreate = weakref.WeakValueDictionary()
 
 
-from .unitsofmeasure import convert, unitTypes
-from . import widgets
-
 tagsAPI = widgets.APIWidget()
 
-defaultDisplayUnits={
+defaultDisplayUnits = {
     "temperature": "degC|degF",
     "length": "m",
-    "weight":"g",
+    "weight": "g",
     "pressure": "psi|Pa",
     "voltage": "V",
-    "current":"A",
+    "current": "A",
     "power": "W",
     "frequency": "Hz",
     "ratio": "%",
 }
 
-@functools.lru_cache(500,False)
-def normalizeTagName(name, replacementChar = None):
-    name=name.strip()
-    if name =="":
+
+@functools.lru_cache(500, False)
+def normalizeTagName(name, replacementChar=None):
+    name = name.strip()
+    if name == "":
         raise ValueError("Tag with empty name")
-    
+
     if name[0] in '0123456789':
         raise ValueError("Begins with number")
 
@@ -510,16 +538,18 @@ def normalizeTagName(name, replacementChar = None):
         for i in illegalCharsInName:
             if i in name:
                 if replacementChar:
-                    name = name.replace(i,replacementChar)
+                    name = name.replace(i, replacementChar)
                 else:
-                    raise ValueError("Illegal char in tag point name: "+i+" in "+ name)
+                    raise ValueError(
+                        "Illegal char in tag point name: "+i+" in " + name)
         if not name.startswith("/"):
-            name="/"+name
+            name = "/"+name
     else:
         if name.startswith("/="):
             name = name[1:]
 
     return name
+
 
 class TagProvider():
     def mount(self, path):
@@ -527,11 +557,11 @@ class TagProvider():
             self.path.append("/")
         self.path = path
         with lock:
-            providers[path]= weakref.ref(self)
-    
+            providers[path] = weakref.ref(self)
+
     def unmount(self):
         del providers[self.path]
-    
+
     def __del__(self):
         with lock:
             del providers[self.path]
@@ -539,17 +569,18 @@ class TagProvider():
     def getTag(self, tagName):
         return _TagPoint(tagName)
 
-configTags ={}
+
+configTags = {}
 configTagData = {}
 
-def configTagFromData(name,data):
+
+def configTagFromData(name, data):
     name = normalizeTagName(name)
     existingData = configTagData.get(name, {})
 
-    t = data.get("type","number")
+    t = data.get("type", "number")
 
-
-    #Get rid of any unused existing tag
+    # Get rid of any unused existing tag
     try:
         if name in configTags:
             del configTags[name]
@@ -560,58 +591,55 @@ def configTagFromData(name,data):
             gc.collect()
     except:
         pass
-   
 
-    #Create or get the tag
-    if t=="number":
-        tag= Tag(name)
-    elif t=="string":
-        tag= StringTag(name)
+    # Create or get the tag
+    if t == "number":
+        tag = Tag(name)
+    elif t == "string":
+        tag = StringTag(name)
     elif name in allTags:
-        tag= allTags[name]()
+        tag = allTags[name]()
     else:
-        #Config later when the tag is actually created
-        configTagData[name]=data
+        # Config later when the tag is actually created
+        configTagData[name] = data
         return
-    
+
     if t:
-        configTags[name]=tag
-    #Now set it's config.
+        configTags[name] = tag
+    # Now set it's config.
     tag.setConfigData(data)
-
-
 
 
 def getFilenameForTagConfig(i):
     if i.startswith("/"):
         n = i[1:]
     else:
-        n=i
-    return os.path.join(directories.vardir,"tags",n+".yaml")
+        n = i
+    return os.path.join(directories.vardir, "tags", n+".yaml")
 
 
 def gcEmptyConfigTags():
-    torm= []                
-    #Empty dicts can be deleted from disk, letting us just revert to defaultsP
+    torm = []
+    # Empty dicts can be deleted from disk, letting us just revert to defaultsP
     for i in configTagData:
         if not configTagData[i].getAllData():
-            #Can't delete the actual data till the file on disk is gone,
-            #Which is handled by the persist libs
+            # Can't delete the actual data till the file on disk is gone,
+            # Which is handled by the persist libs
             if not os.path.exists(configTagData[i].filename):
                 torm.append(i)
 
-    #Note that this is pretty much the only way something can ever be deleted,
-    #When it is empty we garbarge collect it.
-    #This means we never need to worry about what to keep config data for.
+    # Note that this is pretty much the only way something can ever be deleted,
+    # When it is empty we garbarge collect it.
+    # This means we never need to worry about what to keep config data for.
     for i in torm:
-       configTagData.pop(i,0)
+        configTagData.pop(i, 0)
 
 
-def loadAllConfiguredTags(f=os.path.join(directories.vardir,"tags")):
+def loadAllConfiguredTags(f=os.path.join(directories.vardir, "tags")):
     with lock:
         global configTagData
-        
-        configTagData= persist.loadAllStateFiles(f)
+
+        configTagData = persist.loadAllStateFiles(f)
 
         gcEmptyConfigTags()
 
@@ -620,14 +648,14 @@ def loadAllConfiguredTags(f=os.path.join(directories.vardir,"tags")):
                 configTagFromData(i, configTagData[i].getAllData())
             except:
                 logging.exception("Failure with configured tag: "+i)
-                messagebus.postMessage("/system/notifications/errors","Failed to preconfigure tag "+i+"\n"+traceback.format_exc())
-        
-       
+                messagebus.postMessage(
+                    "/system/notifications/errors", "Failed to preconfigure tag "+i+"\n"+traceback.format_exc())
 
 
-
-#_ and . allowed
+# _ and . allowed
 illegalCharsInName = "[]{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
+
+
 class _TagPoint(virtualresource.VirtualResource):
     """
         A Tag Point is a named object that can be chooses from a set of data sources based on priority,
@@ -648,183 +676,180 @@ class _TagPoint(virtualresource.VirtualResource):
 
         One generally does not instantiate a tag this way, instead they use the Tag function
         which can get existing tags. This allows use of tags for cross=
-    
+
     """
-    defaultData=None
-    type='object'
+    defaultData = None
+    type = 'object'
     @typechecked
-    def __init__(self,name:str):
+    def __init__(self, name: str):
         global allTagsAtomic
-        name=normalizeTagName(name)
+        name = normalizeTagName(name)
         if name in allTags:
-            raise RuntimeError("Tag with this name already exists, use the getter function to get it instead")
+            raise RuntimeError(
+                "Tag with this name already exists, use the getter function to get it instead")
         virtualresource.VirtualResource.__init__(self)
 
         self.dataSourceWidget = None
 
-        #True if there is already a copy of the deadlock diagnostics running
-        self.testingForDeadlock=False
+        # True if there is already a copy of the deadlock diagnostics running
+        self.testingForDeadlock = False
 
         self.alreadyPostedDeadlock = False
-        
-        #Might be the number, or might be the getter function.
-        #it's the current value of the active claim
+
+        # Might be the number, or might be the getter function.
+        # it's the current value of the active claim
         self._value = copy.deepcopy(self.defaultData)
-        self.valueTuple = (self._value,time.monotonic(),None)
+        self.valueTuple = (self._value, time.monotonic(), None)
 
-
-        #Used to track things like min and max, what has been changed by manual setting.
-        #And should not be overridden by code.
+        # Used to track things like min and max, what has been changed by manual setting.
+        # And should not be overridden by code.
         self.configOverrides = {}
 
         self._dynConfigValues = {}
-        self.dynamicAlarmData={}
+        self.dynamicAlarmData = {}
         self.configuredAlarmData = {}
-        #The merged combo of both of those
-        self.effectiveAlarmData={}
+        # The merged combo of both of those
+        self.effectiveAlarmData = {}
 
         self.alarms = {}
 
         self._configuredAlarms = {}
 
         self.name = name
-        #The cached actual value from the claims
-        self.cachedRawClaimVal =  copy.deepcopy(self.defaultData)
-        #The cached output of processValue
+        # The cached actual value from the claims
+        self.cachedRawClaimVal = copy.deepcopy(self.defaultData)
+        # The cached output of processValue
         self.lastValue = self.cachedRawClaimVal
         self.lastGotValue = 0
-        self._interval =0
-        self.activeClaim =None
+        self._interval = 0
+        self.activeClaim = None
         self.claims = {}
         self.lock = threading.RLock()
         self.subscribers = []
         self.poller = None
-       
+
         self.lastError = 0
-        
-        #String describing the "owner" of the tag point
-        #This is not a precisely defined concept
+
+        # String describing the "owner" of the tag point
+        # This is not a precisely defined concept
         self.owner = ""
 
-        #Stamp of when the tag's value was set
-        #start at zero because the time has never been set
+        # Stamp of when the tag's value was set
+        # start at zero because the time has never been set
         self.timestamp = 0
-        self.annotation=None
+        self.annotation = None
 
-        self.handler=None
+        self.handler = None
 
         from . import kaithemobj
-        #Used for the expressions in alert conditions and such
-        self.evalContext={
-                "math": math,
-                "time": time,
-                'tag': self,
-                're': re,
-                'kaithem': kaithemobj.kaithem,
-                'random': random,
-                'tv': self.contextGetNumericTagValue
+        # Used for the expressions in alert conditions and such
+        self.evalContext = {
+            "math": math,
+            "time": time,
+            'tag': self,
+            're': re,
+            'kaithem': kaithemobj.kaithem,
+            'random': random,
+            'tv': self.contextGetNumericTagValue
         }
         try:
             import numpy as np
-            self.evalContext['np']=np
+            self.evalContext['np'] = np
         except ImportError:
             pass
-  
 
-       
-        #If we should push the same value twice in a row when it comes in.
-        #If false, only push changed data to subscribers.
+        # If we should push the same value twice in a row when it comes in.
+        # If false, only push changed data to subscribers.
         self.pushOnRepeats = False
-        self.lastPushedValue=None
+        self.lastPushedValue = None
         self.onSourceChanged = None
 
         with lock:
-            allTags[name]=weakref.ref(self)
-            allTagsAtomic= allTags.copy()
+            allTags[name] = weakref.ref(self)
+            allTagsAtomic = allTags.copy()
 
+        self.defaultClaim = self.claim(
+            copy.deepcopy(self.defaultData), 'default')
 
-        self.defaultClaim = self.claim( copy.deepcopy(self.defaultData),'default')
-        
-        #What permissions are needed to 
-        #read or override this tag, as a tuple of 2 permission strings and an int representing the priority
-        #that api clients can use.
-        #As always, configured takes priority
-        self.permissions = ['','',50]
-        self.configuredPermissions = ['','',50]
+        # What permissions are needed to
+        # read or override this tag, as a tuple of 2 permission strings and an int representing the priority
+        # that api clients can use.
+        # As always, configured takes priority
+        self.permissions = ['', '', 50]
+        self.configuredPermissions = ['', '', 50]
 
-        self.apiClaim= None
+        self.apiClaim = None
 
-        #This is where we can put a manual override
-        #claim from the web UI.
+        # This is where we can put a manual override
+        # claim from the web UI.
         self.manualOverrideClaim = None
 
         self._alarms = {}
 
         with lock:
-            messagebus.postMessage("/system/tags/created",self.name, synchronous=True)
+            messagebus.postMessage(
+                "/system/tags/created", self.name, synchronous=True)
             if self.name in recalcOnCreate:
                 for i in recalcOnCreate[self.name]:
                     try:
                         i()
                     except:
                         pass
-                
+
         if self.name.startswith("="):
             createGetterFromExpression(self.name, self)
         with lock:
-            self.setConfigData(configTagData.get(self.name,{}))
+            self.setConfigData(configTagData.get(self.name, {}))
 
-
-    def expose(self, r='', w='__never__',p=50, configured=False):
+    def expose(self, r='', w='__never__', p=50, configured=False):
         """If not r, disable web API.  Otherwise, set read and write permissions.  
            If configured permissions are set, they totally override code permissions.
            Empty configured perms fallback tor runtime           
-           
+
         """
 
-        #Handle different falsy things someone might use to try and disable this
+        # Handle different falsy things someone might use to try and disable this
         if not r:
-            r=''
+            r = ''
         if not w:
-            w='__never__'
+            w = '__never__'
 
         if isinstance(r, list):
-            r=','.join(r)
-        if isinstance(w,list):
-            w=','.join(w)
-            
+            r = ','.join(r)
+        if isinstance(w, list):
+            w = ','.join(w)
+
         if not p:
-            p=50
-        #Make set we don't somehow save bad data and break everything
-        p=int(p)
-        w=str(w)
-        r=str(r)
-        
+            p = 50
+        # Make set we don't somehow save bad data and break everything
+        p = int(p)
+        w = str(w)
+        r = str(r)
 
         if not r or not w:
-            d=['','','']
+            d = ['', '', '']
             emptyPerms = True
         else:
             emptyPerms = False
-            d=[r,w,p]
+            d = [r, w, p]
 
         with lock:
             with self.lock:
                 if configured:
-                    self.configuredPermissions=d
+                    self.configuredPermissions = d
 
-                    self._recordConfigAttr('permissions',d if not emptyPerms else None)
-                    hasUnsavedData[0]=True
+                    self._recordConfigAttr(
+                        'permissions', d if not emptyPerms else None)
+                    hasUnsavedData[0] = True
                 else:
                     self.permissions = d
 
-                
-                #Merge config and direct
-                d2 =  self.getEffectivePermissions()
+                # Merge config and direct
+                d2 = self.getEffectivePermissions()
 
-                #Be safe, only allow writes if user specifies a permission
-                d2[1]=d2[1] or '__never__'
-                
+                # Be safe, only allow writes if user specifies a permission
+                d2[1] = d2[1] or '__never__'
+
                 if not d2[0]:
                     self.dataSourceWidget = None
                     try:
@@ -835,42 +860,41 @@ class _TagPoint(virtualresource.VirtualResource):
                         self.apiClaim.release()
                 else:
                     w = widgets.DataSource(id="tag:"+self.name)
-                    w.setPermissions([i.strip() for i in d2[0].split(",")], [i.strip() for i in d2[1].split(",")])
-                    w.value=self.value
+                    w.setPermissions([i.strip() for i in d2[0].split(",")], [
+                                     i.strip() for i in d2[1].split(",")])
+                    w.value = self.value
 
-                    exposedTags[self.name]= self
+                    exposedTags[self.name] = self
                     if self.apiClaim:
                         self.apiClaim.setPriority(p)
                     self._apiPush()
-                    
+
                     w.attach(self.apiHandler)
                     self.dataSourceWidget = w
-            
 
-    def apiHandler(self,u,v):
+    def apiHandler(self, u, v):
         if v is None:
             if self.apiClaim:
                 self.apiClaim.release()
         else:
-           #No locking things up if the times are way mismatched and it sets a time way in the future
-           t=time.monotonic()+10
-           self.apiClaim = self.claim(v, 'WebAPIClaim', priority=(self.getEffectivePermissions())[2], annotation=u)
+            # No locking things up if the times are way mismatched and it sets a time way in the future
+            t = time.monotonic()+10
+            self.apiClaim = self.claim(v, 'WebAPIClaim', priority=(
+                self.getEffectivePermissions())[2], annotation=u)
 
-           #They tried to set the value but could not, so inform them of such.
-           if not self.currentSource == self.apiClaim.name:
-               self._apiPush()
-    
-
+            # They tried to set the value but could not, so inform them of such.
+            if not self.currentSource == self.apiClaim.name:
+                self._apiPush()
 
     def getEffectivePermissions(self):
-        d2 =   [self.configuredPermissions[0] or self.permissions[0],
-                self.configuredPermissions[1] or self.permissions[1],
-                self.configuredPermissions[2] or self.permissions[2]]
-        
-        #Block exposure at all if the permission is never
+        d2 = [self.configuredPermissions[0] or self.permissions[0],
+              self.configuredPermissions[1] or self.permissions[1],
+              self.configuredPermissions[2] or self.permissions[2]]
+
+        # Block exposure at all if the permission is never
         if '__never__' in d2[0]:
-            d2[0]= ''
-            d2[1]=''
+            d2[0] = ''
+            d2[1] = ''
 
         return d2
 
@@ -879,189 +903,190 @@ class _TagPoint(virtualresource.VirtualResource):
         if not self.dataSourceWidget:
             return
 
-        #Immediate write, don't push yet, do that in a thread because TCP can block
+        # Immediate write, don't push yet, do that in a thread because TCP can block
         def pushFunction():
-            #Set value immediately, for later page loads
+            # Set value immediately, for later page loads
             self.dataSourceWidget.value = self.value
             if self.guiLock.acquire(timeout=1):
                 try:
-                    #Use the new literal computed value, not what we were passed,
-                    #Because it could have changed by the time we actually get to push
+                    # Use the new literal computed value, not what we were passed,
+                    # Because it could have changed by the time we actually get to push
                     self.dataSourceWidget.send(self.value)
                 finally:
                     self.guiLock.release()
-            
 
-        #Should there already be a function queued for this exact reason, we just let
-        #That one do it's job
+        # Should there already be a function queued for this exact reason, we just let
+        # That one do it's job
         if self.guiLock.acquire(timeout=0.001):
             try:
                 workers.do(pushFunction)
             finally:
-                self.guiLock.release()    
+                self.guiLock.release()
 
     @staticmethod
     def toMonotonic(t):
         offset = time.time()-time.monotonic()
         return t-offset
-    
+
     @staticmethod
     def toWallClock(t):
         offset = time.time()-time.monotonic()
         return t+offset
-          
+
     def testForDeadlock(self):
         "Run a check in the background to make sure this lock isn't clogged up"
         def f():
-            #Approx check, more than one isn't the worst thing
+            # Approx check, more than one isn't the worst thing
             if self.testingForDeadlock:
                 return
 
-            
-            self.testingForDeadlock=True
+            self.testingForDeadlock = True
 
             if self.lock.acquire(timeout=30):
                 self.lock.release()
             else:
                 if not self.alreadyPostedDeadlock:
-                    messagebus.postMessage("/system/notifications/errors","Tag point: "+self.name+" has been unavailable for 30s and may be involved in a deadlock. see threads view.")
-                    self.alreadyPostedDeadlock=True
+                    messagebus.postMessage("/system/notifications/errors", "Tag point: "+self.name +
+                                           " has been unavailable for 30s and may be involved in a deadlock. see threads view.")
+                    self.alreadyPostedDeadlock = True
 
-            self.testingForDeadlock=False
+            self.testingForDeadlock = False
         workers.do(f)
 
-        
-    def _recordConfigAttr(self,k,v):
+    def _recordConfigAttr(self, k, v):
         "Make sure a config attr setting gets saved"
-        #Reject various kinds of empty
-        if not v in (None,'') and (v.strip() if isinstance(v,str) else True):
-            self.configOverrides[k]=v
+        # Reject various kinds of empty
+        if not v in (None, '') and (v.strip() if isinstance(v, str) else True):
+            self.configOverrides[k] = v
             if not self.name in configTagData:
-                configTagData[self.name]= persist.getStateFile(getFilenameForTagConfig(self.name))
-                configTagData[self.name][k]=v
+                configTagData[self.name] = persist.getStateFile(
+                    getFilenameForTagConfig(self.name))
+                configTagData[self.name][k] = v
                 configTagData[self.name].noFileForEmpty = True
-            configTagData[self.name][k]=v
+            configTagData[self.name][k] = v
         else:
-            #Setting at attr to none or an empty string
-            #Deletes it.
-            self.configOverrides.pop(k,0)
+            # Setting at attr to none or an empty string
+            # Deletes it.
+            self.configOverrides.pop(k, 0)
             if self.name in configTagData:
-                configTagData[self.name].pop(k,0)
+                configTagData[self.name].pop(k, 0)
 
-    def recalc(self,*a):
+    def recalc(self, *a):
         "Just re-get the value as needed"
         x = self.value
-    
+
     # def recalcAlarms(self):
     #     with lock:
     #         l = []
     #         for i in self.alarms:
     #             l.append(self.alarms[i])
     #         v,t,a = self.value,self.timestamp,self.annotation
-        
+
     #     def f():
     #         #Call these outside lock so we don't jam up the works too long
     #         for i in l:
     #             l.tagSubscriber(v,t,a)
     #     workers.do(f)
 
-    def contextGetNumericTagValue(self,n):
+    def contextGetNumericTagValue(self, n):
         "Get the tag value, adding it to the list of source tags. Creates tag if it isn't there"
         try:
             return self.sourceTags[n].value
         except KeyError:
-            #We aren't just going to create the tag, we don't know the type.
+            # We aren't just going to create the tag, we don't know the type.
             self.sourceTags[n] = Tag(n)
-            #When any source tag updates, we want to recalculate.
+            # When any source tag updates, we want to recalculate.
             self.sourceTags[n].subscribe(self.recalc)
             return self.sourceTags[n].value
-                
+
         return 0
 
-    def setConfigAttr(self,k,v):
+    def setConfigAttr(self, k, v):
         "Currently converts everything to float or None if blank"
-       
+
         with lock:
-            self._recordConfigAttr(k,v)
-            if isinstance(v,str):
-                if v.strip()=='':
-                    v=None
+            self._recordConfigAttr(k, v)
+            if isinstance(v, str):
+                if v.strip() == '':
+                    v = None
                 else:
                     try:
-                        v=float(v)
+                        v = float(v)
                     except:
                         pass
-            #Attempt to go back to the values set by code
-            if v==None:
-                v= self._dynConfigValues.get(k,v)
-            
-            x = self._dynConfigValues.get(k,None)
+            # Attempt to go back to the values set by code
+            if v == None:
+                v = self._dynConfigValues.get(k, v)
 
-            setattr(self,k,v)
+            x = self._dynConfigValues.get(k, None)
 
-            #Restore TODO race condition here!!!!!!
-            #We get the old dyn val if it is set by another thread in between
-            self._dynConfigValues[k]=x
+            setattr(self, k, v)
 
-            hasUnsavedData[0]=True
+            # Restore TODO race condition here!!!!!!
+            # We get the old dyn val if it is set by another thread in between
+            self._dynConfigValues[k] = x
 
-    #Note the black default condition, that lets us override a normal alarm while using the default condition.
-    def setAlarm(self,name, condition='', priority="warning", releaseCondition='',autoAck='no', tripDelay='0',isConfigured=False,_refresh=True):
+            hasUnsavedData[0] = True
+
+    # Note the black default condition, that lets us override a normal alarm while using the default condition.
+    def setAlarm(self, name, condition='', priority="warning", releaseCondition='', autoAck='no', tripDelay='0', isConfigured=False, _refresh=True):
         with lock:
             if not name:
                 raise RuntimeError("Empty string name")
-            
-            d={
-                'condition':condition,
-                'priority':priority,
-                'autoAck':autoAck,
-                'tripDelay':tripDelay,
+
+            d = {
+                'condition': condition,
+                'priority': priority,
+                'autoAck': autoAck,
+                'tripDelay': tripDelay,
                 'releaseCondition': releaseCondition
             }
 
-            #Remove empties to make way for defaults
-            d = {i:d[i] for i in d if d[i]}
-            
+            # Remove empties to make way for defaults
+            d = {i: d[i] for i in d if d[i]}
+
             if isConfigured:
-                if not isinstance(condition,str) and not condition==None:
-                    raise ValueError("Configurable alarms only allow str or none condition")
-                hasUnsavedData[0]=True
+                if not isinstance(condition, str) and not condition == None:
+                    raise ValueError(
+                        "Configurable alarms only allow str or none condition")
+                hasUnsavedData[0] = True
 
                 storage = self.configuredAlarmData
             else:
-                storage= self.dynamicAlarmData
-                #Dynamics are weak reffed
+                storage = self.dynamicAlarmData
+                # Dynamics are weak reffed
                 if not _refresh:
-                    #This is because we need somewhere to return the strong ref
-                    raise RuntimeError("Cannot create dynamic alarm without the refresh option")
-            
+                    # This is because we need somewhere to return the strong ref
+                    raise RuntimeError(
+                        "Cannot create dynamic alarm without the refresh option")
+
             if condition is None:
                 try:
                     storage.pop(name)
                 except:
                     pass
             else:
-                storage[name]=d
-            
+                storage[name] = d
 
-            #If we have configured alarms, there should be a configTagData entry.
-            #If not, delete, because when that is empty it's how we know
-            #to delete the actual file
+            # If we have configured alarms, there should be a configTagData entry.
+            # If not, delete, because when that is empty it's how we know
+            # to delete the actual file
             if isConfigured:
                 if self.configuredAlarmData:
                     if not self.name in configTagData:
-                        configTagData[self.name]=persist.getStateFile(getFilenameForTagConfig(self.name))    
+                        configTagData[self.name] = persist.getStateFile(
+                            getFilenameForTagConfig(self.name))
                         configTagData[self.name].noFileForEmpty = True
 
-                    configTagData[self.name]['alarms']= self.configuredAlarmData
+                    configTagData[self.name]['alarms'] = self.configuredAlarmData
                 else:
-                    #Don't add the reference in the main dict if it wasn't already there
+                    # Don't add the reference in the main dict if it wasn't already there
                     pass
 
             if _refresh:
-                x=self.createAlarms(name)
+                x = self.createAlarms(name)
                 if x and not isConfigured:
-                    #Alarms have to have a reference to the config data
+                    # Alarms have to have a reference to the config data
                     x._tag_config_ref = d
                     return x
 
@@ -1071,29 +1096,29 @@ class _TagPoint(virtualresource.VirtualResource):
                 self.dynamicAlarmData.clear()
                 self.createAlarms()
 
-    def createAlarms(self,limitTo=None):
+    def createAlarms(self, limitTo=None):
         merged = {}
         with lock:
-            #Combine at a granular per-attribute level
+            # Combine at a granular per-attribute level
             for i in self.dynamicAlarmData:
                 d = self.dynamicAlarmData[i]
                 if d:
-                    merged[i] = merged.get(i,{})
+                    merged[i] = merged.get(i, {})
                     for j in d:
-                        merged[i][j]=d[j]
-                        
+                        merged[i][j] = d[j]
+
             for i in self.configuredAlarmData:
-                merged[i] = merged.get(i,{})
+                merged[i] = merged.get(i, {})
                 for j in self.configuredAlarmData[i]:
-                    merged[i][j]=self.configuredAlarmData[i][j]
+                    merged[i][j] = self.configuredAlarmData[i][j]
 
-            self.effectiveAlarmData=merged.copy()
+            self.effectiveAlarmData = merged.copy()
 
-            #Cancel all existing alarms
+            # Cancel all existing alarms
             for i in self.alarms:
                 a = self.alarms[i]
                 if a:
-                    if not limitTo or i==limitTo:
+                    if not limitTo or i == limitTo:
                         try:
                             self.unsubscribe(a.tagSubscriber)
                         except:
@@ -1102,70 +1127,70 @@ class _TagPoint(virtualresource.VirtualResource):
                         a.release()
 
             if not limitTo:
-                self.alarms ={}
-                self._configuredAlarms={}
+                self.alarms = {}
+                self._configuredAlarms = {}
             else:
-                self.alarms.pop(limitTo,0)
-                self._configuredAlarms.pop(limitTo,0)
+                self.alarms.pop(limitTo, 0)
+                self._configuredAlarms.pop(limitTo, 0)
 
             for i in merged:
-                if not limitTo or i==limitTo:
-                    d =merged[i]
-                    r = self._alarmFromData(i,d)
-                    
+                if not limitTo or i == limitTo:
+                    d = merged[i]
+                    r = self._alarmFromData(i, d)
+
             if limitTo and limitTo in self.alarms:
                 return self.alarms[limitTo]
 
-    
-    def _alarmFromData(self,name,d):
-        if not d.get("condition",''):
+    def _alarmFromData(self, name, d):
+        if not d.get("condition", ''):
             return
-        
-        if d.get("condition",'').strip() in ("False","None","0"):
+
+        if d.get("condition", '').strip() in ("False", "None", "0"):
             return
-        tripCondition=d['condition']
+        tripCondition = d['condition']
 
-        releaseCondition = d.get('releaseCondition',None)
-    
-        priority=d.get("priority","warning") or 'warning'
-        autoAck= d.get("autoAck",'').lower() in ('yes', 'true','y','auto')
-        tripDelay = float(d.get("tripDelay",0) or 0) 
+        releaseCondition = d.get('releaseCondition', None)
 
+        priority = d.get("priority", "warning") or 'warning'
+        autoAck = d.get("autoAck", '').lower() in ('yes', 'true', 'y', 'auto')
+        tripDelay = float(d.get("tripDelay", 0) or 0)
 
         context = self.evalContext
-        
-        tripCondition = compile(tripCondition, self.name+".alarms."+name+"_trip","eval")
+
+        tripCondition = compile(
+            tripCondition, self.name+".alarms."+name+"_trip", "eval")
         if releaseCondition:
-            releaseCondition = compile(tripCondition, self.name+".alarms."+name+"_trip","eval")
+            releaseCondition = compile(
+                tripCondition, self.name+".alarms."+name+"_trip", "eval")
 
-        n = self.name.replace("=",'expr_')
+        n = self.name.replace("=", 'expr_')
         for i in illegalCharsInName:
-            n=n.replace(i,"_")
+            n = n.replace(i, "_")
 
-        obj = alerts.Alert(n+".alarms."+name, 
-            priority=priority,
-            autoAck=autoAck,
-            tripDelay=tripDelay,
-            )
+        obj = alerts.Alert(n+".alarms."+name,
+                           priority=priority,
+                           autoAck=autoAck,
+                           tripDelay=tripDelay,
+                           )
 
         def f():
             try:
-                if hasattr(self,"meterWidget"):
+                if hasattr(self, "meterWidget"):
                     return self.meterWidget.render()
                 else:
                     return self.spanWidget.render()
             except Exception as e:
                 return str(e)
 
-        obj.notificationHTML= f
+        obj.notificationHTML = f
 
         def alarmPollFunction(value, annotation, timestamp):
-            context['value']= value
+            context['value'] = value
             try:
-                if eval(tripCondition,context, context):
+                if eval(tripCondition, context, context):
                     obj.trip("Tag value:"+str(value)[:128])
                 elif releaseCondition:
-                    if eval(releaseCondition,context, context):
+                    if eval(releaseCondition, context, context):
                         obj.release()
                 else:
                     obj.release()
@@ -1175,76 +1200,78 @@ class _TagPoint(virtualresource.VirtualResource):
 
         obj.tagSubscriber = alarmPollFunction
         self.subscribe(alarmPollFunction)
-        self.alarms[name]= obj
+        self.alarms[name] = obj
 
         try:
             alarmPollFunction(self.value, self.annotation, self.timestamp)
         except:
             logger.exception("Error in test run of alarm function for :"+name)
-            
+
         return alarmPollFunction
 
-    def setConfigData(self,data):
+    def setConfigData(self, data):
         with lock:
             self.sourceTags = {}
-            hasUnsavedData[0]=True
-            #New config, new chance to see if there's a problem.
-            self.alreadyPostedDeadlock=False
-
-
+            hasUnsavedData[0] = True
+            # New config, new chance to see if there's a problem.
+            self.alreadyPostedDeadlock = False
 
             if data and not self.name in configTagData:
-                configTagData[self.name]= persist.getStateFile(getFilenameForTagConfig(self.name))
+                configTagData[self.name] = persist.getStateFile(
+                    getFilenameForTagConfig(self.name))
                 configTagData[self.name].noFileForEmpty = True
 
             if 'type' in data:
-                if data['type']=='number' and not isinstance(self,_NumericTagPoint):
-                    raise RuntimeError("Tag already exists and is not a numeric tag")
-                if data['type']=='string' and not isinstance(self,_StringTagPoint):
-                    raise RuntimeError("Tag already exists and is not a string tag")           
-                if data['type']=='object' and not isinstance(self,_TagPoint):
-                    raise RuntimeError("Tag already exists and is not a string tag")
-            
-            #Only modify tags if the current data matches the existing
-            #Configured value and has not beed overwritten by code
+                if data['type'] == 'number' and not isinstance(self, _NumericTagPoint):
+                    raise RuntimeError(
+                        "Tag already exists and is not a numeric tag")
+                if data['type'] == 'string' and not isinstance(self, _StringTagPoint):
+                    raise RuntimeError(
+                        "Tag already exists and is not a string tag")
+                if data['type'] == 'object' and not isinstance(self, _TagPoint):
+                    raise RuntimeError(
+                        "Tag already exists and is not a string tag")
+
+            # Only modify tags if the current data matches the existing
+            # Configured value and has not beed overwritten by code
             for i in configAttrs:
                 if i in data:
-                    self.setConfigAttr(i,data[i])
+                    self.setConfigAttr(i, data[i])
                 else:
-                    self.setConfigAttr(i,None)
+                    self.setConfigAttr(i, None)
 
             for i in softConfigAttrs:
                 if i in data:
-                    self._recordConfigAttr(i,data[i])
+                    self._recordConfigAttr(i, data[i])
                 else:
-                    self._recordConfigAttr(i,None)
+                    self._recordConfigAttr(i, None)
 
-            #The type field is what determines a tag that can be
-            #created purely through config
-            if data.get("type",None):
-                configTags[self.name]=self
+            # The type field is what determines a tag that can be
+            # created purely through config
+            if data.get("type", None):
+                configTags[self.name] = self
             else:
-                #Pop from that storage, this shouldn't exist if there is no
-                #external reference
-                configTags.pop(self.name,0)
+                # Pop from that storage, this shouldn't exist if there is no
+                # external reference
+                configTags.pop(self.name, 0)
 
             if hasattr(self, 'configuredOnChangeAction'):
                 self.unsubscribe(self.configuredOnChangeAction)
                 del self.configuredOnChangeAction
 
-            if data.get("onChange",None):
-                #Configurable onChange handlers
-                ocfc = compile(data['onChange'],self.name+".onChange",'exec')
+            if data.get("onChange", None):
+                # Configurable onChange handlers
+                ocfc = compile(data['onChange'], self.name+".onChange", 'exec')
+
                 def ocf(value, timestamp, annotation):
                     exec(ocfc, self.evalContext, self.evalContext)
-                self.configuredOnChangeAction =ocf
+                self.configuredOnChangeAction = ocf
                 self.subscribe(ocf)
 
-            
-            loggers = data.get('loggers',[])
+            loggers = data.get('loggers', [])
 
             if loggers:
-                configTagData[self.name]['loggers']=data['loggers']
+                configTagData[self.name]['loggers'] = data['loggers']
             else:
                 try:
                     del configTagData[self.name]['loggers']
@@ -1252,165 +1279,161 @@ class _TagPoint(virtualresource.VirtualResource):
                     pass
             self.configLoggers = []
             for i in loggers:
-                interval = float(i.get("interval",60) or 60)
-                length = float(i.get("historyLength",3*30*24*3600) or 3*30*24*3600)
+                interval = float(i.get("interval", 60) or 60)
+                length = float(
+                    i.get("historyLength", 3*30*24*3600) or 3*30*24*3600)
 
                 accum = i['accumulate']
                 try:
-                    c = accumTypes[accum](self, interval,length)
+                    c = accumTypes[accum](self, interval, length)
                     self.configLoggers.append(c)
                 except:
-                    messagebus.postMessage("/system/notifications/errors","Error creating logger for: "+self.name+"\n"+traceback.format_exc())
-                    
+                    messagebus.postMessage(
+                        "/system/notifications/errors", "Error creating logger for: "+self.name+"\n"+traceback.format_exc())
 
-
-
-            #this is apparently just for the configured part, the dynamic part happens behind the scenes in
-            #setAlarm via createAlarma
-            alarms = data.get('alarms',{})
+            # this is apparently just for the configured part, the dynamic part happens behind the scenes in
+            # setAlarm via createAlarma
+            alarms = data.get('alarms', {})
             self.configuredAlarmData = {}
-            for i in alarms :
+            for i in alarms:
                 if alarms[i]:
-                    #Avoid duplicate param
-                    alarms[i].pop('name','')
-                    self.setAlarm(i, **alarms[i],isConfigured=True,_refresh=False)
+                    # Avoid duplicate param
+                    alarms[i].pop('name', '')
+                    self.setAlarm(
+                        i, **alarms[i], isConfigured=True, _refresh=False)
                 else:
-                    self.setAlarm(i,None,isConfigured=True,_refresh=False)
-          
+                    self.setAlarm(i, None, isConfigured=True, _refresh=False)
 
-            #This one is a little different. If the timestamp is 0,
-            #We know it has never been set.
-            if 'value' in data and not data['value'].strip()=='':
-                configTagData[self.name]['value']=data['value']
+            # This one is a little different. If the timestamp is 0,
+            # We know it has never been set.
+            if 'value' in data and not data['value'].strip() == '':
+                configTagData[self.name]['value'] = data['value']
 
                 if self.timestamp == 0:
-                    #Set timestamp to 0, this marks the tag as still using a default
-                    #Which can be further changed
-                    self.setClaimVal("default", float(data['value']),0,"Configured default")
+                    # Set timestamp to 0, this marks the tag as still using a default
+                    # Which can be further changed
+                    self.setClaimVal("default", float(
+                        data['value']), 0, "Configured default")
             else:
                 if self.name in configTagData:
-                    configTagData[self.name].pop("value",0)
+                    configTagData[self.name].pop("value", 0)
 
-            #Todo there's a duplication here, we refresh allthe alarms, not sure we need to
+            # Todo there's a duplication here, we refresh allthe alarms, not sure we need to
             self.createAlarms()
-            
-            #Val override last, in case it triggers an alarm
-            if data.get('overrideValue','').strip():
-                self.kweb_manualOverrideClaim = self.claim(data['overrideValue'], data.get('overrideName','config'), int(data.get('overridePriority','') or 90 ))
+
+            # Val override last, in case it triggers an alarm
+            if data.get('overrideValue', '').strip():
+                self.kweb_manualOverrideClaim = self.claim(data['overrideValue'], data.get(
+                    'overrideName', 'config'), int(data.get('overridePriority', '') or 90))
             elif hasattr(self, 'kweb_manualOverrideClaim'):
                 self.kweb_manualOverrideClaim.release()
                 del self.kweb_manualOverrideClaim
 
-            p = data.get('permissions',('','',''))
-            #Set configured permissions, overriding runtime
-            self.expose(*p,configured=True)
-    
+            p = data.get('permissions', ('', '', ''))
+            # Set configured permissions, overriding runtime
+            self.expose(*p, configured=True)
+
     @property
     def interval(self):
         return self._interval
 
     @interval.setter
-    def interval(self,val):
-        self._dynConfigValues['interval']= val
-        if not val==self.configOverrides.get('interval',val):
+    def interval(self, val):
+        self._dynConfigValues['interval'] = val
+        if not val == self.configOverrides.get('interval', val):
             return
-        if not val==None:
-            self._interval=val
+        if not val == None:
+            self._interval = val
         else:
-            self._interval=0
+            self._interval = 0
         with self.lock:
-            self._managePolling() 
-
-
-  
+            self._managePolling()
 
     @classmethod
-    def Tag(cls,name:str, defaults={}):
-        name=normalizeTagName(name)
+    def Tag(cls, name: str, defaults={}):
+        name = normalizeTagName(name)
         rval = None
         with lock:
             if name in allTags:
-                x=allTags[name]()
+                x = allTags[name]()
                 if x:
                     if not x.__class__ is cls:
-                        raise TypeError("A tag of that name exists, but it is the wrong type. Existing: "+ str(x.__class__)+" New: "+ str(cls))
-                    rval=x
-            
+                        raise TypeError(
+                            "A tag of that name exists, but it is the wrong type. Existing: " + str(x.__class__)+" New: " + str(cls))
+                    rval = x
+
             else:
-                for i in sorted(providers.keys(),key =lambda p: len(p.path), reverse=True):
+                for i in sorted(providers.keys(), key=lambda p: len(p.path), reverse=True):
                     if name.startswith(i):
-                        rval= providers[i].getTag(i)
+                        rval = providers[i].getTag(i)
 
             if not rval:
-                rval= cls(name)
+                rval = cls(name)
 
             return rval
 
     @property
     def currentSource(self):
         return self.activeClaim[2]
-  
-    def filterValue(self,v):
+
+    def filterValue(self, v):
         "Pure function that returns a cleaned up or normalized version of the value"
         return v
-
 
     def __del__(self):
         global allTagsAtomic
         with lock:
             try:
                 del allTags[self.name]
-                allTagsAtomic= allTags.copy()
+                allTagsAtomic = allTags.copy()
             except:
                 pass
-            messagebus.postMessage("/system/tags/deleted",self.name, synchronous=True)
+            messagebus.postMessage(
+                "/system/tags/deleted", self.name, synchronous=True)
 
-
-    def __call__(self,*args,**kwargs):
+    def __call__(self, *args, **kwargs):
         if not args:
             return self.value
         else:
-            return self.setClaimVal(*args,**kwargs)
-
+            return self.setClaimVal(*args, **kwargs)
 
     def interface(self):
         "Override the VResource thing"
-        #With no replacement or master objs, we just return self
+        # With no replacement or master objs, we just return self
         return self
 
     def handoff(self, other):
-        #Tag points have no concept of a master object.
-        #They have no parameters that can' be set from any ref to it
-        if not other ==self:
-            raise RuntimeError("Tag points can't be replaced except by the same obj")
+        # Tag points have no concept of a master object.
+        # They have no parameters that can' be set from any ref to it
+        if not other == self:
+            raise RuntimeError(
+                "Tag points can't be replaced except by the same obj")
         return
-
 
     def _managePolling(self):
         interval = self._interval or 0
-        if (self.subscribers or self.handler) and interval>0:
+        if (self.subscribers or self.handler) and interval > 0:
             if not self.poller or not (interval == self.poller.interval):
                 if self.poller:
                     self.poller.unregister()
-                self.poller = scheduling.scheduler.scheduleRepeating(self.poll, interval,sync=False)
+                self.poller = scheduling.scheduler.scheduleRepeating(
+                    self.poll, interval, sync=False)
         else:
             if self.poller:
                 self.poller.unregister()
                 self.poller = None
 
-
     @typechecked
-    def subscribe(self,f:Callable):
+    def subscribe(self, f: Callable):
         if self.lock.acquire(timeout=20):
             try:
-                
-                if isinstance(f,types.MethodType):
-                    ref=weakref.WeakMethod(f)
+
+                if isinstance(f, types.MethodType):
+                    ref = weakref.WeakMethod(f)
                 else:
                     ref = weakref.ref(f)
 
                 self.subscribers.append(ref)
-
 
                 torm = []
                 for i in self.subscribers:
@@ -1418,34 +1441,36 @@ class _TagPoint(virtualresource.VirtualResource):
                         torm.append(i)
                 for i in torm:
                     self.subscribers.remove(i)
-                
+
                 self._managePolling()
             finally:
                 self.lock.release()
         else:
             self.testForDeadlock()
-            raise RuntimeError("Cannot get lock to subscribe to this tag. Is there a long running subscriber?")
-        
-    def unsubscribe(self,f):
+            raise RuntimeError(
+                "Cannot get lock to subscribe to this tag. Is there a long running subscriber?")
+
+    def unsubscribe(self, f):
         if self.lock.acquire(timeout=20):
             try:
                 x = None
                 for i in self.subscribers:
-                    if i()==f:
+                    if i() == f:
                         x = i
                 if x:
                     self.subscribers.remove(x)
-                
+
                 self._managePolling()
             finally:
                 self.lock.release()
         else:
             self.testForDeadlock()
-            raise RuntimeError("Cannot get lock to subscribe to this tag. Is there a long running subscriber?")
-            
+            raise RuntimeError(
+                "Cannot get lock to subscribe to this tag. Is there a long running subscriber?")
+
     @typechecked
-    def setHandler(self, f:Callable):
-        self.handler=weakref.ref(f)
+    def setHandler(self, f: Callable):
+        self.handler = weakref.ref(f)
 
     def _debugAdminPush(self, value):
         pass
@@ -1472,7 +1497,6 @@ class _TagPoint(virtualresource.VirtualResource):
             self.testForDeadlock()
             raise RuntimeError("Could not get lock")
 
-
     def _push(self):
         """Push to subscribers. Only call under the same lock you changed value
             under. Otherwise the push might happen in the opposite order as the set, and
@@ -1480,53 +1504,53 @@ class _TagPoint(virtualresource.VirtualResource):
 
             Also, keep setting the timestamp and annotation under that lock, to stay atomic
         """
-       
-        #This is not threadsafe, but I don't think it matters.
-        #A few unnecessary updates shouldn't affect anything.
-        if self.lastValue==self.lastPushedValue:
+
+        # This is not threadsafe, but I don't think it matters.
+        # A few unnecessary updates shouldn't affect anything.
+        if self.lastValue == self.lastPushedValue:
             if not self.pushOnRepeats:
                 return
-        
-        #Note the difference with the handler.
-        #It is called synchronously, right then and there
+
+        # Note the difference with the handler.
+        # It is called synchronously, right then and there
         if self.handler:
-            f=self.handler()
+            f = self.handler()
             if f:
                 f(self.lastValue, self.timestamp, self.annotation)
             else:
-                self.handler=None
+                self.handler = None
         self._debugAdminPush(self.lastValue)
         self._apiPush()
 
         self.lastPushedValue = self.lastValue
 
         for i in self.subscribers:
-            f=i()
+            f = i()
             if f:
                 try:
-                    f(self.lastValue,self.timestamp,self.annotation)
+                    f(self.lastValue, self.timestamp, self.annotation)
                 except:
                     logger.exception("Tag subscriber error")
-                    #Return the error from whence it came to display in the proper place
+                    # Return the error from whence it came to display in the proper place
                     for i in subscriberErrorHandlers:
                         try:
-                            i(self, f,self.lastValue)
+                            i(self, f, self.lastValue)
                         except:
-                            print("Failed to handle error: "+traceback.format_exc(6))
+                            print("Failed to handle error: " +
+                                  traceback.format_exc(6))
             del f
 
-    def processValue(self,value):
-
+    def processValue(self, value):
         """Represents the transform from the claim input to the output.
             Must be a pure-ish function
         """
-        #Functions are special valid types of value.
-        #They are automatically resolved.
+        # Functions are special valid types of value.
+        # They are automatically resolved.
         if callable(value):
             value = value()
 
         return value
-   
+
     @property
     def age(self):
         return time.time()-self.lastGotValue
@@ -1538,84 +1562,88 @@ class _TagPoint(virtualresource.VirtualResource):
     def pull(self):
         return self._getValue(True)
 
-    def _getValue(self,force=False):
+    def _getValue(self, force=False):
         "Get the processed value of the tag, and update lastValue, It is meant to be called under lock."
 
         activeClaimValue = self._value
         if not callable(activeClaimValue):
-            #We no longer are aiming to support using the processor for impure functions
+            # We no longer are aiming to support using the processor for impure functions
             pass
-            self.lastValue= self.processValue(activeClaimValue)
+            self.lastValue = self.processValue(activeClaimValue)
         else:
-            #Rate limited tag getter logic. We ignore the possibility for
-            #Race conditions and assume that calling a little too often is fine, since
-            #It shouldn't affect correctness
-            if (time.time()-self.lastGotValue> self._interval) or force:
-                #Set this flag immediately, or else a function with an error could defeat the cacheing
-                #And just flood everything with errors
+            # Rate limited tag getter logic. We ignore the possibility for
+            # Race conditions and assume that calling a little too often is fine, since
+            # It shouldn't affect correctness
+            if (time.time()-self.lastGotValue > self._interval) or force:
+                # Set this flag immediately, or else a function with an error could defeat the cacheing
+                # And just flood everything with errors
                 self.lastGotValue = time.time()
 
                 try:
-                    #However, the actual logic IS ratelimited
-                    #Note the lock is IN the try block so we don' handle errors under it and
-                    #Cause bugs that way
+                    # However, the actual logic IS ratelimited
+                    # Note the lock is IN the try block so we don' handle errors under it and
+                    # Cause bugs that way
 
-                    #Viewing the state is pretty critical, we don't want to block
-                    #that too long or we might interfere with manual recovery
+                    # Viewing the state is pretty critical, we don't want to block
+                    # that too long or we might interfere with manual recovery
                     if not self.lock.acquire(timeout=10 if force else 1):
-                
+
                         self.testForDeadlock()
                         if force:
                             raise RuntimeError("Error getting lock")
-                        #We extend the idea that cache is allowed to also
-                        #mean we can fall back to cache in case of a timeout.
+                        # We extend the idea that cache is allowed to also
+                        # mean we can fall back to cache in case of a timeout.
                         else:
-                            logging.error("tag point:"+ self.name+" took too long getting lock to get value, falling back to cache")
+                            logging.error(
+                                "tag point:" + self.name+" took too long getting lock to get value, falling back to cache")
                             return self.lastValue
                     try:
-                        #None means no new data
+                        # None means no new data
                         x = activeClaimValue()
                         t = time.monotonic()
-                        
-                        if not x is None:
-                            #Race here. Data might not always match timestamp an annotation, if we weren't under lock
-                            self.timestamp = t 
-                            self.annotation=None
 
-                        self.cachedRawClaimVal= x or self.cachedRawClaimVal
-                        self.lastValue = self.processValue(self.cachedRawClaimVal)
+                        if not x is None:
+                            # Race here. Data might not always match timestamp an annotation, if we weren't under lock
+                            self.timestamp = t
+                            self.annotation = None
+
+                        self.cachedRawClaimVal = x or self.cachedRawClaimVal
+                        self.lastValue = self.processValue(
+                            self.cachedRawClaimVal)
                     finally:
                         self.lock.release()
-                        
+
                 except:
-                    #We treat errors as no new data.
+                    # We treat errors as no new data.
                     logger.exception("Error getting tag value")
 
-                    #The system logger is the one kaithem actually logs to file.
-                    if self.lastError<(time.time()-(60*10)):
-                        syslogger.exception("Error getting tag value. This message will only be logged every ten minutes.")
-                    #If we can, try to send the exception back whence it came
+                    # The system logger is the one kaithem actually logs to file.
+                    if self.lastError < (time.time()-(60*10)):
+                        syslogger.exception(
+                            "Error getting tag value. This message will only be logged every ten minutes.")
+                    # If we can, try to send the exception back whence it came
                     try:
                         import newevt
-                        newevt.eventByModuleName(activeClaimValue.__module__)._handle_exception()
-                    except:
-                        pass
-            
+                        newevt.eventByModuleName(
+                            activeClaimValue.__module__)._handle_exception()
+                    except Exception:
+                        print(traceback.format_exc())
+
         return self.lastValue
-    
+
     @value.setter
     def value(self, v):
-        self.setClaimVal("default",v,time.monotonic(),"Set via value property")
+        self.setClaimVal("default", v, time.monotonic(),
+                         "Set via value property")
 
-    
-    def handleSourceChanged(self,name):
+    def handleSourceChanged(self, name):
         if self.onSourceChanged:
             try:
                 self.onSourceChanged(name)
             except:
                 logging.exception("Error handling changed source")
 
-    def claim(self, value, name=None, priority=None,timestamp=None, annotation=None):
+    def claim(self, value, name=None, priority=None, timestamp=None, annotation=None):
         """Adds a 'claim', a request to set the tag's value either to a literal 
             number or to a getter function.
 
@@ -1628,25 +1656,25 @@ class _TagPoint(virtualresource.VirtualResource):
         if timestamp is None:
             timestamp = time.monotonic()
 
-        if priority and priority>100:
+        if priority and priority > 100:
             raise ValueError("Maximum priority is 100")
 
         if not callable(value):
-            value=self.filterValue(value)
-            
+            value = self.filterValue(value)
+
         if not self.lock.acquire(timeout=15):
             raise RuntimeError("Could not get lock")
         try:
 
-            #we're changing the value of an existing claim,
-            #We need to get the claim object, which we stored by weakref
-            claim=None
+            # we're changing the value of an existing claim,
+            # We need to get the claim object, which we stored by weakref
+            claim = None
             # try:
             #     ##If there's an existing claim by that name we're just going to modify it
             if name in self.claims:
-                claim= self.claims[name][3]()
+                claim = self.claims[name][3]()
 
-            #Unused old optimization
+            # Unused old optimization
             #         #No priority change, set and return
             #         if priority == claim.priority:
             #             claim.set(value,timestamp, annotation)
@@ -1655,23 +1683,23 @@ class _TagPoint(virtualresource.VirtualResource):
             # except:
             #     logger.exception("Probably a race condition and safe to ignore this")
 
-            #If the weakref obj disappeared it will be None
-            if claim ==None:
+            # If the weakref obj disappeared it will be None
+            if claim == None:
                 priority = priority or 50
-                claim = self.claimFactory(value,name,priority,timestamp,annotation)
-        
-            claim.value=value
+                claim = self.claimFactory(
+                    value, name, priority, timestamp, annotation)
+
+            claim.value = value
             claim.timestamp = timestamp
             claim.annotation = annotation
             claim.priority = priority
 
+            # Note  that we use the time, so that the most recent claim is
+            # Always the winner in case of conflictsclaim
+            self.claims[name] = (priority, t(), name, weakref.ref(claim))
 
-            #Note  that we use the time, so that the most recent claim is
-            #Always the winner in case of conflictsclaim
-            self.claims[name] = (priority, t(),name,weakref.ref(claim))
-
-            #If we have priortity on them, or if we have the same priority but are newer
-            if (self.activeClaim==None) or (priority > self.activeClaim[0]) or ((priority == self.activeClaim[0]) and( timestamp>self.activeClaim[1])):
+            # If we have priortity on them, or if we have the same priority but are newer
+            if (self.activeClaim == None) or (priority > self.activeClaim[0]) or ((priority == self.activeClaim[0]) and(timestamp > self.activeClaim[1])):
                 self.activeClaim = self.claims[name]
                 self.handleSourceChanged(name)
 
@@ -1682,110 +1710,109 @@ class _TagPoint(virtualresource.VirtualResource):
                 self.timestamp = timestamp
                 self.annotation = annotation
 
-                self.valueTuple = (value,timestamp,annotation)
+                self.valueTuple = (value, timestamp, annotation)
 
-            #If priority has been changed on the existing active claim
-            #We need to handle it
-            elif name==self.activeClaim[2]:
-                #Defensive programming against weakrefs dissapearing
-                #in some kind of race condition that leaves them in the list.
-                #Basically we find the highest priority valid claim
+            # If priority has been changed on the existing active claim
+            # We need to handle it
+            elif name == self.activeClaim[2]:
+                # Defensive programming against weakrefs dissapearing
+                # in some kind of race condition that leaves them in the list.
+                # Basically we find the highest priority valid claim
                 for i in reversed(sorted(self.claims.values())):
-                    x= i[3]()
+                    x = i[3]()
                     if x:
-                        self._value=x.value
+                        self._value = x.value
                         self.timestamp = x.timestamp
                         self.annotation = x.annotation
-                        self.valueTuple = (value,timestamp,annotation)
+                        self.valueTuple = (value, timestamp, annotation)
 
-                        self.activeClaim=i
-                        if not i==self.activeClaim:
+                        self.activeClaim = i
+                        if not i == self.activeClaim:
                             self.handleSourceChanged(i[2])
                         break
-            
+
             self._getValue()
-            self._push()           
+            self._push()
             return claim
         finally:
             self.lock.release()
 
-    def setClaimVal(self,claim,val,timestamp,annotation):
+    def setClaimVal(self, claim, val, timestamp, annotation):
         "Set the value of an existing claim"
         if timestamp == None:
             timestamp = time.monotonic()
-        
+
         if not callable(val):
-            val=self.filterValue(val)
+            val = self.filterValue(val)
 
         if not self.lock.acquire(timeout=10):
             raise RuntimeError("Could not get lock!")
-        
+
         try:
-            c=self.claims[claim]
-            #If we're setting the active claim
-            if c==self.activeClaim:
-                upd=True
+            c = self.claims[claim]
+            # If we're setting the active claim
+            if c == self.activeClaim:
+                upd = True
             else:
-                upd=False
-                #We can "steal" control if we have the same priority and are more recent, byt to do that we have to use the slower claim function that handles creating
-                #and switching claims
-                if c[0] >=self.activeClaim[0] and timestamp>self.activeClaim[1]:
-                    self.claim(val,claim, c[0], timestamp,  annotation)
+                upd = False
+                # We can "steal" control if we have the same priority and are more recent, byt to do that we have to use the slower claim function that handles creating
+                # and switching claims
+                if c[0] >= self.activeClaim[0] and timestamp > self.activeClaim[1]:
+                    self.claim(val, claim, c[0], timestamp,  annotation)
                     return
 
-            #Grab the claim obj and set it's val
-            x= c[3]()
+            # Grab the claim obj and set it's val
+            x = c[3]()
             if callable(x.value) or callable(val):
                 self._managePolling()
             x.value = val
-         
-            x.annotation=annotation
+
+            x.annotation = annotation
             if upd:
                 self.timestamp = timestamp
-                self._value=val
-                self.valueTuple = (val,timestamp,annotation)
-                self.annotation=annotation
+                self._value = val
+                self.valueTuple = (val, timestamp, annotation)
+                self.annotation = annotation
                 self._getValue()
                 self._push()
         finally:
             self.lock.release()
-              
 
-
-    #Get the specific claim object for this class
-    def claimFactory(self, value,name,priority,timestamp,annotation):
-        return Claim(self, value,name,priority,timestamp,annotation)
+    # Get the specific claim object for this class
+    def claimFactory(self, value, name, priority, timestamp, annotation):
+        return Claim(self, value, name, priority, timestamp, annotation)
 
     def release(self, name):
         if not self.lock.acquire(timeout=10):
             raise RuntimeError("Could not get lock!")
 
         try:
-            #Ifid lets us filter by ID, so that a claim object that has
-            #Long since been overriden can't delete one with the same name
-            #When it gets GCed
+            # Ifid lets us filter by ID, so that a claim object that has
+            # Long since been overriden can't delete one with the same name
+            # When it gets GCed
             if not name in self.claims:
                 return
-            
-            if name=="default":
+
+            if name == "default":
                 raise ValueError("Cannot delete the default claim")
 
-            if len(self.claims)==1:
+            if len(self.claims) == 1:
                 raise RuntimeError("Tags must maintain at least one claim")
             del self.claims[name]
             while self.claims:
-                self.activeClaim = sorted(list(self.claims.values()),reverse=True)[0]
+                self.activeClaim = sorted(
+                    list(self.claims.values()), reverse=True)[0]
                 o = self.activeClaim[3]()
 
-                #Perhaps in a race condition that has dissapeared.
-                #We must remove it and retry.
-                if o==None:
+                # Perhaps in a race condition that has dissapeared.
+                # We must remove it and retry.
+                if o == None:
                     del self.claims[self.activeClaim[2]]
                 else:
                     self._value = o.value
-                    self.valueTuple = (o.value,o.timestamp,o.annotation)
+                    self.valueTuple = (o.value, o.timestamp, o.annotation)
                     self.timestamp = o.timestamp
-                    self.annotation =o.annotation
+                    self.annotation = o.annotation
                     break
 
             self._getValue()
@@ -1794,40 +1821,41 @@ class _TagPoint(virtualresource.VirtualResource):
         finally:
             self.lock.release()
 
+
 class _NumericTagPoint(_TagPoint):
-    defaultData=0
-    type='number'
+    defaultData = 0
+    type = 'number'
     @typechecked
-    def __init__(self,name:str, 
-        min:Union[float,int,None]=None, 
-        max:Union[float,int,None]=None):
-        
+    def __init__(self, name: str,
+                 min: Union[float, int, None] = None,
+                 max: Union[float, int, None] = None):
+
         self._hi = None
         self._lo = None
-        self._min=min
-        self._max =max
-        #Pipe separated list of how to display value
-        self._displayUnits=None
+        self._min = min
+        self._max = max
+        # Pipe separated list of how to display value
+        self._displayUnits = None
         self._unit = ""
         self.guiLock = threading.Lock()
-        self._meterWidget=None
+        self._meterWidget = None
         self._setupMeter()
-        _TagPoint.__init__(self,name)
+        _TagPoint.__init__(self, name)
 
-    def processValue(self,value):
-        #Functions are special valid types of value.
-        #They are automatically resolved.
+    def processValue(self, value):
+        # Functions are special valid types of value.
+        # They are automatically resolved.
         if callable(value):
             value = value()
 
-        if self._min !=None:
-            value= max(self._min,value)
+        if self._min != None:
+            value = max(self._min, value)
 
-        if self._max !=None:
-            value= min(self._max,value)        
-        
+        if self._max != None:
+            value = min(self._max, value)
+
         return float(value)
-   
+
     @property
     def meterWidget(self):
         if not self.lock.acquire(timeout=5):
@@ -1837,19 +1865,20 @@ class _NumericTagPoint(_TagPoint):
                 x = self._meterWidget
                 if x:
                     self._debugAdminPush(self.value)
-                    #Put if back if the function tried to GC it.
-                    self._meterWidget =x
+                    # Put if back if the function tried to GC it.
+                    self._meterWidget = x
                     return self._meterWidget
 
-            self._meterWidget= widgets.Meter()
+            self._meterWidget = widgets.Meter()
             self._meterWidget.defaultLabel = self.name.split(".")[-1][:24]
-            
-            self._meterWidget.setPermissions(['/users/tagpoints.view'],['/users/tagpoints.edit'])
+
+            self._meterWidget.setPermissions(
+                ['/users/tagpoints.view'], ['/users/tagpoints.edit'])
             self._setupMeter()
-            #Try to immediately put the correct data in the gui
+            # Try to immediately put the correct data in the gui
             if self.guiLock.acquire():
                 try:
-                    #Note: this in-thread write could be slow
+                    # Note: this in-thread write could be slow
                     self._meterWidget.write(self.lastValue)
                 finally:
                     self.guiLock.release()
@@ -1865,41 +1894,40 @@ class _NumericTagPoint(_TagPoint):
             self._meterWidget = None
             return
 
-        #Immediate write, don't push yet, do that in a thread because TCP can block
+        # Immediate write, don't push yet, do that in a thread because TCP can block
         def pushFunction():
-            self._meterWidget.write(value,push=False)
+            self._meterWidget.write(value, push=False)
             if self.guiLock.acquire(timeout=1):
                 try:
-                    #Use the cached literal computed value, not what we were passed,
-                    #Because it could have changed by the time we actually get to push
+                    # Use the cached literal computed value, not what we were passed,
+                    # Because it could have changed by the time we actually get to push
                     self._meterWidget.write(self.lastValue)
                 finally:
                     self.guiLock.release()
-            
 
-        #Should there already be a function queued for this exact reason, we just let
-        #That one do it's job
+        # Should there already be a function queued for this exact reason, we just let
+        # That one do it's job
         if self.guiLock.acquire(timeout=0.001):
             try:
                 workers.do(pushFunction)
             finally:
-                self.guiLock.release()    
+                self.guiLock.release()
 
-    def filterValue(self,v):
+    def filterValue(self, v):
         return float(v)
 
-    def claimFactory(self, value,name,priority,timestamp,annotation):
-        return NumericClaim(self,value,name,priority,timestamp,annotation)
-    
+    def claimFactory(self, value, name, priority, timestamp, annotation):
+        return NumericClaim(self, value, name, priority, timestamp, annotation)
+
     @property
     def min(self):
         return self._min
-    
-    @min.setter
-    def min(self,v):
-        self._dynConfigValues['min']= v
 
-        if not v==self.configOverrides.get('min',v):
+    @min.setter
+    def min(self, v):
+        self._dynConfigValues['min'] = v
+
+        if not v == self.configOverrides.get('min', v):
             return
         self._min = v
         self._setupMeter()
@@ -1907,46 +1935,46 @@ class _NumericTagPoint(_TagPoint):
     @property
     def max(self):
         return self._max
-    
+
     @max.setter
-    def max(self,v):
-        self._dynConfigValues['max']= v
-        if not v==self.configOverrides.get('max',v):
-            return        
+    def max(self, v):
+        self._dynConfigValues['max'] = v
+        if not v == self.configOverrides.get('max', v):
+            return
         self._max = v
         self._setupMeter()
 
     @property
     def hi(self):
         x = self._hi
-        if self._hi==None:
+        if self._hi == None:
             return 10**18
         return x
-    
+
     @hi.setter
-    def hi(self,v):
-        self._dynConfigValues['hi']= v
-        if not v==self.configOverrides.get('hi',v):
+    def hi(self, v):
+        self._dynConfigValues['hi'] = v
+        if not v == self.configOverrides.get('hi', v):
             return
-        if v==None:
-            v=10**16
+        if v == None:
+            v = 10**16
         self._hi = v
         self._setupMeter()
 
     @property
     def lo(self):
         x = self._lo
-        if self._lo==None:
+        if self._lo == None:
             return 10**18
         return self._lo
-    
+
     @lo.setter
-    def lo(self,v):
-        self._dynConfigValues['lo']= v
-        if not v==self.configOverrides.get('lo',v):
+    def lo(self, v):
+        self._dynConfigValues['lo'] = v
+        if not v == self.configOverrides.get('lo', v):
             return
-        if v==None:
-            v=-(10**16)
+        if v == None:
+            v = -(10**16)
         self._lo = v
         self._setupMeter()
 
@@ -1954,20 +1982,22 @@ class _NumericTagPoint(_TagPoint):
         if not self._meterWidget:
             return
         self._meterWidget.setup(self._min if (not (self._min is None)) else -100,
-        self._max if (not (self._max is None)) else 100,
-        self._hi if not (self._hi is None) else 10**16,
-        self._lo if not (self._lo is None) else -(10**16),
-        unit = self.unit,
-        displayUnits= self.displayUnits
-        )
+                                self._max if (
+                                    not (self._max is None)) else 100,
+                                self._hi if not (self._hi is None) else 10**16,
+                                self._lo if not (
+                                    self._lo is None) else -(10**16),
+                                unit=self.unit,
+                                displayUnits=self.displayUnits
+                                )
+
     def convertTo(self, unit):
         "Return the tag's current vakue converted to the given unit"
-        return convert(self.value,self.unit,unit)
-    
+        return convert(self.value, self.unit, unit)
+
     def convertValue(self, value, unit):
         "Convert a value in the tag's native unit to the given unit"
-        return convert(value,self.unit,unit)
-
+        return convert(value, self.unit, unit)
 
     @property
     def unit(self):
@@ -1975,15 +2005,16 @@ class _NumericTagPoint(_TagPoint):
 
     @unit.setter
     @typechecked
-    def unit(self,value:str):
+    def unit(self, value: str):
         if self._unit:
-            if not self._unit==value:
+            if not self._unit == value:
                 if value:
-                    raise ValueError("Cannot change unit of tagpoint. To override this, set to None or '' first")
-        #TODO race condition in between check, but nobody will be setting this from different threads
-        #I don't think
+                    raise ValueError(
+                        "Cannot change unit of tagpoint. To override this, set to None or '' first")
+        # TODO race condition in between check, but nobody will be setting this from different threads
+        # I don't think
         if not self._displayUnits:
-            #Rarely does anyone want alternate views of dB values
+            # Rarely does anyone want alternate views of dB values
             if not "dB" in value:
                 try:
                     self._displayUnits = defaultDisplayUnits[unitTypes[value]]
@@ -1997,17 +2028,16 @@ class _NumericTagPoint(_TagPoint):
         if self._meterWidget:
             self._meterWidget.write(self.value)
 
-
     @property
     def displayUnits(self):
         return self._displayUnits
 
     @displayUnits.setter
-    def displayUnits(self,value):
-        if value and not isinstance(value,str):
+    def displayUnits(self, value):
+        if value and not isinstance(value, str):
             raise RuntimeError("units must be str")
-        self._dynConfigValues['displayUnits']= value
-        if not value==self.configOverrides.get('displayUnits',value):
+        self._dynConfigValues['displayUnits'] = value
+        if not value == self.configOverrides.get('displayUnits', value):
             return
 
         self._displayUnits = value
@@ -2017,43 +2047,44 @@ class _NumericTagPoint(_TagPoint):
 
 
 class _StringTagPoint(_TagPoint):
-    defaultData=''
+    defaultData = ''
     unit = "string"
-    type='string'
+    type = 'string'
     @typechecked
-    def __init__(self,name:str):
+    def __init__(self, name: str):
         self.spanWidget = widgets.DynamicSpan()
-        self.spanWidget.setPermissions(['/users/tagpoints.view'],['/users/tagpoints.edit'])
-        self.guiLock=threading.Lock()
+        self.spanWidget.setPermissions(
+            ['/users/tagpoints.view'], ['/users/tagpoints.edit'])
+        self.guiLock = threading.Lock()
 
-        _TagPoint.__init__(self,name)
-    
-    def processValue(self,value):
-        #Functions are special valid types of value.
-        #They are automatically resolved.
+        _TagPoint.__init__(self, name)
+
+    def processValue(self, value):
+        # Functions are special valid types of value.
+        # They are automatically resolved.
         if callable(value):
             value = value()
-        
-        return str(value)
-   
 
-    def filterValue(self,v):
+        return str(value)
+
+    def filterValue(self, v):
         return str(v)
 
     def _debugAdminPush(self, value):
-        #Immediate write, don't push yet, do that in a thread because TCP can block
-        self.spanWidget.write(value,push=False)
+        # Immediate write, don't push yet, do that in a thread because TCP can block
+        self.spanWidget.write(value, push=False)
+
         def pushFunction():
-            self.spanWidget.value=value
+            self.spanWidget.value = value
             if self.guiLock.acquire(timeout=1):
                 try:
-                    #Use the cached literal computed value, not what we were passed,
-                    #Because it could have changed by the time we actually get to push
+                    # Use the cached literal computed value, not what we were passed,
+                    # Because it could have changed by the time we actually get to push
                     self.spanWidget.write(self.lastValue)
                 finally:
                     self.guiLock.release()
-        #Should there already be a function queued for this exact reason, we just let
-        #That one do it's job
+        # Should there already be a function queued for this exact reason, we just let
+        # That one do it's job
         if self.guiLock.acquire(timeout=0.001):
             try:
                 workers.do(pushFunction)
@@ -2061,115 +2092,114 @@ class _StringTagPoint(_TagPoint):
                 self.guiLock.release()
 
 
-
 class _ObjectTagPoint(_TagPoint):
-    defaultData={}
-    type='object'
+    defaultData = {}
+    type = 'object'
     @typechecked
-    def __init__(self,name:str):
+    def __init__(self, name: str):
         self.spanWidget = widgets.DynamicSpan()
-        self.spanWidget.setPermissions(['/users/tagpoints.view'],['/users/tagpoints.edit'])
-        self.guiLock=threading.Lock()
+        self.spanWidget.setPermissions(
+            ['/users/tagpoints.view'], ['/users/tagpoints.edit'])
+        self.guiLock = threading.Lock()
 
         self.validate = None
 
-        _TagPoint.__init__(self,name)
-    
-    def processValue(self,value):
-        #Functions are special valid types of value.
-        #They are automatically resolved.
+        _TagPoint.__init__(self, name)
+
+    def processValue(self, value):
+        # Functions are special valid types of value.
+        # They are automatically resolved.
         if callable(value):
             value = value()
-        
-        if isinstance(value,str):
-            value= json.loads(value)
+
+        if isinstance(value, str):
+            value = json.loads(value)
         else:
-            value= copy.deepcopy(value)
+            value = copy.deepcopy(value)
 
         if self.validate:
-            v=self.validate(v)
-        
+            v = self.validate(v)
 
         return value
-   
 
-    def filterValue(self,v):
-        
+    def filterValue(self, v):
+
         return v
 
     def _debugAdminPush(self, value):
-        #Immediate write, don't push yet, do that in a thread because TCP can block
+        # Immediate write, don't push yet, do that in a thread because TCP can block
         value = json.dumps(value)
-        #Limit the length
-        value=value[:256]
-        self.spanWidget.write(value,push=False)
+        # Limit the length
+        value = value[:256]
+        self.spanWidget.write(value, push=False)
+
         def pushFunction():
-            self.spanWidget.value=value
+            self.spanWidget.value = value
             if self.guiLock.acquire(timeout=1):
                 try:
-                    #Use the cached literal computed value, not what we were passed,
-                    #Because it could have changed by the time we actually get to push
+                    # Use the cached literal computed value, not what we were passed,
+                    # Because it could have changed by the time we actually get to push
                     self.spanWidget.write(json.dumps(self.lastValue))
                 finally:
                     self.guiLock.release()
-        #Should there already be a function queued for this exact reason, we just let
-        #That one do it's job
+        # Should there already be a function queued for this exact reason, we just let
+        # That one do it's job
         if self.guiLock.acquire(timeout=0.001):
             try:
                 workers.do(pushFunction)
             finally:
-                self.guiLock.release()    
-
+                self.guiLock.release()
 
 
 class Claim():
     "Represents a claim on a tag point's value"
     @typechecked
-    def __init__(self,tag:_TagPoint, value, 
-        name:str='default',priority:Union[int,float]=50,
-        timestamp:Union[int,float,None]=None, annotation=None):
+    def __init__(self, tag: _TagPoint, value,
+                 name: str = 'default', priority: Union[int, float] = 50,
+                 timestamp: Union[int, float, None] = None, annotation=None):
 
-        self.name=name
-        self.tag=tag
+        self.name = name
+        self.tag = tag
         self.value = value
-        self.annotation=annotation
+        self.annotation = annotation
         self.timestamp = timestamp
-        self.priority=priority
-        
+        self.priority = priority
+
     def __del__(self):
         if self.name != 'default':
             self.tag.release(self.name)
-    
-    def set(self,value,timestamp=None, annotation=None):
-        self.tag.setClaimVal(self.name, value,timestamp,annotation)
 
+    def set(self, value, timestamp=None, annotation=None):
+        self.tag.setClaimVal(self.name, value, timestamp, annotation)
 
     def release(self):
         self.tag.release(self.name)
 
     def setPriority(self, priority):
         with self.tag.lock:
-            self.priority =priority
-            self.tag.claim(self.value, self.timestamp, self.annotation,priority=self.priority, name=self.name)
-    def __call__(self,*args,**kwargs):
+            self.priority = priority
+            self.tag.claim(self.value, self.timestamp, self.annotation,
+                           priority=self.priority, name=self.name)
+
+    def __call__(self, *args, **kwargs):
         if not args:
             raise ValueError("No arguments")
         else:
-            return self.set(*args,**kwargs)
+            return self.set(*args, **kwargs)
+
 
 class NumericClaim(Claim):
     "Represents a claim on a tag point's value"
     @typechecked
-    def __init__(self,tag:_TagPoint, value, 
-        name:str='default',priority:Union[int,float]=50,
-        timestamp:Union[int,float,None]=None, annotation=None):
+    def __init__(self, tag: _TagPoint, value,
+                 name: str = 'default', priority: Union[int, float] = 50,
+                 timestamp: Union[int, float, None] = None, annotation=None):
 
-        Claim.__init__(self,tag,value,name,priority,timestamp,annotation)
+        Claim.__init__(self, tag, value, name, priority, timestamp, annotation)
 
-
-    def setAs(self, value, unit, timestamp=None,annotation=None):
+    def setAs(self, value, unit, timestamp=None, annotation=None):
         "Convert a value in the given unit to the tag's native unit"
-        self.set(convert(value,unit,self.tag.unit), timestamp, annotation)
+        self.set(convert(value, unit, self.tag.unit), timestamp, annotation)
 
 # Math for the first order filter
 # v is our state, k is a constant, and i is input.
@@ -2206,121 +2236,127 @@ class NumericClaim(Claim):
 class Filter():
     def subscribe(f):
         self.tag.subscribe
-    
+
+
 class LowpassFilter(Filter):
-    def __init__(self, name, inputTag, timeConstant, priority=60,interval=-1):
+    def __init__(self, name, inputTag, timeConstant, priority=60, interval=-1):
         self.state = inputTag.value
         self.filtered = self.state
         self.lastRanFilter = time.monotonic()
         self.lastState = self.state
 
-        #All math derived with XCas
+        # All math derived with XCas
         self.k = math.exp(-(1/timeConstant))
         self.lock = threading.Lock()
 
-        self.inputTag =inputTag
+        self.inputTag = inputTag
         inputTag.subscribe(self.doInput)
 
-        self.tag= Tag(name)
-        self.claim = self.tag.claim(self.getter, name=inputTag.name+".lowpass",priority=priority)
-        
-        if interval==None:
+        self.tag = Tag(name)
+        self.claim = self.tag.claim(
+            self.getter, name=inputTag.name+".lowpass", priority=priority)
+
+        if interval == None:
             self.tag.interval = timeConstant/2
         else:
-            self.tag.interval=interval
+            self.tag.interval = interval
 
-    
-    def doInput(self,val, ts,annotation):
+    def doInput(self, val, ts, annotation):
         "On new data, we poll the output tag which also loads the input tag data."
         self.tag.poll()
-    
-    def getter(self):
-        self.state=self.inputTag.value
 
-        #Get the average state over the last period
+    def getter(self):
+        self.state = self.inputTag.value
+
+        # Get the average state over the last period
         state = (self.state+self.lastState)/2
-        t=time.monotonic()-self.lastRanFilter
-        self.filtered= (self.filtered+((state-self.filtered)*(1-(self.k**t))))
-        self.lastRanFilter+=t
+        t = time.monotonic()-self.lastRanFilter
+        self.filtered = (self.filtered+((state-self.filtered)*(1-(self.k**t))))
+        self.lastRanFilter += t
 
         self.lastState = self.state
 
-        #Suppress extremely small changes that lead to ugly decimals and network traffic
-        if abs(self.filtered-self.state)<(self.filtered/1000000.0):
+        # Suppress extremely small changes that lead to ugly decimals and network traffic
+        if abs(self.filtered-self.state) < (self.filtered/1000000.0):
             return self.state
         else:
             return self.filtered
 
 
 class HighpassFilter(LowpassFilter):
-  
-    def getter(self):
-        self.state=self.inputTag.value
 
-        #Get the average state over the last period
+    def getter(self):
+        self.state = self.inputTag.value
+
+        # Get the average state over the last period
         state = (self.state+self.lastState)/2
-        t=time.monotonic()-self.lastRanFilter
-        self.filtered= (self.filtered+((state-self.filtered)*(1-(self.k**t))))
-        self.lastRanFilter+=t
+        t = time.monotonic()-self.lastRanFilter
+        self.filtered = (self.filtered+((state-self.filtered)*(1-(self.k**t))))
+        self.lastRanFilter += t
 
         self.lastState = self.state
 
         s = self.state-self.filtered
 
-        #Suppress extremely small changes that lead to ugly decimals and network traffic
-        if abs(s)<(0.0000000000000001):
-           return 0
+        # Suppress extremely small changes that lead to ugly decimals and network traffic
+        if abs(s) < (0.0000000000000001):
+            return 0
         else:
             return s
+
 
 class HysteresisFilter(Filter):
     def __init__(self, name, inputTag,  hysteresis=0, priority=60):
         self.state = inputTag.value
 
-        #Start at midpoint with the window centered
+        # Start at midpoint with the window centered
         self.hysteresisUpper = self.state+hysteresis/2
         self.hysteresisLower = self.state+hysteresis/2
         self.lock = threading.Lock()
 
-        self.inputTag =inputTag
+        self.inputTag = inputTag
         inputTag.subscribe(self.doInput)
-    
-        self.tag= _NumericTagPoint(name)
-        self.claim = self.tag.claim(self.getter, name=inputTag.name+".hysteresis",priority=priority)
-    
-    def doInput(self,val, ts,annotation):
+
+        self.tag = _NumericTagPoint(name)
+        self.claim = self.tag.claim(
+            self.getter, name=inputTag.name+".hysteresis", priority=priority)
+
+    def doInput(self, val, ts, annotation):
         "On new data, we poll the output tag which also loads the input tag data."
         self.tag.poll()
-    
+
     def getter(self):
         with self.lock:
             self.lastState = self.state
-            
-            if val>=self.hysteresisUpper:
-                self.state=val
+
+            if val >= self.hysteresisUpper:
+                self.state = val
                 self.hysteresisUpper = val
                 self.hysteresisLower = val-self.hysteresis
-            elif val<=self.hysteresisLower:
-                self.state=val
+            elif val <= self.hysteresisLower:
+                self.state = val
                 self.hysteresisUpper = val+self.hysteresis
                 self.hysteresisLower = val
             return self.state
 
+
 def createGetterFromExpression(e, t):
     t.sourceTags = {}
+
     def recalc(*a):
         t()
     t.recalcHelper = recalc
-   
 
-    c = compile(e[1:],t.name+"_expr","eval")
+    c = compile(e[1:], t.name+"_expr", "eval")
+
     def f():
-        return(eval(c,t.evalContext, t.evalContext))
+        return(eval(c, t.evalContext, t.evalContext))
 
-    #Overriding these tags would be extremely confusing because the
-    #Expression is right in the name, so don't make it easy.
-    t.exprClaim=t.claim(f,"ExpressionTag",98)
-    
+    # Overriding these tags would be extremely confusing because the
+    # Expression is right in the name, so don't make it easy.
+    t.exprClaim = t.claim(f, "ExpressionTag", 98)
+
+
 Tag = _NumericTagPoint.Tag
 ObjectTag = _ObjectTagPoint.Tag
 StringTag = _StringTagPoint.Tag

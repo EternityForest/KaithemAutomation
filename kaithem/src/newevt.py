@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-# NOTICE: A LOT OF LOCKS ARE USED IN THIS FILE. WHEN TWO LOCKS ARE USED, 
+# NOTICE: A LOT OF LOCKS ARE USED IN THIS FILE. WHEN TWO LOCKS ARE USED,
 # ALWAYS GET _event_list_lock LAST
 # IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
@@ -40,7 +40,7 @@ import dateutil.rrule
 import dateutil.tz
 import textwrap
 
-from . import workers, kaithemobj, messagebus, util, modules_state, scheduling,unitsofmeasure
+from . import workers, kaithemobj, messagebus, util, modules_state, scheduling, unitsofmeasure
 from .config import config
 from .scheduling import scheduler
 ctime = time.time
@@ -50,13 +50,13 @@ do = workers.do
 _lastGC = 0
 
 # Use this lock whenever you access _events or __EventReferences in any way.
-# Most of the time it should be held by the event manager 
+# Most of the time it should be held by the event manager
 # that continually iterates it.
 # To update the _events, event execution must temporarily pause
 _event_list_lock = threading.RLock()
 _events = []
 
-# Let us now have a way to get at active event objects by 
+# Let us now have a way to get at active event objects by
 # means of their origin (resource, module) tuple.
 __EventReferences = {}
 EventReferences = __EventReferences
@@ -68,10 +68,9 @@ syslogger = logging.getLogger("system.events")
 eventsByModuleName = weakref.WeakValueDictionary()
 
 
-
 # def findCapitalizationIssues(src, event):
 
-    
+
 #     src = re.sub(r"^\s*#.*$", '', src,flags=re.MULTILINE)
 
 #     #Get rid of escaped quotes so they don't mess upi the regex
@@ -107,7 +106,7 @@ eventsByModuleName = weakref.WeakValueDictionary()
 #     uniqueWords ={}
 
 #     uniqueLower = {}
-    
+
 #     for i in src.split(" "):
 #         i = i.strip()
 #         if i:
@@ -117,7 +116,7 @@ eventsByModuleName = weakref.WeakValueDictionary()
 
 #     for i in uniqueWords:
 
-#         #__ and _ are allowed to have dublicates with no other differences, other underscore positions are probably bad 
+#         #__ and _ are allowed to have dublicates with no other differences, other underscore positions are probably bad
 #         if i.startswith("__"):
 #             i+"@@"+i
 #         elif i.startswith("_"):
@@ -126,13 +125,8 @@ eventsByModuleName = weakref.WeakValueDictionary()
 #         x = i.lower().replace("_","")
 #         if x in uniqueLower:
 #             event._handle_exception(tb="Word: "+i+ " appears in multiple different capitalizations and cases. It is highly likely someone is confused")
-    
+
 #         uniqueLower[x] = True
-    
-    
-
-
-
 
 
 def makePrintFunction(ev):
@@ -153,7 +147,7 @@ def makePrintFunction(ev):
         if len(args) == 1:
             if not local:
                 print(args[0])
-            x= str(args[0])+"\n"
+            x = str(args[0])+"\n"
         else:
             if not local:
                 print(args)
@@ -161,11 +155,11 @@ def makePrintFunction(ev):
 
         "Print a message to the Device's management page"
         t = textwrap.fill(str(x), 120)
-        tm= unitsofmeasure.strftime(time.time())
-    
-        #Can't use a def here, wouldn't want it to possibly capture more than just a string,
-        #And keep stuff from GCIng for too long
-        workers.do(makeBackgroundPrintFunction(t,tm,title,ev))
+        tm = unitsofmeasure.strftime(time.time())
+
+        # Can't use a def here, wouldn't want it to possibly capture more than just a string,
+        # And keep stuff from GCIng for too long
+        workers.do(makeBackgroundPrintFunction(t, tm, title, ev))
 
     return new_print
 
@@ -327,14 +321,14 @@ class EventEvent(scheduling.UnsynchronizedRepeatingEvent):
         self.resource = resource
 
     def __repr__(self):
-        return ("<newevt.EventEvent object for event at "+
-            str((self.module, self.resource)) + "with id " + str(id(self))+">")
+        return ("<newevt.EventEvent object for event at " +
+                str((self.module, self.resource)) + "with id " + str(id(self))+">")
 
     def run(self):
         do(self._run)
 
     def _run(self):
-        # We must have been pulled out of the event queue 
+        # We must have been pulled out of the event queue
         # or we wouldn't be running
         # So we can reschedule ourself.
         self.scheduled = False
@@ -470,20 +464,22 @@ class PersistentData():
 fps = config['max-frame-rate']
 
 
-def makeBackgroundPrintFunction(p,t,title,self):
+def makeBackgroundPrintFunction(p, t, title, self):
     def f():
-        self().logWindow.write('<b>'+ title+ " at " +t +"</b><br>"
-            + p
-            )
+        self().logWindow.write('<b>' + title + " at " + t + "</b><br>"
+                               + p
+                               )
     return f
 
-def makeBackgroundErrorFunction(t,time,self):
-     #Don't block everything up
+
+def makeBackgroundErrorFunction(t, time, self):
+    # Don't block everything up
     def f():
         self.logWindow.write('<div class="error"><b>Error at ' + time+"</b><br>"
-        + '<pre>'+t+'</pre></div>'
-        )
+                             + '<pre>'+t+'</pre></div>'
+                             )
     return f
+
 
 class BaseEvent():
     """Base Class representing one event.
@@ -562,7 +558,6 @@ class BaseEvent():
         from src import widgets
         self.logWindow = widgets.ScrollingWindow(2500)
 
-
     def __repr__(self):
         try:
             return "<"+type(self).__name__ + "object at"+hex(id(self))+" for module,resource "+repr((self.module, self.resource))+">"
@@ -633,14 +628,15 @@ class BaseEvent():
             else:
                 tb = traceback.format_exc()
 
-        #TODO: Get rid of legacy error stuff
+        # TODO: Get rid of legacy error stuff
         # When an error happens, log it and save the time
         # Note that we are logging to the compiled event object
         self.errors.append([time.strftime(config['time-format']), tb])
         # Keep only the most recent errors
         self.errors = self.errors[-(config['errors-to-keep']):]
-        
-        workers.do(makeBackgroundErrorFunction(textwrap.fill(tb,120),unitsofmeasure.strftime(time.time()),self))
+
+        workers.do(makeBackgroundErrorFunction(textwrap.fill(
+            tb, 120), unitsofmeasure.strftime(time.time()), self))
 
         try:
             messagebus.postMessage('/system/errors/events/' +
@@ -730,7 +726,7 @@ class BaseEvent():
             except Exception as e:
                 try:
                     logger.exception("Error in event " +
-                                    self.resource+" of " + self.module)
+                                     self.resource+" of " + self.module)
                     self._handle_exception(e)
                 except:
                     logging.exception("Error handling exception in event")
@@ -739,20 +735,18 @@ class BaseEvent():
 
 
 def test_compile(setup, action):
-        # Compile the action and run the initializer
-        if setup is None:
-            setup = "pass"
+    # Compile the action and run the initializer
+    if setup is None:
+        setup = "pass"
 
+    # initialize the module scope with the kaithem object and the module thing.
+    initializer = compile(
+        setup, "TestCompileSetup", "exec")
 
-        # initialize the module scope with the kaithem object and the module thing.
-        initializer = compile(
-            setup, "TestCompileSetup", "exec")
-
-        
-        body = "def _event_action():\n"
-        for line in action.split('\n'):
-            body += ("    "+line+'\n')
-        body = compile(body, "TestCompile", 'exec')
+    body = "def _event_action():\n"
+    for line in action.split('\n'):
+        body += ("    "+line+'\n')
+    body = compile(body, "TestCompile", 'exec')
 
 
 class DummyModuleScope():
@@ -765,9 +759,6 @@ class UnrecoverableEventInitError(RuntimeError):
 
 class CompileCodeStringsMixin():
     "This mixin lets a class take strings of code for its setup and action"
-
-
-   
 
     def _init_setup_and_action(self, setup, action, params={}):
         # Compile the action and run the initializer
@@ -960,7 +951,7 @@ class FunctionEvent(BaseEvent):
         with self.register_lock:
             self.disable = True
             self.active = False
-            # Use a try accept block because that function 
+            # Use a try accept block because that function
             # could have wound up anywhere,
             # Including having been already deleted.
             try:
@@ -974,8 +965,8 @@ class FunctionEvent(BaseEvent):
     # The only difference between this and the base class version is
     # That this version propagates exceptions
     def _on_trigger(self, *args, **kwargs):
-        # This function gets called 
-        # when whatever the 
+        # This function gets called
+        # when whatever the
         # event's trigger condition is.
         # it provides common stuff to all trigger
         # types like logging and rate limiting
@@ -991,7 +982,7 @@ class FunctionEvent(BaseEvent):
             # the last time the body actually ran
             self.lastexecuted = time.time()
             try:
-                # Action could be any number of things, 
+                # Action could be any number of things,
                 # so this method must be implemented by
                 # A derived class or inherited from a mixin.
                 self._do_action(*args, **kwargs)
@@ -1541,7 +1532,7 @@ def updateOneEvent(resource, module, o=None):
                 x.register()
                 # Update index
                 __EventReferences[module, resource] = x
-        except Exception as e:  
+        except Exception as e:
             d = makeDummyEvent(module, resource)
             d._handle_exception(e)
 
@@ -1706,29 +1697,29 @@ def make_event_from_resource(module, resource, subst=None):
                     e = Event(m=module, r=resource)
                 else:
                     e = Event(r['trigger'], r['action'], make_eventscope(module),
-                            setup=setupcode,
-                            continual=continual,
-                            ratelimit=ratelimit,
-                            priority=priority,
-                            m=module,
-                            r=resource, dummy=True)
+                              setup=setupcode,
+                              continual=continual,
+                              ratelimit=ratelimit,
+                              priority=priority,
+                              m=module,
+                              r=resource, dummy=True)
 
                 e.disable = True
                 return e
 
         x = Event(r['trigger'], r['action'], make_eventscope(module),
-                setup=setupcode,
-                continual=continual,
-                ratelimit=ratelimit,
-                priority=priority,
-                m=module,
-                r=resource)
+                  setup=setupcode,
+                  continual=continual,
+                  ratelimit=ratelimit,
+                  priority=priority,
+                  m=module,
+                  r=resource)
     except Exception as e:
-        if not (module,resource) in __EventReferences:
+        if not (module, resource) in __EventReferences:
             d = makeDummyEvent(module, resource)
             d._handle_exception(e)
         raise
-    
+
     #findCapitalizationIssues(setupcode+" \n "+r['trigger']+ "\n "+r['action'], x)
     x.timeTakenToLoad = time.time()-t
     return x

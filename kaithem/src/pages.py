@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
+from src import config as cfg
 from mako.template import Template
 from mako.lookup import TemplateLookup
 import cherrypy
@@ -28,7 +29,6 @@ from . import directories, util
 from mako import exceptions
 
 
-
 _Lookup = TemplateLookup(directories=[directories.htmldir])
 get_template = _Lookup.get_template
 
@@ -38,24 +38,22 @@ _varLookup = TemplateLookup(directories=[directories.vardir])
 def get_vardir_template(fn):
     return _varLookup.get_template(os.path.relpath(fn, directories.vardir))
 
-from src import config as cfg
 
-noSecurityMode=False
+noSecurityMode = False
 
 mode = int(cfg.argcmd.nosecurity) if cfg.argcmd.nosecurity else None
-#limit nosecurity to localhost
+# limit nosecurity to localhost
 if mode == 1:
     bindto = '127.0.0.1'
     noSecurityMode = 1
 
-#Unless it's mode 2
+# Unless it's mode 2
 if mode == 2:
-    noSecurityMode=2
+    noSecurityMode = 2
 
-#Unless it's mode 2
+# Unless it's mode 2
 if mode == 3:
-    noSecurityMode=3
-
+    noSecurityMode = 3
 
 
 navBarPlugins = weakref.WeakValueDictionary()
@@ -67,9 +65,6 @@ webResourceLock = threading.Lock()
 
 # Indexed by (time, name, url) pairs
 allWebResources = {}
-
-
-
 
 
 class WebResource():
@@ -116,9 +111,10 @@ vue3 = WebResource("vue2-default", "/static/js/vue-2.6.10.js")
 #
 nativeHandlers = weakref.WeakValueDictionary()
 
+
 def getSubdomain():
-    x = cherrypy.request.base.split("://",1)[-1]
-        
+    x = cherrypy.request.base.split("://", 1)[-1]
+
     sdpath = x.split(".")
 
     x = []
@@ -126,14 +122,14 @@ def getSubdomain():
         if not i:
             continue
         x.append(i)
-        #Only put one part of the ip addr, host,tld need to be exactly
-        #2 entries
+        # Only put one part of the ip addr, host,tld need to be exactly
+        # 2 entries
         if i.isnumeric() or i.startswith('localhost:') or '[' in i:
-            #Pad with fake TLD for numeric ip addr
-            x.append(".faketld") 
+            # Pad with fake TLD for numeric ip addr
+            x.append(".faketld")
             break
 
-    #Get rid of last two parts, the host and tld
+    # Get rid of last two parts, the host and tld
     return list(reversed(x[:-2]))
 
 
@@ -148,18 +144,19 @@ def canOverrideSecurity():
     global noSecurityMode
 
     if noSecurityMode:
-        if noSecurityMode==1:
+        if noSecurityMode == 1:
             if cherrypy.request.remote.ip.startswith("127."):
                 return True
-            elif cherrypy.request.remote.ip=="::1":
+            elif cherrypy.request.remote.ip == "::1":
                 return True
             else:
-                raise RuntimeError("Nosecurity 1 enabled, but got request from ext IP:"+str(cherrypy.request.remote.ip))
+                raise RuntimeError(
+                    "Nosecurity 1 enabled, but got request from ext IP:"+str(cherrypy.request.remote.ip))
                 return False
-                
-        if noSecurityMode==2:
+
+        if noSecurityMode == 2:
             x = cherrypy.request.remote.ip
-            if cherrypy.request.remote.ip.startswith=="::1":
+            if cherrypy.request.remote.ip.startswith == "::1":
                 return True
             if x.startswith("192."):
                 return True
@@ -169,8 +166,9 @@ def canOverrideSecurity():
                 return True
             return False
 
-        if noSecurityMode==3:
+        if noSecurityMode == 3:
             return True
+
 
 def require(permission, noautoreturn=False):
     """Get the user that is making the request bound to this thread,
@@ -180,9 +178,10 @@ def require(permission, noautoreturn=False):
         trying to go. However if the place they were going has an effect, you might want them to confirm first, so set noauto to true
         to take them to the main page on successful login, or set it to a url to take them there instead.
         """
-    
+
     if permission == "__never__":
-        raise RuntimeError("Nobody has the __never__ permission, ever, except in nosecurity mode.")
+        raise RuntimeError(
+            "Nobody has the __never__ permission, ever, except in nosecurity mode.")
 
     if not isinstance(permission, str):
         p = permission
@@ -200,9 +199,9 @@ def require(permission, noautoreturn=False):
         # Anything guest can't do needs https
         if not cherrypy.request.scheme == 'https':
             x = cherrypy.request.remote.ip
-            #Allow localhost, and Yggdrasil mesh. This check is really just to be sure nobody accidentally uses HTTP,
-            #But localhost and encrypted mesh are legitamate uses of HTTP.
-            if not x.startswith=="::1" or  x.startswith("127.") or x.startswith("200::") or x.startswith("300::"):
+            # Allow localhost, and Yggdrasil mesh. This check is really just to be sure nobody accidentally uses HTTP,
+            # But localhost and encrypted mesh are legitamate uses of HTTP.
+            if not x.startswith == "::1" or x.startswith("127.") or x.startswith("200::") or x.startswith("300::"):
                 raise cherrypy.HTTPRedirect("/errors/gosecure")
 
         user = getAcessingUser()
@@ -223,18 +222,18 @@ def require(permission, noautoreturn=False):
             raise cherrypy.HTTPRedirect("/errors/permissionerror?")
 
 
-
-#In NoSecurity mode we do things a bit differently
-def canUserDoThis(permissions,user=None):
+# In NoSecurity mode we do things a bit differently
+def canUserDoThis(permissions, user=None):
     "None means get the user from the request context"
 
-    if not isinstance(permissions,(list,tuple)):
+    if not isinstance(permissions, (list, tuple)):
         permissions = (permissions,)
-    
+
     for permission in permissions:
         if not auth.canUserDoThis(user or getAcessingUser(), permission):
             return False
     return True
+
 
 if noSecurityMode:
     def require(*args, **kwargs):
@@ -242,11 +241,11 @@ if noSecurityMode:
             return True
         raise cherrypy.HTTPRedirect("/errors/permissionerror?")
 
-
     def require(*args, **kwargs):
         if canOverrideSecurity():
             return True
         raise auth.canUserDoThis(getAcessingUser(), permission)
+
 
 def getAcessingUser():
     """Return the username of the user making the request bound to this thread or __guest__ if not logged in.

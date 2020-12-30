@@ -53,19 +53,18 @@ import jaraco
 import cherrypy
 
 
-
 databaseBySyncKey = weakref.WeakValueDictionary()
+
 
 def expose(f):
     f.exposed = True
     return f
 
+
 class WebAPI():
     @expose
-    def index(self,a):
+    def index(self, a):
         return json.dumps(databaseBySyncKey[a[8:40]].apiCall(a))
-
-
 
 
 def makeLoopWorker(o):
@@ -79,6 +78,7 @@ def makeLoopWorker(o):
 
             del x
     return f
+
 
 class LPDPeer():
     def parseLPD(self, m):
@@ -250,7 +250,7 @@ class DocumentDatabase():
             self.config.set('sync', 'writePassword', str(uuid.uuid4()))
             self.saveConfig()
 
-        self.syncKey = self.config.get('sync','syncKey',fallback=None)
+        self.syncKey = self.config.get('sync', 'syncKey', fallback=None)
 
         if self.syncKey:
             databaseBySyncKey[libnacl.crypto_generichash(self.syncKey)] = self
@@ -286,7 +286,7 @@ class DocumentDatabase():
 
         writePassword = d.get("writePassword", '')
 
-        if writePassword and not writePassword == self.config.get('sync', 'writePassword',fallback=None):
+        if writePassword and not writePassword == self.config.get('sync', 'writePassword', fallback=None):
             raise RuntimeError("Bad Password")
 
         r = {'records': []}
@@ -302,7 +302,7 @@ class DocumentDatabase():
             for i in 'insertDocuments':
                 if writePassword:
                     self.setDocument(i[0], i[1])
-        
+
         return r
 
     def getMeta(self, key):
@@ -403,6 +403,7 @@ class DocumentDatabase():
         x = cur.fetchone()
         if x:
             return x[0]
+
 
 d = DocumentDatabase("test.db")
 

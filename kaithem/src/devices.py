@@ -29,7 +29,7 @@ import re
 import cherrypy
 import mako
 
-from . import virtualresource, pages, registry, modules_state, kaithemobj, workers, tagpoints, alerts, persist, directories, messagebus,widgets,unitsofmeasure
+from . import virtualresource, pages, registry, modules_state, kaithemobj, workers, tagpoints, alerts, persist, directories, messagebus, widgets, unitsofmeasure
 
 remote_devices = {}
 remote_devices_atomic = {}
@@ -40,7 +40,6 @@ device_data = {}
 saveLocation = os.path.join(directories.vardir, "devices")
 
 driversLocation = os.path.join(directories.vardir, "devicedrivers")
-
 
 
 if os.path.isdir(saveLocation):
@@ -91,24 +90,26 @@ def saveAsFiles():
 
 messagebus.subscribe("/system/save", saveAsFiles)
 
+
 def wrcopy(x):
-    return {i:weakref.ref(x[i]) for i in x}
+    return {i: weakref.ref(x[i]) for i in x}
+
 
 def getByDescriptor(d):
     x = {}
 
     for i in remote_devices_atomic:
         if d in remote_devices_atomic[i].descriptors:
-            z= remote_devices_atomic[i]()
+            z = remote_devices_atomic[i]()
             if z:
-                x[i]=z
+                x[i] = z
 
     return x
 
 # This is the base class for a remote device of any variety.
 
 
-globalDefaultSubclassCode="""
+globalDefaultSubclassCode = """
 class CustomDeviceType(DeviceType):
     pass
 """
@@ -116,26 +117,30 @@ class CustomDeviceType(DeviceType):
 try:
     try:
         import html
-        esc= html.escape
+        esc = html.escape
     except:
         import cgi
-        esc=cgi.escape
+        esc = cgi.escape
 except:
-    esc = lambda t:t
-def makeBackgroundPrintFunction(p,t,title,self):
+    def esc(t): return t
+
+
+def makeBackgroundPrintFunction(p, t, title, self):
     def f():
-        self.logWindow.write('<b>'+ title+ " at " +t +"</b><br>"
-            + p
-            )
+        self.logWindow.write('<b>' + title + " at " + t + "</b><br>"
+                             + p
+                             )
     return f
 
-def makeBackgroundErrorFunction(t,time,self):
-     #Don't block everything up
+
+def makeBackgroundErrorFunction(t, time, self):
+    # Don't block everything up
     def f():
         self.logWindow.write('<div class="error"><b>Error at ' + time+"</b><br>"
-        + '<pre>'+t+'</pre></div>'
-        )
+                             + '<pre>'+t+'</pre></div>'
+                             )
     return f
+
 
 class Device(virtualresource.VirtualResource):
     """A Descriptor is something that describes a capability or attribute
@@ -147,7 +152,6 @@ class Device(virtualresource.VirtualResource):
     deviceTypeName = "device"
 
     readme = None
-
 
     defaultSubclassCode = globalDefaultSubclassCode
 
@@ -189,21 +193,17 @@ class Device(virtualresource.VirtualResource):
         virtualresource.VirtualResource.__init__(self)
         global remote_devices_atomic
         global remote_devices
-        
+
         self.logWindow = widgets.ScrollingWindow(2500)
-
-
 
         dbgd[name+str(time.time())] = self
 
         # Time, title, text tuples for any "messages" a device might "print"
         self.messages = []
 
-
         # This data dict represents all persistent configuration
         # for the alert object.
         self.data = data.copy()
-        
 
         # This dict cannot be changed, only replaced atomically.
         # It is a list of alert objects. Dict keys
@@ -227,11 +227,9 @@ class Device(virtualresource.VirtualResource):
 
         # self.scriptContext.commands['print'] = self.print
 
-       
         with lock:
             remote_devices[name] = self
-            remote_devices_atomic=wrcopy(remote_devices)
-
+            remote_devices_atomic = wrcopy(remote_devices)
 
     # def loadScriptBindings(self):
     #     try:
@@ -253,9 +251,9 @@ class Device(virtualresource.VirtualResource):
         return self.tagPoints
 
     @tagpoints.setter
-    def tagpoints(self,v):
+    def tagpoints(self, v):
         self.tagPoints = v
-        
+
     def handleError(self, s):
         self.errors.append([time.time(), str(s)])
 
@@ -265,12 +263,14 @@ class Device(virtualresource.VirtualResource):
             else:
                 logging.error("in device: "+self.name+"\n"+s)
 
-        if len(self.errors)> 50:
+        if len(self.errors) > 50:
             self.errors.pop(0)
-        
-        workers.do(makeBackgroundErrorFunction(textwrap.fill(s,120),unitsofmeasure.strftime(time.time()),self))
-        if len(self.errors)==1:
-            messagebus.postMessage("/system/notifications/errors","First error in device: "+self.name)
+
+        workers.do(makeBackgroundErrorFunction(textwrap.fill(
+            s, 120), unitsofmeasure.strftime(time.time()), self))
+        if len(self.errors) == 1:
+            messagebus.postMessage(
+                "/system/notifications/errors", "First error in device: "+self.name)
             syslogger.error("in device: "+self.name+"\n"+s)
 
     # delete a device, it should not be used after this
@@ -278,7 +278,7 @@ class Device(virtualresource.VirtualResource):
         global remote_devices_atomic
         with lock:
             del remote_devices[self.name]
-            remote_devices_atomic=wrcopy(remote_devices)
+            remote_devices_atomic = wrcopy(remote_devices)
 
     def status(self):
         return "norm"
@@ -296,28 +296,30 @@ class Device(virtualresource.VirtualResource):
     def print(self, msg, title="Message"):
         "Print a message to the Device's management page"
         t = textwrap.fill(str(msg), 120)
-        tm= unitsofmeasure.strftime(time.time())
-    
-        #Can't use a def here, wouldn't want it to possibly capture more than just a string,
-        #And keep stuff from GCIng for too long
-        workers.do(makeBackgroundPrintFunction(t,tm,title,self))
+        tm = unitsofmeasure.strftime(time.time())
+
+        # Can't use a def here, wouldn't want it to possibly capture more than just a string,
+        # And keep stuff from GCIng for too long
+        workers.do(makeBackgroundPrintFunction(t, tm, title, self))
 
 # Device data always has 2 constants. 1 is the required type, the other
 # is name, and that's optional but can be used to rename a device
+
+
 def updateDevice(devname, kwargs, saveChanges=True):
     name = kwargs.get('name', None) or devname
 
     getDeviceType(kwargs['type']).validateData(kwargs)
 
-    if not kwargs.get("subclass","").replace("\n",'').replace("\r","").strip():
-            kwargs['subclass'] = getDeviceType(kwargs['type']).defaultSubclassCode
+    if not kwargs.get("subclass", "").replace("\n", '').replace("\r", "").strip():
+        kwargs['subclass'] = getDeviceType(kwargs['type']).defaultSubclassCode
     unsaved_changes[devname] = True
 
     with lock:
         if devname in remote_devices:
             remote_devices[devname].close()
             del device_data[devname]
-        
+
         gc.collect()
         time.sleep(0.01)
         time.sleep(0.01)
@@ -330,7 +332,7 @@ def updateDevice(devname, kwargs, saveChanges=True):
 
         remote_devices[name] = makeDevice(name, kwargs)
         global remote_devices_atomic
-        remote_devices_atomic=wrcopy(remote_devices)
+        remote_devices_atomic = wrcopy(remote_devices)
 
 
 class WebDevices():
@@ -361,7 +363,7 @@ class WebDevices():
     def readFile(self, name, file):
         pages.require("/admin/settings.edit")
         return remote_devices[name].readFile(file)
-    
+
     @cherrypy.expose
     def updateDevice(self, devname, **kwargs):
         pages.require("/admin/settings.edit")
@@ -383,7 +385,7 @@ class WebDevices():
                 remote_devices[name].close()
             remote_devices[name] = makeDevice(name, kwargs)
             global remote_devices_atomic
-            remote_devices_atomic=wrcopy(remote_devices)
+            remote_devices_atomic = wrcopy(remote_devices)
 
         raise cherrypy.HTTPRedirect("/devices")
 
@@ -422,12 +424,11 @@ class WebDevices():
             except KeyError:
                 pass
             global remote_devices_atomic
-            remote_devices_atomic=wrcopy(remote_devices)
+            remote_devices_atomic = wrcopy(remote_devices)
             gc.collect()
             unsaved_changes[name] = True
 
         raise cherrypy.HTTPRedirect("/devices")
-
 
 
 class DeviceNamespace():
@@ -443,8 +444,6 @@ class DeviceNamespace():
 
 builtinDeviceTypes = {'device': Device}
 deviceTypes = weakref.WeakValueDictionary()
-
-
 
 
 class DeviceTypeLookup():
@@ -468,7 +467,7 @@ def makeDevice(name, data):
         dt = deviceTypes[data['type']]
 
     if not 'subclass' in data:
-        data['subclass']= dt.defaultSubclassCode
+        data['subclass'] = dt.defaultSubclassCode
 
     # Allow auto-subclassing to make customized v
     if 'subclass' in data and data['subclass'].strip():
@@ -478,7 +477,6 @@ def makeDevice(name, data):
         stripped = data['subclass'].replace("\n", '').replace(
             "\r", '').replace("\t", '').replace(" ", '')
 
-
         strippedGenericTemplate = globalDefaultSubclassCode.replace("\n", '').replace(
             "\r", '').replace("\t", '').replace(" ", '')
 
@@ -486,15 +484,17 @@ def makeDevice(name, data):
         try:
             if not stripped == strippedGenericTemplate:
                 from src import kaithemobj
-                codeEvalScope = {"DeviceType": dt, 'kaithem': kaithemobj.kaithem}
+                codeEvalScope = {"DeviceType": dt,
+                                 'kaithem': kaithemobj.kaithem}
                 exec(data['subclass'], codeEvalScope, codeEvalScope)
                 dt = codeEvalScope["CustomDeviceType"]
             d = dt(name, data)
-        
+
         except:
             d = originaldt(name, data)
             d.handleError(traceback.format_exc(chain=True))
-            messagebus.postMessage('/system/notifications/error',"Error with customized behavior for: "+ name+" using default")
+            messagebus.postMessage('/system/notifications/error',
+                                   "Error with customized behavior for: " + name+" using default")
     else:
         d = dt(name, data)
 
@@ -516,7 +516,6 @@ class TemplateGetter():
 
     def __get__(self, instance, owner):
         return lambda: pages.get_vardir_template(self.fn).render(data=instance.data, obj=instance, name=instance.name)
-
 
 
 deviceTypesFromData = {}
@@ -590,4 +589,4 @@ def init_devices():
                 "/system/notifications/errors", "Error creating device: "+i+"\n"+traceback.format_exc())
             syslogger.exception("Error initializing device "+str(i))
 
-    remote_devices_atomic=wrcopy(remote_devices)
+    remote_devices_atomic = wrcopy(remote_devices)

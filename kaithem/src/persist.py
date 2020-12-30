@@ -136,7 +136,7 @@ class SharedStateFile():
     def __setitem__(self, key, value):
         self.set(key, value)
 
-    def __delitem__(self,key):
+    def __delitem__(self, key):
         self.pop(key)
 
     def set(self, key: str, value):

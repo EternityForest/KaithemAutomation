@@ -1,9 +1,8 @@
 
 
-
 import time
 
-freeboardhtml="""
+freeboardhtml = """
 <%doc>
 NOTE: This page is self modifying and embeds it's own editor to customize the page!
 You should not need to modify this code, except for changing the theme.
@@ -32,8 +31,7 @@ ${{kaithem.web.freeboard(page, kwargs, plugins)}}
 """
 
 
-
-defaulthtml="""
+defaulthtml = """
 <%!
 #Code Here runs once when page is first rendered. Good place for import statements.
 %>
@@ -50,37 +48,35 @@ __doc__= "#Python Code here runs every page load"
 </div>
 """
 
-def default(basename,**kw):
+
+def default(basename, **kw):
     return{
-    "resource-type":"page",
-    "body":defaulthtml.format(basename=basename),
-    'require-method': ['GET', 'POST'],
-    'require-permissions': [],
-    'resource-timestamp': int(time.time()*1000000),
-    'resource-type': 'page'
+        "resource-type": "page",
+        "body": defaulthtml.format(basename=basename),
+        'require-method': ['GET', 'POST'],
+        'require-permissions': [],
+        'resource-timestamp': int(time.time()*1000000),
+        'resource-type': 'page'
     }
 
 
-def freeboard(basename,**kw):
+def freeboard(basename, **kw):
     return{
-    "resource-type":"page",
-    "body":freeboardhtml.format(basename=basename),
-    'no-navheader':True,
-    'no-header': True,
-    'require-method': ['GET', 'POST'],
-    'require-permissions': [],
-    'resource-timestamp': int(time.time()*1000000),
-    'resource-type': 'page'
+        "resource-type": "page",
+        "body": freeboardhtml.format(basename=basename),
+        'no-navheader': True,
+        'no-header': True,
+        'require-method': ['GET', 'POST'],
+        'require-permissions': [],
+        'resource-timestamp': int(time.time()*1000000),
+        'resource-type': 'page'
     }
 
 
+templates = {'default': default, 'freeboard': freeboard}
 
 
-templates={'default': default,'freeboard': freeboard}
-
-
-
-vue="""
+vue = """
 <div id="app">
   {{ message }}
 </div>
@@ -91,4 +87,3 @@ var app = new Vue({
   }
 })
 """
-

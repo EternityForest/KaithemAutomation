@@ -1,35 +1,47 @@
-#Copyright Daniel Dunn 2013,2017
-#This file is part of Kaithem Automation.
+# Copyright Daniel Dunn 2013,2017
+# This file is part of Kaithem Automation.
 
-#Kaithem Automation is free software: you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation, version 3.
+# Kaithem Automation is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
 
-#Kaithem Automation is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
+# Kaithem Automation is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 
-#You should have received a copy of the GNU General Public License
-#along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
-import cherrypy,base64,os,time,subprocess,time,shutil,sys,logging,traceback,zipfile,threading
+# You should have received a copy of the GNU General Public License
+# along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+import time
+import threading
+import ctypes  # Calm down, this has become standard library since 2.5
+import cherrypy
+import base64
+import os
+import time
+import subprocess
+import time
+import shutil
+import sys
+import logging
+import traceback
+import zipfile
+import threading
 from cherrypy.lib.static import serve_file
-from . import pages, util,messagebus,config,auth,registry,mail,kaithemobj, config,weblogin,systasks,gpio,directories,persist
+from . import pages, util, messagebus, config, auth, registry, mail, kaithemobj, config, weblogin, systasks, gpio, directories, persist
 import io
 
 
-jacksettingsfile = os.path.join(directories.vardir, "system.mixer", "jacksettings.yaml")
+jacksettingsfile = os.path.join(
+    directories.vardir, "system.mixer", "jacksettings.yaml")
 jacksettings = persist.getStateFile(jacksettingsfile)
 
 
-
-import ctypes # Calm down, this has become standard library since 2.5
-import threading
-import time
-
 NULL = 0
 
-#https://gist.github.com/liuw/2407154
+# https://gist.github.com/liuw/2407154
+
+
 def ctype_async_raise(thread_obj, exception):
     found = False
     target_tid = 0
@@ -42,7 +54,8 @@ def ctype_async_raise(thread_obj, exception):
     if not found:
         raise ValueError("Invalid thread object")
 
-    ret = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(target_tid), ctypes.py_object(exception))
+    ret = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+        ctypes.c_long(target_tid), ctypes.py_object(exception))
     # ref: http://docs.python.org/c-api/init.html#PyThreadState_SetAsyncExc
     if ret == 0:
         raise ValueError("Invalid thread ID")
@@ -50,14 +63,19 @@ def ctype_async_raise(thread_obj, exception):
         # Huh? Why would we notify more than one threads?
         # Because we punch a hole into C level interpreter.
         # So it is better to clean up the mess.
-        ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(target_tid), NULL)
+        ctypes.pythonapi.PyThreadState_SetAsyncExc(
+            ctypes.c_long(target_tid), NULL)
         raise SystemError("PyThreadState_SetAsyncExc failed")
 
 
 def validate_upload():
-    #Allow large uploads for admin users, otherwise only allow 64k 
+    # Allow large uploads for admin users, otherwise only allow 64k
     return 64*1024 if not pages.canUserDoThis("/admin/settings.edit") else 1024*1024*8192*4
+
+
 syslogger = logging.getLogger("system")
+
+
 class Settings():
     @cherrypy.expose
     def index(self):
@@ -65,7 +83,7 @@ class Settings():
         return pages.get_template("settings/index.html").render()
 
     @cherrypy.expose
-    def loginfailures(self,**kwargs):
+    def loginfailures(self, **kwargs):
         pages.require("/admin/settings.edit")
         with weblogin.recordslock:
             fr = weblogin.failureRecords.items()
@@ -90,10 +108,9 @@ class Settings():
         pages.postOnly()
 
         for i in threading.enumerate():
-            if str(id(i))== a:
-                ctype_async_raise(i,SystemExit)
+            if str(id(i)) == a:
+                ctype_async_raise(i, SystemExit)
         raise cherrypy.HTTPRedirect("/settings/threads")
-
 
     @cherrypy.expose
     def mixer(self):
@@ -105,7 +122,6 @@ class Settings():
         """Return a page showing the wifi config"""
         pages.require("/admin/settings.edit",)
         return pages.get_template("settings/wifi.html").render()
-
 
     @cherrypy.expose
     def mdns(self):
@@ -120,7 +136,7 @@ class Settings():
         return pages.get_template("settings/upnp.html").render()
 
     @cherrypy.expose
-    def stopsounds(self,*args,**kwargs):
+    def stopsounds(self, *args, **kwargs):
         """Used to stop all sounds currently being played via kaithem's sound module"""
         pages.require("/admin/settings.edit", noautoreturn=True)
         kaithemobj.kaithem.sound.stopAll()
@@ -128,26 +144,26 @@ class Settings():
 
     @cherrypy.expose
     @cherrypy.config(**{'response.timeout': 7200})
-    @cherrypy.config(**{'tools.allow_upload.on':True, 'tools.allow_upload.f':validate_upload})
-    def files(self,*args,**kwargs):
+    @cherrypy.config(**{'tools.allow_upload.on': True, 'tools.allow_upload.f': validate_upload})
+    def files(self, *args, **kwargs):
         """Return a file manager. Kwargs may contain del=file to delete a file. The rest of the path is the directory to look in."""
         pages.require("/admin/settings.edit")
         try:
-            dir=os.path.join('/',*args)
+            dir = os.path.join('/', *args)
 
             if 'del' in kwargs:
-                node = os.path.join(dir,kwargs['del'])
+                node = os.path.join(dir, kwargs['del'])
                 if os.path.isfile(node):
                     os.remove(node)
                 else:
                     shutil.rmtree(node)
-                raise cherrypy.HTTPRedirect(cherrypy.request.path_info.split('?')[0])
-
+                raise cherrypy.HTTPRedirect(
+                    cherrypy.request.path_info.split('?')[0])
 
             if 'file' in kwargs:
-                if os.path.exists(os.path.join(dir,kwargs['file'].filename)):
+                if os.path.exists(os.path.join(dir, kwargs['file'].filename)):
                     raise RuntimeError("Node with that name already exists")
-                with open(os.path.join(dir,kwargs['file'].filename),'wb') as f:
+                with open(os.path.join(dir, kwargs['file'].filename), 'wb') as f:
                     while True:
                         data = kwargs['file'].file.read(8192)
                         if not data:
@@ -159,7 +175,7 @@ class Settings():
                 # Without creating a subfolder.
                 with zipfile.ZipFile(kwargs['zipfile'].file) as zf:
                     for i in zf.namelist():
-                        with open(os.path.join(dir,i),'wb') as outf:
+                        with open(os.path.join(dir, i), 'wb') as outf:
                             f = zf.open(i)
                             while True:
                                 data = f.read(8192)
@@ -176,42 +192,44 @@ class Settings():
             return(traceback.format_exc())
 
     @cherrypy.expose
-    def cnfdel(self,*args,**kwargs):
+    def cnfdel(self, *args, **kwargs):
         pages.require("/admin/settings.edit")
-        path=os.path.join('/',*args)
+        path = os.path.join('/', *args)
         return pages.get_template("settings/cnfdel.html").render(path=path)
 
     @cherrypy.expose
-    def console(self,**kwargs):
+    def console(self, **kwargs):
         pages.require("/admin/settings.edit")
         if 'script' in kwargs:
             pages.postOnly()
             x = ''
             if util.which("bash"):
-                p = subprocess.Popen("bash -i",universal_newlines=True, shell=True,stdout=subprocess.PIPE,stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+                p = subprocess.Popen("bash -i", universal_newlines=True, shell=True,
+                                     stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
             else:
-                p = subprocess.Popen("sh -i",universal_newlines=True, shell=True,stdout=subprocess.PIPE,stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+                p = subprocess.Popen("sh -i", universal_newlines=True, shell=True,
+                                     stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
 
-            #Windows 3.2
-            if sys.version_info[:2] == (3,2) and os.platform == 'nt':
-                t =  p.communicate(kwargs['script'])
-            #UNIX 3.2
-            elif sys.version_info[:2] == (3,2):
-                t =  p.communicate(bytes(kwargs['script'],'utf-8'))
+            # Windows 3.2
+            if sys.version_info[:2] == (3, 2) and os.platform == 'nt':
+                t = p.communicate(kwargs['script'])
+            # UNIX 3.2
+            elif sys.version_info[:2] == (3, 2):
+                t = p.communicate(bytes(kwargs['script'], 'utf-8'))
             else:
-                t =  p.communicate(kwargs['script'])
+                t = p.communicate(kwargs['script'])
 
-            if isinstance(t,bytes):
+            if isinstance(t, bytes):
                 try:
                     t = t.decode('utf-8')
                 except:
                     pass
 
-            x+= t[0] + t[1]
+            x += t[0] + t[1]
             try:
                 time.sleep(0.1)
                 t = p.communicate(b'')
-                x+= t[0]+t[1]
+                x += t[0]+t[1]
                 p.kill()
                 p.stdout.close()
                 p.stderr.close()
@@ -221,7 +239,6 @@ class Settings():
             return pages.get_template("settings/console.html").render(output=x)
         else:
             return pages.get_template("settings/console.html").render(output="Kaithem System Shell")
-
 
     @cherrypy.expose
     def account(self):
@@ -239,92 +256,93 @@ class Settings():
         return pages.get_template("settings/util/leaflet.html").render()
 
     @cherrypy.expose
-    def changeprefs(self,**kwargs):
+    def changeprefs(self, **kwargs):
         pages.require("/users/accountsettings.edit")
         pages.postOnly()
         lists = []
         if "tabtospace" in kwargs:
-            auth.setUserSetting(pages.getAcessingUser(),"tabtospace",True)
+            auth.setUserSetting(pages.getAcessingUser(), "tabtospace", True)
         else:
-            auth.setUserSetting(pages.getAcessingUser(),"tabtospace",False)
+            auth.setUserSetting(pages.getAcessingUser(), "tabtospace", False)
 
         for i in kwargs:
             if i.startswith("pref_"):
-                if not i in ['pref_strftime',"pref_timezone","email"]:
+                if not i in ['pref_strftime', "pref_timezone", "email"]:
                     continue
-                #Filter too long values
-                auth.setUserSetting(pages.getAcessingUser(),i[5:],kwargs[i][:200])
-
+                # Filter too long values
+                auth.setUserSetting(pages.getAcessingUser(),
+                                    i[5:], kwargs[i][:200])
 
             m = registry.get('system/mail/lists')
             if i.startswith("list_"):
                 if kwargs[i] == "subscribe":
                     if i[5:][:100] in m:
                         lists.append(i[5:][:100])
-        auth.setUserSetting(pages.getAcessingUser(),'mailinglists',lists)
+        auth.setUserSetting(pages.getAcessingUser(), 'mailinglists', lists)
 
-        auth.setUserSetting(pages.getAcessingUser(),'usemonaco','usemonaco' in kwargs)
+        auth.setUserSetting(pages.getAcessingUser(),
+                            'usemonaco', 'usemonaco' in kwargs)
 
         raise cherrypy.HTTPRedirect("/settings/account")
 
     @cherrypy.expose
-    def changeinfo(self,**kwargs):
+    def changeinfo(self, **kwargs):
         pages.require("/users/accountsettings.edit")
         pages.postOnly()
-        if len(kwargs['email'])> 120:
+        if len(kwargs['email']) > 120:
             raise RuntimeError("Limit 120 chars for email address")
-        auth.setUserSetting(pages.getAcessingUser(),'email',kwargs['email'])
-        messagebus.postMessage("/system/auth/user/changedemail",pages.getAcessingUser())
+        auth.setUserSetting(pages.getAcessingUser(), 'email', kwargs['email'])
+        messagebus.postMessage(
+            "/system/auth/user/changedemail", pages.getAcessingUser())
         raise cherrypy.HTTPRedirect("/settings/account")
 
-
     @cherrypy.expose
-    def changepwd(self,**kwargs):
+    def changepwd(self, **kwargs):
         pages.require("/users/accountsettings.edit")
         pages.postOnly()
         t = cherrypy.request.cookie['auth'].value
         u = auth.whoHasToken(t)
-        if len(kwargs['new'])> 100:
+        if len(kwargs['new']) > 100:
             raise RuntimeError("Limit 100 chars for password")
         auth.resist_timing_attack((u+kwargs['old']).encode('utf8'))
-        if not auth.userLogin(u,kwargs['old']) == "failure":
-            if kwargs['new']==kwargs['new2']:
-                auth.changePassword(u,kwargs['new'])
+        if not auth.userLogin(u, kwargs['old']) == "failure":
+            if kwargs['new'] == kwargs['new2']:
+                auth.changePassword(u, kwargs['new'])
             else:
                 raise cherrypy.HTTPRedirect("/errors/mismatch")
         else:
             raise cherrypy.HTTPRedirect("/errors/loginerror")
-        messagebus.postMessage("/system/auth/user/selfchangedepassword",pages.getAcessingUser())
+        messagebus.postMessage(
+            "/system/auth/user/selfchangedepassword", pages.getAcessingUser())
 
         raise cherrypy.HTTPRedirect("/")
 
     @cherrypy.expose
-    def testmail(self,*a,**k):
+    def testmail(self, *a, **k):
         pages.require("/admin/settings.edit")
-        mail.raw_send("testing",k['to'],'test mail')
+        mail.raw_send("testing", k['to'], 'test mail')
         raise cherrypy.HTTPRedirect("/")
 
     @cherrypy.expose
-    def listmail(self,*a,**k):
+    def listmail(self, *a, **k):
         pages.require("/admin/settings.edit")
-        mail.rawlistsend(k['subj'],k['msg'],k['list'])
+        mail.rawlistsend(k['subj'], k['msg'], k['list'])
         raise cherrypy.HTTPRedirect("/")
 
-
     @cherrypy.expose
-    def savemail(self,*a,**k):
+    def savemail(self, *a, **k):
         pages.require("/admin/settings.edit")
         pages.postOnly()
         registry.set("system/mail/server",  k['smtpserver'])
         registry.set("system/mail/port",  k['smtpport'])
-        registry.set("system/mail/address" ,k['smtpaddress'])
+        registry.set("system/mail/address", k['smtpaddress'])
 
         if not k['smtpassword1'] == '':
-            if k['smtpassword1'] == k['smtpassword2'] :
-                registry.set("system/mail/password" ,k['smtpassword1'])
+            if k['smtpassword1'] == k['smtpassword2']:
+                registry.set("system/mail/password", k['smtpassword1'])
             else:
                 raise exception("Passwords must match")
-        mail = registry.get("system/mail/lists",{})
+        mail = registry.get("system/mail/lists", {})
 
         for i in k:
             if i.startswith('mlist_name'):
@@ -341,12 +359,12 @@ class Settings():
                 del mail[list]
 
         if 'newlist' in k:
-            mail[base64.b64encode(os.urandom(16)).decode()[:-2]] = {'name':'Untitled', 'description': "Insert Description"}
+            mail[base64.b64encode(os.urandom(16)).decode()[
+                :-2]] = {'name': 'Untitled', 'description': "Insert Description"}
 
-        registry.set("system/mail/lists",mail)
+        registry.set("system/mail/lists", mail)
         auth.getPermissionsFromMail()
         raise cherrypy.HTTPRedirect("/settings/system")
-
 
     @cherrypy.expose
     def system(self):
@@ -383,11 +401,12 @@ class Settings():
     def restarttarget(self):
         pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
-        #This log won't be seen by anyone unless they set up autosaving before resets
-        messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + ' reset the system.')
-        cherrypy.engine.restart()#(!)
-        #It might come online fast enough for this to work, otherwise they see an error.
-        return  """
+        # This log won't be seen by anyone unless they set up autosaving before resets
+        messagebus.postMessage(
+            "/system/notifications", "User " + pages.getAcessingUser() + ' reset the system.')
+        cherrypy.engine.restart()  # (!)
+        # It might come online fast enough for this to work, otherwise they see an error.
+        return """
                 <HTML>
                 <HEAD>
                 <META HTTP-EQUIV="refresh" CONTENT="30;URL=/">
@@ -403,11 +422,12 @@ class Settings():
         pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
         config.config['save-before-shutdown'] = False
-        #This log won't be seen by anyone unless they set up autosaving before resets
-        messagebus.postMessage("/system/notifications", "User "+ pages.getAcessingUser() + ' reset the system.')
-        cherrypy.engine.restart()#(!)
-        #It might come online fast enough for this to work, otherwise they see an error.
-        return  """
+        # This log won't be seen by anyone unless they set up autosaving before resets
+        messagebus.postMessage(
+            "/system/notifications", "User " + pages.getAcessingUser() + ' reset the system.')
+        cherrypy.engine.restart()  # (!)
+        # It might come online fast enough for this to work, otherwise they see an error.
+        return """
                 <HTML>
                 <HEAD>
                 <META HTTP-EQUIV="refresh" CONTENT="30;URL=/">
@@ -428,80 +448,84 @@ class Settings():
         return pages.get_template("settings/settime.html").render()
 
     @cherrypy.expose
-    def set_time_from_web(self,**kwargs):
+    def set_time_from_web(self, **kwargs):
         pages.require("/admin/settings.edit", noautoreturn=True)
         t = float(kwargs['time'])
-        subprocess.call(["date","-s","+%Y%m%d%H%M%S",time.strftime("%Y%m%d%H%M%S",time.gmtime(t-0.05))])
+        subprocess.call(["date", "-s", "+%Y%m%d%H%M%S",
+                         time.strftime("%Y%m%d%H%M%S", time.gmtime(t-0.05))])
         try:
-            subprocess.call(["hwclock","--systohc"])
+            subprocess.call(["hwclock", "--systohc"])
         except:
             pass
 
         raise cherrypy.HTTPRedirect('/settings/system')
-    
+
     @cherrypy.expose
-    def changealertsettingstarget(self,**kwargs):
-        pages.require("/admin/settings.edit",noautoreturn=True)
+    def changealertsettingstarget(self, **kwargs):
+        pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
-        registry.set("system/alerts/warning/soundinterval",float(kwargs['warningbeeptime']))
-        registry.set("system/alerts/error/soundinterval",float(kwargs['errorbeeptime']))
-        registry.set("system/alerts/critical/soundinterval",float(kwargs['critbeeptime']))
+        registry.set("system/alerts/warning/soundinterval",
+                     float(kwargs['warningbeeptime']))
+        registry.set("system/alerts/error/soundinterval",
+                     float(kwargs['errorbeeptime']))
+        registry.set("system/alerts/critical/soundinterval",
+                     float(kwargs['critbeeptime']))
 
         registry.set("system/alerts/warning/soundfile", kwargs['warningsound'])
         registry.set("system/alerts/error/soundfile", kwargs['errorsound'])
         registry.set("system/alerts/critical/soundfile", kwargs['critsound'])
 
-        if not kwargs['soundcard']=="default":
+        if not kwargs['soundcard'] == "default":
             registry.set("system/alerts/soundcard", kwargs['soundcard'])
 
         raise cherrypy.HTTPRedirect('/settings/system')
 
-
     @cherrypy.expose
-    def changesettingstarget(self,**kwargs):
-        pages.require("/admin/settings.edit",noautoreturn=True)
+    def changesettingstarget(self, **kwargs):
+        pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
 
-        registry.set("system/location/lat",float(kwargs['lat']))
-        registry.set("system/location/lon",float(kwargs['lon']))
+        registry.set("system/location/lat", float(kwargs['lat']))
+        registry.set("system/location/lon", float(kwargs['lon']))
 
-        messagebus.postMessage("/system/settings/changedelocation",pages.getAcessingUser())
+        messagebus.postMessage(
+            "/system/settings/changedelocation", pages.getAcessingUser())
         raise cherrypy.HTTPRedirect('/settings/system')
 
     @cherrypy.expose
-    def changeupnptarget(self,**kwargs):
-        pages.require("/admin/settings.edit",noautoreturn=True)
+    def changeupnptarget(self, **kwargs):
+        pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
 
-        registry.set("/system/upnp/expose_https_wan_port",int(kwargs['exposeport']))
+        registry.set("/system/upnp/expose_https_wan_port",
+                     int(kwargs['exposeport']))
         systasks.doUPnP()
         raise cherrypy.HTTPRedirect('/settings/system')
 
     @cherrypy.expose
-    def settheming(self,**kwargs):
-        pages.require("/admin/settings.edit",noautoreturn=True)
+    def settheming(self, **kwargs):
+        pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
-        registry.set("/system.theming/csstheme",kwargs['cssfile'])
+        registry.set("/system.theming/csstheme", kwargs['cssfile'])
         raise cherrypy.HTTPRedirect('/settings/theming')
 
-
     @cherrypy.expose
-    def changejacksettingstarget(self,**kwargs):
-        pages.require("/admin/settings.edit",noautoreturn=True)
+    def changejacksettingstarget(self, **kwargs):
+        pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
 
-        jacksettings.set("jackMode",kwargs['jackmode'])
-        jacksettings.set("sharePulse",kwargs['pulsesharing'])
-        jacksettings.set("jackPeriodSize",max(32,int(kwargs['jackperiodsize'])))
-        jacksettings.set("jackPeriods",max(2,int(kwargs['jackperiods'])))
-        jacksettings.set("jackDevice",kwargs['jackdevice'])
-        jacksettings.set("useAdditionalSoundcards",kwargs['jackuseadditional'])
+        jacksettings.set("jackMode", kwargs['jackmode'])
+        jacksettings.set("sharePulse", kwargs['pulsesharing'])
+        jacksettings.set("jackPeriodSize", max(
+            32, int(kwargs['jackperiodsize'])))
+        jacksettings.set("jackPeriods", max(2, int(kwargs['jackperiods'])))
+        jacksettings.set("jackDevice", kwargs['jackdevice'])
+        jacksettings.set("useAdditionalSoundcards",
+                         kwargs['jackuseadditional'])
 
-
-        
         from . import jackmanager
         jackmanager.reloadSettings()
-        if jacksettings.get("jackMode",None) in("manage","use"):
+        if jacksettings.get("jackMode", None) in("manage", "use"):
             try:
                 jackmanager.startManaging()
             except:
@@ -510,23 +534,23 @@ class Settings():
             jackmanager.stopManaging()
         raise cherrypy.HTTPRedirect('/settings/system')
 
-
     @cherrypy.expose
-    def ip_geolocate(self,**kwargs):
-        pages.require("/admin/settings.edit",noautoreturn=True)
+    def ip_geolocate(self, **kwargs):
+        pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
         l = util.ip_geolocate()
-        registry.set("system/location/lat",l['lat'])
-        registry.set("system/location/lon",l['lon'])
-        registry.set("system/location/city",l['city'])
-        messagebus.postMessage("/system/settings/changedelocation",pages.getAcessingUser())
+        registry.set("system/location/lat", l['lat'])
+        registry.set("system/location/lon", l['lon'])
+        registry.set("system/location/city", l['city'])
+        messagebus.postMessage(
+            "/system/settings/changedelocation", pages.getAcessingUser())
         raise cherrypy.HTTPRedirect('/settings/system')
 
     @cherrypy.expose
     def processes(self):
         pages.require("/admin/settings.view")
         return pages.get_template("settings/processes.html").render()
-    
+
     @cherrypy.expose
     def environment(self):
         pages.require("/admin/settings.view")
@@ -534,13 +558,15 @@ class Settings():
 
     @cherrypy.expose
     def clearerrorstarget(self):
-        pages.require("/admin/settings.edit",noautoreturn=True)
+        pages.require("/admin/settings.edit", noautoreturn=True)
         pages.postOnly()
         util.clearErrors()
-        messagebus.postMessage("/system/notifications","All errors were cleared by" + pages.getAcessingUser())
+        messagebus.postMessage(
+            "/system/notifications", "All errors were cleared by" + pages.getAcessingUser())
         raise cherrypy.HTTPRedirect('/')
 
     gpio = gpio.WebInterface()
+
     class profiler():
         @cherrypy.expose
         def index():
@@ -565,7 +591,8 @@ class Settings():
                     logging.exception("CPU time profiling not supported")
 
             time.sleep(0.5)
-            messagebus.postMessage("/system/settings/activatedprofiler",pages.getAcessingUser())
+            messagebus.postMessage(
+                "/system/settings/activatedprofiler", pages.getAcessingUser())
             raise cherrypy.HTTPRedirect("/settings/profiler")
 
         @cherrypy.expose
