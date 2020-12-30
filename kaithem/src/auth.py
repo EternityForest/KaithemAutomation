@@ -617,6 +617,9 @@ def getUserLimit(user,limit,maximum=2**64):
 def canUserDoThis(user,permission):
     """Return True if given user(by username) has access to the given permission"""
 
+    if permission=='__never__':
+        return False
+
     if not user in Users:
         if '__guest__' in Users and permission in Users["__guest__"].permissions:
             return True

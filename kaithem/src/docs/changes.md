@@ -4,7 +4,8 @@ Change Log
 ### 0.65.46
 - Better Mako formatting
 - Tag logging bugfixes
-
+- Fix bugs in configuring exposed tags
+- \_\_never\_\_ permission even blocks admins
 
 ### 0.65.45
 - Many small improvements to the sounds engine, including true seamless looping

@@ -548,6 +548,7 @@ def configTagFromData(name,data):
 
     t = data.get("type","number")
 
+
     #Get rid of any unused existing tag
     try:
         if name in configTags:
@@ -774,10 +775,10 @@ class _TagPoint(virtualresource.VirtualResource):
             self.setConfigData(configTagData.get(self.name,{}))
 
 
-    def expose(self, r='', w='__admin__',p=50, configured=False):
+    def expose(self, r='', w='__never__',p=50, configured=False):
         """If not r, disable web API.  Otherwise, set read and write permissions.  
            If configured permissions are set, they totally override code permissions.
-           
+           Empty configured perms fallback tor runtime           
            
         """
 
@@ -785,7 +786,7 @@ class _TagPoint(virtualresource.VirtualResource):
         if not r:
             r=''
         if not w:
-            w=''
+            w='__never__'
 
         if isinstance(r, list):
             r=','.join(r)
@@ -802,14 +803,17 @@ class _TagPoint(virtualresource.VirtualResource):
 
         if not r or not w:
             d=['','','']
+            emptyPerms = True
         else:
+            emptyPerms = False
             d=[r,w,p]
 
         with lock:
             with self.lock:
                 if configured:
                     self.configuredPermissions=d
-                    configTagData[self.name]['permissions']= self.permissions
+
+                    self._recordConfigAttr('permissions',d if not emptyPerms else None)
                     hasUnsavedData[0]=True
                 else:
                     self.permissions = d
@@ -818,8 +822,8 @@ class _TagPoint(virtualresource.VirtualResource):
                 #Merge config and direct
                 d2 =  self.getEffectivePermissions()
 
-                #Be safe, only allow non-admim writes if user specifies a permission
-                d2[1]=d2[1] or '__admin__'
+                #Be safe, only allow writes if user specifies a permission
+                d2[1]=d2[1] or '__never__'
                 
                 if not d2[0]:
                     self.dataSourceWidget = None
@@ -862,6 +866,12 @@ class _TagPoint(virtualresource.VirtualResource):
         d2 =   [self.configuredPermissions[0] or self.permissions[0],
                 self.configuredPermissions[1] or self.permissions[1],
                 self.configuredPermissions[2] or self.permissions[2]]
+        
+        #Block exposure at all if the permission is never
+        if '__never__' in d2[0]:
+            d2[0]= ''
+            d2[1]=''
+
         return d2
 
     def _apiPush(self):
@@ -871,15 +881,13 @@ class _TagPoint(virtualresource.VirtualResource):
 
         #Immediate write, don't push yet, do that in a thread because TCP can block
         def pushFunction():
-            t = self.valueTuple
-
             #Set value immediately, for later page loads
-            self.dataSourceWidget.value = t[0]
+            self.dataSourceWidget.value = self.value
             if self.guiLock.acquire(timeout=1):
                 try:
-                    #Use the cached literal computed value, not what we were passed,
+                    #Use the new literal computed value, not what we were passed,
                     #Because it could have changed by the time we actually get to push
-                    self.dataSourceWidget.send(t[0])
+                    self.dataSourceWidget.send(self.value)
                 finally:
                     self.guiLock.release()
             
@@ -925,10 +933,12 @@ class _TagPoint(virtualresource.VirtualResource):
         
     def _recordConfigAttr(self,k,v):
         "Make sure a config attr setting gets saved"
-        if not v in (None,'') and v.strip():
-            self.configOverrides[v]=v
+        #Reject various kinds of empty
+        if not v in (None,'') and (v.strip() if isinstance(v,str) else True):
+            self.configOverrides[k]=v
             if not self.name in configTagData:
                 configTagData[self.name]= persist.getStateFile(getFilenameForTagConfig(self.name))
+                configTagData[self.name][k]=v
                 configTagData[self.name].noFileForEmpty = True
             configTagData[self.name][k]=v
         else:
@@ -1291,8 +1301,9 @@ class _TagPoint(virtualresource.VirtualResource):
                 self.kweb_manualOverrideClaim.release()
                 del self.kweb_manualOverrideClaim
 
-            p = data.get('permissions',(False,False))
-            self.expose(*p,True)
+            p = data.get('permissions',('','',''))
+            #Set configured permissions, overriding runtime
+            self.expose(*p,configured=True)
     
     @property
     def interval(self):
@@ -2007,6 +2018,7 @@ class _NumericTagPoint(_TagPoint):
 
 class _StringTagPoint(_TagPoint):
     defaultData=''
+    unit = "string"
     type='string'
     @typechecked
     def __init__(self,name:str):

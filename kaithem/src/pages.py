@@ -180,6 +180,9 @@ def require(permission, noautoreturn=False):
         trying to go. However if the place they were going has an effect, you might want them to confirm first, so set noauto to true
         to take them to the main page on successful login, or set it to a url to take them there instead.
         """
+    
+    if permission == "__never__":
+        raise RuntimeError("Nobody has the __never__ permission, ever, except in nosecurity mode.")
 
     if not isinstance(permission, str):
         p = permission

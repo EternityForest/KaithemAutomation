@@ -150,7 +150,6 @@ def combineLogs(a):
 
 
 %>
-
 <title>${normalizednormalizedTagName|h}</title>
 <script src="/static/widget.js"></script>
 <h1>Tag Point: <small>${normalizednormalizedTagName}</small></h1>
@@ -331,12 +330,12 @@ def combineLogs(a):
 
 
 <h3>WebAPI exposure</h3>
-<p class="help">Empty read perms disable exposing the tag, unless it is exposed via code.   Any valus set here override those in code.   These settings control access to the tag in the FreeBoard dashboard creator</p>
+<p class="help">Empty read perms disable exposing the tag, unless it is exposed via code.   Any values set here override those in code, blank values default to the one set in code.  These settings control access to the tag in the FreeBoard dashboard creator</p>
 <p class="help">For security, at least one read permisson has to be defined to enable the api.</p>
 
 <table border="1">
     <tr>
-        <td>Read Permissions(comma separated, empty to disable API)</td>
+        <td>Read Permissions(comma separated list, all are required.  Defaults can be set in code, otherwise empty=unxposed.   To un-expose something that defaults to exposed, use the special permission __never__)</td>
     </tr>
     <td>
         <input name="readPerms" value="${configData.get('permissions',['','',''])[0] |h}" placeholder="${tag.getEffectivePermissions()[0]|h}" style="width:24em">
