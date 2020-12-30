@@ -23,6 +23,15 @@
         "kaithem/src/js/src-min-noconflict**": true,
         "kaithem/data/static/img/icons/**": true,
         "kaithem/src/thirdparty":true
-    }
+    },
+    "python.autoComplete.extraPaths": [
+        "kaithem/src/thirdparty",
+        "kaithem/src/docs/thirdparty/python**"
+    ],
+    "python.analysis.extraPaths": [
+        "kaithem/src/docs/thirdparty/"
+    ],
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true
     
 }
