@@ -32,14 +32,13 @@ import os
 import time
 import shutil
 import hashlib
-import base64
 import sys
 import yaml
 import hmac
 import struct
 import logging
 import threading
-
+import subprocess
 
 lock = threading.RLock()
 
@@ -162,7 +161,7 @@ class User(dict):
 
 def changeUsername(old, new):
     "Change a user's username"
-    global auth
+    global authchanged
     with lock:
         authchanged = True
         # this should work because tokens stores object references ad we are not deleting
@@ -207,7 +206,7 @@ def addUser(username, password):
 
 
 def removeUser(user):
-    global authchanged
+    global authchanged, tokenHashes
     with lock:
         authchanged = True
         x = Users.pop(user)
@@ -225,7 +224,7 @@ def removeGroup(group):
     global authchanged
     with lock:
         authchanged = True
-        x = Groups.pop(group)
+        Groups.pop(group)
         # Remove all references to that group from all users
         for i in Users:
             if group in Users[i]['groups']:
@@ -263,7 +262,7 @@ def removeUserFromGroup(username, group):
 
 def promptGenerateUser(username="admin"):
     with lock:
-        global authchanged
+        global authchanged, tokenHashes
         p = "samevscdfghjkl,ljhgfdsfhjmk,.lkjhgfdgnm,kjgfdnmj,kjuytredsfvbnhjmk?P>O:P_O>{:?{|<>/,.(0%(%(*5)))}"
         p2 = "differentgfbhnjmuytrfdcvbnjuytfgcvbnmjuytgfvbnmjkiuytgfvbnmjuytgfvbnmjkuyhgf"
         try:
@@ -310,7 +309,7 @@ def promptGenerateUser(username="admin"):
         Groups = temp['groups']
         global Tokens
         Tokens = {}
-        tokenHashes = {}
+        tokenHashes.clear()
         for user in Users:
             # What an unreadable line! It turs all the dicts in Users into User() instances
             Users[user] = User(Users[user])
@@ -320,6 +319,7 @@ def promptGenerateUser(username="admin"):
 
 
 def tryToLoadFrom(d):
+    global tokenHashes
     with lock:
         if os.path.isfile(os.path.join(d, "__COMPLETE__")):
             try:
@@ -333,7 +333,7 @@ def tryToLoadFrom(d):
             Groups = temp['groups']
             global Tokens
             Tokens = {}
-            tokenHashes = {}
+            tokenHashes.clear()
             for user in Users:
                 # What an unreadable line! It turs all the dicts in Users into User() instances
                 Users[user] = User(Users[user])
@@ -395,6 +395,8 @@ def generateUserPermissions(username=None):
         # TODO let you do one user at a time
         # Give each user all of the permissions that his or her groups have
         global Users
+        global tokenHashes
+
         for i in Users:
             limits = {}
 
@@ -446,6 +448,8 @@ def userLogin(username, password):
 
 def checkTokenPermission(token, permission):
     """return true if the user associated with token has the permission"""
+    global tokenHashes
+
     with lock:
         token = hashToken(token)
         if token in tokenHashes:
@@ -582,6 +586,7 @@ def removeGroupPermission(group, permission):
 
 
 def whoHasToken(token):
+    global tokenHashes
     return tokenHashes[hashToken(token)]['username']
 
 
@@ -594,6 +599,7 @@ def hashToken(token):
 
 def assignNewToken(user):
     """Log user out by defining a new token"""
+    global tokenHashes
     with lock:
         # Generate new token
         x = base64.b64encode(os.urandom(24)).decode()

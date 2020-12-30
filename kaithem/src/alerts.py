@@ -1,4 +1,4 @@
-from src import statemachines, widgets, registry, sound, scheduling, workers, pages, messagebus, virtualresource, unitsofmeasure, auth
+from src import statemachines, widgets, registry, scheduling, workers, pages, messagebus, virtualresource, unitsofmeasure, auth
 from typeguard import typechecked
 
 import logging
@@ -100,6 +100,8 @@ def alarmBeep():
             return
         if s:
             try:
+                # Ondemand to avoid circular import
+                from . import sound
                 sound.playSound(
                     s, handle="kaithem_sys_main_alarm", output=beepDevice)
             except:
@@ -309,6 +311,8 @@ class Alert(virtualresource.VirtualResource):
             # deadlock with the tag's lock in the __del__ function GCing some
             # other tag. I don't quite understand it but this should break the loop
             def f():
+                # Ondemand to avoid circular import
+                from . import sound
                 beepDevice = registry.get("system/alerts/soundcard", None)
                 sound.playSound(
                     s, handle="kaithem_sys_main_alarm", output=beepDevice)

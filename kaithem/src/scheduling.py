@@ -274,7 +274,7 @@ class RepeatingEvent(BaseEvent):
                     try:
                         logging.exception("Error scheduling")
                     except:
-                        pass
+                        print(traceback.format_exc(6))
                 self.lock.release()
                 del f
                 sys.last_traceback = None

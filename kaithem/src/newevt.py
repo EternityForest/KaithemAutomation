@@ -130,7 +130,7 @@ eventsByModuleName = weakref.WeakValueDictionary()
 
 
 def makePrintFunction(ev):
-    """For some unknown reason, new_print is involved in a 
+    """For some unknown reason, new_print is involved in a
        garbage cycle that was preventing event GC
         Here we implement it as a closuse that only
          weakly references the actual event object.
@@ -204,7 +204,7 @@ def getEventErrors(module, event):
 
 
 def fastGetEventErrors(module, event):
-    """This version might not always be accurate, 
+    """This version might not always be accurate,
     but will never modify anything or return an error. Does not  use a lock."""
     try:
         return __EventReferences[module, event].errors
@@ -412,16 +412,16 @@ def Event(when="False", do="pass", scope=None, continual=False, ratelimit=0, set
             triggeraction = None
 
         if 'nolock' in trigger:
-            l = False
+            uselock = False
         else:
-            l = True
+            uselock = True
 
         if 'async' in trigger:
             a = False
         else:
             a = True
 
-        return FunctionEvent(trigger[1].split(';')[0], triggeraction, l, do, scope, continual, ratelimit, setup, priority, run_async=a, **kwargs)
+        return FunctionEvent(trigger[1].split(';')[0], triggeraction, uselock, do, scope, continual, ratelimit, setup, priority, run_async=a, **kwargs)
 
     elif trigger[0] == '!onmsg':
         return MessageEvent(when, do, scope, continual, ratelimit, setup, priority, **kwargs)
@@ -571,7 +571,7 @@ class BaseEvent():
             if not self.lock.acquire(False):
                 time.sleep(0.7)
                 if not self.lock.acquire(False):
-                    raise WouldBlockError(
+                    raise RuntimeError(
                         "Could not acquire lock while event already running or polling. Trying again may work.")
         try:
             self._on_trigger()
@@ -587,12 +587,12 @@ class BaseEvent():
                         if '__del__' in self.pymodule.__dict__:
                             self.pymodule.__dict__.__del__()
                             del self.pymodule.__dict__.__del__
-                except:
+                except Exception:
                     logger.exception("Error in delete function")
                 if hasattr(self, 'pymodule'):
                     self.pymodule.__dict__.clear()
                     del self.pymodule
-        except:
+        except Exception:
             raise
 
     def _on_trigger(self):
@@ -622,7 +622,7 @@ class BaseEvent():
 
     def _handle_exception(self, e=None, tb=None):
         global _lastGC
-        if tb == None:
+        if tb is None:
             if sys.version_info > (3, 0):
                 tb = traceback.format_exc(chain=True)
             else:
@@ -728,7 +728,7 @@ class BaseEvent():
                     logger.exception("Error in event " +
                                      self.resource+" of " + self.module)
                     self._handle_exception(e)
-                except:
+                except Exception:
                     logging.exception("Error handling exception in event")
         finally:
             self.lock.release()
@@ -740,7 +740,7 @@ def test_compile(setup, action):
         setup = "pass"
 
     # initialize the module scope with the kaithem object and the module thing.
-    initializer = compile(
+    compile(
         setup, "TestCompileSetup", "exec")
 
     body = "def _event_action():\n"
@@ -777,20 +777,20 @@ class CompileCodeStringsMixin():
                 # To avoid a garbage cycle, the function is a closure
                 # That only weak references the object
                 self.pymodule.__dict__['print'] = makePrintFunction(self)
-            except:
+            except Exception:
                 logging.exception(
                     "Failed to activate event print output functionality")
             self.pymodule.__dict__.update(params)
         except KeyError as e:
             raise e
         fooLock = threading.Lock()
-        l = []
+        flag = []
         err = []
 
         def runInit():
             with fooLock:
                 # Just a marker so we know it got called
-                l.append(0)
+                flag.append(0)
                 try:
                     exec(initializer, self.pymodule.__dict__)
                 except Exception as e:
@@ -803,7 +803,7 @@ class CompileCodeStringsMixin():
         workers.do(runInit)
         try:
             # Wait for it to get the lock
-            while(len(l)) == 0:
+            while(len(flag)) == 0:
                 time.sleep(0.001)
 
             t = time.monotonic()
@@ -1620,7 +1620,7 @@ def getEventsFromModules(only=None):
                                       " in "+str(round(time.time()-slt, 2))+"s")
                         time.sleep(0.005)
 
-                    except (SyntaxError, UnrecoverableEventInitError) as e:
+                    except (SyntaxError, UnrecoverableEventInitError):
                         i.loadingTraceback = traceback.format_exc(chain=True)
                         i.error = traceback.format_exc(chain=True)
                         logging.exception(

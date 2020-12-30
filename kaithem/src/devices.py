@@ -452,8 +452,6 @@ class DeviceTypeLookup():
             dt = builtinDeviceTypes[k]
         elif k in ("", 'device', 'Device'):
             dt = Device
-        else:
-            dt = deviceTypes[data['type']]
         return dt
 
 

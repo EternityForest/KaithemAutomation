@@ -53,7 +53,7 @@ except:
     pass
 
 
-def lock(f):
+def lockFile(f):
     t = time.time()
     while time.time()-t > 5:
         try:
@@ -64,7 +64,7 @@ def lock(f):
             return
 
 
-def unlock(f):
+def unlockFile(f):
     try:
         fcntl.lockf(f, fcntl.LOCK_SH)
     except:

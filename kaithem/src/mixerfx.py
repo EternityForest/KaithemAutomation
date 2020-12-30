@@ -704,7 +704,6 @@ effectTemplates_data = {
             "volume": {
                 "type": "float",
                 "displayName": "Level",
-                "value": False,
                 "sort": 0,
                 "min": -60,
                 "max": 0,

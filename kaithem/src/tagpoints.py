@@ -1,6 +1,6 @@
 from . import widgets
 from .unitsofmeasure import convert, unitTypes
-from . import scheduling, workers, virtualresource, widgets, messagebus, directories, persist, alerts, auth
+from . import scheduling, workers, virtualresource, messagebus, directories, persist, alerts
 import time
 import threading
 import weakref
@@ -14,13 +14,14 @@ import functools
 import re
 import random
 import json
-import types
 import copy
 
-from typing import Callable, Optional, Union
-from threading import setprofile
+from typing import Callable, Union
 from typeguard import typechecked
 import sqlite3
+
+logger = logging.getLogger("tagpoints")
+syslogger = logging.getLogger("system")
 
 
 logdir = os.path.join(directories.vardir, "logs")
@@ -28,8 +29,8 @@ logdir = os.path.join(directories.vardir, "logs")
 if not os.path.exists(logdir):
     try:
         os.mkdir(logdir)
-    except:
-        pass
+    except Exception:
+        logger.exception("Can't make log dir")
 
 
 historyDBFile = os.path.join(logdir, "history.ldb")
@@ -78,7 +79,6 @@ class TagLogger():
             return
 
         with self.h.lock:
-            d = []
             conn = self.h.history
 
             c = conn.cursor()
@@ -115,7 +115,7 @@ class TagLogger():
                     break
                 # Can fail due to iterationerror, we don't lock the pending list,
                 # We just hope we can finish very fast.
-                except:
+                except Exception:
                     raise
 
             return (d+x)[:maxRecords]
@@ -144,7 +144,7 @@ class TagLogger():
                     break
                 # Can fail due to iterationerror, we don't lock the pending list,
                 # We just hope we can finish very fast.
-                except:
+                except Exception:
                     raise
 
             return (list(reversed(d))+x)[-maxRecords:]
@@ -372,7 +372,7 @@ class TagHistorian():
                         if x.accumCount:
                             x.flush(force)
 
-            l = self.pending
+            pending = self.pending
             self.pending = []
             # Hopefully let any other threads finish
             # inserting. Note that here we consider very rarely losing a record
@@ -390,7 +390,7 @@ class TagHistorian():
                             with x.lock:
                                 x.clearOldData(force)
 
-                for i in l:
+                for i in pending:
                     self.history.execute(
                         'INSERT INTO record VALUES (?,?,?)', i)
             self.history.close()
@@ -398,7 +398,7 @@ class TagHistorian():
 
 try:
     historian = TagHistorian(historyDBFile)
-except:
+except Exception:
     messagebus.postMessage("/system/notifications/errors",
                            "Failed to create tag historian, logging will not work."+"\n"+traceback.format_exc())
 
@@ -487,8 +487,6 @@ configAttrs = {
 softConfigAttrs = {
     'overrideName', 'overrideValue', 'overridePriority', 'type', 'onChange', 'value'
 }
-logger = logging.getLogger("tagpoints")
-syslogger = logging.getLogger("system")
 
 t = time.monotonic
 
@@ -576,7 +574,6 @@ configTagData = {}
 
 def configTagFromData(name, data):
     name = normalizeTagName(name)
-    existingData = configTagData.get(name, {})
 
     t = data.get("type", "number")
 
@@ -589,8 +586,8 @@ def configTagFromData(name, data):
             gc.collect()
             time.sleep(0.01)
             gc.collect()
-    except:
-        pass
+    except Exception:
+        logger.exception("Deleting tag config")
 
     # Create or get the tag
     if t == "number":
@@ -646,7 +643,7 @@ def loadAllConfiguredTags(f=os.path.join(directories.vardir, "tags")):
         for i in list(configTagData.keys()):
             try:
                 configTagFromData(i, configTagData[i].getAllData())
-            except:
+            except Exception:
                 logging.exception("Failure with configured tag: "+i)
                 messagebus.postMessage(
                     "/system/notifications/errors", "Failed to preconfigure tag "+i+"\n"+traceback.format_exc())
@@ -793,8 +790,8 @@ class _TagPoint(virtualresource.VirtualResource):
                 for i in recalcOnCreate[self.name]:
                     try:
                         i()
-                    except:
-                        pass
+                    except Exception:
+                        logging.exception("????")
 
         if self.name.startswith("="):
             createGetterFromExpression(self.name, self)
@@ -802,9 +799,9 @@ class _TagPoint(virtualresource.VirtualResource):
             self.setConfigData(configTagData.get(self.name, {}))
 
     def expose(self, r='', w='__never__', p=50, configured=False):
-        """If not r, disable web API.  Otherwise, set read and write permissions.  
+        """If not r, disable web API.  Otherwise, set read and write permissions.
            If configured permissions are set, they totally override code permissions.
-           Empty configured perms fallback tor runtime           
+           Empty configured perms fallback tor runtime
 
         """
 
@@ -878,7 +875,6 @@ class _TagPoint(virtualresource.VirtualResource):
                 self.apiClaim.release()
         else:
             # No locking things up if the times are way mismatched and it sets a time way in the future
-            t = time.monotonic()+10
             self.apiClaim = self.claim(v, 'WebAPIClaim', priority=(
                 self.getEffectivePermissions())[2], annotation=u)
 
@@ -956,9 +952,9 @@ class _TagPoint(virtualresource.VirtualResource):
     def _recordConfigAttr(self, k, v):
         "Make sure a config attr setting gets saved"
         # Reject various kinds of empty
-        if not v in (None, '') and (v.strip() if isinstance(v, str) else True):
+        if v not in (None, '') and (v.strip() if isinstance(v, str) else True):
             self.configOverrides[k] = v
-            if not self.name in configTagData:
+            if self.name not in configTagData:
                 configTagData[self.name] = persist.getStateFile(
                     getFilenameForTagConfig(self.name))
                 configTagData[self.name][k] = v
@@ -973,6 +969,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
     def recalc(self, *a):
         "Just re-get the value as needed"
+        # It's a getter, ignore the mypy unused thing.
         x = self.value
 
     # def recalcAlarms(self):
@@ -1012,10 +1009,10 @@ class _TagPoint(virtualresource.VirtualResource):
                 else:
                     try:
                         v = float(v)
-                    except:
+                    except Exception:
                         pass
             # Attempt to go back to the values set by code
-            if v == None:
+            if v is None:
                 v = self._dynConfigValues.get(k, v)
 
             x = self._dynConfigValues.get(k, None)
@@ -1046,7 +1043,7 @@ class _TagPoint(virtualresource.VirtualResource):
             d = {i: d[i] for i in d if d[i]}
 
             if isConfigured:
-                if not isinstance(condition, str) and not condition == None:
+                if not isinstance(condition, str) and condition is not None:
                     raise ValueError(
                         "Configurable alarms only allow str or none condition")
                 hasUnsavedData[0] = True
@@ -1062,9 +1059,9 @@ class _TagPoint(virtualresource.VirtualResource):
 
             if condition is None:
                 try:
-                    storage.pop(name)
-                except:
-                    pass
+                    storage.pop(name,0)
+                except Exception:
+                    logger.exception("I don't think this matters")
             else:
                 storage[name] = d
 
@@ -1073,7 +1070,7 @@ class _TagPoint(virtualresource.VirtualResource):
             # to delete the actual file
             if isConfigured:
                 if self.configuredAlarmData:
-                    if not self.name in configTagData:
+                    if self.name not in configTagData:
                         configTagData[self.name] = persist.getStateFile(
                             getFilenameForTagConfig(self.name))
                         configTagData[self.name].noFileForEmpty = True
@@ -1121,8 +1118,8 @@ class _TagPoint(virtualresource.VirtualResource):
                     if not limitTo or i == limitTo:
                         try:
                             self.unsubscribe(a.tagSubscriber)
-                        except:
-                            pass
+                        except Exception:
+                            logger.exception("Maybe already unsubbed?")
 
                         a.release()
 
@@ -1136,7 +1133,7 @@ class _TagPoint(virtualresource.VirtualResource):
             for i in merged:
                 if not limitTo or i == limitTo:
                     d = merged[i]
-                    r = self._alarmFromData(i, d)
+                    self._alarmFromData(i, d)
 
             if limitTo and limitTo in self.alarms:
                 return self.alarms[limitTo]
@@ -1204,7 +1201,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
         try:
             alarmPollFunction(self.value, self.annotation, self.timestamp)
-        except:
+        except Exception:
             logger.exception("Error in test run of alarm function for :"+name)
 
         return alarmPollFunction
@@ -1216,7 +1213,7 @@ class _TagPoint(virtualresource.VirtualResource):
             # New config, new chance to see if there's a problem.
             self.alreadyPostedDeadlock = False
 
-            if data and not self.name in configTagData:
+            if data and self.name not in configTagData:
                 configTagData[self.name] = persist.getStateFile(
                     getFilenameForTagConfig(self.name))
                 configTagData[self.name].noFileForEmpty = True
@@ -1287,7 +1284,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 try:
                     c = accumTypes[accum](self, interval, length)
                     self.configLoggers.append(c)
-                except:
+                except Exception:
                     messagebus.postMessage(
                         "/system/notifications/errors", "Error creating logger for: "+self.name+"\n"+traceback.format_exc())
 
@@ -1342,7 +1339,7 @@ class _TagPoint(virtualresource.VirtualResource):
         self._dynConfigValues['interval'] = val
         if not val == self.configOverrides.get('interval', val):
             return
-        if not val == None:
+        if val is not None:
             self._interval = val
         else:
             self._interval = 0
@@ -1357,7 +1354,7 @@ class _TagPoint(virtualresource.VirtualResource):
             if name in allTags:
                 x = allTags[name]()
                 if x:
-                    if not x.__class__ is cls:
+                    if x.__class__ is not cls:
                         raise TypeError(
                             "A tag of that name exists, but it is the wrong type. Existing: " + str(x.__class__)+" New: " + str(cls))
                     rval = x
@@ -1386,8 +1383,8 @@ class _TagPoint(virtualresource.VirtualResource):
             try:
                 del allTags[self.name]
                 allTagsAtomic = allTags.copy()
-            except:
-                pass
+            except Exception:
+                logger.exception("Tag may have already been deleted")
             messagebus.postMessage(
                 "/system/tags/deleted", self.name, synchronous=True)
 
@@ -1485,18 +1482,6 @@ class _TagPoint(virtualresource.VirtualResource):
         else:
             self.testForDeadlock()
 
-    def pull(self):
-        if self.lock.acquire(timeout=30):
-            try:
-                x = self._getValue(True)
-                self._push()
-                return x
-            finally:
-                self.lock.release()
-        else:
-            self.testForDeadlock()
-            raise RuntimeError("Could not get lock")
-
     def _push(self):
         """Push to subscribers. Only call under the same lock you changed value
             under. Otherwise the push might happen in the opposite order as the set, and
@@ -1529,13 +1514,13 @@ class _TagPoint(virtualresource.VirtualResource):
             if f:
                 try:
                     f(self.lastValue, self.timestamp, self.annotation)
-                except:
+                except Exception:
                     logger.exception("Tag subscriber error")
                     # Return the error from whence it came to display in the proper place
                     for i in subscriberErrorHandlers:
                         try:
                             i(self, f, self.lastValue)
-                        except:
+                        except Exception:
                             print("Failed to handle error: " +
                                   traceback.format_exc(6))
             del f
@@ -1602,7 +1587,7 @@ class _TagPoint(virtualresource.VirtualResource):
                         x = activeClaimValue()
                         t = time.monotonic()
 
-                        if not x is None:
+                        if x is not None:
                             # Race here. Data might not always match timestamp an annotation, if we weren't under lock
                             self.timestamp = t
                             self.annotation = None
@@ -1613,7 +1598,7 @@ class _TagPoint(virtualresource.VirtualResource):
                     finally:
                         self.lock.release()
 
-                except:
+                except Exception:
                     # We treat errors as no new data.
                     logger.exception("Error getting tag value")
 
@@ -1640,11 +1625,11 @@ class _TagPoint(virtualresource.VirtualResource):
         if self.onSourceChanged:
             try:
                 self.onSourceChanged(name)
-            except:
+            except Exception:
                 logging.exception("Error handling changed source")
 
     def claim(self, value, name=None, priority=None, timestamp=None, annotation=None):
-        """Adds a 'claim', a request to set the tag's value either to a literal 
+        """Adds a 'claim', a request to set the tag's value either to a literal
             number or to a getter function.
 
             A tag's value is the highest priority claim that is currently
@@ -1684,7 +1669,7 @@ class _TagPoint(virtualresource.VirtualResource):
             #     logger.exception("Probably a race condition and safe to ignore this")
 
             # If the weakref obj disappeared it will be None
-            if claim == None:
+            if claim is None:
                 priority = priority or 50
                 claim = self.claimFactory(
                     value, name, priority, timestamp, annotation)
@@ -1699,7 +1684,7 @@ class _TagPoint(virtualresource.VirtualResource):
             self.claims[name] = (priority, t(), name, weakref.ref(claim))
 
             # If we have priortity on them, or if we have the same priority but are newer
-            if (self.activeClaim == None) or (priority > self.activeClaim[0]) or ((priority == self.activeClaim[0]) and(timestamp > self.activeClaim[1])):
+            if (self.activeClaim is None) or (priority > self.activeClaim[0]) or ((priority == self.activeClaim[0]) and(timestamp > self.activeClaim[1])):
                 self.activeClaim = self.claims[name]
                 self.handleSourceChanged(name)
 
@@ -1739,7 +1724,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
     def setClaimVal(self, claim, val, timestamp, annotation):
         "Set the value of an existing claim"
-        if timestamp == None:
+        if timestamp is None:
             timestamp = time.monotonic()
 
         if not callable(val):
@@ -1790,7 +1775,7 @@ class _TagPoint(virtualresource.VirtualResource):
             # Ifid lets us filter by ID, so that a claim object that has
             # Long since been overriden can't delete one with the same name
             # When it gets GCed
-            if not name in self.claims:
+            if name not in self.claims:
                 return
 
             if name == "default":
@@ -1848,10 +1833,10 @@ class _NumericTagPoint(_TagPoint):
         if callable(value):
             value = value()
 
-        if self._min != None:
+        if self._min is not None:
             value = max(self._min, value)
 
-        if self._max != None:
+        if self._max is not None:
             value = min(self._max, value)
 
         return float(value)
@@ -1947,7 +1932,7 @@ class _NumericTagPoint(_TagPoint):
     @property
     def hi(self):
         x = self._hi
-        if self._hi == None:
+        if self._hi is None:
             return 10**18
         return x
 
@@ -1956,15 +1941,14 @@ class _NumericTagPoint(_TagPoint):
         self._dynConfigValues['hi'] = v
         if not v == self.configOverrides.get('hi', v):
             return
-        if v == None:
+        if v is None:
             v = 10**16
         self._hi = v
         self._setupMeter()
 
     @property
     def lo(self):
-        x = self._lo
-        if self._lo == None:
+        if self._lo is None:
             return 10**18
         return self._lo
 
@@ -1973,7 +1957,7 @@ class _NumericTagPoint(_TagPoint):
         self._dynConfigValues['lo'] = v
         if not v == self.configOverrides.get('lo', v):
             return
-        if v == None:
+        if v is None:
             v = -(10**16)
         self._lo = v
         self._setupMeter()
@@ -2015,10 +1999,10 @@ class _NumericTagPoint(_TagPoint):
         # I don't think
         if not self._displayUnits:
             # Rarely does anyone want alternate views of dB values
-            if not "dB" in value:
+            if "dB" not in value:
                 try:
                     self._displayUnits = defaultDisplayUnits[unitTypes[value]]
-                except:
+                except Exception:
                     self._displayUnits = value
             else:
                 self._displayUnits = value
@@ -2118,7 +2102,7 @@ class _ObjectTagPoint(_TagPoint):
             value = copy.deepcopy(value)
 
         if self.validate:
-            v = self.validate(v)
+            value = self.validate(value)
 
         return value
 
@@ -2234,8 +2218,7 @@ class NumericClaim(Claim):
 
 
 class Filter():
-    def subscribe(f):
-        self.tag.subscribe
+    pass
 
 
 class LowpassFilter(Filter):
@@ -2256,7 +2239,7 @@ class LowpassFilter(Filter):
         self.claim = self.tag.claim(
             self.getter, name=inputTag.name+".lowpass", priority=priority)
 
-        if interval == None:
+        if interval is None:
             self.tag.interval = timeConstant/2
         else:
             self.tag.interval = interval
