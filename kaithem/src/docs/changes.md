@@ -6,6 +6,9 @@ Change Log
 - Tag logging bugfixes
 - Fix bugs in configuring exposed tags
 - \_\_never\_\_ permission even blocks admins
+- Wifi status viewer page is back
+- /system/wifiStrength tag point gives the strongest access point connection, 0-100 or -1 for never connected.
+- Main page shows all alarms regardless of permissions. Alarms are not really meant for private data, and the info was there already in the notifications.
 
 ### 0.65.45
 - Many small improvements to the sounds engine, including true seamless looping

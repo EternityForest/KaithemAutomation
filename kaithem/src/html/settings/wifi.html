@@ -7,147 +7,68 @@ from src import wifimanager
 <div class="sectionbox" style="height: 80vh">
   <script type="text/javascript" src="/static/widget.js"></script>
   <style>
-    button.bold{
+    button.bold {
       font-weight: bolder;
       text-shadow: 5px;
-      
+
     }
   </style>
 
 
   ${wifimanager.api.render("api")}
 
-  <div id="app" class =sectionbox
+  <div id="app" class=sectionbox
     style="height:95%;overflow-x: scroll; overflow-y: hidden; min-width: 80%; max-width: 10000%; max-height: 98%;     white-space: nowrap;">
-   
-  <h1>Kaithem WiFi Manager</h1>
 
-  TODO: permission alert
-  <p>Here you can manager the system wifi, if you are running with NetworkManager on Linux.
-    Connections are only saved to the kaithem registry, they dissapear as soon as kaithem exits.
-  </p>
-  <p>
-    Connections created elsewhere(Such as through a desktop widget) still work while kaithem is running,
-    they have an effective priority of 50.
-  </p>
-
-  <p>
-      The algorithm assigns a connection to every available interface, with higher priority connections
-      getting used first. Disconnected interfaces are refilled with an available connection.
-  </p>
-  <p>
-      A higher priority connection may boot a lower priority connection that is already on
-      an interface but it is not guaranteed to. Lower priority connections will never interrupt
-      a higher priority connection. TODO figure out what do when reducing.
-  </p>
-
-  <p>Whenever two interfaces have a connection to the same SSID, the interface disconnects the lower
-      priority one.
-  </p>
-
-  <p class="warning">Changing these settings could result in disconnecting from WiFi. You may not
-    be able to access the server to fix it, unless you connect directly.  Changes are saved to
-    the registry as soon as you make them and will be applied when kaithem restarts or you press apply.
-  </p>
+    <h1>Kaithem WiFi Status</h1>
 
 
-  <h2>Network Interfaces</h2>
-  <table border=1>
-    <tr>
-      <th>Interface</th><th>Connected To</th><th>Strength</th><th>Mode</th>
-    </tr>
+    <h2>Network Interfaces</h2>
+    <table border=1>
+      <tr>
+        <th>Interface</th>
+        <th>Connected To</th>
+        <th>Strength</th>
+        <th>Mode</th>
+      </tr>
 
-    <tr v-for="v,i in status">
-      <td>{{i}}</td>
-      <td>{{v[0]}}</td>
-      <td>{{v[1]}}% <meter style="float: right;" v-bind:value="v[1]" min=0 max=100 low=35></meter></td>
-      <td title="AP indicates this machine is the access point. STA indicates that it is the client">{{v[2]}}</td>
-    </tr>
-  </table>
-
-  <h2>Connections</h2>
-  <p class="help">
-    To match multiple interfaces that could be plugged into the same port, use the * wildcard.
-    It only works at the end.
-  </p>
-  <table border=1>
-    <tr>
-        <th>SSID</th><th>Password</th><th>Mode</th><th>Interface(Blank for any)</th>
-        <th title="Manually assign addresses, comma separated, v4 or 6, example: '10.9.7.5/24'">Addresses</th>
-        <th>Priority</th>
-        <th>Delete</th>
-    </tr>
-
-    <tr v-for='i in connections'>
-        <td>
-            <input v-model='i.ssid' v-on:change="setParam(i.uuid, 'ssid', $event.target.value)">
-        </td>
-        <td>
-            <input type='password' v-model='i.psk' v-on:change="setParam(i.uuid, 'psk', $event.target.value)">
-        </td>
-        <td>
-            <select v-model='i.mode' v-on:change="setParam(i.uuid, 'mode', $event.target.value)">
-                <option value="sta">Client(sta/infrastructure)</option>
-                <option value="ap">Act as Access Point(ap)</option>
-            </select>
-        </td>
-        <td>
-            <input  width=25em v-model='i.interface' title="* can be used at the end for a wildcard to match multiple things that might on a port. It only works at the end." v-on:change="setParam(i.uuid, 'interface', $event.target.value)">
-        </td>
-
-        <td>
-            <input v-model.number='i.addrs' v-on:change="setParam(i.uuid, 'addrs', $event.target.value)">
-        </td>
-
-        <td>
-            <input type="number" v-model.number='i.priority' v-on:change="setParam(i.uuid, 'priority', parseInt($event.target.value))">
-        </td>
-        <td>
-            <button v-on:click="deleteConnection(i.uuid)">Delete</button>
-        </td>
-    </tr>
-  </table>
-  <button v-on:click="api.send(['addConnection'])">Add New Connection</button>
-  <button v-on:click="api.send(['apply']);">Apply Settings</button>
-</div>
+      <tr v-for="v,i in status">
+        <td>{{i}}</td>
+        <td>{{v[0]}}</td>
+        <td>{{v[1]}}% <meter style="float: right;" v-bind:value="v[1]" min=0 max=100 low=35></meter></td>
+        <td title="AP indicates this machine is the access point. STA indicates that it is the client">{{v[2]}}</td>
+      </tr>
+    </table>
 
 
 
-<script src="/static/js/vue2.js"></script>
+  </div>
 
 
-<script>
-  var app = new Vue({
-    el: '#app',
-    data: {
-      connections: [],
-      status: {},
-      api:api,
-      setParam: function(con, param, val)
-      {
-        api.send(['setConnectionParam', con,param,val])
-      },
-      deleteConnection: function(con)
-      {
-        if (confirm("Do you really want to delete this connection?"))
-        {
-          api.send(['deleteConnection', con])
-        }
+
+  <script src="/static/js/vue2.js"></script>
+
+
+  <script>
+    var app = new Vue({
+      el: '#app',
+      data: {
+        connections: [],
+        status: {},
+        api: api,
+
       }
-  }}
-  );
+    }
+    );
 
-  api.upd = function (msg) {
-        if (msg[0] == "connections") {
-            app.$data.connections= msg[1]
-        }
-        else if (msg[0] == "status") {
-            app.$data.status= msg[1]
-        }
+    api.upd = function (msg) {
+      if (msg[0] == "status") {
+        app.$data.status = msg[1]
+      }
     }
 
-  api.send(['refresh']);
-</script>
+    api.send(['refresh']);
+  </script>
 
 </div>
 <%include file="/pagefooter.html"/>

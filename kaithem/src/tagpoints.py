@@ -1026,10 +1026,17 @@ class _TagPoint(virtualresource.VirtualResource):
             hasUnsavedData[0] = True
 
     # Note the black default condition, that lets us override a normal alarm while using the default condition.
-    def setAlarm(self, name, condition='', priority="warning", releaseCondition='', autoAck='no', tripDelay='0', isConfigured=False, _refresh=True):
+    def setAlarm(self, name, condition='', priority="info", releaseCondition='', autoAck='no', tripDelay='0', isConfigured=False, _refresh=True):
         with lock:
             if not name:
                 raise RuntimeError("Empty string name")
+
+            if autoAck is True:
+                autoAck = 'yes'
+            if autoAck is False:
+                autoAck= 'no'
+
+            tripDelay = str(tripDelay)
 
             d = {
                 'condition': condition,

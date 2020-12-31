@@ -1,14 +1,16 @@
 {
     "python.pythonPath": "/usr/bin/python3",
     "python.linting.pylintArgs": [
-    "--rcfile",
-    "${workspaceFolder}\\.pylintrc"
+        "--rcfile",
+        "${workspaceFolder}\\.pylintrc"
     ],
     "python.linting.enabled": true,
     "python.linting.pylintEnabled": true,
     "python.linting.mypyEnabled": true,
     "python.linting.flake8Enabled": true,
-    "python.linting.flake8Args": ["--max-line-length=120"],
+    "python.linting.flake8Args": [
+        "--max-line-length=120"
+    ],
     "files.exclude": {
         "helpers/debianpackaging/package/usr/**": true,
         ".mypy_cache": true,
@@ -22,7 +24,7 @@
         "kaithem/src/js/vs**": true,
         "kaithem/src/js/src-min-noconflict**": true,
         "kaithem/data/static/img/icons/**": true,
-        "kaithem/src/thirdparty":true
+        "kaithem/src/thirdparty": true
     },
     "python.autoComplete.extraPaths": [
         "kaithem/src/thirdparty",
@@ -33,6 +35,9 @@
     ],
     "editor.formatOnSave": true,
     "editor.formatOnType": true,
-    "python.linting.banditEnabled": true
-    
+    "python.linting.banditEnabled": true,
+    "python.formatting.autopep8Args": [
+        "--ignore",
+        "E402"
+    ]
 }

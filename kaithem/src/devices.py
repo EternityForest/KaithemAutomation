@@ -29,7 +29,7 @@ import re
 import cherrypy
 import mako
 
-from . import virtualresource, pages, registry, modules_state, kaithemobj, workers, tagpoints, alerts, persist, directories, messagebus, widgets, unitsofmeasure
+from . import virtualresource, pages, registry, modules_state, workers, tagpoints, alerts, persist, directories, messagebus, widgets, unitsofmeasure
 
 remote_devices = {}
 remote_devices_atomic = {}
@@ -76,8 +76,8 @@ def saveAsFiles():
     # Lock used to prevent conflict, saving over each other with nonsense data.
     with lock:
         for i in sd:
-            saved[i+".yaml"] = True
-            persist.save(sd[i], os.path.join(saveLocation, i+".yaml"))
+            saved[i + ".yaml"] = True
+            persist.save(sd[i], os.path.join(saveLocation, i + ".yaml"))
 
         # Delete everything not in folder
         for i in os.listdir(saveLocation):
@@ -136,8 +136,8 @@ def makeBackgroundPrintFunction(p, t, title, self):
 def makeBackgroundErrorFunction(t, time, self):
     # Don't block everything up
     def f():
-        self.logWindow.write('<div class="error"><b>Error at ' + time+"</b><br>"
-                             + '<pre>'+t+'</pre></div>'
+        self.logWindow.write('<div class="error"><b>Error at ' + time + "</b><br>"
+                             + '<pre>' + t + '</pre></div>'
                              )
     return f
 
@@ -177,8 +177,9 @@ class Device(virtualresource.VirtualResource):
             based on the data key alerts.<alert_key>.priority
         """
         for i in self.alerts:
-            if "alerts."+i+".priority" in self.data:
-                self.alerts[i].priority = self.data["alerts."+i+".priority"]
+            if "alerts." + i + ".priority" in self.data:
+                self.alerts[i].priority = self.data["alerts." +
+                                                    i + ".priority"]
 
     def setDataKey(self, key, val):
         "Lets a device set it's own persistent stored data"
@@ -196,7 +197,7 @@ class Device(virtualresource.VirtualResource):
 
         self.logWindow = widgets.ScrollingWindow(2500)
 
-        dbgd[name+str(time.time())] = self
+        dbgd[name + str(time.time())] = self
 
         # Time, title, text tuples for any "messages" a device might "print"
         self.messages = []
@@ -258,10 +259,10 @@ class Device(virtualresource.VirtualResource):
         self.errors.append([time.time(), str(s)])
 
         if self.errors:
-            if time.time() > self.errors[-1][0]+15:
-                syslogger.error("in device: "+self.name+"\n"+s)
+            if time.time() > self.errors[-1][0] + 15:
+                syslogger.error("in device: " + self.name + "\n" + s)
             else:
-                logging.error("in device: "+self.name+"\n"+s)
+                logging.error("in device: " + self.name + "\n" + s)
 
         if len(self.errors) > 50:
             self.errors.pop(0)
@@ -270,8 +271,8 @@ class Device(virtualresource.VirtualResource):
             s, 120), unitsofmeasure.strftime(time.time()), self))
         if len(self.errors) == 1:
             messagebus.postMessage(
-                "/system/notifications/errors", "First error in device: "+self.name)
-            syslogger.error("in device: "+self.name+"\n"+s)
+                "/system/notifications/errors", "First error in device: " + self.name)
+            syslogger.error("in device: " + self.name + "\n" + s)
 
     # delete a device, it should not be used after this
     def close(self):
@@ -481,7 +482,7 @@ def makeDevice(name, data):
         originaldt = dt
         try:
             if not stripped == strippedGenericTemplate:
-                from src import kaithemobj
+                from . import kaithemobj
                 codeEvalScope = {"DeviceType": dt,
                                  'kaithem': kaithemobj.kaithem}
                 exec(data['subclass'], codeEvalScope, codeEvalScope)
@@ -492,7 +493,7 @@ def makeDevice(name, data):
             d = originaldt(name, data)
             d.handleError(traceback.format_exc(chain=True))
             messagebus.postMessage('/system/notifications/error',
-                                   "Error with customized behavior for: " + name+" using default")
+                                   "Error with customized behavior for: " + name + " using default")
     else:
         d = dt(name, data)
 
@@ -524,9 +525,12 @@ def loadDeviceType(root, i):
     fn = os.path.join(root, i)
     with open(fn) as f:
         d = f.read()
+
+    # Avoid circular imports, kaithemobj basically depends on everything
+    from . import kaithemobj
     codeEvalScope = {"Device": Device, 'kaithem': kaithemobj.kaithem,
                      'deviceTypes': DeviceTypeLookup()}
-    exec(compile(d, "Driver_"+name, 'exec'), codeEvalScope, codeEvalScope)
+    exec(compile(d, "Driver_" + name, 'exec'), codeEvalScope, codeEvalScope)
 
     # Remove anything in parens
     realname = re.sub(r'\(.*\)', '', name).strip()
@@ -536,11 +540,11 @@ def loadDeviceType(root, i):
     deviceTypes[realname] = dt
     deviceTypesFromData[realname] = dt
 
-    createfn = os.path.join(root, name+".create.html")
+    createfn = os.path.join(root, name + ".create.html")
     if os.path.exists(createfn):
         dt.getCreateForm = TemplateGetter(createfn)
 
-    editfn = os.path.join(root, name+".edit.html")
+    editfn = os.path.join(root, name + ".edit.html")
     if os.path.exists(editfn):
         dt.getManagementForm = TemplateGetter(editfn)
 
@@ -570,21 +574,21 @@ def init_devices():
                     loadDeviceType(*i)
                 except:
                     messagebus.postMessage(
-                        "/system/notifications/errors", "Error with device driver :"+i[1]+"\n"+traceback.format_exc(chain=True))
+                        "/system/notifications/errors", "Error with device driver :" + i[1] + "\n" + traceback.format_exc(chain=True))
 
         else:
             os.mkdir(driversLocation)
     except:
         messagebus.postMessage("/system/notifications/errors",
-                               "Error with device drivers:\n"+traceback.format_exc(chain=True))
+                               "Error with device drivers:\n" + traceback.format_exc(chain=True))
 
     for i in device_data:
         try:
             remote_devices[i] = makeDevice(i, device_data[i])
-            syslogger.info("Created device from config: "+i)
+            syslogger.info("Created device from config: " + i)
         except:
             messagebus.postMessage(
-                "/system/notifications/errors", "Error creating device: "+i+"\n"+traceback.format_exc())
-            syslogger.exception("Error initializing device "+str(i))
+                "/system/notifications/errors", "Error creating device: " + i + "\n" + traceback.format_exc())
+            syslogger.exception("Error initializing device " + str(i))
 
     remote_devices_atomic = wrcopy(remote_devices)

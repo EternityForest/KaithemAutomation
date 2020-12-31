@@ -71,17 +71,7 @@ def setupPath(linuxpackage, force_local=False):
     sys.path = [os.path.join(x, 'plugins', 'startup')] + sys.path
 
     startupPluginsPath = os.path.join(x, 'plugins', 'startup')
-
     sys.path = sys.path + [os.path.join(x, 'plugins', 'lowpriority')]
-
-    if sys.version_info < (3, 0):
-        sys.path = [os.path.join(x, 'thirdparty', 'python2')] + sys.path
-        from gzip import open as opengzip
-        import thread
-    else:
-        from gzip import GzipFile as opengzip
-        import _thread as thread
-        sys.path = [os.path.join(x, 'thirdparty', 'python3')] + sys.path
 
     # There is actually a very good reason to change the import path here.
     # It means we can refer to an installed copy of a library by the same name
@@ -91,10 +81,3 @@ def setupPath(linuxpackage, force_local=False):
 
     # Low priority modules will default to using the version installed on the user's computer.
     sys.path = sys.path + [os.path.join(x, 'thirdparty', "lowpriority")]
-
-    if sys.version_info < (3, 0):
-        sys.path = sys.path + \
-            [os.path.join(x, 'thirdparty', 'lowpriority', 'python2')]
-    else:
-        sys.path = sys.path + \
-            [os.path.join(x, 'thirdparty', 'lowpriority', 'python3')]

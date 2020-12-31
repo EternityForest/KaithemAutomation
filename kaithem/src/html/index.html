@@ -48,6 +48,8 @@ ${alertsapi.render("alertapi")}
 %endif
 
     <h2>Active/Unacknowledged Alarms</h2>
+    <p>Anyone who can see the main page can see all alarms, regardless of alarm-specific permssions, as alarms are not meant for private data.</p>
+
     <div class="scrollbox sectionbox">
         <%
         if "ackalarm" in cherrypy.request.params:
@@ -59,9 +61,8 @@ ${alertsapi.render("alertapi")}
             i = i()
             if not i:
                 continue
-            if pages.canUserDoThis(i.permissions):
-                toshow[i.id]=0
-                l.append(i)
+            toshow[i.id]=0
+            l.append(i)
         try:
             del i
         except:
@@ -71,11 +72,10 @@ ${alertsapi.render("alertapi")}
             i = i()
             if not i:
                 continue
-            if pages.canUserDoThis(i.permissions):
-                if not i.id in toshow:
-                    if not i.priority==debug:
-                        toshow[i.id]=0
-                        l.append(i)
+            if not i.id in toshow:
+                if not i.priority==debug:
+                    toshow[i.id]=0
+                    l.append(i)
         try:
             del i
         except:
@@ -83,47 +83,49 @@ ${alertsapi.render("alertapi")}
 
         l = sorted(l, key=lambda i: (i.sm.state=="acknowledged", i.priority, i.zone, i.name))
         %>
-    
-        %for i in l:
-        <div style="background-color:rgba(255,240,220,0.2);border-style:solid;display:flex;">
-            <div style="align-self:center"><span class="${iclass.get(i.priority,'')}" style="width: 2em;"></span></div>
-            <div>
-                <b><span style="background-color:${pcolor.get(i.priority,'purple')}">${i.name}</span></b>
-                Priority:  ${i.priority}, Zone: ${i.zone}, State: <span style="background-color:${scolor.get(i.sm.state,'black')|h}">${i.sm.state}</span><br>
-                Tripped at:${unitsofmeasure.strftime(i.trippedAt)}(about <b>${formatTimeInterval(time.time()-i.trippedAt,2)} ago</b>)<br>
-                Trip Message:<b>${i.tripMessage}</b> 
-            </div>
-                
-            %if not i.sm.state=="acknowledged":    
-            <div>
-                <a class="button" style="height: 80%;" href=".?ackalarm=${i.id}">ACK</a>
-            </div>
-            %endif
-            <div style="flex-grow:99"></div>
 
-            <div style="align-self: flex-end;">${i.notificationHTML()}</div>
+%for i in l:
+<div style="background-color:rgba(255,240,220,0.2);border-style:solid;display:flex;">
+    <div style="align-self:center"><span class="${iclass.get(i.priority,'')}" style="width: 2em;"></span></div>
+    <div>
+        <b><span style="background-color:${pcolor.get(i.priority,'purple')}">${i.name}</span></b>
+        Priority: ${i.priority}, Zone: ${i.zone}, State: <span
+            style="background-color:${scolor.get(i.sm.state,'black')|h}">${i.sm.state}</span><br>
+        Tripped at:${unitsofmeasure.strftime(i.trippedAt)}(about <b>${formatTimeInterval(time.time()-i.trippedAt,2)}
+            ago</b>)<br>
+        Trip Message:<b>${i.tripMessage}</b>
+    </div>
+
+    %if not i.sm.state=="acknowledged":
+    <div>
+        <a class="button" style="height: 80%;" href=".?ackalarm=${i.id}">ACK</a>
+    </div>
+    %endif
+    <div style="flex-grow:99"></div>
+
+    <div style="align-self: flex-end;">${i.notificationHTML()}</div>
 
 
-        </div>
-        %endfor
+</div>
+%endfor
 
-        <%
+<%
             try:
                 del i
                 del l
             except:
                 pass
         %>
-    </div>
+</div>
 
-    <h2> System Notifications</h2>
-    <div class="scrollbox sectionbox"  style="max-height: 25em">
-       <div v-for="i in notifications.slice().reverse()" v-bind:class="getClass(i)">
-            <b>{{formatTime(i[0])}}</b>
-            <p>{{i[2]}}</p>
-            <hr>
-        </div>
+<h2> System Notifications</h2>
+<div class="scrollbox sectionbox" style="max-height: 25em">
+    <div v-for="i in notifications.slice().reverse()" v-bind:class="getClass(i)">
+        <b>{{formatTime(i[0])}}</b>
+        <p>{{i[2]}}</p>
+        <hr>
     </div>
+</div>
 
 </main>
 
@@ -133,44 +135,39 @@ ${alertsapi.render("alertapi")}
     var app = new Vue({
         el: '#app',
         data: {
-        notifications: [],
-        getClass: function(i)
-        {
-            if (i[1].includes("errors"))
-            {
-                return 'error'
-            }
-            if (i[1].includes("important"))
-            {
-                return 'highlight'
-            }
-            if (i[1].includes("warnings"))
-            {
-                return 'warning'
-            }
-        },
+            notifications: [],
+            getClass: function (i) {
+                if (i[1].includes("errors")) {
+                    return 'error'
+                }
+                if (i[1].includes("important")) {
+                    return 'highlight'
+                }
+                if (i[1].includes("warnings")) {
+                    return 'warning'
+                }
+            },
 
-        formatTime: function(t)
-        {
-            var date = new Date(t*1000);
-            return date.strftime("%b %m %Y  %I:%M:%S%p %Z")
+            formatTime: function (t) {
+                var date = new Date(t * 1000);
+                return date.strftime("%b %m %Y  %I:%M:%S%p %Z")
+            }
         }
-    }});
-    
+    });
+
     api.upd = function (msg) {
-            if (msg[0] == "all") {
-                app.$data.notifications= msg[1]
-            }
-            if(msg[0]=='notification')
-            {
-                app.$data.notifications.push(msg[1])
-                app.$data.notifications = app.$data.notifications.slice(-100)
-            }
+        if (msg[0] == "all") {
+            app.$data.notifications = msg[1]
         }
+        if (msg[0] == 'notification') {
+            app.$data.notifications.push(msg[1])
+            app.$data.notifications = app.$data.notifications.slice(-100)
+        }
+    }
 
     alertapi.upd = function (msg) {
-            
-        }
 
-    </script>
+    }
+
+</script>
 <%include file="/pagefooter.html"/>
