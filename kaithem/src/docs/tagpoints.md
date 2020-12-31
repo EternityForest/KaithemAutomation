@@ -26,6 +26,18 @@ scale.
 It is suggested that you not do anything with annotations besides equality testing, or that you
 always typecheck the value as it defaults to None.
 
+### Configuration
+
+The important thing to know about tag points is that they have two configurations: runtime and configured.
+
+Runtime is set directly in code, but can be overridden on a per-setting basis bu configuration set through the web UI.
+
+It is possible to create a tag point entirely via configuration.  Setting a type via the tag config page will cause it to be created when kaithem loads.
+
+You may need to do this with tags that would otherwise be frequently created and destroyed, and thus disconnect from any UI widgets connected to them, in FreeBoard
+panels or the like.
+
+
 ### Locking
 
 When you write to a tag, it will call all subscribers under a reentrant lock.
@@ -111,6 +123,8 @@ To prevent the very obvious classes of errors where different code thinks a unit
 this property will not allow changes once it has been set. You can freely write the same string to it, and
 you can set it to None and then to a new value if you must, but you cannot change between two strings without raising
 an exception.
+
+This property can't currently be configured through the UI.
 
 For some units, meters will become "unit aware" on the display page.
 

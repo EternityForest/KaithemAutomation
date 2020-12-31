@@ -592,6 +592,7 @@ def configTagFromData(name, data):
     # Create or get the tag
     if t == "number":
         tag = Tag(name)
+        
     elif t == "string":
         tag = StringTag(name)
     elif name in allTags:

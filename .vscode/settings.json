@@ -33,7 +33,7 @@
     "python.analysis.extraPaths": [
         "kaithem/src/docs/thirdparty/"
     ],
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "editor.formatOnType": true,
     "python.linting.banditEnabled": true,
     "python.formatting.autopep8Args": [

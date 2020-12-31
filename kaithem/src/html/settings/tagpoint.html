@@ -156,7 +156,9 @@ def combineLogs(a):
 <div class="sectionbox">
 <p class="help">
     This page manages one tagpoint. To save configured defaults you must save the server state
-    to disk.
+    to disk.  The important thing to know about tag points is that they have two configurations: runtime and configured.
+
+    Runtime is set directly in code, but can be overridden on a per-setting basis bu configuration set through the web UI.
 </p>
 
 <p class="help">
@@ -303,16 +305,15 @@ def combineLogs(a):
 
 </tr>
 %endif
-
 <tr><th>Configured Values(Leave blank for default)</th></tr>
 <tr>
     <td><a href="/tagpoints/${normalizednormalizedTagName|u}">${normalizednormalizedTagName|h}</h></td>
     <td>
         <select name="type">
+            <option value="" ${'selected' if configData.get('type','')=='' else ''}>No setting/Create in code </option>
             <option value="string" ${'selected' if configData.get('type','')=='string' else ''}>String</option>
             <option value="number" ${'selected' if configData.get('type','')=='number' else ''}>Number</option>
-            <option value="object" ${'selected' if configData.get('type','')=='' else ''}>Object</option>
-            <option value="" ${'selected' if configData.get('type','')=='' else ''}>No setting/Create in code </option>
+            <option value="object" ${'selected' if configData.get('type','')=='object' else ''}>Object</option>
         </select>
 
     </td>
@@ -330,12 +331,29 @@ def combineLogs(a):
 
 
 <h3>WebAPI exposure</h3>
-<p class="help">Empty read perms disable exposing the tag, unless it is exposed via code.   Any values set here override those in code, blank values default to the one set in code.  These settings control access to the tag in the FreeBoard dashboard creator</p>
-<p class="help">For security, at least one read permisson has to be defined to enable the api.</p>
+<div class="help">
 
-<table border="1">
+    <p>This section allows you to directly expose tags via the WebSockets API, for use in places like the integratedFreeBoard Dashboard creator. </p>
+
+    <p>Empty read perms disable exposing the tag, unless it is exposed via code.   
+        Any values set here override those in code, blank values default to the one set in code.  
+        These settings control access to the tag in the FreeBoard dashboard creator</p>
+
+<p>At least one read permisson has to be defined to enable the api, even if there are write permissions, so write-only tags are not possible. Empty fields disable exposure, unless settings
+    are iunherited from runtime
+</p>
+
+<p>Permissions are a comma separated list, The user must have all of them</p>
+
+<p>Tags can be exposed in code with tag.expose(), but config overrides runtime on a per-field basis.</p>
+    
+<>To un-expose something wth an exposed runtime config, use the special permission __never__ to disallow all users.</p>
+</div>
+
+
+<table border="1" style="max-width: 30em;">
     <tr>
-        <td>Read Permissions(comma separated list, all are required.  Defaults can be set in code, otherwise empty=unxposed.   To un-expose something that defaults to exposed, use the special permission __never__)</td>
+        <td>Read Permissions</td>
     </tr>
     <td>
         <input name="readPerms" value="${configData.get('permissions',['','',''])[0] |h}" placeholder="${tag.getEffectivePermissions()[0]|h}" style="width:24em">
@@ -359,11 +377,13 @@ def combineLogs(a):
 
 
 <h3>Alerting</h3>
-<p class="help">A blank name deletes that alarm. Conditions are python expressions that can use the tag itself(tag), the value(value),
-     and the kaithem object.  Conditions are regular subscribers and poll at the tag's interval, if there's a getter.</p>
+<div class="help"><p>Setting blank name deletes that alarm. Conditions are python expressions that can use the tag itself(tag), the value(value),
+     and the kaithem object.  Conditions are regular subscribers and can poll at the tag's interval.</p>
 
-<p class="help">You can also use tv('name') to get any numeric tag value by name.
-</p>
+<p>You cannot delete hardcoded alarms, but you can disable by setting the condition to False or 0</p>
+
+<p>You can also use tv('name') to get any numeric tag value by name inside your expressions.</p>
+</div>
 
 <table border=1>
     <tr>
