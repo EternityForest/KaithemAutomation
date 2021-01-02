@@ -22,7 +22,7 @@ source.include_exts = py,png,jpg,kv,atlas,yaml,json,html,js,css,txt,opus,ogg,jpg
 #source.exclude_exts = spec
 
 # (list) List of directory to exclude (let empty to not exclude anything)
-#source.exclude_dirs = tests, bin
+source.exclude_dirs = var
 
 # (list) List of exclusions using pattern matching
 #source.exclude_patterns = license,images/*/*.jpg
@@ -36,7 +36,7 @@ version = 0.11
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,pyjnius,pynacl,six,lxml,dateutil,requests
+requirements = python3,kivy,pyjnius,pynacl,six,lxml,dateutil,requests,netifaces,numpy,pycryptodome,pynacl,Pillow,pyusb,dateutil
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -55,7 +55,7 @@ icon.filename = %(source.dir)s/img/logo.png
 orientation = portrait
 
 # (list) List of service to declare
-services = hardline:./hardline_android_service.py
+#services = hardline:./hardline_android_service.py
 
 #
 # OSX Specific
