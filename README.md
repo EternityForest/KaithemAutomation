@@ -63,6 +63,17 @@ $run YOUR_KAITHEM_PY_FILE
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+### 0.65.46
+- Better Mako error formatting
+- Tag logging bugfixes
+- Fix bugs in configuring exposed tags
+- \_\_never\_\_ permission even blocks admins
+- Wifi status viewer page is back
+- /system/wifiStrength tag point gives the strongest access point connection, 0-100 or -1 for never connected.
+- Main page shows all alarms regardless of permissions. Alarms are not really meant for private data, and the info was there already in the notifications.
+- Help boxes(paragraph or div class 'help') now show up minimized until you mouse over.
+- Clean up Chandler and the widget API to get rid of nuisiance errors
+- Basic error telemetry in WidgetAPI enabled pages
 
 ### 0.65.44
 - Many small improvements to the sounds engine, including true seamless looping
@@ -74,65 +85,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - FreeBoard supports theme creation, uses simpler direct bvalues for widgets, not value,time pairs
 - Realtime DRAM bit error detection(I expect one or two hits per year in the 1MB average window we use)
 
-### 0.65.42
-- FreeBoard can now autocomplete tag point names
-- Fix FreeBoard bugs
-- Can now bind native page handlers to subdomains
-- Disallow logging in from any subdomain that contains `__nologin__`, sandboxing those pages down to only what a guest can do.
-
-
-### 0.65.41
-- Integrate FreeBoard for no-code dashboard and control interface creation
-
-### 0.65.40
-- File resources can now be directly served, using the same URL pattern of pages, with full permissions and XSS
-- Unencrypted HTTP access is now allowed for secure pages, from localhost, or from the 200:: and 300:: IP ranges used by the Yggdrasil mesh. 
-- Chandler now has separate shuffle and random options
-- Chandler has a better combobox for the next cue
-- Chandler now supports changing the probability for any random cue
-- Fix bug preventing the changing events after an error occurs creating them
-- Bring back the error log in addition to the realtime log, on event pages
-
-
-### 0.65.39
-- Fix instant response to Chandler tag point changes, no need to wait for 3s polling.
-- Refreshing a tag page after changing something no longer resends the form
-- Fix tag point logging with the min accumulator
-- SIGUSR1 dumps the state of all threeads to /dev/shm/
-- Fix bug where continually repeating events could stop if there was a long delay followed by an exception
-- SG1 now supports reading and writing the config data area of devices.
-- Breaking change:  The MQTT interface between SG1 devies and gateways has changed.  The APIs have not.
-- YeeLight RGB bulbs are now supported
-
-
-### 0.65.38
-- Tags will raise errors instead of deadlocking, if you manage to somehow create a deadlock, it is pretty hard.
-- Fix autoscroll in chandler
-- Fix tag point page if an error causes the meter widget to be unavailable
-- Ability to send SystemExit to threads from a settings page, to try to fix inifinite loops
-- ChandlerScript/Logic editor events and tag changes are queued and ran in the background.
-
-### 0.65.37
-- Tag data historian configurable from web UI(Everything is saved to history.db if configured, CSV export is possible)
-- Fix SG1 gateway tagpoint error from previous version
-- Chandler Rules engine supports isLight and isDark functions.
-- Fix bug that made some errors not get reported to the parent event
-- Modules can now add pages to the main bar with kaithem.web.navBarPlugins
-- No more link to the page index on the top
-- Chandler now creates a toolbar entry
-- The mixing board now has a top bar entry
-- Main "Kaithem" banner is now a link to the main page by default
-- Shorten "Settings and Tools" to just "tools"
-- Message logging and notifications work way earlier in boot
-
-
-### 0.65.36
-- SculleryMQTTConnection devices let you configure MQTT through the webUI
-- Chandler sound search working
-- Fix enttec universes (Enttec open was already fine)
-- Fix Gamma blend mode
-- Fix chandler cue renumbering, nextCue is now correctly recalculated
-- Chandler now refuses to allow you to change the sound for a cue created from a sound, to avoid confusion. Override by setting to silence, then the new sound.
 
 
 

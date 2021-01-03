@@ -2,7 +2,7 @@ Change Log
 ----------
 
 ### 0.65.46
-- Better Mako formatting
+- Better Mako error formatting
 - Tag logging bugfixes
 - Fix bugs in configuring exposed tags
 - \_\_never\_\_ permission even blocks admins

@@ -23,6 +23,8 @@
     from src import workers
     from src import timesync
     from src.config import config
+
+    import scullery.workers
     if os.name != "nt":
         import fcntl
         import struct
@@ -132,7 +134,7 @@ lanip =get_lan_ip()
     </div>
     <div class="sectionbox">${config['about-box-banner']}</div>
     <div class="sectionbox">
-    <b>Version:</b> ${kaithem.__version__|h}
+    <b>Version:</b> ${kaithemobj.kaithem.misc.version|h}
     </div>
     <div class="sectionbox">
         <b>LAN access QR(${lanip[1]}):</b><br>
@@ -254,7 +256,7 @@ lanip =get_lan_ip()
         </tr>
         <tr>
             <td>Thread pool latency</td>
-            <td>${round(workers.testLatency(),3)}</td>
+            <td>${round(scullery.workers.testLatency(),3)}</td>
         </tr>
         <tr>
             <td>Uncollectable garbage cycles</td>
@@ -311,7 +313,7 @@ lanip =get_lan_ip()
         </tr>
         <tr>
             <td>Tasks in thread pool queue</td>
-            <td>${workers.waitingtasks()}</td>
+            <td>${scullery.workers.waitingtasks()}</td>
         </tr>
         </table>
 
