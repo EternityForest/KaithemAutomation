@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1597471528260584
+resource-timestamp: 1609279005426572
 resource-type: page
 template-engine: markdown
 
@@ -50,6 +50,15 @@ Returns True if it is past sunset.
 ### millis()
 Return a monotonic milliseconds counter. It will not go backwards till the system
 reboots.
+
+
+## Events
+
+There are a few predefined ones:
+
+### cue.enter
+
+The value for this is always a list [cue being entered, cause]
 
 ## Time Expressions
 

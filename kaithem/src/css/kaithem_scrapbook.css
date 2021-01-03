@@ -5,13 +5,13 @@
 
 #page {
 	background-repeat: repeat;
-	background-image: url("/static/img/webtreats_minty_green_pattern_08.jpg");  -webkit-background-size: 100% auto;
+	background-image: url("/static/img/webtreats_minty_green_pattern_08.jpg");
 	background-color:rgb(150,170,100);
   
   }
   
   ::selection {
-	  background: rgba(140, 180, 140, 0.5);
+	  background: rgba(119, 88, 206, 0.431);
 	  color:rgb(70, 45, 19);
   }
   

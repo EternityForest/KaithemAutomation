@@ -10,6 +10,8 @@ Change Log
 - /system/wifiStrength tag point gives the strongest access point connection, 0-100 or -1 for never connected.
 - Main page shows all alarms regardless of permissions. Alarms are not really meant for private data, and the info was there already in the notifications.
 - Help boxes(paragraph or div class 'help') now show up minimized until you mouse over.
+- Clean up Chandler and the widget API to get rid of nuisiance errors
+- Basic error telemetry in WidgetAPI enabled pages
 
 ### 0.65.45
 - Many small improvements to the sounds engine, including true seamless looping

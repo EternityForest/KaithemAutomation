@@ -417,7 +417,7 @@ def webRoot():
             pages.require("/admin/settings.edit")
             if "new_numtag" in data:
                 pages.require("/admin/settings.edit")
-                return pages.get_template('settitagpoinngs/tagpoint.html').render(new_numtag=data['new_numtag'], tagname=data['new_numtag'])
+                return pages.get_template('settings/tagpoint.html').render(new_numtag=data['new_numtag'], tagname=data['new_numtag'])
             if "new_strtag" in data:
                 pages.require("/admin/settings.edit")
                 return pages.get_template('settings/tagpoint.html').render(new_strtag=data['new_strtag'], tagname=data['new_strtag'])

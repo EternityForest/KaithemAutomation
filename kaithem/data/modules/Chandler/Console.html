@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1605507547018612
+resource-timestamp: 1609708934501815
 resource-type: page
 template-engine: mako
 
@@ -2306,6 +2306,9 @@ from src import tagpoints
             'cuemeta': {},
             'availableCommands': {},
             'selectedCues': {},
+
+            //go from cue name to cue id
+            //scenecues[sceneuuid][cuename]=cueid
             'scenecues': {},
             'formattedCues': [],
             //Indexed by universe then channel number
@@ -2990,6 +2993,14 @@ from src import tagpoints
                                 i][1]
                         })
                     }
+                    
+                    //Make the empty list
+                    if (appData.scenecues[v[1]] == undefined)
+                    {
+                        Vue.set(appData.scenecues, v[1], {});
+                    };
+
+
                     Vue.set(appData.scenecues[v[1]], i, d[i][0])
                 }
                 appData.recomputeformattedCues();

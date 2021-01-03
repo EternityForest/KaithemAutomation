@@ -87,9 +87,9 @@ class ServiceApp(App):
     def openInBrowser(self,link):
         "Opens a link in the browser"
         if platform == 'android':
-            from jnius import autoclass
+            from jnius import autoclass,cast
             # import the needed Java class
-            PythonActivity = autoclass('org.renpy.android.PythonActivity')
+            PythonActivity = autoclass('org.renpy.kivy.PythonActivity')
             Intent = autoclass('android.content.Intent')
             Uri = autoclass('android.net.Uri')
 

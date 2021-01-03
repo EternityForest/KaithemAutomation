@@ -79,6 +79,8 @@ class ClientInfo():
         self.cookie = cookie
 
 
+lastLoggedUserError =0
+
 class WebInterface():
 
     # This index is entirely for AJAX calls
@@ -201,6 +203,7 @@ if config['enable-websockets']:
                         pass
 
         def received_message(self, message):
+            global lastLoggedUserError
             try:
                 if isinstance(message, ws4py.messaging.BinaryMessage):
                     o = msgpack.unpackb(message.data, raw=False)
@@ -209,10 +212,19 @@ if config['enable-websockets']:
 
                 resp = []
                 user = self.user
+               
+
+                if 'telemetry.err' in o:
+                    # Only log one user error per minute, globally.  It's not meant to catch *everything*,
+                    # just to give you a decent change
+                    if lastLoggedUserError < time.time()-10:
+                        logger.error("Client side err(These are globally ratelimited):\r\n"+o['telemetry.err'])
+                        lastLoggedUserError = time.time()
+                    return
+
                 req = o['req']
                 # Todo allow messages with no req?
                 upd = o['upd']
-
                 for i in upd:
                     if i[0] in widgets:
                         widgets[i[0]]._onUpdate(user, i[1], self.uuid)

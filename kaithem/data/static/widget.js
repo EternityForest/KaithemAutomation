@@ -15,114 +15,131 @@ Copyright (c) 2015 Yusuke Kawasaki
 	}, {}, [1])(1)
 });
 
-KaithemApi =function(){ 
+KaithemApi = function () {
 	var x = {
 
-	toSend: [],
-	polled: [],
-	first_error: 1,
-	serverMsgCallbacks: {
-		"__WIDGETERROR__": [
-			function (m) {
-				console.error(m);
-			}
-		],
-
-		"__KEYMAP__":[
-				function(m)
-				{
-					self.uuidToWidgetId[m[0]]=m[1];
-					self.widgetIDtoUUID[m[1]]=m[0];
+		toSend: [],
+		polled: [],
+		first_error: 1,
+		serverMsgCallbacks: {
+			"__WIDGETERROR__": [
+				function (m) {
+					console.error(m);
 				}
-		]
+			],
 
-		
-	},
-
-	//Unused for now
-	uuidToWidgetId:{},
-	widgetIDtoUUID:{},
-
-
-	subscriptions :[],
-	connection : 0,
-	use_mp : 0,
-
-	subscribe:function (key, callback) {
+			"__KEYMAP__": [
+				function (m) {
+					self.uuidToWidgetId[m[0]] = m[1];
+					self.widgetIDtoUUID[m[1]] = m[0];
+				}
+			]
 
 
-		if (key in this.serverMsgCallbacks) {
-			this.serverMsgCallbacks[key].push(callback);
-		}
+		},
 
-		else {
-			this.serverMsgCallbacks[key] = [callback];
-		}
+		//Unused for now
+		uuidToWidgetId: {},
+		widgetIDtoUUID: {},
 
-		//If the ws is open, send the subs list, else wait for the connection handler to do it when we first reconnect.
-		if (this.connection) {
-			if (this.connection.readyState == 1) {
-				var j = { "subsc": Object.keys(this.serverMsgCallbacks), "req": [], "upd": [] }
-				this.connection.send(JSON.stringify(j))
-			}
-		}
-	},
 
-	unsubscribe:function (key, callback) {
-		var arr = this.serverMsgCallbacks[key];
+		subscriptions: [],
+		connection: 0,
+		use_mp: 0,
 
-	
-		if (key in arr) {
+		//Doe nothinh untiul we connect, we just send that buffered data in the connection handler.
+		//Todo don't dynamically define this at all?
+		poll_ratelimited : function () { },
 
-			for( var i = 0; i < arr.length; i++){ if ( arr[i] === callback) { arr.splice(i, 1); }}
-		}
-		
-		if(arr.length==0){
+		subscribe: function (key, callback) {
 
-			//Delete the now unused mapping
-			if (key in this.uuidToWidgetId)
-			{
-				delete this.widgetIDtoUUID[this.uuidToWidgetId[key]];
-				delete this.uuidToWidgetId[key];
+
+			if (key in this.serverMsgCallbacks) {
+				this.serverMsgCallbacks[key].push(callback);
 			}
 
+			else {
+				this.serverMsgCallbacks[key] = [callback];
+			}
 
-
-			delete this.serverMsgCallbacks[key]
-		
-
-			//If the ws is open, send the subs list. If not, we by definition aren't subscribed, and we already removed it from the local list.
+			//If the ws is open, send the subs list, else wait for the connection handler to do it when we first reconnect.
 			if (this.connection) {
 				if (this.connection.readyState == 1) {
-					var j = { "unsub": [key], "req": [], "upd": [] }
+					var j = { "subsc": Object.keys(this.serverMsgCallbacks), "req": [], "upd": [] }
 					this.connection.send(JSON.stringify(j))
 				}
 			}
-		}
-	},
+		},
 
-	register : function (key, callback) {
-		this.polled.push(key);
-		this.subscribe(key, callback);
-	},
+		unsubscribe: function (key, callback) {
+			var arr = this.serverMsgCallbacks[key];
 
-	setValue : function (key, value) {
-		this.toSend.push([key, value])
-		this.poll_ratelimited();
-	},
 
-	sendValue: function (key, value) {
-		this.toSend.push([key, value])
-		this.poll_ratelimited();
-	},
+			if (key in arr) {
 
-	can_show_error : 1,
-	usual_delay : 0,
-	reconnect_timeout : 1500,
+				for (var i = 0; i < arr.length; i++) { if (arr[i] === callback) { arr.splice(i, 1); } }
+			}
 
-	connect : function () {
-		var apiobj = this
-		if (true) {
+			if (arr.length == 0) {
+
+				//Delete the now unused mapping
+				if (key in this.uuidToWidgetId) {
+					delete this.widgetIDtoUUID[this.uuidToWidgetId[key]];
+					delete this.uuidToWidgetId[key];
+				}
+
+
+
+				delete this.serverMsgCallbacks[key]
+
+
+				//If the ws is open, send the subs list. If not, we by definition aren't subscribed, and we already removed it from the local list.
+				if (this.connection) {
+					if (this.connection.readyState == 1) {
+						var j = { "unsub": [key], "req": [], "upd": [] }
+						this.connection.send(JSON.stringify(j))
+					}
+				}
+			}
+		},
+
+		sendErrorMessage: function (error) {
+			if (this.lastErrMsg) {
+				if (this.lastErrMsg > (Date.now() - 1500000)) {
+					return
+				}
+				this.lastErrMsg = Date.now();
+			}
+			if (this.connection) {
+				if (this.connection.readyState == 1) {
+					var j = { "telemetry.err": error }
+					this.connection.send(JSON.stringify(j))
+				}
+			}
+		},
+
+		register: function (key, callback) {
+			this.polled.push(key);
+			this.subscribe(key, callback);
+		},
+
+		setValue: function (key, value) {
+			this.toSend.push([key, value])
+			this.poll_ratelimited();
+		},
+
+		sendValue: function (key, value) {
+			this.toSend.push([key, value])
+			this.poll_ratelimited();
+		},
+
+		can_show_error: 1,
+		usual_delay: 0,
+		reconnect_timeout: 1500,
+
+		connect: function () {
+			var apiobj = this
+
 
 			this.connection = new WebSocket(window.location.protocol.replace("http", "ws") + "//" + window.location.host + '/widgets/ws');
 
@@ -149,7 +166,13 @@ KaithemApi =function(){
 						var resp = [0];
 						e.data.arrayBuffer().then(function (buffer) {
 							var buffer2 = new Uint8Array(buffer);
-							apiobj.connection.handleIncoming(msgpack.decode(buffer2));
+							try {
+								apiobj.connection.handleIncoming(msgpack.decode(buffer2));
+							}
+							catch (err) {
+								apiobj.sendErrorMessage(window.location.href + "\n" + err.stack)
+								console.error(err.stack)
+							}
 						})
 
 					}
@@ -159,7 +182,8 @@ KaithemApi =function(){
 					}
 				}
 				catch (err) {
-					console.log("Parse Error in websocket response:\n" + e.data);
+					apiobj.sendErrorMessage(window.location.href + "\n" + err.stack)
+					console.error(err.stack)
 				}
 
 
@@ -179,14 +203,14 @@ KaithemApi =function(){
 				apiobj.connection.send(j)
 				console.log("WS Connection Initialized");
 				apiobj.reconnect_timeout = 1500;
-				window.setTimeout(function(){apiobj.wpoll()}, 250);
+				window.setTimeout(function () { apiobj.wpoll() }, 250);
 			}
 
 			this.wpoll = function () {
 				//Don't bother sending if we aren'y connected
 				if (this.connection.readyState == 1) {
 					if (this.toSend.length > 0 || this.polled.length > 0) {
-						var toSend = { 'upd': this.toSend, 'req': Object.keys(this.polled),  };
+						var toSend = { 'upd': this.toSend, 'req': Object.keys(this.polled), };
 						if (this.use_mp) {
 							var j = new Blob([msgpack.encode(toSend)]);
 						}
@@ -231,20 +255,25 @@ KaithemApi =function(){
 				}
 			}
 
-		}
-		else {
-			pollLoop();
+
+
 		}
 	}
+	x.self = x
+	return x
 }
-x.self=x
-return x
+kaithemapi = KaithemApi()
+
+if (!window.onerror) {
+	var globalPageErrorHandler = function (msg, url, line) {
+		kaithemapi.sendErrorMessage(url + '\n' + line + "\n\n" + msg)
+	}
+	window.onerror = globalPageErrorHandler
 }
-kaithemapi=KaithemApi()
 //Backwards compatibility hack
 //Todo deprecate someday? or not.
-KWidget_subscribe = function(a,b){kaithemapi.subscribe(a,b)}
-KWidget_setValue =function(a,b){kaithemapi.setValue(a,b)}
-KWidget_sendValue = function(a,b){kaithemapi.sendValue(a,b)}
+KWidget_subscribe = function (a, b) { kaithemapi.subscribe(a, b) }
+KWidget_setValue = function (a, b) { kaithemapi.setValue(a, b) }
+KWidget_sendValue = function (a, b) { kaithemapi.sendValue(a, b) }
 
-setTimeout(function(){kaithemapi.connect()}, 100)
+setTimeout(function () { kaithemapi.connect() }, 100)
