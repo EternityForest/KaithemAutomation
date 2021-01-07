@@ -52,10 +52,10 @@ def getConnectionStatus():
                     d[device.Udi] = ("", 0, "DISCONNECTED")
 
             elif device.DeviceType == NetworkManager.NM_DEVICE_TYPE_ETHERNET:
-                if device.state == NetworkManager.NM_DEVICE_STATE_DISCONNECTED:
+                if device.State == NetworkManager.NM_DEVICE_STATE_DISCONNECTED:
                     d[device.Udi] = (device.Interface, 0, "DISCONNECTED")
 
-                if device.state == NetworkManager.NM_DEVICE_STATE_ACTIVATED:
+                if device.State == NetworkManager.NM_DEVICE_STATE_ACTIVATED:
                     d[device.Udi] = (device.Interface, 0, "CONNECTED")
 
                 else:

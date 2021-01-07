@@ -20,16 +20,13 @@ import time
 import textwrap
 import logging
 import traceback
-import struct
-import hashlib
-import base64
 import gc
 import os
 import re
 import cherrypy
-import mako
+from typing import Dict
 
-from . import virtualresource, pages, registry, modules_state, workers, tagpoints, alerts, persist, directories, messagebus, widgets, unitsofmeasure
+from . import virtualresource, pages, workers, tagpoints, alerts, persist, directories, messagebus, widgets, unitsofmeasure
 
 remote_devices = {}
 remote_devices_atomic = {}
@@ -83,7 +80,7 @@ def saveAsFiles():
         for i in os.listdir(saveLocation):
             fn = os.path.join(saveLocation, i)
             if os.path.isfile(fn) and i.endswith(".yaml"):
-                if not i in saved:
+                if i not in saved:
                     os.remove(fn)
         unsaved_changes = {}
 
@@ -211,12 +208,12 @@ class Device(virtualresource.VirtualResource):
         # may not include special chars besides underscores.
 
         # It is a list of all alerts "owned" by the device.
-        self.alerts = {}
+        self.alerts: Dict[str, alerts.Alert] = {}
 
         # A list of all the tag points owned by the device
-        self.tagPoints = {}
+        self.tagPoints: Dict[str, tagpoints._TagPoint] = {}
         # Where we stash our claims on the tags
-        self.tagClaims = {}
+        self.tagClaims: Dict[str, tagpoints.Claim] = {}
 
         self.name = data.get('name', None) or name
         self.errors = []
@@ -286,7 +283,7 @@ class Device(virtualresource.VirtualResource):
 
     @staticmethod
     def discoverDevices():
-        """Returns a list of data objectd that could be used to 
+        """Returns a list of data objectd that could be used to
             create a device object of this type, indexed by
             a string that can be up to a line of description.
 
@@ -465,7 +462,7 @@ def makeDevice(name, data):
     else:
         dt = deviceTypes[data['type']]
 
-    if not 'subclass' in data:
+    if 'subclass' not in data:
         data['subclass'] = dt.defaultSubclassCode
 
     # Allow auto-subclassing to make customized v
@@ -489,7 +486,7 @@ def makeDevice(name, data):
                 dt = codeEvalScope["CustomDeviceType"]
             d = dt(name, data)
 
-        except:
+        except Exception:
             d = originaldt(name, data)
             d.handleError(traceback.format_exc(chain=True))
             messagebus.postMessage('/system/notifications/error',

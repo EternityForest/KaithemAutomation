@@ -21,11 +21,7 @@ import logging
 from . import pages, auth, util, messagebus
 
 
-# Experimenal code not implemented, intended to send warning if the ratio of failed logins to real logins is excessive
-# in a short period.
-lastCleared = time.time()
-recentAttempts = 0
-alreadySent = 0
+
 
 logger = logging.getLogger("system.auth")
 failureRecords = collections.OrderedDict()
@@ -34,8 +30,13 @@ recordslock = threading.Lock()
 # indexed by username, they are numbers of what time to lock out logins until
 lockouts = {}
 
-
+# Experimenal code not implemented, intended to send warning if the ratio of failed logins to real logins is excessive
+# in a short period.
+lastCleared = time.time()
+recentAttempts = 0
+alreadySent = 0
 def onAttempt():
+    global lastCleared,recentAttempts,alreadySent
     if time.time()-lastCleared > 60*30:
         lastCleared = time.time()
         if recentAttempts < 50:
@@ -46,15 +47,6 @@ def onAttempt():
         logging.warning("Many failed login attempts have occurred")
         messagebus.postMessage("/system/notifications/warnings",
                                "Excessive number of failed attempts in the last 30 minutes.")
-
-
-def onLogin():
-    if time.time()-lastCleared > 60*30:
-        lastCleared = 0
-        if recentAttempts < 50:
-            alreadySent = 0
-        recentAttempts = 0
-    recentAttempts -= 1.5
 
 
 def onFail(ip, user, lockout=True):
@@ -77,7 +69,9 @@ class LoginScreen():
     @cherrypy.expose
     def index(self, **kwargs):
         if not cherrypy.request.scheme == 'https':
-            raise cherrypy.HTTPRedirect("/errors/gosecure")
+            x = cherrypy.request.remote.ip
+            if not x.startswith == "::1" or x.startswith("127.") or x.startswith("200::") or x.startswith("300::"):
+                raise cherrypy.HTTPRedirect("/errors/gosecure")
         return pages.get_template("login.html").render(target=kwargs.get("go", "/"))
 
     @cherrypy.expose
@@ -100,11 +94,13 @@ class LoginScreen():
             kwargs['password'] = 'password'
 
         if auth.getUserSetting(pages.getAcessingUser(), "restrict-lan"):
-            if not util.iis_private_ip(cherrypy.request.remote.ip):
+            if not util.is_private_ip(cherrypy.request.remote.ip):
                 raise cherrypy.HTTPRedirect("/errors/localonly")
 
         if not cherrypy.request.scheme == 'https':
-            raise cherrypy.HTTPRedirect("/errors/gosecure")
+            x = cherrypy.request.remote.ip
+            if not x.startswith == "::1" or x.startswith("127.") or x.startswith("200::") or x.startswith("300::"):
+                raise cherrypy.HTTPRedirect("/errors/gosecure")
         # Insert a delay that has a random component of up to 256us that is derived from the username
         # and password, to prevent anyone from being able to average it out, as it is the same per
         # query

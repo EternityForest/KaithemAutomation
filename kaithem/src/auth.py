@@ -24,7 +24,6 @@ of a valid token"""
 # Users and groups are saved in RAM and synched with the filesystem due to the goal
 # of not using the filesystem much to save any SD cards.
 
-import cherrypy
 from . import util, directories, modules_state, registry, messagebus
 import json
 import base64
@@ -265,15 +264,12 @@ def promptGenerateUser(username="admin"):
         global authchanged, tokenHashes
         p = "samevscdfghjkl,ljhgfdsfhjmk,.lkjhgfdgnm,kjgfdnmj,kjuytredsfvbnhjmk?P>O:P_O>{:?{|<>/,.(0%(%(*5)))}"
         p2 = "differentgfbhnjmuytrfdcvbnjuytfgcvbnmjuytgfvbnmjkiuytgfvbnmjuytgfvbnmjkuyhgf"
-        try:
-            input2 = raw_input
-        except:
-            input2 = input
+
         while not p == p2:
             p = "samejytfdcvbnjytfgvbnmjuytrfdcv bnmjuytgfvbnmjuytgfvbnmjytgfvbnjytgfcvliku7ytrfghjuytrfg:{<}>?<MLNI)*&(Y?>:I)"
             p2 = "differentkyhgfvbnmjuytrdcxvbhjytredsxcvbnjkjnmkliuytrdsfgtrewsxdcvghjkmkiuhgft54ewe3wdfghujhjkiu76y7yuijh"
-            p = input2("Account %s created. Choose password:" % (username))
-            p2 = input2("Reenter Password:")
+            p = input("Account %s created. Choose password:" % (username))
+            p2 = input("Reenter Password:")
             if not p == p2:
                 print("password mismatch")
 
