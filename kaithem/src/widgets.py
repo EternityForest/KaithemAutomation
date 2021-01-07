@@ -30,7 +30,6 @@ import socket
 import copy
 import struct
 import collections
-import random
 from . import auth, pages, unitsofmeasure, config, util, messagebus
 from src.config import config
 
@@ -978,7 +977,7 @@ class TagPoint(Widget):
            kaithemapi.subscribe("%(id)s",upd);
            </script>
 
-            </div>""" % {'label': label, 'en': self.isWritable(), 'htmlid': mkid(), 'id': self.uuid, 'min': self.tag.min, 'step': self.step, 'max': self.tag.max, 'value': self.value, 'unit': unit}
+            </div>""" % {'label': label, 'en': self.isWritable(), 'htmlid': mkid(), 'id': self.uuid, 'min': self.tag.min, 'step': self.step, 'max': self.tag.max, 'value': self.value, 'unit': self.unit}
 
         if type == 'onrelease':
             sl = """<div class="widgetcontainer sliderwidget">

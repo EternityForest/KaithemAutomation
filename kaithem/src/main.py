@@ -195,7 +195,7 @@ def webRoot():
     logging.getLogger("cherrypy.access").propagate = False
 
     from . import tagpoints
-    #from . import builtintags
+    from . import builtintags
 
     def tagErrorHandler(tag, f, val):
         try:

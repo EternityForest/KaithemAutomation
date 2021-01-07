@@ -18,6 +18,7 @@ import scullery.messagebus
 import traceback
 import cherrypy
 
+postMessage = scullery.messagebus.postMessage
 
 def handleMsgbusError(f, topic, message):
     scullery.messagebus.log.exception(
@@ -33,10 +34,11 @@ def handleMsgbusError(f, topic, message):
                 x = hasattr(f, "_kaithemAlreadyPostedNotificatonError")
                 f._kaithemAlreadyPostedNotificatonError = True
                 if x:
-                    messagebus.postMessage(
+                    postMessage(
                         "First message bus subscriber error in: " + str(f))
             except:
-                pass
+                print(traceback.format_exc())
+
     except Exception as e:
         print(traceback.format_exc())
         del f

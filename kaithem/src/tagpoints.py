@@ -16,7 +16,7 @@ import random
 import json
 import copy
 
-from typing import Callable, Union
+from typing import Callable, Union,Dict,List,Any
 from typeguard import typechecked
 import sqlite3
 
@@ -35,14 +35,14 @@ if not os.path.exists(logdir):
 
 historyDBFile = os.path.join(logdir, "history.ldb")
 
-exposedTags = weakref.WeakValueDictionary()
+exposedTags:weakref.WeakValueDictionary  = weakref.WeakValueDictionary()
 
 
 class TagLogger():
     accumType = 'latest'
     defaultAccum = 0
 
-    def __init__(self, tag, interval, historyLength=3*30*24*3600):
+    def __init__(self, tag, interval, historyLength=3 * 30 * 24 * 3600):
         self.h = historian
         self.accumVal = self.defaultAccum
         self.accumCount = 0
@@ -83,13 +83,13 @@ class TagLogger():
 
             c = conn.cursor()
             c.execute("SELECT count(*) FROM record WHERE channel=? AND timestamp<?",
-                      (self.chID, time.time()-self.historyLength))
+                      (self.chID, time.time() - self.historyLength))
             count = c.fetchone()[0]
 
             # Only delete records in large blocks. To do otherwise would create too much disk wear
             if count > 8192 if not force else 1024:
                 c.execute("DELETE FROM record WHERE channel=? AND timestamp<?",
-                          (self.chID, time.time()-self.historyLength))
+                          (self.chID, time.time() - self.historyLength))
 
     def getDataRange(self, minTime, maxTime, maxRecords=10000):
         with self.h.lock:
@@ -118,7 +118,7 @@ class TagLogger():
                 except Exception:
                     raise
 
-            return (d+x)[:maxRecords]
+            return (d + x)[:maxRecords]
 
     def getRecent(self, minTime, maxTime, maxRecords=10000):
         with self.h.lock:
@@ -147,7 +147,7 @@ class TagLogger():
                 except Exception:
                     raise
 
-            return (list(reversed(d))+x)[-maxRecords:]
+            return (list(reversed(d)) + x)[-maxRecords:]
 
     def __del__(self):
         with historian.lock:
@@ -167,11 +167,11 @@ class TagLogger():
     def flush(self, force=False):
         # Ratelimit how often we log, continue accumulating if nothing to log.
         if not force:
-            if self.lastLogged > time.monotonic()-self.interval:
+            if self.lastLogged > time.monotonic() - self.interval:
                 return
 
-        offset = time.time()-time.monotonic()
-        self.h.insertData((self.chID, self.accumTime+offset, self.accumVal))
+        offset = time.time() - time.monotonic()
+        self.h.insertData((self.chID, self.accumTime + offset, self.accumVal))
         self.lastLogged = time.monotonic()
         self.accumCount = 0
         self.accumVal = self.defaultAccum
@@ -189,10 +189,10 @@ class TagLogger():
             self.chID = None
 
             if not isinstance(tag.unit, str):
-                raise ValueError('bad tag unit '+str(tag.unit))
+                raise ValueError('bad tag unit ' + str(tag.unit))
 
             if not isinstance(self.accumType, str):
-                raise ValueError('bad tag accum '+str(self.accumType))
+                raise ValueError('bad tag accum ' + str(self.accumType))
 
             for i in c:
                 if i['tagName'] == tag.name and i['unit'] == tag.unit and i['accumulate'] == self.accumType:
@@ -225,12 +225,12 @@ class AverageLogger(TagLogger):
     def flush(self, force=False):
         # Ratelimit how often we log, continue accumulating if nothing to log.
         if not force:
-            if self.lastLogged > time.monotonic()-self.interval:
+            if self.lastLogged > time.monotonic() - self.interval:
                 return
-        offset = time.time()-time.monotonic()
+        offset = time.time() - time.monotonic()
 
         self.h.insertData(
-            (self.chID, (self.accumTime/self.accumCount)+offset, self.accumVal/self.accumCount))
+            (self.chID, (self.accumTime / self.accumCount) + offset, self.accumVal / self.accumCount))
         self.lastLogged = time.monotonic()
         self.accumCount = 0
         self.accumVal = 0
@@ -253,12 +253,12 @@ class MinLogger(TagLogger):
     def flush(self, force=False):
         # Ratelimit how often we log, continue accumulating if nothing to log.
         if not force:
-            if self.lastLogged > time.monotonic()-self.interval:
+            if self.lastLogged > time.monotonic() - self.interval:
                 return
 
-        offset = time.time()-time.monotonic()
+        offset = time.time() - time.monotonic()
         self.h.insertData(
-            (self.chID, (self.accumTime/self.accumCount)+offset, self.accumVal))
+            (self.chID, (self.accumTime / self.accumCount) + offset, self.accumVal))
         self.lastLogged = time.monotonic()
         self.accumCount = 0
         self.accumVal = 10**18
@@ -281,12 +281,12 @@ class MaxLogger(MinLogger):
     def flush(self, force=False):
         # Ratelimit how often we log, continue accumulating if nothing to log.
         if not force:
-            if self.lastLogged > time.monotonic()-self.interval:
+            if self.lastLogged > time.monotonic() - self.interval:
                 return
 
-        offset = time.time()-time.monotonic()
+        offset = time.time() - time.monotonic()
         self.h.insertData(
-            (self.chID, (self.accumTime/self.accumCount)+offset, self.accumVal))
+            (self.chID, (self.accumTime / self.accumCount) + offset, self.accumVal))
         self.lastLogged = time.monotonic()
         self.accumCount = 0
         self.accumVal = -10**18
@@ -331,9 +331,9 @@ class TagHistorian():
 
         self.lastGarbageCollected = 0
 
-        self.flushInterval = 10*60
+        self.flushInterval = 10 * 60
 
-        self.gcInterval = 3600*2
+        self.gcInterval = 3600 * 2
 
         messagebus.subscribe("/system/save", self.forceFlush)
 
@@ -351,12 +351,12 @@ class TagHistorian():
 
     def flush(self, force=False):
         if not force:
-            if time.monotonic()-self.lastFlushed < self.flushInterval:
+            if time.monotonic() - self.lastFlushed < self.flushInterval:
                 return
             self.lastFlushed = time.monotonic()
 
         with self.lock:
-            needsGC = self.lastGarbageCollected < time.monotonic()-self.gcInterval
+            needsGC = self.lastGarbageCollected < time.monotonic() - self.gcInterval
             if needsGC:
                 self.lastGarbageCollected = time.monotonic()
             if force:
@@ -400,7 +400,7 @@ try:
     historian = TagHistorian(historyDBFile)
 except Exception:
     messagebus.postMessage("/system/notifications/errors",
-                           "Failed to create tag historian, logging will not work."+"\n"+traceback.format_exc())
+                           "Failed to create tag historian, logging will not work." + "\n" + traceback.format_exc())
 
 
 """
@@ -419,10 +419,12 @@ class websocket(WebSocket):
         def __init__(self,*args,**kwargs):
             self.subscriptions = []
             self.lastPushedNewData = 0
-            self.uuid = "id"+base64.b64encode(os.urandom(16)).decode().replace("/",'').replace("-",'').replace('+','')[:-2]
+            self.uuid = "id"+base64.b64encode(os.urandom(16)).decode().replace(
+                "/",'').replace("-",'').replace('+','')[:-2]
             self.lock = threading.Lock()
             self.subf =[]
-            self.schedule = scheduler.scheduler.scheduleRepeating(self.push,1/12)
+            self.schedule = scheduler.scheduler.scheduleRepeating(
+                self.push,1/12)
 
             WebSocket.__init__(self,*args,**kwargs)
 
@@ -468,7 +470,8 @@ class websocket(WebSocket):
 
 
             except Exception as e:
-                logging.exception('Error in tagpoint, responding to '+str(message.data))
+                logging.exception(
+                    'Error in tagpoint, responding to '+str(message.data))
                 self.send(json.dumps({'__WIDGETERROR__':repr(e)}))
 
 
@@ -494,18 +497,18 @@ t = time.monotonic
 # We just accept that creating and deleting tags and claims is slow.
 lock = threading.RLock()
 
-allTags = {}
-allTagsAtomic = {}
+allTags:Dict[str,weakref.ref] = {}
+allTagsAtomic:Dict[str,weakref.ref] = {}
 
 providers = {}
 
-subscriberErrorHandlers = []
+subscriberErrorHandlers:List[Callable] = []
 
 hasUnsavedData = [0]
 
 # Allows use to recalc entire lists of tags on the creation of another tag,
 # For dependancy resolution
-recalcOnCreate = weakref.WeakValueDictionary()
+recalcOnCreate:weakref.WeakValueDictionary = weakref.WeakValueDictionary()
 
 
 tagsAPI = widgets.APIWidget()
@@ -539,9 +542,9 @@ def normalizeTagName(name, replacementChar=None):
                     name = name.replace(i, replacementChar)
                 else:
                     raise ValueError(
-                        "Illegal char in tag point name: "+i+" in " + name)
+                        "Illegal char in tag point name: " + i + " in " + name)
         if not name.startswith("/"):
-            name = "/"+name
+            name = "/" + name
     else:
         if name.startswith("/="):
             name = name[1:]
@@ -568,7 +571,7 @@ class TagProvider():
         return _TagPoint(tagName)
 
 
-configTags = {}
+configTags: Dict[str,object]= {}
 configTagData = {}
 
 
@@ -592,7 +595,7 @@ def configTagFromData(name, data):
     # Create or get the tag
     if t == "number":
         tag = Tag(name)
-        
+
     elif t == "string":
         tag = StringTag(name)
     elif name in allTags:
@@ -613,7 +616,7 @@ def getFilenameForTagConfig(i):
         n = i[1:]
     else:
         n = i
-    return os.path.join(directories.vardir, "tags", n+".yaml")
+    return os.path.join(directories.vardir, "tags", n + ".yaml")
 
 
 def gcEmptyConfigTags():
@@ -645,9 +648,9 @@ def loadAllConfiguredTags(f=os.path.join(directories.vardir, "tags")):
             try:
                 configTagFromData(i, configTagData[i].getAllData())
             except Exception:
-                logging.exception("Failure with configured tag: "+i)
+                logging.exception("Failure with configured tag: " + i)
                 messagebus.postMessage(
-                    "/system/notifications/errors", "Failed to preconfigure tag "+i+"\n"+traceback.format_exc())
+                    "/system/notifications/errors", "Failed to preconfigure tag " + i + "\n" + traceback.format_exc())
 
 
 # _ and . allowed
@@ -676,7 +679,7 @@ class _TagPoint(virtualresource.VirtualResource):
         which can get existing tags. This allows use of tags for cross=
 
     """
-    defaultData = None
+    defaultData: Any = None
     type = 'object'
     @typechecked
     def __init__(self, name: str):
@@ -701,17 +704,17 @@ class _TagPoint(virtualresource.VirtualResource):
 
         # Used to track things like min and max, what has been changed by manual setting.
         # And should not be overridden by code.
-        self.configOverrides = {}
+        self.configOverrides:Dict[str,object] = {}
 
-        self._dynConfigValues = {}
-        self.dynamicAlarmData = {}
-        self.configuredAlarmData = {}
+        self._dynConfigValues:Dict[str,object] = {}
+        self.dynamicAlarmData:Dict[str,object] = {}
+        self.configuredAlarmData:Dict[str,object] = {}
         # The merged combo of both of those
-        self.effectiveAlarmData = {}
+        self.effectiveAlarmData:Dict[str,object] = {}
 
-        self.alarms = {}
+        self.alarms:Dict[str,object] = {}
 
-        self._configuredAlarms = {}
+        self._configuredAlarms:Dict[str,object] = {}
 
         self.name = name
         # The cached actual value from the claims
@@ -721,9 +724,9 @@ class _TagPoint(virtualresource.VirtualResource):
         self.lastGotValue = 0
         self._interval = 0
         self.activeClaim = None
-        self.claims = {}
+        self.claims:Dict[str,Claim] = {}
         self.lock = threading.RLock()
-        self.subscribers = []
+        self.subscribers:List[weakref.ref] = []
         self.poller = None
 
         self.lastError = 0
@@ -782,7 +785,7 @@ class _TagPoint(virtualresource.VirtualResource):
         # claim from the web UI.
         self.manualOverrideClaim = None
 
-        self._alarms = {}
+        self._alarms:Dict[str,object] = {}
 
         with lock:
             messagebus.postMessage(
@@ -798,6 +801,9 @@ class _TagPoint(virtualresource.VirtualResource):
             createGetterFromExpression(self.name, self)
         with lock:
             self.setConfigData(configTagData.get(self.name, {}))
+
+    def isDynamic(self):
+        return callable(self._value)
 
     def expose(self, r='', w='__never__', p=50, configured=False):
         """If not r, disable web API.  Otherwise, set read and write permissions.
@@ -857,7 +863,7 @@ class _TagPoint(virtualresource.VirtualResource):
                     if self.apiClaim:
                         self.apiClaim.release()
                 else:
-                    w = widgets.DataSource(id="tag:"+self.name)
+                    w = widgets.DataSource(id="tag:" + self.name)
                     w.setPermissions([i.strip() for i in d2[0].split(",")], [
                                      i.strip() for i in d2[1].split(",")])
                     w.value = self.value
@@ -922,13 +928,13 @@ class _TagPoint(virtualresource.VirtualResource):
 
     @staticmethod
     def toMonotonic(t):
-        offset = time.time()-time.monotonic()
-        return t-offset
+        offset = time.time() - time.monotonic()
+        return t - offset
 
     @staticmethod
     def toWallClock(t):
-        offset = time.time()-time.monotonic()
-        return t+offset
+        offset = time.time() - time.monotonic()
+        return t + offset
 
     def testForDeadlock(self):
         "Run a check in the background to make sure this lock isn't clogged up"
@@ -943,7 +949,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 self.lock.release()
             else:
                 if not self.alreadyPostedDeadlock:
-                    messagebus.postMessage("/system/notifications/errors", "Tag point: "+self.name +
+                    messagebus.postMessage("/system/notifications/errors", "Tag point: " + self.name +
                                            " has been unavailable for 30s and may be involved in a deadlock. see threads view.")
                     self.alreadyPostedDeadlock = True
 
@@ -1035,7 +1041,7 @@ class _TagPoint(virtualresource.VirtualResource):
             if autoAck is True:
                 autoAck = 'yes'
             if autoAck is False:
-                autoAck= 'no'
+                autoAck = 'no'
 
             tripDelay = str(tripDelay)
 
@@ -1067,7 +1073,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
             if condition is None:
                 try:
-                    storage.pop(name,0)
+                    storage.pop(name, 0)
                 except Exception:
                     logger.exception("I don't think this matters")
             else:
@@ -1163,16 +1169,16 @@ class _TagPoint(virtualresource.VirtualResource):
         context = self.evalContext
 
         tripCondition = compile(
-            tripCondition, self.name+".alarms."+name+"_trip", "eval")
+            tripCondition, self.name + ".alarms." + name + "_trip", "eval")
         if releaseCondition:
             releaseCondition = compile(
-                tripCondition, self.name+".alarms."+name+"_trip", "eval")
+                tripCondition, self.name + ".alarms." + name + "_trip", "eval")
 
         n = self.name.replace("=", 'expr_')
         for i in illegalCharsInName:
             n = n.replace(i, "_")
 
-        obj = alerts.Alert(n+".alarms."+name,
+        obj = alerts.Alert(n + ".alarms." + name,
                            priority=priority,
                            autoAck=autoAck,
                            tripDelay=tripDelay,
@@ -1182,7 +1188,7 @@ class _TagPoint(virtualresource.VirtualResource):
             try:
                 if hasattr(self, "meterWidget"):
                     return self.meterWidget.render()
-                else:
+                elif hasattr(self, "spanWidget"):
                     return self.spanWidget.render()
             except Exception as e:
                 return str(e)
@@ -1193,7 +1199,7 @@ class _TagPoint(virtualresource.VirtualResource):
             context['value'] = value
             try:
                 if eval(tripCondition, context, context):
-                    obj.trip("Tag value:"+str(value)[:128])
+                    obj.trip("Tag value:" + str(value)[:128])
                 elif releaseCondition:
                     if eval(releaseCondition, context, context):
                         obj.release()
@@ -1210,7 +1216,8 @@ class _TagPoint(virtualresource.VirtualResource):
         try:
             alarmPollFunction(self.value, self.annotation, self.timestamp)
         except Exception:
-            logger.exception("Error in test run of alarm function for :"+name)
+            logger.exception(
+                "Error in test run of alarm function for :" + name)
 
         return alarmPollFunction
 
@@ -1266,7 +1273,8 @@ class _TagPoint(virtualresource.VirtualResource):
 
             if data.get("onChange", None):
                 # Configurable onChange handlers
-                ocfc = compile(data['onChange'], self.name+".onChange", 'exec')
+                ocfc = compile(data['onChange'],
+                               self.name + ".onChange", 'exec')
 
                 def ocf(value, timestamp, annotation):
                     exec(ocfc, self.evalContext, self.evalContext)
@@ -1286,7 +1294,7 @@ class _TagPoint(virtualresource.VirtualResource):
             for i in loggers:
                 interval = float(i.get("interval", 60) or 60)
                 length = float(
-                    i.get("historyLength", 3*30*24*3600) or 3*30*24*3600)
+                    i.get("historyLength", 3 * 30 * 24 * 3600) or 3 * 30 * 24 * 3600)
 
                 accum = i['accumulate']
                 try:
@@ -1294,7 +1302,7 @@ class _TagPoint(virtualresource.VirtualResource):
                     self.configLoggers.append(c)
                 except Exception:
                     messagebus.postMessage(
-                        "/system/notifications/errors", "Error creating logger for: "+self.name+"\n"+traceback.format_exc())
+                        "/system/notifications/errors", "Error creating logger for: " + self.name + "\n" + traceback.format_exc())
 
             # this is apparently just for the configured part, the dynamic part happens behind the scenes in
             # setAlarm via createAlarma
@@ -1364,7 +1372,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 if x:
                     if x.__class__ is not cls:
                         raise TypeError(
-                            "A tag of that name exists, but it is the wrong type. Existing: " + str(x.__class__)+" New: " + str(cls))
+                            "A tag of that name exists, but it is the wrong type. Existing: " + str(x.__class__) + " New: " + str(cls))
                     rval = x
 
             else:
@@ -1432,6 +1440,8 @@ class _TagPoint(virtualresource.VirtualResource):
     def subscribe(self, f: Callable):
         if self.lock.acquire(timeout=20):
             try:
+                
+                ref : Union[weakref.WeakMethod,weakref.ref,None]=None
 
                 if isinstance(f, types.MethodType):
                     ref = weakref.WeakMethod(f)
@@ -1477,7 +1487,7 @@ class _TagPoint(virtualresource.VirtualResource):
     def setHandler(self, f: Callable):
         self.handler = weakref.ref(f)
 
-    def _debugAdminPush(self, value):
+    def _debugAdminPush(self, value, t, a):
         pass
 
     def poll(self):
@@ -1512,7 +1522,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 f(self.lastValue, self.timestamp, self.annotation)
             else:
                 self.handler = None
-        self._debugAdminPush(self.lastValue)
+
         self._apiPush()
 
         self.lastPushedValue = self.lastValue
@@ -1546,7 +1556,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
     @property
     def age(self):
-        return time.time()-self.lastGotValue
+        return time.time() - self.lastGotValue
 
     @property
     def value(self):
@@ -1567,7 +1577,7 @@ class _TagPoint(virtualresource.VirtualResource):
             # Rate limited tag getter logic. We ignore the possibility for
             # Race conditions and assume that calling a little too often is fine, since
             # It shouldn't affect correctness
-            if (time.time()-self.lastGotValue > self._interval) or force:
+            if (time.time() - self.lastGotValue > self._interval) or force:
                 # Set this flag immediately, or else a function with an error could defeat the cacheing
                 # And just flood everything with errors
                 self.lastGotValue = time.time()
@@ -1588,7 +1598,7 @@ class _TagPoint(virtualresource.VirtualResource):
                         # mean we can fall back to cache in case of a timeout.
                         else:
                             logging.error(
-                                "tag point:" + self.name+" took too long getting lock to get value, falling back to cache")
+                                "tag point:" + self.name + " took too long getting lock to get value, falling back to cache")
                             return self.lastValue
                     try:
                         # None means no new data
@@ -1611,7 +1621,7 @@ class _TagPoint(virtualresource.VirtualResource):
                     logger.exception("Error getting tag value")
 
                     # The system logger is the one kaithem actually logs to file.
-                    if self.lastError < (time.time()-(60*10)):
+                    if self.lastError < (time.time() - (60 * 10)):
                         syslogger.exception(
                             "Error getting tag value. This message will only be logged every ten minutes.")
                     # If we can, try to send the exception back whence it came
@@ -1645,7 +1655,7 @@ class _TagPoint(virtualresource.VirtualResource):
             a function.
         """
 
-        name = name or 'claim'+str(time.time())
+        name = name or 'claim' + str(time.time())
         if timestamp is None:
             timestamp = time.monotonic()
 
@@ -1751,7 +1761,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 # We can "steal" control if we have the same priority and are more recent, byt to do that we have to use the slower claim function that handles creating
                 # and switching claims
                 if c[0] >= self.activeClaim[0] and timestamp > self.activeClaim[1]:
-                    self.claim(val, claim, c[0], timestamp,  annotation)
+                    self.claim(val, claim, c[0], timestamp, annotation)
                     return
 
             # Grab the claim obj and set it's val
@@ -1766,8 +1776,11 @@ class _TagPoint(virtualresource.VirtualResource):
                 self._value = val
                 self.valueTuple = (val, timestamp, annotation)
                 self.annotation = annotation
-                self._getValue()
-                self._push()
+                # No need to immediately call the function if nobody is listening
+                # But we might as well if it's a direct value.
+                if (not callable(val)) or (self.subscribers or self.handler):
+                    self._getValue()
+                    self._push()
         finally:
             self.lock.release()
 
@@ -1799,7 +1812,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
                 # Perhaps in a race condition that has dissapeared.
                 # We must remove it and retry.
-                if o == None:
+                if o is None:
                     del self.claims[self.activeClaim[2]]
                 else:
                     self._value = o.value
@@ -1828,7 +1841,7 @@ class _NumericTagPoint(_TagPoint):
         self._min = min
         self._max = max
         # Pipe separated list of how to display value
-        self._displayUnits = None
+        self._displayUnits: Union[str, None]= None
         self._unit = ""
         self.guiLock = threading.Lock()
         self._meterWidget = None
@@ -1856,8 +1869,13 @@ class _NumericTagPoint(_TagPoint):
         try:
             if self._meterWidget:
                 x = self._meterWidget
+
+                def f(v, t, a):
+                    self._debugAdminPush(v, t, a)
+                self.subscribe(f)
+                x.updateSubscriber = f
                 if x:
-                    self._debugAdminPush(self.value)
+                    self._debugAdminPush(self.value, None, None)
                     # Put if back if the function tried to GC it.
                     self._meterWidget = x
                     return self._meterWidget
@@ -1879,15 +1897,20 @@ class _NumericTagPoint(_TagPoint):
         finally:
             self.lock.release()
 
-    def _debugAdminPush(self, value):
+    def _debugAdminPush(self, value, t, a):
+
         if not self._meterWidget:
             return
 
         if not self._meterWidget.stillActive():
+            if not self.lock.acquire(timeout=5):
+                raise RuntimeError("Error getting lock")
             self._meterWidget = None
+            self.lock.release()
             return
 
         # Immediate write, don't push yet, do that in a thread because TCP can block
+
         def pushFunction():
             self._meterWidget.write(value, push=False)
             if self.guiLock.acquire(timeout=1):
@@ -2044,10 +2067,8 @@ class _StringTagPoint(_TagPoint):
     type = 'string'
     @typechecked
     def __init__(self, name: str):
-        self.spanWidget = widgets.DynamicSpan()
-        self.spanWidget.setPermissions(
-            ['/users/tagpoints.view'], ['/users/tagpoints.edit'])
         self.guiLock = threading.Lock()
+        self._spanWidget = None
 
         _TagPoint.__init__(self, name)
 
@@ -2062,17 +2083,34 @@ class _StringTagPoint(_TagPoint):
     def filterValue(self, v):
         return str(v)
 
-    def _debugAdminPush(self, value):
+    def _debugAdminPush(self, value, timestamp, annotation):
         # Immediate write, don't push yet, do that in a thread because TCP can block
-        self.spanWidget.write(value, push=False)
+
+        if not self._spanWidget:
+            if not self.lock.acquire(timeout=5):
+                raise RuntimeError("Error getting lock")
+            self._spanWidget = None
+            self.lock.release()
+            return
+
+        if not self._spanWidget.stillActive():
+            if not self.lock.acquire(timeout=5):
+                raise RuntimeError("Error getting lock")
+            self._spanWidget = None
+            self.lock.release()
+            return
+
+        # Limit the length
+        value = value[:256]
+        self._spanWidget.write(value, push=False)
 
         def pushFunction():
-            self.spanWidget.value = value
+            self._spanWidget.value = value
             if self.guiLock.acquire(timeout=1):
                 try:
                     # Use the cached literal computed value, not what we were passed,
                     # Because it could have changed by the time we actually get to push
-                    self.spanWidget.write(self.lastValue)
+                    self._spanWidget.write(self.lastValue)
                 finally:
                     self.guiLock.release()
         # Should there already be a function queued for this exact reason, we just let
@@ -2083,19 +2121,50 @@ class _StringTagPoint(_TagPoint):
             finally:
                 self.guiLock.release()
 
+    @property
+    def spanWidget(self):
+        if not self.lock.acquire(timeout=5):
+            raise RuntimeError("Error getting lock")
+        try:
+            if self._spanWidget:
+                x = self._spanWidget
+
+                def f(v, t, a):
+                    self._debugAdminPush(v, t, a)
+                self.subscribe(f)
+                x.updateSubscriber = f
+
+                if x:
+                    self._debugAdminPush(self.value, None, None)
+                    # Put if back if the function tried to GC it.
+                    self._spanWidget = x
+                    return self._spanWidget
+
+            self._spanWidget = widgets.DynamicSpan()
+
+            self._spanWidget.setPermissions(
+                ['/users/tagpoints.view'], ['/users/tagpoints.edit'])
+            # Try to immediately put the correct data in the gui
+            if self.guiLock.acquire():
+                try:
+                    # Note: this in-thread write could be slow
+                    self._spanWidget.write(self.lastValue)
+                finally:
+                    self.guiLock.release()
+            return self._spanWidget
+        finally:
+            self.lock.release()
+
 
 class _ObjectTagPoint(_TagPoint):
     defaultData = {}
     type = 'object'
     @typechecked
     def __init__(self, name: str):
-        self.spanWidget = widgets.DynamicSpan()
-        self.spanWidget.setPermissions(
-            ['/users/tagpoints.view'], ['/users/tagpoints.edit'])
         self.guiLock = threading.Lock()
 
         self.validate = None
-
+        self._spanWidget = None
         _TagPoint.__init__(self, name)
 
     def processValue(self, value):
@@ -2118,20 +2187,35 @@ class _ObjectTagPoint(_TagPoint):
 
         return v
 
-    def _debugAdminPush(self, value):
+    def _debugAdminPush(self, value, timestamp, annotation):
         # Immediate write, don't push yet, do that in a thread because TCP can block
+
+        if not self._spanWidget:
+            if not self.lock.acquire(timeout=5):
+                raise RuntimeError("Error getting lock")
+            self._spanWidget = None
+            self.lock.release()
+            return
+
+        if not self._spanWidget.stillActive():
+            if not self.lock.acquire(timeout=5):
+                raise RuntimeError("Error getting lock")
+            self._spanWidget = None
+            self.lock.release()
+            return
+
         value = json.dumps(value)
         # Limit the length
         value = value[:256]
-        self.spanWidget.write(value, push=False)
+        self._spanWidget.write(value, push=False)
 
         def pushFunction():
-            self.spanWidget.value = value
+            self._spanWidget.value = value
             if self.guiLock.acquire(timeout=1):
                 try:
                     # Use the cached literal computed value, not what we were passed,
                     # Because it could have changed by the time we actually get to push
-                    self.spanWidget.write(json.dumps(self.lastValue))
+                    self._spanWidget.write(json.dumps(self.lastValue))
                 finally:
                     self.guiLock.release()
         # Should there already be a function queued for this exact reason, we just let
@@ -2141,6 +2225,39 @@ class _ObjectTagPoint(_TagPoint):
                 workers.do(pushFunction)
             finally:
                 self.guiLock.release()
+
+    @property
+    def spanWidget(self):
+        if not self.lock.acquire(timeout=5):
+            raise RuntimeError("Error getting lock")
+        try:
+            if self._spanWidget:
+                x = self._spanWidget
+                def f(v,t,a):
+                    self._debugAdminPush(v,t,a)
+                self.subscribe(f)
+                x.updateSubscriber =f
+                if x:
+                    self._debugAdminPush(self.value,None,None)
+                    # Put if back if the function tried to GC it.
+                    self._spanWidget = x
+                    return self._spanWidget
+
+            self._spanWidget = widgets.DynamicSpan()
+
+            self._spanWidget.setPermissions(
+                ['/users/tagpoints.view'], ['/users/tagpoints.edit'])
+            # Try to immediately put the correct data in the gui
+            if self.guiLock.acquire():
+                try:
+                    # Note: this in-thread write could be slow
+                    self._spanWidget.write(self.lastValue)
+                finally:
+                    self.guiLock.release()
+            return self._spanWidget
+        finally:
+            self.lock.release()
+
 
 
 class Claim():

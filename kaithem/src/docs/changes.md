@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+
+### 0.65.46
+- /sky/night tag is 1 when it is currently nighttime at the configured server location.
+- /sky/civilTwilight is 1 when it is currently dark at the configured server location
+- /system/network/publicIP gets your IP from a public API.  As with all getter-based tags, the request only happens on-demand or if there are tag subscribers.
+
 ### 0.65.46
 - Better Mako error formatting
 - Tag logging bugfixes

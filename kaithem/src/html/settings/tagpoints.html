@@ -74,7 +74,7 @@ Page:
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._NumericTagPoint):
 <tr>
     <td><a href="/tagpoints/${i|u}">${i|h}</a></td>
-    <td>${tagpoints.allTagsAtomic[i]().value} <span style="color: grey">${tagpoints.allTagsAtomic[i]().unit}</span></td>
+    <td>${tagpoints.allTagsAtomic[i]().lastValue} <span style="color: grey">${tagpoints.allTagsAtomic[i]().unit} ${"(see page for newest data)" if tagpoints.allTagsAtomic[i]().isDynamic() else ''}</span></td>
     <td>${tagpoints.allTagsAtomic[i]().interval}</td>
     <td>${tagpoints.allTagsAtomic[i]().activeClaim[2]}</td>
     <td>${tagpoints.allTagsAtomic[i]().owner}</td>
@@ -86,7 +86,7 @@ Page:
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._StringTagPoint):
 <tr>
     <td><a href="/tagpoints/${i|u}">${i|h}</h></td>
-    <td>${tagpoints.allTagsAtomic[i]().spanWidget.render()}</td>
+    <td>${tagpoints.allTagsAtomic[i]().lastValue} <span style="color: grey">${"(see page for newest data)" if tagpoints.allTagsAtomic[i]().isDynamic() else ''}</span></td>
     <td>${tagpoints.allTagsAtomic[i]().interval}</td>
     <td>${tagpoints.allTagsAtomic[i]().activeClaim[2]}</td>
     <td>${tagpoints.allTagsAtomic[i]().owner}</td>
@@ -97,7 +97,7 @@ Page:
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._ObjectTagPoint):
 <tr>
     <td><a href="/tagpoints/${i|u}">${i|h}</h></td>
-    <td>${tagpoints.allTagsAtomic[i]().spanWidget.render()}</td>
+    <td>${tagpoints.allTagsAtomic[i]().lastValue} <span style="color: grey">${"(see page for newest data)" if tagpoints.allTagsAtomic[i]().isDynamic() else ''}</span></td>
     <td>${tagpoints.allTagsAtomic[i]().interval}</td>
     <td>${tagpoints.allTagsAtomic[i]().activeClaim[2]}</td>
     <td>${tagpoints.allTagsAtomic[i]().owner}</td>
