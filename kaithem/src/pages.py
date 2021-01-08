@@ -262,8 +262,9 @@ def getAcessingUser():
             if not cherrypy.request.scheme == 'https':
                 # Basic auth over http is not secure at all, so we raise an error if we catch it.
                 x = cherrypy.request.remote.ip
-                if not x.startswith == "::1" or x.startswith("127.") or x.startswith("200::") or x.startswith("300::")
-                    raise cherrypy.HTTPRedirect("/errors/gosecure")            # Get token using username and password
+                if not x.startswith == "::1" or x.startswith("127.") or x.startswith("200::") or x.startswith("300::"):
+                    raise cherrypy.HTTPRedirect("/errors/gosecure")            
+            # Get token using username and password
             t = userLogin(b[0], b[1])
             # Check the credentials of that token
             try:

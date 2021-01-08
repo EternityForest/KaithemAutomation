@@ -124,6 +124,7 @@ class LoginScreen():
             # This auth cookie REALLY does not belong anywhere near an unsecured connection.
             # For some reason, empty strings seem to mean "Don't put this attribute in.
             # Always test, folks!
+            cherrypy.response.cookie['auth']['SameSite'] = 'Strict'
             cherrypy.response.cookie['auth']['secure'] = ' '
             cherrypy.response.cookie['auth']['httponly'] = ' '
             # tokens are good for 90 days

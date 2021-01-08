@@ -575,8 +575,9 @@ def removeGroupPermission(group, permission):
 # up the tokens by hashing them, not by actually looking them up.
 # The attacker has no information about the token hashes or the token secret,
 # so it should be safe to compare them and look them in dicts.
-# due to them being completely secret
-# and random
+# due to them being completely secret and random.
+
+# You don't get useful information from timing attacks because the remote node doesn't know the tokenHashSecret
 
 # TODO: Someone who knows more about crypto should look this over.
 
