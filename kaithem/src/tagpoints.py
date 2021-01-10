@@ -692,6 +692,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
         self.dataSourceWidget = None
 
+        self.description = ''
         # True if there is already a copy of the deadlock diagnostics running
         self.testingForDeadlock = False
 

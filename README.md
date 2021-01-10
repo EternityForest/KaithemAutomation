@@ -63,6 +63,13 @@ $run YOUR_KAITHEM_PY_FILE
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+### 0.65.47
+- /sky/night tag is 1 when it is currently nighttime at the configured server location.
+- /sky/civilTwilight is 1 when it is currently dark at the configured server location
+- /system/network/publicIP gets your IP from a public API, or is blank with no connection.  As with all getter-based tags, the request only happens on-demand or if there are tag subscribers.
+- More graceful handling if JACK fails to start
+
+
 ### 0.65.46
 - Better Mako error formatting
 - Tag logging bugfixes

@@ -1173,7 +1173,7 @@ def _startJackProcess(p=None, n=None,logErrs=True):
             global midip
             #Poll till it's actually started, then post the message
             for i in range(120):
-                if getPorts():
+                if getPorts(maxWait=0.5):
                     break
                 time.sleep(0.5)
             messagebus.postMessage("/system/jack/started",{})
@@ -1888,10 +1888,10 @@ def getPortsListCache():
     return portsList
 
 portsCacheTime = 0
-def getPorts(*a,**k):
+def getPorts(*a,maxWait=10,**k):
     global portsList
 
-    if lock.acquire(timeout=10):
+    if lock.acquire(timeout=maxWait):
         try:
             if not _jackclient:
                 return []

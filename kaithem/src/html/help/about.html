@@ -256,7 +256,14 @@ lanip =get_lan_ip()
         </tr>
         <tr>
             <td>Thread pool latency</td>
-            <td>${round(scullery.workers.testLatency(),3)}</td>
+            <td>
+                %try:
+                ${round(scullery.workers.testLatency()*1000,3)}ms
+                %except Exception as e:
+                ${e|h}
+                %endtry
+            
+            </td>
         </tr>
         <tr>
             <td>Uncollectable garbage cycles</td>
