@@ -2,6 +2,9 @@ Change Log
 ----------
 
 
+### 0.65.48
+- Tag point logs sorted correctly
+
 ### 0.65.47
 - /sky/night tag is 1 when it is currently nighttime at the configured server location.
 - /sky/civilTwilight is 1 when it is currently dark at the configured server location

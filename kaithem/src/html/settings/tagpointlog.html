@@ -15,7 +15,7 @@ def combineLogs(a):
 
     for i in a:
         for j in a[i]:
-            op.append((unitsofmeasure.strftime(j[0]),i,j[1]))
+            op.append((j[0],unitsofmeasure.strftime(j[0]),i,j[1]))
     
     return sorted(op)
     
@@ -119,13 +119,13 @@ def combineLogs(a):
     %if isinstance(tag,tagpoints._NumericTagPoint):
         %for i in combineLogs({i.accumType:i.getRecent(logtime, time.time(), 1000) for i in tag.configLoggers}):
         <tr>
-            <td>${i[0]}</td>
             <td>${i[1]}</td>
-
-            %if i[2]>tag.hi or i[2]<tag.lo:
-            <td><span class="error">${i[2]}</span></td>
-            %else:
             <td>${i[2]}</td>
+
+            %if i[3]>tag.hi or i[3]<tag.lo:
+            <td><span class="error">${i[3]}</span></td>
+            %else:
+            <td>${i[3]}</td>
             %endif
 
         </tr>
@@ -133,9 +133,9 @@ def combineLogs(a):
     %else:
         %for i in combineLogs({i.accumType:i.getRecent(logtime, time.time(), 1000) for i in tag.configLoggers}):
         <tr>
-            <td>${i[0]}</td>
             <td>${i[1]}</td>
-            <td>${i[2][:128]}</td>
+            <td>${i[2]}</td>
+            <td>${i[3][:128]}</td>
         </tr>
         %endfor
     %endif
