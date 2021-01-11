@@ -1,6 +1,8 @@
 Change Log
 ----------
 
+### 0.65.49
+- Fix HTTP localhost access when used with IPv6 ::1
 
 ### 0.65.48
 - Tag point logs sorted correctly

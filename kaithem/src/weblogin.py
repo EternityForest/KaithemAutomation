@@ -70,7 +70,7 @@ class LoginScreen():
     def index(self, **kwargs):
         if not cherrypy.request.scheme == 'https':
             x = cherrypy.request.remote.ip
-            if not x.startswith == "::1" or x.startswith("127.") or x.startswith("200::") or x.startswith("300::"):
+            if not x.startswith("::1") or x.startswith("127.") or x.startswith("200::") or x.startswith("300::"):
                 raise cherrypy.HTTPRedirect("/errors/gosecure")
         return pages.get_template("login.html").render(target=kwargs.get("go", "/"))
 
@@ -99,7 +99,7 @@ class LoginScreen():
 
         if not cherrypy.request.scheme == 'https':
             x = cherrypy.request.remote.ip
-            if not x.startswith == "::1" or x.startswith("127.") or x.startswith("200::") or x.startswith("300::"):
+            if not x.startswith("::1") or x.startswith("127.") or x.startswith("200::") or x.startswith("300::"):
                 raise cherrypy.HTTPRedirect("/errors/gosecure")
         # Insert a delay that has a random component of up to 256us that is derived from the username
         # and password, to prevent anyone from being able to average it out, as it is the same per
@@ -124,7 +124,10 @@ class LoginScreen():
             # This auth cookie REALLY does not belong anywhere near an unsecured connection.
             # For some reason, empty strings seem to mean "Don't put this attribute in.
             # Always test, folks!
-            cherrypy.response.cookie['auth']['SameSite'] = 'Strict'
+            try:
+                cherrypy.response.cookie['auth']['SameSite'] = 'Strict'
+            except Exception:
+                logging.exception("Cannot set samesite strict")
             cherrypy.response.cookie['auth']['secure'] = ' '
             cherrypy.response.cookie['auth']['httponly'] = ' '
             # tokens are good for 90 days
