@@ -288,6 +288,15 @@ Users with /admin/modules.edit can upload up to 4Gb file resources and
 modules. Users with /admin/settings.edit can upload up to 4Gb files in
 the file manager
 
+
+"Secure" things are only possible over an HTTPS connection, and blocked on HTTP,specifically,
+anything \_\_guest\_\_ cannot do.
+
+We also assume anything on localhost is a secure connection equivalent to HTTPS.
+Don't build some bizzare proxy setup that breaks that assumption.
+
+For easy remote access without domain names, look at HardlineP2P.
+
 Devices
 -------
 

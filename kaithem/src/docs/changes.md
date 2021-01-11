@@ -3,6 +3,8 @@ Change Log
 
 ### 0.65.49
 - Fix HTTP localhost access when used with IPv6 ::1
+- Fix auto-redirect that would sometimes take you to the wrong page after login
+- Fix auth cookies not working on localhost(Note: We assume all localhost connections are secure. Don't build a some weird proxy that breaks that assumption.)
 
 ### 0.65.48
 - Tag point logs sorted correctly

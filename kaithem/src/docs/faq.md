@@ -380,6 +380,9 @@ exists. All other pages may only be acessed over HTTPS. use the
 'http-port' and 'http-thread-pool' options to change the number of
 threads assigned and the port used for unsecure access.
 
+We also assume anything on localhost is a secure connection equivalent to HTTPS.
+Don't build some bizzare proxy setup that breaks that assumption.
+
 ### How can I change the port in which kaithem serves?
 
 Kaithem normally serves on two different ports, one for HTTP(plaintext)

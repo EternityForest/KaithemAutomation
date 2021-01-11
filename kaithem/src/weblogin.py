@@ -18,6 +18,7 @@ import time
 import collections
 import threading
 import logging
+import base64
 from . import pages, auth, util, messagebus
 
 
@@ -128,7 +129,13 @@ class LoginScreen():
                 cherrypy.response.cookie['auth']['SameSite'] = 'Strict'
             except Exception:
                 logging.exception("Cannot set samesite strict")
-            cherrypy.response.cookie['auth']['secure'] = ' '
+
+            #Over localhost, we can assume the connection is secure, and also that there can be no equivalent insecure connection,
+            #Even if the browser thinks localhost is insecure for cookie purposes, for some reason.
+            #This will not be secure if someone puts it behind an insecure a proxy that allows HTTP also/s
+            ip = cherrypy.request.remote.ip
+            if not ip.startswith("::1") or ip.startswith("127.") or ip.startswith("200::") or ip.startswith("300::"):
+                cherrypy.response.cookie['auth']['secure'] = ' '
             cherrypy.response.cookie['auth']['httponly'] = ' '
             # tokens are good for 90 days
             cherrypy.response.cookie['auth']['expires'] = 24*60*60*90
@@ -142,8 +149,13 @@ class LoginScreen():
 
             messagebus.postMessage(
                 "/system/auth/login", [kwargs['username'], cherrypy.request.remote.ip])
-            if not "/errors/loginerror" in util.unurl(kwargs['go']):
-                raise cherrypy.HTTPRedirect(util.unurl(kwargs['go']))
+            
+            if 'maxgotime' in kwargs:
+                if time.time() > float(kwargs['maxgotime']):
+                    raise cherrypy.HTTPRedirect("/")
+
+            if not "/errors/loginerror" in base64.b64decode(kwargs['go']).decode():
+                raise cherrypy.HTTPRedirect(base64.b64decode(kwargs['go']).decode())
             else:
                 raise cherrypy.HTTPRedirect("/")
         else:

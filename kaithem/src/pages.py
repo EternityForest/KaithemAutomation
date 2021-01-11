@@ -151,7 +151,7 @@ def canOverrideSecurity():
                 return True
             else:
                 raise RuntimeError(
-                    "Nosecurity 1 enabled, but got request from ext IP:"+str(cherrypy.request.remote.ip))
+                    "Nosecurity 1 enabled, but got request from ext IP:" + str(cherrypy.request.remote.ip))
                 return False
 
         if noSecurityMode == 2:
@@ -213,10 +213,13 @@ def require(permission, noautoreturn=False):
                 noautoreturn = True
             # Default to taking them to the main page.
             if noautoreturn:
-                url = util.url("/")
+                url = "/"
             else:
-                url = util.url(cherrypy.url())
-            raise cherrypy.HTTPRedirect("/login?go="+url)
+                url = cherrypy.url()
+            # User has 5 minutes to log in.  Any more time than that and it takes him back to the main page.  This is so it can't auto redirect
+            # To something you forgot about and no longer want.
+            raise cherrypy.HTTPRedirect("/login?go=" + base64.b64encode(
+                url.encode()).decode() + "&maxgotime-" + str(time.time() + 300))
 
         if not auth.canUserDoThis(user, permission):
             raise cherrypy.HTTPRedirect("/errors/permissionerror?")
@@ -263,7 +266,7 @@ def getAcessingUser():
                 # Basic auth over http is not secure at all, so we raise an error if we catch it.
                 x = cherrypy.request.remote.ip
                 if not x.startswith("::1") or x.startswith("127.") or x.startswith("200::") or x.startswith("300::"):
-                    raise cherrypy.HTTPRedirect("/errors/gosecure")            
+                    raise cherrypy.HTTPRedirect("/errors/gosecure")
             # Get token using username and password
             t = userLogin(b[0], b[1])
             # Check the credentials of that token
