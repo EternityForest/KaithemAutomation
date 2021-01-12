@@ -18,6 +18,14 @@
 import logging
 import traceback
 import threading
+import http.cookies
+
+
+# Python 3.7 doesn't support the samesite attribute, which we need.
+try:
+    http.cookies.Morsel._reserved['samesite'] = 'SameSite'
+except:
+    logging.exception("Samesite enable monkeypatch did not work. It is probably no longer needed on newer pythons, ignore this message")
 
 threadlogger = logging.getLogger("system.threading")
 

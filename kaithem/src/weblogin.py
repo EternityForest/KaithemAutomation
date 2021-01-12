@@ -71,7 +71,7 @@ class LoginScreen():
     def index(self, **kwargs):
         if not cherrypy.request.scheme == 'https':
             x = cherrypy.request.remote.ip
-            if not x.startswith("::1") or x.startswith("127.") or x.startswith("200::") or x.startswith("300::"):
+            if not x.startswith("::1") or x.startswith("127."):
                 raise cherrypy.HTTPRedirect("/errors/gosecure")
         return pages.get_template("login.html").render(target=kwargs.get("go", "/"))
 
@@ -100,7 +100,7 @@ class LoginScreen():
 
         if not cherrypy.request.scheme == 'https':
             x = cherrypy.request.remote.ip
-            if not x.startswith("::1") or x.startswith("127.") or x.startswith("200::") or x.startswith("300::"):
+            if not x.startswith("::1") or x.startswith("127."):
                 raise cherrypy.HTTPRedirect("/errors/gosecure")
         # Insert a delay that has a random component of up to 256us that is derived from the username
         # and password, to prevent anyone from being able to average it out, as it is the same per
@@ -134,7 +134,7 @@ class LoginScreen():
             #Even if the browser thinks localhost is insecure for cookie purposes, for some reason.
             #This will not be secure if someone puts it behind an insecure a proxy that allows HTTP also/s
             ip = cherrypy.request.remote.ip
-            if not ip.startswith("::1") or ip.startswith("127.") or ip.startswith("200::") or ip.startswith("300::"):
+            if not ip.startswith("::1") or ip.startswith("127."):
                 cherrypy.response.cookie['auth']['secure'] = ' '
             cherrypy.response.cookie['auth']['httponly'] = ' '
             # tokens are good for 90 days

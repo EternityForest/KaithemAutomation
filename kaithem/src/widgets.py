@@ -105,7 +105,8 @@ class WebInterface():
         if not config['enable-websockets']:
             raise RuntimeError("Websockets disabled in server config")
         handler = cherrypy.request.ws_handler
-        if cherrypy.request.scheme == 'https':
+        x = cherrypy.request.remote.ip
+        if cherrypy.request.scheme == 'https' or x.startswith("::1") or x.startswith("127."):
             handler.user = pages.getAcessingUser()
             handler.cookie = cherrypy.request.cookie
         else:

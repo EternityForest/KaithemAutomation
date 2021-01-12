@@ -96,3 +96,19 @@ def testTags():
     c.release()
     if not t.value=="5":
         raise RuntimeError("Lower priority tag not taking over when higher priority released")
+
+
+    x =[]
+
+    def f(v,t,a):
+        c.append(v)
+
+    t1 = tagpoints.Tag("/system/selftest")
+    
+    t2= tagpoints.Tag("=tv('/system/selftest') + 7")
+    t.subscribe(f)
+
+    c3 = t1.claim(1,"testClaim3", 80)
+    if not t2.value == 1+7:
+        raise RuntimeError("Subscriber to expression tag did not trigger when dependancy updated")
+

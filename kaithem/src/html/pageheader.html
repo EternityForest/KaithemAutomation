@@ -1,7 +1,7 @@
 <%!
 from src.config import config
 from src import auth,util,notifications,pages,modules,registry,theming,devices,persist
-import cherrypy,socket
+import cherrypy,socket,base64
 %>
 
 <!DOCTYPE html>
@@ -145,14 +145,15 @@ import cherrypy,socket
         <div style="flex-grow: 0.05;" ><a class="loginlink" href="/login/logout">Logout(${pages.getAcessingUser()[:10]|h})</a></div>
 
         %else:
-        <div style="flex-grow: 0.05;"><a class="loginlink" href="/login?go=${util.url(cherrypy.url())}">Login</a></div>
+        <div style="flex-grow: 0.05;"><a class="loginlink" href="/login?go=${base64.b64encode(cherrypy.url().encode()).decode()}">Login</a></div>
         %endif
+
 
         %else:
-        <div style="flex-grow: 0.05;"><a class="loginlink" href="/login?go=${util.url(cherrypy.url())}">Login</a></div>
+        <div style="flex-grow: 0.05;"><a class="loginlink" href="/login?go=${base64.b64encode(cherrypy.url().encode()).decode()}">Login</a></div>
         %endif
 
-
+  
   
         
 

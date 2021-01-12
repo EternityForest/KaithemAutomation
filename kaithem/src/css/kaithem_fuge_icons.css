@@ -38,6 +38,11 @@ a.loginlink::before
  content: url(/static/img/icons/silk/key.png);
 }
 
+p.help::before
+{
+ content: url(/zipstatic/img/icons/fugue.zip/question.png);
+}
+
 /* These spans are mostly just used to put things before*/
 span.page-icon::before
 {

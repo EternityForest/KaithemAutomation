@@ -159,16 +159,21 @@ def combineLogs(a):
     to disk.  The important thing to know about tag points is that they have two configurations: runtime and configured.
 
     Runtime is set directly in code, but can be overridden on a per-setting basis bu configuration set through the web UI.
-</p>
+    When you remove a configured alarm or logger, it goes away, and returns to the config set in code, if any.
+</br>
 
-<p class="help">
     Changing the default value will only take effect if the tag's value has never been set any other way(data timestamp==0)
-</p>
+</br>
 
-<p class="help"><b>Tags dissapear if there are neither any references in code, nor any config vals set!</b></p>
+<b>Tags dissapear if there are neither any references in code, nor any config vals set!</b></p>
 <form method="POST" action="/tagpoints/${normalizednormalizedTagName|u}">
 
 <h3>Override/Fixed Value</h3>
+<p class="help">
+    You can use an =expression as the value to create a dynamic getter.  The expression polls at the tag's interval if there are any subscribers, just like any other getter.
+    if you use tv('tagName') or stv('stringTagName') in your expression, it will also re-evaluate when any of the tags you use change.  As with alarms,
+    you have access to kaithem, random, math, and numpy, plus dateutil and dateutil.parser.
+</br>
 <table border="1">
     <tr>
         <td>Claim Name</td>
@@ -312,11 +317,20 @@ ${tag.description}
 <tr>
     <td><a href="/tagpoints/${normalizednormalizedTagName|u}">${normalizednormalizedTagName|h}</h></td>
     <td>
+        <%
+            # pre-set the configured type, if we got to this page by clicking the new tag button to make a specific type.
+            configType= configData.get('type','')
+
+            if new_strtag:
+                configType='string'
+            if new_numtag:
+                configType='number'
+        %>
         <select name="type">
-            <option value="" ${'selected' if configData.get('type','')=='' else ''}>No setting/Create in code </option>
-            <option value="string" ${'selected' if configData.get('type','')=='string' else ''}>String</option>
-            <option value="number" ${'selected' if configData.get('type','')=='number' else ''}>Number</option>
-            <option value="object" ${'selected' if configData.get('type','')=='object' else ''}>Object</option>
+            <option value="" ${'selected' if configType=='' else ''}>No setting/Create in code </option>
+            <option value="string" ${'selected' if configType=='string' else ''}>String</option>
+            <option value="number" ${'selected' if configType=='number' else ''}>Number</option>
+            <option value="object" ${'selected' if configType=='object' else ''}>Object</option>
         </select>
 
     </td>
@@ -385,7 +399,12 @@ ${tag.description}
 
 <p>You cannot delete hardcoded alarms, but you can disable by setting the condition to False or 0</p>
 
-<p>You can also use tv('name') to get any numeric tag value by name inside your expressions.</p>
+<p>You can also use tv('name') to get any numeric tag value by name inside your expressions, stv('name') to get string tags, and np to access numpy. You also have
+    math, random, re, and dateutil.parser.
+</p>
+
+<p>Kaithem tracks the tags you use in this way, and the alarms will re-evaluate when needed.</p>
+
 </div>
 
 <table border=1>
@@ -439,10 +458,10 @@ ${tag.description}
 </table>
 
 <h3>Loggers</h3>
-<p class="help">These loggers control the logging of tag data to history.db</p>
-<p class="help">Interval is the maximum rate to log at. No logs are created if there are no changes. Tags that change more often than the interval will always 'flush' the most recent value after sufficient time.</p>
-<p class="help">Accumulate determines what happens to multiple readings within an interval.  To store the latest, use latest. To store the mean for the whole interval, use average./</p>
-<p class="help">Set the interval to 0 to delete the logger. Set history length to 0 to disable deleting old data.</p>
+<p class="help">These loggers control the logging of tag data to history.db</br>
+Interval is the maximum rate to log at. No logs are created if there are no changes. Tags that change more often than the interval will always 'flush' the most recent value after sufficient time.</br>
+Accumulate determines what happens to multiple readings within an interval.  To store the latest, use latest. To store the mean for the whole interval, use average.</br>
+Set the interval to 0 to delete the logger. Set history length to 0 to disable deleting old data.</p>
 
 
 <table border=1>
@@ -520,7 +539,7 @@ ${tag.description}
 <dl>
 %for i in gc.get_referrers(obj):
 %if not( isinstance(i,dict) and 'UNDEFINED' in i):
-<dt><a href="">${id(i)}</a></dt
+<dt><b>${id(i)}</b></dt
     >
 <dd
 >${util.saferepr(i)|h}
