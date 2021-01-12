@@ -1,6 +1,9 @@
 Change Log
 ----------
 
+### 0.65.50
+- /sky/civilTwilight tag fixed
+
 ### 0.65.49
 - Fix HTTP localhost access when used with IPv6 ::1
 - Fix auto-redirect that would sometimes take you to the wrong page after login

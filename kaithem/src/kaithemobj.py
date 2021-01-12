@@ -368,17 +368,6 @@ class Kaithem():
             return (sky.isLight(lat, lon))
 
         @staticmethod
-        def isDark(lat=None, lon=None):
-            if lat == None:
-                if lon == None:
-                    lat = registry.get("system/location/lat", None)
-                    lon = registry.get("system/location/lon", None)
-                if lat == None or lon == None:
-                    raise RuntimeError(
-                        "No server location set, fix this in system settings")
-            return (sky.isDark(lat, lon))
-
-        @staticmethod
         def moonPhase():
             return sky.moon()
 

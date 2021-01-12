@@ -1,10 +1,11 @@
 
 from src import kaithemobj, tagpoints
+import traceback
 
 
 def civilTwilight():
     try:
-        if kaithemobj.kaithem.isDark():
+        if kaithemobj.kaithem.time.isDark():
             return 1
         else:
             return 0
@@ -22,7 +23,7 @@ twilightTag.value = civilTwilight
 
 def night():
     try:
-        if kaithemobj.kaithem.isNight():
+        if kaithemobj.kaithem.time.isNight():
             return 1
         else:
             return 0
