@@ -64,6 +64,14 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.49
+- Fix HTTP localhost access when used with IPv6 ::1
+- Fix auto-redirect that would sometimes take you to the wrong page after login
+- Fix auth cookies not working on localhost(Note: We assume all localhost connections are secure. Don't build a some weird proxy that breaks that assumption.)
+- Secure widgets now work correctly via localhost
+- Configuring tag point intervals now takes effect immediately
+- You can now use an =expression as a tag point fixed config overrride.
+- General refactoring and reliability for Tagpoints
 
 ### 0.65.48
 - Tag point logs sorted correctly
