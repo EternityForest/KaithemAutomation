@@ -734,7 +734,8 @@ def resourceEditPage(module, resource, version='default', kwargs=None):
             if not "preview" in kwargs:
                 d = devices.remote_devices.get(
                     resourceinquestion['device'], None)
-                p = devices.loadedSquirrelPrograms.get(
+                import pavilliondevices
+                p = pavilliondevices.loadedSquirrelPrograms.get(
                     (module, resource), None)
                 return pages.get_template("modules/remoteprograms/sqprog.html").render(
                     module=module,
@@ -745,7 +746,7 @@ def resourceEditPage(module, resource, version='default', kwargs=None):
                     errs=p.errors if p else None
                 )
             d = devices.remote_devices.get(resourceinquestion['device'], None)
-            p = devices.loadedSquirrelPrograms.get((module, resource), None)
+            p = pavilliondevices.loadedSquirrelPrograms.get((module, resource), None)
             return pages.get_template("modules/remoteprograms/sqprogprev.html").render(
                 code=p.getPreprocessedCode(
                     kwargs['code'], True if kwargs['preview'] == '2' else False),
