@@ -251,13 +251,45 @@ ${tag.description}
     %endif
 </table>
 
+
+<h3>Value</h3>
+<p class="help">
+    The default value affects tags immediately when created, when they have never been set by anything else.
+    Changes will not take effect immediately if the tag has already been set.
+    Default values cannot be =expressions.
+</p>
+<table border="1">
+    <tr>
+        <th>Default</th>
+        <th>Current</th>
+    </tr>
+    <tr>
+
+<td><input name="value" value="${configData.get('value','')}"></td>
+
+%if tag and isinstance(tag,tagpoints._NumericTagPoint):
+    %try:
+    <td>${tag.meterWidget.render()}</td>
+    %except Exception as e:
+    ${e|h}</td>
+    %endtry
+%endif
+
+%if tag and isinstance(tag,(tagpoints._StringTagPoint, tagpoints._ObjectTagPoint)):
+    <td>${tag.spanWidget.render()}</td>
+%endif
+
+%if tag==None:
+<td>DELETED</td>
+%endif
+</tr>
+</table>
+
 <h3>Basic Config</h3>
 <p class="help">If you do not configure a type, the tag will not exist until requested via code.</p>
 <table border="1">
 <tr>
-    <th>Name</th>
     <th>Type/Create As</th>
-    <th>Value</th>
     <th>Interval</th>
     <th>Min</th>
     <th>Max</th>
@@ -269,15 +301,7 @@ ${tag.description}
 
 %if tag and isinstance(tag,tagpoints._NumericTagPoint):
 <tr>
-    <td><a href="/tagpoints/${normalizednormalizedTagName|u}">${normalizednormalizedTagName|h}</a></td>
     <td>${tag.type|h}</td>
-    %try:
-    <td>${tag.meterWidget.render()}</td>
-    %except Exception as e:
-    ${e|h}</td>
-    %endtry
-
-
     <td>${tag.interval}</td>
     <td>${tag.min}</td>
     <td>${tag.max}</td>
@@ -289,9 +313,7 @@ ${tag.description}
 
 %if tag and isinstance(tag,(tagpoints._StringTagPoint, tagpoints._ObjectTagPoint)):
 <tr>
-    <td><a href="/tagpoints/${normalizednormalizedTagName|u}">${normalizednormalizedTagName|h}</h></td>
     <td>${tag.type}</td>
-    <td>${tag.spanWidget.render()}</td>
     <td>${tag.interval}</td>
     <td>${tag.min}</td>
     <td>${tag.max}</td>
@@ -303,7 +325,6 @@ ${tag.description}
 
 %if tag==None:
 <tr>
-    <td>${normalizednormalizedTagName|h}</td>
     <td>DELETED</td>
     <td>DELETED</td>
     <td>DELETED</td>
@@ -315,7 +336,6 @@ ${tag.description}
 %endif
 <tr><th>Configured Values(Leave blank for default)</th></tr>
 <tr>
-    <td><a href="/tagpoints/${normalizednormalizedTagName|u}">${normalizednormalizedTagName|h}</h></td>
     <td>
         <%
             # pre-set the configured type, if we got to this page by clicking the new tag button to make a specific type.
@@ -334,7 +354,6 @@ ${tag.description}
         </select>
 
     </td>
-    <td><input name="value" value="${configData.get('value','')}"></td</td>
     <td><input name="interval" value="${configData.get('interval','')}" style="width:6em"></td>
     <td><input name="min" value="${configData.get('min','')}" style="width:6em"></td>
     <td><input name="max" value="${configData.get('max','')}" style="width:6em"></td>
@@ -371,25 +390,26 @@ ${tag.description}
 <table border="1" style="max-width: 30em;">
     <tr>
         <td>Read Permissions</td>
-    </tr>
+    
     <td>
         <input name="readPerms" value="${configData.get('permissions',['','',''])[0] |h}" placeholder="${tag.getEffectivePermissions()[0]|h}" style="width:24em">
     </td>
+    </tr>
 
     <tr>
         <td>Write Permissions(comma separated, empty for admin-only)</td>
-    </tr>
+    
     <td>
         <input name="writePerms" value="${configData.get('permissions',['','',''])[1]|h}" placeholder="${tag.getEffectivePermissions()[1]|h}" style="width:24em">
     </td>
-
+</tr>
     <tr>
         <td>Priority of claims set by the API</td>
-    </tr>
+   
     <td>
         <input name="apiPriority" value="${configData.get('permissions',['','',''])[2]|h}" placeholder="${tag.getEffectivePermissions()[2]|h}" style="width:24em">
     </td>
-
+ </tr>
 </table>
 
 
