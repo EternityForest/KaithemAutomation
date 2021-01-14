@@ -6,6 +6,7 @@ Change Log
 - Alarms on =expression tags work properly
 - Widget IDs no longer (rarely) generate invalid characters
 - Remove some more unused code
+- Eliminate confusing content on file resource pages
 
 ### 0.65.50
 - /sky/civilTwilight tag fixed

@@ -17,14 +17,11 @@
     <th>
     Size
     </th>
-    <th>
-    Link to raw file
-    </th>
     </tr>
     
     <tr>
         <td>
-            <a href="${fileResourceAbsPaths[module,resource]|h}">${resource|h}</a>
+            ${fileResourceAbsPaths[module,resource]|h}
     </td>
     <td>
     %try:
@@ -33,9 +30,7 @@
     File not acessible or does not exist
     %endtry
    
-    <td>
-    ${fileResourceAbsPaths[module,resource]}
-    </td>
+
     </tr>
     </table>
 
