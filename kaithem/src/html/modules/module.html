@@ -16,9 +16,10 @@ def getDesc():
         return "No module description found"
 %>
 <h2>Module ${name|h}</h2>
-<p class="help">Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</p>
 <title>Module: ${name|h}</title>
 <section>
+    <p class="help">Note: Your changes are saved temporarily to RAM until either a configured autosave(Off by default), or a manual save of the server state.</p>
+
 <form action="/modules/module/${url(name)}/update" method="POST" name="user">
 MD5 Sum: <b>${getModuleHash(name)}</b></br>
 WordHash: <b>${getModuleWordHash(name)}</b></br>

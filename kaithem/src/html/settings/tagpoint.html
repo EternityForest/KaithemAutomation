@@ -152,7 +152,7 @@ def combineLogs(a):
 %>
 <title>${normalizednormalizedTagName|h}</title>
 <script src="/static/widget.js"></script>
-<h1>Tag Point: <small>${normalizednormalizedTagName}</small></h1>
+<h2>Tag Point: <small>${normalizednormalizedTagName}</small></h2>
 <div class="sectionbox">
 <p class="help">
     This page manages one tagpoint. To save configured defaults you must save the server state
@@ -168,12 +168,11 @@ def combineLogs(a):
 <b>Tags dissapear if there are neither any references in code, nor any config vals set!</b></p>
 <form method="POST" action="/tagpoints/${normalizednormalizedTagName|u}">
 
-<h3>Override/Fixed Value</h3>
-<p class="help">
+<h3>Override/Fixed Value</h3><p class="help">
     You can use an =expression as the value to create a dynamic getter.  The expression polls at the tag's interval if there are any subscribers, just like any other getter.
     if you use tv('tagName') or stv('stringTagName') in your expression, it will also re-evaluate when any of the tags you use change.  As with alarms,
     you have access to kaithem, random, math, and numpy, plus dateutil and dateutil.parser.
-</br>
+</p>
 <table border="1">
     <tr>
         <td>Claim Name</td>

@@ -22,25 +22,25 @@ using_js_editor = config['enable-js'] and auth.getUserSetting(pages.getAcessingU
 
 <title>Edit: ${util.split_escape(name,'/','\\')[-1] | h}</title>
 <h2>Editing page: ${util.split_escape(name,'/','\\')[-1] | h}</h2>
-<p class=pathnav>Path:
-<%
-temp_p = ""
-path = util.split_escape(name,"/","\\")
-%>
-<a class="button" href="/modules/module/${url(module)}#resources">${module|h}</a>
-%if path:
-%for i in path[:-1]:
-<%
-temp_p+= i+'/'
-%>\
-<a class="button" href="/modules/module/${url(module)}/resource/${url(temp_p[:-1])}#resources">${i|h}</a>
-%endfor
-%endif
-<b>${path[-1]|h}</b>
-</p>
-Page URL: <a class="gobutton" href="${usrpages.url_for_resource(module,name)}">${''+usrpages.url_for_resource(module,name)}</a>
-<section>
 
+<section style="min-width: 80%;">
+    <p class=pathnav>Path:
+        <%
+        temp_p = ""
+        path = util.split_escape(name,"/","\\")
+        %>
+        <a class="button" href="/modules/module/${url(module)}#resources">${module|h}</a>
+        %if path:
+        %for i in path[:-1]:
+        <%
+        temp_p+= i+'/'
+        %>\
+        <a class="button" href="/modules/module/${url(module)}/resource/${url(temp_p[:-1])}#resources">${i|h}</a>
+        %endfor
+        %endif
+        <b>${path[-1]|h}</b>
+        </p>
+        Page URL: <a class="gobutton" href="${usrpages.url_for_resource(module,name)}">${''+usrpages.url_for_resource(module,name)}</a>
 <form action="/modules/module/${url(module)}/updateresource/${url(name)}" method="POST"\
 %if using_js_editor:
 onsubmit="document.getElementById('box').value = editor.getValue()"\

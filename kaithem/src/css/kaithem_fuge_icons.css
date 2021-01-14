@@ -38,7 +38,7 @@ a.loginlink::before
  content: url(/static/img/icons/silk/key.png);
 }
 
-p.help::before
+p.help::before,div.help::before
 {
  content: url(/zipstatic/img/icons/fugue.zip/question.png);
 }

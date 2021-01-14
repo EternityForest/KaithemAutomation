@@ -113,10 +113,7 @@ hr {
 	height: 1px;
 }
 h1{color:#2F2418;}
-h2{margin-top:0.3em;margin-bottom: 0.3em}
-h3{margin-top:0.3em;margin-bottom: 0.3em}
-h4{margin-top:0.3em; margin-bottom: 0.3em}
-h5{margin:8px;}
+
 
 a
 	{
@@ -164,7 +161,6 @@ div.sectionbox,section{
 	padding-bottom:0.5%;
 	padding-right:1%;
 	padding-left:0.5%;
-	margin:2px;
 }
 
 /* A scrollable div */
@@ -178,9 +174,12 @@ div.scrollbox {
 	padding-bottom:0.5%;
 	padding-right:1%;
 	padding-left:0.5%;
-	margin:3px;
 }
 
+h2,h3{
+	background-color: rgba(131, 163, 128, 0.253);
+	border: 1px rgba(98, 148, 94, 0.212) solid;
+}
 
 
 button {background-color: #E6E6B8;border-radius:7px;}
@@ -208,14 +207,6 @@ textarea:disabled {background-color: #D0D0D0}
 /*This is a help paragraph usually shown at the top or a sectionbox*/
 p.help{
 background-color:rgba(255,255,25,0.1);
-border-radius:5px;
-margin-bottom:5px;
-margin-top:5px;
-border-style:solid;
-border-width:1px;
-border-radius: 7px;
-padding:3px;
-cursor:help;
 }
 
 /*This is a paragraph serving a similar funtion to the menu bars at the top of desktop application windows*/

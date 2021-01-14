@@ -54,7 +54,7 @@ ${alertsapi.render("alertapi")}
     <h2>Active/Unacknowledged Alarms</h2>
     <p class="help">Anyone who can see the main page can see all alarms, regardless of alarm-specific permssions, as alarms are not meant for private data.</p>
 
-    <div class="scrollbox sectionbox" style="max-height: 25em;height:auto;">
+    <div class="scrollbox sectionbox" style="max-height: 25em;height:auto;width:fit-content;">
         <%
         if "ackalarm" in cherrypy.request.params:
             alerts.all[cherrypy.request.params['ackalarm']].API_ack()
@@ -89,26 +89,33 @@ ${alertsapi.render("alertapi")}
         %>
 
 %for i in l:
-<div style="background-color:rgba(255,240,220,0.2);border-style:solid;display:flex;">
+<div style="background-color:rgba(255,240,220,0.2);border-style:solid;display:flex;block-size:fit-content;">
     <div style="align-self:center"><span class="${iclass.get(i.priority,'')}" style="width: 2em;"></span></div>
     <div>
-        <b><span style="background-color:${pcolor.get(i.priority,'purple')}">${i.name}</span></b><span class="grey">
-            Priority: ${i.priority}, Zone: ${i.zone},</span> State: <span
-            style="background-color:${scolor.get(i.sm.state,'black')|h}">${i.sm.state}</span><br><span class="grey">
+        <b><span style="background-color:${pcolor.get(i.priority,'purple')};font-size:120%;">${i.name}</span></b> is: <span
+        style="background-color:${scolor.get(i.sm.state,'black')|h};font-size:120%">${i.sm.state}</span><br>
+        
+        <span class="grey">
+            Priority: ${i.priority}, Zone: ${i.zone},</span> <br><span class="grey">
             Tripped at:${unitsofmeasure.strftime(i.trippedAt)}(about <b>${formatTimeInterval(time.time()-i.trippedAt,2)}
                 ago</b>)<br>
             Trip Message:<b>${i.tripMessage}</b></span>
     </div>
 
-    %if not i.sm.state=="acknowledged":
-    <div>
-        <a class="button" style="height: 80%;" href=".?ackalarm=${i.id}">ACK</a>
-    </div>
-    %endif
+
     <div style="flex-grow:99"></div>
 
     <div style="align-self: flex-end;">${i.notificationHTML()}</div>
 
+    %if not i.sm.state=="acknowledged":
+    <div style="float:right;">
+        <a class="button" style="height: 80%;" href=".?ackalarm=${i.id}">ACK</a>
+    </div>
+    %else:
+    <div style="float:right;">
+        <button style="height: 80%;" disabled>ACK</button>
+    </div>
+    %endif
 
 </div>
 %endfor
@@ -123,7 +130,7 @@ ${alertsapi.render("alertapi")}
 </div>
 
 <h2> System Notifications</h2>
-<div class="scrollbox sectionbox" style="max-height: 25em">
+<div class="scrollbox sectionbox" style="max-height: 25em; block-size: fit-content; max-width: 70em;">
     <div v-for="i in notifications.slice().reverse()" v-bind:class="getClass(i)">
         <b>{{formatTime(i[0])}}</b>
         <p>{{i[2]}}</p>
