@@ -99,6 +99,17 @@ body {
 
 /********************Basic Layout******************************/
 
+h2,h3{
+	padding-top: 20px;
+}
+
+hr{
+	padding-bottom: 20px;
+	background-color: transparent;
+}
+h2:first-of-type,h3:first-of-type{
+	padding-top: 0px;
+}
 #nav div {
 	text-align: center;
 	font-size: 16px;
@@ -158,6 +169,7 @@ p.menubar div.menubar {
 .event-trigger-edit-box {
 	background: rgb(250, 255, 244);
 }
+
 
 /* Line Numbers */
 
