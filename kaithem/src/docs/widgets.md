@@ -93,8 +93,10 @@ that you want to replace.
 
 ### Widget.onRequest(user,uuid) (Always Available)
 
-This function is automatically called when an authorized client requests
-the latest value. It must return None for unknown/no change or else a
+This function is automatically called when Kaithem needs to access the latest value, such as when
+a new subscrber subscribes and needs to immediately know.  JS Widgets can no longer explicitly make requests.
+
+It must return None for unknown/no change or else a
 JSON serializable value specific to the widget type. You only need to
 know about this function when creating custom widgets. uuid is the
 connection ID.

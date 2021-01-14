@@ -14,14 +14,12 @@
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
 import uuid
-import re
 import time
 import json
 import logging
 import copy
 import subprocess
 import os
-import weakref
 
 from . import widgets, messagebus, util, registry, tagpoints, persist, directories, alerts, workers, directories
 from . import jackmanager, gstwrapper, mixerfx
@@ -102,14 +100,14 @@ def logReport():
         if 'gstElement' in e:
             if not gstwrapper.doesElementExist(e['gstElement']):
                 log.warning(
-                    "GST element "+e['gstElement']+" not found. Some effects in the mixer will not work.")
+                    "GST element " + e['gstElement'] + " not found. Some effects in the mixer will not work.")
         if 'gstMonoElement' in e:
             if not gstwrapper.doesElementExist(e['gstMonoElement']):
-                log.warning("GST element "+e['gstMonoElement'] +
+                log.warning("GST element " + e['gstMonoElement'] +
                             " not found. Some effects in the mixer will not work.")
         if 'gstStereoElement' in e:
             if not gstwrapper.doesElementExist(e['gstStereoElement']):
-                log.warning("GST element "+e['gstStereoElement'] +
+                log.warning("GST element " + e['gstStereoElement'] +
                             " not found. Some effects in the mixer will not work.")
 
 
@@ -142,26 +140,26 @@ specialCaseParamCallbacks = {}
 # Returning true enables the default param setting action
 def beq3(e, p, v):
     if p == "2:freq":
-        e.set_property("2:bandwidth", v*0.3)
+        e.set_property("2:bandwidth", v * 0.3)
     return True
 
 
 def echo(e, p, v):
     if p == "delay":
-        e.set_property("delay", v*1000000)
+        e.set_property("delay", v * 1000000)
         return False
     return True
 
 
 def queue(e, p, v):
     if p == "min-threshold-time":
-        e.set_property("min-threshold-time", v*1000000)
+        e.set_property("min-threshold-time", v * 1000000)
         # Set to something short to clear the already buffered crap through leakage
-        e.set_property("max-size-time", v*1000000)
+        e.set_property("max-size-time", v * 1000000)
         # We should be able to depend on JACK not to let us get horribly out of sync,
         # The read rate should be exactly the write rate, so we give
         # As much buffer as you can before delay sounds worse than dropouts.
-        e.set_property("max-size-time", v*1000000 + 50*1000*1000)
+        e.set_property("max-size-time", v * 1000000 + 50 * 1000 * 1000)
 
         return False
     return True
@@ -186,7 +184,7 @@ specialCaseParamCallbacks['queue'] = queue
 
 def send(e, p, v):
     if v > -60:
-        e.set_property('volume', 10**(float(v)/20))
+        e.set_property('volume', 10**(float(v) / 20))
     else:
         e.set_property('volume', 0)
 
@@ -232,7 +230,7 @@ class FluidSynthChannel(BaseChannel):
     def __init__(self, board, name, input, output, mapToChannel=0):
         self.name = name
 
-        self.input = jackmanager.MonoAirwire(input, self.name+"-midi:*")
+        self.input = jackmanager.MonoAirwire(input, self.name + "-midi:*")
         self.output = jackmanager.airwire(self.name, output)
 
     def start(self):
@@ -241,7 +239,7 @@ class FluidSynthChannel(BaseChannel):
                                              '-a', 'jack', '-m', 'jack', "-c", "0", "-r", "0",
                                              "-o", "audio.jack.id", self.name,
                                              "-o", "audio.jack.multi", "True",
-                                             "-o", "midi.jack.id", self.name+"-midi",
+                                             "-o", "midi.jack.id", self.name + "-midi",
                                              ],
 
                                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
@@ -258,10 +256,10 @@ class Recorder(gstwrapper.Pipeline):
         self.src = self.addElement("jackaudiosrc", buffer_time=10, latency_time=10,
                                    port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name="krecorder", connect=0, slave_method=0)
         self.capsfilter = self.addElement(
-            "capsfilter", caps="audio/x-raw,channels="+str(channels))
+            "capsfilter", caps="audio/x-raw,channels=" + str(channels))
 
         filename = os.path.join(directories.vardir, "recordings", "mixer",
-                                pattern+time.strftime("%Y%b%d%a%H%M%S", time.localtime())+".ogg")
+                                pattern + time.strftime("%Y%b%d%a%H%M%S", time.localtime()) + ".ogg")
 
         if not os.path.exists(os.path.join(directories.vardir, "recordings", "mixer")):
             os.makedirs(os.path.join(
@@ -280,7 +278,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
     def __init__(self, name, board=None, channels=2, input=None, outputs=[], soundFuse=3):
         gstwrapper.Pipeline.__init__(self, name, realtime=70)
         self.board = board
-        self.levelTag = tagpoints.Tag("/jackmixer/channels/"+name+"/level")
+        self.levelTag = tagpoints.Tag("/jackmixer/channels/" + name + "/level")
         self.levelTag.min = -90
         self.levelTag.max = 3
         self.levelTag.hi = -3
@@ -292,7 +290,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         self.lastRMS = 0
         self.lastNormalVolumeLevel = time.monotonic()
         # Limit how often we can clear the alert
-        self.alertRatelimitTime = time.monotonic()+10
+        self.alertRatelimitTime = time.monotonic() + 10
         self.soundFuseSetting = soundFuse
         self.lastPushedLevel = time.monotonic()
         self.effectsById = {}
@@ -304,9 +302,9 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         self.doingFeedbackCutoff = False
 
         self.src = self.addElement("jackaudiosrc", buffer_time=10, latency_time=10,
-                                   port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=name+"_in", connect=0, slave_method=0)
+                                   port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=name + "_in", connect=0, slave_method=0)
         self.capsfilter = self.addElement(
-            "capsfilter", caps="audio/x-raw,channels="+str(channels))
+            "capsfilter", caps="audio/x-raw,channels=" + str(channels))
 
         self.input = input
         self._input = None
@@ -315,7 +313,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         self.sends = []
         self.sendAirwires = {}
 
-        self.faderTag = tagpoints.Tag("/jackmixer/channels/"+name+"/fader")
+        self.faderTag = tagpoints.Tag("/jackmixer/channels/" + name + "/fader")
         self.faderTag.subscribe(self._faderTagHandler)
         self.faderTag.max = 20
         self.faderTag.min = -60
@@ -351,12 +349,12 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
             self.addElement("audiorate")
             self.sink = self.addElement("jackaudiosink", buffer_time=10, latency_time=10, sync=False,
-                                        slave_method=0, port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=self.name+"_out", connect=0, blocksize=self.channels*128)
+                                        slave_method=0, port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name=self.name + "_out", connect=0, blocksize=self.channels * 128)
 
             # I think It doesn't like it if you start without jack
             if self.usingJack:
                 t = time.time()
-                while(time.time()-t) < 3:
+                while(time.time() - t) < 3:
                     if jackmanager.getPorts():
                         break
                 if not jackmanager.getPorts():
@@ -367,12 +365,12 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         self._outputs = []
         for i in self.outputs:
             x = jackmanager.Airwire(
-                self.name+"_out", i, forceCombining=(self.channels == 1))
+                self.name + "_out", i, forceCombining=(self.channels == 1))
             x.connect()
             self._outputs.append(x)
 
         self._input = jackmanager.Airwire(
-            self.input, self.name+"_in", forceCombining=(self.channels == 1))
+            self.input, self.name + "_in", forceCombining=(self.channels == 1))
         self._input.connect()
         for i in restore:
             for j in i[1]:
@@ -399,9 +397,9 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
     def backup(self):
         c = []
 
-        for i in jackmanager.getPorts(self.name+"_in:"):
+        for i in jackmanager.getPorts(self.name + "_in:"):
             c.append((i, jackmanager.getConnections(i)))
-        for i in jackmanager.getPorts(self.name+"_out:"):
+        for i in jackmanager.getPorts(self.name + "_out:"):
             c.append((i, jackmanager.getConnections(i)))
         return c
 
@@ -411,7 +409,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             if self._input:
                 self._input.disconnect()
             self._input = jackmanager.Airwire(
-                self.input, self.name+"_in", forceCombining=(self.channels == 1))
+                self.input, self.name + "_in", forceCombining=(self.channels == 1))
             self._input.connect()
 
     def setOutputs(self, outputs):
@@ -423,7 +421,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self._outputs = []
             for i in self.outputs:
                 x = jackmanager.Airwire(
-                    self.name+"_out", i, forceCombining=(self.channels == 1))
+                    self.name + "_out", i, forceCombining=(self.channels == 1))
                 x.connect()
                 self._outputs.append(x)
 
@@ -436,7 +434,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             if i['type'] == "fader":
                 self.fader = self.addElement("volume")
                 # We have to set it here and can't rely on the tagpoint, it only does anything on *changes*
-                self.fader.set_property('volume', 10**(float(d['fader'])/20))
+                self.fader.set_property('volume', 10**(float(d['fader']) / 20))
             # Special case this, it's made of multiple gstreamer blocks and also airwires
             elif i['type'] == "send":
                 self.addSend(i['params']['*destination']['value'],
@@ -580,7 +578,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
     def addLevelDetector(self):
         self.addElement("level", post_messages=True,
-                        peak_ttl=300*1000*1000, peak_falloff=60)
+                        peak_ttl=300 * 1000 * 1000, peak_falloff=60)
 
     def on_message(self, bus, message, userdata):
         s = message.get_structure()
@@ -589,15 +587,15 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         msgtype = s.get_name()
         if msgtype == 'level':
             if self.board:
-                l = sum([i for i in s['decay']])/len(s['decay'])
-                rms = sum([i for i in s['rms']])/len(s['rms'])
+                l = sum([i for i in s['decay']]) / len(s['decay'])
+                rms = sum([i for i in s['rms']]) / len(s['rms'])
                 self.levelTag.value = max(rms, -90)
                 self.doSoundFuse(rms)
-                if l < -45 or abs(l-self.lastLevel) < 6:
-                    if time.monotonic()-self.lastPushedLevel < 0.3:
+                if l < -45 or abs(l - self.lastLevel) < 6:
+                    if time.monotonic() - self.lastPushedLevel < 0.3:
                         return True
                 else:
-                    if time.monotonic()-self.lastPushedLevel < 0.07:
+                    if time.monotonic() - self.lastPushedLevel < 0.07:
                         return True
                 self.board.channels[self.name]['level'] = l
                 self.lastPushedLevel = time.monotonic()
@@ -607,11 +605,11 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         # Speech recognition, forward it on to the message bus.
         elif msgtype == 'pocketsphinx':
             if message.get_structure().get_value('hypothesis'):
-                messagebus.postMessage("/system/mixer/channels/"+self.name+"/stt/hypothesis",
+                messagebus.postMessage("/system/mixer/channels/" + self.name + "/stt/hypothesis",
                                        (message.get_structure().get_value('hypothesis'),))
 
             if message.get_structure().get_value('final'):
-                messagebus.postMessage("/system/mixer/channels/"+self.name+"/stt/final",
+                messagebus.postMessage("/system/mixer/channels/" + self.name + "/stt/final",
                                        (message.get_structure().get_value('hypothesis'), message.get_structure().get_value('confidence')))
 
         return True
@@ -621,10 +619,10 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         # Don't count feedback if there's any decrease
         # Aside from very small decreases, there's likely other stuff happening too.
         # But if we are close to clipping ignore that
-        if not (((self.lastRMS < (rms+1.5)) or rms > -2) and rms > self.soundFuseSetting):
+        if not (((self.lastRMS < (rms + 1.5)) or rms > -2) and rms > self.soundFuseSetting):
             self.lastNormalVolumeLevel = time.monotonic()
         self.lastRMS = rms
-        if time.monotonic()-self.lastNormalVolumeLevel > 0.3:
+        if time.monotonic() - self.lastNormalVolumeLevel > 0.3:
             # self.loudnessAlert.trip()
             self.alertRatelimitTime = time.monotonic()
 
@@ -636,7 +634,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                     try:
                         print("FEEDBACK DETECTED!!!!")
                         l = self.faderTag.value
-                        self.setFader(l-8)
+                        self.setFader(l - 8)
                         c = self.faderTag.value
                         time.sleep(0.25)
                         # Detect manual action
@@ -645,9 +643,9 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                         t = 8
                         # Go down till we find a non horrible level
                         for i in range(24):
-                            if(self.levelTag.value > self.soundFuseSetting-3):
-                                self.setFader(l-(i+8))
-                                t = i+8
+                            if(self.levelTag.value > self.soundFuseSetting - 3):
+                                self.setFader(l - (i + 8))
+                                t = i + 8
                                 c = self.faderTag.value
                                 time.sleep(0.05)
 
@@ -664,7 +662,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
                         while t:
                             t -= 1
-                            self.setFader(l-t)
+                            self.setFader(l - t)
                             c = self.faderTag.value
 
                             # Wait longer on that last one before we exit,
@@ -676,9 +674,9 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                             if not c == self.faderTag.value:
                                 return
 
-                            if(self.levelTag.value > self.soundFuseSetting-3):
+                            if(self.levelTag.value > self.soundFuseSetting - 3):
                                 t += 3
-                                self.setFader(l-t)
+                                self.setFader(l - t)
                                 c = self.faderTag.value
 
                                 time.sleep(1)
@@ -693,7 +691,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                         self.doingFeedbackCutoff = False
                 workers.do(f)
 
-        elif time.monotonic()-self.alertRatelimitTime > 10:
+        elif time.monotonic() - self.alertRatelimitTime > 10:
             # self.loudnessAlert.release()
             self.alertRatelimitTime = time.monotonic()
 
@@ -701,7 +699,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         # Note: We don't set the configured data fader level here.
         if self.fader:
             if level > -60:
-                self.fader.set_property('volume', 10**(float(level)/20))
+                self.fader.set_property('volume', 10**(float(level) / 20))
             else:
                 self.fader.set_property('volume', 0)
 
@@ -724,11 +722,11 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             q.leaky = 2
             q2.leaky = 2
             l = self.makeElement('volume')
-            l.set_property('volume', 10**(volume/20))
+            l.set_property('volume', 10**(volume / 20))
             self.effectsById[id] = l
 
             e2 = self.makeElement(
-                "jackaudiosink", "_send"+str(len(self.sends)))
+                "jackaudiosink", "_send" + str(len(self.sends)))
             e2.set_property("buffer-time", 10)
             e2.set_property("port-pattern", "fdgjkndgmkndfmfgkjkf")
             e2.set_property("sync", False)
@@ -738,7 +736,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
             e2.latency_time = 10
             self.effectsById[id] = l
-            self.effectsById[id+"*destination"] = e2
+            self.effectsById[id + "*destination"] = e2
 
             d = effectTemplates['send']
             d['params']['*destination']['value'] = target
@@ -746,7 +744,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.effectDataById[id] = d
 
             # Sequentially number the sends
-            cname = self.name+"_send"+str(len(self.sends))
+            cname = self.name + "_send" + str(len(self.sends))
             e2.set_property("client-name", cname)
 
             self.sendAirwires[id] = jackmanager.Airwire(
@@ -816,13 +814,13 @@ class MixingBoard():
         if not self.running:
             return
         for i in self.channels:
-            log.info("Creating mixer channel "+i)
+            log.info("Creating mixer channel " + i)
             try:
                 self._createChannel(i, self.channels[i])
             except:
                 messagebus.postMessage(
-                    "/system/notifications/errors", "Failed to create mixer channel "+i+" see logs.")
-                log.exception("Could not create channel "+i)
+                    "/system/notifications/errors", "Failed to create mixer channel " + i + " see logs.")
+                log.exception("Could not create channel " + i)
 
     def sendState(self):
         with self.lock:
@@ -903,12 +901,6 @@ class MixingBoard():
             self.channelObjects[name] = MidiConnection(
                 self, data['input'], data['output'])
 
-        elif data['type'] == 'midiSynth':
-            from scullery import fluidsynth
-            self.channels[name] = data
-            self.channelObjects[name] = scullery.FluidSynthChannel(jackClientName=name,
-                                                                   connectMidi=data.get("connectMidi", ''), connectOutput=data.get('connectOutput', ''))
-
     def deleteChannel(self, name):
         with self.lock:
             self._deleteChannel(name)
@@ -944,19 +936,19 @@ class MixingBoard():
         with self.lock:
             util.disallowSpecialChars(presetName)
             persist.save(self.channels, os.path.join(
-                presetsDir, presetName+".yaml"))
+                presetsDir, presetName + ".yaml"))
             try:
                 # Remove legacy way of saving
-                registry.delete("/system.mixer/presets/"+presetName)
+                registry.delete("/system.mixer/presets/" + presetName)
             except KeyError:
                 pass
             self.loadedPreset = presetName
             self.api.send(['loadedPreset', self.loadedPreset])
 
     def deletePreset(self, presetName):
-        registry.delete("/system.mixer/presets/"+presetName)
-        if os.path.exists(os.path.join(presetsDir, presetName+".yaml")):
-            os.remove(os.path.join(presetsDir, presetName+".yaml"))
+        registry.delete("/system.mixer/presets/" + presetName)
+        if os.path.exists(os.path.join(presetsDir, presetName + ".yaml")):
+            os.remove(os.path.join(presetsDir, presetName + ".yaml"))
 
     def loadPreset(self, presetName):
         with self.lock:
@@ -964,11 +956,11 @@ class MixingBoard():
             for i in x:
                 self._deleteChannel(i)
 
-            if os.path.isfile(os.path.join(presetsDir, presetName+".yaml")):
+            if os.path.isfile(os.path.join(presetsDir, presetName + ".yaml")):
                 self._loadData(persist.load(
-                    os.path.join(presetsDir, presetName+".yaml")))
+                    os.path.join(presetsDir, presetName + ".yaml")))
             else:
-                x = registry.get("/system.mixer/presets/"+presetName, None)
+                x = registry.get("/system.mixer/presets/" + presetName, None)
                 if x:
                     self._loadData(x)
 
@@ -982,7 +974,7 @@ class MixingBoard():
             self.sendState()
 
         if data[0] == 'test':
-            from src import sound
+            from . import sound
             sound.oggSoundTest(output=data[1])
 
         if data[0] == 'addChannel':

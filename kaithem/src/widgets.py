@@ -23,14 +23,12 @@ import base64
 import cherrypy
 import os
 import traceback
-import random
 import threading
 import logging
 import socket
 import copy
-import struct
 import collections
-from . import auth, pages, unitsofmeasure, config, util, messagebus
+from . import auth, pages, unitsofmeasure, util, messagebus
 from src.config import config
 
 logger = logging.getLogger("system.widgets")
@@ -82,22 +80,6 @@ lastLoggedUserError =0
 
 class WebInterface():
 
-    # This index is entirely for AJAX calls
-    @cherrypy.expose
-    def index(self, **k):
-        j = json.loads(k['json'])
-        resp = {}
-        user = pages.getAcessingUser()
-        req = j['req']
-        upd = j['upd']
-
-        for i in j['upd']:
-            widgets[i]._onUpdate(user, upd[i], "HTMLTEMPORARY")
-
-        for i in req:
-            resp[i] = widgets[i]._onRequest(user, "HTMLTEMPORARY")
-
-        return json.dumps(resp)
 
     @cherrypy.expose
     def ws(self):
@@ -114,10 +96,6 @@ class WebInterface():
             handler.user = "__guest__"
         handler.clientinfo = ClientInfo(handler.user, handler.cookie)
         clients_info[handler.uuid] = handler.clientinfo
-
-    @cherrypy.expose
-    def ws_allowed(self):
-        return str(config['enable-websockets'])
 
     @cherrypy.expose
     def session_id(self):
@@ -222,17 +200,10 @@ if config['enable-websockets']:
                         lastLoggedUserError = time.time()
                     return
 
-                req = o['req']
-                # Todo allow messages with no req?
                 upd = o['upd']
                 for i in upd:
                     if i[0] in widgets:
                         widgets[i[0]]._onUpdate(user, i[1], self.uuid)
-
-                for i in req:
-                    if i in widget:
-                        resp.append(
-                            [i, widgets[i]._onRequest(user, self.uuid)])
 
                 if 'subsc' in o:
                     for i in o['subsc']:
@@ -296,7 +267,7 @@ if config['enable-websockets']:
 
 def randID():
     "Generate a base64 id"
-    return base64.b64encode(os.urandom(8))[:-1].decode()
+    return base64.b64encode(os.urandom(8))[:-1].decode().replace("+",'').replace("/",'').replace("-",'')
 
 
 idlock = threading.Lock()
@@ -862,7 +833,7 @@ class Slider(Widget):
             kaithemapi.subscribe("%(id)s",upd);
             </script>
 
-            </div>""" % {'label': label, 'orient': orient, 'en': self.isWritable(), 'htmlid': mkid(), 'id': self.uuid, 'min': self.min, 'step': self.step, 'max': self.max, 'value': self.value,  'value': self.value, 'unit': unit}
+            </div>""" % {'label': label, 'orient': orient, 'en': self.isWritable(), 'htmlid': mkid(), 'id': self.uuid, 'min': self.min, 'step': self.step, 'max': self.max, 'value': self.value, 'unit': unit}
 
         elif type == 'onrelease':
             return """<div class="widgetcontainer sliderwidget">

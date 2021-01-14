@@ -1,3 +1,4 @@
+---
 allow-origins: ['*']
 allow-xss: false
 auto-reload: false
@@ -7,13 +8,10 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
+resource-timestamp: 1566264980762350
 resource-type: page
 
-#End YAML metadata, page body mako code begins on first line after ---
 ---
 <script type="text/javascript" src="/static/widget.js"></script>
-<div class="sectionbox">
-%for i in module.mass:
-    ${i.render()}
-%endfor
-</div>
+
+<div class="sectionbox">${module.switch.render("Toggle Me")}|${module.switchspan.render()}</div>

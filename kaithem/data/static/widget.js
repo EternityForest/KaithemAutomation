@@ -19,7 +19,6 @@ KaithemApi = function () {
 	var x = {
 
 		toSend: [],
-		polled: [],
 		first_error: 1,
 		serverMsgCallbacks: {
 			"__WIDGETERROR__": [
@@ -65,7 +64,7 @@ KaithemApi = function () {
 			//If the ws is open, send the subs list, else wait for the connection handler to do it when we first reconnect.
 			if (this.connection) {
 				if (this.connection.readyState == 1) {
-					var j = { "subsc": Object.keys(this.serverMsgCallbacks), "req": [], "upd": [] }
+					var j = { "subsc": Object.keys(this.serverMsgCallbacks), "upd": [] }
 					this.connection.send(JSON.stringify(j))
 				}
 			}
@@ -96,7 +95,7 @@ KaithemApi = function () {
 				//If the ws is open, send the subs list. If not, we by definition aren't subscribed, and we already removed it from the local list.
 				if (this.connection) {
 					if (this.connection.readyState == 1) {
-						var j = { "unsub": [key], "req": [], "upd": [] }
+						var j = { "unsub": [key], "upd": [] }
 						this.connection.send(JSON.stringify(j))
 					}
 				}
@@ -119,7 +118,6 @@ KaithemApi = function () {
 		},
 
 		register: function (key, callback) {
-			this.polled.push(key);
 			this.subscribe(key, callback);
 		},
 
@@ -209,8 +207,8 @@ KaithemApi = function () {
 			this.wpoll = function () {
 				//Don't bother sending if we aren'y connected
 				if (this.connection.readyState == 1) {
-					if (this.toSend.length > 0 || this.polled.length > 0) {
-						var toSend = { 'upd': this.toSend, 'req': Object.keys(this.polled), };
+					if (this.toSend.length > 0) {
+						var toSend = { 'upd': this.toSend, };
 						if (this.use_mp) {
 							var j = new Blob([msgpack.encode(toSend)]);
 						}
@@ -224,7 +222,7 @@ KaithemApi = function () {
 
 				}
 
-				if (this.toSend.length > 0 || this.polled.length > 0) {
+				if (this.toSend.length > 0) {
 					window.setTimeout(this.poll_ratelimited, 120);
 				}
 

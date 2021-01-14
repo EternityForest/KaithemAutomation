@@ -15,14 +15,9 @@
 
 import threading
 import sys
-import re
 import time
 import datetime
-import weakref
-import os
 import traceback
-import collections
-import random
 import logging
 import types
 from . import workers, util
@@ -94,14 +89,14 @@ class Event(BaseEvent):
                 from . import newevt
                 newevt.eventByModuleName(f.__module__)._handle_exception()
             except:
-                pass
+                print(traceback.format_exc())
 
             try:
                 if hasattr(f, "__name__") and hasattr(f, "__module__"):
                     logger.exception(
-                        "Exception in scheduled function "+f.__name__+" of module "+f.__module__)
+                        "Exception in scheduled function " + f.__name__ + " of module " + f.__module__)
             except:
-                logger.exception("Exception in scheduled function "+repr(f))
+                logger.exception("Exception in scheduled function " + repr(f))
 
         finally:
             del f
@@ -122,7 +117,7 @@ def shouldSkip(priority, interval, lateby, lastran):
     maxlatency = {'realtime': 0, 'interactive': 0.2,
                   'high': 2, 'medium': 3, 'low': 10, "verylow": 60}
     if lateby > t[priority]:
-        if ((time.time()-lastran)+interval) < maxlatency[priority]:
+        if ((time.time() - lastran) + interval) < maxlatency[priority]:
             return True
 
 
@@ -142,7 +137,7 @@ class RepeatingEvent(BaseEvent):
         self.errored = False
         self.lock = threading.Lock()
         self.lastrun = None
-        self.phaseoffset = (phase % 1)*interval
+        self.phaseoffset = (phase % 1) * interval
         # This flag is here to slove a really annoying problem.
         # If you unregister just before the reschedule function acquires the lock,
         # The object just gets rescheduled like nothing happened.
@@ -172,7 +167,7 @@ class RepeatingEvent(BaseEvent):
                 self.lock.release()
         else:
             logger.warning(
-                "Tried to schedule something that is still running: "+str(self.f()))
+                "Tried to schedule something that is still running: " + str(self.f()))
 
     def _schedule(self):
         """Calculate next runtime and put self into the queue.
@@ -185,21 +180,21 @@ class RepeatingEvent(BaseEvent):
         ts = millis * 1e-3
         # local time == (utc time + utc offset)
         offset = (datetime.datetime.fromtimestamp(
-            ts) - datetime.datetime.utcfromtimestamp(ts)).total_seconds()+self.phaseoffset
+            ts) - datetime.datetime.utcfromtimestamp(ts)).total_seconds() + self.phaseoffset
 
         # Convert to local time
-        t = self.lastrun+offset
+        t = self.lastrun + offset
         # This is important in the next step. Here we add a fraction of the interval to push times like 59.95 over
         # otherwise it will schedule it for 60 when clearly a minute in the future should be 120
-        t += self.interval/2
+        t += self.interval / 2
         # Calculate the last modulo of the interval. We do this by doing the module to see how far past it we are
         # then subtracting.
-        last = t-(t % self.interval)
+        last = t - (t % self.interval)
 
         # Get the time after last
         t = last + self.interval
         # Convert back to UTC/UNIX and add the phase offset
-        self.time = (t-offset)
+        self.time = (t - offset)
         scheduler.insert(self)
         self.scheduled = True
 
@@ -237,18 +232,18 @@ class RepeatingEvent(BaseEvent):
                     f()
                 # self._schedule()
             except:
-
                 # If we can, try to send the exception back whence it came
                 try:
                     from . import newevt
                     newevt.eventByModuleName(f.__module__)._handle_exception()
                 except:
-                    pass
+                    print(traceback.format_exc())
+
 
                 try:
                     if hasattr(f, "__name__") and hasattr(f, "__module__"):
                         localLogger.exception(
-                            "Exception in scheduled function "+f.__name__+" of module "+f.__module__)
+                            "Exception in scheduled function " + f.__name__ + " of module " + f.__module__)
 
                 except:
                     localLogger.exception("Exception in scheduled function")
@@ -257,7 +252,7 @@ class RepeatingEvent(BaseEvent):
                     try:
                         try:
                             logger.exception(
-                                "Exception in scheduled function "+f.__name__+" of module "+f.__module__)
+                                "Exception in scheduled function " + f.__name__ + " of module " + f.__module__)
                         except:
                             logger.exception("Exception in scheduled function")
                         handleFirstError(f)
@@ -292,7 +287,7 @@ class UnsynchronizedRepeatingEvent(RepeatingEvent):
         Should only ever be called under lock"""
         if self.scheduled:
             return
-        t = self.lastrun+self.interval
+        t = self.lastrun + self.interval
         self.time = t
         scheduler.insert(self)
         self.scheduled = True
@@ -421,7 +416,7 @@ class NewScheduler(threading.Thread):
 
         # Soft rate limit to prevent filling memory in really bizzare cases.
         if len(self.task_queue) > 100000:
-            time.sleep(max(0, (len(self.task_queue)-100000)/2000.0))
+            time.sleep(max(0, (len(self.task_queue) - 100000) / 2000.0))
         self.task_queue.append(event)
 
     def remove(self, event):
@@ -475,7 +470,6 @@ class NewScheduler(threading.Thread):
     def run(self):
         lmin = min
         lmax = max
-        ltime = time
         need_sort = False
         global lastframe
         while 1:
@@ -511,10 +505,10 @@ class NewScheduler(threading.Thread):
                     # Get the time to sleep. If there's an event that wants to be run
                     # really soon, sleep that long, otherwise sync frames
                     # to 1/10th of a second
-                    time_till_next = lmax(0, 0.1-(time.time() % 0.1))
+                    time_till_next = lmax(0, 0.1 - (time.time() % 0.1))
                     if self.tasks:
                         x = lmax(
-                            lmin((self.tasks[0].time-time.time()), time_till_next), 0)
+                            lmin((self.tasks[0].time - time.time()), time_till_next), 0)
                     else:
                         x = time_till_next
                 except:
@@ -526,7 +520,7 @@ class NewScheduler(threading.Thread):
                 # Run tasks until all remaining ones are in the future
                 while self.tasks and (self.tasks[0].time < time.time()):
                     i = self.tasks.pop(False)
-                    overdueby = time.time()-i.time
+                    overdueby = time.time() - i.time
                     if i.exact and overdueby > i.exact:
                         continue
                     try:
@@ -547,7 +541,7 @@ class NewScheduler(threading.Thread):
                 # We have to run in a try block because we don't want a bad schedule function to take out the whole thread.
 
                 # We only need to do this every 30 seconds or so, because it's only an error recovery thing.
-                if time.time()-self.lastrecheckedschedules > 30:
+                if time.time() - self.lastrecheckedschedules > 30:
                     self._dorErrorRecovery()
                     self.lastrecheckedschedules = time.time()
 
@@ -556,14 +550,13 @@ class NewScheduler(threading.Thread):
             try:
                 if not i.scheduled:
                     # Give them 30 seconds to finish what they are doing and schedule themselves.
-                    if i.lastrun < time.time()-30:
-                        xyz = time.time()
+                    if i.lastrun < time.time() - 30:
                         # Let's maybe not block the entire scheduling thread
                         # If one event takes a long time to schedule or if it
                         # Is already running and can't schedule yet.
                         workers.do(i.schedule)
                         logger.debug(
-                            "Rescheduled "+str(i)+"using error recovery, could indicate a bug somewhere, or just a long running event.")
+                            "Rescheduled " + str(i) + "using error recovery, could indicate a bug somewhere, or just a long running event.")
             except:
                 logger.exception("Exception while scheduling event")
 

@@ -20,7 +20,7 @@ import dateutil
 import dateutil.parser
 
 
-from typing import Callable, Union, Dict, List, Any
+from typing import Callable, Union, Dict, List, Any, final
 from typeguard import typechecked
 
 logger = logging.getLogger("tagpoints")
@@ -240,6 +240,9 @@ class _TagPoint(virtualresource.VirtualResource):
                 "Tag with this name already exists, use the getter function to get it instead")
         virtualresource.VirtualResource.__init__(self)
 
+        # Dependancu tracking, if a tag depends on other tags, such as =expression based ones
+        self.sourceTags: Dict[str, _TagPoint] = {}
+
         self.dataSourceWidget = None
 
         self.description = ''
@@ -368,7 +371,6 @@ class _TagPoint(virtualresource.VirtualResource):
 
         """
 
-
         # Handle different falsy things someone might use to try and disable this
         if not r:
             r = ''
@@ -380,12 +382,13 @@ class _TagPoint(virtualresource.VirtualResource):
         if isinstance(w, list):
             w = ','.join(w)
 
-        #Just don't allow numberlike permissions so we can keep pretending any config item that looks like a number, is.
-        #Also, why would anyone do that?
+        # Just don't allow numberlike permissions so we can keep pretending any config item that looks like a number, is.
+        # Also, why would anyone do that?
         for i in r.split(",") + w.split(","):
             try:
                 float(i)
-                raise RuntimeError("Permission: "+str(i)+" looks like a number")
+                raise RuntimeError("Permission: " + str(i) +
+                                   " looks like a number")
             except ValueError:
                 pass
 
@@ -529,7 +532,7 @@ class _TagPoint(virtualresource.VirtualResource):
         # With web inputs and assorted things like that in a uniform way without needing to
         # special case based on the attribute name
         try:
-            v=float(v)
+            v = float(v)
         except:
             pass
 
@@ -553,8 +556,7 @@ class _TagPoint(virtualresource.VirtualResource):
     def recalc(self, *a):
         "Just re-get the value as needed"
         # It's a getter, ignore the mypy unused thing.
-        x = self.value
-
+        self.poll()
 
     def contextGetNumericTagValue(self, n):
         "Get the tag value, adding it to the list of source tags. Creates tag if it isn't there"
@@ -578,11 +580,12 @@ class _TagPoint(virtualresource.VirtualResource):
             return self.sourceTags[n].value
         return 0
 
-    def setConfigAttr(self, k:str, v):
+    def setConfigAttr(self, k: str, v):
         "Sets the configured attribute by name, and also sets the corresponding dynamic attribute."
 
         if k not in configAttrs:
-            raise ValueError(k+" does not support overriding by configuration")
+            raise ValueError(
+                k + " does not support overriding by configuration")
 
         with lock:
             self._recordConfigAttr(k, v)
@@ -598,13 +601,12 @@ class _TagPoint(virtualresource.VirtualResource):
             if v is None:
                 v = self._dynConfigValues.get(k, v)
 
-            #For all the config attrs, setting the property sets the dynamic attr.
-            #But WE also want to invoke all the side effects of setting the prop when we reconfigure.
-            #As a hack, we save and restore that value, so that we preserve the original un-configured val.
+            # For all the config attrs, setting the property sets the dynamic attr.
+            # But WE also want to invoke all the side effects of setting the prop when we reconfigure.
+            # As a hack, we save and restore that value, so that we preserve the original un-configured val.
 
             x = self._dynConfigValues.get(k, None)
 
-  
             setattr(self, k, v)
 
             # Restore TODO race condition here!!!!!!
@@ -753,7 +755,7 @@ class _TagPoint(virtualresource.VirtualResource):
             tripCondition, self.name + ".alarms." + name + "_trip", "eval")
         if releaseCondition:
             releaseCondition = compile(
-                tripCondition, self.name + ".alarms." + name + "_trip", "eval")
+                releaseCondition, self.name + ".alarms." + name + "_release", "eval")
 
         n = self.name.replace("=", 'expr_')
         for i in illegalCharsInName:
@@ -859,7 +861,6 @@ class _TagPoint(virtualresource.VirtualResource):
 
     def setConfigData(self, data):
         with lock:
-            self.sourceTags = {}
             hasUnsavedData[0] = True
             # New config, new chance to see if there's a problem.
             self.alreadyPostedDeadlock = False
@@ -976,7 +977,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 del self.kweb_manualOverrideClaim
 
             # Val override last, in case it triggers an alarm
-            #Convert to string for consistent handling, the config engine things anything that looks like a number, is.
+            # Convert to string for consistent handling, the config engine things anything that looks like a number, is.
             overrideValue = str(data.get('overrideValue', '')).strip()
             if overrideValue:
                 if overrideValue.startswith("="):
@@ -1270,7 +1271,7 @@ class _TagPoint(virtualresource.VirtualResource):
                             "Error getting tag value. This message will only be logged every ten minutes.")
                     # If we can, try to send the exception back whence it came
                     try:
-                        import newevt
+                        from src import newevt
                         newevt.eventByModuleName(
                             activeClaimValue.__module__)._handle_exception()
                     except Exception:
@@ -1481,10 +1482,10 @@ class _NumericTagPoint(_TagPoint):
                  max: Union[float, int, None] = None):
 
         # Real active compouted vals after the dynamic/configured override logic
-        self._hi = None
-        self._lo = None
-        self._min = min
-        self._max = max
+        self._hi: Union[None, float, int] = None
+        self._lo: Union[None, float, int] = None
+        self._min: Union[None,float, int] = min
+        self._max: Union[None,float, int] = max
         # Pipe separated list of how to display value
         self._displayUnits: Union[str, None] = None
         self._unit = ""
@@ -1586,7 +1587,7 @@ class _NumericTagPoint(_TagPoint):
         return self._min
 
     @min.setter
-    def min(self, v:Union[None,float,int]):
+    def min(self, v: Union[None, float, int]):
         self._dynConfigValues['min'] = v
 
         if not v == self.configOverrides.get('min', v):
@@ -1599,7 +1600,7 @@ class _NumericTagPoint(_TagPoint):
         return self._max
 
     @max.setter
-    def max(self, v:Union[None,float,int]):
+    def max(self, v: Union[None, float, int]):
         self._dynConfigValues['max'] = v
         if not v == self.configOverrides.get('max', v):
             return
@@ -1614,7 +1615,7 @@ class _NumericTagPoint(_TagPoint):
         return x
 
     @hi.setter
-    def hi(self, v:Union[None,float,int]):
+    def hi(self, v: Union[None, float, int]):
         self._dynConfigValues['hi'] = v
         if not v == self.configOverrides.get('hi', v):
             return
@@ -1630,7 +1631,7 @@ class _NumericTagPoint(_TagPoint):
         return self._lo
 
     @lo.setter
-    def lo(self, v:Union[None,float,int]):
+    def lo(self, v: Union[None, float, int]):
         self._dynConfigValues['lo'] = v
         if not v == self.configOverrides.get('lo', v):
             return
@@ -1931,10 +1932,17 @@ class Claim():
         self.tag.release(self.name)
 
     def setPriority(self, priority):
-        with self.tag.lock:
-            self.priority = priority
-            self.tag.claim(self.value, self.timestamp, self.annotation,
-                           priority=self.priority, name=self.name)
+
+        if self.tag.lock.acquire(timeout=60):
+            try:
+                self.priority = priority
+                self.tag.claim(self.value, self.timestamp, self.annotation,
+                               priority=self.priority, name=self.name)
+            finally:
+                self.tag.lock.release()
+
+        else:
+            raise RuntimeError("Cannot get lock to set priority, waited 60s")
 
     def __call__(self, *args, **kwargs):
         if not args:
@@ -2097,6 +2105,14 @@ class HysteresisFilter(Filter):
 
 
 def createGetterFromExpression(e, t, priority=98):
+
+    try:
+        for i in t.sourceTags:
+            t.sourceTags[i].unsubscribe(t.recalc)
+    except:
+        logger.exception(
+            "Unsubscribe fail to old tag.  A subscription mau be leaked, wasting CPU. This should not happen.")
+
     t.sourceTags = {}
 
     def recalc(*a):
@@ -2111,7 +2127,9 @@ def createGetterFromExpression(e, t, priority=98):
     # Overriding these tags would be extremely confusing because the
     # Expression is right in the name, so don't make it easy
     # with priority 98 by default
-    return t.claim(f, "ExpressionTag", priority)
+    c2 = t.claim(f, "ExpressionTag", priority)
+    t.pull()
+    return c2
 
 
 Tag = _NumericTagPoint.Tag

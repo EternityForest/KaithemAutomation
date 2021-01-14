@@ -30,7 +30,7 @@ import traceback
 import gc
 import getpass
 
-from . import messagebus, registry, directories, unitsofmeasure, util
+from . import messagebus, directories, unitsofmeasure, util
 from .config import config
 
 

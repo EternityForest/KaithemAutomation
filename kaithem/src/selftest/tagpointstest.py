@@ -112,3 +112,46 @@ def testTags():
     if not t2.value == 1+7:
         raise RuntimeError("Subscriber to expression tag did not trigger when dependancy updated")
 
+
+
+
+
+
+## Test tags with alerts
+
+
+
+def f():
+    # Test tag point values derived from other values
+    t = kaithem.tags["TestTagPointSelftestA"]
+    t.value = 90
+
+    t2=kaithem.tags["=tv('/TestTagPointSelftestA')+10"]
+
+    if not t2.value==100:
+        raise RuntimeError("Expression tagpoint didn't work")
+
+
+    t.value = 40
+
+    if not t2.value==50:
+        raise RuntimeError("Expression tagpoint didn't update, value:"+str(t2.value))
+
+
+    t2.setAlarm("TestTagAlarm","value>40",priority="debug")
+
+    time.sleep(0.5)
+    if not t2.alarms['TestTagAlarm'].sm.state=='active':
+        raise RuntimeError("Alarm not activated, state:"+ t2.alarms['TestTagAlarm'].sm.state)
+
+    t.value = 0
+    time.sleep(3)
+    if not t2.alarms['TestTagAlarm'].sm.state=='cleared':
+        raise RuntimeError("Alarm not cleared, state:"+t2.alarms['TestTagAlarm'].sm.state+" value:"+str(t2.value))
+
+
+    t.alarms['TestTagAlarm'].acknowledge()
+
+    if not t2.alarms['TestTagAlarm'].sm.state=='normal':
+        raise RuntimeError("Alarm not normal after acknowledge")
+f()

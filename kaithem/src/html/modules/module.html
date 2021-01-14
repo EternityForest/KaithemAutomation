@@ -59,7 +59,7 @@ WordHash: <b>${getModuleWordHash(name)}</b></br>
 <a class="button createbutton addfolderbutton" href="/modules/module/${url(name)}/addresource/directory/${url('/'.join(path))}">Folder</a>
 <a class="button createbutton" href="/modules/module/${url(name)}/addfileresource/${url('/'.join(path))}">File</a>
 
-%if K4D_SUPPORT
+%if K4D_SUPPORT:
 <a class="button createbutton" title="A squirrel program that runs on an external embedded device" href="/modules/module/${url(name)}/addresource/k4dprog_sq/${url('/'.join(path))}">K4D Squirrel Program</a>
 %endif
 

@@ -1,3 +1,4 @@
+---
 allow-origins: ['*']
 allow-xss: false
 auto-reload: false
@@ -7,9 +8,19 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
+resource-timestamp: 1566264980746346
 resource-type: page
 
-#End YAML metadata, page body mako code begins on first line after ---
 ---
+<%!
+#Code Here runs once when page is first rendered. Good place for import statements.
+__doc__= ""
+%>
+<%
+#Python Code here runs every page load
+%>
 <script type="text/javascript" src="/static/widget.js"></script>
-<div class="sectionbox">This Meter Measures Nothing: ${module.meter.render('%')}</div>
+
+<h2>Scroll Box Demo</h2>
+<div class="sectionbox">
+${module.scroll.render("blah")}</div>

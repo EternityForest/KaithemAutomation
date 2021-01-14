@@ -19,6 +19,8 @@ import traceback
 import cherrypy
 
 postMessage = scullery.messagebus.postMessage
+post = scullery.messagebus.postMessage
+subscribe = scullery.messagebus.subscribe
 
 def handleMsgbusError(f, topic, message):
     scullery.messagebus.log.exception(
