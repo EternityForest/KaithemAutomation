@@ -71,7 +71,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - Eliminate confusing content on file resource pages
 - Fix some nuisance error messages
 
-
 ### 0.65.50
 - /sky/civilTwilight tag fixed
 
