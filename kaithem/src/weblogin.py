@@ -22,8 +22,6 @@ import base64
 from . import pages, auth, util, messagebus
 
 
-
-
 logger = logging.getLogger("system.auth")
 failureRecords = collections.OrderedDict()
 recordslock = threading.Lock()
@@ -36,9 +34,11 @@ lockouts = {}
 lastCleared = time.time()
 recentAttempts = 0
 alreadySent = 0
+
+
 def onAttempt():
-    global lastCleared,recentAttempts,alreadySent
-    if time.time()-lastCleared > 60*30:
+    global lastCleared, recentAttempts, alreadySent
+    if time.time() - lastCleared > 60 * 30:
         lastCleared = time.time()
         if recentAttempts < 50:
             alreadySent = 0
@@ -54,7 +54,7 @@ def onFail(ip, user, lockout=True):
     with recordslock:
         if ip in failureRecords:
             r = failureRecords[ip]
-            failureRecords[ip] = (time.time(), r[1]+1, user)
+            failureRecords[ip] = (time.time(), r[1] + 1, user)
         else:
             failureRecords[ip] = (time.time(), 1, user)
 
@@ -62,7 +62,7 @@ def onFail(ip, user, lockout=True):
             failureRecords.popitem(last=False)
     if lockout:
         if user in auth.Users:
-            lockouts[user] = time.time()+3
+            lockouts[user] = time.time() + 3
 
 
 class LoginScreen():
@@ -71,7 +71,7 @@ class LoginScreen():
     def index(self, **kwargs):
         if not cherrypy.request.scheme == 'https':
             x = cherrypy.request.remote.ip
-            if not x.startswith("::1") or x.startswith("127."):
+            if not x.startswith("::1") or x.startswith("127.") or x == '::ffff:127.0.0.1':
                 raise cherrypy.HTTPRedirect("/errors/gosecure")
         return pages.get_template("login.html").render(target=kwargs.get("go", "/"))
 
@@ -100,13 +100,13 @@ class LoginScreen():
 
         if not cherrypy.request.scheme == 'https':
             x = cherrypy.request.remote.ip
-            if not x.startswith("::1") or x.startswith("127."):
+            if not x.startswith("::1") or x.startswith("127.") or x == '::ffff:127.0.0.1':
                 raise cherrypy.HTTPRedirect("/errors/gosecure")
         # Insert a delay that has a random component of up to 256us that is derived from the username
         # and password, to prevent anyone from being able to average it out, as it is the same per
         # query
         auth.resist_timing_attack(kwargs['username'].encode(
-            "utf8")+kwargs['password'].encode("utf8"))
+            "utf8") + kwargs['password'].encode("utf8"))
         x = auth.userLogin(kwargs['username'], kwargs['password'])
         # Don't ratelimit very long passwords, we'll just assume they are secure
         # Someone might still make a very long insecure password, but
@@ -130,15 +130,15 @@ class LoginScreen():
             except Exception:
                 logging.exception("Cannot set samesite strict")
 
-            #Over localhost, we can assume the connection is secure, and also that there can be no equivalent insecure connection,
-            #Even if the browser thinks localhost is insecure for cookie purposes, for some reason.
-            #This will not be secure if someone puts it behind an insecure a proxy that allows HTTP also/s
+            # Over localhost, we can assume the connection is secure, and also that there can be no equivalent insecure connection,
+            # Even if the browser thinks localhost is insecure for cookie purposes, for some reason.
+            # This will not be secure if someone puts it behind an insecure a proxy that allows HTTP also/s
             ip = cherrypy.request.remote.ip
-            if not ip.startswith("::1") or ip.startswith("127."):
+            if not ip.startswith("::1") or ip.startswith("127.") or ip == '::ffff:127.0.0.1':
                 cherrypy.response.cookie['auth']['secure'] = ' '
             cherrypy.response.cookie['auth']['httponly'] = ' '
             # tokens are good for 90 days
-            cherrypy.response.cookie['auth']['expires'] = 24*60*60*90
+            cherrypy.response.cookie['auth']['expires'] = 24 * 60 * 60 * 90
             x = auth.Users[kwargs['username']]
             if not 'loginhistory' in x:
                 x['loginhistory'] = [(time.time(), cherrypy.request.remote.ip)]
@@ -149,13 +149,14 @@ class LoginScreen():
 
             messagebus.postMessage(
                 "/system/auth/login", [kwargs['username'], cherrypy.request.remote.ip])
-            
+
             if 'maxgotime' in kwargs:
                 if time.time() > float(kwargs['maxgotime']):
                     raise cherrypy.HTTPRedirect("/")
 
             if not "/errors/loginerror" in base64.b64decode(kwargs['go']).decode():
-                raise cherrypy.HTTPRedirect(base64.b64decode(kwargs['go']).decode())
+                raise cherrypy.HTTPRedirect(
+                    base64.b64decode(kwargs['go']).decode())
             else:
                 raise cherrypy.HTTPRedirect("/")
         else:
