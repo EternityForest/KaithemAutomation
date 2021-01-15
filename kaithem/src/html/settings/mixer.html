@@ -227,19 +227,25 @@ import os
         
         
         <div v-if="channel.type=='audio' || !channel.type">
-          <h3>{{channelname}}({{channel.channels}}) <button v-on:click="confirmDelete(channelname)">X</button> <button v-on:click="ding(channelname)">Ding</button>
-            <button v-on:click="api.send(['refreshChannel', channelname])">Reload</button>
+          <h3>{{channelname}}({{channel.channels}}) 
           </h3>
+          <p class="menubar">
+            <button v-on:click="confirmDelete(channelname)">Delete</button>
+            <button v-on:click="ding(channelname)">Ding</button>
+            <button v-on:click="api.send(['refreshChannel', channelname])">Reload</button>
+          </p>
           Connect Input: <input v-model="channel.input" list="outports"
             v-on:input="setInput(channelname, $event.target.value)">
           <div class="chain">
             <div v-for="effect, index in channel.effects" class="effect">
               <h4 v-bind:title="effect.id">
                 {{effect.displayType}}
+              </h4>
+              <p class="menubar">
                 <button v-on:click="moveEffectUp(channelname, index)">Up</button>
                 <button v-on:click="moveEffectDown(channelname, index)">Down</button>
                 <button v-if="effect.type!='fader'" v-on:click="deleteEffect(channelname, index)">Del</button>
-              </h4>
+              </p>
               <table style="width:98%;margin:auto;" border=1>
                 <tr v-for="param in sortedParams(effect.params)" class="param">
                   <template v-if="param.type=='float'">

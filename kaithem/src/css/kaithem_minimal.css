@@ -156,6 +156,14 @@ h2:first-of-type,h3:first-of-type{
 	border-radius: 5px;
 }
 
+#nav * a{
+	opacity: 40%;
+}
+#nav * a:hover{
+	opacity: 100%;
+}
+
+
 #nav {
 	border-style: solid;
 	border-width: 1px;
@@ -166,9 +174,18 @@ h2:first-of-type,h3:first-of-type{
 
 /*This is a paragraph serving a similar funtion to the menu bars at the top of desktop application windows*/
 
-p.menubar div.menubar {
+p.menubar, div.menubar {
 	background-color: rgba(255, 25, 255, 0.1);
 	border-radius: 7px;
+	opacity: 70%;
+	transform: scale(0.9);
+}
+p.menubar:hover, div.menubar:hover {
+	background-color: rgba(255, 25, 255, 0.1);
+	border-radius: 7px;
+	opacity: 100%;
+	max-height: initial;
+	transform: none;
 }
 
 /*********************Code editing************************/

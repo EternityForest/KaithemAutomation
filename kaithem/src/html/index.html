@@ -52,9 +52,10 @@ ${alertsapi.render("alertapi")}
 %endif
 
     <h2>Active/Unacknowledged Alarms</h2>
-    <p class="help">Anyone who can see the main page can see all alarms, regardless of alarm-specific permssions, as alarms are not meant for private data.</p>
 
     <div class="scrollbox sectionbox" style="max-height: 25em;height:auto;width:fit-content;">
+        <p class="help">Anyone who can see the main page can see all alarms, regardless of alarm-specific permssions, as alarms are not meant for private data.</p>
+
         <%
         if "ackalarm" in cherrypy.request.params:
             alerts.all[cherrypy.request.params['ackalarm']].API_ack()

@@ -31,38 +31,19 @@ filteredTags = [i for i in tagpoints.allTagsAtomic.keys() if searchFilter.lower(
     similar to soft tags in many SCADA systems.
 
 </p>
-<p class="menubar">
-    <a class="button" href="/settings/files/${tagsLocation|u}">Tag Config Dir</a>
-</p>
 
+
+<h3>Active Tags</h3>
 <div class="menubar">
-    <form method="GET" action="/tagpoints">
-        <input name="new_numtag"><input type="submit" value="New Number Tag">
-    </form>
-    <form method="GET" action="/tagpoints">
-        <input name="new_strtag"><input type="submit" value="New String Tag">
-    </form>
+Page:
+%for i in range(int(len(filteredTags)/500)+1):
+<a href="/tagpoints?pageNumber=${i}&searchFilter=${searchFilter|u}">${'<b>'+str(i)+'</b>' if i==pageNumber else str(i)}</a>
+%endfor
 
     <form method="GET" action="/tagpoints?pageNumber=${pageNumber}">
         <input name="searchFilter" value="${searchFilter|h}"> <input type="submit" value="Search">
     </form>
 </div>
-<h3>Configured but not used</h3>
-<p class="help">Empty configs go away when the server state is saved</p>
-<ul>
-%for i in tagpoints.configTagData:
-%if not i in tagpoints.allTags:
-<li><a href="/tagpoints/${i|u}">${i|h}</a></li>
-%endif
-%endfor
-</ul>
-<h3>Active Tags</h3>
-<p class="menubar">
-Page:
-%for i in range(int(len(filteredTags)/500)+1):
-<a href="/tagpoints?pageNumber=${i}&searchFilter=${searchFilter|u}">${'<b>'+str(i)+'</b>' if i==pageNumber else str(i)}</a>
-%endfor
-</p>
 <table border="1">
 <tr><th>Name</th><th>Value(not realtime)</th><th>Interval</th><th>Active Claim</th><th>Owner</th><th>Subscribers</th>
     <th>Alarms</th>
@@ -118,5 +99,27 @@ Page:
 %endif
 %endfor
 </table>
+
+<p class="menubar">
+    <a class="button" href="/settings/files/${tagsLocation|u}">Tag Config Dir</a>
+</p>
+
+<div class="menubar">
+    <form method="GET" action="/tagpoints">
+        <input name="new_numtag"><input type="submit" value="New Number Tag">
+    </form>
+    <form method="GET" action="/tagpoints">
+        <input name="new_strtag"><input type="submit" value="New String Tag">
+    </form>
+</div>
+<h3>Configured but not used</h3>
+<p class="help">Empty configs go away when the server state is saved</p>
+<ul>
+%for i in tagpoints.configTagData:
+%if not i in tagpoints.allTags:
+<li><a href="/tagpoints/${i|u}">${i|h}</a></li>
+%endif
+%endfor
+</ul>
 </div>
 <%include file="/pagefooter.html"/>
