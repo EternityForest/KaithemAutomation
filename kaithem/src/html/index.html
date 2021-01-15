@@ -42,7 +42,7 @@ ${alertsapi.render("alertapi")}
         opacity: 70%;
     }
 </style>
-<main id="app">
+<main>
 %if 'auth' in cherrypy.request.cookie:
 %if cherrypy.request.cookie['auth'].value in auth.Tokens:
     <div class="sectionbox">
@@ -131,6 +131,7 @@ ${alertsapi.render("alertapi")}
 </div>
 
 <h2> System Notifications</h2>
+<div id="app">
 <div class="scrollbox sectionbox" style="max-height: 25em; block-size: fit-content; max-width: 70em;">
     <div v-for="i in notifications.slice().reverse()" v-bind:class="getClass(i)">
         <b>{{formatTime(i[0])}}</b>
@@ -138,7 +139,7 @@ ${alertsapi.render("alertapi")}
         <hr>
     </div>
 </div>
-
+</div>
 </main>
 
 

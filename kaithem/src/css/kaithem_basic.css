@@ -164,7 +164,6 @@ div.sectionbox,section{
 	padding-right:1%;
 	padding-left:0.5%;
 	margin:2px;
-	block-size: fit-content;
 }
 
 /* A scrollable div */

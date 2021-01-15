@@ -64,6 +64,14 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.51
+- Alarms on =expression tags work properly
+- Widget IDs no longer (rarely) generate invalid characters
+- Remove some more unused code
+- Eliminate confusing content on file resource pages
+- Fix some nuisance error messages
+
+
 ### 0.65.50
 - /sky/civilTwilight tag fixed
 

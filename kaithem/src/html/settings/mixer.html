@@ -590,7 +590,10 @@ import os
       }
 
       if (msg[0] == "lv") {
-        app.$data.channels[msg[1]].level = msg[2];
+        if(app.$data.channels[msg[1]])
+        {
+          app.$data.channels[msg[1]].level = msg[2];
+        }
       }
 
       if (msg[0] == "fader") {
