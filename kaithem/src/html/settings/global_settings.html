@@ -91,11 +91,11 @@ names.  Using this is required for Kaithem's integrated sound mixer to work corr
         <td>PulseAudio Sharing</td>
         <td>
             <select name="pulsesharing">
-                    <option title="Only Kaithem's user" value="off" ${'selected' if  jacksettings.get('sharePulse','off')=='off' else ''}>off</option>
-                    <option title="Network share with any user on this machine" value="localhost" ${'selected' if  jacksettings.get('sharePulse','off')=='localhost' else ''}>localhost</option>
-                    <option title="Network share with entire local network" value="network" ${'selected' if jacksettings.get('sharePulse','off')=='network' else ''}>network</option>
-                    <option title="Run pulse in system-wide mode(May be needed to use Pulse as root)" value="system-wide" ${'selected' if jacksettings.get('sharePulse','off')=='system-wide' else ''}>system-wide</option>
-                    <option title="Do not use pulseaudio" value="disable" ${'selected' if jacksettings.get('sharePulse','off')=='disable' else ''}>disable</option>
+                    <option title="Only Kaithem's user" value="off" ${'selected' if  jacksettings.get('sharePulse','off')=='disable' else ''}>off</option>
+                    <option title="Network share with any user on this machine" value="localhost" ${'selected' if  jacksettings.get('sharePulse','disable')=='localhost' else ''}>localhost</option>
+                    <option title="Network share with entire local network" value="network" ${'selected' if jacksettings.get('sharePulse','disable')=='network' else ''}>network</option>
+                    <option title="Run pulse in system-wide mode(May be needed to use Pulse as root)" value="system-wide" ${'selected' if jacksettings.get('sharePulse','disable')=='system-wide' else ''}>system-wide</option>
+                    <option title="Do not use pulseaudio, prevent it from running at all" value="disable" ${'selected' if jacksettings.get('sharePulse','disable')=='disable' else ''}>disable</option>
                 </select>
         </td>
     </tr>

@@ -20,7 +20,7 @@ import dateutil
 import dateutil.parser
 
 
-from typing import Callable, Union, Dict, List, Any, final
+from typing import Callable, Union, Dict, List, Any
 from typeguard import typechecked
 
 logger = logging.getLogger("tagpoints")

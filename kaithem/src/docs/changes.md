@@ -1,6 +1,14 @@
 Change Log
 ----------
 
+### 0.65.53
+- Workaround for JACK bug on raspberry pi. We always set playback to 2 channels.  This is a minor regression, it will not support the full channel count for surround, and may crash if there is only 1 output channel.  However, the risk of adding more bugs with a more copmplex solution to the audio nightmare, is probably not worth it.
+- Fix nuisance selftest error
+- Fix nuisiance wifi signal alert
+- Remove the WebRTC voice DSP which has not been stable and can segfault.
+- Restore support for Python3.7
+
+
 ### 0.65.52
 - Even MORE work to be compatible with the odd IPs chrome uses when you use HTTP localhost.
 

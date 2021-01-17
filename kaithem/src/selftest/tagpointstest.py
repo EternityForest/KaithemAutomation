@@ -114,19 +114,11 @@ def testTags():
 
 
 
-
-
-
-## Test tags with alerts
-
-
-
-def f():
     # Test tag point values derived from other values
-    t = kaithem.tags["TestTagPointSelftestA"]
+    t = tagpoints.Tag["TestTagPointSelftestA"]
     t.value = 90
 
-    t2=kaithem.tags["=tv('/TestTagPointSelftestA')+10"]
+    t2=tagpoints.Tag["=tv('/TestTagPointSelftestA')+10"]
 
     if not t2.value==100:
         raise RuntimeError("Expression tagpoint didn't work")
@@ -154,4 +146,3 @@ def f():
 
     if not t2.alarms['TestTagAlarm'].sm.state=='normal':
         raise RuntimeError("Alarm not normal after acknowledge")
-f()

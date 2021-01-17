@@ -19,9 +19,8 @@ modes = {
 wifi = tagpoints.Tag(
     "/system/wifiStrength")
 wifi. description = "The strongest current WiFi connection, excluding AP mode. -1 if never connected, 100 full strength"
-wifi.setAlarm("LowSignal", "value < 20 and value > -1", autoAck='yes')
-
 wifiClaim = wifi.claim(-1, "NetworkManager", 70)
+wifi.setAlarm("LowSignal", "value < 20 and value > -1", autoAck='yes')
 
 
 def getConnectionStatus():

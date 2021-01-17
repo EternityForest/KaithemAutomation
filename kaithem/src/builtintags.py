@@ -38,19 +38,22 @@ nTag.interval = 60
 nTag.description = "Unless overridden, 1 if night, else 0, -1 if no location is set"
 nTag.value = night
 
+ipTag = tagpoints.StringTag("/system/network/publicIP")
+
 
 def publicIP():
     try:
         import requests
-        r = requests.get("http://api.ipify.org/", timeout=1)
+        r = requests.get("http://api.ipify.org/", timeout=15)
         r.raise_for_status()
+        ipTag.interval = 3600
         return r.text
     except Exception:
+        ipTag.interval = 300
         print(traceback.format_exc())
         return ""
 
 
-ipTag = tagpoints.StringTag("/system/network/publicIP")
 ipTag.interval = 3600
-ipTag.description = "The current public IP address, as seen by http://api.ipify.org.  If the server is unreachable, will be the empty string."
+ipTag.description = "The current public IP address, as seen by http://api.ipify.org.  If the server is unreachable, will be the empty string. Default interval is dynamic, 1 hour once succeeded."
 ipTag.value = publicIP

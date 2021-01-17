@@ -719,62 +719,6 @@ effectTemplates_data = {
         }
     },
 
-    "voicedsp": {
-        "type": "voicedsp",
-        "displayType": "Voice DSP",
-        "help": "Noise Removal, AGC, and AEC",
-        "gstElement": "webrtcdsp",
-
-        "params": {
-            "gain-control": {
-                "type": "bool",
-                "displayName": "AGC",
-                "value": False,
-                "sort": 0
-            },
-            "echo-cancel": {
-                "type": "bool",
-                "displayName": "Feedback Cancel",
-                "value": True,
-                "sort": 1
-            },
-            "noise-suppression":
-            {
-                "type": "bool",
-                "displayName": "Noise Suppression",
-                "value": True,
-                "sort": 1
-            }
-
-        },
-        "gstSetup": {
-            "high-pass-filter": False,
-            "delay-agnostic": True,
-            'noise-suppression-level': 0
-        },
-        "preSupportElements": [
-            {"gstElement": "queue", "gstSetup": {
-                "min-threshold-time": 25*1000*000}},
-            {"gstElement": "audioconvert", "gstSetup": {}},
-            {"gstElement": "interleave", "gstSetup": {}}
-
-        ],
-        "postSupportElements": [
-            {"gstElement": "audioconvert", "gstSetup": {}}
-        ]
-    },
-
-    "voicedsprobe": {"type": "voicedsprobe", "displayType": "Voice DSP Probe", "help": "When using voice DSP, you must have one of these right before the main output.", "gstElement": "webrtcechoprobe",
-                     "params": {}, "gstSetup": {},
-                     "preSupportElements": [
-                         {"gstElement": "audioconvert", "gstSetup": {}},
-                         {"gstElement": "interleave", "gstSetup": {}}
-
-                     ],
-                     "postSupportElements": [
-                         {"gstElement": "audioconvert", "gstSetup": {}}
-                     ]
-                     },
     "3beqp":
     {"type": "3beqp", "displayType": "3 Band Parametric EQ", "help": "Basic builtin paramentric EQ", "gstElement": "equalizer-nbands",
         "params": {

@@ -18,9 +18,7 @@ import ctypes  # Calm down, this has become standard library since 2.5
 import cherrypy
 import base64
 import os
-import time
 import subprocess
-import time
 import shutil
 import sys
 import logging
@@ -29,7 +27,6 @@ import zipfile
 import threading
 from cherrypy.lib.static import serve_file
 from . import pages, util, messagebus, config, auth, registry, mail, kaithemobj, config, weblogin, systasks, gpio, directories, persist
-import io
 
 
 jacksettingsfile = os.path.join(
@@ -126,13 +123,13 @@ class Settings():
     @cherrypy.expose
     def mdns(self):
         """Return a page showing all of the discovered stuff on the LAN"""
-        pages.require("/admin/settings.view", noautoreturn=True)
+        pages.require("/admin/settings.edit", noautoreturn=True)
         return pages.get_template("settings/mdns.html").render()
 
     @cherrypy.expose
     def upnp(self):
         """Return a page showing all of the discovered stuff on the LAN"""
-        pages.require("/admin/settings.view", noautoreturn=True)
+        pages.require("/admin/settings.edit", noautoreturn=True)
         return pages.get_template("settings/upnp.html").render()
 
     @cherrypy.expose
@@ -341,7 +338,7 @@ class Settings():
             if k['smtpassword1'] == k['smtpassword2']:
                 registry.set("system/mail/password", k['smtpassword1'])
             else:
-                raise exception("Passwords must match")
+                raise Exception("Passwords must match")
         mail = registry.get("system/mail/lists", {})
 
         for i in k:
