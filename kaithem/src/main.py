@@ -17,6 +17,7 @@
 #
 
 import os
+import sys
 from . import pathsetup
 
 # Minimal path setup, to be able to even find the rest
@@ -72,15 +73,14 @@ from . import config as cfg
 from . import scheduling
 import mako.exceptions
 import cherrypy
-import src
 import logging
 
 
 from . import wifimanager
 
 
-__version__ = "0.65.53 Production"
-__version_info__ = (0, 65, 53, "release", 0)
+__version__ = "0.65.54 Production"
+__version_info__ = (0, 65, 54, "release", 0)
 
 
 # Library that makes threading and lock operations, which we use a lot of, use native code on linux
@@ -263,7 +263,7 @@ def webRoot():
 
     from . import alerts
     logger.info("Loaded core python code")
-    import src.config as cfgmodule
+    from . import config as cfgmodule
     if not config['host'] == 'default':
         bindto = config['host']
     else:

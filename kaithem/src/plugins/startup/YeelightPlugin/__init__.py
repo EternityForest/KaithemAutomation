@@ -82,9 +82,16 @@ class YeelightDevice(devices.Device):
 
         self.tagPoints["rssi"] = self.rssiTag
 
-        self.rssiTag.value =-120
+        #Horrid Heckin' Hack!
+        #We need to seriously refactor this module to properly poll in hte background for
+        #The RSSI.   Till then, just assume good till proven bad.
+        #TODO
+        self.rssiTag.value =-70
+
         self.rssiTag.expose(["/admin/settings.view"])
         self.rssiCacheTime = 0
+
+        self.rssiTag.setAlarm("LowSignal", "value< - 90", priority='warning')
 
 
         self.lastLoggedUnreachable = 0

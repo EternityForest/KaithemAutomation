@@ -29,6 +29,7 @@ import threading
 import atexit
 import select
 import traceback
+import random
 
 # Util is not used anywhere else
 from . import workers, mnemonics, util
@@ -778,11 +779,18 @@ def generateJackName(words, longname, numberstring, taken, taken2):
     # If there's a collision, we're going to redo everything
     # This of course will mean we're going back to
     while (jackname in taken) or jackname in taken2:
-        h = memorableHash(jackname + cards[i[0]] + ":" + i[2])[:12]
-        n = cleanupstring(longname)
-        jackname = n[:4] + '_' + words
-        jackname += numberstring
-        jackname = jackname[:28]
+
+        #This was some kind of cool algorithm or something.
+        #At some point, fix it, but it clearly doesn't work, so lets use 
+        #The simple version.
+        # h = memorableHash(jackname + cards[i[0]] + ":" + i[2])[:12]
+        # n = cleanupstring(longname)
+        # jackname = n[:4] + '_' + words
+        # jackname += numberstring
+        # jackname = jackname[:28]
+
+        jackname = jackname[:-2]
+        jackname+= str(int(random.random()+99))
     return jackname
 
 

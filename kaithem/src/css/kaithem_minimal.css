@@ -178,14 +178,12 @@ p.menubar, div.menubar {
 	background-color: rgba(255, 25, 255, 0.1);
 	border-radius: 7px;
 	opacity: 70%;
-	transform: scale(0.9);
 }
 p.menubar:hover, div.menubar:hover {
 	background-color: rgba(255, 25, 255, 0.1);
 	border-radius: 7px;
 	opacity: 100%;
 	max-height: initial;
-	transform: none;
 }
 
 /*********************Code editing************************/
