@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.65.55
+- Tag history DB file now includes the name of the node that wrote it.
+- Semi breaking change, not really, the log directory is now compartmented by which hostname-user actually wrote the logs, in case the vardir is synced between machines.
+- File manager now includes a youtube-dl frontend, for legal purposes only.
+
 ### 0.65.54
 - More nuisance errors removed
 - Assume that YeeLight bulbs have a good connection until proven otherwise, to avoid alarms. In the future the whole YeeLight module should be refactored.

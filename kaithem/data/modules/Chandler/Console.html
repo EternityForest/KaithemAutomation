@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1609708934501815
+resource-timestamp: 1613617215337829
 resource-type: page
 template-engine: mako
 
@@ -1089,8 +1089,8 @@ from src import tagpoints
                                             </tr>
                                             <tr v-for="i in soundsearchresults">
                                                 <td v-bind:title="'Found in'+i[0]">{{i[1]}}</td>
-                                                <td><button v-on:click="setSoundfile(currentcueid,soundfilesdir+i[1])">Set</button></td>
-                                                <td><button v-on:click="newCueFromSound(scenename,soundfilesdir+i[1])">New</button></td>
+                                                <td><button v-on:click="setSoundfile(currentcueid,(soundsearch.length ? '': soundfilesdir)+i[1])">Set</button></td>
+                                                <td><button v-on:click="newCueFromSound(scenename,(soundsearch.length ? '': soundfilesdir)+i[1])">New</button></td>
                                             </tr>
                                         </table>
                                     </div>

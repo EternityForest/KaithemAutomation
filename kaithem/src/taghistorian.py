@@ -6,8 +6,13 @@ import sqlite3
 import logging
 import traceback
 import threading
+import getpass
+import socket
+import shutil
 
-logdir = os.path.join(directories.vardir, "logs")
+oldlogdir = os.path.join(directories.vardir, "logs")
+logdir = directories.logdir
+
 syslogger = logging.getLogger("system")
 
 if not os.path.exists(logdir):
@@ -16,8 +21,19 @@ if not os.path.exists(logdir):
     except Exception:
         syslogger.exception("Can't make log dir")
 
+#Build a filename including the hostname and user.   This is because SQLite may not be happy to be involved with SyncThing.
+#For that reason, should someone get the bright idea to sync a kaithem vardir, we must keep the history databases single-writer.
 
-historyDBFile = os.path.join(logdir, "history.ldb")
+#Plus, there is nothing in the DB itself to tell us who wrote it, so this is very convenient.
+historyFilemame = socket.gethostname()+"-"+getpass.getuser()+"-taghistory.ldb"
+
+oldHistoryDBFile = os.path.join(oldlogdir, "history.ldb")
+
+newHistoryDBFile = os.path.join(logdir, historyFilemame)
+
+#Compatibility with legacy
+if os.path.exists(oldHistoryDBFile):
+    shutil.move(oldHistoryDBFile, newHistoryDBFile)
 
 
 class TagLogger():
@@ -78,7 +94,7 @@ class TagLogger():
     def getDataRange(self, minTime, maxTime, maxRecords=10000):
         with self.h.lock:
             d = []
-            conn = sqlite3.Connection(historyDBFile)
+            conn = sqlite3.Connection(newHistoryDBFile)
 
             c = conn.cursor()
             c.execute("SELECT timestamp,value FROM record WHERE timestamp>? AND timestamp<? AND channel=? ORDER BY timestamp ASC LIMIT ?",
@@ -107,7 +123,7 @@ class TagLogger():
     def getRecent(self, minTime, maxTime, maxRecords=10000):
         with self.h.lock:
             d = []
-            conn = sqlite3.Connection(historyDBFile)
+            conn = sqlite3.Connection(newHistoryDBFile)
 
             c = conn.cursor()
             c.execute("SELECT timestamp,value FROM record WHERE timestamp>? AND timestamp<? AND channel=? ORDER BY timestamp DESC LIMIT ?",
@@ -164,7 +180,7 @@ class TagLogger():
         # Either get our stored channel name, or create a new onw
         with self.h.lock:
             # Have to make our own, we are in a new thread now.
-            conn = sqlite3.Connection(historyDBFile)
+            conn = sqlite3.Connection(newHistoryDBFile)
             conn.row_factory = sqlite3.Row
 
             c = conn.cursor()
@@ -366,7 +382,7 @@ class TagHistorian():
             time.sleep(0.001)
             time.sleep(0.001)
 
-            self.history = sqlite3.Connection(historyDBFile)
+            self.history = sqlite3.Connection(newHistoryDBFile)
             with self.history:
                 if needsGC:
                     for i in self.children:
@@ -382,7 +398,7 @@ class TagHistorian():
 
 
 try:
-    historian = TagHistorian(historyDBFile)
+    historian = TagHistorian(newHistoryDBFile)
 except Exception:
     messagebus.postMessage("/system/notifications/errors",
                            "Failed to create tag historian, logging will not work." + "\n" + traceback.format_exc())

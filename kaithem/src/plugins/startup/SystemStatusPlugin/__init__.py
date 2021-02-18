@@ -5,35 +5,45 @@ import logging
 
 undervoltageDuringBootPosted = False
 overTempDuringBootPosted = False
+battery=None
+
 try:
     import psutil
     psutil.sensors_temperatures()
     battery = psutil.sensors_battery()
 
-    if battery:
-        batteryTag = tagpoints.Tag("/system/power/batteryLevel")
-        batteryTag.value=battery.percent
-        batteryTag.unit="%"
-        batteryTag.min=0
-        batteryTag.max=100
-        batteryTag.lo= 25
-
-        batteryTime = tagpoints.Tag("/system/power/batteryTime")
-        batteryTime.unit = 's'
-        batteryTime.max=30*60*60
-        batteryTime.lo = 40*60
-        batteryTime.value = battery.secsleft if battery.secsleft > 0 else 9999999
-        batteryTime.setAlarm("lowBatteryTimeRemaining", "value < 60*15")
-
-
-        acPowerTag = tagpoints.Tag("/system/power/charging")
-        acPowerTag.value=battery.power_plugged
-        acPowerTag.setAlarm("runningOnBattery", "(not value) and (tv('/system/power/batteryLevel')< 80)", priority='info')
-
-
 except ImportError:
-    logging.exception("Cant load system info plugin")
+    logging.exception("Cant load psutil, trying plyer instead")
     psutil=None
+
+    try:
+        import plyer
+    except ImportError:
+        print("Plyer not available either")
+
+
+if psutil or plyer:
+    batteryTag = tagpoints.Tag("/system/power/batteryLevel")
+    batteryTag.value=battery.percent
+    batteryTag.unit="%"
+    batteryTag.min=0
+    batteryTag.max=100
+    batteryTag.lo= 25
+
+    batteryTime = tagpoints.Tag("/system/power/batteryTime")
+    batteryTime.unit = 's'
+    batteryTime.max=30*60*60
+    batteryTime.lo = 40*60
+    batteryTime.value = battery.secsleft if battery.secsleft > 0 else 9999999
+    batteryTime.setAlarm("lowBatteryTimeRemaining", "value < 60*15")
+
+
+    acPowerTag = tagpoints.Tag("/system/power/charging")
+    acPowerTag.value=battery.power_plugged
+    acPowerTag.setAlarm("runningOnBattery", "(not value) and (tv('/system/power/batteryLevel')< 80)", priority='info')
+
+
+
 
 if psutil:
     tempTags = {}
@@ -70,6 +80,36 @@ if psutil:
             batteryTag.value = battery.percent
             batteryTime.value = battery.secsleft if battery.secsleft > 0 else 9999999
     doPsutil()
+
+
+elif plyer:
+    from plyer import battery
+    @scheduling.scheduler.everyMinute
+    def doPlyer():
+        if battery:
+            acPowerTag.value = battery.status['isCharging']
+            batteryTag.value = battery.status['percentage']
+            batteryTime.value = batteryTag.value = ((3*3600)*battery.status['percentage'])/100
+
+    from plyer import flash
+
+    lightTag = tagpoints.Tag(tagpoints.normalizeTagName("/system/hw/flashlight"))
+
+    def lightTagHandler(v,t,a):
+        if v:
+            flash.on()
+        else:
+            try:
+                flash.off()
+            except Exception as e:
+                print(e)
+            flash.release()
+
+    
+    doPlyer()
+
+
+
 # Every minute, we check for overtemperature or overvoltage problems
 if util.which("vcgencmd"):
     undervoltageTag = tagpoints.Tag("/system/pi/undervoltage")

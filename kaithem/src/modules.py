@@ -113,7 +113,6 @@ moduleshash = "000000000000000000000000"
 modulehashes = {}
 modulewordhashes = {}
 
-
 def getInitialWhitespace(s):
     t = ''
     for i in s:
@@ -122,7 +121,6 @@ def getInitialWhitespace(s):
         else:
             break
     return t
-
 
 def readToplevelBlock(p, heading):
     """Given code and a heading like an if or a def, read everything under it.
@@ -158,7 +156,6 @@ def readToplevelBlock(p, heading):
         if state == 'outside':
             raise ValueError("No such block")
     return ('\n'.join(lines), '\n'.join(outside_lines))
-
 
 def readStringFromSource(s, var):
     "Without executing it, get a string var from source code"

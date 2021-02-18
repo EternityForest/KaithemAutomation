@@ -35,6 +35,29 @@ Upload zip and unpack:
 </p>
 </form>
 
+<div class="help">
+    These options allow you to download a video file, for legal archival purposes only, from popular video sharing sites.</br>
+    To download the first YouTube search result, use "ytsearch: some text"</br>
+
+    Otherwise, you can directly specify a YouTube(Or just about any other site) URL.  These features require youtube-dl to be installled and up-to-date.
+</div>
+
+<form enctype="multipart/form-data" action="/settings/files/${util.url(dir)}" method="POST">
+    <p class="menubar">
+    Download Audio File(legal only!)
+    <input name="youtubedl" value="ytsearch: ">
+    <input type="submit">
+    </p>
+</form>
+
+<form enctype="multipart/form-data" action="/settings/files/${util.url(dir)}" method="POST">
+    <p class="menubar">
+    Download video File(legal only!)
+    <input name="youtubedl" value="ytsearch: ">
+    <input type="submit">
+    </p>
+</form>
+
 <table border=1>
 <tr><th>Path</th><th>Size</th><th>Delete</th></tr>
 %for i in sorted(os.listdir(dir)):

@@ -21,9 +21,12 @@
 # []Put these in approprite places when running on linux
 import os
 import pwd
+import getpass
 import shutil
 from .config import config
 from os import environ
+
+import socket
 
 # Normally we run from one folder. If it's been installed, we change the paths a bit.
 dn = os.path.dirname(os.path.realpath(__file__))
@@ -34,16 +37,19 @@ if "/usr/lib" in dn:
     vardir = "/var/lib/kaithem"
     datadir = "/usr/share/kaithem"
     logdir = "/var/log/kaithem"
+
 elif 'ANDROID_ARGUMENT' in environ:
     from android.storage import app_storage_path
     vardir = os.path.join(app_storage_path(), 'var')
     datadir = os.path.normpath(os.path.join(dn, '../data'))
-    logdir = os.path.join(vardir, 'logs')
+    logdir = os.path.join(
+        vardir, 'logs', socket.gethostname() + "-" + getpass.getuser())
 else:
     vardir = os.path.normpath(os.path.join(dn, '..'))
     vardir = os.path.join(vardir, config['site-data-dir'])
     datadir = os.path.normpath(os.path.join(dn, '../data'))
-    logdir = os.path.join(vardir, 'logs')
+    logdir = os.path.join(
+        vardir, 'logs', socket.gethostname() + "-" + getpass.getuser())
 
 
 moduledatadir = os.path.join(vardir, 'moduledata')
@@ -70,7 +76,8 @@ def recreate():
         vardir = os.path.join(vd, config['site-data-dir'])
 
     usersdir = os.path.join(vardir, 'users')
-    logdir = os.path.join(vardir, 'logs')
+    logdir = os.path.join(
+        vardir, 'logs', socket.gethostname() + "-" + getpass.getuser())
     regdir = os.path.join(vardir, 'registry')
     moduledir = os.path.join(vardir, 'modules')
     datadir = os.path.normpath(os.path.join(dn, '../data'))

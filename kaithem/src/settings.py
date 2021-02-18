@@ -139,6 +139,17 @@ class Settings():
         kaithemobj.kaithem.sound.stopAll()
         raise cherrypy.HTTPRedirect("/settings")
 
+
+    @cherrypy.expose
+    def updateytdl(self, *args, **kwargs):
+        pages.require("/admin/settings.edit", noautoreturn=True)
+        try:
+            subprocess.check_call(["youtube-dl", '-U'])
+        except:
+            subprocess.check_call(["pip3", "install", "--upgrade", "youtube-dl"])
+
+        raise cherrypy.HTTPRedirect("/settings")
+
     @cherrypy.expose
     @cherrypy.config(**{'response.timeout': 7200})
     @cherrypy.config(**{'tools.allow_upload.on': True, 'tools.allow_upload.f': validate_upload})
@@ -180,6 +191,13 @@ class Settings():
                                     break
                                 outf.write(data)
                             f.close()
+
+
+            if 'youtubedl' in kwargs:
+                subprocess.check_call(['youtube-dl', '--format', 'bestaudio', kwargs['youtubedl']], cwd=dir)
+
+            if 'youtubedlvid' in kwargs:
+                subprocess.check_call(['youtube-dl', kwargs['youtubedlvid']], cwd=dir)
 
             if os.path.isdir(dir):
                 return pages.get_template("settings/files.html").render(dir=dir)

@@ -1160,6 +1160,7 @@ def _startJackProcess(p=None, n=None, logErrs=True):
 
         # If the user supplied a perisistent name, translate it.
         if jackDevice:
+            useDevice= jackDevice
             incards, outcards, x = listSoundCardsByPersistentName()
             if jackDevice in incards:
                 useDevice = incards[jackDevice][0]
