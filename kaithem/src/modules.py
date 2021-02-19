@@ -776,6 +776,8 @@ def loadRecoveryDbInfo(completeFileTimestamp=0):
             recoveryDb.close()
 
 
+
+
 def initModules():
     global moduleshash, external_module_locations
     """"Find the most recent module dump folder and use that. Should there not be a module dump folder, it is corrupted, etc,
@@ -1246,6 +1248,9 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
         scopes[modulename] = ModuleObject(modulename)
         ActiveModules[modulename] = module
         messagebus.postMessage("/system/modules/loaded", modulename)
+
+
+
         logger.info("Loaded module "+modulename +
                     " with md5 "+getModuleHash(modulename))
         # bookkeeponemodule(name)

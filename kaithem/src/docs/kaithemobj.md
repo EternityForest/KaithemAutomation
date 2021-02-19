@@ -97,6 +97,23 @@ This does nothing except print a notice. It's there so you can find the
 function in breakpoint.py, and put a breakpoint there.
 
 
+
+### kaithem.devices
+
+This namespace is used to manage devices.  All device objects appear at kaithem.devices['DeviceName], and kaithem.devices.deviceName, if the name is valid and does
+not conflict.
+
+You can't currently create a device in code. But you can add a new device type. 
+
+See the main devices docs page for details.
+
+#### kaithem.devices.deviceTypes
+Device driver classes all go here.
+
+#### kaithem.devices.Device
+This is the base class you would use to create a new device.
+
+
 ### kaithem.gpio
 
 This namespace integrates the excellent GPIOZero into kaithem.

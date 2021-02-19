@@ -5,6 +5,7 @@ Change Log
 - Tag history DB file now includes the name of the node that wrote it.
 - Semi breaking change, not really, the log directory is now compartmented by which hostname-user actually wrote the logs, in case the vardir is synced between machines.
 - File manager now includes a youtube-dl frontend, for legal purposes only.
+- Ability to ship device drivers inside a module, with proper dependency resolution on boot.
 
 ### 0.65.54
 - More nuisance errors removed

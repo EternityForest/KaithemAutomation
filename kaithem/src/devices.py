@@ -187,7 +187,7 @@ class Device(virtualresource.VirtualResource):
 
     def __init__(self, name, data):
         if not data['type'] == self.deviceTypeName:
-            raise ValueError("Incorrect type in info dict")
+            raise ValueError("Incorrect device type in info dict, does not match deviceTypeName")
         virtualresource.VirtualResource.__init__(self)
         global remote_devices_atomic
         global remote_devices
@@ -300,10 +300,17 @@ class Device(virtualresource.VirtualResource):
         # And keep stuff from GCIng for too long
         workers.do(makeBackgroundPrintFunction(t, tm, title, self))
 
+
+class UnsupportedDevice(Device):
+    description = "This device does not have support, or else the support is not loaded."
+    deviceTypeName = "unsupported"
+
+    def warn(self):
+        self.handleError("This device type has no support.")
+
+
 # Device data always has 2 constants. 1 is the required type, the other
 # is name, and that's optional but can be used to rename a device
-
-
 def updateDevice(devname, kwargs, saveChanges=True):
     name = kwargs.get('name', None) or devname
 
@@ -429,20 +436,28 @@ class WebDevices():
         raise cherrypy.HTTPRedirect("/devices")
 
 
-class DeviceNamespace():
-    def __getattr__(self, name):
-        return remote_devices[name].interface()
-
-    def __getitem__(self, name):
-        return remote_devices[name].interface()
-
-    def __iter__(self):
-        return (i for i in remote_devices_atomic)
 
 
 builtinDeviceTypes = {'device': Device}
 deviceTypes = weakref.WeakValueDictionary()
 
+class DeviceNamespace():
+    deviceTypes = deviceTypes
+    Device = Device
+
+    def __getattr__(self, name):
+        if remote_devices[name].type =="unsupported":
+            raise RuntimeError("There is no driver for this device")
+        return remote_devices[name].interface()
+
+    def __getitem__(self, name):
+        if remote_devices[name].type =="unsupported":
+            raise RuntimeError("There is no driver for this device")
+        return remote_devices[name].interface()
+
+    def __iter__(self):
+        x=remote_devices_atomic
+        return (i for i in x if not x[i].type=='unsupported')
 
 class DeviceTypeLookup():
     def __getitem__(self, k):
@@ -454,13 +469,14 @@ class DeviceTypeLookup():
 
 
 def makeDevice(name, data):
-
     if data['type'] in builtinDeviceTypes:
         dt = builtinDeviceTypes[data['type']]
     elif data['type'] in ("", 'device', 'Device'):
         dt = Device
-    else:
+    elif data['type'] in deviceTypes:
         dt = deviceTypes[data['type']]
+    else:
+        dt = UnsupportedDevice
 
     if 'subclass' not in data:
         data['subclass'] = dt.defaultSubclassCode
@@ -503,7 +519,7 @@ def getDeviceType(t):
     elif t in deviceTypes:
         return deviceTypes[t]
     else:
-        return Device
+        return UnsupportedDevice
 
 
 class TemplateGetter():
@@ -550,6 +566,35 @@ def loadDeviceType(root, i):
         dt.readme = mdfn
 
 
+def createDevicesFromData():
+    for i in device_data:
+
+        # We can call this again to reload unsupported devices.
+        if i in remote_devices and not remote_devices[i].deviceTypeName == "unsupported":
+            continue
+
+        try:
+            remote_devices[i] = makeDevice(i, device_data[i])
+            syslogger.info("Created device from config: " + i)
+        except:
+            messagebus.postMessage(
+                "/system/notifications/errors", "Error creating device: " + i + "\n" + traceback.format_exc())
+            syslogger.exception("Error initializing device " + str(i))
+
+    remote_devices_atomic = wrcopy(remote_devices)
+
+
+def warnAboutMissingDevices():
+    x = remote_devices_atomic
+    for i in x:
+        if x[i].deviceTypeName == "unsupported":
+            try:
+                x[i].warn()
+            except:
+                syslogger.exception(
+                    "Error warning about missing device support device " + str(i))
+
+
 def init_devices():
     global remote_devices_atomic
     toLoad = []
@@ -579,13 +624,4 @@ def init_devices():
         messagebus.postMessage("/system/notifications/errors",
                                "Error with device drivers:\n" + traceback.format_exc(chain=True))
 
-    for i in device_data:
-        try:
-            remote_devices[i] = makeDevice(i, device_data[i])
-            syslogger.info("Created device from config: " + i)
-        except:
-            messagebus.postMessage(
-                "/system/notifications/errors", "Error creating device: " + i + "\n" + traceback.format_exc())
-            syslogger.exception("Error initializing device " + str(i))
-
-    remote_devices_atomic = wrcopy(remote_devices)
+    createDevicesFromData()

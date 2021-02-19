@@ -85,8 +85,8 @@ fullscreen = 0
 #android.presplash_color = #FFFFFF
 
 # (list) Permissions
-#Leave out the wifi multicast one for battery life, but we should really disable that in code
-android.permissions = INTERNET,ACCESS_NETWORK_STATE,ACCESS_WIFI_STATE
+#As a dev tool to host arbitrary apps, Kaithem needs every sensor.
+android.permissions = INTERNET,ACCESS_NETWORK_STATE,ACCESS_WIFI_STATE,MANAGE_EXTERNAL_STORAGE,NFC,VIBRATE,MODIFY_AUDIO_SETTINGS,CAMERA,ACCESS_FINE_LOCATION,ACCESS_COARSE_LOCATION,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE,CALL_PHONE,BODY_SENSORS,SEND_SMS,RECEIVE_SMS,READ_SMS,CHANGE_WIFI_MULTICAST_STATE,BLUETOOTH_ADMIN,BLUETOOTH
 
 # (int) Target Android API, should be as high as possible.
 #android.api = 27

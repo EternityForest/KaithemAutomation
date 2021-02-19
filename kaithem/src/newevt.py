@@ -40,11 +40,19 @@ import dateutil.rrule
 import dateutil.tz
 import textwrap
 
-from . import workers, kaithemobj, messagebus, util, modules_state, scheduling, unitsofmeasure
+from . import workers, kaithemobj, messagebus, util, modules_state, scheduling, unitsofmeasure,devices
 from .config import config
 from .scheduling import scheduler
 ctime = time.time
 do = workers.do
+
+def retryDeviceCreation():
+    """When we load up a new event, it might contain a driver, so we 
+    retry to create all the devices that may have been stuck as Unsupported because there was no driver"""
+    try:
+        devices.createDevicesFromData()
+    except:
+        logger.exception("Something bad happened")
 
 # Ratelimiter for calling gc.collect automatically when we get OSErrors
 _lastGC = 0
@@ -1532,9 +1540,12 @@ def updateOneEvent(resource, module, o=None):
                 x.register()
                 # Update index
                 __EventReferences[module, resource] = x
+            
         except Exception as e:
             d = makeDummyEvent(module, resource)
             d._handle_exception(e)
+
+        retryDeviceCreation()
 
 # makes a dummy event for when there is an error loading and puts it in the right place
 # The dummy does nothing but is in the right place
@@ -1614,6 +1625,10 @@ def getEventsFromModules(only=None):
                         logging.debug("Loading "+i.module + ":"+i.resource)
                         slt = time.time()
                         i.f()
+
+                        #Fix any unsupported devices that may now be supported because we just added a driver for them.
+                        retryDeviceCreation()
+
                         messagebus.postMessage(
                             "/system/events/loaded", [i.module, i.resource])
                         logging.debug("Loaded "+i.module + ":"+i.resource +

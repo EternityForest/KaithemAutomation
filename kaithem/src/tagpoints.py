@@ -1907,6 +1907,39 @@ class _ObjectTagPoint(_TagPoint):
             self.lock.release()
 
 
+# class _BinaryTagPoint(_TagPoint):
+#     defaultData: bytes = b''
+#     type = 'binary'
+
+#     @typechecked
+#     def __init__(self, name: str):
+#         self.guiLock = threading.Lock()
+
+#         self.validate = None
+#         _TagPoint.__init__(self, name)
+
+#     def processValue(self, value):
+#         # Functions are special valid types of value.
+#         # They are automatically resolved.
+#         if callable(value):
+#             value = value()
+
+#         if isinstance(value, bytes):
+#             value = value
+#         else:
+#             value=bytes(value)
+
+#         if self.validate:
+#             value = self.validate(value)
+
+#         return value
+
+#     def filterValue(self, v):
+#         return v
+
+
+
+
 class Claim():
     "Represents a claim on a tag point's value"
     @typechecked

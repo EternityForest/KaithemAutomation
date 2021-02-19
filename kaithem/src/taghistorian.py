@@ -9,6 +9,7 @@ import threading
 import getpass
 import socket
 import shutil
+import json
 
 oldlogdir = os.path.join(directories.vardir, "logs")
 logdir = directories.logdir
@@ -158,8 +159,14 @@ class TagLogger():
         self.accumVal = value
         self.accumTime = timestamp
         self.accumCount = 1
-        if isinstance(value, str):
-            value = value[:128]
+        if isinstance(value, (int,float,bytes)):
+            pass
+
+        elif isinstance(value, str):
+            value = value[:1024*128]
+
+        elif isinstance(value, (list,dict,tuple)):
+            value = json.dumps(value)
 
         self.flush()
 

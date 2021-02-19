@@ -4,6 +4,10 @@ Kaithem provides an abstraction called a Device that covers several kinds of dev
 Kasa smartplugs and Pavillion devices are supported.
 
 
+## Pavillion Note
+
+The future of Pavillion is uncertain. Pavillion features may be removed.  All other device-related things should be stable, as they are a core feature.
+
 
 ## API
 
@@ -13,6 +17,27 @@ All Pavillion devices post all recieved pavillion messages to the bus at /device
 
 All Tagpoints the device exposes appear in the tags list under  /devices/<DEVNAME>/<TAGNAME>. 
 
+
+## Dependency Resolution
+
+The system tries to create all devices before any modules are loaded.
+
+Devices with no driver are created as "Unsuported" devices.  When a driver is later added by a module, the device is automatically recreated as the correct device type.
+
+Attempting to access a device of the "unsupported" type via kaithem.devices will raise a RuntimeError, although they do show up in the management page.
+
+kaithem.devices is iterable, but does not include anything currently unsupported.
+
+
+This means that the usual "retry on errors" based dependancy resolution will work.
+
+Normally you don't need to think about this at all, but an example dependancy resolution sequence is:
+
+* all devices are created except foo, which is unsupported
+* modules load
+* Event bar fails because it needs foo. It goes in the retry queue
+* Event MyDriver loads, and gives foo it's driver.  Foo is recreated.
+* Event bar eventually loads successfully.
 
 ### Device Objects
 
@@ -88,8 +113,10 @@ string keys that describe exactly what the device is capable of. String
 keys can be anything, but domain name based names help avoid collisions.
 
 To create your own device types, all you have to do is subclass
-devices.Device, and add your subclass to the weak dict
-devices.deviceTypes.
+devices.Device(Also available at kaithem.devices.Device), and add your subclass to the weak dict
+devices.deviceTypes(Also available as kaithem.devices.deviceTypes)
+
+deviceTypes is a weakref dict, you must keep a reference to your class.
 
 Java-style "com.foo.devicetype" names are suggested to avoid collisions.
 
@@ -99,6 +126,8 @@ Anything within a matched set of parens will be excluded from the name.
 
 
 You cannot have two drivers for the same device name.
+
+
 
 ### VARDIR/devicedrivers
 
