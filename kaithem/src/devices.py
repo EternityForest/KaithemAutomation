@@ -446,18 +446,18 @@ class DeviceNamespace():
     Device = Device
 
     def __getattr__(self, name):
-        if remote_devices[name].type =="unsupported":
+        if remote_devices[name].deviceTypeName =="unsupported":
             raise RuntimeError("There is no driver for this device")
         return remote_devices[name].interface()
 
     def __getitem__(self, name):
-        if remote_devices[name].type =="unsupported":
+        if remote_devices[name].deviceTypeName =="unsupported":
             raise RuntimeError("There is no driver for this device")
         return remote_devices[name].interface()
 
     def __iter__(self):
         x=remote_devices_atomic
-        return (i for i in x if not x[i].type=='unsupported')
+        return (i for i in x if not x[i]().deviceTypeName=='unsupported')
 
 class DeviceTypeLookup():
     def __getitem__(self, k):
