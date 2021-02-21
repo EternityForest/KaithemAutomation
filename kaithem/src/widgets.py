@@ -440,8 +440,9 @@ class Widget():
             d = msgpack.packb([[self.uuid, value]])
         else:
             d = json.dumps([[self.uuid, value]])
-        # Not sure what the actual cause of the ssl segfault is, but maybe it's this?
-        if (len(d) > 128*1024):
+
+        #Very basic saniy check here
+        if (len(d) > 32*1024*1024):
             raise ValueError("Data is too large, refusing to send")
 
         # Yes, I really had a KeyError here. Somehow the dict was replaced with the new version in the middle of iteration
@@ -456,8 +457,7 @@ class Widget():
             d = msgpack.packb([[self.uuid, value]])
         else:
             d = json.dumps([[self.uuid, value]])
-        # Not sure what the actual cause of the ssl segfault is, but maybe it's this?
-        if (len(d) > 128*1024):
+        if (len(d) > 32*1024*1024):
             raise ValueError("Data is too large, refusing to send")
         self.subscriptions_atomic[target](d)
 

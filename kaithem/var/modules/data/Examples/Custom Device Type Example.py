@@ -76,7 +76,6 @@ if __name__=='__setup__':
     
     
     kaithem.devices.deviceTypes["ExampleCustomDevice"] = ExampleCustomDevice
-    
 
 def eventAction():
     pass

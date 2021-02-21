@@ -1559,10 +1559,9 @@ if jackmanager.settings.get('jackMode', None) in ("manage", "use"):
         except:
             pass
     workers.do(f)
-    # Wait up to 3 seconds
+    # Wait up to 5 seconds
     t = time.monotonic()
-    while(time.monotonic()-t) < 3:
+    while(time.monotonic()-t) < 5:
         if len(isStartDone):
             break
         time.sleep(0.1)
-del isStartDone

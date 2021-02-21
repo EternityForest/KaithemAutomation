@@ -1669,6 +1669,10 @@ def getEventsFromModules(only=None):
                     [time.strftime(config['time-format']), str(i.error)])
                 messagebus.postMessage("/system/notifications/errors", "Failed to load event resource: " +
                                        i.resource + " module: " + i.module + "\n" + str(i.error)+"\n"+"please edit and reload.")
+    try:
+        devices.warnAboutMissingDevices()
+    except Exception:
+        logging.info("Error checking validity of device instances")
     logging.info("Created events from modules")
 
 

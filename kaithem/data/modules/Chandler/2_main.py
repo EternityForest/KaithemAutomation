@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1609279411507936
+resource-timestamp: 1613911232157414
 resource-type: event
 versions: {}
 
@@ -2723,6 +2723,13 @@ if __name__=='__setup__':
     
             self.cueTag.subscribe(cueTagHandler)
     
+            #This is used to expose the state of the music cue mostly.
+            self.cueInfoTag = kaithem.tags.ObjectTag("/chandler/scenes/"+name+".cueInfo")
+            self.cueInfoTag.value={"audio.meta":{}}
+            self.cueInfoTag.expose("users.chandler.admin","users.chandler.admin")
+    
+            self.albumArtTag = kaithem.tags.StringTag("/chandler/scenes/"+name+".albumArt")
+            self.albumArtTag.expose("users.chandler.admin")
     
     
     
@@ -3427,6 +3434,24 @@ if __name__=='__setup__':
                             else:
                                 fadeSound(sound,length=max(self.crossfade, self.cue.soundFadeIn), handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops)
     
+                            soundMeta = TinyTag.get(sound,image=True)
+                            currentAudioMetadata = {
+                                "title": soundMeta.title or 'Unknown',
+                                "artist": soundMeta.artist or 'Unknown',
+                                "album": soundMeta.album or 'Unknown',
+                                "year": soundMeta.year or  'Unknown'
+                            }
+    
+                            self.cueInfoTag.value={
+                                "audio.meta": currentAudioMetadata
+                            }
+                            t = soundMeta.get_image()
+    
+                            
+                            if t and len(t)< 3*10**6:
+                                self.albumArtTag.value = "data:image/jpeg;base64,"+base64.b64encode(t).decode()
+                            else:
+                                self.albumArtTag.value=""
                             
                         else:
                             self.event("error", "File does not exist: "+sound)

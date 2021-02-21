@@ -186,7 +186,7 @@ class Device(virtualresource.VirtualResource):
             unsaved_changes[self.name] = True
 
     def __init__(self, name, data):
-        if not data['type'] == self.deviceTypeName:
+        if not data['type'] == self.deviceTypeName and not self.deviceTypeName=='unsupported':
             raise ValueError("Incorrect device type in info dict, does not match deviceTypeName")
         virtualresource.VirtualResource.__init__(self)
         global remote_devices_atomic
@@ -587,10 +587,10 @@ def createDevicesFromData():
 def warnAboutMissingDevices():
     x = remote_devices_atomic
     for i in x:
-        if x[i].deviceTypeName == "unsupported":
+        if x[i]().deviceTypeName() == "unsupported":
             try:
                 x[i].warn()
-            except:
+            except Exception:
                 syslogger.exception(
                     "Error warning about missing device support device " + str(i))
 

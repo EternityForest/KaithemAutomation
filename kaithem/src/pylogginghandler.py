@@ -335,15 +335,18 @@ syslogger = LoggingHandler("system", fn="system" if not config['log-format'] == 
 # Linux only way of recovering backups even if the
 if os.path.exists("/dev/shm/kaithemdbglog_"+getpass.getuser()):
     if not os.path.exists("/dev/shm/shutdowntime_"+getpass.getuser()):
-        try:
-            shutil.rmtree("/dev/shm/kaithemdbglog_"+getpass.getuser())
-        except:
-            pass
+
         try:
             shutil.copytree("/dev/shm/kaithemdbglog_"+getpass.getuser(),
                             "/dev/shm/kaithemdbglogbackup_"+getpass.getuser())
         except:
             pass
+
+        try:
+            shutil.rmtree("/dev/shm/kaithemdbglog_"+getpass.getuser())
+        except:
+            pass
+
         messagebus.postMessage("/system/notifications/errors",
                                """Kaithem may have shutdown uncleanly due to a segfault, kill-9, or similar.
         Recovered logs have been backed up to '/dev/shm/kaithemdbglogbackup'

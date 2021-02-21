@@ -32,8 +32,14 @@ class Gateway(sg1.SG1Gateway):
     def onHWMessage(self, t):
         try:
             self.kaithemInterface().onHWMessage(t.decode('utf-8', errors='backslashreplace'))
-        except:
+        except Exception as e:
             self.kaithemInterface().handleException()
+
+    def onDebugMessage(self, t):
+        try:
+            self.kaithemInterface().onDebugMessage(t)
+        except Exception as e:
+            print(e)
 
     def onConnect(self):
         self.kaithemInterface().onConnect()
@@ -94,6 +100,12 @@ class Device(sg1.SG1Device):
         except:
             self.kaithemInterface().handleException()
 
+
+    def onDebugMessage(self, t):
+        try:
+            self.kaithemInterface().onDebugMessage(t)
+        except Exception as e:
+            print(e)
 
     def onStructuredMessage(self, m):
         try:
@@ -163,6 +175,10 @@ class SG1Device(devices.Device):
             self.rssiTag.min=-140
             self.rssiTag.max = -20
 
+            self.debugSwitch = widgets.Switch()
+            self.debugSwitch.require("/admin/settings.edit")
+
+
             # No redundant alarm, only alarm when auto tx power can no longer keep up
             self.pathLossTag = tagpoints.Tag("/devices/"+name+".pathloss")
             self.pathLossTagClaim = self.pathLossTag.claim(
@@ -228,6 +244,9 @@ class SG1Device(devices.Device):
         self.writeStructured = self.dev.writeStructured
         self.flushStructured = self.dev.flushStructured
 
+    def onDebugMessage(self,t):
+        if self.debugSwitch.value:
+            self.print(t)
     
     def getConfigDataFromDevice(self):
         "Request that the device return it's config data string"
@@ -499,6 +518,10 @@ class SG1Gateway(devices.Device):
         self.gatewayStatusTag.setAlarm(
             name+".SG1GatewayDisconnected", "value != 'connected'", tripDelay=15)
 
+        self.debugSwitch = widgets.Switch()
+        self.debugSwitch.require("/admin/settings.edit")
+
+
         self.gatewayNoiseTag = tagpoints.Tag("/devices/"+name+".noiseFloor")
         self.gatewayNoiseTag.unit= "dBm"
         self.gatewayNoiseTag.min= -140
@@ -559,6 +582,10 @@ class SG1Gateway(devices.Device):
             #Background level is extremely high, so we still update the noise tag, just much slower
             self.gatewayNoiseTag.value = self.gatewayNoiseTag.value*0.99 + noise*0.01
 
+
+    def onDebugMessage(self,t):
+        if self.debugSwitch.value:
+            self.print(t)
 
     def onHWMessage(self, t):
         self.print(t)

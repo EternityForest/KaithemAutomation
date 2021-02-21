@@ -158,12 +158,13 @@ class HintLookup():
 
 
 class NanoframeParser():
-    def __init__(self, debugCallback):
+    def __init__(self, debugCallback, gw):
         self.state = 0
         self.len = 0
         self.buf = []
         self.handleDebugOutput = debugCallback
         self.debugOutput = b''
+        self.gw = gw
 
     def parse(self, d):
         for b in d:
@@ -200,7 +201,7 @@ class NanoframeParser():
                     self.buf = []
 
                 else:
-                    print("overrun", self.buf[:3])
+                    self.gw.onDebugMessage("overrun"+str(self.buf[:3]))
 
 
 def makeThreadFunction(wr):
@@ -326,7 +327,9 @@ class SG1Device():
 
 
 
-
+    #These are called whith message objects when we gat the different kinds of message
+    def onDebugMessage(self, m):
+        pass
 
     #These are called whith message objects when we gat the different kinds of message
     def onMessage(self, m):
@@ -391,7 +394,7 @@ class SG1Device():
     def wake(self):
         # Not sure how to properly do dynamic selection for this.
         self.bus.publish(
-            "/SG1/wake__all__", self.channelKey, encoding="msgpack")
+            "/SG1/wake/__all__", self.channelKey, encoding="msgpack")
 
     def pair(self):
         self.bus.publish("/SG1/pair/"+self.gateways[0],
@@ -440,6 +443,7 @@ class SG1Device():
         # Check if it's impossibly old.
         t=(time.time()-16)*10**6
         if m['ts'] < t:
+            self.onDebugMessage("Incoming data has old timestamp "+str(m['ts'])+" expected >"+str(t))
             return False
 
         self.rxMessageTimestamps[m['ts']]=True
@@ -483,6 +487,8 @@ class SG1Device():
             if (self.nodeID < 1) or (not 'id' in m) or (self.nodeID == m.get('id',0)):
                 if self._validateIncoming(m):
                     self.onMessage(m)
+            else:
+                self.onDebugMessage("Ignoring message on same channel but from node ID "+str(m.get('id',0)))
 
     def _onStructuredMessage(self, t, m):
         if self.running:
@@ -499,6 +505,8 @@ class SG1Device():
             if (self.nodeID < 1) or (not 'id' in m) or (self.nodeID == m.get('id',0)):
                 if self._validateIncoming(m):
                     self.onStructuredMessage(decodeStructuredMessage(m))
+            else:
+                self.onDebugMessage("Ignoring message on same channel but from node ID "+str(m.get('id',0)))
 
     def _onRTMessage(self, t, m):
         if self.running:
@@ -548,7 +556,7 @@ class SG1Gateway():
 
         self.running = True
 
-        self.parser = NanoframeParser(self.onHWMessage)
+        self.parser = NanoframeParser(self.onHWMessage, self)
         self.connected = False
         self.lastDidDiscovery = 0
         self.lastSentTime = 0
@@ -725,6 +733,10 @@ class SG1Gateway():
             finally:
                 self.lock.release()
 
+    def onDebugMessage(self,t):
+        "Used for debugging messages of low level protocol details that should basically never be logged, they aren't interesting most of the time"
+        pass
+
     def sendSG1(self, data, power=0, id=1):
         # 2 reserved bytes
        
@@ -805,6 +817,8 @@ class SG1Gateway():
 
     def handleAnnounce(self, topic, message):
         with self.lock:
+            self.onDebugMessage("MQTT Client device announce for "+str(message))
+
             new = message not in self.discoveredDevices
             self.discoveredDevices[message] = time.monotonic()
             if new:
@@ -900,6 +914,8 @@ class SG1Gateway():
             self.bus.publish("/SG1/RNG/"+self.gwid, data, encoding='msgpack')
 
         elif cmd == MSG_NEWDATA:
+            self.onDebugMessage("Recieved raw packet")
+
             with self.lock:
                 rssi = struct.unpack("<b", data[:1])[0]
 
@@ -937,6 +953,8 @@ class SG1Gateway():
                     #                    print("UNKNOWN", hint1, hint2)
                     # Tell gateway to discard packet and move on
                     self.listen()
+                    self.onDebugMessage("Packet channel hint has no match")
+
 
         elif cmd == MSG_DECODEDBEACON:
             pathLoss = struct.unpack("<b", data[:1])[0]

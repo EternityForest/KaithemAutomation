@@ -114,8 +114,8 @@ def stopAllJackUsers():
         # Defensive programming against a double stop, which might be something that
         # No longer is in a state that can be touched without a segfault
         try:
-            if i[0] in jackChannels:
-                del jackChannels[i[0]]
+            for i in jackChannels:
+                del jackChannels[i]
         except:
             pass
 
