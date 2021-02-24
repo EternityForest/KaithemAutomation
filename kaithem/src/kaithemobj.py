@@ -70,6 +70,9 @@ class TagInterface():
     def ObjectTag(self, k):
         return tagpoints.ObjectTag(k)
 
+    def BinaryTag(self, k):
+        return tagpoints.BinaryTag(k)
+
     TagClass = tagpoints._TagPoint
     HysteresisFilter = tagpoints.HysteresisFilter
     LowpassFilter = tagpoints.LowpassFilter

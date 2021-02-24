@@ -6,6 +6,8 @@ Change Log
 - Semi breaking change, not really, the log directory is now compartmented by which hostname-user actually wrote the logs, in case the vardir is synced between machines.
 - File manager now includes a youtube-dl frontend, for legal purposes only.
 - Ability to ship device drivers inside a module, with proper dependency resolution on boot.
+- Include pure python fallback for messagepack
+- New BinaryTag tagpoint type
 
 ### 0.65.54
 - More nuisance errors removed

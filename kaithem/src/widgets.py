@@ -139,7 +139,7 @@ try:
     import msgpack
     usingmp = True
 except:
-    pass
+    logging.exception("No msgpack support, using JSON fallback")
 
 if config['enable-websockets']:
     class websocket(WebSocket):
@@ -437,7 +437,7 @@ class Widget():
     def send(self, value):
         "Send a value to all subscribers without invoking the local callback or setting the value"
         if usingmp:
-            d = msgpack.packb([[self.uuid, value]])
+            d = msgpack.packb([[self.uuid, value]],use_bin_type=True)
         else:
             d = json.dumps([[self.uuid, value]])
 

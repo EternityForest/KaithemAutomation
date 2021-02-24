@@ -113,7 +113,10 @@ A tag may only have one handler, and the tag strongly references it.
 A string that determines the unit of a tag. Units are expressed in strings like "m" or "degF". Currently only a small number 
 of unit conversions are supported natively and others use pint, which is not as fast.
 
-SI prefixes should not be used in units, as it interferes with auto-prefixing for display that meter widgets can do, and generally complicates coding. This includes kilograms. Grams should be used for internal calculations instead despite Kg being the base unit according to SI.
+SI prefixes should not be used in units, as it interferes with auto-prefixing for display that meter widgets can do, 
+and generally complicates coding. This includes kilograms. 
+
+Grams should be used for internal calculations instead despite Kg being the base unit according to SI.
 
 
 Note that operations involving units raise an error if the unit is not set. To prevent this,
@@ -220,14 +223,28 @@ Release a claim.
 
 ### StringTags
 
-StringTags are created on demand by kaithem.tags.StringTags(name). They function exactly like regular tagpoints,
+StringTags are created or fetched on demand by kaithem.tags.StringTag(name). They function exactly like regular tagpoints,
 minus all features relating to unit conversion.
+
+### ObjectTags
+
+ObjectTags are created or fetched on demand by kaithem.tags.StringTag(name). They are just like any other tag, but the value must be a JSON
+serializable object.
+
+### BinaryTag
+
+BinaryTags are created or fetched on demand by kaithem.tags.BinaryTag(name). The value of a binary tag is always a bytes object, defaulting to empty.
+
+You can set the default value from the management page for any particular tag, but for BinaryTags it will be interpreted as a hex string.
+
+
+
 
 
 
 ## Soft tags and Filtering
 
-Kaithem has a specific API for filters. Custpom filters are encouraged to use this pattern:
+Kaithem has a specific API for filters. Custom filters are encouraged to use this pattern:
 
 ### Filter(name, inputTag, *,priority=60,interval=-1)
 

@@ -86,6 +86,17 @@ Page:
 </tr>
 %endif
 
+%if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._BinaryTagPoint):
+<tr>
+    <td><a href="/tagpoints/${i|u}">${i|h}</h></td>
+    <td><span style="color: grey">Value is binary data</span></td>
+    <td>${tagpoints.allTagsAtomic[i]().interval}</td>
+    <td>${tagpoints.allTagsAtomic[i]().activeClaim[2]}</td>
+    <td>${tagpoints.allTagsAtomic[i]().owner}</td>
+    <td>${len(tagpoints.allTagsAtomic[i]().subscribers)}</td>
+</tr>
+%endif
+
 
 %if tagpoints.allTagsAtomic[i]()==None:
 <tr>

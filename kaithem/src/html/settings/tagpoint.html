@@ -210,7 +210,7 @@ ${tag.description or "No description set"}
     </tr>
     <tr>
         <td>Value at page load</td>
-        <td>${str(tag.value)[:128]}</td>
+        <td>${(str(tag.value)[:128]) if not isinstance(tag.value,bytes) else str(len(tag.value)) +" bytes of binary"}</td>
     </tr>
     <tr>
         <td>Owner</td>
@@ -272,10 +272,12 @@ ${tag.description or "No description set"}
     %except Exception as e:
     ${e|h}</td>
     %endtry
-%endif
 
-%if tag and isinstance(tag,(tagpoints._StringTagPoint, tagpoints._ObjectTagPoint)):
+%elif tag and isinstance(tag,(tagpoints._StringTagPoint, tagpoints._ObjectTagPoint)):
     <td>${tag.spanWidget.render()}</td>
+
+%else:
+    <td>No live preview</td>
 %endif
 
 %if tag==None:
