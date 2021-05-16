@@ -79,8 +79,6 @@ class ClientInfo():
 lastLoggedUserError =0
 
 class WebInterface():
-
-
     @cherrypy.expose
     def ws(self):
         # you can access the class instance through
@@ -141,128 +139,127 @@ try:
 except:
     logging.exception("No msgpack support, using JSON fallback")
 
-if config['enable-websockets']:
-    class websocket(WebSocket):
-        def __init__(self, *args, **kwargs):
-            self.subscriptions = []
-            self.lastPushedNewData = 0
-            self.uuid = "id"+base64.b64encode(os.urandom(16)).decode().replace(
-                "/", '').replace("-", '').replace('+', '')[:-2]
-            self.widget_wslock = threading.Lock()
-            self.subCount = 0
-            ws_connections[self.uuid] = self
-            messagebus.subscribe(
-                "/system/permissions/rmfromuser", self.onPermissionRemoved)
-            self.user = '__guest__'
+class websocket(WebSocket):
+    def __init__(self, *args, **kwargs):
+        self.subscriptions = []
+        self.lastPushedNewData = 0
+        self.uuid = "id"+base64.b64encode(os.urandom(16)).decode().replace(
+            "/", '').replace("-", '').replace('+', '')[:-2]
+        self.widget_wslock = threading.Lock()
+        self.subCount = 0
+        ws_connections[self.uuid] = self
+        messagebus.subscribe(
+            "/system/permissions/rmfromuser", self.onPermissionRemoved)
+        self.user = '__guest__'
 
-            self.usedPermissions = collections.defaultdict(lambda: 0)
+        self.usedPermissions = collections.defaultdict(lambda: 0)
 
-            WebSocket.__init__(self, *args, **kwargs)
+        WebSocket.__init__(self, *args, **kwargs)
 
-        def onPermissionRemoved(self, t, v):
-            "Close the socket if the user no longer has the permission"
-            if v[0] == self.user and v[1] in self.usedPermissions:
-                self.close()
+    def onPermissionRemoved(self, t, v):
+        "Close the socket if the user no longer has the permission"
+        if v[0] == self.user and v[1] in self.usedPermissions:
+            self.close()
 
-        def send(self, *a, **k):
-            with self.widget_wslock:
-                WebSocket.send(self, *a, **k, binary=isinstance(a[0], bytes))
+    def send(self, *a, **k):
+        with self.widget_wslock:
+            WebSocket.send(self, *a, **k, binary=isinstance(a[0], bytes))
 
-        def closed(self, code, reason):
-            with subscriptionLock:
-                for i in self.subscriptions:
-                    try:
-                        widgets[i].subscriptions.pop(self.uuid)
-                        widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
+    def closed(self, code, reason):
+        with subscriptionLock:
+            for i in self.subscriptions:
+                try:
+                    widgets[i].subscriptions.pop(self.uuid)
+                    widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
 
-                        if not widgets[i].subscriptions:
+                    if not widgets[i].subscriptions:
+                        widgets[i].lastSubscribedTo = time.monotonic()
+                except:
+                    pass
+
+    def received_message(self, message):
+        global lastLoggedUserError
+        try:
+            if isinstance(message, ws4py.messaging.BinaryMessage):
+                o = msgpack.unpackb(message.data, raw=False)
+            else:
+                o = json.loads(message.data.decode('utf8'))
+
+            resp = []
+            user = self.user
+            
+
+            if 'telemetry.err' in o:
+                # Only log one user error per minute, globally.  It's not meant to catch *everything*,
+                # just to give you a decent change
+                if lastLoggedUserError < time.time()-10:
+                    logger.error("Client side err(These are globally ratelimited):\r\n"+o['telemetry.err'])
+                    lastLoggedUserError = time.time()
+                return
+
+            upd = o['upd']
+            for i in upd:
+                if i[0] in widgets:
+                    widgets[i[0]]._onUpdate(user, i[1], self.uuid)
+
+            if 'subsc' in o:
+                for i in o['subsc']:
+                    if i in self.subscriptions:
+                        continue
+                    if i == "__WIDGETERROR__":
+                        continue
+
+                    # TODO: DoS by filling memory with subscriptions?? This should at least stop accidental attacks
+                    if self.subCount > 1024:
+                        raise RuntimeError(
+                            "Too many subscriptions for this connnection")
+
+                    with subscriptionLock:
+                        if i in widgets:
+                            for p in widgets[i]._read_perms:
+                                if not pages.canUserDoThis(p, user):
+                                    raise RuntimeError(
+                                        user + " missing permission: "+str(p))
+                                self.usedPermissions[p] += 1
+
+                            widgets[i].subscriptions[self.uuid] = subsc_closure(
+                                self, i, widgets[i])
+                            widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy(
+                            )
+                            # This comes after in case it  sends data
+                            widgets[i].onNewSubscriber(user, {})
                             widgets[i].lastSubscribedTo = time.monotonic()
-                    except:
-                        pass
 
-        def received_message(self, message):
-            global lastLoggedUserError
-            try:
-                if isinstance(message, ws4py.messaging.BinaryMessage):
-                    o = msgpack.unpackb(message.data, raw=False)
-                else:
-                    o = json.loads(message.data.decode('utf8'))
+                            self.subscriptions.append(i)
+                            x = widgets[i]._onRequest(user, self.uuid)
+                            if not x is None:
+                                widgets[i].send(x)
+                            self.subCount += 1
 
-                resp = []
-                user = self.user
-               
+            if 'unsub' in o:
+                for i in o['unsub']:
+                    if not i in self.subscriptions:
+                        continue
 
-                if 'telemetry.err' in o:
-                    # Only log one user error per minute, globally.  It's not meant to catch *everything*,
-                    # just to give you a decent change
-                    if lastLoggedUserError < time.time()-10:
-                        logger.error("Client side err(These are globally ratelimited):\r\n"+o['telemetry.err'])
-                        lastLoggedUserError = time.time()
-                    return
+                    # TODO: DoS by filling memory with subscriptions??
+                    with subscriptionLock:
+                        if i in widgets:
+                            if widgets[i].subscriptions.pop(self.uuid, None):
+                                self.subCount -= 1
 
-                upd = o['upd']
-                for i in upd:
-                    if i[0] in widgets:
-                        widgets[i[0]]._onUpdate(user, i[1], self.uuid)
+                                for p in widgets[i].permissions:
+                                    self.usedPermissions[p] -= 1
+                                    if self.usedPermissions[p] == 0:
+                                        del self.usedPermissions[p]
+                            widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy(
+                            )
 
-                if 'subsc' in o:
-                    for i in o['subsc']:
-                        if i in self.subscriptions:
-                            continue
-                        if i == "__WIDGETERROR__":
-                            continue
-
-                        # TODO: DoS by filling memory with subscriptions?? This should at least stop accidental attacks
-                        if self.subCount > 1024:
-                            raise RuntimeError(
-                                "Too many subscriptions for this connnection")
-
-                        with subscriptionLock:
-                            if i in widgets:
-                                for p in widgets[i]._read_perms:
-                                    if not pages.canUserDoThis(p, user):
-                                        raise RuntimeError(
-                                            user + " missing permission: "+str(p))
-                                    self.usedPermissions[p] += 1
-
-                                widgets[i].subscriptions[self.uuid] = subsc_closure(
-                                    self, i, widgets[i])
-                                widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy(
-                                )
-                                # This comes after in case it  sends data
-                                widgets[i].onNewSubscriber(user, {})
-                                widgets[i].lastSubscribedTo = time.monotonic()
-
-                                self.subscriptions.append(i)
-                                x = widgets[i]._onRequest(user, self.uuid)
-                                if not x is None:
-                                    widgets[i].send(x)
-                                self.subCount += 1
-
-                if 'unsub' in o:
-                    for i in o['unsub']:
-                        if not i in self.subscriptions:
-                            continue
-
-                        # TODO: DoS by filling memory with subscriptions??
-                        with subscriptionLock:
-                            if i in widgets:
-                                if widgets[i].subscriptions.pop(self.uuid, None):
-                                    self.subCount -= 1
-
-                                    for p in widgets[i].permissions:
-                                        self.usedPermissions[p] -= 1
-                                        if self.usedPermissions[p] == 0:
-                                            del self.usedPermissions[p]
-                                widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy(
-                                )
-
-            except Exception as e:
-                logging.exception(
-                    'Error in widget, responding to '+str(message.data))
-                messagebus.postMessage(
-                    "system/errors/widgets/websocket", traceback.format_exc(6))
-                self.send(json.dumps({'__WIDGETERROR__': repr(e)}))
+        except Exception as e:
+            logging.exception(
+                'Error in widget, responding to '+str(message.data))
+            messagebus.postMessage(
+                "system/errors/widgets/websocket", traceback.format_exc(6))
+            self.send(json.dumps({'__WIDGETERROR__': repr(e)}))
 
 
 def randID():

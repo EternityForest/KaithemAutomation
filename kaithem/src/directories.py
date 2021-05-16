@@ -33,14 +33,26 @@ dn = os.path.dirname(os.path.realpath(__file__))
 
 srcdir = dn
 
+
+def getRootAndroidDir():
+    from jnius import autoclass, cast
+    PythonActivity = autoclass('org.kivy.android.PythonActivity')
+    Environment = autoclass('android.os.Environment')
+    context = cast('android.content.Context', PythonActivity.mActivity)
+
+    user_services_dir = context.getExternalFilesDir(
+        Environment.getDataDirectory().getAbsolutePath()
+    ).getAbsolutePath()
+
+    return os.path.join(user_services_dir, "var")
+
 if "/usr/lib" in dn:
     vardir = "/var/lib/kaithem"
     datadir = "/usr/share/kaithem"
     logdir = "/var/log/kaithem"
 
 elif 'ANDROID_ARGUMENT' in environ:
-    from android.storage import app_storage_path
-    vardir = os.path.join(app_storage_path(), 'var')
+    vardir = getRootAndroidDir()
     datadir = os.path.normpath(os.path.join(dn, '../data'))
     logdir = os.path.join(
         vardir, 'logs', socket.gethostname() + "-" + getpass.getuser())
@@ -69,8 +81,7 @@ def recreate():
     dn = os.path.dirname(os.path.realpath(__file__))
 
     if 'ANDROID_ARGUMENT' in environ:
-        from android.storage import app_storage_path
-        vardir = os.path.join(app_storage_path(), 'var')
+        vardir = getRootAndroidDir()
     else:
         vd = os.path.normpath(os.path.join(dn, '..'))
         vardir = os.path.join(vd, config['site-data-dir'])

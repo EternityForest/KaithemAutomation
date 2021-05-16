@@ -6,6 +6,17 @@ https-port : 8001
 #The port on which unencrypted web pages will be served
 http-port : 8002
 
+
+
+#Local port on which to provide access to Drayer services
+drayer-port: 7009
+
+
+#Public port on which to accept incoming P2P connections.
+#Note that this does not enable exposing kaithem to the world,
+#You have to explicitly create a service
+drayer-p2p-port: 8107
+
 #What host to bind to. Default is determined by local-access-only
 host: "default"
 

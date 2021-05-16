@@ -200,7 +200,7 @@ def require(permission, noautoreturn=False):
             x = cherrypy.request.remote.ip
             # Allow localhost, and Yggdrasil mesh. This check is really just to be sure nobody accidentally uses HTTP,
             # But localhost and encrypted mesh are legitamate uses of HTTP.
-            if not x.startswith("::1") or x.startswith("127.") or x=='::ffff:127.0.0.1':
+            if not (x.startswith("::1") or x.startswith("127.") or x=='::ffff:127.0.0.1'):
                 raise cherrypy.HTTPRedirect("/errors/gosecure")
 
         user = getAcessingUser()
@@ -264,7 +264,7 @@ def getAcessingUser():
             if not cherrypy.request.scheme == 'https':
                 # Basic auth over http is not secure at all, so we raise an error if we catch it.
                 x = cherrypy.request.remote.ip
-                if not x.startswith("::1") or x.startswith("127.") or x=='::ffff:127.0.0.1':
+                if not (x.startswith("::1") or x.startswith("127.") or x=='::ffff:127.0.0.1'):
                     raise cherrypy.HTTPRedirect("/errors/gosecure")
             # Get token using username and password
             t = userLogin(b[0], b[1])

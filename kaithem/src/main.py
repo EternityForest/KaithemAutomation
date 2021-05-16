@@ -149,6 +149,16 @@ except Exception:
                            "Error loading plugins")
     logger.exception("Error loading plugins")
 
+
+#Making drayer a standard, always-available part of Kaithem.
+#This doesn't mean we actually do anything with it, we don't expose
+#the service to the world till requested.
+try:
+    from . import drayer
+    drayer.loadDrayerSetup()
+except:
+    logger.exception("Error loading DrayerDB Local Node")
+
 devices.init_devices()
 
 

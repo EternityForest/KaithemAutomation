@@ -34,7 +34,6 @@ from . import messagebus, directories, unitsofmeasure, util
 from .config import config
 
 
-logging.getLogger().setLevel(10)
 
 configuredHandlers = {}
 

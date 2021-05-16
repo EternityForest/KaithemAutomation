@@ -1,13 +1,9 @@
 <h3>Info</h3>
 <p class="help">
-  This allows you to expose kaithem for remote access anywhere in the world, even from an Android phone. See https://github.com/EternityForest/hardlinep2p for the client side.  There is no
-  service or anying to register for, discovery is done using distributed hash tables and public servers.
+  This allows you to accept media streamed from a UPnP streaming app, and makes it available as a JACK source.  It requires gmrender-ressurect to be installed.
+  Everything should be preinstalled if using EmberOS.
 </p>
 
-<p class="warning">
-    WARNING:  This is truly public.  Do NOT use this without a very strong password.  Once set up, anyone will be able to
-    access Kaithem as if they were on your local network. Also, this functionality should be considered alpha!!!!  Don't trust it with your nuclear launch codes.
-</p>
 
 <%
 import uuid
@@ -15,13 +11,18 @@ import uuid
 
 <table>
     <tr>
-        <td>Advertise Title(Defaults to hostname)</td>
-        <td><input name="device.title" value="${data.get('device.title','')|h}"></td>
+        <td>Advertise Name(Defaults to hostname)</td>
+        <td><input name="device.advertiseName" value="${data.get('device.advertiseName','')|h}"></td>
     </tr>
 
     <tr>
-        <td>P2P Port(Open this manually if your router doesn't have UPnP)</td>
-        <td><input name="device.publicPort" value="${data.get('device.publicPort','7004')|h}"></td>
+        <td>JACK Client Name</td>
+        <td><input name="device.clientname" value="${data.get('device.clientname','DLNA')|h}"></td>
     </tr>
     
+    <tr>
+        <td>UUID</td>
+        <td><input name="device.uuid" value="${data.get('device.uuif',str(uuid.uuid4()))|h}"></td>
+    </tr>
+
 </table>

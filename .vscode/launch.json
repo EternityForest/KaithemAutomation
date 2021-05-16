@@ -18,7 +18,8 @@
             "envFile": "${workspaceFolder}/.env",
             "debugOptions": [
                 "RedirectOutput"
-            ]
+            ],
+            "justMyCode": false
         },
         {
             "name": "Python",

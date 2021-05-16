@@ -13,6 +13,17 @@ properties:
         minimum: 0
         maximum: 65536
 
+
+    drayer-port:
+        type: integer
+        minimum: 0
+        maximum: 65536
+
+    drayer-p2p-port:
+        type: integer
+        minimum: 0
+        maximum: 65536
+
     host:
         type: string
     

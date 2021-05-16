@@ -278,6 +278,11 @@ class Device(virtualresource.VirtualResource):
             del remote_devices[self.name]
             remote_devices_atomic = wrcopy(remote_devices)
 
+
+    def onDelete(self):
+        "Called just before the device is deleted right after closing it."
+        pass
+
     def status(self):
         return "norm"
 
@@ -420,6 +425,7 @@ class WebDevices():
         name = kwargs['name']
         with lock:
             remote_devices[name].close()
+            remote_devices[name].onDelete()
             try:
                 del remote_devices[name]
             except KeyError:
