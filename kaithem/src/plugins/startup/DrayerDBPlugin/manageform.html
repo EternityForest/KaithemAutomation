@@ -1,0 +1,86 @@
+
+<h3>Info</h3>
+<p class="help">
+This device represents one locally-hosted DrayerDB stream which you can connect to.  DB files are stored under vardir/drayerdb/NAME/ so watch out, renaming this essentially creates
+a whole new DB.  Deleting this device may delete the underlying database.
+</p>
+
+
+
+<table>
+    <tr>
+        <td>Sync Key(Leave blank to generate new key and password)</td>
+        <td><input id='vk' name="device.syncKey" value="${data.get('device.syncKey','')|h}"></td>
+    </tr>
+
+    <tr>
+        <td>Write Password</td>
+        <td><input id='sk' name="device.writePassword" value="${data.get('device.writePassword','')|h}"></td>
+    </tr>
+
+    <tr>
+        <td>Sync Server URL</td>
+        <td><input id='sv' name="device.syncServer" value="${data.get('device.syncServer','')|h}"></td>
+    </tr>
+</table>
+
+
+<script src="/static/qrcode.min.js"></script>
+
+<div class="sectionbox">
+    <h2>Sharing Code Setup</h2>
+    <p class="help">Scan with a QR code app and paste into Drayer Journal or any other app!  Note that you may have to manually set the sync server,
+        the app cannot know by itself which IP you want to use.  When in doubt, use the same URL you use for the web UI.
+    </p>
+    <div id="lanqr"></div>
+    <script>
+
+    function loadSharingCode(c)
+    {
+        c = JSON.parse(c)
+        document.getElementById('vk').value = c['vk']||''
+        document.getElementById('sk').value = c['sk']||''
+        document.getElementById('sv').value = c['sv']||
+        
+        
+        ''
+    }
+    function doQR(wp,cb)
+    {
+        d = {
+            'sv':'',
+            'vk':"${data.get('device.syncKey','')|h}",
+            'n':""
+        }
+
+        if(wp)
+        {
+            d['sk']="${data.get('device.writePassword','')|h}"
+        }
+
+        if (cb){
+            navigator.clipboard.writeText(JSON.stringify(d))
+        }
+        else
+        {
+        new QRCode(document.getElementById("lanqr"), JSON.stringify(d));
+        }
+    }
+    </script>
+
+<button type="button" onclick="doQR(0)">Show QR Code(For readonly access)</button></br>
+<button type="button"onclick="doQR(1)">Show QR Code(For full access)</button></br>
+<button type="button" onclick="doQR(0,1)">Copy Sharing Code to clipboard(readonly)</button></br>
+<button type="button" onclick="doQR(1,1)">Copy Sharing Code to clipboard(full)</button></br>
+
+<h2>Load from sharing code</h2>
+
+<input id="sc">
+<button type="button" onclick="loadSharingCode(document.getElementById('sc').value)">Load</button>
+
+</div>
+
+
+
+<div class="sectionbox">
+<p>

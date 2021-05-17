@@ -1,0 +1,23 @@
+<h3>Info</h3>
+<p class="help">
+  This allows you to use Kaithem's Built-in MQTT Broker. It is good enough for simple use cases, but has no security at all. Do not expose these ports to the world.
+</p>
+
+
+<%
+import uuid
+%>
+
+<table>
+
+    <tr>
+        <td>TCP Server port</td>
+        <td><input name="device.bindTo" value="${data.get('device.bindTo','[::]:1883')|h}"></td>
+    </tr>
+    
+    <tr>
+        <td>Websocket Server port</td>
+        <td><input name="device.wsAddr" value="${data.get('device.wsAddr','[::]:1884')|h}"></td>
+    </tr>
+
+</table>

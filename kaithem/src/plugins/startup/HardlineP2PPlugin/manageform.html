@@ -1,0 +1,47 @@
+
+<h3>Info</h3>
+<p class="help">
+  This allows you to expose kaithem for remote access anywhere in the world, even from an Android phone. See https://github.com/EternityForest/hardlinep2p for the client side. There is no
+  service or anying to register for, discovery is done using distributed hash tables and public servers.
+</p>
+
+<p class="help">
+    Once you create the service, you will be able to discover it on your local network using the app.   The connection link will work no matter where you are, if you have UPnP set up,
+    or the Yggdrasil mesh.  Kaithem's default P2P port is set in the global config file, drayer-p2p-port: 8107.  If you have more than one publically exposed Kaithem server,
+    you will probably want to change this.
+</p>
+
+
+<p class="help">
+   If you do not have UPnP on your router, just port forward manually.  The external port must be the same as the internal one.
+</p>
+
+
+
+
+<p class="warning">
+    WARNING:  This is truly public.  Do NOT use this with any service unless you want to expopse it to the world as a public internet site.
+      Don't trust it with your nuclear launch codes either because this feature is Alpha.
+</p>
+
+<%
+import uuid
+%>
+
+<table>
+    <tr>
+        <td>Advertise Title(Leave blank to disable, {{host}} gets substituted for hostname)</td>
+        <td><input name="device.title" value="${data.get('device.title','')|h}"></td>
+    </tr>
+
+    <tr>
+        <td>Hostname of the service you want to expose</td>
+        <td><input name="device.service" value="${data.get('device.service','localhost')|h}"></td>
+    </tr>
+
+    <tr>
+        <td>Port of the service you want to expose.</td>
+        <td><input name="device.port" value="${data.get('device.port','8002')|h}"></td>
+    </tr>
+
+</table>

@@ -302,12 +302,11 @@ def webRoot():
         except:
             logger.warning("error setting process title")
 
-    if config['enable-websockets']:
-        from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
-        from ws4py.websocket import EchoWebSocket, WebSocket
-        WebSocketPlugin(cherrypy.engine).subscribe()
-        cherrypy.tools.websocket = WebSocketTool()
-        logger.info("activated websockets")
+    from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
+    from ws4py.websocket import EchoWebSocket, WebSocket
+    WebSocketPlugin(cherrypy.engine).subscribe()
+    cherrypy.tools.websocket = WebSocketTool()
+    logger.info("activated websockets")
 
     sys.modules['kaithem'] = sys.modules['__main__']
 
@@ -639,15 +638,23 @@ def webRoot():
         'tools.allow_upload.f': lambda: auth.getUserLimit(pages.getAcessingUser(), "web.maxbytes") or 64 * 1024,
     }
 
-    if config['enable-websockets']:
-        wscfg = {'tools.websocket.on': True,
-                 'tools.websocket.handler_cls': widgets.websocket}
+    wscfg = {'tools.websocket.on': True,
+                'tools.websocket.handler_cls': widgets.websocket}
 
-        wscfg2 = {'tools.websocket.on': True,
-                  'tools.websocket.handler_cls': notifications.websocket}
-    else:
-        wscfg = {}
-        wscfg2 = {}
+    wscfg2 = {'tools.websocket.on': True,
+                'tools.websocket.handler_cls': notifications.websocket}
+
+    try:
+        from hardline import ws4py_drayer
+        wscfg3={'tools.websocket.on': True,
+                'tools.websocket.handler_cls': ws4py_drayer.DrayerAPIWebSocket}
+        root.drayer_api = ws4py_drayer.WebInterface()
+    except Exception as e:
+        wscfg3={}
+        logging.exception("Could not load the Drayer WS API")
+        messagebus.postMessage("/system/notifications/errors", "Drayer Server API disabled")
+
+
 
     cnf = {
         '/static':
@@ -698,7 +705,9 @@ def webRoot():
             },
 
         '/widgets/ws': wscfg,
-        '/notifications/ws': wscfg2
+        '/notifications/ws': wscfg2,
+        '/drayer_api': wscfg3
+
     }
 
     if not config['favicon-png'] == "default":

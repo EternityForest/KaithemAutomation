@@ -42,6 +42,19 @@ from .cidict import CaseInsensitiveDict
 databaseBySyncKeyHash = weakref.WeakValueDictionary()
 
 
+# Where we store (pubkey, privkey) pairs indexed by the "key hint"
+keystore = {}
+
+
+def addCryptoKey(self, name, pubKey, privKey=None):
+    "Add a key to open an address to the global keystore"
+    crypto_keys_namespace = 'c81a0643-4557-4373-ba39-9997a91262a3'
+    id = libnacl.crypto_generichash(pubKey).hex()
+    id = uuid.uuid5(crypto_keys_namespace, id)
+
+    keystore[name] = (pubKey, privKey)
+
+
 def getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
     """Resolve host and port into list of address info entries.
 
@@ -140,15 +153,14 @@ async def DBAPI(websocket, path):
 
             if db.lastChange > session.lastResyncFlushTime:
                 pass
-            
+
             if kaTimestamp < (time.time()-(240 if (not (session.remoteNodeID == db.localNodeVK)) else 30)):
                 kaTimestamp = time.time()
                 if session.remoteNodeID == db.localNodeVK:
                     r = {'connectedServers': db.connectedServers}
                 else:
-                    r={}
+                    r = {}
                 await websocket.send(db.encodeMessage(r))
-
 
     except websockets.exceptions.ConnectionClosedOK:
         print("Connection closed with client!!")
@@ -254,6 +266,12 @@ def readNodeID():
         return base64.b64decode(f.read().strip())
 
 
+# Note that keys relating to encryption are always stored plaintext... we need them to be able to decrypt!
+alwaysPlaintextKeys = {'id', 'parent', 'time', 'documentTime', 'autoclean', 'type',
+                       'senderKeyHint', 'receiverKeyHint', 'senderKey', 'receiverKey', 'encData'
+                       }
+
+
 class DocumentDatabase():
     def __init__(self, filename, keypair=None, servable=True, forceProxy=None):
         "We can open TOML files as if they were databases, we just can't sync them"
@@ -281,6 +299,10 @@ class DocumentDatabase():
         self.connectedServers = {}
 
         self.inTransaction = 0
+
+        # This is indexed by senderKeyHint, receiverKeyHint tuple and contains the deterministic symmetric key used between the two.
+        # These keys are kept in the actual records but decrypting them is a very slow asymmetric operation.
+        self.symKeyCache = {}
 
         # When we have uncommitted recprds this should be the arrival time of the first one
         self.earliestUncommittedRecord = 0
@@ -317,8 +339,11 @@ class DocumentDatabase():
 
                 self.threadLocal.conn.execute(
                     '''CREATE INDEX IF NOT EXISTS document_link ON document(json_extract(json,"$.link")) WHERE json_extract(json,"$.link") IS NOT null''')
+
+                # Nobody used this and we are replacing it with something optional
                 self.threadLocal.conn.execute(
-                    '''CREATE INDEX IF NOT EXISTS document_name ON document(json_extract(json,"$.name"))''')
+                    '''DROP INDEX IF EXISTS document_name''')
+
                 self.threadLocal.conn.execute(
                     '''CREATE INDEX IF NOT EXISTS document_id ON document(json_extract(json,"$.id"))''')
 
@@ -398,16 +423,15 @@ class DocumentDatabase():
             self.config['Database'].get('autocleanDays', '0'))
 
         self.syncKey = self.writePassword = None
+        try:
+            self.config.add_section('Sync')
+        except:
+            pass
 
         if (not filename.endswith('.toml')):
             if not keypair:
                 if 'Sync' not in self.config:
-                    vk, sk = libnacl.crypto_sign_keypair()
-                    self.config.add_section('Sync')
-                    self.config.set('Sync', 'syncKey',
-                                    base64.b64encode(vk).decode('utf8'))
-                    self.config.set('Sync', 'writePassword',
-                                    base64.b64encode(sk).decode('utf8'))
+                    self.generateNewKeypair()
                     self.saveConfig()
 
                 self.syncKey = self.config.get(
@@ -458,16 +482,6 @@ class DocumentDatabase():
             self.lastDidOnRecordChange = 0
         cur.close()
 
-        # #Legacy Fixup!!!
-
-        # for j in ('row','post','row.template'):
-        #     for i in self.getDocumentsByType(j):
-        #         if 'parent' in i:
-        #             i['time']+=1
-        #             i['parent']=i['parent'].split("/")[-1].replace('.$','')
-        #             self.setDocument(i)
-        # self.commit()
-
         if (filename.endswith('.toml')):
             with open(filename) as f:
                 self.importFromToml(f.read())
@@ -498,6 +512,160 @@ class DocumentDatabase():
                         'value': str(uuid.uuid4())
                     })
             self.commit()
+
+    def generateNewKeypair(self):
+        vk, sk = libnacl.crypto_sign_keypair()
+  
+        self.config.set('Sync', 'syncKey',
+                        base64.b64encode(vk).decode('utf8'))
+        self.config.set('Sync', 'writePassword',
+                        base64.b64encode(sk).decode('utf8'))
+
+        self.syncKey = self.config.get(
+            'Sync', 'syncKey', fallback=None)
+        self.writePassword = self.config.get(
+            'Sync', 'writePassword', fallback='')
+
+    def createNamespacedUUID(self, parentDoc, name):
+        """
+        Given a parent document ID and a name, create a unique ID for that parent,name combo semi-deterministically.
+        If the parent exists and is encrypted, the ID generated should also be encrypted. 
+        """
+        # Special UUID standin for the "Root post", which does not really exist.
+
+        rootUUID = '1d4f7b28-0677-4245-a4e3-21a1376b0b3a'
+
+        parentDoc = parentDoc or rootUUID
+
+        archiveID = str(uuid.uuid5(parentDoc, name))
+
+        return archiveID
+
+    # ALL DOCUMENT ENCRYPTION STUFF IS UNUSED RIGHT NOW
+    def addCryptoAddress(self, name, pubKey, privKey=None):
+        # Deterministically generate a UUID for this pubkeu based on it's hash.
+        crypto_keys_namespace = 'c81a0643-4557-4373-ba39-9997a91262a3'
+        id = libnacl.crypto_generichash(pubKey).hex()
+        id = uuid.uuid5(crypto_keys_namespace, id)
+
+        keystore[name] = privKey
+
+        d = self.getDocumentByID(id)
+
+        # No need to store a record for a key we aleady have
+        if d and d["name"] == name:
+            return
+        self.setDocument({'id': id, 'type': 'publicKey', 'keyType': 'libnacl-ecc',
+                          'name': name, 'value': base64.b64encode(pubKey).decode()})
+
+    def encryptDocument(self, document):
+        document = document.copy()
+        if not document.get('receiverKeyHint', ''):
+            return document
+
+        if not document.get('senderKeyHint', ''):
+            raise ValueError(
+                "Cannot encrypt this document, the sender key is not present.")
+
+        d2 = {}
+
+        # Move to the outer document
+        for i in alwaysPlaintextKeys:
+            d2[i] = document.pop(i)
+
+        # Deterministically generate a UUID for this pubkeu based on it's hash.
+        crypto_keys_namespace = 'c81a0643-4557-4373-ba39-9997a91262a3'
+        id = libnacl.crypto_generichash(
+            document.get('receiverKeyHint', '')).hex()
+        id = uuid.uuid5(crypto_keys_namespace, id)
+
+        k = self.getDocumentByID(id)
+
+        if not k:
+            raise ValueError(
+                "Cannot encrypt this document, it's key does not exist in the database.")
+
+        rPubKey = base64.b64decode(k['value'])
+
+        # Deterministically generate a UUID for this pubkeu based on it's hash.
+        crypto_keys_namespace = 'c81a0643-4557-4373-ba39-9997a91262a3'
+        id = libnacl.crypto_generichash(d2.get('senderKeyHint', '')).hex()
+        id = uuid.uuid5(crypto_keys_namespace, id)
+
+        if not id in keystore:
+            raise RuntimeError(
+                "There is no private key available for the sender")
+
+        if not keystore[id]:
+            raise RuntimeError(
+                "There is no private key available for the sender")
+
+        nonce = os.urandom(24)
+
+        document = json.dumps(document).encode()
+
+        # Hash the sender secret key and the reciever public key to get a deterministic symmetric key
+        symKey = libnacl.crypto_generichash(rPubKey+keystore[id])[:32]
+
+        if not rPubKey == keystore[id]:
+            # This is the copy that we save so that we, the sender, can always open anything we send to someone else.
+            # As it would be rather inconvenient not to be able to do so.
+            d2['senderKey'] = libnacl.crypto_box_seal(symKey, keystore[id][0])
+        d2['receiverKey'] = libnacl.crypto_box_seal(symKey, rPubKey)
+
+        # Now we encrypt with the shared symmetric key
+        document = base64.b64encode(
+            nonce+libnacl.crypto_secretbox(document, nonce, symKey))
+
+        # Now put the encrypted data in the document
+        d2['encData'] = document
+
+        return d2
+
+    def decryptDocument(self, document):
+
+        # Pass through any nulls
+        if not document:
+            return document
+        if not 'encData' in document:
+            return document
+
+        # Get the deterministic key for every sender/receiver pair
+
+        # We really want to avoid unnecessary public key operations
+        if (document['senderKeyHint'], document['receiverKeyHint']) in self.symKeyCache:
+            symKey = self.symKeyCache[(
+                document['senderKeyHint'], document['receiverKeyHint'])]
+
+        elif document['receiverKeyHint'] in keystore:
+            symKey = libnacl.crypto_box_seal_open(
+                document['receiverKey'], keystore[document['receiverKeyHint']][0], keystore[document['receiverKeyHint']][1])
+
+        elif document['senderKeyHint'] in keystore:
+            symKey = libnacl.crypto_box_seal_open(
+                document['senderKey'], keystore[document['senderKeyHint']][0], keystore[document['senderKeyHint']][1])
+
+        self.symKeyCache[(document['senderKeyHint'],
+                          document['receiverKeyHint'])] = symKey
+
+        if len(self.symKeyCache) > 64:
+            self.symKeyCache.pop()
+
+        encData = base64.b64decode(document['encData'])
+
+        decrypted = libnacl.crypto_secretbox_open(
+            encData[24:], encData[0:24], symKey)
+
+        # Remove keys that should not be the user's problem
+        document = document.copy()
+        for i in ['encData', 'senderKey', 'receiverKey']:
+            if i in document:
+                document.pop(i)
+
+        # Add in what we got from the decrypted data
+        document.update(json.loads(decrypted.decode()))
+
+        return document
 
     def close(self):
         self.useSyncServer("")
@@ -606,92 +774,97 @@ class DocumentDatabase():
 
         # Allow directly copy and pasting http urls, we know what they mean and this
         # makes it easier for nontechnical users
-        x = self.serverURL.split("://")[-1]
+        host = self.serverURL.split("://")[-1]
+
+        # Sites should have one and only one drayer api
+        host = host.split("/")[0]
+        port = host.split(":")[-1]
+        host = host.split(":")[0]
+
         if self.serverURL.split("://")[0] in ('wss', 'https'):
-            x = 'wss://'+x
+            x = 'wss://'+host
         else:
-            x = 'ws://'+x
+            x = 'ws://'+host
 
-
-        #Sites should have one and only one drayer api
-        x = x.split("/")[0] + '/drayer_api'
-
-
-        port = x.split(":")[-1]
+        
         try:
             # Move port off to own thing
             port = int(port)
-            x = x[:-(len(str(port))+1)]
+            portstr = ":"+str(port)
         except:
             port = 80 if x.startswith("ws://") else 443
-
+            portstr=''
         logging.info("Connecting to "+x+" on port "+str(port))
-        async with websockets.connect(uri=x, port=port) as websocket:
-            logging.info("Connected to "+x)
+        try:
+            async with websockets.connect(host=host, uri=x +portstr +'/drayer_api/ws', port=port) as websocket:
+                logging.info("Connected to "+x)
 
-            try:
-                self.dbConnect()
-
-                # Empty message so they know who we are
-                await websocket.send(self.encodeMessage({}))
-
-                def f(x):
-                    asyncio.run_coroutine_threadsafe(websocket.send(x), loop)
-
-                session.send = f
-                self.subscribers[time.time()] = session
-
-                while not websocket.closed:
-                    try:
-                        a = await asyncio.wait_for(websocket.recv(), timeout=5)
-                        r = self.handleBinaryAPICall(a, session)
-                        if r:
-                            await websocket.send(r)
-
-                        self.connectedServers[x+':'+str(port)] = time.time()
-
-                        # The initial request happens after we know who they are
-                        if session.remoteNodeID and not session.alreadyDidInitialSync:
-                            r = {}
-                            with self.lock:
-                                # Don't request from ourself and thereby waste time
-                                if not session.remoteNodeID == self.localNodeVK:
-                                    cur = self.threadLocal.conn.cursor()
-                                    cur.execute(
-                                        "SELECT lastArrival FROM peers WHERE peerID=?", (base64.b64encode(session.remoteNodeID),))
-
-                                    c = cur.fetchone()
-                                    if c:
-                                        c = c[0]
-                                    else:
-                                        c = 0
-                                    # No falsy value allowed, that would mean don't get new arrivals
-                                    r['getNewArrivals'] = c or 1
-                                    cur.close()
-
-                            session.alreadyDidInitialSync = True
-                            await websocket.send(self.encodeMessage(r))
-
-                    except (TimeoutError, asyncio.TimeoutError):
-                        pass
-
-                    if self.lastChange > session.lastResyncFlushTime:
-                        pass
-
-                    if not oldServerURL == self.serverURL:
-                        return
-
-            except websockets.exceptions.ConnectionClosedOK:
-                logging.info("Connection Closed to "+x)
-            except:
-                logging.exception("Error in DDB WS client")
-                return 0
-            finally:
                 try:
-                    # Mark disconnected.
-                    self.connectedServers[x+':'+str(port)] = -1
+                    self.dbConnect()
+
+                    # Empty message so they know who we are
+                    await websocket.send(self.encodeMessage({}))
+
+                    def f(x):
+                        asyncio.run_coroutine_threadsafe(websocket.send(x), loop)
+
+                    session.send = f
+                    self.subscribers[time.time()] = session
+
+                    while not websocket.closed:
+                        try:
+                            a = await asyncio.wait_for(websocket.recv(), timeout=5)
+                            r = self.handleBinaryAPICall(a, session)
+                            if r:
+                                await websocket.send(r)
+
+                            self.connectedServers[x+':'+str(port)] = time.time()
+
+                            # The initial request happens after we know who they are
+                            if session.remoteNodeID and not session.alreadyDidInitialSync:
+                                r = {}
+                                with self.lock:
+                                    # Don't request from ourself and thereby waste time
+                                    if not session.remoteNodeID == self.localNodeVK:
+                                        cur = self.threadLocal.conn.cursor()
+                                        cur.execute(
+                                            "SELECT lastArrival FROM peers WHERE peerID=?", (base64.b64encode(session.remoteNodeID),))
+
+                                        c = cur.fetchone()
+                                        if c:
+                                            c = c[0]
+                                        else:
+                                            c = 0
+                                        # No falsy value allowed, that would mean don't get new arrivals
+                                        r['getNewArrivals'] = c or 1
+                                        cur.close()
+
+                                session.alreadyDidInitialSync = True
+                                await websocket.send(self.encodeMessage(r))
+
+                        except (TimeoutError, asyncio.TimeoutError):
+                            pass
+
+                        if self.lastChange > session.lastResyncFlushTime:
+                            pass
+
+                        if not oldServerURL == self.serverURL:
+                            return
+
+                except websockets.exceptions.ConnectionClosedOK:
+                    logging.info("Connection Closed to "+x)
                 except:
-                    pass
+                    logging.exception("Error in DDB WS client")
+                    return 0
+                finally:
+                    try:
+                        # Mark disconnected.
+                        self.connectedServers[x+':'+str(port)] = -1
+                    except:
+                        pass
+        except:
+            self.connectedServers[x+':'+str(port)] = -1
+            raise
 
     def dbConnect(self):
         if not hasattr(self.threadLocal, 'conn'):
@@ -762,6 +935,7 @@ class DocumentDatabase():
     def handleBinaryAPICall(self, a, sessionObject=None, forceResponse=False):
         # Process one incoming binary API message.  If part of a sesson, using a sesson objert enables certain features.
         logging.info("i got a msg")
+        self.dbConnect()
 
         # Message type byte is reserved for a future use
         if not a[0] == 1:
@@ -1756,7 +1930,7 @@ class DocumentDatabase():
                 if x:
                     x = json.loads(x[0])
                     if allowOrphans:
-                        return x
+                        return self.decryptDocument(x)
                 self.documentCache[key] = x
 
             if x:
@@ -1764,6 +1938,10 @@ class DocumentDatabase():
                 if x.get("type", '') == 'null':
                     if returnAncestorNull:
                         return x
+
+                    else:
+                        # Nulls are like nonexistent
+                        return None
 
                 else:
                     # Record has a parent.  If it is False/deleted, so are we.
@@ -1785,8 +1963,8 @@ class DocumentDatabase():
                 except:
                     logging.exception("cleanup error, ignoring")
             if returnAllAncestors:
-                return r, _ancestors
-            return r
+                return self.decryptDocument(r), _ancestors
+            return self.decryptDocument(r)
 
     def getDocumentsByType(self, key, startTime=0, endTime=10**18, limit=100, parent=None, descending=True, orphansOnly=False, allowOrphans=False, orderBy=None, extraFilters=''):
         """Return documents meeting the filter criteria. Parent should by the full path of the parent record, to limit the results to children of that record.
@@ -1846,7 +2024,7 @@ class DocumentDatabase():
                 if orphansOnly:
                     if not isOrphan:
                         continue
-                yield x
+                yield self.decryptDocument(x)
         cur.close()
 
         # return list(reversed([i for i in [json.loads(i[0]) for i in cur] if not i.get('type','')=='null']))
@@ -1874,7 +2052,7 @@ class DocumentDatabase():
                 r.append(i[0])
 
         cur.close()
-        return list(reversed([i for i in [json.loads(i) for i in r]]))
+        return list(reversed([self.decryptDocument(i) for i in [json.loads(i) for i in r]]))
 
 
 if __name__ == "__main__":

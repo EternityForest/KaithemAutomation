@@ -37,10 +37,11 @@ class DrayerAPIWebSocket(WebSocket):
                     self.send(x)
 
                 self.session.send = f
-                drayerdb.databaseBySyncKeyHash[message][1:17].subscribers[time.time(
+                db.subscribers[time.time(
                 )] = self.session
+                self.db = db
 
-        if self.db:
-            x = self.db.handleBinaryAPICall(message, self)
-            if x:
-                self.send(x)
+
+        x = self.db.handleBinaryAPICall(message, self.session)
+        if x:
+            self.send(x)
