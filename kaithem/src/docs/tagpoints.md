@@ -189,6 +189,25 @@ or code your own API for that.
 
 If configured is True, will actually set the persistant config rather than the runtime config. This will not be made permanent till the user clicks "save server state to disk".
 
+
+#### tagPoint.mqttConnect(self, **,server=None, port=1883, password=None,messageBusName=None, mqttTopic=None, incomingPriority=None)
+
+Used to connect a tag point for 2-way sync to an MQTT server.  When the tag's value changes, the value will be sent, JSON encoded if needed, to
+the server at the selected topic, or under /tagpoints/TAGNAME.  Messages will be sent with the retain flag active.
+
+When a message is incoming, it's value will set the local tag's value using a claim that has incomingPriority.
+
+This uses Scullery's connection pool system. The suggested use is to leave the server blank, set and set a messageBusName to use an existing connection
+configured through the device manager.
+
+
+You can use this to sync tags on two Kaithem instances, but the data has been kept as simple as possible so you can also use it to interact with other software.
+
+
+Note that due to the use of the retain flag, upon reconnection to the server, the value may "snap back" to whatever the server thinks the value should be, the MQTT server
+is the "source of truth" here.
+
+
 #### tagPoint.getEffectivePermissions()
 
 Returns the read, write, and max priority permissions that are currently in effect, after merging in the web GUI config settings.  If nothing is set up, read abd write will be "",

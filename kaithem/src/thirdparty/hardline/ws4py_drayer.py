@@ -11,6 +11,10 @@ class WebInterface():
     def ws(self):
        pass
 
+    @cherrypy.expose
+    def index(self):
+       pass
+
 class DrayerAPIWebSocket(WebSocket):
     def __init__(self, *args, **kwargs):
         self.widget_wslock = threading.Lock()

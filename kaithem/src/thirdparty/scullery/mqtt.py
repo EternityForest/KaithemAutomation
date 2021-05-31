@@ -211,6 +211,7 @@ class Connection():
             paho = True
 
         except ImportError:
+            logging.exception("PahoMQTT not installed. No MQTT connection possible here. continuing with dummy.")
             paho = False
 
         # When we wrap a function store a weakref to the original here,
@@ -240,7 +241,7 @@ class Connection():
                 if not virtual and not passive:
                     def out_handler(topic, message, timestamp, annotation):
                         self.connection.publish(topic[len(
-                            self.busPrefix + "/out/"):], payload=message, qos=annotation, retain=False)
+                            self.busPrefix + "/out/"):], payload=message, qos=annotation[0], retain=annotation[1])
                 else:
                     if not passive:
                         # Virtual loopback server doesn't actually use a real server
@@ -467,7 +468,7 @@ class Connection():
         if self.connection:
             workers.do(backgroundSubscribeTask)
 
-    def publish(self, topic, message, qos=2, encoding="json"):
+    def publish(self, topic, message, qos=2, encoding="json",retain=False):
         if encoding == 'json':
             message = json.dumps(message)
         elif encoding == 'msgpack':
@@ -479,7 +480,7 @@ class Connection():
         else:
             raise ValueError("Invalid encoding!")
         messagebus.postMessage(self.busPrefix + "/out/" +
-                               topic, message, annotation=qos)
+                               topic, message, annotation=(qos,retain))
 
 
 def getConnection(server, port=1883, password=None, messageBusName=None, *, alertPriority="info", alertAck=True):

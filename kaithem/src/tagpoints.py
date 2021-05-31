@@ -286,6 +286,11 @@ class _TagPoint(virtualresource.VirtualResource):
         self.subscribers: List[weakref.ref] = []
         self.poller: Union[None, Callable] = None
 
+        self.mqttClaim = None
+        self.mqttConnection=None
+
+
+
         self.lastError: Union[float, int] = 0
 
         # String describing the "owner" of the tag point
@@ -444,6 +449,53 @@ class _TagPoint(virtualresource.VirtualResource):
 
                     w.attach(self.apiHandler)
                     self.dataSourceWidget = w
+
+    def mqttConnect(self, *,server=None, port=1883, password=None,messageBusName=None, mqttTopic=None, incomingPriority=None):
+        self.mqttDisconnect(False)
+        from scullery import mqtt
+        n = self.name
+        if n[0]=='/':
+            n=n[1:]
+        n="/tagpoints/"+n
+
+        self.mqttPriority = incomingPriority or 50
+        self.mqttTopic = mqttTopic or n
+
+        self.mqttConnection = mqtt.getConnection(server=server, port=port, password=password, messageBusName=messageBusName)
+
+
+
+        self.mqttConnection.subscribe(self.mqttTopic, self._onIncomingMQTTMessage)
+        self.subscribe(self._mqttHandler)
+
+    def mqttDisconnect(self,unclaim=True):
+        self.unsubscribe(self._mqttHandler)
+        if self.mqttConnection:
+            self.mqttConnection.unsubscribe(self.mqttTopic, self._onIncomingMQTTMessage)
+            self.mqttConnection=None
+
+        if unclaim:
+            try:
+                self.mqttClaim.release()
+            except AttributeError:
+                pass
+
+    def _onIncomingMQTTMessage(self,topic,value):
+        if not self.mqttClaim:
+            self.mqttClaim = self.claim(value, name="MQTTSync", priority=self.mqttPriority,annotation="MQTTSyncIncoming")
+        else:
+            self.mqttClaim.set(value,annotation="MQTTSyncIncoming")
+        
+    def _mqttHandler(self, value,t,a):
+        #No endless l00ps.
+        if a =='MQTTSyncIncoming':
+            return
+        #Publish local changes to the MQTT bus.
+        self.mqttConnection.publish(self.mqttTopic, value,retain=True)
+
+
+
+
 
     def apiHandler(self, u, v):
         if v is None:
@@ -1979,7 +2031,7 @@ class Claim():
         if self.tag.lock.acquire(timeout=60):
             try:
                 self.priority = priority
-                self.tag.claim(self.value, self.timestamp, self.annotation,
+                self.tag.claim(value=self.value, timestamp=self.timestamp, annotation=self.annotation,
                                priority=self.priority, name=self.name)
             finally:
                 self.tag.lock.release()

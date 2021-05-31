@@ -65,6 +65,18 @@ class PILCapture():
 
         return self.img.frombytes("RGB", (w, h), buf.extract_dup(0, buf.get_size()))
 
+    def pull_raw(self):
+        "Pull a tuple consisting of raw RGB bytes, then the height and width with which to decode them."
+        sample = self.appsink.emit('try-pull-sample', 0.1*10**9)
+        if not sample:
+            return None
+
+        buf = sample.get_buffer()
+        caps = sample.get_caps()
+        h = caps.get_structure(0).get_value('height')
+        w = caps.get_structure(0).get_value('width')
+
+        return (buf.extract_dup(0, buf.get_size()), w, h)
 
 class PILSource():
     def __init__(self, appsrc, greyscale=False):
@@ -76,6 +88,29 @@ class PILSource():
         img = Gst.Buffer.new_wrapped(img)
         self.appsrc.emit("push-buffer", img)
 
+
+class AppSource():
+    def __init__(self, appsrc):
+        self.appsrc = appsrc
+
+    def push(self, b):
+        b = Gst.Buffer.new_wrapped(b)
+        self.appsrc.emit("push-buffer", b)
+
+class AppSink():
+    #Used to pull the raw bytes buffer data.
+    def __init__(self, appsink):
+        self.appsink = appsink
+
+    def pull(self, timeout=0.1):
+        sample = self.appsink.emit('try-pull-sample', timeout*10**9)
+        if not sample:
+            return None
+
+        buf = sample.get_buffer()
+        caps = sample.get_caps()
+
+        return buf.extract_dup(0, buf.get_size())
 
 def link(a, b):
     unref = False
@@ -815,6 +850,21 @@ class GStreamerPipeline():
                 "push-buffer", Gst.Buffer.new_wrapped(bytes(resolution[0]*resolution[1]*3)))
 
         return PILSource(appsrc, greyscale)
+
+
+    def addAppSink(self, connectToOutput=None, buffer=1):
+        "Return a video capture object"
+       
+        appsink = self.addElement(
+            "appsink", drop=True, sync=False, max_buffers=buffer)
+
+        return AppSink(appsink)
+
+    def addAppSrc(self, connectToOutput=None, buffer=1, caps=''):
+        "Return a video capture object"
+      
+        appsrc = self.addElement("appsrc", caps=caps, connectToOutput=False)
+        return AppSource(appsrc)
 
     def addElement(self, t, name=None, connectWhenAvailable=False, connectToOutput=None, sidechain=False, **kwargs):
 
