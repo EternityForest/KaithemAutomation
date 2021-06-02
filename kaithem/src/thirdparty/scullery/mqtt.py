@@ -181,7 +181,9 @@ class HBMQTTWrapper():
 
 
 class Connection():
-    def __init__(self, server, port=1883, password=None, messageBusName=None, *, alertPriority="info", alertAck=True):
+    def __init__(self, server, port=1883, password=None, messageBusName=None, *, alertPriority="info", alertAck=True,connectionID=''):
+
+        #ConnectionID is used to ensure separate *physical* connections and prevent reuse
         self.server = server
         self.port = port
         self.lock = threading.Lock()
@@ -220,7 +222,11 @@ class Connection():
         self.subscribeWrappers = {}
 
         with lock:
-            n = server + ":" + str(port)
+            if connectionID:
+                connectionID='?'+connectionID
+            self.connectionID = connectionID
+
+            n = server + ":" + str(port)+connectionID
             if n in connections and connections[n]():
                 raise RuntimeError("There is already a connection")
             torm = []
@@ -231,7 +237,7 @@ class Connection():
                 del connections[i]
             connections[n] = weakref.ref(self)
 
-            self.busPrefix = "/mqtt/" + server + ":" + str(port)
+            self.busPrefix = "/mqtt/" + server + ":" + str(port)+connectionID
 
             if messageBusName:
                 self.busPrefix = "/mqtt/" + messageBusName
@@ -347,7 +353,7 @@ class Connection():
         except Exception:
             pass
         try:
-            del connections[server + ":" + str(port)]
+            del connections[self.server + ":" + str(self.port)+self.connectionID]
         except Exception:
             pass
 
@@ -483,7 +489,7 @@ class Connection():
                                topic, message, annotation=(qos,retain))
 
 
-def getConnection(server, port=1883, password=None, messageBusName=None, *, alertPriority="info", alertAck=True):
+def getConnection(server, port=1883, password=None, messageBusName=None, *, alertPriority="info", alertAck=True, connectionID=''):
     # Kaithem is gonna monkeypatch kaithem with one that has better
     # logging
     global Connection
@@ -493,8 +499,12 @@ def getConnection(server, port=1883, password=None, messageBusName=None, *, aler
     with lock:
         x = None
 
+        connectionIDSuffix=''
+        if connectionID:
+            connectionIDSuffix='?'+connectionID
+
         if server + ":" + str(port) in connections:
-            x = connections[server + ":" + str(port)]()
+            x = connections[server + ":" + str(port)+connectionIDSuffix]()
 
         if x:
             if not messageBusName == x.messageBusName:
@@ -509,4 +519,4 @@ def getConnection(server, port=1883, password=None, messageBusName=None, *, aler
             x.configureAlert(alertPriority, alertAck)
             return x
 
-        return Connection(server, port, password=password, alertAck=True, alertPriority="info", messageBusName=messageBusName)
+        return Connection(server, port, password=password, alertAck=True, alertPriority="info", messageBusName=messageBusName,connectionID=connectionID)

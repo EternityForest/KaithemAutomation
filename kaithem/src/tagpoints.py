@@ -769,6 +769,15 @@ class _TagPoint(virtualresource.VirtualResource):
                         except Exception:
                             logger.exception("Maybe already unsubbed?")
 
+
+                        #This is the poller for polling even when there is no change, at a very low rate,
+                        #To catch any edge cases not caught by watching tag changes
+                        try:
+                            a.poller.unregister()
+                        except:
+                            logger.exception("Maybe already unsubbed?")
+
+
                         a.release()
 
             if not limitTo:
@@ -850,6 +859,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
         obj.notificationHTML = f
 
+
         def alarmRecalcFunction(*a):
             "Recalc with same val vor this tag, but perhaps a new value for other tags that may be fetched in the expression eval"
             try:
@@ -867,9 +877,12 @@ class _TagPoint(virtualresource.VirtualResource):
         def alarmPollFunction(value, annotation, timestamp):
             "Given a new tag value, recalc the alarm expression"
             context['value'] = value
+            context['timestamp']=timestamp
             alarmRecalcFunction()
 
         obj.recalcFunction = alarmRecalcFunction
+
+        obj.poller= scheduling.scheduler.scheduleRepeating(alarmRecalcFunction, 60, sync=False)
 
         # Functions used for getting other tag values
 
