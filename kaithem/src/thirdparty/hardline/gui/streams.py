@@ -91,6 +91,12 @@ class StreamsMixin():
         btn2.bind(on_press=goPosts)
         stack.add_widget(btn2)
 
+        btn2 = Button(text='Feed View')
+        def goPosts(*a):
+            self.gotoStreamPosts(name, parent=None)
+        btn2.bind(on_press=goPosts)
+        stack.add_widget(btn2)
+
 
 
         btn2 = Button(text='Stream Settings')
@@ -205,7 +211,7 @@ class StreamsMixin():
         self.streamEditPanel.add_widget(MDToolbar(title="Recent Changes:"))
 
         for i in daemonconfig.userDatabases[name].getDocumentsByType('post',orderBy='arrival DESC',limit=5):
-            x =self.makePostWidget(name,i)
+            x =self.makePostWidget(name,i,includeParent=True)
             self.streamEditPanel.add_widget(x)
 
 
@@ -265,6 +271,10 @@ class StreamsMixin():
             if platform == 'android':
                 self.stop_service()
                 self.start_service()
+            else:
+                db.close()
+                daemonconfig.loadUserDatabases(None, only=name,callbackFunction=self.onDrayerRecordChange)
+
 
         def delete(*a):
             def f(n):
@@ -292,7 +302,7 @@ class StreamsMixin():
         def promptNewKeys(*a,**k):
             def makeKeys(a):
                 if a=='yes':
-                    
+                    import base64
                     vk, sk = libnacl.crypto_sign_keypair()
                     vk= base64.b64encode(vk).decode()
                     sk= base64.b64encode(sk).decode()

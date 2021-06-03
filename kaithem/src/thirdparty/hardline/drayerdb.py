@@ -46,6 +46,28 @@ databaseBySyncKeyHash = weakref.WeakValueDictionary()
 keystore = {}
 
 
+import gzip
+
+def decompress(d):
+    if isinstance(d,str):
+        return d
+
+    if d[0]==1:
+        if d[1]==1:
+            d= gzip.decompress(d[2:])
+            
+        else:
+            raise RuntimeError("Unsupported compression")
+    return d.decode()
+
+
+def compressGzip(d):
+    if isinstance(d,str):
+        d=d.encode()
+    return bytes([1,1])+gzip.compress(d)
+
+
+
 def addCryptoKey(self, name, pubKey, privKey=None):
     "Add a key to open an address to the global keystore"
     crypto_keys_namespace = 'c81a0643-4557-4373-ba39-9997a91262a3'
@@ -126,7 +148,6 @@ async def DBAPI(websocket, path):
         a = await websocket.recv()
 
         databaseBySyncKeyHash[a[1:17]].dbConnect()
-        logging.info("incoming connection to DB! ")
         x = databaseBySyncKeyHash[a[1:17]].handleBinaryAPICall(
             a, session, forceResponse=True)
         if x:
@@ -331,6 +352,8 @@ class DocumentDatabase():
 
                 # Preferentially use documentTime, if htat is not available use the low level data timestamp.
                 # documentTime is a user-settable field that can go backwards, wheras time must be the raw record creation time
+
+                #VERY IMPORTANT: QUERIES MUST use the indexes WITH the ifnulls  or things WILL be slow
                 self.threadLocal.conn.execute(
                     '''CREATE INDEX IF NOT EXISTS document_parent_type_time ON document(IFNULL(json_extract(json,"$.parent"),"")  ,json_extract(json,"$.type"), IFNULL(json_extract(json,'$.documentTime'), json_extract(json,'$.time'))) ''')
 
@@ -513,6 +536,32 @@ class DocumentDatabase():
                     })
             self.commit()
 
+
+    
+    def computeDatabaseState(self):
+        "Compute a string representing the full state of the whole DB"
+        def byte_xor(ba1, ba2):
+            return bytes([_a ^ _b for _a, _b in zip(ba1, ba2)])
+        accum = b'\0'*32
+
+        cur = self.threadLocal.conn.cursor()
+        # Avoid dumping way too much at once
+        cur.execute(
+            "SELECT signature,arrival FROM document ORDER BY arrival ASC")
+        
+        last = None
+        for i in cur:
+            h = libnacl.crypto_generichash(base64.b64decode(i[0]))
+            accum =byte_xor(accum,h)
+            last = i[1]
+
+        return accum, i[1]
+
+        
+
+
+
+
     def generateNewKeypair(self):
         vk, sk = libnacl.crypto_sign_keypair()
   
@@ -531,13 +580,13 @@ class DocumentDatabase():
         Given a parent document ID and a name, create a unique ID for that parent,name combo semi-deterministically.
         If the parent exists and is encrypted, the ID generated should also be encrypted. 
         """
+        #p = self.getDocumentByID(parentDoc)
+
         # Special UUID standin for the "Root post", which does not really exist.
-
         rootUUID = '1d4f7b28-0677-4245-a4e3-21a1376b0b3a'
-
         parentDoc = parentDoc or rootUUID
 
-        archiveID = str(uuid.uuid5(parentDoc, name))
+        archiveID = str(uuid.uuid5(uuid.UUID(parentDoc), name))
 
         return archiveID
 
@@ -622,17 +671,14 @@ class DocumentDatabase():
 
         return d2
 
-    def decryptDocument(self, document):
 
-        # Pass through any nulls
-        if not document:
-            return document
-        if not 'encData' in document:
-            return document
+    def getSymKeyForEncryptedDocument(self, document):
 
-        # Get the deterministic key for every sender/receiver pair
+        if not 'senderKeyHint' in document:
+            if not 'receiverKeyHint' in document:
+                return None
 
-        # We really want to avoid unnecessary public key operations
+        symKey = False
         if (document['senderKeyHint'], document['receiverKeyHint']) in self.symKeyCache:
             symKey = self.symKeyCache[(
                 document['senderKeyHint'], document['receiverKeyHint'])]
@@ -644,6 +690,26 @@ class DocumentDatabase():
         elif document['senderKeyHint'] in keystore:
             symKey = libnacl.crypto_box_seal_open(
                 document['senderKey'], keystore[document['senderKeyHint']][0], keystore[document['senderKeyHint']][1])
+
+        return symKey
+
+    def decryptDocument(self, document):
+
+        # Pass through any nulls
+        if not document:
+            return document
+        if not 'encData' in document:
+            return document
+
+        # Get the deterministic key for every sender/receiver pair
+
+        # We really want to avoid unnecessary public key operations
+
+        symKey = self.getSymKey(document)
+        if not symKey:
+            #Document does not exist as far as we are concerned, we do not have the key.
+            return None
+
 
         self.symKeyCache[(document['senderKeyHint'],
                           document['receiverKeyHint'])] = symKey
@@ -688,7 +754,7 @@ class DocumentDatabase():
             cur.execute(
                 "SELECT json,signature,arrival FROM document WHERE arrival>?", (self.lastDidOnRecordChange,))
             for i in cur:
-                r = json.loads(i[0])
+                r = json.loads(decompress(i[0]))
                 try:
                     del self.documentCache[r['id']]
                 except KeyError:
@@ -717,7 +783,7 @@ class DocumentDatabase():
 
         with self.lock:
             for i in self.threadLocal.conn.execute('SELECT json FROM document ORDER BY json_extract(json,"$.time") DESC'):
-                i = json.loads(i)
+                i = json.loads(decompress(i))
                 if 'autoclean' in i:
                     if not i:
                         if i.get('time', horizon) < horizon:
@@ -741,7 +807,6 @@ class DocumentDatabase():
         oldServerURL = self.serverURL
         loop = asyncio.new_event_loop()
 
-        logging.info("Server Manager Target is:"+oldServerURL)
         while oldServerURL == self.serverURL:
             try:
                 if loop.run_until_complete(self.openSessionAsClient(loop)):
@@ -883,8 +948,11 @@ class DocumentDatabase():
             # Lets make our own crappy fake copy of JSON1, so we can use it on
             # Sqlite versions without that extension loaded.
 
+            #Also, our versios can operate directly on compressed data
+
             def json_valid(x):
                 try:
+                    x=decompress(x)
                     json.loads(x)
                     return 1
                 except:
@@ -895,7 +963,7 @@ class DocumentDatabase():
 
             def json_extract(x, path):
                 try:
-                    j = json.loads(x)
+                    j = json.loads(decompress(x))
 
                     # Remove the $., this is just a limited version that only supports top level index getting
                     path = path[2:]
@@ -911,16 +979,18 @@ class DocumentDatabase():
             self.threadLocal.conn.create_function(
                 "json_extract", 2, json_extract, deterministic=True)
 
+
     def _checkIfNeedsResign(self, i):
         "Check if we need to redo the sig on a record,sig pair because the key has changed.  Return sig, old sig if no correction needed"
         kdg = libnacl.crypto_generichash(base64.b64decode(self.syncKey))[:8]
         if not base64.b64decode(i[1])[24:].startswith(kdg):
             if self.writePassword:
-                mdg = libnacl.crypto_generichash(i[0].encode())[:24]
+                d = decompress(i[0])
+                mdg = libnacl.crypto_generichash(d.encode())[:24]
                 sig = libnacl.crypto_sign_detached(
                     mdg, base64.b64decode(self.writePassword))
                 signature = base64.b64encode(mdg+kdg+sig).decode()
-                id = json.loads(i[0])['id']
+                id = json.loads(d)['id']
                 with self.lock:
                     c2 = self.threadLocal.conn.execute(
                         'UPDATE document SET signature=? WHERE json_extract(json,"$.id")=?', (signature, id))
@@ -934,7 +1004,6 @@ class DocumentDatabase():
 
     def handleBinaryAPICall(self, a, sessionObject=None, forceResponse=False):
         # Process one incoming binary API message.  If part of a sesson, using a sesson objert enables certain features.
-        logging.info("i got a msg")
         self.dbConnect()
 
         # Message type byte is reserved for a future use
@@ -990,6 +1059,9 @@ class DocumentDatabase():
         # Get the data
         d = a[8:]
 
+        #Decompress the data if need be
+        d = decompress(d)
+
         if sessionObject:
             sessionObject.remoteNodeID = remoteNodeID
 
@@ -1007,8 +1079,6 @@ class DocumentDatabase():
             r['connectedServers'] = self.connectedServers
 
         b64RemoteNodeID = base64.b64encode(remoteNodeID).decode()
-        logging.info("msg was from:" + b64RemoteNodeID)
-        logging.info("we are:" + base64.b64encode(self.localNodeVK).decode())
 
         # It is an explicitly supported use case to have both the client and the server of a connection share the same database, for use in IPC.
         # In this scenario, it is useless to send ir request old records, as the can't get out of sync, there is only one DB.
@@ -1069,7 +1139,6 @@ class DocumentDatabase():
 
                         if not 'records' in r:
                             r['records'] = []
-                        logging.info(i)
                         r['records'].append([i[0], sig, i[2]])
 
                         sessionObject.lastResyncFlushTime = max(
@@ -1085,7 +1154,6 @@ class DocumentDatabase():
 
         needUpdatePeerTimestamp = False
         if "records" in d and d['records']:
-            logging.info("Has records")
             # If we ARE the same database as the remote node, we already have the record they are telling us about, we just need to do the notification
             if not remoteNodeID == self.localNodeVK:
                 with self:
@@ -1133,7 +1201,7 @@ class DocumentDatabase():
                         rt = i[2]
                     else:
                         rt = min(rt, i[2])
-                    docObj = json.loads(i[0])
+                    docObj = json.loads(decompress(i[0]))
                     try:
                         del self.documentCache[docObj['id']]
                     except KeyError:
@@ -1177,7 +1245,6 @@ class DocumentDatabase():
                 for i in cur:
                     # Don't loop records
                     if not i[3] == session.b64RemoteNodeID:
-                        logging.info("Pushing Update Record!")
                         if not 'records' in r:
                             r['records'] = []
                         r['records'].append([i[0], i[1], i[2]])
@@ -1204,7 +1271,7 @@ class DocumentDatabase():
 
             # Expect exactly one result here
             for i in cur:
-                d = json.loads(i[0])
+                d = json.loads(decompress(i[0]))
 
                 id = d['id']
                 r[id] = i
@@ -1212,10 +1279,10 @@ class DocumentDatabase():
                 if children:
                     cur2 = self.threadLocal.conn.cursor()
                     cur2.execute(
-                        'SELECT json,signature,arrival FROM document WHERE  json_extract(json,"$.parent")=?', (d['id'],))
+                        'SELECT json,signature,arrival FROM document WHERE IFNULL(json_extract(json,"$.parent"),"")=?', (d['id'],))
 
                     for j in cur2:
-                        d2 = json.loads(j[0])
+                        d2 = json.loads(decompress(j[0]))
                         id = d2['id']
                         r[id] = j
 
@@ -1243,7 +1310,7 @@ class DocumentDatabase():
 
         return self.encodeMessage(d, True)
 
-    def encodeMessage(self, d, needWritePassword=False):
+    def encodeMessage(self, d, needWritePassword=False,useCompression=True):
         "Given a JSON message, encode it so as to be suitable to send to another node"
         if needWritePassword and not self.writePassword:
             raise RuntimeError("You don't have a write password")
@@ -1254,6 +1321,10 @@ class DocumentDatabase():
         keyHint = libnacl.crypto_generichash(symKey)[:16]
 
         r = jsonEncode(d).encode('utf8')
+
+        if useCompression:
+            r=compressGzip(r)
+
 
         timeAsBytes = struct.pack("<Q", int(time.time()*1000000))
 
@@ -1456,6 +1527,16 @@ class DocumentDatabase():
             import toml
             l = toml.loads(d)
 
+        #Sort by time. This is so that the feed view which is based on arrival times somewhat makes sense.
+        x = []
+        for i in l:
+            x.append((l[i].get('time',0), i, l[i]))
+
+        l={}
+        
+        for i in sorted(x):
+            l[i[1]]=i[2]
+
         for i in l:
             d = l[i]
             # Fish the info we stored in theheading back into the dict
@@ -1511,12 +1592,12 @@ class DocumentDatabase():
             else:
                 return time.time()*10**6
 
-    def setDocument(self, doc, signature=None, receivedFrom='', remoteArrivalTime=0, parentIsNull=False):
+    def setDocument(self, doc, signature=None, receivedFrom='', remoteArrivalTime=0, parentIsNull=False,useCompression=False):
         with self.lock:
             self._setDocument(doc, signature, receivedFrom,
-                              remoteArrivalTime, parentIsNull)
+                              remoteArrivalTime, parentIsNull,useCompression)
 
-    def _setDocument(self, doc, signature=None, receivedFrom='', remoteArrivalTime=0, parentIsNull=False):
+    def _setDocument(self, doc, signature=None, receivedFrom='', remoteArrivalTime=0, parentIsNull=False,useCompression=False):
         """Two modes: Locally generate a signature, or use the existing sig data.
             When the record is remotely recieved, you must specify what arrival time the remote node thinks it came in at.        
         """
@@ -1526,8 +1607,6 @@ class DocumentDatabase():
         else:
             docObj = doc
 
-        logging.info("Setting record, recieved from: "+receivedFrom +
-                     " and local ID is "+base64.b64encode(self.localNodeVK).decode())
 
         self.dbConnect()
         oldVersionData = {}
@@ -1548,7 +1627,7 @@ class DocumentDatabase():
                 x = cur.fetchone()
                 if x:
                     oldVersionData, oldVersion = x
-                    oldVersionData = json.loads(oldVersionData)
+                    oldVersionData = json.loads(decompress(oldVersionData))
                 else:
                     oldVersion = None
                 cur.close()
@@ -1727,6 +1806,10 @@ class DocumentDatabase():
                     except KeyError:
                         pass
 
+                #Automatically enable compression for moderately large records.
+                if useCompression or len(d)> 512:
+                    d=compressGzip(d)
+
                 c = self.threadLocal.conn.execute(
                     "INSERT INTO document VALUES (null,?,?,?,?,?)", (d, signature, self.makeNewArrivalTimestamp(), receivedFrom, '{}'))
 
@@ -1740,7 +1823,7 @@ class DocumentDatabase():
         c = self.threadLocal.conn.execute(
             "SELECT json, signature, arrival FROM document WHERE json_extract(json,'$.id')=?", (docObj['id'],)).fetchone()
         if c:
-            docObj = json.loads(c[0])
+            docObj = json.loads(decompress(c[0]))
             self.earliestUncommittedRecord = c[2]
             self._onRecordChange(docObj, c[1], c[2])
 
@@ -1822,9 +1905,9 @@ class DocumentDatabase():
                 # The rest we consider blocked. They become an orphan record.
                 thisround = {}
                 c = self.threadLocal.conn.execute(
-                    "SELECT json FROM document WHERE json_extract(json,'$.parent')=? AND json_extract(json,'$.time')<? LIMIT 1000", (record, r['time']))
+                    "SELECT json FROM document WHERE IFNULL(json_extract(json,'$.parent'),'')=? AND json_extract(json,'$.time')<? LIMIT 1000", (record, r['time']))
                 for i in c:
-                    x = json.loads(i[0])
+                    x = json.loads(decompress(i[0]))
                     l.append((x['id'], x['time']))
                     thisround[x['id']] = True
 
@@ -1928,7 +2011,7 @@ class DocumentDatabase():
                 x = cur.fetchone()
                 cur.close()
                 if x:
-                    x = json.loads(x[0])
+                    x = json.loads(decompress(x[0]))
                     if allowOrphans:
                         return self.decryptDocument(x)
                 self.documentCache[key] = x
@@ -1966,6 +2049,41 @@ class DocumentDatabase():
                 return self.decryptDocument(r), _ancestors
             return self.decryptDocument(r)
 
+
+
+
+    def getDocumentsBySQL(self, query, *a,allowOrphans=False, orphansOnly=False):
+
+        self.dbConnect()
+        cur = self.threadLocal.conn.cursor()
+
+        cur.execute(
+            "SELECT json from document WHERE "+query, a)
+
+        l = 0
+        for i in cur:
+            try:
+                x = json.loads(decompress(i[0]))
+            except:
+                continue
+
+            if not x.get('type', '') == 'null':
+                isOrphan = False
+                # Look for orphan records that have been 'deleted'
+                if 'parent' in x:
+                    if (not allowOrphans) or orphansOnly:
+                        if not self.getDocumentByID(x['parent']):
+                            isOrphan = True
+                            if not (orphansOnly or allowOrphans):
+                                continue
+
+                if orphansOnly:
+                    if not isOrphan:
+                        continue
+                yield self.decryptDocument(x)
+        cur.close()
+
+
     def getDocumentsByType(self, key, startTime=0, endTime=10**18, limit=100, parent=None, descending=True, orphansOnly=False, allowOrphans=False, orderBy=None, extraFilters=''):
         """Return documents meeting the filter criteria. Parent should by the full path of the parent record, to limit the results to children of that record.
             You can try to just use the direct parent ID but that is not a guarantee, it returns nothing if we don't have the parent record.
@@ -1988,9 +2106,9 @@ class DocumentDatabase():
 
         self.dbConnect()
         cur = self.threadLocal.conn.cursor()
-
+        
         if extraFilters:
-            extraFilters = extraFilters + " AND"
+            extraFilters=extraFilters+" AND "
 
         if parent is None:
             cur.execute(
@@ -2007,7 +2125,7 @@ class DocumentDatabase():
                 return
 
             try:
-                x = json.loads(i[0])
+                x = json.loads(decompress(i[0]))
             except:
                 continue
 
@@ -2052,7 +2170,7 @@ class DocumentDatabase():
                 r.append(i[0])
 
         cur.close()
-        return list(reversed([self.decryptDocument(i) for i in [json.loads(i) for i in r]]))
+        return list(reversed([self.decryptDocument(i) for i in [json.loads(decompress(i)) for i in r]]))
 
 
 if __name__ == "__main__":

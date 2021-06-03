@@ -6,6 +6,7 @@ from nacl.bindings.crypto_sign import crypto_sign, crypto_sign_keypair, crypto_s
 from nacl.bindings.crypto_secretbox import crypto_secretbox, crypto_secretbox_open
 from nacl.bindings import crypto_sign_BYTES
 from nacl.bindings.crypto_generichash import crypto_generichash_BYTES
+from nacl.bindings.crypto_box import crypto_box, crypto_box_open, crypto_box_seal,crypto_box_seal_open
 
 
 def crypto_sign_detached(msg, key):

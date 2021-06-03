@@ -193,6 +193,11 @@ def renderPostTemplate(db, postID,text, limit=100000000):
     return text
 
 cacheClearTime=[time.time()]
+
+
+from .colornames import getColor,getFGForColor
+
+
 class TablesMixin():
 
     def clearSpreadsheetCache(self):
@@ -204,11 +209,22 @@ class TablesMixin():
         self.streamEditPanel.clear_widgets()
         s = daemonconfig.userDatabases[stream]
         parentDoc=daemonconfig.userDatabases[stream].getDocumentByID(parent,allowOrphans=True)
+        if not parentDoc:
+            logging.error("nonexistent parent document")
+            return
+        themeColor = getColor(parentDoc)
         self.streamEditPanel.add_widget(self.makeBackButton())
 
         postWidget=self.makePostWidget(stream,parentDoc,indexAssumption=False)
         self.streamEditPanel.add_widget(postWidget)
-        self.streamEditPanel.add_widget((MDToolbar(title="Data Table View")))
+        t = (MDToolbar(title="Data Table View"))
+
+        if themeColor:
+            t.md_bg_color=themeColor
+            t.specific_text_color=getFGForColor(themeColor)
+
+
+        self.streamEditPanel.add_widget(t)
             
 
         topbar = BoxLayout(orientation="horizontal",spacing=10,adaptive_height=True)
@@ -281,8 +297,17 @@ class TablesMixin():
 
 
      
+        t = MDToolbar(title="Data Rows")
 
-        self.streamEditPanel.add_widget(MDToolbar(title="Data Rows"))
+
+        if themeColor:
+            t.md_bg_color=themeColor
+            t.specific_text_color=getFGForColor(themeColor)
+
+
+
+
+        self.streamEditPanel.add_widget(t)
         self.streamEditPanel.add_widget(searchBar)
 
 

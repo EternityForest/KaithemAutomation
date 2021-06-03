@@ -64,6 +64,10 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.56
+- Update HardlineP2P
+
+
 ### 0.65.55
 - Tag history DB file now includes the name of the node that wrote it.
 - Semi breaking change, not really, the log directory is now compartmented by which hostname-user actually wrote the logs, in case the vardir is synced between machines.

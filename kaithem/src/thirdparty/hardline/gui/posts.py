@@ -6,7 +6,7 @@ from .. import daemonconfig, hardline
 from kivy.metrics import cm
 
 import configparser,logging,datetime
-
+from kivy.core.text.markup import MarkupLabel
 from kivy.uix.image import Image
 from kivy.uix.widget import Widget
 from kivy.uix.textinput import TextInput
@@ -39,26 +39,84 @@ from . import tables
 
 
 
-
-pinRankFilter = "IFNULL(json_extract(json,'$.pinRank'), 0) >0"
+#We need the redundant AND json_extract(json,'$.pinRank') to make it compatible withe partial index
+pinRankFilter = "IFNULL(json_extract(json,'$.pinRank'), 0) >0 AND json_extract(json,'$.pinRank')"
 
 
 from kivymd.uix.stacklayout import MDStackLayout as StackLayout
 
 
+
+from .colornames import getColor,getFGForColor
+
 class PostsMixin():
 
+    def importFromWikipedia(self,stream,parent,article):
+        try:
+            import wikipedia
+            try:
+                p = wikipedia.page(wikipedia.search(article,results=1)[0])
+            except wikipedia.DisambiguationError as e:
+                p = wikipedia.page(e.options[0])
+
+
+            sections =[ [i.split(" ==\n")[0].strip(), i.split(" ==\n")[1].strip()] for i in (p.content.split("\n== ")) if len(i.split(" ==\n"))>1]
+
+          
+            db = daemonconfig.userDatabases[stream]
+            #Deterministicallty generate the 
+            mainId = db.createNamespacedUUID(parent, "8c868024-ba73-460a-aec9-c102c5cb1c99:"+p.title)
+
+            with db:
+                mainDocument = {
+                    'type':'post',
+                    'specialPostType': "WikiImport",
+                    'body': p.content.split("\n== ")[0],
+                    'title': p.title,
+                    'id': mainId,
+                    'parent': parent
+                }
+                db.setDocument(mainDocument)
+
+                for i in reversed(sections):
+                    document = {
+                    'type':'post',
+                    'specialPostType': "WikiImport",
+                    'body': i[1],
+                    'title': i[0],
+                    'parent': mainId,
+                    'id':db.createNamespacedUUID(mainId, "8c868024-ba73-460a-aec9-c102c5cb1c99:"+i[0])
+                    }
+                    db.setDocument(document)
+
+            db.commit()
+
+        except:
+            logging.exception("Could not import")
 
     def gotoStreamPost(self, stream,postID,noBack=False, indexAssumption=True):
         "Editor/viewer for ONE specific post"
         self.unsavedDataCallback=None
 
         self.streamEditPanel.clear_widgets()
-        self.streamEditPanel.add_widget(MDToolbar(title="Post in "+stream+"(Autosave on)"))
+        heading = MDToolbar(title="Post in "+stream+"(Autosave on)")
+        self.streamEditPanel.add_widget(heading)
 
         document = daemonconfig.userDatabases[stream].getDocumentByID(postID,allowOrphans=True)
+        if not document:
+            document={}
+
+        themeColor = getColor(document)
+
+
 
         topbar = BoxLayout(size_hint=(1,None),adaptive_height=True,spacing=10)
+
+        if themeColor:
+            fgcolor = getFGForColor(themeColor)
+            heading.md_bg_color=themeColor
+            heading.specific_text_color =fgcolor
+
         self.streamEditPanel.add_widget(topbar)
 
         def upOne(*a):
@@ -161,7 +219,8 @@ class PostsMixin():
                     document['title']=newtitle.text
                     document['body']=sourceText[0] or newp.text
                     #If there is no document time we need to add one.
-                    document['documentTime'] = document.get('documentTime',document.get('time',int(time.time()*10**6)))
+                    #Defensive programming to be able to fix None that somehow got in this propery
+                    document['documentTime'] = document.get('documentTime',document.get('time',int(time.time()*10**6))) or document.get('time',int(time.time()*10**6))
                     #Make sure system knows this is not an old document
                     try:
                         del document['time']
@@ -179,6 +238,8 @@ class PostsMixin():
             self.unsavedDataCallback = post
         newtitle.bind(text=setUnsaved)
         newp.bind(text=setUnsaved)
+
+
 
 
 
@@ -247,11 +308,11 @@ class PostsMixin():
             else:
                 f('yes')
 
+        if not document.get('specialPostType')=='archive':
+            btn1 = Button(text='Table')
 
-        btn1 = Button(text='Table')
-
-        btn1.bind(on_press=tableview)
-        buttons.add_widget(btn1)
+            btn1.bind(on_press=tableview)
+            buttons.add_widget(btn1)
 
 
 
@@ -281,13 +342,12 @@ class PostsMixin():
                         if not daemonconfig.userDatabases[stream].getDocumentByID(archiveID):
                             daemonconfig.userDatabases[stream].setDocument({
                                 'id':archiveID,
-                                'title':'Archive',
+                                'title':'[ Archive ]',
                                 'specialPostType':'archive',
                                 'parent':document.get('parent',''),
                                 'type':'post',
                                 'pinRank': 1,
-                                'body':"This is where archived posts in this folder go",
-                                "icon":"icons/CC0 Clipart/nicubunu/office/box_with_folders.jpg"
+                                'body':"",
                             })
                         
 
@@ -314,10 +374,16 @@ class PostsMixin():
 
 
 
-        btn1 = Button(text='Archive')
 
-        btn1.bind(on_press=archive)
-        buttons.add_widget(btn1)
+
+        #Can't archive the archive....
+        if not document.get('specialPostType')=='archive':
+            parentDocument = daemonconfig.userDatabases[stream].getDocumentByID(document.get('parent',''))
+            #Don't allow endless archiving nested folders
+            if not(parentDocument and parentDocument.get('specialPostType')=='archive'):
+                btn1 = Button(text='Archive')
+                btn1.bind(on_press=archive)
+                buttons.add_widget(btn1)
 
         
         #This just shows you the most recent info
@@ -334,7 +400,7 @@ class PostsMixin():
         for i in p1:
             #The index assumption, jump straight to the index when we detect a very short post
             #with at least one child
-            if indexAssumption and len(document.get('body',''))<180:
+            if indexAssumption:
                 self.gotoStreamPosts(stream,parent=postID,indexAssumptionWasUsed=True)
                 return
 
@@ -352,16 +418,16 @@ class PostsMixin():
             c=True
             #The index assumption, jump straight to the index when we detect a very short post
             #with at least one child
-            if indexAssumption and len(document.get('body',''))<180:
+            if indexAssumption:
                 self.gotoStreamPosts(stream,parent=postID,indexAssumptionWasUsed=True)
                 return
 
             #Avoid showing pinned twice
             if not i['id'] in pinnedIDs:
-                x=self.makePostWidget(stream,i)
+                x=self.makePostWidget(stream,i,defaultColor=themeColor)
                 self.streamEditPanel.add_widget(x)
 
-        if indexAssumption and not c and len(document.get('body',''))<180:
+        if indexAssumption and not c:
             for i in s.getDocumentsByType("row", limit=1,parent=postID):
                 self.gotoTableView(stream,postID)
                 return
@@ -454,17 +520,32 @@ class PostsMixin():
         self.streamEditPanel.add_widget(topbar)
 
         s = daemonconfig.userDatabases[stream]
+        themeColor = None
         if not parent:
             if orphansMode:
                 self.streamEditPanel.add_widget(MDToolbar(title="Unreachable Records in "+stream))
             else:
-                self.streamEditPanel.add_widget(MDToolbar(title="Feed for "+stream))
+                if parent is None:
+                    self.streamEditPanel.add_widget(MDToolbar(title="Feed View: "+stream))
+                else:
+                    self.streamEditPanel.add_widget(MDToolbar(title=stream))
         else:
             parentDoc=daemonconfig.userDatabases[stream].getDocumentByID(parent)
             #Disable index assumption so we can always actually go to the parent post instead of getting stuck.
-            x=self.makePostWidget(stream,parentDoc,indexAssumption=False)
+            x=self.makePostWidget(stream,parentDoc,indexAssumption=False,defaultColor=themeColor)
             self.streamEditPanel.add_widget(x)
-            self.streamEditPanel.add_widget(MDToolbar(title=stream))
+           
+
+            if parentDoc:
+                themeColor=getColor(parentDoc)
+            toolbar = MDToolbar(title="Posts")
+
+            if themeColor:
+                toolbar.md_bg_color=themeColor
+                toolbar.specific_text_color =getFGForColor(themeColor)
+                
+
+            self.streamEditPanel.add_widget(toolbar)
 
 
 
@@ -513,21 +594,35 @@ class PostsMixin():
 
 
         if parent:
-            parentPath=s.getDocumentByID(parent)['id']
-
+            try:
+                parentPath=s.getDocumentByID(parent)['id']
+            except:
+                logging.exception("?")
+                return
         else:
-            parentPath=''
+            parentPath=parent
         
         if orphansMode:
             parentPath=None
 
+
+
+        #When there is no parent record, we want to see recent changes fron the whole DB.  in that case use arrival time not real time,
+        #Assuming the user will want to see old stuff he did not have before
         if not search:
             if startTime:
-                #If we have a start time the initial search has to be ascending or we will just always get the very latest.
-                #So then we have to reverse it to give a consistent ordering
-                p = list(reversed(list(s.getDocumentsByType("post",startTime=startTime, endTime=endTime or 10**18, limit=20,descending=False,orphansOnly=orphansMode,parent=parentPath))))
+
+                if parent is None:
+                    p=list(s.getDocumentsBySQL("json_extract(json,'$.type')='post'  AND arrival>? AND arrival<? ORDER BY arrival ASC LIMIT 20",startTime, endTime or 10**18,orphansOnly=orphansMode))
+                else:
+                    #If we have a start time the initial search has to be ascending or we will just always get the very latest.
+                    #So then we have to reverse it to give a consistent ordering
+                    p = list(reversed(list(s.getDocumentsByType("post",startTime=startTime, endTime=endTime or 10**18, limit=20,descending=False,orphansOnly=orphansMode,parent=parentPath))))
             else:
-                p = list(s.getDocumentsByType("post",startTime=startTime, endTime=endTime or 10**18, limit=20,orphansOnly=orphansMode,parent=parentPath))
+                if parent is None:
+                    p=list(s.getDocumentsBySQL("json_extract(json,'$.type')='post'  AND arrival>? AND arrival<? ORDER BY arrival DESC LIMIT 20",startTime, endTime or 10**18,orphansOnly=orphansMode))
+                else:
+                    p = list(s.getDocumentsByType("post",startTime=startTime, endTime=endTime or 10**18, limit=20,orphansOnly=orphansMode,parent=parentPath))
         else:
             #Search always global
             p=list(s.searchDocuments(search,"post",startTime=startTime, endTime=endTime or 10**18, limit=20))
@@ -618,20 +713,24 @@ class PostsMixin():
         pinnedIDs={}
         pinnedPosts = []
 
-        #Get nonzero pin rank
-        p1 = s.getDocumentsByType("post",parent=parentPath,extraFilters=pinRankFilter)
-        for i in p1:
-            pinnedIDs[i['id']]=True
-            pinnedPosts.append((i.get('pinRank',0),i['id'],i))
 
-        for i in reversed(list(sorted(pinnedPosts))):
-            x=self.makePostWidget(stream,i[2])
-            self.streamEditPanel.add_widget(x)
+        #Makes no sense to have pinned posts in a global feed of all changes, it would get clogged.
+        if not parent is None:
+            #Get nonzero pin rank
+            p1 = s.getDocumentsByType("post",parent=parentPath,extraFilters=pinRankFilter)
+            for i in p1:
+                pinnedIDs[i['id']]=True
+                pinnedPosts.append((i.get('pinRank',0),i['id'],i))
+
+            for i in reversed(list(sorted(pinnedPosts))):
+                x=self.makePostWidget(stream,i[2],defaultColor=themeColor)
+                self.streamEditPanel.add_widget(x)
 
         for i in p:
             #Avoid showing pinned twice
             if not i['id'] in pinnedIDs:
-                x=self.makePostWidget(stream,i)
+                #In global changes feeds we have to give the user a bit of context.
+                x=self.makePostWidget(stream,i, includeParent=(parent is None),defaultColor=themeColor)
                 self.streamEditPanel.add_widget(x)
 
         
@@ -644,7 +743,7 @@ class PostsMixin():
 
         self.screenManager.current = "EditStream"
 
-    def makePostWidget(self,stream, post,indexAssumption=True):
+    def makePostWidget(self,stream, post,indexAssumption=True,includeParent=False,defaultColor=None):
         "Index assumption allows treating very short posts as indexes that gfo straight to the comment page"
         def f(*a):
             def f2(d):
@@ -659,23 +758,82 @@ class PostsMixin():
             else:
                 f2(True)
 
-        #Chop to a shorter length, then rechop to even shorter, to avoid cutting off part of a long template and being real ugly.
-        body=post.get('body',"?????")[:240].strip()
-        body = tables.renderPostTemplate(daemonconfig.userDatabases[stream], post['id'], body, 4096)
-        body=body[:180].replace("\r",'').replace("\n",'_NEWLINE',2).replace("\n","").replace("_NEWLINE","\r\n")
+        parent = post.get('parent','')
+        parentTitle=None
+        if includeParent:
+            if parent:
+                try:
+                    parentTitle= daemonconfig.userDatabases[stream].getDocumentByID(parent).get('title','Untitled')
+                except:
+                    parentTitle="NOT FOUND"
 
-        #Split on blank line
-        body=body.split('\r\n\r\n')[0].split('\n#')[0]
+                
 
-        btn=Button(text=post.get('title',"?????") + " "+time.strftime("(%a %b %d, '%y)",time.localtime(post.get('time',0)/10**6)), on_release=f)
-        
+        def getShortText():
+            moreToCome=False
+            #Chop to a shorter length, then rechop to even shorter, to avoid cutting off part of a long template and being real ugly.
+            body=post.get('body',"?????")[:240].strip()
+            if len(post.get('body',"?????"))>240:
+                moreToCome=True
+
+
+            body = tables.renderPostTemplate(daemonconfig.userDatabases[stream], post['id'], body, 4096)
+            l=len(body)
+            body=body[:180].replace("\r",'').replace("\n",'_NEWLINE',2).replace("\n","").replace("_NEWLINE","\r\n")
+
+            #Split on blank line
+            body=body.split('\r\n\r\n')[0].split('\n#')[0]
+            if len(body)<l:
+                moreToCome=True
+            return body, moreToCome
+
+        def getLongText():
+            #Chop to a shorter length, then rechop to even shorter, to avoid cutting off part of a long template and being real ugly.
+            body=post.get('body',"?????")
+            body = tables.renderPostTemplate(daemonconfig.userDatabases[stream], post['id'], body, 8192*16)
+            return body
+
+
+        body,moreToCome = getShortText()
+
+        t =  post.get('title',"?????")
+        try:
+            if '[size=' in t:
+                raise RuntimeError("Size markup unsupported")
+            
+            #Embolden but don't override user formatting
+            if not '[' in t:
+                t='[b]'+t+'[/b]'
+            btn=Button(text=t + " "+time.strftime("(%a %b %d, '%y)",time.localtime((post.get('documentTime',post.get('time',0)) or post.get('time',0))/10**6)  ) , on_release=f,markup=True)
+
+        except Exception as e:
+            logging.exception("err")
+            btn=Button(text=t + " "+time.strftime("(%a %b %d, '%y)",time.localtime((post.get('documentTime',post.get('time',0)) or post.get('time',0))/10**6)  ) , on_release=f)
+
+      
+
+        themeColor = getColor(post or {})
+
+        if themeColor:
+            try:
+                btn.md_bg_color = themeColor
+                btn.text_color=getFGForColor(themeColor)
+            except:
+                logging.exception("invalid color")
+        elif defaultColor:
+            btn.md_bg_color=defaultColor
+            btn.text_color=getFGForColor(defaultColor)
+
         if (not post.get('body','').strip()) and ((not post.get('icon','')) or not post['icon'].strip()):
             return btn
-
+        topl = BoxLayout(adaptive_height=True,orientation='horizontal',size_hint=(1,None))
+        topl.add_widget(btn)
         l = BoxLayout(adaptive_height=True,orientation='vertical',size_hint=(1,None))
 
         
-        l.add_widget(btn)
+        if parentTitle:
+            l.add_widget(self.saneLabel(str(parentTitle)+'>',l))
+        l.add_widget(topl)
         l2 = BoxLayout(adaptive_height=True,orientation='horizontal',size_hint=(1,None))
         
 
@@ -696,25 +854,75 @@ class PostsMixin():
 
         l.image = img
 
-        bodyText =Label(text=body.strip(),size_hint=(0.75 if useIcon else 0.9,1),valign="top")
+
+        w = 0.75 if useIcon else 0.9
+
+        try:
+            if '[size=' in body:
+                raise RuntimeError("Size markup unsupported")
+
+
+            bodyText =Label(text=body.strip(),size_hint=(w,1),valign="top",markup=True)
+        except Exception as e:
+            logging.exception("err")
+            bodyText =Label(text=body.strip()+str(e),size_hint=(w,1),valign="top")
+            bodyText.texture_update()
+        l2.add_widget(bodyText)
+
+
         l.body = bodyText
         import kivy.clock
 
     
+
         def setWidth(*a):
             w=l2.width
             bodyText.text_size=(w-(img.width+4)),None
-            bodyText.texture_update()
+            try:
+                bodyText.texture_update()
+            except Exception as e:
+                #Eliminate bbcode
+                bodyText.text= bodyText.text.replace("[",'')+str(e)
+                bodyText.texture_update()
+
             bodyText.size = (bodyText.texture_size[0],max(bodyText.texture_size[1],cm(1.5)))
             l2.height=max(bodyText.texture_size[1],cm(1.5))
             l.minimum_height=l2.height+btn.height+4
 
         l2.bind(width=setWidth)
         kivy.clock.Clock.schedule_once(setWidth)
+
+        bodyText.expanded=False
+        if moreToCome:
+            eb = Button(text="+")
+            def onExpand(*a):
+                if bodyText.expanded:
+                    bodyText.expanded=False
+                    bodyText.text = getShortText()[0]
+                    eb.text='+'
+                    kivy.clock.Clock.schedule_once(setWidth)
+                else:
+                    bodyText.expanded=True
+                    eb.text = '-'
+                    bodyText.text = getLongText()
+                    kivy.clock.Clock.schedule_once(setWidth)
+
+            if themeColor:
+                try:
+                    eb.md_bg_color = themeColor
+                    eb.text_color=getFGForColor(themeColor)
+                except:
+                    logging.exception("invalid color")
+            elif defaultColor:
+                eb.md_bg_color=defaultColor
+                eb.text_color=getFGForColor(defaultColor)
+            eb.bind(on_release=onExpand)
+            topl.add_widget(eb)
+
+       
+
         #w = MDTextField(text=body, multiline=True,size_hint=(1,0.5),mode="rectangle",readonly=True)
-        w=bodyText
         
-        l2.add_widget(w)
         l.add_widget(l2)
 
     
@@ -742,7 +950,7 @@ class PostsMixin():
                 with daemonconfig.userDatabases[stream]:
                     import uuid
                     id = str(uuid.uuid4())
-                    d = {'body': newp.text,'title':newtitle.text,'type':'post','documentTime':int(time.time()*10**6)}
+                    d = {'body': newp.text,'title':newtitle.text,'type':'post','documentTime':int(time.time()*10**6),'id':id}
                     if parent:
                         d['parent'] = parent
 
@@ -918,7 +1126,10 @@ class PostsMixin():
           
             def f(x):
                 if x=='yes':
-                    s['icon'] = selection[len(directories.assetLibPath)+1:] if selection else ''
+                    try:
+                        del s['icon']
+                    except:
+                        pass
                     s['time']=None
                     self.unsavedDataCallback=autosavecallback
                     icon.text = "Icon: "+os.path.basename(s.get("icon",''))
@@ -927,6 +1138,38 @@ class PostsMixin():
             
         clearicon.bind(on_release=promptSet)
         self.postMetaPanel.add_widget(clearicon)
+
+
+        importwiki = Button( text="Import Wikipedia Article")
+        def promptSet(*a):
+            from .kivymdfmfork import MDFileManager
+          
+            def f(x):
+                if x:
+                    self.importFromWikipedia(stream,docID, x)
+
+            self.askQuestion("Article search terms",'',f)
+            
+        importwiki.bind(on_release=promptSet)
+        self.postMetaPanel.add_widget(importwiki)
+
+
+
+
+        setcolor = Button( text="Post Color(hex or name)")
+        def promptSet(*a):
+          
+            def f(x):
+                if not x is None:
+                    s['color']=x
+                    s['time']=None
+                    self.unsavedDataCallback=autosavecallback
+                  
+            self.askQuestion("Set post theme color?",s.get('color',''),f)
+            
+        setcolor.bind(on_release=promptSet)
+        self.postMetaPanel.add_widget(setcolor)
+
 
 
         idButton = Button( text="Show Post ID")

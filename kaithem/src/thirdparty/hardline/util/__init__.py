@@ -195,6 +195,7 @@ class LPDPeer():
             del self.activeHashes[doublehash] 
         except KeyError:
             pass
+        
     
     def calcRollingCode(self,hash):
          # Password isn't part of discovery at all

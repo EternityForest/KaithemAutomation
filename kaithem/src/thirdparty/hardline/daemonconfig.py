@@ -286,6 +286,22 @@ userServices = {}
 ddbservice = [0]
 
 
+keysPath = os.path.join(directories.settings_path,"documentKeys.toml")
+
+
+# def loadStoredKeys():
+#     "Get the stored keys from file."
+#     import toml
+#     if os.path.exists(keysPath):
+#         with open(keysPath) as f:
+#             keys=toml.load(f)
+#     else:
+#         keys={}
+
+#     for i in keys:
+#         drayerdb.addCryptoKey(i, )
+
+
 def loadDrayerServerConfig():
     "Get drayer server config from the global config file."
     drayerdb.stopServer()

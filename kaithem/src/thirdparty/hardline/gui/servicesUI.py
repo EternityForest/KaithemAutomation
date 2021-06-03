@@ -99,7 +99,7 @@ class ServicesMixin():
 
             self.askQuestion("Really delete?", name, f)
 
-        self.localServiceEditPanel.add_widget(Label(size_hint=(1, None), halign="center", font_size="24sp",
+        self.localServiceEditPanel.add_widget(Label(size_hint=(1, None), halign="center",
                                                     text='Service'))
 
         self.localServiceEditPanel.add_widget(
@@ -109,7 +109,7 @@ class ServicesMixin():
         self.localServiceEditPanel.add_widget(
             self.settingButton(c, "Info", "title"))
 
-        self.localServiceEditPanel.add_widget(Label(size_hint=(1, None), halign="center", font_size="24sp",
+        self.localServiceEditPanel.add_widget(Label(size_hint=(1, None), halign="center",
                                                     text='Cache'))
         self.localServiceEditPanel.add_widget(Label(size_hint=(1, None),
                                                     text='Cache mode only works for static content'))
@@ -150,7 +150,7 @@ class ServicesMixin():
         self.localServiceEditPanel.add_widget(Label(size_hint=(1, None), 
                                                     text='Directory names are subfolders within the HardlineP2P cache folder,\nand can also be used to share\nstatic files by leaving the service blank.'))
 
-        self.localServiceEditPanel.add_widget(Label(size_hint=(1, None), halign="center", font_size="24sp",
+        self.localServiceEditPanel.add_widget(Label(size_hint=(1, None), halign="center",
                                                     text='Access Settings'))
         self.localServiceEditPanel.add_widget(Label(size_hint=(1, None), 
                                                     text='Cache mode only works for static content'))
@@ -176,7 +176,7 @@ class ServicesMixin():
     def makeButtonForLocalService(self, name, c=None):
         "Make a button that, when pressed, edits the local service in the title"
 
-        btn = Button(text=name)
+        btn = Button(text="Open in Browser")
 
         def f(*a):
             self.editLocalService(name, c)

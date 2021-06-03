@@ -727,7 +727,7 @@ class Service():
                             pass
                         return
 
-        t = threading.Thread(target=f, daemon=True)
+        t = threading.Thread(target=f, daemon=True,name="nostartstoplog.p2pconnectionhandler"+str(time.time()))
         t.start()
 
     # def addKnownLANClient(self,l):
@@ -972,7 +972,7 @@ def server_thread(sock):
 
                     return
 
-    t = threading.Thread(target=f, daemon=True)
+    t = threading.Thread(target=f, daemon=True,name="nostartstoplog.localdrayerhandler"+str(time.time()))
     t.start()
 
 
