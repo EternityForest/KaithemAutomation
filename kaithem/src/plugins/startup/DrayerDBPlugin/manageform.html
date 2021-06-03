@@ -5,6 +5,13 @@ This device represents one locally-hosted DrayerDB stream which you can connect 
 a whole new DB.  Deleting this device may delete the underlying database.
 </p>
 
+<p class="help">
+    New records will be posted to /devices/NAME/record.  device.setDocument({'type':'foo'}) can be used to insert data.  
+    device.getDocumentsByType(type, startTime=0, endTime=10**18, parent='') will return all documents of the given type, in the time range, having that parent document.
+
+    Parent must always be a UUID matching another record's id field.  
+</p>
+    
 
 
 <table>

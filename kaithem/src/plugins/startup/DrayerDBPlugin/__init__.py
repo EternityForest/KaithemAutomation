@@ -16,6 +16,8 @@ import socket
 
 from src import widgets
 
+from scullery import messagebus
+
 logger = logging.Logger("plugins.drayerb")
 
 templateGetter = TemplateLookup(os.path.dirname(__file__))
@@ -50,6 +52,19 @@ class DrayerDatabase(devices.Device):
         except:
             pass
 
+    def dataCallback(self,record, signature):
+        messagebus.postMessage("/devices/"+self.name+"/record")
+
+
+    def setDocument(self,document):
+        with self.service:
+            self.service.setDocument()
+        self.service.commit()
+
+    
+    def getDocumentsByType(self,*a,**k):
+        return self.service.getDocumentsByType(*a,**k)
+
     def __init__(self, name, data):
         devices.Device.__init__(self, name, data)
         self.closed = False
@@ -73,6 +88,7 @@ class DrayerDatabase(devices.Device):
                 vk,sk =base64.b64decode(self.data.get('device.syncKey','')),base64.b64decode(self.data.get('device.writePassword',''))
 
             self.service = drayerdb.DocumentDatabase(os.path.join(self.serviceDir, name+'.db'),keypair=(vk,sk))
+            self.service.dataCallback = self.dataCallback
 
             if self.data.get('device.syncServer',''):
                 self.service.useSyncServer(self.data.get('device.syncServer',''))

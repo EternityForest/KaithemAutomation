@@ -64,6 +64,18 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.55
+- Tag history DB file now includes the name of the node that wrote it.
+- Semi breaking change, not really, the log directory is now compartmented by which hostname-user actually wrote the logs, in case the vardir is synced between machines.
+- File manager now includes a youtube-dl frontend, for legal purposes only.
+- Ability to ship device drivers inside a module, with proper dependency resolution on boot.
+- Include pure python fallback for messagepack
+- New BinaryTag tagpoint type
+- Fix error when re-saving event with exposed tag
+- Zigbee2MQTT is now supported.  Add the Zigbee daemon as a device type and most supported devices should show up as tag points.
+- DrayerDB is now supported. Kaithem is now the preferred way to manage DrayerDB servers.
+
+
 ### 0.65.54
 - More nuisance errors removed
 - Assume that YeeLight bulbs have a good connection until proven otherwise, to avoid alarms. In the future the whole YeeLight module should be refactored.
@@ -98,39 +110,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - Configuring tag point intervals now takes effect immediately
 - You can now use an =expression as a tag point fixed config overrride.
 - General refactoring and reliability for Tagpoints
-
-### 0.65.48
-- Tag point logs sorted correctly
-
-### 0.65.47
-- /sky/night tag is 1 when it is currently nighttime at the configured server location.
-- /sky/civilTwilight is 1 when it is currently dark at the configured server location
-- /system/network/publicIP gets your IP from a public API, or is blank with no connection.  As with all getter-based tags, the request only happens on-demand or if there are tag subscribers.
-- More graceful handling if JACK fails to start
-
-
-### 0.65.46
-- Better Mako error formatting
-- Tag logging bugfixes
-- Fix bugs in configuring exposed tags
-- \_\_never\_\_ permission even blocks admins
-- Wifi status viewer page is back
-- /system/wifiStrength tag point gives the strongest access point connection, 0-100 or -1 for never connected.
-- Main page shows all alarms regardless of permissions. Alarms are not really meant for private data, and the info was there already in the notifications.
-- Help boxes(paragraph or div class 'help') now show up minimized until you mouse over.
-- Clean up Chandler and the widget API to get rid of nuisiance errors
-- Basic error telemetry in WidgetAPI enabled pages
-
-### 0.65.44
-- Many small improvements to the sounds engine, including true seamless looping
-- FreeBoard has been greatly enhanced
-- If gmediarender is installed, the DLNARenderAgent plugin accepts media streams from a phone and plays them through the JACK mixer
-- YeeLight plugin now uses a StringTag to represent color as hex, because strings are an extremely common solution.
-
-### 0.65.43
-- FreeBoard supports theme creation, uses simpler direct bvalues for widgets, not value,time pairs
-- Realtime DRAM bit error detection(I expect one or two hits per year in the 1MB average window we use)
-
 
 
 

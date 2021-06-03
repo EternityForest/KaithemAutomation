@@ -8,6 +8,9 @@ Change Log
 - Ability to ship device drivers inside a module, with proper dependency resolution on boot.
 - Include pure python fallback for messagepack
 - New BinaryTag tagpoint type
+- Fix error when re-saving event with exposed tag
+- Zigbee2MQTT is now supported.  Add the Zigbee daemon as a device type and most supported devices should show up as tag points.
+- DrayerDB is now supported. Kaithem is now the preferred way to manage DrayerDB servers.
 
 ### 0.65.54
 - More nuisance errors removed
