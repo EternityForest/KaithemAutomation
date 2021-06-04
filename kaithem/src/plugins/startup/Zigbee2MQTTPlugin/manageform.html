@@ -21,7 +21,7 @@ ${obj.apiWidget.render("api")}
 
     <div>
         <h4>Controls</h4>
-        <button v-on:click="api.send(['enablePairing'])">Enable Pairing</button>
+        <button  type="button" v-on:click="api.send(['enablePairing'])">Enable Pairing for 2 minutes</button>
         <h4>All Devices</h4>
         <table>
             <tr v-for="i in devices">
