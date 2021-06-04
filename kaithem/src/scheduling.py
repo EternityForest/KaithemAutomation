@@ -235,7 +235,7 @@ class RepeatingEvent(BaseEvent):
                 # If we can, try to send the exception back whence it came
                 try:
                     from . import newevt
-                    newevt.eventByModuleName(f.__module__)._handle_exception()
+                    newevt.eventsByModuleName(f.__module__)._handle_exception()
                 except:
                     print(traceback.format_exc())
 

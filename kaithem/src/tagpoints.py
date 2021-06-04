@@ -229,6 +229,10 @@ class _TagPoint(virtualresource.VirtualResource):
         which can get existing tags. This allows use of tags for cross=
 
     """
+
+    #Random opaque indicator
+    DEFAULT_ANNOTATION='1d289116-b250-482e-a3d3-ffd9e8ac2b57'
+
     defaultData: Any = None
     type = 'object'
     @typechecked
@@ -254,7 +258,9 @@ class _TagPoint(virtualresource.VirtualResource):
         # Might be the number, or might be the getter function.
         # it's the current value of the active claim
         self._value = copy.deepcopy(self.defaultData)
-        self.valueTuple = (self._value, time.monotonic(), None)
+
+        #Start timestamp at 0 meaning never been set
+        self.valueTuple = (self._value, 0, None)
 
         # Used to track things like min and max, what has been changed by manual setting.
         # And should not be overridden by code.
@@ -334,7 +340,7 @@ class _TagPoint(virtualresource.VirtualResource):
             allTagsAtomic = allTags.copy()
 
         self.defaultClaim = self.claim(
-            copy.deepcopy(self.defaultData), 'default')
+            copy.deepcopy(self.defaultData), 'default',timestamp=0,annotation=self.DEFAULT_ANNOTATION)
 
         # What permissions are needed to
         # read or override this tag, as a tuple of 2 permission strings and an int representing the priority
@@ -1291,7 +1297,6 @@ class _TagPoint(virtualresource.VirtualResource):
         activeClaimValue = self._value
         if not callable(activeClaimValue):
             # We no longer are aiming to support using the processor for impure functions
-            pass
             self.lastValue = self.processValue(activeClaimValue)
         else:
             # Rate limited tag getter logic. We ignore the possibility for

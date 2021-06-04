@@ -42,9 +42,9 @@ a whole new DB.  Deleting this device may delete the underlying database.
     <div id="lanqr"></div>
     <script>
 
-    function loadSharingCode(c)
+    function loadSharingCode()
     {
-        c = JSON.parse(c)
+        c = JSON.parse(prompt("Enter Code"))
         document.getElementById('vk').value = c['vk']||''
         document.getElementById('sk').value = c['sk']||''
         document.getElementById('sv').value = c['sv']||
@@ -57,7 +57,7 @@ a whole new DB.  Deleting this device may delete the underlying database.
         d = {
             'sv':'',
             'vk':"${data.get('device.syncKey','')|h}",
-            'n':""
+            'n':"${data.get('name','')|h}"
         }
 
         if(wp)
@@ -82,8 +82,7 @@ a whole new DB.  Deleting this device may delete the underlying database.
 
 <h2>Load from sharing code</h2>
 
-<input id="sc">
-<button type="button" onclick="loadSharingCode(document.getElementById('sc').value)">Load</button>
+<button type="button" onclick="loadSharingCode()">Load</button>
 
 </div>
 
