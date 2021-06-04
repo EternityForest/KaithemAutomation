@@ -1,7 +1,7 @@
 Change Log
 ----------
 
-### 0.65.56
+### 0.65.57
 - Tag point timestamp correctly starts at 0 when not yet set by anything
 - Zigbee2MQTT Alarm Bugfixing
 - Use prompt instead of text input to prevent browser caching sensitive info in DrayerDB sharing codes

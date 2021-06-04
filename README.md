@@ -64,6 +64,12 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.57
+- Tag point timestamp correctly starts at 0 when not yet set by anything
+- Zigbee2MQTT Alarm Bugfixing
+- Use prompt instead of text input to prevent browser caching sensitive info in DrayerDB sharing codes
+
+
 ### 0.65.56
 - Update HardlineP2P
 
