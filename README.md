@@ -64,6 +64,13 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.58
+- DrayerDB integration can now log system notifications
+- DrayerDB configurable autoclean for old notifications.
+- Update drayerDB, properly support compressed records.
+- Breaking change: Zigbee device property tagpoints use .property instead of /property format
+
+
 ### 0.65.57
 - Tag point timestamp correctly starts at 0 when not yet set by anything
 - Zigbee2MQTT Alarm Bugfixing

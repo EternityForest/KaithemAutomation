@@ -203,7 +203,7 @@ def stopServer():
         try:
             start_server.close()
         except:
-            logging.exception()
+            logging.exception("Error stopping")
         start_server = None
 
 
@@ -294,7 +294,7 @@ alwaysPlaintextKeys = {'id', 'parent', 'time', 'documentTime', 'autoclean', 'typ
 
 
 class DocumentDatabase():
-    def __init__(self, filename, keypair=None, servable=True, forceProxy=None):
+    def __init__(self, filename, keypair=None, servable=True, forceProxy=None,autocleanDays=None):
         "We can open TOML files as if they were databases, we just can't sync them"
 
         self.filename = os.path.abspath(filename)
@@ -441,9 +441,12 @@ class DocumentDatabase():
         if 'Database' not in self.config:
             self.config.add_section('Database')
 
-        # How many days to keep records that are marked as temporary
-        self.autocleanDays = float(
-            self.config['Database'].get('autocleanDays', '0'))
+        if autocleanDays:
+            self.autocleanDays = autocleanDays
+        else:
+            # How many days to keep records that are marked as temporary
+            self.autocleanDays = float(
+                self.config['Database'].get('autocleanDays', '0'))
 
         self.syncKey = self.writePassword = None
         try:
@@ -487,6 +490,9 @@ class DocumentDatabase():
             if self.syncKey and servable:
                 databaseBySyncKeyHash[libnacl.crypto_generichash(
                     libnacl.crypto_generichash(base64.b64decode(self.syncKey)))[:16]] = self
+        
+       
+
 
         self.serverURL = None
         self.syncFailBackoff = 1
@@ -1139,7 +1145,7 @@ class DocumentDatabase():
 
                         if not 'records' in r:
                             r['records'] = []
-                        r['records'].append([i[0], sig, i[2]])
+                        r['records'].append([decompress(i[0]), sig, i[2]])
 
                         sessionObject.lastResyncFlushTime = max(
                             sessionObject.lastResyncFlushTime, i[2])
@@ -1247,7 +1253,7 @@ class DocumentDatabase():
                     if not i[3] == session.b64RemoteNodeID:
                         if not 'records' in r:
                             r['records'] = []
-                        r['records'].append([i[0], i[1], i[2]])
+                        r['records'].append([decompress(i[0]), i[1], i[2]])
 
                     session.lastResyncFlushTime = max(
                         session.lastResyncFlushTime, i[2])
@@ -1610,6 +1616,17 @@ class DocumentDatabase():
 
         self.dbConnect()
         oldVersionData = {}
+        
+        if 'parent' in docObj:
+            pid = docObj['parent']
+            # Ensure corrrectness of UUID representation
+            if isinstance(docObj['parent'], (str, bytes)):
+                pid = uuid.UUID(pid)
+            # No sig means we are doing it ourselves and can clean up any incorrectly formatted UUIDs
+            if not signature:
+                docObj['parent'] = str(pid)
+        
+        
         if 'id' in docObj:
             uid = docObj['id']
             # Ensure corrrectness of UUID representation
@@ -1701,24 +1718,25 @@ class DocumentDatabase():
                         if x['id'] == docObj['parent'] and x['time'] > docObj['time']:
                             return
 
-        # Adding this property could cause all kinds of sync confusion with records that don't actually get deleted on remote nodes.
-        # Might be a bit of a problem.
-        if 'autoclean' in docObj:
-            if not 'autoclean' in oldVersionData:
-                # Silently ignore this error record, it would mess everything up
-                if receivedFrom:
-                    return
-                else:
-                    raise ValueError(
-                        "You can't add the autoclean property to an existing record")
+        if oldVersionData:
+            # Adding this property could cause all kinds of sync confusion with records that don't actually get deleted on remote nodes.
+            # Might be a bit of a problem.
+            if 'autoclean' in docObj:
+                if not 'autoclean' in oldVersionData:
+                    # Silently ignore this error record, it would mess everything up
+                    if receivedFrom:
+                        return
+                    else:
+                        raise ValueError(
+                            "You can't add the autoclean property to an existing record")
 
-            if not docObj['autoclean'] == oldVersionData['autoclean']:
-                # Silently ignore this error record, it would mess everything up
-                if receivedFrom:
-                    return
-                else:
-                    raise ValueError(
-                        "You can't change the autoclean value of an existing record.")
+                if not docObj['autoclean'] == oldVersionData['autoclean']:
+                    # Silently ignore this error record, it would mess everything up
+                    if receivedFrom:
+                        return
+                    else:
+                        raise ValueError(
+                            "You can't change the autoclean value of an existing record.")
 
         if signature:
             libnacl.crypto_generichash(doc)[:24]
@@ -1828,22 +1846,17 @@ class DocumentDatabase():
             self._onRecordChange(docObj, c[1], c[2])
 
         self.lastChange = time.time()
-
         if 'autoclean' in docObj:
             # Don't do it every time that would waste CPU
             if random.random() < 0.01:
-                if self.autocleanHorizon:
+                if self.autocleanDays:
                     # Clear any records sharing the same autoclean channel which are older than both this record and the horizon.
+                    # Note that we have to include the type as part of the autoclean channel or else we wolud get gaps in the index and it would be slow
                     horizon = min(
                         docObj['time'], (time.time()-(self.autocleanDays*3600*24))*1000000)
-                    c = self.threadLocal.conn.execute("DELETE FROM document WHERE json_extract(json,'$.autoclean')=? AND ifnull(json_extract(json,'$.parent'),'')=? AND json_extract(json,'$.time')<?", (
-                        docObj['autoclean'], docObj.get('parent', ''), horizon)).fetchone()
+                    c = self.threadLocal.conn.execute("DELETE FROM document WHERE json_extract(json,'$.autoclean')=? AND ifnull(json_extract(json,'$.parent'),'')=? AND json_extract(json,'$.type')=? AND IFNULL(json_extract(json,'$.documentTime'), json_extract(json,'$.time'))<?", (
+                        docObj['autoclean'], docObj.get('parent', ''), docObj.get('type', ''), horizon)).fetchone()
 
-                    # Delete the cache item right after we insert it.
-                    try:
-                        del self.documentCache[docObj['id']]
-                    except KeyError:
-                        pass
 
         return docObj['id']
 
@@ -1956,7 +1969,7 @@ class DocumentDatabase():
                     if self.dataCallback:
                         self.dataCallback(self, record, signature)
             except:
-                logging.exception()
+                logging.exception("Error in callback")
 
     def onRecordChange(self, record, signature):
         pass

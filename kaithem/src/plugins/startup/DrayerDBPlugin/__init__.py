@@ -52,18 +52,49 @@ class DrayerDatabase(devices.Device):
         except:
             pass
 
-    def dataCallback(self,record, signature):
-        messagebus.postMessage("/devices/"+self.name+"/record")
+    def dataCallback(self,db, record, signature):
+        messagebus.postMessage("/devices/"+self.name+"/record",record)
 
 
     def setDocument(self,document):
         with self.service:
-            self.service.setDocument()
+            self.service.setDocument(document)
         self.service.commit()
 
     
     def getDocumentsByType(self,*a,**k):
         return self.service.getDocumentsByType(*a,**k)
+
+    def getDocumentByID(self,*a,**k):
+        return self.service.getDocumentByID(*a,**k)
+
+    def insertNotification(self,t,v):
+        n = socket.gethostname()
+
+        #All notifications go together under a topic with knowm ID derived from name
+        parent = uuid.uuid5(uuid.UUID('3a0c86c2-d836-4236-8cf3-6514643585c7'),n)
+        d=self.getDocumentByID(parent)
+        if not d or not d['type']=='post':
+            p={
+                'title':"Kaithem notifications:"+n,
+                'body':'',
+                'id':parent,
+                'type':'post'
+            }
+            self.setDocument(p)
+        
+        p={
+            'color': 'red' if 'error' in t else ('yellow' if 'warning' in t else ''),
+            'title': "",
+            'body': v,
+            'documentTime': time.time()*10**6,
+            'notify': True,
+            'parent':parent,
+            'type':'post',
+            'autoclean':'notifications',
+
+        }
+        self.setDocument(p)
 
     def __init__(self, name, data):
         devices.Device.__init__(self, name, data)
@@ -83,12 +114,17 @@ class DrayerDatabase(devices.Device):
                 vk, sk = drayerdb.libnacl.crypto_sign_keypair()
                 self.setDataKey('device.syncKey', base64.b64encode(vk).decode())
                 self.setDataKey('device.writePassword', base64.b64encode(sk).decode())
+
             
             else:
                 vk,sk =base64.b64decode(self.data.get('device.syncKey','')),base64.b64decode(self.data.get('device.writePassword',''))
 
-            self.service = drayerdb.DocumentDatabase(os.path.join(self.serviceDir, name+'.db'),keypair=(vk,sk))
+            self.service = drayerdb.DocumentDatabase(os.path.join(self.serviceDir, name+'.db'),keypair=(vk,sk),autocleanDays=float(self.data.get('device.autocleanDays','0')))
             self.service.dataCallback = self.dataCallback
+
+            if self.data.get('device.archiveNotifications','').lower() =='yes':
+                from scullery import messagebus
+                messagebus.subscribe("/system/notifications/#", self.insertNotification)
 
             if self.data.get('device.syncServer',''):
                 self.service.useSyncServer(self.data.get('device.syncServer',''))

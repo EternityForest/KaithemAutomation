@@ -149,7 +149,7 @@ class Zigbee2MQTT(devices.Device):
                                 self.exposeConverters[tn]=f
 
                             if j['type'] == 'numeric':
-                                self.tagPoints[tn] = tagpoints.Tag("/devices/"+self.name+"/node/"+i['friendly_name']+"/"+j['property'])
+                                self.tagPoints[tn] = tagpoints.Tag("/devices/"+self.name+"/node/"+i['friendly_name']+"."+j['property'])
 
                                 if 'value_min' in j:
                                     self.tagPoints[tn].min = j['value_min']

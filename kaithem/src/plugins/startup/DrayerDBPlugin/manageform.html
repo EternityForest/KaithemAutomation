@@ -2,18 +2,37 @@
 <h3>Info</h3>
 <p class="help">
 This device represents one locally-hosted DrayerDB stream which you can connect to.  DB files are stored under vardir/drayerdb/NAME/ so watch out, renaming this essentially creates
-a whole new DB.  Deleting this device may delete the underlying database.
+a whole new DB.  Deleting this device may delete the underlying database.  Everything is already ready to go to use Kaithem as a server, just set the client's sync server URL
+to Kaithem's URL.  DrayerDB has it's own encryption so you can use plain HTTP.
 </p>
 
 <p class="help">
     New records will be posted to /devices/NAME/record.  device.setDocument({'type':'foo'}) can be used to insert data.  
     device.getDocumentsByType(type, startTime=0, endTime=10**18, parent='') will return all documents of the given type, in the time range, having that parent document.
+    Set parent to none to get the document regardless of what the parent is.
 
-    Parent must always be a UUID matching another record's id field.  
+    Parent must always be a UUID matching another record's id field.    device.getDocumentByID(uuid) returns the document or None if it is nonexistant or orphaned.
+    To overwrite, simply set a new document with same ID. Set type to null to delete it. If you ever change the parent, you must set moveTime or the move will be ignored.
 </p>
+
     
+<p class="help">
+    All DrayerDB timestamps are the UNIX time in microseconds.
+</p>
 
 
+<p class="help">
+    Device.service will be the actual DrayerDB object.
+</p>
+
+
+<datalist id="bool">
+    <option>yes</option>
+    <option>no</option>
+</datalist>
+<p class="help">User-created records should never be marked as autocleanable. The feature is used to clear old notification logs.  Autocleaned records are "silently deleted" on
+    this device only, any other devices will still have them.
+    </p>
 <table>
     <tr>
         <td>Sync Key(Leave blank to generate new key and password)</td>
@@ -29,6 +48,20 @@ a whole new DB.  Deleting this device may delete the underlying database.
         <td>Sync Server URL</td>
         <td><input id='sv' name="device.syncServer" value="${data.get('device.syncServer','')|h}"></td>
     </tr>
+
+
+    <tr>
+        <td>Log system notifications into DB(set yes to enable)</td>
+        <td><input id='sv' list="bool" name="device.archiveNotifications" value="${data.get('device.archiveNotifications','no')|h}"></td>
+    </tr>
+
+
+    <tr>
+        <td>Keep Autocleanable records(days, 0=forever)</td>
+        <td><input id='sv' list="bool" name="device.autocleanDays" value="${data.get('device.autocleanDays','0')|h}"></td>
+    </tr>
+
+
 </table>
 
 
