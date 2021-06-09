@@ -849,6 +849,8 @@ class _TagPoint(virtualresource.VirtualResource):
                            autoAck=autoAck,
                            tripDelay=tripDelay,
                            )
+        #For debugging reasons
+        obj.tagEvalContext = context
 
         obj.sourceTags = {}
 
@@ -880,10 +882,12 @@ class _TagPoint(virtualresource.VirtualResource):
                 obj.error(str(e))
                 raise
 
-        def alarmPollFunction(value, annotation, timestamp):
+        def alarmPollFunction(value, timestamp,annotation):
             "Given a new tag value, recalc the alarm expression"
             context['value'] = value
             context['timestamp']=timestamp
+            context['annotation']=annotation
+
             alarmRecalcFunction()
 
         obj.recalcFunction = alarmRecalcFunction
@@ -923,7 +927,7 @@ class _TagPoint(virtualresource.VirtualResource):
         self.alarms[name] = obj
 
         try:
-            alarmPollFunction(self.value, self.annotation, self.timestamp)
+            alarmPollFunction(self.value,  self.timestamp,self.annotation)
         except Exception:
             logger.exception(
                 "Error in test run of alarm function for :" + name)

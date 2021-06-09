@@ -634,6 +634,7 @@ def webRoot():
         'server.ssl_private_key': os.path.join(directories.ssldir, 'certificate.key'),
         'server.thread_pool': config['https-thread-pool'],
         'engine.autoreload.frequency': 5,
+        'engine.autoreload.on': False,
         'tools.allow_upload.on': True,
         'tools.allow_upload.f': lambda: auth.getUserLimit(pages.getAcessingUser(), "web.maxbytes") or 64 * 1024,
     }
@@ -652,7 +653,7 @@ def webRoot():
     except Exception as e:
         wscfg3={}
         logging.exception("Could not load the Drayer WS API")
-        messagebus.postMessage("/system/notifications/errors", "Drayer Server API disabled")
+        messagebus.postMessage("/system/notifications/errors", "Drayer Server API disabled due to loading error, see logs")
 
 
 

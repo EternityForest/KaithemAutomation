@@ -34,7 +34,7 @@ import colorzero
 
 def hex_to_xy(hex):
     c = colorzero.Color.from_string(hex)
-    x,y,x = c.xyz
+    x,y,z = c.xyz
 
     return (x/(x+y+z), y/(x+y+z), y) 
 
@@ -113,16 +113,17 @@ class Zigbee2MQTT(devices.Device):
 
                             #Internally we represent all colors as the standard but kinda mediocre CSS strings,
                             #Since ZigBee seems to like to separate color and brightness, we will do the same thing here.
-                            if j['property']=='color' and j['name']=='color_xy' and isALight:
+                            if j['name']=='color_xy' and isALight:
                                 self.tagPoints[tn] = tagpoints.StringTag("/devices/"+self.name+"/node/"+i['friendly_name']+"/"+j['property'])
                                 self.tagPoints[tn].unit = 'color'
 
                                 def f(t,v,tn=tn,j=j):
-                                    v =v[j['property']]
-                                    v =xy_to_hex(v['x'],v['y'],1)
-                                    self.tagpoints[tn].defaultClaim.set(v,annotation='ZigBee')
+                                    if j['property'] in v:
+                                        v =v[j['property']]
+                                        v =xy_to_hex(v['x'],v['y'],1)
+                                        self.tagpoints[tn].defaultClaim.set(v,annotation='ZigBee')
                                 
-                                def f2(v,t,a,tn=tn,j=j):
+                                def f2(v,t,a,tn=tn,j=j,zn=zn):
                                     if not a == 'ZigBee':
                                         #Convert back to zigbee2mqtt's idea of true/false
                                         c = hex_to_xy(v)
@@ -148,7 +149,7 @@ class Zigbee2MQTT(devices.Device):
                           
                                 self.exposeConverters[tn]=f
 
-                            if j['type'] == 'numeric':
+                            elif j['type'] == 'numeric':
                                 self.tagPoints[tn] = tagpoints.Tag("/devices/"+self.name+"/node/"+i['friendly_name']+"."+j['property'])
 
                                 if 'value_min' in j:
@@ -173,9 +174,10 @@ class Zigbee2MQTT(devices.Device):
 
 
                                 def f(t,v,tn=tn,j=j):
-                                    self.tagpoints[tn].defaultClaim.set(v[j['property']],annotation='ZigBee')
+                                    if j['property'] in v:
+                                        self.tagpoints[tn].defaultClaim.set(v[j['property']],annotation='ZigBee')
                                 
-                                def f2(v,t,a,tn=tn,j=j):
+                                def f2(v,t,a,tn=tn,j=j,zn=zn):
                                     if not a == 'ZigBee':
                                         self.connection.publish(zn+"/set",{j['property']:v})
                                 
@@ -224,11 +226,12 @@ class Zigbee2MQTT(devices.Device):
                                         self.tagPoints[tn].setAlarm("CARBONMONOXIDE", "value", priority='critical')
 
                                 def f(t,v,tn=tn,j=j):
-                                    #Convert back to proper true/false
-                                    v = v[j['property']]==j['value_on']
-                                    self.tagpoints[tn].defaultClaim.set(v,annotation='ZigBee')
+                                    if j['property'] in v:
+                                        #Convert back to proper true/false
+                                        v = v[j['property']]==j['value_on']
+                                        self.tagpoints[tn].defaultClaim.set(v,annotation='ZigBee')
                                 
-                                def f2(v,t,a,tn=tn,j=j):
+                                def f2(v,t,a,tn=tn,j=j,zn=zn):
                                     if not a == 'ZigBee':
                                         #Convert back to zigbee2mqtt's idea of true/false
                                         self.connection.publish(zn+"/set", {j['property']:(j['value_on'] if v else j['value_off'])})
@@ -256,9 +259,10 @@ class Zigbee2MQTT(devices.Device):
                             elif j['type'] in ['enum','text']:
                                 self.tagPoints[tn] = tagpoints.StringTag("/devices/"+self.name+"/node/"+i['friendly_name']+"/"+j['property'])
                                 def f(t,v,tn=tn,j=j):
-                                    self.tagpoints[tn].defaultClaim.set(v[j['property']],annotation='ZigBee')
+                                    if j['property'] in v:
+                                        self.tagpoints[tn].defaultClaim.set(v[j['property']],annotation='ZigBee')
                                 
-                                def f2(v,t,a,tn=tn,j=j):
+                                def f2(v,t,a,tn=tn,j=j,zn=zn):
                                     if not a == 'ZigBee':
                                         #Convert back to zigbee2mqtt's idea of true/false
                                         self.connection.publish(zn+"/set", {j['property']:v})

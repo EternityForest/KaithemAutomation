@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+### 0.65.59
+- Eliminate the cherrypy autoreloader, it was being more trouble than it is worth.
+- Fix ZigBee light tag
+- Fix support for multiple ZigBee devices at the same time
+- Fix CSS on object inspector
+
 ### 0.65.58
 - DrayerDB integration can now log system notifications
 - DrayerDB configurable autoclean for old notifications.
