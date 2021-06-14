@@ -9,6 +9,9 @@ import cherrypy
     <h2 style="text-align: center;">Please Log In</h2>
     <section>
     <div style="text-align: center;">
+      <p class="help">The default credentials are admin:password. You can click without filling anything in to use the defaults.  Unless you are on a private
+        network, you should probably change this.  
+      </p>
       <form method="POST" action="/login/login?go=${target}" name="login"> <p>
         <span style="font-weight: bold;">Username:</span>
         <input name="username" placeholder="admin"><br>

@@ -29,6 +29,20 @@ class CustomDeviceType(DeviceType):
 """
 
 
+# class WebUI():
+#     "Web UI for providing "
+#     @cherrypy.expose
+#     def index(self):
+#         """Index page for web interface"""
+#         return pages.get_template("settings/index.html").render()
+
+#     @cherrypy.expose
+#     def loginfailures(self, **kwargs):
+#         pages.require("/admin/settings.edit")
+#         with weblogin.recordslock:
+#             fr = weblogin.failureRecords.items()
+#         return pages.get_template("settings/security.html").render(history=fr)
+
 class DrayerDatabase(devices.Device):
     deviceTypeName = 'DrayerDatabase'
     readme = os.path.join(os.path.dirname(__file__), "README.md")

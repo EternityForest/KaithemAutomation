@@ -29,7 +29,6 @@ class CustomDeviceType(DeviceType):
 import logging
 import asyncio
 import os
-from hbmqtt.broker import Broker
 
 
 class MQTTBroker(devices.Device):
@@ -37,8 +36,10 @@ class MQTTBroker(devices.Device):
     readme = os.path.join(os.path.dirname(__file__), "README.md")
     defaultSubclassCode = defaultSubclassCode
 
+
     @asyncio.coroutine
     def broker_coro(self):
+        from hbmqtt.broker import Broker
         conf = {'listeners': {
                 'default': {
                     'bind': +self.bind,
@@ -107,4 +108,4 @@ class MQTTBroker(devices.Device):
         return templateGetter.get_template("manageform.html").render(data=self.data, obj=self)
 
 
-devices.deviceTypes["HardlineP2PService"] = HardlineP2PService
+devices.deviceTypes["MQTTBroker"] = MQTTBroker

@@ -35,8 +35,8 @@ legacy_keys = {
 }
 
 default = {
-    "usbPeriodSize": -1,
-    "usbPeriods": -1,
+    "usbPeriodSize": 2048,
+    "usbPeriods": 3,
 
     "usbLatency": -1,
     "jackPeriods": 3,

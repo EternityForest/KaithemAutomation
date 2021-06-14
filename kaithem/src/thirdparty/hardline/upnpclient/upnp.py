@@ -186,9 +186,9 @@ class Device(CallActionMixin):
                 findtext("SCPDURL").strip(),
                 findtext("eventSubURL").strip(),
             )
-            self._log.debug(
-                "%s: Service %r at %r", self.device_name, svc.service_type, svc.scpd_url
-            )
+            # self._log.debug(
+            #    "%s: Service %r at %r", self.device_name, svc.service_type, svc.scpd_url
+            #)
             self.services.append(svc)
             self.service_map[svc.name] = svc
 
@@ -235,13 +235,13 @@ class Service(CallActionMixin):
         self.statevars = {}
         self._log = _getLogger("Service")
 
-        self._log.debug("%s url_base: %s", self.service_id, self._url_base)
-        self._log.debug("%s SCPDURL: %s", self.service_id, self.scpd_url)
-        self._log.debug("%s controlURL: %s", self.service_id, self._control_url)
-        self._log.debug("%s eventSubURL: %s", self.service_id, self._event_sub_url)
+        # self._log.debug("%s url_base: %s", self.service_id, self._url_base)
+        # self._log.debug("%s SCPDURL: %s", self.service_id, self.scpd_url)
+        # self._log.debug("%s controlURL: %s", self.service_id, self._control_url)
+        # self._log.debug("%s eventSubURL: %s", self.service_id, self._event_sub_url)
 
         url = urljoin(self._url_base, self.scpd_url)
-        self._log.debug("Reading %s", url)
+        # self._log.debug("Reading %s", url)
         resp = requests.get(
             url,
             timeout=HTTP_TIMEOUT,
@@ -467,7 +467,7 @@ class Action(object):
             raise ValidationError(arg_reasons)
 
         # Make the actual call
-        self._log.debug(">> %s (%s)", self.name, call_kwargs)
+        # self._log.debug(">> %s (%s)", self.name, call_kwargs)
         soap_client = SOAP(self.url, self.service_type)
 
         soap_response = soap_client.call(
@@ -476,7 +476,7 @@ class Action(object):
             http_auth or self.service.device.http_auth,
             http_headers or self.service.device.http_headers,
         )
-        self._log.debug("<< %s (%s): %s", self.name, call_kwargs, soap_response)
+        # self._log.debug("<< %s (%s): %s", self.name, call_kwargs, soap_response)
 
         # Marshall the response to python data types
         out = {}

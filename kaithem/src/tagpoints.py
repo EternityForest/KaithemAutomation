@@ -260,7 +260,7 @@ class _TagPoint(virtualresource.VirtualResource):
         self._value = copy.deepcopy(self.defaultData)
 
         #Start timestamp at 0 meaning never been set
-        self.valueTuple = (self._value, 0, None)
+        self.vta = (self._value, 0, None)
 
         # Used to track things like min and max, what has been changed by manual setting.
         # And should not be overridden by code.
@@ -283,7 +283,6 @@ class _TagPoint(virtualresource.VirtualResource):
         self.cachedRawClaimVal = copy.deepcopy(self.defaultData)
         # The cached output of processValue
         self.lastValue = self.cachedRawClaimVal
-        self.lastGotValue = 0
         # The real current in use val, after the config override logic
         self._interval: Union[float, int] = 0
         self.activeClaim: Union[None, Claim] = None
@@ -292,8 +291,18 @@ class _TagPoint(virtualresource.VirtualResource):
         self.subscribers: List[weakref.ref] = []
         self.poller: Union[None, Callable] = None
 
+        #Do we have anything set via the config page that would override the code-set mqtt stuff?
+        self.hasMQTTConfig=False
         self.mqttClaim = None
         self.mqttConnection=None
+
+        #When was the last time we got *real* new data
+        self.lastGotValue = 0
+
+        
+        #If set, it is the function used to revert to the MQTT settings sefibed in code, as opposed to the
+        #configured ones.
+        self.mqttDynamicConnect=None
 
 
 
@@ -303,10 +312,6 @@ class _TagPoint(virtualresource.VirtualResource):
         # This is not a precisely defined concept
         self.owner: str = ""
 
-        # Stamp of when the tag's value was set
-        # start at zero because the time has never been set
-        self.timestamp: Union[float, int] = 0
-        self.annotation = None
 
         self.handler = None
 
@@ -371,6 +376,19 @@ class _TagPoint(virtualresource.VirtualResource):
             self.exprClaim = createGetterFromExpression(self.name, self)
         with lock:
             self.setConfigData(configTagData.get(self.name, {}))
+
+
+
+    #In reality value, timestamp, annotation are all stored together as a tuple
+    @property
+    def timestamp(self):
+        return self.vta[1]
+
+    @property
+    def annotation(self):
+        return self.vta[2]
+
+
 
     def isDynamic(self):
         return callable(self._value)
@@ -456,23 +474,45 @@ class _TagPoint(virtualresource.VirtualResource):
                     w.attach(self.apiHandler)
                     self.dataSourceWidget = w
 
-    def mqttConnect(self, *,server=None, port=1883, password=None,messageBusName=None, mqttTopic=None, incomingPriority=None):
-        self.mqttDisconnect(False)
-        from scullery import mqtt
-        n = self.name
-        if n[0]=='/':
-            n=n[1:]
-        n="/tagpoints/"+n
+    def mqttConnect(self, *,server=None, port=1883, password=None,messageBusName=None, mqttTopic=None, incomingPriority=None, configured=False):
 
-        self.mqttPriority = incomingPriority or 50
-        self.mqttTopic = mqttTopic or n
+        def doConnect():
+            self.mqttDisconnect(False)
+            from scullery import mqtt
+            n = self.name
+            if n[0]=='/':
+                n=n[1:]
+            n="/tagpoints/"+n
 
-        self.mqttConnection = mqtt.getConnection(server=server, port=port, password=password, messageBusName=messageBusName)
+            self.mqttPriority = incomingPriority or 50
+            self.mqttTopic = mqttTopic or n
 
+            if server or messageBusName or password and (not server=='__disable__'):
+                self.mqttConnection = mqtt.getConnection(server=server, port=port, password=password, messageBusName=messageBusName)
+                self.mqttConnection.subscribe(self.mqttTopic, self._onIncomingMQTTMessage)
+                self.subscribe(self._mqttHandler)
+        
+        if configured:
+            #If the user deleted the configuration, go back to what was set in code
+            if not(server or messageBusName or password):
+                if  self.mqttDynamicConnect:
+                    self.mqttDisconnect(False)
+                    self.mqttDynamicConnect()
+                else:
+                    self.mqttDisconnect(True)
+                self.hasMQTTConfig=False
 
+            else:
+                self.hasMQTTConfig=True
+                doConnect()
 
-        self.mqttConnection.subscribe(self.mqttTopic, self._onIncomingMQTTMessage)
-        self.subscribe(self._mqttHandler)
+            
+        else:
+            #If this is something set in code, connect if we don't have a configured connection setup already.
+            
+            if not self.hasMQTTConfig:
+                doConnect()
+            self.mqttDynamicConnect= doConnect
 
     def mqttDisconnect(self,unclaim=True):
         self.unsubscribe(self._mqttHandler)
@@ -1076,6 +1116,14 @@ class _TagPoint(virtualresource.VirtualResource):
             # Set configured permissions, overriding runtime
             self.expose(*p, configured=True)
 
+            self.mqttConnect(
+                server=data.get("mqtt.server",''),
+                password=data.get("mqtt.password",''),
+                port=int(data.get("mqtt.server",'1883')), 
+                messageBusName=data.get("mqtt.messageBusName",''),
+                mqttTopic=data.get("mqtt.topic",''),
+            )
+
     @property
     def interval(self):
         return self._interval
@@ -1117,7 +1165,14 @@ class _TagPoint(virtualresource.VirtualResource):
 
     @property
     def currentSource(self):
-        return self.activeClaim[2]
+
+        #Avoid the lock by using retru in case claim disappears
+        for i in range(0,1000):
+            try:
+                return self.activeClaim().name
+            except:
+                time.sleep(0.001)
+        return self.activeClaim().name
 
     def filterValue(self, v):
         "Pure function that returns a cleaned up or normalized version of the value"
@@ -1286,7 +1341,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
     @property
     def age(self):
-        return time.time() - self.lastGotValue
+        return time.monotonic() - self.vta[1]
 
     @property
     def value(self):
@@ -1298,18 +1353,28 @@ class _TagPoint(virtualresource.VirtualResource):
     def _getValue(self, force=False):
         "Get the processed value of the tag, and update lastValue, It is meant to be called under lock."
 
-        activeClaimValue = self._value
+
+        activeClaim= self.activeClaim()
+
+        activeClaimValue = activeClaim.value
+
         if not callable(activeClaimValue):
             # We no longer are aiming to support using the processor for impure functions
+
+            #Todo why is this time.time not monotonic?
+            self.lastGotValue = time.time()
             self.lastValue = self.processValue(activeClaimValue)
+
         else:
             # Rate limited tag getter logic. We ignore the possibility for
             # Race conditions and assume that calling a little too often is fine, since
             # It shouldn't affect correctness
-            if (time.time() - self.lastGotValue > self._interval) or force:
+
+            #Note that this is on a per-claim basis.  Every claim has it's own cache.
+            if (time.monotonic() - activeClaim.lastGotValue > self._interval) or force:
                 # Set this flag immediately, or else a function with an error could defeat the cacheing
                 # And just flood everything with errors
-                self.lastGotValue = time.time()
+                activeClaim.lastGotValue = time.monotonic()
 
                 try:
                     # However, the actual logic IS ratelimited
@@ -1336,12 +1401,17 @@ class _TagPoint(virtualresource.VirtualResource):
 
                         if x is not None:
                             # Race here. Data might not always match timestamp an annotation, if we weren't under lock
-                            self.timestamp = t
-                            self.annotation = None
+                            self.vta=(activeClaimValue,t,None)
 
-                        self.cachedRawClaimVal = x or self.cachedRawClaimVal
-                        self.lastValue = self.processValue(
-                            self.cachedRawClaimVal)
+                            #Set the timestamp on the claim, so that it will not become expired
+                            self.activeClaim().vta=self.vta
+
+                            activeClaim.cachedValue=(x,t)
+
+                            #This is just used to calculate the overall age of the tags data
+                            self.lastGotValue = time.time()
+                            self.lastValue = self.processValue(x)
+            
                     finally:
                         self.lock.release()
 
@@ -1404,16 +1474,7 @@ class _TagPoint(virtualresource.VirtualResource):
             # try:
             #     ##If there's an existing claim by that name we're just going to modify it
             if name in self.claims:
-                claim = self.claims[name][3]()
-
-            # Unused old optimization
-            #         #No priority change, set and return
-            #         if priority == claim.priority:
-            #             claim.set(value,timestamp, annotation)
-            #             return claim
-            #         priority= priority or claim.priority
-            # except:
-            #     logger.exception("Probably a race condition and safe to ignore this")
+                claim = self.claims[name]()
 
             # If the weakref obj disappeared it will be None
             if claim is None:
@@ -1421,17 +1482,22 @@ class _TagPoint(virtualresource.VirtualResource):
                 claim = self.claimFactory(
                     value, name, priority, timestamp, annotation)
 
-            claim.value = value
-            claim.timestamp = timestamp
-            claim.annotation = annotation
+            claim.vta = value,timestamp,annotation
+
             claim.priority = priority
 
             # Note  that we use the time, so that the most recent claim is
             # Always the winner in case of conflictsclaim
-            self.claims[name] = (priority, t(), name, weakref.ref(claim))
 
+        
+            self.claims[name] =weakref.ref(claim)
+
+            if self.activeClaim:
+                ac=self.activeClaim()
+            else:
+                ac=None
             # If we have priortity on them, or if we have the same priority but are newer
-            if (self.activeClaim is None) or (priority > self.activeClaim[0]) or ((priority == self.activeClaim[0]) and(timestamp > self.activeClaim[1])):
+            if (ac is None) or (priority > ac.priority) or ((priority == ac.priority) and(timestamp > ac.timestamp)):
                 self.activeClaim = self.claims[name]
                 self.handleSourceChanged(name)
 
@@ -1439,28 +1505,34 @@ class _TagPoint(virtualresource.VirtualResource):
                     self._managePolling()
 
                 self._value = value
-                self.timestamp = timestamp
-                self.annotation = annotation
-
-                self.valueTuple = (value, timestamp, annotation)
+                self.vta = (value, timestamp, annotation)
 
             # If priority has been changed on the existing active claim
             # We need to handle it
-            elif name == self.activeClaim[2]:
+            elif name == ac.name:
                 # Defensive programming against weakrefs dissapearing
                 # in some kind of race condition that leaves them in the list.
                 # Basically we find the highest priority valid claim
-                for i in reversed(sorted(self.claims.values())):
-                    x = i[3]()
+
+                #Deref all weak refs
+                c =  [i() for i in self.claims.values()]
+                #Eliminate dead references
+                c = [i for i in c if i]
+                #Get the top one
+                c= sorted(c, reverse=True)
+
+                for i in c:
+                    x = i
                     if x:
                         self._value = x.value
-                        self.timestamp = x.timestamp
-                        self.annotation = x.annotation
-                        self.valueTuple = (value, timestamp, annotation)
+                        self.vta = (value, timestamp, annotation)
 
-                        self.activeClaim = i
-                        if not i == self.activeClaim:
-                            self.handleSourceChanged(i[2])
+                
+                        if not i == self.activeClaim():
+                            self.activeClaim = weakref.ref(i)
+                            self.handleSourceChanged(i.name)
+                        else:
+                            self.activeClaim = weakref.ref(i)
                         break
 
             self._getValue()
@@ -1482,29 +1554,31 @@ class _TagPoint(virtualresource.VirtualResource):
 
         try:
             c = self.claims[claim]
+
             # If we're setting the active claim
             if c == self.activeClaim:
                 upd = True
             else:
+                co=c()
+                ac = self.activeClaim()
+
                 upd = False
                 # We can "steal" control if we have the same priority and are more recent, byt to do that we have to use the slower claim function that handles creating
                 # and switching claims
-                if c[0] >= self.activeClaim[0] and timestamp > self.activeClaim[1]:
-                    self.claim(val, claim, c[0], timestamp, annotation)
+                if (ac is None) or( co.priority >= ac.priority and timestamp > ac.timestamp):
+                    self.claim(val, claim, co.priority, timestamp, annotation)
                     return
 
             # Grab the claim obj and set it's val
-            x = c[3]()
+            x = c()
             if callable(x.value) or callable(val):
                 self._managePolling()
-            x.value = val
 
-            x.annotation = annotation
+            x.vta = val,timestamp,x.vta[2]
+
             if upd:
-                self.timestamp = timestamp
                 self._value = val
-                self.valueTuple = (val, timestamp, annotation)
-                self.annotation = annotation
+                self.vta = (val, timestamp, annotation)
                 # No need to immediately call the function if nobody is listening
                 # But we might as well if it's a direct value.
                 if (not callable(val)) or (self.subscribers or self.handler):
@@ -1516,6 +1590,17 @@ class _TagPoint(virtualresource.VirtualResource):
     # Get the specific claim object for this class
     def claimFactory(self, value, name, priority, timestamp, annotation):
         return Claim(self, value, name, priority, timestamp, annotation)
+
+    def getTopClaim(self):
+        #Deref all weak refs
+        x =  [i() for i in self.claims.values()]
+        #Eliminate dead references
+        x = [i for i in x if i]
+        if not x:
+            return None
+        #Get the top one
+        x= sorted(x, reverse=True)[0]
+        return x
 
     def release(self, name):
         if not self.lock.acquire(timeout=10):
@@ -1534,21 +1619,15 @@ class _TagPoint(virtualresource.VirtualResource):
             if len(self.claims) == 1:
                 raise RuntimeError("Tags must maintain at least one claim")
             del self.claims[name]
-            while self.claims:
-                self.activeClaim = sorted(
-                    list(self.claims.values()), reverse=True)[0]
-                o = self.activeClaim[3]()
 
-                # Perhaps in a race condition that has dissapeared.
-                # We must remove it and retry.
-                if o is None:
-                    del self.claims[self.activeClaim[2]]
-                else:
-                    self._value = o.value
-                    self.valueTuple = (o.value, o.timestamp, o.annotation)
-                    self.timestamp = o.timestamp
-                    self.annotation = o.annotation
-                    break
+            o=self.getTopClaim()
+            #All claims gone means this is probably in a __del__ function as it is disappearing
+            if not o:
+                return
+
+            self._value = o.value
+            self.vta = (o.value, o.timestamp, o.annotation)
+            self.activeClaim=weakref.ref(o)
 
             self._getValue()
             self._push()
@@ -2024,6 +2103,7 @@ class _BinaryTagPoint(_TagPoint):
 
 
 
+
 class Claim():
     "Represents a claim on a tag point's value"
     @typechecked
@@ -2033,25 +2113,196 @@ class Claim():
 
         self.name = name
         self.tag = tag
-        self.value = value
-        self.annotation = annotation
-        self.timestamp = timestamp
+        self.vta = value,timestamp,annotation
+
+        #If the value is a callable, this is the cached result plus the timestamp for the cache, separate
+        #From the vta timestamp of when that callable actually got set.
+        self.cachedValue = (None, timestamp)
+
+
+        #Track the last *attempt* at reading the value if it is a callable, regardless of whether
+        #it had new data or not.
+
+        #It is in monotonic time.
+        self.lastGotValue=0
+
         self.priority = priority
+
+        #The priority set in code, regardless of whether we expired or not
+        self.realPriority = priority
+        self.expired = False
+
+        #What priority should we take on in the expired state.
+        self.expiredPriority=0
+
+        self.expiration = 0
+        
+
+        self.poller = None
 
     def __del__(self):
         if self.name != 'default':
             self.tag.release(self.name)
 
+    def __lt__(self, other):
+        if (self.priority, self.timestamp) < (other.priority, other.timestamp):
+            return True
+        return False
+
+    def __le__(self, other):
+        if (self.priority, self.timestamp) <= (other.priority, other.timestamp):
+            return True
+        return False
+
+    def __eq__(self, other):
+        if (self.priority, self.timestamp) == (other.priority, other.timestamp):
+            return True
+        return False
+
+    def __ne__(self, other):
+        if (self.priority, self.timestamp) == (other.priority, other.timestamp):
+            return False
+        return True
+
+    def __gt__(self, other):        
+        if (self.priority, self.timestamp) > (other.priority, other.timestamp):
+            return True
+        return False
+
+    def __ge__(self, other):
+        if (self.priority, self.timestamp) >= (other.priority, other.timestamp):
+            return True
+        return False
+
+    def expirePoll(self,force=False):
+        #Quick check and slower locked check.  If we are too old, set our effective
+        #priority to the expired priority.
+
+
+        #Expiry for callables is based on the actual function itself.
+        #Expiry for  direct values is based on the timestamp of when external code set it.
+        if callable(self.value):
+            ts= self.cachedValue[1]
+        else:
+            ts = self.timestamp
+
+        if not self.expired:
+
+            if ts < (time.monotonic()- self.expiration):
+                #First we must try to refresh the callable.
+                self.refreshCallable()
+                if self.tag.lock.acquire(timeout=90):
+                    try:
+                        if callable(self.value):
+                            ts= self.cachedValue[1]
+                        else:
+                            ts = self.timestamp
+
+                        if ts < (time.monotonic()- self.expiration):
+                            self.setPriority(self.expiredPriority, False)
+                            self.expired=True
+                    finally:
+                        self.tag.lock.release()
+                else:
+                    raise RuntimeError("Cannot get lock to set priority, waited 90s")
+        else:
+            #If we are already expired just refresh now.
+            self.refreshCallable()
+
+    
+    def refreshCallable(self):
+        #Only call the getter under lock in case it happens to not be threadsafe
+        if callable(self.value):
+            if self.tag.lock.acquire(timeout=90):
+                self.lastGotValue=time.monotonic()
+                try:
+                    x = self.value()
+                    if not x is None:
+                        self.cachedValue = (x,time.monotonic())
+                        self.unexpire()
+                finally:
+                    self.tag.lock.release()
+                
+            else:
+                raise RuntimeError("Cannot get lock to set priority, waited 90s")
+
+            
+
+
+    def setExpiration(self,expiration, expiredPriority=0):
+        """Set the time in seconds before this claim is regarded as stale, and what priority to revert to in the stale state.
+            Note that that if you use a getter with this, it will constantly poll in the background
+        """
+        if self.tag.lock.acquire(timeout=90):
+            try:
+               self.expiration=expiration
+               self.expiredPriority=expiredPriority
+               self._managePolling()
+
+            finally:
+                self.tag.lock.release()
+        else:
+            raise RuntimeError("Cannot get lock, waited 90s")
+
+
+    def _managePolling(self):
+        interval = self.expiration
+        if  interval > 0:
+            if not self.poller or not (interval == self.poller.interval):
+                if self.poller:
+                    self.poller.unregister()
+                self.poller = scheduling.scheduler.scheduleRepeating(
+                    self.expirePoll, interval, sync=False)
+        else:
+            if self.poller:
+                self.poller.unregister()
+                self.poller = None
+
+
+    def unexpire(self):
+        #If we are expired, un-expire ourselves.
+        if self.expired:
+            if self.tag.lock.acquire(timeout=90):
+                try:
+                    if self.expired:
+                        self.expired=False
+                        self.setPriority(self.realPriority,False)
+                finally:
+                    self.tag.lock.release()
+            else:
+                raise RuntimeError("Cannot get lock to set priority, waited 90s")
+
+    @property
+    def value(self):
+        return self.vta[0]
+    @property
+    def timestamp(self):
+        return self.vta[1]
+
+    @property
+    def annotation(self):
+        return self.vta[2]
+
+
     def set(self, value, timestamp=None, annotation=None):
+
+        #Not threadsafe here if multiple threads use the same claim, value, timestamp, and annotation can 
+        self.vta =(value, self.timestamp, self.annotation)
+
+        #If we are expired, un-expi
+        if self.expired:
+           self.unexpire()
+
         self.tag.setClaimVal(self.name, value, timestamp, annotation)
 
     def release(self):
         self.tag.release(self.name)
 
-    def setPriority(self, priority):
-
+    def setPriority(self, priority,realPriority=True):
         if self.tag.lock.acquire(timeout=60):
             try:
+                if realPriority:
+                    self.realPriority = priority
                 self.priority = priority
                 self.tag.claim(value=self.value, timestamp=self.timestamp, annotation=self.annotation,
                                priority=self.priority, name=self.name)

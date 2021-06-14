@@ -18,12 +18,30 @@ modes = {
 
 wifi = tagpoints.Tag(
     "/system/wifiStrength")
-wifi. description = "The strongest current WiFi connection, excluding AP mode. -1 if never connected, 100 full strength"
-wifiClaim = wifi.claim(-1, "NetworkManager", 70)
-wifi.setAlarm("LowSignal", "value < 20 and value > -1", autoAck='yes')
+wifi.min=-1
+wifi.max=100
 
+wifi. description = "The strongest current WiFi connection, excluding AP mode. 1 to 100, -1 is never connected"
+wifiClaim = wifi.claim(-1, "NetworkManager", 70)
+
+#/if the value has ever been set, the signal is weak, and we don't have an ethernet connection.
+#However, if there IS an ethernet connection, we still sound the alarm if the signal is weak but not nonexistent.
+#Because in that case we know it should be connected but isn't
+wifi.setAlarm("LowSignal", "(value>-1) and (value < 20) and ((not tv('/system/ethernet')) or value)", autoAck='yes')
+
+ethernet = tagpoints.Tag(
+    "/system/ethernet")
+ethernet.min=-1
+ethernet.max = 1
+ethernet. description = "Whether ethernet is connected, -1 is never connected"
+ethernetClaim = wifi.claim(-1, "NetworkManager", 70)
+#if the value has ever been set, the signal is weak, and we don't have a WiFi connection.
+#But even if we do have signal, we still want to warn if there was ethernet before but now is not,
+#Because that would probably mean it is using wifi as a fallback and should still have ethernet.
+wifi.setAlarm("NoWiredNetwork", "(value>-1) and (value < 1) and not (tv('/system/wifiStrength') or (value > -1))", autoAck='yes')
 
 def getConnectionStatus():
+
     d = {}
     import NetworkManager
     try:
@@ -33,6 +51,7 @@ def getConnectionStatus():
         devs = NetworkManager.NetworkManager.GetDevices()
 
     strongest = 0
+    eth = 0
     for device in devs:
         try:
             if device.DeviceType == NetworkManager.NM_DEVICE_TYPE_WIFI:
@@ -56,6 +75,7 @@ def getConnectionStatus():
 
                 if device.State == NetworkManager.NM_DEVICE_STATE_ACTIVATED:
                     d[device.Udi] = (device.Interface, 0, "CONNECTED")
+                    eth=1
 
                 else:
                     d[device.Udi] = (device.Interface, 0, "UNKNOWN")
@@ -65,8 +85,13 @@ def getConnectionStatus():
         except:
             logging.exception("Err in wifi manager")
 
-    wifiClaim.set(strongest)
 
+    #Don't overwrite "never connected" with a 0
+    if (wifi.value>-1) or strongest:
+        wifiClaim.set(strongest)
+
+    if (ethernet.value>-1) or eth:
+        ethernetClaim.set(eth)
     return d
 
 

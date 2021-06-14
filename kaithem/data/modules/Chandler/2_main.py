@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1613911232157414
+resource-timestamp: 1623486542311558
 resource-type: event
 versions: {}
 
@@ -2516,7 +2516,7 @@ if __name__=='__setup__':
                 raise RuntimeError("Cannot duplicate cue names in one scene")
     
             c = Cue(self.scene(), name, fadein=self.fadein, length=self.length,  lengthRandomize=self.lengthRandomize
-            ,values=copy.deepcopy(self.values),nextCue=self.nextCue)
+            ,values=copy.deepcopy(self.values),nextCue=self.nextCue, rel_length=self.rel_length)
             
             for i in module.boards:
                 if len(i().newDataFunctions)<100:

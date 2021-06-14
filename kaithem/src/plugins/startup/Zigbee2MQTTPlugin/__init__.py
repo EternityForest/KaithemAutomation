@@ -164,9 +164,9 @@ class Zigbee2MQTT(devices.Device):
                                     #Link quality low signal alarms
                                     if j['unit']=='lqi':
                                         #Timestamp means wait for at least one actual data point
-                                        self.tagPoints[tn].setAlarm("LowSignal", "value < 8 and timestamp", priority='warning')
+                                        self.tagPoints[tn].setAlarm("LowSignal", "value < 8 and timestamp", priority='warning', tripDelay=60)
                                         #Assume that all devices check in at least once a day.
-                                        self.tagPoints[tn].setAlarm("Offline", "timestamp and timestamp<(time.monotonic()-(36*3600))", priority='warning')
+                                        self.tagPoints[tn].setAlarm("Offline", "timestamp<(time.monotonic()-(36*3600))", priority='warning',tripDelay=60)
 
                                     if j['name']=='battery':
                                         #Timestamp means wait for at least one actual data point

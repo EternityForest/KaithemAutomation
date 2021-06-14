@@ -127,6 +127,13 @@ class Kaithem():
             from src import mqtt as mqttPatch
             from scullery import mqtt
             return mqtt.getConnection(server=server, port=port, password=password, alertPriority=alertPriority, alertAck=alertAck, messageBusName=messageBusName)
+        
+        @staticmethod
+        def listConnections():
+            from src import mqtt as mqttPatch
+            from scullery import mqtt
+            return mqttPatch.listConnections()
+
 
     class misc(object):
         @staticmethod

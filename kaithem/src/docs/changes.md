@@ -1,6 +1,14 @@
 Change Log
 ----------
 
+### 0.65.60
+- "Length relative to sound" copied over when cloning cues in Chandler
+- USB audio devices default to 2048 samples and 3 periods if Kaithem is managing JACK.
+- Tag point getter functions now correctly update when given falsy values
+- Add alert for ethernet loss
+- Tagpoint claim.setExpiration(time,expiredPriority) specifies an alternate priority for a claim if it has not been updated in a certain time.
+-- This feature cah be used to detect when a data source is old.
+
 ### 0.65.59
 - Eliminate the cherrypy autoreloader, it was being more trouble than it is worth.
 - Fix ZigBee light tag

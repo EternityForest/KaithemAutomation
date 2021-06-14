@@ -187,6 +187,34 @@ def combineLogs(a):
         <td><input  name="overridePriority" value="${int(configData.get('overridePriority','90'))|h}" placeholder="90"></td>
     </tr>
 </table>
+
+
+
+
+<h3>MQTT Sync</h3><p class="help">
+    You can sync a tag's value using MQTT.  Configuring this overrides any sync settings set in code.
+    To use this, you must configure an MQTTConnection in the devices manager, and set the tag's message bus name to match.
+    If you do not set a topic,  it will use /tagpoints/TAGNAME.
+
+</p>
+<table border="1">
+    <tr>
+        <td>Message Bus Name</td>
+        <td><input name="mqtt.messageBusName" value="${configData.get('mqtt.messageBusName','')|h}" placeholder="config"></td>
+    </tr>
+    <tr>
+        <td>MQTT Topic(blank for default)</td>
+        <td><input name="mqtt.topic" value="${configData.get('mqtt.topic','')|h}""></td>
+    </tr>
+
+    <tr>
+        <td>Incoming Message Priority(Default 50)</td>
+        <td><input name="mqtt.incomingPriority" value="${configData.get('mqtt.incomingPriority','50')|h}""></td>
+    </tr>
+</table>
+
+
+
 <h3>Description</h3>
 ${tag.description or "No description set"}
 
@@ -206,7 +234,7 @@ ${tag.description or "No description set"}
     </tr>
     <tr>
         <td>Active Claim</td>
-        <td>${tag.activeClaim[2]}(P${tag.activeClaim[0]})</td>
+        <td>${tag.activeClaim().name}(P${tag.activeClaim().priority})</td>
     </tr>
     <tr>
         <td>Value at page load</td>

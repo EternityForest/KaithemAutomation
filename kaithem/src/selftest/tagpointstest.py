@@ -112,6 +112,9 @@ def testTags():
     if not t2.value == 1+7:
         raise RuntimeError("Subscriber to expression tag did not trigger when dependancy updated")
 
+    c3.set(2)
+    if not t2.value == 2+7:
+        raise RuntimeError("Subscriber to expression tag did not trigger when dependancy updated")
 
 
     # Test tag point values derived from other values
@@ -146,3 +149,33 @@ def testTags():
 
     if not t2.alarms['TestTagAlarm'].sm.state=='normal':
         raise RuntimeError("Alarm not normal after acknowledge")
+
+
+    t1 = tagpoints.Tag("/system/selftest/Sync1")
+    t2 = tagpoints.Tag("/system/selftest/Sync2")
+
+    t1.mqttConnect(server="__virtual__",port='tagSyncTest', mqttTopic='tagsyncselftest')
+    t2.mqttConnect(server="__virtual__",port='tagSyncTest', mqttTopic='tagsyncselftest')
+
+    t1.value=30
+    time.sleep(1)
+    if not t2.value==30:
+        raise RuntimeError("Tag MQTT sync feature failed")
+
+
+    t1 = tagpoints.Tag("/system/selftest/ExpireTest")
+    t1.value=0
+
+    c1=t1.claim(5,priority=70)
+    c1.setExpiration(2)
+    if not t1.value==5:
+        raise RuntimeError("Unexpected tag value")
+    time.sleep(3)
+    if not t1.value==0:
+        raise RuntimeError("Claim expiration did not work")
+
+    c1.set(30)
+    if not t1.value==30:
+        raise RuntimeError("Claim expiration did not un-expire correctly")
+
+    

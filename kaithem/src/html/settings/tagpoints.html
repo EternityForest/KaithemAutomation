@@ -57,7 +57,7 @@ Page:
     <td><a href="/tagpoints/${i|u}">${i|h}</a></td>
     <td>${tagpoints.allTagsAtomic[i]().lastValue} <span style="color: grey">${tagpoints.allTagsAtomic[i]().unit} ${"(see page for newest data)" if tagpoints.allTagsAtomic[i]().isDynamic() else ''}</span></td>
     <td>${tagpoints.allTagsAtomic[i]().interval}</td>
-    <td>${tagpoints.allTagsAtomic[i]().activeClaim[2]}</td>
+    <td>${tagpoints.allTagsAtomic[i]().activeClaim().name}</td>
     <td>${tagpoints.allTagsAtomic[i]().owner}</td>
     <td>${len(tagpoints.allTagsAtomic[i]().subscribers)}</td>
     <td>${len(tagpoints.allTagsAtomic[i]().alarms)}</td>
@@ -69,7 +69,7 @@ Page:
     <td><a href="/tagpoints/${i|u}">${i|h}</h></td>
     <td>${str(tagpoints.allTagsAtomic[i]().lastValue)[:80]|h} <span style="color: grey">${"(see page for newest data)" if tagpoints.allTagsAtomic[i]().isDynamic() else ''}</span></td>
     <td>${tagpoints.allTagsAtomic[i]().interval}</td>
-    <td>${tagpoints.allTagsAtomic[i]().activeClaim[2]}</td>
+    <td>${tagpoints.allTagsAtomic[i]().activeClaim().name}</td>
     <td>${tagpoints.allTagsAtomic[i]().owner}</td>
     <td>${len(tagpoints.allTagsAtomic[i]().subscribers)}</td>
 </tr>
@@ -80,7 +80,7 @@ Page:
     <td><a href="/tagpoints/${i|u}">${i|h}</h></td>
     <td>${str(tagpoints.allTagsAtomic[i]().lastValue)[:80]|h} <span style="color: grey">${"(see page for newest data)" if tagpoints.allTagsAtomic[i]().isDynamic() else ''}</span></td>
     <td>${tagpoints.allTagsAtomic[i]().interval}</td>
-    <td>${tagpoints.allTagsAtomic[i]().activeClaim[2]}</td>
+    <td>${tagpoints.allTagsAtomic[i]().activeClaim().name}</td>
     <td>${tagpoints.allTagsAtomic[i]().owner}</td>
     <td>${len(tagpoints.allTagsAtomic[i]().subscribers)}</td>
 </tr>
@@ -91,7 +91,7 @@ Page:
     <td><a href="/tagpoints/${i|u}">${i|h}</h></td>
     <td><span style="color: grey">Value is binary data</span></td>
     <td>${tagpoints.allTagsAtomic[i]().interval}</td>
-    <td>${tagpoints.allTagsAtomic[i]().activeClaim[2]}</td>
+    <td>${tagpoints.allTagsAtomic[i]().activeClaim().name}</td>
     <td>${tagpoints.allTagsAtomic[i]().owner}</td>
     <td>${len(tagpoints.allTagsAtomic[i]().subscribers)}</td>
 </tr>

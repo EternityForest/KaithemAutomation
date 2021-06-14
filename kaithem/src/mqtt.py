@@ -16,8 +16,17 @@
 from scullery.mqtt import Connection as BaseConnection
 import scullery.mqtt
 from . import tagpoints, messagebus, alerts, util, workers
+import threading, weakref
 
+allConnections = {}
+allConnectionsLock = threading.Lock()
 
+def listConnections():
+    with allConnectionsLock:
+        #Filter dead references
+        return {i:allConnections[i] for i in allConnections if allConnections[i]()}
+
+        
 class EnhancedConnection(BaseConnection):
     def __init__(self, server, port=1883, password=None, *, alertPriority="warning", alertAck=True, messageBusName=None):
         self.statusTag = tagpoints.StringTag(
@@ -26,6 +35,15 @@ class EnhancedConnection(BaseConnection):
             "disconnected", "status", 90)
         BaseConnection.__init__(self, server=server, password=password, port=port,
                                 alertPriority=alertPriority, alertAck=True, messageBusName=messageBusName,)
+
+        with allConnectionsLock:
+            torm = []
+            for i in allConnections:
+                if not allConnections[i]():
+                    torm.append(i)
+            for i in torm:
+                allConnections.pop(i)
+            allConnections[messageBusName]=weakref.ref(self)
 
     def onStillConnected(self):
         self.statusTagClaim.set("connected")
