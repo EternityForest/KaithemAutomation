@@ -8,6 +8,10 @@ Change Log
 - Add alert for ethernet loss
 - Tagpoint claim.setExpiration(time,expiredPriority) specifies an alternate priority for a claim if it has not been updated in a certain time.
 -- This feature cah be used to detect when a data source is old.
+- No longer automatically set a shortcut code for Changler cues, provide a button to set to the number instead
+- Other chandler shortcuts still fire if one of them has an error
+- Clean up the chandler interface even more
+- 4x speedup setting tag point values
 
 ### 0.65.59
 - Eliminate the cherrypy autoreloader, it was being more trouble than it is worth.

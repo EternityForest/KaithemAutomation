@@ -1193,7 +1193,7 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
     def addLevelDetector(self):
         self.addElement("level", post_messages=True,
-                        peak_ttl=300*1000*1000, peak_falloff=60)
+                        peak_ttl=300*1000*1000, peak_falloff=60,interval=10**9/48)
 
     def on_message(self, bus, message, userdata):
         s = message.get_structure()

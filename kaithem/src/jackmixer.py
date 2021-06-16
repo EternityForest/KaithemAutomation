@@ -278,7 +278,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
     def __init__(self, name, board=None, channels=2, input=None, outputs=[], soundFuse=3):
         gstwrapper.Pipeline.__init__(self, name, realtime=70)
         self.board = board
-        self.levelTag = tagpoints.Tag("/jackmixer/channels/" + name + "/level")
+        self.levelTag = tagpoints.Tag("/jackmixer/channels/" + name + ".level")
         self.levelTag.min = -90
         self.levelTag.max = 3
         self.levelTag.hi = -3
@@ -313,7 +313,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         self.sends = []
         self.sendAirwires = {}
 
-        self.faderTag = tagpoints.Tag("/jackmixer/channels/" + name + "/fader")
+        self.faderTag = tagpoints.Tag("/jackmixer/channels/" + name + ".fader")
         self.faderTag.subscribe(self._faderTagHandler)
         self.faderTag.max = 20
         self.faderTag.min = -60
@@ -578,7 +578,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
     def addLevelDetector(self):
         self.addElement("level", post_messages=True,
-                        peak_ttl=300 * 1000 * 1000, peak_falloff=60)
+                        peak_ttl=300 * 1000 * 1000, peak_falloff=60, interval=10**9/24)
 
     def on_message(self, bus, message, userdata):
         s = message.get_structure()

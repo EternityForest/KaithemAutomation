@@ -1137,6 +1137,9 @@ class _TagPoint(virtualresource.VirtualResource):
             self._interval = val
         else:
             self._interval = 0
+
+        messagebus.postMessage(
+                "/system/tags/interval"+self.name, self._interval, synchronous=True)
         with self.lock:
             self._managePolling()
 
@@ -1214,6 +1217,8 @@ class _TagPoint(virtualresource.VirtualResource):
             if not self.poller or not (interval == self.poller.interval):
                 if self.poller:
                     self.poller.unregister()
+                    self.poller=None
+
                 self.poller = scheduling.scheduler.scheduleRepeating(
                     self.poll, interval, sync=False)
         else:
@@ -1241,7 +1246,8 @@ class _TagPoint(virtualresource.VirtualResource):
                         torm.append(i)
                 for i in torm:
                     self.subscribers.remove(i)
-
+                messagebus.postMessage(
+                "/system/tags/subscribers"+self.name, len(self.subscribers), synchronous=True)
                 self._managePolling()
             finally:
                 self.lock.release()
@@ -1259,7 +1265,8 @@ class _TagPoint(virtualresource.VirtualResource):
                         x = i
                 if x:
                     self.subscribers.remove(x)
-
+                messagebus.postMessage(
+                "/system/tags/subscribers"+self.name, len(self.subscribers), synchronous=True)
                 self._managePolling()
             finally:
                 self.lock.release()
@@ -1332,11 +1339,6 @@ class _TagPoint(virtualresource.VirtualResource):
         """Represents the transform from the claim input to the output.
             Must be a pure-ish function
         """
-        # Functions are special valid types of value.
-        # They are automatically resolved.
-        if callable(value):
-            value = value()
-
         return value
 
     @property
@@ -1352,6 +1354,11 @@ class _TagPoint(virtualresource.VirtualResource):
 
     def _getValue(self, force=False):
         "Get the processed value of the tag, and update lastValue, It is meant to be called under lock."
+
+
+        #Overrides not guaranteed to be instant
+        if (self.lastGotValue > time.time()-self.interval) and not force:
+            return self.lastValue
 
 
         activeClaim= self.activeClaim()
@@ -1525,17 +1532,16 @@ class _TagPoint(virtualresource.VirtualResource):
                     x = i
                     if x:
                         self._value = x.value
-                        self.vta = (value, timestamp, annotation)
+                        self.vta = (x.value, x.timestamp, x.annotation)
 
-                
                         if not i == self.activeClaim():
                             self.activeClaim = weakref.ref(i)
                             self.handleSourceChanged(i.name)
                         else:
                             self.activeClaim = weakref.ref(i)
                         break
-
-            self._getValue()
+            
+            self._getValue(force=True)
             self._push()
             return claim
         finally:
@@ -1546,7 +1552,9 @@ class _TagPoint(virtualresource.VirtualResource):
         if timestamp is None:
             timestamp = time.monotonic()
 
+        valCallable=True
         if not callable(val):
+            valCallable=False
             val = self.filterValue(val)
 
         if not self.lock.acquire(timeout=10):
@@ -1571,7 +1579,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
             # Grab the claim obj and set it's val
             x = c()
-            if callable(x.value) or callable(val):
+            if self.poller or valCallable:
                 self._managePolling()
 
             x.vta = val,timestamp,x.vta[2]
@@ -1579,10 +1587,10 @@ class _TagPoint(virtualresource.VirtualResource):
             if upd:
                 self._value = val
                 self.vta = (val, timestamp, annotation)
-                # No need to immediately call the function if nobody is listening
-                # But we might as well if it's a direct value.
-                if (not callable(val)) or (self.subscribers or self.handler):
-                    self._getValue()
+                if valCallable:
+                    self._getValue()                
+                # No need to push is listening
+                if (self.subscribers or self.handler):
                     self._push()
         finally:
             self.lock.release()
@@ -1658,10 +1666,6 @@ class _NumericTagPoint(_TagPoint):
         _TagPoint.__init__(self, name)
 
     def processValue(self, value):
-        # Functions are special valid types of value.
-        # They are automatically resolved.
-        if callable(value):
-            value = value()
 
         if self._min is not None:
             value = max(self._min, value)
@@ -1883,10 +1887,6 @@ class _StringTagPoint(_TagPoint):
         _TagPoint.__init__(self, name)
 
     def processValue(self, value):
-        # Functions are special valid types of value.
-        # They are automatically resolved.
-        if callable(value):
-            value = value()
 
         return str(value)
 
@@ -1978,10 +1978,6 @@ class _ObjectTagPoint(_TagPoint):
         _TagPoint.__init__(self, name)
 
     def processValue(self, value):
-        # Functions are special valid types of value.
-        # They are automatically resolved.
-        if callable(value):
-            value = value()
 
         if isinstance(value, str):
             value = json.loads(value)
@@ -2082,11 +2078,6 @@ class _BinaryTagPoint(_TagPoint):
         _TagPoint.__init__(self, name)
 
     def processValue(self, value):
-        # Functions are special valid types of value.
-        # They are automatically resolved.
-        if callable(value):
-            value = value()
-
         if isinstance(value, bytes):
             value = value
         else:
@@ -2153,16 +2144,6 @@ class Claim():
         if (self.priority, self.timestamp) <= (other.priority, other.timestamp):
             return True
         return False
-
-    def __eq__(self, other):
-        if (self.priority, self.timestamp) == (other.priority, other.timestamp):
-            return True
-        return False
-
-    def __ne__(self, other):
-        if (self.priority, self.timestamp) == (other.priority, other.timestamp):
-            return False
-        return True
 
     def __gt__(self, other):        
         if (self.priority, self.timestamp) > (other.priority, other.timestamp):
@@ -2247,7 +2228,7 @@ class Claim():
 
     def _managePolling(self):
         interval = self.expiration
-        if  interval > 0:
+        if interval > 0:
             if not self.poller or not (interval == self.poller.interval):
                 if self.poller:
                     self.poller.unregister()
