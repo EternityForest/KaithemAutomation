@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1613617215337829
+resource-timestamp: 1623843724444156
 resource-type: page
 template-engine: mako
 
@@ -296,19 +296,6 @@ from src import tagpoints
 
 
             <div style="background-color:rgba(255,255,255,0.3); display:block;">
-
-                <div class="menubar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;"><b>Download:</b>
-                    <a class="button" href="download" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Scenes</a>
-                    <a class="button" href="downloadSetup" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Setup</a>
-                    <a class="button" href="downloadLibrary" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Fixture Lib</a>
-                </div>
-                
-                <div class="menubar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;"><b>Upload:</b>
-
-                    <a class="button" href="upload" title="Upload a scenes file"><img src="/zipstatic/img/icons/fugue.zip/folder-horizontal-open.png"></img>Scenes</a>
-                    <a class="button" href="uploadSetup" title="Upload a scenes file"><img src="/zipstatic/img/icons/fugue.zip/folder-horizontal-open.png"></img>Setup</a>
-                    <a class="button" href="uploadLibrary" title="Upload a scenes file"><img src="/zipstatic/img/icons/fugue.zip/folder-horizontal-open.png"></img>Fixture Lib</a>
-                </div>
                 
                 <div class="menubar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;"><b>File:</b>
 
@@ -323,6 +310,7 @@ from src import tagpoints
                     <button v-on:click="showhidefixtures"><img src="/zipstatic/img/icons/fugue.zip/traffic-light--pencil.png"></img> Fixture Types</button>
                     <button v-on:click="showhidefixtureassignments"><img src="/zipstatic/img/icons/fugue.zip/light-bulb.png"></img>Fixture Assignments</button>
                     <button v-if="showAdvancedControls" v-on:click="showevents=!showevents"><img src="/zipstatic/img/icons/fugue.zip/application-terminal.png"></img>Events Window</button>
+                    <button v-on:click="showimport=!showimport"><img src="/zipstatic/img/icons/fugue.zip/folder-horizontal-open.png"></img>Import/Export</button>
                     <a class="button" href="/pages/Chandler/docs/index" target="_blank"><img src="/zipstatic/img/icons/fugue.zip/book-question.png">Help</a>
                     <a class="button" href="/pages/Chandler/Setup">Global Settings</a>
                 </div>
@@ -332,12 +320,7 @@ from src import tagpoints
                     <button v-on:click="editMode" v-bind:class="{highlight:keybindmode=='edit'}"><img src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>Edit Mode</button>
                     <button v-on:click="runMode" v-bind:class="{highlight:keybindmode=='run'}"><img src="/zipstatic/img/icons/fugue.zip/tick-octagon.png"></img>Send Events</button>
                 </div>
-                <div class="menubar" style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;float:left;">
-                    <b>View:</b>
-                    <label title="Show or hide lighting related controls">Lighting:<input type="checkbox" v-model="showLightingControls"></label>
-                    <label title="Show or hide lighting related controls">Sound:<input type="checkbox" v-model="showSoundControls"></label>
-                    <label title="Show or hide lighting related controls">Advanced:<input type="checkbox" v-model="showAdvancedControls"></label>
-                </div>
+
             </div>
 
             <div style="background-color:rgba(255,255,255,0.3);clear:both;float:none; padding: 0.25em;">
@@ -368,6 +351,22 @@ from src import tagpoints
                 <option value="${i}"></option>
                 %endfor
             </datalist>
+
+            <div v-if="showimport" class="sectionbox">
+                <h3>Import/Export controls</h3>
+                <div style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;"><b>Download:</b>
+                    <a class="button" href="download" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Scenes</a>
+                    <a class="button" href="downloadSetup" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Setup</a>
+                    <a class="button" href="downloadLibrary" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Fixture Lib</a>
+                </div>
+                
+                <div style="background-color:rgba(255,255,255,0.1);border-style:inset; padding:0.25em; border-color:grey; border-width:2px;"><b>Upload:</b>
+
+                    <a class="button" href="upload" title="Upload a scenes file"><img src="/zipstatic/img/icons/fugue.zip/folder-horizontal-open.png"></img>Scenes</a>
+                    <a class="button" href="uploadSetup" title="Upload a scenes file"><img src="/zipstatic/img/icons/fugue.zip/folder-horizontal-open.png"></img>Setup</a>
+                    <a class="button" href="uploadLibrary" title="Upload a scenes file"><img src="/zipstatic/img/icons/fugue.zip/folder-horizontal-open.png"></img>Fixture Lib</a>
+                </div>
+            </div>
 
 
             <div v-if="showDMXSetup" class="sectionbox">
@@ -738,94 +737,114 @@ from src import tagpoints
 
                     <span class="virtual" v-if="editingScene.doingHandoff">(fading out)</span>
                 </h3>
+                
+                 <p style="background-color:rgba(250,250,250,0.5)">
+                        <button v-bind:class="{highlight:scenetab=='cue'}" v-on:click="scenetab='cue'">Normal View</button>
+                        <button v-bind:class="{highlight:scenetab=='sound'}" v-on:click="scenetab='sound'">Sound View</button>
+                        <button v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'">Add/Remove Channels</button>
+                        <button v-bind:class="{highlight:scenetab=='blend'}" v-on:click="scenetab='blend'">Scene Settings</button>
 
-                <input v-model="cuefilter" placeholder="Search Cues" />
-                <button v-on:click="cuefilter=''">X</button>
-                <div style="overflow-y: scroll;max-height:12em;">
-                    <table class="reflow" border="1" style="resize:both; width:100%;">
-
-                        <thead>
-                            <tr>
-                                <th title="Click the cue name to edit that cue">Cue Name</th>
-                                <th>Number</th>
-                                <th>Shortcut</th>
-                                <th>Fadein</th>
-                                <th title="Length, 0 indicates until stopped">Length</th>
-                                <th title="The next cue, after this one ends">Next</th>
-                                <th>Randomize</th>
-                                <th>Track</th>
-                                <th>Jump to</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            <tr v-for="i in formatCues(1)" v-if="i[1].id" v-bind:style="{'background-color':((selectedCues[scenename]==i[1].name)?'lightblue':'')}">
-                                <td class="rowname" data-label="Cue: " style=" user-select: none;" title="Click the cue name to edit that cue" v-on:click="selectcue(scenename,i[1].name)"><i v-if="cuemeta[editingScene.cue].name==i[1].name" class="fas fa-play-circle" style="color:green;"></i>
-                                    <img v-if="selectedCues[scenename]==i[1].name" src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>
-                                    <b>{{i[1].name}}</b>
-                                </td>
-
-                                <td data-label="Cue #:"><b title="Cue number, double click to change." style="width:6em" v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</b></td>
-
-                                <td data-label="Shortcut:">
-                                    <input title="Shortcut code" style="width:6em" v-on:change="setshortcut(i[1].id,$event.target.value)" min=0 step=0.1 v-model="i[1].shortcut">
-                                </td>
-
-                                <td data-label="Fade In:">
-                                    <input type="number" v-on:input="setfadein(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].fadein">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
-
-                                <td data-label="Length:">
-                                    <input type="number" v-on:change="setlength(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].length">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
-
-                                <td data-label="Next Cue:">
-                                    <select style="width:100%" v-model="i[1].next" v-if="Object.keys(scenecues[scenename]).length<600" autocomplete=off title="Select a cue to activate when this one ends"
-                                        v-on:input="setnext(i[1].id,$event.target.value)">
-                                        <option value="">&gt&gt&gt</option>
-                                        <option v-for="j in formatCues(1)" v-bind:value="j[1].name">{{j[1].number}}: {{j[1].name}}</option>
-                                        <option v-bind:value="i[1].next">Current: {{i[1].next}}</option>
-
-                                        </select>
-
-                                        <input v-if="Object.keys(scenecues[scenename]).length>40" autocomplete=off list="cues_in_scene" title="Select a cue to activate when this one ends"
-                                            v-on:input="setnext(i[1].id,$event.target.value)" v-model="i[1].next" v-bind:placeholder="i[1].defaultnext">
-                                            </input>
-                                </td>
-
-
-
-                                <td data-label="Randomize">
-                                    <input type="number" v-on:input="setrandomize(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].lengthRandomize">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
-                                <td data-label="Track vals from prev: ">
-                                    <input type="checkbox" v-on:change="settrack(i[1].id,i[1].track)" v-model="i[1].track" title="Track values from previous cue? If false, values not present are always transparent">
-                                </td>
-                                <td data-label="Goto:">
-                                    <button v-on:click="jumptocue(i[1].id)">Go</button>
-                                </td>
-
-                            </tr>
-                        </tbody>
-
-                    </table>
-                </div>
-
-
-
-                <input v-model="newcuename" placeholder="New cue name">
-                <button v-on:click="addcue(scenename,newcuename)">
-            <img src="/zipstatic/img/icons/fugue.zip/plus-octagon-frame.png"></img>Add Cue</button>
-                <button v-on:click="clonecue(scenename,currentcueid,newcuename)">
-            <img src="/zipstatic/img/icons/fugue.zip/document-copy.png"></img>Clone Cue</button>
-                <button v-on:click="rmcue(currentcueid)">
-            <img src="/zipstatic/img/icons/fugue.zip/minus-circle.png"></img>Delete Current</button>
-                <button v-on:click="jumptocue(currentcueid)">
-            <img src="/zipstatic/img/icons/fugue.zip/arrow.png"></img>Goto Selected</button>
-                <button v-on:click="gotonext(currentcueid)">Edit Next Cue</button>
-
-
+                        <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='data'}" v-on:click="scenetab='data'" title="Direct copy and pastable access to cue data"> Cue Data</button>
+                        <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='logic'}" v-on:click="scenetab='logic'" title="If/then automation rules"> Cue Logic</button>
+                        <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='sync'}" v-on:click="scenetab='sync'"> Scene Sync</button>
+                        <button v-bind:class="{highlight:scenetab=='notes'}" v-on:click="scenetab='notes'"> Scene Notes</button>
+                        <button v-bind:class="{highlight:scenetab=='page'}" v-on:click="scenetab='page'"> Scene Page</button>
+                        <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Download Scene</a>
+                    </p>
                 <hr>
 
-                <div v-if="currentcue">
-                    <h3>Selected Cue: {{currentcue.name}}</h3>
+
+                <div id="cuesbox" v-if="scenetab !='blend' && scenetab !='page'">
+                    <input v-model="cuefilter" placeholder="Search Cues" />
+                    <button v-on:click="cuefilter=''">X</button>
+                    <div style="overflow-y: scroll;max-height:12em;">
+                        <table class="reflow" border="1" style="resize:both; width:100%;">
+
+                            <thead>
+                                <tr>
+                                    <th title="Click the cue name to edit that cue">Cue Name</th>
+                                    <th>Number</th>
+                                    <th>Shortcut</th>
+                                    <th>Fadein</th>
+                                    <th title="Length, 0 indicates until stopped">Length</th>
+                                    <th title="The next cue, after this one ends">Next</th>
+                                    <th>Randomize</th>
+                                    <th>Track</th>
+                                    <th>Jump to</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <tr v-for="i in formatCues(1)" v-if="i[1].id" v-bind:style="{'background-color':((selectedCues[scenename]==i[1].name)?'lightblue':'')}">
+                                    <td class="rowname" data-label="Cue: " style=" user-select: none;" title="Click the cue name to edit that cue" v-on:click="selectcue(scenename,i[1].name)"><i v-if="cuemeta[editingScene.cue].name==i[1].name" class="fas fa-play-circle" style="color:green;"></i>
+                                        <img v-if="selectedCues[scenename]==i[1].name" src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>
+                                        <b>{{i[1].name}}</b>
+                                    </td>
+
+                                    <td data-label="Cue #:"><b title="Cue number, double click to change." style="width:6em" v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</b></td>
+
+                                    <td data-label="Shortcut:">
+                                        <input title="Shortcut code" style="width:6em" v-on:change="setshortcut(i[1].id,$event.target.value)" min=0 step=0.1 v-model="i[1].shortcut">
+                                        <button style="opacity:0.3" title="Generate a shortcut code from the cue's number" v-on:click="setshortcut(i[1].id,i[1].shortcut || '__generate__from__number__')">GEN</button>
+                                    </td>
+
+                                    <td data-label="Fade In:">
+                                        <input type="number" v-on:input="setfadein(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].fadein">{{(scenemeta[scenename].bpm&&scenemeta[scenename].bpm!=60)?"beats":"s"}}</td>
+
+                                    <td data-label="Length:">
+                                        <input type="number" v-on:change="setlength(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].length">{{(scenemeta[scenename].bpm&&scenemeta[scenename].bpm!=60)?"beats":"s"}}{{i[1].rel_len ?"+sound":""}}</td>
+
+                                    <td data-label="Next Cue:">
+                                        <select style="width:100%" v-model="i[1].next" v-if="Object.keys(scenecues[scenename]).length<600" autocomplete=off title="Select a cue to activate when this one ends"
+                                            v-on:input="setnext(i[1].id,$event.target.value)">
+                                            <option value="">&gt&gt&gt</option>
+                                            <option v-for="j in formatCues(1)" v-bind:value="j[1].name">{{j[1].number}}: {{j[1].name}}</option>
+                                            <option v-bind:value="i[1].next">Current: {{i[1].next}}</option>
+
+                                            </select>
+
+                                            <input v-if="Object.keys(scenecues[scenename]).length>40" autocomplete=off list="cues_in_scene" title="Select a cue to activate when this one ends"
+                                                v-on:input="setnext(i[1].id,$event.target.value)" v-model="i[1].next" v-bind:placeholder="i[1].defaultnext">
+                                                </input>
+                                    </td>
+
+
+
+                                    <td data-label="Randomize">
+                                        <input type="number" v-on:input="setrandomize(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].lengthRandomize">{{scenemeta[scenename].bpm?"beats":"s"}}</td>
+                                    <td data-label="Track vals from prev: ">
+                                        <input type="checkbox" v-on:change="settrack(i[1].id,i[1].track)" v-model="i[1].track" title="Track values from previous cue? If false, values not present are always transparent">
+                                    </td>
+                                    <td data-label="Goto:">
+                                        <button v-on:click="jumptocue(i[1].id)">Go</button>
+                                    </td>
+
+                                </tr>
+                            </tbody>
+
+                        </table>
+                    </div>
+                
+
+
+
+                    <input v-model="newcuename" placeholder="New cue name">
+                    <button v-on:click="addcue(scenename,newcuename)">
+                <img src="/zipstatic/img/icons/fugue.zip/plus-octagon-frame.png"></img>Add Cue</button>
+                    <button v-on:click="clonecue(scenename,currentcueid,newcuename)">
+                <img src="/zipstatic/img/icons/fugue.zip/document-copy.png"></img>Clone Cue</button>
+                    <button v-on:click="rmcue(currentcueid)">
+                <img src="/zipstatic/img/icons/fugue.zip/minus-circle.png"></img>Delete Current</button>
+                    <button v-on:click="jumptocue(currentcueid)">
+                <img src="/zipstatic/img/icons/fugue.zip/arrow.png"></img>Goto Selected</button>
+                    <button v-on:click="gotonext(currentcueid)">Edit Next Cue</button>
+            </div>
+
+              <hr>
+                   
+
+                <div v-if="currentcue && scenetab !='blend' && scenetab !='page'">
+                    <h3>Editing Cue: {{currentcue.name}}</h3>
 
                     <span class="help" v-if="editingScene.ext">This is an external scene that is defined somewhere in code. Any changes made here may be overwritten by the code at any time.</span>
 
@@ -932,19 +951,7 @@ from src import tagpoints
 
 
                     <div>
-                        <p style="background-color:rgba(250,250,250,0.5)">
-                            <button v-bind:class="{highlight:scenetab=='blend'}" v-on:click="scenetab='blend'">Scene</button>|
-                            <button v-bind:class="{highlight:scenetab=='cue'}" v-on:click="scenetab='cue'">Cue</button>
-                            <button v-bind:class="{highlight:scenetab=='sound'}" v-on:click="scenetab='sound'">Cue Sound</button>
-                            <button v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'">Add/Remove Channels</button>
-                            <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='data'}" v-on:click="scenetab='data'" title="Direct copy and pastable access to cue data"> Cue Data</button>
-                            <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='logic'}" v-on:click="scenetab='logic'" title="If/then automation rules"> Cue Logic</button>|
-                            <button v-if="showAdvancedControls" v-bind:class="{highlight:scenetab=='sync'}" v-on:click="scenetab='sync'"> Scene Sync</button>
-                            <button v-bind:class="{highlight:scenetab=='notes'}" v-on:click="scenetab='notes'"> Scene Notes</button>
-                            <button v-bind:class="{highlight:scenetab=='page'}" v-on:click="scenetab='page'"> Scene Page</button>
-                            <a class="button" v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name" title="Download your scenes as a file"><img src="/zipstatic/img/icons/fugue.zip/disk.png"></img>Download Scene</a>
 
-                        </p>
 
 
 
@@ -1248,10 +1255,12 @@ from src import tagpoints
 
                             </div>
                         </div>
+                </div>
 
+                   
 
-
-                        <div v-if="scenetab=='blend'">
+                </div>
+                 <div v-if="scenetab=='blend'">
 
                             <h4 title="These properties are fixed per-scene and don't change between cues">Global Scene Properties</h4>
     
@@ -1349,8 +1358,6 @@ from src import tagpoints
                             </div>
 
                         </div>
-                    </div>
-                </div>
                 <div v-if="scenecues[scenename][selectedCues[scenename]]==undefined || cuemeta[scenecues[scenename][selectedCues[scenename]]]==undefined">
                     Cue data not found...
                 </div>
@@ -1739,6 +1746,7 @@ from src import tagpoints
             'fixtureassg': '',
             'showsoundoptions': false,
             'showevents': false,
+            'showimportexport':false,
             'evtosend': '',
             'evtypetosend': 'float',
             'evval': '',
@@ -1805,7 +1813,7 @@ from src import tagpoints
 
             'showDMXSetup': false,
             'showsceneoptions': false,
-            'scenetab': 'blend',
+            'scenetab': 'cue',
             'configuredUniverses':
             {
                 'blah': { 'type': 'enttec', 'interface': 'xyz' }

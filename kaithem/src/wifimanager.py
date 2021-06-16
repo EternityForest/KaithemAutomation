@@ -34,7 +34,7 @@ ethernet = tagpoints.Tag(
 ethernet.min=-1
 ethernet.max = 1
 ethernet. description = "Whether ethernet is connected, -1 is never connected"
-ethernetClaim = wifi.claim(-1, "NetworkManager", 70)
+ethernetClaim = ethernet.claim(-1, "NetworkManager", 70)
 #if the value has ever been set, the signal is weak, and we don't have a WiFi connection.
 #But even if we do have signal, we still want to warn if there was ethernet before but now is not,
 #Because that would probably mean it is using wifi as a fallback and should still have ethernet.

@@ -84,13 +84,15 @@ ${traceback.format_exc()}
 
 %for i in obj.tagPoints:
 <tr><td><a href="/tagpoints/${obj.tagPoints[i].name|u}">${i|h}</a></td>
-        %if hasattr(obj.tagPoints[i],'meterWidget'):
+        %if len(obj.tagPoints)>8:
+        <td>${str(obj.tagPoints[i].value)[:48]|h}</td>
+        %elif hasattr(obj.tagPoints[i],'meterWidget'):
         <td>${obj.tagPoints[i].meterWidget.render()}</td>
         %else:
         <td>${obj.tagPoints[i].spanWidget.render()}</td>
         %endif
 
-        <td>${obj.tagPoints[i].activeClaim[2]|h}</td>
+        <td>${obj.tagPoints[i].activeClaim().name|h}</td>
 </tr>
 %endfor
 </table>

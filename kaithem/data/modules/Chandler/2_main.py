@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1623486542311558
+resource-timestamp: 1623844724864662
 resource-type: event
 versions: {}
 
@@ -2350,10 +2350,13 @@ if __name__=='__setup__':
         with module.lock:
             if code in shortcut_codes:
                 for i in shortcut_codes[code]:
-                    x=i.scene()
-                    if x:
-                        x.go()
-                        x.gotoCue(i.name,cause='manual')
+                    try:
+                        x=i.scene()
+                        if x:
+                            x.go()
+                            x.gotoCue(i.name,cause='manual')
+                    except:
+                        print(traceback.format_exc())
     
     cues =weakref.WeakValueDictionary()
     
@@ -2386,7 +2389,7 @@ if __name__=='__setup__':
         'nextCue','track','shortcut','number','inherit','sound','rel_length','script',
         'soundOutput','onEnter','onExit','influences','associations',"rules","reentrant","inheritRules","soundFadeIn","soundFadeOut","soundVolume",'soundLoops','namedForSound','probability',
         '__weakref__']
-        def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, length=0,track=True, nextCue = None,shortcut=None,sound='',soundOutput='',rel_length=False, id=None,number=None,
+        def __init__(self,parent,name, f=False, values=None, alpha=1, fadein=0, length=0,track=True, nextCue = None,shortcut='',sound='',soundOutput='',rel_length=False, id=None,number=None,
             lengthRandomize=0,script='',onEnter=None,onExit=None,rules=None,reentrant=True, soundFadeIn=0,soundFadeOut=0,inheritRules='',soundVolume=1,soundLoops=0,namedForSound=False,probability='',**kw):
             #This is so we can loop through them and push to gui
             self.id = uuid.uuid4().hex
@@ -2437,8 +2440,6 @@ if __name__=='__setup__':
             self.shortcut= None
             self.sound = sound or ''
             self.soundOutput = soundOutput or ''
-            s = number_to_shortcut(self.number)
-            shortcut = shortcut or s
     
             #Used for the livingnight algorithm
             #Aspect, value tuples
@@ -2448,8 +2449,7 @@ if __name__=='__setup__':
             #Type is what parameter if the cue is being affected
             self.associations = []
     
-    
-            self.setShortcut(shortcut)
+            self.setShortcut(shortcut,False)
                 
             self.push()
         
@@ -2549,35 +2549,41 @@ if __name__=='__setup__':
             self.scene().refreshRules()
     
     
-        def setShortcut(self,code):
-            disallow_special(code,allow=".")
+        def setShortcut(self,code,push=True):
+            disallow_special(code,allow="._")
+    
+            if code=='__generate__from__number__':
+                code =number_to_shortcut(self.number)
             with module.lock:
                 if self.shortcut in shortcut_codes:
                     try:
                         shortcut_codes[code].remove(self)
                     except:
                         pass
-                        
-                #Do a full GC pass of the shortcut codes list 
-                torm = []
-                for i in shortcut_codes:
-                    if not shortcut_codes[i]:
-                        torm.append(i)
-                    else:
-                        for j in shortcut_codes[i]:
-                            if not j.scene():
-                                shortcut_codes[i].remove(j)
-                for i in torm:
-                    del shortcut_codes[i]
     
-                if code in shortcut_codes:
-                    shortcut_codes[code].append(self)
-                else:
-                    shortcut_codes[code] = [self]
-        
+                if random.random()<1:
+                    #Do a full GC pass of the shortcut codes list 
+                    torm = []
+                    for i in shortcut_codes:
+                        if not shortcut_codes[i]:
+                            torm.append(i)
+                        else:
+                            for j in list(shortcut_codes[i]):
+                                if not j.scene():
+                                    shortcut_codes[i].remove(j)
+                    for i in torm:
+                        del shortcut_codes[i]
+    
+                if code:
+                    if code in shortcut_codes:
+                        shortcut_codes[code].append(self)
+                    else:
+                        shortcut_codes[code] = [self]
+    
     
                 self.shortcut = code
-                self.push()
+                if push:
+                    self.push()
     
         def setValue(self,universe,channel,value):
             disallow_special(universe, allow="_@")
@@ -3114,10 +3120,13 @@ if __name__=='__setup__':
     
                 if cue in cues:
                     id = cue
+                    self.cues[cues[cue].name].setShortcut('')
                     del self.cues[cues[cue].name]
                 elif cue in self.cues:
                     id = self.cues[cue].id
+                    self.cues[cue].setShortcut('')
                     del self.cues[cue]
+                    
                 for i in module.boards:
                     if len(i().newDataFunctions)<100:
                         i().newDataFunctions.append(lambda s:s.link.send(["delcue",id]))
@@ -3418,7 +3427,10 @@ if __name__=='__setup__':
                         except:
                             self.event("script.error", self.name+" in cueVolume eval:\n"+traceback.format_exc())
                             self.cueVolume=1
-                        sound = self.resolveSound(sound)
+                        try:
+                            sound = self.resolveSound(sound)
+                        except:
+                            print(traceback.format_exc())
     
                         if os.path.isfile(sound):
                             out = self.cue.soundOutput
