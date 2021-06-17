@@ -64,6 +64,10 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.61
+- Fix tag point subscriber not firing immediately in some edge cases
+- Bigger text boxes on tag point pages, for longer expressions
+
 
 ### 0.65.60
 - "Length relative to sound" copied over when cloning cues in Chandler

@@ -3,6 +3,7 @@
 def testTags():
     from src import tagpoints
     import time
+    import gc
 
     t= tagpoints.Tag("/system/selftest")
 
@@ -34,6 +35,7 @@ def testTags():
         raise RuntimeError("Tag subscription issue")
 
     del f
+    gc.collect()
     c.set(8)
     if not tester[0]==50:
         raise RuntimeError("Tag subscriber still active after being deleted")
@@ -79,7 +81,9 @@ def testTags():
         raise RuntimeError("Tag subscription issue")
 
     del f
+    gc.collect()
     c.set("8")
+    gc.collect()
     if not tester[0]=="50":
         raise RuntimeError("Tag subscriber still active after being deleted")
 

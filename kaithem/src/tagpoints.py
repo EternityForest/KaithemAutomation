@@ -255,12 +255,11 @@ class _TagPoint(virtualresource.VirtualResource):
 
         self.alreadyPostedDeadlock = False
 
-        # Might be the number, or might be the getter function.
-        # it's the current value of the active claim
-        self._value = copy.deepcopy(self.defaultData)
+
 
         #Start timestamp at 0 meaning never been set
-        self.vta = (self._value, 0, None)
+        #Value, timestamp, annotation.  This is the raw value, and the value could actually be a callable returning a value
+        self.vta = (copy.deepcopy(self.defaultData), 0, None)
 
         # Used to track things like min and max, what has been changed by manual setting.
         # And should not be overridden by code.
@@ -391,7 +390,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
 
     def isDynamic(self):
-        return callable(self._value)
+        return callable(self.vta[0])
 
     def expose(self, r='', w='__never__', p=50, configured=False):
         """If not r, disable web API.  Otherwise, set read and write permissions.
@@ -1508,10 +1507,9 @@ class _TagPoint(virtualresource.VirtualResource):
                 self.activeClaim = self.claims[name]
                 self.handleSourceChanged(name)
 
-                if callable(self._value) or callable(value):
+                if callable(self.vta[0]) or callable(value):
                     self._managePolling()
 
-                self._value = value
                 self.vta = (value, timestamp, annotation)
 
             # If priority has been changed on the existing active claim
@@ -1531,7 +1529,6 @@ class _TagPoint(virtualresource.VirtualResource):
                 for i in c:
                     x = i
                     if x:
-                        self._value = x.value
                         self.vta = (x.value, x.timestamp, x.annotation)
 
                         if not i == self.activeClaim():
@@ -1573,7 +1570,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 upd = False
                 # We can "steal" control if we have the same priority and are more recent, byt to do that we have to use the slower claim function that handles creating
                 # and switching claims
-                if (ac is None) or( co.priority >= ac.priority and timestamp > ac.timestamp):
+                if (ac is None) or( co.priority >= ac.priority and timestamp >= ac.timestamp):
                     self.claim(val, claim, co.priority, timestamp, annotation)
                     return
 
@@ -1582,13 +1579,14 @@ class _TagPoint(virtualresource.VirtualResource):
             if self.poller or valCallable:
                 self._managePolling()
 
-            x.vta = val,timestamp,x.vta[2]
+            x.vta = val,timestamp,annotation
 
             if upd:
-                self._value = val
                 self.vta = (val, timestamp, annotation)
                 if valCallable:
-                    self._getValue()                
+                    self._getValue()
+                else:
+                    self.lastValue=val               
                 # No need to push is listening
                 if (self.subscribers or self.handler):
                     self._push()
@@ -1633,7 +1631,6 @@ class _TagPoint(virtualresource.VirtualResource):
             if not o:
                 return
 
-            self._value = o.value
             self.vta = (o.value, o.timestamp, o.annotation)
             self.activeClaim=weakref.ref(o)
 

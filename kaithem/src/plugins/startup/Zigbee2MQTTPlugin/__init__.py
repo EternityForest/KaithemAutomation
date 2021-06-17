@@ -114,7 +114,7 @@ class Zigbee2MQTT(devices.Device):
                             #Internally we represent all colors as the standard but kinda mediocre CSS strings,
                             #Since ZigBee seems to like to separate color and brightness, we will do the same thing here.
                             if j['name']=='color_xy' and isALight:
-                                self.tagPoints[tn] = tagpoints.StringTag("/devices/"+self.name+"/node/"+i['friendly_name']+"/"+j['property'])
+                                self.tagPoints[tn] = tagpoints.StringTag("/devices/"+self.name+"/node/"+i['friendly_name']+"."+j['property'])
                                 self.tagPoints[tn].unit = 'color'
 
                                 def f(t,v,tn=tn,j=j):
@@ -203,7 +203,7 @@ class Zigbee2MQTT(devices.Device):
 
 
                             elif j['type'] == 'binary':
-                                self.tagPoints[tn] = tagpoints.Tag("/devices/"+self.name+"/node/"+i['friendly_name']+"/"+j['property'])
+                                self.tagPoints[tn] = tagpoints.Tag("/devices/"+self.name+"/node/"+i['friendly_name']+"."+j['property'])
 
 
                                 if j['name']=='tamper':
@@ -257,7 +257,7 @@ class Zigbee2MQTT(devices.Device):
 
                             #Todo: Tag points need to support enums
                             elif j['type'] in ['enum','text']:
-                                self.tagPoints[tn] = tagpoints.StringTag("/devices/"+self.name+"/node/"+i['friendly_name']+"/"+j['property'])
+                                self.tagPoints[tn] = tagpoints.StringTag("/devices/"+self.name+"/node/"+i['friendly_name']+"."+j['property'])
                                 def f(t,v,tn=tn,j=j):
                                     if j['property'] in v:
                                         self.tagpoints[tn].defaultClaim.set(v[j['property']],annotation='ZigBee')

@@ -180,7 +180,7 @@ def combineLogs(a):
     </tr>
     <tr>
         <td>Claim Value(Blank for no Override)</td>
-        <td><input name="overrideValue" value="${configData.get('overrideValue','')|h}""></td>
+        <td><input name="overrideValue" value="${configData.get('overrideValue','')|h}"  style="width:80em; max-width: 60vw;"></td>
     </tr>
     <tr>
         <td>Claim Priority</td>
@@ -258,7 +258,6 @@ ${tag.description or "No description set"}
         <td>WebAPI write perms</td>
         <td>${tag.getEffectivePermissions()[1]}</td>
     </tr>
-
 
     <tr>
         <td>WebAPI priority</td>
@@ -475,10 +474,10 @@ ${tag.description or "No description set"}
     %else:
     <td><input title="Cannot change name of alarm that was created in code, set condition to None to disable" disabled=1 value="${i|h}"></td>
     %endif    
-    <td><input name="alarm_${i}:condition" value="${ald.get(i,{}).get('condition','')|h}" placeholder="${defaultAlarmData[i].get('condition','')}"></td>
-    <td><input name="alarm_${i}:releaseCondition" value="${ald.get(i,{}).get('releaseCondition','')|h}" placeholder="${defaultAlarmData[i].get('releaseCondition','when tripCondition is False')}"></td>
+    <td><input name="alarm_${i}:condition" value="${ald.get(i,{}).get('condition','')|h}" placeholder="${defaultAlarmData[i].get('condition','')}" style="width:24em"></td>
+    <td><input name="alarm_${i}:releaseCondition" value="${ald.get(i,{}).get('releaseCondition','')|h}" placeholder="${defaultAlarmData[i].get('releaseCondition','when tripCondition is False')}" style="width:24em"></td>
     <td>
-        <select name="alarm_${i}:priority">
+        <select name="alarm_${i}:priority"  style="width:6em">
             <option value="" ${'selected' if ald.get(i,{}).get('priority')=='' else ''}>unchanged/default(${eald[i].get('priority','warning')})</option>
             <option value="debug" ${'selected' if ald.get(i,{}).get('priority')=='debug' else ''}>debug</option>
             <option value="info" ${'selected' if ald.get(i,{}).get('priority')=='info' else ''}>info</option>
@@ -487,8 +486,8 @@ ${tag.description or "No description set"}
             <option value="critical" ${'selected' if ald.get(i,{}).get('priority')=='critical' else ''}>critical</option>
         </select>
     </td>
-    <td><input name="alarm_${i}:autoAck" value="${ald.get(i,{}).get('autoAck','')|h}" placeholder="${defaultAlarmData[i].get('autoAck','False')}"></td>
-    <td><input name="alarm_${i}:tripDelay" value="${ald.get(i,{}).get('tripDelay','')|h}" placeholder="${defaultAlarmData[i].get('tripDelay','0')}"></td>
+    <td><input name="alarm_${i}:autoAck" value="${ald.get(i,{}).get('autoAck','')|h}" placeholder="${defaultAlarmData[i].get('autoAck','False')}" style="width:4em"></td>
+    <td><input name="alarm_${i}:tripDelay" value="${ald.get(i,{}).get('tripDelay','')|h}" placeholder="${defaultAlarmData[i].get('tripDelay','0')}" style="width:6em"></td>
 
     %if i in tag.alarms:
     <td style="background-color: ${'lightgreen' if tag.alarms[i].sm.state=='normal' else 'yellow'};">${tag.alarms[i].sm.state}</td>

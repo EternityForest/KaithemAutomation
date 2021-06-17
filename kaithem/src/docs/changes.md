@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.65.61
+- Fix tag point subscriber not firing immediately in some edge cases
+- Bigger text boxes on tag point pages, for longer expressions
+
 ### 0.65.60
 - "Length relative to sound" copied over when cloning cues in Chandler
 - USB audio devices default to 2048 samples and 3 periods if Kaithem is managing JACK.
