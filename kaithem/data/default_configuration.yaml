@@ -65,7 +65,7 @@ local-access-only: no
 #How often to automatically save the entire server state. Does not dump log files to avoid tons of short files
 #must be [number] [unit] like 2 hours. units: second,minute,hour,day,week,year
 #can also be "never"
-autosave-state: never
+autosave-state: 30 minutes
 
 #When the system shuts down, this is how many seconds to wait for the worker threads to finish before
 #Just quitting anyway. This will let any tasks that were semi-atomic finish so you don't have
