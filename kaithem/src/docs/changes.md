@@ -12,6 +12,7 @@ Change Log
 - Other chandler shortcuts still fire if one of them has an error
 - Clean up the chandler interface even more
 - 4x speedup setting tag point values
+- Breaking change: mixer tagpoints use .property instead of /property format
 
 ### 0.65.59
 - Eliminate the cherrypy autoreloader, it was being more trouble than it is worth.

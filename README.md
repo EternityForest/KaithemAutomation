@@ -64,6 +64,20 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+
+### 0.65.60
+- "Length relative to sound" copied over when cloning cues in Chandler
+- USB audio devices default to 2048 samples and 3 periods if Kaithem is managing JACK.
+- Tag point getter functions now correctly update when given falsy values
+- Add alert for ethernet loss
+- Tagpoint claim.setExpiration(time,expiredPriority) specifies an alternate priority for a claim if it has not been updated in a certain time.
+-- This feature cah be used to detect when a data source is old.
+- No longer automatically set a shortcut code for Changler cues, provide a button to set to the number instead
+- Other chandler shortcuts still fire if one of them has an error
+- Clean up the chandler interface even more
+- 4x speedup setting tag point values
+- Breaking change: mixer tagpoints use .property instead of /property format
+
 ### 0.65.59
 - Eliminate the cherrypy autoreloader, it was being more trouble than it is worth.
 - Fix ZigBee light tag
@@ -97,43 +111,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - Fix error when re-saving event with exposed tag
 - Zigbee2MQTT is now supported.  Add the Zigbee daemon as a device type and most supported devices should show up as tag points.
 - DrayerDB is now supported. Kaithem is now the preferred way to manage DrayerDB servers.
-
-
-### 0.65.54
-- More nuisance errors removed
-- Assume that YeeLight bulbs have a good connection until proven otherwise, to avoid alarms. In the future the whole YeeLight module should be refactored.
-
-
-### 0.65.53
-- Workaround for JACK bug on raspberry pi. We always set playback to 2 channels.  This is a minor regression, it will not support the full channel count for surround, and may crash if there is only 1 output channel.  However, the risk of adding more bugs with a more copmplex solution to the audio nightmare, is probably not worth it.
-- Fix nuisance selftest error
-- Fix nuisiance wifi signal alert
-- Remove the WebRTC voice DSP which has not been stable and can segfault.
-- Restore support for Python3.7
-
-
-### 0.65.52
-- Even MORE work to be compatible with the odd IPs chrome uses when you use HTTP localhost.
-
-### 0.65.51
-- Alarms on =expression tags work properly
-- Widget IDs no longer (rarely) generate invalid characters
-- Remove some more unused code
-- Eliminate confusing content on file resource pages
-- Fix some nuisance error messages
-
-### 0.65.50
-- /sky/civilTwilight tag fixed
-
-### 0.65.49
-- Fix HTTP localhost access when used with IPv6 ::1
-- Fix auto-redirect that would sometimes take you to the wrong page after login
-- Fix auth cookies not working on localhost(Note: We assume all localhost connections are secure. Don't build a some weird proxy that breaks that assumption.)
-- Secure widgets now work correctly via localhost
-- Configuring tag point intervals now takes effect immediately
-- You can now use an =expression as a tag point fixed config overrride.
-- General refactoring and reliability for Tagpoints
-
 
 
 License Terms
