@@ -236,6 +236,12 @@ def modulesHaveChanged():
 modules_state.modulesHaveChanged = modulesHaveChanged
 modules_state.unsavedChanges = unsaved_changed_obj
 
+def loadAllCustomResourceTypes():
+    for i in ActiveModules:
+        for j in ActiveModules[i]:
+            r=ActiveModules[i][j]
+            if r.get('resource-type','') in additionalTypes:
+                additionalTypes[r['resource-type']].onload(i, j, r)
 
 class ResourceObject():
     def __init__(self, m: str = None, r: str = None, o=None):
@@ -307,6 +313,7 @@ class VirtualResourceReference(weakref.ref):
             return "virtual-resource"
         else:
             raise KeyError(name)
+
 
 
 class ModuleObject(object):
@@ -748,6 +755,8 @@ def loadRecoveryDbInfo(completeFileTimestamp=0):
                             scopes[i['module']] = ModuleObject(i['module'])
 
                         r = json.loads(i['value'])
+                        if not 'resource-type' in r:
+                            continue
                         modules_state.ActiveModules[i['module']
                                                     ][i['resource']] = r
 
@@ -828,6 +837,7 @@ def initModules():
                                " Error loading modules: " + traceback.format_exc(4))
 
     auth.importPermissionsFromModules()
+    loadAllCustomResourceTypes()
     newevt.getEventsFromModules()
     usrpages.getPagesFromModules()
     pavilliondevices.loadProgramsFromModules()
@@ -1437,7 +1447,7 @@ def bookkeeponemodule(module, update=False):
                 logger.exception("failed to load resource")
                 messagebus.postMessage("/system/notifications/errors", "Failed to load page resource: " +
                                        i + " module: " + module + "\n" + str(e)+"\n"+"please edit and reload.")
-
+    loadAllCustomResourceTypes()
     newevt.getEventsFromModules([module])
     auth.importPermissionsFromModules()
     if not update:
@@ -1476,6 +1486,9 @@ def mvResource(module, resource, toModule, toResource):
         usrpages.removeOnePage(module, resource)
         usrpages.updateOnePage(toResource, toModule)
         return
+    #Mark the old as deleted and the new as created in the recovery database
+    modules_state.createRecoveryEntry(module,resource,None)
+    modules_state.createRecoveryEntry(toModule,toResource)
 
 
 def rmResource(module, resource, message="Resource Deleted"):

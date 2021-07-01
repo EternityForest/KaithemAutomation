@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1622974158365976
+resource-timestamp: 1624012353619848
 resource-type: event
 versions: {}
 
@@ -60,7 +60,7 @@ if __name__=='__setup__':
             #Don't modify data directly, as we need to set flags to ensure the data can get saved to disk.        
             self.setDataKey("device.exampleKey", self.data.get("device.exampleKey","someDefaultValue"))
     
-            print("Device Data Is:", self.data)
+            print("Device Data Is(After setting key):", self.data)
             
             #The entire body of custom stuff should be inside try-except tags like this.
             try:

@@ -50,7 +50,7 @@ def retryDeviceCreation():
     """When we load up a new event, it might contain a driver, so we 
     retry to create all the devices that may have been stuck as Unsupported because there was no driver"""
     try:
-        devices.createDevicesFromData()
+        devices.fixUnsupported()
     except:
         logger.exception("Something bad happened")
 
@@ -610,23 +610,29 @@ class BaseEvent():
         # Check the current time minus the last time against the rate limit
         # Don't execute more often than ratelimit
 
-        if (time.time() - self.lastexecuted > self.ratelimit):
-            # Set the varible so we know when the last time the body actually ran
-            self.lastexecuted = time.time()
-            try:
-                # Action could be any number of things, so this method mut be implemented by
-                # A derived class or inherited from a mixin.
-                self._do_action()
-                self.lastcompleted = time.time()
-                self.history.append((self.lastexecuted, self.lastcompleted))
-                if len(self.history) > 250:
-                    self.history.pop(0)
-                # messagebus.postMessage('/system/events/ran',[self.module, self.resource])
-            except Exception as e:
-                # This is not a child of system
-                logger.exception("Error running event " +
-                                 self.resource+" of " + self.module)
-                self._handle_exception(e)
+        try:
+            kaithemobj.kaithem.context.event = (self.module,self.resource)
+
+            if (time.time() - self.lastexecuted > self.ratelimit):
+                # Set the varible so we know when the last time the body actually ran
+                self.lastexecuted = time.time()
+                try:
+                    # Action could be any number of things, so this method mut be implemented by
+                    # A derived class or inherited from a mixin.
+                    self._do_action()
+                    self.lastcompleted = time.time()
+                    self.history.append((self.lastexecuted, self.lastcompleted))
+                    if len(self.history) > 250:
+                        self.history.pop(0)
+                    # messagebus.postMessage('/system/events/ran',[self.module, self.resource])
+                except Exception as e:
+                    # This is not a child of system
+                    logger.exception("Error running event " +
+                                    self.resource+" of " + self.module)
+                    self._handle_exception(e)
+        finally:
+            kaithemobj.kaithem.context.event = None
+
 
     def _handle_exception(self, e=None, tb=None):
         global _lastGC
@@ -800,12 +806,16 @@ class CompileCodeStringsMixin():
                 # Just a marker so we know it got called
                 flag.append(0)
                 try:
+                    kaithemobj.kaithem.context.event = (self.module,self.resource)
                     exec(initializer, self.pymodule.__dict__)
                 except Exception as e:
                     logging.exception(
                         "Error in event code for "+self.module+":"+self.resource)
                     e.storedError = traceback.format_exc(chain=True)
                     err.append(e)
+                finally:
+                    kaithemobj.kaithem.context.event = None
+
 
         modules_state.listenForMlockRequests()
         workers.do(runInit)
@@ -1089,8 +1099,13 @@ class ChangedEvalEvent(BaseEvent, CompileCodeStringsMixin):
 
         if self.disable:
             return
-        # Evaluate the function that gives us the values we are looking for changes in
-        self.latest = self.pymodule._event_trigger()
+        try:
+            kaithemobj.kaithem.context.event = (self.module,self.resource)
+            # Evaluate the function that gives us the values we are looking for changes in
+            self.latest = self.pymodule._event_trigger()
+        finally:
+            kaithemobj.kaithem.context.event = None
+
         # If this is the very first reading,
         if not self.at_least_one_reading:
             # make a fake previous reading the same as the last one

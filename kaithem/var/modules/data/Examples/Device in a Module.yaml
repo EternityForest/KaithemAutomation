@@ -1,0 +1,7 @@
+device:
+  device.exampleKey: someDefaultValue
+  device.foo: Foo
+  name: Examplep/Device in a Module
+  subclass: "class CustomDeviceType(DeviceType):\r\n    pass\r\n"
+  type: ExampleCustomDevice
+resource-type: device

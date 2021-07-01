@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.65.62
+- Corerctly autocreate the log dir
+- Storing devices in modules
+
 ### 0.65.61
 - Fix tag point subscriber not firing immediately in some edge cases
 - Bigger text boxes on tag point pages, for longer expressions

@@ -694,11 +694,13 @@ def addResourceTarget(module, type, name, kwargs, path):
             usrpages.updateOnePage(escapedName, root)
 
         else:
+            #If create returns None, assume it doesn't want to insert a module or handles it by itself
             r = additionalTypes[type].create(module, path, name, kwargs)
-            insertResource(r)
-            f = additionalTypes[type].onload
-            if f:
-                f(module, name, r)
+            if r:
+                insertResource(r)
+                f = additionalTypes[type].onload
+                if f:
+                    f(module, name, r)
 
         messagebus.postMessage("/system/notifications", "User " + pages.getAcessingUser() + " added resource " +
                                escapedName + " of type " + type+" to module " + root)

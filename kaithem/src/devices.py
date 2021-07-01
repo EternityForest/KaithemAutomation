@@ -28,10 +28,16 @@ from typing import Dict
 
 from . import virtualresource, pages, workers, tagpoints, alerts, persist, directories, messagebus, widgets, unitsofmeasure
 
+
+#Has to be the same lock otherwise there would be too may easy ways to make a deadlock, we have to be able to
+#edit the state because self modifying devices exist and can be saved in a module
+from .modules_state import modulesLock as lock
+from .modules_state import additionalTypes
+
 remote_devices = {}
 remote_devices_atomic = {}
 
-lock = threading.RLock()
+
 device_data = {}
 
 saveLocation = os.path.join(directories.vardir, "devices")
@@ -53,6 +59,39 @@ dbgd = weakref.WeakValueDictionary()
 
 unsaved_changes = {}
 
+
+class DeviceResourceType():
+    def onload(self,module,name,value):
+        with lock:
+            n = module+"/"+name
+            if n in remote_devices:
+                remote_devices[n].close()
+
+            remote_devices[n] = makeDevice(n,value['device'],module, name)
+            global remote_devices_atomic
+            remote_devices_atomic = wrcopy(remote_devices)
+
+
+    def ondelete(self,module,name,value):
+        with lock:
+            n = module+"/"+name
+            if n in remote_devices:
+                remote_devices[n].close()
+
+    def create(self,module,path,name,kwargs):
+        raise RuntimeError("Not implemented, devices uses it's own create page")
+
+    def createpage(self,module,path):
+        return pages.get_template("devices/deviceintomodule.html").render(module=module,path=path)
+
+
+    def editpage(self,module,name,value):
+        with lock:
+            n = module+"/"+name
+        return pages.get_template("devices/device.html").render(data=remote_devices[n].data, obj=remote_devices[n], name=n)
+
+drt = DeviceResourceType()
+additionalTypes['device']=drt
 
 def getZombies():
     x = []
@@ -182,8 +221,19 @@ class Device(virtualresource.VirtualResource):
         "Lets a device set it's own persistent stored data"
         with lock:
             self.data[key] = val
-            device_data[self.name][key] = str(val)
-            unsaved_changes[self.name] = True
+            if self.parentModule:
+                from src import modules
+                modules.modules_state.ActiveModules[self.parentModule][self.parentResource]['device'][key] = str(val)
+                modules.unsaved_changed_obj[self.parentModule, self.parentResource] = "Device changed"
+                modules.modules_state.createRecoveryEntry(self.parentModule, self.parentResource, modules.modules_state.ActiveModules[self.parentModule][self.parentResource])
+                modules.modulesHaveChanged()
+            else:
+                #This might not be stored in the master lists, and yet it might not be connected to
+                #the parentModule, because of legacy API reasons.
+                #Just store it it self.data which will get saved at the end of makeDevice, that pretty much handles all module devices
+                if self.name in device_data:
+                    device_data[self.name][key] = str(val)
+                    unsaved_changes[self.name] = True
 
     def __init__(self, name, data):
         if not data['type'] == self.deviceTypeName and not self.deviceTypeName=='unsupported':
@@ -195,6 +245,9 @@ class Device(virtualresource.VirtualResource):
         self.logWindow = widgets.ScrollingWindow(2500)
 
         dbgd[name + str(time.time())] = self
+
+        self.parentModule=None
+        self.parentResource=None
 
         # Time, title, text tuples for any "messages" a device might "print"
         self.messages = []
@@ -228,6 +281,7 @@ class Device(virtualresource.VirtualResource):
         with lock:
             remote_devices[name] = self
             remote_devices_atomic = wrcopy(remote_devices)
+
 
     # def loadScriptBindings(self):
     #     try:
@@ -275,8 +329,16 @@ class Device(virtualresource.VirtualResource):
     def close(self):
         global remote_devices_atomic
         with lock:
-            del remote_devices[self.name]
-            remote_devices_atomic = wrcopy(remote_devices)
+            if self.name in remote_devices:
+                del remote_devices[self.name]
+                remote_devices_atomic = wrcopy(remote_devices)
+
+            if self.parentModule:
+                try:
+                    del devicesByModuleAndResource[self.parentModule,self.parentResource]
+                except KeyError:
+                    pass
+
 
 
     def onDelete(self):
@@ -313,11 +375,17 @@ class UnsupportedDevice(Device):
     def warn(self):
         self.handleError("This device type has no support.")
 
+    def __init__(self, name, data):
+        super().__init__(name, data)
+        unsupportedDevices[name]=self
+
 
 # Device data always has 2 constants. 1 is the required type, the other
 # is name, and that's optional but can be used to rename a device
 def updateDevice(devname, kwargs, saveChanges=True):
     name = kwargs.get('name', None) or devname
+
+
 
     getDeviceType(kwargs['type']).validateData(kwargs)
 
@@ -327,20 +395,48 @@ def updateDevice(devname, kwargs, saveChanges=True):
 
     with lock:
         if devname in remote_devices:
+            parentModule= remote_devices[devname].parentModule
+            parentResource= remote_devices[devname].parentResource
+
             remote_devices[devname].close()
-            del device_data[devname]
+
+            #Delete and then recreate because we may be renaming to a different name
+
+            if not parentModule:
+                del device_data[devname]
+            else:
+                from src import modules
+                del modules.modules_state.ActiveModules[parentModule][parentResource]
+                modules.unsaved_changed_obj[parentModule, parentResource] = "Device Changed or renamed"
+                modules.modules_state.createRecoveryEntry(parentModule, parentResource, None)
+
+                #Forbid moving to new module for now, specifically we don't want to move to nonexistent
+                name = parentModule+"/"+name.split("/",1)[-1]
+                parentResource=name.split("/",1)[-1]
+
+        else:
+            raise RuntimeError("No such device to update")
 
         gc.collect()
         time.sleep(0.01)
         time.sleep(0.01)
         gc.collect()
+        d={i: str(kwargs[i]) for i in kwargs if not i.startswith('temp.')}
 
-        # Allow name changing via data, we save under new, not the old name
-        device_data[name] = {i: kwargs[i]
-                             for i in kwargs if not i.startswith('temp.')}
-        unsaved_changes[kwargs['name']] = True
 
-        remote_devices[name] = makeDevice(name, kwargs)
+        if parentModule:
+            from src import modules
+            modules.modules_state.ActiveModules[parentModule][parentResource]={'resource-type':'device',"device":d}
+            modules.unsaved_changed_obj[parentModule, parentResource] = "Device changed"
+            modules.modules_state.createRecoveryEntry(parentModule, parentResource, {'resource-type':'device',"device":d})
+            modules.modulesHaveChanged()
+
+        else:
+             # Allow name changing via data, we save under new, not the old name
+            device_data[name] = d
+            unsaved_changes[kwargs['name']] = True
+
+        remote_devices[name] = makeDevice(name, kwargs,parentModule,parentResource)
         global remote_devices_atomic
         remote_devices_atomic = wrcopy(remote_devices)
 
@@ -355,7 +451,7 @@ class WebDevices():
     @cherrypy.expose
     def device(self, name):
         pages.require("/admin/settings.edit")
-        return pages.get_template("devices/device.html").render(data=device_data[name], obj=remote_devices[name], name=name)
+        return pages.get_template("devices/device.html").render(data=remote_devices[name].data, obj=remote_devices[name], name=name)
 
     @cherrypy.expose
     def devicedocs(self, name):
@@ -381,26 +477,41 @@ class WebDevices():
         raise cherrypy.HTTPRedirect("/devices")
 
     @cherrypy.expose
-    def createDevice(self, name, **kwargs):
+    def createDevice(self, name=None, **kwargs):
         "Actually create the new device"
 
         pages.require("/admin/settings.edit")
-        name = name or kwargs['name']
-
+        name = name or kwargs.get('name',None)
+        m=r=None
         with lock:
-            device_data[name] = kwargs
-            unsaved_changes[name] = True
+            if 'module' in kwargs:                
+                from src import modules
+                m=kwargs['module']
+                r=kwargs['resource']
+                name=m+"/"+r
+                del kwargs['module']                
+                del kwargs['resource']
+                d = {i: kwargs[i] for i in kwargs if not i.startswith('temp.')}
+                modules.ActiveModules[m][r]= {'resource-type':'device', 'device':d}
+                modules.unsaved_changed_obj[m, r] = "Device changed"
+                modules.modulesHaveChanged()
+            else:                
+                if not name:
+                    raise RuntimeError("No name?")
+                d = {i: str(kwargs[i]) for i in kwargs if not i.startswith('temp.')}
+                device_data[name] = d
+                unsaved_changes[name] = True
 
             if name in remote_devices:
                 remote_devices[name].close()
-            remote_devices[name] = makeDevice(name, kwargs)
+            remote_devices[name] = makeDevice(name, kwargs,m,r)
             global remote_devices_atomic
             remote_devices_atomic = wrcopy(remote_devices)
 
         raise cherrypy.HTTPRedirect("/devices")
 
     @cherrypy.expose
-    def customCreateDevicePage(self, name, **kwargs):
+    def customCreateDevicePage(self, name, module='',resource='',**kwargs):
         "Ether create a 'blank' device, or, if supported, show the custom page"
         pages.require("/admin/settings.edit")
 
@@ -411,7 +522,7 @@ class WebDevices():
         else:
             createForm = ""
 
-        return pages.get_template("devices/createpage.html").render(customForm=createForm, name=name, type=kwargs['type'])
+        return pages.get_template("devices/createpage.html").render(customForm=createForm, name=name, type=kwargs['type'], module=module, resource=resource)
 
     @cherrypy.expose
     def deleteDevice(self, name, **kwargs):
@@ -434,6 +545,13 @@ class WebDevices():
                 del device_data[name]
             except KeyError:
                 pass
+
+            if self.parentModule:
+                from src import modules
+                del modules.modules_state.ActiveModules[self.parentModule][self.parentResource]
+                modules.unsaved_changed_obj[self.parentModule, self.parentResource] = "Device deleted"
+                modules.modules_state.createRecoveryEntry(self.parentModule, self.parentResource,None)
+                modules.modulesHaveChanged()
             global remote_devices_atomic
             remote_devices_atomic = wrcopy(remote_devices)
             gc.collect()
@@ -473,8 +591,9 @@ class DeviceTypeLookup():
             dt = Device
         return dt
 
+devicesByModuleAndResource = weakref.WeakValueDictionary()
 
-def makeDevice(name, data):
+def makeDevice(name, data, module=None,resource=None):
     if data['type'] in builtinDeviceTypes:
         dt = builtinDeviceTypes[data['type']]
     elif data['type'] in ("", 'device', 'Device'):
@@ -516,6 +635,21 @@ def makeDevice(name, data):
     else:
         d = dt(name, data)
 
+
+    if module:
+        from src import modules
+        d.parentModule = module
+        d.parentResource=resource
+        devicesByModuleAndResource[module,resource]=d
+
+
+        #In case something changed during initializatiion before we set it 
+        #flush the changes back to the modules object if applicable
+        with lock:
+            modules.modules_state.ActiveModules[d.parentModule][d.parentResource]={'resource-type':'device', 'device':d.data}
+            modules.unsaved_changed_obj[d.parentModule, d.parentResource] = "Device changed"
+            modules.modules_state.createRecoveryEntry(d.parentModule, d.parentResource, {'resource-type':'device',"device":d.data})
+            modules.modulesHaveChanged()
     return d
 
 
@@ -580,6 +714,7 @@ def createDevicesFromData():
             continue
 
         try:
+            #No module or resource here
             remote_devices[i] = makeDevice(i, device_data[i])
             syslogger.info("Created device from config: " + i)
         except:
@@ -589,6 +724,24 @@ def createDevicesFromData():
 
     remote_devices_atomic = wrcopy(remote_devices)
 
+unsupportedDevices = weakref.WeakValueDictionary()
+
+def fixUnsupported():
+    "For all placeholder unsupported devices, let's see if we can fix them with a newly set up driver"
+    global remote_devices_atomic
+    with lock:
+        #Small optimization here
+        if not unsupportedDevices:
+            return
+        s=0
+        for i in list(remote_devices.keys()):
+            if remote_devices[i].deviceTypeName == 'unsupported':
+                d = remote_devices[i]
+                remote_devices[i]=makeDevice(i,d.data,d.parentModule,d.parentResource)
+                if not remote_devices[i].deviceTypeName == 'unsupported':
+                    s+=1
+        if s:
+            remote_devices_atomic = wrcopy(remote_devices)
 
 def warnAboutMissingDevices():
     x = remote_devices_atomic

@@ -18,7 +18,7 @@ syslogger = logging.getLogger("system")
 
 if not os.path.exists(logdir):
     try:
-        os.mkdir(logdir)
+        os.makedirs(logdir)
     except Exception:
         syslogger.exception("Can't make log dir")
 

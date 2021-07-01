@@ -255,6 +255,8 @@ class _TagPoint(virtualresource.VirtualResource):
 
         self.alreadyPostedDeadlock = False
 
+        
+
 
 
         #Start timestamp at 0 meaning never been set
@@ -315,6 +317,12 @@ class _TagPoint(virtualresource.VirtualResource):
         self.handler = None
 
         from . import kaithemobj
+
+        if hasattr(kaithemobj.kaithem.context,'event'):
+            self.originEvent = kaithemobj.kaithem.context.event
+        else:
+            self.originEvent=None
+
         # Used for the expressions in alert conditions and such
         self.evalContext = {
             "math": math,
@@ -1584,8 +1592,10 @@ class _TagPoint(virtualresource.VirtualResource):
             if upd:
                 self.vta = (val, timestamp, annotation)
                 if valCallable:
-                    self._getValue()
+                    #No need to call the function right away, that can happen when a getter calls it
+                    pass#self._getValue()
                 else:
+                    self.lastGotValue = time.time()
                     self.lastValue=val               
                 # No need to push is listening
                 if (self.subscribers or self.handler):

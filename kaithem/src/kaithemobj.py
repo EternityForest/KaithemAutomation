@@ -85,6 +85,8 @@ class Kaithem():
 
     tags = TagInterface()
 
+    context = threading.local()
+
     def __getattr__(self, name):
         if name in plugins:
             return pluginInterface(plugins[name])

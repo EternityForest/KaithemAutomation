@@ -5,6 +5,10 @@ from src import devices
 import os
 from src import directories
 driversLocation = os.path.join(directories.vardir,"devicedrivers")
+import urllib.parse
+
+def url(u):
+    return urllib.parse.quote(u,safe='')
 
 def devStatString(d):
     #TODO this should be the responsibility of the individual devices
@@ -61,7 +65,7 @@ def devStatString(d):
     </td>
 
     <td>
-        <a href="device/${i}">Edit</a>
+        <a href="device/${url(i)}">Edit</a>
     </td>
 
     <td>${devStatString(deviceData[i]())}</td>
@@ -73,7 +77,7 @@ def devStatString(d):
 
 
     <td>
-        <a href="deleteDevice/${i|u}">Delete</a>
+        <a href="deleteDevice/${url(i)}">Delete</a>
     </td>
 </tr>
 %endfor

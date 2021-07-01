@@ -1,14 +1,23 @@
 <%include file="/pageheader.html"/>
+<%
+import traceback
+from src import unitsofmeasure
+import urllib.parse
+
+def url(u):
+    return urllib.parse.quote(u,safe='')
+%>
 <script type="text/javascript" src="/static/widget.js"></script>
 
 <h1>Device Inspector: ${name}</h1>
 <div class="sectionbox">
-<form method="POST" action="../updateDevice/${name}">
+<form method="POST" action="/devices/updateDevice/${url(name)}">
 
-<%
-import traceback
-from src import unitsofmeasure
-%>
+%if obj.parentModule:
+<h2>Module/Resource</h2>
+<p>This device is part of a module, rather than the global devices list.</p>
+<input name="module" disabled value="${obj.parentModule|h}"><input name="module" disabled value="${obj.parentResource|h}">
+%endif
 <h2>Basic</h2>
 <table border="1" style="width:40em">
 
@@ -25,7 +34,7 @@ from src import unitsofmeasure
 <input type="hidden" name="type" value="${data.get('type','')}">
 <h2>Help</h2>
 <ul>
-<li><a href="/devices/devicedocs/${name|u}">README for this device type</a></li>
+<li><a href="/devices/devicedocs/${url(name)}">README for this device type</a></li>
 <li><a href="/docs/mdtemplate?page=devices.md">Generic Device API and Subclassing</a></li>
 </ul>
 <title>${name|h}</title>
@@ -76,6 +85,7 @@ ${traceback.format_exc()}
 <textarea data-editor="python" name="subclass" style="width:80%" rows=25>${data.get("subclass",'')|h}</textarea>
 </div>
 
+
 <h2>Tag Points</h2>
 <p class="help">This section lists all the tag points owned 
 </p>
@@ -83,7 +93,7 @@ ${traceback.format_exc()}
 <tr><td>Name</td><td>Value</td><td>Active Claim</td></tr>
 
 %for i in obj.tagPoints:
-<tr><td><a href="/tagpoints/${obj.tagPoints[i].name|u}">${i|h}</a></td>
+<tr><td><a href="/tagpoints/${url(obj.tagPoints[i].name)}">${i|h}</a></td>
         %if len(obj.tagPoints)>8:
         <td>${str(obj.tagPoints[i].value)[:48]|h}</td>
         %elif hasattr(obj.tagPoints[i],'meterWidget'):

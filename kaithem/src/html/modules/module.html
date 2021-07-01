@@ -59,13 +59,15 @@ WordHash: <b>${getModuleWordHash(name)}</b></br>
 <a class="button createbutton addpagebutton" href="/modules/module/${url(name)}/addresource/page/${url('/'.join(path))}">Page</a>
 <a class="button createbutton addfolderbutton" href="/modules/module/${url(name)}/addresource/directory/${url('/'.join(path))}">Folder</a>
 <a class="button createbutton" href="/modules/module/${url(name)}/addfileresource/${url('/'.join(path))}">File</a>
+<a class="button createbutton adddevicebutton" href="/modules/module/${url(name)}/addresource/device/${url('/'.join(path))}">Device</a>
+
 
 %if K4D_SUPPORT:
 <a class="button createbutton" title="A squirrel program that runs on an external embedded device" href="/modules/module/${url(name)}/addresource/k4dprog_sq/${url('/'.join(path))}">K4D Squirrel Program</a>
 %endif
 
 %for i in modules.additionalTypes:
-%if modules.additionalTypes[i].createButton:
+%if hasattr(modules.additionalTypes[i],'createButton') and modules.additionalTypes[i].createButton:
 <a class="button createbutton" href="/modules/module/${url(name)}/addresource/${i|u}/${url('/'.join(path))}">${modules.additionalTypes[i].createButton|h}</a>
 %endif
 %endfor
@@ -126,7 +128,7 @@ def in_folder(r,f,n):
 <dt class="specialentry"><a href="/modules/module/${name|h}/resource/${"/".join( [i.replace("\\","\\\\").replace("/","\\/") for i in util.split_escape(path[0],"/","\\")[:-1]] )|u}#resources">..</a></dt>
 <hr>
 %endif
-%for i in sorted(sorted(modules_state.ls_folder(name,'/'.join(path))), key=lambda x: module[x]['resource-type']):
+%for i in sorted(sorted(modules_state.ls_folder(name,'/'.join(path))), key=lambda x: (module[x]['resource-type'],x)):
 %if in_folder(i,fullpath,name):
 
 %if isinstance(module[i],weakref.ref):
@@ -289,6 +291,21 @@ continue
 
      %endif
 
+%if module[i]['resource-type'] == 'device':
+
+     <dt>\
+  %if (name,i) in modules.unsaved_changed_obj:
+  *\
+  %endif
+  
+  <a class="deviceslink" href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
+  
+  <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a><br>
+  <dt>
+
+%endif
+
+
   %if module[i]['resource-type'] == 'k4dprog_sq':
 
      <dt>\
@@ -308,7 +325,7 @@ continue
    %endif
 
 
-    %if module[i]['resource-type'] not in ['event','permission','page','directory','internal-fileref'] and not i.startswith("__"):
+    %if module[i]['resource-type'] not in ['event','permission','page','directory','internal-fileref','device'] and not i.startswith("__"):
 
            <dt><span></span>\
         %if (name,i) in modules.unsaved_changed_obj:

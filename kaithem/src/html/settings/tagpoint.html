@@ -275,6 +275,13 @@ ${tag.description or "No description set"}
         <td>${tag.unit|h}</td>
     </tr>
     %endif
+
+    %if tag.originEvent:
+    <tr>
+        <td>Created in Event</td>
+        <td>${str(tag.originEvent)|h}</td>
+    </tr>
+    %endif
 </table>
 
 

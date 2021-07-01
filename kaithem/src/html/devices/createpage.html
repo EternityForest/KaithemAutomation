@@ -10,10 +10,19 @@ from src import devices
 <title>Create Device</title>
 <h1>Create Device</h1>
 <div class="sectionbox">
-    <form action="createDevice">
+    <form action="/devices/createDevice">
+        %if module:
+        <h2>Store in Module(Empty to store in main device list)</h2>
+        <Label>Target Module:<input name="module"  value="${module or ''|h}"></Label>
+        <Label>Target Resource Name:<input name="resource" value="${resource or ''|h}"></Label>
+        %endif
 
         <h2>Basic Info</h2>
+        %if not module:
             <Label>Name:<input name="name" value="${name|h}"></Label>
+        %else:
+        <Label>Name:<input name="name" value="${resource|h}" disabled></Label>
+        %endif
             <Label>Type:<input name="type" disabled value="${type|h}"></Label>
             <input type="hidden" name="type" value="${type|h}">
         <h2>Device</h2>
