@@ -734,10 +734,14 @@ class GStreamerPipeline():
         self.shouldRunThread=False
 
         if not self.exiting:
+        
             if hasattr(self, 'pipeline'):
                 with self.seeklock:
                     # This was causing segfaults for some reasons
                     if not (self.pipeline.get_state(1000_000_000)[1] == Gst.State.NULL):
+                        #The set state line seemed to be a problem, better set the exiting
+                        #flag early so we don't do it more than needed and hang?
+                        self.exiting=True
                         self.pipeline.set_state(Gst.State.NULL)
 
 
@@ -754,8 +758,7 @@ class GStreamerPipeline():
 
         # Now we're going to do the cleanup stuff
         # In the background, because it involves a lot of waiting.
-        # This might fail, if it never even started, but we just kinda ignore that.
-        def gstStopCleanupTask():
+        # This might fail, if it never even started, but we just kinda ignore that.p
             self.running = False
             self.shouldRunThread=False
             t = time.monotonic()

@@ -540,7 +540,7 @@ class Settings():
 
         from . import jackmanager
         jackmanager.reloadSettings()
-        if jacksettings.get("jackMode", None) in("manage", "use"):
+        if jacksettings.get("jackMode", None) in("manage", "use",'dummy'):
             try:
                 jackmanager.startManaging()
             except:

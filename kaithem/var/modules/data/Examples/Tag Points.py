@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.5
-resource-timestamp: 1622974100555752
+resource-timestamp: 1625394236041471
 resource-type: event
 versions: {}
 
@@ -51,6 +51,7 @@ if __name__=='__setup__':
     randomTag = kaithem.tags['RandomTag']
     import random
     randomTag.value = random.random
+    randomTag.expose("__guest__","__never__")
     
     #Need at least 1 subscriber for polling to work
     def s(v, t,a):

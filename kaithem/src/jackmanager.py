@@ -37,7 +37,6 @@ legacy_keys = {
 default = {
     "usbPeriodSize": 2048,
     "usbPeriods": 3,
-
     "usbLatency": -1,
     "jackPeriods": 3,
     "jackPeriodSize": 512,
@@ -84,10 +83,15 @@ def reloadSettings():
 
     scullery.jack.usePulse = settings.get("sharePulse", None) != "disable"
 
+    scullery.jack.dummy=False
     if settings.get("jackMode", None) == "use":
         scullery.jack.manageJackProcess = False
     if settings.get("jackMode", None) == "manage":
         scullery.jack.manageJackProcess = True
+    if settings.get("jackMode", None) == "dummy":
+        scullery.jack.manageJackProcess = True
+        scullery.jack.dummy=True
+    
 
 
 scullery.jack.settingsReloader = reloadSettings

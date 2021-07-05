@@ -1231,13 +1231,18 @@ class GStreamerBackend(SoundWrapper):
     class GStreamerContainer(object):
         def __init__(self, filename, output="@auto", **kwargs):
 
-            with preloadlock:
-                if not kwargs.get('loop', 0) and (filename, output) in gst_preloaded:
-                    self.pl = gst_preloaded[filename, output][0]
-                    del gst_preloaded[filename, output]
-                else:
-                    self.pl = GSTAudioFilePlayer(filename, kwargs.get(
-                        'volume', 1), output=output, loop=kwargs.get('loop', 0))
+            if preloadlock.acquire(timeout=5):
+                try:
+                    if not kwargs.get('loop', 0) and (filename, output) in gst_preloaded:
+                        self.pl = gst_preloaded[filename, output][0]
+                        del gst_preloaded[filename, output]
+                    else:
+                        self.pl = GSTAudioFilePlayer(filename, kwargs.get(
+                            'volume', 1), output=output, loop=kwargs.get('loop', 0))
+                finally:
+                    preloadlock.release()
+            else:
+                raise RuntimeError("Could not get lock")
 
             self.pl.setVol(kwargs.get('volume', 1))
             if not kwargs.get('pause', 0):
@@ -1288,7 +1293,10 @@ class GStreamerBackend(SoundWrapper):
         # Has to be in a background thread to actually make sense
 
         def f():
-            with preloadlock:
+
+            if not preloadlock.acquire(timeout=5):
+                raise RuntimeError("Could not get lock to preload audio file")
+            try:
                 if (filename, output) in gst_preloaded:
                     return
                 t = time.monotonic()
@@ -1331,6 +1339,8 @@ class GStreamerBackend(SoundWrapper):
                             p, time.monotonic())
                     except:
                         logging.exception("Error preloading sound")
+            finally:
+                preloadlock.release()
         workers.do(f)
 
     def playSound(self, filename, handle="PRIMARY", extraPaths=[], _prevPlayerObject=None, finalGain=None, **kwargs):
@@ -1545,7 +1555,7 @@ readySound = backend.readySound
 preload = backend.preload
 
 isStartDone = []
-if jackmanager.settings.get('jackMode', None) in ("manage", "use"):
+if jackmanager.settings.get('jackMode', None) in ("manage", "use",'dummy'):
     def f():
         try:
             logging.debug("Initializing JACK")

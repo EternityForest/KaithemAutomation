@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1623844724864662
+resource-timestamp: 1625394450890523
 resource-type: event
 versions: {}
 
@@ -3501,11 +3501,12 @@ if __name__=='__setup__':
     
             if self.backtrack and not cue == (self.cue.nextCue or self.getDefaultNext()) and cobj.track:
                 l = []
+                seen={}
                 safety = 10000
                 x = self.getParent(cue)
                 while x:
                     #No l00ps
-                    if x in l:
+                    if x in seen:
                         break
     
                     #Don't backtrack past the current cue for no reason
@@ -3513,6 +3514,7 @@ if __name__=='__setup__':
                         break
     
                     l.append(self.cues[x])
+                    seen[x]=True
                     x = self.getParent(x)
                     safety -= 1
                     if not safety:

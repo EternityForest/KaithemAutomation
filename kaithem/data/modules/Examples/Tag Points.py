@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.5
-resource-timestamp: 1601460035278517
+resource-timestamp: 1625394236041471
 resource-type: event
 versions: {}
 
@@ -51,6 +51,7 @@ if __name__=='__setup__':
     randomTag = kaithem.tags['RandomTag']
     import random
     randomTag.value = random.random
+    randomTag.expose("__guest__","__never__")
     
     #Need at least 1 subscriber for polling to work
     def s(v, t,a):
@@ -65,6 +66,20 @@ if __name__=='__setup__':
     filterTag.tag.interval=0.1
     
     filterTag.tag.subscribe(s)
+    
+    
+    
+    syncTag1 = kaithem.tags['syncTag1']
+    syncTag1.mqttConnect(server='__virtual__',port='examples',mqttTopic="exampleSyncTag")
+    
+    
+    
+    syncTag2 = kaithem.tags['syncTag2']
+    syncTag2.mqttConnect(server='__virtual__',port='examples',mqttTopic="exampleSyncTag")
+    
+    syncTag1.value = 70
+    
+    #Look in the tags page.  syncTag2 will have gotten it's value synced from the first tag.
 
 def eventAction():
     pass

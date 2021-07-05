@@ -50,10 +50,11 @@ passwords are very strong. This will open a port on all discovered routers if en
 <section>
 <p class="help">
 Kaithem can use JACK audio, including automaticallly giving soundcards persistant JACK
-names.  Using this is required for Kaithem's integrated sound mixer to work correctly. This feature is BETA
+names.  Using this is required for Kaithem's integrated sound mixer to work correctly.  Settings for external usb cards are set via the mixer.
 </p>
 
-<p class="help"><b>Note:</b>Managing the jack server is only supported with Jackd2, not the original implementation!</p>
+<p class="help"><b>Note:</b>Managing the jack server is only supported with Jackd2, not the original implementation! On some versions of raspbian you may need to use Pi "dummy" compatibility mode which runs the main card as if it were a USB</p>
+<p class="help">Compatibility mode may allow better performance.</p>
 <form method="POST" action="/settings/changejacksettingstarget">
 <table border=1>
     <tr>
@@ -62,6 +63,7 @@ names.  Using this is required for Kaithem's integrated sound mixer to work corr
             <select name="jackmode">
                 <option title="Kaithem will ignore JACK" value="off" ${'selected' if  jacksettings.get('jackMode','off')=='off' else ''}>off</option>
                 <option title="Kaithem will start and manage jackd" value="manage" ${'selected' if jacksettings.get('jackMode','off')=='manage' else ''}>manage</option>
+                <option title="Kaithem will start and manage jackd in pi compatibility mode" value="dummy" ${'selected' if jacksettings.get('jackMode','off')=='dummy' else ''}>manage in compatibility mode</option>
                 <option title="Kaithem will use an existing jackd instance, but manage USB cards" value="use" ${'selected' if jacksettings.get('jackMode','off')=='use' else ''}>Use Existing</option>
             </select>
            

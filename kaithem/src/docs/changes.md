@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+
+### 0.65.63
+- Avoid slow cue transition when there is a cue loop
+- New dummy mode for managing jack treats
+
+
 ### 0.65.62
 - Corerctly autocreate the log dir
 - Storing devices in modules

@@ -38,20 +38,22 @@ wordlist = mnemonics.wordlist
 # This is an acceptable dependamcy, it will be part of libkaithem if such a thing exists
 from . import messagebus, iceflow
 
-
+dummy=False
 def shouldAllowGstJack(*a):
     global _jackclient
     for i in range(0, 10):
         # Repeatedly retry, because this might just be a case
         # Of jack not being ready at boot yet.
-        with lock:
+        if lock.acquire(timeout=1):
             try:
                 if getPortsListCache():
                     return True
             except:
-                time.sleep(1)
                 if i > 8:
                     print(traceback.format_exc())
+            finally:
+                lock.release()
+
             time.sleep(1)
 
     return False
@@ -244,7 +246,8 @@ class MonoAirwire():
         self.to = to
         self.active = True
 
-    def disconnect(self):
+    def disconnect(self):                        
+        global realConnections
         self.disconnected = True
         try:
             del allConnections[self.orig, self.to]
@@ -258,7 +261,11 @@ class MonoAirwire():
                         del activeConnections[self.orig, self.to]
                     try:
                         del _realConnections[self.orig, self.to]
-                        global realConnections
+                        realConnections = _realConnections.copy()
+                    except KeyError:
+                        pass
+                    try:
+                        del _realConnections[self.to, self.orig]
                         realConnections = _realConnections.copy()
                     except KeyError:
                         pass
@@ -1172,12 +1179,21 @@ def _startJackProcess(p=None, n=None, logErrs=True):
         # Not supplying an explicit d -o2 breaks sound on raspberry pi for some horrendous reason.
         #This also means we don't support surround sound unfortunately.
         # Not only that, -o2 must appear at the end.
+        cmdline=['jackd']
+
         if realtimePriority:
-            cmdline = ['jackd', '-S', '--realtime', '-P', str(
-                realtimePriority), '-d', 'alsa', '-d', useDevice, '-s', '-p', str(period), '-n', str(jackPeriods), '-r', '48000', '-o2']
+            cmdline.extend(['--realtime', '-P', str(realtimePriority)])
+        if dummy:
+            d=['-d','dummy']
         else:
-            cmdline = ['jackd', '-S', '--realtime', '-d', 'alsa', '-d', useDevice,
-                       '-p', str(period), '-s', '-n', str(jackPeriods), '-r', '48000', '-o2']
+            d = ['-d', 'alsa', '-d', useDevice]
+        cmdline.extend(d)
+
+        if not dummy:
+            cmdline.extend(['-p', str(period), '-s', '-n', str(jackPeriods), '-r', '48000', '-o2'])
+        else:
+            cmdline.extend(['-p',  str(period)])
+
         logging.info(
             "Attempting to start JACKD server with: \n" + ' '.join(cmdline))
 
@@ -1289,6 +1305,7 @@ def handleManagedSoundcards():
     global oldmidis
     global lastFullScan
     global useAdditionalSoundcards
+    print("jack poll sc")
 
     # There seems to be a bug in reading errors from the process
     # Right now it's a TODO, but most of the time
@@ -1463,8 +1480,11 @@ def handleManagedSoundcards():
                         if inp[i][0] == currentPrimaryDevice:
                             # We don't do an alsa in for this card because it
                             # Is already the JACK backend
-                            if usingDefaultCard:
-                                continue
+
+                            # But in dummy mode there is no real jack backend
+                            if not dummy:
+                                if usingDefaultCard:
+                                    continue
 
                         log.debug("Starting alsa_in process for " + inp[i][0])
                         x = subprocess.Popen(["alsa_in"] + getIOOptionsForAdditionalSoundcard() + [
@@ -1483,8 +1503,9 @@ def handleManagedSoundcards():
                     if not i in alsa_out_instances:
                         # We do not want to mess with the
                         if op[i][0] == currentPrimaryDevice:
-                            if usingDefaultCard:
-                                continue
+                            if not dummy:
+                                if usingDefaultCard:
+                                    continue
 
                         log.debug("Starting alsa_out process, for " + op[i][0])
                         x = subprocess.Popen(["alsa_out"] + getIOOptionsForAdditionalSoundcard() + [
@@ -1694,10 +1715,11 @@ def handleManagedSoundcards():
                 if not i.startswith("HDMI"):
                     if not i in alsa_in_instances:
                         if inp[i][0] == currentPrimaryDevice:
-                            # We don't do an alsa in for this card because it
-                            # Is already the JACK backend
-                            if usingDefaultCard:
-                                continue
+                            if not dummy:
+                                # We don't do an alsa in for this card because it
+                                # Is already the JACK backend
+                                if usingDefaultCard:
+                                    continue
 
                         log.debug("Starting alsa_in process for " + inp[i][0])
                         x = subprocess.Popen(["alsa_in"] + getIOOptionsForAdditionalSoundcard() + [
@@ -1716,8 +1738,9 @@ def handleManagedSoundcards():
                     if not i in alsa_out_instances:
                         # We do not want to mess with the
                         if op[i][0] == currentPrimaryDevice:
-                            if usingDefaultCard:
-                                continue
+                            if not dummy:
+                                if usingDefaultCard:
+                                    continue
 
                         log.debug("Starting alsa_out process, for " + op[i][0])
                         x = subprocess.Popen(["alsa_out"] + getIOOptionsForAdditionalSoundcard() + [
@@ -1787,7 +1810,7 @@ def work():
                         handleManagedSoundcards()
                 finally:
                     lock.release()
-                _ensureConnections()
+                #_ensureConnections()
             else:
                 if(_reconnecterThreadObjectStopper[0]):
                     # Might be worth logging
@@ -1941,11 +1964,13 @@ def _checkJackClient(err=True):
     if lock.acquire(timeout=10):
         try:
 
-            t = _jackclient.status.server_started
+            t = _jackclient.get_ports()
             if not t:
                 raise RuntimeError("JACK Server not started or client failed")
             return True
         except:
+            print(traceback.format_exc())
+            print("Remaking client")
             try:
                 _jackclient.close()
                 _jackclient = None
@@ -2025,7 +2050,9 @@ def getPortNamesWithAliases(*a, **k):
             return ports
         finally:
             lock.release()
-
+    else:
+        logging.error("JACK seems to be blocked up. Killing processes")
+        try_unstuck()
 
 def getConnections(name, *a, **k):
     if lock.acquire(timeout=10):
@@ -2039,9 +2066,18 @@ def getConnections(name, *a, **k):
                 return []
         finally:
             lock.release()
+    else:
+        logging.error("JACK seems to be blocked up. Killing processes")
+        try_unstuck()
 
+def try_unstuck():
+    #It seems that it is actually possible for connect() calls to hang.  This is used to stio
+    subprocess.call(['killall','alsa_in'])
+    subprocess.call(['killall','alsa_out'])
+    subprocess.call(['killall','jackd'])
 
-def disconnect(f, t):
+def disconnect(f, t):                    
+    global realConnections
     if lock.acquire(timeout=30):
         try:
             if not _jackclient:
@@ -2056,18 +2092,41 @@ def disconnect(f, t):
                 if isinstance(t, str):
                     t = _jackclient.get_port_by_name(t)
 
+
+                #This feels race conditionful but i think it is important so that we don't try to double-disconnect.
+                #Be defensive with jack, the whole thing seems britttle
                 _jackclient.disconnect(f, t)
+                try:
+                    del _realConnections[f.name, t.name]
+                    realConnections = _realConnections.copy()
+                except KeyError:
+                    pass
+
+                try:
+                    del _realConnections[t.name, f.name]
+                    realConnections = _realConnections.copy()
+                except KeyError:
+                    pass
+
+
             except:
                 pass
         finally:
             lock.release()
+    else:
+        logging.error("JACK seems to be blocked up. Killing processes")
+        try_unstuck()
 
-
-def connect(f, t):
+def connect(f, t):                    
+    global realConnections
     if lock.acquire(timeout=10):
         try:
             if not _jackclient:
                 return
+
+            if isConnected(f,t):
+                return
+
             try:
                 if isinstance(f, str):
                     f = _jackclient.get_port_by_name(f)
@@ -2100,9 +2159,17 @@ def connect(f, t):
                     _jackclient.connect(t, f)
                 else:
                     _jackclient.connect(f, t)
+                try:
+                    _realConnections[f.name, t.name]=True
+                    realConnections = _realConnections.copy()
+                except KeyError:
+                    pass
             except:
                 pass
         finally:
             lock.release()
+    else:
+        logging.error("JACK seems to be blocked up. Killing processes")
+        try_unstuck()
 
 # startManagingJack()
