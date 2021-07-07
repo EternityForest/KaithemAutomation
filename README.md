@@ -63,6 +63,13 @@ $run YOUR_KAITHEM_PY_FILE
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+
+### 0.65.63
+- Avoid slow cue transition performace when there is a cue loop
+- New compatibility/dummy mode for managing jack(Gives better performance on some systems, can work on new raspbian)
+- Freeboard now supports both click and release actions for buttons
+- Fix nuisiance error logging in chandler console inspect window
+
 ### 0.65.62
 - Corerctly autocreate the log dir
 - Storing devices in modules

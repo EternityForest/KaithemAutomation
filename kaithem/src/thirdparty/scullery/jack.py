@@ -1263,12 +1263,12 @@ def _startJackProcess(p=None, n=None, logErrs=True):
                 time.sleep(0.5)
             messagebus.postMessage("/system/jack/started", {})
 
-            if util.which("a2jmidid"):
-                midip = subprocess.Popen("a2jmidid -e", stdout=subprocess.DEVNULL,
-                                         stderr=subprocess.DEVNULL, shell=True, stdin=subprocess.DEVNULL)
-            else:
-                logging.error(
-                    "a2jmidid not installed, MIDI may not work as expected.")
+            # if util.which("a2jmidid"):
+            #     midip = subprocess.Popen("a2jmidid -e", stdout=subprocess.DEVNULL,
+            #                              stderr=subprocess.DEVNULL, shell=True, stdin=subprocess.DEVNULL)
+            # else:
+            #     logging.error(
+            #         "a2jmidid not installed, MIDI may not work as expected.")
 
             from . import fluidsynth
             fluidsynth.remakeAll()

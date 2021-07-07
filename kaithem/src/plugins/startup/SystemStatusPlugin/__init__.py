@@ -21,8 +21,7 @@ except ImportError:
     except ImportError:
         print("Plyer not available either")
 
-
-if psutil or plyer:
+if battery:
     batteryTag = tagpoints.Tag("/system/power/batteryLevel")
     batteryTag.value=battery.percent
     batteryTag.unit="%"
