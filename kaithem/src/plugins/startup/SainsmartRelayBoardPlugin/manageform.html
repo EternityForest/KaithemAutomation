@@ -1,0 +1,46 @@
+<h3>Info</h3>
+<p>
+This provides a tagpoint based interface to a SainSmart relay board. Requires the pyusb library.
+You can identify multiple devices by serial number.
+</p>
+
+<p class="warning">
+If you are not unlucky enough to already possess one of these obnoxious relay boards, </b>beware that some/all versions
+randomly click and clack the relays when first connected.</b> Also be aware that the relays are </b>not powered by USB</b> on some versions,
+but by an external 12V supply.  </b>Rumour is this could cause issues if driving inductive loads because now you have voltage spikes on the driver side,
+so you should probably always use flyback diodes.</b>
+
+</p>
+<h3>Discovered Devices</h3>
+<ul>
+    %for i in obj.allDevices:
+    <li>${i}</li>
+    %endfor
+</ul>
+<hr>
+<table>
+    <tr>
+        <td>Device Serial Number(* for any)</td>
+        <td><input name="device.serialnumber" value="${data.get('device.serialnumber','')|h}" placeholder="default"></td>
+    </tr>
+
+    <tr><td>Buttons set relay state directly, bypassing tag points</td></tr>
+
+    %for n,i in enumerate(obj.widgets):
+    <tr>
+        <td>Channel #${n+1} </td>
+        <td>
+        
+            ${i[0].render("ON")}
+            ${i[1].render("OFF")}
+
+        </td>
+    </tr>
+    %endfor
+
+   
+ 
+</table>
+
+
+</table>

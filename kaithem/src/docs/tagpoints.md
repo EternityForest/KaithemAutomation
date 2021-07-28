@@ -88,12 +88,18 @@ Setting does nothing if overridden by configuration.
 #### TagPoint.subscribe(f)
 f will be called whe the value changes, as long as the function f still exists.
 
+It will also be called the first time you set a tag's value, even if the value has not changed.
+
+It should very very rarely be called on repeated values otherwise, but this behavior is not absolutelu guaranteed and should not be relied on.
+
 All subscribers are called synchronously in the same thread that set the value,
 however any errors are logged and ignored.
 
 They will all be called under the tagpoint's lock. To avoid various problems like
 endless loops, one should be careful when accessing the tagpoint itself from within
 this function.
+
+
 
 
 The signature of f must be:

@@ -59,8 +59,6 @@ hasUnsavedData = [0]
 recalcOnCreate: weakref.WeakValueDictionary = weakref.WeakValueDictionary()
 
 
-tagsAPI = widgets.APIWidget()
-
 defaultDisplayUnits = {
     "temperature": "degC|degF",
     "length": "m",
@@ -204,7 +202,7 @@ def loadAllConfiguredTags(f=os.path.join(directories.vardir, "tags")):
 
 
 # _ and . allowed
-illegalCharsInName = "[]{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
+illegalCharsInName = "{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
 
 
 class _TagPoint(virtualresource.VirtualResource):
@@ -254,6 +252,11 @@ class _TagPoint(virtualresource.VirtualResource):
         self.testingForDeadlock = False
 
         self.alreadyPostedDeadlock = False
+
+
+        #The very first time we push the tag value, we push even if the new val and prev val are both 0.
+        #This makes sure we don't miss anything.
+        self.isNotFirstPush =False
 
         
 
@@ -1311,7 +1314,10 @@ class _TagPoint(virtualresource.VirtualResource):
         # A few unnecessary updates shouldn't affect anything.
         if self.lastValue == self.lastPushedValue:
             if not self.pushOnRepeats:
-                return
+                if self.isNotFirstPush:
+                    return
+
+        self.isNotFirstPush=True
 
         # Note the difference with the handler.
         # It is called synchronously, right then and there
@@ -1669,6 +1675,9 @@ class _NumericTagPoint(_TagPoint):
         self._unit = ""
         self.guiLock = threading.Lock()
         self._meterWidget = None
+
+        self.apiWidget = widgets.APIWidget()
+
         self._setupMeter()
         _TagPoint.__init__(self, name)
 

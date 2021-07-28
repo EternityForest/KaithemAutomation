@@ -2,6 +2,9 @@ Change Log
 ----------
 
 
+### 0.65.64
+- Now we support those cheap SainSmart relay boards with a tagpoint based interface.  Use the Relayft245r device type.
+
 ### 0.65.63
 - Avoid slow cue transition performace when there is a cue loop
 - New compatibility/dummy mode for managing jack(Gives better performance on some systems, can work on new raspbian)
