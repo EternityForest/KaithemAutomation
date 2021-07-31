@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.5
-resource-timestamp: 1625394236041471
+resource-timestamp: 1627725858581507
 resource-type: event
 versions: {}
 
@@ -60,6 +60,15 @@ if __name__=='__setup__':
     #Also needs a nonzero interval
     randomTag.interval = 1
     randomTag.subscribe(s)
+    
+    randomTag2 = kaithem.tags['RandomOverridableTag']
+    import random
+    randomTag2.value = random.random
+    randomTag2.expose("__guest__","__guest__", 70)
+    
+    
+    #Also needs a nonzero interval
+    randomTag2.interval = 1
     
     
     filterTag = kaithem.tags.LowpassFilter("LowpassFilterTest", randomTag, timeConstant=3)

@@ -464,6 +464,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
                 if not d2[0]:
                     self.dataSourceWidget = None
+                    self.dataSourceAutoControl = None
                     try:
                         del exposedTags[self.name]
                     except KeyError:
@@ -472,8 +473,15 @@ class _TagPoint(virtualresource.VirtualResource):
                         self.apiClaim.release()
                 else:
                     w = widgets.DataSource(id="tag:" + self.name)
+
+                    #The tag.control version is exactly the same but output-only, so you can have a synced UI widget that
+                    #can store the UI setpoint state even when the actual tag is overriden.
+                    self.dataSourceAutoControl = widgets.DataSource(id="tag.control:" + self.name)
                     w.setPermissions([i.strip() for i in d2[0].split(",")], [
                                      i.strip() for i in d2[1].split(",")])
+
+                    self.dataSourceAutoControl.setPermissions([i.strip() for i in d2[0].split(",")], [
+                                     i.strip() for i in d2[1].split(",")])            
                     w.value = self.value
 
                     exposedTags[self.name] = self
@@ -482,6 +490,8 @@ class _TagPoint(virtualresource.VirtualResource):
                     self._apiPush()
 
                     w.attach(self.apiHandler)
+                    self.dataSourceAutoControl.attach(self.apiHandler)
+
                     self.dataSourceWidget = w
 
     def mqttConnect(self, *,server=None, port=1883, password=None,messageBusName=None, mqttTopic=None, incomingPriority=None, configured=False):
@@ -1635,6 +1645,7 @@ class _TagPoint(virtualresource.VirtualResource):
             if name not in self.claims:
                 return
 
+
             if name == "default":
                 raise ValueError("Cannot delete the default claim")
 
@@ -2149,7 +2160,9 @@ class Claim():
 
     def __del__(self):
         if self.name != 'default':
-            self.tag.release(self.name)
+            #Must be self.release not self.tag.release or old claims with the same name would
+            #mess up new ones. The class method has a check for that.
+            self.release()
 
     def __lt__(self, other):
         if (self.priority, self.timestamp) < (other.priority, other.timestamp):
@@ -2293,6 +2306,19 @@ class Claim():
         self.tag.setClaimVal(self.name, value, timestamp, annotation)
 
     def release(self):
+
+        try:
+
+            #Stop any weirdness with an old claim double releasing and thus releasing a new claim
+            if not self.tag.claims[self.name]() is self:
+
+                #If the old replaced claim is somehow the active omne we acrtuallty should handle that
+                if not self.tag.activeClaim() is self:
+                    return
+        except KeyError:
+            return
+
+
         self.tag.release(self.name)
 
     def setPriority(self, priority,realPriority=True):

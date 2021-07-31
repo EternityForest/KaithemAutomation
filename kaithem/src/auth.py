@@ -673,7 +673,8 @@ def canUserDoThis(user, permission):
 
     if permission == '__never__':
         return False
-
+    if permission == '__guest__':
+        return True
     if not user in Users:
         if '__guest__' in Users and permission in Users["__guest__"].permissions:
             return True

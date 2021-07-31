@@ -3,6 +3,10 @@ from src import tagpoints
 import json
 %>
 
+<%
+x = {"tag:"+i:'' for i in tagpoints.exposedTags.keys()}
+x.update({"tag.control:"+i:'' for i in tagpoints.exposedTags.keys()})
+%>
 <!DOCTYPE html>
 <html>
 
@@ -24,7 +28,7 @@ tags-list-data{
 }
 </style>
 
-    <tags-list-data>${json.dumps({"tag:"+i:'' for i in tagpoints.exposedTags.keys()})|h}</tags-list-data>
+    <tags-list-data>${json.dumps(x)|h}</tags-list-data>
 
     <script type="text/javascript">
         KaithemDataSourcesListing =jsyaml.load($('tags-list-data').text())

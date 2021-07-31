@@ -178,11 +178,15 @@ release the claim entirely by sending a null, or reclaim by sending real data ag
 
 The way this works is that tag.dataSourceWidget is created, a Widgets.DataSource instance having id "tag:TAGNAME", with the given permissions.
 
-The data was formerly always a value, timestamp(wall clock time) pair. It is now just the raw value, to simplify and match changes in the Freeboard fork.
-
 
 TO the server will set a claim at the permitted priority, or release any claim if the data is None.
 FROM the server indicates the actual current value of the tag.
+
+
+A second widget, tag.control:TAGNAME is also created.  This widget is write-only, it is not affected by changes to the tagpoint itself, but it will sync between different users.
+
+This means that you can write a Null to it, and everyone will be able to see that null, while also reading back the real currect tag value set from other claims.
+
 
 
 You must always have at least one read permission, and writePerms defaults to `__admin__`.   Note that if the user

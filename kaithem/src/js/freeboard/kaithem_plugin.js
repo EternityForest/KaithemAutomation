@@ -22,7 +22,7 @@
 		// **display_name** : The pretty name that will be used for display purposes for this plugin. If the name is not defined, type_name will be used instead.
 		"display_name": "Kaithem Widget API",
         // **description** : A description of the plugin. This description will be displayed when the plugin is selected or within search results (in the future). The description may contain HTML if needed.
-        "description" : "Read or write data to or from kaithem.widgets.DataSource widgets.  The data key will always be the same as the widget ID.   Tag points use tag:tagname",
+        "description" : "Read or write data to or from kaithem.widgets.DataSource widgets.  The data key will always be the same as the widget ID.   Tag points use tag:tagname.  tag.control:tagname is a write only interface. Write null to release.",
 		// **external_scripts** : Any external scripts that should be loaded before the plugin instance is created.
 	
 		// **settings** : An array of settings that will be displayed for this plugin when the user adds it.
