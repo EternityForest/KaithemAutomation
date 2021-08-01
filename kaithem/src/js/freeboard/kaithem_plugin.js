@@ -82,6 +82,17 @@
         self.handler={
 			set: function(obj,prop,val)
 			{
+				if (_.isUndefined(val))
+				{
+					throw new Error("Can't use undefined val here")
+				}
+
+				//This might not even be a value that exists, and if it is we don't want to clobber it before we have even read it.
+				if (_.isUndefined(obj[prop]))
+				{
+					throw new Error("Nonexistent tag API, or connection not established yet")
+				}
+					
 				kaithemapi.sendValue(prop, val);
 
 				if(obj[prop]==val)

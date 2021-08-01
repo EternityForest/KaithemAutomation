@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.5
-resource-timestamp: 1627725858581507
+resource-timestamp: 1627802078180180
 resource-type: event
 versions: {}
 
@@ -53,7 +53,8 @@ if __name__=='__setup__':
     randomTag.value = random.random
     randomTag.expose("__guest__","__never__")
     
-    #Need at least 1 subscriber for polling to work
+    #Need at least 1 subscriber for polling to work, so that we can see the changes in the web UI.
+    #Web UI doesn't count as a reall poll subscriber, to save CPU
     def s(v, t,a):
         pass
     
@@ -69,6 +70,9 @@ if __name__=='__setup__':
     
     #Also needs a nonzero interval
     randomTag2.interval = 1
+    randomTag.subscribe(s)
+    
+    
     
     
     filterTag = kaithem.tags.LowpassFilter("LowpassFilterTest", randomTag, timeConstant=3)

@@ -34,7 +34,7 @@ plugins=[
 
 <freeboard-data>
 allow_edit: true
-columns: 3
+columns: 4
 datasources:
 - name: vars
   settings:
@@ -56,9 +56,9 @@ globalSettings:
 pages:
   default:
     contents:
-    - col: {&#x27;3&#x27;: 2}
+    - col: {&#x27;3&#x27;: 2, &#x27;4&#x27;: 2}
       col_width: 1
-      row: {&#x27;3&#x27;: 1}
+      row: {&#x27;3&#x27;: 1, &#x27;4&#x27;: 1}
       title: Tag Points
       widgets:
       - settings:
@@ -92,9 +92,9 @@ pages:
           title: Slider Linked to Tag Point, unit: &#x27;&#x27;}
         type: slider_plugin
       width: 1
-    - col: {&#x27;3&#x27;: 1}
+    - col: {&#x27;3&#x27;: 1, &#x27;4&#x27;: 1}
       col_width: 1
-      row: {&#x27;3&#x27;: 1}
+      row: {&#x27;3&#x27;: 1, &#x27;4&#x27;: 1}
       title: Overridable Value
       widgets:
       - settings:
@@ -128,9 +128,9 @@ pages:
           toolbar: false}
         type: html-template
       width: 1
-    - col: {&#x27;3&#x27;: 1}
+    - col: {&#x27;3&#x27;: 3, &#x27;4&#x27;: 3}
       col_width: 1
-      row: {&#x27;3&#x27;: 20}
+      row: {&#x27;3&#x27;: 1, &#x27;4&#x27;: 1}
       title: Random Numbers
       widgets:
       - settings:
@@ -155,9 +155,9 @@ pages:
             to /randomtag on the server&lt;/p&gt;, toolbar: false}
         type: html-template
       width: 1
-    - col: {&#x27;3&#x27;: 1}
+    - col: {&#x27;3&#x27;: 3, &#x27;4&#x27;: 3}
       col_width: 1
-      row: {&#x27;3&#x27;: 33}
+      row: {&#x27;3&#x27;: 14, &#x27;4&#x27;: 14}
       title: Widgets and Variables
       widgets:
       - settings: {animate: true, size: regular, title: This follows the input, value: &#x27;=datasources[&quot;vars&quot;].test&#x27;}
@@ -165,6 +165,25 @@ pages:
       - settings: {default: &#x27;&#x27;, mode: input, pattern: .*, placeholder: &#x27;&#x27;, target: &#x27;datasources[&quot;vars&quot;].test&#x27;,
           title: &#x27;&#x27;, tooltip: &#x27;&#x27;, unit: &#x27;&#x27;}
         type: textbox_plugin
+      width: 1
+    - col: {&#x27;4&#x27;: 4}
+      col_width: 1
+      row: {&#x27;4&#x27;: 1}
+      title: One Slider Overridable
+      widgets:
+      - settings: {default: &#x27;null&#x27;, max: &#x27;1&#x27;, min: &#x27;0&#x27;, mode: input, nullSource: &#x27;=datasources[&quot;api&quot;][&quot;tag:/RandomTag&quot;]&#x27;,
+          nullText: AUTO, step: &#x27;0.01&#x27;, target: &#x27;datasources[&quot;api&quot;][&quot;tag:/RandomOverridableTag&quot;]&#x27;,
+          unit: &#x27;&#x27;}
+        type: slider_plugin
+      - settings: {background: transparent, backgroundRepeat: no-repeat, backgroundSize: cover,
+          data: &#x27;={varName: &#x27;&#x27;value&#x27;&#x27;}&#x27;, height: 2, html: &#x27;&lt;p&gt;This is the same overridable
+            random tag. Here we see using the &quot;null source&quot; feature to give&lt;br&gt;&lt;/p&gt;&lt;p&gt;one-slider
+            control and display.&amp;nbsp; When the data target, which is the tag.control:
+            API, is null, indicating&lt;/p&gt;&lt;p&gt;that the web API claim is released, the
+            slider will show the value from the null source, which is the tag: api,&lt;/p&gt;&lt;p&gt;displaying
+            the current real value.&amp;nbsp; At any time you can drag the slider to immediately
+            take control.&lt;/p&gt;&#x27;, toolbar: false}
+        type: html-template
       width: 1
     name: default
 plugins: []

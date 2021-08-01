@@ -4,6 +4,10 @@ Change Log
 
 ### 0.65.64
 - Now we support those cheap SainSmart relay boards with a tagpoint based interface.  Use the Relayft245r device type.
+- Freeboard default values don't clobber existing stuff if it is there, for the slider and switch widgets.
+- Broadcast Center sends snackbar text alerts to most/all devices accessing the server
+- kaithemobj.widgets.sendGlobalAlert(message, duration) to programmatically send HTML in a snackbar to all devices.
+- New tag.control: expose API gives write only control, for when you want to both claim the tag and separately see it's current real value
 
 ### 0.65.63
 - Avoid slow cue transition performace when there is a cue loop

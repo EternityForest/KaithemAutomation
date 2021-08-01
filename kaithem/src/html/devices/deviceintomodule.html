@@ -1,0 +1,27 @@
+<%include file="/pageheader.html"/>
+<%! 
+from src import devices
+%>
+<datalist id="deviceTypes">
+    %for i in devices.builtinDeviceTypes:
+    <option value="${i}" title=${devices.builtinDeviceTypes[i].description} >
+    %endfor
+    %for i in devices.deviceTypes:
+    <option value="${i}" title=${devices.deviceTypes[i].description} >
+    %endfor
+</datalist>
+
+<title>Create Device</title>
+
+
+<h2>Create New Device in a module</h2>
+<div class=sectionbox>
+<form action="/devices/customCreateDevicePage/dummy">
+<Label>Target Module:<input name="module"  value="${module|h}"></Label>
+<Label>Target Resource Name:<input name="resource" value="${path|h}"></Label>
+<Label>Type:<input name="type" placeholder="Click for dropdown" list="deviceTypes"></Label>
+
+<input type="submit">
+</form>
+</div>
+<%include file="/pagefooter.html"/>

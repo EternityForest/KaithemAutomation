@@ -477,6 +477,7 @@ class _TagPoint(virtualresource.VirtualResource):
                     #The tag.control version is exactly the same but output-only, so you can have a synced UI widget that
                     #can store the UI setpoint state even when the actual tag is overriden.
                     self.dataSourceAutoControl = widgets.DataSource(id="tag.control:" + self.name)
+                    self.dataSourceAutoControl.write(None)
                     w.setPermissions([i.strip() for i in d2[0].split(",")], [
                                      i.strip() for i in d2[1].split(",")])
 
@@ -575,6 +576,21 @@ class _TagPoint(virtualresource.VirtualResource):
             # They tried to set the value but could not, so inform them of such.
             if not self.currentSource == self.apiClaim.name:
                 self._apiPush()
+
+    def controlApiHandler(self, u, v):
+        if v is None:
+            if self.apiClaim:
+                self.apiClaim.release()
+        else:
+            # No locking things up if the times are way mismatched and it sets a time way in the future
+            self.apiClaim = self.claim(v, 'WebAPIClaim', priority=(
+                self.getEffectivePermissions())[2], annotation=u)
+
+            # They tried to set the value but could not, so inform them of such.
+            if not self.currentSource == self.apiClaim.name:
+                self._apiPush()
+
+        self.dataSourceAutoControl.write(v)
 
     def getEffectivePermissions(self):
         d2 = [self.configuredPermissions[0] or self.permissions[0],

@@ -15,18 +15,96 @@ Copyright (c) 2015 Yusuke Kawasaki
 	}, {}, [1])(1)
 });
 
+
+KaithemWidgetApiSnackbar = function (m,d)
+{
+
+	if (kaithemapi.currentSnackbar)
+	{
+		kaithemapi.currentSnackbar.remove()
+	}
+
+	if (m == '')
+	{
+		return
+	}
+	// create a new div element
+	const newDiv = document.createElement("div");
+
+	// and give it some content
+	//const newContent = document.createTextNode(m);
+
+	// add the text node to the newly created div
+	//newDiv.appendChild(newContent);
+
+	newDiv.innerHTML=m
+
+	// add the newly created element and its content into the DOM
+	const currentDiv = document.getElementById("div1");
+	newDiv.onclick = function () {
+		if (confirm("Dismiss Message?")) {
+			newDiv.remove()
+		}
+		
+	}
+
+	var sb = {
+		minWidth: "250px",
+		maxWidth: "70%",
+		margin: "auto",
+		backgroundColor: "#333",
+		color: "#fff",
+		textAlign: "center",
+		borderRadius: "2px",
+		padding: "16px",
+		position: "fixed",
+		zIndex: 10000,
+		top: "30px",
+		fontSize: "32px",
+		WebkitAnimation: "fadein 0.5s, fadeout 0.5s 2.5s",
+		animation: "fadein 0.5s, fadeout 0.5s 2.5s",
+		borderRadius: '5px',
+		borderStyle: 'outset',
+		borderColor:"#fff"
+	
+	}
+	for (i in sb) {
+		newDiv.style[i] = sb[i]
+	}
+	document.body.appendChild(newDiv);
+	kaithemapi.currentSnackbar = newDiv;
+
+	
+	setTimeout(function(){newDiv.remove()}, (d||5)*1000);
+}
+
 KaithemApi = function () {
 	var x = {
 
 		toSend: [],
+		lastDidSnackbarError:0,
 		first_error: 1,
 		serverMsgCallbacks: {
 			"__WIDGETERROR__": [
 				function (m) {
 					console.error(m);
+					if (lastDidSnackbarError < Date.now() + 60000)
+					{
+						lastDidSnackbarError=Date.now()
+						KaithemWidgetApiSnackbar("Ratelimited msg"+m)
+					}
 				}
 			],
-
+			"__SHOWMESSAGE__": [
+				function (m) {
+					alert(m);
+				}
+			],
+			"__SHOWSNACKBAR__": [
+				function (m) {
+					KaithemWidgetApiSnackbar(m[0],m[1]);
+				}
+			],
 			"__KEYMAP__": [
 				function (m) {
 					self.uuidToWidgetId[m[0]] = m[1];

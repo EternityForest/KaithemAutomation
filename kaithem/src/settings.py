@@ -212,6 +212,25 @@ class Settings():
         path = os.path.join('/', *args)
         return pages.get_template("settings/cnfdel.html").render(path=path)
 
+
+    @cherrypy.expose
+    def broadcast(self, **kwargs):
+        pages.require("/admin/settings.edit")
+        return pages.get_template("settings/broadcast.html").render()
+
+    @cherrypy.expose
+    def snackbar(self,msg,duration):
+        pages.require("/admin/settings.edit")
+        kaithemobj.widgets.sendGlobalAlert(msg, float(duration))
+        return pages.get_template("settings/broadcast.html").render()
+    
+
+
+    @cherrypy.expose
+    def broadcast(self, **kwargs):
+        pages.require("/admin/settings.edit")
+        return pages.get_template("settings/broadcast.html").render()
+
     @cherrypy.expose
     def console(self, **kwargs):
         pages.require("/admin/settings.edit")

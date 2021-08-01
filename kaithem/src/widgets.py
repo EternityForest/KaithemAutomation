@@ -78,6 +78,8 @@ class ClientInfo():
 
 lastLoggedUserError =0
 
+
+
 class WebInterface():
     @cherrypy.expose
     def ws(self):
@@ -139,6 +141,36 @@ try:
 except:
     logging.exception("No msgpack support, using JSON fallback")
 
+
+
+#Message, start time, duration
+lastGlobalAlertMessage = ['', 0,0]
+
+
+
+def sendToAll(d):
+    d=json.dumps(d)
+    x= {}
+
+    #Retry against the dict changed size during iteration thing
+    for i in range(50):
+        try:
+            for j in ws_connections:
+                if not j in x:
+                    ws_connections[j].send(d)
+                    x[j]=True
+            break
+        except:
+            logging.exception("Error in global broadcast")
+
+
+def sendGlobalAlert(msg, duration=60):
+    lastGlobalAlertMessage[0]=msg
+    lastGlobalAlertMessage[1]=time.monotonic()
+    lastGlobalAlertMessage[2]=duration
+
+    sendToAll([["__SHOWSNACKBAR__",[msg, float(duration)]]])
+            
 class websocket(WebSocket):
     def __init__(self, *args, **kwargs):
         self.subscriptions = []
@@ -208,6 +240,11 @@ class websocket(WebSocket):
                         continue
                     if i == "__WIDGETERROR__":
                         continue
+                    if i == "__SHOWMESSAGE__":
+                        continue
+                    if i == "__SHOWSNACKBAR__":
+                        if lastGlobalAlertMessage[0] and lastGlobalAlertMessage[1]>(time.monotonic()-lastGlobalAlertMessage[2]):
+                            self.send(json.dumps([['__SHOWSNACKBAR__', [lastGlobalAlertMessage[0],lastGlobalAlertMessage[2] -(time.monotonic() -lastGlobalAlertMessage[1]) ] ]]))
 
                     # TODO: DoS by filling memory with subscriptions?? This should at least stop accidental attacks
                     if self.subCount > 1024:
@@ -218,6 +255,9 @@ class websocket(WebSocket):
                         if i in widgets:
                             for p in widgets[i]._read_perms:
                                 if not pages.canUserDoThis(p, user):
+
+                                    #We have to be very careful about this, because 
+                                    self.send(json.dumps([['__SHOWMESSAGE__',"You are missing permission: "+str(p)+", data may be incorrect"]]))
                                     raise RuntimeError(
                                         user + " missing permission: "+str(p))
                                 self.usedPermissions[p] += 1
