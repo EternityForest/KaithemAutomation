@@ -1,0 +1,48 @@
+/* 
+  ===================================================
+  Main
+  ===================================================
+*/
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #FFF;
+}
+
+body {
+  color: #000;
+  font-family: 'Open Sans', arial, sans-serif;
+  overflow: hidden;
+}
+
+a, button, .no-drag
+{
+  -webkit-app-region: no-drag;
+}
+
+dt {
+  font-weight : bold;
+}
+dd {
+  font-style: italic;
+}
+
+::-webkit-scrollbar 
+{
+  background: #ecf0f1;
+  width: 15px;
+}
+
+::-webkit-scrollbar-thumb 
+{
+    background: #bdc3c7;
+  border: 5px solid #ecf0f1;
+}
+
+::-webkit-scrollbar-thumb:hover
+{
+    background: #42484a;
+}
+
+*.paramStyle { background-color:#ccccff; }

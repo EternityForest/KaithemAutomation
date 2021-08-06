@@ -1,0 +1,11 @@
+.project
+.settings
+*~
+node_modules
+tmp
+
+tags
+tags.lock
+tags.temp
+*.swp
+package-lock.json

@@ -8,6 +8,8 @@ Change Log
 - Broadcast Center sends snackbar text alerts to most/all devices accessing the server
 - kaithemobj.widgets.sendGlobalAlert(message, duration) to programmatically send HTML in a snackbar to all devices.
 - New tag.control: expose API gives write only control, for when you want to both claim the tag and separately see it's current real value
+- New /pages/chandler/sendevent?event=NAME&value=VALUE API
+- User pages now show telemetry on what WS connections are open from what IP addresses on what pages. Use
 
 ### 0.65.63
 - Avoid slow cue transition performace when there is a cue loop

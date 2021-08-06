@@ -1,6 +1,7 @@
 <%!
     from src.util import url as urlesc
     from src import auth
+    from src import widgets
     from src import unitsofmeasure
 %>
 <%include file="/pageheader.html"/>
@@ -15,7 +16,7 @@ class="specialentry"\
 <h3>Basic</h3>
 <div class="sectionbox">
 <p class="warning">For performance reasons, your password is stored hashed with an ordinary cryptographic hash, rather than a password strengthening algorithm.
-	Do not use weak or reused passwords on public systems!!!!</p>
+    Do not use weak or reused passwords on public systems!!!!</p>
 Username:<input required="required" name="username" type="text" value="${username}"></input><br>
 Password(Leave blank=don't change):<input name="password" type="password" value="" autocomplete='off'></input>
 Retype:<input name="password2" type="password" value="" autocomplete='off'></input><br>
@@ -27,6 +28,24 @@ Retype:<input name="password2" type="password" value="" autocomplete='off'></inp
 ></lan>
 </div>
 
+%try:
+    <h3>Telemetry</h3>
+    <div class="sectionbox">
+    User ${username} has open WebSocket connections from these addresses:<br>
+    <dl>
+    %for i in widgets.ws_connections.values():
+    %if i.user == username:
+        <dt>${i._peer_address}</dt>
+        <dd>Browsing: ${i.pageURL}</dd>
+    %endif
+    %endfor
+    </div>
+%except Exception as e:
+${e}
+PROBABLY A RACE CONDITION OCCURED, RELOAD FOR TELEMETRY
+</div>
+%endtry
+
 
 <h3>Groups</h3>
 <div class="sectionbox">
@@ -34,11 +53,11 @@ Retype:<input name="password2" type="password" value="" autocomplete='off'></inp
 User ${username} is a member of the following groups:<br>
 (Check or uncheck to set membership)</p>
 %for i in sorted(groups):
-	<br> <input type="checkbox" name="Group${i}" value="true"
-	%if i in usergroups:
-		checked="yes"
-	%endif
-	></input>${i}
+    <br> <input type="checkbox" name="Group${i}" value="true"
+    %if i in usergroups:
+        checked="yes"
+    %endif
+    ></input>${i}
 %endfor
 </div>
 

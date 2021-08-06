@@ -1,0 +1,58 @@
+{"id": "ps",
+"buttonid": "projectSnippetTour",
+"title": "Snippets",
+"needsConnection" : true,
+"needsProjectSetting" : true,
+"slides":
+[ {
+    "title": "Snippets handling",
+    "description": "Quick tour to create and use snippets in terminal window"
+  },
+  {
+    "title": "Code Snippets",
+    "description": "Click on the Code Snippets icon to see a list of common commands that you can send.",
+    "attachTo": "#icon-terminalSnippets",
+    "position": "right",
+    "onHide": "clickAttached"
+  },
+  {
+    "title": "Select Snippet",
+    "description": "Click on a Snippet to send it to the board.",
+    "attachTo": "#snippetPopup",
+    "position": "top",
+    "onHide": "sendBoard",
+    "source": "process.memory();\n"
+  },
+  {
+    "title": "Memory Snippet",
+    "description": "The result of executing the command is shown in the Terminal Window.",
+    "onHide": "closePopup"
+  },
+  {
+    "title": "Edit Snippets",
+    "description": "To Edit Snippets, click on the Projects button.",
+    "attachTo": "#icon-openProjectFolder",
+    "position": "right",
+    "onHide": "clickAttached"
+  },  
+  {
+    "title": "Edit Snippets",
+    "description": "Click on the Snippets tab.",
+    "attachTo": "#projectsTab",
+    "position": "top",
+    "onHide": "clickElement",
+    "element": "[href='#s']"
+  },
+  {
+    "title": "Manage Snippets",
+    "description": "Click on Trash to delete a snippet or enter a new Snippet Name and JavaScript code to add new one",
+    "attachTo": "#projectsTab",
+    "position": "top",
+    "onHide": "closePopup"
+  },   
+  {
+    "title": "All Done",
+    "description": "That's all you need to know about Snippets!"
+  }
+]
+}

@@ -183,6 +183,7 @@ class websocket(WebSocket):
         messagebus.subscribe(
             "/system/permissions/rmfromuser", self.onPermissionRemoved)
         self.user = '__guest__'
+        self.pageURL="UNKNOWN"
 
         self.usedPermissions = collections.defaultdict(lambda: 0)
 
@@ -233,6 +234,11 @@ class websocket(WebSocket):
             for i in upd:
                 if i[0] in widgets:
                     widgets[i[0]]._onUpdate(user, i[1], self.uuid)
+                elif i[0]=='__url__':
+                    self.pageURL=i[1]
+                    
+                elif i[0]=='__geo__':
+                    self.geoLocation=i[1]
 
             if 'subsc' in o:
                 for i in o['subsc']:

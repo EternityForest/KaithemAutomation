@@ -1,0 +1,2 @@
+{description: 'Send events, only those prefixed by HTTP:, to Chandler.', resource-timestamp: 1627984643397740,
+  resource-type: permission}

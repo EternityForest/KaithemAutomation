@@ -303,6 +303,10 @@ class ScheduleTimer():
         except:
             pass
 
+import uuid
+
+
+
 
 def dt_to_ts(dt, tz=None):
     "Given a datetime in tz, return unix timestamp"

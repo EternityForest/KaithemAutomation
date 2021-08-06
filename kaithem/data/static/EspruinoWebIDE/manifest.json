@@ -1,0 +1,35 @@
+{
+  "name": "Espruino Web IDE",
+  "short_name": "Espruino IDE",
+  "description": "A Terminal and Graphical code Editor for Espruino JavaScript Microcontrollers",
+  "version": "0.75.8",
+  "app": {
+    "background": {
+      "scripts": ["js/background.js"]
+    }
+  },
+  "icons": {
+    "128": "img/icon_128.png",
+    "256": "img/icon_256.png",
+    "512": "img/icon_512.png"
+  },
+  "permissions" : [
+    "serial",
+    "audioCapture",
+    "videoCapture",
+    {"fileSystem": ["write", "retainEntries", "directory"]},
+    "storage",
+    "http://*/",
+    "https://*/"
+  ],
+  "sockets": { "tcp" : { "connect": "*" } },
+  "manifest_version": 2,
+  "url_handlers": {
+    "espruino_code": {
+      "title": "Load code into the Espruino Web IDE",
+      "matches": [
+        "http://www.espruino.com/webide*"
+      ]
+    }
+  }
+}

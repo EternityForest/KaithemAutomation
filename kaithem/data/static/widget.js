@@ -16,6 +16,7 @@ Copyright (c) 2015 Yusuke Kawasaki
 });
 
 
+
 KaithemWidgetApiSnackbar = function (m,d)
 {
 
@@ -275,7 +276,7 @@ KaithemApi = function () {
 				}
 			}
 			this.connection.onopen = function (e) {
-				var j = JSON.stringify({ "subsc": Object.keys(apiobj.serverMsgCallbacks), "req": [], "upd": {} })
+				var j = JSON.stringify({ "subsc": Object.keys(apiobj.serverMsgCallbacks), "req": [], "upd": [["__url__", window.location.href]] })
 				apiobj.connection.send(j)
 				console.log("WS Connection Initialized");
 				apiobj.reconnect_timeout = 1500;

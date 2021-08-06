@@ -1,0 +1,32 @@
+ <p>Please see <a href="http://www.espruino.com/ChangeLog" target="_blank">the ChangeLog</a> for a list of the improvements and fixes present in each version of Espruino.</p>
+
+ <p><b>NOTE:</b> This will only update devices that contain the Espruino USB Bootloader
+ (like the <a href="http://www.espruino.com/EspruinoBoard" target="_blank">Original Espruino Board</a>, Espruino <a href="http://www.espruino.com/Pico" target="_blank">Pico</a> or <a href="http://www.espruino.com/WiFi" target="_blank">WiFi</a>).
+  To update other devices please see <a href="http://www.espruino.com/Download" target="_blank">this page</a>.</p>
+
+<h3>Normal Firmware Update</h3>
+ <p>Just click the button below and follow the on-screen instructions.</p>
+ <p><button class="flash_start">Flash Firmware</button></p>
+
+ <p class="flash_info"></p>
+
+ <h3>Advanced Firmware Update</h3>
+ <p>If you know the exact URL of the binary you wish to update (for instance from <a href="http://www.espruino.com/Download" target="_blank">&quot;Find a binary&quot; on the Download page</a>), please enter it below and click 'Flash from URL':</p>
+ <p>
+  <input type="text" class="flash_url" size="70" placeholder="https://....." value=""/><button class="flash_start_url">Flash from URL</button>
+ </p>
+ <p>If you have the file on your computer, click <button class="flash_start_file">Flash from File</button> and you'll be able to choose the file to upload.</p>
+ <p><b>NOTE:</b> STM32-based boards need to be flashed with <code>.bin</code> files, and nRF52 boards need <code>.zip</code> files (not <code>.hex</code>)</p>
+
+ <h3>ESP8266 WiFi Firmware</h3>
+ <p>If you're using an Espruino board with ESP8266 attached (eg. <a href="http://www.espruino.com/WiFi" target="_blank">Espruino WiFi</a>)
+   then you can use the buttons below to update the WiFi module's firmware to the AT command firmware 1.1.0.0 / 1.5.4.</p>
+ <p>
+   Please select the type of device:</p>
+ <input type="radio" name="esp8266_type" value="espruinowifi" checked><label for="espruinowifi">Espruino WiFi (Serial2,rx:A3,tx:A2,pd:A13,boot:A14)</label><br>
+ <input type="radio" name="esp8266_type" value="espruinopicoshim"><label for="espruinopicoshim">Espruino Pico WiFi shim (Serial2,rx:A3,tx:A2,pd:B9,boot:A1)</label><br>
+ <input type="radio" name="esp8266_type" value="pixljs"> <label for="pixljs">Pixl.js with ESP8266 Shield (Serial1,rx:D0,tx:D1)</label><br>
+ <input type="radio" name="esp8266_type" value="pixljsmulti"> <label for="pixljs">Pixl.js Multicolour (Serial1,rx:D0,tx:D1,pd:D9)</label><br>
+
+<p><button class="esp8266_fw_check">Check firmware version</button><button class="esp8266_fw_start">Update WiFi module Firmware (Beta)</button></p>
+

@@ -814,11 +814,6 @@ class GStreamerPipeline():
 
                 self._stopped = True
 
-        # Allow waiting so we can be real sure it's stopped
-        if not self.syncStop:
-            workers.do(gstStopCleanupTask)
-        else:
-            gstStopCleanupTask()
 
     @staticmethod
     def shouldAllowGstJack():

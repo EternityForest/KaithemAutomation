@@ -240,8 +240,10 @@ def loadAllCustomResourceTypes():
     for i in ActiveModules:
         for j in ActiveModules[i]:
             r=ActiveModules[i][j]
-            if r.get('resource-type','') in additionalTypes:
-                additionalTypes[r['resource-type']].onload(i, j, r)
+            if isinstance(r, weakref.ref):
+                if hasattr(r,'get'):
+                    if r.get('resource-type','') in additionalTypes:
+                        additionalTypes[r['resource-type']].onload(i, j, r)
 
 class ResourceObject():
     def __init__(self, m: str = None, r: str = None, o=None):
