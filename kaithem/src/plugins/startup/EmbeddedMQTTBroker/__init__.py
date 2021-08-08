@@ -42,7 +42,7 @@ class MQTTBroker(devices.Device):
         from hbmqtt.broker import Broker
         conf = {'listeners': {
                 'default': {
-                    'bind': +self.bind,
+                    'bind': self.bind,
                     'type': 'tcp'
                 },
                 'auth': {

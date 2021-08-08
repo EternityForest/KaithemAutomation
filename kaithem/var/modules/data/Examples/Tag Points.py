@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.5
-resource-timestamp: 1627802078180180
+resource-timestamp: 1628410720787040
 resource-type: event
 versions: {}
 
@@ -83,12 +83,12 @@ if __name__=='__setup__':
     
     
     syncTag1 = kaithem.tags['syncTag1']
-    syncTag1.mqttConnect(server='__virtual__',port='examples',mqttTopic="exampleSyncTag")
+    syncTag1.mqttConnect(server='__virtual__',port=338,mqttTopic="exampleSyncTag")
     
     
     
     syncTag2 = kaithem.tags['syncTag2']
-    syncTag2.mqttConnect(server='__virtual__',port='examples',mqttTopic="exampleSyncTag")
+    syncTag2.mqttConnect(server='__virtual__',port=338,mqttTopic="exampleSyncTag")
     
     syncTag1.value = 70
     

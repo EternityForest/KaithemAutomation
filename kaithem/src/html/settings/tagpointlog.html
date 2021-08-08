@@ -44,47 +44,6 @@ def combineLogs(a):
 
 <form method="GET" action="/tagpointlog/${tag.name|u}">
 
-<h3>Info</h3>
-<table border="1">
-    <tr>
-        <td>Time Since Update</td>
-        <td>${((unitsofmeasure.formatTimeInterval(time.monotonic()-tag.timestamp,3)+" ago") if int(tag.timestamp) else 'never')}</td>
-    </tr>
-    <tr>
-        <td>Timestamp(monotonic time)</td>
-        <td>${tag.timestamp}</td>
-    </tr>
-    <tr>
-        <td>Annotation</td>
-        <td>${tag.annotation|h}</td>
-    </tr>
-    <tr>
-        <td>Active Claim</td>
-        <td>${tag.activeClaim[2]}(P${tag.activeClaim[0]})</td>
-    </tr>
-    <tr>
-        <td>Value at page load</td>
-        <td>${str(tag.value)[:128]}</td>
-    </tr>
-    <tr>
-        <td>Owner</td>
-        <td>${tag.owner}</td>
-    </tr>
-    <tr>
-        <td>Subscriber count</td>
-        <td>${len(tag.subscribers)}</td>
-    </tr>
-    <tr>
-        <td>Python3 Object ID</td>
-        <td>${id(tag)|h}</td>
-    </tr>
-    %if hasattr(tag,'unit'):
-    <tr>
-        <td>Base Unit</td>
-        <td>${tag.unit|h}</td>
-    </tr>
-    %endif
-</table>
 
 %if hasattr(tag, 'configLoggers'):
 <h3>Recent Log Data from ${unitsofmeasure.strftime(logtime)}</h3>

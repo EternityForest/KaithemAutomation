@@ -42,6 +42,10 @@ lock = threading.RLock()
 allSubscriptions = {}
 
 
+#list them by local name.  But only real, phsyical MQTT connections.
+#This is how passive connections find their real one
+connectionsByBusName = weakref.WeakValueDictionary()
+
 def getWeakrefHandlers(self):
     self = weakref.ref(self)
 
@@ -197,12 +201,16 @@ class Connection():
         else:
             passive = False
 
+        self.passive = passive
+
         server = server or str(uuid.uuid4())
         virtual = server.startswith("__virtual__")
 
         if passive and (not messageBusName):
             raise ValueError(
                 "No server specified. To create a passive connection you must specify an internal messageBusName")
+        self.busPrefix = "/mqtt/" + server + ":" + str(port)+connectionID
+
 
         self.subscriptions = {}
         logger.info("Creating connection object to: " + self.server)
@@ -237,7 +245,6 @@ class Connection():
                 del connections[i]
             connections[n] = weakref.ref(self)
 
-            self.busPrefix = "/mqtt/" + server + ":" + str(port)+connectionID
 
             if messageBusName:
                 self.busPrefix = "/mqtt/" + messageBusName
@@ -255,6 +262,8 @@ class Connection():
                             t = topic[len(self.busPrefix + "/out/"):]
                             messagebus.postMessage(
                                 self.busPrefix + "/in/" + t, message)
+
+
 
                 if not passive:
                     messagebus.subscribe(
@@ -322,6 +331,10 @@ class Connection():
                     self.connection = None
                     self.configureAlert(alertPriority, alertAck)
                     self.onStillConnected()
+                
+
+                if not passive:
+                    connectionsByBusName[self.busPrefix]=self
 
             except Exception:
                 # Attempt cleanup
@@ -405,23 +418,50 @@ class Connection():
     def configureAlert(self, *a):
         pass
 
-    def subscribe(self, topic, function, qos=2, encoding="json"):
+
+    def _mqttSubscribe(topic, qos):
         if self.connection:
             self.connection.subscribe(topic, qos)
+
+    def subscribe(self, topic, function, qos=2, encoding="json"):
+        with lock:
+            if self.connection:
+                self.connection.subscribe(topic, qos)
+            else:
+                #We are a "Passive" connecytion relaying through a real connection elsewhere in code.
+                if self.passive:
+                    if self.busPrefix in connectionsByBusName:
+                        try:
+                            backend = connectionsByBusName[self.busPrefix]
+                        except KeyError:
+                            backend=None
+
+                        if backend:
+                            #The backend to relay through actually exists! So we have to actually tell them to physically
+                            #subscribe to the MQTT topic.
+
+                            #if they don't exist yet that is fine, they will look through the subscriptions master list and reconnect anything active anyway
+                            backend.connection.subscribe(topic,qos)
 
         x = str(uuid.uuid4())
 
         def handleDel(*a):
-            del self.subscribeWrappers[x]
+            try:
+                del self.subscribeWrappers[x]
+            except KeyError:
+                pass
             # We're really just using the "check if there's no subscribers"
             # Part of the function
             self.unsubscribe(topic, None)
+
+        fID= id(function)
         function = util.universal_weakref(function, handleDel)
 
         # This is our master list of who is subscribed where. It is used for reconnection.
         # It is also used so that subscriptions can persist beyond any given connection object!!!
+        #use fID in case of two subscribers to one topic needing to fit in one dict.
         with self.lock:
-            allSubscriptions[self.busPrefix, topic, qos] = function
+            allSubscriptions[self.busPrefix, topic, qos,fID] = function
 
         # Connection.subscribe was blocking forever.
         # Use a different thread, to hopefully avoid deadlocks
@@ -434,6 +474,8 @@ class Connection():
             def wrapper(t, m):
                 # Get rid of the extra kaithem framing part of the topic
                 t = t[len(self.busPrefix + "/in/"):]
+                if not isinstance(m,str):
+                    m=m.decode('utf-8')
                 function()(t, json.loads(m))
 
         elif encoding == 'msgpack':
@@ -446,7 +488,9 @@ class Connection():
             def wrapper(t, m):
                 # Get rid of the extra kaithem framing part of the topic
                 t = t[len(self.busPrefix + "/in/"):]
-                function()(t, m.decode("utf8"))
+                if not isinstance(m,str):
+                    m=m.decode('utf-8')
+                function()(t, m)
 
         elif encoding == 'raw':
             def wrapper(t, m):
@@ -503,7 +547,7 @@ def getConnection(server, port=1883, password=None, messageBusName=None, *, aler
         if connectionID:
             connectionIDSuffix='?'+connectionID
 
-        if server + ":" + str(port) in connections:
+        if server + ":" + str(port)+connectionIDSuffix in connections:
             x = connections[server + ":" + str(port)+connectionIDSuffix]()
 
         if x:

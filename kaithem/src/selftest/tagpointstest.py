@@ -158,13 +158,40 @@ def testTags():
     t1 = tagpoints.Tag("/system/selftest/Sync1")
     t2 = tagpoints.Tag("/system/selftest/Sync2")
 
-    t1.mqttConnect(server="__virtual__",port='tagSyncTest', mqttTopic='tagsyncselftest')
-    t2.mqttConnect(server="__virtual__",port='tagSyncTest', mqttTopic='tagsyncselftest')
+    t1.mqttConnect(server="__virtual__",port=456, mqttTopic='tagsyncselftest')
+    t2.mqttConnect(server="__virtual__",port=456, mqttTopic='tagsyncselftest')
 
     t1.value=30
     time.sleep(1)
     if not t2.value==30:
         raise RuntimeError("Tag MQTT sync feature failed")
+
+    #Actually means disconnect
+    t2.mqttConnect(server='')
+
+    t1.value=31
+    time.sleep(1)
+    if  t2.value==31:
+        raise RuntimeError("Tag MQTT sync feature failed to disconnect")
+
+    #Try the other way around
+    t2.mqttConnect(server="__virtual__",port=456, mqttTopic='tagsyncselftest')
+    t1.mqttConnect(server='')
+
+    t1.value=35
+    time.sleep(1)
+    if t2.value==35:
+        raise RuntimeError("Tag MQTT sync feature failed to disconnect")
+    
+    #Reconnect
+    t1.mqttConnect(server="__virtual__",port=456, mqttTopic='tagsyncselftest')
+
+    t1.value=33
+    time.sleep(1)
+    if not t2.value==33:
+        raise RuntimeError("Tag MQTT sync feature failed to reconnect")
+    
+
 
 
     t1 = tagpoints.Tag("/system/selftest/ExpireTest")
@@ -182,4 +209,39 @@ def testTags():
     if not t1.value==30:
         raise RuntimeError("Claim expiration did not un-expire correctly")
 
+
+
+
+    t1 = tagpoints.StringTag("/system/selftest/Sync1Str")
+    t2 = tagpoints.StringTag("/system/selftest/Sync2Str")
+
+    t1.mqttConnect(server="__virtual__",port=456, mqttTopic='tagsyncselftest')
+    t2.mqttConnect(server="__virtual__",port=456, mqttTopic='tagsyncselftest')
+
+    t1.value="Test"
+    time.sleep(1)
+    if not t2.value=="Test":
+        raise RuntimeError("Tag MQTT sync feature failed")
+
+    t1.value=90
+    if not t1.value=='90':
+        raise RuntimeError("Int got into the string tag")
+    time.sleep(1)
+
+    if not t2.value=='90':
+        raise RuntimeError("Int got into the string tag")
+
     
+
+
+    t1 = tagpoints.Tag("/system/selftest/minmax")
+
+    t1.value = 40
+    t1.min =50
+
+    if not t1.value==50:
+        raise RuntimeError("Min was ignored")
+
+    t1.value=-1000
+    if not t1.value==50:
+        raise RuntimeError("Min was ignored")

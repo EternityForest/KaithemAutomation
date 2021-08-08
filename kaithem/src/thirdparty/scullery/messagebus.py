@@ -100,8 +100,9 @@ class MessageBus(object):
                     if target:
                         self.subscribers[topic].remove(target)
                     else:
-                        raise ValueError("No such subscriber found")
+                        pass
             except:
+                print(traceback.format_exception())
                 pass
             #There is a very slight chance someone will
             #Add something to topic before we delete it but after the test.
@@ -225,7 +226,7 @@ class MessageBus(object):
                     try:
                         if errors:
                             if not alreadyLogged[0]:
-                                handleError(f,topic,message)
+                                handleError(f2,topic,message)
                             alreadyLogged[0]=True
 
                     except Exception as e:
@@ -240,7 +241,7 @@ class MessageBus(object):
                     try:
                         if errors:
                             if not alreadyLogged[0]:
-                                handleError(f,topic,message)
+                                handleError(f2,topic,message)
                             alreadyLogged[0]=True
 
                     except Exception as e:
@@ -255,7 +256,7 @@ class MessageBus(object):
                     try:
                         if errors:
                             if not alreadyLogged[0]:
-                                handleError(f,topic,message)
+                                handleError(f2,topic,message)
                             alreadyLogged[0]=True
                     except Exception as e:
                             print("err",e)

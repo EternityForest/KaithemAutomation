@@ -36,7 +36,7 @@ configAttrs = {
     'hi', 'lo', 'min', 'max', 'interval', 'displayUnits'
 }
 softConfigAttrs = {
-    'overrideName', 'overrideValue', 'overridePriority', 'type', 'onChange', 'value'
+    'overrideName', 'overrideValue', 'overridePriority', 'type', 'onChange', 'value','mqtt,server','mqtt.password','mqtt.port',"mqtt.messageBusName","mqtt.topic",'mqtt.incomingPriority','mqtt.incomingExpiration'
 }
 
 t = time.monotonic
@@ -126,7 +126,7 @@ configTagData = {}
 def configTagFromData(name, data):
     name = normalizeTagName(name)
 
-    t = data.get("type", "number")
+    t = data.get("type",'')
 
     # Get rid of any unused existing tag
     try:
@@ -140,6 +140,7 @@ def configTagFromData(name, data):
     except Exception:
         logger.exception("Deleting tag config")
 
+    tag=None
     # Create or get the tag
     if t == "number":
         tag = Tag(name)
@@ -153,7 +154,7 @@ def configTagFromData(name, data):
         configTagData[name] = data
         return
 
-    if t:
+    if tag:
         configTags[name] = tag
     # Now set it's config.
     tag.setConfigData(data)
@@ -233,6 +234,9 @@ class _TagPoint(virtualresource.VirtualResource):
 
     defaultData: Any = None
     type = 'object'
+    mqttEncoding = 'json'
+
+
     @typechecked
     def __init__(self, name: str):
         global allTagsAtomic
@@ -259,7 +263,8 @@ class _TagPoint(virtualresource.VirtualResource):
         self.isNotFirstPush =False
 
         
-
+        #How long until we expire any incoming MQTT data
+        self.incomingMQTTExpiration=0
 
 
         #Start timestamp at 0 meaning never been set
@@ -344,9 +349,6 @@ class _TagPoint(virtualresource.VirtualResource):
         except ImportError:
             pass
 
-        # If we should push the same value twice in a row when it comes in.
-        # If false, only push changed data to subscribers.
-        self.pushOnRepeats: bool = False
         self.lastPushedValue = None
         self.onSourceChanged = None
 
@@ -495,22 +497,38 @@ class _TagPoint(virtualresource.VirtualResource):
 
                     self.dataSourceWidget = w
 
-    def mqttConnect(self, *,server=None, port=1883, password=None,messageBusName=None, mqttTopic=None, incomingPriority=None, configured=False):
+    def mqttConnect(self, *,server=None, port=1883, password=None,messageBusName=None, mqttTopic=None, incomingPriority=None, incomingExpiration=0, configured=False):
+
+        port=int(port)
+
+        if incomingPriority==None:
+            incomingPriority=50
+        incomingPriority=int(incomingPriority)
+
+        self.incomingMQTTExpiration=float(incomingExpiration)
 
         def doConnect():
-            self.mqttDisconnect(False)
+            if server or messageBusName or password and (not server=='__disable__'):
+                self.mqttDisconnect(False)
+            else:
+                self.mqttDisconnect(True)
+
+            if self.mqttClaim:
+                self.mqttClaim.setPriority(incomingPriority)
+                self.mqttClaim.setExpiration(self.incomingMQTTExpiration)
+
             from scullery import mqtt
             n = self.name
             if n[0]=='/':
                 n=n[1:]
-            n="/tagpoints/"+n
+            n="tagpoints/"+n
 
-            self.mqttPriority = incomingPriority or 50
+            self.mqttPriority = int(incomingPriority)
             self.mqttTopic = mqttTopic or n
 
             if server or messageBusName or password and (not server=='__disable__'):
                 self.mqttConnection = mqtt.getConnection(server=server, port=port, password=password, messageBusName=messageBusName)
-                self.mqttConnection.subscribe(self.mqttTopic, self._onIncomingMQTTMessage)
+                self.mqttConnection.subscribe(self.mqttTopic, self._onIncomingMQTTMessage,encoding=self.mqttEncoding)
                 self.subscribe(self._mqttHandler)
         
         if configured:
@@ -550,6 +568,7 @@ class _TagPoint(virtualresource.VirtualResource):
     def _onIncomingMQTTMessage(self,topic,value):
         if not self.mqttClaim:
             self.mqttClaim = self.claim(value, name="MQTTSync", priority=self.mqttPriority,annotation="MQTTSyncIncoming")
+            self.mqttClaim.setExpiration(self.incomingMQTTExpiration)
         else:
             self.mqttClaim.set(value,annotation="MQTTSyncIncoming")
         
@@ -558,7 +577,7 @@ class _TagPoint(virtualresource.VirtualResource):
         if a =='MQTTSyncIncoming':
             return
         #Publish local changes to the MQTT bus.
-        self.mqttConnection.publish(self.mqttTopic, value,retain=True)
+        self.mqttConnection.publish(self.mqttTopic, value,retain=True,encoding=self.mqttEncoding)
 
 
 
@@ -1152,14 +1171,20 @@ class _TagPoint(virtualresource.VirtualResource):
             # Set configured permissions, overriding runtime
             self.expose(*p, configured=True)
 
-            self.mqttConnect(
-                server=data.get("mqtt.server",''),
-                password=data.get("mqtt.password",''),
-                port=int(data.get("mqtt.server",'1883')), 
-                messageBusName=data.get("mqtt.messageBusName",''),
-                mqttTopic=data.get("mqtt.topic",''),
-            )
-
+            try:
+                self.mqttConnect(
+                    server=data.get("mqtt.server",''),
+                    password=data.get("mqtt.password",''),
+                    port=int(data.get("mqtt.port",'1883')), 
+                    messageBusName=data.get("mqtt.messageBusName",''),
+                    mqttTopic=data.get("mqtt.topic",''),
+                    incomingPriority=data.get("mqtt.incomingPriority",'50'),
+                    incomingExpiration=data.get("mqtt.incomingExpiration",'0'),
+                    configured=True
+                )
+            except:
+                messagebus.postMessage(
+                    "/system/notifications/errors", "Failed to setup MQTT tag connection in" + self.name + "\n" + traceback.format_exc())
     @property
     def interval(self):
         return self._interval
@@ -1274,6 +1299,14 @@ class _TagPoint(virtualresource.VirtualResource):
                 else:
                     ref = weakref.ref(f)
 
+                for i in self.subscribers:
+                    if f==i():
+                        syslogger.warning("Double subscribe detected, same function subscribed to "+self.name+" more than once.  Only the first takes effect.")
+                        self._managePolling()
+                        return
+                        
+
+
                 self.subscribers.append(ref)
 
                 torm = []
@@ -1339,9 +1372,8 @@ class _TagPoint(virtualresource.VirtualResource):
         # This is not threadsafe, but I don't think it matters.
         # A few unnecessary updates shouldn't affect anything.
         if self.lastValue == self.lastPushedValue:
-            if not self.pushOnRepeats:
-                if self.isNotFirstPush:
-                    return
+            if self.isNotFirstPush:
+                return
 
         self.isNotFirstPush=True
 
@@ -1389,7 +1421,13 @@ class _TagPoint(virtualresource.VirtualResource):
         return self._getValue()
 
     def pull(self):
-        return self._getValue(True)
+        if not self.lock.acquire(timeout=15):
+            raise RuntimeError("Could not get lock")
+        try:
+            return self._getValue(True)
+        finally:
+            self.lock.release()
+
 
     def _getValue(self, force=False):
         "Get the processed value of the tag, and update lastValue, It is meant to be called under lock."
@@ -1484,6 +1522,15 @@ class _TagPoint(virtualresource.VirtualResource):
         self.setClaimVal("default", v, time.monotonic(),
                          "Set via value property")
 
+    @property
+    def pushOnRepeats(self, v):
+        return False
+
+    @pushOnRepeats.setter
+    def pushOnRepeats(self, v):
+        raise AttributeError("Push on repeats was causing too much trouble and too many loops and too much confusion and has been removed")
+
+
     def handleSourceChanged(self, name):
         if self.onSourceChanged:
             try:
@@ -1522,11 +1569,23 @@ class _TagPoint(virtualresource.VirtualResource):
             if name in self.claims:
                 claim = self.claims[name]()
 
+             
+
             # If the weakref obj disappeared it will be None
             if claim is None:
                 priority = priority or 50
                 claim = self.claimFactory(
                     value, name, priority, timestamp, annotation)
+
+            else:   
+                #It could have been released previously.
+                claim.released = False
+                #Inherit priority from the old claim if nobody has changed it
+                if priority is None:
+                    priority = claim.priority
+                if priority is None:
+                    priority = 50
+
 
             claim.vta = value,timestamp,annotation
 
@@ -1542,6 +1601,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 ac=self.activeClaim()
             else:
                 ac=None
+
             # If we have priortity on them, or if we have the same priority but are newer
             if (ac is None) or (priority > ac.priority) or ((priority == ac.priority) and(timestamp > ac.timestamp)):
                 self.activeClaim = self.claims[name]
@@ -1586,6 +1646,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
     def setClaimVal(self, claim, val, timestamp, annotation):
         "Set the value of an existing claim"
+
         if timestamp is None:
             timestamp = time.monotonic()
 
@@ -1619,6 +1680,7 @@ class _TagPoint(virtualresource.VirtualResource):
             if self.poller or valCallable:
                 self._managePolling()
 
+
             x.vta = val,timestamp,annotation
 
             if upd:
@@ -1628,7 +1690,7 @@ class _TagPoint(virtualresource.VirtualResource):
                     pass#self._getValue()
                 else:
                     self.lastGotValue = time.time()
-                    self.lastValue=val               
+                    self.lastValue=self.processValue(val)               
                 # No need to push is listening
                 if (self.subscribers or self.handler):
                     self._push()
@@ -1643,7 +1705,7 @@ class _TagPoint(virtualresource.VirtualResource):
         #Deref all weak refs
         x =  [i() for i in self.claims.values()]
         #Eliminate dead references
-        x = [i for i in x if i]
+        x = [i for i in x if i and not i.released]
         if not x:
             return None
         #Get the top one
@@ -1665,10 +1727,7 @@ class _TagPoint(virtualresource.VirtualResource):
             if name == "default":
                 raise ValueError("Cannot delete the default claim")
 
-            if len(self.claims) == 1:
-                raise RuntimeError("Tags must maintain at least one claim")
-            del self.claims[name]
-
+            self.claims[name]().released = True
             o=self.getTopClaim()
             #All claims gone means this is probably in a __del__ function as it is disappearing
             if not o:
@@ -1803,6 +1862,7 @@ class _NumericTagPoint(_TagPoint):
         if not v == self.configOverrides.get('min', v):
             return
         self._min = v
+        self.pull()
         self._setupMeter()
 
     @property
@@ -1815,6 +1875,7 @@ class _NumericTagPoint(_TagPoint):
         if not v == self.configOverrides.get('max', v):
             return
         self._max = v
+        self.pull()
         self._setupMeter()
 
     @property
@@ -1922,6 +1983,7 @@ class _StringTagPoint(_TagPoint):
     defaultData = ''
     unit = "string"
     type = 'string'
+    mqttEncoding = 'utf8'
     @typechecked
     def __init__(self, name: str):
         self.guiLock = threading.Lock()
@@ -1935,6 +1997,15 @@ class _StringTagPoint(_TagPoint):
 
     def filterValue(self, v):
         return str(v)
+
+        
+    def _mqttHandler(self, value,t,a):
+        #No endless l00ps.
+        if a =='MQTTSyncIncoming':
+            return
+        #Publish local changes to the MQTT bus.
+        self.mqttConnection.publish(self.mqttTopic, value,retain=True,encoding='utf8')
+
 
     def _debugAdminPush(self, value, timestamp, annotation):
         # Immediate write, don't push yet, do that in a thread because TCP can block
@@ -2171,8 +2242,9 @@ class Claim():
 
         self.expiration = 0
         
-
         self.poller = None
+
+        self.released = False
 
     def __del__(self):
         if self.name != 'default':
@@ -2181,21 +2253,33 @@ class Claim():
             self.release()
 
     def __lt__(self, other):
+        if self.released:
+            if not other.released:
+                return True
         if (self.priority, self.timestamp) < (other.priority, other.timestamp):
             return True
         return False
 
     def __le__(self, other):
+        if self.released:
+            if not other.released:
+                return True
         if (self.priority, self.timestamp) <= (other.priority, other.timestamp):
             return True
         return False
 
-    def __gt__(self, other):        
+    def __gt__(self, other):
+        if other.released:
+            if not self.released:
+                return True        
         if (self.priority, self.timestamp) > (other.priority, other.timestamp):
             return True
         return False
 
     def __ge__(self, other):
+        if other.released:
+            if not self.released:
+                return True   
         if (self.priority, self.timestamp) >= (other.priority, other.timestamp):
             return True
         return False
@@ -2255,7 +2339,7 @@ class Claim():
             
 
 
-    def setExpiration(self,expiration, expiredPriority=0):
+    def setExpiration(self,expiration, expiredPriority=1):
         """Set the time in seconds before this claim is regarded as stale, and what priority to revert to in the stale state.
             Note that that if you use a getter with this, it will constantly poll in the background
         """
@@ -2319,12 +2403,22 @@ class Claim():
         if self.expired:
            self.unexpire()
 
-        self.tag.setClaimVal(self.name, value, timestamp, annotation)
+        #In the released state we must do it all over again
+        elif self.released:
+            if self.tag.lock.acquire(timeout=60):
+                try:
+                    self.tag.claim(value=self.value, timestamp=self.timestamp, annotation=self.annotation,
+                                priority=self.priority, name=self.name)
+                finally:
+                    self.tag.lock.release()
+
+            else:
+                raise RuntimeError("Cannot get lock to re-claim after release, waited 60s")
+        else:
+            self.tag.setClaimVal(self.name, value, timestamp, annotation)
 
     def release(self):
-
         try:
-
             #Stop any weirdness with an old claim double releasing and thus releasing a new claim
             if not self.tag.claims[self.name]() is self:
 

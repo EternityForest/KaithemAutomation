@@ -28,13 +28,13 @@ def listConnections():
 
         
 class EnhancedConnection(BaseConnection):
-    def __init__(self, server, port=1883, password=None, *, alertPriority="warning", alertAck=True, messageBusName=None):
+    def __init__(self, server, port=1883, password=None, *, alertPriority="warning", alertAck=True, messageBusName=None,**kw):
         self.statusTag = tagpoints.StringTag(
             "/system/mqtt/"+(messageBusName or server+":"+str(port))+"/status")
         self.statusTagClaim = self.statusTag.claim(
             "disconnected", "status", 90)
         BaseConnection.__init__(self, server=server, password=password, port=port,
-                                alertPriority=alertPriority, alertAck=True, messageBusName=messageBusName,)
+                                alertPriority=alertPriority, alertAck=True, messageBusName=messageBusName,**kw)
 
         with allConnectionsLock:
             torm = []

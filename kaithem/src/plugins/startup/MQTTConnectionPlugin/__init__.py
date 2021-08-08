@@ -16,7 +16,7 @@ from src.kaithemobj import kaithem
 
 from src import widgets, jackmanager
 
-logger = logging.Logger("plugins.jackmidi")
+logger = logging.Logger("plugins.mqtt")
 
 templateGetter = TemplateLookup(os.path.dirname(__file__))
 

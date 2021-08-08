@@ -200,7 +200,7 @@ or code your own API for that.
 If configured is True, will actually set the persistant config rather than the runtime config. This will not be made permanent till the user clicks "save server state to disk".
 
 
-#### tagPoint.mqttConnect(self, **,server=None, port=1883, password=None,messageBusName=None, mqttTopic=None, incomingPriority=None)
+#### tagPoint.mqttConnect(self, **,server=None, port=1883, password=None,messageBusName=None, mqttTopic=None, incomingPriority=None, incomingExpiration=None)
 
 Used to connect a tag point for 2-way sync to an MQTT server.  When the tag's value changes, the value will be sent, JSON encoded if needed, to
 the server at the selected topic, or under /tagpoints/TAGNAME.  Messages will be sent with the retain flag active.
@@ -214,8 +214,18 @@ configured through the device manager.
 You can use this to sync tags on two Kaithem instances, but the data has been kept as simple as possible so you can also use it to interact with other software.
 
 
+
+
+
 Note that due to the use of the retain flag, upon reconnection to the server, the value may "snap back" to whatever the server thinks the value should be, the MQTT server
-is the "source of truth" here.
+is the "source of truth" here.  Tag points are intended to represent one shared point kept on the server and are not "directional".
+
+The incoming expiration tag will cause the claim representing MQTT data to expire if the data is more than that old.  Note that we currently only send data on changes, so this is of limited utility,
+until we have a perioding rebroadcasting feature.
+
+Upon expiration, the value will become that of the next highest claim, and this new value will be sent over the MQTT topic like anything else.
+
+
 
 
 #### tagPoint.getEffectivePermissions()

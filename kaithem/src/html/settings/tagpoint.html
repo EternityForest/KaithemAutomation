@@ -195,8 +195,8 @@ def combineLogs(a):
     You can sync a tag's value using MQTT.  Configuring this overrides any sync settings set in code.
     To use this, you must configure an MQTTConnection in the devices manager, and set the tag's message bus name to match.
     If you do not set a topic,  it will use /tagpoints/TAGNAME.
-
 </p>
+<p class="warning">Common point of confusion: When a getter-based claim is overridden by another claim of the same priority, it stops polling.  This means that you </p>
 <table border="1">
     <tr>
         <td>Message Bus Name</td>
@@ -204,12 +204,17 @@ def combineLogs(a):
     </tr>
     <tr>
         <td>MQTT Topic(blank for default)</td>
-        <td><input name="mqtt.topic" value="${configData.get('mqtt.topic','')|h}""></td>
+        <td><input name="mqtt.topic" value="${configData.get('mqtt.topic','')|h}"></td>
     </tr>
 
     <tr>
         <td>Incoming Message Priority(Default 50)</td>
-        <td><input name="mqtt.incomingPriority" value="${configData.get('mqtt.incomingPriority','50')|h}""></td>
+        <td><input name="mqtt.incomingPriority" value="${str(configData.get('mqtt.incomingPriority','50')).split('.')[0]|h}"></td>
+    </tr>
+
+    <tr>
+        <td>Incoming Data Expiry time(Ignore MQTT if data is old,0=never)</td>
+        <td><input name="mqtt.incomingExpiration" value="${str(configData.get('mqtt.incomingExpiration','0')).split('.')[0]|h}">S</td>
     </tr>
 </table>
 
@@ -570,7 +575,7 @@ Set the interval to 0 to delete the logger. Set history length to 0 to disable d
         <tr>
             <td>${i[0]}</td>
             <td>${i[1]}</td>
-            <td>${i[2][:128]}</td>
+            <td>${str(i[2])[:128]}</td>
         </tr>
         %endfor
     %endif

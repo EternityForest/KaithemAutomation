@@ -64,6 +64,17 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.65.64
+- Now we support those cheap SainSmart relay boards with a tagpoint based interface.  Use the Relayft245r device type.
+- Freeboard default values don't clobber existing stuff if it is there, for the slider and switch widgets.
+- Broadcast Center sends snackbar text alerts to most/all devices accessing the server
+- kaithemobj.widgets.sendGlobalAlert(message, duration) to programmatically send HTML in a snackbar to all devices.
+- New tag.control: expose API gives write only control, for when you want to both claim the tag and separately see it's current real value
+- New /pages/chandler/sendevent?event=NAME&value=VALUE API
+- User pages now show telemetry on what WS connections are open from what IP addresses on what pages. Use
+- BREAKING CHANGE: the default topics used by the MQTT Tag sync no longer use a slash.
+- Correctly handle MQTT passsive connections that are created after the real connection
+
 ### 0.65.63
 - Avoid slow cue transition performace when there is a cue loop
 - New compatibility/dummy mode for managing jack(Gives better performance on some systems, can work on new raspbian)
