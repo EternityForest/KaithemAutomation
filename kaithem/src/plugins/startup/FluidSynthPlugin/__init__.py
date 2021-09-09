@@ -37,15 +37,6 @@ class JackFluidSynth(devices.Device):
         except:
             print(traceback.format_exc())
 
-        try:
-            self.client.deactivate()
-        except:
-            print(traceback.format_exc())
-
-        try:
-            self.client.close()
-        except:
-            print(traceback.format_exc())
 
     def __del__(self):
         self.close()
@@ -60,6 +51,15 @@ class JackFluidSynth(devices.Device):
                     with self.synthLock:
                         self.synth.noteOff(c,60)
         return f
+
+    def onMidiMsg(self, t,v):
+        if v[0]=='noteon':
+            self.noteOn(v[1],v[2],v[3])
+        elif v[0]=='noteoff':
+            self.noteOff(v[1],v[2])
+        elif v[0]=='cc':
+            self.cc(v[1],v[2],v[3])
+
 
     def __init__(self, name, data):
         devices.Device.__init__(self, name, data)
@@ -98,22 +98,12 @@ class JackFluidSynth(devices.Device):
                     self.handleError("Error setting instrument:" +inst+" for channel "+str(i)+"\n"+traceback.format_exc())
 
 
-            import jack
-            import struct
 
-            # First 4 bits of status byte:
-            NOTEON = 0x9
-            NOTEOFF = 0x8
+            connectMidi=data.get("device.connectMidi", "").strip().replace(":",'_').replace("[",'').replace("]",'').replace(" ",'')
 
-            INTERVALS = 3, 7  # minor triad
-
-            self.client = jack.Client(self.name+"_in")
-            inport = self.client.midi_inports.register("input")
-
-            connectMidi=data.get("device.connectMidi", "").strip()
-
-            self.midiAirwire = jackmanager.MonoAirwire(connectMidi, self.name+"_in:input")
-            self.midiAirwire.connect()
+            messagebus.subscribe("/midi/"+connectMidi,self.onMidiMsg)
+            
+          
 
             self.widgets=[] 
             
@@ -122,70 +112,41 @@ class JackFluidSynth(devices.Device):
                 x.attach(self.makeWidgetHandler(i))
                 self.widgets.append(x)
                 
-            
-            def noteOn(c,p,v):
-                def f():
-                    with self.synthLock:
-                        self.synth.noteOn(c,p,v)
-                workers.do(f)
-
-            def noteOff(c,p):
-                def f():
-                    with self.synthLock:
-                        self.synth.noteOff(c,p)
-                workers.do(f)
-
-            def cc(c,p,v):
-                def f():
-                    with self.synthLock:
-                        self.synth.cc(c,p,v)
-                workers.do(f)
-
-            def bend(c,v):
-                def f():
-                    with self.synthLock:
-                        self.synth.pitchBend(c,v)
-                workers.do(f)
-
-            def pgc(c,v):
-                def f():
-                    with self.synthLock:
-                        self.synth.programChange(c,v)
-                workers.do(f)
 
 
-            @self.client.set_process_callback
-            def process(frames):
-                try:
-                    for offset, indata in inport.incoming_midi_events():
-                        # Note: This may raise an exception:
-                        if len(indata) == 3:
-                            status, pitch, vel = struct.unpack('3B', indata)
-
-                            channel = status & 0b1111
-                            if status >> 4 ==NOTEON:
-                                noteOn(channel,pitch,vel)
-                            elif status >> 4 ==NOTEOFF:
-                                noteOff(channel,pitch)
-                            elif status >> 4 ==0b1011:
-                                cc(channel,pitch,vel)
-
-                            elif status >> 4 ==0b1110:
-                                bend(channel,struct.unpack("<h",indata[1:])[0] )
-
-                        if len(indata) == 2:
-                            status, rg = struct.unpack('2B', indata)
-                            if status >> 4 == 0b1100:
-                                pgc(channel,prg)
-                       
-                except:
-                    self.handleException()
-
-                            
-            self.client.activate()
         except:
             self.handleException()
 
+
+    def noteOn(self,c,p,v):
+        def f():
+            with self.synthLock:
+                self.synth.noteOn(c,p,v)
+        workers.do(f)
+
+    def noteOff(self,c,p):
+        def f():
+            with self.synthLock:
+                self.synth.noteOff(c,p)
+        workers.do(f)
+
+    def cc(self,c,p,v):
+        def f():
+            with self.synthLock:
+                self.synth.cc(c,p,v)
+        workers.do(f)
+
+    def bend(self,c,v):
+        def f():
+            with self.synthLock:
+                self.synth.pitchBend(c,v)
+        workers.do(f)
+
+    def pgc(self,c,v):
+        def f():
+            with self.synthLock:
+                self.synth.programChange(c,v)
+        workers.do(f)
     def getManagementForm(self):
         return templateGetter.get_template("manageform.html").render(data=self.data, obj=self)
 

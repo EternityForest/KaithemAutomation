@@ -191,6 +191,10 @@ signal.signal(signal.SIGQUIT, sigquit)
 signal.signal(signal.SIGUSR1, dumpThreads)
 
 
+
+#Enable the auto MIDI tagpoint/message bus features.
+from src import rtmidimanager
+
 def nop():
     pass
 #from . import wifimanager

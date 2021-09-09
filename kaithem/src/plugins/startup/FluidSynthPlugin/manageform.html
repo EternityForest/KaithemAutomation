@@ -1,3 +1,25 @@
+<%
+
+def listRtmidi():
+    try:
+        import rtmidi
+    except ImportError:
+        if once[0] == 0:
+            messagebus.postMessage("/system/notifications/errors/","python-rtmidi is missing. Most MIDI related features will not work.")
+            once[0]=1
+        return []
+
+    m=rtmidi.RtMidiIn()
+
+    return [(m.getPortName(i)) for i in range(m.getPortCount())]
+%>
+
+
+<datalist name="inputs" id="inputs">
+    %for i in listRtmidi():
+    <option>${i|h}</option>
+    %endfor
+</datalist>
 <h3>Info</h3>
 <p>
  The device name is the JACK client name.  Instrument settings are the defaults when the device is created, runtime changes are possible.
@@ -15,13 +37,13 @@
     </tr>
 
     <tr>
-        <td>Connect to JACK Midi port</td>
-        <td><input name="device.connectMidi" value="${data.get('device.connectMidi','')|h}" placeholder="default"></td>
+        <td>Connect to MIDI(Message Bus Name)</td>
+        <td><input list="inputs" name="device.connectMidi" value="${data.get('device.connectMidi','')|h}" placeholder="default"></td>
     </tr>
 
     <tr>
         <td>Connect to JACK Audio port</td>
-        <td><input name="device.connectOutput" value="${data.get('device.connectOutput','')|h}" placeholder="default"></td>
+        <td><input  name="device.connectOutput" value="${data.get('device.connectOutput','')|h}" placeholder="default"></td>
     </tr>
 
     %for i in range(0,16):

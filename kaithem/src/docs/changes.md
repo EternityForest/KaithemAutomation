@@ -1,5 +1,11 @@
 Change Log
 ----------
+### 0.65.65
+
+- JackMIDIListener has been removed.  Instead, all connected ALSA midi devices automatically generate tag points for last pressed note and all CC values.
+- All connected midi devices now also report to the message bus
+- JackFluidSynth plugin now only accepts MIDI on the internal message bus.  
+- python-rtmidi is required to use these features.  This is all on account of some unreliable performance and excess complexity with jack midi.
 
 
 ### 0.65.64

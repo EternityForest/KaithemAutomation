@@ -289,8 +289,9 @@ class Zigbee2MQTT(devices.Device):
             #Clean up anything deleted from the actual listing of records
             torm=[]
             for i in self.tagpoints:
-                if not self.tagpoints[i].deviceFriendlyName in d:
-                    torm.append(i)
+                if hasattr(self.tagpoints[i],'deviceFriendlyName'):
+                    if not self.tagpoints[i].deviceFriendlyName in d:
+                        torm.append(i)
             for i in torm:
                 del self.tagpoints[i]
 

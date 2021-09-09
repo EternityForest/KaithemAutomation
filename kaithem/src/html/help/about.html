@@ -75,6 +75,19 @@
         return ip,s
 
 
+    def listRtmidi():
+        try:
+            import rtmidi
+        except ImportError:
+            if once[0] == 0:
+                messagebus.postMessage("/system/notifications/errors/","python-rtmidi is missing. Most MIDI related features will not work.")
+                once[0]=1
+            return []
+    
+        m=rtmidi.RtMidiIn()
+    
+        return [(m.getPortName(i)) for i in range(m.getPortCount())]
+
     def list_ips():
         ips={}
         
@@ -394,6 +407,17 @@ lanip =get_lan_ip()
                 <li>${i|h}</li>
                 %endfor
             </ul>
+
+
+
+            <h3>RTMidi Inputs</h3>
+            <ul>
+                %for i in listRtmidi():
+                <li>${i|h}</li>
+                %endfor
+            </ul>
+
+
 
             <h3>lm_sensors output(Requires lm_sensors to be installed)</h3>
             <pre>
