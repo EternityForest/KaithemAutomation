@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1597045786883071
+resource-timestamp: 1631240565641983
 resource-type: event
 versions: {}
 
@@ -220,6 +220,8 @@ if __name__=='__setup__':
             "Reset all values to 0 including the prerendered data"
             self.prerendered_layer = (0,0)
             self.values = numpy.array([0.0]*self.count,dtype="f4")
+            self.alphas = numpy.array([0.0]*self.count,dtype="f4")
+    
             self.top_layer = (0,0)
     
         
@@ -814,6 +816,8 @@ if __name__=='__setup__':
             self.lastSend = time.monotonic()
             self.finishedSending = True
             self.awaitingSend = False
+    
+            #This universe always has exactly one fixture on it, and we auto create that fixture.
             self.assignDefaultFixture()
             self.lastPostedErr=0
             self.localFading=False

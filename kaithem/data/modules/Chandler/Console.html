@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1625644903753178
+resource-timestamp: 1631240917733004
 resource-type: page
 template-engine: mako
 
@@ -23,6 +23,27 @@ import json
 from src import tagpoints
 
 %>
+<%
+def listRtmidi():
+    try:
+        import rtmidi
+    except ImportError:
+        if once[0] == 0:
+            messagebus.postMessage("/system/notifications/errors/","python-rtmidi is missing. Most MIDI related features will not work.")
+            once[0]=1
+        return []
+
+    m=rtmidi.RtMidiIn()
+
+    return [(m.getPortName(i)) for i in range(m.getPortCount())]
+%>
+
+<datalist name="midiinputs" id="midiinputs">
+    %for i in listRtmidi():
+    <option>${i|h}</option>
+    %endfor
+</datalist>
+
 
 <%
     #Make a list of all the tags,
@@ -311,6 +332,9 @@ from src import tagpoints
                     <button v-on:click="showhidefixtureassignments"><img src="/zipstatic/img/icons/fugue.zip/light-bulb.png"></img>Fixture Assignments</button>
                     <button v-if="showAdvancedControls" v-on:click="showevents=!showevents"><img src="/zipstatic/img/icons/fugue.zip/application-terminal.png"></img>Events Window</button>
                     <button v-on:click="showimportexport=!showimportexport"><img src="/zipstatic/img/icons/fugue.zip/folder-horizontal-open.png"></img>Import/Export</button>
+                    <button v-on:click="showsoundmixer=!showsoundmixer"><img src="/zipstatic/img/icons/fugue.zip/speaker.png"></img>Sound Mixer</button>
+                    <button v-on:click="showtags=!showtags"><img src="/zipstatic/img/icons/fugue.zip/application-terminal.png"></img>Tag Points</button>
+
                     <a class="button" href="/pages/Chandler/docs/index" target="_blank"><img src="/zipstatic/img/icons/fugue.zip/book-question.png">Help</a>
                     <a class="button" href="/pages/Chandler/Setup">Global Settings</a>
                 </div>
@@ -369,6 +393,17 @@ from src import tagpoints
             </div>
 
 
+            <div v-if="showsoundmixer" class="sectionbox" style="width:50%; height:30em; resize:both;float:right;">
+                <iframe src="/settings/mixer?kaithem_disable_header=true"  style="width:100%; height:100%; " ></iframe>
+            </div>
+
+
+            <div v-if="showtags" class="sectionbox" style="width:49%; height:30em; resize:both;float:right;">
+                <iframe src="/tagpoints?kaithem_disable_header=true" style="width:100%; height:100%;"></iframe>
+            </div>
+
+
+
             <div v-if="showDMXSetup" class="sectionbox">
                 <h3>
                     <button v-on:click="showDMXSetup=0">
@@ -398,7 +433,9 @@ from src import tagpoints
                 <br>
 
                 <h4>Configure Universes</h4>
-
+                <p>If tag point universes do nothing, check that the priority is not just being overrriden. It should be at least 50.  Also note that you should avoid using this to create new tags,
+                    as they may be destroyed and recreated as cues come and go, which could cause odd behavior.   To add tags to a universe, use the extra options button. 
+                </p>
                 <datalist id="artnettargets">
                     %if kaithem.web.hasPermission("/admin/settings.edit"): 
                     %for i in kaithem.devices: 
@@ -693,7 +730,11 @@ from src import tagpoints
                     <span v-if="(i[1].subs!==-1)" title="Scene is synced with external servers">({{i[1].subs}})</span>
                     <b>{{i[1].name}}</b><span v-if="i[1].ext" class="grey"> (external)</span></button>
                         <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}<img v-if="cuemeta[i[1].cue].script" src="/zipstatic/img/icons/fugue.zip/script-text.png"></img>
-                    <img v-if="cuemeta[i[1].cue].sound" src="/zipstatic/img/icons/fugue.zip/speaker.png"></img>
+                    <img v-if="cuemeta[i[1].cue].sound" src="/zipstatic/img/icons/fugue.zip/speaker.png"></img> 
+
+
+                    <img v-if="cuemeta[i[1].cue].inheritRules" src="/zipstatic/img/icons/fugue.zip/application-terminal.png" title="This cue has rules inherited"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"></img>
+                    <img v-if="cuemeta[i[1].cue].rules && cuemeta[i[1].cue].rules.length>0" src="/zipstatic/img/icons/fugue.zip/application-terminal.png" title="This cue has rules attatched"  v-on:click="scenetab='logic';selectcue(scenename,cuemeta[i[1].cue].name)"></img>
                     </span><br>
                         <br>
                         <button v-on:click="go(i[0])"><i class="icss-arrow-right" style="color:green;"></i>Go!</button>
@@ -779,6 +820,8 @@ from src import tagpoints
                                     <td class="rowname" data-label="Cue: " style=" user-select: none;" title="Click the cue name to edit that cue" v-on:click="selectcue(scenename,i[1].name)"><i v-if="cuemeta[editingScene.cue].name==i[1].name" class="fas fa-play-circle" style="color:green;"></i>
                                         <img v-if="selectedCues[scenename]==i[1].name" src="/zipstatic/img/icons/fugue.zip/pencil.png"></img>
                                         <b>{{i[1].name}}</b>
+                                        <img v-if="i[1].inheritRules" title="This cue has rules inherited"  v-on:click="scenetab='logic';selectcue(scenename,i[1].name)" src="/zipstatic/img/icons/fugue.zip/application-terminal.png"></img>
+                                        <img v-if="i[1].rules && i[1].rules.length>0" title="This cue has rules attatched"  v-on:click="scenetab='logic';selectcue(scenename,i[1].name)" src="/zipstatic/img/icons/fugue.zip/application-terminal.png"></img>
                                     </td>
 
                                     <td data-label="Cue #:"><b title="Cue number, double click to change." style="width:6em" v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</b></td>
@@ -1319,6 +1362,11 @@ from src import tagpoints
                                 v-model="editingScene.mqttServer"></input>
                         </label>
 
+                           <label v-if="showAdvancedControls" title="Recieve note events from a MIDI input device">MIDI Source:
+                            <input list="midiinputs" style="width:25em"  v-on:change="setmidi(scenename,$event.target.value)"
+                                v-model="editingScene.midiSource"></input>
+                        </label>
+
                             <hr v-if="editingScene.blend!='normal' & showLightingControls" style="border-style:solid;border-width:1px;border-color:grey;">
                             <p>{{editingScene.blendDesc}}</p>
                             <label v-for="(j,k) in editingScene.blendParams">{{j[0]}}:
@@ -1813,6 +1861,8 @@ from src import tagpoints
 
             'showDMXSetup': false,
             'showsceneoptions': false,
+            'showsoundmixer': false,
+            'showtags': false,
             'scenetab': 'cue',
             'configuredUniverses':
             {
@@ -2702,6 +2752,12 @@ from src import tagpoints
 
                 appData.scenemeta[sc].mqttServer = v;
                 api_link.send(['setMqttServer', sc, v]);
+            },
+            'setmidi': function(sc, v)
+            {
+
+                appData.scenemeta[sc].midiSource = v;
+                api_link.send(['setMidiSource', sc, v]);
             },
             'setpriority': function(sc, v)
             {

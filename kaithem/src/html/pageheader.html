@@ -4,6 +4,8 @@ from src import auth,util,notifications,pages,modules,registry,theming,devices,p
 import cherrypy,socket,base64
 %>
 
+
+
 <!DOCTYPE html>
 <html>
 
@@ -14,6 +16,7 @@ import cherrypy,socket,base64
 </head>
 
 <body id="page">
+  %if not cherrypy.request.params.get("kaithem_disable_header",0):
   <div style="width: 100%; position:relative;">
     ${config['top-banner-html'].replace("HOSTNAME",socket.gethostname())}
   <div border="" id="nav">
@@ -159,4 +162,5 @@ import cherrypy,socket,base64
 
       </div>
     </div>
+    %endif
     <main>

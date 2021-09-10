@@ -423,6 +423,12 @@ def webRoot():
             pages.require("/admin/mainpage.view")
             cherrypy.response.cookie['LastSawMainPage'] = time.time()
             return pages.get_template('index.html').render(api=notifications.api, alertsapi=alerts.api)
+        
+        
+        @cherrypy.expose
+        def alerts(self, *path, **data):
+            pages.require("/admin/mainpage.view")
+            return pages.get_template('alerts.html').render(api=notifications.api, alertsapi=alerts.api)
 
         @cherrypy.expose
         def tagpoints(self, *path, **data):

@@ -59,7 +59,8 @@ class JackFluidSynth(devices.Device):
             self.noteOff(v[1],v[2])
         elif v[0]=='cc':
             self.cc(v[1],v[2],v[3])
-
+        elif v[0]=='pitch':
+            self.bend(v[1],v[2])
 
     def __init__(self, name, data):
         devices.Device.__init__(self, name, data)

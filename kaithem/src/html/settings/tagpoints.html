@@ -1,10 +1,11 @@
+
 <%include file="/pageheader.html"/>
 
 <%!
 from src import tagpoints
 import gc
 
-import os
+import os,cherrypy
 from src import directories
 tagsLocation = os.path.join(directories.vardir,"tags")
 
@@ -17,13 +18,18 @@ def paginate(l,n):
 pageNumber=int(data.get('pageNumber',0))
 searchFilter=data.get('searchFilter','').strip()
 filteredTags = [i for i in tagpoints.allTagsAtomic.keys() if searchFilter.lower() in i.lower()]
+
+extraUrlStuff =''
+
+if cherrypy.request.params.get("kaithem_disable_header",0):
+    extraUrlStuff= "?kaithem_disable_header=true"
 %>
 
 
 <script src="/static/widget.js"></script>
 <title>Tag Points</title>
 
-<h2>Tag Points</h2>
+<h2>Tag Points<a href="/tagpoints">(reload)</a> </h2>
 <div class="sectionbox">
 <p class="help">
     This page lists all <a href="/docs/mdtemplate?page=tagpoints.md">Tag Points</a> currently managed by Kaithem. 
@@ -54,7 +60,7 @@ Page:
 
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._NumericTagPoint):
 <tr>
-    <td><a href="/tagpoints/${i|u}">${i|h}</a></td>
+    <td><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</a></td>
     <td>${tagpoints.allTagsAtomic[i]().lastValue} <span style="color: grey">${tagpoints.allTagsAtomic[i]().unit} ${"(see page for newest data)" if tagpoints.allTagsAtomic[i]().isDynamic() else ''}</span></td>
     <td>${tagpoints.allTagsAtomic[i]().interval}</td>
     <td>${tagpoints.allTagsAtomic[i]().activeClaim().name if tagpoints.allTagsAtomic[i]().activeClaim() else 'CORRUPT STATE'}</td>
@@ -66,7 +72,7 @@ Page:
 
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._StringTagPoint):
 <tr>
-    <td><a href="/tagpoints/${i|u}">${i|h}</h></td>
+    <td><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
     <td>${str(tagpoints.allTagsAtomic[i]().lastValue)[:80]|h} <span style="color: grey">${"(see page for newest data)" if tagpoints.allTagsAtomic[i]().isDynamic() else ''}</span></td>
     <td>${tagpoints.allTagsAtomic[i]().interval}</td>
     <td>${tagpoints.allTagsAtomic[i]().activeClaim().name if tagpoints.allTagsAtomic[i]().activeClaim() else 'CORRUPT STATE'}</td>
@@ -77,7 +83,7 @@ Page:
 
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._ObjectTagPoint):
 <tr>
-    <td><a href="/tagpoints/${i|u}">${i|h}</h></td>
+    <td><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
     <td>${str(tagpoints.allTagsAtomic[i]().lastValue)[:80]|h} <span style="color: grey">${"(see page for newest data)" if tagpoints.allTagsAtomic[i]().isDynamic() else ''}</span></td>
     <td>${tagpoints.allTagsAtomic[i]().interval}</td>
     <td>${tagpoints.allTagsAtomic[i]().activeClaim().name if tagpoints.allTagsAtomic[i]().activeClaim() else 'CORRUPT STATE'}</td>
@@ -88,7 +94,7 @@ Page:
 
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints._BinaryTagPoint):
 <tr>
-    <td><a href="/tagpoints/${i|u}">${i|h}</h></td>
+    <td><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
     <td><span style="color: grey">Value is binary data</span></td>
     <td>${tagpoints.allTagsAtomic[i]().interval}</td>
     <td>${agpoints.allTagsAtomic[i]().activeClaim().name if tagpoints.allTagsAtomic[i]().activeClaim() else 'CORRUPT STATE'}</td>
@@ -128,7 +134,7 @@ Page:
 <ul>
 %for i in tagpoints.configTagData:
 %if not i in tagpoints.allTags:
-<li><a href="/tagpoints/${i|u}">${i|h}</a></li>
+<li><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</a></li>
 %endif
 %endfor
 </ul>

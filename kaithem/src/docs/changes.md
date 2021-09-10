@@ -6,6 +6,8 @@ Change Log
 - All connected midi devices now also report to the message bus
 - JackFluidSynth plugin now only accepts MIDI on the internal message bus.  
 - python-rtmidi is required to use these features.  This is all on account of some unreliable performance and excess complexity with jack midi.
+- Chandler can now respond directly to MIDI, no code needed
+- Chandler bugfix with smart bulb hue and saturation channels not blending the way you might expect.
 
 
 ### 0.65.64

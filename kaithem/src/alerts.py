@@ -316,6 +316,8 @@ class Alert(virtualresource.VirtualResource):
                 beepDevice = registry.get("system/alerts/soundcard", None)
                 sound.playSound(
                     s, handle="kaithem_sys_main_alarm", output=beepDevice)
+                api.send(['shouldRefresh'])
+
             workers.do(f)
 
         if self.priority in ("error", "critical"):
@@ -328,6 +330,7 @@ class Alert(virtualresource.VirtualResource):
             logger.warning("Alarm "+self.name + " ACTIVE")
         else:
             logger.info("Alarm "+self.name + " active")
+        
 
     def _onAck(self):
         global unacknowledged
@@ -337,6 +340,8 @@ class Alert(virtualresource.VirtualResource):
                 del _unacknowledged[self.id]
             unacknowledged = _unacknowledged.copy()
         calcNextBeep()
+        api.send(['shouldRefresh'])
+
 
     def _onNormal(self):
         "Mostly defensivem but also cleans up if the autoclear occurs and we skio the acknowledged state"
@@ -355,6 +360,8 @@ class Alert(virtualresource.VirtualResource):
                 del _active[self.id]
             active = _active.copy()
         calcNextBeep()
+        api.send(['shouldRefresh'])
+
 
     def _onTrip(self):
         if self.priority in ("error", "critical"):
@@ -387,6 +394,7 @@ class Alert(virtualresource.VirtualResource):
                 "/system/notifications", "Alarm "+self.name+" condition cleared, waiting for ACK")
 
         logger.info("Alarm "+self.name + " cleared")
+        api.send(['shouldRefresh'])
 
     def __del__(self):
         self.acknowledge("<DELETED>")

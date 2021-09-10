@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1625394450890523
+resource-timestamp: 1631240649017963
 resource-type: event
 versions: {}
 
@@ -23,6 +23,23 @@ if __name__=='__setup__':
     from decimal import Decimal
     from tinytag import TinyTag
     from typeguard import typechecked
+    
+    
+    
+    
+    # https://gist.github.com/devxpy/063968e0a2ef9b6db0bd6af8079dad2a
+    NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+    OCTAVES = list(range(11))
+    NOTES_IN_OCTAVE = len(NOTES)
+    
+    def number_to_note(number: int) -> tuple:
+        octave = number // NOTES_IN_OCTAVE
+        assert octave in OCTAVES, errors['notes']
+        assert 0 <= number <= 127, errors['notes']
+        note = NOTES[number % NOTES_IN_OCTAVE]
+    
+        return note+str(octave)
+    
     
     
     def nbr():
@@ -464,11 +481,13 @@ if __name__=='__setup__':
             #If the cuelen isn't 0 it means we are using the newer version that supports randomizing lengths.
             #We keep this in case we get a sound format we can'r read the length of in advance
             if i.cuelen == 0:
-                if i.cue.sound and i.cue.rel_length:
-                    if not kaithem.sound.isPlaying(str(i.id)) and not i.sound_end:
-                        i.sound_end = module.timefunc()
-                    if i.sound_end and (module.timefunc()-i.sound_end>(i.cue.length*i.bpm)):
-                        i.nextCue(cause='sound')
+                #Forbid any crazy error loopy business with too short sounds
+                if (module.timefunc()-i.enteredCue)> 1/5:
+                    if i.cue.sound and i.cue.rel_length:
+                        if not kaithem.sound.isPlaying(str(i.id)) and not i.sound_end:
+                            i.sound_end = module.timefunc()
+                        if i.sound_end and (module.timefunc()-i.sound_end>(i.cue.length*i.bpm)):
+                            i.nextCue(cause='sound')
     
     class ObjPlugin():
         pass
@@ -1198,6 +1217,8 @@ if __name__=='__setup__':
     
     
     
+    
+    
         def pushMeta(self,sceneid, statusOnly=False, keys=None):
             "Statusonly=only the stuff relevant to a cue change. Keys is iterabe of what to send, or None for all"
             scene = module.scenes[sceneid]
@@ -1265,6 +1286,7 @@ if __name__=='__setup__':
                                 'cuelen': scene.cuelen,
                                 'syncKey': scene.syncKey,
                                 'syncAddr': scene.syncAddr,
+                                'midiSource': scene.midiSource,
                                 'syncPort': scene.syncPort,
                                 'subs': subs,
                                 'subslist': subslist,
@@ -1729,6 +1751,9 @@ if __name__=='__setup__':
                 if msg[0] == "setsyncport":
                     module.scenes[msg[1]].setSyncPort(int(msg[2]))
     
+                if msg[0] == "setMidiSource":
+                    module.scenes[msg[1]].setMidiSource(msg[2])
+    
                 if msg[0] == "tap":
                     module.scenes[msg[1]].tap(msg[2])
                 if msg[0] == "setbpm":
@@ -2097,7 +2122,7 @@ if __name__=='__setup__':
     
             uvalues = composite(uvalues,vals,alphas, fade)
             #Essetially calculate remaining light percent, then multiply layers and convert back to alpha
-            ualphas =  1-((1-(alphas*fade)) * (1-(ualphas))) 
+            ualphas =  1-( (1-(alphas*fade)) * (1-(ualphas))) 
     
     
         elif scene.blend == "HTP":
@@ -2128,6 +2153,7 @@ if __name__=='__setup__':
             except:
                 print("Error in blend function")
                 print(traceback.format_exc())
+        uobj.alphas = ualphas
         return uvalues
     
     
@@ -2674,7 +2700,7 @@ if __name__=='__setup__':
         "An objecting representing one scene. DefaultCue says if you should auto-add a default cue"
         def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,
         blendArgs=None,backtrack=True,defaultCue=True, syncKey=None, bpm=60, syncAddr="239.255.28.12", syncPort=1783, 
-        soundOutput='',notes='',page=None, mqttServer='', crossfade=0):
+        soundOutput='',notes='',page=None, mqttServer='', crossfade=0, midiSource=''):
     
             if name and name in module.scenes_by_name:
                 raise RuntimeError("Cannot have 2 scenes sharing a name: "+name)
@@ -2687,6 +2713,7 @@ if __name__=='__setup__':
             self.randomizeModifier=0
     
             self.notes=notes
+            self.midiSource=''
     
             if page and isinstance(page, str):
                 page = {'html':page,'css':'','js':'','rawhtml':''}
@@ -2708,8 +2735,6 @@ if __name__=='__setup__':
             self.cueTag = kaithem.tags.StringTag("/chandler/scenes/"+name+".cue")
             self.cueTag.expose("users.chandler.admin","users.chandler.admin")
             
-            #Important for reentrant cues
-            self.cueTag.pushOnRepeats = True
             self.cueTagClaim = self.cueTag.claim("__stopped__","Scene", 50,annotation="SceneObject")
     
             self.cueVolume = 1
@@ -2779,7 +2804,6 @@ if __name__=='__setup__':
             self.alphaTag = kaithem.tags["/chandler/scenes/"+name+".alpha"]
             self.alphaTag.min=0
             self.alphaTag.max=1
-            self.alphaTag.pushOnRepeats = False
             self.alphaTag.expose("users.chandler.admin","users.chandler.admin")
     
     
@@ -2901,6 +2925,8 @@ if __name__=='__setup__':
         
             self.setMqttServer(mqttServer)
     
+            self.setMidiSource(midiSource)
+    
             if defaultCue:
                 #self.gotoCue('default',sendSync=False)
                 pass
@@ -2926,6 +2952,7 @@ if __name__=='__setup__':
                         'backtrack': self.backtrack,
                         'soundOutput': self.soundOutput,
                         'syncKey':self.syncKey, 'syncPort': self.syncPort, 'syncAddr':self.syncAddr,
+                        'midiSource': self.midiSource,
                         'uuid': self.id,
                         'notes': self.notes,
                         'page': self.page,
@@ -3279,13 +3306,6 @@ if __name__=='__setup__':
                     if not self.active:
                         return
                         
-                    #Can't change the cue if some TagPoint claim has already locked it to one cue
-                    if not self.cueTag.currentSource == self.cueTagClaim.name:
-                        if not self.cueTag.value == cue:
-                            if not self.cue:
-                                raise RuntimeError("Undefined state. There is no current cue, and one may be required here, but we cannot enter one because of a tagpoint: "+self.cueTag.currentSource)
-                            return
-    
                     if self.canvas:
                         self.canvas.save()
     
@@ -3584,7 +3604,8 @@ if __name__=='__setup__':
                         self.cuelen=  max(0,self.randomizeModifier+slen)
                     except:
                         logging.exception("Error getting length for sound "+str(path))
-                        self.cuelen = 0
+                        #Default to 4 mins just so it's obvious there is a problem, and so that the cue actually does end eventually
+                        self.cuelen = 240
     
                 else: 
                     self.cuelen = max(0,self.randomizeModifier+cuelen)
@@ -3993,7 +4014,37 @@ if __name__=='__setup__':
                 self.cueTagClaim.set("__stopped__",annotation="SceneObject")
                 self.doMqttSubscriptions(keepUnused=0)
     
-            
+        def noteOn(self,ch,note,vel):
+            self.event("midi.note:"+str(ch)+"."+number_to_note(note),vel)
+    
+        def noteOff(self,ch,note):
+            self.event("midi.noteoff:"+str(ch)+"."+number_to_note(note),0)
+    
+        def cc(self,ch,n,v):
+            self.event("midi.cc:"+str(ch)+"."+str(n),v)
+    
+    
+        def setMidiSource(self,s):
+    
+            if s==self.midiSource:
+                return
+                
+            if not s:
+                kaithem.message.unsubscribe("/midi/"+s.replace(":",'_').replace("[",'').replace("]",'').replace(" ",''),self.onMidiMessage)
+            else:
+                kaithem.message.subscribe("/midi/"+s.replace(":",'_').replace("[",'').replace("]",'').replace(" ",''),self.onMidiMessage)
+    
+            self.midiSource =s
+    
+        def onMidiMessage(self,t,v):
+            if v[0] == 'noteon':
+                self.noteOn(v[1],v[2],v[3])
+            if v[0] == 'noteoff':
+                self.noteOff(v[1],v[2])
+            if v[0] == 'cc':
+                self.cc(v[1],v[2],v[3])
+                     
+    
         def setAlpha(self,val,sd=False):
             val = min(1,max(0,val))
             try:

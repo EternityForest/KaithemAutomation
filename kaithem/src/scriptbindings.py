@@ -244,7 +244,7 @@ def maybe(chance=50):
 
 
 def continueIf(v):
-    "Continue if the first parameter is True"
+    "Continue if the first parameter is True. Remember that the param can be an expression like '= event.value=50' "
     return True if v else None
 
 

@@ -20,6 +20,9 @@ def combineLogs(a):
     
 %>
 <%
+
+    data.pop("kaithem_disable_header",0)
+
     logtime=time.time()-3600
     if data and 'logtime' in data:
         logtime = dateutil.parser.parse(data['logtime']).timestamp()
@@ -152,7 +155,7 @@ def combineLogs(a):
 %>
 <title>${normalizednormalizedTagName|h}</title>
 <script src="/static/widget.js"></script>
-<h2>Tag Point: <small>${normalizednormalizedTagName}</small></h2>
+<h2><a href="/tagpoints">(back)</a> Tag Point: <small>${normalizednormalizedTagName}</small></h2>
 <div class="sectionbox">
 <p class="help">
     This page manages one tagpoint. To save configured defaults you must save the server state

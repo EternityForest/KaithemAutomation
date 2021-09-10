@@ -8,6 +8,10 @@ allInputs = {}
 
 tagPoints={}
 
+
+
+
+
 def setTag(n,v,a=None):
     if not n in tagPoints:
         tagPoints[n]=tagpoints.Tag(n)
@@ -15,6 +19,12 @@ def setTag(n,v,a=None):
         tagPoints[n].max=127
     tagPoints[n].setClaimVal('default',v,timestamp=None,annotation=None)
 
+def setTag14(n,v,a=None):
+    if not n in tagPoints:
+        tagPoints[n]=tagpoints.Tag(n)
+        tagPoints[n].min=0
+        tagPoints[n].max=16383
+    tagPoints[n].setClaimVal('default',v,timestamp=None,annotation=None)
 
 def onMidiMessage(m,d):
     if m.isNoteOn():
@@ -28,6 +38,10 @@ def onMidiMessage(m,d):
     elif m.isController():
         messagebus.postMessage("/midi/"+d, ('cc', m.getChannel(),m.getControllerNumber(),m.getControllerValue()))
         setTag("/midi/"+d+"/"+str(m.getChannel())+".cc["+str(m.getControllerNumber())+']', m.getControllerValue(), a= 0)
+
+    elif m.isPitchWheel():
+        messagebus.postMessage("/midi/"+d, ('pitch', m.getChannel(),m.getPitchWheelValue()))
+        setTag14("/midi/"+d+"/"+str(m.getChannel())+".pitch", m.getPitchWheelValue(), a= 0)
 
 
 once =[0]

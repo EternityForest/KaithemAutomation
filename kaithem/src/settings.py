@@ -94,7 +94,7 @@ class Settings():
         raise cherrypy.HTTPRedirect("/settings")
 
     @cherrypy.expose
-    def threads(self):
+    def threads(self,*a,**k):
         """Return a page showing all of kaithem's current running threads"""
         pages.require("/admin/settings.view", noautoreturn=True)
         return pages.get_template("settings/threads.html").render()
@@ -110,24 +110,24 @@ class Settings():
         raise cherrypy.HTTPRedirect("/settings/threads")
 
     @cherrypy.expose
-    def mixer(self):
+    def mixer(self,*a,**k):
         pages.require("/users/mixer.edit",)
         return pages.get_template("settings/mixer.html").render()
 
     @cherrypy.expose
-    def wifi(self):
+    def wifi(self,*a,**k):
         """Return a page showing the wifi config"""
         pages.require("/admin/settings.edit",)
         return pages.get_template("settings/wifi.html").render()
 
     @cherrypy.expose
-    def mdns(self):
+    def mdns(self,*a,**k):
         """Return a page showing all of the discovered stuff on the LAN"""
         pages.require("/admin/settings.edit", noautoreturn=True)
         return pages.get_template("settings/mdns.html").render()
 
     @cherrypy.expose
-    def upnp(self):
+    def upnp(self,*a,**k):
         """Return a page showing all of the discovered stuff on the LAN"""
         pages.require("/admin/settings.edit", noautoreturn=True)
         return pages.get_template("settings/upnp.html").render()
@@ -285,7 +285,7 @@ class Settings():
         return pages.get_template("settings/util/imgmap.html").render()
 
     @cherrypy.expose
-    def leaflet(self):
+    def leaflet(self,*a,**k):
         pages.require("/admin/mainpage.view")
         return pages.get_template("settings/util/leaflet.html").render()
 
