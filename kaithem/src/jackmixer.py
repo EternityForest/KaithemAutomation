@@ -276,6 +276,7 @@ class Recorder(gstwrapper.Pipeline):
 class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
     def __init__(self, name, board=None, channels=2, input=None, outputs=[], soundFuse=3):
+        self.name=name
         gstwrapper.Pipeline.__init__(self, name, realtime=70)
         self.board = board
         self.levelTag = tagpoints.Tag("/jackmixer/channels/" + name + ".level")
@@ -425,6 +426,36 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 x.connect()
                 self._outputs.append(x)
 
+
+
+    def addSend(self, target, id, volume=-60):
+        #I hate doing things like this...
+        #But senda apparently use a lot of low level pipeline manipulation that has to be done on
+        #the other side.
+        with self.lock:
+            if not isinstance(target, str):
+                raise ValueError("Target must be string")
+            l,e2= self.addJackMixerSendElements(target, id, volume)
+
+            self.effectsById[id] = l
+            self.effectsById[id + "*destination"] = e2
+
+            d = effectTemplates['send']
+            d['params']['*destination']['value'] = target
+            d['params']['volume']['value'] = volume
+            self.effectDataById[id] = d
+
+            # Sequentially number the sends
+            cname = self.name + "_send" + str(len(self.sends))
+            e2.set_property("client-name", cname)
+
+            self.sendAirwires[id] = jackmanager.Airwire(
+                cname, target, forceCombining=(self.channels == 1))
+            self.sends.append(e2)
+
+
+
+            
     def loadData(self, d):
         for i in d['effects']:
             if d.get('bypass', False):
@@ -580,15 +611,8 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         self.addElement("level", post_messages=True,
                         peak_ttl=300 * 1000 * 1000, peak_falloff=60, interval=10**9/24)
 
-    def on_message(self, bus, message, userdata):
-        s = message.get_structure()
-        if not s:
-            return True
-        msgtype = s.get_name()
-        if msgtype == 'level':
+    def onLevelMessage(self, src , rms, l):
             if self.board:
-                l = sum([i for i in s['decay']]) / len(s['decay'])
-                rms = sum([i for i in s['rms']]) / len(s['rms'])
                 self.levelTag.value = max(rms, -90)
                 self.doSoundFuse(rms)
                 if l < -45 or abs(l - self.lastLevel) < 6:
@@ -601,18 +625,12 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 self.lastPushedLevel = time.monotonic()
                 self.lastLevel = l
                 self.board.pushLevel(self.name, l)
+    def onSTTMessage(self,v):
+        messagebus.postMessage("/system/mixer/channels/" + self.name + "/stt/hypothesis",
+                                       (v,))
 
-        # Speech recognition, forward it on to the message bus.
-        elif msgtype == 'pocketsphinx':
-            if message.get_structure().get_value('hypothesis'):
-                messagebus.postMessage("/system/mixer/channels/" + self.name + "/stt/hypothesis",
-                                       (message.get_structure().get_value('hypothesis'),))
-
-            if message.get_structure().get_value('final'):
-                messagebus.postMessage("/system/mixer/channels/" + self.name + "/stt/final",
-                                       (message.get_structure().get_value('hypothesis'), message.get_structure().get_value('confidence')))
-
-        return True
+    def onSTTMessageFinal(self,v):
+        messagebus.postMessage("/system/mixer/channels/" + self.name + "/stt/final",(v,))
 
     def doSoundFuse(self, rms):
         # Highly dynamic stuff is less likely to be feedback.
@@ -709,62 +727,6 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         # Let the _faderTagHandler handle it.
         self.faderTag.value = level
 
-    def addSend(self, target, id, volume=-60):
-        with self.lock:
-            if not isinstance(target, str):
-                raise ValueError("Target must be string")
-
-            e = self.makeElement("tee")
-            q = self.makeElement("queue")
-            q2 = self.makeElement("queue")
-            q2.max_size_buffers = 1
-            q.max_size_buffers = 1
-            q.leaky = 2
-            q2.leaky = 2
-            l = self.makeElement('volume')
-            l.set_property('volume', 10**(volume / 20))
-            self.effectsById[id] = l
-
-            e2 = self.makeElement(
-                "jackaudiosink", "_send" + str(len(self.sends)))
-            e2.set_property("buffer-time", 10)
-            e2.set_property("port-pattern", "fdgjkndgmkndfmfgkjkf")
-            e2.set_property("sync", False)
-            e2.set_property("slave-method", 0)
-            e2.set_property('provide-clock', False)
-            e2.set_property('connect', False)
-
-            e2.latency_time = 10
-            self.effectsById[id] = l
-            self.effectsById[id + "*destination"] = e2
-
-            d = effectTemplates['send']
-            d['params']['*destination']['value'] = target
-            d['params']['volume']['value'] = volume
-            self.effectDataById[id] = d
-
-            # Sequentially number the sends
-            cname = self.name + "_send" + str(len(self.sends))
-            e2.set_property("client-name", cname)
-
-            self.sendAirwires[id] = jackmanager.Airwire(
-                cname, target, forceCombining=(self.channels == 1))
-            self.sends.append(e2)
-
-            tee_src_pad_template = e.get_pad_template("src_%u")
-            tee_audio_pad = e.request_pad(tee_src_pad_template, None, None)
-            tee_audio_pad2 = e.request_pad(tee_src_pad_template, None, None)
-
-            if self.elements:
-                gstwrapper.link(self.elements[-1], e)
-            gstwrapper.link(tee_audio_pad, q)
-            gstwrapper.link(tee_audio_pad2, q2)
-            self.elements.append(q2)
-
-            gstwrapper.link(q, l)
-            gstwrapper.link(l, e2)
-
-            return e
 
 
 class ChannelInterface():

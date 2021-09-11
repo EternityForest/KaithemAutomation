@@ -320,7 +320,7 @@ import os
             </div>
 
           </div>
-
+          <p>{{channelname}} Level:</p>
           <input v-model="channel.fader" v-on:input="setFader(channelname, parseFloat($event.target.value))"
             orient="vertical" type="range" step="0.5" value="-60" min="-60" max="20" style="width:98%;"
             v-bind:title="channel.fader"><br>

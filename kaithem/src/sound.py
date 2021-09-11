@@ -902,6 +902,8 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
         if not output:
             output = "@auto"
+        
+        self.output = output
 
         self.outputName = output
         self.filename = file
@@ -934,7 +936,10 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
         self._prevPlayerObject = _prevPlayerObject
 
-        self.src = self.addElement('filesrc', location=file)
+        if not file=="__empty__":
+            self.src = self.addElement('filesrc', location=file)
+        else:
+            self.src = self.addElement('filesrc')
         #self.queue = self.addElement("queue")
 
         if not file.endswith(".mid"):
@@ -1073,36 +1078,7 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
             finally:
                 self.lock.release()
 
-    def onEOS(self):
-        # If the file has changed size recently, this might not be a real EOS,
-        # Just a buffer underrun. Lets just try again
 
-        # For extremely small files, return to the preload queue. It may be a quick sound effect that should have the best response time
-        # Probably best not to do this on early stop.  If the user is hammering a button maybe something is wrong.
-        # try:
-        #     if os.stat(self.filename).st_size< 300000:
-        #         self.pause()
-        #         self.seek(0)
-        #         gst_preloaded[self.filename, self.outputName] = (self,time.monotonic())
-        #         return
-        # except:
-        #     logging.exception("Preload logic err")
-
-        if self.lastFileSizeChange > (time.monotonic()-3):
-            self.pause()
-            self.seek(self.lastPosition-0.1)
-            time.sleep(3)
-            self.play()
-        else:
-            # Don't shut everything off if we must loop!
-            if self.loopsRemaining <= 0:
-                gstwrapper.Pipeline.onEOS(self)
-            else:
-                pass
-                # Can;t just seek, have to entirely restart.  This should only
-                # Happen if we are too slow and can't queue the new data fast enough
-                # self.restart(segment=True)
-                # self.loopsRemaining -= 1
 
     def onSegmentDone(self):
         # If the file has changed size recently, this might not be a real EOS,
@@ -1159,50 +1135,66 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         # For the best possible sound
         if not self.lock:
             return
-
+        if self.ended:
+            return
+        
+        self.loopsRemaining=0
         try:
             self.setFader(self.faderLevel/1.5)
             self.setFader(self.faderLevel/2)
-            self.setFader(self.faderLevel/3)
             self.setFader(self.faderLevel/4)
+            self.setFader(self.faderLevel/8)
         except:
             print(traceback.format_exc())
             pass
 
-        try:
-            if self.aw:
-                self.aw.disconnect()
-        except:
-            logging.exception("Err disconnecting airwire")
 
-        gstwrapper.Pipeline.stop(self)
+
+   
+        #Move this to a preload cache
+        if False:#("__empty__",self.output) in gst_preloaded and not self.output in ["@auto",'__disable__']:
+            with preloadlock:
+                if not ("__empty__",self.output) in gst_preloaded:
+                    gst_preloaded[("__empty__", self.output)]= (self,time.monotonic())
+        else:
+            try:
+                if self.aw:
+                    self.aw.disconnect()
+            except:
+                logging.exception("Err disconnecting airwire")
+            gstwrapper.Pipeline.stop(self)
+            #Convenient way to make it unusable
+            del self.lock
+
+
 
         if self._prevPlayerObject:
             p = self._prevPlayerObject()
-            if p:
+            #No idea how p could be self,but be defensive
+            if p and not p is self:
                 p.stop()
+        self.ended = True
+
+    
 
     def resume(self):
         self.play(segment=self.loopsRemaining > 0)
 
     def onStreamFinished(self):
-        self.ended = True
+        if self.loopsRemaining <= 0:
+            self.stop()
+        
+
 
     def isPlaying(self):
-        return self.running
+        return not self.ended
 
     def addLevelDetector(self):
         self.addElement("level", post_messages=True,
                         peak_ttl=300*1000*1000, peak_falloff=60,interval=10**9/48)
 
-    def on_message(self, bus, message, userdata):
-        s = message.get_structure()
-        if not s:
-            return True
-
-        if s.get_name() == 'level':
+    def onLevelMessage(self, src, rms,decay):
             if self.board:
-                rms = sum([i for i in s['rms']])/len(s['rms'])
                 self.peakDetect = max(self.peakDetect, rms)
                 timeSinceBeat = time.monotonic()-self.lastBeat
 
@@ -1214,7 +1206,7 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
                         self.detectedBeatInterval = (
                             self.detectedBeatInterval*3 + timeSinceBeat)/4
                         self.peakDetect *= 0.996
-        return True
+            return True
 
 
 class GStreamerBackend(SoundWrapper):
@@ -1231,18 +1223,39 @@ class GStreamerBackend(SoundWrapper):
     class GStreamerContainer(object):
         def __init__(self, filename, output="@auto", **kwargs):
 
-            if preloadlock.acquire(timeout=5):
-                try:
-                    if not kwargs.get('loop', 0) and (filename, output) in gst_preloaded:
-                        self.pl = gst_preloaded[filename, output][0]
-                        del gst_preloaded[filename, output]
-                    else:
-                        self.pl = GSTAudioFilePlayer(filename, kwargs.get(
-                            'volume', 1), output=output, loop=kwargs.get('loop', 0))
-                finally:
-                    preloadlock.release()
-            else:
-                raise RuntimeError("Could not get lock")
+            self.pl=None
+            if (filename, output) in gst_preloaded or  ("__empty__", output) in gst_preloaded:
+                if preloadlock.acquire(timeout=1):
+                    try:
+                        if not kwargs.get('loop', 0) and (filename, output) in gst_preloaded:
+                            self.pl = gst_preloaded[filename, output][0]
+                            del gst_preloaded[filename, output]
+
+
+                        #As it takes a really long time to spin up a new python instance,
+                        # #We are going to always try to keep a ready to go player.
+                        # elif not kwargs.get('loop', 0) and ("__empty__", output) in gst_preloaded:
+                        #     self.pl = gst_preloaded['__empty__', output][0]
+                        #     del gst_preloaded['__empty__', output]
+
+                        #     #If we just used up the ready to go player, make another one unless we guess that this effect will be over before we need ot play anything else on the channel.
+                        #     #Do that guess based on file size.  Since sound responsiveness is so noticable, assume that we always need 1 extra player channel per output.
+                        #     if os.path.isfile(filename) and os.stat(filename).st_size> 512000:
+                        #         def f():
+                        #             with preloadlock:
+                        #                 gst_preloaded['__empty__', output] =GSTAudioFilePlayer(filename, kwargs.get('volume', 1), output=output, loop=kwargs.get('loop', 0))
+                        #         workers.do(f)
+                        #     self.pl.location=filename
+                        #     self.pl.seek(0)
+
+                    finally:
+                        preloadlock.release()
+                else:
+                    raise RuntimeError("Could not get lock")
+            
+            if not self.pl:
+                self.pl = GSTAudioFilePlayer(filename, kwargs.get(
+                                'volume', 1), output=output, loop=kwargs.get('loop', 0))
 
             self.pl.setVol(kwargs.get('volume', 1))
             if not kwargs.get('pause', 0):
@@ -1256,7 +1269,7 @@ class GStreamerBackend(SoundWrapper):
             try:
                 self.pl.stop()
             except:
-                pass
+                print(traceback.format_exc())
 
         def isPlaying(self):
             return not self.pl.ended
@@ -1274,7 +1287,7 @@ class GStreamerBackend(SoundWrapper):
             self.pl.start(segment=self.pl.loopsRemaining > 0)
 
         def stop(self):
-            self.loopsRemaining = 0
+            self.pl.loopsRemaining = 0
             self.pl.stop()
 
         def seek(self):
@@ -1304,11 +1317,7 @@ class GStreamerBackend(SoundWrapper):
 
                 # Clean up any unused preload requests
                 for i in gst_preloaded:
-                    if t-gst_preloaded[i][1] > 60:
-                        torm[i] = 1
-
-                for i in gst_preloaded:
-                    if not gst_preloaded[i][0].running:
+                    if t-gst_preloaded[i][1] > 600:
                         torm[i] = 1
 
                 # Out of space, but nothing marked for deletion, now we shorten

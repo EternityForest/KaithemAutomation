@@ -38,7 +38,24 @@ wordlist = mnemonics.wordlist
 # This is an acceptable dependamcy, it will be part of libkaithem if such a thing exists
 from . import messagebus, iceflow
 
-dummy=False
+
+#These events have to happen in a consistent order, the same order that the actual JACK callbacks happen.
+#We can't do them within the jack callback becauuse that could do a deadlock.
+
+jackEventHandlingQueue = []
+jackEventHandlingQueueLock = threading.Lock()
+
+
+def handleJackEvent():
+    with jackEventHandlingQueueLock:
+        if jackEventHandlingQueue:
+            f = jackEventHandlingQueue.pop(False)
+            f()
+
+
+dummy = False
+
+
 def shouldAllowGstJack(*a):
     global _jackclient
     for i in range(0, 10):
@@ -246,7 +263,7 @@ class MonoAirwire():
         self.to = to
         self.active = True
 
-    def disconnect(self):                        
+    def disconnect(self):
         global realConnections
         self.disconnected = True
         try:
@@ -477,53 +494,56 @@ def Airwire(f, t, forceCombining=False):
 def onPortConnect(a, b, connected):
     # Whem things are manually disconnected we don't
     # Want to always reconnect every time
-    global realConnections
+    def f():
+        global realConnections
 
-    if connected:
-        with lock:
-            if a.is_output:
-                _realConnections[a.name, b.name] = True
-            else:
-                _realConnections[b.name, a.name] = True
+        if connected:
+            with lock:
+                if a.is_output:
+                    _realConnections[a.name, b.name] = True
+                else:
+                    _realConnections[b.name, a.name] = True
 
-            realConnections = _realConnections.copy()
+                realConnections = _realConnections.copy()
 
-    if not connected:
-        i = (a.name, b.name)
-        with lock:
-            if (a.name, b.name) in _realConnections:
+        if not connected:
+            i = (a.name, b.name)
+            with lock:
+                if (a.name, b.name) in _realConnections:
+                    try:
+                        del _realConnections[a.name, b.name]
+                    except KeyError:
+                        pass
+
+                if (b.name, a.name) in _realConnections:
+                    try:
+                        del _realConnections[b.name, a.name]
+                    except KeyError:
+                        pass
+
+                realConnections = _realConnections.copy()
+
+            # Try to stop whatever airwire or set therof
+            # from remaking the connection
+            if i in activeConnections:
                 try:
-                    del _realConnections[a.name, b.name]
-                except KeyError:
+                    # Deactivate first, that must keep it from using the api
+                    # From within the callback
+                    activeConnections[i].active = False
+                    del allConnections[i]
+                    del activeConnections[i]
+                except:
                     pass
 
-            if (b.name, a.name) in _realConnections:
-                try:
-                    del _realConnections[b.name, a.name]
-                except KeyError:
-                    pass
+            # def f():
+            #     if not connected:
+            #         log.debug("JACK port "+ a.name+" disconnected from "+b.name)
+            #     else:
+            #         log.debug("JACK port "+ a.name+" connected to "+b.name)
 
-            realConnections = _realConnections.copy()
-
-        # Try to stop whatever airwire or set therof
-        # from remaking the connection
-        if i in activeConnections:
-            try:
-                # Deactivate first, that must keep it from using the api
-                # From within the callback
-                activeConnections[i].active = False
-                del allConnections[i]
-                del activeConnections[i]
-            except:
-                pass
-
-        # def f():
-        #     if not connected:
-        #         log.debug("JACK port "+ a.name+" disconnected from "+b.name)
-        #     else:
-        #         log.debug("JACK port "+ a.name+" connected to "+b.name)
-
-        # workers.do(f)
+            # workers.do(f)
+    jackEventHandlingQueue.append(f)
+    workers.do(handleJackEvent)
 
 
 class PortInfo():
@@ -537,37 +557,42 @@ class PortInfo():
 
 
 def onPortRegistered(port, registered):
-    try:
-        global realConnections
-        "Same function for register and unregister"
-        if not port:
-            return
+    def f():
+        try:
+            global realConnections
+            "Same function for register and unregister"
+            if not port:
+                return
 
-        p = PortInfo(port.name, port.is_input, port.shortname, port.is_audio)
+            p = PortInfo(port.name, port.is_input, port.shortname, port.is_audio)
 
-        if registered:
-            #log.debug("JACK port registered: "+port.name)
-            with lock:
-                portsList[port.name] = port
-            messagebus.postMessage("/system/jack/newport", p)
-        else:
-            torm = []
-            with lock:
-                for i in _realConnections:
-                    if i[0] == port.name or i[1] == port.name:
-                        torm.append(i)
-                for i in torm:
-                    del _realConnections[i]
+            if registered:
+                #log.debug("JACK port registered: "+port.name)
+                with lock:
+                    portsList[port.name] = port
+                messagebus.postMessage("/system/jack/newport", p)
+            else:
+                torm = []
+                with lock:
+                    for i in _realConnections:
+                        if i[0] == port.name or i[1] == port.name:
+                            torm.append(i)
+                    for i in torm:
+                        del _realConnections[i]
 
-                try:
-                    del portsList[port.name]
-                except:
-                    pass
-                realConnections = _realConnections.copy()
+                    try:
+                        del portsList[port.name]
+                    except:
+                        pass
+                    realConnections = _realConnections.copy()
 
-            messagebus.postMessage("/system/jack/delport", p)
-    except:
-        print(traceback.format_exc())
+                messagebus.postMessage("/system/jack/delport", p)
+        except:
+            print(traceback.format_exc())
+
+    jackEventHandlingQueue.append(f)
+    workers.do(handleJackEvent)
+
 
 ############################################################################
 # This section manages the actual sound IO and creates jack ports
@@ -787,9 +812,9 @@ def generateJackName(words, longname, numberstring, taken, taken2):
     # This of course will mean we're going back to
     while (jackname in taken) or jackname in taken2:
 
-        #This was some kind of cool algorithm or something.
-        #At some point, fix it, but it clearly doesn't work, so lets use 
-        #The simple version.
+        # This was some kind of cool algorithm or something.
+        # At some point, fix it, but it clearly doesn't work, so lets use
+        # The simple version.
         # h = memorableHash(jackname + cards[i[0]] + ":" + i[2])[:12]
         # n = cleanupstring(longname)
         # jackname = n[:4] + '_' + words
@@ -797,7 +822,7 @@ def generateJackName(words, longname, numberstring, taken, taken2):
         # jackname = jackname[:28]
 
         jackname = jackname[:-2]
-        jackname+= str(int(random.random()+99))
+        jackname += str(int(random.random() + 99))
     return jackname
 
 
@@ -1167,7 +1192,7 @@ def _startJackProcess(p=None, n=None, logErrs=True):
 
         # If the user supplied a perisistent name, translate it.
         if jackDevice:
-            useDevice= jackDevice
+            useDevice = jackDevice
             incards, outcards, x = listSoundCardsByPersistentName()
             if jackDevice in incards:
                 useDevice = incards[jackDevice][0]
@@ -1177,22 +1202,23 @@ def _startJackProcess(p=None, n=None, logErrs=True):
 
         currentPrimaryDevice = useDevice
         # Not supplying an explicit d -o2 breaks sound on raspberry pi for some horrendous reason.
-        #This also means we don't support surround sound unfortunately.
+        # This also means we don't support surround sound unfortunately.
         # Not only that, -o2 must appear at the end.
-        cmdline=['jackd']
+        cmdline = ['jackd']
 
         if realtimePriority:
             cmdline.extend(['--realtime', '-P', str(realtimePriority)])
         if dummy:
-            d=['-d','dummy']
+            d = ['-d', 'dummy']
         else:
             d = ['-d', 'alsa', '-d', useDevice]
         cmdline.extend(d)
 
         if not dummy:
-            cmdline.extend(['-p', str(period), '-s', '-n', str(jackPeriods), '-r', '48000', '-o2'])
+            cmdline.extend(['-p', str(period), '-s', '-n',
+                            str(jackPeriods), '-r', '48000', '-o2'])
         else:
-            cmdline.extend(['-p',  str(period)])
+            cmdline.extend(['-p', str(period)])
 
         logging.info(
             "Attempting to start JACKD server with: \n" + ' '.join(cmdline))
@@ -1305,7 +1331,6 @@ def handleManagedSoundcards():
     global oldmidis
     global lastFullScan
     global useAdditionalSoundcards
-    print("jack poll sc")
 
     # There seems to be a bug in reading errors from the process
     # Right now it's a TODO, but most of the time
@@ -1798,10 +1823,12 @@ def work():
             return
         time.sleep(0.1)
 
+    failcounter = 0
     while(_reconnecterThreadObjectStopper[0]):
         try:
             # The _checkJack stuf won't block, because we already have the lock
             if lock.acquire(timeout=2):
+                failcounter=0
                 try:
                     if manageJackProcess:
                         _checkJack()
@@ -1810,11 +1837,16 @@ def work():
                         handleManagedSoundcards()
                 finally:
                     lock.release()
-                #_ensureConnections()
+                # _ensureConnections()
             else:
                 if(_reconnecterThreadObjectStopper[0]):
                     # Might be worth logging
+                    failcounter +=1
+                    if failcounter>50:
+                        failcounter=0
+                        try_unstuck()
                     raise RuntimeError("Could not get lock,retrying in 5s")
+
                 else:
                     # Already stopping anyway, ignore
                     pass
@@ -2054,6 +2086,7 @@ def getPortNamesWithAliases(*a, **k):
         logging.error("JACK seems to be blocked up. Killing processes")
         try_unstuck()
 
+
 def getConnections(name, *a, **k):
     if lock.acquire(timeout=10):
         try:
@@ -2070,13 +2103,16 @@ def getConnections(name, *a, **k):
         logging.error("JACK seems to be blocked up. Killing processes")
         try_unstuck()
 
-def try_unstuck():
-    #It seems that it is actually possible for connect() calls to hang.  This is used to stio
-    subprocess.call(['killall','alsa_in'])
-    subprocess.call(['killall','alsa_out'])
-    subprocess.call(['killall','jackd'])
 
-def disconnect(f, t):                    
+def try_unstuck():
+    print("******Big Jack Problem! starting everything over*******************")
+    # It seems that it is actually possible for connect() calls to hang.  This is used to stio
+    subprocess.call(['killall', 'alsa_in'])
+    subprocess.call(['killall', 'alsa_out'])
+    subprocess.call(['killall', 'jackd'])
+
+
+def disconnect(f, t):
     global realConnections
     if lock.acquire(timeout=30):
         try:
@@ -2092,9 +2128,8 @@ def disconnect(f, t):
                 if isinstance(t, str):
                     t = _jackclient.get_port_by_name(t)
 
-
-                #This feels race conditionful but i think it is important so that we don't try to double-disconnect.
-                #Be defensive with jack, the whole thing seems britttle
+                # This feels race conditionful but i think it is important so that we don't try to double-disconnect.
+                # Be defensive with jack, the whole thing seems britttle
                 _jackclient.disconnect(f, t)
                 try:
                     del _realConnections[f.name, t.name]
@@ -2108,7 +2143,6 @@ def disconnect(f, t):
                 except KeyError:
                     pass
 
-
             except:
                 pass
         finally:
@@ -2117,14 +2151,15 @@ def disconnect(f, t):
         logging.error("JACK seems to be blocked up. Killing processes")
         try_unstuck()
 
-def connect(f, t):                    
+
+def connect(f, t):
     global realConnections
     if lock.acquire(timeout=10):
         try:
             if not _jackclient:
                 return
 
-            if isConnected(f,t):
+            if isConnected(f, t):
                 return
 
             try:
@@ -2160,7 +2195,7 @@ def connect(f, t):
                 else:
                     _jackclient.connect(f, t)
                 try:
-                    _realConnections[f.name, t.name]=True
+                    _realConnections[f.name, t.name] = True
                     realConnections = _realConnections.copy()
                 except KeyError:
                     pass

@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1631240649017963
+resource-timestamp: 1631312092504587
 resource-type: event
 versions: {}
 
@@ -1287,6 +1287,7 @@ if __name__=='__setup__':
                                 'syncKey': scene.syncKey,
                                 'syncAddr': scene.syncAddr,
                                 'midiSource': scene.midiSource,
+                                'defaultNext': scene.defaultNext,
                                 'syncPort': scene.syncPort,
                                 'subs': subs,
                                 'subslist': subslist,
@@ -1337,7 +1338,7 @@ if __name__=='__setup__':
                                 'scene': cue.scene().id,
                                 'shortcut': cue.shortcut,
                                 'number': cue.number/1000.0,
-                                'defaultnext': cue.scene().getAfter(cue.name),
+                                'defaultNext': cue.scene().getAfter(cue.name),
                                 'prev': cue.scene().getParent(cue.name),
                                 'script': cue.script,
                                 'probability': cue.probability,
@@ -1753,7 +1754,8 @@ if __name__=='__setup__':
     
                 if msg[0] == "setMidiSource":
                     module.scenes[msg[1]].setMidiSource(msg[2])
-    
+                if msg[0] == "setDefaultNext":
+                    module.scenes[msg[1]].defaultNext = str(msg[2])[:256]
                 if msg[0] == "tap":
                     module.scenes[msg[1]].tap(msg[2])
                 if msg[0] == "setbpm":
@@ -1976,7 +1978,7 @@ if __name__=='__setup__':
                         c = msg[2][:1024]
                     else:
                         c = None
-                    cues[msg[1]].nextCue= c
+                    cues[msg[1]].nextCue= c.strip()
                     self.pushCueMeta(msg[1])
                     
                 
@@ -2700,7 +2702,7 @@ if __name__=='__setup__':
         "An objecting representing one scene. DefaultCue says if you should auto-add a default cue"
         def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,
         blendArgs=None,backtrack=True,defaultCue=True, syncKey=None, bpm=60, syncAddr="239.255.28.12", syncPort=1783, 
-        soundOutput='',notes='',page=None, mqttServer='', crossfade=0, midiSource=''):
+        soundOutput='',notes='',page=None, mqttServer='', crossfade=0, midiSource='', defaultNext=''):
     
             if name and name in module.scenes_by_name:
                 raise RuntimeError("Cannot have 2 scenes sharing a name: "+name)
@@ -2714,6 +2716,7 @@ if __name__=='__setup__':
     
             self.notes=notes
             self.midiSource=''
+            self.defaultNext=str(defaultNext).strip()
     
             if page and isinstance(page, str):
                 page = {'html':page,'css':'','js':'','rawhtml':''}
@@ -2953,6 +2956,7 @@ if __name__=='__setup__':
                         'soundOutput': self.soundOutput,
                         'syncKey':self.syncKey, 'syncPort': self.syncPort, 'syncAddr':self.syncAddr,
                         'midiSource': self.midiSource,
+                        'defaultNext':self.defaultNext,
                         'uuid': self.id,
                         'notes': self.notes,
                         'page': self.page,
@@ -3085,6 +3089,8 @@ if __name__=='__setup__':
                 self.cues_ordered[-1].next_ll = None
     
         def getDefaultNext(self):
+            if self.defaultNext.strip():
+                return self.defaultNext.strip()
             try:
                 return self.cues_ordered[self.cuePointer+1].name
             except:
@@ -3553,7 +3559,7 @@ if __name__=='__setup__':
                 nextCue =  self.cue.nextCue
         
     
-            if nextCue:
+            if nextCue and nextCue in self.cues:
                 c= self.cues[nextCue]
                 sound = c.sound
                 try:

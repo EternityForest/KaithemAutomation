@@ -143,10 +143,17 @@ class Settings():
     @cherrypy.expose
     def updateytdl(self, *args, **kwargs):
         pages.require("/admin/settings.edit", noautoreturn=True)
-        try:
-            subprocess.check_call(["youtube-dl", '-U'])
-        except:
-            subprocess.check_call(["pip3", "install", "--upgrade", "youtube-dl"])
+
+        if util.which("yt-dlp"):
+            try:
+                subprocess.check_call(["yt-dlp", '-U'])
+            except:
+                subprocess.check_call(["pip3", "install", "--upgrade", "yt-dlp"])
+        elif util.which("youtube-dl"):
+            try:
+                subprocess.check_call(["youtube-dl", '-U'])
+            except:
+                subprocess.check_call(["pip3", "install", "--upgrade", "youtube-dl"])
 
         raise cherrypy.HTTPRedirect("/settings")
 
@@ -192,12 +199,17 @@ class Settings():
                                 outf.write(data)
                             f.close()
 
+            if util.which("yt-dlp"):
+                ytdl= "yt-dlp"
+            else:
+                ytdl="youtube-dl"
+
 
             if 'youtubedl' in kwargs:
-                subprocess.check_call(['youtube-dl', '--format', 'bestaudio', kwargs['youtubedl']], cwd=dir)
+                subprocess.check_call([ytdl, '--format', 'bestaudio', kwargs['youtubedl']], cwd=dir)
 
             if 'youtubedlvid' in kwargs:
-                subprocess.check_call(['youtube-dl', kwargs['youtubedlvid']], cwd=dir)
+                subprocess.check_call([ytdl, kwargs['youtubedlvid']], cwd=dir)
 
             if os.path.isdir(dir):
                 return pages.get_template("settings/files.html").render(dir=dir)

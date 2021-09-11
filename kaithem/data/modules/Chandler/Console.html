@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1631240917733004
+resource-timestamp: 1631312231238042
 resource-type: page
 template-engine: mako
 
@@ -43,6 +43,14 @@ def listRtmidi():
     <option>${i|h}</option>
     %endfor
 </datalist>
+
+<datalist name="nextcueoptions" id="nextcueoptions">
+    <option>default</option>
+    <option></option>
+    <option>__random__</option>
+    <option>__shuffle__</option>
+</datalist>
+
 
 
 <%
@@ -844,6 +852,9 @@ def listRtmidi():
                                             <option v-for="j in formatCues(1)" v-bind:value="j[1].name">{{j[1].number}}: {{j[1].name}}</option>
                                             <option v-bind:value="i[1].next">Current: {{i[1].next}}</option>
 
+                                            <option value="__random__">RANDOM</option>
+                                            <option value="__shuffle__">SHUFFLE</option>
+
                                             </select>
 
                                             <input v-if="Object.keys(scenecues[scenename]).length>40" autocomplete=off list="cues_in_scene" title="Select a cue to activate when this one ends"
@@ -1366,6 +1377,12 @@ def listRtmidi():
                             <input list="midiinputs" style="width:25em"  v-on:change="setmidi(scenename,$event.target.value)"
                                 v-model="editingScene.midiSource"></input>
                         </label>
+
+                           <label title="You can use this with __random__ to create a shuffle effect.">Default cue advance:
+                            <input style="width:25em" list="nextcueoptions"  v-on:change="setdefaultnext(scenename,$event.target.value)"
+                                v-model="editingScene.defaultNext" placeholder="Next cue in list"></input>
+                        </label>
+
 
                             <hr v-if="editingScene.blend!='normal' & showLightingControls" style="border-style:solid;border-width:1px;border-color:grey;">
                             <p>{{editingScene.blendDesc}}</p>
@@ -2758,6 +2775,13 @@ def listRtmidi():
 
                 appData.scenemeta[sc].midiSource = v;
                 api_link.send(['setMidiSource', sc, v]);
+            },
+
+            'setdefaultnext': function(sc, v)
+            {
+
+                appData.scenemeta[sc].defaultNext = v;
+                api_link.send(['setDefaultNext', sc, v]);
             },
             'setpriority': function(sc, v)
             {
