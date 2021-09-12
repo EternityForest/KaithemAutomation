@@ -67,10 +67,15 @@ class GStreamerPipeline():
             
         self.ended=True
         if not self.worker.poll() is None:
+            self.rpc.stopFlag=True
             return
         try:
-            return self.rpc.call("stop")
+
+            x=self.rpc.call("stop")
+            self.rpc.stopFlag=True
+
         except:
+            self.rpc.stopFlag=True
             self.worker.kill()
             workers.do(self.worker.wait)
             raise
@@ -81,6 +86,11 @@ class GStreamerPipeline():
 
     def __init__(self, *a,**k):
         # -*- coding: utf-8 -*-
+
+        #If del can't find this it would to an infinite loop
+        self.worker = None
+
+
         from jsonrpyc import RPC
         from subprocess import Popen, PIPE, STDOUT
         pipes[id(self)]=self
@@ -92,8 +102,10 @@ class GStreamerPipeline():
         env.update(os.environ)
         env['GST_DEBUG']='0'
 
+
+        self.rpc=None
         self.worker = Popen(['python3', f], stdout=PIPE, stdin=PIPE, stderr=STDOUT, env=env)
-        self.rpc = RPC(target=self,stdin=self.worker.stdout, stdout=self.worker.stdin)
+        self.rpc = RPC(target=self,stdin=self.worker.stdout, stdout=self.worker.stdin,daemon=True)
 
     def print(self,s):
         print(s)

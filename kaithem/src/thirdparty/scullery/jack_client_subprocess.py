@@ -89,8 +89,12 @@ class JackClientProxy():
     def disconnect(self, f, t):
         global realConnections
         if lock.acquire(timeout=30):
-            f = self.worker.get_port_by_name(f)
-            t = self.worker.get_port_by_name(t)
+
+            try:
+                f = self.worker.get_port_by_name(f)
+                t = self.worker.get_port_by_name(t)
+            except jack.JackError:
+                return
 
             try:
                 if not self.worker:
@@ -112,8 +116,13 @@ class JackClientProxy():
                 if not self.worker:
                     return
                 
-                f = self.worker.get_port_by_name(f)
-                t = self.worker.get_port_by_name(t)
+                #Ignore the nuisance of no longer existing ports. Airwires will get them if they come back.
+                try:
+                    f = self.worker.get_port_by_name(f)
+                    t = self.worker.get_port_by_name(t)
+                except jack.JackError:
+                    return
+
 
                 f_input = f.is_input
 

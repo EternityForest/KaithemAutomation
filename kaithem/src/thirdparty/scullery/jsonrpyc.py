@@ -16,7 +16,6 @@ __status__ = "Development"
 __version__ = "1.1.1"
 __all__ = ["RPC"]
 
-import logging
 import select
 
 import sys
@@ -26,6 +25,7 @@ import time
 import threading
 import weakref
 import traceback
+
 class Spec(object):
     """
     This class wraps methods that create JSON-RPC 2.0 compatible string representations of
@@ -258,14 +258,12 @@ class RPC(object):
         self._i = -1
         self._callbacks = {}
         self._results = {}
-        self.stopFlag=False
+        self.fastResponseFlag = threading.Event()
 
         # create and optionall start the watchdog
         kwargs["start"] = watch
         kwargs.setdefault("daemon", target is None)
         self.watchdog = Watchdog(self, **kwargs)
-
-        self.fastResponseFlag = threading.Event()
 
 
     def __del__(self):
@@ -335,7 +333,7 @@ class RPC(object):
                 if self.fastResponseFlag.wait(block):
                     self.fastResponseFlag.clear()
                 if timeout and (time.time()-st)> timeout:
-                    raise TimeoutError("Request Timed Out")
+                    raise RuntimeError("Request Timed Out")
 
     def _handle(self, line):
         """
@@ -367,7 +365,6 @@ class RPC(object):
                 res = Spec.response(req["id"], result)
                 self._write(res)
         except Exception as e:
-            logging.exception("Err in handler")
             if "id" in req:
                 if isinstance(e, RPCError):
                     err = Spec.error(req["id"], e.code, e.data)
@@ -522,9 +519,6 @@ class Watchdog(threading.Thread):
 
             # stop when stdin is closed
             if rpc.stdin.closed:
-                break
-
-            if rpc.stopFlag:
                 break
 
             # read from stdin depending on whether it is a tty or not
