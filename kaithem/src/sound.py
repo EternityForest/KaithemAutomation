@@ -1367,6 +1367,10 @@ class GStreamerBackend(SoundWrapper):
         def stop(self):
             self.pl.loopsRemaining = 0
             self.pl.stop()
+            try:
+                self.pl.stopFlag=True
+            except:
+                pass
 
         def seek(self):
             self.pl.seek()

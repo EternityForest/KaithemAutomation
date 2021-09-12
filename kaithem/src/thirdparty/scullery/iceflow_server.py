@@ -1045,8 +1045,8 @@ class GStreamerPipeline():
             if self.pipeline.get_state(1000_000_000)[1] == Gst.State.PLAYING:
                 return True
 
-
-rpc[0] = jsonrpyc.RPC(target=GStreamerPipeline())
+gstp=GStreamerPipeline()
+rpc[0] = jsonrpyc.RPC(target=gstp)
 
 
 def print(*a):

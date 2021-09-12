@@ -166,6 +166,7 @@ class Spec(object):
 
         return err
 
+leakDebug = weakref.WeakValueDictionary()
 
 class RPC(object):
     """
@@ -246,7 +247,8 @@ class RPC(object):
         super(RPC, self).__init__()
 
         # the wrapped target object
-        self.target = target
+        self.target = weakref.ref(target)
+        leakDebug[id(self)]=self
 
         # open streams
         stdin = sys.stdin if stdin is None else stdin
@@ -437,7 +439,8 @@ class RPC(object):
             # => <bound method MyClassB.foo ...>
         """
         # recursively traverse target attributes
-        obj = self.target
+        obj = self.target()
+        
         for part in method.split("."):
             if not hasattr(obj, part):
                 break

@@ -1,7 +1,7 @@
 <%!
 from src.util import url
 from src import pages,newevt,usrpages,unitsofmeasure,util,widgets,kaithemobj
-import json,re,cherrypy,inspect,weakref,collections,gc
+import json,re,cherrypy,inspect,weakref,collections,gc,traceback
 %>
 <%
 try:
@@ -77,7 +77,12 @@ style="color:grey;"
 
 
 
+%try:
+
 %if hasattr(obj,'__slots__') and obj.__slots__:
+
+%try:
+
 <h3>Object Attributes</h3>
 <div class="sectionbox">
 <dl>
@@ -89,6 +94,13 @@ style="color:grey;"
     %endif
 </dd>
 %endfor
+
+
+%except:
+${traceback.format_exc()|h}
+</div>
+%endtry
+
 
 %for i in['__class__','__getattr__','__setattr__', '__getattribute__',"__del__","__init__","__str__","__repr__"]:
 %if hasattr(obj,i):
@@ -154,6 +166,12 @@ ${getsource(obj)|h}
 %endfor
 </div>
 %endif
+
+%except:
+${traceback.format_exc()|h}
+</div>
+%endtry
+
 
 
 
