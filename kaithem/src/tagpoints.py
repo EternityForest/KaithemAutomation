@@ -1396,14 +1396,18 @@ class _TagPoint(virtualresource.VirtualResource):
                 try:
                     f(self.lastValue, self.timestamp, self.annotation)
                 except Exception:
-                    logger.exception("Tag subscriber error")
+                    try:
+                        extraData = str((str(self.lastValue)[:48], self.timestamp, str(self.annotation)[:48]))
+                    except Exception as e:
+                        extraData= str(e)
+                    logger.exception("Tag subscriber error, val,time,annotation was: "+extraData)
                     # Return the error from whence it came to display in the proper place
                     for i in subscriberErrorHandlers:
                         try:
                             i(self, f, self.lastValue)
                         except Exception:
                             print("Failed to handle error: " +
-                                  traceback.format_exc(6))
+                                  traceback.format_exc(6)+"\nData: "+extraData)
             del f
 
     def processValue(self, value):

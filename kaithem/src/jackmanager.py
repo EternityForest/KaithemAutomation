@@ -14,9 +14,9 @@
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 import scullery
 import os
-from scullery.jack import *
+from scullery.jacktools import *
 from scullery import messagebus
-from scullery import jack
+from scullery import jacktools
 __doc__ = ''
 
 # This is an acceptable dependamcy, it will be part of libkaithem if such a thing exists
@@ -56,8 +56,8 @@ def onStart():
     messagebus.postMessage("/system/sound/jackstart", "JACK server connected")
 
 
-scullery.jack.onJackFailure = onFail
-scullery.jack.onJackStart = onStart
+scullery.jacktools.onJackFailure = onFail
+scullery.jacktools.onJackStart = onStart
 
 
 settings = persist.getStateFile(settingsFile, default, legacy_keys)
@@ -68,32 +68,32 @@ settings = persist.getStateFile(settingsFile)
 
 
 def reloadSettings():
-    scullery.jack.usbPeriodSize = settings.get("usbPeriodSize", -1)
-    scullery.jack.usbLatency = settings.get("usbLatency", -1)
-    scullery.jack.usbPeriods = settings.get("usbPeriods", -1)
-    scullery.jack.usbQuality = settings.get("usbQuality", 0)
+    scullery.jacktools.usbPeriodSize = settings.get("usbPeriodSize", -1)
+    scullery.jacktools.usbLatency = settings.get("usbLatency", -1)
+    scullery.jacktools.usbPeriods = settings.get("usbPeriods", -1)
+    scullery.jacktools.usbQuality = settings.get("usbQuality", 0)
 
-    scullery.jack.periodSize = settings.get("jackPeriodSize", 512)
-    scullery.jack.jackPeriods = max(settings.get("jackPeriods", 3), 3)
-    scullery.jack.sharePulse = settings.get("sharePulse", None)
-    scullery.jack.jackDevice = settings.get("jackDevice", "hw:0,0")
+    scullery.jacktools.periodSize = settings.get("jackPeriodSize", 512)
+    scullery.jacktools.jackPeriods = max(settings.get("jackPeriods", 3), 3)
+    scullery.jacktools.sharePulse = settings.get("sharePulse", None)
+    scullery.jacktools.jackDevice = settings.get("jackDevice", "hw:0,0")
 
-    scullery.jack.useAdditionalSoundcards = settings.get(
+    scullery.jacktools.useAdditionalSoundcards = settings.get(
         "useAdditionalSoundcards", "yes")
 
-    scullery.jack.usePulse = settings.get("sharePulse", None) != "disable"
+    scullery.jacktools.usePulse = settings.get("sharePulse", None) != "disable"
 
-    scullery.jack.dummy=False
+    scullery.jacktools.dummy=False
     if settings.get("jackMode", None) == "use":
-        scullery.jack.manageJackProcess = False
+        scullery.jacktools.manageJackProcess = False
     if settings.get("jackMode", None) == "manage":
-        scullery.jack.manageJackProcess = True
+        scullery.jacktools.manageJackProcess = True
     if settings.get("jackMode", None) == "dummy":
-        scullery.jack.manageJackProcess = True
-        scullery.jack.dummy=True
+        scullery.jacktools.manageJackProcess = True
+        scullery.jacktools.dummy=True
     
 
 
-scullery.jack.settingsReloader = reloadSettings
+scullery.jacktools.settingsReloader = reloadSettings
 
 reloadSettings()

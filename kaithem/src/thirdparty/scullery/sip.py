@@ -1,7 +1,7 @@
 
 from . thirdparty import baresipy
 import weakref
-from . import jack
+from . import jacktools
 import time
 
 
@@ -40,14 +40,14 @@ class LocalBareSIP(baresipy.BareSIP):
             jn2= self.jackNames[1]
 
             if self.jackSource:
-                self.controller().inJackAirwire = jack.Airwire(self.jackSource, jn1)
-                self.controller().inJackAirwire2 = jack.Airwire(self.jackSource,jn2)
+                self.controller().inJackAirwire = jacktools.Airwire(self.jackSource, jn1)
+                self.controller().inJackAirwire2 = jacktools.Airwire(self.jackSource,jn2)
                 self.controller().inJackAirwire.connect()
                 self.controller().inJackAirwire2.connect()
 
             if self.jackSink:
-                self.controller().outJackAirwire = jack.Airwire(jn1, self.jackSink)
-                self.controller().outJackAirwire2 = jack.Airwire(jn2, self.jackSink)
+                self.controller().outJackAirwire = jacktools.Airwire(jn1, self.jackSink)
+                self.controller().outJackAirwire2 = jacktools.Airwire(jn2, self.jackSink)
                 self.controller().outJackAirwire2.connect()
                 self.controller().outJackAirwire.connect()
 
@@ -55,33 +55,33 @@ class LocalBareSIP(baresipy.BareSIP):
 
             # Undo the system connection it will try to do.
             if not self.jackSink == 'system':
-                outPorts = jack.getPorts(
+                outPorts = jacktools.getPorts(
                     jn1+":*", is_output=True, is_audio=True)
-                outPorts += jack.getPorts(jn2 +
+                outPorts += jacktools.getPorts(jn2 +
                                           ":*", is_output=True, is_audio=True)
 
-                inPorts = jack.getPorts(
+                inPorts = jacktools.getPorts(
                     "system:*", is_input=True, is_audio=True)
                 for i in outPorts:
                     for j in inPorts:
-                        jack.disconnect(i.name, j.name)
+                        jacktools.disconnect(i.name, j.name)
 
             if not self.jackSource == 'system':
-                inPorts = jack.getPorts(
+                inPorts = jacktools.getPorts(
                     jn1+":*", is_input=True, is_audio=True)
-                inPorts += jack.getPorts(jn2+":*",
+                inPorts += jacktools.getPorts(jn2+":*",
                                          is_input=True, is_audio=True)
-                outPorts = jack.getPorts(
+                outPorts = jacktools.getPorts(
                     "system:*", is_output=True, is_audio=True)
                 for i in outPorts:
                     for j in inPorts:
-                        jack.disconnect(i.name, j.name)
+                        jacktools.disconnect(i.name, j.name)
 
     def onJackEstablished(self, name):
         if self.useJack:
-            self.controller().inJackAirwire = jack.Airwire(
+            self.controller().inJackAirwire = jacktools.Airwire(
                 self.controller().jackSource, self.jackName)
-            self.controller().outJackAirwire = jack.Airwire(
+            self.controller().outJackAirwire = jacktools.Airwire(
                 self.controller().jackSink, self.jackName)
 
 

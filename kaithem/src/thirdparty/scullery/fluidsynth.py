@@ -18,6 +18,7 @@ import weakref
 import os
 import yaml
 import threading
+import logging
 gmInstruments = None
 
 players = weakref.WeakValueDictionary()
@@ -112,9 +113,9 @@ def findGMInstrument(name, look_in_soundfont=None, bank=None):
 
 
 def waitForJack():
-    from . import jack
+    from . import jacktools
     for i in range(10):
-        if not jack.getPorts():
+        if not jacktools.getPorts():
             time.sleep(1)
         else:
             return
@@ -150,7 +151,7 @@ class FluidSynth():
         players[id(self)] = self
 
         if jackClientName:
-            from . import jack
+            from . import jacktools
             waitForJack()
 
         self.soundfont = soundfont or self.defaultSoundfont
@@ -185,7 +186,7 @@ class FluidSynth():
                 #self.midiAirwire = jackmanager.Mono
 
             if connectOutput:
-                self.airwire = jack.Airwire(
+                self.airwire = jacktools.Airwire(
                     jackClientName or 'KaithemFluidsynth', connectOutput)
                 self.airwire.connect()
 

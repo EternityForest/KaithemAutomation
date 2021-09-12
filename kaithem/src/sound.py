@@ -985,6 +985,10 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         # Jump to the proper perceptual gain
         self.setFader(volume)
 
+
+        doAirwire = False
+
+
         if output == "__disable__":
             self.addElement("fakesink", sync=False)
 
@@ -999,8 +1003,7 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
                                             latency_time=32000, slave_method=0, port_pattern="jhjkhhhfdrhtecytey",
                                             connect=0, client_name=cname, sync=False)
 
-                self.aw = jackmanager.Airwire(cname, 'system')
-                self.aw.connect()
+                doAirwire=True
 
             else:
                 if not scullery.jack.manageJackProcess:
@@ -1046,10 +1049,14 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
             # Default to the system outout if nothing selected, even if jack in use.
             if not output:
                 output = 'system'
-            self.aw = jackmanager.Airwire(cname, output)
-            self.aw.connect()
+            doAirwire=True
+            
         # Get ready!
         self.pause()
+
+        if doAirwire:
+            self.aw = jackmanager.Airwire(cname, output)
+            self.aw.connect()
 
     # def loopCallback(self):
     #     size= os.stat(self.filename).st_size
@@ -1114,12 +1121,16 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         vGain = 10**(db/20)
         self.setFader(vGain if not vGain < -0.01 else 0)
 
-    def setFader(self, level):
-        if self.lock.acquire(timeout=1):
+    def setFader(self, level,maxWait=5):
+
+        #Lock is no longer critical. still try to keep it to rate
+        #limit under heavy activity
+        self.lock.acquire(timeout=1)
+        if True:
             try:
                 self.faderLevel = level
                 if self.fader:
-                    self.fader.set_property('volume', level)
+                    self.fader.set_property('volume', level,maxWait=maxWait)
             except ReferenceError:
                 pass
 
@@ -1128,52 +1139,73 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
         else:
             raise RuntimeError("Could not get lock")
 
-    def stop(self):
+    def stop(self,preQuiet=True):
 
         # Prevent any ugly noise that GSTreamer might make when stopped at
         # The wrong time.  First an ultrafast fade, then disconnect, then stop,
         # For the best possible sound
-        if not self.lock:
-            return
-        if self.ended:
+
+
+
+        if self.worker.poll() is not None:
+            self.worker.wait()
             return
         
-        self.loopsRemaining=0
         try:
-            self.setFader(self.faderLevel/1.5)
-            self.setFader(self.faderLevel/2)
-            self.setFader(self.faderLevel/4)
-            self.setFader(self.faderLevel/8)
-        except:
-            print(traceback.format_exc())
-            pass
+            if not self.lock:
+                return
+            if self.ended:
+                return
+    
+            
+            self.loopsRemaining=0
+
+            if preQuiet:
+                try:
+                    try:
+                        self.setFader(self.faderLevel/1.5,maxWait=0.5)
+                    except:
+                        pass
+
+                    try:
+                        self.setFader(self.faderLevel/2,maxWait=0.1)
+                    except:
+                        pass
+                    self.setFader(self.faderLevel/4,maxWait=0.1)
+                except:
+                    print(traceback.format_exc())
+                    self.worker.kill()
+                    workers.do(self.worker.wait)
 
 
 
-   
-        #Move this to a preload cache
-        if False:#("__empty__",self.output) in gst_preloaded and not self.output in ["@auto",'__disable__']:
-            with preloadlock:
-                if not ("__empty__",self.output) in gst_preloaded:
-                    gst_preloaded[("__empty__", self.output)]= (self,time.monotonic())
-        else:
-            try:
-                if self.aw:
-                    self.aw.disconnect()
-            except:
-                logging.exception("Err disconnecting airwire")
-            gstwrapper.Pipeline.stop(self)
-            #Convenient way to make it unusable
-            del self.lock
+    
+            #Move this to a preload cache
+            if False:#("__empty__",self.output) in gst_preloaded and not self.output in ["@auto",'__disable__']:
+                with preloadlock:
+                    if not ("__empty__",self.output) in gst_preloaded:
+                        gst_preloaded[("__empty__", self.output)]= (self,time.monotonic())
+            else:
+                try:
+                    if self.aw:
+                        self.aw.disconnect()
+                except:
+                    logging.exception("Err disconnecting airwire")
+                gstwrapper.Pipeline.stop(self)
 
 
 
-        if self._prevPlayerObject:
-            p = self._prevPlayerObject()
-            #No idea how p could be self,but be defensive
-            if p and not p is self:
-                p.stop()
-        self.ended = True
+            if self._prevPlayerObject:
+                p = self._prevPlayerObject()
+                #No idea how p could be self,but be defensive
+                if p and not p is self:
+                    p.stop()
+            self.ended = True
+        finally:
+            def clean():
+                self.worker.kill()
+                self.worker.wait()
+            workers.do(clean)
 
     
 
@@ -1182,7 +1214,8 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
 
     def onStreamFinished(self):
         if self.loopsRemaining <= 0:
-            self.stop()
+            #No pre quiet needed if already stoppe
+            self.stop(False)
         
 
 
@@ -1224,6 +1257,7 @@ class GStreamerBackend(SoundWrapper):
         def __init__(self, filename, output="@auto", **kwargs):
 
             self.pl=None
+            self.ended = False
             if (filename, output) in gst_preloaded or  ("__empty__", output) in gst_preloaded:
                 if preloadlock.acquire(timeout=1):
                     try:

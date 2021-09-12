@@ -16,6 +16,7 @@ __status__ = "Development"
 __version__ = "1.1.1"
 __all__ = ["RPC"]
 
+import logging
 import select
 
 import sys
@@ -23,8 +24,8 @@ import json
 import io
 import time
 import threading
-
-
+import weakref
+import traceback
 class Spec(object):
     """
     This class wraps methods that create JSON-RPC 2.0 compatible string representations of
@@ -145,7 +146,7 @@ class Spec(object):
 
         # build the inner error data
         message = get_error(code).title
-        err_data = "{{\"code\":{},\"message\":\"{}\"".format(code, message)
+        err_data = "{{\"code\":{},\"message\":\"{}\"".format(code, message).replace("\n",'').replace("\r",'')
 
         # insert data when given
         if data is not None:
@@ -364,11 +365,12 @@ class RPC(object):
                 res = Spec.response(req["id"], result)
                 self._write(res)
         except Exception as e:
+            logging.exception()
             if "id" in req:
                 if isinstance(e, RPCError):
                     err = Spec.error(req["id"], e.code, e.data)
                 else:
-                    err = Spec.error(req["id"], -32603, str(e))
+                    err = Spec.error(req["id"], -32603, str(traceback.format_exc()))
                 self._write(err)
 
     def _handle_response(self, res):
@@ -477,7 +479,7 @@ class Watchdog(threading.Thread):
         super(Watchdog, self).__init__()
 
         # store attributes
-        self.rpc = rpc
+        self.rpc = weakref.ref(rpc)
         self.name = name
         self.interval = interval
         self.daemon = daemon
@@ -505,43 +507,47 @@ class Watchdog(threading.Thread):
         self._stop.clear()
 
         # stop here when stdin is not set or closed
-        if not self.rpc.stdin or self.rpc.stdin.closed:
+        if not self.rpc().stdin or self.rpc().stdin.closed:
             return
 
         # read new incoming lines
         last_pos = 0
         while not self._stop.is_set():
+            rpc = self.rpc()
+            if not rpc:
+                return
             lines = None
 
             # stop when stdin is closed
-            if self.rpc.stdin.closed:
+            if rpc.stdin.closed:
                 break
 
             # read from stdin depending on whether it is a tty or not
-            if self.rpc.stdin.isatty():
-                cur_pos = self.rpc.stdin.tell()
+            if rpc.stdin.isatty():
+                cur_pos =rpc.stdin.tell()
                 if cur_pos != last_pos:
-                    self.rpc.stdin.seek(last_pos)
-                    lines = self.rpc.stdin.readlines()
-                    last_pos = self.rpc.stdin.tell()
-                    self.rpc.stdin.seek(cur_pos)
+                    rpc.stdin.seek(last_pos)
+                    lines =rpc.stdin.readlines()
+                    last_pos =rpc.stdin.tell()
+                    rpc.stdin.seek(cur_pos)
             else:
                 try:
                     rfds, wfds, efds = select.select( [ sys.stdin.fileno()], [], [], self.interval)
-                    lines = [self.rpc.stdin.readline()]
+                    lines = [rpc.stdin.readline()]
                 except IOError:
                     # prevent residual race conditions occurring when stdin is closed externally
                     pass
 
             # handle new lines if any
             if lines:
-                self.rpc.fastResponseFlag.set()
+                rpc.fastResponseFlag.set()
                 for line in lines:
                     line = line.decode("utf-8").strip()
                     if line:
-                        self.rpc._handle(line)
+                        rpc._handle(line)
             else:
                 self._stop.wait(self.interval)
+            del rpc
 
 
 class RPCError(Exception):

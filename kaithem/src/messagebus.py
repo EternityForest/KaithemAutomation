@@ -17,15 +17,15 @@ from scullery.messagebus import *
 import scullery.messagebus
 import traceback
 import cherrypy
+import weakref
 
 postMessage = scullery.messagebus.postMessage
 post = scullery.messagebus.postMessage
 subscribe = scullery.messagebus.subscribe
 
 def handleMsgbusError(f, topic, message):
-    scullery.messagebus.log.exception(
-        "Error in subscribed function for "+topic)
     try:
+        scullery.messagebus.log.exception("Error in subscribed function for "+topic +" with message "+str(message)[:64])
         from . import newevt
         if f.__module__ in newevt.eventsByModuleName:
             newevt.eventsByModuleName[f.__module__]._handle_exception()
@@ -33,9 +33,11 @@ def handleMsgbusError(f, topic, message):
         # If we can't handle it whence it came
         else:
             try:
+                if isinstance(f,(weakref.WeakMethod, weakref.ref)):
+                    f=f()
                 x = hasattr(f, "_kaithemAlreadyPostedNotificatonError")
                 f._kaithemAlreadyPostedNotificatonError = True
-                if x:
+                if not x:
                     postMessage(
                         "First message bus subscriber error in: " + str(f))
             except:

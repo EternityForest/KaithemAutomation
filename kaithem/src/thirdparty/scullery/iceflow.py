@@ -2,7 +2,7 @@
 
 import threading,os,weakref
 
-
+from . import workers
 
 def stopAllJackUsers():
     #No longer needed, occasional subprocess segfaults stay contained
@@ -15,8 +15,8 @@ class eprox():
         self.parent=parent
         self.id=id
 
-    def set_property(self,p,v):
-        self.parent.setProperty(self.id,p,v)
+    def set_property(self,p,v,maxWait=10):
+        self.parent.setProperty(self.id,p,v,maxWait=maxWait)
 
 pipes = weakref.WeakValueDictionary()
 
@@ -29,29 +29,36 @@ class GStreamerPipeline():
                 return self.rpc.call(attr,args=a,kwargs=k,block=0.001)
             except:
                 self.worker.kill()
+                workers.do(self.worker.wait)
                 raise
 
         return f 
 
     def __del__(self):
         self.worker.kill()
+        workers.do(self.worker.wait)
 
     def addElement(self,*a,**k):
+
+        #This has to do with setup and I suppose we probably shouldn't just let the error pass by.
         if self.ended or not self.worker.poll() is None:
             raise RuntimeError("This process is already dead")
+
         for i in k:
             if isinstance(k[i],eprox):
                 k[i]=k[i].id
         return eprox(self,self.rpc.call("addElementRemote",args=a,kwargs=k,block=0.0001))
 
-    def setProperty(self,*a,**k):
+    def setProperty(self,*a,maxWait=10,**k):
+
+        #Probably Just Not Important enough to raise an error for this.
         if  self.ended or not self.worker.poll() is None:
-            raise RuntimeError("This process is already dead")
+            return
         for i in k:
             if isinstance(k[i],eprox):
                 k[i]=k[i].id
         a = [i.id if isinstance(i,eprox) else i for i in a]
-        return eprox(self,self.rpc.call("setProperty",args=a,kwargs=k,block=0.0001))
+        return eprox(self,self.rpc.call("setProperty",args=a,kwargs=k,block=0.0001,timeout=maxWait))
 
 
     def stop(self):
@@ -65,6 +72,7 @@ class GStreamerPipeline():
             return self.rpc.call("stop")
         except:
             self.worker.kill()
+            workers.do(self.worker.wait)
             raise
 
     def addJackMixerSendElements(self, *a,**k):

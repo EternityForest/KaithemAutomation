@@ -476,7 +476,11 @@ class Connection():
                 t = t[len(self.busPrefix + "/in/"):]
                 if not isinstance(m,str):
                     m=m.decode('utf-8')
-                function()(t, json.loads(m))
+                try:
+                    m= json.loads(m)
+                except:
+                    logging.debug("Bad JSON:"+m[:64])
+                function()(t,m)
 
         elif encoding == 'msgpack':
             def wrapper(t, m):

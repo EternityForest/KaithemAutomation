@@ -46,6 +46,205 @@ jackEventHandlingQueue = []
 jackEventHandlingQueueLock = threading.Lock()
 
 
+
+import weakref
+portInfoByID = weakref.WeakValueDictionary()
+
+class PortInfo():
+    def __init__(self, name, isInput, sname, isAudio,aliases=None):
+        self.isOutput = self.is_output = not isInput
+        self.isInput = self.is_input = isInput
+        self.isAudio = self.is_audio = isAudio
+        self.name = name
+        self.shortname = sname
+        self.clientName = name[:-len(":" + sname)]
+        portInfoByID[id(self)] = self
+        self.aliases=aliases or []
+
+    def toDict(self):
+        return({
+            'name': self.name,
+            'isInput': self.is_input,
+            'sname': self.shortname,
+            'isAudio': self.isAudio,
+            'aliases':self.aliases
+        })
+
+
+class JackClientProxy():
+    def __getattr__(self,attr):
+        if  self.ended or not self.worker.poll() is None:
+            raise RuntimeError("This process is already dead")
+        def f(*a,**k):
+            try:
+                #Can't serialize ports
+                a = [i.name if isinstance(i,PortInfo) else i for i in a]
+                x=self.rpc.call(attr,args=a,kwargs=k,block=0.001)
+                if isinstance(x,dict):
+                    x=PortInfo(**x)
+
+                return x
+            except:
+                print(traceback.format_exc())
+                raise
+
+        return f 
+
+    def get_all_connections(self,*a,**k):
+        a = [i.name if isinstance(i,PortInfo) else i for i in a]
+        x=self.rpc.call("get_all_connections",args=a,kwargs=k,block=0.001)
+        x=[PortInfo(**i) for i in x]
+        return x
+
+
+    def get_ports(self,*a,**k):
+        if self.ended or not self.worker.poll() is None:
+            raise RuntimeError("This process is already dead")
+        try:
+            a = [i.name if isinstance(i,PortInfo) else i for i in a]
+            x=self.rpc.call("get_ports",args=a,kwargs=k,block=0.001)
+            x=[PortInfo(**i) for i in x]
+            return x
+
+        except:
+            print(traceback.format_exc())
+            self.worker.kill()
+            workers.do(self.worker.wait)
+            raise
+
+
+
+    def __del__(self):
+        self.worker.kill()
+        workers.do(self.worker.wait)
+
+    def onPortRegistered(self,name, is_input, shortname, is_audio, registered):
+        def f():
+            try:
+                global realConnections
+                "Same function for register and unregister"
+                # if not port:
+                #     return
+
+                p = PortInfo(name, is_input, shortname, is_audio)
+
+                if registered:
+                    #log.debug("JACK port registered: "+port.name)
+                    with lock:
+                        portsList[name] = p
+                    messagebus.postMessage("/system/jack/newport", p)
+                else:
+                    torm = []
+                    with lock:
+                        for i in _realConnections:
+                            if i[0] == name or i[1] == name:
+                                torm.append(i)
+                        for i in torm:
+                            del _realConnections[i]
+
+                        try:
+                            del portsList[name]
+                        except:
+                            pass
+                        realConnections = _realConnections.copy()
+
+                    messagebus.postMessage("/system/jack/delport", p)
+            except:
+                print(traceback.format_exc())
+
+        jackEventHandlingQueue.append(f)
+        workers.do(handleJackEvent)
+
+    
+    def onPortConnected(self, a_is_output, a_name, b_name, connected):
+        # Whem things are manually disconnected we don't
+        # Want to always reconnect every time
+        if self.ended:
+            return
+        def f():
+            global realConnections
+
+            if connected:
+                with lock:
+                    if a_is_output:
+                        _realConnections[a_name, b_name] = True
+                    else:
+                        _realConnections[b_name, a_name] = True
+
+                    realConnections = _realConnections.copy()
+
+            if not connected:
+                i = (a_name, b_name)
+                with lock:
+                    if (a_name, b_name) in _realConnections:
+                        try:
+                            del _realConnections[a_name, b_name]
+                        except KeyError:
+                            pass
+
+                    if (b_name, a_name) in _realConnections:
+                        try:
+                            del _realConnections[b_name, a_name]
+                        except KeyError:
+                            pass
+
+                    realConnections = _realConnections.copy()
+
+                # Try to stop whatever airwire or set therof
+                # from remaking the connection
+                if i in activeConnections:
+                    try:
+                        # Deactivate first, that must keep it from using the api
+                        # From within the callback
+                        activeConnections[i].active = False
+                        del allConnections[i]
+                        del activeConnections[i]
+                    except:
+                        pass
+
+                # def f():
+                #     if not connected:
+                #         log.debug("JACK port "+ a.name+" disconnected from "+b.name)
+                #     else:
+                #         log.debug("JACK port "+ a.name+" connected to "+b.name)
+
+                # workers.do(f)
+        jackEventHandlingQueue.append(f)
+        workers.do(handleJackEvent)
+
+
+    def close(self):
+        if self.ended:
+            return
+            
+        self.ended=True
+        if not self.worker.poll() is None:
+            return
+        try:
+            return self.rpc.call("close")
+        except:
+            self.worker.kill()
+            workers.do(self.worker.wait)
+            raise
+
+    def __init__(self, *a,**k):
+        # -*- coding: utf-8 -*-
+        from jsonrpyc import RPC
+        from subprocess import Popen, PIPE, STDOUT
+        self.ended=False
+        f = os.path.join(os.path.dirname(os.path.abspath(__file__)),"jack_client_subprocess.py")
+        self.worker = Popen(['python3', f], stdout=PIPE, stdin=PIPE, stderr=STDOUT)
+        self.rpc = RPC(target=self,stdin=self.worker.stdout, stdout=self.worker.stdin)
+
+    def print(self,s):
+        print(s)
+
+
+
+
+
+
+
 def handleJackEvent():
     with jackEventHandlingQueueLock:
         if jackEventHandlingQueue:
@@ -491,107 +690,6 @@ def Airwire(f, t, forceCombining=False):
         return MultichannelAirwire(f, t)
 
 
-def onPortConnect(a, b, connected):
-    # Whem things are manually disconnected we don't
-    # Want to always reconnect every time
-    def f():
-        global realConnections
-
-        if connected:
-            with lock:
-                if a.is_output:
-                    _realConnections[a.name, b.name] = True
-                else:
-                    _realConnections[b.name, a.name] = True
-
-                realConnections = _realConnections.copy()
-
-        if not connected:
-            i = (a.name, b.name)
-            with lock:
-                if (a.name, b.name) in _realConnections:
-                    try:
-                        del _realConnections[a.name, b.name]
-                    except KeyError:
-                        pass
-
-                if (b.name, a.name) in _realConnections:
-                    try:
-                        del _realConnections[b.name, a.name]
-                    except KeyError:
-                        pass
-
-                realConnections = _realConnections.copy()
-
-            # Try to stop whatever airwire or set therof
-            # from remaking the connection
-            if i in activeConnections:
-                try:
-                    # Deactivate first, that must keep it from using the api
-                    # From within the callback
-                    activeConnections[i].active = False
-                    del allConnections[i]
-                    del activeConnections[i]
-                except:
-                    pass
-
-            # def f():
-            #     if not connected:
-            #         log.debug("JACK port "+ a.name+" disconnected from "+b.name)
-            #     else:
-            #         log.debug("JACK port "+ a.name+" connected to "+b.name)
-
-            # workers.do(f)
-    jackEventHandlingQueue.append(f)
-    workers.do(handleJackEvent)
-
-
-class PortInfo():
-    def __init__(self, name, isInput, sname, isAudio):
-        self.isOutput = not isInput
-        self.isInput = isInput
-        self.isAudio = isAudio
-        self.name = name
-        self.shortname = sname
-        self.clientName = name[:-len(":" + sname)]
-
-
-def onPortRegistered(port, registered):
-    def f():
-        try:
-            global realConnections
-            "Same function for register and unregister"
-            if not port:
-                return
-
-            p = PortInfo(port.name, port.is_input, port.shortname, port.is_audio)
-
-            if registered:
-                #log.debug("JACK port registered: "+port.name)
-                with lock:
-                    portsList[port.name] = port
-                messagebus.postMessage("/system/jack/newport", p)
-            else:
-                torm = []
-                with lock:
-                    for i in _realConnections:
-                        if i[0] == port.name or i[1] == port.name:
-                            torm.append(i)
-                    for i in torm:
-                        del _realConnections[i]
-
-                    try:
-                        del portsList[port.name]
-                    except:
-                        pass
-                    realConnections = _realConnections.copy()
-
-                messagebus.postMessage("/system/jack/delport", p)
-        except:
-            print(traceback.format_exc())
-
-    jackEventHandlingQueue.append(f)
-    workers.do(handleJackEvent)
 
 
 ############################################################################
@@ -1858,29 +1956,7 @@ def work():
 _reconnecterThreadObject = None
 _reconnecterThreadObjectStopper = [0]
 
-_didPatch = False
 
-
-def _doPatch():
-    import jack
-    import re
-    global _didPatch
-    with lock:
-        if not _didPatch:
-            def _get_ports_fix(self, name_pattern='', is_audio=False, is_midi=False,
-                               is_input=False, is_output=False, is_physical=False,
-                               can_monitor=False, is_terminal=False):
-                if name_pattern:
-                    re.compile(name_pattern)
-
-                return jack.Client._get_ports(self, name_pattern, is_audio, is_midi,
-                                              is_input, is_output, is_physical,
-                                              can_monitor, is_terminal)
-
-            jack.Client._get_ports = jack.Client.get_ports
-            jack.Client.get_ports = _get_ports_fix
-            _didPatch = True
-            atexit.register(cleanup)
 
 
 def startJackProcess(p=None, n=None):
@@ -1907,7 +1983,6 @@ def startManaging(p=None, n=None):
     import re
     global _jackclient
     global _reconnecterThreadObject
-    _doPatch()
 
     with lock:
         # Stop the old thread if needed
@@ -2012,15 +2087,13 @@ def _checkJackClient(err=True):
             _realConnections = {}
 
             try:
-                _jackclient = jack.Client("Overseer", no_start_server=True)
+                _jackclient = JackClientProxy()
             except:
                 if err:
                     log.exception("Error creating JACK client")
                 return
 
-            _jackclient.set_port_registration_callback(
-                onPortRegistered, only_available=True)
-            _jackclient.set_port_connect_callback(onPortConnect)
+        
             _jackclient.activate()
             _jackclient.get_ports()
             getPorts()
@@ -2048,7 +2121,7 @@ portsCacheTime = 0
 
 
 def getPorts(*a, maxWait=10, **k):
-    global portsList
+    global portsList,_jackclient
 
     if lock.acquire(timeout=maxWait):
         try:
@@ -2056,10 +2129,12 @@ def getPorts(*a, maxWait=10, **k):
                 return []
             ports = []
             x = _jackclient.get_ports(*a, **k)
+
+            #No filters means this must be the full list
             if not a and not k:
                 portsList.clear()
-                for port in x:
-                    portsList[port.name] = port
+            for port in x:
+                portsList[port.name] = port
 
             return x
         finally:
@@ -2117,34 +2192,35 @@ def disconnect(f, t):
     if lock.acquire(timeout=30):
         try:
             if not _jackclient:
-                return
+                _checkJack()
 
             if not isConnected(f, t):
                 return
 
             try:
-                if isinstance(f, str):
-                    f = _jackclient.get_port_by_name(f)
-                if isinstance(t, str):
-                    t = _jackclient.get_port_by_name(t)
+                if isinstance(f, PortInfo):
+                    f = f.name
+                if isinstance(t, PortInfo):
+                    t = t.name
+
 
                 # This feels race conditionful but i think it is important so that we don't try to double-disconnect.
                 # Be defensive with jack, the whole thing seems britttle
                 _jackclient.disconnect(f, t)
                 try:
-                    del _realConnections[f.name, t.name]
+                    del _realConnections[f, t]
                     realConnections = _realConnections.copy()
                 except KeyError:
                     pass
 
                 try:
-                    del _realConnections[t.name, f.name]
+                    del _realConnections[t, f]
                     realConnections = _realConnections.copy()
                 except KeyError:
                     pass
 
             except:
-                pass
+                print(traceback.format_exc())
         finally:
             lock.release()
     else:
@@ -2157,50 +2233,29 @@ def connect(f, t):
     if lock.acquire(timeout=10):
         try:
             if not _jackclient:
-                return
+                _checkJack()
 
             if isConnected(f, t):
                 return
 
             try:
-                if isinstance(f, str):
-                    f = _jackclient.get_port_by_name(f)
-                if isinstance(t, str):
-                    t = _jackclient.get_port_by_name(t)
+                if isinstance(f, PortInfo):
+                    f = f.name
+                if isinstance(t, PortInfo):
+                    t = t.name
             except:
                 return
 
-            f_input = f.is_input
-
-            if f.is_input:
-                if not t.is_output:
-                    # Do a retry, there seems to be a bug somewhere
-                    try:
-                        f = _jackclient.get_port_by_name(f.name)
-                        t = _jackclient.get_port_by_name(t.name)
-                    except:
-                        return
-                    if f.is_input:
-                        if not t.is_output:
-                            raise ValueError(
-                                "Cannot connect two inputs", str((f, t)))
-            else:
-                if t.is_output:
-                    raise ValueError("Cannot connect two outputs", str((f, t)))
-            f = f.name
-            t = t.name
             try:
-                if f_input:
-                    _jackclient.connect(t, f)
-                else:
-                    _jackclient.connect(f, t)
+                #Let other side handle figuring out which is which
+                _jackclient.connect(t, f)
                 try:
-                    _realConnections[f.name, t.name] = True
+                    _realConnections[f, t] = True
                     realConnections = _realConnections.copy()
                 except KeyError:
                     pass
             except:
-                pass
+                print(traceback.format_exc())
         finally:
             lock.release()
     else:
