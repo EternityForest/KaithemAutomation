@@ -906,9 +906,12 @@ gstplayers = weakref.WeakValueDictionary()
 
 class GSTAudioFilePlayer(gstwrapper.Pipeline):
     def __init__(self, file, volume=1, output="@auto", onBeat=None, _prevPlayerObject=None, systemTime=False, loop=False):
-        gstwrapper.Pipeline.__init__(self, str(uuid.uuid4()), systemTime=False)
+        
+        #Fix rare getattr and del related loop
+        self.ended =None
+        self.worker =None
 
-        global jackClientsFound
+
         gstplayers[id(self)]=self
 
         try:
@@ -917,8 +920,15 @@ class GSTAudioFilePlayer(gstwrapper.Pipeline):
             nplayers=0
         
         if nplayers>32:
-            raise RuntimeError("Way too many running sounds here, somethingis probably wrong.")
+            gc.collect()
+            if nplayers>32:
+               raise RuntimeError("Way too many running sounds here, somethingis probably wrong.")
 
+
+        gstwrapper.Pipeline.__init__(self, str(uuid.uuid4()), systemTime=False)
+
+        global jackClientsFound
+      
         if not output:
             output = "@auto"
         
@@ -1367,16 +1377,16 @@ class GStreamerBackend(SoundWrapper):
             except:
                 return 0
 
-    def preload(self, filename, output="@auto"):
+    def preload(self, filename, output="@auto",timeout=0.2):
         if not os.path.exists(filename):
             return
 
         # Has to be in a background thread to actually make sense
 
         def f():
-
-            if not preloadlock.acquire(timeout=5):
-                raise RuntimeError("Could not get lock to preload audio file")
+            #By default only do this opportunistically, not if everything is insanely busy.
+            if not preloadlock.acquire(timeout=timeout):
+                raise TimeoutError("Could not get lock to preload audio file")
             try:
                 if (filename, output) in gst_preloaded:
                     return

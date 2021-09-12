@@ -20,6 +20,11 @@ import traceback
 import threading
 import http.cookies
 
+import sys
+
+#Whatever it used to be was way too high and causingh seg faults if you mess up
+sys.setrecursionlimit(256)
+
 
 # Python 3.7 doesn't support the samesite attribute, which we need.
 try:

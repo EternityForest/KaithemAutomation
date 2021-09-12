@@ -84,6 +84,13 @@ class JackClientProxy():
                     x=PortInfo(**x)
 
                 return x
+            except TimeoutError:
+                if timeout >8:
+                    try_unstuck()
+                    print(traceback.format_exc())
+                    self.worker.kill()
+                    workers.do(self.worker.wait)
+                raise
             except:
                 print(traceback.format_exc())
                 raise
@@ -106,7 +113,8 @@ class JackClientProxy():
             x=[PortInfo(**i) for i in x]
             return x
 
-        except:
+        except TimeoutError:
+            try_unstuck()
             print(traceback.format_exc())
             self.worker.kill()
             workers.do(self.worker.wait)
@@ -421,10 +429,25 @@ def setupPulse():
         log.exception("Error configuring pulseaudio")
 
 
+
+ensureConnectionsQueued = [0]
+
+
 def _ensureConnections(*a, **k):
     "Auto restore connections in the connection list"
+
+    #Someone else is already gonna run this
+    #It is ok to have excess runs, but there must always be atleast 1 run after every change
+    if ensureConnectionsQueued[0]:
+        return
+    ensureConnectionsQueued[0]=1
+
     try:
         with lock:
+            #Avoid race conditions, set flag BEFORE we check.
+            #So we can't miss anything.  The other way would cause them to think we would check,
+            #so they exit, but actually we already did.
+            ensureConnectionsQueued[0]=0
             x = list(allConnections.keys())
         for i in x:
             try:
@@ -432,6 +455,7 @@ def _ensureConnections(*a, **k):
             except:
                 print(traceback.format_exc())
     except:
+        ensureConnectionsQueued[0]=0
         log.exception("Probably just a weakref that went away.")
 
 def _checkNewAvailableConnection(*a, **k):
@@ -648,7 +672,7 @@ class MultichannelAirwire(MonoAirwire):
             raise RuntimeError("getting lock")
 
     def __del__(self):
-        self.disconnect()
+        workers.do(self.disconnect)
 
 
 class CombiningAirwire(MultichannelAirwire):
@@ -2006,7 +2030,7 @@ def work():
                 if(_reconnecterThreadObjectStopper[0]):
                     # Might be worth logging
                     failcounter +=1
-                    if failcounter>50:
+                    if failcounter>5:
                         failcounter=0
                         try_unstuck()
                     raise RuntimeError("Could not get lock,retrying in 5s")
@@ -2255,9 +2279,9 @@ def getConnections(name, *a, **k):
 def try_unstuck():
     print("******Big Jack Problem! starting everything over*******************")
     # It seems that it is actually possible for connect() calls to hang.  This is used to stio
-    subprocess.call(['killall', 'alsa_in'])
-    subprocess.call(['killall', 'alsa_out'])
-    subprocess.call(['killall', 'jackd'])
+    subprocess.call(['killall', '-9', 'alsa_in'])
+    subprocess.call(['killall', '-9', 'alsa_out'])
+    subprocess.call(['killall', '-9', 'jackd'])
 
 
 def disconnect(f, t):

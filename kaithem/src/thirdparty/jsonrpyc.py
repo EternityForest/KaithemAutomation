@@ -455,6 +455,8 @@ class RPC(object):
         self.stdout.flush()
 
 
+wdl=weakref.WeakValueDictionary()
+
 class Watchdog(threading.Thread):
     """
     This class represents a thread that watches the input stream of an :py:class:`RPC` instance for
@@ -479,6 +481,7 @@ class Watchdog(threading.Thread):
 
     def __init__(self, rpc, name="nostartstoplog.rpcwatchdog", interval=0.01, daemon=False, start=True):
         super(Watchdog, self).__init__()
+        wdl[id(self)]=self
 
         # store attributes
         self.rpc = weakref.ref(rpc)
