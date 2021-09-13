@@ -75,6 +75,8 @@ class JackClientProxy():
     def __getattr__(self,attr):
         if  self.ended or not self.worker.poll() is None:
             raise RuntimeError("This process is already dead")
+        check_exclude()
+
         def f(*a,timeout=10,**k):
             try:
                 #Can't serialize ports
@@ -86,7 +88,6 @@ class JackClientProxy():
                 return x
             except TimeoutError:
                 if timeout >8:
-                    try_unstuck()
                     print(traceback.format_exc())
                     self.worker.kill()
                     workers.do(self.worker.wait)
@@ -98,6 +99,8 @@ class JackClientProxy():
         return f 
 
     def get_all_connections(self,*a,**k):
+        check_exclude()
+
         a = [i.name if isinstance(i,PortInfo) else i for i in a]
         x=self.rpc.call("get_all_connections",args=a,kwargs=k,block=0.001)
         x=[PortInfo(**i) for i in x]
@@ -105,6 +108,8 @@ class JackClientProxy():
 
 
     def get_ports(self,*a,**k):
+        check_exclude()
+
         if self.ended or not self.worker.poll() is None:
             raise RuntimeError("This process is already dead")
         try:
@@ -114,7 +119,6 @@ class JackClientProxy():
             return x
 
         except TimeoutError:
-            try_unstuck()
             print(traceback.format_exc())
             self.worker.kill()
             workers.do(self.worker.wait)
@@ -639,6 +643,8 @@ class MultichannelAirwire(MonoAirwire):
                     raise RuntimeError("Getting lock")
 
     def disconnect(self):
+        check_exclude()
+
         if hasattr(self,"noNeedToDisconnect"):
             return
         if not _jackclient:
@@ -1079,37 +1085,6 @@ def midiClientsToCardNumbers():
 midip = None
 
 
-def scanMidi(m, cards, usednames=[], pciNumbers={}, usedFirstWords={}):
-    """Given the regex matches from amidi -l, match them up to the actual 
-    devices and give them memorable aliases.
-
-    Return a dict that maps the name we have assigned the client, to a name, alsaClientNumber
-    which can be used to find the ports "a2jmidid -e" may have registered, and give them aliases.
-
-    Note that the client may have multiple ports, so we have to add disambiguation later.
-    """
-
-    d = {}
-
-    midiInfo = midiClientsToCardNumbers()
-
-    for i in midiInfo:
-        name = midiInfo[i][0]
-        card = str(midiInfo[i][1])
-
-        if card in cards:
-            locator = cards[card]
-        else:
-            continue
-
-        numberstring = compressnumbers(locator)
-
-        h = assignName(locator, name, usedFirstWords, pciNumbers)
-
-        jackname = generateJackName(h, name, numberstring, d, usednames)
-
-        d[jackname] = (name, i)
-    return d
 
 
 def readAllSoFar(proc, retVal=b''):
@@ -1150,6 +1125,10 @@ def getPersistentCardNames():
     return d
 
 
+lastOutput = None
+cacheCards = None
+
+
 def listSoundCardsByPersistentName():
     """
         Only works on linux or maybe mac
@@ -1159,6 +1138,8 @@ def listSoundCardsByPersistentName():
        (cardnamewithsubdev(Typical ASLA identifier),physicalDevice(persistent),devicenumber, subdevice)
 
     """
+
+    global lastOutput, cacheCards
     with open("/proc/asound/cards") as f:
         d = f.read()
 
@@ -1186,6 +1167,11 @@ def listSoundCardsByPersistentName():
             ",fullspeed", "").replace("[", "").replace("]", "")
         cards[i[0]] = n
 
+    if cacheCards == cards:
+        return lastOutput
+
+    cacheCards = cards
+
     pci = enumeratePCI()
     usedFirstWords = {}
 
@@ -1205,9 +1191,11 @@ def listSoundCardsByPersistentName():
     inputs = cardsfromregex(sd, cards, pciNumbers=pci,
                             usedFirstWords=usedFirstWords)
 
-    midis = scanMidi(sd, cards, pciNumbers=pci, usedFirstWords=usedFirstWords)
+    midis = []
 
-    return inputs, outputs, midis
+    x= inputs, outputs, midis
+    lastOutput = x
+    return x
 
 
 def memorableHash(x, num=1, separator="", caps=False):
@@ -2030,7 +2018,7 @@ def work():
                 if(_reconnecterThreadObjectStopper[0]):
                     # Might be worth logging
                     failcounter +=1
-                    if failcounter>5:
+                    if failcounter>8:
                         failcounter=0
                         try_unstuck()
                     raise RuntimeError("Could not get lock,retrying in 5s")
@@ -2154,7 +2142,6 @@ def _checkJack():
         finally:
             lock.release()
 
-
 def _checkJackClient(err=True):
     global _jackclient, realConnections
     import jack
@@ -2275,14 +2262,19 @@ def getConnections(name, *a, **k):
         logging.error("JACK seems to be blocked up. Killing processes")
         try_unstuck()
 
-
+exclude_until = [0]
 def try_unstuck():
     print("******Big Jack Problem! starting everything over*******************")
     # It seems that it is actually possible for connect() calls to hang.  This is used to stio
     subprocess.call(['killall', '-9', 'alsa_in'])
     subprocess.call(['killall', '-9', 'alsa_out'])
     subprocess.call(['killall', '-9', 'jackd'])
+    exclude_until[0]=time.monotonic()+10
 
+
+def check_exclude():
+    if time.monotonic()<exclude_until[0]:
+        raise RuntimeError("That is not allowed, trying to auto-fix")
 
 def disconnect(f, t):
     global realConnections
@@ -2311,7 +2303,7 @@ def disconnect(f, t):
                         _jackclient.disconnect(f,t,timeout=5)
                         break
                     except TimeoutError:
-                        if(i%5)==4:
+                        if(i%6)==5:
                             try_unstuck()
                             time.sleep(5)
                         _jackclient.worker.kill()
@@ -2344,7 +2336,7 @@ awaitingLock = threading.Lock()
 
 def connect(f, t):
     global realConnections,_jackclient
-
+    check_exclude()
     with awaitingLock:
         if awaiting[0]>8:
             time.sleep(1)

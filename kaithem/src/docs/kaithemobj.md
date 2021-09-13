@@ -740,21 +740,7 @@ The `audio-paths` entry from the config YAML. May contain an entry called "__def
 
 #### kaithem.sound.outputs()
 
-(Currently linux ALSA only) Returns a dict of sound device info objects.
-The same entry may be present under multiple names. At minimum, each
-device will have an entry under a "persistent name" which is created
-from the device type and the PCI address or USB port that it is plugged
-into, plus the subdevice. The names look like:
-'HDMI1-dresslunacyantennae-0xef128000irq129:7', or
-'USBAudio-lushlyroutinearmchair-usb-0000:00:14.0-4:0' and so long as you
-plug the same device into the same port(On the same hub, if using one),
-the name will remain constant. The entries are objects. They have the
-properties mplayerName and alsaName. These are they typical names that
-other apps use to identify devices. You may use any name found here as
-an argument to the output parameter of kaithem.play, if using mplayer.
-This dict may also contain JACK ports that it discovers. These obviously
-will not have an alsa name. Be patient, it may take 30 seconds for
-kaithem to discover new cards.
+Returns a list of available sound card names you could pass to 
 
 #### kaithem.sound.preload(filename,output="@auto")
 Spins up a paused player for that filename and player. Garbage collecting old cache entries is handled for you.
@@ -817,10 +803,6 @@ it is an alsa  device. The special string @auto(the default) autoselects an appr
 output must be a string that selects an
 output device. A typical value on linx would be pulse::n where n is the
 pulse sink index, see mplayer's -ao option for more details.
-
-You may also use one of kaithem's soundcard aliases found in
-kaithem.outputs.
-
 
 eq is mplayer specific and does nothing with other backends.
 eq if present can take the value 'party' causing the EQ to be set to

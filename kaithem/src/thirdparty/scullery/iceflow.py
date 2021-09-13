@@ -12,11 +12,12 @@ import os
 #Can't pass GST elements, have to pass IDs
 class eprox():
     def __init__(self,parent,id) -> None:
-        self.parent=parent
+        #This was making a bad GC loop issue.
+        self.parent=weakref.ref(parent)
         self.id=id
 
     def set_property(self,p,v,maxWait=10):
-        self.parent.setProperty(self.id,p,v,maxWait=maxWait)
+        self.parent().setProperty(self.id,p,v,maxWait=maxWait)
 
 pipes = weakref.WeakValueDictionary()
 

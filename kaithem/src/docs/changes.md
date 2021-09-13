@@ -1,6 +1,6 @@
 Change Log
 ----------
-### 0.65.65
+### 0.66.0
 
 - JackMIDIListener has been removed.  Instead, all connected ALSA midi devices automatically generate tag points for last pressed note and all CC values.
 - All connected midi devices now also report to the message bus
@@ -8,7 +8,14 @@ Change Log
 - python-rtmidi is required to use these features.  This is all on account of some unreliable performance and excess complexity with jack midi.
 - Chandler can now respond directly to MIDI, no code needed
 - Chandler bugfix with smart bulb hue and saturation channels not blending the way you might expect.
+- Using a caching strategy we avoid calling ALSA sound card listing functions when not needed to stop occasional bad noises
 
+- *Major breaking changes*
+
+- The ALSA sound card aliases system has been removed. We no longer support multiple devices except with JACK
+- Audio is now done with libmpv.  All other backends are deprecated.   You should have python-mpv on your system!
+- This greatly increases audio performance and stability.
+- We no longer support a2jmidid or aliases for MIDIS.  Use ALSA midi directly, almost no use cases will need advanced routing.
 
 ### 0.65.64
 - Now we support those cheap SainSmart relay boards with a tagpoint based interface.  Use the Relayft245r device type.

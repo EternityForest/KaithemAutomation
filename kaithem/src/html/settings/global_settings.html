@@ -178,6 +178,12 @@ This is mostly used for astronomical calculations. Get Location uses <a href="ht
 <p class="help">
     Use the sound device __disable__ to turn off alert sounds.
 </p>
+
+
+<p class="warning">
+    Kaithem no longer supports multiple sound cards with anything besides JACK!! The sound card alias mechanism is gone.  Multiple JACK outputs remain as a core use case.
+</p>
+
 <h3>Sound</h3>
 <form action="/settings/changealertsettingstarget" method="POST">
 <table border=1>
@@ -201,10 +207,8 @@ This is mostly used for astronomical calculations. Get Location uses <a href="ht
 <tr>
 <td>Sound Device(All)</td><td><input list="cards" name="soundcard" value="${registry.get('system/alerts/soundcard','default')}">
     <datalist id="cards">
-        <option value="defaut"></option>
-        %for i in sound.getAvailableCards():
-        <option value="${i|h}"></option>
-        %endfor
+        <option value=""></option>
+        <option value="__disable__""></option>
     </datalist>
 
 </input></td>

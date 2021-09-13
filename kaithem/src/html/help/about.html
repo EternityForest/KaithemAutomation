@@ -397,19 +397,6 @@ lanip =get_lan_ip()
                 </tr>
             </table>
 
-            <h3>Sound Outputs</h3>
-            <p class="help">These sound output aliases can be used to specify the soundcard if using mplayer.
-                They are not the only soundcard names that will work. The aliases are persistant based on device ID
-                and USB port.
-            </p>
-            <ul>
-                %for i in kaithemobj.kaithem.sound.outputs():
-                <li>${i|h}</li>
-                %endfor
-            </ul>
-
-
-
             <h3>RTMidi Inputs</h3>
             <ul>
                 %for i in listRtmidi():
