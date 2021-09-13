@@ -784,6 +784,7 @@ objectPool = []
 class RemoteMPV():
     def __del__(self):
         self.stop()
+
     def __init__(self, *a,**k):
         # -*- coding: utf-8 -*-
 
@@ -799,6 +800,8 @@ class RemoteMPV():
         env['GST_DEBUG']='0'
         self.worker = Popen(['python3', f], stdout=PIPE, stdin=PIPE, stderr=STDOUT, env=env)
         self.rpc = RPC(target=self,stdin=self.worker.stdout, stdout=self.worker.stdin,daemon=True)
+
+        self.usesCounter = 0
 
     def stop(self):
         if self.stopping:
@@ -854,6 +857,9 @@ class MPVBackend(SoundWrapper):
             self.player.rpc.call('set',['ao','jack,pulse,alsa'])
             self.player.rpc.call('set',['jack_name',cname])
             self.player.rpc.call('set',['gapless_audio','weak'])
+
+            #Due to memory leaks, these have a limited lifespan
+            self.player.usesCounter +=1
             if not loop=="-1":
                 self.player.rpc.call('set',['loop_playlist',max(loop,1)])
             else:
@@ -869,7 +875,9 @@ class MPVBackend(SoundWrapper):
                 else:
                     self.player.rpc.call('set',['jack_port',output])
             self.started = time.time()
-            self.player.rpc.call('call',['play',filename],block=0.001,timeout=10)
+
+            if filename:
+                self.player.rpc.call('call',['play',filename],block=0.001,timeout=10)
 
 
 
@@ -877,13 +885,27 @@ class MPVBackend(SoundWrapper):
             self.stop()
 
         def stop(self):
+            bad=True
             if hasattr(self,'player'):
                 if self.player.worker.poll()==None:
                     try:
                         self.player.rpc.call('call',["stop"],block=0.001,timeout=1)
+                        bad=False
                     except TimeoutError:
                         pass
-                self.player.stop()
+                if self.player.usesCounter>10:
+                    self.player.stop()
+                elif bad:
+                    self.player.stop()
+                else:
+                    with objectPoolLock:
+                        p=self.player
+                        if p:
+                            if len(objectPool)<4:
+                                objectPool.append(p)
+                            else:
+                                self.player.stop()
+                self.player=None
             
 
 
@@ -893,8 +915,8 @@ class MPVBackend(SoundWrapper):
             try:
                 return self.player.rpc.call('get',['eof_reached'],block=0.001)==False
             except:
-                logging.exception()
-                return false
+                logging.exception("Error getting playing status, assuming closed")
+                return False
 
         def position(self):
             return time.time() - self.started
