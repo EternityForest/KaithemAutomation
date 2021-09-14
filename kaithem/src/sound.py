@@ -817,6 +817,11 @@ class RemoteMPV():
             self.rpc.call("call",["stop"],block=0.001,timeout=1)
         except TimeoutError:
             pass
+        except:
+            #I hate this. But I guess it's rather obvious if the stop function doesn't work,
+            #And this makes nuisance errors if the process is already dead.
+            pass
+
         self.worker.kill()
         self.worker.wait()
         tryCloseFds(self.worker)
@@ -840,10 +845,11 @@ class MPVBackend(SoundWrapper):
     # If the object is destroyed it destroys the process stopping the sound
     # It also abstracts checking if its playing or not.
     class MPVSoundContainer(object):
-        def __init__(self, filename, vol, finalGain,output, loop):
+        def __init__(self, filename, vol, finalGain,output, loop):            
+            self.lock = threading.RLock()
+
             if output=="__disable__":
                 return
-            self.lock = threading.RLock()
 
             #I think this leaks memory when created and destroyed repeatedly
             with objectPoolLock:
@@ -852,11 +858,15 @@ class MPVBackend(SoundWrapper):
                 else:
                     self.player = RemoteMPV()
 
-            cname = "kplayer"+str(time.monotonic())+"_out"
-            self.player.rpc.call('set',['no_video',True])
-            self.player.rpc.call('set',['ao','jack,pulse,alsa'])
-            self.player.rpc.call('set',['jack_name',cname])
-            self.player.rpc.call('set',['gapless_audio','weak'])
+            #Avoid somewhat slow RPC calls if we can
+            if not hasattr(self.player, 'isConfigured'):
+                cname = "kplayer"+str(time.monotonic())+"_out"
+
+                self.player.rpc.call('set',['no_video',True])
+                self.player.rpc.call('set',['ao','jack,pulse,alsa'])
+                self.player.rpc.call('set',['jack_name',cname])
+                self.player.rpc.call('set',['gapless_audio','weak'])
+                self.player.isConfigured=True
 
             #Due to memory leaks, these have a limited lifespan
             self.player.usesCounter +=1
@@ -887,16 +897,36 @@ class MPVBackend(SoundWrapper):
         def stop(self):
             bad=True
             if hasattr(self,'player'):
-                if self.player.worker.poll()==None:
+                #Only do the maybe recycle logic when stopping a still good SFX
+                try:
+                    w=self.player.worker
+                except:
+                    return
+                if w.poll()==None:
                     try:
-                        self.player.rpc.call('call',["stop"],block=0.001,timeout=1)
+                        with self.lock:
+                            self.player.rpc.call('call',["stop"],block=0.001,timeout=1)
                         bad=False
-                    except TimeoutError:
+                    except:
+                        #Sometimes two threads try to stop this at the same time and we get a race condition
+                        #I really hate this but stopping a crashed sound can't be allowed to take down anything else.
                         pass
-                if self.player.usesCounter>10:
+                    
+
+                if bad or self.player.usesCounter>10:
+                    if len(objectPool)<4:
+                        def f():
+                            #Can't make it under lock that is slow
+                            o=RemoteMPV()
+                            with objectPoolLock:
+                                if len(objectPool)<4:
+                                    objectPool.append(o)
+                                    return
+                            o.stop()
+                        workers.do(f)
+                                                    
                     self.player.stop()
-                elif bad:
-                    self.player.stop()
+
                 else:
                     with objectPoolLock:
                         p=self.player
@@ -910,41 +940,47 @@ class MPVBackend(SoundWrapper):
 
 
         def isPlaying(self):
-            if not hasattr(self,'player'):
-                return False
-            try:
-                return self.player.rpc.call('get',['eof_reached'],block=0.001)==False
-            except:
-                logging.exception("Error getting playing status, assuming closed")
-                return False
+            with self.lock:
+                if not hasattr(self,'player'):
+                    return False
+                try:
+                    return self.player.rpc.call('get',['eof_reached'],block=0.001)==False
+                except:
+                    logging.exception("Error getting playing status, assuming closed")
+                    return False
 
         def position(self):
             return time.time() - self.started
 
         def wait(self):
-            # Block until sound is finished playing.
-            self.player.rpc.call('wait_for_playback',block=0.001)
+            with self.lock:
+                # Block until sound is finished playing.
+                self.player.rpc.call('wait_for_playback',block=0.001,timeout=5)
 
         def seek(self, position):
             pass
 
         def setVol(self, volume,final=True):
-            self.volume = volume
-            if final:
-                self.finalGain = volume
-            self.player.rpc.call('set',['volume',volume*100],block=0.001)
+            with self.lock:
+                self.volume = volume
+                if final:
+                    self.finalGain = volume
+                self.player.rpc.call('set',['volume',volume*100],block=0.001)
 
         def getVol(self):
-            return self.player.rpc.call('get',['volume'],block=0.001)
+            with self.lock:
+                return self.player.rpc.call('get',['volume'],block=0.001)
 
         def setEQ(self, eq):
             pass
 
         def pause(self):
-            self.player.rpc.call('set',['pause',True])
+            with self.lock:
+                self.player.rpc.call('set',['pause',True])
 
         def resume(self):
-            self.player.rpc.call('set',['pause',False])
+            with self.lock:
+                self.player.rpc.call('set',['pause',False])
 
     def playSound(self, filename, handle="PRIMARY", extraPaths=[], volume=1, finalGain=None,output='',loop=1):
 
@@ -1061,12 +1097,17 @@ class MPVBackend(SoundWrapper):
 
                 #Don't overwhelm the backend with commands
                 time.sleep(max(1/48.0, time.monotonic()-tr))
-
+            
             try:
                 targetVol = self.runningSounds[handle].finalGain
-                self.setVolume(min(1, targetVol), handle)
-            except Exception as e:
-                print(e)
+            except KeyError:
+                targetVol=-1
+
+            if not targetVol == -1:
+                try:
+                    self.setVolume(min(1, targetVol), handle)
+                except Exception as e:
+                    print(e)
 
             if x:
                 x.stop()

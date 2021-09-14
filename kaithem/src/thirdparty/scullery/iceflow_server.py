@@ -19,6 +19,7 @@ import logging
 import weakref
 import traceback
 import os
+import sys
 
 #import workers  # , ]messagebus
 
@@ -42,6 +43,20 @@ rpc = [None]
 def tryToAvoidSegfaults(t, v):
     if v.clientName == "system":
         stopAllJackUsers()
+
+ppid = os.getppid()
+
+
+#https://stackoverflow.com/questions/568271/how-to-check-if-there-exists-a-process-with-a-given-pid-in-python
+def check_pid(pid):        
+    """ Check For the existence of a unix pid. """
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    else:
+        return True
+
 
 
 #messagebus.subscribe("/system/jack/delport", tryToAvoidSegfaults)
@@ -1051,3 +1066,8 @@ rpc[0] = jsonrpyc.RPC(target=gstp)
 
 def print(*a):
     rpc[0]("print", str(a))
+
+while 1:
+    time.sleep(10)
+    if not check_pid(ppid):
+        sys.exit()

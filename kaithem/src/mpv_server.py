@@ -1,6 +1,21 @@
 from thirdparty import jsonrpyc
 import mpv
 
+import os
+import sys
+
+ppid = os.getppid()
+
+
+#https://stackoverflow.com/questions/568271/how-to-check-if-there-exists-a-process-with-a-given-pid-in-python
+def check_pid(pid):        
+    """ Check For the existence of a unix pid. """
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    else:
+        return True
 
 
 class proxy():
@@ -16,5 +31,9 @@ p.obj=mpv
 
 rpc = jsonrpyc.RPC(target=p)
 import time
+
+
 while 1:
-    time.sleep(5)
+    time.sleep(10)
+    if not check_pid(ppid):
+        sys.exit()
