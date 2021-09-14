@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1631312092504587
+resource-timestamp: 1631608599990657
 resource-type: event
 versions: {}
 
@@ -227,11 +227,6 @@ if __name__=='__setup__':
     
     module.scenes = weakref.WeakValueDictionary()
     module.scenes_by_name = weakref.WeakValueDictionary()
-    
-    try:
-        import pavillion
-    except:
-        pass
     
     
     def parseBinding(b):
@@ -1223,37 +1218,6 @@ if __name__=='__setup__':
             "Statusonly=only the stuff relevant to a cue change. Keys is iterabe of what to send, or None for all"
             scene = module.scenes[sceneid]
             
-            try:
-                if not scene.pavillionc:
-                    subs=-1
-                else:
-                    subs=0
-    
-                subslist = []
-                if scene.pavillionc:
-                    x = scene.pavillionc.client.getServers()
-    
-                    subs = len(x)
-                    if subs:
-                        for i in x:
-                            y = ""
-                            try:
-                                import netifaces
-                                for interface in netifaces.interfaces():
-                                    for link in netifaces.ifaddresses(interface)[netifaces.AF_INET]:
-                                        if i[0]==link['addr']:
-                                            y="[LOCALHOST]"
-                                        if i[1]==scene.pavillions.server.sendsock.getsockname()[1]:
-                                            y="[THIS SCENE]"
-                            except:
-                                pass
-                            subslist.append(str(i)+y+": network: "+x[i].netType()+" "+str(x[i].rssi())+ ", battery: "+str(x[i].battery())+"%, battery state: "+x[i].batteryState()+", temperature: "+str(x[i].temperature())+"C") 
-    
-            except:
-                subs = -1
-                rl_log_exc("Error pushing metadata")
-                print(traceback.format_exc())
-            
             v = {}
             if scene.scriptContext:
                 try:
@@ -1265,6 +1229,7 @@ if __name__=='__setup__':
                                 v[j]='__PYTHONDATA__'
                 except:
                     print(traceback.format_exc())
+    
             if not statusOnly:
                 data ={
                                 'ext':not sceneid in self.scenememory ,
@@ -1284,13 +1249,8 @@ if __name__=='__setup__':
                                 'backtrack': scene.backtrack,
                                 'cue': scene.cue.id if scene.cue else scene.cues['default'].id,
                                 'cuelen': scene.cuelen,
-                                'syncKey': scene.syncKey,
-                                'syncAddr': scene.syncAddr,
                                 'midiSource': scene.midiSource,
                                 'defaultNext': scene.defaultNext,
-                                'syncPort': scene.syncPort,
-                                'subs': subs,
-                                'subslist': subslist,
                                 'soundOutput': scene.soundOutput,
                                 'vars':v,
                                 'timers': scene.runningTimers,
@@ -1739,19 +1699,6 @@ if __name__=='__setup__':
                     cues[msg[1]].setValue(msg[2],ch,msg[4])
                     self.link.send(["scv",msg[1],msg[2],ch,msg[4]])
     
-                
-                if msg[0]=="generatesynckey":
-                    module.scenes[msg[1]].setSyncKey(base64.b64encode(os.urandom(32)).decode("utf8"))
-                    
-                if msg[0] == "setsynckey":
-                    module.scenes[msg[1]].setSyncKey(msg[2])
-                
-                if msg[0] == "setsyncaddr":
-                    module.scenes[msg[1]].setSyncAddress(msg[2])
-                
-                if msg[0] == "setsyncport":
-                    module.scenes[msg[1]].setSyncPort(int(msg[2]))
-    
                 if msg[0] == "setMidiSource":
                     module.scenes[msg[1]].setMidiSource(msg[2])
                 if msg[0] == "setDefaultNext":
@@ -1975,10 +1922,10 @@ if __name__=='__setup__':
                 if msg[0] == "setnext":
                     disallow_special( msg[2][:1024],allow=allowedCueNameSpecials+"*|")
                     if msg[2][:1024]:
-                        c = msg[2][:1024]
+                        c = msg[2][:1024].strip()
                     else:
                         c = None
-                    cues[msg[1]].nextCue= c.strip()
+                    cues[msg[1]].nextCue= c
                     self.pushCueMeta(msg[1])
                     
                 
@@ -2701,8 +2648,8 @@ if __name__=='__setup__':
     class Scene():
         "An objecting representing one scene. DefaultCue says if you should auto-add a default cue"
         def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,
-        blendArgs=None,backtrack=True,defaultCue=True, syncKey=None, bpm=60, syncAddr="239.255.28.12", syncPort=1783, 
-        soundOutput='',notes='',page=None, mqttServer='', crossfade=0, midiSource='', defaultNext=''):
+        blendArgs=None,backtrack=True,defaultCue=True, bpm=60, 
+        soundOutput='',notes='',page=None, mqttServer='', crossfade=0, midiSource='', defaultNext='',**ignoredParams):
     
             if name and name in module.scenes_by_name:
                 raise RuntimeError("Cannot have 2 scenes sharing a name: "+name)
@@ -2872,14 +2819,6 @@ if __name__=='__setup__':
     
             self.rerenderOnVarChange = False
     
-            #Set up the multicast synchronization
-            self.pavillionc = None
-            self.syncKey = syncKey
-            self.syncPort = syncPort
-            self.syncAddr = syncAddr
-            if self.syncKey:
-                self.pavillionSetup()
-    
             self.enteredCue = 0
             
             #Map event name to runtime as unix timestamp
@@ -2954,7 +2893,6 @@ if __name__=='__setup__':
                         'blendArgs': self.blendArgs,
                         'backtrack': self.backtrack,
                         'soundOutput': self.soundOutput,
-                        'syncKey':self.syncKey, 'syncPort': self.syncPort, 'syncAddr':self.syncAddr,
                         'midiSource': self.midiSource,
                         'defaultNext':self.defaultNext,
                         'uuid': self.id,
@@ -2965,11 +2903,7 @@ if __name__=='__setup__':
                     }         
     
         def __del__(self):
-            try:
-                self.pavillionc.close()
-                self.pavillions.close()
-            except:
-                pass
+            pass
     
         def getStatusString(self):
             x=''
@@ -2997,59 +2931,7 @@ if __name__=='__setup__':
             """
             return self.scriptContext.preprocessArgument(s)    
     
-        def pavillionSetup(self):
-            if self.syncKey and not isinstance(self.syncKey,bytes) and not (len(self.syncKey)==32):
-                bsynckey = base64.b64decode(self.syncKey)
-                if not len(bsynckey)==32:
-                    raise ValueError("Key must be 32 bytes, or 32 base64 encoded bytes")
-            elif isinstance(self.syncKey,bytes) and len(self.syncKey)==32:
-                bsynckey = self.syncKey
-            else:
-                raise ValueError("Key must be 32 bytes, or 32 base64 encoded bytes")
-            self.bsynckey = bsynckey
     
-            #Generate target from sync key, so you don't have to do it yourself
-            msgtarget = hashlib.sha256(bsynckey).hexdigest()
-            self.messagetargetstr = msgtarget
-    
-            try:
-                self.pavillionc.close()
-                self.pavillions.close()
-            except:
-                pass
-    
-    
-            class Client(pavillion.Client):
-                def onServerStatusUpdate(self, server):
-                    with module.lock:
-                        self.pushMeta()
-    
-            self.pavillions = pavillion.Server(keys={b'0'*16:bsynckey},port=self.syncPort,multicast=self.syncAddr, daemon=True)
-            self.pavillions.setStatusReporting(True)
-    
-            self.pavillionc = pavillion.Client(psk=bsynckey, clientID=b'0'*16,address=(self.syncAddr, self.syncPort), daemon=True)
-            self.pavillions.ignore[self.pavillionc.address]=True
-    
-    
-            def f(name,data, client):
-                if name =="cue":
-                    data=data.decode("utf-8")
-                    data = data.split("\n")
-                    t = float(data[1])
-    
-                    #If the time matches, treat it as the "same" event that we don't need to handle again
-                    if abs(t-self.enteredCue)<0.03:
-                        return
-                    #If the transition happened more than 5 seconds in the future, that doesn't make any sense
-                    if t-module.timefunc()>5:
-                        return
-                    #If the transition happened more than 24h ago, ignore it.
-                    if module.timefunc()-t>(3600*24):
-                        return
-                    
-                    if data[0] in self.cues:
-                        self.gotoCue(data[0],t,sendSync=False,cause='sync')
-            self.msgtarget = self.pavillions.messageTarget(msgtarget,f)
     
     
         
@@ -3366,11 +3248,6 @@ if __name__=='__setup__':
                     if not self.enteredCue == entered:
                         return
                     
-                    if sendSync:
-                        if self.pavillionc:
-                            def f():
-                                self.pavillionc.sendMessage(self.messagetargetstr,"cue", (cue+"\n"+str(t or module.timefunc())).encode("utf-8"))
-                            kaithem.misc.do(f)
                     self.cueHistory.append(cue)
                     self.cueHistory = self.cueHistory[-100:]
                     self.sound_end = 0
@@ -4073,38 +3950,6 @@ if __name__=='__setup__':
                 self.pushMeta(keys={'alpha','dalpha'} )
             else:
                 self.pushMeta(keys={'alpha','dalpha'} )
-    
-        def setSyncKey(self, key):
-            if key and not isinstance(key,bytes) and not (len(key)==32):
-                bsynckey = base64.b64decode(key)
-                if not len(bsynckey)==32:
-                    self.hasNewInfo = {}
-                    raise ValueError("Key must be 32 bytes, or 32 base64 encoded bytes")
-    
-            elif isinstance(keyy,bytes) and len(key)==32:
-                key = base64.b64encode(key)
-            else:
-                self.hasNewInfo = {}
-                raise ValueError("Key must be 32 bytes, or 32 base64 encoded bytes")
-    
-    
-            with self.lock:
-                self.syncKey = key
-                self.hasNewInfo = {}
-                self.pavillionSetup()
-                
-    
-        def setSyncAddress(self, addr):
-            with self.lock:
-                self.syncAddr = addr
-                self.pavillionSetup()
-                self.hasNewInfo = {}
-        
-        def setSyncPort(self, port):
-            with self.lock:
-                self.syncPort = port
-                self.pavillionSetup()
-                self.hasNewInfo = {}
     
     
         

@@ -72,6 +72,26 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.66.0
+
+- JackMIDIListener has been removed.  Instead, all connected ALSA midi devices automatically generate tag points for last pressed note and all CC values.
+- All connected midi devices now also report to the message bus
+- JackFluidSynth plugin now only accepts MIDI on the internal message bus.  
+- python-rtmidi is required to use these features.  This is all on account of some unreliable performance and excess complexity with jack midi.
+- Chandler can now respond directly to MIDI, no code needed
+- Chandler bugfix with smart bulb hue and saturation channels not blending the way you might expect.
+- Using a caching strategy we avoid calling ALSA sound card listing functions when not needed to stop occasional bad noises(Much lower JACK latency is possible)
+- Chandler Pavillion encrypted protocol sync removed(MQTT alternative coming soon)
+- Chandler scene notes now just uses a plain HTTP textarea
+
+- *Major breaking changes*
+
+- The ALSA sound card aliases system has been removed. We no longer support multiple devices except with JACK
+- *Audio file playback is now done with libmpv.  All other backends are deprecated.   You should have python-mpv on your system!*
+- This greatly increases audio performance and stability.
+- We no longer support a2jmidid or aliases for MIDIs.  Use ALSA midi directly, almost no use cases will need advanced routing.
+
+
 ### 0.65.64
 - Now we support those cheap SainSmart relay boards with a tagpoint based interface.  Use the Relayft245r device type.
 - Freeboard default values don't clobber existing stuff if it is there, for the slider and switch widgets.
@@ -83,67 +103,6 @@ Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 - BREAKING CHANGE: the default topics used by the MQTT Tag sync no longer use a slash.
 - Correctly handle MQTT passsive connections that are created after the real connection
 
-### 0.65.63
-- Avoid slow cue transition performace when there is a cue loop
-- New compatibility/dummy mode for managing jack(Gives better performance on some systems, can work on new raspbian)
-- Freeboard now supports both click and release actions for buttons
-- Fix nuisiance error logging in chandler console inspect window
-
-### 0.65.62
-- Corerctly autocreate the log dir
-- Storing devices in modules
-
-### 0.65.61
-- Fix tag point subscriber not firing immediately in some edge cases
-- Bigger text boxes on tag point pages, for longer expressions
-
-
-### 0.65.60
-- "Length relative to sound" copied over when cloning cues in Chandler
-- USB audio devices default to 2048 samples and 3 periods if Kaithem is managing JACK.
-- Tag point getter functions now correctly update when given falsy values
-- Add alert for ethernet loss
-- Tagpoint claim.setExpiration(time,expiredPriority) specifies an alternate priority for a claim if it has not been updated in a certain time.
--- This feature cah be used to detect when a data source is old.
-- No longer automatically set a shortcut code for Changler cues, provide a button to set to the number instead
-- Other chandler shortcuts still fire if one of them has an error
-- Clean up the chandler interface even more
-- 4x speedup setting tag point values
-- Breaking change: mixer tagpoints use .property instead of /property format
-
-### 0.65.59
-- Eliminate the cherrypy autoreloader, it was being more trouble than it is worth.
-- Fix ZigBee light tag
-- Fix support for multiple ZigBee devices at the same time
-- Fix CSS on object inspector
-
-### 0.65.58
-- DrayerDB integration can now log system notifications
-- DrayerDB configurable autoclean for old notifications.
-- Update drayerDB, properly support compressed records.
-- Breaking change: Zigbee device property tagpoints use .property instead of /property format
-
-
-### 0.65.57
-- Tag point timestamp correctly starts at 0 when not yet set by anything
-- Zigbee2MQTT Alarm Bugfixing
-- Use prompt instead of text input to prevent browser caching sensitive info in DrayerDB sharing codes
-
-
-### 0.65.56
-- Update HardlineP2P
-
-
-### 0.65.55
-- Tag history DB file now includes the name of the node that wrote it.
-- Semi breaking change, not really, the log directory is now compartmented by which hostname-user actually wrote the logs, in case the vardir is synced between machines.
-- File manager now includes a youtube-dl frontend, for legal purposes only.
-- Ability to ship device drivers inside a module, with proper dependency resolution on boot.
-- Include pure python fallback for messagepack
-- New BinaryTag tagpoint type
-- Fix error when re-saving event with exposed tag
-- Zigbee2MQTT is now supported.  Add the Zigbee daemon as a device type and most supported devices should show up as tag points.
-- DrayerDB is now supported. Kaithem is now the preferred way to manage DrayerDB servers.
 
 
 License Terms

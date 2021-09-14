@@ -9,6 +9,8 @@ Change Log
 - Chandler can now respond directly to MIDI, no code needed
 - Chandler bugfix with smart bulb hue and saturation channels not blending the way you might expect.
 - Using a caching strategy we avoid calling ALSA sound card listing functions when not needed to stop occasional bad noises(Much lower JACK latency is possible)
+- Chandler Pavillion encrypted protocol sync removed(MQTT alternative coming soon)
+- Chandler scene notes now just uses a plain HTTP textarea
 
 - *Major breaking changes*
 

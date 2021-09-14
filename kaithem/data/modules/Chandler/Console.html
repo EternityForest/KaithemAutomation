@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1631312231238042
+resource-timestamp: 1631608950640080
 resource-type: page
 template-engine: mako
 
@@ -735,7 +735,7 @@ def listRtmidi():
                         style="border-style:solid; border-width:1px;">
                         <button v-bind:class="{specialentry:i[0]==scenename}" v-on:click="selectscene(i[1],i[0])"><i v-if="i[1].syncKey" class="icss-wifi" style="color:blue;"> </i>
 
-                    <span v-if="(i[1].subs!==-1)" title="Scene is synced with external servers">({{i[1].subs}})</span>
+                   
                     <b>{{i[1].name}}</b><span v-if="i[1].ext" class="grey"> (external)</span></button>
                         <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}<img v-if="cuemeta[i[1].cue].script" src="/zipstatic/img/icons/fugue.zip/script-text.png"></img>
                     <img v-if="cuemeta[i[1].cue].sound" src="/zipstatic/img/icons/fugue.zip/speaker.png"></img> 
@@ -921,7 +921,8 @@ def listRtmidi():
                     </div>
 
                     <div style="overflow: scroll; max-height:30em;" v-if="scenetab=='notes'">
-                        <vue-ace-editor v-model:value="editingScene.notes" v-bind:options="mdooptions"></vue-ace-editor><br>
+                        <h4>Scene Notes</h4>
+                        <textarea v-model:value="editingScene.notes"></textarea><br>
                         <button v-on:click="setSceneNotes(scenename,editingScene.notes)">Save</button>
                     </div>
 
@@ -1045,31 +1046,9 @@ def listRtmidi():
                         <div v-if="scenetab=='sync'">
                             <h3>Sync Options</h3>
                             <p class="help">
-                                Sync allows cue transitions to be transmitted across the LAN. Set theese parameters to be the same for 2 scenes, and the
-                                system will try to sync the states.
+                                The Pavillion protocol is now removed!! Nobody was using this. Stay tuned for MQTT sync at some point.
                             </p>
-                            <label>Sync Address:
-                        <input style="width:20em" v-on:change="setsyncaddr(scenename,$event.target.value)"
-                            v-model="editingScene.syncAddr">
-                    </label><br>
-                            <label>Sync Port:
-                        <input type='number' min=0 max=65535 style="width:6em" v-on:change="setsyncport(scenename,parseFloat($event.target.value))"
-                            v-model="editingScene.syncPort">
-                    </label><br>
 
-                            <label>Sync Key(Blank to disable sync):
-                        <input type="password" style="width:30em" v-on:change="setsynckey(scenename,$event.target.value)"
-                            v-model="editingScene.syncKey" v-on:focus="$event.target.type='text'"
-                            v-on:blur="$event.target.type='password'" title="Must be a base64 string representing 32 bytes">
-                    </label><br>
-                            <button v-on:click="generateSyncKey(scenename,editingScene.name)">Create Key</button>
-                            <hr>
-                            <h4>Peers</h4>
-                            <p class="help">Instances on one machine may show as one address</p>
-                            <ul>
-                                <li v-for="i in editingScene.subslist">{{i}}</li>
-                            </ul>
-                            <hr>
                         </div>
 
                         <div v-if="scenetab=='sound'">
@@ -2516,35 +2495,6 @@ def listRtmidi():
                 if (x)
                 {
                     api_link.send(['stop', sc]);
-                }
-            },
-
-            'setsynckey': function(sc, v)
-            {
-                api_link.send(['setsynckey', sc, v]);
-            },
-
-
-            'setsyncport': function(sc, v)
-            {
-                api_link.send(['setsyncport', sc, v]);
-            },
-
-            'setsyncaddr': function(sc, v)
-            {
-                api_link.send(['setsyncaddr', sc, v]);
-            },
-
-            'generateSyncKey': function(sc, n)
-            {
-                var x = confirm(
-                    "Do you want to assign a new sync key to " + n +
-                    "?"
-                )
-                if (x)
-                {
-                    api_link.send(['generatesynckey', sc]);
-
                 }
             },
 
