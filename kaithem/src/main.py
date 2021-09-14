@@ -79,8 +79,8 @@ import logging
 from . import wifimanager
 
 
-__version__ = "0.65.64 Production"
-__version_info__ = (0, 65, 64, "release", 0)
+__version__ = "0.66.00 Production"
+__version_info__ = (0, 66, 00, "release", 0)
 
 
 # Library that makes threading and lock operations, which we use a lot of, use native code on linux
