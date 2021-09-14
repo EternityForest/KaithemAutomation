@@ -32,13 +32,21 @@ or access the full help via the web interface!
 
 
 ## Setup
-See [This page](kaithem/src/docs/setup.md). Or, to just try things out, git clone and run kaithem/kaithem.py, then visit port 8001(for https) or port 8002(for not-https) on localhost. That's really all you need to do.
+See [This page](kaithem/src/docs/setup.md). Or, *to just try things out, git clone and run kaithem/kaithem.py, then visit port 8001(for https) or port 8002(for not-https) on localhost. That's really all you need to do.*
 
 There are many optional dependancies in the .deb recommended section that enable extra features. All are available in the debian repos and do not need to be compiled, except for Cython, which is installed automatically by the postinstall script of the debian package, or can easily be manually installed with "sudo pip3 install Cython".
 
 At the moment, Cython is only used to give audio mixer gstreamer threads realtime priority.
 
 In particular, everything to do with sound is handled by dependancies, and python3-libnacl and python3-netifaces are recommended as several networking features require them.
+
+Several other audio file players may still work, but the only one supported and suggested is libmpv, on Debian provided by libmpv-dev.
+
+
+# To download all optional dependancies
+
+sudo apt install pulseaudio python3-pyserial python3-pytz python3-dateutil lm-sensors python3-netifaces python3-jack-client python3-gst-1.0 python3-libnacl jack-tools jackd2 gstreamer1.0-plugins-good gstreamer1.0-plugins-bad swh-plugins sudo apt install tap-plugins caps  gstreamer1.0-plugins-ugly python3-psutil fluidsynth libfluidsynth2 network-manager python3-paho-mqtt python3-dbus python3-lxml gstreamer1.0-pocketsphinx x42-plugins baresip autotalent libmpv-dev
+
 
 ### Security
 At some point, you should probably set up a proper SSL certificate in kaithem/var/ssl. The debian installer will generate one at
