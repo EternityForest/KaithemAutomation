@@ -158,6 +158,8 @@ def combineLogs(a):
 <%
 if cherrypy.request.params.get("kaithem_disable_header",0):
     extraUrlStuff= "?kaithem_disable_header=true"
+else:
+    extraUrlStuff =''
 %>
 <title>${normalizednormalizedTagName|h}</title>
 <script src="/static/widget.js"></script>
