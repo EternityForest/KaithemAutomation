@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: [users.chandler.admin]
-resource-timestamp: 1631608950640080
+resource-timestamp: 1632004750103047
 resource-type: page
 template-engine: mako
 
@@ -843,7 +843,7 @@ def listRtmidi():
                                         <input type="number" v-on:input="setfadein(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].fadein">{{(scenemeta[scenename].bpm&&scenemeta[scenename].bpm!=60)?"beats":"s"}}</td>
 
                                     <td data-label="Length:">
-                                        <input type="number" v-on:change="setlength(i[1].id,$event.target.value)" style="width:3em" min=0 v-model="i[1].length">{{(scenemeta[scenename].bpm&&scenemeta[scenename].bpm!=60)?"beats":"s"}}{{i[1].rel_len ?"+sound":""}}</td>
+                                        <input v-on:change="setlength(i[1].id,$event.target.value)" style="width:6em" v-model="i[1].length">{{(scenemeta[scenename].bpm&&scenemeta[scenename].bpm!=60)?"beats":"s"}}{{i[1].rel_len ?"+sound":""}}</td>
 
                                     <td data-label="Next Cue:">
                                         <select style="width:100%" v-model="i[1].next" v-if="Object.keys(scenecues[scenename]).length<600" autocomplete=off title="Select a cue to activate when this one ends"
@@ -1236,8 +1236,8 @@ def listRtmidi():
                                 min=0 v-model="currentcue.fadein">{{scenemeta[scenename].bpm?"beats":"s"}}
                         </label>
                                 <label>Length:
-                            <input type="number" v-on:input="setlength(currentcueid,$event.target.value)" v-model="cuemeta[currentcueid].length"
-                                style="width:4em" min=0></input>{{scenemeta[scenename].bpm?"beats":"s"}}
+                            <input v-on:input="setlength(currentcueid,$event.target.value)" v-model="cuemeta[currentcueid].length"
+                                style="width:6em" min=0></input>{{scenemeta[scenename].bpm?"beats":"s"}}
                         </label>
                                 <label>Randomize Length:
                             <input type="number" v-on:input="setrandomize(currentcueid,$event.target.value)"

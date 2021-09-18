@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1631608599990657
+resource-timestamp: 1632007276665905
 resource-type: event
 versions: {}
 
@@ -19,10 +19,11 @@ if __name__=='__setup__':
     #This code runs once when the event loads. It also runs when you save the event during the test compile
     #and may run multiple times when kaithem boots due to dependancy resolutio n
     __doc__=''
-    import time,array,random,weakref, os,threading,uuid,logging,serial,traceback,yaml,copy,json,math,struct,socket,src,json
+    import time,array,random,weakref, os,threading,uuid,logging,serial,traceback,yaml,copy,json,math,struct,socket,src,json,collections
     from decimal import Decimal
     from tinytag import TinyTag
     from typeguard import typechecked
+    import urllib
     
     
     
@@ -712,8 +713,12 @@ if __name__=='__setup__':
                     for i in module.boards:
                         if isinstance(v, (str, int,float,bool)):
                             i().link.send(['varchange',self.scene, k, v])
+                        elif isinstance(v, collections.defaultdict):
+                            v = json.dumps(v)[:160]
+                            i().link.send(['varchange',self.scene, k, v])                      
                         else:
-                            i().link.send(['varchange',self.scene, k, "__PYTHONDATA__"])        
+                            v = str(v)[:160]
+                            i().link.send(['varchange',self.scene, k, v])        
             except:
                 rl_log_exc("Error handling var set notification")
                 print(traceback.format_exc())
@@ -1874,13 +1879,13 @@ if __name__=='__setup__':
                     cues[msg[1]].soundOutput=msg[2]
                     self.pushCueMeta(msg[1])
     
-                if msg[0]=="setlninfluences":
-                    cues[msg[1]].setLivingNightInfluences(msg[2])
-                    self.pushCueMeta(msg[1])
+                # if msg[0]=="setlninfluences":
+                #     cues[msg[1]].setLivingNightInfluences(msg[2])
+                #     self.pushCueMeta(msg[1])
     
-                if msg[0]=="setlnassosiations":
-                    cues[msg[1]].setLivingNightAssociatoind(msg[2])
-                    self.pushCueMeta(msg[1])
+                # if msg[0]=="setlnassosiations":
+                #     cues[msg[1]].setLivingNightAssociatoind(msg[2])
+                #     self.pushCueMeta(msg[1])
     
     
     
@@ -1920,7 +1925,6 @@ if __name__=='__setup__':
                     self.pushCueMeta(msg[1])
     
                 if msg[0] == "setnext":
-                    disallow_special( msg[2][:1024],allow=allowedCueNameSpecials+"*|")
                     if msg[2][:1024]:
                         c = msg[2][:1024].strip()
                     else:
@@ -2418,31 +2422,31 @@ if __name__=='__setup__':
     
             #Used for the livingnight algorithm
             #Aspect, value tuples
-            self.influences = {}
+            #self.influences = {}
     
             #List if tuples(type, aspect, effect)
             #Type is what parameter if the cue is being affected
-            self.associations = []
+            #self.associations = []
     
             self.setShortcut(shortcut,False)
                 
             self.push()
         
-        def setInfluences(self, influences):
-            self.influences = influences
-            self.scene.recalcLivingNight()
+        # def setInfluences(self, influences):
+        #     self.influences = influences
+        #     self.scene.recalcLivingNight()
         
-        def getProbabilty(self):
-            """
-            When randomly selecting a cue, this modifies the probability of each cue
-            based on LivingNight parameters
-            """
-            s = 1
-            for i in self.associations:
-                if i[0]== 'probability':
-                    s= module.lnEffect(s,i[1],i[2])
+        # def getProbabilty(self):
+        #     """
+        #     When randomly selecting a cue, this modifies the probability of each cue
+        #     based on LivingNight parameters
+        #     """
+        #     s = 1
+        #     for i in self.associations:
+        #         if i[0]== 'probability':
+        #             s= module.lnEffect(s,i[1],i[2])
     
-            return s 
+        #     return s 
     
         def serialize(self):
                 x =  {"fadein":self.fadein,"length":self.length,'lengthRandomize':self.lengthRandomize,"shortcut":self.shortcut,"values":self.values,
@@ -2487,6 +2491,8 @@ if __name__=='__setup__':
     
             
         def clone(self,name):
+            name=self.scene().evalExpr(name)
+            
             if name in self.scene().cues:
                 raise RuntimeError("Cannot duplicate cue names in one scene")
     
@@ -2845,14 +2851,13 @@ if __name__=='__setup__':
     
             self.chandlerVars = {}
     
-            #The bindings for script commands that might be in the cue metadata
-            self.scriptContext = None
+    
     
     
             #List the active LivingNight influences
             self.influences = {}
     
-            self.recalcLivingNight()
+            # self.recalcLivingNight()
     
     
             import hashlib
@@ -2864,6 +2869,10 @@ if __name__=='__setup__':
                 name = self.id
             module.scenes[self.id] = self
     
+            #The bindings for script commands that might be in the cue metadata
+            #Used to be made on demand, now we just always have it
+            self.scriptContext=None
+            self.refreshRules()
         
             self.setMqttServer(mqttServer)
     
@@ -2935,22 +2944,22 @@ if __name__=='__setup__':
     
     
         
-        def recalcLivingNight(self):
-            "This is called whenever a relevant change happens to LivingNight."
-            with self.lock:
-                if self.cue:
-                    #When the cue changes we alsi
-                    x = self.cue.influences
+        # def recalcLivingNight(self):
+        #     "This is called whenever a relevant change happens to LivingNight."
+        #     with self.lock:
+        #         if self.cue:
+        #             #When the cue changes we alsi
+        #             x = self.cue.influences
     
-                    for i in self.influences:
-                        if not i in x:
-                            del self.influences[i]
+        #             for i in self.influences:
+        #                 if not i in x:
+        #                     del self.influences[i]
     
-                    for i in x:
-                        if i in self.influences:
-                            self.influences[i].update(x[i])
-                        else:
-                            self.influences[i]=module.lnInfluence(i,x[i])
+        #             for i in x:
+        #                 if i in self.influences:
+        #                     self.influences[i].update(x[i])
+        #                 else:
+        #                     self.influences[i]=module.lnInfluence(i,x[i])
     
     
         def insertSorted(self,c):
@@ -3172,7 +3181,8 @@ if __name__=='__setup__':
                                 x.remove(i)
                     cue = cue = self.pickRandomCueFromNames(x)
     
-                        
+            cue = cue.split("?")[0]
+    
             if not cue in self.cues:
                 try:
                     c = float(cue)
@@ -3188,6 +3198,25 @@ if __name__=='__setup__':
             "Goto cue by name, number, or string repr of number"
             #Globally raise an error if there's a big horde of cue transitions happening
             doTransitionRateLimit()
+    
+    
+     
+            cue = self.evalExpr(cue)
+    
+            if '?' in cue: 
+                cue,args = cue.split("?")
+                kwargs = urllib.parse.parse_qs(args)
+            else:
+                kwargs={}
+    
+            for i in kwargs:
+                if len(kwargs[i])==1:
+                    kwargs[i]=kwargs[i][0]
+    
+            kwargs = collections.defaultdict(lambda:"", kwargs)
+                
+            self.scriptContext.setVar("KWARGS", kwargs)
+    
     
             with module.lock:
                 with self.lock:
@@ -3561,10 +3590,10 @@ if __name__=='__setup__':
                 self.scriptContext.clearBindings()
     
                 self.scriptContext.setVar("SCENE", self.name)
-                self.scriptContext.setVar("CUE", (rulesFrom or self.cue).name)
                 self.runningTimers ={}
                 
                 if self.active:
+                    self.scriptContext.setVar("CUE", (rulesFrom or self.cue).name)
                     ##Legacy stuff
                     if (rulesFrom or self.cue).script:
                         self.scriptContext.addBindings(parseCommandBindings((rulesFrom or self.cue).script))
@@ -3641,7 +3670,7 @@ if __name__=='__setup__':
     
         def nextCue(self,t=None,cause='generic'):
             with module.lock:
-                if self.cue.nextCue and ((self.cue.nextCue in self.cues) or self.cue.nextCue.startswith("__") or "|" in self.cue.nextCue or "*" in self.cue.nextCue):
+                if self.cue.nextCue and ((self.evalExpr(self.cue.nextCue).split("?")[0] in self.cues) or self.cue.nextCue.startswith("__") or "|" in self.cue.nextCue or "*" in self.cue.nextCue):
                     self.gotoCue(self.cue.nextCue,t, cause=cause)
                 elif not self.cue.nextCue:
                     x= self.getDefaultNext()
