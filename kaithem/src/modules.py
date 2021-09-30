@@ -79,9 +79,6 @@ def unlockFile(f):
 fnToModuleResource = {}
 
 
-def moduleFromPythonCode(c):
-    c = 9
-
 
 def new_empty_module():
     return {"__description":
@@ -103,7 +100,6 @@ else:
 
 # This must be set to true by anything that changes the modules
 # it's o the code knows to save everything is it has been changed.
-moduleschanged = False
 unsaved_changed_obj = {}
 
 # This lets us have some modules saved outside the var dir.
@@ -203,7 +199,6 @@ def hashModule(module: str):
 
 def wordHashModule(module: str):
     try:
-        m = hashlib.blake2b()
         with modulesLock:
             return util.blakeMemorable(
                 json.dumps({i: ActiveModules[module][i] for i in ActiveModules[module] if not isinstance(ActiveModules[module][i], weakref.ref)}, sort_keys=True, separators=(',', ':')).encode('utf-8'), num=12, separator=" ")
@@ -225,8 +220,7 @@ def getModuleWordHash(m: str):
 
 
 def modulesHaveChanged():
-    global moduleschanged, moduleshash, modulehashes, modulewordhashes
-    moduleschanged = True
+    global moduleshash, modulehashes, modulewordhashes
     moduleshash = hashModules()
     modulehashes = {}
     modulewordhashes = {}
@@ -703,8 +697,7 @@ def saveAll():
     """saveAll and loadall are the ones outside code shold use to save and load the state of what modules are loaded.
     This function writes to data after backing up to a timestamp dir and deleting old timestamp dirs"""
 
-    # This is an RLock, and we need to use the lock so that someone else doesn't make a change while we are saving that isn't caught by
-    # moduleschanged.
+    # This is an RLock, and we need to use the lock so that someone else doesn't make a change while we are saving that isn't caught
     with modulesLock:
         if not unsaved_changed_obj:
             return False
@@ -730,12 +723,10 @@ def saveAll():
         saveModules(os.path.join(directories.moduledir, "data"))
         # We only want 1 backup(for now at least) so clean up old ones.
         util.deleteAllButHighestNumberedNDirectories(directories.moduledir, 2)
-        moduleschanged = False
         return True
 
 
 def loadRecoveryDbInfo(completeFileTimestamp=0):
-    global moduleschanged
     with modulesLock:
         if modules_state.enable_sqlite_backup:
             recoveryDb = sqlite3.connect(modules_state.recoveryDbPath)
@@ -750,7 +741,6 @@ def loadRecoveryDbInfo(completeFileTimestamp=0):
                         continue
                     unsaved_changed_obj[i['module'],
                                         i['resource']] = "Recovered from RAM"
-                    moduleschanged = True
                     if i['flag'] == 0:
                         if not i['module'] in modules_state.ActiveModules:
                             modules_state.ActiveModules[i['module']] = {}
@@ -1129,8 +1119,8 @@ def loadOneResource(folder, relpath, module):
             os.path.join(folder, relpath), relpath)
     except:
         messagebus.postMessage(
-            "/system/notifications/errors", "Error loadingresource from: " + fn)
-        logger.exception("Error loading resource from file "+fn)
+            "/system/notifications/errors", "Error loadingresource from: " + os.path.join(folder, relpath))
+        logger.exception("Error loading resource from file "+os.path.join(folder, relpath))
         raise
     if not r:
         return

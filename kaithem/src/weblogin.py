@@ -44,7 +44,8 @@ def onAttempt():
             alreadySent = 0
         recentAttempts = 0
     recentAttempts += 1
-    if recentAttempts > 150 and not alreadysent:
+    if recentAttempts > 150 and not alreadySent:
+        alreadySent = 1
         logging.warning("Many failed login attempts have occurred")
         messagebus.postMessage("/system/notifications/warnings",
                                "Excessive number of failed attempts in the last 30 minutes.")
@@ -134,11 +135,12 @@ class LoginScreen():
             # Even if the browser thinks localhost is insecure for cookie purposes, for some reason.
             # This will not be secure if someone puts it behind an insecure a proxy that allows HTTP also/s
             ip = cherrypy.request.remote.ip
-            if not ip.startswith("::1") or ip.startswith("127.") or ip == '::ffff:127.0.0.1':
+            if not (ip.startswith("::1") or ip.startswith("127.") or ip == '::ffff:127.0.0.1'):
                 cherrypy.response.cookie['auth']['secure'] = ' '
             cherrypy.response.cookie['auth']['httponly'] = ' '
-            # tokens are good for 90 days
-            cherrypy.response.cookie['auth']['expires'] = 24 * 60 * 60 * 90
+            # Previously, tokens are good for 90 days
+            # Now, just never expire, it might break kiosk applications.
+            # cherrypy.response.cookie['auth']['expires'] = 24 * 60 * 60 * 90
             x = auth.Users[kwargs['username']]
             if not 'loginhistory' in x:
                 x['loginhistory'] = [(time.time(), cherrypy.request.remote.ip)]
