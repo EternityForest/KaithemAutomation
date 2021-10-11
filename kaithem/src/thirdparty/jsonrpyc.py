@@ -490,7 +490,7 @@ class Watchdog(threading.Thread):
        The thread's daemon flag.
     """
 
-    def __init__(self, rpc, name="nostartstoplog.rpcwatchdog", interval=0.01, daemon=False, start=True):
+    def __init__(self, rpc, name="nostartstoplog.rpcwatchdog", interval=0.02, daemon=False, start=True):
         super(Watchdog, self).__init__()
         wdl[id(self)]=self
 

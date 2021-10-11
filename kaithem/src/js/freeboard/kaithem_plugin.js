@@ -131,9 +131,9 @@
                 self.data[t]=data;
                 self.updateCallback(self.proxy);
             }
-            kaithemapi.subscribe(t,f)
             self.dataHandlers[t]=f
-        }
+            kaithemapi.subscribe(t,f)
+		}
         
         self.unsubscribe=function(t){
             kaithemapi.unsubscribe(t,self.dataHandlers[t])

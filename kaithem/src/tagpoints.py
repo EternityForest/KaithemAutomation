@@ -1150,7 +1150,8 @@ class _TagPoint(virtualresource.VirtualResource):
 
             # Val override last, in case it triggers an alarm
             # Convert to string for consistent handling, the config engine things anything that looks like a number, is.
-            overrideValue = str(data.get('overrideValue', '')).strip().replace(" ","")
+            overrideValue = str(data.get('overrideValue', '')).strip()
+
 
             if self.type == "binary":
                 try:
