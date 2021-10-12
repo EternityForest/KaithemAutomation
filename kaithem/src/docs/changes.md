@@ -1,5 +1,14 @@
 Change Log
 ----------
+
+
+### 0.66.1
+
+- Fix creating new tags via the GUI
+- Fix incorrect initial state shown in freeboard
+- Fix fade in/out of sounds
+- Fix Chandler race condition where stop commands could come before start commands
+
 ### 0.66.0
 
 - JackMIDIListener has been removed.  Instead, all connected ALSA midi devices automatically generate tag points for last pressed note and all CC values.
