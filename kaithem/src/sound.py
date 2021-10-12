@@ -870,10 +870,11 @@ class MPVBackend(SoundWrapper):
 
             #Due to memory leaks, these have a limited lifespan
             self.player.usesCounter +=1
-            if not loop=="-1":
-                self.player.rpc.call('set',['loop_playlist',max(loop,1)])
+            if not loop==-1:
+                self.player.rpc.call('set',['loop_playlist',int(max(loop,1))])
             else:
-                self.player.rpc.call('set',['loop_playlist',True])
+                self.player.rpc.call('set',['loop_playlist',"inf"])
+
             self.player.rpc.call('set',['volume',vol*100])
             self.volume = vol
             self.finalGain=finalGain if not finalGain==None else vol
@@ -887,7 +888,7 @@ class MPVBackend(SoundWrapper):
             self.started = time.time()
 
             if filename:
-                self.player.rpc.call('call',['play',filename],block=0.001,timeout=10)
+                self.player.rpc.call('call',['play',filename],block=0.001,timeout=3)
 
 
 
@@ -1064,14 +1065,13 @@ class MPVBackend(SoundWrapper):
 
         # Allow fading to silence
         if file:
-            self.playSound(file, handle=handle, volume=0,output=output, finalGain= volume)
+            self.playSound(file, handle=handle, volume=0,output=output, finalGain= volume,loop=kwargs.get('loop',1))
 
-        if not x:
-            return
+        #if not x:
+        #    return
         if not length:
             return
 
-        v = x.volume
       
         def f():
             t = time.monotonic()
@@ -1084,7 +1084,7 @@ class MPVBackend(SoundWrapper):
             while time.monotonic()-t < length:
                 ratio = max(0, min(1,((time.monotonic()-t)/length)))
 
-                targetVol = self.runningSounds[handle].finalGain
+              
 
                 tr=time.monotonic()
 
@@ -1092,6 +1092,7 @@ class MPVBackend(SoundWrapper):
                     x.setVol(max(0, v * (1-ratio)))
 
                 if file:
+                    targetVol = self.runningSounds[handle].finalGain
                     self.setVolume(min(1, targetVol*ratio),
                                    handle, final=False)
 
