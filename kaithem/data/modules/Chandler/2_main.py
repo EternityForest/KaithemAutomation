@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1632007276665905
+resource-timestamp: 1634023014942163
 resource-type: event
 versions: {}
 
@@ -68,18 +68,48 @@ if __name__=='__setup__':
         soundsPlayedSinceT[0]+=1
         return 1
     
+    
+    soundActionSerializer = threading.RLock()
+    
+    soundActionQueue = []
+    
+    
+    #We must serialize sound actions to avoid a race condition where the stop
+    #Happens before the start, causing the sound to keep going
+    def doSoundAction(g):
+        soundActionQueue.append(g)
+        def f():
+            if soundActionSerializer.acquire(timeout=25):
+                try:
+                    x=soundActionQueue.pop(False)
+                    print("Do action",x)
+                    x()
+                finally:
+                    soundActionSerializer.release()
+        
+        kaithem.misc.do(f)
+    
+    
     def playSound(*args,**kwargs):
         if checkSoundRateLimit():
             def doFunction():
                 kaithem.sound.play(*args,**kwargs)
-            kaithem.misc.do(doFunction)
+            doSoundAction(doFunction)
+    
+    def stopSound(*args,**kwargs):
+        if checkSoundRateLimit():
+            def doFunction():
+                kaithem.sound.stop(*args,**kwargs)
+            doSoundAction(doFunction)
     
     def fadeSound(*args,**kwargs):
         if checkSoundRateLimit():
             def doFunction():
-                kaithem.sound.fadeTo(*args,**kwargs)    
-            kaithem.misc.do(doFunction)
+                kaithem.sound.fadeTo(*args,**kwargs)
+            doSoundAction(doFunction)
         else:
+            #A bit of a race condition here, if the sound had not started yet. But if we are triggering rate limit we
+            #have other issues.
             kaithem.sound.stop(kwargs['handle'])
     
     import numpy
@@ -3338,14 +3368,12 @@ if __name__=='__setup__':
                     
                     #Don't stop audio of we're about to crossfade to the next track
                     if not(self.crossfade and self.cues[cue].sound):
+                        print("Stopping sound to enter "+cue)
                         if self.cue.soundFadeOut:
-                            kaithem.sound.fadeTo(None, length=self.cue.soundFadeOut, handle=str(self.id))
+                           fadeSound(None, length=self.cue.soundFadeOut, handle=str(self.id))
                         else:
-                            kaithem.sound.stop(str(self.id))
-                            c = 0
-                            while c<50 and kaithem.sound.isPlaying(str(self.id)):
-                                c+=1
-                                time.sleep(0.017)
+                            stopSound(str(self.id))
+    
                                 
                     self.cue = self.cues[cue]
                     self.cueTagClaim.set(self.cue.name,annotation="SceneObject")  
@@ -3374,8 +3402,10 @@ if __name__=='__setup__':
                             #Always fade in if the face in time set.
                             #Also fade in for crossfade, but in that case we only do it if there is something to fade in from.
                             if not (((self.crossfade>0) and  kaithem.sound.isPlaying(str(self.id))) or self.cue.soundFadeIn):
+                                print("Playing sound to enter "+cue)
                                 playSound(sound,handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops)
                             else:
+                                print("fading to sound to enter "+cue)
                                 fadeSound(sound,length=max(self.crossfade, self.cue.soundFadeIn), handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops)
     
                             soundMeta = TinyTag.get(sound,image=True)

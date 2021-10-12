@@ -999,6 +999,10 @@ class MPVBackend(SoundWrapper):
             # Instead of using a lock lets just catch the error is someone else got there first.
             try:
                 x = self.runningSounds[handle]
+                try:
+                    x.stop()
+                except:
+                    logging.exception("Error stopping")
                 del self.runningSounds[handle]
                 x.nocallback = True
                 del x
@@ -1091,7 +1095,7 @@ class MPVBackend(SoundWrapper):
                 if x:
                     x.setVol(max(0, v * (1-ratio)))
 
-                if file:
+                if file and (handle in self.runningSounds):
                     targetVol = self.runningSounds[handle].finalGain
                     self.setVolume(min(1, targetVol*ratio),
                                    handle, final=False)
