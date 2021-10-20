@@ -693,30 +693,29 @@ class CombiningAirwire(MultichannelAirwire):
             return
         if lock.acquire(timeout=10):
             try:
-                # outPorts = _jackclient.get_ports(
-                #     f + ":*", is_output=True, is_audio=True)
-
-                if not ":" in t:
-                     t += ":*"
-                # inPorts = _jackclient.get_ports(
-                #     t, is_input=True, is_audio=True)
-
+               
+                if t.endswith("*"):
+                    t=t[:-1]
+                
+                if f.endswith("*"):
+                    f=f[:-1]
+                
 
                 outPorts=[]
                 inPorts=[]
                 with portsListLock:
                     for i in portsList:
-                        if i.startswith(f + ":*"):
+                        if i.startswith(f + ":"):
                             if portsList[i].is_output and portsList[i].is_audio:
                                 outPorts.append(i)
                         if i.startswith(t):
                             if portsList[i].is_input and  portsList[i].is_audio:
-                                outPorts.append(i)
+                                inPorts.append(i)
 
                 # Connect all the ports
                 for i in outPorts:
                     for j in inPorts:
-                        if not isConnected(i.name, j.name):
+                        if not isConnected(i, j):
                             connect(i, j)
 
             finally:
@@ -729,38 +728,36 @@ class CombiningAirwire(MultichannelAirwire):
 
         if lock.acquire(timeout=10):
             try:
-                # outPorts = _jackclient.get_ports(
-                #     f + ":*", is_output=True, is_audio=True)
-
-                if not ":" in t:
-                    t += ":*"
-                # inPorts = _jackclient.get_ports(t)
-
-
+     
+                if t.endswith("*"):
+                    t=t[:-1]
+                
+                if f.endswith("*"):
+                    f=f[:-1]
 
                 outPorts=[]
                 inPorts=[]
                 with portsListLock:
                     for i in portsList:
-                        if i.startswith(f + ":*"):
+                        if i.startswith(f + ":"):
                             if portsList[i].is_output and portsList[i].is_audio:
                                 outPorts.append(i)
                         if i.startswith(t):
                             if portsList[i].is_input and  portsList[i].is_audio:
-                                outPorts.append(i)
+                                inPorts.append(i)
 
                 if not inPorts:
                     return          
                 # Disconnect all the ports
                 for i in outPorts:
                     for j in inPorts:
-                        if isConnected(i.name, j.name):
+                        if isConnected(i, j):
                             try:
                                 disconnect(i, j)
                             except:
                                 print(traceback.format_exc())
                             try:
-                                del activeConnections[i.name, j.name]
+                                del activeConnections[i, j]
                             except KeyError:
                                 pass
             finally:
