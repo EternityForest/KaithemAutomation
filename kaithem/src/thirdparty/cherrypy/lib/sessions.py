@@ -107,7 +107,6 @@ import time
 import threading
 import binascii
 import pickle
-import contextlib
 
 import zc.lockfile
 
@@ -404,7 +403,7 @@ class RamSession(Session):
         """Clean up expired sessions."""
 
         now = self.now()
-        for _id, (data, expiration_time) in list(self.cache.items()):
+        for _id, (data, expiration_time) in self.cache.copy().items():
             if expiration_time <= now:
                 try:
                     del self.cache[_id]
@@ -566,8 +565,6 @@ class FileSession(Session):
     def release_lock(self, path=None):
         """Release the lock on the currently-loaded session data."""
         self.lock.close()
-        with contextlib.suppress(FileNotFoundError):
-            os.remove(self.lock._path)
         self.locked = False
 
     def clean_up(self):

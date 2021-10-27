@@ -67,6 +67,26 @@ settingsFile = os.path.join(
 settings = persist.getStateFile(settingsFile)
 
 
+def checkIfProcessRunning(processName):
+    '''
+    Check if there is any running process that contains the given name processName.
+    '''
+    try:
+        import psutil
+    except:
+        return False
+
+    #Iterate over the all the running process
+    for proc in psutil.process_iter():
+        try:
+            # Check if process name contains the given name string.
+            if processName.lower() in proc.name().lower():
+                return True
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+    return False;
+
+
 def reloadSettings():
     scullery.jacktools.usbPeriodSize = settings.get("usbPeriodSize", -1)
     scullery.jacktools.usbLatency = settings.get("usbLatency", -1)
@@ -78,17 +98,23 @@ def reloadSettings():
     scullery.jacktools.sharePulse = settings.get("sharePulse", None)
     scullery.jacktools.jackDevice = settings.get("jackDevice", "hw:0,0")
 
-    scullery.jacktools.useAdditionalSoundcards = settings.get(
-        "useAdditionalSoundcards", "yes")
+
+    if not checkIfProcessRunning("pipewire"):
+        scullery.jacktools.useAdditionalSoundcards = settings.get(
+            "useAdditionalSoundcards", "yes")
+    else:
+        #Let pipewire do it all for us!!
+        scullery.jacktools.useAdditionalSoundcards = "no"
 
     scullery.jacktools.usePulse = settings.get("sharePulse", None) != "disable"
 
     scullery.jacktools.dummy=False
-    if settings.get("jackMode", None) == "use":
+
+    if checkIfProcessRunning("pipewire") or settings.get("jackMode", None) == "use":
         scullery.jacktools.manageJackProcess = False
-    if settings.get("jackMode", None) == "manage":
+    elif settings.get("jackMode", None) == "manage":
         scullery.jacktools.manageJackProcess = True
-    if settings.get("jackMode", None) == "dummy":
+    elif settings.get("jackMode", None) == "dummy":
         scullery.jacktools.manageJackProcess = True
         scullery.jacktools.dummy=True
     
