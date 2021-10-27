@@ -58,7 +58,7 @@ elif 'ANDROID_ARGUMENT' in environ:
         vardir, 'logs', socket.gethostname() + "-" + getpass.getuser())
 else:
     vardir = os.path.normpath(os.path.join(dn, '..'))
-    vardir = os.path.join(vardir, config['site-data-dir'])
+    vardir = os.path.join(vardir, os.path.expanduser(config['site-data-dir']))
     datadir = os.path.normpath(os.path.join(dn, '../data'))
     logdir = os.path.join(
         vardir, 'logs', socket.gethostname() + "-" + getpass.getuser())

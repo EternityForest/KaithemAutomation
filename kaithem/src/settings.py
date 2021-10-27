@@ -571,7 +571,7 @@ class Settings():
 
         from . import jackmanager
         jackmanager.reloadSettings()
-        if jacksettings.get("jackMode", None) in("manage", "use",'dummy'):
+        if jacksettings.get("jackMode", None) in("manage", "use",'dummy','pipewire'):
             try:
                 jackmanager.startManaging()
             except:

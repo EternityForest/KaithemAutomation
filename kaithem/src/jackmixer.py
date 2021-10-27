@@ -741,6 +741,24 @@ class ChannelInterface():
     def __del__(self):
         board.deleteChannel(self.name)
 
+def checkIfProcessRunning(processName):
+    '''
+    Check if there is any running process that contains the given name processName.
+    '''
+    try:
+        import psutil
+    except:
+        return False
+
+    #Iterate over the all the running process
+    for proc in psutil.process_iter():
+        try:
+            # Check if process name contains the given name string.
+            if processName.lower() in proc.name().lower():
+                return True
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+    return False;
 
 class MixingBoard():
     def __init__(self, *args, **kwargs):
@@ -830,7 +848,11 @@ class MixingBoard():
         self.channels[name] = data
         self.api.send(['channels', self.channels])
         if not self.running:
-            return
+            if not checkIfProcessRunning("pipewire"):
+                return
+            else:
+                self.running=True
+
         if not 'type' in data or data['type'] == "audio":
             backup = []
             if name in self.channelObjects:

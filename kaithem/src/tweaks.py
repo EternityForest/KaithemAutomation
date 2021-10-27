@@ -21,6 +21,7 @@ import threading
 import http.cookies
 
 import sys
+import re
 
 #Whatever it used to be was way too high and causingh seg faults if you mess up
 sys.setrecursionlimit(256)
@@ -33,6 +34,43 @@ except:
     logging.exception("Samesite enable monkeypatch did not work. It is probably no longer needed on newer pythons, ignore this message")
 
 threadlogger = logging.getLogger("system.threading")
+
+class rtMidiFixer():
+    def __init__(self,obj):
+        self.__obj=obj
+        
+    def __getattr__(self,attr):
+        if hasattr(self.__obj,attr):
+            return getattr(self.__obj,attr)
+        #Convert from camel to snake API
+        name = re.sub(r'(?<!^)(?=[A-Z])', '_', attr).lower()
+        return getattr(self.__obj,name)
+    
+    def delete(self):
+        #Let GC do this
+        pass
+        
+    def __del__(self):
+        self.__obj.delete()
+        self.__obj=None
+    
+try:
+    import rtmidi
+    if hasattr(rtmidi,"MidiIn"):
+        def mget(*a,**k):
+            m=rtmidi.MidiIn(*a,**k)
+            return rtMidiFixer(m)
+        rtmidi.RtMidiIn =mget
+        
+        
+    if hasattr(rtmidi,"MidiOut"):
+        def moget(*a,**k):
+            m=rtmidi.MidiOut(*a,**k)
+            return rtMidiFixer(m)
+        rtmidi.RtMidiOut =moget
+except:
+    logging.exception("RtMidi compatibility error")
+
 
 
 def installThreadLogging():

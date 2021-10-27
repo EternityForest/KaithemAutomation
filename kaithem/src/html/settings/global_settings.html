@@ -66,9 +66,11 @@ If you have PipeWire running, kaithem will just detect and use that and these se
         <td>
             <select name="jackmode">
                 <option title="Kaithem will ignore JACK" value="off" ${'selected' if  jacksettings.get('jackMode','off')=='off' else ''}>off</option>
+                <option title="Kaithem will start PipeWire if it is not already running" value="pipewire" ${'selected' if jacksettings.get('jackMode','off')=='pipewire' else ''}>PipeWire</option>
+
                 <option title="Kaithem will start and manage jackd" value="manage" ${'selected' if jacksettings.get('jackMode','off')=='manage' else ''}>manage</option>
                 <option title="Kaithem will start and manage jackd in pi compatibility mode" value="dummy" ${'selected' if jacksettings.get('jackMode','off')=='dummy' else ''}>manage in compatibility mode</option>
-                <option title="Kaithem will use an existing jackd instance, but manage USB cards" value="use" ${'selected' if jacksettings.get('jackMode','off')=='use' else ''}>Use Existing</option>
+                <option title="Kaithem will use an existing jackd/pipewire instance, but can manage USB cards" value="use" ${'selected' if jacksettings.get('jackMode','off')=='use' else ''}>Use Existing</option>
             </select>
            
         </td>

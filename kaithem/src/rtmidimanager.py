@@ -46,7 +46,6 @@ def onMidiMessage(m,d):
 
 once =[0]
 
-
 def doScan():
     try:
         import rtmidi

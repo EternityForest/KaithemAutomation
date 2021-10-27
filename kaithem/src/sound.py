@@ -1875,7 +1875,7 @@ readySound = backend.readySound
 preload = backend.preload
 
 isStartDone = []
-if jackmanager.settings.get('jackMode', None) in ("manage", "use",'dummy'):
+if jackmanager.settings.get('jackMode', None) in ("manage", "use",'dummy','pipewire'):
     def f():
         try:
             logging.debug("Initializing JACK")

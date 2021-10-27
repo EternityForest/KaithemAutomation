@@ -69,7 +69,7 @@ settings = persist.getStateFile(settingsFile)
 
 def checkIfProcessRunning(processName):
     '''
-    Check if there is any running process that contains the given name processName.
+    Check if there is any running process that contains the given name processName, but only if it is OUR process
     '''
     try:
         import psutil
@@ -81,13 +81,23 @@ def checkIfProcessRunning(processName):
         try:
             # Check if process name contains the given name string.
             if processName.lower() in proc.name().lower():
-                return True
+                if proc.uids()[0] == os.geteuid():
+                    return True
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             pass
     return False;
 
 
+pipewireprocess1 = None
+pipewireprocess2 = None
+
+#Assume pipewire is good enough to be jack
+if checkIfProcessRunning("pipewire"):
+    messagebus.postMessage("/system/jack/started", "Actually, it's pipewire")
+
 def reloadSettings():
+    global pipewireprocess1, pipewireprocess2
+
     scullery.jacktools.usbPeriodSize = settings.get("usbPeriodSize", -1)
     scullery.jacktools.usbLatency = settings.get("usbLatency", -1)
     scullery.jacktools.usbPeriods = settings.get("usbPeriods", -1)
@@ -99,7 +109,7 @@ def reloadSettings():
     scullery.jacktools.jackDevice = settings.get("jackDevice", "hw:0,0")
 
 
-    if not checkIfProcessRunning("pipewire"):
+    if not (checkIfProcessRunning("pipewire") or settings.get("jackMode", None) == "pipewire"):
         scullery.jacktools.useAdditionalSoundcards = settings.get(
             "useAdditionalSoundcards", "yes")
     else:
@@ -110,8 +120,37 @@ def reloadSettings():
 
     scullery.jacktools.dummy=False
 
+
+    if not settings.get("jackMode", None) == "pipewire":
+        if pipewireprocess1:
+            pipewireprocess1.kill()
+            pipewireprocess1=None
+        if pipewireprocess2:
+            pipewireprocess2.kill()
+            pipewireprocess2=None
+
+
     if checkIfProcessRunning("pipewire") or settings.get("jackMode", None) == "use":
         scullery.jacktools.manageJackProcess = False
+
+    elif settings.get("jackMode", None) == "pipewire":
+        scullery.jacktools.manageJackProcess = False
+        import subprocess
+
+        if os.geteuid() != 0:
+            subprocess.call("systemctl --user start pipewire", shell=True)
+        else:
+            if (not pipewireprocess1) or (not pipewireprocess1.poll() == None):
+                pipewireprocess1 = subprocess.Popen("dbus-launch --sh-syntax --exit-with-session; pipewire;",shell=True)
+
+            if (not pipewireprocess2) or (not pipewireprocess2.poll() == None):
+                pipewireprocess2 = subprocess.Popen("pipewire-media-session",shell=True)
+                import time
+                time.sleep(2)
+                messagebus.postMessage("/system/jack/started", "Actually, it's pipewire")
+
+
+
     elif settings.get("jackMode", None) == "manage":
         scullery.jacktools.manageJackProcess = True
     elif settings.get("jackMode", None) == "dummy":

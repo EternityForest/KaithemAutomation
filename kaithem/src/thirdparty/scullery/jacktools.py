@@ -2139,8 +2139,11 @@ def _checkJack():
         finally:
             lock.release()
 
+postedCheck = False
+
+
 def _checkJackClient(err=True):
-    global _jackclient, realConnections
+    global _jackclient, realConnections,postedCheck
     import jack
     if lock.acquire(timeout=10):
         try:
@@ -2148,8 +2151,14 @@ def _checkJackClient(err=True):
             t = _jackclient.get_ports()
             if not t:
                 raise RuntimeError("JACK Server not started or client failed")
+
+            if not postedCheck:
+                postedCheck=True
+                messagebus.postMessage("/system/jack/started", {})
+            
             return True
         except:
+            postedCheck=False
             print(traceback.format_exc())
             print("Remaking client")
             try:
