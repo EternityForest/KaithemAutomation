@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+### 0.67.0
+
+- BluetoothBeacon device type lets you watch for the RSSI of an eddystone beacon(python beacontools and permissions required)
+- Now we properly support PipeWire(With the JACK use external mode).
+- Bluetooth admin page can be used to control pairing from the web UI
+- Support Python 3.9
 
 ### 0.66.1
 

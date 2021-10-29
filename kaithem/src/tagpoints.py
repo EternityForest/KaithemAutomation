@@ -287,6 +287,8 @@ class _TagPoint(virtualresource.VirtualResource):
 
         self._configuredAlarms: Dict[str, object] = {}
 
+\
+
         self.name: str = name
         # The cached actual value from the claims
         self.cachedRawClaimVal = copy.deepcopy(self.defaultData)
@@ -1128,14 +1130,20 @@ class _TagPoint(virtualresource.VirtualResource):
 
             # This one is a little different. If the timestamp is 0,
             # We know it has never been set.
-            if 'value' in data and not data['value'].strip() == '':
-                configTagData[self.name]['value'] = data['value']
+            if 'value' in data:
+                if not data['value'].strip() == '':
+                    configTagData[self.name]['value'] = data['value']
 
-                if self.timestamp == 0:
-                    # Set timestamp to 0, this marks the tag as still using a default
-                    # Which can be further changed
-                    self.setClaimVal("default", float(
-                        data['value']), 0, "Configured default")
+                    if self.timestamp == 0:
+                        # Set timestamp to 0, this marks the tag as still using a default
+                        # Which can be further changed
+                        self.setClaimVal("default", float(
+                            data['value']), 0, "Configured default")
+                else:
+                    if self.timestamp==0:
+                        # Set timestamp to 0, this marks the tag as still using a default
+                        # Which can be further changed
+                        self.setClaimVal("default", float(self._dynDefault), 0, "Configured default")
             else:
                 if self.name in configTagData:
                     configTagData[self.name].pop("value", 0)
@@ -1204,6 +1212,28 @@ class _TagPoint(virtualresource.VirtualResource):
                 "/system/tags/interval"+self.name, self._interval, synchronous=True)
         with self.lock:
             self._managePolling()
+
+    
+    @property
+    def default(self):
+        return self._defaulr
+
+    @interval.setter
+    def default(self, val):
+        self._dynConfigValues['default'] = val
+        if not val == self.configOverrides.get('value', val):
+            return
+        if val is not None:
+            self._default = val
+        else:
+            self._default = 0
+
+
+        with self.lock:
+            if self.timestamp ==0:
+                # Set timestamp to 0, this marks the tag as still using a default
+                # Which can be further changed
+                self.setClaimVal("default", float(self._default), 0, "Code default")
 
     @classmethod
     def Tag(cls, name: str, defaults={}):

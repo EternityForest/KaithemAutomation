@@ -862,7 +862,7 @@ class MPVBackend(SoundWrapper):
             if not hasattr(self.player, 'isConfigured'):
                 cname = "kplayer"+str(time.monotonic())+"_out"
 
-                self.player.rpc.call('set',['no_video',True])
+                self.player.rpc.call('set',['vid','no'])
                 self.player.rpc.call('set',['ao','jack,pulse,alsa'])
                 self.player.rpc.call('set',['jack_name',cname])
                 self.player.rpc.call('set',['gapless_audio','weak'])

@@ -1,0 +1,41 @@
+<%include file="/pageheader.html"/>
+
+<h1>Bluetooth devices</h1>
+<div class="sectionbox">
+<h2>Discovered New Devices</h2>
+<table>
+<tr><td>Name</td><td>Mac</td></tr>
+    %for i in devs:
+    <tr><td>${i['name']|h}</td><td>${i['mac_address']|h}</td></tr>
+    %endfor
+</table>
+
+<h2>Current paired devices</h2>
+
+<table>
+    <tr><td>Name</td><td>Mac</td></tr>
+
+    %for i in paired:
+        <tr><td>${i['name']|h}</td><td>${i['mac_address']|h}</td></tr>
+    %endfor
+</table>
+
+<p class="warning">Note: This UI does not support passkey-based pairing. You may want to use your OSes pairing GUI directly
+    for best security and compatibility.
+</p>
+
+<h2>Add/remove</h2>
+<form action="/settings/bt/pair">
+Pair device(Copy and paste MAC):<input name="mac">
+<input type="submit" value="Go">
+</form><br>
+
+
+<form action="/settings/bt/remove">
+Remove device(Copy and paste MAC):<input name="mac">
+<input type="submit" value="Go">
+</form>
+
+</div>
+
+<%include file="/pagefooter.html"/>

@@ -130,8 +130,11 @@ class EPollPoller(object):
         """
         Unregister the given file descriptor.
         """
-        self.poller.unregister(fd)
-
+        try:
+            self.poller.unregister(fd)
+        except OSError:
+            logging.exception()
+            
     def poll(self):
         """
         Polls once and yields each ready-to-be-read

@@ -595,7 +595,7 @@ def webRoot():
 
     import zipfile
 
-    from . import devices
+    from . import devices,btadmin
 
     # There are lots of other objects ad classes represeting subfolders of the website so we attatch them
     root = webapproot()
@@ -603,6 +603,7 @@ def webRoot():
     root.auth = ManageUsers.ManageAuthorization()
     root.modules = modules_interface.WebInterface()
     root.settings = settings.Settings()
+    root.settings.bt = btadmin.WebUI()
     root.errors = Errors()
     root.pages = usrpages.KaithemPage()
     root.logs = messagelogging.WebInterface()

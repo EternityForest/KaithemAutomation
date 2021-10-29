@@ -185,7 +185,8 @@ def getDHTProxies():
     if p:
         l.append(p)
 
-    return l
+    #Python3.9 puts in the literal quote marks from the file?
+    return [i.replace("'",'').replace('"','') for i in l]
 
 try:
     import netifaces
@@ -585,7 +586,7 @@ class Service():
             import requests
             try:
                 data = {"data": base64.b64encode(
-                    getWanHostsString()).decode(), "id": "id 1", "seq": 0, "type": 3}
+                    getWanHostsString().encode()).decode(), "id": "id 1", "seq": 0, "type": 3}
                 url = i+hashlib.sha1(rollingCode.hex().encode()
                                      ).digest()[:20].hex()
                 r = requests.post(url, data=data)

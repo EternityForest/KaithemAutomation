@@ -67,8 +67,8 @@ class BareSIP(Thread):
             pass
 
 
-
-        os.mkdir(os.path.join(tmpdir, "ScullerySIP"+str(port)))
+        if not os.path.exists(os.path.join(tmpdir, "ScullerySIP"+str(port))):
+            os.mkdir(os.path.join(tmpdir, "ScullerySIP"+str(port)))
 
         self.cnfdir = cnfdir
         #Using the template, create a configuration dir for

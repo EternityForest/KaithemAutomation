@@ -378,6 +378,13 @@ table tr:nth-child(even) td {
 	background-color: rgba(0, 0, 0, 0.1);
 }
 
+table td{
+	border-right: 1px rgba(0, 0, 0, 0.5) solid;
+}
+table td:last-child{
+	border-right: none;
+}
+
 /*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
 
 div.sectionbox, section {
