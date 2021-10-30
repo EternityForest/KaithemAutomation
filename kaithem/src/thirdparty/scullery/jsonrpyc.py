@@ -502,52 +502,54 @@ class Watchdog(threading.Thread):
         self._stop.set()
 
     def run(self):
-        # reset the stop event
-        self._stop.clear()
+        try:
+            # reset the stop event
+            self._stop.clear()
 
-        # stop here when stdin is not set or closed
-        if not self.rpc().stdin or self.rpc().stdin.closed:
-            return
-
-        # read new incoming lines
-        last_pos = 0
-        while not self._stop.is_set():
-            rpc = self.rpc()
-            if not rpc:
+            # stop here when stdin is not set or closed
+            if not self.rpc().stdin or self.rpc().stdin.closed:
                 return
-            lines = None
 
-            # stop when stdin is closed
-            if rpc.stdin.closed:
-                break
+            # read new incoming lines
+            last_pos = 0
+            while not self._stop.is_set():
+                rpc = self.rpc()
+                if not rpc:
+                    return
+                lines = None
 
-            # read from stdin depending on whether it is a tty or not
-            if rpc.stdin.isatty():
-                cur_pos =rpc.stdin.tell()
-                if cur_pos != last_pos:
-                    rpc.stdin.seek(last_pos)
-                    lines =rpc.stdin.readlines()
-                    last_pos =rpc.stdin.tell()
-                    rpc.stdin.seek(cur_pos)
-            else:
-                try:
-                    rfds, wfds, efds = select.select( [ sys.stdin.fileno()], [], [], self.interval)
-                    lines = [rpc.stdin.readline()]
-                except IOError:
-                    # prevent residual race conditions occurring when stdin is closed externally
-                    pass
+                # stop when stdin is closed
+                if rpc.stdin.closed:
+                    break
 
-            # handle new lines if any
-            if lines:
-                rpc.fastResponseFlag.set()
-                for line in lines:
-                    line = line.decode("utf-8").strip()
-                    if line:
-                        rpc._handle(line)
-            else:
-                self._stop.wait(self.interval)
-            del rpc
+                # read from stdin depending on whether it is a tty or not
+                if rpc.stdin.isatty():
+                    cur_pos =rpc.stdin.tell()
+                    if cur_pos != last_pos:
+                        rpc.stdin.seek(last_pos)
+                        lines =rpc.stdin.readlines()
+                        last_pos =rpc.stdin.tell()
+                        rpc.stdin.seek(cur_pos)
+                else:
+                    try:
+                        rfds, wfds, efds = select.select( [ sys.stdin.fileno()], [], [], self.interval)
+                        lines = [rpc.stdin.readline()]
+                    except IOError:
+                        # prevent residual race conditions occurring when stdin is closed externally
+                        pass
 
+                # handle new lines if any
+                if lines:
+                    rpc.fastResponseFlag.set()
+                    for line in lines:
+                        line = line.decode("utf-8").strip()
+                        if line:
+                            rpc._handle(line)
+                else:
+                    self._stop.wait(self.interval)
+                del rpc
+        except:
+            print(traceback.format_exception())
 
 class RPCError(Exception):
 

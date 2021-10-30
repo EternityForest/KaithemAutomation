@@ -39,10 +39,8 @@ class Bluetoothctl:
 
     def __init__(self):
         subprocess.check_output("rfkill unblock bluetooth", shell=True)
-        self.process = pexpect.spawnu("sudo bluetoothctl", echo=False)
+        self.process = pexpect.spawnu("bluetoothctl", echo=False)
         self.process.timeout = 15
-        self.process.send(f"agent off")
-        self.process.send(f"agent NoInputNoOutput")
         time.sleep(0.2)
         if self.process.expect(["bluetooth", pexpect.EOF,pexpect.TIMEOUT],timeout=0.1)==1:
             raise Exception(f"failed after agent register")
@@ -55,6 +53,11 @@ class Bluetoothctl:
         time.sleep(pause)
         if self.process.expect(["bluetooth", pexpect.EOF,pexpect.TIMEOUT],timeout=0.1)==1:
             raise Exception(f"failed after {command}")
+
+    def set_agent(self,agent):
+        self.process.send("agent off")
+        self.process.send("agent "+agent)
+
 
     def get_output(self, *args, **kwargs):
         """Run a command in bluetoothctl prompt, return output as a list of lines."""
@@ -167,7 +170,7 @@ class Bluetoothctl:
 
     def trust(self, mac_address):
         try:
-            self.send(f"trust {mac_address}", 4)
+            self.send(f"trust {mac_address.upper()}", 4)
         except Exception as e:
             logger.error(e)
             return False

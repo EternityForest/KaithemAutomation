@@ -20,18 +20,18 @@
     %endfor
 </table>
 
-<p class="warning">Note: This UI does not support passkey-based pairing. You may want to use your OSes pairing GUI directly
-    for best security and compatibility.
+<p class="warning">Note: This UI does not support passkey-based pairing. You may want to use your OSes pairing GUI directly to connect to secure devices.
+    This UI uses the "Just Works" pairing method which is typically used for things like gamepads and speakers.
 </p>
 
 <h2>Add/remove</h2>
-<form action="/settings/bt/pair">
+<form action="/settings/bt/pair"  method="POST">
 Pair device(Copy and paste MAC):<input name="mac">
 <input type="submit" value="Go">
 </form><br>
 
 
-<form action="/settings/bt/remove">
+<form action="/settings/bt/remove" method="POST">
 Remove device(Copy and paste MAC):<input name="mac">
 <input type="submit" value="Go">
 </form>
