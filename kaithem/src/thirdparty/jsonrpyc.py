@@ -245,6 +245,7 @@ class RPC(object):
 
     def __init__(self, target=None, stdin=None, stdout=None, watch=True, **kwargs):
         super(RPC, self).__init__()
+        self.fastResponseFlag = threading.Event()
 
         # the wrapped target object
         self.target = weakref.ref(target)
@@ -267,7 +268,6 @@ class RPC(object):
         kwargs.setdefault("daemon", target is None)
         self.watchdog = Watchdog(self, **kwargs)
 
-        self.fastResponseFlag = threading.Event()
 
 
     def __del__(self):
@@ -353,7 +353,12 @@ class RPC(object):
         Handles an incoming *line* and dispatches the parsed object to the request, response, or
         error handlers.
         """
-        obj = json.loads(line)
+        try:
+            obj = json.loads(line)
+        except:
+            print("Bad JSON",line)
+            #What if we just didn't?
+            return
 
         # dispatch to the correct handler
         if "method" in obj:

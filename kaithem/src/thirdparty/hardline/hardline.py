@@ -589,6 +589,8 @@ class Service():
                     getWanHostsString().encode()).decode(), "id": "id 1", "seq": 0, "type": 3}
                 url = i+hashlib.sha1(rollingCode.hex().encode()
                                      ).digest()[:20].hex()
+                if not url.startswith("http://"):
+                    url = "http://"+url
                 r = requests.post(url, data=data)
                 r.raise_for_status()
                 break

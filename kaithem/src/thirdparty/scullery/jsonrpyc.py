@@ -549,7 +549,7 @@ class Watchdog(threading.Thread):
                     self._stop.wait(self.interval)
                 del rpc
         except:
-            print(traceback.format_exception())
+            print(traceback.format_exc())
 
 class RPCError(Exception):
 
