@@ -9,7 +9,7 @@ no-header: false
 no-navheader: true
 require-method: [GET, POST]
 require-permissions: []
-resource-timestamp: 1609279005426572
+resource-timestamp: 1632007297380215
 resource-type: page
 template-engine: markdown
 
@@ -29,6 +29,13 @@ Any parameter for a block that starts with = is considered a math expression tha
 Some blocks may return an interesting number,boolean, or text value. You may access it expressions in the next block as the variable _ just like many scientific calculators.
 
 Scenes can also "inherit" rules from another cue. This works recursively, and loops are automatically detected and stopped.
+
+
+Any "go to cue" type command, including the normal "next cue" feature, cue may have URL style params as in "cuename?key=value".
+
+You will then  be able to access that value within expressions as "KWARGS['key']".  The 'KWARGS' listing is always there. Acessing nonexistant vals will just return
+the empty string.  This essentially lets you pass "arguments" to a cue when entering it.
+
 
 ## Available functions in expressions
 
@@ -93,6 +100,12 @@ stv(n) is the same, but for string tags.
 All relevant tags create a variable $tag:name that lets you spy on the current value. These cannot be written to and are mostly 
 for UI purposes, but they can be read.
 
+
+
+
+## Dynamic Params
+
+Cue length and next cue, amoung others, both support dynamic options.
 
 ## Dynamic lighting channel values
 
