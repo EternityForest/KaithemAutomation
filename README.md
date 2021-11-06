@@ -43,10 +43,49 @@ In particular, everything to do with sound is handled by dependancies, and pytho
 Several other audio file players may still work, but the only one supported and suggested is libmpv, on Debian provided by libmpv-dev.
 
 
+### Systemd service
+
+Ajdust as needed  to point to your paths and users.  Or just use emberos.
+```ini
+[Unit]
+Description=KaithemAutomation python based automation server
+After=basic.target time-sync.target sysinit.service zigbee2mqtt.service
+Type=simple
+
+
+[Service]
+TimeoutStartSec=0
+ExecStart=/opt/kaithem/kaithem/kaithem.py -c /sketch/kaithem/config.yaml
+Restart=on-failure
+RestartSec=15
+OOMScoreAdjust=-800
+Nice=-15
+#Make it try to act like a GUI program if it can because some user-added python modules might
+#make use of that.
+Environment="DISPLAY=:0"
+
+#This may cause some issues but I think it's a better way to go purely because of
+#The fact that we can use PipeWire instead of managing jack, without any conflicts.
+
+#Also, node red runs as pi, lets stay standard.
+User=pi
+#Bluetooth scannning and many other things will need this
+#Setting the system time is used for integration with GPS stuff.
+AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_TIME
+
+
+
+[Install]
+WantedBy=multi-user.target
+
+```
+
 # To download all optional dependancies
+```
+sudo apt install pulseaudio python3-pyserial python3-pytz python3-dateutil lm-sensors python3-netifaces python3-jack-client python3-gst-1.0 python3-libnacl jack-tools jackd2 gstreamer1.0-plugins-good gstreamer1.0-plugins-bad swh-plugins sudo apt install tap-plugins caps  gstreamer1.0-plugins-ugly python3-psutil fluidsynth libfluidsynth2 network-manager python3-paho-mqtt python3-dbus python3-lxml gstreamer1.0-pocketsphinx x42-plugins baresip autotalent libmpv-dev python3-dev libbluetooth-dev libcap2-bin
 
-sudo apt install pulseaudio python3-pyserial python3-pytz python3-dateutil lm-sensors python3-netifaces python3-jack-client python3-gst-1.0 python3-libnacl jack-tools jackd2 gstreamer1.0-plugins-good gstreamer1.0-plugins-bad swh-plugins sudo apt install tap-plugins caps  gstreamer1.0-plugins-ugly python3-psutil fluidsynth libfluidsynth2 network-manager python3-paho-mqtt python3-dbus python3-lxml gstreamer1.0-pocketsphinx x42-plugins baresip autotalent libmpv-dev
-
+sudo pip3 install beacontools[scan]
+```
 
 ### Security
 At some point, you should probably set up a proper SSL certificate in kaithem/var/ssl. The debian installer will generate one at
