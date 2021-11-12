@@ -176,20 +176,30 @@ notesremaining = 12
 class defaultDBClass(drayerdb.DocumentDatabase):
     def onRecordChange(self, record, signature):
         
-        global lastnotehorizon, notesremaining
-        elapsed = time.time()-lastnotehorizon
-        notesremaining = min(12, notesremaining + elapsed/10)
-        if notesremaining >= 1:
-            if record.get("type") in ['post', 'notification']:
-                if 'Application' in self.config:
-                    if self.config["Application"].get("notifications", 'no').lower() in ('yes', 'true', 'on', 'enable'):
-                        try:
-                            from plyer import notification
-                            notification.notify(title=record.get('title', 'Untitled')[
-                                                :48], message="New post in "+os.path.basename(self.filename), ticker='')
-                        except:
-                            logger.exception("Could not do the notification")
-                        notesremaining -= 1
+        if record.get('notify',True):     
+            global lastnotehorizon, notesremaining
+            elapsed = time.time()-lastnotehorizon
+            notesremaining = min(12, notesremaining + elapsed/10)
+            lastnotehorizon = time.time()
+            if notesremaining >= 1:
+                if record.get("type") in ['post', 'notification']:
+                    if 'Application' in self.config:
+                        if self.config["Application"].get("notifications", 'no').lower() in ('yes', 'true', 'on', 'enable'):
+                            try:
+                                from plyer import notification
+                                from kivy import platform
+                                if platform=='android':
+                                    import plyer.platforms.android.notification
+                                    n=plyer.platforms.android.notification.instance()
+                                else:
+                                    n=notification
+
+                                
+                                n.notify(title=record.get('title', os.path.basename(self.filename)[:-3])[
+                                                    :48], message="New post in "+os.path.basename(self.filename)+"\n "+record.get("body",'')[:64], ticker='')
+                            except:
+                                logger.exception("Could not do the notification")
+                            notesremaining -= 1
 
         return super().onRecordChange(record, signature)
 

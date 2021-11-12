@@ -91,8 +91,7 @@ def getDevicesWithDefault(deviceURL):
         devices = [upnpclient.Device(deviceURL)]
     else:
         if not cachedDevices:
-            #Very quick scan because we let the background thread handle the slow stuff.
-            cachedDevices = upnpclient.discover(timeout=1)
+            cachedDevices = upnpclient.discover(timeout=5)
         devices = cachedDevices
     return devices
       
@@ -135,23 +134,36 @@ def addMapping(port,proto, desc="Description here", deviceURL=0, register=True, 
                                 #Function to clean it from one router
                                 def clean():
                                     j2.DeletePortMapping(
-                                        NewRemoteHost="0.0.0.0",
+                                        NewRemoteHost="",
                                         NewExternalPort=WANPort or port,
                                         NewProtocol=proto,
                                     )
                                     
                             
-                                
-                            j.AddPortMapping(
-                                NewRemoteHost='0.0.0.0',
-                                NewExternalPort=WANPort or port,
-                                NewProtocol=proto,
-                                NewInternalPort=port,
-                                NewInternalClient=ownAddr,
-                                NewEnabled='1',
-                                NewPortMappingDescription=desc,
-                                NewLeaseDuration=30*60
-                            )
+                            try:
+                                j.AddPortMapping(
+                                    NewRemoteHost='',
+                                    NewExternalPort=WANPort or port,
+                                    NewProtocol=proto,
+                                    NewInternalPort=port,
+                                    NewInternalClient=ownAddr,
+                                    NewEnabled='1',
+                                    NewPortMappingDescription=desc,
+                                    NewLeaseDuration=30*60
+                                )
+
+                            #What insane person decided that non-permanent features should be allowed?
+                            except:
+                                j.AddPortMapping(
+                                    NewRemoteHost='',
+                                    NewExternalPort=WANPort or port,
+                                    NewProtocol=proto,
+                                    NewInternalPort=port,
+                                    NewInternalClient=ownAddr,
+                                    NewEnabled='1',
+                                    NewPortMappingDescription=desc,
+                                    NewLeaseDuration=0
+                                )
                             with listlock:
                                 cleanups.append(clean)
             closure()

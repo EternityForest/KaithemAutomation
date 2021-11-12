@@ -140,8 +140,10 @@ class ColumnIterator():
         return (self._col, self._db.filename) == (self._col, self._db.filename)
 
 
-def renderPostTemplate(db, postID,text, limit=100000000):
-    "Render any {{expressions}} in a post based on that post's child data row objects.  Currentlt limit is rounded to just above or below 8192"
+def renderPostTemplate(db, postID,text, limit=100000000,fieldData=None):
+    """Render any {{expressions}} in a post based on that post's child data row objects.  Currentlt limit is rounded to just above or below 8192.
+    Return tuple of text,{fieldname:defval}
+    """
 
 
     if hasattr(db,'enableSpreadsheetEval'):
@@ -150,16 +152,18 @@ def renderPostTemplate(db, postID,text, limit=100000000):
         esf=True
 
     if not esf:
-        return text
+        return (text,fieldData)
+
+    fieldData=fieldData or {}
             
 
     search=list(re.finditer(r'\{\{(.*?)\}\}',text))
     if not search:
-        return text
+        return (text, fieldData)
     
     d = db.getDocumentByID(postID,allowOrphans=True)
     if not d:
-        return ''
+        return ('',fieldData)
 
     #Need to be able to go slightly 
     rows = db.getDocumentsByType('row',parent=postID,allowOrphans=True)
@@ -170,10 +174,33 @@ def renderPostTemplate(db, postID,text, limit=100000000):
     for i in rows:
         n+=1
         if n>limit:
-            return text
+            return (text,fieldData)
         for j in i:
             if j.startswith("row."):
                 ctx[j[4:]]=ColumnIterator(db,postID, j)
+    
+    def NUMINPUT(name, value,unit):
+        #Return user-specified value converted into the template specified value, regardless of what the user specified
+        if name in fieldData and fieldData[name][0]:
+            if unit:
+                try:
+                    import pint
+                    return pint.Quantity(float(fieldData[name][0]),fieldData[name][1] or unit).to(unit).magnitude
+                except:
+                    return float("nan")
+            else:
+                try:
+                    return float(fieldData[name][0])
+                except:
+                    return float("nan")
+
+        elif name in fieldData and not fieldData[name][0]:
+            value=0
+
+        #Set the current field data for generating the actual field
+        fieldData[name]=(value,unit)
+
+        return value
                 
     replacements ={}
     for i in search:
@@ -182,7 +209,9 @@ def renderPostTemplate(db, postID,text, limit=100000000):
                 from ..simpleeval import simple_eval
                 from .. import simpleeval
                 simpleeval.POWER_MAX = 512
-                replacements[i.group()] = simple_eval(i.group(1), names= ctx, functions=getPostRenderingFunctions(limit>8193))
+                b ={'NUMINPUT':NUMINPUT}
+                b.update(getPostRenderingFunctions(limit>8193))
+                replacements[i.group()] = simple_eval(i.group(1), names= ctx, functions=b)
             except Exception as e:
                 logging.exception("Error in template expression in a post")
                 replacements[i.group()] = e
@@ -190,7 +219,7 @@ def renderPostTemplate(db, postID,text, limit=100000000):
     for i in replacements:
         text = text.replace(i, str(replacements[i]))
     
-    return text
+    return (text,fieldData)
 
 cacheClearTime=[time.time()]
 
@@ -324,7 +353,7 @@ class TablesMixin():
 
  
                 elif parentDoc['id'] in r.get("parent",''):
-                    postWidget.body.text = renderPostTemplate(daemonconfig.userDatabases[stream],parentDoc['id'], parentDoc.get("body",''))
+                    postWidget.body.text = renderPostTemplate(daemonconfig.userDatabases[stream],parentDoc['id'], parentDoc.get("body",''))[0]
 
   
 

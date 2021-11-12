@@ -1,5 +1,6 @@
 import configparser
 import json
+from operator import mod
 from hardline import daemonconfig
 from .. import daemonconfig, hardline
 
@@ -177,7 +178,7 @@ class PostsMixin():
 
         self.currentlyViewedPostImage = img
 
-        renderedText = tables.renderPostTemplate(daemonconfig.userDatabases[stream],postID, document.get("body",''))
+        renderedText = tables.renderPostTemplate(daemonconfig.userDatabases[stream],postID, document.get("body",''))[0]
 
         sourceText= [document.get("body",'')]
         
@@ -205,7 +206,7 @@ class PostsMixin():
             else:
                 buffer.height=0
                 sourceText[0] =newp.text
-                newp.text = tables.renderPostTemplate(daemonconfig.userDatabases[stream],postID, newp.text)
+                newp.text = tables.renderPostTemplate(daemonconfig.userDatabases[stream],postID, newp.text)[0]
         newp.bind(focus=f)
 
 
@@ -226,6 +227,12 @@ class PostsMixin():
                         del document['time']
                     except:
                         pass
+
+                    #When user interacts with something, we assume that it may contain important data and must be preserved
+                    try:
+                        del document['autoclean']
+                    except:
+                        pass
                     daemonconfig.userDatabases[stream].setDocument(document)
                     daemonconfig.userDatabases[stream].commit()
                     if goBack:
@@ -242,6 +249,36 @@ class PostsMixin():
 
 
 
+        def cbr_cpy(*a):
+            try:
+                from kivy.core.clipboard import Clipboard
+                Clipboard.copy(newp.text)
+            except:
+                logging.exception("Could not copy to clipboard")
+
+        btn1 = Button(text='Copy')
+        btn1.bind(on_release=cbr_cpy)
+        topbar.add_widget(btn1)
+
+        def cbr_cork(*a):
+            try:
+                from plyer import notification
+                from kivy import platform
+                if platform=='android':
+                    import plyer.platforms.android.notification
+                    n=plyer.platforms.android.notification.instance()
+                else:
+                    n=notification
+
+                
+                n.notify(title=newtitle.text[:50], message=newp.text[:240], ticker='',timeout=0)
+            except:
+                logging.exception("Could not do the notification")
+
+
+        btn1 = Button(text='Cork')
+        btn1.bind(on_release=cbr_cork)
+        topbar.add_widget(btn1)
 
 
         self.streamEditPanel.add_widget(titleBar)
@@ -293,6 +330,8 @@ class PostsMixin():
         btn1 = Button(text='Info')
         btn1.bind(on_release=goToProperties)
         buttons.add_widget(btn1)
+
+
 
 
 
@@ -358,6 +397,10 @@ class PostsMixin():
                         document['moveTime'] = int(time.time()*10**6)
                         try:
                             del document['time']
+                        except KeyError:
+                            pass
+                        try:
+                            del document['autoclean']
                         except KeyError:
                             pass
                         daemonconfig.userDatabases[stream].setDocument(document)
@@ -499,7 +542,7 @@ class PostsMixin():
                 elif sourceText[0] and document['id'] in r.get("parent",''):
                     backup = newp.text
                     #Rerender on incoming table records 
-                    newp.text = tables.renderPostTemplate(daemonconfig.userDatabases[stream],postID, sourceText[0])
+                    newp.text = tables.renderPostTemplate(daemonconfig.userDatabases[stream],postID, sourceText[0])[0]
 
                     #We could have started editing in that millisecond window. Restore the source text so we don't overwrite it with the rendered text
                     if not sourceText[0]:
@@ -569,7 +612,7 @@ class PostsMixin():
         topbar.add_widget(self.makeBackButton(0.29))
 
 
-
+ 
         if not noBack:
             def goHere():
                 self.gotoStreamPosts( stream, startTime, endTime, parent,search)
@@ -768,7 +811,7 @@ class PostsMixin():
                     parentTitle="NOT FOUND"
 
                 
-
+        fields = {}
         def getShortText():
             moreToCome=False
             #Chop to a shorter length, then rechop to even shorter, to avoid cutting off part of a long template and being real ugly.
@@ -777,7 +820,7 @@ class PostsMixin():
                 moreToCome=True
 
 
-            body = tables.renderPostTemplate(daemonconfig.userDatabases[stream], post['id'], body, 4096)
+            body,fd = tables.renderPostTemplate(daemonconfig.userDatabases[stream], post['id'], body, 4096,fieldData=fields)
             l=len(body)
             body=body[:180].replace("\r",'').replace("\n",'_NEWLINE',2).replace("\n","").replace("_NEWLINE","\r\n")
 
@@ -785,16 +828,18 @@ class PostsMixin():
             body=body.split('\r\n\r\n')[0].split('\n#')[0]
             if len(body)<l:
                 moreToCome=True
-            return body, moreToCome
+            return body, moreToCome,fd
 
         def getLongText():
             #Chop to a shorter length, then rechop to even shorter, to avoid cutting off part of a long template and being real ugly.
             body=post.get('body',"?????")
-            body = tables.renderPostTemplate(daemonconfig.userDatabases[stream], post['id'], body, 8192*16)
-            return body
+            body,fd = tables.renderPostTemplate(daemonconfig.userDatabases[stream], post['id'], body, 8192*16,fieldData=fields)
+            return body,fd
 
 
-        body,moreToCome = getShortText()
+        body,moreToCome,fd = getShortText()
+
+        fields.update(fd)
 
         t =  post.get('title',"?????")
         try:
@@ -804,11 +849,11 @@ class PostsMixin():
             #Embolden but don't override user formatting
             if not '[' in t:
                 t='[b]'+t+'[/b]'
-            btn=Button(text=t + " "+time.strftime("(%a %b %d, '%y)",time.localtime((post.get('documentTime',post.get('time',0)) or post.get('time',0))/10**6)  ) , on_release=f,markup=True)
+            btn=Button(text=t + " "+time.strftime("(%a %b %d, '%y)",time.localtime((post.get('documentTime',post.get('time',0)) or post.get('time',0))/10**6)  ) , on_release=f,markup=True,size_hint=(0.8,None))
 
         except Exception as e:
             logging.exception("err")
-            btn=Button(text=t + " "+time.strftime("(%a %b %d, '%y)",time.localtime((post.get('documentTime',post.get('time',0)) or post.get('time',0))/10**6)  ) , on_release=f)
+            btn=Button(text=t + " "+time.strftime("(%a %b %d, '%y)",time.localtime((post.get('documentTime',post.get('time',0)) or post.get('time',0))/10**6)  ) , on_release=f,size_hint=(0.8,None))
 
       
 
@@ -904,7 +949,7 @@ class PostsMixin():
                 else:
                     bodyText.expanded=True
                     eb.text = '-'
-                    bodyText.text = getLongText()
+                    bodyText.text = getLongText()[0]
                     kivy.clock.Clock.schedule_once(setWidth)
 
             if themeColor:
@@ -925,7 +970,27 @@ class PostsMixin():
         
         l.add_widget(l2)
 
-    
+        for i in sorted(list(fields.keys())):
+            f = BoxLayout(size_hint=(1,0),adaptive_height=True,orientation='horizontal')
+            f.add_widget(MDTextField(text=i,mode='fill',readonly=True,size_hint=(0.25,None)))
+            v = MDTextField(text=str(fields[i][0]),size_hint=(0.5,None))
+            u=MDTextField(text=fields[i][1],mode='fill',size_hint=(0.25,None))
+
+            #TODO: Handle changes in the actual set of fields?
+            def onChange(*a, i=i,v=v,u=u):
+                fields[i]=(v.text,u.text)
+                if bodyText.expanded:
+                    bodyText.text = getLongText()[0]
+                    kivy.clock.Clock.schedule_once(setWidth)
+                else:
+                    bodyText.text = getShortText()[0]
+                    kivy.clock.Clock.schedule_once(setWidth)
+            v.bind(text=onChange)
+            u.bind(text=onChange)
+            f.add_widget(v)
+            f.add_widget(u)
+            l.add_widget(f)
+
 
         return l
 
@@ -976,11 +1041,32 @@ class PostsMixin():
         btn1 = Button(text='Post!')
         btn1.bind(on_release=post)
 
+
+        def paste(*a):
+            try:
+                from kivy.core.clipboard import Clipboard
+                x=Clipboard.paste()
+
+                #Don't add the exact text if it is already there
+                if not x in newp.text:
+                    if newp.text.strip():
+                        newp.text=newp.text+"\r\n"+x
+                    else:
+                        newp.text=x
+
+            except:
+                logging.exception("Could not copy to clipboard")
+
+        
+        btn2 = Button(text='Insert from Clipboard')
+        btn2.bind(on_release=paste)
+
         self.streamEditPanel.add_widget(newtitle)
 
         self.streamEditPanel.add_widget(MDToolbar(title="Post Body"))
 
         self.streamEditPanel.add_widget(newp)
+        self.streamEditPanel.add_widget(btn2)
         self.streamEditPanel.add_widget(btn1)
 
 

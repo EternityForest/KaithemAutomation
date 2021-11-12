@@ -164,29 +164,31 @@ if c:
     
 
 def getDHTProxies():
-    globalConfig = configparser.RawConfigParser(dict_type=CaseInsensitiveDict)
-    globalConfig.read(globalSettingsPath)
+    if os.path.exists(globalSettingsPath):
+        with open(globalSettingsPath) as f:
+            globalConfig=toml.load(f)
+    else:
+        globalConfig={}
 
     if not "DHTProxy" in globalConfig:
         globalConfig["DHTProxy"]={}
 
     l = []
 
-    p = globalConfig['DHTProxy'].get("server1",'').strip()
+    p = globalConfig['DHTProxy'].get("server1",'').strip().replace('"','')
     if p:
         l.append(p)
 
 
-    p = globalConfig['DHTProxy'].get("server2",'').strip()
+    p = globalConfig['DHTProxy'].get("server2",'').strip().replace('"','')
     if p:
         l.append(p)
 
-    p = globalConfig['DHTProxy'].get("server3",'').strip()
+    p = globalConfig['DHTProxy'].get("server3",'').strip().replace('"','')
     if p:
         l.append(p)
 
-    #Python3.9 puts in the literal quote marks from the file?
-    return [i.replace("'",'').replace('"','') for i in l]
+    return l
 
 try:
     import netifaces
@@ -589,8 +591,6 @@ class Service():
                     getWanHostsString().encode()).decode(), "id": "id 1", "seq": 0, "type": 3}
                 url = i+hashlib.sha1(rollingCode.hex().encode()
                                      ).digest()[:20].hex()
-                if not url.startswith("http://"):
-                    url = "http://"+url
                 r = requests.post(url, data=data)
                 r.raise_for_status()
                 break

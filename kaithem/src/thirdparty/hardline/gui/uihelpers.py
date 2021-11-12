@@ -35,7 +35,7 @@ class AppHelpers():
                 )
             ],
         )
-        self.dialog.set_normal_height()
+        #self.dialog.set_normal_height()
         self.dialog.open()
 
     def saneLabel(self,text, container):
@@ -95,7 +95,7 @@ class AppHelpers():
                 )
             ],
         )
-        self.dialog.set_normal_height()
+        #self.dialog.set_normal_height()
         self.dialog.open()
 
     def askQuestion(self, question, answer='', cb=None,multiline=False):
@@ -129,7 +129,7 @@ class AppHelpers():
                 ),
             ],
         )
-        self.dialog.set_normal_height()
+        #self.dialog.set_normal_height()
 
         t.text = answer
         self.dialog.open()
@@ -160,7 +160,7 @@ class AppHelpers():
                 ),
             ],
         )
-        self.dialog.set_normal_height()
+        #self.dialog.set_normal_height()
         t.active = answer
         self.dialog.open()
 

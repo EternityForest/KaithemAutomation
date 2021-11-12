@@ -52,12 +52,6 @@ logging.Logger.manager.root = Logger
 
 
 
-
-
-
-
-
-
 # Terrible Hacc, because otherwise we cannot iumport hardline on android.
 
 
@@ -69,6 +63,8 @@ Logger.setLevel(LOG_LEVELS["info"])
 oneFileMode = False
 
 
+
+
 class ServiceApp(MDApp, uihelpers.AppHelpers, tools.ToolsAndSettingsMixin, servicesUI.ServicesMixin, discovery.DiscoveryMixin, tables.TablesMixin, posts.PostsMixin, streams.StreamsMixin):
 
     def stop_service(self, foo=None):
@@ -77,6 +73,13 @@ class ServiceApp(MDApp, uihelpers.AppHelpers, tools.ToolsAndSettingsMixin, servi
             self.service = None
         else:
             hardline.stop()
+
+    
+    def on_location(self, **kwargs):
+        Logger.info("Called on_location")
+        Logger.info(kwargs)
+        self.location = kwargs
+
 
     def onDrayerRecordChange(self,db,record,sig):
         if self.currentPageNewRecordHandler:
@@ -93,6 +96,18 @@ class ServiceApp(MDApp, uihelpers.AppHelpers, tools.ToolsAndSettingsMixin, servi
             self.service = None
         except:
             logging.exception("Likely no need to stop nonexistent service")
+
+        try:
+            self.getPermission('location')
+            from plyer import gps
+            gps.configure(
+                on_location=self.on_location
+            )
+
+            gps.start()
+        except:
+            logging.exception("Could not start location service")
+
 
         if platform == 'android':
             from android import AndroidService

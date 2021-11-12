@@ -187,8 +187,8 @@ class Device(CallActionMixin):
                 findtext("eventSubURL").strip(),
             )
             # self._log.debug(
-            #    "%s: Service %r at %r", self.device_name, svc.service_type, svc.scpd_url
-            #)
+            #     "%s: Service %r at %r", self.device_name, svc.service_type, svc.scpd_url
+            # )
             self.services.append(svc)
             self.service_map[svc.name] = svc
 

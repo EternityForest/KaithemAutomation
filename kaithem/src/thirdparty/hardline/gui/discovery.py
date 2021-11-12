@@ -80,30 +80,33 @@ class DiscoveryMixin():
                 l = StackLayout(adaptive_size=True, spacing=8,
                                 size_hint=(1, None))
 
-                btn = Button(text="Open in Browser")
+                #Need to capture that info in the closures
+                def scope(info):
+                    btn = Button(text="Open in Browser")
 
-                def f(*a):
-                    self.openInBrowser(
-                        "http://"+info['hash']+".localhost:7009")
-                btn.bind(on_press=f)
-
-                l.add_widget(btn)
-
-                btn = Button(text="Copy URL")
-
-                def f(*a):
-                    try:
-                        from kivy.core.clipboard import Clipboard
-                        Clipboard.copy(
+                    def f(*a):
+                        self.openInBrowser(
                             "http://"+info['hash']+".localhost:7009")
-                    except:
-                        logging.exception("Could not copy to clipboard")
-                btn.bind(on_press=f)
+                    btn.bind(on_press=f)
 
-                self.localServicesListBox.add_widget(
-                    MDToolbar(title=str(info.get('title', 'no title'))))
+                    l.add_widget(btn)
 
-                l.add_widget(btn)
+                    btn = Button(text="Copy URL")
+
+                    def f(*a):
+                        try:
+                            from kivy.core.clipboard import Clipboard
+                            Clipboard.copy(
+                                "http://"+info['hash']+".localhost:7009")
+                        except:
+                            logging.exception("Could not copy to clipboard")
+                    btn.bind(on_press=f)
+
+                    self.localServicesListBox.add_widget(
+                        MDToolbar(title=str(info.get('title', 'no title'))))
+
+                    l.add_widget(btn)
+                scope(info)
 
                 self.discoveryListbox.add_widget(l)
                 lb = self.saneLabel(

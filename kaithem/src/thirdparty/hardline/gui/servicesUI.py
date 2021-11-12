@@ -176,7 +176,7 @@ class ServicesMixin():
     def makeButtonForLocalService(self, name, c=None):
         "Make a button that, when pressed, edits the local service in the title"
 
-        btn = Button(text="Open in Browser")
+        btn = Button(text=name)
 
         def f(*a):
             self.editLocalService(name, c)

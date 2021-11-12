@@ -1496,6 +1496,17 @@ class DocumentDatabase():
 
         op = {}
         for i in l:
+
+
+            #Export the IDs as the original human readable ones
+            if 'uuid5Seed' in i[4]:
+                i[4]['id'] =i[4]['uuid5Seed']
+                del i[4]['uuid5Seed']
+
+            if 'uuid5ParentSeed' in i[4]:
+                i[4]['id'] =i[4]['uuid5ParentSeed']
+                del i[4]['uuid5ParentSeed']
+
             k = i[4].get('title', '')
 
             # Headings can eith represent an ID or a title or niether.
@@ -1528,7 +1539,7 @@ class DocumentDatabase():
                 self.dump_funcs[str] = _dump_str_prefer_multiline
         return toml.dumps(op, MultilinePreferringTomlEncoder())
 
-    def importFromToml(self, d):
+    def importFromToml(self, d,parent=None):
         if isinstance(d, str):
             import toml
             l = toml.loads(d)
@@ -1543,6 +1554,10 @@ class DocumentDatabase():
         for i in sorted(x):
             l[i[1]]=i[2]
 
+        if parent:
+            #not 'e4447da9-640d-4803-9e6a-89319214a443'
+            importingNamespace =  uuid.uuid5( uuid.UUID('bfe8411c-0909-4fb2-86da-3fefd7d39b10'),parent)
+
         for i in l:
             d = l[i]
             # Fish the info we stored in theheading back into the dict
@@ -1554,15 +1569,42 @@ class DocumentDatabase():
 
             # Detect non-uuid seeds.  Preserve unhashed so we can write back, for human readability.
             if not ('id' in d and (len(d['id']) == 36 and d['id'].count('-') == 4)):
+                d['uuid5Seed'] = d.get('id', i)
                 d['id'] = uuid.uuid5(
                     uuid.UUID('44628338-56d5-4663-8a29-db98daba3a31'), d.get('id', i))
-                d['uuid5Seed'] = d.get('id', i)
-
+            else:
+                d.pop('uuid5Seed',0)
+                
             # Do the same thing for parents
             if 'parent' in d and (not(len(d['parent']) == 36 and d['parent'].count('-') == 4)):
+                d['uuid5ParentSeed'] = d['parent']
                 d['parent'] = uuid.uuid5(
                     uuid.UUID('44628338-56d5-4663-8a29-db98daba3a31'), d['parent'][1:])
-                d['uuid5ParentSeed'] = d['parent'][1:]
+            else:
+                d.pop('uuid5ParentSeed',0)
+            
+
+            #When importing as children of a specific post we must rewrite every ID and parent reference so that all IDs are separate from
+            #The original.  One may wish to import the same file into two parents and have them be two separate copies.
+
+            #Note that the user could move them out of that parent.  This will cause great confusion.
+            #Not much we can do there.
+            # if parent:
+
+            #     if not 'parent' in d or not d['parent']:
+            #             d['parent']=parent
+            #     else:
+            #         #We don't need to store the unhashed if it is just generated from a seed
+            #         if not 'uuid5ParentSeed' in d:
+            #             #Store the unhashed so we can export the same stuff we imported
+            #             d['externalFileParent']=d['parent']
+            #             d['parent']= str(uuid.uuid5(importingNamespace, d['parent']))
+                    
+            #     #We don't need to store the unhashed if it is just generated from a seed
+            #     if not 'uuid5Seed' in d:
+            #         #Store the unhashed so we can export the same stuff we imported
+            #         d['externalFileID']=d['id']
+            #         d['id']= str(uuid.uuid5(importingNamespace, d['id']))
 
             self.setDocument(d)
 
@@ -1713,7 +1755,6 @@ class DocumentDatabase():
                             return
 
                     # Non-burned only propagates one level
-                    # But we can still discard it
                     elif 'time' in docObj:
                         if x['id'] == docObj['parent'] and x['time'] > docObj['time']:
                             return

@@ -27,6 +27,7 @@ def ssdp_request(ssdp_st, ssdp_mx=SSDP_MX):
             "MX: {:d}".format(ssdp_mx),
             'MAN: "ssdp:discover"',
             "HOST: {}:{}".format(*SSDP_TARGET),
+            "USER-AGENT: hardlinep2p"
             "",
             "",
         ]
@@ -36,14 +37,17 @@ def ssdp_request(ssdp_st, ssdp_mx=SSDP_MX):
 def scan(timeout=5):
     urls = []
     sockets = []
-    ssdp_requests = [ssdp_request(ST_ALL), ssdp_request(ST_ROOTDEVICE)]
+    ssdp_requests = [ssdp_request(ST_ALL), ssdp_request(ST_ROOTDEVICE), ssdp_request("urn:schemas-upnp-org:device:InternetGatewayDevice")]
     stop_wait = datetime.now() + timedelta(seconds=timeout)
 
     for addr in get_addresses_ipv4():
         try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, SSDP_MX)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM,socket.IPPROTO_UDP)
+            sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 16)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
             sock.bind((addr, 0))
+
             sockets.append(sock)
         except socket.error:
             pass
@@ -51,12 +55,15 @@ def scan(timeout=5):
     for sock in [s for s in sockets]:
         try:
             for req in ssdp_requests:
+                #WHY can't I just send multicast and actually have it &*(%*()%)*ing work?
+                sock.sendto(req, ("255.255.255.255",1900))
                 sock.sendto(req, SSDP_TARGET)
             sock.setblocking(False)
         except socket.error:
             sockets.remove(sock)
             sock.close()
     try:
+        seen ={}
         while sockets:
             time_diff = stop_wait - datetime.now()
             seconds_left = time_diff.total_seconds()
@@ -85,7 +92,9 @@ def scan(timeout=5):
                     r"LOCATION: *(?P<url>\S+)\s+", response, re.IGNORECASE
                 )
                 if locations and len(locations) > 0:
-                    urls.append(Entry(locations[0]))
+                    if not locations[0] in seen:
+                        urls.append(Entry(locations[0]))
+                    seen[locations[0]]=True
 
     finally:
         for s in sockets:
@@ -106,7 +115,7 @@ def get_addresses_ipv4():
     for interface in interfaces:
         addresses = netifaces.ifaddresses(interface)
         for address_family in (netifaces.AF_INET,):
-            family_addresses = addresses.get(address_family)
+            family_addresses = addresses.get(address_family,[])
             if not family_addresses:
                 continue
             for address in family_addresses:

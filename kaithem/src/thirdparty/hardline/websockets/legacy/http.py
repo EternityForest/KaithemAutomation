@@ -189,5 +189,5 @@ async def read_line(stream: asyncio.StreamReader) -> bytes:
         raise SecurityError("line too long")
     # Not mandatory but safe - https://tools.ietf.org/html/rfc7230#section-3.5
     if not line.endswith(b"\r\n"):
-        raise EOFError("line without CRLF")
+        raise EOFError("line without CRLF:")
     return line[:-2]

@@ -152,10 +152,16 @@ class LPDPeer():
                 return
             self.lastAdvertised[hash] = time.time()
 
+
+        alsoBroadcast = addr is None
+
         addr = addr or ("239.192.152.143", 6771)
 
         self.msock.sendto(self.makeLPD(
             {'Infohash': hash, 'Port': port, 'cookie': self.cookie, 'title': title}, self.announceTopic), addr)
+
+        if alsoBroadcast:
+            self.msock.sendto(self.makeLPD({'Infohash': hash, 'Port': port, 'cookie': self.cookie, 'title': title}, self.announceTopic), ("255.255.255.255", 6771))
 
     def register(self, hash, port, info, addr=None,n=1):
 
@@ -234,6 +240,8 @@ class LPDPeer():
         try:
             t= self.makeLPDSearch(
                 {'Infohash': rollingCode, 'cookie': self.cookie}, self.searchTopic)
+            
+            self.msock.sendto(t,("255.255.255.255", 6771))
             for i in range(n):
                 self.msock.sendto(t,("239.192.152.143", 6771))
 

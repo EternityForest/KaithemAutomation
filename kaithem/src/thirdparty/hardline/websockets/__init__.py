@@ -1,6 +1,8 @@
 from .imports import lazy_import
 from .version import version as __version__  # noqa
 
+from . import server
+from . import client
 
 __all__ = [  # noqa
     "AbortHandshake",
