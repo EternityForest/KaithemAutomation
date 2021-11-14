@@ -44,7 +44,36 @@ def onMidiMessage(m,d):
         setTag14("/midi/"+d+"/"+str(m.getChannel())+".pitch", m.getPitchWheelValue(), a= 0)
 
 
+
+def onMidiMessageTuple(m,d):
+    sb=m[0][0]
+    code = sb &240
+    ch = sb&15
+    a = m[0][1]
+    b = m[0][2]
+
+    if code==144:
+        messagebus.postMessage("/midi/"+d,('noteon', ch,a,b) )
+        setTag("/midi/"+d+"/"+str(ch)+".note", a= b)
+
+    elif code==128:
+        messagebus.postMessage("/midi/"+d,('noteoff', ch,a,b) )
+        setTag("/midi/"+d+"/"+str(ch)+".note", 0, a= 0)
+
+    elif code==224:
+        messagebus.postMessage("/midi/"+d,('pitch', ch,a,b) )
+        setTag14("/midi/"+d+"/"+str(ch)+".pitch", a+b*128, a= 0)
+
+    elif code==176:
+        messagebus.postMessage("/midi/"+d, ('cc',a,b))
+        setTag("/midi/"+d+"/"+str(ch)+".cc["+str(a)+"]", b, a= 0)
+
+
+
+
 once =[0]
+
+
 
 def doScan():
     try:
@@ -73,11 +102,17 @@ def doScan():
             try:
                 m=rtmidi.RtMidiIn()
                 m.openPort(i[0])
-                def f(x,d=i[1].replace(":",'_').replace("[",'').replace("]",'').replace(" ",'') ):
-                    try:
-                        onMidiMessage(x,d)
-                    except:
-                        print(traceback.format_exc())
+                def f(x,*a, d=i[1].replace(":",'_').replace("[",'').replace("]",'').replace(" ",'') ):
+                    if isinstance(x,tuple):
+                        try:
+                            onMidiMessageTuple(x,d)
+                        except:
+                            print(traceback.format_exc())
+                    else:
+                        try:
+                            onMidiMessage(x,d)
+                        except:
+                            print(traceback.format_exc())
                 m.setCallback(f)
                 allInputs[i]=(m,f)
             except:

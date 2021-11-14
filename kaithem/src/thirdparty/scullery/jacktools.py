@@ -341,8 +341,7 @@ usePulse = True
 
 sharePulse = None
 
-# Should we create alsa_in and alsa_out ports for every soundcard, with persistant names?
-manageSoundcards = True
+
 
 # Should we auto restart the jack process?
 # No by default, gets auto set to True by startJackProcess()
@@ -2006,7 +2005,7 @@ def work():
                     if manageJackProcess:
                         _checkJack()
                     _checkJackClient()
-                    if manageSoundcards:
+                    if useAdditionalSoundcards:
                         handleManagedSoundcards()
                 finally:
                     lock.release()

@@ -64,87 +64,100 @@ class JackFluidSynth(devices.Device):
 
     def __init__(self, name, data):
         devices.Device.__init__(self, name, data)
-        try:
-            if len(name)==1:
-                self.handleError('Single letter names may not work correctly.  JACK in general may have subpar performace with this plugin badly configured.')
-            self.synthLock=threading.Lock()
+        self.widgets=[] 
+        self.synth=None
+        def f():
+            try:
+                if len(name)==1:
+                    self.handleError('Single letter names may not work correctly.  JACK in general may have subpar performace with this plugin badly configured.')
+                self.synthLock=threading.Lock()
 
-            self.synth = scullery.fluidsynth.FluidSynth(
-                                          soundfont=data.get("device.soundfont", "").strip(),
-                                          jackClientName= name,
-                                          connectOutput=data.get("device.connectOutput", "").strip()
-                                          )
+                self.synth = scullery.fluidsynth.FluidSynth(
+                                            soundfont=data.get("device.soundfont", "").strip(),
+                                            jackClientName= name,
+                                            connectOutput=data.get("device.connectOutput", "").strip()
+                                            )
 
 
-            for i in range(0,16):
-                try:
-                    inst = ""
-                    inst = data.get("device.ch"+str(i)+"instrument", "")
-                    bank=None
-
-                    if ':' in inst:
-                        bank, inst= inst.split(":")
-                        bank=int(bank.strip())
-                    inst = inst.strip()
-
+                for i in range(0,16):
                     try:
-                        inst= int(inst)
+                        inst = ""
+                        inst = data.get("device.ch"+str(i)+"instrument", "")
+                        bank=None
+
+                        if ':' in inst:
+                            bank, inst= inst.split(":")
+                            bank=int(bank.strip())
+                        inst = inst.strip()
+
+                        try:
+                            inst= int(inst)
+                        except:
+                            pass
+
+                    
+                        if inst:
+                            self.synth.setInstrument(i,inst,bank=bank)
                     except:
-                        pass
+                        self.handleError("Error setting instrument:" +inst+" for channel "+str(i)+"\n"+traceback.format_exc())
+
+
+
+                connectMidi=data.get("device.connectMidi", "").strip().replace(":",'_').replace("[",'').replace("]",'').replace(" ",'')
+
+                messagebus.subscribe("/midi/"+connectMidi,self.onMidiMsg)
+                
+            
 
                 
-                    if inst:
-                        self.synth.setInstrument(i,inst,bank=bank)
-                except:
-                    self.handleError("Error setting instrument:" +inst+" for channel "+str(i)+"\n"+traceback.format_exc())
+                for i in range(16):
+                    x=widgets.Button()
+                    x.attach(self.makeWidgetHandler(i))
+                    self.widgets.append(x)
+                    
 
 
-
-            connectMidi=data.get("device.connectMidi", "").strip().replace(":",'_').replace("[",'').replace("]",'').replace(" ",'')
-
-            messagebus.subscribe("/midi/"+connectMidi,self.onMidiMsg)
-            
-          
-
-            self.widgets=[] 
-            
-            for i in range(16):
-                x=widgets.Button()
-                x.attach(self.makeWidgetHandler(i))
-                self.widgets.append(x)
-                
-
-
-        except:
-            self.handleException()
+            except:
+                self.handleException()
+        workers.do(f)
 
 
     def noteOn(self,c,p,v):
         def f():
+            if not self.synth:
+                return
             with self.synthLock:
                 self.synth.noteOn(c,p,v)
         workers.do(f)
 
     def noteOff(self,c,p):
         def f():
+            if not self.synth:
+                return
             with self.synthLock:
                 self.synth.noteOff(c,p)
         workers.do(f)
 
     def cc(self,c,p,v):
         def f():
+            if not self.synth:
+                return
             with self.synthLock:
                 self.synth.cc(c,p,v)
         workers.do(f)
 
     def bend(self,c,v):
         def f():
+            if not self.synth:
+                return
             with self.synthLock:
                 self.synth.pitchBend(c,v)
         workers.do(f)
 
     def pgc(self,c,v):
         def f():
+            if not self.synth:
+                return
             with self.synthLock:
                 self.synth.programChange(c,v)
         workers.do(f)

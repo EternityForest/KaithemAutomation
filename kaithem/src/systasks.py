@@ -106,8 +106,8 @@ def doUPnP():
     if p:
         try:
             lp = config['https-port']
-            import pavillion.upnpwrapper
-            upnpMapping = pavillion.upnpwrapper.addMapping(
+            from . import upnpwrapper
+            upnpMapping = upnpwrapper.addMapping(
                 p, "TCP", desc="KaithemAutomation web UI", register=True, WANPort=lp)
         except:
             syslogger.exception("Could not create mapping")

@@ -1,4 +1,6 @@
 <%include file="/pageheader.html"/>
+<%from src import directories
+import os%>
 <title>Kaithem Settings</title>
 <h2>Settings and Tools</h2>
 <div class="sectionbox">
@@ -109,21 +111,22 @@
 
 <h3>Places</h3>
 
-<dt><a href="/settings/files/${directories.vardir[1:])}">vardir</a></dt>
+<dt><a href="/settings/files/${directories.vardir[1:]}">vardir</a></dt>
 <dd>Kaithem's main data folder</dd>
 
-%if os.path.exists("/home/pi")
+%if os.path.exists("/home/pi"):
 <dt><a href="/settings/files/home/pi">"pi" user home folder</a></dt>
 <dd>On Raspberry pi, the home folder for the default user</dd>
 %endif
 
 
-%if os.path.exists("/sketch/public.files/emberos")
+%if os.path.exists("/sketch/public.files/emberos"):
 <dt><a href="/settings/files/sketch/public.files/emberos">EmberOS resources</a></dt>
 <dd>EmberOS clipart, backgrounds, fonts, books, etc</dd>
 %endif
 
-%if os.path.exists("/sketch/public.media/emberos")
+%if os.path.exists("/sketch/public.media/emberos"):
+
 <dt><a href="/settings/files/sketch/public.media/emberos">EmberOS media</a></dt>
 <dd>EmberOS sounds, music, etc</dd>
 %endif

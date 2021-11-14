@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.67.1
+- Fix very long sound loop counts
+- Fix RTMidi compatibility with new py libs
+- Faster boot time with some devices
+
 ### 0.67.0
 
 - BluetoothBeacon device type lets you watch for the RSSI of an eddystone beacon(python beacontools and permissions required)

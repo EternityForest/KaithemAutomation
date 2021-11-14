@@ -14,7 +14,7 @@ import socket
 import uuid
 import socket
 
-from src import widgets
+from src import widgets,workers
 
 logger = logging.Logger("plugins.hardlinep2p")
 
@@ -62,12 +62,14 @@ class HardlineP2PService(devices.Device):
         os.makedirs(self.serviceDir,exist_ok=True)
 
         if data.get('device.service', '').strip() and data.get('device.title', '').strip():
-            try:
-                import hardline
-                self.service = hardline.Service(os.path.join(self.serviceDir, 'service.cert'), data["device.service"], int(data.get('device.port', '80')),
-                                                {'title': data.get("device.title",'').replace('{{host}}', socket.gethostname())})
-            except Exception:
-                self.handleException()
+            def f():
+                try:
+                    import hardline
+                    self.service = hardline.Service(os.path.join(self.serviceDir, 'service.cert'), data["device.service"], int(data.get('device.port', '80')),
+                                                    {'title': data.get("device.title",'').replace('{{host}}', socket.gethostname())})
+                except Exception:
+                    self.handleException()
+            workers.do(f)
 
     def getManagementForm(self):
         return templateGetter.get_template("manageform.html").render(data=self.data, obj=self)
