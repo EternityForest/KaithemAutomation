@@ -26,7 +26,7 @@ import logging
 
 logger=logging.getLogger("upnp")
 try:
-    from . import upnp as upnpclient
+    import upnpclient
 except ImportError:
     upnp=None
     logger.exception("Error loading UPnP")

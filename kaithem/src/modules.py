@@ -36,7 +36,7 @@ import ast
 import cherrypy
 import yaml
 from . import auth, pages, directories, util, newevt, kaithemobj
-from . import usrpages, messagebus, scheduling, modules_state, registry, devices, pavilliondevices, persist
+from . import usrpages, messagebus, scheduling, modules_state, registry, devices, persist
 from .modules_state import ActiveModules, modulesLock, scopes, additionalTypes, fileResourceAbsPaths
 from .virtualresource import VirtualResource, VirtualResourceInterface
 import urllib.parse
@@ -832,7 +832,6 @@ def initModules():
     loadAllCustomResourceTypes()
     newevt.getEventsFromModules()
     usrpages.getPagesFromModules()
-    pavilliondevices.loadProgramsFromModules()
     moduleshash = hashModules()
     logger.info("Initialized modules")
 
@@ -1067,8 +1066,6 @@ def handleResourceChange(module, resource):
         # has its own lock
         auth.importPermissionsFromModules()  # sync auth's list of permissions
 
-    if t == "k4dprog_sq":
-        pavilliondevices.updateProgram(module, resource, data)
 
     elif t == 'event':
         evt = None
@@ -1428,8 +1425,6 @@ def bookkeeponemodule(module, update=False):
     if not module in scopes:
         scopes[module] = ModuleObject(module)
     for i in ActiveModules[module]:
-        if ActiveModules[module][i]['resource-type'] == 'k4dprog_sq':
-            pavilliondevices.updateProgram(module, i, ActiveModules[module][i])
 
         if ActiveModules[module][i]['resource-type'] == 'page':
             try:
@@ -1497,9 +1492,6 @@ def rmResource(module, resource, message="Resource Deleted"):
 
         elif r['resource-type'] == 'event':
             newevt.removeOneEvent(module, resource)
-
-        elif r['resource-type'] == "k4dprog_sq":
-            pavilliondevices.removeProgram(module, resource)
 
         elif r['resource-type'] == 'permission':
             auth.importPermissionsFromModules()  # sync auth's list of permissions

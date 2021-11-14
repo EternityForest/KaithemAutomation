@@ -607,10 +607,6 @@ def addResourceDispatcher(module, type, path):
         return pages.get_template("modules/events/new.html").render(module=module, path=path)
 
     # return a crud to add a new event
-    elif type == 'k4dprog_sq':
-        return pages.get_template("modules/remoteprograms/new.html").render(module=module, path=path)
-
-    # return a crud to add a new event
     elif type == 'page':
         return pages.get_template("modules/pages/new.html").render(module=module, path=path)
 
@@ -731,34 +727,6 @@ def resourceEditPage(module, resource, version='default', kwargs=None):
 
         if resourceinquestion['resource-type'] == 'permission':
             return permissionEditPage(module, resource)
-
-        if resourceinquestion['resource-type'] == 'k4dprog_sq':
-            if not "preview" in kwargs:
-                d = devices.remote_devices.get(
-                    resourceinquestion['device'], None)
-                import pavilliondevices
-                p = pavilliondevices.loadedSquirrelPrograms.get(
-                    (module, resource), None)
-                return pages.get_template("modules/remoteprograms/sqprog.html").render(
-                    module=module,
-                    name=resource,
-                    data=resourceinquestion,
-                    device=weakref.proxy(d) if d else None,
-                    printout=p.print if p else None,
-                    errs=p.errors if p else None
-                )
-            d = devices.remote_devices.get(resourceinquestion['device'], None)
-            p = pavilliondevices.loadedSquirrelPrograms.get((module, resource), None)
-            return pages.get_template("modules/remoteprograms/sqprogprev.html").render(
-                code=p.getPreprocessedCode(
-                    kwargs['code'], True if kwargs['preview'] == '2' else False),
-                module=module,
-                name=resource,
-                data=resourceinquestion,
-                device=weakref.proxy(d) if d else None,
-                printout=p.print if p else None,
-                errs=p.errors if p else None
-            )
 
         if resourceinquestion['resource-type'] == 'event':
             return pages.get_template("modules/events/event.html").render(

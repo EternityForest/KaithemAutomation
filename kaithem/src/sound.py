@@ -870,7 +870,10 @@ class MPVBackend(SoundWrapper):
 
             #Due to memory leaks, these have a limited lifespan
             self.player.usesCounter +=1
-            if not loop==-1:
+            #For legavy reasons some stuff used tens of millions instead of actual infinite loop.
+            #But it seems mpv ignores everything past a certain number. So we replace effectively forever with
+            #actually forever to get the same effect, assuming that was user intent.
+            if not (loop==-1 or loop>900000000):
                 self.player.rpc.call('set',['loop_playlist',int(max(loop,1))])
             else:
                 self.player.rpc.call('set',['loop_playlist',"inf"])

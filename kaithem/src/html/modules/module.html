@@ -62,9 +62,6 @@ WordHash: <b>${getModuleWordHash(name)}</b></br>
 <a class="button createbutton adddevicebutton" href="/modules/module/${url(name)}/addresource/device/${url('/'.join(path))}">Device</a>
 
 
-%if K4D_SUPPORT:
-<a class="button createbutton" title="A squirrel program that runs on an external embedded device" href="/modules/module/${url(name)}/addresource/k4dprog_sq/${url('/'.join(path))}">K4D Squirrel Program</a>
-%endif
 
 %for i in modules.additionalTypes:
 %if hasattr(modules.additionalTypes[i],'createButton') and modules.additionalTypes[i].createButton:
@@ -304,25 +301,6 @@ continue
   <dt>
 
 %endif
-
-
-  %if module[i]['resource-type'] == 'k4dprog_sq':
-
-     <dt>\
-  %if (name,i) in modules.unsaved_changed_obj:
-  *\
-  %endif
-  
-  <span class="sqprog-icon"></span><a href="/modules/module/${url(name)}/resource/${url(i)}">${util.split_escape(i,'/','\\')[-1]|h}</a>
-  
-  <a class="button deletebutton" href="/modules/module/${url(name)}/deleteresource/${url(i)}">Delete</a><br>
-  K4D Program<br>
-  <span><b>Program ID:</b> ${module[i]['prgid']|h}</span><br>
-  <span><b>Target Device:</b> ${module[i]['device']|h}</span><br>
-
-  <dt>
-
-   %endif
 
 
     %if module[i]['resource-type'] not in ['event','permission','page','directory','internal-fileref','device'] and not i.startswith("__"):

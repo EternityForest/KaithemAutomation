@@ -4,7 +4,7 @@ Installation
 
 All required dependancies should already be included. Huge thanks to the developers of all the great libraries used!!!
 
-There's a few optional dependancies though. Auto time synchronization and MDNS depends on netifaces, and sound requires mplayer, madplay, or sox, with all but mplayer not recommended. Pavillion-based net sync requires libnacl. Sound mixing needs jackd2, python3-gstreamer1.0, and all the gstreamer plugins.
+There's a few optional dependancies though. Auto time synchronization and MDNS depends on netifaces, and sound requires mplayer, madplay, or sox, with all but mplayer not recommended.  Sound mixing needs jackd2, python3-gstreamer1.0, and all the gstreamer plugins.
 
 git clone or download somewhere and run `python3 kaithem/kaithem.py`
 

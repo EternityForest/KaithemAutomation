@@ -228,14 +228,6 @@ def webRoot():
 
     tagpoints.loadAllConfiguredTags(os.path.join(directories.vardir, "tags"))
 
-    # Attempt to make pavillion work in a sane way that takes advantage of the thread pooling
-    try:
-        import pavillion
-        pavillion.daemon = True
-        pavillion.execute = workers.do
-    except:
-        pass
-
     # We want a notification anytime every first error in a scheduled event.
     # This can stay even with real python logging, we want the front page notificaton.
     from . import scheduling
