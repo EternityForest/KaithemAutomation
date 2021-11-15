@@ -5,6 +5,7 @@ Change Log
 - Fix very long sound loop counts
 - Fix RTMidi compatibility with new py libs
 - Faster boot time with some devices
+- SoundFuse algorithm more aggressive
 
 ### 0.67.0
 

@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1634023014942163
+resource-timestamp: 1636943010600061
 resource-type: event
 versions: {}
 
@@ -3408,18 +3408,26 @@ if __name__=='__setup__':
                                 print("fading to sound to enter "+cue)
                                 fadeSound(sound,length=max(self.crossfade, self.cue.soundFadeIn), handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops)
     
-                            soundMeta = TinyTag.get(sound,image=True)
-                            currentAudioMetadata = {
-                                "title": soundMeta.title or 'Unknown',
-                                "artist": soundMeta.artist or 'Unknown',
-                                "album": soundMeta.album or 'Unknown',
-                                "year": soundMeta.year or  'Unknown'
-                            }
+                            try:
+                                soundMeta = TinyTag.get(sound,image=True)
+                                
+                                currentAudioMetadata = {
+                                    "title": soundMeta.title or 'Unknown',
+                                    "artist": soundMeta.artist or 'Unknown',
+                                    "album": soundMeta.album or 'Unknown',
+                                    "year": soundMeta.year or  'Unknown'
+                                }
+                                t = soundMeta.get_image()
+                            except:
+                                self.event("error", "Reading metadata for: "+sound+traceback.format_exc())
+                                t=None
+                                currentAudioMetadata={'title':"",'artist':'',"album":'','year':''}
+    
+    
     
                             self.cueInfoTag.value={
                                 "audio.meta": currentAudioMetadata
                             }
-                            t = soundMeta.get_image()
     
                             
                             if t and len(t)< 3*10**6:

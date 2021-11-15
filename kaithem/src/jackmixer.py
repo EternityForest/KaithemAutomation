@@ -640,7 +640,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         if not (((self.lastRMS < (rms + 1.5)) or rms > -2) and rms > self.soundFuseSetting):
             self.lastNormalVolumeLevel = time.monotonic()
         self.lastRMS = rms
-        if time.monotonic() - self.lastNormalVolumeLevel > 0.3:
+        if time.monotonic() - self.lastNormalVolumeLevel > 0.2:
             # self.loudnessAlert.trip()
             self.alertRatelimitTime = time.monotonic()
 
@@ -652,24 +652,14 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                     try:
                         print("FEEDBACK DETECTED!!!!")
                         l = self.faderTag.value
-                        self.setFader(l - 8)
+                        self.setFader(l - 18)
                         c = self.faderTag.value
                         time.sleep(0.25)
                         # Detect manual action
                         if not c == self.faderTag.value:
                             return
-                        t = 8
-                        # Go down till we find a non horrible level
-                        for i in range(24):
-                            if(self.levelTag.value > self.soundFuseSetting - 3):
-                                self.setFader(l - (i + 8))
-                                t = i + 8
-                                c = self.faderTag.value
-                                time.sleep(0.05)
-
-                                # Detect manual action
-                                if not c == self.faderTag.value:
-                                    return
+                        t = 18
+            
 
                         time.sleep(2.5)
                         # Detect manual action

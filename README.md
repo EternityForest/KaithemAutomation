@@ -110,6 +110,11 @@ $run YOUR_KAITHEM_PY_FILE
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+### 0.67.1
+- Fix very long sound loop counts
+- Fix RTMidi compatibility with new py libs
+- Faster boot time with some devices
+- SoundFuse algorithm more aggressive
 
 ### 0.66.0
 
