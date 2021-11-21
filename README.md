@@ -110,6 +110,11 @@ $run YOUR_KAITHEM_PY_FILE
 
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
+
+### 0.67.2
+- Fix Chandler MQTT compatibility
+
+
 ### 0.67.1
 - Fix very long sound loop counts
 - Fix RTMidi compatibility with new py libs

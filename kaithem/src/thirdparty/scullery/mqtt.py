@@ -49,8 +49,12 @@ connectionsByBusName = weakref.WeakValueDictionary()
 def getWeakrefHandlers(self):
     self = weakref.ref(self)
 
-    def on_connect(client, userdata, flags, rc):
-        logger.info("Connected to MQTT server: " + self().server)
+    def on_connect(client, userdata=None, flags=None, rc=0,*a):
+        if not rc==0:
+            self().onDisconnected()
+            return
+            
+        logger.info("Connected to MQTT server: " + self().server+"result code "+str(rc))
         self().onStillConnected()
         # Don't block the network thread too long
 
@@ -67,7 +71,7 @@ def getWeakrefHandlers(self):
                 logger.exception("Error subscription refresh")
         workers.do(subscriptionRefresh)
 
-    def on_disconnect(client, userdata, flags, rc):
+    def on_disconnect(client, *a):
         logger.info("Disconnected from MQTT server: " + self().server)
         self().onDisconnected()
         logger.info("Disconnected from MQTT server: " + self().server)
@@ -557,7 +561,7 @@ def getConnection(server, port=1883, password=None, messageBusName=None, *, aler
         if x:
             if not messageBusName == x.messageBusName:
                 raise RuntimeError(
-                    "Connection already exists, but with a different message bus name. ")
+                    "Connection already exists, but with a different message bus name:  "+x.messageBusName)
 
             if x.password or password:
                 if not x.password == password:

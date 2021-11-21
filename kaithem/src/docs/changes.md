@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.67.2
+
+- Fix Chandler MQTT compatibility
+
 ### 0.67.1
 - Fix very long sound loop counts
 - Fix RTMidi compatibility with new py libs

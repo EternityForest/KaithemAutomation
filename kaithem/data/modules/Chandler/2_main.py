@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1636943010600061
+resource-timestamp: 1637474372486237
 resource-type: event
 versions: {}
 
@@ -2686,12 +2686,14 @@ if __name__=='__setup__':
         def __init__(self,name=None, values=None, active=False, alpha=1, priority= 50, blend="normal",id=None, defaultActive=False,
         blendArgs=None,backtrack=True,defaultCue=True, bpm=60, 
         soundOutput='',notes='',page=None, mqttServer='', crossfade=0, midiSource='', defaultNext='',**ignoredParams):
-    
+        
             if name and name in module.scenes_by_name:
                 raise RuntimeError("Cannot have 2 scenes sharing a name: "+name)
     
             if not name.strip():
                 raise ValueError("Invalid Name")
+            
+            self.mqttConnection=None
     
             disallow_special(name)
             self.lock = threading.RLock()
@@ -2904,7 +2906,8 @@ if __name__=='__setup__':
             self.scriptContext=None
             self.refreshRules()
         
-            self.setMqttServer(mqttServer)
+            self.mqttServer=mqttServer
+            self.activeMqttServer=None
     
             self.setMidiSource(midiSource)
     
@@ -3140,7 +3143,7 @@ if __name__=='__setup__':
                 if self.scriptContext:
                     self.scriptContext.event(s,value)
             except Exception as e:
-                rl_log_exc("Error handling event")
+                rl_log_exc("Error handling event: "+str(s))
                 print(traceback.format_exc(6))
                 
                 
@@ -3651,7 +3654,10 @@ if __name__=='__setup__':
                         x = self.cues[x].inheritRules
     
                     self.scriptContext.startTimers()
+                    print("DMQ")
                     self.doMqttSubscriptions()
+                else:
+                    print("NQ")
     
                 try:
                     for i in module.boards:
@@ -3664,17 +3670,20 @@ if __name__=='__setup__':
             try:
                 self.event("$mqtt:"+topic, json.loads(message.decode("utf-8")))
             except:
-                self.event("$badmqtt:"+topic, message)
+                self.event("$mqtt:"+topic, message)
+    
                 
-        def doMqttSubscriptions(self,keepUnused=60):
+        def doMqttSubscriptions(self,keepUnused=120):
             if self.mqttConnection and self.scriptContext:
                 
     
                 #Subscribe to everything we aren't subscribed to
                 for i in self.scriptContext.eventListeners:
+                    print(i)
                     if i.startswith("$mqtt:"):
                         x = i.split(":",1)
                         if not x[1] in self.mqttSubscribed:
+                            print("MQTT subscribe:"+x[1])
                             self.mqttConnection.subscribe(x[1],self.onMqttMessage,encoding="raw")
                             self.mqttSubscribed[x[1]] = True
     
@@ -3688,6 +3697,7 @@ if __name__=='__setup__':
                             continue
                         elif self.unusedMqttTopics[i]> time.monotonic()-keepUnused:
                             continue
+                        print("MQTT unsubscribe:"+x[1])
                         self.mqttConnection.unsubscribe(i,self.onMqttMessage)
                         del self.unusedMqttTopics[i]
                         torm.append(i)
@@ -3697,6 +3707,21 @@ if __name__=='__setup__':
                         
                 for i in torm:
                     del self.mqttSubscribed[i]
+    
+    
+    
+        def clearMQTT(self,keepUnused=120):
+            if self.mqttConnection and self.scriptContext:
+                
+                torm = []
+    
+                for i in self.mqttSubscribed:
+                    self.mqttConnection.unsubscribe(i,self.onMqttMessage)
+                    torm.append(i)
+                        
+                for i in torm:
+                    del self.mqttSubscribed[i]
+            
     
         def sendMqttMessage(self,topic, message):
             "JSON encodes message, and publishes it to the scene's MQTT server"
@@ -3758,6 +3783,8 @@ if __name__=='__setup__':
                     module._activeScenes.append(self)
                 module._activeScenes = sorted(module._activeScenes,key=lambda k: (k.priority, k.started))
                 module.activeScenes = module._activeScenes[:]
+    
+                self.setMqttServer(self.mqttServer)
                 
                 #Minor inefficiency rendering twice the first frame
                 self.rerender = True
@@ -3793,7 +3820,7 @@ if __name__=='__setup__':
     
         
         def mqttStatusEvent(self, value, timestamp, annotation):
-            if value:
+            if value=="connected":
                 self.event("board.mqtt.connect")
             else:
                 self.event("board.mqtt.disconnect")
@@ -3811,23 +3838,40 @@ if __name__=='__setup__':
                 else:
                     port=1883
     
-                self.mqttServer = mqttServer
+    
+                if mqttServer==self.activeMqttServer:
+                    return
+    
+                #Do after so we can get the err on bad format first
+                self.mqttServer = self.activeMqttServer = mqttServer
+    
+    
+    
+    
                 self.unusedMqttTopics={}
                 if mqttServer:
-                    
-                    self.mqttConnection = kaithem.mqtt.Connection(server, port,alertPriority='warning')
-                    self.mqttSubscribed={}
+                    if self in module.activeScenes:
     
-                    t= self.mqttConnection.statusTag
+                        #Get rid of old before we change over to new
+                        if self.mqttConnection:
+                            self.clearMQTT()
     
-                    if t.value:
-                        self.event("board.mqtt.connect")
-                    else:
-                        self.event("board.mqtt.disconnect")
-                    t.subscribe(self.mqttStatusEvent)
+                        self.mqttConnection=None     
+                        print("Create MQTT connection to "+server)
+                        self.mqttConnection = kaithem.mqtt.Connection(server, port,alertPriority='warning',connectionID=str(uuid.uuid4()))
+                        self.mqttSubscribed={}
+    
+                        t= self.mqttConnection.statusTag
+    
+                        if t.value:
+                            self.event("board.mqtt.connect")
+                        else:
+                            self.event("board.mqtt.disconnect")
+                        t.subscribe(self.mqttStatusEvent)
                 
                 else:
                     self.mqttConnection=None
+                    self.mqttSubscribed={}
                 
                 self.doMqttSubscriptions()
     

@@ -129,10 +129,10 @@ class Kaithem():
 
     class mqtt(object):
         @staticmethod
-        def Connection(server, port=1883, password=None, alertPriority="info", alertAck=True, messageBusName=None):
+        def Connection(server, port=1883, password=None, alertPriority="info", alertAck=True, messageBusName=None,connectionID=None):
             from src import mqtt as mqttPatch
             from scullery import mqtt
-            return mqtt.getConnection(server=server, port=port, password=password, alertPriority=alertPriority, alertAck=alertAck, messageBusName=messageBusName)
+            return mqtt.getConnection(server=server, port=port, password=password, alertPriority=alertPriority, alertAck=alertAck, messageBusName=messageBusName,connectionID=connectionID)
         
         @staticmethod
         def listConnections():
