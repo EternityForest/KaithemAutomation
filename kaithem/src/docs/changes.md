@@ -1,11 +1,12 @@
 Change Log
 ----------
 
-### 0.67.2
-
-- Fix Chandler MQTT compatibility
+### 0.67.3
 - BluetoothBeacon replaced with EspruinoHub client device that does the same thing with enhanced features.
-- Now the DrayerDBPlugin has a ver
+- Now the DrayerDBPlugin has a very basic browser
+
+### 0.67.2
+- Fix Chandler MQTT compatibility
 
 ### 0.67.1
 - Fix very long sound loop counts

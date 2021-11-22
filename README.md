@@ -111,6 +111,10 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.67.3
+- BluetoothBeacon replaced with EspruinoHub client device that does the same thing with enhanced features.
+- Now the DrayerDBPlugin has a very basic browser
+
 ### 0.67.2
 - Fix Chandler MQTT compatibility
 
