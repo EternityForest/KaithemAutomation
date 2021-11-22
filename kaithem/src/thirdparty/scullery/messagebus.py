@@ -163,6 +163,14 @@ class MessageBus(object):
         args = len(inspect.signature(f).parameters)
 
 
+        timestamp = time.monotonic()
+
+        try:
+            desc=str(f.__name__+' of '+f.__module__)
+        except:
+            desc = str(f)
+
+
         #Allright, here is how this works.
         #We have to deal with the possibility that, at any time,
         #The callback will cease to exist. That, in fact, is how one unsubscribes.
@@ -171,6 +179,9 @@ class MessageBus(object):
         #Then we get rid of the empty weakref and if that causes the entire topic
         #To have no subscribers, delete that too in case of memory leak.
         def delsubscription(weakrefobject):
+            if time.monotonic()<timestamp-0.5:
+                logging.warning("Function: " +desc+" was deleted 0.5s after being subscribed.  This is probably not what you wanted.")
+                
             try:
                 with _subscribers_list_modify_lock:
                     self.subscribers[topic].remove(weakrefobject)

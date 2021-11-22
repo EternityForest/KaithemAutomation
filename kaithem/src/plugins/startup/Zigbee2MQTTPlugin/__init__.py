@@ -50,6 +50,7 @@ class Zigbee2MQTT(devices.Device):
     deviceTypeName = 'Zigbee2MQTT'
     readme = os.path.join(os.path.dirname(__file__), "README.md")
     defaultSubclassCode = defaultSubclassCode
+    description ="Connects to a Zigbee2MQTT gateway and makes the devices accessible via a tags API"
 
     def pair(self,t=120):
         #Enable pairing for 120 seconds

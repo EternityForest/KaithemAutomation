@@ -271,6 +271,8 @@ def getAcessingUser():
             # Check the credentials of that token
             try:
                 return auth.whoHasToken(cherrypy.request.cookie['auth'].value)
+            except KeyError:
+                return "__guest__"
             except:
                 logging.exception("Error finding accessing user")
                 return "__guest__"
@@ -283,6 +285,8 @@ def getAcessingUser():
         return "__guest__"
     try:
         return auth.whoHasToken(cherrypy.request.cookie['auth'].value)
+    except KeyError:
+            return "__guest__"
     except:
         logging.exception("Error in user lookup")
         return "__guest__"

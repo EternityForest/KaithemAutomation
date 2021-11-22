@@ -1320,15 +1320,28 @@ class _TagPoint(virtualresource.VirtualResource):
 
     @typechecked
     def subscribe(self, f: Callable):
+
+        timestamp = time.monotonic()
+
+        try:
+            desc=str(f.__name__+' of '+f.__module__)
+        except:
+            desc = str(f)
+
+        timestamp = time.monotonic()
+        def errcheck(*a):
+            if time.monotonic()<timestamp-0.5:
+                logging.warning("Function: " +desc+" was deleted 0.5s after being subscribed.  This is probably not what you wanted.")
+                
         if self.lock.acquire(timeout=20):
             try:
 
                 ref: Union[weakref.WeakMethod, weakref.ref, None] = None
 
                 if isinstance(f, types.MethodType):
-                    ref = weakref.WeakMethod(f)
+                    ref = weakref.WeakMethod(f,errcheck)
                 else:
-                    ref = weakref.ref(f)
+                    ref = weakref.ref(f,errcheck)
 
                 for i in self.subscribers:
                     if f==i():

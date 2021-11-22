@@ -151,6 +151,7 @@ class SG1Device(devices.Device):
     deviceTypeName = 'SG1Device'
     readme = os.path.join(os.path.dirname(__file__), "README.md")
     defaultSubclassCode = sc_code
+    description ="Represents one SG1 protocol device. Must communicate through a gateway to reach the device."
 
     def __init__(self, name, data):
         devices.Device.__init__(self, name, data)
@@ -509,6 +510,7 @@ class SG1Device(devices.Device):
 
 class SG1Gateway(devices.Device):
     deviceTypeName = 'SG1Gateway'
+    description ="Represents one SG1 gateway.  Makes SG1 devices accessible on (real or virtual) MQTT. SG1 is a kaithem-specific protocol using RFM69 modules."
 
     def __init__(self, name, data):
         self.lock = threading.Lock()

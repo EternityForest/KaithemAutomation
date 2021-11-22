@@ -1,3 +1,52 @@
+<%!
+import datetime
+import cherrypy
+
+%>
+<h3>Posts</h3>
+<p class="help">
+    The primary use case for DrayerDB was originslly personal Wikis, so a basic post browser is provided here.  To
+    integrate similar functionality into a page, see the code in kaithem/src/plugins/DrayerDBPlugins/manageform
+</p>
+<dl>
+
+
+<%
+parentPost = obj.getDocumentByID(cherrypy.request.params.get("parentPost","")) or {}
+
+minAge = 10**18
+maxAge = -10**18
+%>
+<h3>Parent post: ${parentPost.get("title",'')}<b><a href="?parentPost=${parentPost.get('parent','')|u}">(UP)</a></b></h3>
+
+<pre>
+${parentPost.get("body",'')}
+</pre>
+
+<h3>Comments/sub-posts
+
+
+</h3>
+%for i in obj.getDocumentsByType("post", startTime=float(cherrypy.request.params.get("minAge",0)), endTime=float(cherrypy.request.params.get("maxAge",10**18)), parent=cherrypy.request.params.get("parentPost",""), limit=50):
+<%
+try:
+    minAge=min(i.get("time",minAge),minAge)
+    maxAge=max(i.get("time",maxAge),maxAge)
+except:
+    pass
+%>
+<dt><b><a href="?parentPost=${i.get('id','ERR')|u}">${i.get("title","ERROR") or "No Title"|h}</a></b>
+
+${datetime.datetime.fromtimestamp(i.get('time',0)/10**6).strftime("%c") }
+
+</dt>
+<dd>${i.get("body","ERROR")[:240]|h}</dd>
+%endfor
+</dl>
+
+<b><a href="?parentPost=${parentPost.get('id','')|u}&maxAge=${minAge}">Older</a></b>
+<b><a href="?parentPost=${parentPost.get('id','')|u}&minAge=${maxAge}">Newer</a></b>
+
 
 <h3>Info</h3>
 <p class="help">

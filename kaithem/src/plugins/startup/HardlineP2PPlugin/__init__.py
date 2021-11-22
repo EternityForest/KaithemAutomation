@@ -31,6 +31,7 @@ class HardlineP2PService(devices.Device):
     deviceTypeName = 'HardlineP2PService'
     readme = os.path.join(os.path.dirname(__file__), "README.md")
     defaultSubclassCode = defaultSubclassCode
+    description ="Expose a local web service(Such as the Kaithem UI) to the world without manual port mapping.  Requires the Drayer Journal app to access."
 
     def close(self):
         if self.service:

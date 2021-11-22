@@ -184,7 +184,7 @@ class Device(virtualresource.VirtualResource):
     and names should be globally unique"""
     descriptors = {}
 
-    description = "Abstract base class for a device"
+    description = "No description set"
     deviceTypeName = "device"
 
     readme = None
@@ -449,9 +449,9 @@ class WebDevices():
         return pages.get_template("devices/index.html").render(deviceData=remote_devices_atomic)
 
     @cherrypy.expose
-    def device(self, name):
+    def device(self, name,*args,**kwargs):
         pages.require("/admin/settings.edit")
-        return pages.get_template("devices/device.html").render(data=remote_devices[name].data, obj=remote_devices[name], name=name)
+        return pages.get_template("devices/device.html").render(data=remote_devices[name].data, obj=remote_devices[name], name=name,args=args,kwargs=kwargs)
 
     @cherrypy.expose
     def devicedocs(self, name):

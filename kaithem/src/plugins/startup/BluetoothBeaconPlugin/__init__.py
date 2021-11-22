@@ -1,76 +1,21 @@
 import logging
-import time,threading, logging,os
+import time,threading,os
 import weakref
+from src import messagebus
 from src import tagpoints
 
 from collections import OrderedDict
 from weakref import WeakValueDictionary
-allBLEDevices = OrderedDict()
 lock = threading.Lock()
 
 tags = weakref.WeakValueDictionary()
 
-class BT():
-    def __init__(self) -> None:
-        self._allBLEDevices=allBLEDevices
-        self._lock = lock
-
 from src import kaithemobj
-kaithemobj.kaithem.blebeacons = BT() 
 
 
-def callback(addr, rssi, packet, additional_info):
-    with lock:
-        allBLEDevices[addr]=rssi
-        if "uuid" in additional_info:
-            allBLEDevices[additional_info['uuid']]=rssi
-        if "identifier" in additional_info:
-            allBLEDevices[additional_info['identifier']]=rssi
-        if "url" in additional_info:
-            allBLEDevices[additional_info['url']]=rssi
-        if "namespace" in additional_info and "instance" in additional_info:
-            allBLEDevices[additional_info['namespace']+":"+ additional_info['instance'] ]=rssi
-
-
-        while len(allBLEDevices)>4096:
-            allBLEDevices.popitem(False)
-
-    try:
-        if addr in tags:
-            tags[addr].value = rssi
-        
-        if "uuid" in additional_info and additional_info['uuid'] in tags:
-            tags[additional_info['uuid']].value = rssi
-            tags[additional_info['uuid']].bleTimestamp=time.monotonic()
-        
-        elif "identifier" in additional_info and additional_info['identifier'] in tags:
-            tags[additional_info['identifier']].value = rssi
-            tags[additional_info['identifier']]._bleTimestamp=time.monotonic()
-        
-        elif "url" in additional_info and additional_info['url'] in tags:
-            tags[additional_info['url']].value = rssi
-            tags[additional_info['url']]._bleTimestamp=time.monotonic()
-
-        elif "namespace" in additional_info and "instance" in additional_info:
-            x = additional_info['namespace']+":"+ additional_info['instance'] 
-            if x in tags:
-                tags[x].value = rssi
-                tags[x]._bleTimestamp=time.monotonic()
-    except:
-        logging.exception("U can probably ignore this")
-
-
-import time
-
-from beacontools import BeaconScanner
-
-# scan for all TLM frames of beacons in the namespace "12345678901234678901"
-scanner = BeaconScanner(callback)
-scanner.start()
 
 
 def scan():
-    #Don't rely on the scanner not to leak addresses
     while 1:
             time.sleep(9)
             with lock:
@@ -87,7 +32,7 @@ def scan():
                     logging.exception("BLE err")                            
                         
 
-t = threading.Thread(target=scan,name="BluetoothWatcher")
+t = threading.Thread(target=scan,name="BluetoothPresenceBot")
 t.start()
 
 from mako.lookup import TemplateLookup
@@ -101,11 +46,14 @@ class CustomDeviceType(DeviceType):
 """
 
 from src import devices
+import json
+import uuid
 
-class BluetoothBeacon(devices.Device):
-    deviceTypeName = 'BluetoothBeacon'
+class EspruinoHubBLEClient(devices.Device):
+    deviceTypeName = 'EspruinoHubBLEClient'
     readme = os.path.join(os.path.dirname(__file__), "README.md")
     defaultSubclassCode = defaultSubclassCode
+    shortDescription="This device lets you get BLE data from one specific BLE device via an EspruinoHub server"
 
 
 
@@ -119,10 +67,119 @@ class BluetoothBeacon(devices.Device):
             self.tagpoints["rssi"].max = 12
             self.tagpoints["rssi"].max = 12
             self.tagpoints["rssi"].interval = float(data.get("device.interval",5))
-
             self.tagpoints["rssi"]._bleTimestamp = time.monotonic()
 
-            tags[data['device.id']] = self.tagpoints["rssi"]
+            data['device.id']=data.get('device.id','').lower().strip()
+
+            self.connection = kaithemobj.kaithem.mqtt.Connection(
+                data.get("device.server", "localhost"),
+                int(data.get("device.port", "1883").strip() or 1883),
+                password=data.get("device.password", "").strip(),
+                connectionID=str("EspruinoConnection")
+            )
+            self.tagPoints['EspruinoHubStatus'] = self.connection.statusTag
+
+
+            topic = data.get("device.mqtttopic","/ble/")
+
+
+            def onRSSI(t,m):
+                m=float(m)
+                self.tagpoints['rssi'].value=m
+            def onBattery(t,m):
+                m=float(m)
+                if not 'battery' in self.tagpoints:
+                    self.tagpoints["battery"] = tagpoints.Tag("/bt/"+name+".battery")
+                self.tagpoints['battery'].value=m
+
+            def onEspruino(t,m):
+                m=json.loads(m)
+                if not 'espruino' in self.tagpoints:
+                    self.tagpoints["espruino"] = tagpoints.tagpoints.ObjectTag("/bt/"+name+".espruino")
+                self.tagpoints['espruino'].value=m
+
+            def onUrl(t,m):
+                m=json.loads(m)
+                if not 'url' in self.tagpoints:
+                    self.tagpoints["url"] = tagpoints.tagpoints.StringTag("/bt/"+name+".url")
+                self.tagpoints['url'].value=m
+
+
+            def onTemp(t,m):
+                m=float(m)
+                if not 'temp' in self.tagpoints:
+                    self.tagpoints["temp"] = tagpoints.Tag("/bt/"+name+".temp")
+                    self.tagpoints['temp'].unit = "degC"
+
+                self.tagpoints['temp'].value = m
+
+            def onHum(t,m):
+                m=float(m)
+                if not 'humidity' in self.tagpoints:
+                    self.tagpoints["humidity"] = tagpoints.Tag("/bt/"+name+".humidity")
+                    self.tagpoints['humidity'].unit = "%"
+                    self.tagpoints['humidity'].min = 0
+                    self.tagpoints['humidity'].max = 100
+
+                self.tagpoints['humidity'].value = m
+
+            def onPres(t,m):
+                m=float(m)
+                if not 'pressure' in self.tagpoints:
+                    self.tagpoints["pressure"] = tagpoints.Tag("/bt/"+name+".pressure")
+                    self.tagpoints['pressure'].unit = "pa"
+
+
+                self.tagpoints['pressure'].value = m
+
+            
+            def onWeight(t,m):
+                m=float(m)
+                if not 'weight' in self.tagpoints:
+                    self.tagpoints["weight"] = tagpoints.Tag("/bt/"+name+".weight")
+                    #self.tagpoints['weight'].unit = "pa"
+
+
+                self.tagpoints['weight'].value = m
+
+            def onHeartRate(t,m):
+                m=float(m)
+                if not 'heartRate' in self.tagpoints:
+                    self.tagpoints["heartRate"] = tagpoints.Tag("/bt/"+name+".heartRate")
+                self.tagpoints['heartRate'].value = m
+
+
+            def onJSON(t,m):
+                m=json.loads(m)
+
+                if 'rssi' in m:
+                    onRSSI(0,m['rssi'])
+                if 'humidity' in m:
+                    onHum(0,m['humidity'])
+                if 'temp' in m:
+                    onTemp(0,m['temp'])
+                if 'pressure' in m:
+                    onPres(0,m['pressure'])
+                if 'battery' in m:
+                    onBattery(0,m['battery'])
+                if 'espruino' in m:
+                    onEspruino(0,json.dumps(m['espruino']))
+
+                if 'weight' in m:
+                    onWeight(0,m['weight'])
+
+            self.noGarbage =[onJSON,onTemp,onHum,onPres,onEspruino,onJSON]
+
+            if data['device.id']:
+                self.connection.subscribe(topic+"advertise/"+data['device.id']+"/rssi",onRSSI,encoding="raw")
+                self.connection.subscribe(topic+"advertise/"+data['device.id']+"/temp",onTemp,encoding="raw")
+                self.connection.subscribe(topic+"advertise/"+data['device.id']+"/humidity",onHum,encoding="raw")
+                self.connection.subscribe(topic+"advertise/"+data['device.id']+"/pressure",onPres,encoding="raw")
+                self.connection.subscribe(topic+"advertise/"+data['device.id']+"/espruino",onEspruino,encoding="raw")
+                self.connection.subscribe(topic+"advertise/"+data['device.id'],onJSON,encoding="raw")
+
+
+
         except:
             self.handleException()
 
@@ -130,4 +187,4 @@ class BluetoothBeacon(devices.Device):
         return templateGetter.get_template("manageform.html").render(data=self.data, obj=self)
 
 
-devices.deviceTypes["BluetoothBeacon"] = BluetoothBeacon
+devices.deviceTypes["EspruinoHubBLEClient"] = EspruinoHubBLEClient

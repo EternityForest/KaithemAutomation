@@ -459,7 +459,7 @@ def readResourceFromFile(fn: str, relative_name: str, ver: int = 1):
         d = f.read().decode("utf-8")
 
     x = readResourceFromData(d, relative_name, ver, filename=fn)
-    logger.debug("Loaded resource from file "+fn)
+    #logger.debug("Loaded resource from file "+fn)
     return x
 
 
@@ -654,9 +654,9 @@ def saveResource2(obj, fn: str):
 
     # Don't save VResources
     if isinstance(obj, weakref.ref):
-        logger.debug("Did not save resource because it is virtual")
+        #logger.debug("Did not save resource because it is virtual")
         return
-    logger.debug("Saving resource to "+str(fn))
+    #logger.debug("Saving resource to "+str(fn))
 
     d, ext = serializeResource(obj)
 
@@ -688,7 +688,7 @@ def saveResource2(obj, fn: str):
         f.flush()
         os.fsync(f.fileno())
 
-    logger.debug("saved resource to file " + fn)
+    #logger.debug("saved resource to file " + fn)
     obj['resource-loadedfrom'] = fn
     return fn
 

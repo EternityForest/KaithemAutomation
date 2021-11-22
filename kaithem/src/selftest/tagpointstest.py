@@ -211,9 +211,12 @@ def testTags():
 
 
 
-
     t1 = tagpoints.StringTag("/system/selftest/Sync1Str")
     t2 = tagpoints.StringTag("/system/selftest/Sync2Str")
+
+    #Make sure the old tag is gone
+    gc.collect()
+    gc.collect()
 
     t1.mqttConnect(server="__virtual__",port=456, mqttTopic='tagsyncselftest')
     t2.mqttConnect(server="__virtual__",port=456, mqttTopic='tagsyncselftest')

@@ -42,19 +42,21 @@ lock = threading.RLock()
 allSubscriptions = {}
 
 
-#list them by local name.  But only real, phsyical MQTT connections.
-#This is how passive connections find their real one
+# list them by local name.  But only real, phsyical MQTT connections.
+# This is how passive connections find their real one
 connectionsByBusName = weakref.WeakValueDictionary()
+
 
 def getWeakrefHandlers(self):
     self = weakref.ref(self)
 
-    def on_connect(client, userdata=None, flags=None, rc=0,*a):
-        if not rc==0:
+    def on_connect(client, userdata=None, flags=None, rc=0, *a):
+        if not rc == 0:
             self().onDisconnected()
             return
-            
-        logger.info("Connected to MQTT server: " + self().server+"result code "+str(rc))
+
+        logger.info("Connected to MQTT server: " +
+                    self().server + "result code " + str(rc))
         self().onStillConnected()
         # Don't block the network thread too long
 
@@ -72,6 +74,8 @@ def getWeakrefHandlers(self):
         workers.do(subscriptionRefresh)
 
     def on_disconnect(client, *a):
+        if not self():
+            return
         logger.info("Disconnected from MQTT server: " + self().server)
         self().onDisconnected()
         logger.info("Disconnected from MQTT server: " + self().server)
@@ -103,8 +107,10 @@ def makeThread(c, ref):
                 raise RuntimeError("Test crash once")
             c.loop_forever(retry_first_connection=True)
         except:
-            logger.exception("MQTT Crash")
-            ref().onConnectionCrash(traceback.format_exc())
+            if ref():
+                ref().onConnectionCrash(traceback.format_exc())
+                logger.exception("MQTT Crash")
+
     return f2
 
 
@@ -117,11 +123,10 @@ class HBMQTTWrapper():
         self.client = client
         self.ref = manager_ref()
         from hbmqtt.mqtt.constants import QOS_0, QOS_1, QOS_2
-        self.qosmap = {0:QOS_0, 1:QOS_1, 2:QOS_2}
-        #For connect_async
-        self.connectFunction=None
+        self.qosmap = {0: QOS_0, 1: QOS_1, 2: QOS_2}
+        # For connect_async
+        self.connectFunction = None
 
-        
     def subscribe(self, topic, qos=0):
         @asyncio.coroutine
         def f():
@@ -136,33 +141,30 @@ class HBMQTTWrapper():
 
         asyncio.get_event_loop().run_until_complete(f())
 
-    def publish(self, topic,payload, qos=0, retain=False):
+    def publish(self, topic, payload, qos=0, retain=False):
         @asyncio.coroutine
         def f():
             yield from self.client.publish(topic, payload, self.qosmap[qos], retain)
 
         asyncio.get_event_loop().run_until_complete(f())
 
-
-    def connect_async(self,host,port=1883, keepalive=60, bind_address=""):
+    def connect_async(self, host, port=1883, keepalive=60, bind_address=""):
         def connectFunction():
 
             @asyncio.coroutine
             def f():
-                yield from self.client.connect(host+":"+port)
+                yield from self.client.connect(host + ":" + port)
 
             asyncio.get_event_loop().run_until_complete(f())
         self.connectFunction = connectFunction
 
     def connect(self, host, port=1883, keepalive=60, bind_address=""):
-        self.connect_async(host,port,keepalive,bind_address)
+        self.connect_async(host, port, keepalive, bind_address)
         self.connectFunction()
 
     def loop_forever(timeout=1.0, max_packets=1, retry_first_connection=False):
         if self.connectFunction:
             self.connectFunction()
-
-
 
     @asyncio.coroutine
     def run(self):
@@ -171,13 +173,13 @@ class HBMQTTWrapper():
 
         C = MQTTClient()
         yield from C.connect(r().server + ':' + str(r().port))
-        self.connected=True
+        self.connected = True
         # Subscribe to '$SYS/broker/uptime' with QOS=1
         # Subscribe to '$SYS/broker/load/#' with QOS=2
         self.on_connect(self, None, None, None)
 
         while r():
-            
+
             message = yield from C.deliver_message(timeout=3)
             packet = message.publish_packet
             msg = HBMQTTMessage
@@ -189,9 +191,9 @@ class HBMQTTWrapper():
 
 
 class Connection():
-    def __init__(self, server, port=1883, password=None, messageBusName=None, *, alertPriority="info", alertAck=True,connectionID=''):
+    def __init__(self, server, port=1883, password=None, messageBusName=None, *, alertPriority="info", alertAck=True, connectionID=''):
 
-        #ConnectionID is used to ensure separate *physical* connections and prevent reuse
+        # ConnectionID is used to ensure separate *physical* connections and prevent reuse
         self.server = server
         self.port = port
         self.lock = threading.Lock()
@@ -213,8 +215,7 @@ class Connection():
         if passive and (not messageBusName):
             raise ValueError(
                 "No server specified. To create a passive connection you must specify an internal messageBusName")
-        self.busPrefix = "/mqtt/" + server + ":" + str(port)+connectionID
-
+        self.busPrefix = "/mqtt/" + server + ":" + str(port) + (connectionID or '')
 
         self.subscriptions = {}
         logger.info("Creating connection object to: " + self.server)
@@ -225,7 +226,8 @@ class Connection():
             paho = True
 
         except ImportError:
-            logging.exception("PahoMQTT not installed. No MQTT connection possible here. continuing with dummy.")
+            logging.exception(
+                "PahoMQTT not installed. No MQTT connection possible here. continuing with dummy.")
             paho = False
 
         # When we wrap a function store a weakref to the original here,
@@ -235,10 +237,10 @@ class Connection():
 
         with lock:
             if connectionID:
-                connectionID='?'+connectionID
+                connectionID = '?' + connectionID
             self.connectionID = connectionID
 
-            n = server + ":" + str(port)+connectionID
+            n = server + ":" + str(port) + connectionID
             if n in connections and connections[n]():
                 raise RuntimeError("There is already a connection")
             torm = []
@@ -248,7 +250,6 @@ class Connection():
             for i in torm:
                 del connections[i]
             connections[n] = weakref.ref(self)
-
 
             if messageBusName:
                 self.busPrefix = "/mqtt/" + messageBusName
@@ -266,8 +267,6 @@ class Connection():
                             t = topic[len(self.busPrefix + "/out/"):]
                             messagebus.postMessage(
                                 self.busPrefix + "/in/" + t, message)
-
-
 
                 if not passive:
                     messagebus.subscribe(
@@ -335,10 +334,9 @@ class Connection():
                     self.connection = None
                     self.configureAlert(alertPriority, alertAck)
                     self.onStillConnected()
-                
 
                 if not passive:
-                    connectionsByBusName[self.busPrefix]=self
+                    connectionsByBusName[self.busPrefix] = self
 
             except Exception:
                 # Attempt cleanup
@@ -370,7 +368,8 @@ class Connection():
         except Exception:
             pass
         try:
-            del connections[self.server + ":" + str(self.port)+self.connectionID]
+            del connections[self.server + ":" +
+                            str(self.port) + self.connectionID]
         except Exception:
             pass
 
@@ -422,7 +421,6 @@ class Connection():
     def configureAlert(self, *a):
         pass
 
-
     def _mqttSubscribe(topic, qos):
         if self.connection:
             self.connection.subscribe(topic, qos)
@@ -432,20 +430,20 @@ class Connection():
             if self.connection:
                 self.connection.subscribe(topic, qos)
             else:
-                #We are a "Passive" connecytion relaying through a real connection elsewhere in code.
+                # We are a "Passive" connecytion relaying through a real connection elsewhere in code.
                 if self.passive:
                     if self.busPrefix in connectionsByBusName:
                         try:
                             backend = connectionsByBusName[self.busPrefix]
                         except KeyError:
-                            backend=None
+                            backend = None
 
                         if backend:
-                            #The backend to relay through actually exists! So we have to actually tell them to physically
-                            #subscribe to the MQTT topic.
+                            # The backend to relay through actually exists! So we have to actually tell them to physically
+                            # subscribe to the MQTT topic.
 
-                            #if they don't exist yet that is fine, they will look through the subscriptions master list and reconnect anything active anyway
-                            backend.connection.subscribe(topic,qos)
+                            # if they don't exist yet that is fine, they will look through the subscriptions master list and reconnect anything active anyway
+                            backend.connection.subscribe(topic, qos)
 
         x = str(uuid.uuid4())
 
@@ -458,14 +456,14 @@ class Connection():
             # Part of the function
             self.unsubscribe(topic, None)
 
-        fID= id(function)
+        fID = id(function)
         function = util.universal_weakref(function, handleDel)
 
         # This is our master list of who is subscribed where. It is used for reconnection.
         # It is also used so that subscriptions can persist beyond any given connection object!!!
-        #use fID in case of two subscribers to one topic needing to fit in one dict.
+        # use fID in case of two subscribers to one topic needing to fit in one dict.
         with self.lock:
-            allSubscriptions[self.busPrefix, topic, qos,fID] = function
+            allSubscriptions[self.busPrefix, topic, qos, fID] = function
 
         # Connection.subscribe was blocking forever.
         # Use a different thread, to hopefully avoid deadlocks
@@ -478,13 +476,13 @@ class Connection():
             def wrapper(t, m):
                 # Get rid of the extra kaithem framing part of the topic
                 t = t[len(self.busPrefix + "/in/"):]
-                if not isinstance(m,str):
-                    m=m.decode('utf-8')
+                if not isinstance(m, str):
+                    m = m.decode('utf-8')
                 try:
-                    m= json.loads(m)
+                    m = json.loads(m)
                 except:
-                    logging.debug("Bad JSON:"+m[:64])
-                function()(t,m)
+                    logging.debug("Bad JSON:" + m[:64])
+                function()(t, m)
 
         elif encoding == 'msgpack':
             def wrapper(t, m):
@@ -496,8 +494,8 @@ class Connection():
             def wrapper(t, m):
                 # Get rid of the extra kaithem framing part of the topic
                 t = t[len(self.busPrefix + "/in/"):]
-                if not isinstance(m,str):
-                    m=m.decode('utf-8')
+                if not isinstance(m, str):
+                    m = m.decode('utf-8')
                 function()(t, m)
 
         elif encoding == 'raw':
@@ -526,7 +524,7 @@ class Connection():
         if self.connection:
             workers.do(backgroundSubscribeTask)
 
-    def publish(self, topic, message, qos=2, encoding="json",retain=False):
+    def publish(self, topic, message, qos=2, encoding="json", retain=False):
         if encoding == 'json':
             message = json.dumps(message)
         elif encoding == 'msgpack':
@@ -538,7 +536,7 @@ class Connection():
         else:
             raise ValueError("Invalid encoding!")
         messagebus.postMessage(self.busPrefix + "/out/" +
-                               topic, message, annotation=(qos,retain))
+                               topic, message, annotation=(qos, retain))
 
 
 def getConnection(server, port=1883, password=None, messageBusName=None, *, alertPriority="info", alertAck=True, connectionID=''):
@@ -551,17 +549,20 @@ def getConnection(server, port=1883, password=None, messageBusName=None, *, aler
     with lock:
         x = None
 
-        connectionIDSuffix=''
+        connectionIDSuffix = ''
         if connectionID:
-            connectionIDSuffix='?'+connectionID
+            connectionIDSuffix = '?' + connectionID
 
-        if server + ":" + str(port)+connectionIDSuffix in connections:
-            x = connections[server + ":" + str(port)+connectionIDSuffix]()
+        if server + ":" + str(port) + connectionIDSuffix in connections:
+            x = connections[server + ":" + str(port) + connectionIDSuffix]()
 
         if x:
             if not messageBusName == x.messageBusName:
-                raise RuntimeError(
-                    "Connection already exists, but with a different message bus name:  "+x.messageBusName)
+               # We can safely use the existing one.   If t
+                logging.warning(
+                    "Using connection that already exists, but with a different message bus name:  " + x.messageBusName)
+
+                messageBusName = x.messageBusName
 
             if x.password or password:
                 if not x.password == password:
@@ -571,4 +572,4 @@ def getConnection(server, port=1883, password=None, messageBusName=None, *, aler
             x.configureAlert(alertPriority, alertAck)
             return x
 
-        return Connection(server, port, password=password, alertAck=True, alertPriority="info", messageBusName=messageBusName,connectionID=connectionID)
+        return Connection(server, port, password=password, alertAck=True, alertPriority="info", messageBusName=messageBusName, connectionID=connectionID)

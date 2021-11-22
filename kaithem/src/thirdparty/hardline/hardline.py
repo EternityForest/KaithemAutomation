@@ -591,7 +591,7 @@ class Service():
                     getWanHostsString().encode()).decode(), "id": "id 1", "seq": 0, "type": 3}
                 url = i+hashlib.sha1(rollingCode.hex().encode()
                                      ).digest()[:20].hex()
-                r = requests.post(url, data=data)
+                r = requests.post(url, data=json.dumps(data))
                 r.raise_for_status()
                 break
             except Exception:

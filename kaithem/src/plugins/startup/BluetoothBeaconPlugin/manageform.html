@@ -3,12 +3,6 @@ from src.kaithemobj import kaithem
 
 %>
 
-<datalist id="ble" name="ble">
-    %for i in kaithem.blebeacons._allBLEDevices:
-    <option value="${i|h}">${kaithem.blebeacons._allBLEDevices[i]}</option>
-    %endfor
-
-</datalist>
 
 
 <h3>Info</h3>
@@ -26,13 +20,29 @@ You may want to download a BLE scanner app from your phone's app store to see wh
 
 This requires that the process be root, or have the capabilities to do BT scanning.
 </p>
+
+<p>You need to connect this to an EspruinoHub client to make this work!</p>
 <table>
     <tr>
-        <td>MAC Address, UUID, or Identifier</td>
+        <td>MAC Address</td>
         <td><input list="ble" name="device.id" value="${data.get('device.id','')|h}"></td>
     </tr>
     <tr>
         <td>Expected beacon interval(Used for presence detection)</td>
         <td><input name="device.interval" value="${data.get('device.interval','5')|h}"></td>
+    </tr>
+
+    <tr>
+        <td>MQTT server(user@server or just server for anon)</td>
+        <td><input name="device.server" value="${data.get('device.server','localhost')|h}" placeholder="Server"></td>
+    </tr>
+    <tr>
+        <td>Port</td>
+        <td><input name="device.port" value="${data.get('device.port','1883')|h}" placeholder="Port"></td>
+    </tr>
+ 
+    <tr>
+        <td>Password(Empty for anon)</td>
+        <td><input name="device.password" value="${data.get('device.password','')|h}" placeholder="PW"></td>
     </tr>
 </table>

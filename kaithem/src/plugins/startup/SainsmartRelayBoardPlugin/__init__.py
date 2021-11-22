@@ -31,7 +31,7 @@ class Relayft245r(devices.Device):
     deviceTypeName = 'Relayft245r'
     readme = os.path.join(os.path.dirname(__file__), "README.md")
     defaultSubclassCode = defaultSubclassCode
-
+    description="Control relay boards such as one chep one by SainSmart. Beware random clattering relays at boot, that is caused by the board itself."
     def close(self):
         devices.Device.close(self)
 

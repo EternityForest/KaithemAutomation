@@ -108,7 +108,24 @@ def devStatString(d):
 <Label>Type:<input name="type" placeholder="Click for dropdown" list="deviceTypes"></Label>
 <input type="submit">
 </form>
+
+<h2>Available Device Types</h2>
+<dl>
+    %for i in devices.builtinDeviceTypes:
+    <dt><b>${i|h}</b></dt>
+    <dd>${devices.builtinDeviceTypes[i].description|h}</dd>
+    %endfor
+
+
+
+    %for i in devices.deviceTypes:
+    <dt><b>${i|h}</b></dt>
+    <dd>${devices.deviceTypes[i].description|h}</dd>
+    %endfor
+</dl>
 </div>
+
+
 
 </dd>
 <%include file="/pagefooter.html"/>
