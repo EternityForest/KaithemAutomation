@@ -1,6 +1,14 @@
 Change Log
 ----------
 
+
+### 0.67.4
+- Fix nuisance bad unit: dB error
+- Much better object pool manager for sound players, avoids occasional dropouts
+- Fix reused GStreamer proxy IDs that affected RasPi
+- Improve performance of JSONRpyc proxies
+
+
 ### 0.67.3
 - BluetoothBeacon replaced with EspruinoHub client device that does the same thing with enhanced features.
 - Now the DrayerDBPlugin has a very basic browser

@@ -1067,7 +1067,7 @@ rpc[0] = jsonrpyc.RPC(target=gstp)
 def print(*a):
     rpc[0]("print", str(a))
 
-while 1:
+while not rpc[0].threadStopped:
     time.sleep(10)
     if not check_pid(ppid):
         sys.exit()

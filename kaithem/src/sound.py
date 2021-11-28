@@ -813,8 +813,12 @@ class RemoteMPV():
         # self.rpc.call('set',['volume',v/8])
         # self.rpc.call('set',['volume',0])
 
+        if self.worker.poll() is not None:
+            tryCloseFds(self.worker)
+            return
+
         try:
-            self.rpc.call("call",["stop"],block=0.001,timeout=1)
+            self.rpc.call("call",["stop"],block=0.001,timeout=3)
         except TimeoutError:
             pass
         except:
@@ -859,7 +863,7 @@ class MPVBackend(SoundWrapper):
                     self.player = RemoteMPV()
 
             #Avoid somewhat slow RPC calls if we can
-            if not hasattr(self.player, 'isConfigured'):
+            if (not hasattr(self.player, 'isConfigured')) or (not self.player.isConfigured):
                 cname = "kplayer"+str(time.monotonic())+"_out"
 
                 self.player.rpc.call('set',['vid','no'])
@@ -916,19 +920,26 @@ class MPVBackend(SoundWrapper):
                         #I really hate this but stopping a crashed sound can't be allowed to take down anything else.
                         pass
                     
+                #When the player only has a few uses left, if we don't have many spare objects in
+                #the pool, we are going to make the replacement ahead of time in a background thread.
+                #But try tpo only make one replacement per object, we don't actually want to go up to the max
+                #in the pool because they can use CPU in the background
+                if bad or self.player.usesCounter>8:
+                    if not hasattr(self.player, "alreadyMadeReplacement"):
+                        if (len(objectPool)<3) or self.player.usesCounter>10 :
+                            self.player.alreadyMadeReplacement=True
+                            def f():
+                                #Can't make it under lock that is slow
+                                o=RemoteMPV()
+                                with objectPoolLock:
+                                    if len(objectPool)<4:
+                                        objectPool.append(o)
+                                        return
+                                o.stop()
+                            workers.do(f)
+                                        
 
                 if bad or self.player.usesCounter>10:
-                    if len(objectPool)<4:
-                        def f():
-                            #Can't make it under lock that is slow
-                            o=RemoteMPV()
-                            with objectPoolLock:
-                                if len(objectPool)<4:
-                                    objectPool.append(o)
-                                    return
-                            o.stop()
-                        workers.do(f)
-                                                    
                     self.player.stop()
 
                 else:

@@ -33,7 +33,7 @@ rpc = jsonrpyc.RPC(target=p)
 import time
 
 
-while 1:
+while not rpc.threadStopped:
     time.sleep(10)
     if not check_pid(ppid):
         sys.exit()

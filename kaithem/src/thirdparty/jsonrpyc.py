@@ -26,6 +26,9 @@ import time
 import threading
 import weakref
 import traceback
+
+
+server_only=False
 class Spec(object):
     """
     This class wraps methods that create JSON-RPC 2.0 compatible string representations of
@@ -268,9 +271,12 @@ class RPC(object):
         kwargs.setdefault("daemon", target is None)
         self.watchdog = Watchdog(self, **kwargs)
 
+        self.threadStopped = False
+
 
 
     def __del__(self):
+       if server_only:
         try:
             self.stdin.close()
         except:
@@ -356,6 +362,7 @@ class RPC(object):
         try:
             obj = json.loads(line)
         except:
+
             print("Bad JSON",line)
             #What if we just didn't?
             return
@@ -383,12 +390,15 @@ class RPC(object):
                 res = Spec.response(req["id"], result)
                 self._write(res)
         except Exception as e:
+            sys.stderr.write(traceback.format_exc())
             if "id" in req:
                 if isinstance(e, RPCError):
                     err = Spec.error(req["id"], e.code, e.data)
                 else:
                     err = Spec.error(req["id"], -32603, str(traceback.format_exc()))
+
                 self._write(err)
+        
 
     def _handle_response(self, res):
         """
@@ -524,16 +534,16 @@ class Watchdog(threading.Thread):
         self._stop.set()
 
     def run(self):
-        # reset the stop event
-        self._stop.clear()
-
-        # stop here when stdin is not set or closed
-        if not self.rpc().stdin or self.rpc().stdin.closed:
-            return
-
-        # read new incoming lines
-        last_pos = 0
         try:
+            # reset the stop event
+            self._stop.clear()
+
+            # stop here when stdin is not set or closed
+            if not self.rpc().stdin or self.rpc().stdin.closed:
+                return
+
+            # read new incoming lines
+            last_pos = 0
             while not self._stop.is_set():
                 rpc = self.rpc()
                 if not rpc:
@@ -558,6 +568,13 @@ class Watchdog(threading.Thread):
                 else:
                     try:
                         rfds, wfds, efds = select.select( [ sys.stdin.fileno()], [], [], self.interval)
+
+                        #On some systems it seems we never got the select return,
+                        #So we had to resort to polling way too much.
+                        #It seems that might be fixed, so if possible we go back to slower
+                        #polling and select() based response.
+                        if rfds:
+                            self.interval=0.1
                         lines = [rpc.stdin.readline()]
                     except IOError:
                         # prevent residual race conditions occurring when stdin is closed externally
@@ -573,12 +590,20 @@ class Watchdog(threading.Thread):
                 else:
                     self._stop.wait(self.interval)
                 del rpc
+        except:
+            print(traceback.format_exc())      
+
         finally:
-            try:
-                self.rpc().stdin.close()
-                self.rpc().stdout.close()
-            except:
-                pass
+            if server_only:
+                try:
+                    self.rpc().stdin.close()
+                    self.rpc().stdout.close()
+                except:
+                    pass
+
+            x = self.rpc()
+            if x:
+                x.threadStopped=True
 
 
 class RPCError(Exception):

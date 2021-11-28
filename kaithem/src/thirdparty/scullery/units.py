@@ -42,7 +42,7 @@ units ={
     "W": 1,
     "dBm": (lambda x: (10**(x/10))/1000, lambda x: 10*math.log10(x/0.001)),
     
-    #Nobody really uses the uno I don't think but it's the only namw we have
+    #Nobody really uses the uno I don't think but it's the only name we have
     "U":1,
     "uno": 1,
     "%": 0.01,
@@ -80,6 +80,7 @@ unitTypes={
     "ppb":"ratio",
     "U": "ratio",
     "uno": "ratio",
+    'dB': "ratio",
 
     'psi': 'pressure',
     'Pa': 'pressure',

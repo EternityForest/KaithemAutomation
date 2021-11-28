@@ -608,7 +608,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         return value
 
     def addLevelDetector(self):
-        self.addElement("level", post_messages=True,
+        self.levelDetector = self.addElement("level", post_messages=True,
                         peak_ttl=300 * 1000 * 1000, peak_falloff=60, interval=10**9/24)
 
     def onLevelMessage(self, src , rms, l):

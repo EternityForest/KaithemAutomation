@@ -1164,7 +1164,8 @@ def listSoundCardsByPersistentName():
         cards[i[0]] = n
 
     if cacheCards == cards:
-        return lastOutput
+        if not lastOutput is None:
+            return lastOutput
 
     cacheCards = cards
 
@@ -2014,7 +2015,7 @@ def work():
                 if(_reconnecterThreadObjectStopper[0]):
                     # Might be worth logging
                     failcounter +=1
-                    if failcounter>8:
+                    if failcounter>4:
                         failcounter=0
                         try_unstuck()
                     raise RuntimeError("Could not get lock,retrying in 5s")
@@ -2163,8 +2164,6 @@ def _checkJackClient(err=True):
             try:
                 _jackclient.close()
                 _jackclient = None
-
-
             except:
                 pass
 

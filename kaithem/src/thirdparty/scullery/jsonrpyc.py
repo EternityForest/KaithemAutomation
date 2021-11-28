@@ -16,6 +16,7 @@ __status__ = "Development"
 __version__ = "1.1.1"
 __all__ = ["RPC"]
 
+import logging
 import select
 
 import sys
@@ -26,6 +27,8 @@ import threading
 import weakref
 import traceback
 
+
+server_only=False
 class Spec(object):
     """
     This class wraps methods that create JSON-RPC 2.0 compatible string representations of
@@ -166,6 +169,7 @@ class Spec(object):
 
         return err
 
+leakDebug = weakref.WeakValueDictionary()
 
 class RPC(object):
     """
@@ -244,9 +248,11 @@ class RPC(object):
 
     def __init__(self, target=None, stdin=None, stdout=None, watch=True, **kwargs):
         super(RPC, self).__init__()
+        self.fastResponseFlag = threading.Event()
 
         # the wrapped target object
-        self.target = target
+        self.target = weakref.ref(target)
+        leakDebug[id(self)]=self
 
         # open streams
         stdin = sys.stdin if stdin is None else stdin
@@ -258,15 +264,28 @@ class RPC(object):
         self._i = -1
         self._callbacks = {}
         self._results = {}
-        self.fastResponseFlag = threading.Event()
+        self.stopFlag=False
 
         # create and optionall start the watchdog
         kwargs["start"] = watch
         kwargs.setdefault("daemon", target is None)
         self.watchdog = Watchdog(self, **kwargs)
 
+        self.threadStopped = False
+
+
 
     def __del__(self):
+       if server_only:
+        try:
+            self.stdin.close()
+        except:
+            pass
+        try:
+            self.stdout.close()
+        except:
+            pass
+            
         watchdog = getattr(self, "watchdog", None)
         if watchdog:
             watchdog.stop()
@@ -333,14 +352,20 @@ class RPC(object):
                 if self.fastResponseFlag.wait(block):
                     self.fastResponseFlag.clear()
                 if timeout and (time.time()-st)> timeout:
-                    raise RuntimeError("Request Timed Out")
+                    raise TimeoutError("Request Timed Out")
 
     def _handle(self, line):
         """
         Handles an incoming *line* and dispatches the parsed object to the request, response, or
         error handlers.
         """
-        obj = json.loads(line)
+        try:
+            obj = json.loads(line)
+        except:
+
+            print("Bad JSON",line)
+            #What if we just didn't?
+            return
 
         # dispatch to the correct handler
         if "method" in obj:
@@ -365,12 +390,15 @@ class RPC(object):
                 res = Spec.response(req["id"], result)
                 self._write(res)
         except Exception as e:
+            sys.stderr.write(traceback.format_exc())
             if "id" in req:
                 if isinstance(e, RPCError):
                     err = Spec.error(req["id"], e.code, e.data)
                 else:
                     err = Spec.error(req["id"], -32603, str(traceback.format_exc()))
+
                 self._write(err)
+        
 
     def _handle_response(self, res):
         """
@@ -434,7 +462,8 @@ class RPC(object):
             # => <bound method MyClassB.foo ...>
         """
         # recursively traverse target attributes
-        obj = self.target
+        obj = self.target()
+
         for part in method.split("."):
             if not hasattr(obj, part):
                 break
@@ -451,6 +480,8 @@ class RPC(object):
         self.stdout.write(bytearray(s + "\n", "utf-8"))
         self.stdout.flush()
 
+
+wdl=weakref.WeakValueDictionary()
 
 class Watchdog(threading.Thread):
     """
@@ -474,8 +505,9 @@ class Watchdog(threading.Thread):
        The thread's daemon flag.
     """
 
-    def __init__(self, rpc, name="nostartstoplog.rpcwatchdog", interval=0.01, daemon=False, start=True):
+    def __init__(self, rpc, name="nostartstoplog.rpcwatchdog", interval=0.02, daemon=False, start=True):
         super(Watchdog, self).__init__()
+        wdl[id(self)]=self
 
         # store attributes
         self.rpc = weakref.ref(rpc)
@@ -522,6 +554,9 @@ class Watchdog(threading.Thread):
                 if rpc.stdin.closed:
                     break
 
+                if rpc.stopFlag:
+                    break
+
                 # read from stdin depending on whether it is a tty or not
                 if rpc.stdin.isatty():
                     cur_pos =rpc.stdin.tell()
@@ -533,6 +568,12 @@ class Watchdog(threading.Thread):
                 else:
                     try:
                         rfds, wfds, efds = select.select( [ sys.stdin.fileno()], [], [], self.interval)
+                        #On some systems it seems we never got the select return,
+                        #So we had to resort to polling way too much.
+                        #It seems that might be fixed, so if possible we go back to slower
+                        #polling and select() based response.
+                        if rfds:
+                            self.interval=0.1
                         lines = [rpc.stdin.readline()]
                     except IOError:
                         # prevent residual race conditions occurring when stdin is closed externally
@@ -549,7 +590,20 @@ class Watchdog(threading.Thread):
                     self._stop.wait(self.interval)
                 del rpc
         except:
-            print(traceback.format_exc())
+            print(traceback.format_exc())      
+
+        finally:
+            if server_only:
+                try:
+                    self.rpc().stdin.close()
+                    self.rpc().stdout.close()
+                except:
+                    pass
+
+            x = self.rpc()
+            if x:
+                x.threadStopped=True
+
 
 class RPCError(Exception):
 
