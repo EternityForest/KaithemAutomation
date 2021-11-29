@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1637474372486237
+resource-timestamp: 1638165994841595
 resource-type: event
 versions: {}
 
@@ -82,7 +82,6 @@ if __name__=='__setup__':
             if soundActionSerializer.acquire(timeout=25):
                 try:
                     x=soundActionQueue.pop(False)
-                    print("Do action",x)
                     x()
                 finally:
                     soundActionSerializer.release()
@@ -307,7 +306,6 @@ if __name__=='__setup__':
     
         #Track layers of recursion
         newcause = 'script.0'
-        print("llll",scripting.contextInfo.event)
         if scripting.contextInfo.event[0] in ('cue.enter', 'cue.exit'):
             cause = scripting.contextInfo.event[1][1]
             #Nast hack, but i don't thing we need more layers and parsing might be slower.
@@ -333,6 +331,7 @@ if __name__=='__setup__':
         "True if the scene is running that cue"
         return True if module.scenes_by_name[scene].active and module.scenes_by_name[scene].cue.name == cue else None
     
+    ifCueCommand.summaryTemplate = "True if cue is running"
     
     def eventCommand(scene="=SCENE", ev="DummyEvent", value=""):
         "Send an event to a scene, or to all scenes if scene is __global__"
@@ -3160,7 +3159,6 @@ if __name__=='__setup__':
             return random.choices(names, weights=weights)[0]
     
         def _parseCueName(self,cue):
-            print(cue)
             if cue == "__shuffle__":
                 x = [i.name for i in self.cues_ordered if not (i.name == self.cue.name)]
                 for i in list(reversed(self.cueHistory))[:15]:
@@ -3371,7 +3369,6 @@ if __name__=='__setup__':
                     
                     #Don't stop audio of we're about to crossfade to the next track
                     if not(self.crossfade and self.cues[cue].sound):
-                        print("Stopping sound to enter "+cue)
                         if self.cue.soundFadeOut:
                            fadeSound(None, length=self.cue.soundFadeOut, handle=str(self.id))
                         else:
@@ -3405,10 +3402,8 @@ if __name__=='__setup__':
                             #Always fade in if the face in time set.
                             #Also fade in for crossfade, but in that case we only do it if there is something to fade in from.
                             if not (((self.crossfade>0) and  kaithem.sound.isPlaying(str(self.id))) or self.cue.soundFadeIn):
-                                print("Playing sound to enter "+cue)
                                 playSound(sound,handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops)
                             else:
-                                print("fading to sound to enter "+cue)
                                 fadeSound(sound,length=max(self.crossfade, self.cue.soundFadeIn), handle=str(self.id),volume=self.alpha*self.cueVolume,output=out,loop=self.cue.soundLoops)
     
                             try:
@@ -3654,10 +3649,8 @@ if __name__=='__setup__':
                         x = self.cues[x].inheritRules
     
                     self.scriptContext.startTimers()
-                    print("DMQ")
                     self.doMqttSubscriptions()
-                else:
-                    print("NQ")
+    
     
                 try:
                     for i in module.boards:
@@ -3679,11 +3672,9 @@ if __name__=='__setup__':
     
                 #Subscribe to everything we aren't subscribed to
                 for i in self.scriptContext.eventListeners:
-                    print(i)
                     if i.startswith("$mqtt:"):
                         x = i.split(":",1)
                         if not x[1] in self.mqttSubscribed:
-                            print("MQTT subscribe:"+x[1])
                             self.mqttConnection.subscribe(x[1],self.onMqttMessage,encoding="raw")
                             self.mqttSubscribed[x[1]] = True
     
@@ -3697,7 +3688,6 @@ if __name__=='__setup__':
                             continue
                         elif self.unusedMqttTopics[i]> time.monotonic()-keepUnused:
                             continue
-                        print("MQTT unsubscribe:"+x[1])
                         self.mqttConnection.unsubscribe(i,self.onMqttMessage)
                         del self.unusedMqttTopics[i]
                         torm.append(i)
@@ -3857,7 +3847,6 @@ if __name__=='__setup__':
                             self.clearMQTT()
     
                         self.mqttConnection=None     
-                        print("Create MQTT connection to "+server)
                         self.mqttConnection = kaithem.mqtt.Connection(server, port,alertPriority='warning',connectionID=str(uuid.uuid4()))
                         self.mqttSubscribed={}
     
