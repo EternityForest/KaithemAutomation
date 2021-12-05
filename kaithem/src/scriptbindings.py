@@ -726,6 +726,7 @@ class ChandlerScriptContext():
                 self.eventValueStack.append(val)
 
             contextInfo.event = (evt, val)
+            self.variables["_"] = True if val is None else val
             try:
                 if evt in self.eventListeners:
                     handled = True

@@ -17,7 +17,7 @@ const VueAceEditor = {
             if(this.oldValue !== this.value){ 
                 this.oldValue=this.value;
                 if(this.ivalue !== this.value){
-                    if(!this.locked)
+                    if(1)//if(!this.locked)
                     {
                         this.editor.setValue(this.value, 1);
                         return;
@@ -82,12 +82,12 @@ const VueAceEditor = {
         }        
         
         //  editor value changes   
-        this.editor.on('change', () => {
+        this.editor.on('change', (e) => {
             //  oldValue set to prevent internal updates
             this.ivalue = this.oldValue = this.editor.getValue();
         });
         //  editor value changes   
-        this.editor.on('input', () => {
+        this.editor.on('input', (e) => {
             //  oldValue set to prevent internal updates
             this.locked =1;
             this.ivalue = this.oldValue = this.editor.getValue();

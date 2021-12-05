@@ -202,6 +202,9 @@ class Connection():
         self.messageBusName = messageBusName
         self.connection = None
 
+        #Defensive against None
+        connectionID = connectionID or ''
+
         if not server:
             passive = True
         else:

@@ -205,6 +205,11 @@ class Device(virtualresource.VirtualResource):
          """
         return ""
 
+
+    def webHandler(self,*path,**kwargs):
+        "Handle /kaithem/devices/DEVICE/web/"
+        raise cherrypy.NotFound()
+
     def renderTemplate(self, file):
         return pages.get_template(file).render(data=self.data, obj=self, name=self.name)
 
@@ -450,8 +455,12 @@ class WebDevices():
 
     @cherrypy.expose
     def device(self, name,*args,**kwargs):
-        pages.require("/admin/settings.edit")
-        return pages.get_template("devices/device.html").render(data=remote_devices[name].data, obj=remote_devices[name], name=name,args=args,kwargs=kwargs)
+        #This is a customizable per-device page
+        if args and args[0]=='web':
+            return remote_devices[name].webHandler(*args[1:], **kwargs)
+        else:
+            pages.require("/admin/settings.edit")
+            return pages.get_template("devices/device.html").render(data=remote_devices[name].data, obj=remote_devices[name], name=name,args=args,kwargs=kwargs)
 
     @cherrypy.expose
     def devicedocs(self, name):
