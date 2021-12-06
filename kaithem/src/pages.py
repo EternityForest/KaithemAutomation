@@ -290,3 +290,20 @@ def getAcessingUser():
     except:
         logging.exception("Error in user lookup")
         return "__guest__"
+
+
+class ServeFileInsteadOfRenderingPageException(Exception):
+    pass
+
+
+def serveFile(path, contenttype="", name=None):
+    "Skip the rendering of the current page and Serve a static file instead."
+    if name == None:
+        name = path
+    # Give it some text for when someone decides to call it from the wrong place
+    e = ServeFileInsteadOfRenderingPageException(
+        "If you see this exception, it means someone tried to serve a file from somewhere that was not a page.")
+    e.f_filepath = path
+    e.f_MIME = contenttype
+    e.f_name = name
+    raise e

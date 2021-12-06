@@ -163,13 +163,20 @@ class RTL433Client(devices.Device):
                         "/rtl433/" + name + ".lastCommandCode")
                 self.tagpoints['lastCommandCode'].value = (m, time.time())
 
+
+            def onCommandName(t, m):
+                if not 'lastCommandName' in self.tagpoints:
+                    self.tagpoints["lastCommandName"] = tagpoints.ObjectTag(
+                        "/rtl433/" + name + ".lastCommandName")
+                self.tagpoints['lastCommandName'].value = (m, time.time())
+
             def onJSON(t, m):
                 m = json.loads(m)
                 self.print(m, "Saw packet on air")
 
                 # Going to do an ID match.
                 if 'device.id' in self.data:
-                    if not ('id' in m and m['id'] == self.data['id']):
+                    if not ('id' in m and str(m['id']) == self.data['id']):
                         self.print(m, "Packet filter miss")
                         return
 
@@ -208,6 +215,22 @@ class RTL433Client(devices.Device):
 
                 if 'cmd' in m:
                     onCommandCode(0, m['cmd'])
+                
+
+                if 'button_id' in m:
+                    onCommandCode(0, m['button_id'])
+
+
+                if 'button_name' in m:
+                    onCommandName(0, m['button_name'])
+
+                if 'event' in m:
+                    onCommandName(0, m['event'])
+                
+                if 'code' in m:
+                    onCommandCode(0, m['code'])
+
+                    
 
             self.noGarbage = [onJSON]
 

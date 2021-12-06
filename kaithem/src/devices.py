@@ -26,6 +26,7 @@ import re
 import cherrypy
 from typing import Dict
 
+
 from . import virtualresource, pages, workers, tagpoints, alerts, persist, directories, messagebus, widgets, unitsofmeasure
 
 
@@ -457,10 +458,16 @@ class WebDevices():
     def device(self, name,*args,**kwargs):
         #This is a customizable per-device page
         if args and args[0]=='web':
-            return remote_devices[name].webHandler(*args[1:], **kwargs)
-        else:
+            try:
+                return remote_devices[name].webHandler(*args[1:], **kwargs)
+            except pages.ServeFileInsteadOfRenderingPageException as e:
+                return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)
+
+        if args and args[0]=='manage':
             pages.require("/admin/settings.edit")
             return pages.get_template("devices/device.html").render(data=remote_devices[name].data, obj=remote_devices[name], name=name,args=args,kwargs=kwargs)
+        if not args:
+            raise cherrypy.HTTPRedirect(cherrypy.url()+"/manage")
 
     @cherrypy.expose
     def devicedocs(self, name):

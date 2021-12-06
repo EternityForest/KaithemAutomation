@@ -54,9 +54,7 @@ persist.resolvePath = resolvePath
 # This exception is what we raise from within the page handler to serve a static file
 
 
-class ServeFileInsteadOfRenderingPageException(Exception):
-    pass
-
+ServeFileInsteadOfRenderingPageException=pages.ServeFileInsteadOfRenderingPageException
 
 plugins = weakref.WeakValueDictionary()
 
@@ -516,17 +514,8 @@ class Kaithem():
             raise cherrypy.HTTPRedirect(url)
 
         @staticmethod
-        def serveFile(path, contenttype="", name=None):
-            "Skip the rendering of the current page and Serve a static file instead."
-            if name == None:
-                name = path
-            # Give it some text for when someone decides to call it from the wrong place
-            e = ServeFileInsteadOfRenderingPageException(
-                "If you see this exception, it means someone tried to serve a file from somewhere that was not a page.")
-            e.f_filepath = path
-            e.f_MIME = contenttype
-            e.f_name = name
-            raise e
+        def serveFile(*a,**k):
+           pages.serveFile(*a,**k)
 
         @staticmethod
         def user():
