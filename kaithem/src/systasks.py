@@ -188,7 +188,7 @@ def check_scheduler():
     if time_last_minute:
         if time.time() - (time_last_minute) < 58:
             messagebus.postMessage("/system/notifications/warnings",
-                                   "Kaithem has detected a scheduled event running too soon? History:"+repr(rhistory))
+                                   "Kaithem has detected a scheduled event running too soon.  This tasks should run every 60s.  This error may indicate a 'catch up' event after high load. History:"+repr(rhistory))
     time_last_minute = time.time()
 
 

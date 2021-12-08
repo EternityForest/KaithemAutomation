@@ -77,6 +77,9 @@ class NVRPlugin(devices.Device):
 
 
     def connect(self):
+        if time.monotonic()-self.lastStart<15:
+            return
+        self.lastStart=time.monotonic()
         try:
             os.makedirs("/dev/shm/knvr/"+self.name)
         except:
@@ -91,6 +94,28 @@ class NVRPlugin(devices.Device):
         self.process = subprocess.Popen("exec gst-launch-1.0 "+getGstreamerSourceData(self.data.get('device.source','')) +"! hlssink2 location="+ os.path.join("/dev/shm/knvr/",self.name,r"segment%05d.ts")+" playlist-location="+os.path.join("/dev/shm/knvr/",self.name,'playlist.m3u8')+" target-duration=1",shell=True)
 
 
+    def check(self):
+        with self.streamLock:
+            if self.process and self.process.poll() is None:
+                self.tagpoints['running'].value=1
+                return
+            else:
+                self.tagpoints['running'].value=0
+
+                if self.tagpoints['streamOn'].value:
+                    self.connect()
+
+    def commandState(self,v,t,a):
+        with self.streamLock:
+            if not v:
+                if self.process:
+                        self.process.kill()
+            else:
+                self.check()
+
+
+
+
 
 
     def webHandler(self,*path,**kwargs):
@@ -99,11 +124,19 @@ class NVRPlugin(devices.Device):
             kaithemobj.kaithem.web.serveFile(os.path.join("/dev/shm/knvr/",self.name,*(path[1:])))
 
 
+
     def __init__(self, name, data):
         devices.Device.__init__(self, name, data)
         try:
             self.tagpoints['streamOn']= tagpoints.Tag("/devices/"+self.name+".streamOn")
             self.tagpoints['streamOn'].default = 1
+            self.tagpoints['streamOn'].subscribe(self.commandState)
+            
+            self.tagpoints['running']= tagpoints.Tag("/devices/"+self.name+".running")
+
+            self.streamLock = threading.RLock()
+            self.lastStart =0
+
             mediaFolders[name]=self
 
 

@@ -51,10 +51,6 @@ class BaseEvent():
 
 # run: use the worker pool to run an event, or run directly if fast enough(under 1ms)
 
-# We keep our own little task queue just for unregistering.
-# Otherwise we would be majorly clogged up by when events wanted to unregister other events,
-# but the scheduler was busy trying to push more events through, so no unregistration worked fast,creating a pseudo deadlocl
-simpleTasks = []
 
 
 class Event(BaseEvent):
@@ -108,7 +104,7 @@ class Event(BaseEvent):
     # going to be in to prevent deadlocks. Also, we take a dummy var so we can use this as a weakref callback
     def unregister(self, dummy=None):
         self.stopped = True
-        simpleTasks.append(self._unregister)
+        workers.do(self._unregister)
 
 
 def shouldSkip(priority, interval, lateby, lastran):
@@ -209,7 +205,7 @@ class RepeatingEvent(BaseEvent):
     # going to be in to prevent deadlocks. Also, we take a dummy var so we can use this as a weakref callback
     def unregister(self, dummy=None):
         self.stop = True
-        simpleTasks.append(self._unregister)
+        workers.do(self._unregister)
 
     def run(self):
         workers.do(self._run)
@@ -331,22 +327,13 @@ class RepeatWhileEvent(RepeatingEvent):
             #self.scheduled = t
             # s
 
-class NewScheduler(threading.Thread):
+class NewScheduler():
     """
     represents a thread that constantly runs tasks which are objects having a time property that determins when
     their run method gets called. Inserted tasks use a lockless double buffered scheme.
     """
 
     def __init__(self):
-        threading.Thread.__init__(self)
-
-        # Task list that can only be manipulated under the lock.
-        self.tasks = []
-
-        # Input buffer for lock free task insert. Depends
-        # on pop and append being atomic operations.
-        self.task_queue = []
-
         self.lock = threading.RLock()
         self.repeatingtasks = []
         self.daemon = True
@@ -355,12 +342,21 @@ class NewScheduler(threading.Thread):
         self.lf = time.time()
         self.running = False
 
+        self.wakeUp = threading.Event()
+        import sched
+
+        self.sched =sched.scheduler(timefunc=time.time, delayfunc=self.delay)
+
     def start(self):
         with self.lock:
             if self.running:
                 return
             self.running = True
-            threading.Thread.start(self)
+            self.thread=threading.Thread(daemon=self.daemon, target=self.run, name="schedulerthread")
+            self.thread2=threading.Thread(daemon=self.daemon, target=self.manager, name="schedulerthread_errorrecovery")
+
+            self.thread.start()
+            self.thread2.start()
 
     def everySecond(self, f):
         e = RepeatingEvent(f, 1)
@@ -414,27 +410,20 @@ class NewScheduler(threading.Thread):
         property that wants its run called at time
         """
 
-        # Soft rate limit to prevent filling memory in really bizzare cases.
-        if len(self.task_queue) > 100000:
-            time.sleep(max(0, (len(self.task_queue) - 100000) / 2000.0))
-        self.task_queue.append(event)
+        event.schedID = self.sched.enterabs(event.time,1,event.run)
+        #Only very fast events need to use this wake mechanism that burns CPU.
+        #We have a min 0.07hz poll rate
+        if event.time< (time.time()+0.07):
+            self.wakeUp.set()
+
 
     def remove(self, event):
         "Remove something that has a time and a run property that wants its run to be called at time"
         with self.lock:
             try:
-                try:
-                    if event in self.tasks:
-                        self.tasks.remove(event)
-                except KeyError:
-                    pass
-
-                try:
-                    if event in self.task_queue:
-                        self.task_queue.remove(event)
-                except KeyError:
-                    pass
-
+              self.sched.cancel(event.schedID)
+            except ValueError:
+                pass
             except:
                 logger.exception("failed to remove event")
 
@@ -454,96 +443,30 @@ class NewScheduler(threading.Thread):
                     pass
 
                 try:
-                    if event in self.tasks:
-                        self.tasks.remove(event)
-                except KeyError:
+                    self.sched.cancel(event.schedID)
+                except ValueError:
                     pass
-
-                try:
-                    if event in self.task_queue:
-                        self.task_queue.remove(event)
-                except KeyError:
-                    pass
+                except:
+                    logger.exception("failed to remove event, perhaps it was not actually scheduled")
+                    
             except:
                 logger.exception("failed to unregister event")
 
-    def run(self):
-        lmin = min
-        lmax = max
-        need_sort = False
-        global lastframe
+    def manager(self):
         while 1:
-            # Caculate the time until the next UNIX timestamp whole number, with 0.0011s offset to compensate
-            # for the time it takes to process 0.9989
-            lastframe = time.time()
-
-            # Transfer the contents of one list to the other without using a lock or
-            # replacing lists which might let something get lost.
-
-            # We use the double buffer to avoid using a lock when we insert tasks.
-
-            while self.task_queue:
-                need_sort = True
-                self.tasks.append(self.task_queue.pop())
+            time.sleep(30)
             with self.lock:
-                try:
-                    while simpleTasks:
-                        x = simpleTasks.pop(0)
-                        try:
-                            x()
-                        except:
-                            logger.exception(
-                                "Error in simpleTasks queue function")
+                self._dorErrorRecovery()
 
-                    # Sort our list of tasks which should be mostly already sorted except the new stuff.
-                    # If no new tasks have been inserted there;s no need to do a sort.
-                    if need_sort:
-                        self.tasks = sorted(
-                            self.tasks, key=lambda x: x.time or -1)
-                        need_sort = False
 
-                    # Get the time to sleep. If there's an event that wants to be run
-                    # really soon, sleep that long, otherwise sync frames
-                    # to 1/10th of a second
-                    time_till_next = lmax(0, 0.1 - (time.time() % 0.1))
-                    if self.tasks:
-                        x = lmax(
-                            lmin((self.tasks[0].time - time.time()), time_till_next), 0)
-                    else:
-                        x = time_till_next
-                except:
-                    logging.exception("Error in scheduler loop?")
-                    x = 0.01
-
-            time.sleep(x)
-            with self.lock:
-                # Run tasks until all remaining ones are in the future
-                while self.tasks and (self.tasks[0].time < time.time()):
-                    i = self.tasks.pop(False)
-                    overdueby = time.time() - i.time
-                    if i.exact and overdueby > i.exact:
-                        continue
-                    try:
-                        i.run()
-                    except:
-                        sys.last_traceback = None
-                        try:
-                            logger.exception("Error in scheduler")
-                        except:
-                            print(traceback.format_exc(6))
-
-                # Take all the repeating tasks that aren't already scheduled to happen and schedule them.
-                # Normally tasks  just reschedule themselves, but this check prevents any errors in
-                # the chain of run>reschedule>run>etc.
-
-                # the schedule() method checks if it's already scheduled.
-
-                # We have to run in a try block because we don't want a bad schedule function to take out the whole thread.
-
-                # We only need to do this every 30 seconds or so, because it's only an error recovery thing.
-                if time.time() - self.lastrecheckedschedules > 30:
-                    self._dorErrorRecovery()
-                    self.lastrecheckedschedules = time.time()
+    #Custom delay func because we must be able to recieve new events while waiting
+    def delay(self,t):
+        self.wakeUp.clear()
+        self.wakeUp.wait(min(t, 0.07))
+    
+    def run(self):
+        while 1:
+            self.sched.run()
 
     def _dorErrorRecovery(self):
         for i in self.repeatingtasks:
@@ -559,6 +482,9 @@ class NewScheduler(threading.Thread):
                             "Rescheduled " + str(i) + "using error recovery, could indicate a bug somewhere, or just a long running event.")
             except:
                 logger.exception("Exception while scheduling event")
+
+
+
 
 
 scheduler = NewScheduler()

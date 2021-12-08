@@ -160,7 +160,7 @@ class Zigbee2MQTT(devices.Device):
                                 if 'value_step' in j:
                                     self.tagPoints[tn].step = j['value_step']
                                 if 'unit' in j:
-                                    self.tagPoints[tn].unit = j['unit'].replace("°",'deg')
+                                    self.tagPoints[tn].unit = j['unit'].replace("°",'deg').replace("lqi","%")
 
                                     #Link quality low signal alarms
                                     if j['unit']=='lqi':

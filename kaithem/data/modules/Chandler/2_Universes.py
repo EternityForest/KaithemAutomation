@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1631240565641983
+resource-timestamp: 1638965736072734
 resource-type: event
 versions: {}
 
@@ -312,14 +312,14 @@ if __name__=='__setup__':
                 self.setStatus('Could not connect, '+str(e)[:100]+'...',False)
     
     
-        def reconnect(self):
+        def reconnect(self,portlist=None):
             "Try to reconnect to the adapter"
             try:
                 import serial
                 if not self.portname:
                     import serial.tools.list_ports
     
-                    p = serial.tools.list_ports.comports()
+                    p = portlist or serial.tools.list_ports.comports()
                     if p:
                         if len(p)>1:
                             self.setStatus('More than one device found, refusing to guess. Please specify a device.',False)
@@ -387,14 +387,20 @@ if __name__=='__setup__':
                         if self.port:
                             self.setStatus('disconnected, '+str(e)[:100]+'...',False)
                         self.port=None
+                        print("Attempting reconnect")
+                        #I don't remember why we retry twice here. But reusing the port list should reduce CPU a lot.
+                        time.sleep(3)
+                        import serial
+                        portlist= serial.tools.list_ports.comports()
                         #reconnect is designed not to raise Exceptions, so if there's0
                         #an error here it's probably because the whole scope is being cleaned
-                        time.sleep(1)
-                        self.reconnect()
-                        time.sleep(1)
-                        self.reconnect()
+                        self.reconnect(portlist)
+                        time.sleep(3)
+                        self.reconnect(portlist)
                         time.sleep(1)
                     except:
+                        print("Sender thread exiting")
+                        print(traceback.format_exc())
                         return
     
     
@@ -857,7 +863,10 @@ if __name__=='__setup__':
                                 return
                         self.lastSendTime=time.monotonic()
                         self.lastCommand =self.cmd
-                        kaithem.devices[self.portname].setHSV(0,*self.cmd)
+                        if self.portname in kaithem.devices:
+                            kaithem.devices[self.portname].setHSV(0,*self.cmd)
+                        else:
+                            self.setStatus("No device",False)
                         self.setStatus("OK",True)
                     except:
                         self.setStatus("Failed to send",False)

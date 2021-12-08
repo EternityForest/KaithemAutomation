@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1610591228719086
+resource-timestamp: 1624004633902317
 resource-type: event
 versions: {}
 
@@ -28,7 +28,7 @@ if __name__=='__setup__':
     if not t.value==52:
         raise RuntimeError('wrong val')
     cl2.release()
-    
+    time.sleep(0.3)
     if not t.value==51:
         raise RuntimeError('wrong val '+ str(t.value))
     
@@ -57,13 +57,14 @@ if __name__=='__setup__':
     t.value = 90
     
     t2=kaithem.tags["=tv('/TestTagPointSelftestA2')+10"]
+    time.sleep(0.3)
     
     if not t2.value==100:
         raise RuntimeError("Expression tagpoint didn't work")
     
     
     t.value = 40
-    
+    time.sleep(0.1)
     if not t2.value==50:
         raise RuntimeError("Expression tagpoint didn't update, value:"+str(t2.value))
     

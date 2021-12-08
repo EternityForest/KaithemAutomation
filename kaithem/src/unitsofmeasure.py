@@ -343,14 +343,52 @@ def iround(number, digits):
     else:
         return round(number, digits)
 
+try:
+    from zoneinfo import ZoneInfo
+except:
+    ZoneInfo=None
+
+import functools
+
+#Thanks OP and fdemmer
+#https://gist.github.com/Morreski/c1d08a3afa4040815eafd3891e16b945
+def lru_cache(timeout: int, maxsize: int = 128, typed: bool = False):
+    def wrapper_cache(func):
+        func = functools.lru_cache(maxsize=maxsize, typed=typed)(func)
+        func.delta = timeout * 10 ** 9
+        func.expiration = time.monotonic_ns() + func.delta
+
+        @functools.wraps(func)
+        def wrapped_func(*args, **kwargs):
+            if time.monotonic_ns() >= func.expiration:
+                func.cache_clear()
+                func.expiration = time.monotonic_ns() + func.delta
+            return func(*args, **kwargs)
+
+        wrapped_func.cache_info = func.cache_info
+        wrapped_func.cache_clear = func.cache_clear
+        return wrapped_func
+    return wrapper_cache
+
+#This is cached because it has slow data file lookup stuff happening
+@lru_cache(300,48)
+def getZone(s):
+    try:
+        tz =ZoneInfo(s)
+    except:
+        tz = pytz.timezone(s)
+    return tz
+
 
 def strftime(*arg):
-    tz = pytz.timezone(auth.getUserSetting(
-        pages.getAcessingUser(), 'timezone'))
+    tz=getZone(auth.getUserSetting(
+            pages.getAcessingUser(), 'timezone'))
     if arg:
         d = datetime.datetime.utcfromtimestamp(*arg).replace(tzinfo=pytz.utc)
     else:
         d = datetime.datetime.utcfromtimestamp(
             time.time()).replace(tzinfo=pytz.utc)
-
-    return tz.normalize(d.astimezone(tz)).strftime(auth.getUserSetting(pages.getAcessingUser(), 'strftime'))
+    if not ZoneInfo:
+        return tz.normalize(d.astimezone(tz)).strftime(auth.getUserSetting(pages.getAcessingUser(), 'strftime'))
+    else:
+        return d.astimezone(tz).strftime(auth.getUserSetting(pages.getAcessingUser(), 'strftime'))

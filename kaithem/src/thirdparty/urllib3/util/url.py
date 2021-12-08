@@ -133,6 +133,9 @@ def split_first(s, delims):
     return s[:min_idx], s[min_idx + 1:], min_delim
 
 
+#Kaithem hack to speed this up
+import functools
+@functools.lru_cache(maxsize=32, typed=False)
 def parse_url(url):
     """
     Given a url, return a parsed :class:`.Url` namedtuple. Best-effort is

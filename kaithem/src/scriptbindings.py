@@ -77,7 +77,6 @@ import pytz
 import math
 from .scheduling import scheduler
 import datetime
-from .kaithemobj import kaithem
 from types import MethodType
 from . import tagpoints, util, workers
 import simpleeval
@@ -188,9 +187,6 @@ def getContextFunctionInfo(f):
     return d
 
 
-def lorem():
-    "Returns a randomly selected quote"
-    return kaithem.misc.lorem()
 
 
 def safesqrt(x):
@@ -215,11 +211,6 @@ globalUsrFunctions = {
     "sin": math.sin,
     "cos": math.cos,
     "sqrt": safesqrt,
-    "isDark": kaithem.time.isDark,
-    "isNight": kaithem.time.isNight,
-    "isLight": kaithem.time.isLight,
-    "isDay": kaithem.time.isDay
-
 }
 
 globalConstants = {
@@ -363,8 +354,7 @@ class Event():
         self.millis = millis()
 
 
-class ChandlerScriptContext():
-    tagDefaultPrefix = '/sandbox/'
+class BaseChandlerScriptContext():
 
     def __init__(self, parentContext=None, gil=None, functions={}, variables=None, constants=None, contextFunctions={}, contextName="script"):
         self.pipelines = []
@@ -382,11 +372,10 @@ class ChandlerScriptContext():
         self.constants = constants if (not (constants is None)) else {}
         self.contextName = contextName
 
-        # Cache whether or not any binding is watching a given tag
+        # Cache whether or not any binding is watching a variable
         # or variable. False positives are acceptable, it's just a slight
         # Performance hit
         self.needRefreshForVariable = {}
-        self.needRefreshForTag = {}
 
         # Used for detecting loops.  .d Must be 0 whenever we are not CURRENTLY, as in right now, in this thread, executing an event.
         # Not a pure stack or semaphor, when you queue up an event, that event will run at one higher than the event that created it,
@@ -439,52 +428,12 @@ class ChandlerScriptContext():
             if not isinstance(Variable, str):
                 raise RuntimeError("Var name must be string")
             if Variable in globalConstants or Variable in self.constants:
-                raise NameError("Key "+k+" is a constant")
+                raise NameError("Key "+Variable+" is a constant")
             self.setVar(Variable, Value)
 
         self.setter = setter
         self.commands['set'] = setter
 
-        def setTag(tagName=self.tagDefaultPrefix+"foo", value="=0", priority=75):
-            """Set a Tagpoint with the given claim priority. Use a value of None to unset existing tags.
-
-            If the tag does not exist, the type is auto-guessed based on the type of the value.
-
-            None will silently return and do nothing if the tag does not exist.
-            """
-            tagType = None
-            priority = float(priority)
-            if not tagType:
-                if isinstance(value, str):
-                    tagType = tagpoints.StringTag
-                elif not value is None:
-                    tagType = tagpoints.Tag
-                elif value == None:
-                    # Semi idempotence, no need to set if it is not already there.
-                    if not tagName in self.tagClaims:
-                        return True
-
-            if self.canGetTagpoint(tagName):
-                if tagName in self.tagClaims:
-                    tc = self.tagClaims[tagName]
-                    if value == None:
-                        tc.release()
-                        del self.tagClaims[tagName]
-                        return True
-                else:
-                    self.setupTag(tagType(tagName))
-                    tc = tagType(tagName).claim(
-                        value=value, priority=priority, name=self.contextName+"at"+str(id(self)))
-                    self.tagClaims[tagName] = tc
-                tc.set(value)
-                self.setVar("$tag:"+tagName, value, True)
-            else:
-                raise RuntimeError(
-                    "This script context cannot access that tag")
-            return True
-
-        self.setTag = setTag
-        self.commands['setTag'] = setTag
 
         for i in predefinedcommands:
             self.commands[i] = predefinedcommands[i]
@@ -510,35 +459,8 @@ class ChandlerScriptContext():
         for i in contextFunctions:
             c[i] = wrap(self, contextFunctions[i])
 
-        self.tagpoints = {}
-        self.tagHandlers = {}
-        self.tagClaims = {}
 
-        def tagpoint(t):
-            tagName = self.canGetTagpoint(t)
-            if not tagName:
-                raise RuntimeError("It seems you do not have access to:"+t)
-            t = tagpoints.Tag(tagName)
-            self.setupTag(t)
-            self.setVar("$tag:"+t.name, t.value, True)
-            return t.value
-
-        def stringtagpoint(t):
-            tagName = self.canGetTagpoint(t)
-            if not tagName:
-                raise RuntimeError("It seems you do not have access to:"+t)
-            t = tagpoints.StringTag(tagName)
-            self.setupTag(t)
-            self.setVar("$tag:"+t.name, t.value, True)
-            return t.value
-
-        c['tagValue'] = tagpoint
-        c['tv'] = tagpoint
-
-        c['stringTagValue'] = stringtagpoint
-        c['stv'] = stringtagpoint
-
-        functions.update(c)
+        self.functions=functions
 
         self.evaluator = simpleeval.SimpleEval(
             functions=functions, names=self._nameLookup)
@@ -581,15 +503,7 @@ class ChandlerScriptContext():
                                "\n"+traceback.format_exc(chain=True))
                     raise
 
-    def setupTag(self, tag):
-        if tag in self.tagpoints:
-            return
 
-        def onchange(v, ts, an):
-            self.onTagChange(tag.name, v)
-        tag.subscribe(onchange)
-        self.needRefreshForTag[tag.name] = True
-        self.tagHandlers[tag.name] = (tag, onchange)
 
     def getCommandDataForEditor():
         "Get the data, as python dict which can be JSONed, which must be bound to the commands prop of the editor, so that the editor can know what commands we have"
@@ -620,34 +534,8 @@ class ChandlerScriptContext():
                 raise RuntimeError(
                     "Event queue stalled, cannot execute, timed out waiting for the lock. Queued events are still buffered and may run later")
 
-    def onTagChange(self, tagname, val):
-        """ We make a best effort to run this synchronously. If we cannot,
-            We let the background thread handle it.
-        """
-        def f():
-            if isinstance(val, str) and len(val) > 16000:
-                raise RuntimeError(tagname+" val too long for chandlerscript")
-            self.setVar("$tag:"+tagname, val, True)
-            if not tagname in self.needRefreshForTag:
-                self.needRefreshForTag[tagname] = False
-                for i in self.eventListeners:
-                    if tagname in i:
-                        self.needRefreshForTag[tagname] = True
-            if self.needRefreshForTag[tagname]:
-                self.checkPollEvents()
 
-        if len(self.eventQueue) > 128:
-            raise RuntimeError("Too Many queued events!!!")
 
-        # All tag point changes happen async
-        self.eventQueue.append(f)
-        workers.do(self.doEventQueue)
-
-    def canGetTagpoint(self, t):
-        if not t in self.tagpoints and len(self.tagpoints) > 128:
-            raise RuntimeError("Too many tagpoints")
-        if t.startswith(self.tagDefaultPrefix):
-            return t
 
     def onTimerChange(self, timer, nextRunTime):
         pass
@@ -805,10 +693,9 @@ class ChandlerScriptContext():
         if not self.gil.acquire(timeout=10):
             raise RuntimeError("Could not get lock")
         try:
-            if k.startswith("$tag:"):
+            if k.startswith("$"):
                 if not force:
-                    raise NameError(
-                        "Tagpoint variables are not writable. Use setTag(name, value, claimPriority)")
+                    self.setSpecialVariableHook(k,v)
 
             self.variables[k] = v
             self.changedVariables[k] = v
@@ -904,19 +791,7 @@ class ChandlerScriptContext():
                 self.slowpoller.unregister()
                 self.slowpoller = None
 
-            for i in self.tagHandlers:
-                self.tagHandlers[i][0].unsubscribe(self.tagHandlers[i][1])
-
-                try:
-                    self.setVar("$tag:"+i, "Unsubscribed", force=True)
-                except:
-                    pass
-
-            # Clear all the tagpoints that we may have been watching for changes
-            self.tagHandlers = {}
-            self.tagpoints = {}
-            self.needRefreshForVariable = {}
-            self.needRefreshForTag = {}
+            self.onClearBindingsHook()
 
             # Odd behavior note: Clearing a binding resets the edge detect behavior
             self.risingEdgeDetects = {}
@@ -928,6 +803,162 @@ class ChandlerScriptContext():
             for i in self.tagClaims:
                 self.tagClaims[i].release()
             self.tagClaims = {}
+
+
+from .kaithemobj import kaithem
+
+def lorem():
+    "Returns a randomly selected quote"
+    return kaithem.misc.lorem()
+
+globalUsrFunctions.update(
+    { 
+        "isDark": kaithem.time.isDark,
+        "isNight": kaithem.time.isNight,
+        "isLight": kaithem.time.isLight,
+        "isDay": kaithem.time.isDay
+    }
+)
+
+class ChandlerScriptContext(BaseChandlerScriptContext):
+    tagDefaultPrefix = '/sandbox/'
+
+    def onTagChange(self, tagname, val):
+        """ We make a best effort to run this synchronously. If we cannot,
+            We let the background thread handle it.
+        """
+        def f():
+            if isinstance(val, str) and len(val) > 16000:
+                raise RuntimeError(tagname+" val too long for chandlerscript")
+            self.setVar("$tag:"+tagname, val, True)
+            if not tagname in self.needRefreshForTag:
+                self.needRefreshForTag[tagname] = False
+                for i in self.eventListeners:
+                    if tagname in i:
+                        self.needRefreshForTag[tagname] = True
+            if self.needRefreshForTag[tagname]:
+                self.checkPollEvents()
+
+        if len(self.eventQueue) > 128:
+            raise RuntimeError("Too Many queued events!!!")
+
+        # All tag point changes happen async
+        self.eventQueue.append(f)
+        workers.do(self.doEventQueue)
+    def setupTag(self, tag):
+        if tag in self.tagpoints:
+            return
+
+        def onchange(v, ts, an):
+            self.onTagChange(tag.name, v)
+        tag.subscribe(onchange)
+        self.needRefreshForTag[tag.name] = True
+        self.tagHandlers[tag.name] = (tag, onchange)
+
+
+    def canGetTagpoint(self, t):
+        if not t in self.tagpoints and len(self.tagpoints) > 128:
+            raise RuntimeError("Too many tagpoints")
+        if t.startswith(self.tagDefaultPrefix):
+            return t
+
+
+    def specialVariableHook(self, k, v):
+        if k.startswith("$tag:"):
+            raise NameError(
+                    "Tagpoint variables are not writable. Use setTag(name, value, claimPriority)")
+
+    def onClearBindingsHook(self):
+        for i in self.tagHandlers:
+            self.tagHandlers[i][0].unsubscribe(self.tagHandlers[i][1])
+
+            try:
+                self.setVar("$tag:"+i, "Unsubscribed", force=True)
+            except:
+                pass
+
+        # Clear all the tagpoints that we may have been watching for changes
+        self.tagHandlers = {}
+        self.tagpoints = {}
+        self.needRefreshForVariable = {}
+        self.needRefreshForTag = {}
+
+    def __init__(self,*a,**k):
+        BaseChandlerScriptContext.__init__(self, *a,**k)
+        def setTag(tagName=self.tagDefaultPrefix+"foo", value="=0", priority=75):
+            """Set a Tagpoint with the given claim priority. Use a value of None to unset existing tags.
+
+            If the tag does not exist, the type is auto-guessed based on the type of the value.
+
+            None will silently return and do nothing if the tag does not exist.
+            """
+            self.needRefreshForTag = {}
+
+            tagType = None
+            priority = float(priority)
+            if not tagType:
+                if isinstance(value, str):
+                    tagType = tagpoints.StringTag
+                elif not value is None:
+                    tagType = tagpoints.Tag
+                elif value == None:
+                    # Semi idempotence, no need to set if it is not already there.
+                    if not tagName in self.tagClaims:
+                        return True
+
+            if self.canGetTagpoint(tagName):
+                if tagName in self.tagClaims:
+                    tc = self.tagClaims[tagName]
+                    if value == None:
+                        tc.release()
+                        del self.tagClaims[tagName]
+                        return True
+                else:
+                    self.setupTag(tagType(tagName))
+                    tc = tagType(tagName).claim(
+                        value=value, priority=priority, name=self.contextName+"at"+str(id(self)))
+                    self.tagClaims[tagName] = tc
+                tc.set(value)
+                self.setVar("$tag:"+tagName, value, True)
+            else:
+                raise RuntimeError(
+                    "This script context cannot access that tag")
+            return True
+
+        self.setTag = setTag
+        self.commands['setTag'] = setTag
+
+        self.tagpoints = {}
+        self.tagHandlers = {}
+        self.tagClaims = {}
+
+        def tagpoint(t):
+            tagName = self.canGetTagpoint(t)
+            if not tagName:
+                raise RuntimeError("It seems you do not have access to:"+t)
+            t = tagpoints.Tag(tagName)
+            self.setupTag(t)
+            self.setVar("$tag:"+t.name, t.value, True)
+            return t.value
+
+        def stringtagpoint(t):
+            tagName = self.canGetTagpoint(t)
+            if not tagName:
+                raise RuntimeError("It seems you do not have access to:"+t)
+            t = tagpoints.StringTag(tagName)
+            self.setupTag(t)
+            self.setVar("$tag:"+t.name, t.value, True)
+            return t.value
+        c = {}
+
+        c['tagValue'] = tagpoint
+        c['tv'] = tagpoint
+
+        c['stringTagValue'] = stringtagpoint
+        c['stv'] = stringtagpoint
+
+        self.functions.update(c)
+
 
 ##### SELFTEST ##########
 

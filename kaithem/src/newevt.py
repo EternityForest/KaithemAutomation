@@ -143,6 +143,10 @@ def makePrintFunction(ev):
         Here we implement it as a closuse that only
          weakly references the actual event object.
     """
+    import uuid
+    printID = str(uuid.uuid4())
+    ev.printID=printID
+
     ev = weakref.ref(ev)
 
     def new_print(*args, title='msg', **kwargs):
@@ -160,6 +164,12 @@ def makePrintFunction(ev):
             if not local:
                 print(args)
             x = str(args)+"\n"
+        ev2 = ev()
+        if not ev2.printID == printID:
+            w="FROM OLD DELETED EVENT"
+        else:
+            w=''
+        del ev2
 
         "Print a message to the Device's management page"
         t = textwrap.fill(str(x), 120)
@@ -167,7 +177,7 @@ def makePrintFunction(ev):
 
         # Can't use a def here, wouldn't want it to possibly capture more than just a string,
         # And keep stuff from GCIng for too long
-        workers.do(makeBackgroundPrintFunction(t, tm, title, ev))
+        workers.do(makeBackgroundPrintFunction(t, tm, title+w, ev))
 
     return new_print
 

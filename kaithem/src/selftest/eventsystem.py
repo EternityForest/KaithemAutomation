@@ -89,6 +89,10 @@ def _eventSystemTest():
 
     newevt.after(1,g)
     blah[0]=True
+    time.sleep(0.5)
+    if not blah[0]:
+        raise RuntimeError("Time delay triggered too soon")
+
     time.sleep(1.5)
     if blah[0]:
         raise RuntimeError("Time delay event did not trigger")
