@@ -1,42 +1,13 @@
+# vim: set fileencoding=utf-8:
+#
 # GPIO Zero: a library for controlling the Raspberry Pi's GPIO pins
-# Copyright (c) 2015-2019 Dave Jones <dave@waveform.org.uk>
+#
+# Copyright (c) 2015-2021 Dave Jones <dave@waveform.org.uk>
 # Copyright (c) 2015-2019 Ben Nuttall <ben@bennuttall.com>
 # Copyright (c) 2016 Andrew Scheller <github@loowis.durge.org>
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice,
-#   this list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its contributors
-#   may be used to endorse or promote products derived from this software
-#   without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import (
-    unicode_literals,
-    print_function,
-    absolute_import,
-    division,
-    )
-nstr = str
-str = type('')
 
 import os
 import atexit
@@ -45,14 +16,12 @@ import warnings
 from collections import namedtuple, OrderedDict
 from itertools import chain
 from types import FunctionType
-from threading import Lock
 
-from .pins import Pin
 from .threads import _threads_shutdown
 from .mixins import (
     ValuesMixin,
     SharedMixin,
-    )
+)
 from .exc import (
     BadPinFactory,
     DeviceClosed,
@@ -60,11 +29,18 @@ from .exc import (
     CompositeDeviceBadOrder,
     CompositeDeviceBadDevice,
     GPIOPinMissing,
-    GPIOPinInUse,
     GPIODeviceClosed,
+    NativePinFactoryFallback,
     PinFactoryFallback,
-    )
+)
+
 from .compat import frozendict
+
+native_fallback_message = (
+    'Falling back to the experimental pin factory NativeFactory because no other '
+    'pin factory could be loaded. For best results, install RPi.GPIO or pigpio. '
+    'See https://gpiozero.readthedocs.io/en/stable/api_pins.html for more information.'
+)
 
 
 class GPIOMeta(type):
@@ -72,7 +48,7 @@ class GPIOMeta(type):
 
     def __new__(mcls, name, bases, cls_dict):
         # Construct the class as normal
-        cls = super(GPIOMeta, mcls).__new__(mcls, name, bases, cls_dict)
+        cls = super().__new__(mcls, name, bases, cls_dict)
         # If there's a method in the class which has no docstring, search
         # the base classes recursively for a docstring to copy
         for attr_name, attr in cls_dict.items():
@@ -95,15 +71,16 @@ class GPIOMeta(type):
             # already exists. Only construct the instance if the key's new.
             key = cls._shared_key(*args, **kwargs)
             try:
-                self = cls._instances[key]
+                self = cls._instances[key]()
                 self._refs += 1
-            except (KeyError, ReferenceError) as e:
-                self = super(GPIOMeta, cls).__call__(*args, **kwargs)
+            except (KeyError, AttributeError) as e:
+                self = super().__call__(*args, **kwargs)
                 self._refs = 1
                 # Replace the close method with one that merely decrements
                 # the refs counter and calls the original close method when
                 # it reaches zero
                 old_close = self.close
+
                 def close():
                     self._refs = max(0, self._refs - 1)
                     if not self._refs:
@@ -117,11 +94,12 @@ class GPIOMeta(type):
                                 # just ignore the resulting KeyError here -
                                 # it's already gone
                                 pass
+
                 self.close = close
-                cls._instances[key] = weakref.proxy(self)
+                cls._instances[key] = weakref.ref(self)
         else:
             # Construct the instance as normal
-            self = super(GPIOMeta, cls).__call__(*args, **kwargs)
+            self = super().__call__(*args, **kwargs)
         # At this point __new__ and __init__ have all been run. We now fix the
         # set of attributes on the class by dir'ing the instance and creating a
         # frozenset of the result called __attrs__ (which is queried by
@@ -132,8 +110,7 @@ class GPIOMeta(type):
         return self
 
 
-# Cross-version compatible method of using a metaclass
-class GPIOBase(GPIOMeta(nstr('GPIOBase'), (), {})):
+class GPIOBase(metaclass=GPIOMeta):
     def __setattr__(self, name, value):
         # This overridden __setattr__ simply ensures that additional attributes
         # cannot be set on the class after construction (it manages this in
@@ -143,21 +120,42 @@ class GPIOBase(GPIOMeta(nstr('GPIOBase'), (), {})):
         # repeating the "source" and "values" property code in myriad places
         if hasattr(self, '__attrs__') and name not in self.__attrs__:
             raise AttributeError(
-                "'%s' object has no attribute '%s'" % (
-                self.__class__.__name__, name))
-        return super(GPIOBase, self).__setattr__(name, value)
+                "'{self.__class__.__name__}' object has no attribute "
+                "'{name}'".format(self=self, name=name))
+        return super().__setattr__(name, value)
 
     def __del__(self):
+        # NOTE: Yes, we implicitly call close() on __del__(), and yes for you
+        # dear hacker-on-this-library, this means pain!
+        #
+        # It's entirely for the convenience of command line experimenters and
+        # newbies who want to re-gain those pins when stuff falls out of scope
+        # without managing their object lifetimes "properly" with "with" (but,
+        # hey, this is an educational library at heart so that's the way we
+        # roll).
+        #
+        # What does this mean for you? It means that in close() you cannot
+        # assume *anything*. If someone calls a constructor with a fundamental
+        # mistake like the wrong number of params, then your close() method is
+        # going to be called before __init__ ever ran so all those attributes
+        # you *think* exist, erm, don't. Basically if you refer to anything in
+        # "self" within your close method, be preprared to catch AttributeError
+        # on its access to avoid spurious warnings for the end user.
+        #
+        # "But we're exiting anyway; surely exceptions in __del__ get
+        # squashed?" Yes, but they still cause verbose warnings and remember
+        # that this is an educational library; keep it friendly!
         self.close()
 
     def close(self):
         """
-        Shut down the device and release all associated resources. This method
-        can be called on an already closed device without raising an exception.
+        Shut down the device and release all associated resources (such as GPIO
+        pins).
 
-        This method is primarily intended for interactive use at the command
-        line. It disables the device and releases its pin(s) for use by another
-        device.
+        This method is idempotent (can be called on an already closed device
+        without any side-effects). It is primarily intended for interactive use
+        at the command line. It disables the device and releases its pin(s) for
+        use by another device.
 
         You can attempt to do this simply by deleting an object, but unless
         you've cleaned up all references to the object this may not work (even
@@ -190,8 +188,10 @@ class GPIOBase(GPIOMeta(nstr('GPIOBase'), (), {})):
         """
         # This is a placeholder which is simply here to ensure close() can be
         # safely called from subclasses without worrying whether super-classes
-        # have it (which in turn is useful in conjunction with the SourceMixin
-        # class).
+        # have it (which in turn is useful in conjunction with the mixin
+        # classes).
+        #
+        # P.S. See note in __del__ above.
         pass
 
     @property
@@ -206,7 +206,8 @@ class GPIOBase(GPIOMeta(nstr('GPIOBase'), (), {})):
     def _check_open(self):
         if self.closed:
             raise DeviceClosed(
-                '%s is closed or uninitialized' % self.__class__.__name__)
+                '{self.__class__.__name__} is closed or uninitialized'.format(
+                    self=self))
 
     def __enter__(self):
         return self
@@ -233,21 +234,16 @@ class Device(ValuesMixin, GPIOBase):
         allocating pins, providing low level interfaces (e.g. SPI), and clock
         facilities (querying and calculating elapsed times).
     """
-    pin_factory = None # instance of a Factory sub-class
+    pin_factory = None  # instance of a Factory sub-class
 
-    def __init__(self, **kwargs):
-        # Force pin_factory to be keyword-only, even in Python 2
-        pin_factory = kwargs.pop('pin_factory', None)
+    def __init__(self, *, pin_factory=None):
         if pin_factory is None:
             if Device.pin_factory is None:
                 Device.pin_factory = Device._default_pin_factory()
             self.pin_factory = Device.pin_factory
         else:
             self.pin_factory = pin_factory
-        if kwargs:
-            raise TypeError("Device.__init__() got unexpected keyword "
-                            "argument '%s'" % kwargs.popitem()[0])
-        super(Device, self).__init__()
+        super().__init__()
 
     @staticmethod
     def _default_pin_factory():
@@ -259,7 +255,7 @@ class Device(ValuesMixin, GPIOBase):
         # updated along with the entry-points in setup.py.
         default_factories = OrderedDict((
             ('rpigpio', 'gpiozero.pins.rpigpio:RPiGPIOFactory'),
-            ('rpio',    'gpiozero.pins.rpio:RPIOFactory'),
+            ('lgpio',   'gpiozero.pins.lgpio:LGPIOFactory'),
             ('pigpio',  'gpiozero.pins.pigpio:PiGPIOFactory'),
             ('native',  'gpiozero.pins.native:NativeFactory'),
         ))
@@ -272,11 +268,15 @@ class Device(ValuesMixin, GPIOBase):
                 try:
                     mod_name, cls_name = entry_point.split(':', 1)
                     module = __import__(mod_name, fromlist=(cls_name,))
-                    return getattr(module, cls_name)()
+                    pin_factory = getattr(module, cls_name)()
+                    if name == 'native':
+                        warnings.warn(NativePinFactoryFallback(native_fallback_message))
+                    return pin_factory
                 except Exception as e:
                     warnings.warn(
                         PinFactoryFallback(
-                            'Falling back from %s: %s' % (name, str(e))))
+                            'Falling back from {name}: {e!s}'.format(
+                                name=name, e=e)))
             raise BadPinFactory('Unable to load any default pin factory!')
         elif name in default_factories:
             # As above, this is a fast-path optimization to avoid loading
@@ -296,10 +296,17 @@ class Device(ValuesMixin, GPIOBase):
                 return factory.load()()
             for factory in pkg_resources.iter_entry_points(group, name.lower()):
                 return factory.load()()
-            raise BadPinFactory('Unable to find pin factory "%s"' % name)
+            raise BadPinFactory('Unable to find pin factory "{name}"'.format(
+                name=name))
 
     def __repr__(self):
-        return "<gpiozero.%s object>" % (self.__class__.__name__)
+        try:
+            self._check_open()
+            return "<gpiozero.{self.__class__.__name__} object>".format(
+                self=self)
+        except DeviceClosed:
+            return "<gpiozero.{self.__class__.__name__} object closed>".format(
+                self=self)
 
     def _conflicts_with(self, other):
         """
@@ -383,38 +390,40 @@ class CompositeDevice(Device):
         their :attr:`value` attributes will be accessible as named elements of
         the composite device's tuple :attr:`value`.
     """
-    def __init__(self, *args, **kwargs):
+
+    def __init__(self, *args, _order=None, pin_factory=None, **kwargs):
         self._all = ()
         self._named = frozendict({})
         self._namedtuple = None
-        self._order = kwargs.pop('_order', None)
-        pin_factory = kwargs.pop('pin_factory', None)
+        self._order = _order
         try:
             if self._order is None:
                 self._order = sorted(kwargs.keys())
             else:
                 for missing_name in set(kwargs.keys()) - set(self._order):
                     raise CompositeDeviceBadOrder(
-                        '%s missing from _order' % missing_name)
+                        '{missing_name} missing from _order'.format(
+                            missing_name=missing_name))
             self._order = tuple(self._order)
             for name in set(self._order) & set(dir(self)):
                 raise CompositeDeviceBadName(
-                    '%s is a reserved name' % name)
+                    '{name} is a reserved name'.format(name=name))
             for dev in chain(args, kwargs.values()):
                 if not isinstance(dev, Device):
                     raise CompositeDeviceBadDevice(
-                        "%s doesn't inherit from Device" % dev)
+                        "{dev} doesn't inherit from Device".format(dev=dev))
             self._named = frozendict(kwargs)
             self._namedtuple = namedtuple(
-                '%sValue' % self.__class__.__name__, chain(
-                    ('device_%d' % i for i in range(len(args))), self._order))
+                '{self.__class__.__name__}Value'.format(self=self), chain(
+                    ('device_{i}'.format(i=i)
+                     for i in range(len(args))), self._order))
         except:
             for dev in chain(args, kwargs.values()):
                 if isinstance(dev, Device):
                     dev.close()
             raise
         self._all = args + tuple(kwargs[v] for v in self._order)
-        super(CompositeDevice, self).__init__(pin_factory=pin_factory)
+        super().__init__(pin_factory=pin_factory)
 
     def __getattr__(self, name):
         # if _named doesn't exist yet, pretend it's an empty dict
@@ -423,24 +432,36 @@ class CompositeDevice(Device):
         try:
             return self._named[name]
         except KeyError:
-            raise AttributeError("no such attribute %s" % name)
+            raise AttributeError("no such attribute {name}".format(name=name))
 
     def __setattr__(self, name, value):
         # make named components read-only properties
         if name in self._named:
-            raise AttributeError("can't set attribute %s" % name)
-        return super(CompositeDevice, self).__setattr__(name, value)
+            raise AttributeError("can't set attribute {name}".format(name=name))
+        return super().__setattr__(name, value)
 
     def __repr__(self):
         try:
             self._check_open()
-            return "<gpiozero.%s object containing %d devices: %s and %d unnamed>" % (
-                    self.__class__.__name__,
-                    len(self), ','.join(self._order),
-                    len(self) - len(self._named)
-                    )
+            named = len(self._named)
+            unnamed = len(self) - len(self._named)
+            if named > 0 and unnamed > 0:
+                template = (
+                    "<gpiozero.{self.__class__.__name__} object containing "
+                    "{count} devices: {names} and {unnamed} unnamed>")
+            elif named > 0:
+                template = (
+                    "<gpiozero.{self.__class__.__name__} object containing "
+                    "{count} devices: {names}>")
+            else:
+                template = (
+                    "<gpiozero.{self.__class__.__name__} object containing "
+                    "{count} unnamed devices>")
+            return template.format(
+                self=self, count=len(self), names=', '.join(self._order),
+                unnamed=len(self) - len(self._named))
         except DeviceClosed:
-            return "<gpiozero.%s object closed>" % (self.__class__.__name__)
+            return super().__repr__()
 
     def __len__(self):
         return len(self._all)
@@ -459,8 +480,7 @@ class CompositeDevice(Device):
     def close(self):
         if getattr(self, '_all', None):
             for device in self._all:
-                if isinstance(device, Device):
-                    device.close()
+                device.close()
             self._all = ()
 
     @property
@@ -508,8 +528,9 @@ class GPIODevice(Device):
         will be raised. If the pin is already in use by another device,
         :exc:`GPIOPinInUse` will be raised.
     """
-    def __init__(self, pin=None, **kwargs):
-        super(GPIODevice, self).__init__(**kwargs)
+
+    def __init__(self, pin=None, *, pin_factory=None):
+        super().__init__(pin_factory=pin_factory)
         # self._pin must be set before any possible exceptions can be raised
         # because it's accessed in __del__. However, it mustn't be given the
         # value of pin until we've verified that it isn't already allocated
@@ -534,7 +555,7 @@ class GPIODevice(Device):
             raise
 
     def close(self):
-        super(GPIODevice, self).close()
+        super().close()
         if getattr(self, '_pin', None) is not None:
             self.pin_factory.release_pins(self, self._pin.number)
             self._pin.close()
@@ -542,11 +563,14 @@ class GPIODevice(Device):
 
     @property
     def closed(self):
-        return self._pin is None
+        try:
+            return self._pin is None
+        except AttributeError:
+            return True
 
     def _check_open(self):
         try:
-            super(GPIODevice, self)._check_open()
+            super()._check_open()
         except DeviceClosed as e:
             # For backwards compatibility; GPIODeviceClosed is deprecated
             raise GPIODeviceClosed(str(e))
@@ -568,10 +592,14 @@ class GPIODevice(Device):
 
     def __repr__(self):
         try:
-            return "<gpiozero.%s object on pin %r, is_active=%s>" % (
-                self.__class__.__name__, self.pin, self.is_active)
+            return (
+                "<gpiozero.{self.__class__.__name__} object on pin "
+                "{self.pin!r}, is_active={self.is_active}>".format(
+                    self=self))
         except DeviceClosed:
-            return "<gpiozero.%s object closed>" % self.__class__.__name__
+            return (
+                "<gpiozero.{self.__class__.__name__} object closed>".format(
+                    self=self))
 
 
 def _devices_shutdown():
@@ -593,5 +621,6 @@ def _devices_shutdown():
 def _shutdown():
     _threads_shutdown()
     _devices_shutdown()
+
 
 atexit.register(_shutdown)

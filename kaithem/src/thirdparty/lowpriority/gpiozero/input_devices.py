@@ -1,61 +1,33 @@
 # vim: set fileencoding=utf-8:
 #
 # GPIO Zero: a library for controlling the Raspberry Pi's GPIO pins
-# Copyright (c) 2016-2019 Andrew Scheller <github@loowis.durge.org>
-# Copyright (c) 2015-2019 Dave Jones <dave@waveform.org.uk>
-# Copyright (c) 2015-2019 Ben Nuttall <ben@bennuttall.com>
+#
+# Copyright (c) 2015-2021 Dave Jones <dave@waveform.org.uk>
+# Copyright (c) 2015-2021 Ben Nuttall <ben@bennuttall.com>
+# Copyright (c) 2020 Robert Erdin <roberte@depop.com>
+# Copyright (c) 2020 Dan Jackson <dan@djackson.org>
+# Copyright (c) 2016-2020 Andrew Scheller <github@loowis.durge.org>
+# Copyright (c) 2019 Kosovan Sofiia <sofiia.kosovan@gmail.com>
 # Copyright (c) 2018 Philippe Muller <philippe.muller@gmail.com>
 # Copyright (c) 2016 Steveis <SteveAmor@users.noreply.github.com>
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice,
-#   this list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its contributors
-#   may be used to endorse or promote products derived from this software
-#   without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-
-from __future__ import (
-    unicode_literals,
-    print_function,
-    absolute_import,
-    division,
-)
+# SPDX-License-Identifier: BSD-3-Clause
 
 import warnings
-from time import sleep, time
+from time import sleep
 from threading import Event, Lock
-try:
-    from statistics import median
-except ImportError:
-    from .compat import median
+from itertools import tee
+from statistics import median, mean
 
 from .exc import InputDeviceError, DeviceClosed, DistanceSensorNoEcho, \
     PinInvalidState, PWMSoftwareFallback
-from .devices import GPIODevice
-from .mixins import GPIOQueue, EventsMixin, HoldMixin
+from .devices import GPIODevice, CompositeDevice
+from .mixins import GPIOQueue, EventsMixin, HoldMixin, event
 try:
     from .pins.pigpio import PiGPIOFactory
 except ImportError:
     PiGPIOFactory = None
+
 
 class InputDevice(GPIODevice):
     """
@@ -96,9 +68,9 @@ class InputDevice(GPIODevice):
         See :doc:`api_pins` for more information (this is an advanced feature
         which most users can ignore).
     """
-    def __init__(self, pin=None, pull_up=False, active_state=None,
+    def __init__(self, pin=None, *, pull_up=False, active_state=None,
                  pin_factory=None):
-        super(InputDevice, self).__init__(pin, pin_factory=pin_factory)
+        super().__init__(pin, pin_factory=pin_factory)
         try:
             self.pin.function = 'input'
             pull = {None: 'floating', True: 'up', False: 'down'}[pull_up]
@@ -111,14 +83,14 @@ class InputDevice(GPIODevice):
         if pull_up is None:
             if active_state is None:
                 raise PinInvalidState(
-                    'Pin %d is defined as floating, but "active_state" is not '
-                    'defined' % self.pin.number)
+                    'Pin {self.pin.number} is defined as floating, but '
+                    '"active_state" is not defined'.format(self=self))
             self._active_state = bool(active_state)
         else:
             if active_state is not None:
                 raise PinInvalidState(
-                    'Pin %d is not floating, but "active_state" is not None' %
-                    self.pin.number)
+                    'Pin {self.pin.number} is not floating, but '
+                    '"active_state" is not None'.format(self=self))
             self._active_state = False if pull_up else True
         self._inactive_state = not self._active_state
 
@@ -136,10 +108,12 @@ class InputDevice(GPIODevice):
 
     def __repr__(self):
         try:
-            return "<gpiozero.%s object on pin %r, pull_up=%s, is_active=%s>" % (
-                self.__class__.__name__, self.pin, self.pull_up, self.is_active)
+            return (
+                "<gpiozero.{self.__class__.__name__} object on pin "
+                "{self.pin!r}, pull_up={self.pull_up}, "
+                "is_active={self.is_active}>".format(self=self))
         except:
-            return super(InputDevice, self).__repr__()
+            return super().__repr__()
 
 
 class DigitalInputDevice(EventsMixin, InputDevice):
@@ -159,7 +133,7 @@ class DigitalInputDevice(EventsMixin, InputDevice):
 
     :type pull_up: bool or None
     :param pull_up:
-        See descrpition under :class:`InputDevice` for more information.
+        See description under :class:`InputDevice` for more information.
 
     :type active_state: bool or None
     :param active_state:
@@ -177,10 +151,9 @@ class DigitalInputDevice(EventsMixin, InputDevice):
         See :doc:`api_pins` for more information (this is an advanced feature
         which most users can ignore).
     """
-    def __init__(
-            self, pin=None, pull_up=False, active_state=None, bounce_time=None,
-            pin_factory=None):
-        super(DigitalInputDevice, self).__init__(
+    def __init__(self, pin=None, *, pull_up=False, active_state=None,
+                 bounce_time=None, pin_factory=None):
+        super().__init__(
             pin, pull_up=pull_up, active_state=active_state,
             pin_factory=pin_factory)
         try:
@@ -230,7 +203,7 @@ class SmoothedInputDevice(EventsMixin, InputDevice):
 
     :type pull_up: bool or None
     :param pull_up:
-        See descrpition under :class:`InputDevice` for more information.
+        See description under :class:`InputDevice` for more information.
 
     :type active_state: bool or None
     :param active_state:
@@ -271,11 +244,11 @@ class SmoothedInputDevice(EventsMixin, InputDevice):
         which most users can ignore).
     """
     def __init__(
-            self, pin=None, pull_up=False, active_state=None, threshold=0.5,
+            self, pin=None, *, pull_up=False, active_state=None, threshold=0.5,
             queue_len=5, sample_wait=0.0, partial=False, average=median,
             ignore=None, pin_factory=None):
         self._queue = None
-        super(SmoothedInputDevice, self).__init__(
+        super().__init__(
             pin, pull_up=pull_up, active_state=active_state,
             pin_factory=pin_factory)
         try:
@@ -292,26 +265,26 @@ class SmoothedInputDevice(EventsMixin, InputDevice):
         except AttributeError:
             # If the queue isn't initialized (it's None), or _queue hasn't been
             # set ignore the error because we're trying to close anyway
-            if self._queue is not None:
-                raise
+            pass
         except RuntimeError:
             # Cannot join thread before it starts; we don't care about this
             # because we're trying to close the thread anyway
             pass
         self._queue = None
-        super(SmoothedInputDevice, self).close()
+        super().close()
 
     def __repr__(self):
         try:
             self._check_open()
         except DeviceClosed:
-            return super(SmoothedInputDevice, self).__repr__()
+            return super().__repr__()
         else:
             if self.partial or self._queue.full.is_set():
-                return super(SmoothedInputDevice, self).__repr__()
+                return super().__repr__()
             else:
-                return "<gpiozero.%s object on pin %r, pull_up=%s>" % (
-                    self.__class__.__name__, self.pin, self.pull_up)
+                return (
+                    "<gpiozero.{self.__class__.__name__} object on pin "
+                    "{self.pin!r}, pull_up={self.pull_up}>".format(self=self))
 
     @property
     def queue_len(self):
@@ -427,10 +400,10 @@ class Button(HoldMixin, DigitalInputDevice):
         See :doc:`api_pins` for more information (this is an advanced feature
         which most users can ignore).
     """
-    def __init__(
-            self, pin=None, pull_up=True, active_state=None, bounce_time=None,
-            hold_time=1, hold_repeat=False, pin_factory=None):
-        super(Button, self).__init__(
+    def __init__(self, pin=None, *, pull_up=True, active_state=None,
+                 bounce_time=None, hold_time=1, hold_repeat=False,
+                 pin_factory=None):
+        super().__init__(
             pin, pull_up=pull_up, active_state=active_state,
             bounce_time=bounce_time, pin_factory=pin_factory)
         self.hold_time = hold_time
@@ -441,7 +414,7 @@ class Button(HoldMixin, DigitalInputDevice):
         """
         Returns 1 if the button is currently pressed, and 0 if it is not.
         """
-        return super(Button, self).value
+        return super().value
 
 Button.is_pressed = Button.is_active
 Button.pressed_time = Button.active_time
@@ -481,7 +454,7 @@ class LineSensor(SmoothedInputDevice):
 
     :type pull_up: bool or None
     :param pull_up:
-        See descrpition under :class:`InputDevice` for more information.
+        See description under :class:`InputDevice` for more information.
 
     :type active_state: bool or None
     :param active_state:
@@ -514,19 +487,15 @@ class LineSensor(SmoothedInputDevice):
 
     .. _CamJam #3 EduKit: http://camjam.me/?page_id=1035
     """
-    def __init__(
-            self, pin=None, pull_up=False, active_state=None, queue_len=5,
-            sample_rate=100, threshold=0.5, partial=False, pin_factory=None):
-        super(LineSensor, self).__init__(
+    def __init__(self, pin=None, *, pull_up=False, active_state=None,
+                 queue_len=5, sample_rate=100, threshold=0.5, partial=False,
+                 pin_factory=None):
+        super().__init__(
             pin, pull_up=pull_up, active_state=active_state,
             threshold=threshold, queue_len=queue_len,
             sample_wait=1 / sample_rate, partial=partial,
             pin_factory=pin_factory)
-        try:
-            self._queue.start()
-        except:
-            self.close()
-            raise
+        self._queue.start()
 
     @property
     def value(self):
@@ -535,7 +504,7 @@ class LineSensor(SmoothedInputDevice):
         is nearer 0 for black under the sensor, and nearer 1 for white under
         the sensor.
         """
-        return super(LineSensor, self).value
+        return super().value
 
     @property
     def line_detected(self):
@@ -575,7 +544,7 @@ class MotionSensor(SmoothedInputDevice):
 
     :type pull_up: bool or None
     :param pull_up:
-        See descrpition under :class:`InputDevice` for more information.
+        See description under :class:`InputDevice` for more information.
 
     :type active_state: bool or None
     :param active_state:
@@ -588,7 +557,7 @@ class MotionSensor(SmoothedInputDevice):
 
     :param float sample_rate:
         The number of values to read from the device (and append to the
-        internal queue) per second. Defaults to 100.
+        internal queue) per second. Defaults to 10.
 
     :param float threshold:
         Defaults to 0.5. When the average of all values in the internal queue
@@ -607,18 +576,14 @@ class MotionSensor(SmoothedInputDevice):
         See :doc:`api_pins` for more information (this is an advanced feature
         which most users can ignore).
     """
-    def __init__(
-            self, pin=None, pull_up=False, active_state=None, queue_len=1,
-            sample_rate=10, threshold=0.5, partial=False, pin_factory=None):
-        super(MotionSensor, self).__init__(
+    def __init__(self, pin=None, *, pull_up=False, active_state=None,
+                 queue_len=1, sample_rate=10, threshold=0.5, partial=False,
+                 pin_factory=None):
+        super().__init__(
             pin, pull_up=pull_up, active_state=active_state,
             threshold=threshold, queue_len=queue_len, sample_wait=1 /
-            sample_rate, partial=partial, pin_factory=pin_factory)
-        try:
-            self._queue.start()
-        except:
-            self.close()
-            raise
+            sample_rate, partial=partial, pin_factory=pin_factory, average=mean)
+        self._queue.start()
 
     @property
     def value(self):
@@ -628,7 +593,7 @@ class MotionSensor(SmoothedInputDevice):
         a *queue_len* greater than 1, this will be an averaged value where
         values closer to 1 imply motion detection.
         """
-        return super(MotionSensor, self).value
+        return super().value
 
 MotionSensor.motion_detected = MotionSensor.is_active
 MotionSensor.when_motion = MotionSensor.when_activated
@@ -691,10 +656,9 @@ class LightSensor(SmoothedInputDevice):
 
     .. _CamJam #2 EduKit: http://camjam.me/?page_id=623
     """
-    def __init__(
-            self, pin=None, queue_len=5, charge_time_limit=0.01,
-            threshold=0.1, partial=False, pin_factory=None):
-        super(LightSensor, self).__init__(
+    def __init__(self, pin=None, *, queue_len=5, charge_time_limit=0.01,
+                 threshold=0.1, partial=False, pin_factory=None):
+        super().__init__(
             pin, pull_up=False, threshold=threshold, queue_len=queue_len,
             sample_wait=0.0, partial=partial, pin_factory=pin_factory)
         try:
@@ -722,25 +686,25 @@ class LightSensor(SmoothedInputDevice):
         self.pin.function = 'output'
         self.pin.state = False
         sleep(0.1)
-        # Time the charging of the capacitor
-        start = self.pin_factory.ticks()
         self._charge_time = None
         self._charged.clear()
+        # Time the charging of the capacitor
+        start = self.pin_factory.ticks()
         self.pin.function = 'input'
         self._charged.wait(self.charge_time_limit)
         if self._charge_time is None:
             return 0.0
         else:
-            return 1.0 - (
-                self.pin_factory.ticks_diff(self._charge_time, start) /
-                self.charge_time_limit)
+            return 1.0 - min(1.0,
+                (self.pin_factory.ticks_diff(self._charge_time, start) /
+                self.charge_time_limit))
 
     @property
     def value(self):
         """
         Returns a value between 0 (dark) and 1 (light).
         """
-        return super(LightSensor, self).value
+        return super().value
 
 LightSensor.light_detected = LightSensor.is_active
 LightSensor.when_light = LightSensor.when_activated
@@ -775,7 +739,7 @@ class DistanceSensor(SmoothedInputDevice):
 
     Alternatively, the 3V3 tolerant HC-SR04P sensor (which does not require a
     voltage divider) will work with this class.
-    
+
 
     .. note::
 
@@ -824,7 +788,7 @@ class DistanceSensor(SmoothedInputDevice):
 
     :param int queue_len:
         The length of the queue used to store values read from the sensor.
-        This defaults to 30.
+        This defaults to 9.
 
     :param float max_distance:
         The :attr:`value` attribute reports a normalized value between 0 (too
@@ -850,11 +814,11 @@ class DistanceSensor(SmoothedInputDevice):
     """
     ECHO_LOCK = Lock()
 
-    def __init__(
-            self, echo=None, trigger=None, queue_len=9, max_distance=1,
-            threshold_distance=0.3, partial=False, pin_factory=None):
+    def __init__(self, echo=None, trigger=None, *, queue_len=9,
+                 max_distance=1, threshold_distance=0.3, partial=False,
+                 pin_factory=None):
         self._trigger = None
-        super(DistanceSensor, self).__init__(
+        super().__init__(
             echo, pull_up=False, queue_len=queue_len, sample_wait=0.06,
             partial=partial, ignore=frozenset({None}), pin_factory=pin_factory
         )
@@ -864,7 +828,7 @@ class DistanceSensor(SmoothedInputDevice):
             self._max_distance = max_distance
             self.threshold = threshold_distance / max_distance
             self.speed_of_sound = 343.26 # m/s
-            self._trigger = GPIODevice(trigger)
+            self._trigger = GPIODevice(trigger, pin_factory=pin_factory)
             self._echo = Event()
             self._echo_rise = None
             self._echo_fall = None
@@ -877,7 +841,7 @@ class DistanceSensor(SmoothedInputDevice):
         except:
             self.close()
             raise
-        
+
         if PiGPIOFactory is None or not isinstance(self.pin_factory, PiGPIOFactory):
             warnings.warn(PWMSoftwareFallback(
                 'For more accurate readings, use the pigpio pin factory.'
@@ -888,10 +852,9 @@ class DistanceSensor(SmoothedInputDevice):
         try:
             self._trigger.close()
         except AttributeError:
-            if self._trigger is not None:
-                raise
+            pass
         self._trigger = None
-        super(DistanceSensor, self).close()
+        super().close()
 
     @property
     def max_distance(self):
@@ -943,7 +906,7 @@ class DistanceSensor(SmoothedInputDevice):
         difference, and 1, indicating the reflector is at or beyond the
         specified *max_distance*.
         """
-        return super(DistanceSensor, self).value
+        return super().value
 
     @property
     def trigger(self):
@@ -1014,3 +977,389 @@ DistanceSensor.when_out_of_range = DistanceSensor.when_activated
 DistanceSensor.when_in_range = DistanceSensor.when_deactivated
 DistanceSensor.wait_for_out_of_range = DistanceSensor.wait_for_active
 DistanceSensor.wait_for_in_range = DistanceSensor.wait_for_inactive
+
+
+class RotaryEncoder(EventsMixin, CompositeDevice):
+    """
+    Represents a simple two-pin incremental `rotary encoder`_ device.
+
+    These devices typically have three pins labelled "A", "B", and "C". Connect
+    A and B directly to two GPIO pins, and C ("common") to one of the ground
+    pins on your Pi. Then simply specify the A and B pins as the arguments when
+    constructing this classs.
+
+    For example, if your encoder's A pin is connected to GPIO 21, and the B
+    pin to GPIO 20 (and presumably the C pin to a suitable GND pin), while an
+    LED (with a suitable 300Ω resistor) is connected to GPIO 5, the following
+    session will result in the brightness of the LED being controlled by
+    dialling the rotary encoder back and forth::
+
+        >>> from gpiozero import RotaryEncoder
+        >>> from gpiozero.tools import scaled_half
+        >>> rotor = RotaryEncoder(21, 20)
+        >>> led = PWMLED(5)
+        >>> led.source = scaled_half(rotor.values)
+
+    :type a: int or str
+    :param a:
+        The GPIO pin connected to the "A" output of the rotary encoder.
+
+    :type b: int or str
+    :param b:
+        The GPIO pin connected to the "B" output of the rotary encoder.
+
+    :type bounce_time: float or None
+    :param bounce_time:
+        If :data:`None` (the default), no software bounce compensation will be
+        performed. Otherwise, this is the length of time (in seconds) that the
+        component will ignore changes in state after an initial change.
+
+    :type max_steps: int
+    :param max_steps:
+        The number of steps clockwise the encoder takes to change the
+        :attr:`value` from 0 to 1, or counter-clockwise from 0 to -1.
+        If this is 0, then the encoder's :attr:`value` never changes, but you
+        can still read :attr:`steps` to determine the integer number of steps
+        the encoder has moved clockwise or counter clockwise.
+
+    :type threshold_steps: tuple of int
+    :param threshold_steps:
+        A (min, max) tuple of steps between which the device will be considered
+        "active", inclusive. In other words, when :attr:`steps` is greater than
+        or equal to the *min* value, and less than or equal the *max* value,
+        the :attr:`active` property will be :data:`True` and the appropriate
+        events (:attr:`when_activated`, :attr:`when_deactivated`) will be
+        fired. Defaults to (0, 0).
+
+    :type wrap: bool
+    :param wrap:
+        If :data:`True` and *max_steps* is non-zero, when the :attr:`steps`
+        reaches positive or negative *max_steps* it wraps around by negation.
+        Defaults to :data:`False`.
+
+    :type pin_factory: Factory or None
+    :param pin_factory:
+        See :doc:`api_pins` for more information (this is an advanced feature
+        which most users can ignore).
+
+    .. _rotary encoder: https://en.wikipedia.org/wiki/Rotary_encoder
+    """
+    # The rotary encoder's two pins move through the following sequence when
+    # the encoder is rotated one step clockwise:
+    #
+    #   ────┐     ┌─────┐     ┌────────
+    #    _  │     │     │     │          counter        ┌───┐
+    #    A  │     │     │     │         clockwise  ┌─── │ 0 │ ───┐  clockwise
+    #       └─────┘     └─────┘           (CCW)    │    └───┘    │    (CW)
+    #       :     :     :     :             │    ┌───┐         ┌───┐    │
+    #   ───────┐  :  ┌─────┐  :  ┌─────     ▾    │ 1 │         │ 2 │    ▾
+    #    _  :  │  :  │  :  │  :  │               └───┘         └───┘
+    #    B  :  │  :  │  :  │  :  │                 │    ┌───┐    │
+    #       :  └─────┘  :  └─────┘                 └─── │ 3 │ ───┘
+    #       :  :  :  :  :  :  :  :                      └───┘
+    #    0  2  3  1  0  2  3  1  0
+    #
+    # Treating the A pin as a "high" bit, and the B pin as a "low" bit, this
+    # means that the pins return the sequence 0, 2, 3, 1 for each step that the
+    # encoder takes clockwise. Conversely, the pins return the sequence 0, 1,
+    # 3, 2 for each step counter-clockwise.
+    #
+    # We can treat these values as edges to take in a simple state machine,
+    # which is represented in the dictionary below:
+
+    TRANSITIONS = {
+        'idle': ['idle', 'ccw1', 'cw1',  'idle'],
+        'ccw1': ['idle', 'ccw1', 'ccw3', 'ccw2'],
+        'ccw2': ['idle', 'ccw1', 'ccw3', 'ccw2'],
+        'ccw3': ['-1',   'idle', 'ccw3', 'ccw2'],
+        'cw1':  ['idle', 'cw3',  'cw1',  'cw2'],
+        'cw2':  ['idle', 'cw3',  'cw1',  'cw2'],
+        'cw3':  ['+1',   'cw3',  'idle', 'cw2'],
+    }
+
+    # The state machine here includes more than just the strictly necessary
+    # edges; it also permits "wiggle" between intermediary states so that the
+    # overall graph looks like this:
+    #
+    #                            ┌──────┐
+    #                            │      │
+    #                      ┌─────┤ idle ├────┐
+    #                      │1    │      │   2│
+    #                      │     └──────┘    │
+    #                      ▾       ▴  ▴      ▾
+    #                  ┌────────┐  │  │  ┌───────┐
+    #                  │        │ 0│  │0 │       │
+    #              ┌───┤  ccw1  ├──┤  ├──┤  cw1  ├───┐
+    #              │2  │        │  │  │  │       │  1│
+    #              │   └─┬──────┘  │  │  └─────┬─┘   │
+    #              │    3│    ▴    │  │    ▴   │3    │
+    #              │     ▾    │1   │  │   2│   ▾     │
+    #              │   ┌──────┴─┐  │  │  ┌─┴─────┐   │
+    #              │   │        │ 0│  │0 │       │   │
+    #              │   │  ccw2  ├──┤  ├──┤  cw2  │   │
+    #              │   │        │  │  │  │       │   │
+    #              │   └─┬──────┘  │  │  └─────┬─┘   │
+    #              │    2│    ▴    │  │    ▴   │1    │
+    #              │     ▾    │3   │  │   3│   ▾     │
+    #              │   ┌──────┴─┐  │  │  ┌─┴─────┐   │
+    #              │   │        │  │  │  │       │   │
+    #              └──▸│  ccw3  │  │  │  │  cw3  │◂──┘
+    #                  │        │  │  │  │       │
+    #                  └───┬────┘  │  │  └───┬───┘
+    #                     0│       │  │      │0
+    #                      ▾       │  │      ▾
+    #                  ┌────────┐  │  │  ┌───────┐
+    #                  │        │  │  │  │       │
+    #                  │   -1   ├──┘  └──┤  +1   │
+    #                  │        │        │       │
+    #                  └────────┘        └───────┘
+    #
+    # Note that, once we start down the clockwise (cw) or counter-clockwise
+    # (ccw) path, we don't allow the state to pick the alternate direction
+    # without passing through the idle state again. This seems to work well in
+    # practice with several encoders, even quite jiggly ones with no debounce
+    # hardware or software
+
+    def __init__(self, a, b, *, bounce_time=None, max_steps=16,
+                 threshold_steps=(0, 0), wrap=False, pin_factory=None):
+        min_thresh, max_thresh = threshold_steps
+        if max_thresh < min_thresh:
+            raise ValueError('maximum threshold cannot be less than minimum')
+        self._steps = 0
+        self._max_steps = int(max_steps)
+        self._threshold = (int(min_thresh), int(max_thresh))
+        self._wrap = bool(wrap)
+        self._state = 'idle'
+        self._edge = 0
+        self._when_rotated = None
+        self._when_rotated_cw = None
+        self._when_rotated_ccw = None
+        self._rotate_event = Event()
+        self._rotate_cw_event = Event()
+        self._rotate_ccw_event = Event()
+        super().__init__(
+            a=InputDevice(a, pull_up=True, pin_factory=pin_factory),
+            b=InputDevice(b, pull_up=True, pin_factory=pin_factory),
+            _order=('a', 'b'), pin_factory=pin_factory)
+        self.a.pin.bounce_time = bounce_time
+        self.b.pin.bounce_time = bounce_time
+        self.a.pin.edges = 'both'
+        self.b.pin.edges = 'both'
+        self.a.pin.when_changed = self._a_changed
+        self.b.pin.when_changed = self._b_changed
+        # Call _fire_events once to set initial state of events
+        self._fire_events(self.pin_factory.ticks(), self.is_active)
+
+    def __repr__(self):
+        try:
+            self._check_open()
+            return (
+                "<gpiozero.{self.__class__.__name__} object on pins "
+                "{self.a.pin!r} and {self.b.pin!r}>".format(self=self))
+        except DeviceClosed:
+            return super().__repr__()
+
+    def _a_changed(self, ticks, state):
+        edge = (self.a._state_to_value(state) << 1) | (self._edge & 0x1)
+        self._change_state(ticks, edge)
+
+    def _b_changed(self, ticks, state):
+        edge = (self._edge & 0x2) | self.b._state_to_value(state)
+        self._change_state(ticks, edge)
+
+    def _change_state(self, ticks, edge):
+        self._edge = edge
+        new_state = RotaryEncoder.TRANSITIONS[self._state][edge]
+        if new_state == '+1':
+            self._steps = (
+                self._steps + 1
+                if not self._max_steps or self._steps < self._max_steps else
+                -self._max_steps if self._wrap else self._max_steps
+            )
+            self._rotate_cw_event.set()
+            self._fire_rotated_cw()
+            self._rotate_cw_event.clear()
+        elif new_state == '-1':
+            self._steps = (
+                self._steps - 1
+                if not self._max_steps or self._steps > -self._max_steps else
+                self._max_steps if self._wrap else -self._max_steps
+            )
+            self._rotate_ccw_event.set()
+            self._fire_rotated_ccw()
+            self._rotate_ccw_event.clear()
+        else:
+            self._state = new_state
+            return
+        self._rotate_event.set()
+        self._fire_rotated()
+        self._rotate_event.clear()
+        self._fire_events(ticks, self.is_active)
+        self._state = 'idle'
+
+    def wait_for_rotate(self, timeout=None):
+        """
+        Pause the script until the encoder is rotated at least one step in
+        either direction, or the timeout is reached.
+
+        :type timeout: float or None
+        :param timeout:
+            Number of seconds to wait before proceeding. If this is
+            :data:`None` (the default), then wait indefinitely until the
+            encoder is rotated.
+        """
+        return self._rotate_event.wait(timeout)
+
+    def wait_for_rotate_clockwise(self, timeout=None):
+        """
+        Pause the script until the encoder is rotated at least one step
+        clockwise, or the timeout is reached.
+
+        :type timeout: float or None
+        :param timeout:
+            Number of seconds to wait before proceeding. If this is
+            :data:`None` (the default), then wait indefinitely until the
+            encoder is rotated clockwise.
+        """
+        return self._rotate_cw_event.wait(timeout)
+
+    def wait_for_rotate_counter_clockwise(self, timeout=None):
+        """
+        Pause the script until the encoder is rotated at least one step
+        counter-clockwise, or the timeout is reached.
+
+        :type timeout: float or None
+        :param timeout:
+            Number of seconds to wait before proceeding. If this is
+            :data:`None` (the default), then wait indefinitely until the
+            encoder is rotated counter-clockwise.
+        """
+        return self._rotate_ccw_event.wait(timeout)
+
+    when_rotated = event(
+        """
+        The function to be run when the encoder is rotated in either direction.
+
+        This can be set to a function which accepts no (mandatory) parameters,
+        or a Python function which accepts a single mandatory parameter (with
+        as many optional parameters as you like). If the function accepts a
+        single mandatory parameter, the device that activated will be passed
+        as that parameter.
+
+        Set this property to :data:`None` (the default) to disable the event.
+        """)
+
+    when_rotated_clockwise = event(
+        """
+        The function to be run when the encoder is rotated clockwise.
+
+        This can be set to a function which accepts no (mandatory) parameters,
+        or a Python function which accepts a single mandatory parameter (with
+        as many optional parameters as you like). If the function accepts a
+        single mandatory parameter, the device that activated will be passed
+        as that parameter.
+
+        Set this property to :data:`None` (the default) to disable the event.
+        """)
+
+    when_rotated_counter_clockwise = event(
+        """
+        The function to be run when the encoder is rotated counter-clockwise.
+
+        This can be set to a function which accepts no (mandatory) parameters,
+        or a Python function which accepts a single mandatory parameter (with
+        as many optional parameters as you like). If the function accepts a
+        single mandatory parameter, the device that activated will be passed
+        as that parameter.
+
+        Set this property to :data:`None` (the default) to disable the event.
+        """)
+
+    @property
+    def steps(self):
+        """
+        The "steps" value of the encoder starts at 0. It increments by one for
+        every step the encoder is rotated clockwise, and decrements by one for
+        every step it is rotated counter-clockwise. The steps value is
+        limited by :attr:`max_steps`. It will not advance beyond positive or
+        negative :attr:`max_steps`, unless :attr:`wrap` is :data:`True` in
+        which case it will roll around by negation. If :attr:`max_steps` is
+        zero then steps are not limited at all, and will increase infinitely
+        in either direction, but :attr:`value` will return a constant zero.
+
+        Note that, in contrast to most other input devices, because the rotary
+        encoder has no absolute position the :attr:`steps` attribute (and
+        :attr:`value` by corollary) is writable.
+        """
+        return self._steps
+
+    def _fire_rotated(self):
+        if self.when_rotated:
+            self.when_rotated()
+
+    def _fire_rotated_cw(self):
+        if self.when_rotated_clockwise:
+            self.when_rotated_clockwise()
+
+    def _fire_rotated_ccw(self):
+        if self.when_rotated_counter_clockwise:
+            self.when_rotated_counter_clockwise()
+
+    @steps.setter
+    def steps(self, value):
+        value = int(value)
+        if self._max_steps:
+            value = max(-self._max_steps, min(self._max_steps, value))
+        self._steps = value
+
+    @property
+    def value(self):
+        """
+        Represents the value of the rotary encoder as a value between -1 and 1.
+        The value is calculated by dividing the value of :attr:`steps` into the
+        range from negative :attr:`max_steps` to positive :attr:`max_steps`.
+
+        Note that, in contrast to most other input devices, because the rotary
+        encoder has no absolute position the :attr:`value` attribute is
+        writable.
+        """
+        try:
+            return self._steps / self._max_steps
+        except ZeroDivisionError:
+            return 0
+
+    @value.setter
+    def value(self, value):
+        self._steps = int(max(-1, min(1, float(value))) * self._max_steps)
+
+    @property
+    def is_active(self):
+        return self._threshold[0] <= self._steps <= self._threshold[1]
+
+    @property
+    def max_steps(self):
+        """
+        The number of discrete steps the rotary encoder takes to move
+        :attr:`value` from 0 to 1 clockwise, or 0 to -1 counter-clockwise. In
+        another sense, this is also the total number of discrete states this
+        input can represent.
+        """
+        return self._max_steps
+
+    @property
+    def threshold_steps(self):
+        """
+        The mininum and maximum number of steps between which :attr:`is_active`
+        will return :data:`True`. Defaults to (0, 0).
+        """
+        return self._threshold
+
+    @property
+    def wrap(self):
+        """
+        If :data:`True`, when :attr:`value` reaches its limit (-1 or 1), it
+        "wraps around" to the opposite limit. When :data:`False`, the value
+        (and the corresponding :attr:`steps` attribute) simply don't advance
+        beyond their limits.
+        """
+        return self._wrap

@@ -435,31 +435,7 @@ acknowledged. Used to indicate an error with the alarm itself.
 ### kaithem.time
 
 #### kaithem.time.lantime()
-
-#### 
-
-Return a number of seconds since the epoch like time.time, except this
-function automatically syncs across all kaithem instances across the
-local network.
-
-The intended application here is when you want to keep machines in
-relative sync but aren't as concerned with absolute time, or when you
-have a machine on the LAN with a GPS reciever and want to sync to that.
-
-This function only works on python 3.3+ only, and requires netifaces. If
-these conditions are not met, it is equivalent to time.time(). Similar
-to plain NTP, it provides no security beyond that of your wifi router.
-
-Specifically, it uses MDNS to find an NTP server, choosing the first one
-when sorted asciibetically. Kaithem has an embedded NTP server on a
-random port, which has the MDNS service name
-"ntp5500\_123456789-kaithem" where 5500 is the ntpserver-priority from
-the config file, and 123456799 is the boot time in microseconds, or a
-random value, and "kaithem" is the ntp server name
-
-If you want to sync to a specific dedicated NTP server, it is suggested
-that you simply advertise that server using the same naming convention
-and a lower priority.
+Same as time.time().  Previously Kaithem had built in NTP sync.
 
 #### kaithem.time.uptime()
 

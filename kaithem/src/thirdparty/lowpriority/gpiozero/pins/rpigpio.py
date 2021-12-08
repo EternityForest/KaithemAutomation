@@ -1,42 +1,11 @@
+# vim: set fileencoding=utf-8:
+#
 # GPIO Zero: a library for controlling the Raspberry Pi's GPIO pins
-# Copyright (c) 2015-2019 Dave Jones <dave@waveform.org.uk>
+#
+# Copyright (c) 2015-2021 Dave Jones <dave@waveform.org.uk>
 # Copyright (c) 2016 Andrew Scheller <github@loowis.durge.org>
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice,
-#   this list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its contributors
-#   may be used to endorse or promote products derived from this software
-#   without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-
-from __future__ import (
-    unicode_literals,
-    absolute_import,
-    print_function,
-    division,
-    )
-str = type('')
-
-import warnings
+# SPDX-License-Identifier: BSD-3-Clause
 
 from RPi import GPIO
 
@@ -78,13 +47,13 @@ class RPiGPIOFactory(LocalPiFactory):
     """
 
     def __init__(self):
-        super(RPiGPIOFactory, self).__init__()
+        super().__init__()
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
         self.pin_class = RPiGPIOPin
 
     def close(self):
-        super(RPiGPIOFactory, self).close()
+        super().close()
         GPIO.cleanup()
 
 
@@ -122,7 +91,7 @@ class RPiGPIOPin(LocalPiPin):
     GPIO_EDGES_NAMES = {v: k for (k, v) in GPIO_EDGES.items()}
 
     def __init__(self, factory, number):
-        super(RPiGPIOPin, self).__init__(factory, number)
+        super().__init__(factory, number)
         self._pull = 'up' if self.factory.pi_info.pulled_up(repr(self)) else 'floating'
         self._pwm = None
         self._frequency = None
@@ -142,12 +111,15 @@ class RPiGPIOPin(LocalPiPin):
 
     def input_with_pull(self, pull):
         if pull != 'up' and self.factory.pi_info.pulled_up(repr(self)):
-            raise PinFixedPull('%r has a physical pull-up resistor' % self)
+            raise PinFixedPull(
+                '{self!r} has a physical pull-up resistor'.format(self=self))
         try:
             GPIO.setup(self.number, GPIO.IN, self.GPIO_PULL_UPS[pull])
             self._pull = pull
         except KeyError:
-            raise PinInvalidPull('invalid pull "%s" for pin %r' % (pull, self))
+            raise PinInvalidPull(
+                'invalid pull "{pull}" for pin {self!r}'.format(
+                    self=self, pull=pull))
 
     def _get_function(self):
         return self.GPIO_FUNCTION_NAMES[GPIO.gpio_function(self.number)]
@@ -158,7 +130,9 @@ class RPiGPIOPin(LocalPiPin):
         if value in ('input', 'output') and value in self.GPIO_FUNCTIONS:
             GPIO.setup(self.number, self.GPIO_FUNCTIONS[value], self.GPIO_PULL_UPS[self._pull])
         else:
-            raise PinInvalidFunction('invalid function "%s" for pin %r' % (value, self))
+            raise PinInvalidFunction(
+                'invalid function "{value}" for pin {self!r}'.format(
+                    self=self, value=value))
 
     def _get_state(self):
         if self._pwm:
@@ -171,29 +145,38 @@ class RPiGPIOPin(LocalPiPin):
             try:
                 self._pwm.ChangeDutyCycle(value * 100)
             except ValueError:
-                raise PinInvalidState('invalid state "%s" for pin %r' % (value, self))
+                raise PinInvalidState(
+                    'invalid state "{value}" for pin {self!r}'.format(
+                        self=self, value=value))
             self._duty_cycle = value
         else:
             try:
                 GPIO.output(self.number, value)
             except ValueError:
-                raise PinInvalidState('invalid state "%s" for pin %r' % (value, self))
+                raise PinInvalidState(
+                    'invalid state "{value}" for pin {self!r}'.format(
+                        value=value, self=self))
             except RuntimeError:
-                raise PinSetInput('cannot set state of pin %r' % self)
+                raise PinSetInput(
+                    'cannot set state of pin {self!r}'.format(self=self))
 
     def _get_pull(self):
         return self._pull
 
     def _set_pull(self, value):
         if self.function != 'input':
-            raise PinFixedPull('cannot set pull on non-input pin %r' % self)
+            raise PinFixedPull(
+                'cannot set pull on non-input pin {self!r}'.format(self=self))
         if value != 'up' and self.factory.pi_info.pulled_up(repr(self)):
-            raise PinFixedPull('%r has a physical pull-up resistor' % self)
+            raise PinFixedPull(
+                '{self!r} has a physical pull-up resistor'.format(self=self))
         try:
             GPIO.setup(self.number, GPIO.IN, self.GPIO_PULL_UPS[value])
             self._pull = value
         except KeyError:
-            raise PinInvalidPull('invalid pull "%s" for pin %r' % (value, self))
+            raise PinInvalidPull(
+                'invalid pull "{value}" for pin {self!r}'.format(
+                    value=value, self=self))
 
     def _get_frequency(self):
         return self._frequency
@@ -203,7 +186,8 @@ class RPiGPIOPin(LocalPiPin):
             try:
                 self._pwm = GPIO.PWM(self.number, value)
             except RuntimeError:
-                raise PinPWMFixedValue('cannot start PWM on pin %r' % self)
+                raise PinPWMFixedValue(
+                    'cannot start PWM on pin {self!r}'.format(self=self))
             self._pwm.start(0)
             self._duty_cycle = 0
             self._frequency = value
@@ -241,7 +225,7 @@ class RPiGPIOPin(LocalPiPin):
             self.when_changed = f
 
     def _call_when_changed(self, channel):
-        super(RPiGPIOPin, self)._call_when_changed()
+        super()._call_when_changed()
 
     def _enable_event_detect(self):
         GPIO.add_event_detect(

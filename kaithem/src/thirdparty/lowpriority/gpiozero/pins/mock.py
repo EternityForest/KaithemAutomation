@@ -1,50 +1,17 @@
+# vim: set fileencoding=utf-8:
+#
 # GPIO Zero: a library for controlling the Raspberry Pi's GPIO pins
-# Copyright (c) 2016-2019 Dave Jones <dave@waveform.org.uk>
+#
+# Copyright (c) 2016-2021 Dave Jones <dave@waveform.org.uk>
 # Copyright (c) 2016 Andrew Scheller <github@loowis.durge.org>
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice,
-#   this list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its contributors
-#   may be used to endorse or promote products derived from this software
-#   without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-
-from __future__ import (
-    unicode_literals,
-    absolute_import,
-    print_function,
-    division,
-    )
-str = type('')
-
+# SPDX-License-Identifier: BSD-3-Clause
 
 import os
 from collections import namedtuple
-from time import time, sleep
+from time import time, sleep, monotonic
 from threading import Thread, Event
-try:
-    from math import isclose
-except ImportError:
-    from ..compat import isclose
+from math import isclose
 
 import pkg_resources
 
@@ -57,18 +24,22 @@ from ..exc import (
     PinInvalidBounce,
     )
 from ..devices import Device
-from .local import LocalPiPin, LocalPiFactory
+from ..mixins import SharedMixin
+from . import SPI
+from .pi import PiPin, PiFactory
+from .spi import SPISoftware
 
 
 PinState = namedtuple('PinState', ('timestamp', 'state'))
 
-class MockPin(LocalPiPin):
+
+class MockPin(PiPin):
     """
     A mock pin used primarily for testing. This class does *not* support PWM.
     """
 
     def __init__(self, factory, number):
-        super(MockPin, self).__init__(factory, number)
+        super().__init__(factory, number)
         self._function = 'input'
         self._pull = 'up' if self.factory.pi_info.pulled_up(repr(self)) else 'floating'
         self._state = self._pull == 'up'
@@ -97,14 +68,15 @@ class MockPin(LocalPiPin):
 
     def _set_state(self, value):
         if self._function == 'input':
-            raise PinSetInput('cannot set state of pin %r' % self)
+            raise PinSetInput('cannot set state of pin {self!r}'.format(
+                self=self))
         assert self._function == 'output'
         assert 0 <= value <= 1
         self._change_state(bool(value))
 
     def _change_state(self, value):
         if self._state != value:
-            t = time()
+            t = monotonic()
             self._state = value
             self.states.append(PinState(t - self._last_change, value))
             self._last_change = t
@@ -123,9 +95,11 @@ class MockPin(LocalPiPin):
 
     def _set_pull(self, value):
         if self.function != 'input':
-            raise PinFixedPull('cannot set pull on non-input pin %r' % self)
+            raise PinFixedPull(
+                'cannot set pull on non-input pin {self!r}'.format(self=self))
         if value != 'up' and self.factory.pi_info.pulled_up(repr(self)):
-            raise PinFixedPull('%r has a physical pull-up resistor' % self)
+            raise PinFixedPull(
+                '{self!r} has a physical pull-up resistor'.format(self=self))
         if value not in ('floating', 'up', 'down'):
             raise PinInvalidPull('pull must be floating, up, or down')
         self._pull = value
@@ -159,6 +133,9 @@ class MockPin(LocalPiPin):
     def _enable_event_detect(self):
         pass
 
+    def _call_when_changed(self):
+        super()._call_when_changed(self._last_change, self._state)
+
     def drive_high(self):
         assert self._function == 'input'
         if self._change_state(True):
@@ -172,7 +149,7 @@ class MockPin(LocalPiPin):
                 self._call_when_changed()
 
     def clear_states(self):
-        self._last_change = time()
+        self._last_change = monotonic()
         self.states = [PinState(0.0, self._state)]
 
     def assert_states(self, expected_states):
@@ -197,7 +174,7 @@ class MockConnectedPin(MockPin):
     check that one pin can influence another.
     """
     def __init__(self, factory, number, input_pin=None):
-        super(MockConnectedPin, self).__init__(factory, number)
+        super().__init__(factory, number)
         self.input_pin = input_pin
 
     def _change_state(self, value):
@@ -206,7 +183,7 @@ class MockConnectedPin(MockPin):
                 self.input_pin.drive_high()
             else:
                 self.input_pin.drive_low()
-        return super(MockConnectedPin, self)._change_state(value)
+        return super()._change_state(value)
 
 
 class MockChargingPin(MockPin):
@@ -217,13 +194,13 @@ class MockChargingPin(MockPin):
     to time the charging rate).
     """
     def __init__(self, factory, number, charge_time=0.01):
-        super(MockChargingPin, self).__init__(factory, number)
+        super().__init__(factory, number)
         self.charge_time = charge_time # dark charging time
         self._charge_stop = Event()
         self._charge_thread = None
 
     def _set_function(self, value):
-        super(MockChargingPin, self)._set_function(value)
+        super()._set_function(value)
         if value == 'input':
             if self._charge_thread:
                 self._charge_stop.set()
@@ -235,12 +212,14 @@ class MockChargingPin(MockPin):
             if self._charge_thread:
                 self._charge_stop.set()
                 self._charge_thread.join()
+        else:
+            assert False
 
     def _charge(self):
         if not self._charge_stop.wait(self.charge_time):
             try:
                 self.drive_high()
-            except AssertionError:
+            except AssertionError:  # pragma: no cover
                 # Charging pins are typically flipped between input and output
                 # repeatedly; if another thread has already flipped us to
                 # output ignore the assertion-error resulting from attempting
@@ -256,13 +235,13 @@ class MockTriggerPin(MockPin):
     the echo pin to drive high for the echo time.
     """
     def __init__(self, factory, number, echo_pin=None, echo_time=0.04):
-        super(MockTriggerPin, self).__init__(factory, number)
+        super().__init__(factory, number)
         self.echo_pin = echo_pin
         self.echo_time = echo_time # longest echo time
         self._echo_thread = None
 
     def _set_state(self, value):
-        super(MockTriggerPin, self)._set_state(value)
+        super()._set_state(value)
         if value:
             if self._echo_thread:
                 self._echo_thread.join()
@@ -281,16 +260,17 @@ class MockPWMPin(MockPin):
     This derivative of :class:`MockPin` adds PWM support.
     """
     def __init__(self, factory, number):
-        super(MockPWMPin, self).__init__(factory, number)
+        super().__init__(factory, number)
         self._frequency = None
 
     def close(self):
         self.frequency = None
-        super(MockPWMPin, self).close()
+        super().close()
 
     def _set_state(self, value):
         if self._function == 'input':
-            raise PinSetInput('cannot set state of pin %r' % self)
+            raise PinSetInput(
+                'cannot set state of pin {self!r}'.format(self=self))
         assert self._function == 'output'
         assert 0 <= value <= 1
         self._change_state(float(value))
@@ -314,12 +294,11 @@ class MockSPIClockPin(MockPin):
     this class will be used for the clock pin.
     """
     def __init__(self, factory, number):
-        super(MockSPIClockPin, self).__init__(factory, number)
-        if not hasattr(self, 'spi_devices'):
-            self.spi_devices = []
+        super().__init__(factory, number)
+        self.spi_devices = getattr(self, 'spi_devices', [])
 
     def _set_state(self, value):
-        super(MockSPIClockPin, self)._set_state(value)
+        super()._set_state(value)
         for dev in self.spi_devices:
             dev.on_clock()
 
@@ -332,25 +311,39 @@ class MockSPISelectPin(MockPin):
     and this class will be used for the select pin.
     """
     def __init__(self, factory, number):
-        super(MockSPISelectPin, self).__init__(factory, number)
-        if not hasattr(self, 'spi_device'):
-            self.spi_device = None
+        super().__init__(factory, number)
+        self.spi_device = getattr(self, 'spi_device', None)
 
     def _set_state(self, value):
-        super(MockSPISelectPin, self)._set_state(value)
+        super()._set_state(value)
         if self.spi_device:
             self.spi_device.on_select()
 
 
-class MockSPIDevice(object):
-    def __init__(
-            self, clock_pin, mosi_pin=None, miso_pin=None, select_pin=None,
-            clock_polarity=False, clock_phase=False, lsb_first=False,
-            bits_per_word=8, select_high=False):
-        self.clock_pin = Device.pin_factory.pin(clock_pin, pin_class=MockSPIClockPin)
-        self.mosi_pin = None if mosi_pin is None else Device.pin_factory.pin(mosi_pin)
-        self.miso_pin = None if miso_pin is None else Device.pin_factory.pin(miso_pin)
-        self.select_pin = None if select_pin is None else Device.pin_factory.pin(select_pin, pin_class=MockSPISelectPin)
+class MockSPIDevice:
+    """
+    This class is used to test :class:`SPIDevice` implementations. It can be
+    used to mock up the slave side of simple SPI devices, e.g. the MCP3xxx
+    series of ADCs.
+
+    Descendants should override the :meth:`on_start` and/or :meth:`on_bit`
+    methods to respond to SPI interface events. The :meth:`rx_word` and
+    :meth:`tx_word` methods can be used facilitate communications within these
+    methods. Such descendents can then be passed as the *spi_class* parameter
+    of the :class:`MockFactory` constructor to have instances attached to any
+    SPI interface requested by an :class:`SPIDevice`.
+    """
+    def __init__(self, clock_pin, mosi_pin=None, miso_pin=None,
+                 select_pin=None, *, clock_polarity=False, clock_phase=False,
+                 lsb_first=False, bits_per_word=8, select_high=False,
+                 pin_factory=None):
+        if pin_factory is None:
+            pin_factory = Device.pin_factory
+            assert isinstance(pin_factory, MockFactory)
+        self.clock_pin = pin_factory.pin(clock_pin, pin_class=MockSPIClockPin)
+        self.mosi_pin = None if mosi_pin is None else pin_factory.pin(mosi_pin)
+        self.miso_pin = None if miso_pin is None else pin_factory.pin(miso_pin)
+        self.select_pin = None if select_pin is None else pin_factory.pin(select_pin, pin_class=MockSPISelectPin)
         self.clock_polarity = clock_polarity
         self.clock_phase = clock_phase
         self.lsb_first = lsb_first
@@ -444,38 +437,44 @@ class MockSPIDevice(object):
         self.tx_buf.extend(bits)
 
 
-class MockFactory(LocalPiFactory):
+class MockFactory(PiFactory):
     """
-    Factory for generating mock pins. The *revision* parameter specifies what
-    revision of Pi the mock factory pretends to be (this affects the result of
-    the :attr:`~gpiozero.Factory.pi_info` attribute as well as where pull-ups
-    are assumed to be). The *pin_class* attribute specifies which mock pin
-    class will be generated by the :meth:`pin` method by default. This can be
-    changed after construction by modifying the :attr:`pin_class` attribute.
+    Factory for generating mock pins.
+
+    The *revision* parameter specifies what revision of Pi the mock factory
+    pretends to be (this affects the result of the :attr:`Factory.pi_info`
+    attribute as well as where pull-ups are assumed to be).
+
+    The *pin_class* attribute specifies which mock pin class will be generated
+    by the :meth:`pin` method by default. This can be changed after
+    construction by modifying the :attr:`pin_class` attribute.
 
     .. attribute:: pin_class
 
-        This attribute stores the :class:`MockPin` class (or descendent) that
+        This attribute stores the :class:`MockPin` class (or descendant) that
         will be used when constructing pins with the :meth:`pin` method (if
         no *pin_class* parameter is used to override it). It defaults on
         construction to the value of the *pin_class* parameter in the
         constructor, or :class:`MockPin` if that is unspecified.
     """
     def __init__(self, revision=None, pin_class=None):
-        super(MockFactory, self).__init__()
+        super().__init__()
         if revision is None:
             revision = os.environ.get('GPIOZERO_MOCK_REVISION', 'a02082')
         if pin_class is None:
             pin_class = os.environ.get('GPIOZERO_MOCK_PIN_CLASS', MockPin)
-        self._revision = revision
+        self._revision = int(revision, base=16)
         if isinstance(pin_class, bytes):
             pin_class = pin_class.decode('ascii')
         if isinstance(pin_class, str):
             dist = pkg_resources.get_distribution('gpiozero')
             group = 'gpiozero_mock_pin_classes'
-            pin_class = pkg_resources.load_entry_point(dist, group, pin_class.lower())
+            pin_class = pkg_resources.load_entry_point(
+                dist, group, pin_class.lower())
         if not issubclass(pin_class, MockPin):
-            raise ValueError('invalid mock pin_class: %r' % pin_class)
+            raise ValueError(
+                'invalid mock pin_class: {pin_class!r}'.format(
+                    pin_class=pin_class))
         self.pin_class = pin_class
 
     def _get_revision(self):
@@ -492,11 +491,12 @@ class MockFactory(LocalPiFactory):
 
     def pin(self, spec, pin_class=None, **kwargs):
         """
-        The pin method for :class:`MockFactory` additionally takes a *pin_class*
-        attribute which can be used to override the class' :attr:`pin_class`
-        attribute. Any additional keyword arguments will be passed along to the
-        pin constructor (useful with things like :class:`MockConnectedPin` which
-        expect to be constructed with another pin).
+        The pin method for :class:`MockFactory` additionally takes a
+        *pin_class* attribute which can be used to override the class'
+        :attr:`pin_class` attribute. Any additional keyword arguments will be
+        passed along to the pin constructor (useful with things like
+        :class:`MockConnectedPin` which expect to be constructed with another
+        pin).
         """
         if pin_class is None:
             pin_class = self.pin_class
@@ -509,5 +509,29 @@ class MockFactory(LocalPiFactory):
         else:
             # Ensure the pin class expected supports PWM (or not)
             if issubclass(pin_class, MockPWMPin) != isinstance(pin, MockPWMPin):
-                raise ValueError('pin %d is already in use as a %s' % (n, pin.__class__.__name__))
+                raise ValueError(
+                    'pin {n} is already in use as a '
+                    '{pin.__class__.__name__}'.format(n=n, pin=pin))
         return pin
+
+    def _get_spi_class(self, shared, hardware):
+        return MockSPIInterfaceShared if shared else MockSPIInterface
+
+    @staticmethod
+    def ticks():
+        return monotonic()
+
+    @staticmethod
+    def ticks_diff(later, earlier):
+        return later - earlier
+
+
+class MockSPIInterface(SPISoftware):
+    pass
+
+
+class MockSPIInterfaceShared(SharedMixin, MockSPIInterface):
+    @classmethod
+    def _shared_key(cls, clock_pin, mosi_pin, miso_pin, select_pin,
+                    pin_factory):
+        return (clock_pin, select_pin)

@@ -1,45 +1,13 @@
 # vim: set fileencoding=utf-8:
 #
 # GPIO Zero: a library for controlling the Raspberry Pi's GPIO pins
-# Copyright (c) 2017-2019 Ben Nuttall <ben@bennuttall.com>
-# Copyright (c) 2016-2019 Dave Jones <dave@waveform.org.uk>
+#
+# Copyright (c) 2016-2021 Dave Jones <dave@waveform.org.uk>
+# Copyright (c) 2017-2021 Ben Nuttall <ben@bennuttall.com>
 # Copyright (c) 2019 Jeevan M R <14.jeevan@gmail.com>
 # Copyright (c) 2019 Andrew Scheller <github@loowis.durge.org>
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice,
-#   this list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its contributors
-#   may be used to endorse or promote products derived from this software
-#   without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-
-from __future__ import (
-    unicode_literals,
-    print_function,
-    absolute_import,
-    division,
-)
-str = type('')
-
+# SPDX-License-Identifier: BSD-3-Clause
 
 import os
 import io
@@ -48,8 +16,9 @@ from datetime import datetime, time
 import warnings
 
 from .devices import Device
-from .mixins import EventsMixin
-from .exc import ThresholdOutOfRange
+from .mixins import EventsMixin, event
+from .threads import GPIOThread
+from .exc import ThresholdOutOfRange, DeviceClosed
 
 
 class InternalDevice(EventsMixin, Device):
@@ -59,17 +28,102 @@ class InternalDevice(EventsMixin, Device):
     usually represent operating system services like the internal clock, file
     systems or network facilities.
     """
-    # XXX Add some mechanism to monitor state and fire events on change.
+    def __init__(self, *, pin_factory=None):
+        self._closed = False
+        super().__init__(pin_factory=pin_factory)
+
+    def close(self):
+        self._closed = True
+        super().close()
+
+    @property
+    def closed(self):
+        return self._closed
+
+    def __repr__(self):
+        try:
+            self._check_open()
+            return (
+                "<gpiozero.{self.__class__.__name__} object>".format(
+                    self=self))
+        except DeviceClosed:
+            return (
+                "<gpiozero.{self.__class__.__name__} object closed>".format(
+                    self=self))
 
 
-class PingServer(InternalDevice):
+class PolledInternalDevice(InternalDevice):
     """
-    Extends :class:`InternalDevice` to provide a device which is active when a
-    *host* on the network can be pinged.
+    Extends :class:`InternalDevice` to provide a background thread to poll
+    internal devices that lack any other mechanism to inform the instance of
+    changes.
+    """
+    def __init__(self, *, event_delay=1.0, pin_factory=None):
+        self._event_thread = None
+        self._event_delay = event_delay
+        super().__init__(pin_factory=pin_factory)
 
-    The following example lights an LED while a server is reachable (note the
-    use of :attr:`~SourceMixin.source_delay` to ensure the server is not
-    flooded with pings)::
+    def close(self):
+        try:
+            self._start_stop_events(False)
+        except AttributeError:
+            pass  # pragma: no cover
+        super().close()
+
+    @property
+    def event_delay(self):
+        """
+        The delay between sampling the device's value for the purposes of
+        firing events.
+
+        Note that this only applies to events assigned to attributes like
+        :attr:`~EventsMixin.when_activated` and
+        :attr:`~EventsMixin.when_deactivated`. When using the
+        :attr:`~SourceMixin.source` and :attr:`~ValuesMixin.values` properties,
+        the sampling rate is controlled by the
+        :attr:`~SourceMixin.source_delay` property.
+        """
+        return self._event_delay
+
+    @event_delay.setter
+    def event_delay(self, value):
+        self._event_delay = float(value)
+
+    def wait_for_active(self, timeout=None):
+        self._start_stop_events(True)
+        try:
+            return super().wait_for_active(timeout)
+        finally:
+            self._start_stop_events(
+                self.when_activated or self.when_deactivated)
+
+    def wait_for_inactive(self, timeout=None):
+        self._start_stop_events(True)
+        try:
+            return super().wait_for_inactive(timeout)
+        finally:
+            self._start_stop_events(
+                self.when_activated or self.when_deactivated)
+
+    def _watch_value(self):
+        while not self._event_thread.stopping.wait(self._event_delay):
+            self._fire_events(self.pin_factory.ticks(), self.is_active)
+
+    def _start_stop_events(self, enabled):
+        if self._event_thread and not enabled:
+            self._event_thread.stop()
+            self._event_thread = None
+        elif not self._event_thread and enabled:
+            self._event_thread = GPIOThread(self._watch_value)
+            self._event_thread.start()
+
+
+class PingServer(PolledInternalDevice):
+    """
+    Extends :class:`PolledInternalDevice` to provide a device which is active
+    when a *host* (domain name or IP address) can be pinged.
+
+    The following example lights an LED while ``google.com`` is reachable::
 
         from gpiozero import PingServer, LED
         from signal import pause
@@ -77,29 +131,35 @@ class PingServer(InternalDevice):
         google = PingServer('google.com')
         led = LED(4)
 
-        led.source_delay = 60  # check once per minute
-        led.source = google
+        google.when_activated = led.on
+        google.when_deactivated = led.off
 
         pause()
 
     :param str host:
         The hostname or IP address to attempt to ping.
 
+    :type event_delay: float
+    :param event_delay:
+        The number of seconds between pings (defaults to 10 seconds).
+
     :type pin_factory: Factory or None
     :param pin_factory:
         See :doc:`api_pins` for more information (this is an advanced feature
         which most users can ignore).
     """
-    def __init__(self, host, pin_factory=None):
+    def __init__(self, host, *, event_delay=10.0, pin_factory=None):
         self._host = host
-        super(PingServer, self).__init__(pin_factory=pin_factory)
-        self._fire_events(self.pin_factory.ticks(), None)
+        super().__init__(event_delay=event_delay, pin_factory=pin_factory)
+        self._fire_events(self.pin_factory.ticks(), self.is_active)
 
     def __repr__(self):
         try:
-            return '<gpiozero.PingServer object host="%s">' % self.host
-        except:
-            return super(PingServer, self).__repr__()
+            self._check_open()
+            return '<gpiozero.PingServer object host="{self.host}">'.format(
+                self=self)
+        except DeviceClosed:
+            return super().__repr__()
 
     @property
     def host(self):
@@ -111,8 +171,8 @@ class PingServer(InternalDevice):
     @property
     def value(self):
         """
-        Returns :data:`True` if the host returned a single ping, and
-        :data:`False` otherwise.
+        Returns :data:`1` if the host returned a single ping, and :data:`0`
+        otherwise.
         """
         # XXX This is doing a DNS lookup every time it's queried; should we
         # call gethostbyname in the constructor and ping that instead (good
@@ -124,15 +184,43 @@ class PingServer(InternalDevice):
                     ['ping', '-c1', self.host],
                     stdout=devnull, stderr=devnull)
             except subprocess.CalledProcessError:
-                return False
+                return 0
             else:
-                return True
+                return 1
+
+    when_activated = event(
+        """
+        The function to run when the device changes state from inactive
+        (host unresponsive) to active (host responsive).
+
+        This can be set to a function which accepts no (mandatory)
+        parameters, or a Python function which accepts a single mandatory
+        parameter (with as many optional parameters as you like). If the
+        function accepts a single mandatory parameter, the device that
+        activated it will be passed as that parameter.
+
+        Set this property to ``None`` (the default) to disable the event.
+        """)
+
+    when_deactivated = event(
+        """
+        The function to run when the device changes state from inactive
+        (host responsive) to active (host unresponsive).
+
+        This can be set to a function which accepts no (mandatory)
+        parameters, or a Python function which accepts a single mandatory
+        parameter (with as many optional parameters as you like). If the
+        function accepts a single mandatory parameter, the device that
+        activated it will be passed as that parameter.
+
+        Set this property to ``None`` (the default) to disable the event.
+        """)
 
 
-class CPUTemperature(InternalDevice):
+class CPUTemperature(PolledInternalDevice):
     """
-    Extends :class:`InternalDevice` to provide a device which is active when
-    the CPU temperature exceeds the *threshold* value.
+    Extends :class:`PolledInternalDevice` to provide a device which is active
+    when the CPU temperature exceeds the *threshold* value.
 
     The following example plots the CPU's temperature on an LED bar graph::
 
@@ -168,30 +256,42 @@ class CPUTemperature(InternalDevice):
         The temperature above which the device will be considered "active".
         (see :attr:`is_active`). This defaults to 80.0.
 
+    :type event_delay: float
+    :param event_delay:
+        The number of seconds between file reads (defaults to 5 seconds).
+
     :type pin_factory: Factory or None
     :param pin_factory:
         See :doc:`api_pins` for more information (this is an advanced feature
         which most users can ignore).
     """
-    def __init__(self, sensor_file='/sys/class/thermal/thermal_zone0/temp',
-            min_temp=0.0, max_temp=100.0, threshold=80.0, pin_factory=None):
+    def __init__(self, sensor_file='/sys/class/thermal/thermal_zone0/temp', *,
+            min_temp=0.0, max_temp=100.0, threshold=80.0, event_delay=5.0,
+            pin_factory=None):
         self.sensor_file = sensor_file
-        super(CPUTemperature, self).__init__(pin_factory=pin_factory)
-        if min_temp >= max_temp:
-            raise ValueError('max_temp must be greater than min_temp')
-        self.min_temp = min_temp
-        self.max_temp = max_temp
-        if not min_temp <= threshold <= max_temp:
-            warnings.warn(ThresholdOutOfRange(
-                'threshold is outside of the range (min_temp, max_temp)'))
-        self.threshold = threshold
-        self._fire_events(self.pin_factory.ticks(), None)
+        super().__init__(event_delay=event_delay, pin_factory=pin_factory)
+        try:
+            if min_temp >= max_temp:
+                raise ValueError('max_temp must be greater than min_temp')
+            self.min_temp = min_temp
+            self.max_temp = max_temp
+            if not min_temp <= threshold <= max_temp:
+                warnings.warn(ThresholdOutOfRange(
+                    'threshold is outside of the range (min_temp, max_temp)'))
+            self.threshold = threshold
+            self._fire_events(self.pin_factory.ticks(), self.is_active)
+        except:
+            self.close()
+            raise
 
     def __repr__(self):
         try:
-            return '<gpiozero.CPUTemperature object temperature=%.2f>' % self.temperature
-        except:
-            return super(CPUTemperature, self).__repr__()
+            self._check_open()
+            return (
+                '<gpiozero.{self.__class__.__name__} object '
+                'temperature={self.temperature:.2f}>'.format(self=self))
+        except DeviceClosed:
+            return super().__repr__()
 
     @property
     def temperature(self):
@@ -199,7 +299,7 @@ class CPUTemperature(InternalDevice):
         Returns the current CPU temperature in degrees celsius.
         """
         with io.open(self.sensor_file, 'r') as f:
-            return float(f.readline().strip()) / 1000
+            return float(f.read().strip()) / 1000
 
     @property
     def value(self):
@@ -220,11 +320,39 @@ class CPUTemperature(InternalDevice):
         """
         return self.temperature > self.threshold
 
+    when_activated = event(
+        """
+        The function to run when the device changes state from inactive to
+        active (temperature reaches *threshold*).
 
-class LoadAverage(InternalDevice):
+        This can be set to a function which accepts no (mandatory)
+        parameters, or a Python function which accepts a single mandatory
+        parameter (with as many optional parameters as you like). If the
+        function accepts a single mandatory parameter, the device that
+        activated it will be passed as that parameter.
+
+        Set this property to ``None`` (the default) to disable the event.
+        """)
+
+    when_deactivated = event(
+        """
+        The function to run when the device changes state from active to
+        inactive (temperature drops below *threshold*).
+
+        This can be set to a function which accepts no (mandatory)
+        parameters, or a Python function which accepts a single mandatory
+        parameter (with as many optional parameters as you like). If the
+        function accepts a single mandatory parameter, the device that
+        activated it will be passed as that parameter.
+
+        Set this property to ``None`` (the default) to disable the event.
+        """)
+
+
+class LoadAverage(PolledInternalDevice):
     """
-    Extends :class:`InternalDevice` to provide a device which is active when
-    the CPU load average exceeds the *threshold* value.
+    Extends :class:`PolledInternalDevice` to provide a device which is active
+    when the CPU load average exceeds the *threshold* value.
 
     The following example plots the load average on an LED bar graph::
 
@@ -261,13 +389,18 @@ class LoadAverage(InternalDevice):
         The number of minutes over which to average the load. Must be 1, 5 or
         15. This defaults to 5.
 
+    :type event_delay: float
+    :param event_delay:
+        The number of seconds between file reads (defaults to 10 seconds).
+
     :type pin_factory: Factory or None
     :param pin_factory:
         See :doc:`api_pins` for more information (this is an advanced feature
         which most users can ignore).
     """
-    def __init__(self, load_average_file='/proc/loadavg', min_load_average=0.0,
-        max_load_average=1.0, threshold=0.8, minutes=5, pin_factory=None):
+    def __init__(self, load_average_file='/proc/loadavg', *,
+                 min_load_average=0.0, max_load_average=1.0, threshold=0.8,
+                 minutes=5, event_delay=10.0, pin_factory=None):
         if min_load_average >= max_load_average:
             raise ValueError(
                 'max_load_average must be greater than min_load_average')
@@ -286,14 +419,17 @@ class LoadAverage(InternalDevice):
             5: 1,
             15: 2,
         }[minutes]
-        super(LoadAverage, self).__init__(pin_factory=pin_factory)
+        super().__init__(event_delay=event_delay, pin_factory=pin_factory)
         self._fire_events(self.pin_factory.ticks(), None)
 
     def __repr__(self):
         try:
-            return '<gpiozero.LoadAverage object load average=%.2f>' % self.load_average
-        except:
-            return super(LoadAverage, self).__repr__()
+            self._check_open()
+            return (
+                '<gpiozero.{self.__class__.__name__} object '
+                'load average={self.load_average:.2f}>'.format(self=self))
+        except DeviceClosed:
+            return super().__repr__()
 
     @property
     def load_average(self):
@@ -301,7 +437,7 @@ class LoadAverage(InternalDevice):
         Returns the current load average.
         """
         with io.open(self.load_average_file, 'r') as f:
-            file_columns = f.readline().strip().split()
+            file_columns = f.read().strip().split()
             return float(file_columns[self._load_average_file_column])
 
     @property
@@ -322,16 +458,44 @@ class LoadAverage(InternalDevice):
         """
         return self.load_average > self.threshold
 
+    when_activated = event(
+        """
+        The function to run when the device changes state from inactive to
+        active (load average reaches *threshold*).
 
-class TimeOfDay(InternalDevice):
+        This can be set to a function which accepts no (mandatory)
+        parameters, or a Python function which accepts a single mandatory
+        parameter (with as many optional parameters as you like). If the
+        function accepts a single mandatory parameter, the device that
+        activated it will be passed as that parameter.
+
+        Set this property to ``None`` (the default) to disable the event.
+        """)
+
+    when_deactivated = event(
+        """
+        The function to run when the device changes state from active to
+        inactive (load average drops below *threshold*).
+
+        This can be set to a function which accepts no (mandatory)
+        parameters, or a Python function which accepts a single mandatory
+        parameter (with as many optional parameters as you like). If the
+        function accepts a single mandatory parameter, the device that
+        activated it will be passed as that parameter.
+
+        Set this property to ``None`` (the default) to disable the event.
+        """)
+
+
+class TimeOfDay(PolledInternalDevice):
     """
-    Extends :class:`InternalDevice` to provide a device which is active when
-    the computer's clock indicates that the current time is between
+    Extends :class:`PolledInternalDevice` to provide a device which is active
+    when the computer's clock indicates that the current time is between
     *start_time* and *end_time* (inclusive) which are :class:`~datetime.time`
     instances.
 
     The following example turns on a lamp attached to an :class:`Energenie`
-    plug between 7 and 8 AM::
+    plug between 07:00AM and 08:00AM::
 
         from gpiozero import TimeOfDay, Energenie
         from datetime import time
@@ -340,7 +504,8 @@ class TimeOfDay(InternalDevice):
         lamp = Energenie(1)
         morning = TimeOfDay(time(7), time(8))
 
-        lamp.source = morning
+        morning.when_activated = lamp.on
+        morning.when_deactivated = lamp.off
 
         pause()
 
@@ -357,29 +522,41 @@ class TimeOfDay(InternalDevice):
         If :data:`True` (the default), a naive UTC time will be used for the
         comparison rather than a local time-zone reading.
 
+    :type event_delay: float
+    :param event_delay:
+        The number of seconds between file reads (defaults to 10 seconds).
+
     :type pin_factory: Factory or None
     :param pin_factory:
         See :doc:`api_pins` for more information (this is an advanced feature
         which most users can ignore).
     """
-    def __init__(self, start_time, end_time, utc=True, pin_factory=None):
+    def __init__(self, start_time, end_time, *, utc=True, event_delay=5.0,
+                 pin_factory=None):
         self._start_time = None
         self._end_time = None
         self._utc = True
-        super(TimeOfDay, self).__init__(pin_factory=pin_factory)
-        self._start_time = self._validate_time(start_time)
-        self._end_time = self._validate_time(end_time)
-        if self.start_time == self.end_time:
-            raise ValueError('end_time cannot equal start_time')
-        self._utc = utc
-        self._fire_events(self.pin_factory.ticks(), None)
+        super().__init__(event_delay=event_delay, pin_factory=pin_factory)
+        try:
+            self._start_time = self._validate_time(start_time)
+            self._end_time = self._validate_time(end_time)
+            if self.start_time == self.end_time:
+                raise ValueError('end_time cannot equal start_time')
+            self._utc = utc
+            self._fire_events(self.pin_factory.ticks(), self.is_active)
+        except:
+            self.close()
+            raise
 
     def __repr__(self):
         try:
-            return '<gpiozero.TimeOfDay object active between %s and %s %s>' % (
-                self.start_time, self.end_time, ('local', 'UTC')[self.utc])
-        except:
-            return super(TimeOfDay, self).__repr__()
+            self._check_open()
+            return (
+                '<gpiozero.{self.__class__.__name__} object active between '
+                '{self.start_time} and {self.end_time} {tz}>'.format(
+                    self=self, tz=('local', 'UTC')[self.utc]))
+        except DeviceClosed:
+            return super().__repr__()
 
     def _validate_time(self, value):
         if isinstance(value, datetime):
@@ -414,24 +591,51 @@ class TimeOfDay(InternalDevice):
     @property
     def value(self):
         """
-        Returns :data:`True` when the system clock reads between
-        :attr:`start_time` and :attr:`end_time`, and :data:`False` otherwise.
-        If :attr:`start_time` is greater than :attr:`end_time` (indicating a
-        period that crosses midnight), then this returns :data:`True` when the
-        current time is greater than :attr:`start_time` or less than
-        :attr:`end_time`.
+        Returns :data:`1` when the system clock reads between :attr:`start_time`
+        and :attr:`end_time`, and :data:`0` otherwise. If :attr:`start_time` is
+        greater than :attr:`end_time` (indicating a period that crosses
+        midnight), then this returns :data:`1` when the current time is
+        greater than :attr:`start_time` or less than :attr:`end_time`.
         """
         now = datetime.utcnow().time() if self.utc else datetime.now().time()
         if self.start_time < self.end_time:
-            return self.start_time <= now <= self.end_time
+            return int(self.start_time <= now <= self.end_time)
         else:
-            return not self.end_time < now < self.start_time
+            return int(not self.end_time < now < self.start_time)
+
+    when_activated = event(
+        """
+        The function to run when the device changes state from inactive to
+        active (time reaches *start_time*).
+
+        This can be set to a function which accepts no (mandatory)
+        parameters, or a Python function which accepts a single mandatory
+        parameter (with as many optional parameters as you like). If the
+        function accepts a single mandatory parameter, the device that
+        activated it will be passed as that parameter.
+
+        Set this property to ``None`` (the default) to disable the event.
+        """)
+
+    when_deactivated = event(
+        """
+        The function to run when the device changes state from active to
+        inactive (time reaches *end_time*).
+
+        This can be set to a function which accepts no (mandatory)
+        parameters, or a Python function which accepts a single mandatory
+        parameter (with as many optional parameters as you like). If the
+        function accepts a single mandatory parameter, the device that
+        activated it will be passed as that parameter.
+
+        Set this property to ``None`` (the default) to disable the event.
+        """)
 
 
-class DiskUsage(InternalDevice):
+class DiskUsage(PolledInternalDevice):
     """
-    Extends :class:`InternalDevice` to provide a device which is active when
-    the disk space used exceeds the *threshold* value.
+    Extends :class:`PolledInternalDevice` to provide a device which is active
+    when the disk space used exceeds the *threshold* value.
 
     The following example plots the disk usage on an LED bar graph::
 
@@ -455,13 +659,19 @@ class DiskUsage(InternalDevice):
         The disk usage percentage above which the device will be considered
         "active" (see :attr:`is_active`). This defaults to 90.0.
 
+    :type event_delay: float
+    :param event_delay:
+        The number of seconds between file reads (defaults to 30 seconds).
+
     :type pin_factory: Factory or None
     :param pin_factory:
         See :doc:`api_pins` for more information (this is an advanced feature
         which most users can ignore).
     """
-    def __init__(self, filesystem='/', threshold=90.0, pin_factory=None):
-        super(DiskUsage, self).__init__(pin_factory=pin_factory)
+    def __init__(self, filesystem='/', *, threshold=90.0, event_delay=30.0,
+                 pin_factory=None):
+        super().__init__(
+            event_delay=event_delay, pin_factory=pin_factory)
         os.statvfs(filesystem)
         if not 0 <= threshold <= 100:
             warnings.warn(ThresholdOutOfRange(
@@ -472,9 +682,12 @@ class DiskUsage(InternalDevice):
 
     def __repr__(self):
         try:
-            return '<gpiozero.DiskUsage object usage=%.2f>' % self.usage
-        except:
-            return super(DiskUsage, self).__repr__()
+            self._check_open()
+            return (
+                '<gpiozero.{self.__class__.__name__} object '
+                'usage={self.usage:.2f}>'.format(self=self))
+        except DeviceClosed:
+            return super().__repr__()
 
     @property
     def usage(self):
@@ -506,3 +719,31 @@ class DiskUsage(InternalDevice):
         *threshold*.
         """
         return self.usage > self.threshold
+
+    when_activated = event(
+        """
+        The function to run when the device changes state from inactive to
+        active (disk usage reaches *threshold*).
+
+        This can be set to a function which accepts no (mandatory)
+        parameters, or a Python function which accepts a single mandatory
+        parameter (with as many optional parameters as you like). If the
+        function accepts a single mandatory parameter, the device that
+        activated it will be passed as that parameter.
+
+        Set this property to ``None`` (the default) to disable the event.
+        """)
+
+    when_deactivated = event(
+        """
+        The function to run when the device changes state from active to
+        inactive (disk usage drops below *threshold*).
+
+        This can be set to a function which accepts no (mandatory)
+        parameters, or a Python function which accepts a single mandatory
+        parameter (with as many optional parameters as you like). If the
+        function accepts a single mandatory parameter, the device that
+        activated it will be passed as that parameter.
+
+        Set this property to ``None`` (the default) to disable the event.
+        """)

@@ -1,56 +1,23 @@
+# vim: set fileencoding=utf-8:
+#
 # GPIO Zero: a library for controlling the Raspberry Pi's GPIO pins
-# Copyright (c) 2015-2019 Dave Jones <dave@waveform.org.uk>
-# Copyright (c) 2016 Andrew Scheller <github@loowis.durge.org>
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
+# Copyright (c) 2015-2021 Dave Jones <dave@waveform.org.uk>
+# Copyright (c) 2016-2020 Andrew Scheller <github@loowis.durge.org>
 #
-# * Redistributions of source code must retain the above copyright notice,
-#   this list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its contributors
-#   may be used to endorse or promote products derived from this software
-#   without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-
-from __future__ import (
-    unicode_literals,
-    absolute_import,
-    print_function,
-    division,
-    )
-nstr = str
-str = type('')
+# SPDX-License-Identifier: BSD-3-Clause
 
 import io
 import os
+import sys
 import mmap
 import errno
 import struct
 import select
-import warnings
 from time import sleep
 from threading import Thread, Event, RLock
-from collections import Counter
-try:
-    from queue import Queue, Empty
-except ImportError:
-    from Queue import Queue, Empty
+from queue import Queue, Empty
+from pathlib import Path
 
 from .local import LocalPiPin, LocalPiFactory
 from ..exc import (
@@ -62,13 +29,109 @@ from ..exc import (
     )
 
 
-class GPIOMemory(object):
+def dt_resolve_alias(alias, root=Path('/proc/device-tree')):
+    """
+    Returns the full :class:`~pathlib.Path` of a device-tree alias. For
+    example:
 
+        >>> dt_resolve_alias('gpio')
+        '/proc/device-tree/soc/gpio@7e200000'
+        >>> dt_resolve_alias('ethernet0', root='/proc/device-tree')
+        '/proc/device-tree/scb/ethernet@7d580000'
+    """
+    if not isinstance(root, Path):
+        root = Path(root)
+    filename = root / 'aliases' / alias
+    with filename.open('rb') as f:
+        node, tail = f.read().split(b'\0', 1)
+        fs_encoding = sys.getfilesystemencoding()
+        return root / node.decode(fs_encoding).lstrip('/')
+
+def dt_peripheral_reg(node, root=Path('/proc/device-tree')):
+    """
+    Returns the :class:`range` covering the registers of the specified *node*
+    of the device-tree, mapped to the CPU's address space. For example:
+
+        >>> reg = dt_peripheral_reg(dt_resolve_alias('gpio'))
+        >>> '{reg.start:#x}..{reg.stop:#x}'.format(reg=reg)
+        '0xfe200000..0xfe2000b4'
+        >>> hex(dt_peripheral_reg(dt_resolve_alias('ethernet0')).start)
+        '0xfd580000'
+    """
+    # Returns a tuple of (address-cells, size-cells) for *node*
+    def _cells(node):
+        with (node / '#address-cells').open('rb') as f:
+            address_cells = struct.unpack('>L', f.read())[0]
+        with (node / '#size-cells').open('rb') as f:
+            size_cells = struct.unpack('>L', f.read())[0]
+        return (address_cells, size_cells)
+
+    # Returns a generator function which, given a file-like object *source*
+    # iteratively decodes it, yielding a tuple of values from it. Each tuple
+    # contains one integer for each specified *length*, which is the number of
+    # 32-bit device-tree cells that make up that value.
+    def _reader(*lengths):
+        structs = [struct.Struct('>{cells}L'.format(cells=cells))
+                   for cells in lengths]
+        offsets = [sum(s.size for s in structs[:i])
+                   for i in range(len(structs))]
+        buf_len = sum(s.size for s in structs)
+
+        def fn(source):
+            while True:
+                buf = source.read(buf_len)
+                if not buf:
+                    break
+                elif len(buf) < buf_len:
+                    raise IOError('failed to read {buf_len} bytes'.format(
+                        buf_len=buf_len))
+                row = ()
+                for offset, s in zip(offsets, structs):
+                    cells = s.unpack_from(buf, offset)
+                    value = 0
+                    for cell in cells:
+                        value = (value << 32) | cell
+                    row += (value,)
+                yield row
+        return fn
+
+    # Returns a list of (child-range, parent-range) tuples for *node*
+    def _ranges(node):
+        child_cells, size_cells = _cells(node)
+        parent_cells, _ = _cells(node.parent)
+        ranges_reader = _reader(child_cells, parent_cells, size_cells)
+        with (node / 'ranges').open('rb') as f:
+            return [
+                (range(child_base, child_base + size),
+                 range(parent_base, parent_base + size))
+                for child_base, parent_base, size in ranges_reader(f)
+            ]
+
+    if not isinstance(root, Path):
+        root = Path(root)
+    node = root / node
+    child_cells, size_cells = _cells(node.parent)
+    reg_reader = _reader(child_cells, size_cells)
+    with (node / 'reg').open('rb') as f:
+        base, size = list(reg_reader(f))[0]
+    while node.parent != root:
+        # Iterate up the hierarchy, resolving the base address as we go
+        if (node.parent / 'ranges').exists():
+            for child_range, parent_range in _ranges(node.parent):
+                if base in child_range:
+                    base += parent_range.start - child_range.start
+                    break
+        node = node.parent
+    return range(base, base + size)
+
+
+class GPIOMemory:
     GPIO_BASE_OFFSET = 0x200000
     PERI_BASE_OFFSET = {
         'BCM2835': 0x20000000,
         'BCM2836': 0x3f000000,
         'BCM2837': 0x3f000000,
+        'BCM2711': 0xfe000000,
     }
 
     # From BCM2835 data-sheet, p.91
@@ -85,6 +148,8 @@ class GPIOMemory(object):
     GPAFEN_OFFSET   = 0x88 >> 2
     GPPUD_OFFSET    = 0x94 >> 2
     GPPUDCLK_OFFSET = 0x98 >> 2
+    # pull-control registers for BCM2711
+    GPPUPPDN_OFFSET = 0xe4 >> 2
 
     def __init__(self, soc):
         try:
@@ -97,37 +162,44 @@ class GPIOMemory(object):
                     'unable to open /dev/gpiomem or /dev/mem; '
                     'upgrade your kernel or run as root')
             else:
-                offset = self.peripheral_base(soc) + self.GPIO_BASE_OFFSET
+                offset = self.gpio_base(soc)
         else:
             offset = 0
         self.mem = mmap.mmap(self.fd, 4096, offset=offset)
+        # Register reads and writes must be in native format (otherwise
+        # struct resorts to individual byte reads/writes and you can't hit
+        # half a register :). For arm64 compat we have to figure out what the
+        # native unsigned 32-bit type is...
+        try:
+            self.reg_fmt = {
+                struct.calcsize(fmt): fmt
+                for fmt in ('@I', '@L')
+            }[4]
+        except KeyError:
+            raise RuntimeError('unable to find native unsigned 32-bit type')
 
     def close(self):
         self.mem.close()
         os.close(self.fd)
 
-    def peripheral_base(self, soc):
+    def gpio_base(self, soc):
         try:
-            with io.open('/proc/device-tree/soc/ranges', 'rb') as f:
-                f.seek(4)
-                # This is deliberately a big-endian read
-                return struct.unpack(nstr('>L'), f.read(4))[0]
+            return dt_peripheral_reg(dt_resolve_alias('gpio')).start
         except IOError:
             try:
-                return self.PERI_BASE_OFFSET[soc]
+                return self.PERI_BASE_OFFSET[soc] + self.GPIO_BASE_OFFSET
             except KeyError:
                 pass
-        raise IOError('unable to determine peripheral base')
+        raise IOError('unable to determine gpio base')
 
     def __getitem__(self, index):
-        return struct.unpack_from(nstr('<L'), self.mem, index * 4)[0]
+        return struct.unpack_from(self.reg_fmt, self.mem, index * 4)[0]
 
     def __setitem__(self, index, value):
-        struct.pack_into(nstr('<L'), self.mem, index * 4, value)
+        struct.pack_into(self.reg_fmt, self.mem, index * 4, value)
 
 
-class GPIOFS(object):
-
+class GPIOFS:
     GPIO_PATH = '/sys/class/gpio'
 
     def __init__(self, factory, queue):
@@ -149,13 +221,13 @@ class GPIOFS(object):
         return os.path.join(self.GPIO_PATH, name)
 
     def path_value(self, pin):
-        return self.path('gpio%d/value' % pin)
+        return self.path('gpio{pin:d}/value'.format(pin=pin))
 
     def path_dir(self, pin):
-        return self.path('gpio%d/direction' % pin)
+        return self.path('gpio{pin:d}/direction'.format(pin=pin))
 
     def path_edge(self, pin):
-        return self.path('gpio%d/edge' % pin)
+        return self.path('gpio{pin:d}/edge'.format(pin=pin))
 
     def exported(self, pin):
         return pin in self._exports
@@ -177,7 +249,7 @@ class GPIOFS(object):
                                          os.O_RDONLY | os.O_NONBLOCK)
                     except IOError as e:
                         if e.errno == errno.ENOENT:
-                            with io.open(self.path('export'), 'w+b') as f:
+                            with io.open(self.path('export'), 'wb') as f:
                                 f.write(str(pin).encode('ascii'))
                         elif e.errno == errno.EACCES:
                             sleep(i / 100)
@@ -198,7 +270,8 @@ class GPIOFS(object):
                         else:
                             raise
                 if result is None:
-                    raise RuntimeError('failed to export pin %d' % pin)
+                    raise RuntimeError(
+                        'failed to export pin {pin:d}'.format(pin=pin))
             return result
 
     def unexport(self, pin):
@@ -210,7 +283,7 @@ class GPIOFS(object):
                 pass
             else:
                 try:
-                    with io.open(self.path('unexport'), 'w+b') as f:
+                    with io.open(self.path('unexport'), 'wb') as f:
                         f.write(str(pin).encode('ascii'))
                 except IOError as e:
                     if e.errno == errno.EINVAL:
@@ -231,7 +304,7 @@ class GPIOFS(object):
 
 class NativeWatchThread(Thread):
     def __init__(self, factory, queue):
-        super(NativeWatchThread, self).__init__(
+        super().__init__(
             target=self._run, args=(factory, queue))
         self.daemon = True
         self._stop_evt = Event()
@@ -269,7 +342,7 @@ class NativeWatchThread(Thread):
 
 class NativeDispatchThread(Thread):
     def __init__(self, factory, queue):
-        super(NativeDispatchThread, self).__init__(
+        super().__init__(
             target=self._run, args=(factory, queue))
         self.daemon = True
         self._stop_evt = Event()
@@ -319,18 +392,21 @@ class NativeFactory(LocalPiFactory):
         led = LED(12, pin_factory=factory)
     """
     def __init__(self):
-        super(NativeFactory, self).__init__()
+        super().__init__()
         queue = Queue()
         self.mem = GPIOMemory(self.pi_info.soc)
         self.fs = GPIOFS(self, queue)
         self.dispatch = NativeDispatchThread(self, queue)
-        self.pin_class = NativePin
+        if self.pi_info.soc == 'BCM2711':
+            self.pin_class = Native2711Pin
+        else:
+            self.pin_class = Native2835Pin
 
     def close(self):
         if self.dispatch is not None:
             self.dispatch.close()
             self.dispatch = None
-        super(NativeFactory, self).close()
+        super().close()
         if self.fs is not None:
             self.fs.close()
             self.fs = None
@@ -355,18 +431,21 @@ class NativePin(LocalPiPin):
         'alt5':    0b010,
         }
 
-    GPIO_PULL_UPS = {
-        'up':       0b10,
-        'down':     0b01,
-        'floating': 0b00,
-        'reserved': 0b11,
-        }
-
     GPIO_FUNCTION_NAMES = {v: k for (k, v) in GPIO_FUNCTIONS.items()}
-    GPIO_PULL_UP_NAMES = {v: k for (k, v) in GPIO_PULL_UPS.items()}
 
     def __init__(self, factory, number):
-        super(NativePin, self).__init__(factory, number)
+        super().__init__(factory, number)
+        self._reg_init(factory, number)
+        self._last_call = None
+        self._when_changed = None
+        self._change_thread = None
+        self._change_event = Event()
+        self.function = 'input'
+        self.pull = 'up' if self.factory.pi_info.pulled_up(repr(self)) else 'floating'
+        self.bounce = None
+        self.edges = 'none'
+
+    def _reg_init(self, factory, number):
         self._func_offset = self.factory.mem.GPFSEL_OFFSET + (number // 10)
         self._func_shift = (number % 10) * 3
         self._set_offset = self.factory.mem.GPSET_OFFSET + (number // 32)
@@ -375,23 +454,12 @@ class NativePin(LocalPiPin):
         self._clear_shift = number % 32
         self._level_offset = self.factory.mem.GPLEV_OFFSET + (number // 32)
         self._level_shift = number % 32
-        self._pull_offset = self.factory.mem.GPPUDCLK_OFFSET + (number // 32)
-        self._pull_shift = number % 32
         self._edge_offset = self.factory.mem.GPEDS_OFFSET + (number // 32)
         self._edge_shift = number % 32
         self._rising_offset = self.factory.mem.GPREN_OFFSET + (number // 32)
         self._rising_shift = number % 32
         self._falling_offset = self.factory.mem.GPFEN_OFFSET + (number // 32)
         self._falling_shift = number % 32
-        self._last_call = None
-        self._when_changed = None
-        self._change_thread = None
-        self._change_event = Event()
-        self.function = 'input'
-        self._pull = 'floating'
-        self.pull = 'up' if self.factory.pi_info.pulled_up(repr(self)) else 'floating'
-        self.bounce = None
-        self.edges = 'none'
 
     def close(self):
         self.edges = 'none'
@@ -407,7 +475,9 @@ class NativePin(LocalPiPin):
         try:
             value = self.GPIO_FUNCTIONS[value]
         except KeyError:
-            raise PinInvalidFunction('invalid function "%s" for pin %r' % (value, self))
+            raise PinInvalidFunction(
+                'invalid function "{value}" for pin {self!r}'.format(
+                    self=self, value=value))
         self.factory.mem[self._func_offset] = (
             self.factory.mem[self._func_offset]
             & ~(7 << self._func_shift)
@@ -419,31 +489,18 @@ class NativePin(LocalPiPin):
 
     def _set_state(self, value):
         if self.function == 'input':
-            raise PinSetInput('cannot set state of pin %r' % self)
+            raise PinSetInput(
+                'cannot set state of pin {self!r}'.format(self=self))
         if value:
             self.factory.mem[self._set_offset] = 1 << self._set_shift
         else:
             self.factory.mem[self._clear_offset] = 1 << self._clear_shift
 
     def _get_pull(self):
-        return self.GPIO_PULL_UP_NAMES[self._pull]
+        raise NotImplementedError
 
     def _set_pull(self, value):
-        if self.function != 'input':
-            raise PinFixedPull('cannot set pull on non-input pin %r' % self)
-        if value != 'up' and self.factory.pi_info.pulled_up(repr(self)):
-            raise PinFixedPull('%r has a physical pull-up resistor' % self)
-        try:
-            value = self.GPIO_PULL_UPS[value]
-        except KeyError:
-            raise PinInvalidPull('invalid pull direction "%s" for pin %r' % (value, self))
-        self.factory.mem[self.factory.mem.GPPUD_OFFSET] = value
-        sleep(0.000000214)
-        self.factory.mem[self._pull_offset] = 1 << self._pull_shift
-        sleep(0.000000214)
-        self.factory.mem[self.factory.mem.GPPUD_OFFSET] = 0
-        self.factory.mem[self._pull_offset] = 0
-        self._pull = value
+        raise NotImplementedError
 
     def _get_bounce(self):
         return self._bounce
@@ -471,7 +528,9 @@ class NativePin(LocalPiPin):
             if e.errno == errno.ENOENT and value == 'none':
                 pass
             elif e.errno == errno.EINVAL:
-                raise PinInvalidEdges('invalid edge specification "%s" for pin %r' % self)
+                raise PinInvalidEdges(
+                    'invalid edge specification "{value}" for pin '
+                    '{self!r}'.format(self=self, value=value))
             else:
                 raise
 
@@ -481,3 +540,89 @@ class NativePin(LocalPiPin):
 
     def _disable_event_detect(self):
         self.factory.fs.unwatch(self.number)
+
+
+class Native2835Pin(NativePin):
+    """
+    Extends :class:`NativePin` for Pi hardware prior to the Pi 4 (Pi 0, 1, 2,
+    3, and 3+).
+    """
+    GPIO_PULL_UPS = {
+        'up':       0b10,
+        'down':     0b01,
+        'floating': 0b00,
+    }
+
+    GPIO_PULL_UP_NAMES = {v: k for (k, v) in GPIO_PULL_UPS.items()}
+
+    def _reg_init(self, factory, number):
+        super()._reg_init(factory, number)
+        self._pull_offset = self.factory.mem.GPPUDCLK_OFFSET + (number // 32)
+        self._pull_shift = number % 32
+        self._pull = 'floating'
+
+    def _get_pull(self):
+        return self.GPIO_PULL_UP_NAMES[self._pull]
+
+    def _set_pull(self, value):
+        if self.function != 'input':
+            raise PinFixedPull(
+                'cannot set pull on non-input pin {self!r}'.format(self=self))
+        if value != 'up' and self.factory.pi_info.pulled_up(repr(self)):
+            raise PinFixedPull(
+                '{self!r} has a physical pull-up resistor'.format(self=self))
+        try:
+            value = self.GPIO_PULL_UPS[value]
+        except KeyError:
+            raise PinInvalidPull(
+                'invalid pull direction "{value}" for pin {self!r}'.format(
+                    self=self, value=value))
+        self.factory.mem[self.factory.mem.GPPUD_OFFSET] = value
+        sleep(0.000000214)
+        self.factory.mem[self._pull_offset] = 1 << self._pull_shift
+        sleep(0.000000214)
+        self.factory.mem[self.factory.mem.GPPUD_OFFSET] = 0
+        self.factory.mem[self._pull_offset] = 0
+        self._pull = value
+
+
+class Native2711Pin(NativePin):
+    """
+    Extends :class:`NativePin` for Pi 4 hardware (Pi 4, CM4, Pi 400 at the time
+    of writing).
+    """
+    GPIO_PULL_UPS = {
+        'up':       0b01,
+        'down':     0b10,
+        'floating': 0b00,
+    }
+
+    GPIO_PULL_UP_NAMES = {v: k for (k, v) in GPIO_PULL_UPS.items()}
+
+    def _reg_init(self, factory, number):
+        super()._reg_init(factory, number)
+        self._pull_offset = self.factory.mem.GPPUPPDN_OFFSET + (number // 16)
+        self._pull_shift = (number % 16) * 2
+
+    def _get_pull(self):
+        pull = (self.factory.mem[self._pull_offset] >> self._pull_shift) & 3
+        return self.GPIO_PULL_UP_NAMES[pull]
+
+    def _set_pull(self, value):
+        if self.function != 'input':
+            raise PinFixedPull(
+                'cannot set pull on non-input pin {self!r}'.format(self=self))
+        if value != 'up' and self.factory.pi_info.pulled_up(repr(self)):
+            raise PinFixedPull(
+                '{self!r} has a physical pull-up resistor'.format(self=self))
+        try:
+            value = self.GPIO_PULL_UPS[value]
+        except KeyError:
+            raise PinInvalidPull(
+                'invalid pull direction "{value}" for pin {self!r}'.format(
+                    self=self, value=value))
+        self.factory.mem[self._pull_offset] = (
+            self.factory.mem[self._pull_offset]
+            & ~(3 << self._pull_shift)
+            | (value << self._pull_shift)
+            )

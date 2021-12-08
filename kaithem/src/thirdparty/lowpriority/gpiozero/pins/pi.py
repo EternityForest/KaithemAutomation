@@ -1,49 +1,14 @@
+# vim: set fileencoding=utf-8:
+#
 # GPIO Zero: a library for controlling the Raspberry Pi's GPIO pins
-# Copyright (c) 2016-2019 Dave Jones <dave@waveform.org.uk>
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
+# Copyright (c) 2016-2021 Dave Jones <dave@waveform.org.uk>
 #
-# * Redistributions of source code must retain the above copyright notice,
-#   this list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its contributors
-#   may be used to endorse or promote products derived from this software
-#   without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# SPDX-License-Identifier: BSD-3-Clause
 
-from __future__ import (
-    unicode_literals,
-    absolute_import,
-    print_function,
-    division,
-    )
-str = type('')
-
-import io
-from threading import RLock, Lock
+from threading import RLock
 from types import MethodType
-from collections import defaultdict
-try:
-    from weakref import ref, WeakMethod
-except ImportError:
-
-    from ..compat import WeakMethod
+from weakref import ref, WeakMethod
 import warnings
 
 try:
@@ -52,11 +17,10 @@ except ImportError:
     SpiDev = None
 
 from . import Factory, Pin
-from .data import pi_info
+from .data import PiBoardInfo
 from ..exc import (
     PinNoPins,
     PinNonPhysical,
-    PinInvalidPin,
     SPIBadArgs,
     SPISoftwareFallback,
     )
@@ -72,6 +36,25 @@ SPI_HARDWARE_PINS = {
 }
 
 
+def spi_port_device(clock_pin, mosi_pin, miso_pin, select_pin):
+    """
+    Convert a mapping of pin definitions, which must contain 'clock_pin', and
+    'select_pin' at a minimum, to a hardware SPI port, device tuple. Raises
+    :exc:`~gpiozero.SPIBadArgs` if the pins do not represent a valid hardware
+    SPI device.
+    """
+    for port, pins in SPI_HARDWARE_PINS.items():
+        if all((
+                clock_pin  == pins['clock'],
+                mosi_pin   in (None, pins['mosi']),
+                miso_pin   in (None, pins['miso']),
+                select_pin in pins['select'],
+                )):
+            device = pins['select'].index(select_pin)
+            return (port, device)
+    raise SPIBadArgs('invalid pin selection for hardware SPI')
+
+
 class PiFactory(Factory):
     """
     Extends :class:`~gpiozero.Factory`. Abstract base class representing
@@ -79,16 +62,10 @@ class PiFactory(Factory):
     :class:`~gpiozero.pins.local.LocalPiFactory`.
     """
     def __init__(self):
-        super(PiFactory, self).__init__()
+        super().__init__()
         self._info = None
         self.pins = {}
         self.pin_class = None
-        self.spi_classes = {
-            ('hardware', 'exclusive'): None,
-            ('hardware', 'shared'):    None,
-            ('software', 'exclusive'): None,
-            ('software', 'shared'):    None,
-            }
 
     def close(self):
         for pin in self.pins.values():
@@ -96,11 +73,11 @@ class PiFactory(Factory):
         self.pins.clear()
 
     def reserve_pins(self, requester, *pins):
-        super(PiFactory, self).reserve_pins(
+        super().reserve_pins(
             requester, *(self.pi_info.to_gpio(pin) for pin in pins))
 
     def release_pins(self, reserver, *pins):
-        super(PiFactory, self).release_pins(
+        super().release_pins(
             reserver, *(self.pi_info.to_gpio(pin) for pin in pins))
 
     def pin(self, spec):
@@ -113,11 +90,15 @@ class PiFactory(Factory):
         return pin
 
     def _get_revision(self):
+        """
+        This method must be overridden by descendents to return the Pi's
+        revision code as an :class:`int`. The default is unimplemented.
+        """
         raise NotImplementedError
 
     def _get_pi_info(self):
         if self._info is None:
-            self._info = pi_info(self._get_revision())
+            self._info = PiBoardInfo.from_revision(self._get_revision())
         return self._info
 
     def spi(self, **spi_args):
@@ -136,33 +117,31 @@ class PiFactory(Factory):
 
         Both interfaces have the same API, support clock polarity and phase
         attributes, and can handle half and full duplex communications, but the
-        hardware interface is significantly faster (though for many things this
-        doesn't matter).
+        hardware interface is significantly faster (though for many simpler
+        devices this doesn't matter).
         """
         spi_args, kwargs = self._extract_spi_args(**spi_args)
-        shared = 'shared' if kwargs.pop('shared', False) else 'exclusive'
+        shared = bool(kwargs.pop('shared', False))
         if kwargs:
             raise SPIBadArgs(
-                'unrecognized keyword argument %s' % kwargs.popitem()[0])
-        for port, pins in SPI_HARDWARE_PINS.items():
-            if all((
-                    spi_args['clock_pin']  == pins['clock'],
-                    spi_args['mosi_pin']   == pins['mosi'],
-                    spi_args['miso_pin']   == pins['miso'],
-                    spi_args['select_pin'] in pins['select'],
-                    )):
-                try:
-                    return self.spi_classes[('hardware', shared)](
-                        self, port=port,
-                        device=pins['select'].index(spi_args['select_pin'])
-                        )
-                except Exception as e:
-                    warnings.warn(
-                        SPISoftwareFallback(
-                            'failed to initialize hardware SPI, falling back to '
-                            'software (error was: %s)' % str(e)))
-                    break
-        return self.spi_classes[('software', shared)](self, **spi_args)
+                'unrecognized keyword argument {arg}'.format(
+                    arg=kwargs.popitem()[0]))
+        try:
+            port, device = spi_port_device(**spi_args)
+        except SPIBadArgs:
+            # Assume request is for a software SPI implementation
+            pass
+        else:
+            try:
+                return self._get_spi_class(shared, hardware=True)(
+                    pin_factory=self, **spi_args)
+            except Exception as e:
+                warnings.warn(
+                    SPISoftwareFallback(
+                        'failed to initialize hardware SPI, falling back to '
+                        'software (error was: {e!s})'.format(e=e)))
+        return self._get_spi_class(shared, hardware=False)(
+            pin_factory=self, **spi_args)
 
     def _extract_spi_args(self, **kwargs):
         """
@@ -196,7 +175,8 @@ class PiFactory(Factory):
             spi_args = pin_defaults
         elif set(spi_args) <= set(pin_defaults):
             spi_args = {
-                key: self.pi_info.to_gpio(spi_args.get(key, default))
+                key: None if spi_args.get(key, default) is None else
+                    self.pi_info.to_gpio(spi_args.get(key, default))
                 for key, default in pin_defaults.items()
                 }
         elif set(spi_args) <= set(dev_defaults):
@@ -208,13 +188,14 @@ class PiFactory(Factory):
                 selected_hw = SPI_HARDWARE_PINS[spi_args['port']]
             except KeyError:
                 raise SPIBadArgs(
-                    'port %d is not a valid SPI port' % spi_args['port'])
+                    'port {spi_args[port]} is not a valid SPI port'.format(
+                        spi_args=spi_args))
             try:
                 selected_hw['select'][spi_args['device']]
             except IndexError:
                 raise SPIBadArgs(
-                    'device must be in the range 0..%d' %
-                    len(selected_hw['select']))
+                    'device must be in the range 0..{count}'.format(
+                        count=len(selected_hw['select'])))
             spi_args = {
                 key: value if key != 'select_pin' else selected_hw['select'][spi_args['device']]
                 for key, value in pin_defaults.items()
@@ -225,6 +206,17 @@ class PiFactory(Factory):
                 'mosi_pin, miso_pin, and select_pin; combinations of the two '
                 'schemes (e.g. port and clock_pin) are not permitted')
         return spi_args, kwargs
+
+    def _get_spi_class(self, shared, hardware):
+        """
+        Returns a sub-class of the :class:`SPI` which can be constructed with
+        *clock_pin*, *mosi_pin*, *miso_pin*, and *select_pin* arguments. The
+        *shared* argument dictates whether the returned class uses the
+        :class:`SharedMixin` to permit sharing instances between components,
+        while *hardware* indicates whether the returned class uses the kernel's
+        SPI device(s) rather than a bit-banged software implementation.
+        """
+        raise NotImplementedError
 
 
 class PiPin(Pin):
@@ -257,7 +249,7 @@ class PiPin(Pin):
     * :meth:`_set_edges`
     """
     def __init__(self, factory, number):
-        super(PiPin, self).__init__()
+        super().__init__()
         self._factory = factory
         self._when_changed_lock = RLock()
         self._when_changed = None
@@ -265,16 +257,15 @@ class PiPin(Pin):
         try:
             factory.pi_info.physical_pin(repr(self))
         except PinNoPins:
-            warnings.warn(
-                PinNonPhysical(
-                    'no physical pins exist for %s' % repr(self)))
+            warnings.warn(PinNonPhysical(
+                'no physical pins exist for {self!r}'.format(self=self)))
 
     @property
     def number(self):
         return self._number
 
     def __repr__(self):
-        return 'GPIO%d' % self._number
+        return 'GPIO{self._number}'.format(self=self)
 
     @property
     def factory(self):

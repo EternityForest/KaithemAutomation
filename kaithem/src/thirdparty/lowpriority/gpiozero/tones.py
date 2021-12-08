@@ -1,50 +1,15 @@
 # vim: set fileencoding=utf-8:
 #
 # GPIO Zero: a library for controlling the Raspberry Pi's GPIO pins
+#
 # Copyright (c) 2019 Dave Jones <dave@waveform.org.uk>
 # Copyright (c) 2019 Ben Nuttall <ben@bennuttall.com>
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice,
-#   this list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its contributors
-#   may be used to endorse or promote products derived from this software
-#   without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-
-from __future__ import (
-    unicode_literals,
-    absolute_import,
-    print_function,
-    division,
-)
-str = type('')
+# SPDX-License-Identifier: BSD-3-Clause
 
 import re
 import warnings
-from collections import namedtuple
-try:
-    from math import log2
-except ImportError:
-    from .compat import log2
+from math import log2
 
 from .exc import AmbiguousTone
 
@@ -108,25 +73,21 @@ class Tone(float):
     }
     regex = re.compile(
         r'(?P<note>[A-G])'
-        r'(?P<semi>[%s]?)'
-        r'(?P<octave>[0-9])' % ''.join(semitones.keys()))
+        r'(?P<semi>[{semitones}]?)'
+        r'(?P<octave>[0-9])'.format(semitones=''.join(semitones.keys())))
 
-    def __new__(cls, value=None, **kwargs):
-        if value is None:
-            if len(kwargs) != 1:
-                raise TypeError('expected precisely one keyword argument')
-            key, value = kwargs.popitem()
-            try:
-                return {
-                    'frequency': cls.from_frequency,
-                    'midi': cls.from_midi,
-                    'note': cls.from_note,
-                }[key](value)
-            except KeyError:
-                raise TypeError('unexpected keyword argument %r' % key)
+    def __new__(cls, value=None, *, frequency=None, midi=None, note=None):
+        n = sum(1 for arg in (value, frequency, midi, note) if arg is not None)
+        if n != 1:
+            raise TypeError('must specify a value, frequency, midi number, '
+                            'or note')
+        if note is not None:
+            return cls.from_note(note)
+        elif midi is not None:
+            return cls.from_midi(midi)
+        elif frequency is not None:
+            return cls.from_frequency(frequency)
         else:
-            if kwargs:
-                raise TypeError('cannot specify keywords with a value')
             if isinstance(value, (int, float)):
                 if 0 <= value < 128:
                     if value > 0:
@@ -154,14 +115,15 @@ class Tone(float):
         except ValueError:
             midi = ''
         else:
-            midi = ' midi=%r' % midi
+            midi = ' midi={midi!r}'.format(midi=midi)
         try:
             note = self.note
         except ValueError:
             note = ''
         else:
-            note = ' note=%r' % note
-        return "<Tone%s%s frequency=%.2fHz>" % (note, midi, self.frequency)
+            note = ' note={note!r}'.format(note=note)
+        return "<Tone{note}{midi} frequency={self.frequency:.2f}Hz>".format(
+            note=note, midi=midi, self=self)
 
     @classmethod
     def from_midi(cls, midi_note):
@@ -177,7 +139,7 @@ class Tone(float):
             A4_midi = 69
             A4_freq = 440
             return cls.from_frequency(A4_freq * 2 ** ((midi - A4_midi) / 12))
-        raise ValueError('invalid MIDI note: %r' % midi)
+        raise ValueError('invalid MIDI note: {midi!r}'.format(midi=midi))
 
     @classmethod
     def from_note(cls, note):
@@ -202,7 +164,8 @@ class Tone(float):
                     Tone.tones.index(match.group('note')) +
                     Tone.semitones[match.group('semi')] +
                     octave * 12)
-        raise ValueError('invalid note specification: %r' % note)
+        raise ValueError(
+            'invalid note specification: {note!r}'.format(note=note))
 
     @classmethod
     def from_frequency(cls, freq):
@@ -213,8 +176,8 @@ class Tone(float):
         .. _Hz: https://en.wikipedia.org/wiki/Hertz
         """
         if 0 < freq <= 20000:
-            return super(Tone, cls).__new__(cls, freq)
-        raise ValueError('invalid frequency: %.2f' % freq)
+            return super().__new__(cls, freq)
+        raise ValueError('invalid frequency: {freq:.2f}'.format(freq=freq))
 
     @property
     def frequency(self):
@@ -236,7 +199,9 @@ class Tone(float):
         result = int(round(12 * log2(self.frequency / 440) + 69))
         if 0 <= result < 128:
             return result
-        raise ValueError('%f is outside the MIDI note range' % self.frequency)
+        raise ValueError(
+            '{self.frequency:f} is outside the MIDI note range'.format(
+                self=self))
 
     @property
     def note(self):
@@ -256,7 +221,9 @@ class Tone(float):
                 ('#' if Tone.tones[index] == Tone.tones[index - 1] else '') +
                 str(octave)
             )
-        raise ValueError('%f is outside the notation range' % self.frequency)
+        raise ValueError(
+            '{self.frequency:f} is outside the notation range'.format(
+                self=self))
 
     def up(self, n=1):
         """

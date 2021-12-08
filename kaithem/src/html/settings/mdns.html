@@ -1,7 +1,6 @@
 <%include file="/pageheader.html"/>
 <%!
 from src import systasks
-from src import timesync
 %>
 <h1>Local Network</h1>
 <div class="sectionbox">
@@ -12,10 +11,6 @@ from src import timesync
 <dd>${i[1]|h} at ${i[0]|h} on port ${i[3]|h}</dd>
 %endfor
 
-%for i in timesync.local_ntp_servers:
-<dt><b>${i|h}</b></dt>
-<dd>NTP server at: ${timesync.local_ntp_servers[i][0]|h}:${timesync.local_ntp_servers[i][1]|h}</dd>
-%endfor
 </ul>
 </div>
 <%include file="/pagefooter.html"/>

@@ -1,69 +1,164 @@
+# vim: set fileencoding=utf-8:
+#
 # GPIO Zero: a library for controlling the Raspberry Pi's GPIO pins
-# Copyright (c) 2016-2019 Dave Jones <dave@waveform.org.uk>
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
+# Copyright (c) 2016-2021 Dave Jones <dave@waveform.org.uk>
 #
-# * Redistributions of source code must retain the above copyright notice,
-#   this list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its contributors
-#   may be used to endorse or promote products derived from this software
-#   without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-
-from __future__ import (
-    unicode_literals,
-    print_function,
-    absolute_import,
-    division,
-    )
-str = type('')
-
+# SPDX-License-Identifier: BSD-3-Clause
 
 import operator
 from threading import RLock
 
+from . import SPI
 from ..devices import Device, SharedMixin
 from ..input_devices import InputDevice
 from ..output_devices import OutputDevice
+from ..exc import DeviceClosed, SPIInvalidClockMode
+
+
+class SPISoftware(SPI):
+    """
+    A software bit-banged implementation of the :class:`gpiozero.pins.SPI`
+    interface.
+
+    This is a reasonable basis for a *local* SPI software implementation, but
+    be aware that it's unlikely to be usable for remote operation (a dedicated
+    daemon that locally handles SPI transactions should be used for such
+    operations). Instances will happily share their clock, mosi, and miso pins
+    with other instances provided each has a distinct select pin.
+
+    See :class:`~gpiozero.pins.spi.SPISoftwareBus` for the actual SPI
+    transfer logic.
+    """
+    def __init__(self, clock_pin, mosi_pin, miso_pin, select_pin, *,
+                 pin_factory):
+        self._bus = None
+        self._select = None
+        super().__init__(pin_factory=pin_factory)
+        try:
+            # XXX We *should* be storing clock_mode locally, not clock_phase;
+            # after all different users of the bus can disagree about the
+            # clock's polarity and even select pin polarity
+            self._clock_phase = False
+            self._lsb_first = False
+            self._bits_per_word = 8
+            self._bus = SPISoftwareBus(
+                clock_pin, mosi_pin, miso_pin, pin_factory=pin_factory)
+            self._select = OutputDevice(
+                select_pin, active_high=False, pin_factory=pin_factory)
+        except:
+            self.close()
+            raise
+
+    def _conflicts_with(self, other):
+        return not (
+            isinstance(other, SoftwareSPI) and
+            (self._select.pin.number != other._select.pin.number)
+            )
+
+    def close(self):
+        if self._select:
+            self._select.close()
+        self._select = None
+        if self._bus is not None:
+            self._bus.close()
+        self._bus = None
+        super().close()
+
+    @property
+    def closed(self):
+        return self._bus is None
+
+    def __repr__(self):
+        try:
+            self._check_open()
+            return (
+                'SPI(clock_pin={self._bus.clock.pin.number}, '
+                'mosi_pin={self._bus.mosi.pin.number}, '
+                'miso_pin={self._bus.miso.pin.number}, '
+                'select_pin={self._select.pin.number})'.format(self=self))
+        except DeviceClosed:
+            return 'SPI(closed)'
+
+    def transfer(self, data):
+        with self._bus.lock:
+            self._select.on()
+            try:
+                return self._bus.transfer(
+                    data, self._clock_phase, self._lsb_first,
+                    self._bits_per_word)
+            finally:
+                self._select.off()
+
+    def _get_clock_mode(self):
+        with self._bus.lock:
+            return (not self._bus.clock.active_high) << 1 | self._clock_phase
+
+    def _set_clock_mode(self, value):
+        if not (0 <= value < 4):
+            raise SPIInvalidClockMode(
+                "{value} is not a valid clock mode".format(value=value))
+        with self._bus.lock:
+            self._bus.clock.active_high = not (value & 2)
+            self._clock_phase = bool(value & 1)
+
+    def _get_lsb_first(self):
+        return self._lsb_first
+
+    def _set_lsb_first(self, value):
+        self._lsb_first = bool(value)
+
+    def _get_bits_per_word(self):
+        return self._bits_per_word
+
+    def _set_bits_per_word(self, value):
+        if value < 1:
+            raise ValueError('bits_per_word must be positive')
+        self._bits_per_word = int(value)
+
+    def _get_select_high(self):
+        return self._select.active_high
+
+    def _set_select_high(self, value):
+        with self._bus.lock:
+            self._select.active_high = value
+            self._select.off()
 
 
 class SPISoftwareBus(SharedMixin, Device):
-    def __init__(self, clock_pin, mosi_pin, miso_pin):
+    """
+    A software bit-banged SPI bus implementation, used by
+    :class:`~gpiozero.pins.spi.SPISoftware` to implement shared SPI interfaces.
+
+    .. warning::
+
+        This implementation has no rate control; it simply clocks out data as
+        fast as it can as Python isn't terribly quick on a Pi anyway, and the
+        extra logic required for rate control is liable to reduce the maximum
+        achievable data rate quite substantially.
+    """
+    def __init__(self, clock_pin, mosi_pin, miso_pin, *, pin_factory):
         self.lock = None
         self.clock = None
         self.mosi = None
         self.miso = None
-        super(SPISoftwareBus, self).__init__()
+        super().__init__()
+        # XXX Should probably just use CompositeDevice for this; would make
+        # close() a bit cleaner - any implications with the RLock?
         self.lock = RLock()
         try:
-            self.clock = OutputDevice(clock_pin, active_high=True)
+            self.clock = OutputDevice(
+                clock_pin, active_high=True, pin_factory=pin_factory)
             if mosi_pin is not None:
-                self.mosi = OutputDevice(mosi_pin)
+                self.mosi = OutputDevice(mosi_pin, pin_factory=pin_factory)
             if miso_pin is not None:
-                self.miso = InputDevice(miso_pin)
+                self.miso = InputDevice(miso_pin, pin_factory=pin_factory)
         except:
             self.close()
             raise
 
     def close(self):
-        super(SPISoftwareBus, self).close()
+        super().close()
         if getattr(self, 'lock', None):
             with self.lock:
                 if self.miso is not None:
@@ -82,7 +177,7 @@ class SPISoftwareBus(SharedMixin, Device):
         return self.lock is None
 
     @classmethod
-    def _shared_key(cls, clock_pin, mosi_pin, miso_pin):
+    def _shared_key(cls, clock_pin, mosi_pin, miso_pin, *, pin_factory=None):
         return (clock_pin, mosi_pin, miso_pin)
 
     def transfer(self, data, clock_phase=False, lsb_first=False, bits_per_word=8):

@@ -1,52 +1,19 @@
+# vim: set fileencoding=utf-8:
+#
 # GPIO Zero: a library for controlling the Raspberry Pi's GPIO pins
-# Copyright (c) 2018-2019 Ben Nuttall <ben@bennuttall.com>
-# Copyright (c) 2016-2019 Dave Jones <dave@waveform.org.uk>
+#
+# Copyright (c) 2016-2021 Dave Jones <dave@waveform.org.uk>
+# Copyright (c) 2018-2021 Ben Nuttall <ben@bennuttall.com>
 # Copyright (c) 2016 Andrew Scheller <github@loowis.durge.org>
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice,
-#   this list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its contributors
-#   may be used to endorse or promote products derived from this software
-#   without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-
-from __future__ import (
-    unicode_literals,
-    print_function,
-    absolute_import,
-    division,
-    )
-nstr = str
-str = type('')
+# SPDX-License-Identifier: BSD-3-Clause
 
 import inspect
 import weakref
 from functools import wraps, partial
 from threading import Event
 from collections import deque
-try:
-    from statistics import median
-except ImportError:
-    from .compat import median
+from statistics import median
 import warnings
 
 from .threads import GPIOThread
@@ -63,7 +30,8 @@ callback_warning = (
     'e.g. btn.when_pressed = pressed() instead of btn.when_pressed = pressed'
 )
 
-class ValuesMixin(object):
+
+class ValuesMixin:
     """
     Adds a :attr:`values` property to the class which returns an infinite
     generator of readings from the :attr:`~Device.value` property. There is
@@ -87,7 +55,7 @@ class ValuesMixin(object):
                 break
 
 
-class SourceMixin(object):
+class SourceMixin:
     """
     Adds a :attr:`source` property to the class which, given an iterable or a
     :class:`ValuesMixin` descendent, sets :attr:`~Device.value` to each member
@@ -103,11 +71,11 @@ class SourceMixin(object):
         self._source = None
         self._source_thread = None
         self._source_delay = 0.01
-        super(SourceMixin, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def close(self):
         self.source = None
-        super(SourceMixin, self).close()
+        super().close()
 
     def _copy_values(self, source):
         for v in source:
@@ -146,11 +114,11 @@ class SourceMixin(object):
             value = value.values
         self._source = value
         if value is not None:
-            self._source_thread = GPIOThread(target=self._copy_values, args=(value,))
+            self._source_thread = GPIOThread(self._copy_values, (value,))
             self._source_thread.start()
 
 
-class SharedMixin(object):
+class SharedMixin:
     """
     This mixin marks a class as "shared". In this case, the meta-class
     (GPIOMeta) will use :meth:`_shared_key` to convert the constructor
@@ -167,139 +135,34 @@ class SharedMixin(object):
 
     def __del__(self):
         self._refs = 0
-        super(SharedMixin, self).__del__()
+        super().__del__()
 
     @classmethod
     def _shared_key(cls, *args, **kwargs):
         """
-        Given the constructor arguments, returns an immutable key representing
-        the instance. The default simply assumes all positional arguments are
-        immutable.
+        This is called with the constructor arguments to generate a unique
+        key (which must be storable in a :class:`dict` and, thus, immutable
+        and hashable) representing the instance that can be shared. This must
+        be overridden by descendents.
         """
-        return args
+        raise NotImplementedError
 
 
-class EventsMixin(object):
+class event:
     """
-    Adds edge-detected :meth:`when_activated` and :meth:`when_deactivated`
-    events to a device based on changes to the :attr:`~Device.is_active`
-    property common to all devices. Also adds :meth:`wait_for_active` and
-    :meth:`wait_for_inactive` methods for level-waiting.
+    A descriptor representing a callable event on a class descending from
+    :class:`EventsMixin`.
 
-    .. note::
-
-        Note that this mixin provides no means of actually firing its events;
-        call :meth:`_fire_events` in sub-classes when device state changes to
-        trigger the events. This should also be called once at the end of
-        initialization to set initial states.
+    Instances of this class are very similar to a :class:`property` but also
+    deal with notifying the owning class when events are assigned (or
+    unassigned) and wrapping callbacks implicitly as appropriate.
     """
-    def __init__(self, *args, **kwargs):
-        super(EventsMixin, self).__init__(*args, **kwargs)
-        self._active_event = Event()
-        self._inactive_event = Event()
-        self._when_activated = None
-        self._when_deactivated = None
-        self._last_active = None
-        self._last_changed = self.pin_factory.ticks()
+    def __init__(self, doc=None):
+        self.handlers = {}
+        self.__doc__ = doc
 
-    def wait_for_active(self, timeout=None):
-        """
-        Pause the script until the device is activated, or the timeout is
-        reached.
-
-        :type timeout: float or None
-        :param timeout:
-            Number of seconds to wait before proceeding. If this is
-            :data:`None` (the default), then wait indefinitely until the device
-            is active.
-        """
-        return self._active_event.wait(timeout)
-
-    def wait_for_inactive(self, timeout=None):
-        """
-        Pause the script until the device is deactivated, or the timeout is
-        reached.
-
-        :type timeout: float or None
-        :param timeout:
-            Number of seconds to wait before proceeding. If this is
-            :data:`None` (the default), then wait indefinitely until the device
-            is inactive.
-        """
-        return self._inactive_event.wait(timeout)
-
-    @property
-    def when_activated(self):
-        """
-        The function to run when the device changes state from inactive to
-        active.
-
-        This can be set to a function which accepts no (mandatory) parameters,
-        or a Python function which accepts a single mandatory parameter (with
-        as many optional parameters as you like). If the function accepts a
-        single mandatory parameter, the device that activated will be passed
-        as that parameter.
-
-        Set this property to :data:`None` (the default) to disable the event.
-        """
-        return self._when_activated
-
-    @when_activated.setter
-    def when_activated(self, value):
-        if self.when_activated is None and value is None:
-            warnings.warn(CallbackSetToNone(callback_warning))
-        self._when_activated = self._wrap_callback(value)
-
-    @property
-    def when_deactivated(self):
-        """
-        The function to run when the device changes state from active to
-        inactive.
-
-        This can be set to a function which accepts no (mandatory) parameters,
-        or a Python function which accepts a single mandatory parameter (with
-        as many optional parameters as you like). If the function accepts a
-        single mandatory parameter, the device that deactivated will be
-        passed as that parameter.
-
-        Set this property to :data:`None` (the default) to disable the event.
-        """
-        return self._when_deactivated
-
-    @when_deactivated.setter
-    def when_deactivated(self, value):
-        if self.when_deactivated is None and value is None:
-            warnings.warn(CallbackSetToNone(callback_warning))
-        self._when_deactivated = self._wrap_callback(value)
-
-    @property
-    def active_time(self):
-        """
-        The length of time (in seconds) that the device has been active for.
-        When the device is inactive, this is :data:`None`.
-        """
-        if self._active_event.is_set():
-            return self.pin_factory.ticks_diff(self.pin_factory.ticks(),
-                                               self._last_changed)
-        else:
-            return None
-
-    @property
-    def inactive_time(self):
-        """
-        The length of time (in seconds) that the device has been inactive for.
-        When the device is active, this is :data:`None`.
-        """
-        if self._inactive_event.is_set():
-            return self.pin_factory.ticks_diff(self.pin_factory.ticks(),
-                                               self._last_changed)
-        else:
-            return None
-
-    def _wrap_callback(self, fn):
-        if fn is None:
-            return None
-        elif not callable(fn):
+    def _wrap_callback(self, instance, fn):
+        if not callable(fn):
             raise BadEventHandler('value must be None or a callable')
         # If fn is wrapped with partial (i.e. partial, partialmethod, or wraps
         # has been used to produce it) we need to dig out the "real" function
@@ -328,15 +191,155 @@ class EventsMixin(object):
                 try:
                     # If the above fails, try binding with a single parameter
                     # (ourselves). If this works, wrap the specified callback
-                    inspect.getcallargs(wrapped_fn, *(args + (self,)))
+                    inspect.getcallargs(wrapped_fn, *(args + (instance,)))
                     @wraps(fn)
                     def wrapper():
-                        return fn(self)
+                        return fn(instance)
                     return wrapper
                 except TypeError:
                     raise BadEventHandler(
                         'value must be a callable which accepts up to one '
                         'mandatory parameter')
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return self
+        else:
+            return self.handlers.get(id(instance))
+
+    def __set__(self, instance, value):
+        if value is None:
+            try:
+                del self.handlers[id(instance)]
+            except KeyError:
+                warnings.warn(CallbackSetToNone(callback_warning))
+        else:
+            self.handlers[id(instance)] = self._wrap_callback(instance, value)
+        enabled = any(
+            obj.handlers.get(id(instance))
+            for name in dir(type(instance))
+            for obj in (getattr(type(instance), name),)
+            if isinstance(obj, event)
+        )
+        instance._start_stop_events(enabled)
+
+
+class EventsMixin:
+    """
+    Adds edge-detected :meth:`when_activated` and :meth:`when_deactivated`
+    events to a device based on changes to the :attr:`~Device.is_active`
+    property common to all devices. Also adds :meth:`wait_for_active` and
+    :meth:`wait_for_inactive` methods for level-waiting.
+
+    .. note::
+
+        Note that this mixin provides no means of actually firing its events;
+        call :meth:`_fire_events` in sub-classes when device state changes to
+        trigger the events. This should also be called once at the end of
+        initialization to set initial states.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._active_event = Event()
+        self._inactive_event = Event()
+        self._last_active = None
+        self._last_changed = self.pin_factory.ticks()
+
+    def _all_events(self):
+        """
+        Generator function which yields all :class:`event` instances defined
+        against this class.
+        """
+        for name in dir(type(self)):
+            obj = getattr(type(self), name)
+            if isinstance(obj, event):
+                yield obj
+
+    def close(self):
+        for ev in self._all_events():
+            try:
+                del ev.handlers[id(self)]
+            except KeyError:
+                pass
+        super().close()
+
+    def wait_for_active(self, timeout=None):
+        """
+        Pause the script until the device is activated, or the timeout is
+        reached.
+
+        :type timeout: float or None
+        :param timeout:
+            Number of seconds to wait before proceeding. If this is
+            :data:`None` (the default), then wait indefinitely until the device
+            is active.
+        """
+        return self._active_event.wait(timeout)
+
+    def wait_for_inactive(self, timeout=None):
+        """
+        Pause the script until the device is deactivated, or the timeout is
+        reached.
+
+        :type timeout: float or None
+        :param timeout:
+            Number of seconds to wait before proceeding. If this is
+            :data:`None` (the default), then wait indefinitely until the device
+            is inactive.
+        """
+        return self._inactive_event.wait(timeout)
+
+    when_activated = event(
+        """
+        The function to run when the device changes state from inactive to
+        active.
+
+        This can be set to a function which accepts no (mandatory) parameters,
+        or a Python function which accepts a single mandatory parameter (with
+        as many optional parameters as you like). If the function accepts a
+        single mandatory parameter, the device that activated it will be passed
+        as that parameter.
+
+        Set this property to :data:`None` (the default) to disable the event.
+        """)
+
+    when_deactivated = event(
+        """
+        The function to run when the device changes state from active to
+        inactive.
+
+        This can be set to a function which accepts no (mandatory) parameters,
+        or a Python function which accepts a single mandatory parameter (with
+        as many optional parameters as you like). If the function accepts a
+        single mandatory parameter, the device that deactivated it will be
+        passed as that parameter.
+
+        Set this property to :data:`None` (the default) to disable the event.
+        """)
+
+    @property
+    def active_time(self):
+        """
+        The length of time (in seconds) that the device has been active for.
+        When the device is inactive, this is :data:`None`.
+        """
+        if self._active_event.is_set():
+            return self.pin_factory.ticks_diff(self.pin_factory.ticks(),
+                                               self._last_changed)
+        else:
+            return None
+
+    @property
+    def inactive_time(self):
+        """
+        The length of time (in seconds) that the device has been inactive for.
+        When the device is active, this is :data:`None`.
+        """
+        if self._inactive_event.is_set():
+            return self.pin_factory.ticks_diff(self.pin_factory.ticks(),
+                                               self._last_changed)
+        else:
+            return None
 
     def _fire_activated(self):
         # These methods are largely here to be overridden by descendents
@@ -349,9 +352,22 @@ class EventsMixin(object):
             self.when_deactivated()
 
     def _fire_events(self, ticks, new_active):
-        # NOTE: in contrast to the pin when_changed event, this method takes
-        # ticks and *is_active* (i.e. the device's .is_active) as opposed to a
-        # pin's *state*.
+        """
+        This method should be called by descendents whenever the
+        :attr:`~Device.is_active` property is likely to have changed (for
+        example, in response to a pin's :attr:`~gpiozero.Pin.state` changing).
+
+        The *ticks* parameter must be set to the time when the change occurred;
+        this can usually be obtained from the pin factory's
+        :meth:`gpiozero.Factory.ticks` method but some pin implementations will
+        implicitly provide the ticks when an event occurs as part of their
+        reporting mechanism.
+
+        The *new_active* parameter must be set to the device's
+        :attr:`~Device.is_active` value at the time indicated by *ticks* (which
+        is not necessarily the value of :attr:`~Device.is_active` right now, if
+        the pin factory provides means of reporting a pin's historical state).
+        """
         old_active, self._last_active = self._last_active, new_active
         if old_active is None:
             # Initial "indeterminate" state; set events but don't fire
@@ -371,6 +387,23 @@ class EventsMixin(object):
                 self._inactive_event.set()
                 self._fire_deactivated()
 
+    def _start_stop_events(self, enabled):
+        """
+        This is a stub method that only exists to be overridden by descendents.
+        It is called when :class:`event` properties are assigned (including
+        when set to :data:`None) to permit the owning instance to activate or
+        deactivate monitoring facilities.
+
+        For example, if a descendent requires a background thread to monitor a
+        device, it would be preferable to only run the thread if event handlers
+        are present to respond to it.
+
+        The *enabled* parameter is :data:`False` when all :class:`event`
+        properties on the owning class are :data:`None`, and :data:`True`
+        otherwise.
+        """
+        pass
+
 
 class HoldMixin(EventsMixin):
     """
@@ -380,7 +413,7 @@ class HoldMixin(EventsMixin):
     """
     def __init__(self, *args, **kwargs):
         self._hold_thread = None
-        super(HoldMixin, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._when_held = None
         self._held_from = None
         self._hold_time = 1
@@ -391,22 +424,21 @@ class HoldMixin(EventsMixin):
         if self._hold_thread is not None:
             self._hold_thread.stop()
         self._hold_thread = None
-        super(HoldMixin, self).close()
+        super().close()
 
     def _fire_activated(self):
-        super(HoldMixin, self)._fire_activated()
+        super()._fire_activated()
         self._hold_thread.holding.set()
 
     def _fire_deactivated(self):
         self._held_from = None
-        super(HoldMixin, self)._fire_deactivated()
+        super()._fire_deactivated()
 
     def _fire_held(self):
         if self.when_held:
             self.when_held()
 
-    @property
-    def when_held(self):
+    when_held = event(
         """
         The function to run when the device has remained active for
         :attr:`hold_time` seconds.
@@ -418,12 +450,7 @@ class HoldMixin(EventsMixin):
         as that parameter.
 
         Set this property to :data:`None` (the default) to disable the event.
-        """
-        return self._when_held
-
-    @when_held.setter
-    def when_held(self, value):
-        self._when_held = self._wrap_callback(value)
+        """)
 
     @property
     def hold_time(self):
@@ -484,7 +511,7 @@ class HoldThread(GPIOThread):
     device is active.
     """
     def __init__(self, parent):
-        super(HoldThread, self).__init__(
+        super().__init__(
             target=self.held, args=(weakref.proxy(parent),))
         self.holding = Event()
         self.start()
@@ -520,13 +547,13 @@ class GPIOQueue(GPIOThread):
             self, parent, queue_len=5, sample_wait=0.0, partial=False,
             average=median, ignore=None):
         assert callable(average)
-        super(GPIOQueue, self).__init__(target=self.fill)
         if queue_len < 1:
             raise BadQueueLen('queue_len must be at least one')
         if sample_wait < 0:
             raise BadWaitTime('sample_wait must be 0 or greater')
         if ignore is None:
             ignore = set()
+        super().__init__(target=self.fill)
         self.queue = deque(maxlen=queue_len)
         self.partial = bool(partial)
         self.sample_wait = float(sample_wait)

@@ -58,8 +58,10 @@ def on_service_state_change(zeroconf, service_type, name, state_change):
                 logging.exception("???")
 
 
-browser = ServiceBrowser(util.zeroconf, "_https._tcp.local.", handlers=[
-                         on_service_state_change])
+
+#Not common enough to waste CPU all the time on
+#browser = ServiceBrowser(util.zeroconf, "_https._tcp.local.", handlers=[ on_service_state_change])
+
 browser2 = ServiceBrowser(util.zeroconf, "_http._tcp.local.", handlers=[
                           on_service_state_change])
 

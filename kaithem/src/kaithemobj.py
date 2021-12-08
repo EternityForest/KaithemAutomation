@@ -188,14 +188,7 @@ class Kaithem():
 
         @staticmethod
         def lantime():
-            # Returns the time from an auto-selected NTP server on the local
-            # network, provided that you're using python 3.3+
-            # and netifaces is installed. Should be mostly
-            # interchangable with time.time()
-            try:
-                return timesync.getTime()
-            except:
-                return time.time()
+            return time.time()
 
         @staticmethod
         def uptime():

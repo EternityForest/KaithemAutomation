@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.67.4
+- Scheduler is now just based on the normal sched module
+- Various performance improvments(Seems like 50% les CPU usage!)
+- LAN Consenseus time removed
+- Showing HTTPS MDNS services in the settings page removed
 
 ### 0.67.4
 - Fix nuisance bad unit: dB error

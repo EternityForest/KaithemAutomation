@@ -383,13 +383,6 @@ lanip =get_lan_ip()
                     <td>${sound.backend.backendname|h}</td>
                 </tr>
 
-                %try:
-                <tr>
-                    <td>kaithem.time.lantime synced to: </td>
-                    <td>${timesync.selected_server[2] if timesync.selected_server else "Local server is master" |h}</td>
-                </tr>
-                %except: 
-                %endtry
 
                 <tr>
                     <td>System Time Zone</td>
