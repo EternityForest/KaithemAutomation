@@ -38,10 +38,10 @@ site-data-dir: var
 worker-threads: 12
 
 #How many threads cherrypy should use for the web server to serve unencrypted pages
-http-thread-pool: 2
+http-thread-pool: 6
 
 #How many threads cherrypy should use for the web server to serve encrypted pages
-https-thread-pool: 10
+https-thread-pool: 4
 
 #How many tasks can be queued up in the thread pool before inserts start to block until old tasks finish
 #should not really affect much as the task queue should not get even close to full unless you have

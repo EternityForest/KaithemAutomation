@@ -6,6 +6,7 @@ Change Log
 - Various performance improvments(Seems like 50% les CPU usage!)
 - LAN Consenseus time removed
 - Showing HTTPS MDNS services in the settings page removed
+- Allow HTTP login from any LAN address, not just localhost
 
 ### 0.67.4
 - Fix nuisance bad unit: dB error

@@ -72,7 +72,7 @@ class LoginScreen():
     def index(self, **kwargs):
         if not cherrypy.request.scheme == 'https':
             x = cherrypy.request.remote.ip
-            if not (x.startswith("::1") or x.startswith("127.") or x == '::ffff:127.0.0.1'):
+            if not pages.isHTTPAllowed(x):
                 raise cherrypy.HTTPRedirect("/errors/gosecure")
         return pages.get_template("login.html").render(target=kwargs.get("go", "/"))
 
@@ -101,7 +101,7 @@ class LoginScreen():
 
         if not cherrypy.request.scheme == 'https':
             x = cherrypy.request.remote.ip
-            if not (x.startswith("::1") or x.startswith("127.") or x == '::ffff:127.0.0.1'):
+            if not pages.isHTTPAllowed(x):
                 raise cherrypy.HTTPRedirect("/errors/gosecure")
         # Insert a delay that has a random component of up to 256us that is derived from the username
         # and password, to prevent anyone from being able to average it out, as it is the same per
