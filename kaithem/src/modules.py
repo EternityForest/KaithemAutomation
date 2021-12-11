@@ -1195,7 +1195,7 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
                     continue
                 relfn = os.path.relpath(os.path.join(root, i), folder)
                 fn = os.path.join(folder, relfn)
-                if "/__filedata__/" in fn:
+                if "/__filedata__/" in fn or fn.endswith("/__filedata__"):
                     continue
                 # Create a directory resource for the dirrctory
                 module[util.unurl(relfn)] = {"resource-type": "directory"}

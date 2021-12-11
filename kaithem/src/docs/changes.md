@@ -1,12 +1,15 @@
 Change Log
 ----------
 
-### 0.67.4
+### 0.67.5
 - Scheduler is now just based on the normal sched module
 - Various performance improvments(Seems like 50% les CPU usage!)
 - LAN Consenseus time removed
 - Showing HTTPS MDNS services in the settings page removed
 - Allow HTTP login from any LAN address, not just localhost
+- Lots of code cleanup
+- Fix orphan processes at exit
+- Clean up the Examples module
 
 ### 0.67.4
 - Fix nuisance bad unit: dB error

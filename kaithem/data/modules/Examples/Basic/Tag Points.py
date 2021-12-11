@@ -35,7 +35,8 @@ if __name__=='__setup__':
     
     ts = time.time()
     print(t.value,"direct")
-    module['TestTagPointExample']=t
+
+
     print("celcius",t.convertTo("degC"))
     print("Kelvin",t.convertTo("K"))
     
