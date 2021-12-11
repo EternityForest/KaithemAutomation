@@ -11,7 +11,7 @@ import weakref
 import base64
 import traceback
 import shutil
-import subprocess
+import reap
 
 from src import widgets, pages
 
@@ -101,7 +101,7 @@ class NVRPlugin(devices.Device):
 
 
         #Exec is needed so we can kill it
-        self.process = subprocess.Popen("exec gst-launch-1.0 -q "+getGstreamerSourceData(self.data.get('device.source','')) +"! hlssink2 location="+ os.path.join("/dev/shm/knvr/",self.name,r"segment%05d.ts")+" playlist-location="+os.path.join("/dev/shm/knvr/",self.name,'playlist.m3u8')+" target-duration=1",shell=True)
+        self.process = reap.Popen("exec gst-launch-1.0 -q "+getGstreamerSourceData(self.data.get('device.source','')) +"! hlssink2 location="+ os.path.join("/dev/shm/knvr/",self.name,r"segment%05d.ts")+" playlist-location="+os.path.join("/dev/shm/knvr/",self.name,'playlist.m3u8')+" target-duration=1",shell=True)
 
 
     def check(self):

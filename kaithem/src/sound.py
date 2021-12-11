@@ -792,7 +792,8 @@ class RemoteMPV():
         self.worker = None
         self.stopping=False
         from jsonrpyc import RPC
-        from subprocess import Popen, PIPE, STDOUT
+        from subprocess import PIPE, STDOUT
+        from reap import Popen
         f = os.path.join(os.path.dirname(os.path.abspath(__file__)),"mpv_server.py")
         self.lock=threading.RLock()
         env={}

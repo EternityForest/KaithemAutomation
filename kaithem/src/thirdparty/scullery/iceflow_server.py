@@ -169,7 +169,7 @@ def stopAllJackUsers():
             try:
                 i[1]().syncStop = True
                 i[1]().stop()
-            except:
+            except Exception:
                 log.exception("Err stopping JACK user")
         del c
         # Defensive programming against a double stop, which might be something that
@@ -177,7 +177,7 @@ def stopAllJackUsers():
         try:
             for i in jackChannels:
                 del jackChannels[i]
-        except:
+        except Exception:
             pass
 
 
@@ -241,7 +241,7 @@ def wrfunc(f, fail_return=None):
     def f2(*a, **k):
         try:
             return f()(*a, **k)
-        except:
+        except Exception:
             print(traceback.format_exc())
             return fail_return
     return f2
@@ -265,7 +265,7 @@ def makeWeakrefPoller(selfref, exitSignal):
                 try:
                     with self.seeklock:
                         self.pipeline.set_state(Gst.State.NULL)
-                except:
+                except Exception:
                     pass
                 self._waitForState(Gst.State.NULL, 3600000)
                 return
@@ -290,7 +290,7 @@ def makeWeakrefPoller(selfref, exitSignal):
                             self.shouldRunThread = False
                             exitSignal.append(True)
                             return
-                    except:
+                    except Exception:
                         # Todo actually handle some errors?
                         exitSignal.append(True)
                         # After pipeline deleted, we clean up
@@ -298,7 +298,7 @@ def makeWeakrefPoller(selfref, exitSignal):
                             try:
                                 with self.seeklock:
                                     self.pipeline.set_state(Gst.State.NULL)
-                            except:
+                            except Exception:
                                 pass
                             self._waitForState(Gst.State.NULL, 3600000)
 
@@ -324,7 +324,7 @@ def makeWeakrefPoller(selfref, exitSignal):
                     self.on_message(self.bus, msg, None)
 
                     seqNum = msg.seqnum
-                except:
+                except Exception:
                     logging.exception("Err in pipeline:" + self.name)
                 finally:
                     pass
@@ -345,7 +345,7 @@ def makeWeakrefPoller(selfref, exitSignal):
 def getCaps(e):
     try:
         return e.caps
-    except:
+    except Exception:
         return "UNKNOWN"
     e.getSinks()[0].getNegotiatedCaps()
 
@@ -562,10 +562,10 @@ class GStreamerPipeline():
                 if self.realtime:
                     try:
                         self.setCurrentThreadPriority(1, self.realtime)
-                    except:
+                    except Exception:
                         log.exception("Error setting realtime priority")
             return Gst.BusSyncReply.PASS
-        except:
+        except Exception:
             return Gst.BusSyncReply.PASS
             print(traceback.format_exc())
 
@@ -708,7 +708,7 @@ class GStreamerPipeline():
                     # Test that we can actually read the clock
                     self.getPosition()
                     break
-                except:
+                except Exception:
                     if i > 150:
                         raise RuntimeError("Clock still not valid")
                     time.sleep(0.1)
@@ -823,7 +823,7 @@ class GStreamerPipeline():
                         return
                     try:
                         self._waitForState(Gst.State.NULL, 1)
-                    except:
+                    except Exception:
                         with self.seeklock:
                             self.pipeline.set_state(Gst.State.NULL)
                         self._waitForState(Gst.State.NULL, 1)
@@ -837,7 +837,7 @@ class GStreamerPipeline():
                         del self.pgbcobj2
                         self.bus.disconnect(self.pgbcobj3)
                         del self.pgbcobj3
-                    except:
+                    except Exception:
                         print(traceback.format_exc())
 
                     def f():

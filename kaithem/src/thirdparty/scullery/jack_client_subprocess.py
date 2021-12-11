@@ -104,7 +104,7 @@ class JackClientProxy():
                     # Be defensive with jack, the whole thing seems britttle
                     self.worker.disconnect(f, t)
 
-                except:
+                except Exception:
                     pass
             finally:
                 lock.release()
@@ -132,7 +132,7 @@ class JackClientProxy():
                         try:
                             f = self.worker.get_port_by_name(f.name)
                             t = self.worker.get_port_by_name(t.name)
-                        except:
+                        except Exception:
                             return
                         if f.is_input:
                             if not t.is_output:
@@ -149,7 +149,7 @@ class JackClientProxy():
                         self.worker.connect(t, f)
                     else:
                         self.worker.connect(f, t)
-                except:
+                except Exception:
                     print(traceback.format_exc())
             finally:
                 lock.release()
@@ -164,7 +164,7 @@ def onPortRegistered(port, registered):
     try:
         rpc.call('onPortRegistered', [port.name,port.is_input,
                  port.shortname, port.is_audio, registered])
-    except:
+    except Exception:
         print(traceback.format_exc())
         raise
 

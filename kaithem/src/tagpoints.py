@@ -121,7 +121,8 @@ configTags: Dict[str, object] = {}
 configTagData: Dict[str,Dict] = {}
 
 
-def getFilenameForTagConfig(i):
+def getFilenameForTagConfig(i:str ):
+    "Given the name of a tag, get the name of it's config file"
     if i.startswith("/"):
         n = i[1:]
     else:
