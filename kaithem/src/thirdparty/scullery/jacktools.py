@@ -249,7 +249,8 @@ class JackClientProxy():
 
 
         from jsonrpyc import RPC
-        from subprocess import Popen, PIPE, STDOUT
+        from subprocess import PIPE, STDOUT
+        from reap import Popen
         self.ended=False
         f = os.path.join(os.path.dirname(os.path.abspath(__file__)),"jack_client_subprocess.py")
         self.worker = Popen(['python3', f], stdout=PIPE, stdin=PIPE, stderr=STDOUT)
