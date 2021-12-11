@@ -112,11 +112,11 @@ class SharedStateFile():
         for i in legacy_registry_key_mappings:
             km = legacy_registry_key_mappings[i]
             if not i in self.data:
-                self.data[i] = registry.get(km, defaults[i])
+                self.set(i,registry.get(km, defaults[i]))
 
         for i in defaults:
             if not i in self.data:
-                self.data[i] = defaults[i]
+                self.set(i, defaults[i])
 
     def get(self, key, default=None):
         with self.lock:
@@ -144,6 +144,9 @@ class SharedStateFile():
             json.dumps(value)
             if not isinstance(key, str):
                 raise RuntimeError("Key must be str")
+            
+            if  key in self.data and self.data[key]==value:
+                return
             self.data[key] = value
 
             if key in self.legacy_registry_key_mappings:
@@ -188,6 +191,8 @@ class SharedStateFile():
 
     def save(self):
         with self.lock:
+            if not self.filename in dirty:
+                return
             # NoFileForEmpty mode deleted
             if self.noFileForEmpty and (not self.data):
                 self.tryDeleteFile()

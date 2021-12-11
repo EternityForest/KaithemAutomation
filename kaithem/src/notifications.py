@@ -31,6 +31,8 @@ ilogger = logging.getLogger("system.notifications.important")
 notificationslog = []
 
 
+
+
 class API(widgets.APIWidget):
     def onNewSubscriber(self, user, cid, **kw):
         self.send(['all', notificationslog])
@@ -39,6 +41,17 @@ class API(widgets.APIWidget):
 api = API()
 api.require("/admin/mainpage.view")
 
+
+toolbarapi=widgets.APIWidget()
+toolbarapi.require("/admin/mainpage.view")
+toolbarapi.echo=False
+
+def f(u,v,id):
+    if v[0]=='countsince':
+        toolbarapi.sendTo(json.dumps(countnew(v[1])),id)
+
+
+toolbarapi.attach2(f)
 
 def makenotifier():
     if not 'LastSawMainPage' in cherrypy.response.cookie:
@@ -82,16 +95,8 @@ def countnew(since):
     return [total, normal, warnings, errors]
 
 
-handlers = weakref.WeakValueDictionary()
-handlersmp = weakref.WeakValueDictionary()
 
 
-class websocket(WebSocket):
-    def opened(self):
-        self.send(json.dumps(countnew(self.since)))
-
-    def closed(self, *a, **k):
-        del handlers[self.id]
 
 
 class WI():
@@ -105,29 +110,6 @@ class WI():
         pages.require('/admin/mainpage.view')
         return json.dumps(notificationslog[-int(kwargs['count']):])
 
-    @cherrypy.expose
-    def ws(self, since=0):
-        # you can access the class instance through
-        if not config['enable-websockets']:
-            raise RuntimeError("Websockets disabled in server config")
-        pages.require('/admin/mainpage.view')
-        handler = cherrypy.request.ws_handler
-        handler.user = pages.getAcessingUser()
-        handler.since = float(since)
-        handler.id = time.monotonic()
-        handlers[handler.id] = handler
-
-    def ws_mp(self, since=0):
-        # you can access the class instance through
-        if not config['enable-websockets']:
-            raise RuntimeError("Websockets disabled in server config")
-        pages.require('/admin/mainpage.view')
-        handler = cherrypy.request.ws_handler
-        handler.user = pages.getAcessingUser()
-        handler.since = float(since)
-        handler.id = time.monotonic()
-        handlersmp[handler.id] = handler
-
 
 def subscriber(topic, message):
     global notificationslog
@@ -138,11 +120,7 @@ def subscriber(topic, message):
     # TODO:
     # Not threadsafe. But it is still better than the old polling based system.
     try:
-        for i in handlers:
-            if auth.canUserDoThis(handlers[i].user, '/admin/mainpage.view'):
-                handlers[i].send(json.dumps(countnew(handlers[i].since)))
-                if i in handlersmp:
-                    handlersmp[i].send([time.time(), topic, message])
+        toolbarapi.send(["newmsg"])
     except:
         logging.exception("Error pushing notifications")
 

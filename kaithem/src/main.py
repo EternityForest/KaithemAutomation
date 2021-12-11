@@ -645,9 +645,6 @@ def webRoot():
     wscfg = {'tools.websocket.on': True,
                 'tools.websocket.handler_cls': widgets.websocket}
 
-    wscfg2 = {'tools.websocket.on': True,
-                'tools.websocket.handler_cls': notifications.websocket}
-
     try:
         from hardline import ws4py_drayer
         wscfg3={'tools.websocket.on': True,
@@ -709,7 +706,6 @@ def webRoot():
             },
 
         '/widgets/ws': wscfg,
-        '/notifications/ws': wscfg2,
         '/drayer_api': wscfg3
 
     }

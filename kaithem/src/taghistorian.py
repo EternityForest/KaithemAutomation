@@ -13,6 +13,8 @@ import json
 
 oldlogdir = os.path.join(directories.vardir, "logs")
 logdir = directories.logdir
+ramdbfile  = "/dev/shm/" + socket.gethostname()+"-"+getpass.getuser()+"-taghistory.ldb"
+
 
 syslogger = logging.getLogger("system")
 
@@ -43,8 +45,20 @@ class TagLogger():
     accumType = 'latest'
     defaultAccum = 0
 
-    def __init__(self, tag, interval, historyLength=3 * 30 * 24 * 3600):
-        self.h = historian
+    def __init__(self, tag, interval, historyLength=3 * 30 * 24 * 3600, target = 'disk'):
+
+        #We can have purely ram file based logging
+        if target=='disk':
+            self.h = historian
+            self.filename = newHistoryDBFile
+        elif target=='ram':
+           self.h = ramHistorian
+           self.filename= ramdbfile
+        else:
+            raise ValueError("target not supported: "+target)
+        
+        self.target = target
+
         self.accumVal = self.defaultAccum
         self.accumCount = 0
         self.accumTime = 0
@@ -70,6 +84,10 @@ class TagLogger():
             finally:
                 tag.lock.release()
 
+
+    def insertData(self,d):
+        self.h.insertData(d)
+
     def clearOldData(self, force=False):
         "Only called by the historian, that's why we can reuse the connection and do everything in one transaction"
         if not self.historyLength:
@@ -80,7 +98,7 @@ class TagLogger():
             return
 
         with self.h.lock:
-            conn = self.h.history
+            conn = sqlite3.Connection(self.filename)
 
             c = conn.cursor()
             c.execute("SELECT count(*) FROM record WHERE channel=? AND timestamp<?",
@@ -91,11 +109,12 @@ class TagLogger():
             if count > 8192 if not force else 1024:
                 c.execute("DELETE FROM record WHERE channel=? AND timestamp<?",
                           (self.chID, time.time() - self.historyLength))
+            conn.close()
 
     def getDataRange(self, minTime, maxTime, maxRecords=10000):
         with self.h.lock:
             d = []
-            conn = sqlite3.Connection(newHistoryDBFile)
+            conn = sqlite3.Connection(self.filename)
 
             c = conn.cursor()
             c.execute("SELECT timestamp,value FROM record WHERE timestamp>? AND timestamp<? AND channel=? ORDER BY timestamp ASC LIMIT ?",
@@ -104,7 +123,7 @@ class TagLogger():
                 d.append(i)
 
             x = []
-            for l in range(5):
+            for l in range(10):
                 x = []
                 # Best-effort attempt to include recent stuff.
                 # We don't want to use another lock and slow stuff down
@@ -118,13 +137,14 @@ class TagLogger():
                 # We just hope we can finish very fast.
                 except Exception:
                     raise
+            conn.close()
 
             return (d + x)[:maxRecords]
 
     def getRecent(self, minTime, maxTime, maxRecords=10000):
         with self.h.lock:
             d = []
-            conn = sqlite3.Connection(newHistoryDBFile)
+            conn = sqlite3.Connection(self.filename)
 
             c = conn.cursor()
             c.execute("SELECT timestamp,value FROM record WHERE timestamp>? AND timestamp<? AND channel=? ORDER BY timestamp DESC LIMIT ?",
@@ -133,7 +153,7 @@ class TagLogger():
                 d.append(i)
 
             x = []
-            for l in range(5):
+            for l in range(15):
                 x = []
                 # Best-effort attempt to include recent stuff.
                 # We don't want to use another lock and slow stuff down
@@ -178,7 +198,7 @@ class TagLogger():
                 return
 
         offset = time.time() - time.monotonic()
-        self.h.insertData((self.chID, self.accumTime + offset, self.accumVal))
+        self.insertData((self.chID, self.accumTime + offset, self.accumVal))
         self.lastLogged = time.monotonic()
         self.accumCount = 0
         self.accumVal = self.defaultAccum
@@ -187,7 +207,7 @@ class TagLogger():
         # Either get our stored channel name, or create a new onw
         with self.h.lock:
             # Have to make our own, we are in a new thread now.
-            conn = sqlite3.Connection(newHistoryDBFile)
+            conn = sqlite3.Connection(self.filename)
             conn.row_factory = sqlite3.Row
 
             c = conn.cursor()
@@ -218,6 +238,7 @@ class TagLogger():
             conn.close()
 
 
+
 class AverageLogger(TagLogger):
     accumType = 'mean'
 
@@ -236,7 +257,7 @@ class AverageLogger(TagLogger):
                 return
         offset = time.time() - time.monotonic()
 
-        self.h.insertData(
+        self.insertData(
             (self.chID, (self.accumTime / self.accumCount) + offset, self.accumVal / self.accumCount))
         self.lastLogged = time.monotonic()
         self.accumCount = 0
@@ -264,7 +285,7 @@ class MinLogger(TagLogger):
                 return
 
         offset = time.time() - time.monotonic()
-        self.h.insertData(
+        self.insertData(
             (self.chID, (self.accumTime / self.accumCount) + offset, self.accumVal))
         self.lastLogged = time.monotonic()
         self.accumCount = 0
@@ -292,7 +313,7 @@ class MaxLogger(MinLogger):
                 return
 
         offset = time.time() - time.monotonic()
-        self.h.insertData(
+        self.insertData(
             (self.chID, (self.accumTime / self.accumCount) + offset, self.accumVal))
         self.lastLogged = time.monotonic()
         self.accumCount = 0
@@ -316,6 +337,7 @@ class TagHistorian():
 
         self.history = sqlite3.Connection(file)
         self.history.row_factory = sqlite3.Row
+        self.filename =file
 
         if newfile:
             self.history.execute("PRAGMA application_id = 707898159")
@@ -334,7 +356,7 @@ class TagHistorian():
 
         self.history.close()
 
-        self.lastFlushed = 0
+        self.lastFlushed = time.monotonic()
 
         self.lastGarbageCollected = 0
 
@@ -383,13 +405,14 @@ class TagHistorian():
             pending = self.pending
             self.pending = []
             # Hopefully let any other threads finish
-            # inserting. Note that here we consider very rarely losing a record
+            # inserting into the old list . Note that here we consider very rarely losing a record
             # to be better than bad performace
-            time.sleep(0.001)
-            time.sleep(0.001)
-            time.sleep(0.001)
 
-            self.history = sqlite3.Connection(newHistoryDBFile)
+            for i in range(30):
+                time.sleep(0.001)
+
+
+            self.history = sqlite3.Connection(self.filename)
             with self.history:
                 if needsGC:
                     for i in self.children:
@@ -403,9 +426,10 @@ class TagHistorian():
                         'INSERT INTO record VALUES (?,?,?)', i)
             self.history.close()
 
-
 try:
     historian = TagHistorian(newHistoryDBFile)
+    ramHistorian = TagHistorian(ramdbfile)
+    os.chmod(ramdbfile,0o750)
 except Exception:
     messagebus.postMessage("/system/notifications/errors",
                            "Failed to create tag historian, logging will not work." + "\n" + traceback.format_exc())

@@ -1232,11 +1232,6 @@ class APIWidget(Widget):
                     kaithemapi.subscribe("_ws_timesync_channel",onTimeResponse)
                     kaithemapi.subscribe("%(id)s",_upd);
                     setTimeout(%(htmlid)s.getTime,500)
-                    setTimeout(%(htmlid)s.getTime,1500)
-                    setTimeout(%(htmlid)s.getTime,3000)
-                    setTimeout(%(htmlid)s.getTime,10000)
-
-
             </script>
             """ % {'htmlid': htmlid, 'id': self.uuid, 'value': json.dumps(self.value), 'loadtime': time.time()*1000}
 

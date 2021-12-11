@@ -1,4 +1,8 @@
-/*
+
+try{kaithemapi}catch{kaithemapi=undefined}
+
+if (kaithemapi == undefined) {
+	/*
 The MIT License (MIT)
 
 Copyright (c) 2015 Yusuke Kawasaki
@@ -354,3 +358,4 @@ KWidget_setValue = function (a, b) { kaithemapi.setValue(a, b) }
 KWidget_sendValue = function (a, b) { kaithemapi.sendValue(a, b) }
 
 setTimeout(function () { kaithemapi.connect() }, 100)
+}

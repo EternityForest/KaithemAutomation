@@ -16,6 +16,8 @@ import cherrypy,socket,base64
 </head>
 
 <body id="page">
+  <script src="/static/widget.js"></script>
+
   %if not cherrypy.request.params.get("kaithem_disable_header",0):
   <div style="width: 100%; position:relative;">
     ${config['top-banner-html'].replace("HOSTNAME",socket.gethostname())}
@@ -24,7 +26,9 @@ import cherrypy,socket,base64
 
   <div style="flex-grow: 0.05;">
     %if config['enable-js'] and pages.canUserDoThis("/admin/mainpage.view"):
-    <a id="notifications" href="/" title="New Notifications">
+    <a id="notifications_toolbar_item" href="/" title="New Notifications">
+      ${notifications.toolbarapi.render("wsapi")}
+
       <script type="text/javascript">
         function getCookie(c_name) {
           var c_value = document.cookie;
@@ -53,32 +57,40 @@ import cherrypy,socket,base64
         else {
           y = getCookie("LastSawMainPage");
         }
-        notifications_socket = new WebSocket(window.location.protocol.replace("http", "ws") + "//" + window.location.host + '/notifications/ws?since=' + y);
 
-        notifications_socket.onmessage = function (e) {
+        
+        wsapi.upd = function (e) {
           try {
-            var k = JSON.parse(e.data);
+            var k = e;
 
+            if (k[0]=='newmessage')
+            {
+              totalNotifications+=1
+              document.getElementById("notifications_toolbar_item").innerHTML = "Main (" + totalNotifications + ")";
+            }
             if (k[0] > 0) {
-              document.getElementById("notifications").innerHTML = "Main (" + k[0] + ")";
+              document.getElementById("notifications_toolbar_item").innerHTML = "Main (" + k[0] + ")";
+              totalNotifications = k[0]
 
               if (k[2] > 0) {
-                document.getElementById("notifications").className = "warning";
+                document.getElementById("notifications_toolbar_item").className = "warning";
               }
 
               if (k[3] > 0) {
-                document.getElementById("notifications").className = "error";
+                document.getElementById("notifications_toolbar_item").className = "error";
               }
 
             }
             else {
-              document.getElementById("notifications").innerHTML = 'Main (0)';
+              document.getElementById("notifications_toolbar_item").innerHTML = 'Main (0)';
             }
           }
           catch (err) {
             console.log("JSON Parse Error in websocket response:\n" + e.data);
           }
         }
+      
+      wsapi.send(["countsince",parseFloat(y)])
 
       </script>
     </a>

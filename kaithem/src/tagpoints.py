@@ -1,6 +1,6 @@
 from . import widgets
 from .unitsofmeasure import convert, unitTypes
-from . import scheduling, workers, virtualresource, messagebus, directories, persist, alerts, taghistorian
+from . import scheduling, workers, virtualresource, messagebus, directories, persist, alerts, taghistorian,util
 import time
 import threading
 import weakref
@@ -165,6 +165,8 @@ def getFilenameForTagConfig(i):
         n = i[1:]
     else:
         n = i
+    if n.startswith("="):
+        n="=/"+util.url(n[1:])
     return os.path.join(directories.vardir, "tags", n + ".yaml")
 
 
@@ -1095,21 +1097,25 @@ class _TagPoint(virtualresource.VirtualResource):
             loggers = data.get('loggers', [])
 
             if loggers:
-                configTagData[self.name]['loggers'] = data['loggers']
+                self._recordConfigAttr("loggers",loggers)
             else:
-                try:
-                    del configTagData[self.name]['loggers']
-                except KeyError:
-                    pass
+                self._recordConfigAttr("loggers",None)
+
+            
             self.configLoggers = []
             for i in loggers:
                 interval = float(i.get("interval", 60) or 60)
+                target = i.get("target", "disk")
+
                 length = float(
                     i.get("historyLength", 3 * 30 * 24 * 3600) or 3 * 30 * 24 * 3600)
 
                 accum = i['accumulate']
                 try:
-                    c = taghistorian.accumTypes[accum](self, interval, length)
+                    if not target in ("disk","ram"):
+                        raise ValueError("Bad logging target :"+target)
+
+                    c = taghistorian.accumTypes[accum](self, interval, length,target)
                     self.configLoggers.append(c)
                 except Exception:
                     messagebus.postMessage(

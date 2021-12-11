@@ -132,7 +132,7 @@ ${alertsapi.render("alertapi")}
 
 <h2> System Notifications</h2>
 <div id="app">
-<div class="scrollbox sectionbox" style="max-height: 25em; block-size: fit-content; max-width: 70em;">
+<div class="scrollbox sectionbox" style="max-height: 25em; block-size: fit-content; max-width: 70em;" id="notifications">
     <div v-for="i in notifications.slice().reverse()" v-bind:class="getClass(i)">
         <b>{{formatTime(i[0])}}</b>
         <p>{{i[2]}}</p>
@@ -175,12 +175,18 @@ ${alertsapi.render("alertapi")}
         if (msg[0] == 'notification') {
             app.$data.notifications.push(msg[1])
             app.$data.notifications = app.$data.notifications.slice(-100)
+            setTimeout(() => {
+        document.getElementById("notifications").scroll(0,10000)
+    }, 250); 
         }
     }
 
     alertapi.upd = function (msg) {
 
     }
+    setTimeout(() => {
+        document.getElementById("notifications").scroll(0,10000)
+    }, 1000); 
 
 </script>
 <%include file="/pagefooter.html"/>

@@ -37,14 +37,19 @@ def getGstreamerSourceData(s):
         s= "souphttpsrc location="+s+" ! hlsdemux ! tsdemux ! parsebin"
 
     #Make a video test src just for this purpose
-    if s=="test":
-        s = "videotestsrc ! video/x-raw, format=I420, width=320, height=240 ! videoconvert ! x264enc ! h264parse"  
-
-
-  #Make a video test src just for this purpose
     if not s:
-        s = "videotestsrc pattern=checkers-8 ! video/x-raw, format=I420, width=240, height=160 ! videoconvert ! x264enc ! h264parse"  
+        s = "videotestsrc is-live=true ! video/x-raw, format=I420, width=320, height=240 ! videoconvert ! x264enc ! h264parse"  
 
+
+    #Make a video test src just for this purpose
+    if s=="test":
+        s = "videotestsrc pattern=checkers-8 is-live=true ! video/x-raw, format=I420, width=240, height=160 ! videoconvert ! x264enc ! h264parse"  
+
+    if s=="webcam":
+        s="v4l2src ! videoconvert ! queue ! x264enc tune=zerolatency sliced-threads=true  ! h264parse"
+
+    #Tested
+    #rtspsrc location=rtsp://192.168.1.6:8080/h264_pcm.sdp latency=100 ! queue ! rtph264depay ! h264parse
 
     return s  
 
@@ -71,7 +76,10 @@ class NVRPlugin(devices.Device):
         except:
             pass
 
-        
+        try:
+            self.checker.unregister()
+        except:
+            logger.exception("Unregistering")
     def __del__(self):
         self.close()
 
@@ -90,8 +98,10 @@ class NVRPlugin(devices.Device):
             os.chmod("/dev/shm/knvr/"+self.name,0o755)
         except:
             pass
+
+
         #Exec is needed so we can kill it
-        self.process = subprocess.Popen("exec gst-launch-1.0 "+getGstreamerSourceData(self.data.get('device.source','')) +"! hlssink2 location="+ os.path.join("/dev/shm/knvr/",self.name,r"segment%05d.ts")+" playlist-location="+os.path.join("/dev/shm/knvr/",self.name,'playlist.m3u8')+" target-duration=1",shell=True)
+        self.process = subprocess.Popen("exec gst-launch-1.0 -q "+getGstreamerSourceData(self.data.get('device.source','')) +"! hlssink2 location="+ os.path.join("/dev/shm/knvr/",self.name,r"segment%05d.ts")+" playlist-location="+os.path.join("/dev/shm/knvr/",self.name,'playlist.m3u8')+" target-duration=1",shell=True)
 
 
     def check(self):
@@ -141,6 +151,10 @@ class NVRPlugin(devices.Device):
 
 
             self.connect()
+            self.check()
+            from src import scheduling
+            self.checker = scheduling.scheduler.every(self.check,5)
+
 
         except:
             self.handleException()

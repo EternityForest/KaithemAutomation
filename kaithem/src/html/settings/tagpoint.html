@@ -86,13 +86,14 @@ def combineLogs(a):
                     interval = float(loggers[i]['interval'])
                     historyLength = float(loggers[i]['historyLength'])
                     accumulate = loggers[i]['accumulate']
+                    target=loggers[i].get("target",'disk')
                     if interval:
                         #It would create confusing output if you did this
                         if accumulate in loggerTypes:
                             raise RuntimeError("Can't have two loggers of the same type")
                         loggerTypes[accumulate]=True
 
-                        loggersList.append({'interval':interval, 'accumulate':accumulate,'historyLength':historyLength})
+                        loggersList.append({'interval':interval, 'accumulate':accumulate,'historyLength':historyLength,'target':target})
 
                 for i in list(ald.keys()):
                     #Changing name to empty
@@ -535,12 +536,15 @@ Interval is the maximum rate to log at. No logs are created if there are no chan
 Accumulate determines what happens to multiple readings within an interval.  To store the latest, use latest. To store the mean for the whole interval, use average.</br>
 Set the interval to 0 to delete the logger. Set history length to 0 to disable deleting old data.</p>
 
+<p class="help">Set the target to ram to only log in memory, but beware filling availible space.</p>
 
 <table border=1>
     <tr>
         <th>Interval(s)</th>
         <th>Accumulate Mode</th>
         <th>Keep History</th>
+        <th>Target</th>
+
     </tr>
     %for n,i in enumerate(configData.get('loggers',[]) + [{'interval':0, 'accumulate': 'latest'}]):
 
@@ -557,7 +561,12 @@ Set the interval to 0 to delete the logger. Set history length to 0 to disable d
         </select> 
     </td>
     <td><input type="number" step="1800" value="${i.get('historyLength',3*30*24*3600)}" name="logger_${n}:historyLength"</td>
-
+    <td>
+        <select name="logger_${n}:target">
+            <option value="ram" ${'selected' if i.get("target","disk")=='disk' else ''}>RAM</option>
+            <option value="disk" ${'selected' if i.get("target","disk")=='disk' else ''}>Disk</option>
+        </select> 
+    </td>
     </tr>
     %endfor
 </table>
@@ -569,7 +578,7 @@ Set the interval to 0 to delete the logger. Set history length to 0 to disable d
 <table border=1>
     <tr><th>Time</th><th>Type</th><th>Val</th></tr>
     %if isinstance(tag,tagpoints._NumericTagPoint):
-        %for i in combineLogs({i.accumType:i.getRecent(logtime, time.time(), 15) for i in tag.configLoggers}):
+        %for i in combineLogs({(i.accumType,i.target):i.getRecent(logtime, time.time(), 15) for i in tag.configLoggers}):
         <tr>
             <td>${i[0]}</td>
             <td>${i[1]}</td>
