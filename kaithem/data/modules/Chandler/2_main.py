@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1638965744561750
+resource-timestamp: 1639228629440526
 resource-type: event
 versions: {}
 
@@ -16,10 +16,12 @@ versions: {}
 __trigger__='True'
 
 if __name__=='__setup__':
+    
+    
     #This code runs once when the event loads. It also runs when you save the event during the test compile
     #and may run multiple times when kaithem boots due to dependancy resolutio n
     __doc__=''
-    import time,array,random,weakref, os,threading,uuid,logging,serial,traceback,yaml,copy,json,math,struct,socket,src,json,collections
+    import time,random,weakref, os,threading,uuid,logging,traceback,yaml,copy,json,src,collections
     from decimal import Decimal
     from tinytag import TinyTag
     from typeguard import typechecked
@@ -35,8 +37,6 @@ if __name__=='__setup__':
     
     def number_to_note(number: int) -> tuple:
         octave = number // NOTES_IN_OCTAVE
-        assert octave in OCTAVES, errors['notes']
-        assert 0 <= number <= 127, errors['notes']
         note = NOTES[number % NOTES_IN_OCTAVE]
     
         return note+str(octave)
@@ -112,7 +112,6 @@ if __name__=='__setup__':
             kaithem.sound.stop(kwargs['handle'])
     
     import numpy
-    import hashlib
     import base64
     float=float
     abs=abs
@@ -357,12 +356,13 @@ if __name__=='__setup__':
         " return format [ [subfolderfolder,displayname],[subfolder2,displayname]  ], [file,file2,etc]"
         soundfolders = getSoundFolders()
     
-        if not path.endswith("/"):
-            path = path+"/"
+    
             
-        if not path and not name:
+        if not path:
             return [[[i+('/' if not i.endswith('/') else ''),soundfolders[i]] for i in soundfolders],[]]
     
+        if not path.endswith("/"):
+            path = path+"/"
         #If it's not one of the sound folders return for security reasons
         match = False
         for i in soundfolders:
@@ -426,8 +426,8 @@ if __name__=='__setup__':
                 return [os.path.join('/dev/serial/by-path',i) for i in os.listdir("/dev/serial/by-path")]
             else:
                 return [i.device for i in serial.tools.list_ports.comports()]
-        except Exception as e:
-            return [str(e)]
+        except Exception:
+            return [str(traceback.format_exc())]
     
     
     
@@ -455,49 +455,6 @@ if __name__=='__setup__':
                 else:
                     s =s.replace(i, replaceMode)
         return s
-    
-    #These aren't used or tested yet, but should be enabled soon so we can save large amounts of data
-    def writeCue(fobj, cue):
-        num = s = str((Decimal(cue.number)/1000).quantize(Decimal("0.001")))
-        fobj.write("\n[cue "+num+']\n')
-        fobj.write("name= "+str(cue.name)+'\n')
-        fobj.write("length= "+str(cue.length)+'\n')
-        fobj.write("fadein= "+str(cue.fadein)+'\n')
-        fobj.write("shortcut= "+ shortcut+'\n')
-        fobj.write("track= "+('1' if cue.track else '0')+'\n')
-    
-        for i in cue.values:
-            x = sorted(list[cue.values[i].keys()])
-            while x:
-                fobj.write("\nchannels."+i+"= ")
-                l = None
-                ls = []
-                for j in x[:100]:
-                    if j==l:
-                        ls.append(str(cue.values[i][j])[:6])
-                    else:
-                        ls.append(j+':'+str(cue.values[i][j])[:6])
-                fobj.write(','.join(ls))
-                x=x[100:]
-        fobj.write("\n")
-    
-    def writeScene(fobj, scene):
-        fobj.write("\n[scene "+str(scene.name)+']\n')
-        fobj.write("priority= "+str(scene.priority)+'\n')
-        fobj.write("blend= "+str(scene.blend)+'\n')
-        fobj.write("blend= "+str(id)+'\n')
-        fobj.write("alpha= "+('1' if scene.defaultalpha else '0')+'\n')
-        fobj.write("active= "+('1' if scene.defaultActive else '0')+'\n')
-        fobj.write("backtrack= "+('1' if scene.backtrack else '0')+'\n')
-    
-        for i in scene.blendArgs:
-            fobj.write('\n'+'blend.'+i+"= "+json.dumps(scene.blendArgs[i]))
-    
-        for i in scene.cues:
-            writeCue(fobj,scene.cues[i])
-    
-    
-    
     
     
     
@@ -546,7 +503,7 @@ if __name__=='__setup__':
                     multiplier = 1.0
                 u = getUniverse(cv[0])
                 return u.values[int(x[0])]*multiplier
-            except Exception as e:
+            except Exception:
                 if not default is None:
                     return default
                 raise
@@ -865,7 +822,7 @@ if __name__=='__setup__':
                 self.fixtureAssignments = fixturesFromOldListStyle(self.fixtureAssignments)
             try:
                 self.createUniverses(self.configuredUniverses)
-            except Exception as e:
+            except Exception:
                 logger.exception("Error creating universes")
                 print(traceback.format_exc(6))
     
@@ -968,6 +925,7 @@ if __name__=='__setup__':
     
         def loadShow(self, showName):
             saveLocation = os.path.join(kaithem.misc.vardir,"chandler", "shows", showName)
+            d = {}
             if os.path.isdir(saveLocation):
                 for i in os.listdir(saveLocation):
                     fn = os.path.join(saveLocation,i)
@@ -1116,7 +1074,7 @@ if __name__=='__setup__':
                             if x:
                                 s.go()
                                 s.rerender=True
-                        except Exception as e:
+                        except Exception:
                             if not errs:
                                 logger.exception("Failed to load scene "+str(i)+" "+str(data[i].get('name','')))
                                 print("Failed to load scene "+str(i)+" "+str(data[i].get('name',''))+": "+traceback.format_exc(3))
@@ -1346,7 +1304,7 @@ if __name__=='__setup__':
                                 'soundLoops': cue.soundLoops
     
                                 }])
-            except Exception as e:
+            except Exception:
                 rl_log_exc("Error pushing cue data")
                 print("cue data push error", cueid,traceback.format_exc())
     
@@ -1356,9 +1314,9 @@ if __name__=='__setup__':
                 cue = cues[cueid]
                 self.link.send(["cuemetaattr",cueid,     
                                 {attr:getattr(cue,attr)}])
-            except Exception as e:
+            except Exception:
                 rl_log_exc("Error pushing cue data")
-                print("cue data push error", cueid,e)
+                print("cue data push error", cueid,traceback.format_exc())
     
     
         def pushCueData(self, cueid):
@@ -1622,10 +1580,6 @@ if __name__=='__setup__':
                     self.link.send(["cuedata",msg[1],s.values])
     
     
-                if msg[0] == "rmsceneval":
-                    s = scenes[msg[1]]
-                    s.setValue(msg[2],None)
-    
                 if msg[0] == "setscenelight":
                     module.universes[msg[1]]()[msg[2]]=float(msg[3])
     
@@ -1638,15 +1592,7 @@ if __name__=='__setup__':
                         self.pushMeta(msg[1])
                         self.pushfixtures()
                     kaithem.misc.do(f)
-                
-    
-                if msg[0] == "getSceneMeta":
-                    #Could be long-running, so we offload to a workerthread
-                    #Used to be get scene data, Now its a general get everything to show pags thing
-                    def f():
-                        s = module.scenes[msg[1]]
-                        self.pushMeta(msg[1])
-                    kaithem.misc.do(f)
+        
                 
                 if msg[0] == "getallcuemeta":
                     def f():
@@ -2025,7 +1971,7 @@ if __name__=='__setup__':
                     kaithem.sound.oggTest(output=msg[1])
         
     
-            except Exception as e:
+            except Exception:
                 rl_log_exc("Error handling command")
                 self.pushEv('board.error', "__this_lightboard__",module.timefunc(),traceback.format_exc(8))
                 print(msg,traceback.format_exc(8))
@@ -2890,9 +2836,6 @@ if __name__=='__setup__':
     
             # self.recalcLivingNight()
     
-    
-            import hashlib
-    
             
             if name:
                     module.scenes_by_name[self.name] = self
@@ -3047,9 +2990,6 @@ if __name__=='__setup__':
                         return x.name
                 return None
     
-        def getAfter(self,cue):
-            x = self.cues[cue].next_ll
-            return x.name if x else None
     
         def rmCue(self,cue):
             with module.lock:
@@ -3095,13 +3035,13 @@ if __name__=='__setup__':
                 self.cues_ordered[i].next_ll= self.cues_ordered[i+1]
             self.cues_ordered[-1].next_ll = None
     
+        #I think we can delete this
         def pushCues(self):
             for i in module.boards:
                 if len(i().newDataFunctions)<100:
-                    i().newDataFunctions.append(lambda s:pushCueList(i.id))
+                    i().newDataFunctions.append(lambda s:self.pushCueList(i.id))
     
-        def addCue(self,name,**kw):
-            Cue(self,name,**kw)
+    
     
         def _addCue(self,cue,prev=None,f=True):
             name = cue.name
@@ -3141,7 +3081,7 @@ if __name__=='__setup__':
             try:
                 if self.scriptContext:
                     self.scriptContext.event(s,value)
-            except Exception as e:
+            except Exception:
                 rl_log_exc("Error handling event: "+str(s))
                 print(traceback.format_exc(6))
                 
@@ -3216,7 +3156,7 @@ if __name__=='__setup__':
     
             if not cue in self.cues:
                 try:
-                    c = float(cue)
+                    cue = float(cue)
                 except:
                     raise ValueError("No such cue "+str(cue))
                 for i in self.cues_ordered:
@@ -4051,7 +3991,6 @@ if __name__=='__setup__':
             else:
                 self.pushMeta(keys={'alpha','dalpha'} )
     
-    
         
         def addCue(self,name,**kw):
             return Cue(self,name,**kw)
@@ -4191,6 +4130,8 @@ if __name__=='__setup__':
     controluniverse = module.Universe("control")
     module.controluniverse= weakref.proxy(controluniverse)
     varsuniverse = module.Universe("__variables__")
+    
+    
 
 def eventAction():
     with module.lock:

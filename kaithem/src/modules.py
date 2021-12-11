@@ -49,8 +49,8 @@ safeFnChars = "~@*&()-_=+/ '"
 
 try:
     import fcntl
-except:
-    pass
+except Exception:
+    print(traceback.format_exc())
 
 
 def lockFile(f):
@@ -60,14 +60,14 @@ def lockFile(f):
             fcntl.lockf(f, fcntl.LOCK_SH)
         except IOError:
             time.sleep(0.01)
-        except:
+        except Exception:
             return
 
 
 def unlockFile(f):
     try:
         fcntl.lockf(f, fcntl.LOCK_SH)
-    except:
+    except Exception:
         pass
 
 # Map filenames to the module,resource tuple they represent.
@@ -180,7 +180,7 @@ def hashModules():
                     m.update(json.dumps(ActiveModules[i][j], sort_keys=True, separators=(
                         ',', ':')).encode('utf-8'))
         return m.hexdigest().upper()
-    except:
+    except Exception:
         logger.exception("Could not hash modules")
         return("ERRORHASHINGMODULES")
 
@@ -192,7 +192,7 @@ def hashModule(module: str):
             m.update(json.dumps({i: ActiveModules[module][i] for i in ActiveModules[module] if not isinstance(
                 ActiveModules[module][i], weakref.ref)}, sort_keys=True, separators=(',', ':')).encode('utf-8'))
         return m.hexdigest()
-    except:
+    except Exception:
         logger.exception("Could not hash module")
         return("ERRORHASHINGMODULE")
 
@@ -500,7 +500,7 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
                 r = data
                 # This is a .py file, remove the extension
                 shouldRemoveExtension = True
-            except:
+            except Exception:
                 isSpecialEncoded = False
                 wasProblem = True
                 logger.exception("err loading as pyencoded: "+fn)
@@ -519,7 +519,7 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
                 data['body'] = d.strip()
                 r = data
                 shouldRemoveExtension = True
-            except:
+            except Exception:
                 isSpecialEncoded = False
                 wasProblem = True
                 logger.exception("err loading as html encoded: "+fn)
@@ -535,7 +535,7 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
                 data['body'] = sections[2]
                 r = data
                 shouldRemoveExtension = True
-            except:
+            except Exception:
                 isSpecialEncoded = False
                 wasProblem = True
                 logger.exception("err loading as html encoded: "+fn)
@@ -558,7 +558,7 @@ def readResourceFromData(d, relative_name: str, ver: int = 1, filename=None):
         if wasProblem:
             messagebus.postMessage("/system/notifications/warnings",
                                    "Potential problem or nonstandard encoding with file: "+fn)
-    except:
+    except Exception:
         # This is a workaround for when dolphin puts .directory files in directories and gitignore files
         # and things like that. Also ignore attempts to load from filedata
         # I'd like to add more workarounds if there are other programs that insert similar crap files.
@@ -613,37 +613,9 @@ def serializeResource(obj):
             ext = ".html"
 
     elif r['resource-type'] == 'event':
-        # Special encoding as a python file, for syntax highlightability
-        s = r['setup']
-        del r['setup']
-        a = r['action']
-        del r['action']
-        t = r['trigger']
-        del r['trigger']
-        d = "## Code outside the data string, and the setup and action blocks is ignored\n"
-        d += "## If manually editing, you must reload the code. Delete the resource timestamp so kaithem knows it's new\n"
-
-        d += '__data__="""\n'
-        d += yaml.dump(r).replace("\\", "\\\\").replace('"""',
-                                                        r'\"""') + '\n"""\n\n'
-
-        # Autoselect what quote to use
-        if not "'" in t:
-            d += "__trigger__='" + \
-                t.replace("\\", "\\\\").replace("'", r"\'") + "'\n\n"
-        else:
-            d += '__trigger__="' + \
-                t.replace("\\", "\\\\").replace('"', r'\"') + '"\n\n'
-
-        d += "if __name__=='__setup__':\n"
-        d += indent(s)
-        d += "\n\n"
-
-        d += "def eventAction():\n"
-        d += indent(a)
-        d += "\n"
-
+        d=newevt.toPyFile(r)
         ext = ".py"
+
     else:
         d = yaml.dump(r)
         ext = ".yaml"
@@ -669,7 +641,7 @@ def saveResource2(obj, fn: str):
                 x = f.read().decode('utf8')
                 if x == d:
                     return fn
-        except:
+        except Exception:
             logger.exception("err, continuing")
 
     util.ensure_dir(fn)
@@ -817,14 +789,14 @@ def initModules():
                         # manual tools might be working.
                         if not possibledir == os.path.join(directories.moduledir, "data"):
                             shutil.rmtree(possibledir)
-                    except:
+                    except Exception:
                         logger.exception(
                             "Failed to rename corrupted data. This is normal if kaithem's var dir is not currently writable.")
 
         loadRecoveryDbInfo(completeFileTimestamp=os.stat(
             os.path.join(possibledir, '__COMPLETE__')).st_mtime)
 
-    except:
+    except Exception:
         messagebus.postMessage("/system/notifications/errors",
                                " Error loading modules: " + traceback.format_exc(4))
 
@@ -901,7 +873,7 @@ def saveModule(module, dir: str, modulename: Optional[str] = None, ignore_func=N
                         del fnToModuleResource[p]
         saved.append(modulename)
         return saved
-    except:
+    except Exception:
         raise
 
 
@@ -941,12 +913,12 @@ def saveModules(where: str, markSaved=True):
                 try:
                     saved.extend(saveModule(
                         ActiveModules[i], external_module_locations[i], modulename=i, ignore_func=detect_ignorable))
-                except:
+                except Exception:
                     try:
                         logger.exception(
                             "Failed to save external module to"+str(external_module_locations[i]))
-                    except:
-                        pass
+                    except Exception:
+                        print(traceback.format_exc())
                     messagebus.postMessage(
                         "/system/notifications/errors", 'Failed to save external module:' + traceback.format_exc(8))
 
@@ -1003,7 +975,7 @@ def saveModules(where: str, markSaved=True):
                         del unsaved_changed_obj[i]
             modules_state.purgeSqliteBackup()
 
-        except:
+        except Exception:
             raise
 
 
@@ -1027,7 +999,7 @@ def loadModules(modulesdir: str):
                 external_module_locations[util.unurl(i[2:-9])] = s
             # We use the ignore func when loading ext modules
             loadModule(s, util.unurl(i[2:-9]), detect_ignorable)
-        except:
+        except Exception:
             messagebus.postMessage("/system/notifications/errors",
                                    " Error loading external module: " + traceback.format_exc(4))
 
@@ -1114,7 +1086,7 @@ def loadOneResource(folder, relpath, module):
     try:
         r, resourcename = readResourceFromFile(
             os.path.join(folder, relpath), relpath)
-    except:
+    except Exception:
         messagebus.postMessage(
             "/system/notifications/errors", "Error loadingresource from: " + os.path.join(folder, relpath))
         logger.exception("Error loading resource from file "+os.path.join(folder, relpath))
@@ -1191,7 +1163,7 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
                                 logger.exception("Null loading "+fn)
                             continue
 
-                    except:
+                    except Exception:
                         logger.exception("Error loading "+fn)
                         continue
 
@@ -1212,7 +1184,7 @@ def loadModule(folder: str, modulename: str, ignore_func=None, resource_folder=N
                             messagebus.postMessage(
                                 "/system/notifications/errors", "Missing file resource: "+fileResourceAbsPaths[modulename, resourcename])
 
-                except:
+                except Exception:
                     messagebus.postMessage(
                         "/system/notifications/errors", "Error loading from: "+fn+"\r\n"+traceback.format_exc())
                     raise
@@ -1325,7 +1297,7 @@ def load_modules_from_zip(f, replace=False):
                     if r['resource-type'] == "internal-fileref":
                         newfrpaths[p, n] = os.path.join(
                             directories.vardir, "modules", 'data', p, "__filedata__", url(n, safeFnChars))
-                except:
+                except Exception:
                     raise ValueError(i+" in zip makes no sense")
                 finally:
                     f.close()
@@ -1361,7 +1333,7 @@ def load_modules_from_zip(f, replace=False):
                 finally:
                     inputfile.close()
                 newfrpaths[p, n] = dataname
-        except:
+        except Exception:
             raise RuntimeError("Could not correctly process "+str(i))
 
     with modulesLock:
@@ -1396,7 +1368,7 @@ def load_modules_from_zip(f, replace=False):
                 messagebus.postMessage("/system/notifications", "User " +
                                        pages.getAcessingUser() + " uploaded module" + i + " from a zip file")
                 bookkeeponemodule(i)
-        except:
+        except Exception:
             for i in new_modules:
                 if i in backup:
                     ActiveModules[i] = backup[i]
@@ -1499,15 +1471,15 @@ def rmResource(module, resource, message="Resource Deleted"):
         elif r['resource-type'] == 'internal-fileref':
             try:
                 os.remove(fileResourceAbsPaths[module, resource])
-            except:
-                pass
+            except Exception:
+                print(traceback.format_exc())
 
             del fileResourceAbsPaths[module, resource]
             usrpages.removeOnePage(module, resource)
 
         else:
             additionalTypes[r['resource-type']].ondelete(module, resource, r)
-    except:
+    except Exception:
         messagebus.postMessage("/system/modules/errors/unloading",
                                "Error deleting resource: "+str((module, resource)))
 
@@ -1564,7 +1536,7 @@ def rmModule(module, message="deleted"):
             try:
                 additionalTypes[j[k]['resource-type']
                                 ].ondelete(module, k, j[k])
-            except:
+            except Exception:
                 messagebus.postMessage(
                     "/system/modules/errors/unloading", "Error deleting resource: "+str(module, k))
         modules_state.createRecoveryEntry(module, k, None)

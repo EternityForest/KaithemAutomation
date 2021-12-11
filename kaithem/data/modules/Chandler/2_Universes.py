@@ -6,7 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate-limit: 0.0
-resource-timestamp: 1638965736072734
+resource-timestamp: 1639228690537979
 resource-type: event
 versions: {}
 
@@ -108,8 +108,10 @@ if __name__=='__setup__':
                         gc.collect()
                         #We retry, because the universes are often temporarily cached as strong refs
                         if name in _universes and _universes[name]():
-                            #Todo: just close the old one right here
-                            raise ValueError("Name "+name+ " is taken")
+                            try:
+                                _universes[name]().close()
+                            except:
+                                raise ValueError("Name "+name+ " is taken")
                     _universes[name] = weakref.ref(self)
                     module.universes = {i:_universes[i] for i in _universes if _universes[i]()}
                 

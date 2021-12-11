@@ -17,9 +17,12 @@
 # ALWAYS GET _event_list_lock LAST
 # IF WE ALWAYS USE THE SAME ORDER THE CHANCE OF DEADLOCKS IS REDUCED.
 
+import copy
 import traceback
 import threading
 import sys
+import typing
+from typing import Callable,Union,Optional
 import time
 import cherrypy
 import collections
@@ -32,6 +35,7 @@ import dateutil
 import datetime
 import recur
 import re
+import yaml
 import pytz
 import gc
 import random
@@ -40,11 +44,54 @@ import dateutil.rrule
 import dateutil.tz
 import textwrap
 
+
+
 from . import workers, kaithemobj, messagebus, util, modules_state, scheduling, unitsofmeasure,devices
 from .config import config
 from .scheduling import scheduler
 ctime = time.time
 do = workers.do
+
+
+
+def indent(s, prefix='    '):
+    s = [prefix+i for i in s.split("\n")]
+    return '\n'.join(s)
+
+
+def toPyFile(r):
+    r = copy.deepcopy(r)
+    "Encode an event resource as a python file"
+    s = r['setup']
+    del r['setup']
+    a = r['action']
+    del r['action']
+    t = r['trigger']
+    del r['trigger']
+    d = "## Code outside the data string, and the setup and action blocks is ignored\n"
+    d += "## If manually editing, you must reload the code. Delete the resource timestamp so kaithem knows it's new\n"
+
+    d += '__data__="""\n'
+    d += yaml.dump(r).replace("\\", "\\\\").replace('"""',
+                                                    r'\"""') + '\n"""\n\n'
+
+    # Autoselect what quote to use
+    if not "'" in t:
+        d += "__trigger__='" + \
+            t.replace("\\", "\\\\").replace("'", r"\'") + "'\n\n"
+    else:
+        d += '__trigger__="' + \
+            t.replace("\\", "\\\\").replace('"', r'\"') + '"\n\n'
+
+    d += "if __name__=='__setup__':\n"
+    d += indent(s)
+    d += "\n\n"
+
+    d += "def eventAction():\n"
+    d += indent(a)
+    d += "\n"
+    return d
+
 
 def retryDeviceCreation():
     """When we load up a new event, it might contain a driver, so we 
@@ -511,7 +558,7 @@ class BaseEvent():
 
     """
 
-    def __init__(self, when, do, scope, continual=False, ratelimit=0, setup=None, priority=2, m=None, r=None):
+    def __init__(self, when:str, do:str, scope, continual=False, ratelimit=0, setup:str=None, priority=2, m=None, r=None):
         # Copy in the data from args
         self.evt_persistant_data = PersistentData()
         self.scope = scope
@@ -567,7 +614,7 @@ class BaseEvent():
         # going and how long it took
         self.lastcompleted = 0
 
-        self.history = []
+        self.history:typing.List[tuple] = []
         self.backoff_until = 0
 
         # A place to put errors
@@ -1283,7 +1330,7 @@ class ThreadPolledEvalEvent(BaseEvent, CompileCodeStringsMixin):
 
 
 class PolledInternalSystemEvent(BaseEvent, DirectFunctionsMixin):
-    def __init__(self, when, do, scope=None, continual=False, ratelimit=0, setup="pass", *args, **kwargs):
+    def __init__(self, when: Callable, do:Callable, scope=None, continual=False, ratelimit=0, setup="pass", *args, **kwargs):
         BaseEvent.__init__(self, when, do, scope, continual,
                            ratelimit, setup, *args, **kwargs)
         self.polled = True
@@ -1565,12 +1612,36 @@ def updateOneEvent(resource, module, o=None):
                 x.register()
                 # Update index
                 __EventReferences[module, resource] = x
+
+            data = modules_state.ActiveModules[module][resource]
+        
+      
             
         except Exception as e:
             d = makeDummyEvent(module, resource)
             d._handle_exception(e)
 
         retryDeviceCreation()
+
+        from src import codechecks
+        data = toPyFile(data)
+        e = codechecks.check(data, resource+".py")
+        data = data.splitlines()
+        if e:
+            for i in e.splitlines():
+                line = re.search(r":(\d*):", i)
+                if line:
+                    line=line.group(1)
+                else:
+                    line="Line number could not be decoded"
+
+                try:
+                    line = data[int(line)-1]
+                except:
+                    line= "Context not found"
+
+                x.pymodule.__dict__['print'](i+"\r\n"+line,title="Pyflakes warning")
+
 
 # makes a dummy event for when there is an error loading and puts it in the right place
 # The dummy does nothing but is in the right place

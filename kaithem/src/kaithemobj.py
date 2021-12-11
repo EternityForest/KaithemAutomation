@@ -73,7 +73,7 @@ class TagInterface():
         return tagpoints.BinaryTag(k)
 
     TagClass = tagpoints._TagPoint
-    HysteresisFilter = tagpoints.HysteresisFilter
+    #HysteresisFilter = tagpoints.HysteresisFilter
     LowpassFilter = tagpoints.LowpassFilter
     HighpassFilter = tagpoints.HighpassFilter
 
