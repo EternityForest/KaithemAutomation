@@ -1,198 +1,214 @@
-<%!
-from src import tagpoints
-import json
+<%! 
+from src import tagpoints 
+import json %>
+
+<% 
+x={"tag:"+i:'' for i in tagpoints.exposedTags.keys()} 
+x.update({"tag.control:"+i:'' for i in
+tagpoints.exposedTags.keys()}) 
 %>
+        <!DOCTYPE html>
+        <html>
 
-<%
-x = {"tag:"+i:'' for i in tagpoints.exposedTags.keys()}
-x.update({"tag.control:"+i:'' for i in tagpoints.exposedTags.keys()})
-%>
-<!DOCTYPE html>
-<html>
+        <head>
+            <meta charset="UTF-8">
+            <title>freeboard</title>
+            <meta name="mobile-web-app-capable" content="yes">
+            <meta name="apple-mobile-web-app-capable" content="yes" />
+            <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+            <meta name="viewport" content="width = device-width, initial-scale = 1, user-scalable = no" />
+            <link href="/static/js/freeboard/css/freeboard.min.css" rel="stylesheet" />
+            <script src="/static/widget.js"></script>
 
-<head>
-    <meta charset="UTF-8">
-    <title>freeboard</title>
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-    <meta name="viewport" content="width = device-width, initial-scale = 1, user-scalable = no" />
-    <link href="/static/js/freeboard/css/freeboard.min.css" rel="stylesheet" />
-    <script src="/static/widget.js"></script>
-
-    <script src="/static/js/freeboard/js/freeboard.thirdparty.min.js"></script>
-<script src="/static/js/js-yaml.min.js"></script>
- <style>
-tags-list-data{
-   display: none;
-}
-</style>
-
-    <tags-list-data>${json.dumps(x)|h}</tags-list-data>
-
-    <script type="text/javascript">
-        KaithemDataSourcesListing =jsyaml.load($('tags-list-data').text())
-
-        function showFreeboardHelp() {
-            freeboard.showDialog(generateFreeboardHelp(), "Help", "Close")
-        }
-        function showFreeboadTemplatesMenu() {
-            freeboard.showTemplatesPage()
-        }
-        function showEmoji() {
-            freeboard.showDialog(generateFreeboardEmojiCheats(), "Help", "Close")
-        }
-
-
-        saveToKaithem= function(){
-                var d = freeboard.serialize();
-                $.post(window.location.pathname, {'bd':JSON.stringify(d)}).done(function() {
-                    alert( "Page has been modified! Save Kaithem's server state to make changes permanent." );}).fail(function() {
-                alert( "Error Saving" ); })
-            };
-	 function showPages() {
-		    freeboard.showPageManager();
-		}
-        head.js("/static/js/freeboard/js/freeboard_plugins.min.js",
-            "/static/js/freeboard/kaithem_plugin.js",
-               
-            function(){
-                    $(function()
-                    { //DOM Ready
-
-                        freeboard.initialize(true);
-                        freeboard.builtinSoundsFolder="/static/freeboardsounds";
-                        freeboard.loadDashboard(jsyaml.load($('freeboard-data').text()), function() {
-                                    freeboard.setEditing(false);
-                                });
-                    GlobalSettingsEditor = new JSONEditor(document.getElementById('fb-global-settings-editor'), {
-                        schema: globalSettingsSchema
-                    });
-                    GlobalSettingsEditor.setValue(freeboard.globalSettings)
-                    //External changes, like if we upload a new board
-                    freeboard.globalSettingsHandlers['gs-editor'] = function (a) { GlobalSettingsEditor.setValue(a) }
-
-                    document.getElementById('gs-submit').addEventListener('click', function () {
-                        // Get the value from the editor
-                        freeboard.setGlobalSettings(GlobalSettingsEditor.getValue());
-                    });
-                           
-                    }
-                    );
+            <script src="/static/js/freeboard/js/freeboard.thirdparty.min.js"></script>
+            <script src="/static/js/js-yaml.min.js"></script>
+            <style>
+                tags-list-data {
+                    display: none;
                 }
-                
+            </style>
+
+            <tags-list-data>${json.dumps(x)|h}</tags-list-data>
+
+            <script type="text/javascript">
+                KaithemDataSourcesListing = jsyaml.load($('tags-list-data').text())
+
+                function showFreeboardHelp() {
+                    freeboard.showDialog(generateFreeboardHelp(), "Help", "Close")
+                }
+                function showFreeboadTemplatesMenu() {
+                    freeboard.showTemplatesPage()
+                }
+                function showEmoji() {
+                    freeboard.showDialog(generateFreeboardEmojiCheats(), "Help", "Close")
+                }
+
+
+                saveToKaithem = function () {
+                    var d = freeboard.serialize();
+                    $.post(window.location.pathname, { 'bd': JSON.stringify(d) }).done(function () {
+                        alert("Page has been modified! Save Kaithem's server state to make changes permanent.")
+                        var foo = freeboard.unsaved
+                        for (var prop in foo) {
+                            if (foo.hasOwnProperty(prop)) {
+                                delete foo[prop];
+                            }
+                        }
+
+                    }).fail(function () {
+                        alert("Error Saving");
+                    })
+                };
+                function showPages() {
+                    freeboard.showPageManager();
+                }
+                head.js("/static/js/freeboard/js/freeboard_plugins.min.js",
+                    "/static/js/freeboard/kaithem_plugin.js",
+
+                    function () {
+                        $(function () { //DOM Ready
+
+                            freeboard.initialize(true);
+                            freeboard.builtinSoundsFolder = "/static/freeboardsounds";
+                            freeboard.loadDashboard(jsyaml.load($('freeboard-data').text()), function () {
+                                freeboard.setEditing(false);
+                            });
+                            GlobalSettingsEditor = new JSONEditor(document.getElementById('fb-global-settings-editor'), {
+                                schema: globalSettingsSchema
+                            });
+                            GlobalSettingsEditor.setValue(freeboard.globalSettings)
+                            //External changes, like if we upload a new board
+                            freeboard.globalSettingsHandlers['gs-editor'] = function (a) { GlobalSettingsEditor.setValue(a) }
+
+                            document.getElementById('gs-submit').addEventListener('click', function () {
+                                // Get the value from the editor
+                                freeboard.setGlobalSettings(GlobalSettingsEditor.getValue());
+                            });
+
+                        }
+                        );
+                    }
+
                 );
-    </script>
+            </script>
 
-</head>
+        </head>
 
-<body>
+        <body>
 
-    <div id="globalSettingsDialog"
-        style="position: absolute; z-index: 100; background-color: var(--box-bg-color); display: none; height: 100%; width: 45%;">
-        <h2> Global Settings</h2>
-        <p> Click object properties to see more settings</p>
-        <button onclick="$('#globalSettingsDialog').css({display:'none'})"> Close</button>
-        <div id="fb-global-settings-editor"></div>
+            <div id="globalSettingsDialog"
+                style="position: absolute; z-index: 100; background-color: var(--box-bg-color); display: none; height: 100%; width: 45%;">
+                <h2> Global Settings</h2>
+                <p> Click object properties to see more settings</p>
+                <button onclick="$('#globalSettingsDialog').css({display:'none'})"> Close</button>
+                <div id="fb-global-settings-editor"></div>
 
-        <button id="gs-submit"> Update</button>
-    </div>
+                <button id="gs-submit"> Update</button>
+            </div>
 
-    <div id="board-content">
-        <img id="dash-logo" data-bind="attr:{src: header_image}, visible:header_image()">
-        <div class="gridster responsive-column-width">
-            <ul data-bind="grid: true">
-            </ul>
-        </div>
-    </div>
-    <header id="main-header" data-bind="if:allow_edit">
-    <div id="main-header-inner">
-        <div id="admin-bar">
-            <div id="admin-menu">
-                <div id="board-tools">
-                    <div id="board-logo" class="title freeboard-branding"> freeboard </div>
-                    <div id="board-actions">
-                        <ul class="board-toolbar vertical">
-                            <li data-bind="click: showFreeboadTemplatesMenu"><label> Load Example</label></li>
-                            <li data-bind="click: showFreeboardHelp"><label> Show Help</label></li>
-                            <li data-bind="click: showEmoji"><label> Show Emoji</label></li>
-
-                            <li data-bind="click: loadDashboardFromLocalFile"><label id="full-screen"> Upload a
-                                    board</label></li>
-                            <li>
-                                <label data-bind="click: downloadDashboardClicked"> Download this board</label>
-                                <label style="display: none;" data-bind="click: downloadDashboard"
-                                    data-pretty="true">[Pretty]</label>
-                                <label style="display: none;" data-bind="click: downloadDashboard"
-                                    data-pretty="false">[Minified]</label>
-                            </li>	
-                            <li data-bind="click: saveToKaithem"><label>Write changes back to the kaithem page</label></li>
-                            <li id="add-pane" data-bind="click: createPane"><label> Add Pane to Page</label></li>
-                            <li data-bind="click: showPages"><label> Show Page Manager</label></li>
-                            <li onclick="$('#globalSettingsDialog').css({display:'block'})"><label> Board Settings</label></li>
-                        </ul>
-                     
-
-                    </div>
-                </div>
-                <div id="datasources">
-                    <h2 class="title"> Data Sources</h2>
-
-                    <div class="datasource-list-container">
-                        <table class="table table-condensed sub-table" id="datasources-list"
-                            data-bind="if: datasources().length">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Last Updated</th>
-                                    <th>&nbsp;</th>
-                                </tr>
-                            </thead>
-                            <tbody data-bind="foreach: datasources">
-                                <tr>
-                                    <td>
-                                         <span class="text-button datasource-name"
-                                            data-bind="text: name, pluginEditor: {operation: 'edit', type: 'datasource'}"></span>
-                                    </td>
-                                    <td data-bind="text: last_updated"></td>
-                                    <td>
-                                        <ul class="board-toolbar">
-                                            <li data-bind="click: updateNow">
-                                            </li>
-                                            <li data-bind="pluginEditor: {operation: 'delete', type: 'datasource'}">
-                                                </li>
-                                        </ul>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <span class="text-button table-operation"
-                        data-bind="pluginEditor: {operation: 'add', type: 'datasource'}"> Add Datasource</span>
+            <div id="board-content">
+                <img id="dash-logo" data-bind="attr:{src: header_image}, visible:header_image()">
+                <div class="gridster responsive-column-width">
+                    <ul data-bind="grid: true">
+                    </ul>
                 </div>
             </div>
-        </div>
-        <div id="column-tools" class="responsive-column-width">
-            <ul class="board-toolbar left-columns">
-                <li class="column-tool add" data-bind="click: addGridColumnLeft"></li>
-                <li class="column-tool sub" data-bind="click: subGridColumnLeft"></li>
-            </ul>
-            <ul class="board-toolbar right-columns">
-                <li class="column-tool sub" data-bind="click: subGridColumnRight"></li>
-                <li class="column-tool add" data-bind="click: addGridColumnRight"></li>
-            </ul>
-        </div>
-        <div id="toggle-header" data-bind="click: toggleEditing">
-            </div>
-    </div>
-    </header>
+            <header id="main-header" data-bind="if:allow_edit">
+                <div id="main-header-inner">
+                    <div id="admin-bar">
+                        <div id="admin-menu">
+                            <div id="board-tools">
+                                <div id="board-logo" class="title freeboard-branding"> freeboard </div>
+                                <div id="board-actions">
+                                    <ul class="board-toolbar vertical">
+                                        <li data-bind="click: showFreeboadTemplatesMenu"><label> Load Example</label>
+                                        </li>
+                                        <li data-bind="click: showFreeboardHelp"><label> Show Help</label></li>
+                                        <li data-bind="click: showEmoji"><label> Show Emoji</label></li>
 
-    <div style="display:hidden">
-        <ul data-bind="template: { name: 'pane-template', foreach: panes}">
-        </ul>
-    </div>
+                                        <li data-bind="click: loadDashboardFromLocalFile"><label id="full-screen">
+                                                Upload a
+                                                board</label></li>
+                                        <li>
+                                            <label data-bind="click: downloadDashboardClicked"> Download this
+                                                board</label>
+                                            <label style="display: none;" data-bind="click: downloadDashboard"
+                                                data-pretty="true">[Pretty]</label>
+                                            <label style="display: none;" data-bind="click: downloadDashboard"
+                                                data-pretty="false">[Minified]</label>
+                                        </li>
+                                        <li data-bind="click: saveToKaithem"><label>Write changes back to the kaithem
+                                                page</label></li>
+                                        <li id="add-pane" data-bind="click: createPane"><label> Add Pane to
+                                                Page</label></li>
+                                        <li data-bind="click: showPages"><label> Show Page Manager</label></li>
+                                        <li onclick="$('#globalSettingsDialog').css({display:'block'})"><label> Board
+                                                Settings</label></li>
+                                    </ul>
 
-    <script type="text/html" id="pane-template">
+
+                                </div>
+                            </div>
+                            <div id="datasources">
+                                <h2 class="title"> Data Sources</h2>
+
+                                <div class="datasource-list-container">
+                                    <table class="table table-condensed sub-table" id="datasources-list"
+                                        data-bind="if: datasources().length">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Last Updated</th>
+                                                <th>&nbsp;</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody data-bind="foreach: datasources">
+                                            <tr>
+                                                <td>
+                                                     <span class="text-button datasource-name"
+                                                        data-bind="text: name, pluginEditor: {operation: 'edit', type: 'datasource'}"></span>
+                                                </td>
+                                                <td data-bind="text: last_updated"></td>
+                                                <td>
+                                                    <ul class="board-toolbar">
+                                                        <li data-bind="click: updateNow">
+                                                        </li>
+                                                        <li
+                                                            data-bind="pluginEditor: {operation: 'delete', type: 'datasource'}">
+                                                            </li>
+                                                    </ul>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <span class="text-button table-operation"
+                                    data-bind="pluginEditor: {operation: 'add', type: 'datasource'}"> Add
+                                    Datasource</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="column-tools" class="responsive-column-width">
+                        <ul class="board-toolbar left-columns">
+                            <li class="column-tool add" data-bind="click: addGridColumnLeft"></li>
+                            <li class="column-tool sub" data-bind="click: subGridColumnLeft"></li>
+                        </ul>
+                        <ul class="board-toolbar right-columns">
+                            <li class="column-tool sub" data-bind="click: subGridColumnRight"></li>
+                            <li class="column-tool add" data-bind="click: addGridColumnRight"></li>
+                        </ul>
+                    </div>
+                    <div id="toggle-header" data-bind="click: toggleEditing">
+                        </div>
+                </div>
+            </header>
+
+            <div style="display:hidden">
+                <ul data-bind="template: { name: 'pane-template', foreach: panes}">
+                </ul>
+            </div>
+
+            <script type="text/html" id="pane-template">
     <li data-bind="pane: true">
         <header>
             <h1 data-bind="text: title"></h1>
@@ -229,8 +245,8 @@ tags-list-data{
 </script>
 
 
-    <div id="freeboard-extra-tools"></div>
-    <div id="globaloverlay"></div>
-</body>
+            <div id="freeboard-extra-tools"></div>
+            <div id="globaloverlay"></div>
+        </body>
 
-</html>
+        </html>

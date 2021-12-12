@@ -114,6 +114,19 @@ $run YOUR_KAITHEM_PY_FILE
 Recent Changes(See [Full Changelog](kaithem/src/docs/changes.md))
 =============
 
+### 0.67.5
+- Scheduler is now just based on the normal sched module
+- Various performance improvments(Seems like 50% les CPU usage!)
+- LAN Consenseus time removed
+- Showing HTTPS MDNS services in the settings page removed
+- Allow HTTP login from any LAN address, not just localhost
+- Lots of code cleanup
+- Fix orphan processes at exit
+- Clean up the Examples module
+- BREAKING: Change /bt/ tagpoints in the BluetoothBeacon to /device/ to match the usual convention
+- Purely experimental NVRPlugin can stream live video to a page with HLS, but recording isn't there
+
+
 ### 0.67.4
 - Fix nuisance bad unit: dB error
 - Much better object pool manager for sound players, avoids occasional dropouts
