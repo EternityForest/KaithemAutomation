@@ -284,28 +284,6 @@ def ls_folder(m, d):
             o.append(i)
     return o
 
-#
-# def if_show_page(page):
-#     if 'dont-show-in-index' in page:
-#         if page['dont-show-in-index'] == True:
-#             return False
-#     return True
-#
-# @util.lrucache(1)
-# def getPageListing():
-#     x = []
-#     for i in sorted(ActiveModules.keys()):
-#         x[i] = {}
-#         for j in sorted(ActiveModules[i].keys()):
-#             if ActiveModules[i][j]['resource-type'] =='page':
-#                 if canIGoToThisPage(ActiveModules[i][j]):
-#                     x[i].append(j)
-#     y ={}
-#     for i in x:
-#         if x[i]:
-#             y[i] sorted(x[i])
-#     return y
-#
 
 
 "this lock protects the activemodules thing. Any changes at all should go through this."

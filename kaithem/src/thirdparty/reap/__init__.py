@@ -83,6 +83,13 @@ def sub_reap(args):
                 os._exit(1)
         except KeyboardInterrupt:
             pass
+        except:
+            import traceback
+            try:
+                with open("/dev/shm/pyreap_error",'w') as f:
+                    f.write(traceback.format_exc())
+            except:
+                pass
 
     if (status & 0xFF) == 0:
         os._exit(status >> 8)

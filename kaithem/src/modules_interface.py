@@ -706,7 +706,7 @@ def addResourceTarget(module, type, name, kwargs, path):
 
 
 # show a edit page for a resource. No side effect here so it only requires the view permission
-def resourceEditPage(module, resource, version='default', kwargs=None):
+def resourceEditPage(module, resource, version='default', kwargs={}):
     pages.require("/admin/modules.view")
 
     with modulesLock:
@@ -753,7 +753,7 @@ def resourceEditPage(module, resource, version='default', kwargs=None):
             else:
                 requiredpermissions = []
 
-            return pages.get_template("modules/pages/page.html").render(module=module, name=resource,
+            return pages.get_template("modules/pages/page.html").render(module=module, name=resource, kwargs=kwargs,
                                                                         page=ActiveModules[module][resource], requiredpermissions=requiredpermissions)
 
         if resourceinquestion['resource-type'] == 'directory':
@@ -914,7 +914,6 @@ def resourceUpdateTarget(module, resource, kwargs):
             resourceobj['template-engine'] = kwargs['template-engine']
             resourceobj['no-navheader'] = 'no-navheader' in kwargs
             resourceobj['no-header'] = 'no-header' in kwargs
-            resourceobj['dont-show-in-index'] = 'dont-show-in-index' in kwargs
             resourceobj['auto-reload'] = 'autoreload' in kwargs
             resourceobj['allow-xss'] = 'allow-xss' in kwargs
             resourceobj['allow-origins'] = [i.strip()

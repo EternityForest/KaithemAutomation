@@ -10,6 +10,7 @@ Change Log
 - Lots of code cleanup
 - Fix orphan processes at exit
 - Clean up the Examples module
+- BREAKING: Change /bt/ tagpoints in the BluetoothBeacon to /device/ to match the usual convention
 
 ### 0.67.4
 - Fix nuisance bad unit: dB error

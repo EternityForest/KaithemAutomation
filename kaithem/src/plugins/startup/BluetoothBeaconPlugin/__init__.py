@@ -61,7 +61,7 @@ class EspruinoHubBLEClient(devices.Device):
         devices.Device.__init__(self, name, data)
 
         try:
-            self.tagpoints["rssi"] = tagpoints.Tag("/bt/"+name+".rssi")
+            self.tagpoints["rssi"] = tagpoints.Tag("/devices/"+name+".rssi")
             self.tagpoints["rssi"].default = -180
             self.tagpoints["rssi"].min = -180
             self.tagpoints["rssi"].max = 12
@@ -89,26 +89,26 @@ class EspruinoHubBLEClient(devices.Device):
             def onBattery(t,m):
                 m=float(m)
                 if not 'battery' in self.tagpoints:
-                    self.tagpoints["battery"] = tagpoints.Tag("/bt/"+name+".battery")
+                    self.tagpoints["battery"] = tagpoints.Tag("/devices/"+name+".battery")
                 self.tagpoints['battery'].value=m
 
             def onEspruino(t,m):
                 m=json.loads(m)
                 if not 'espruino' in self.tagpoints:
-                    self.tagpoints["espruino"] = tagpoints.tagpoints.ObjectTag("/bt/"+name+".espruino")
+                    self.tagpoints["espruino"] = tagpoints.tagpoints.ObjectTag("/devices/"+name+".espruino")
                 self.tagpoints['espruino'].value=m
 
             def onUrl(t,m):
                 m=json.loads(m)
                 if not 'url' in self.tagpoints:
-                    self.tagpoints["url"] = tagpoints.tagpoints.StringTag("/bt/"+name+".url")
+                    self.tagpoints["url"] = tagpoints.tagpoints.StringTag("/devices/"+name+".url")
                 self.tagpoints['url'].value=m
 
 
             def onTemp(t,m):
                 m=float(m)
                 if not 'temp' in self.tagpoints:
-                    self.tagpoints["temp"] = tagpoints.Tag("/bt/"+name+".temp")
+                    self.tagpoints["temp"] = tagpoints.Tag("/devices/"+name+".temp")
                     self.tagpoints['temp'].unit = "degC"
 
                 self.tagpoints['temp'].value = m
@@ -116,7 +116,7 @@ class EspruinoHubBLEClient(devices.Device):
             def onHum(t,m):
                 m=float(m)
                 if not 'humidity' in self.tagpoints:
-                    self.tagpoints["humidity"] = tagpoints.Tag("/bt/"+name+".humidity")
+                    self.tagpoints["humidity"] = tagpoints.Tag("/devices/"+name+".humidity")
                     self.tagpoints['humidity'].unit = "%"
                     self.tagpoints['humidity'].min = 0
                     self.tagpoints['humidity'].max = 100
@@ -126,7 +126,7 @@ class EspruinoHubBLEClient(devices.Device):
             def onPres(t,m):
                 m=float(m)
                 if not 'pressure' in self.tagpoints:
-                    self.tagpoints["pressure"] = tagpoints.Tag("/bt/"+name+".pressure")
+                    self.tagpoints["pressure"] = tagpoints.Tag("/devices/"+name+".pressure")
                     self.tagpoints['pressure'].unit = "pa"
 
 
@@ -136,7 +136,7 @@ class EspruinoHubBLEClient(devices.Device):
             def onWeight(t,m):
                 m=float(m)
                 if not 'weight' in self.tagpoints:
-                    self.tagpoints["weight"] = tagpoints.Tag("/bt/"+name+".weight")
+                    self.tagpoints["weight"] = tagpoints.Tag("/devices/"+name+".weight")
                     #self.tagpoints['weight'].unit = "pa"
 
 
@@ -145,7 +145,7 @@ class EspruinoHubBLEClient(devices.Device):
             def onHeartRate(t,m):
                 m=float(m)
                 if not 'heartRate' in self.tagpoints:
-                    self.tagpoints["heartRate"] = tagpoints.Tag("/bt/"+name+".heartRate")
+                    self.tagpoints["heartRate"] = tagpoints.Tag("/devices/"+name+".heartRate")
                 self.tagpoints['heartRate'].value = m
 
 

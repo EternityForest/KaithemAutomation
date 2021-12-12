@@ -60,7 +60,7 @@ class RTL433Client(devices.Device):
         devices.Device.__init__(self, name, data)
 
         try:
-            self.tagpoints["rssi"] = tagpoints.Tag("/rtl433/" + name + ".rssi")
+            self.tagpoints["rssi"] = tagpoints.Tag("/devices/" + name + ".rssi")
             self.tagpoints["rssi"].default = -180
             self.tagpoints["rssi"].min = -180
             self.tagpoints["rssi"].max = 12
@@ -89,7 +89,7 @@ class RTL433Client(devices.Device):
                 m = float(m)
                 if not 'battery' in self.tagpoints:
                     self.tagpoints["battery"] = tagpoints.Tag(
-                        "/rtl433/" + name + ".battery")
+                        "/devices/" + name + ".battery")
                     self.tagpoints["battery"].setAlarm(
                         "Low battery", "timestamp and value< 15", priority="info")
 
@@ -99,7 +99,7 @@ class RTL433Client(devices.Device):
                 m = float(m)
                 if not 'wind' in self.tagpoints:
                     self.tagpoints["wind"] = tagpoints.Tag(
-                        "/rtl433/" + name + ".wind")
+                        "/devices/" + name + ".wind")
                     self.tagpoints['wind'].unit = "km/h"
                     self.tagpoints["wind"].setAlarm(
                         "High wind", "value > 35", priority="info")
@@ -110,7 +110,7 @@ class RTL433Client(devices.Device):
                 m = float(m)
                 if not 'temp' in self.tagpoints:
                     self.tagpoints["temp"] = tagpoints.Tag(
-                        "/rtl433/" + name + ".temp")
+                        "/devices/" + name + ".temp")
                     self.tagpoints['temp'].unit = "degC"
                     self.tagpoints["temp"].setAlarm(
                         "Freezing temperature", "timestamp and value <0", priority="info")
@@ -121,7 +121,7 @@ class RTL433Client(devices.Device):
                 m = float(m)
                 if not 'humidity' in self.tagpoints:
                     self.tagpoints["humidity"] = tagpoints.Tag(
-                        "/rtl433/" + name + ".humidity")
+                        "/devices/" + name + ".humidity")
                     self.tagpoints['humidity'].unit = "%"
                     self.tagpoints['humidity'].min = 0
                     self.tagpoints['humidity'].max = 100
@@ -132,7 +132,7 @@ class RTL433Client(devices.Device):
                 m = float(m)
                 if not 'moisture' in self.tagpoints:
                     self.tagpoints["moisture"] = tagpoints.Tag(
-                        "/rtl433/" + name + ".moisture")
+                        "/devices/" + name + ".moisture")
                     self.tagpoints['moisture'].unit = "%"
                     self.tagpoints['moisture'].min = 0
                     self.tagpoints['moisture'].max = 100
@@ -143,7 +143,7 @@ class RTL433Client(devices.Device):
                 m = float(m)
                 if not 'pressure' in self.tagpoints:
                     self.tagpoints["pressure"] = tagpoints.Tag(
-                        "/rtl433/" + name + ".pressure")
+                        "/devices/" + name + ".pressure")
                     self.tagpoints['pressure'].unit = "pa"
 
                 self.tagpoints['pressure'].value = m
@@ -152,7 +152,7 @@ class RTL433Client(devices.Device):
                 m = float(m)
                 if not 'weight' in self.tagpoints:
                     self.tagpoints["weight"] = tagpoints.Tag(
-                        "/rtl433/" + name + ".weight")
+                        "/devices/" + name + ".weight")
                     #self.tagpoints['weight'].unit = "pa"
 
                 self.tagpoints['weight'].value = m
@@ -160,14 +160,14 @@ class RTL433Client(devices.Device):
             def onCommandCode(t, m):
                 if not 'lastCommandCode' in self.tagpoints:
                     self.tagpoints["lastCommandCode"] = tagpoints.ObjectTag(
-                        "/rtl433/" + name + ".lastCommandCode")
+                        "/devices/" + name + ".lastCommandCode")
                 self.tagpoints['lastCommandCode'].value = (m, time.time())
 
 
             def onCommandName(t, m):
                 if not 'lastCommandName' in self.tagpoints:
                     self.tagpoints["lastCommandName"] = tagpoints.ObjectTag(
-                        "/rtl433/" + name + ".lastCommandName")
+                        "/devices/" + name + ".lastCommandName")
                 self.tagpoints['lastCommandName'].value = (m, time.time())
 
             def onJSON(t, m):
