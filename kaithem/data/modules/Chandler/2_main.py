@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1639228629440526
+resource-timestamp: 1639323741758762
 resource-type: event
 versions: {}
 
@@ -16,8 +16,6 @@ versions: {}
 __trigger__='True'
 
 if __name__=='__setup__':
-    
-    
     #This code runs once when the event loads. It also runs when you save the event during the test compile
     #and may run multiple times when kaithem boots due to dependancy resolutio n
     __doc__=''
@@ -320,6 +318,7 @@ if __name__=='__setup__':
         module.scenes_by_name[scene].gotoCue(cue,cause=newcause)
         return True
     
+    gotoCommand.completionTags={"scene":"scenesList","cue":"gotoSceneCuesCompleter"}
     
     def setAlphaCommand(scene="=SCENE", alpha=1):
         "Set the alpha value of a scene"
@@ -4130,8 +4129,6 @@ if __name__=='__setup__':
     controluniverse = module.Universe("control")
     module.controluniverse= weakref.proxy(controluniverse)
     varsuniverse = module.Universe("__variables__")
-    
-    
 
 def eventAction():
     with module.lock:

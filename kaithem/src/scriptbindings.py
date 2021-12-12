@@ -168,12 +168,16 @@ def paramDefault(p):
 
 
 def getFunctionInfo(f):
-    p = inspect.signature(f).parameters
+    p = inspect.signature(f).parameters        
 
     d = {
         'doc': inspect.getdoc(f),
         'args': [[i, paramDefault(p[i].default)] for i in p]
     }
+
+    if hasattr(f,"completionTags"):
+        d['completionTags'] = f.completionTags
+
     return d
 
 

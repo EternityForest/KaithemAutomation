@@ -45,6 +45,7 @@ import logging
 import select
 import threading
 import time
+import traceback
 
 from ws4py import format_addresses
 from ws4py.compat import py3k
@@ -124,7 +125,8 @@ class EPollPoller(object):
         try:
             self.poller.register(fd, select.EPOLLIN | select.EPOLLPRI)
         except IOError:
-            pass
+            print(traceback.format_exc())
+            
 
     def unregister(self, fd):
         """

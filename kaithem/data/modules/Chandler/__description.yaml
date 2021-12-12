@@ -1,5 +1,8 @@
 resource-timestamp: 1566264981278455
 resource-type: module-description
-text: "Lighting control library and JS virtual light board. Requires numpy.\r\nYou\
-  \ have to load the jslibs module(Should work with any jslibs-0.xx.x) to use the\
-  \ light board.\r\npyserial is required to use enttec DMX adapters.\r\n"
+text: "Lighting control library and JS virtual light board. Requires numpy.\r\npyserial\
+  \ is required to use enttec DMX adapters.\r\n\r\nNote to developers: this module\
+  \ needs some work on the tight coupling between events. If you change one part of\
+  \ the code at runtime, expect oddities as the old version might not immediately\
+  \ go away.  This isn't enough of an issiue to really impede development though.\r\
+  \n"

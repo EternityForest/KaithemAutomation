@@ -84,8 +84,6 @@ class WebInterface():
     @cherrypy.expose
     def ws(self):
         # you can access the class instance through
-        if not config['enable-websockets']:
-            raise RuntimeError("Websockets disabled in server config")
         handler = cherrypy.request.ws_handler
         x = cherrypy.request.remote.ip
         if cherrypy.request.scheme == 'https' or (x.startswith("::1") or x.startswith("127.") or x=='::ffff:127.0.0.1'):

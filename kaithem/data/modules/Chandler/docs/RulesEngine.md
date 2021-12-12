@@ -89,6 +89,9 @@ YOu can set the MQTT server of a scene. It will auto manage reconnections and re
 
 Any $mqtt:topic/foo/bar event fires when topic/foo/bar is recieved via MQTT. The event's value will be the payload.
 
+If possible, Chandler will always try to decode the MQTT.
+
+
 ## Tag Points
 
 setTag sets a tag. The claim remains till the scene is stopped.
