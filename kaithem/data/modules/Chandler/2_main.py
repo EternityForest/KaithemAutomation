@@ -7,7 +7,7 @@ enable: true
 once: true
 priority: realtime
 rate-limit: 0.0
-resource-timestamp: 1639323741758762
+resource-timestamp: 1639338303318669
 resource-type: event
 versions: {}
 
@@ -1874,7 +1874,7 @@ if __name__=='__setup__':
                     
                 if msg[0] == "setbacktrack":
                     module.scenes[msg[1]].setBacktrack(bool(msg[2]))
-                    self.pushMeta(msg[1],keys='backtrack')
+                    self.pushMeta(msg[1],keys={'backtrack'})
                 
                 if msg[0] == "setscenesoundout":
                     module.scenes[msg[1]].soundOutput=msg[2]

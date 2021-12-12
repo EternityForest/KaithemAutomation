@@ -50,6 +50,8 @@ def cheroot_server(server_factory):
         else:
             break
 
+    httpserver.shutdown_timeout = 0  # Speed-up tests teardown
+
     threading.Thread(target=httpserver.safe_start).start()  # spawn it
     while not httpserver.ready:  # wait until fully initialized and bound
         time.sleep(0.1)
@@ -59,14 +61,14 @@ def cheroot_server(server_factory):
     httpserver.stop()  # destroy it
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture
 def wsgi_server():
     """Set up and tear down a Cheroot WSGI server instance."""
     for srv in cheroot_server(cheroot.wsgi.Server):
         yield srv
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture
 def native_server():
     """Set up and tear down a Cheroot HTTP server instance."""
     for srv in cheroot_server(cheroot.server.HTTPServer):
