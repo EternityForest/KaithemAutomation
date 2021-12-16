@@ -5,8 +5,9 @@ import os
 import importlib
 import json
 import copy 
+import logging
 
-knownDeviceTypes = {}
+known_device_types = {}
 
 
 
@@ -14,7 +15,7 @@ knownDeviceTypes = {}
 # Programmatically generated device classes go here
 device_classes= weakref.WeakValueDictionary()
 
-def _discoverPossibleDevices():
+def discover():
     "Search system paths for modules that have a devices manifest."
 
     paths = copy.deepcopy(sys.path)
@@ -35,7 +36,7 @@ def _discoverPossibleDevices():
                             d = json.loads(d)
 
                         for dev in d['devices']:
-                            knownDeviceTypes[dev] = d['devices'][dev]
+                            known_device_types[dev] = d['devices'][dev]
 
                             #Special case handling devices included in this library for demo purposes.
                             modulename =os.path.basename(folder)
@@ -46,10 +47,11 @@ def _discoverPossibleDevices():
                             if x:
                                 modulename=modulename+"."+x
 
-                            knownDeviceTypes[dev]['importable'] = modulename
+                            known_device_types[dev]['importable'] = modulename
 
                     except:
                         logging.exception("Error with devices manifest in: "+folder)
+    return known_device_types
 
 
 def get_class(data):
@@ -64,10 +66,10 @@ def get_class(data):
         except KeyError:
             pass
 
-    if not t in knownDeviceTypes:
-        _discoverPossibleDevices()
+    if not t in known_device_types:
+        discover()
 
-    m = knownDeviceTypes[t]['importable']
+    m = known_device_types[t]['importable']
     module  =  importlib.import_module(m)
     return module.__dict__[t]
  

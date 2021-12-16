@@ -75,7 +75,23 @@ class DeviceResourceType():
         with lock:
             n = module + "/" + name
             if n in remote_devices:
-                remote_devices[n].close()
+                x = remote_devices[n]
+                x.close()
+                gc.collect
+                x.onDelete()
+                gc.collect()
+                remote_devices.pop(n,None)
+
+
+            global remote_devices_atomic
+            remote_devices_atomic = wrcopy(remote_devices)
+            # Gotta be aggressive about ref cycle breaking!
+            gc.collect()
+            time.sleep(0.1)
+            gc.collect()
+            time.sleep(0.2)
+            gc.collect()
+
 
     def create(self, module, path, name, kwargs):
         raise RuntimeError(
@@ -269,6 +285,12 @@ class Device(virtualresource.VirtualResource):
                     device_data[self.name][key] = str(val)
                     unsaved_changes[self.name] = True
 
+    @staticmethod
+    def makeUIMsgHandler(wr):
+        def f(u,v):
+            wr().on_ui_message(u,v)
+        return f
+
     def __init__(self, name, data):
         if not data[
                 'type'] == self.deviceTypeName and not self.deviceTypeName == 'unsupported':
@@ -285,8 +307,14 @@ class Device(virtualresource.VirtualResource):
         self._admin_ws_channel = widgets.APIWidget()
         self._admin_ws_channel.require("/admin/settings.edit")
 
-        def onMessage(user, value):
-            self.on_ui_message(value)
+
+        # Widgets could potentially stay around after this was deleted,
+        # because a connection was open. We wouldn't want that to keep this device around when it should not
+        # be.
+        onMessage = self.makeUIMsgHandler(weakref.ref(self))
+
+        # I don't think this is actually needed
+        self._uiMsgRef = onMessage
 
         self._admin_ws_channel.attach(onMessage)
 
@@ -395,6 +423,15 @@ class Device(virtualresource.VirtualResource):
                                                    self.parentResource]
                 except KeyError:
                     pass
+
+        try:
+            for i in self.alerts:
+                try:
+                    self.alerts[i].release()
+                except Exception:
+                    logging.exception("Error releasing alerts")
+        except Exception:
+            logging.exception("Error releasing alerts")
 
     def onDelete(self):
         "Called just before the device is deleted right after closing it."
@@ -551,7 +588,7 @@ class CrossFrameworkDevice(Device):
                   release_condition: Optional[str] = None,
                   **kw):
 
-        self.tagPoints[datapoint].setAlarm(name,
+        self.alerts[name]=self.tagPoints[datapoint].setAlarm(name,
                                            condition=expression,
                                            priority=priority,
                                            tripDelay=trip_delay,
@@ -584,8 +621,11 @@ class CrossFrameworkDevice(Device):
 
     ### Lifecycle
 
+    def onDelete(self):
+        self.on_delete()
+
     def on_delete(self):
-        self.onDelete()
+        pass
 
     ### UI Integration
 
@@ -837,8 +877,11 @@ class WebDevices():
         pages.require("/admin/settings.edit")
         name = kwargs['name']
         with lock:
-            remote_devices[name].close()
-            remote_devices[name].onDelete()
+            x = remote_devices[name]
+            x.close()
+            gc.collect()
+            x.onDelete()
+            gc.collect()
             try:
                 del remote_devices[name]
             except KeyError:
@@ -848,18 +891,24 @@ class WebDevices():
             except KeyError:
                 pass
 
-            if self.parentModule:
+            if x.parentModule:
                 from src import modules
-                del modules.modules_state.ActiveModules[self.parentModule][
-                    self.parentResource]
+                del modules.modules_state.ActiveModules[x.parentModule][
+                    x.parentResource]
                 modules.unsaved_changed_obj[
-                    self.parentModule, self.parentResource] = "Device deleted"
+                    x.parentModule, x.parentResource] = "Device deleted"
                 modules.modules_state.createRecoveryEntry(
-                    self.parentModule, self.parentResource, None)
+                    x.parentModule, x.parentResource, None)
                 modules.modulesHaveChanged()
             global remote_devices_atomic
             remote_devices_atomic = wrcopy(remote_devices)
+            # Gotta be aggressive about ref cycle breaking!
             gc.collect()
+            time.sleep(0.1)
+            gc.collect()
+            time.sleep(0.2)
+            gc.collect()
+
             unsaved_changes[name] = True
 
         raise cherrypy.HTTPRedirect("/devices")
@@ -1142,3 +1191,5 @@ def init_devices():
             "Error with device drivers:\n" + traceback.format_exc(chain=True))
 
     createDevicesFromData()
+
+importedDeviceTypes = list(iot_devices.host.discover().keys())

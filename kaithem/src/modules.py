@@ -234,11 +234,15 @@ def loadAllCustomResourceTypes():
     for i in ActiveModules:
         for j in ActiveModules[i]:
             r=ActiveModules[i][j]
-            if isinstance(r, weakref.ref):
+            if not isinstance(r, weakref.ref):
                 if hasattr(r,'get'):
                     if r.get('resource-type','') in additionalTypes:
-                        additionalTypes[r['resource-type']].onload(i, j, r)
-
+                        try:
+                            additionalTypes[r['resource-type']].onload(i, j, r)
+                        except Exception:
+                            messagebus.postMessage(
+                                "/system/notifications/errors", "Error loading resource:" + str((i,j)))
+                            logger.exception("Error loading resource: "+str((i,j)))
 class ResourceObject():
     def __init__(self, m: str = None, r: str = None, o=None):
         self.resource = r

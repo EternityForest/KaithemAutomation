@@ -139,6 +139,26 @@ class Settings():
         kaithemobj.kaithem.sound.stopAll()
         raise cherrypy.HTTPRedirect("/settings")
 
+    @cherrypy.expose
+    def gcsweep(self, *args, **kwargs):
+        """Used to stop all sounds currently being played via kaithem's sound module"""
+        pages.require("/admin/settings.edit")
+        import gc
+        # I don't think we can return right away anyway or people would think it was broken and not doing anything,
+        # Might as well retry a few times in case we have  cleanups that have to propagate through the thread pool or some
+        # other crazy unusual case
+        gc.collect()
+        gc.collect()
+        time.sleep(0.1)
+        gc.collect()
+        time.sleep(0.3)
+        gc.collect()
+        time.sleep(0.1)
+        gc.collect()
+        gc.collect()
+
+        raise cherrypy.HTTPRedirect("/settings")
+
 
     @cherrypy.expose
     def updateytdl(self, *args, **kwargs):

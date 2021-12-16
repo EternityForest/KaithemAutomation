@@ -20,7 +20,7 @@ import copy
 import dateutil
 import dateutil.parser
 
-from typing import Callable, Union, Dict, List, Any, Optional
+from typing import Callable, Tuple, Union, Dict, List, Any, Optional
 from typeguard import typechecked
 
 logger = logging.getLogger("tagpoints")
@@ -232,6 +232,17 @@ class _TagPoint(virtualresource.VirtualResource):
 
         self._configuredAlarms: Dict[str, object] = {}
 
+
+        # Track the recalc function used by the poller, the poller itself, and the recalc alarm subscrie
+        # function subscribed to us, respectively
+
+        # The last is a function that is used as a subscriber which just causes the tag to be recalced.
+        # We give that to other tags in case the alarm polling depends on other tags.
+
+
+        #We need it so we don't get GCed
+        self._alarmGCRefs: Dict[str, Tuple[Callable,object,Callable,Callable]] = {}
+
         self.name: str = name
         # The cached actual value from the claims
         self.cachedRawClaimVal = copy.deepcopy(self.defaultData)
@@ -272,14 +283,22 @@ class _TagPoint(virtualresource.VirtualResource):
         else:
             self.originEvent = None
 
+
+
+
         # Used for the expressions in alert conditions and such
         self.evalContext: dict = {
             "math": math,
             "time": time,
-            'tag': self,
+             #Cannot reference ourself strongly.  We want to avoid laking any references to tht tags
+             # go away cleanly
+            'tag': weakref.proxy(self),
             're': re,
             'kaithem': kaithemobj.kaithem,
             'random': random,
+
+            # It is perfect;y fine that these reference ourself, because when we pass this to an alarm,
+            # We have alarm specific ones.
             'tv': self.contextGetNumericTagValue,
             'stv': self.contextGetStringTagValue,
             'dateutil': dateutil
@@ -346,7 +365,8 @@ class _TagPoint(virtualresource.VirtualResource):
     def isDynamic(self) -> bool:
         return callable(self.vta[0])
 
-    def expose(self, r='', w='__never__', p=50, configured=False):
+    @typechecked
+    def expose(self, r='', w='__never__', p:Union[str,int]=50, configured:bool=False):
         """If not r, disable web API.  Otherwise, set read and write permissions.
            If configured permissions are set, they totally override code permissions.
            Empty configured perms fallback tor runtime
@@ -437,8 +457,11 @@ class _TagPoint(virtualresource.VirtualResource):
                         self.apiClaim.setPriority(p)
                     self._apiPush()
 
-                    w.attach(self.apiHandler)
-                    self.dataSourceAutoControl.attach(self.apiHandler)
+                    # We don't want the web connection to be able to keep the tag alive
+                    # so don't give it a reference to us
+                    self._weakApiHandler = self.makeWeakApiHandler(weakref.ref(self))
+                    w.attach(self._weakApiHandler)
+                    self.dataSourceAutoControl.attach(self._weakApiHandler)
 
                     self.dataSourceWidget = w
 
@@ -546,6 +569,13 @@ class _TagPoint(virtualresource.VirtualResource):
                                     value,
                                     retain=True,
                                     encoding=self.mqttEncoding)
+
+
+    @staticmethod
+    def makeWeakApiHandler(wr):
+        def f(u,v):
+            wr().apiHandler(u,v)
+        return f
 
     def apiHandler(self, u, v):
         if v is None:
@@ -689,6 +719,9 @@ class _TagPoint(virtualresource.VirtualResource):
         "Just re-get the value as needed"
         # It's a getter, ignore the mypy unused thing.
         self.poll()
+
+
+    
 
     def contextGetNumericTagValue(self, n):
         "Get the tag value, adding it to the list of source tags. Creates tag if it isn't there"
@@ -854,19 +887,27 @@ class _TagPoint(virtualresource.VirtualResource):
                 a = self.alarms[i]
                 if a:
                     if not limitTo or i == limitTo:
-                        try:
-                            self.unsubscribe(a.tagSubscriber)
-                        except Exception:
-                            logger.exception("Maybe already unsubbed?")
 
-                        # This is the poller for polling even when there is no change, at a very low rate,
-                        # To catch any edge cases not caught by watching tag changes
-                        try:
-                            a.poller.unregister()
-                        except Exception:
-                            logger.exception("Maybe already unsubbed?")
+                        #This is the polling function, the poller, and the subscriber
+                        pollStuff = self._alarmGCRefs.pop(i,None)
+
+                        if pollStuff:
+                            try:
+                                self.unsubscribe(pollStuff[2])
+                            except Exception:
+                                logger.exception("Maybe already unsubbed?")
+
+                            # This is the poller for polling even when there is no change, at a very low rate,
+                            # To catch any edge cases not caught by watching tag changes
+                            try:
+                                pollStuff[1].unregister()
+                            except Exception:
+                                logger.exception("Maybe already unsubbed?")
+
+                            
 
                         a.release()
+                 
 
             if not limitTo:
                 self.alarms = {}
@@ -882,6 +923,71 @@ class _TagPoint(virtualresource.VirtualResource):
 
             if limitTo and limitTo in self.alarms:
                 return self.alarms[limitTo]
+
+    @staticmethod
+    def _makeTagAlarmHTMLFunc(selfwr):
+        def notificationHTML():
+            try:
+                if hasattr(selfwr(), "meterWidget"):
+                    return selfwr().meterWidget.render()
+                elif hasattr(selfwr(), "spanWidget"):
+                    return selfwr().spanWidget.render()
+                else:
+                    return "Binary Tagpoint"
+            except Exception as e:
+                return str(e)
+        return notificationHTML
+
+    @staticmethod
+    def _getAlarmContextGetters(obj, context, recalc):
+        # Note that it these go to an alarm which is held if active, or another tag that could be held elsewhere
+        # It cannot reference any tag directly or preserve any references, we would not want that.
+
+        # that could keep this tag alive long after it should be gone
+
+        # Functions used for getting other tag values
+
+        # You must keep a reference to recalc2 locally!!!!!!!!!
+
+        #
+
+        def recalc2(*a,**k):
+            recalc()()
+
+        def contextGetNumericTagValue(n):
+            """Since an alarm can use values from other tags, we must track those values, and from there
+                recalc the alarm whenever they should change.
+            """
+            if n in obj.sourceTags:
+                t = obj.sourceTags[n]()
+                if t:
+                    return t.value
+
+            t = Tag(n)
+            obj.sourceTags[n] = weakref.ref(t) 
+            # When any source tag updates, we want to recalculate.
+            obj.sourceTags[n].subscribe(obj.recalcFunction)
+            return t.value
+
+        def contextGetStringTagValue(n):
+            """Since an alarm can use values from other tags, we must track those values, and from there
+                recalc the alarm whenever they should change.
+            """
+            if n in obj.sourceTags:
+                t = obj.sourceTags[n]()
+                if t:
+                    return t.value
+
+            t = StringTag(n)
+            obj.sourceTags[n] = weakref.ref(t) 
+            # When any source tag updates, we want to recalculate.
+            obj.sourceTags[n].subscribe(obj.recalcFunction)
+            return t.value
+
+        context['tv'] = contextGetNumericTagValue
+        context['stv'] = contextGetStringTagValue
+
+        return recalc2
 
     def _alarmFromData(self, name, d):
         if not d.get("condition", ''):
@@ -919,11 +1025,20 @@ class _TagPoint(virtualresource.VirtualResource):
             if oldAlert:
                 for i in oldAlert.sourceTags:
                     try:
-                        oldAlert.sourceTags[i].unsubscribe(
+                        oldAlert.sourceTags[i]().unsubscribe(
                             oldAlert.recalcFunction)
                     except Exception:
-                        logger.exception("cleanup err")
-                self.unsubscribe(oldAlert.tagSubscriber)
+                        logger.exception("cleanup err, could be because it was already deleted")
+
+                refs = self._alarmGCRefs.pop(name,None)
+                if refs:
+                    self.unsubscribe(refs[2])
+
+                    #This is the poller
+                    try:
+                        refs[1].unregister()
+                    except Exception:
+                        logger.exception("cleanup err!!!")
 
         except Exception:
             logger.exception("cleanup err")
@@ -939,23 +1054,17 @@ class _TagPoint(virtualresource.VirtualResource):
 
         obj.sourceTags = {}
 
-        def f():
-            try:
-                if hasattr(self, "meterWidget"):
-                    return self.meterWidget.render()
-                elif hasattr(self, "spanWidget"):
-                    return self.spanWidget.render()
-                else:
-                    return "Binary Tagpoint"
-            except Exception as e:
-                return str(e)
-
-        obj.notificationHTML = f
+        # We don't need to weakref-ify this directly, as it just goes to the poller and the poller doesn't
+        # keep strong references.
 
         def alarmRecalcFunction(*a):
             """Recalc with same val vor this tag, but perhaps 
             a new value for
-             other tags that may be fetched in the expression eval"""
+            other tags that may be fetched in the expression eval"""
+            
+            if not self:
+                obj.release()
+                return
 
             # To avoid false alarms and confusion, we never
             # trigger an alarm on missing or default data.
@@ -975,6 +1084,8 @@ class _TagPoint(virtualresource.VirtualResource):
                 obj.error(str(e))
                 raise
 
+
+
         def alarmPollFunction(value, timestamp, annotation):
             "Given a new tag value, recalc the alarm expression"
             context['value'] = value
@@ -983,40 +1094,24 @@ class _TagPoint(virtualresource.VirtualResource):
 
             alarmRecalcFunction()
 
-        obj.recalcFunction = alarmRecalcFunction
 
-        obj.poller = scheduling.scheduler.scheduleRepeating(
-            alarmRecalcFunction, 60, sync=False)
+      
 
-        # Functions used for getting other tag values
+        obj.notificationHTML = self._makeTagAlarmHTMLFunc(weakref.ref(self))
 
-        def contextGetNumericTagValue(n):
-            """Since an alarm can use values from other tags, we must track those values, and from there
-                recalc the alarm whenever they should change.
-            """
-            if n not in obj.sourceTags:
-                obj.sourceTags[n] = Tag(n)
-                # When any source tag updates, we want to recalculate.
-                obj.sourceTags[n].subscribe(obj.recalcFunction)
-            return obj.sourceTags[n].value
 
-        def contextGetStringTagValue(n):
-            """Since an alarm can use values from other tags, we must track those values, and from there
-                recalc the alarm whenever they should change.
-            """
-            if n not in obj.sourceTags:
-                obj.sourceTags[n] = StringTag(n)
-                # When any source tag updates, we want to recalculate.
-                obj.sourceTags[n].subscribe(obj.recalcFunction)
-            return obj.sourceTags[n].value
 
-        context['tv'] = contextGetNumericTagValue
-        context['stv'] = contextGetStringTagValue
+        generatedRecalcFuncWeMustKeepARefTo = self._getAlarmContextGetters(obj, context, weakref.ref(alarmRecalcFunction))
+
+
+
+        self._alarmGCRefs[name] = (alarmRecalcFunction, scheduling.scheduler.scheduleRepeating(
+            alarmRecalcFunction, 60, sync=False), alarmPollFunction, generatedRecalcFuncWeMustKeepARefTo)
+
 
         # Store our new modified context.
         obj.context = context
 
-        obj.tagSubscriber = alarmPollFunction
         self.subscribe(alarmPollFunction)
         self.alarms[name] = obj
 
@@ -1397,8 +1492,8 @@ class _TagPoint(virtualresource.VirtualResource):
             raise RuntimeError(
                 "Cannot get lock to subscribe to this tag. Is there a long running subscriber?"
             )
-
-    def unsubscribe(self, f):
+    @typechecked
+    def unsubscribe(self, f:Callable):
         if self.lock.acquire(timeout=20):
             try:
                 x = None

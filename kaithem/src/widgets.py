@@ -12,6 +12,8 @@
 
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
+from typing import Callable
+from typeguard import typechecked
 from .unitsofmeasure import convert, unitTypes
 import ws4py.messaging
 import ws4py
@@ -471,12 +473,14 @@ class Widget():
         return ""
 
     # Set a callback if it ever changes
-    def attach(self, f):
+    @typechecked
+    def attach(self, f:Callable):
         self._callback = f
 
     # Set a callback if it ever changes.
     # This version also gives you the connection ID
-    def attach2(self, f):
+    @typechecked
+    def attach2(self, f:Callable):
         self._callback2 = f
 
     # meant to be overridden or used as is

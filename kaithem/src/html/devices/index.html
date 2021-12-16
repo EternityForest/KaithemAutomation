@@ -100,6 +100,10 @@ def devStatString(d):
     %for i in devices.deviceTypes:
     <option value="${i}" title=${devices.deviceTypes[i].description} >
     %endfor
+
+    %for i in devices.importedDeviceTypes:
+    <option value="${i}" title=${i} >
+    %endfor
 </datalist>
 
 <h2>Create New Device</h2>
