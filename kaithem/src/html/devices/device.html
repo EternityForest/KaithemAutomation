@@ -6,6 +6,14 @@ import urllib.parse
 
 def url(u):
     return urllib.parse.quote(u,safe='')
+
+
+specialKeys={
+
+        'subclass',
+        'name',
+        'type'
+}
 %>
 <script type="text/javascript" src="/static/widget.js"></script>
 
@@ -40,16 +48,33 @@ def url(u):
 <title>${name|h}</title>
 <h2>Device Specific</h2>
 
+
+
 %try:
-%if hasattr(obj,"getManagementForm"):
-${obj.getManagementForm()}
-%endif
+<%
+manageForm=''
+if hasattr(obj,"getManagementForm"):
+        manageForm = obj.getManagementForm()
+%>
 %except:
 <pre>
 ${traceback.format_exc()}
 </pre>
 %endtry
 
+%if manageForm.strip():
+${manageForm}
+%else:
+
+<table>
+%for i in sorted([i for i in obj.config.keys() if not i in specialKeys] ):
+<tr>
+        <td>${i|h}</td>
+        <td><input name="${i|h}" value="${obj.config[i]|h}"></td>
+</tr>
+%endfor
+</table>
+%endif
 <h2>Alerts</h2>
 <p class="help">This section lists all alerts supported by the device and
         allows you to change the priorities for each.

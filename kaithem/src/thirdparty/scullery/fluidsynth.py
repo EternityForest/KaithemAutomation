@@ -113,7 +113,7 @@ def findGMInstrument(name, look_in_soundfont=None, bank=None):
 
 
 def waitForJack():
-    from . import jacktools
+    from scullery import jacktools
     for i in range(10):
         if not jacktools.getPorts():
             time.sleep(1)
@@ -140,7 +140,7 @@ def findSoundFont(specific=None, extraFallback=None):
         if os.path.exists(l):
             return l
 
-    return extraFallBack
+    return extraFallback
 
 
 class FluidSynth():
@@ -177,9 +177,9 @@ class FluidSynth():
 
             if jackClientName:
                 self.fs.setting("audio.jack.id", jackClientName)
-                self.fs.setting("audio.midi.id", "KaithemFluidsynth")
+                self.fs.setting("midi.jack.id", "fstest")
 
-            usingJack = True
+                usingJack = True
 
             if connectMidi:
                 pass
@@ -192,8 +192,8 @@ class FluidSynth():
 
             if usingJack:
                 if not jackClientName:
-                    self.fs.setting("audio.jack.id", "KaithemFluidsynth")
-                    self.fs.setting("audio.midi.id", "KaithemFluidsynth")
+                    self.fs.setting("audio.jack.id", "fstest")
+                    self.fs.setting("midi.jack.id", "fstest")
 
                 self.fs.setting("midi.driver", 'jack')
                 self.fs.start(driver="jack", midi_driver="jack")

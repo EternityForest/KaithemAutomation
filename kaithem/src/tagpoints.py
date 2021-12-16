@@ -20,7 +20,7 @@ import copy
 import dateutil
 import dateutil.parser
 
-from typing import Callable, Union, Dict, List, Any,Optional
+from typing import Callable, Union, Dict, List, Any, Optional
 from typeguard import typechecked
 
 logger = logging.getLogger("tagpoints")
@@ -71,7 +71,7 @@ defaultDisplayUnits = {
 
 
 @functools.lru_cache(500, False)
-def normalizeTagName(name: str, replacementChar:Optional[str]=None)->str:
+def normalizeTagName(name: str, replacementChar: Optional[str] = None) -> str:
     "Normalize hte name, and raise errors on anything just plain invalid, unless a replacement char is supplied"
     name = name.strip()
     if name == "":
@@ -118,10 +118,10 @@ class TagProvider():
 
 
 configTags: Dict[str, object] = {}
-configTagData: Dict[str,Dict] = {}
+configTagData: Dict[str, Dict] = {}
 
 
-def getFilenameForTagConfig(i:str ):
+def getFilenameForTagConfig(i: str):
     "Given the name of a tag, get the name of it's config file"
     if i.startswith("/"):
         n = i[1:]
@@ -956,6 +956,13 @@ class _TagPoint(virtualresource.VirtualResource):
             """Recalc with same val vor this tag, but perhaps 
             a new value for
              other tags that may be fetched in the expression eval"""
+
+            # To avoid false alarms and confusion, we never
+            # trigger an alarm on missing or default data.
+            if self.timestamp ==0:
+                obj.release()
+                return
+
             try:
                 if eval(tripCondition, context, context):
                     obj.trip("Tag value:" + str(context['value'])[:128])
@@ -1210,6 +1217,8 @@ class _TagPoint(virtualresource.VirtualResource):
     @interval.setter
     def interval(self, val):
         self._dynConfigValues['interval'] = val
+
+        #Config tages priority over code
         if not val == self.configOverrides.get('interval', val):
             return
         if val is not None:
@@ -2705,7 +2714,7 @@ class HighpassFilter(LowpassFilter):
 #             return self.state
 
 
-def createGetterFromExpression(e:str, t:_TagPoint, priority=98) -> Claim:
+def createGetterFromExpression(e: str, t: _TagPoint, priority=98) -> Claim:
 
     try:
         for i in t.sourceTags:
@@ -2735,8 +2744,7 @@ def createGetterFromExpression(e:str, t:_TagPoint, priority=98) -> Claim:
     return c2
 
 
-
-def configTagFromData(name:str, data:dict) -> _TagPoint:
+def configTagFromData(name: str, data: dict) -> _TagPoint:
     name = normalizeTagName(name)
 
     t = data.get("type", '')
@@ -2753,7 +2761,7 @@ def configTagFromData(name:str, data:dict) -> _TagPoint:
     except Exception:
         logger.exception("Deleting tag config")
 
-    tag:Optional(_TagPoint)=None
+    tag: Optional(_TagPoint) = None
     # Create or get the tag
     if t == "number":
         tag = Tag(name)
@@ -2771,6 +2779,7 @@ def configTagFromData(name:str, data:dict) -> _TagPoint:
         configTags[name] = tag
     # Now set it's config.
     tag.setConfigData(data)
+
 
 def loadAllConfiguredTags(f=os.path.join(directories.vardir, "tags")):
     with lock:

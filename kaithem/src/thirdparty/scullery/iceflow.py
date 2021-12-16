@@ -92,7 +92,7 @@ class GStreamerPipeline():
         self.worker = None
 
 
-        from jsonrpyc import RPC
+        from scullery.jsonrpyc import RPC
         from subprocess import PIPE, STDOUT
         from reap import Popen
         pipes[id(self)]=self

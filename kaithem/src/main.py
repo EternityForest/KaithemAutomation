@@ -70,7 +70,6 @@ from . import directories
 
 from .config import config
 from . import config as cfg
-from . import scheduling
 import mako.exceptions
 import cherrypy
 import logging

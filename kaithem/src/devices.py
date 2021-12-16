@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Kaithem Automation.  If not, see <http://www.gnu.org/licenses/>.
 
-
 import weakref
 import threading
 import time
@@ -24,11 +23,13 @@ import gc
 import os
 import re
 import cherrypy
-from typing import Dict
-
+import copy
+from typing import Dict, Optional, Union, Any, Callable
 
 from . import virtualresource, pages, workers, tagpoints, alerts, persist, directories, messagebus, widgets, unitsofmeasure
 
+import iot_devices.host
+import iot_devices.device
 
 #Has to be the same lock otherwise there would be too may easy ways to make a deadlock, we have to be able to
 #edit the state because self modifying devices exist and can be saved in a module
@@ -38,13 +39,11 @@ from .modules_state import additionalTypes
 remote_devices = {}
 remote_devices_atomic = {}
 
-
 device_data = {}
 
 saveLocation = os.path.join(directories.vardir, "devices")
 
 driversLocation = os.path.join(directories.vardir, "devicedrivers")
-
 
 if os.path.isdir(saveLocation):
     for i in os.listdir(saveLocation):
@@ -62,37 +61,40 @@ unsaved_changes = {}
 
 
 class DeviceResourceType():
-    def onload(self,module,name,value):
+    def onload(self, module, name, value):
         with lock:
-            n = module+"/"+name
+            n = module + "/" + name
             if n in remote_devices:
                 remote_devices[n].close()
 
-            remote_devices[n] = makeDevice(n,value['device'],module, name)
+            remote_devices[n] = makeDevice(n, value['device'], module, name)
             global remote_devices_atomic
             remote_devices_atomic = wrcopy(remote_devices)
 
-
-    def ondelete(self,module,name,value):
+    def ondelete(self, module, name, value):
         with lock:
-            n = module+"/"+name
+            n = module + "/" + name
             if n in remote_devices:
                 remote_devices[n].close()
 
-    def create(self,module,path,name,kwargs):
-        raise RuntimeError("Not implemented, devices uses it's own create page")
+    def create(self, module, path, name, kwargs):
+        raise RuntimeError(
+            "Not implemented, devices uses it's own create page")
 
-    def createpage(self,module,path):
-        return pages.get_template("devices/deviceintomodule.html").render(module=module,path=path)
+    def createpage(self, module, path):
+        return pages.get_template("devices/deviceintomodule.html").render(
+            module=module, path=path)
 
-
-    def editpage(self,module,name,value):
+    def editpage(self, module, name, value):
         with lock:
-            n = module+"/"+name
-        return pages.get_template("devices/device.html").render(data=remote_devices[n].data, obj=remote_devices[n], name=n)
+            n = module + "/" + name
+        return pages.get_template("devices/device.html").render(
+            data=remote_devices[n].config, obj=remote_devices[n], name=n)
+
 
 drt = DeviceResourceType()
-additionalTypes['device']=drt
+additionalTypes['device'] = drt
+
 
 def getZombies():
     x = []
@@ -143,8 +145,8 @@ def getByDescriptor(d):
 
     return x
 
-# This is the base class for a remote device of any variety.
 
+# This is the base class for a remote device of any variety.
 
 globalDefaultSubclassCode = """
 class CustomDeviceType(DeviceType):
@@ -159,23 +161,24 @@ try:
         import cgi
         esc = cgi.escape
 except:
-    def esc(t): return t
+
+    def esc(t):
+        return t
 
 
 def makeBackgroundPrintFunction(p, t, title, self):
     def f():
-        self.logWindow.write('<b>' + title + " at " + t + "</b><br>"
-                             + p
-                             )
+        self.logWindow.write('<b>' + title + " at " + t + "</b><br>" + p)
+
     return f
 
 
 def makeBackgroundErrorFunction(t, time, self):
     # Don't block everything up
     def f():
-        self.logWindow.write('<div class="error"><b>Error at ' + time + "</b><br>"
-                             + '<pre>' + t + '</pre></div>'
-                             )
+        self.logWindow.write('<div class="error"><b>Error at ' + time +
+                             "</b><br>" + '<pre>' + t + '</pre></div>')
+
     return f
 
 
@@ -192,6 +195,25 @@ class Device(virtualresource.VirtualResource):
 
     defaultSubclassCode = globalDefaultSubclassCode
 
+
+    # We are renaming data to config for clarity.
+    # This is the legacy alias.
+    @property
+    def data(self):
+        return self.config
+
+    @data.setter
+    def data(self,v):
+        return self.config.update(v)
+
+
+    @classmethod
+    def getCreateForm(self, **kwargs):
+        return self.get_create_form(**kwargs)
+
+    def getManagementForm(self):
+        return self.get_management_form()
+
     @staticmethod
     def validateData(data):
         pass
@@ -206,61 +228,79 @@ class Device(virtualresource.VirtualResource):
          """
         return ""
 
-
-    def webHandler(self,*path,**kwargs):
+    def webHandler(self, *path, **kwargs):
         "Handle /kaithem/devices/DEVICE/web/"
         raise cherrypy.NotFound()
 
     def renderTemplate(self, file):
-        return pages.get_template(file).render(data=self.data, obj=self, name=self.name)
+        return pages.get_template(file).render(data=self.config,
+                                               obj=self,
+                                               name=self.name)
 
     def setAlertPriorities(self):
         """Sets alert priorites for all alerts in the alerts dict
             based on the data key alerts.<alert_key>.priority
         """
         for i in self.alerts:
-            if "alerts." + i + ".priority" in self.data:
-                self.alerts[i].priority = self.data["alerts." +
-                                                    i + ".priority"]
+            if "alerts." + i + ".priority" in self.config:
+                self.alerts[i].priority = self.config["alerts." + i +
+                                                    ".priority"]
 
     def setDataKey(self, key, val):
         "Lets a device set it's own persistent stored data"
         with lock:
-            self.data[key] = val
+            self.config[key] = val
             if self.parentModule:
                 from src import modules
-                modules.modules_state.ActiveModules[self.parentModule][self.parentResource]['device'][key] = str(val)
-                modules.unsaved_changed_obj[self.parentModule, self.parentResource] = "Device changed"
-                modules.modules_state.createRecoveryEntry(self.parentModule, self.parentResource, modules.modules_state.ActiveModules[self.parentModule][self.parentResource])
+                modules.modules_state.ActiveModules[self.parentModule][
+                    self.parentResource]['device'][key] = str(val)
+                modules.unsaved_changed_obj[
+                    self.parentModule, self.parentResource] = "Device changed"
+                modules.modules_state.createRecoveryEntry(
+                    self.parentModule, self.parentResource,
+                    modules.modules_state.ActiveModules[self.parentModule][
+                        self.parentResource])
                 modules.modulesHaveChanged()
             else:
                 #This might not be stored in the master lists, and yet it might not be connected to
                 #the parentModule, because of legacy API reasons.
-                #Just store it it self.data which will get saved at the end of makeDevice, that pretty much handles all module devices
+                #Just store it it self.config which will get saved at the end of makeDevice, that pretty much handles all module devices
                 if self.name in device_data:
                     device_data[self.name][key] = str(val)
                     unsaved_changes[self.name] = True
 
     def __init__(self, name, data):
-        if not data['type'] == self.deviceTypeName and not self.deviceTypeName=='unsupported':
-            raise ValueError("Incorrect device type in info dict, does not match deviceTypeName")
+        if not data[
+                'type'] == self.deviceTypeName and not self.deviceTypeName == 'unsupported':
+            raise ValueError(
+                "Incorrect device type in info dict, does not match deviceTypeName"
+            )
         virtualresource.VirtualResource.__init__(self)
         global remote_devices_atomic
         global remote_devices
 
         self.logWindow = widgets.ScrollingWindow(2500)
 
+        # The single shared broadcast data channel the spec suggests we have
+        self._admin_ws_channel = widgets.APIWidget()
+        self._admin_ws_channel.require("/admin/settings.edit")
+
+        def onMessage(user, value):
+            self.on_ui_message(value)
+
+        self._admin_ws_channel.attach(onMessage)
+
         dbgd[name + str(time.time())] = self
 
-        self.parentModule=None
-        self.parentResource=None
+        self.parentModule = None
+        self.parentResource = None
 
         # Time, title, text tuples for any "messages" a device might "print"
         self.messages = []
 
         # This data dict represents all persistent configuration
         # for the alert object.
-        self.data = data.copy()
+        self.config = copy.deepcopy(data)
 
         # This dict cannot be changed, only replaced atomically.
         # It is a list of alert objects. Dict keys
@@ -273,6 +313,11 @@ class Device(virtualresource.VirtualResource):
         self.tagPoints: Dict[str, tagpoints._TagPoint] = {}
         # Where we stash our claims on the tags
         self.tagClaims: Dict[str, tagpoints.Claim] = {}
+
+        self._deviceSpecIntegrationHandlers = {}
+
+        # The new devices spec has a way more limited idea of what a data point is.
+        self.datapoints = {}
 
         self.name = data.get('name', None) or name
         self.errors = []
@@ -288,7 +333,6 @@ class Device(virtualresource.VirtualResource):
             remote_devices[name] = self
             remote_devices_atomic = wrcopy(remote_devices)
 
-
     # def loadScriptBindings(self):
     #     try:
     #         if 'rules' in self.data:
@@ -301,6 +345,7 @@ class Device(virtualresource.VirtualResource):
             self.handleError(traceback.format_exc(chain=True))
         except:
             print(traceback.format_exc())
+
     # Takes an error as a string and handles it
 
     @property
@@ -311,6 +356,9 @@ class Device(virtualresource.VirtualResource):
     @tagpoints.setter
     def tagpoints(self, v):
         self.tagPoints = v
+
+    # def handler(v,t or None, a="Set by device"):
+    #     self.setClaimVal("default", v, t or time.monotonic(), a)
 
     def handleError(self, s):
         self.errors.append([time.time(), str(s)])
@@ -324,11 +372,13 @@ class Device(virtualresource.VirtualResource):
         if len(self.errors) > 50:
             self.errors.pop(0)
 
-        workers.do(makeBackgroundErrorFunction(textwrap.fill(
-            s, 120), unitsofmeasure.strftime(time.time()), self))
+        workers.do(
+            makeBackgroundErrorFunction(textwrap.fill(s, 120),
+                                        unitsofmeasure.strftime(time.time()),
+                                        self))
         if len(self.errors) == 1:
-            messagebus.postMessage(
-                "/system/notifications/errors", "First error in device: " + self.name)
+            messagebus.postMessage("/system/notifications/errors",
+                                   "First error in device: " + self.name)
             syslogger.error("in device: " + self.name + "\n" + s)
 
     # delete a device, it should not be used after this
@@ -341,11 +391,10 @@ class Device(virtualresource.VirtualResource):
 
             if self.parentModule:
                 try:
-                    del devicesByModuleAndResource[self.parentModule,self.parentResource]
+                    del devicesByModuleAndResource[self.parentModule,
+                                                   self.parentResource]
                 except KeyError:
                     pass
-
-
 
     def onDelete(self):
         "Called just before the device is deleted right after closing it."
@@ -383,7 +432,214 @@ class UnsupportedDevice(Device):
 
     def __init__(self, name, data):
         super().__init__(name, data)
-        unsupportedDevices[name]=self
+        unsupportedDevices[name] = self
+
+
+class CrossFrameworkDevice(Device):
+    ######################################################################################
+    # Compatibility block for this spec https://github.com/EternityForest/iot_devices
+    # Musy ONLY have things we want to override from the imported driver class,
+    # as this will have the highest priority
+    # Keep this pretty self contained.  That makes it clear what's a Kaithem feature and
+    # what is in the generic spec
+    ######################################################################################
+    def numeric_data_point(self,
+                           name: str,
+                           min: Optional[float] = None,
+                           max: Optional[float] = None,
+                           hi: Optional[float] = None,
+                           lo: Optional[float] = None,
+                           description: str = "",
+                           unit: str = '',
+                           handler: Optional[Callable[[str, float, Any],
+                                                      Any]] = None,
+                           default: float = 0,
+                           interval: float = 0,
+                           **kwargs):
+
+        t = tagpoints.Tag("/devices/" + self.name + "/" + name)
+
+        t.min = min
+        t.max = max
+        t.hi = hi
+        t.lo = lo
+        t.description = description
+        t.unit = unit
+        t.handler = handler
+        t.default = default
+        t.interval = interval
+
+        # Be defensive
+        if name in self._deviceSpecIntegrationHandlers:
+            t.unsubscribe(self._deviceSpecIntegrationHandlers[name])
+
+        if handler:
+            self._deviceSpecIntegrationHandlers[name] = handler
+            t.subscribe(handler)
+
+        self.tagPoints[name] = t
+        self.datapoints[name] = None
+
+    def string_data_point(self,
+                          name: str,
+                          description: str = "",
+                          handler: Optional[Callable[[str, float, Any],
+                                                     Any]] = None,
+                          default: float = 0,
+                          interval: float = 0,
+                          **kwargs):
+
+        t = tagpoints.StringTag("/devices/" + self.name + "/" + name)
+        t.description = description
+        t.handler = handler
+        t.default = default
+        t.interval = interval
+
+        # Be defensive
+        if name in self._deviceSpecIntegrationHandlers:
+            t.unsubscribe(self._deviceSpecIntegrationHandlers[name])
+
+        if handler:
+            self._deviceSpecIntegrationHandlers[name] = handler
+            t.subscribe(handler)
+
+        self.tagPoints[name] = t
+        self.datapoints[name] = None
+
+    def object_data_point(self,
+                          name: str,
+                          description: str = "",
+                          handler: Optional[Callable[[str, float, Any],
+                                                     Any]] = None,
+                          interval: float = 0,
+                          **kwargs):
+
+        t = tagpoints.ObjectTag("/devices/" + self.name + "/" + name)
+        t.description = description
+        t.handler = handler
+        t.interval = interval
+
+        # Be defensive
+        if name in self._deviceSpecIntegrationHandlers:
+            t.unsubscribe(self._deviceSpecIntegrationHandlers[name])
+
+        self._deviceSpecIntegrationHandlers[name] = handler
+        t.subscribe(handler)
+
+        if handler:
+            self.tagPoints[name] = t
+            self.datapoints[name] = None
+
+    def set_data_point(self, name, value):
+        self.tagPoints[name].value = value
+
+        #TODO this isn't really in spec, we should
+        # use the full library to properly validate these values
+        self.datapoints[name] = copy.deepcopy(value)
+
+    def set_data_point_getter(self, name, value):
+        # Tag points have this functionality already
+        self.tagPoints[name].value = value
+
+    def set_alarm(self,
+                  name: str,
+                  datapoint: str,
+                  expression: str,
+                  priority: str = "info",
+                  trip_delay: float = 0,
+                  auto_ack: bool = False,
+                  release_condition: Optional[str] = None,
+                  **kw):
+
+        self.tagPoints[datapoint].setAlarm(name,
+                                           condition=expression,
+                                           priority=priority,
+                                           tripDelay=trip_delay,
+                                           autoAck=auto_ack,
+                                           releaseCondition=release_condition)
+
+    def request_data_point(self, key):
+        return self.tagPoints[key].value
+
+    def set_config_option(self, key, value):
+        self.setDataKey(key, value)
+
+    def set_config_default(self, key: str, value: str):
+        """sets an option in self.config if it does not exist or is blank. used for subclassing as you may want to persist.
+       
+         Calls into set_config_option, you should not need to subclass this.
+        """
+
+        if not key in self.config or not self.config[key].strip():
+            self.set_config_option(key, value.strip())
+
+    def handle_error(self, e: str, title=''):
+        self.handleError(e)
+
+    def on_data_change(self, name: str, value, timestamp: float, annotation):
+        """used for subclassing, this is how you watch for data changes.
+            Kaithem does not need this, we have direct observable tag points.
+        """
+        pass
+
+    ### Lifecycle
+
+    def on_delete(self):
+        self.onDelete()
+
+    ### UI Integration
+
+    def on_ui_message(self, msg: Union[float, int, str, bool, None, dict,
+                                       list], **kw):
+        """recieve a json message from the ui page.  the host is responsible for providing a send_ui_message(msg)
+        function to the manage and create forms, and a set_ui_message_callback(f) function.
+        
+        these messages are not directed at anyone in particular, have no semantics, and will be recieved by all
+        manage forms including yourself.  they are only meant for very tiny amounts of general interest data and fast commands.
+        
+        this lowest common denominator approach is to ensure that the ui can be fully served over mqtt if desired.
+    
+        """
+
+    def send_ui_message(self, msg: Union[float, int, str, bool, None, dict,
+                                         list]):
+        """
+        send a message to everyone including yourself.
+        """
+        self._admin_ws_channel.send(msg)
+
+    def get_management_form(self) -> Optional[str]:
+        """must return a snippet of html suitable for insertion into a form tag, but not the form tag itself.
+        the host application is responsible for implementing the post target, the authentication, etc.
+        
+        when the user posts the form, the config options will be used to first close the device, then build 
+        a completely new device.
+        
+        the host is responsible for the name and type parts of config, and everything other than the device.* keys.
+        """
+        return ''
+
+    @classmethod
+    def get_create_form(**kwargs) -> Optional[str]:
+        """must return a snippet of html used the same way as get_management_form, but for creating brand new devices"""
+        return ''
+
+    def print(self, msg, title="Message"):
+        "Print a message to the Device's management page"
+        t = textwrap.fill(str(msg), 120)
+        tm = unitsofmeasure.strftime(time.time())
+
+        # Can't use a def here, wouldn't want it to possibly capture more than just a string,
+        # And keep stuff from GCIng for too long
+        workers.do(makeBackgroundPrintFunction(t, tm, title, self))
+
+    def handleException(self):
+        try:
+            self.handleError(traceback.format_exc(chain=True))
+        except:
+            print(traceback.format_exc())
+
+    #######################################################################################
 
 
 # Device data always has 2 constants. 1 is the required type, the other
@@ -391,18 +647,17 @@ class UnsupportedDevice(Device):
 def updateDevice(devname, kwargs, saveChanges=True):
     name = kwargs.get('name', None) or devname
 
-
-
     getDeviceType(kwargs['type']).validateData(kwargs)
 
-    if not kwargs.get("subclass", "").replace("\n", '').replace("\r", "").strip():
+    if not kwargs.get("subclass", "").replace("\n", '').replace("\r",
+                                                                "").strip():
         kwargs['subclass'] = getDeviceType(kwargs['type']).defaultSubclassCode
     unsaved_changes[devname] = True
 
     with lock:
         if devname in remote_devices:
-            parentModule= remote_devices[devname].parentModule
-            parentResource= remote_devices[devname].parentResource
+            parentModule = remote_devices[devname].parentModule
+            parentResource = remote_devices[devname].parentResource
 
             remote_devices[devname].close()
 
@@ -412,13 +667,16 @@ def updateDevice(devname, kwargs, saveChanges=True):
                 del device_data[devname]
             else:
                 from src import modules
-                del modules.modules_state.ActiveModules[parentModule][parentResource]
-                modules.unsaved_changed_obj[parentModule, parentResource] = "Device Changed or renamed"
-                modules.modules_state.createRecoveryEntry(parentModule, parentResource, None)
+                del modules.modules_state.ActiveModules[parentModule][
+                    parentResource]
+                modules.unsaved_changed_obj[
+                    parentModule, parentResource] = "Device Changed or renamed"
+                modules.modules_state.createRecoveryEntry(
+                    parentModule, parentResource, None)
 
                 #Forbid moving to new module for now, specifically we don't want to move to nonexistent
-                name = parentModule+"/"+name.split("/",1)[-1]
-                parentResource=name.split("/",1)[-1]
+                name = parentModule + "/" + name.split("/", 1)[-1]
+                parentResource = name.split("/", 1)[-1]
 
         else:
             raise RuntimeError("No such device to update")
@@ -427,22 +685,31 @@ def updateDevice(devname, kwargs, saveChanges=True):
         time.sleep(0.01)
         time.sleep(0.01)
         gc.collect()
-        d={i: str(kwargs[i]) for i in kwargs if not i.startswith('temp.')}
-
+        d = {i: str(kwargs[i]) for i in kwargs if not i.startswith('temp.')}
 
         if parentModule:
             from src import modules
-            modules.modules_state.ActiveModules[parentModule][parentResource]={'resource-type':'device',"device":d}
-            modules.unsaved_changed_obj[parentModule, parentResource] = "Device changed"
-            modules.modules_state.createRecoveryEntry(parentModule, parentResource, {'resource-type':'device',"device":d})
+            modules.modules_state.ActiveModules[parentModule][
+                parentResource] = {
+                    'resource-type': 'device',
+                    "device": d
+                }
+            modules.unsaved_changed_obj[parentModule,
+                                        parentResource] = "Device changed"
+            modules.modules_state.createRecoveryEntry(
+                parentModule, parentResource, {
+                    'resource-type': 'device',
+                    "device": d
+                })
             modules.modulesHaveChanged()
 
         else:
-             # Allow name changing via data, we save under new, not the old name
+            # Allow name changing via data, we save under new, not the old name
             device_data[name] = d
             unsaved_changes[kwargs['name']] = True
 
-        remote_devices[name] = makeDevice(name, kwargs,parentModule,parentResource)
+        remote_devices[name] = makeDevice(name, kwargs, parentModule,
+                                          parentResource)
         global remote_devices_atomic
         remote_devices_atomic = wrcopy(remote_devices)
 
@@ -452,22 +719,29 @@ class WebDevices():
     def index(self):
         """Index page for web interface"""
         pages.require("/admin/settings.edit")
-        return pages.get_template("devices/index.html").render(deviceData=remote_devices_atomic)
+        return pages.get_template("devices/index.html").render(
+            deviceData=remote_devices_atomic)
 
     @cherrypy.expose
-    def device(self, name,*args,**kwargs):
+    def device(self, name, *args, **kwargs):
         #This is a customizable per-device page
-        if args and args[0]=='web':
+        if args and args[0] == 'web':
             try:
                 return remote_devices[name].webHandler(*args[1:], **kwargs)
             except pages.ServeFileInsteadOfRenderingPageException as e:
-                return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)
+                return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME,
+                                                      e.f_name)
 
-        if args and args[0]=='manage':
+        if args and args[0] == 'manage':
             pages.require("/admin/settings.edit")
-            return pages.get_template("devices/device.html").render(data=remote_devices[name].data, obj=remote_devices[name], name=name,args=args,kwargs=kwargs)
+            return pages.get_template("devices/device.html").render(
+                data=remote_devices[name].config,
+                obj=remote_devices[name],
+                name=name,
+                args=args,
+                kwargs=kwargs)
         if not args:
-            raise cherrypy.HTTPRedirect(cherrypy.url()+"/manage")
+            raise cherrypy.HTTPRedirect(cherrypy.url() + "/manage")
 
     @cherrypy.expose
     def devicedocs(self, name):
@@ -497,37 +771,43 @@ class WebDevices():
         "Actually create the new device"
 
         pages.require("/admin/settings.edit")
-        name = name or kwargs.get('name',None)
-        m=r=None
+        name = name or kwargs.get('name', None)
+        m = r = None
         with lock:
-            if 'module' in kwargs:                
+            if 'module' in kwargs:
                 from src import modules
-                m=kwargs['module']
-                r=kwargs['resource']
-                name=m+"/"+r
-                del kwargs['module']                
+                m = kwargs['module']
+                r = kwargs['resource']
+                name = m + "/" + r
+                del kwargs['module']
                 del kwargs['resource']
                 d = {i: kwargs[i] for i in kwargs if not i.startswith('temp.')}
-                modules.ActiveModules[m][r]= {'resource-type':'device', 'device':d}
+                modules.ActiveModules[m][r] = {
+                    'resource-type': 'device',
+                    'device': d
+                }
                 modules.unsaved_changed_obj[m, r] = "Device changed"
                 modules.modulesHaveChanged()
-            else:                
+            else:
                 if not name:
                     raise RuntimeError("No name?")
-                d = {i: str(kwargs[i]) for i in kwargs if not i.startswith('temp.')}
+                d = {
+                    i: str(kwargs[i])
+                    for i in kwargs if not i.startswith('temp.')
+                }
                 device_data[name] = d
                 unsaved_changes[name] = True
 
             if name in remote_devices:
                 remote_devices[name].close()
-            remote_devices[name] = makeDevice(name, kwargs,m,r)
+            remote_devices[name] = makeDevice(name, kwargs, m, r)
             global remote_devices_atomic
             remote_devices_atomic = wrcopy(remote_devices)
 
         raise cherrypy.HTTPRedirect("/devices")
 
     @cherrypy.expose
-    def customCreateDevicePage(self, name, module='',resource='',**kwargs):
+    def customCreateDevicePage(self, name, module='', resource='', **kwargs):
         "Ether create a 'blank' device, or, if supported, show the custom page"
         pages.require("/admin/settings.edit")
 
@@ -538,13 +818,19 @@ class WebDevices():
         else:
             createForm = ""
 
-        return pages.get_template("devices/createpage.html").render(customForm=createForm, name=name, type=kwargs['type'], module=module, resource=resource)
+        return pages.get_template("devices/createpage.html").render(
+            customForm=createForm,
+            name=name,
+            type=kwargs['type'],
+            module=module,
+            resource=resource)
 
     @cherrypy.expose
     def deleteDevice(self, name, **kwargs):
         pages.require("/admin/settings.edit")
         name = name or kwargs['name']
-        return pages.get_template("devices/confirmdelete.html").render(name=name)
+        return pages.get_template("devices/confirmdelete.html").render(
+            name=name)
 
     @cherrypy.expose
     def deletetarget(self, **kwargs):
@@ -564,9 +850,12 @@ class WebDevices():
 
             if self.parentModule:
                 from src import modules
-                del modules.modules_state.ActiveModules[self.parentModule][self.parentResource]
-                modules.unsaved_changed_obj[self.parentModule, self.parentResource] = "Device deleted"
-                modules.modules_state.createRecoveryEntry(self.parentModule, self.parentResource,None)
+                del modules.modules_state.ActiveModules[self.parentModule][
+                    self.parentResource]
+                modules.unsaved_changed_obj[
+                    self.parentModule, self.parentResource] = "Device deleted"
+                modules.modules_state.createRecoveryEntry(
+                    self.parentModule, self.parentResource, None)
                 modules.modulesHaveChanged()
             global remote_devices_atomic
             remote_devices_atomic = wrcopy(remote_devices)
@@ -576,28 +865,28 @@ class WebDevices():
         raise cherrypy.HTTPRedirect("/devices")
 
 
-
-
 builtinDeviceTypes = {'device': Device}
 deviceTypes = weakref.WeakValueDictionary()
+
 
 class DeviceNamespace():
     deviceTypes = deviceTypes
     Device = Device
 
     def __getattr__(self, name):
-        if remote_devices[name].deviceTypeName =="unsupported":
+        if remote_devices[name].deviceTypeName == "unsupported":
             raise RuntimeError("There is no driver for this device")
         return remote_devices[name].interface()
 
     def __getitem__(self, name):
-        if remote_devices[name].deviceTypeName =="unsupported":
+        if remote_devices[name].deviceTypeName == "unsupported":
             raise RuntimeError("There is no driver for this device")
         return remote_devices[name].interface()
 
     def __iter__(self):
-        x=remote_devices_atomic
-        return (i for i in x if not x[i]().deviceTypeName=='unsupported')
+        x = remote_devices_atomic
+        return (i for i in x if not x[i]().deviceTypeName == 'unsupported')
+
 
 class DeviceTypeLookup():
     def __getitem__(self, k):
@@ -607,9 +896,11 @@ class DeviceTypeLookup():
             dt = Device
         return dt
 
+
 devicesByModuleAndResource = weakref.WeakValueDictionary()
 
-def makeDevice(name, data, module=None,resource=None):
+
+def makeDevice(name, data, module=None, resource=None):
     if data['type'] in builtinDeviceTypes:
         dt = builtinDeviceTypes[data['type']]
     elif data['type'] in ("", 'device', 'Device'):
@@ -617,7 +908,32 @@ def makeDevice(name, data, module=None,resource=None):
     elif data['type'] in deviceTypes:
         dt = deviceTypes[data['type']]
     else:
-        dt = UnsupportedDevice
+
+        try:
+            dt2 = iot_devices.host.get_class(data)
+            if not dt2:
+                raise ValueError("Couldn't get class")
+
+            # We can't use the class as-is, because it uses the default very simple implementations of things.
+            # So we customize it using Device.
+
+            # Due to C3 linearization, Device takes precedence over dt's ancestors.
+            class ImportedDeviceClass(CrossFrameworkDevice, dt2):
+                # Adapt from the cross-framework spec to the internal spec
+                deviceTypeName = dt2.device_type
+                pass
+
+                def __init__(self, name, data, **kw):
+                    #We have to call ours first because we need things like the tag points list
+                    # to be able to do the things theirs could call
+                    CrossFrameworkDevice.__init__(self, name, data, **kw)
+                    #Ensure we don't lose any data should the base class ever set any new keys
+                    dt2.__init__(self, name, self.config, **kw)
+
+
+            dt = ImportedDeviceClass
+        except:
+            dt = UnsupportedDevice
 
     if 'subclass' not in data:
         data['subclass'] = dt.defaultSubclassCode
@@ -627,18 +943,21 @@ def makeDevice(name, data, module=None,resource=None):
         # Allow default code, without having to have an unneccesary layer of subclassing
         # If it is unused.   These are just purely for comparision, we don't actually use them.
 
-        stripped = data['subclass'].replace("\n", '').replace(
-            "\r", '').replace("\t", '').replace(" ", '')
+        stripped = data['subclass'].replace("\n",
+                                            '').replace("\r", '').replace(
+                                                "\t", '').replace(" ", '')
 
-        strippedGenericTemplate = globalDefaultSubclassCode.replace("\n", '').replace(
-            "\r", '').replace("\t", '').replace(" ", '')
+        strippedGenericTemplate = globalDefaultSubclassCode.replace(
+            "\n", '').replace("\r", '').replace("\t", '').replace(" ", '')
 
         originaldt = dt
         try:
             if not stripped == strippedGenericTemplate:
                 from . import kaithemobj
-                codeEvalScope = {"DeviceType": dt,
-                                 'kaithem': kaithemobj.kaithem}
+                codeEvalScope = {
+                    "DeviceType": dt,
+                    'kaithem': kaithemobj.kaithem
+                }
                 exec(data['subclass'], codeEvalScope, codeEvalScope)
                 dt = codeEvalScope["CustomDeviceType"]
             d = dt(name, data)
@@ -646,25 +965,34 @@ def makeDevice(name, data, module=None,resource=None):
         except Exception:
             d = originaldt(name, data)
             d.handleError(traceback.format_exc(chain=True))
-            messagebus.postMessage('/system/notifications/error',
-                                   "Error with customized behavior for: " + name + " using default")
+            messagebus.postMessage(
+                '/system/notifications/error',
+                "Error with customized behavior for: " + name +
+                " using default")
     else:
         d = dt(name, data)
-
 
     if module:
         from src import modules
         d.parentModule = module
-        d.parentResource=resource
-        devicesByModuleAndResource[module,resource]=d
+        d.parentResource = resource
+        devicesByModuleAndResource[module, resource] = d
 
-
-        #In case something changed during initializatiion before we set it 
+        #In case something changed during initializatiion before we set it
         #flush the changes back to the modules object if applicable
         with lock:
-            modules.modules_state.ActiveModules[d.parentModule][d.parentResource]={'resource-type':'device', 'device':d.data}
-            modules.unsaved_changed_obj[d.parentModule, d.parentResource] = "Device changed"
-            modules.modules_state.createRecoveryEntry(d.parentModule, d.parentResource, {'resource-type':'device',"device":d.data})
+            modules.modules_state.ActiveModules[d.parentModule][
+                d.parentResource] = {
+                    'resource-type': 'device',
+                    'device': d.config
+                }
+            modules.unsaved_changed_obj[d.parentModule,
+                                        d.parentResource] = "Device changed"
+            modules.modules_state.createRecoveryEntry(
+                d.parentModule, d.parentResource, {
+                    'resource-type': 'device',
+                    "device": d.config
+                })
             modules.modulesHaveChanged()
     return d
 
@@ -683,7 +1011,8 @@ class TemplateGetter():
         self.fn = fn
 
     def __get__(self, instance, owner):
-        return lambda: pages.get_vardir_template(self.fn).render(data=instance.data, obj=instance, name=instance.name)
+        return lambda: pages.get_vardir_template(self.fn).render(
+            data=instance.config, obj=instance, name=instance.name)
 
 
 deviceTypesFromData = {}
@@ -697,8 +1026,11 @@ def loadDeviceType(root, i):
 
     # Avoid circular imports, kaithemobj basically depends on everything
     from . import kaithemobj
-    codeEvalScope = {"Device": Device, 'kaithem': kaithemobj.kaithem,
-                     'deviceTypes': DeviceTypeLookup()}
+    codeEvalScope = {
+        "Device": Device,
+        'kaithem': kaithemobj.kaithem,
+        'deviceTypes': DeviceTypeLookup()
+    }
     exec(compile(d, "Driver_" + name, 'exec'), codeEvalScope, codeEvalScope)
 
     # Remove anything in parens
@@ -726,7 +1058,8 @@ def createDevicesFromData():
     for i in device_data:
 
         # We can call this again to reload unsupported devices.
-        if i in remote_devices and not remote_devices[i].deviceTypeName == "unsupported":
+        if i in remote_devices and not remote_devices[
+                i].deviceTypeName == "unsupported":
             continue
 
         try:
@@ -735,12 +1068,15 @@ def createDevicesFromData():
             syslogger.info("Created device from config: " + i)
         except:
             messagebus.postMessage(
-                "/system/notifications/errors", "Error creating device: " + i + "\n" + traceback.format_exc())
+                "/system/notifications/errors",
+                "Error creating device: " + i + "\n" + traceback.format_exc())
             syslogger.exception("Error initializing device " + str(i))
 
     remote_devices_atomic = wrcopy(remote_devices)
 
+
 unsupportedDevices = weakref.WeakValueDictionary()
+
 
 def fixUnsupported():
     "For all placeholder unsupported devices, let's see if we can fix them with a newly set up driver"
@@ -749,15 +1085,17 @@ def fixUnsupported():
         #Small optimization here
         if not unsupportedDevices:
             return
-        s=0
+        s = 0
         for i in list(remote_devices.keys()):
             if remote_devices[i].deviceTypeName == 'unsupported':
                 d = remote_devices[i]
-                remote_devices[i]=makeDevice(i,d.data,d.parentModule,d.parentResource)
+                remote_devices[i] = makeDevice(i, d.config, d.parentModule,
+                                               d.parentResource)
                 if not remote_devices[i].deviceTypeName == 'unsupported':
-                    s+=1
+                    s += 1
         if s:
             remote_devices_atomic = wrcopy(remote_devices)
+
 
 def warnAboutMissingDevices():
     x = remote_devices_atomic
@@ -767,7 +1105,8 @@ def warnAboutMissingDevices():
                 x[i].warn()
             except Exception:
                 syslogger.exception(
-                    "Error warning about missing device support device " + str(i))
+                    "Error warning about missing device support device " +
+                    str(i))
 
 
 def init_devices():
@@ -791,12 +1130,15 @@ def init_devices():
                     loadDeviceType(*i)
                 except:
                     messagebus.postMessage(
-                        "/system/notifications/errors", "Error with device driver :" + i[1] + "\n" + traceback.format_exc(chain=True))
+                        "/system/notifications/errors",
+                        "Error with device driver :" + i[1] + "\n" +
+                        traceback.format_exc(chain=True))
 
         else:
             os.mkdir(driversLocation)
     except:
-        messagebus.postMessage("/system/notifications/errors",
-                               "Error with device drivers:\n" + traceback.format_exc(chain=True))
+        messagebus.postMessage(
+            "/system/notifications/errors",
+            "Error with device drivers:\n" + traceback.format_exc(chain=True))
 
     createDevicesFromData()

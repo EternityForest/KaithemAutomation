@@ -314,8 +314,10 @@ def randID():
 idlock = threading.Lock()
 
 
+widgets_by_subsc_carryover=weakref.WeakValueDictionary()
+
 class Widget():
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, subsc_carryover=None, **kwargs):
         self.value = None
         self._read_perms = []
         self._write_perms = []
@@ -325,6 +327,7 @@ class Widget():
         self.subscriptions = {}
         self.subscriptions_atomic = {}
         self.echo = True
+
 
         # Used for GC, we have a fake subscriber right away so we can do a grace
         # Period before trashing it.
@@ -340,6 +343,7 @@ class Widget():
         self._callback = f
         self._callback2 = f2
 
+
         with idlock:
             # Give the widget an ID for the client to refer to it by
             # Note that it's no longer always a  uuid!!
@@ -348,13 +352,30 @@ class Widget():
                     self.uuid = randID()
                     if not self.uuid in widgets:
                         break
-                    if range > 240000:
+                    if i > 240000:
                         raise RuntimeError("No more IDs?")
             else:
                 self.uuid = kwargs['id']
 
+            # oldWidget = widgets_by_subsc_carryover.get(self.uuid, None)
+
+
             # Insert self into the widgets list
             widgets[self.uuid] = self
+
+
+        #Unused for now
+        # # Lets you make 
+        # with subscriptionLock:
+        #     if oldWidget:
+        #         try:
+        #             self.subscribers.update(oldWidget.subscriptions_atomic)
+        #             self.subscriptions_atomic=copy.deepcopy(self.subscriptions)
+        #         except:
+        #             logging.exception
+
+        # if subsc_carryover:
+        #     widgets_by_subsc_carryover[subsc_carryover]= self
 
     def stillActive(self):
         if self.subscriptions or (self.lastSubscribedTo > (time.monotonic()-30)):

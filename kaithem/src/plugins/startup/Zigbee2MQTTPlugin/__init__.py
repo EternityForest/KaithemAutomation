@@ -107,7 +107,7 @@ class Zigbee2MQTT(devices.Device):
                             isALight=True
 
                         for j in x:
-                            tn = i['friendly_name']+'/'+j['property']
+                            tn = i['friendly_name']+'.'+j['property']
 
                             zn = "zigbee2mqtt/"+i['friendly_name']
 

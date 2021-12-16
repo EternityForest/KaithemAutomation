@@ -25,6 +25,21 @@ import cherrypy
 import atexit
 
 
+#I would *really* like to just use this code here. Unfortunately it's too slow.
+# import concurrent.futures
+# executor = concurrent.futures.ThreadPoolExecutor(max_workers=32)
+# def do(f,args=[]):
+#     return executor.submit(f, *args)
+
+
+# import fastthreadpool
+
+# pool = fastthreadpool.Pool()
+# def do(f,args=[]):
+#     return pool.submit(f, *args)
+
+
+
 def workersErrorHandler(f):
     # If we can, try to send the exception back whence it came
     try:

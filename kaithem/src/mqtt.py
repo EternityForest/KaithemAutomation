@@ -46,9 +46,11 @@ class EnhancedConnection(BaseConnection):
             allConnections[messageBusName]=weakref.ref(self)
 
     def onStillConnected(self):
+        BaseConnection.onStillConnected(self)
         self.statusTagClaim.set("connected")
 
     def onDisconnected(self):
+        BaseConnection.onDisconnected(self)
         self.statusTagClaim.set("disconnected")
 
     def configureAlert(self, alertPriority, alertAck):

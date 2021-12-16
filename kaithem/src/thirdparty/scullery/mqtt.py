@@ -47,6 +47,12 @@ allSubscriptions = {}
 connectionsByBusName = weakref.WeakValueDictionary()
 
 
+def checkIfConnected(c, delay):
+    time.sleep(delay)
+    if not c.isConnected:
+        logging.warning("An MQTT connection to : " + str(c.server) + " was not connected after "+str(delay) + " seconds of waiting")
+
+
 def getWeakrefHandlers(self):
     self = weakref.ref(self)
 
@@ -205,6 +211,8 @@ class Connection():
         #Defensive against None
         connectionID = connectionID or ''
 
+        self.isConnected = False
+
         if not server:
             passive = True
         else:
@@ -222,6 +230,8 @@ class Connection():
 
         self.subscriptions = {}
         logger.info("Creating connection object to: " + self.server)
+
+        self.localStatusTopic = self.busPrefix + "/connectionStatus"
 
         # paho requires non-python stuff.
         try:
@@ -333,6 +343,10 @@ class Connection():
 
                     # Actually do the connection.
                     self.reconnect()
+                    # Give it 5 mins before we print a warning.
+                    def f():
+                        checkIfConnected(self,5)
+                    workers.do(f)
                 else:
                     self.connection = None
                     self.configureAlert(alertPriority, alertAck)
@@ -359,10 +373,20 @@ class Connection():
         self.reconnect()
 
     def onStillConnected(self):
+        if not self.isConnected:
+            messagebus.postMessage(self.localStatusTopic, "connected")
+        self.isConnected = True
         pass
 
     def onDisconnected(self):
-        pass
+        logging.warning("A connection has disconnected from MQTT server: " + self.server)
+        if self.isConnected:
+            messagebus.postMessage(self.localStatusTopic, "disconnected")
+        self.isConnected = False
+        
+
+    def subscribeToStatus(self, f):
+        messagebus.subscribe(self.localStatusTopic, f)
 
     def close(self):
         # Attempt cleanup

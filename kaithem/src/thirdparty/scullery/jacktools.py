@@ -248,7 +248,7 @@ class JackClientProxy():
         self.worker = None
 
 
-        from jsonrpyc import RPC
+        from scullery.jsonrpyc import RPC
         from subprocess import PIPE, STDOUT
         from reap import Popen
         self.ended=False
@@ -2151,7 +2151,7 @@ def _checkJackClient(err=True):
 
             t = _jackclient.get_ports()
             if not t:
-                raise RuntimeError("JACK Server not started or client failed")
+                raise RuntimeError("JACK Server not started or client not connected, will try connect ")
 
             if not postedCheck:
                 postedCheck=True
@@ -2208,12 +2208,18 @@ def getPortsListCache():
 portsCacheTime = 0
 
 
+lastCheckedClientFromGetPorts = 0
+
 def getPorts(*a, maxWait=10, **k):
-    global portsList,_jackclient
+    global portsList,_jackclient,lastCheckedClientFromGetPorts
 
     if lock.acquire(timeout=maxWait):
         try:
             if not _jackclient:
+                #MOstly here so we can use this standalone from a unit test
+                if(lastCheckedClientFromGetPorts< time.monotonic()-120):
+                    lastCheckedClientFromGetPorts=time.monotonic()
+                    workers.do(_checkJackClient)
                 return []
             ports = []
             x = _jackclient.get_ports(*a, **k)

@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+
+### 0.67.6
+
+- Semi-breaking: Tag point alarms will not trigger if the tag point has never actually had a value set.
+ 
 ### 0.67.5
 - Scheduler is now just based on the normal sched module
 - Various performance improvments(Seems like 50% les CPU usage!)

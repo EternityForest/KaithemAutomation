@@ -1,0 +1,10 @@
+{
+    "devices":{
+        "RandomDevice": {
+            "submodule":"devices.random"
+            },
+        "RTL433Client": {
+                "submodule":"devices.RTL433"
+                }
+        }
+} 
