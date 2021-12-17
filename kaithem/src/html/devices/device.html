@@ -19,6 +19,8 @@ specialKeys={
 
 <h1>Device Inspector: ${name}</h1>
 <div class="sectionbox">
+<a class="button" href="/devices/discoveryStep?type=${url(data.get('type',''))}&devname=${url(name)}">Search for auto-setup configurations</a>
+
 <form method="POST" action="/devices/updateDevice/${url(name)}">
 
 %if obj.parentModule:
@@ -89,6 +91,9 @@ ${manageForm}
 %for i in obj.alerts:
 <tr><td>${i|h}</td>
         <td>
+        %if hasattr(obj,'_noSetAlarmPriority'):
+        ${obj.alerts[i].priority}
+        %else:
         <select name="alerts.${i}.priority">
                 <option value="debug" ${"selected" if obj.alerts[i].priority=="debug" else ""}>Debug</option>
                 <option value="info" ${"selected" if obj.alerts[i].priority=="info" else ""}>Info</option>
@@ -96,6 +101,7 @@ ${manageForm}
                 <option value="error" ${"selected" if obj.alerts[i].priority=="error" else ""} >Error</option>
                 <option value="critical" ${"selected" if obj.alerts[i].priority=="critical" else ""}>Critical</option>
         </select>
+        %endif
         </td>
         <td>${obj.alerts[i].sm.state}</td>
 </tr>

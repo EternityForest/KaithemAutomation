@@ -6,17 +6,36 @@ import importlib
 import json
 import copy 
 import logging
+from typing import Dict, Type
 
-known_device_types = {}
 
-
+_known_device_types: Dict[str, Dict]= {}
+"""
+Cache of discovered data about devices
+"""
 
 
 # Programmatically generated device classes go here
 device_classes= weakref.WeakValueDictionary()
+"""
+This dict lets you programmatically add new devices
+"""
 
-def discover():
-    "Search system paths for modules that have a devices manifest."
+
+def discover() -> Dict[str,Dict]:
+    """Search system paths for modules that have a devices manifest.
+
+    Returns:
+        A dict indexed by the device type name, with the values being info dicts.
+        Keys not documented here should be considered opaque.
+
+        description: A free text, paragraph or less short description, taken from the device manifest.
+
+        importable: The full module(including the submodule) you would import to get the class to build this device.
+
+        classname: The name of the class you would import
+    
+    """
 
     paths = copy.deepcopy(sys.path)
     here = os.path.dirname(os.path.abspath(__file__))
@@ -36,7 +55,7 @@ def discover():
                             d = json.loads(d)
 
                         for dev in d['devices']:
-                            known_device_types[dev] = d['devices'][dev]
+                            _known_device_types[dev] = d['devices'][dev]
 
                             #Special case handling devices included in this library for demo purposes.
                             modulename =os.path.basename(folder)
@@ -47,16 +66,24 @@ def discover():
                             if x:
                                 modulename=modulename+"."+x
 
-                            known_device_types[dev]['importable'] = modulename
+                            _known_device_types[dev]['importable'] = modulename
 
+                            if not 'description' in _known_device_types[dev]:
+                                _known_device_types[dev]['description'] = ''
+
+                            if not 'classname' in _known_device_types[dev]:
+                                _known_device_types[dev]['description'] = ''
                     except:
                         logging.exception("Error with devices manifest in: "+folder)
-    return known_device_types
+    return _known_device_types
 
 
-def get_class(data):
+def get_class(data) -> Type:
     """
     Return the class that one would use to construct a device given it's data.  Automatically search all system paths.
+
+    Returns:
+        A class, not an instance
     """
     t = data['type']
 
@@ -66,10 +93,12 @@ def get_class(data):
         except KeyError:
             pass
 
-    if not t in known_device_types:
+    if not t in _known_device_types:
         discover()
 
-    m = known_device_types[t]['importable']
+    classname =  _known_device_types[t].get("classname",t)
+
+    m = _known_device_types[t]['importable']
     module  =  importlib.import_module(m)
-    return module.__dict__[t]
+    return module.__dict__[classname]
  

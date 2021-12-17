@@ -80,8 +80,7 @@ class DeviceResourceType():
                 gc.collect
                 x.onDelete()
                 gc.collect()
-                remote_devices.pop(n,None)
-
+                remote_devices.pop(n, None)
 
             global remote_devices_atomic
             remote_devices_atomic = wrcopy(remote_devices)
@@ -91,7 +90,6 @@ class DeviceResourceType():
             gc.collect()
             time.sleep(0.2)
             gc.collect()
-
 
     def create(self, module, path, name, kwargs):
         raise RuntimeError(
@@ -211,7 +209,6 @@ class Device(virtualresource.VirtualResource):
 
     defaultSubclassCode = globalDefaultSubclassCode
 
-
     # We are renaming data to config for clarity.
     # This is the legacy alias.
     @property
@@ -219,16 +216,11 @@ class Device(virtualresource.VirtualResource):
         return self.config
 
     @data.setter
-    def data(self,v):
+    def data(self, v):
         return self.config.update(v)
 
-
-    @classmethod
-    def getCreateForm(self, **kwargs):
-        return self.get_create_form(**kwargs)
-
     def getManagementForm(self):
-        return self.get_management_form()
+        return ''
 
     @staticmethod
     def validateData(data):
@@ -260,7 +252,7 @@ class Device(virtualresource.VirtualResource):
         for i in self.alerts:
             if "alerts." + i + ".priority" in self.config:
                 self.alerts[i].priority = self.config["alerts." + i +
-                                                    ".priority"]
+                                                      ".priority"]
 
     def setDataKey(self, key, val):
         "Lets a device set it's own persistent stored data"
@@ -287,8 +279,9 @@ class Device(virtualresource.VirtualResource):
 
     @staticmethod
     def makeUIMsgHandler(wr):
-        def f(u,v):
-            wr().on_ui_message(u,v)
+        def f(u, v):
+            wr().on_ui_message(u, v)
+
         return f
 
     def __init__(self, name, data):
@@ -306,7 +299,6 @@ class Device(virtualresource.VirtualResource):
         # The single shared broadcast data channel the spec suggests we have
         self._admin_ws_channel = widgets.APIWidget()
         self._admin_ws_channel.require("/admin/settings.edit")
-
 
         # Widgets could potentially stay around after this was deleted,
         # because a connection was open. We wouldn't want that to keep this device around when it should not
@@ -441,9 +433,11 @@ class Device(virtualresource.VirtualResource):
         return "norm"
 
     @staticmethod
-    def discoverDevices():
-        """Returns a list of data objectd that could be used to
-            create a device object of this type, indexed by
+    def discoverDevices(config: Dict[str, str] = {},
+                        current_device: Optional[object] = None,
+                        intent="",
+                        **kwargs) -> Dict[str, Dict]:
+        """create a device object of this type, indexed by
             a string that can be up to a line of description.
 
             The data should leave out defaults.
@@ -472,7 +466,7 @@ class UnsupportedDevice(Device):
         unsupportedDevices[name] = self
 
 
-class CrossFrameworkDevice(Device):
+class CrossFrameworkDevice(Device, iot_devices.device.Device):
     ######################################################################################
     # Compatibility block for this spec https://github.com/EternityForest/iot_devices
     # Musy ONLY have things we want to override from the imported driver class,
@@ -480,6 +474,10 @@ class CrossFrameworkDevice(Device):
     # Keep this pretty self contained.  That makes it clear what's a Kaithem feature and
     # what is in the generic spec
     ######################################################################################
+
+    # Alarms are only done via the new tags way with these
+    _noSetAlarmPriority = True
+
     def numeric_data_point(self,
                            name: str,
                            min: Optional[float] = None,
@@ -588,12 +586,13 @@ class CrossFrameworkDevice(Device):
                   release_condition: Optional[str] = None,
                   **kw):
 
-        self.alerts[name]=self.tagPoints[datapoint].setAlarm(name,
-                                           condition=expression,
-                                           priority=priority,
-                                           tripDelay=trip_delay,
-                                           autoAck=auto_ack,
-                                           releaseCondition=release_condition)
+        self.alerts[name] = self.tagPoints[datapoint].setAlarm(
+            name,
+            condition=expression,
+            priority=priority,
+            tripDelay=trip_delay,
+            autoAck=auto_ack,
+            releaseCondition=release_condition)
 
     def request_data_point(self, key):
         return self.tagPoints[key].value
@@ -659,10 +658,13 @@ class CrossFrameworkDevice(Device):
         """
         return ''
 
+    def getManagementForm(self,**kw):
+        return self.get_management_form()
+
     @classmethod
-    def get_create_form(**kwargs) -> Optional[str]:
+    def getCreateForm(cls, **kwargs) -> Optional[str]:
         """must return a snippet of html used the same way as get_management_form, but for creating brand new devices"""
-        return ''
+        return cls.get_create_form(**kwargs)
 
     def print(self, msg, title="Message"):
         "Print a message to the Device's management page"
@@ -673,11 +675,27 @@ class CrossFrameworkDevice(Device):
         # And keep stuff from GCIng for too long
         workers.do(makeBackgroundPrintFunction(t, tm, title, self))
 
-    def handleException(self):
+    def handle_exception(self):
         try:
             self.handleError(traceback.format_exc(chain=True))
         except:
             print(traceback.format_exc())
+
+    @classmethod
+    def discoverDevices(cls,
+                        config: Dict[str, str] = {},
+                        current_device: Optional[object] = None,
+                        intent="",
+                        **kwargs) -> Dict[str, Dict]:
+        "CamelCase compatibility"
+        return cls.discover_devices(config=config,
+                                    current_device=current_device,
+                                    intent=intent,
+                                    kwargs=kwargs)
+
+    @staticmethod
+    def validateData(*a,**k):
+        return True
 
     #######################################################################################
 
@@ -685,9 +703,21 @@ class CrossFrameworkDevice(Device):
 # Device data always has 2 constants. 1 is the required type, the other
 # is name, and that's optional but can be used to rename a device
 def updateDevice(devname, kwargs, saveChanges=True):
+
+    #The NEW name, which could just be the old name
     name = kwargs.get('name', None) or devname
 
-    getDeviceType(kwargs['type']).validateData(kwargs)
+    raw_dt = getDeviceType(kwargs['type'])
+    if hasattr(raw_dt,"validateData"):
+        raw_dt.validateData(kwargs)
+
+    with lock:
+        # Not "Really" part of the device itself, we need to allow for config forms to just keep the existing subclass
+        # code.
+        if devname in remote_devices:
+            if 'subclass' not in kwargs:
+                kwargs['subclass'] = remote_devices[devname].data.get(
+                    "subclass", '')
 
     if not kwargs.get("subclass", "").replace("\n", '').replace("\r",
                                                                 "").strip():
@@ -805,6 +835,42 @@ class WebDevices():
         pages.require("/admin/settings.edit")
         updateDevice(devname, kwargs)
         raise cherrypy.HTTPRedirect("/devices")
+
+    @cherrypy.expose
+    def discoveryStep(self, type, devname, **kwargs):
+        """
+            Do a step of iterative device discovery.  Can start either from just a type or we can take
+            an existing device config and ask it for refinements.
+        """
+        pages.require("/admin/settings.edit")
+
+        current = kwargs
+
+        if devname and devname in remote_devices:
+            # If possible just use the actual object
+            d = remote_devices[devname]
+            c = copy.deepcopy(d.data)
+            c.update(kwargs)
+            current=c
+        else:
+            d = getDeviceType(type)
+
+
+
+        #We don't have pt adapter layer with raw classes
+        if hasattr(d, "discoverDevices"):
+            d = d.discoverDevices(current,
+                                  current_device=remote_devices.get(
+                                      devname, None),
+                                  intent="step")
+        else:
+            d = d.discover_devices(current,
+                                   current_device=remote_devices.get(
+                                       devname, None),
+                                   intent="step")
+
+        return pages.get_template("devices/discoverstep.html").render(
+            data=d, current=current,name=devname)
 
     @cherrypy.expose
     def createDevice(self, name=None, **kwargs):
@@ -979,7 +1045,6 @@ def makeDevice(name, data, module=None, resource=None):
                     #Ensure we don't lose any data should the base class ever set any new keys
                     dt2.__init__(self, name, self.config, **kw)
 
-
             dt = ImportedDeviceClass
         except:
             dt = UnsupportedDevice
@@ -1052,7 +1117,12 @@ def getDeviceType(t):
     elif t in deviceTypes:
         return deviceTypes[t]
     else:
-        return UnsupportedDevice
+        try:
+            t = iot_devices.host.get_class({'type': t})
+            return t or UnsupportedDevice
+        except:
+            logging.exception("Could not look up class")
+            return UnsupportedDevice
 
 
 class TemplateGetter():
@@ -1192,4 +1262,5 @@ def init_devices():
 
     createDevicesFromData()
 
-importedDeviceTypes = list(iot_devices.host.discover().keys())
+
+importedDeviceTypes = iot_devices.host.discover()
