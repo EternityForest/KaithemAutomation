@@ -7,6 +7,7 @@ Change Log
 - Semi-breaking: Tag point alarms will not trigger if the tag point has never actually had a value set.
 - Support for searching all modules for cross-framework devices, and importing on demand.
 - Fix devices in modules bugs
+- Freeboard edit controls now disabled if you don't have permissions, so you don't waste time making local changes you can't save.
 
 ### 0.67.5
 - Scheduler is now just based on the normal sched module

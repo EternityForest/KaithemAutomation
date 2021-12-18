@@ -232,16 +232,15 @@ class _TagPoint(virtualresource.VirtualResource):
 
         self._configuredAlarms: Dict[str, object] = {}
 
-
         # Track the recalc function used by the poller, the poller itself, and the recalc alarm subscrie
         # function subscribed to us, respectively
 
         # The last is a function that is used as a subscriber which just causes the tag to be recalced.
         # We give that to other tags in case the alarm polling depends on other tags.
 
-
         #We need it so we don't get GCed
-        self._alarmGCRefs: Dict[str, Tuple[Callable,object,Callable,Callable]] = {}
+        self._alarmGCRefs: Dict[str, Tuple[Callable, object, Callable,
+                                           Callable]] = {}
 
         self.name: str = name
         # The cached actual value from the claims
@@ -283,15 +282,12 @@ class _TagPoint(virtualresource.VirtualResource):
         else:
             self.originEvent = None
 
-
-
-
         # Used for the expressions in alert conditions and such
         self.evalContext: dict = {
             "math": math,
             "time": time,
-             #Cannot reference ourself strongly.  We want to avoid laking any references to tht tags
-             # go away cleanly
+            #Cannot reference ourself strongly.  We want to avoid laking any references to tht tags
+            # go away cleanly
             'tag': weakref.proxy(self),
             're': re,
             'kaithem': kaithemobj.kaithem,
@@ -366,7 +362,11 @@ class _TagPoint(virtualresource.VirtualResource):
         return callable(self.vta[0])
 
     @typechecked
-    def expose(self, r='', w='__never__', p:Union[str,int]=50, configured:bool=False):
+    def expose(self,
+               r='',
+               w='__never__',
+               p: Union[str, int] = 50,
+               configured: bool = False):
         """If not r, disable web API.  Otherwise, set read and write permissions.
            If configured permissions are set, they totally override code permissions.
            Empty configured perms fallback tor runtime
@@ -459,7 +459,8 @@ class _TagPoint(virtualresource.VirtualResource):
 
                     # We don't want the web connection to be able to keep the tag alive
                     # so don't give it a reference to us
-                    self._weakApiHandler = self.makeWeakApiHandler(weakref.ref(self))
+                    self._weakApiHandler = self.makeWeakApiHandler(
+                        weakref.ref(self))
                     w.attach(self._weakApiHandler)
                     self.dataSourceAutoControl.attach(self._weakApiHandler)
 
@@ -570,11 +571,11 @@ class _TagPoint(virtualresource.VirtualResource):
                                     retain=True,
                                     encoding=self.mqttEncoding)
 
-
     @staticmethod
     def makeWeakApiHandler(wr):
-        def f(u,v):
-            wr().apiHandler(u,v)
+        def f(u, v):
+            wr().apiHandler(u, v)
+
         return f
 
     def apiHandler(self, u, v):
@@ -719,9 +720,6 @@ class _TagPoint(virtualresource.VirtualResource):
         "Just re-get the value as needed"
         # It's a getter, ignore the mypy unused thing.
         self.poll()
-
-
-    
 
     def contextGetNumericTagValue(self, n):
         "Get the tag value, adding it to the list of source tags. Creates tag if it isn't there"
@@ -889,7 +887,7 @@ class _TagPoint(virtualresource.VirtualResource):
                     if not limitTo or i == limitTo:
 
                         #This is the polling function, the poller, and the subscriber
-                        pollStuff = self._alarmGCRefs.pop(i,None)
+                        pollStuff = self._alarmGCRefs.pop(i, None)
 
                         if pollStuff:
                             try:
@@ -904,10 +902,7 @@ class _TagPoint(virtualresource.VirtualResource):
                             except Exception:
                                 logger.exception("Maybe already unsubbed?")
 
-                            
-
                         a.release()
-                 
 
             if not limitTo:
                 self.alarms = {}
@@ -936,6 +931,7 @@ class _TagPoint(virtualresource.VirtualResource):
                     return "Binary Tagpoint"
             except Exception as e:
                 return str(e)
+
         return notificationHTML
 
     @staticmethod
@@ -951,7 +947,7 @@ class _TagPoint(virtualresource.VirtualResource):
 
         #
 
-        def recalc2(*a,**k):
+        def recalc2(*a, **k):
             recalc()()
 
         def contextGetNumericTagValue(n):
@@ -964,7 +960,7 @@ class _TagPoint(virtualresource.VirtualResource):
                     return t.value
 
             t = Tag(n)
-            obj.sourceTags[n] = weakref.ref(t) 
+            obj.sourceTags[n] = weakref.ref(t)
             # When any source tag updates, we want to recalculate.
             obj.sourceTags[n].subscribe(obj.recalcFunction)
             return t.value
@@ -979,7 +975,7 @@ class _TagPoint(virtualresource.VirtualResource):
                     return t.value
 
             t = StringTag(n)
-            obj.sourceTags[n] = weakref.ref(t) 
+            obj.sourceTags[n] = weakref.ref(t)
             # When any source tag updates, we want to recalculate.
             obj.sourceTags[n].subscribe(obj.recalcFunction)
             return t.value
@@ -1028,9 +1024,11 @@ class _TagPoint(virtualresource.VirtualResource):
                         oldAlert.sourceTags[i]().unsubscribe(
                             oldAlert.recalcFunction)
                     except Exception:
-                        logger.exception("cleanup err, could be because it was already deleted")
+                        logger.exception(
+                            "cleanup err, could be because it was already deleted"
+                        )
 
-                refs = self._alarmGCRefs.pop(name,None)
+                refs = self._alarmGCRefs.pop(name, None)
                 if refs:
                     self.unsubscribe(refs[2])
 
@@ -1061,14 +1059,14 @@ class _TagPoint(virtualresource.VirtualResource):
             """Recalc with same val vor this tag, but perhaps 
             a new value for
             other tags that may be fetched in the expression eval"""
-            
+
             if not self:
                 obj.release()
                 return
 
             # To avoid false alarms and confusion, we never
             # trigger an alarm on missing or default data.
-            if self.timestamp ==0:
+            if self.timestamp == 0:
                 obj.release()
                 return
 
@@ -1084,8 +1082,6 @@ class _TagPoint(virtualresource.VirtualResource):
                 obj.error(str(e))
                 raise
 
-
-
         def alarmPollFunction(value, timestamp, annotation):
             "Given a new tag value, recalc the alarm expression"
             context['value'] = value
@@ -1094,20 +1090,16 @@ class _TagPoint(virtualresource.VirtualResource):
 
             alarmRecalcFunction()
 
-
-      
-
         obj.notificationHTML = self._makeTagAlarmHTMLFunc(weakref.ref(self))
 
+        generatedRecalcFuncWeMustKeepARefTo = self._getAlarmContextGetters(
+            obj, context, weakref.ref(alarmRecalcFunction))
 
-
-        generatedRecalcFuncWeMustKeepARefTo = self._getAlarmContextGetters(obj, context, weakref.ref(alarmRecalcFunction))
-
-
-
-        self._alarmGCRefs[name] = (alarmRecalcFunction, scheduling.scheduler.scheduleRepeating(
-            alarmRecalcFunction, 60, sync=False), alarmPollFunction, generatedRecalcFuncWeMustKeepARefTo)
-
+        self._alarmGCRefs[name] = (alarmRecalcFunction,
+                                   scheduling.scheduler.scheduleRepeating(
+                                       alarmRecalcFunction, 60,
+                                       sync=False), alarmPollFunction,
+                                   generatedRecalcFuncWeMustKeepARefTo)
 
         # Store our new modified context.
         obj.context = context
@@ -1260,8 +1252,10 @@ class _TagPoint(virtualresource.VirtualResource):
 
             # Delete any existing configured value override claim
             if hasattr(self, 'kweb_manualOverrideClaim'):
-                self.kweb_manualOverrideClaim.release()
+                toRelease = self.kweb_manualOverrideClaim
                 del self.kweb_manualOverrideClaim
+            else:
+                toRelease = None
 
             # Val override last, in case it triggers an alarm
             # Convert to string for consistent handling, the config engine things anything that looks like a number, is.
@@ -1283,6 +1277,10 @@ class _TagPoint(virtualresource.VirtualResource):
                     self.kweb_manualOverrideClaim = self.claim(
                         overrideValue, data.get('overrideName', 'config'),
                         int(data.get('overridePriority', '') or 90))
+
+            if toRelease:
+                toRelease.release()
+                toRelease = None
 
             p = data.get('permissions', ('', '', ''))
             # Set configured permissions, overriding runtime
@@ -1492,8 +1490,9 @@ class _TagPoint(virtualresource.VirtualResource):
             raise RuntimeError(
                 "Cannot get lock to subscribe to this tag. Is there a long running subscriber?"
             )
+
     @typechecked
-    def unsubscribe(self, f:Callable):
+    def unsubscribe(self, f: Callable):
         if self.lock.acquire(timeout=20):
             try:
                 x = None

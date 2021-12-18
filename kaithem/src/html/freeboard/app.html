@@ -1,5 +1,6 @@
 <%! 
 from src import tagpoints 
+from src import pages
 import json %>
 
 <% 
@@ -113,6 +114,7 @@ tagpoints.exposedTags.keys()})
                     </ul>
                 </div>
             </div>
+
             <header id="main-header" data-bind="if:allow_edit">
                 <div id="main-header-inner">
                     <div id="admin-bar">
@@ -198,11 +200,13 @@ tagpoints.exposedTags.keys()})
                             <li class="column-tool add" data-bind="click: addGridColumnRight"></li>
                         </ul>
                     </div>
+                    %if pages.canUserDoThis("/admin/modules.edit"):
                     <div id="toggle-header" data-bind="click: toggleEditing">
                         </div>
+                    %endif
+
                 </div>
             </header>
-
             <div style="display:hidden">
                 <ul data-bind="template: { name: 'pane-template', foreach: panes}">
                 </ul>
