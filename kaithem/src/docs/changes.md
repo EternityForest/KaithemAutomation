@@ -8,6 +8,8 @@ Change Log
 - Support for searching all modules for cross-framework devices, and importing on demand.
 - Fix devices in modules bugs
 - Freeboard edit controls now disabled if you don't have permissions, so you don't waste time making local changes you can't save.
+- BREAKING: Remove the ability to subclass devices via UI.
+- BREAKING: Remove onChange handlers directly set on tag points via UI
 
 ### 0.67.5
 - Scheduler is now just based on the normal sched module

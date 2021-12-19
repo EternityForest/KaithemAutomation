@@ -1097,31 +1097,6 @@ causing an HTTP redirect to the previous specified url to be sent.
 When called from within a page, returns the usernae of the accessing
 user or else an empty string if not logged in.
 
-#### kaithem.web.WebResource(name,url,priority=50)
-
-register a web resource, return an object that you must keep a reference
-to or it will be unregisted. The web resource system is intended to
-allow you to change the source of a file without changing pages
-depending on it, by simply looking up the URL by name at render-time.
-
-Names of JS libraries should satisfy the following: libname-x.y.z or
-libname-devx.y.z for versions not subject to minification and
-compression
-
-Lib names should not include the .js prefix, but may modify the version
-number if based on a lib that does not use x.y.z formatting.
-
-If two WebResources are registered by the same name, whichever has the
-higher priority takes effect. If they are equal, the newer one is used
-
-When a WebResource gets replaced, the old one is discarded, so if you
-want to change back to the old one, you must re-save whatever defines
-the old version.
-
-#### kaithem.web.resource(n)
-
-#### Given the name of a registered web resource, return an object that prints as a string representing it's URL
-
 #### <span id="servefile"></span>kaithem.web.serveFile(path,contenttype,name = path)
 
 When called from code embedded in an HTML page,raises an interrupt

@@ -161,13 +161,6 @@ def getByDescriptor(d):
     return x
 
 
-# This is the base class for a remote device of any variety.
-
-globalDefaultSubclassCode = """
-class CustomDeviceType(DeviceType):
-    pass
-"""
-
 try:
     try:
         import html
@@ -207,9 +200,6 @@ class Device(virtualresource.VirtualResource):
     deviceTypeName = "device"
 
     readme = None
-
-    defaultSubclassCode = globalDefaultSubclassCode
-    _noAllowSubclass = False
 
 
     # We are renaming data to config for clarity.
@@ -352,6 +342,10 @@ class Device(virtualresource.VirtualResource):
         # be.
         onMessage = self.makeUIMsgHandler(weakref.ref(self))
 
+
+        # Maps the local short tag namre to the tag the user bound it to in the UI
+        self._kBindings = {}
+
         # I don't think this is actually needed
         self._uiMsgRef = onMessage
 
@@ -463,6 +457,22 @@ class Device(virtualresource.VirtualResource):
                 except KeyError:
                     pass
 
+            for i in self._kBindings:
+                try:
+                    self._kBindings[i].unsubscribe(self.tagPoints[i])
+                except Exception:
+                    logging.exception("Could not unsub. Maybe was never created.")
+
+            # Be defensive about ref cycles.
+            try:
+                del self._kBindings
+            except Exception:
+                pass
+
+            try:
+                del self.tagPoints
+            except Exception:
+                pass
         try:
             for i in self.alerts:
                 try:
@@ -525,10 +535,7 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
     # Alarms are only done via the new tags way with these
     _noSetAlarmPriority = True
 
-
-    # Disable the subclassing feature on these.
-    # Later we may disable it on all.
-    _noAllowSubclass = True
+    _isCrossFramework = True
 
     def numeric_data_point(self,
                            name: str,
@@ -544,28 +551,34 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                            interval: float = 0,
                            **kwargs):
 
-        t = tagpoints.Tag("/devices/" + self.name + "/" + name)
+        with lock:
+            t = tagpoints.Tag("/devices/" + self.name + "/" + name)
 
-        t.min = min
-        t.max = max
-        t.hi = hi
-        t.lo = lo
-        t.description = description
-        t.unit = unit
-        t.handler = handler
-        t.default = default
-        t.interval = interval
+            t.min = min
+            t.max = max
+            t.hi = hi
+            t.lo = lo
+            t.description = description
+            t.unit = unit
+            t.handler = handler
+            t.default = default
+            t.interval = interval
 
-        # Be defensive
-        if name in self._deviceSpecIntegrationHandlers:
-            t.unsubscribe(self._deviceSpecIntegrationHandlers[name])
+            # Be defensive
+            if name in self._deviceSpecIntegrationHandlers:
+                t.unsubscribe(self._deviceSpecIntegrationHandlers[name])
 
-        if handler:
-            self._deviceSpecIntegrationHandlers[name] = handler
-            t.subscribe(handler)
+            if handler:
+                self._deviceSpecIntegrationHandlers[name] = handler
+                t.subscribe(handler)
 
-        self.tagPoints[name] = t
-        self.datapoints[name] = None
+            self.tagPoints[name] = t
+            self.datapoints[name] = None
+
+
+            # On demand subscribe to the binding for the tag we just made
+            if name in self._kBindings:
+                self._kBindings[name].subscribe(t)
 
     def string_data_point(self,
                           name: str,
@@ -575,23 +588,27 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                           default: float = 0,
                           interval: float = 0,
                           **kwargs):
+        with lock:
+            t = tagpoints.StringTag("/devices/" + self.name + "/" + name)
+            t.description = description
+            t.handler = handler
+            t.default = default
+            t.interval = interval
 
-        t = tagpoints.StringTag("/devices/" + self.name + "/" + name)
-        t.description = description
-        t.handler = handler
-        t.default = default
-        t.interval = interval
+            # Be defensive
+            if name in self._deviceSpecIntegrationHandlers:
+                t.unsubscribe(self._deviceSpecIntegrationHandlers[name])
 
-        # Be defensive
-        if name in self._deviceSpecIntegrationHandlers:
-            t.unsubscribe(self._deviceSpecIntegrationHandlers[name])
+            if handler:
+                self._deviceSpecIntegrationHandlers[name] = handler
+                t.subscribe(handler)
 
-        if handler:
-            self._deviceSpecIntegrationHandlers[name] = handler
-            t.subscribe(handler)
+            self.tagPoints[name] = t
+            self.datapoints[name] = None
 
-        self.tagPoints[name] = t
-        self.datapoints[name] = None
+            # On demand subscribe to the binding for the tag we just made
+            if name in self._kBindings:
+                self._kBindings[name].subscribe(t)
 
     def object_data_point(self,
                           name: str,
@@ -601,21 +618,27 @@ class CrossFrameworkDevice(Device, iot_devices.device.Device):
                           interval: float = 0,
                           **kwargs):
 
-        t = tagpoints.ObjectTag("/devices/" + self.name + "/" + name)
-        t.description = description
-        t.handler = handler
-        t.interval = interval
+        with lock:
+            t = tagpoints.ObjectTag("/devices/" + self.name + "/" + name)
+            t.description = description
+            t.handler = handler
+            t.interval = interval
 
-        # Be defensive
-        if name in self._deviceSpecIntegrationHandlers:
-            t.unsubscribe(self._deviceSpecIntegrationHandlers[name])
+            # Be defensive
+            if name in self._deviceSpecIntegrationHandlers:
+                t.unsubscribe(self._deviceSpecIntegrationHandlers[name])
 
-        self._deviceSpecIntegrationHandlers[name] = handler
-        t.subscribe(handler)
+            self._deviceSpecIntegrationHandlers[name] = handler
+            t.subscribe(handler)
 
-        if handler:
-            self.tagPoints[name] = t
-            self.datapoints[name] = None
+            if handler:
+                self.tagPoints[name] = t
+                self.datapoints[name] = None
+
+        
+            # On demand subscribe to the binding for the tag we just made
+            if name in self._kBindings:
+                self._kBindings[name].subscribe(t)
 
     def set_data_point(self, name, value):
         self.tagPoints[name].value = value
@@ -759,21 +782,17 @@ def updateDevice(devname, kwargs, saveChanges=True):
     #The NEW name, which could just be the old name
     name = kwargs.get('name', None) or devname
 
+    ib = kwargs.pop("temp.kaithem.inputbindings", None)
+    if ib:
+        kwargs['kaithem.input_bindings'] =  json.loads(ib)
+    else:
+        kwargs['kaithem.input_bindings'] = []
+
     raw_dt = getDeviceType(kwargs['type'])
     if hasattr(raw_dt,"validateData"):
         raw_dt.validateData(kwargs)
 
-    with lock:
-        # Not "Really" part of the device itself, we need to allow for config forms to just keep the existing subclass
-        # code.
-        if devname in remote_devices:
-            if 'subclass' not in kwargs:
-                kwargs['subclass'] = remote_devices[devname].data.get(
-                    "subclass", '')
-
-    if not kwargs.get("subclass", "").replace("\n", '').replace("\r",
-                                                                "").strip():
-        kwargs['subclass'] = getDeviceType(kwargs['type']).defaultSubclassCode
+  
     unsaved_changes[devname] = True
 
     with lock:
@@ -807,7 +826,7 @@ def updateDevice(devname, kwargs, saveChanges=True):
         time.sleep(0.01)
         time.sleep(0.01)
         gc.collect()
-        d = {i: str(kwargs[i]) for i in kwargs if not i.startswith('temp.')}
+        d = {i: kwargs[i] for i in kwargs if not i.startswith('temp.')}
 
         if parentModule:
             from src import modules
@@ -856,9 +875,26 @@ class WebDevices():
 
         if args and args[0] == 'manage':
             pages.require("/admin/settings.edit")
+
+            # Some framework only keys are not passed to the actual device since we use what amounts
+            # to an extension, so we have to merge them in
+            merged = {}
+
+            obj = remote_devices[name]
+            if name in device_data:
+                merged.update(device_data[name])
+
+            if obj.parentModule:
+                from src import modules
+                merged.update(modules.modules_state.ActiveModules[self.parentModule][
+                    self.parentResource]['device'])
+
+            #I think stored data is enough, this is just defensive
+            merged.update(remote_devices[name].config)
+
             return pages.get_template("devices/device.html").render(
-                data=remote_devices[name].config,
-                obj=remote_devices[name],
+                data=merged,
+                obj=obj,
                 name=name,
                 args=args,
                 kwargs=kwargs)
@@ -1102,49 +1138,13 @@ def makeDevice(name, data, module=None, resource=None):
         except:
             dt = UnsupportedDevice
 
-    if 'subclass' not in data:
-        data['subclass'] = dt.defaultSubclassCode
-
     new_data = copy.deepcopy(data)
     frd = new_data.pop("framework_data",None)
 
+    # Don't pass framewith specific stuff to them.
+    new_data= {i:new_data[i] for i in new_data if not i.startswith("kaithem.")}
 
-    # Allow auto-subclassing to make customized v
-    if 'subclass' in data and data['subclass'].strip():
-        # Allow default code, without having to have an unneccesary layer of subclassing
-        # If it is unused.   These are just purely for comparision, we don't actually use them.
-
-        stripped = data['subclass'].replace("\n",
-                                            '').replace("\r", '').replace(
-                                                "\t", '').replace(" ", '')
-
-        strippedGenericTemplate = globalDefaultSubclassCode.replace(
-            "\n", '').replace("\r", '').replace("\t", '').replace(" ", '')
-
-        originaldt = dt
-
-
-
-        try:
-            if not stripped == strippedGenericTemplate:
-                from . import kaithemobj
-                codeEvalScope = {
-                    "DeviceType": dt,
-                    'kaithem': kaithemobj.kaithem
-                }
-                exec(data['subclass'], codeEvalScope, codeEvalScope)
-                dt = codeEvalScope["CustomDeviceType"]
-            d = dt(name, new_data)
-
-        except Exception:
-            d = originaldt(name, new_data)
-            d.handleError(traceback.format_exc(chain=True))
-            messagebus.postMessage(
-                '/system/notifications/error',
-                "Error with customized behavior for: " + name +
-                " using default")
-    else:
-        d = dt(name, new_data)
+    d = dt(name, new_data)
     if err:
         d.handleError(err)
 
@@ -1170,6 +1170,48 @@ def makeDevice(name, data, module=None, resource=None):
                     "device": d.config
                 })
             modules.modulesHaveChanged()
+
+    try:
+        needSet=0
+        for i in data.get("kaithem.input_bindings", []):
+            t = d.tagPoints.get(i[0],None)
+            xt = tagpoints.allTagsAtomic.get(i[2], None)
+            t = (t or xt)
+            if not i[1].strip():
+                if t:
+                    needSet=1
+                    i[1] = t.type
+                else:
+                    raise ValueError("Can't guess type for binding to: "+i[0])
+
+        for i in data.get("kaithem.input_bindings", []):
+            if i[1]=='numeric' or i[1]=='number':
+                t = tagpoints.Tag(i[2])
+            if i[1]=='string':
+                t = tagpoints.StringTag(i[2])                
+            if i[1]=='object':
+                t = tagpoints.ObjectTag(i[2])
+
+            d._kBindings[i[0]] = t
+                
+            # Can always do this later
+            if i[0] in d.tagPoints:
+                # Do the setter right away if the tag has data
+                t.subscribe(d.tagPoints[i[0]], immediate=True)
+            else:
+                if not hasattr(d, "_isCrossFramework"):
+                    d.handleError("Binding to a data point that the local device doesn't have yet will only work with newer cross-framework devices.")
+    
+        if needSet:
+            # Set the data if we auto-filled the type
+            d.setObject("kaithem.input_bindings", data.get("kaithem.input_bindings", []))
+    except Exception:
+        d.handleException()
+        
+            
+
+
+
     return d
 
 

@@ -32,7 +32,7 @@ exposedTags: weakref.WeakValueDictionary = weakref.WeakValueDictionary()
 # Setting tag.hi sets the runtime property, but we ignore it if the configuration takes precedence.
 configAttrs = {'hi', 'lo', 'min', 'max', 'interval', 'displayUnits'}
 softConfigAttrs = {
-    'overrideName', 'overrideValue', 'overridePriority', 'type', 'onChange',
+    'overrideName', 'overrideValue', 'overridePriority', 'type',
     'value', 'mqtt,server', 'mqtt.password', 'mqtt.port',
     "mqtt.messageBusName", "mqtt.topic", 'mqtt.incomingPriority',
     'mqtt.incomingExpiration'
@@ -1173,21 +1173,6 @@ class _TagPoint(virtualresource.VirtualResource):
                 # external reference
                 configTags.pop(self.name, 0)
 
-            if hasattr(self, 'configuredOnChangeAction'):
-                self.unsubscribe(self.configuredOnChangeAction)
-                del self.configuredOnChangeAction
-
-            if data.get("onChange", None):
-                # Configurable onChange handlers
-                ocfc = compile(data['onChange'], self.name + ".onChange",
-                               'exec')
-
-                def ocf(value, timestamp, annotation):
-                    exec(ocfc, self.evalContext, self.evalContext)
-
-                self.configuredOnChangeAction = ocf
-                self.subscribe(ocf)
-
             loggers = data.get('loggers', [])
 
             if loggers:
@@ -1453,7 +1438,7 @@ class _TagPoint(virtualresource.VirtualResource):
         if not args:
             return self.value
         else:
-            return self.setClaimVal(*args, **kwargs)
+            return self.setClaimVal('default', *args, **kwargs)
 
     def interface(self):
         "Override the VResource thing"
@@ -1484,7 +1469,7 @@ class _TagPoint(virtualresource.VirtualResource):
                 self.poller = None
 
     @typechecked
-    def subscribe(self, f: Callable):
+    def subscribe(self, f: Callable,immediate=False):
 
         timestamp = time.monotonic()
 
@@ -1532,6 +1517,9 @@ class _TagPoint(virtualresource.VirtualResource):
                 messagebus.postMessage("/system/tags/subscribers" + self.name,
                                        len(self.subscribers),
                                        synchronous=True)
+
+                if immediate and self.timestamp:
+                    f(self.value, self.timestamp, self.annotation)
                 self._managePolling()
             finally:
                 self.lock.release()

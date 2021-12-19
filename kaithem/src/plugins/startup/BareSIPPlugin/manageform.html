@@ -1,8 +1,7 @@
 <h3>Info</h3>
 <p class="help">
     This is a local/serverless SIP softphone suitable
-    for directly calling at the given address.  Use the subclass code
-    to accept incoming calls.  Use kaithem.devices['Name'].call("number") to place an outgoing call.
+    for directly calling at the given address.   Use kaithem.devices['Name'].call("number") to place an outgoing call.
 </p>
 
 <p class="help">dev.hang() is used to hang up any active calls.</p>
@@ -31,5 +30,10 @@ the same JACK name, although it may work if only one at a time is ever active.
     <tr>
         <td>JACK audio out</td>
         <td><input name="device.jacksink" value="${data.get('device.jacksink','system')|h}"></td>
+    </tr> 
+
+    <tr>
+        <td>Accept all incoming calls</td>
+        <td><input name="device.accept_all_calls" value="${data.get('device.accept_all_calls','no')|h}"></td>
     </tr>   
 </table>

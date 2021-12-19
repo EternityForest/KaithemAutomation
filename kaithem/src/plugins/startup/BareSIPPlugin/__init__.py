@@ -28,19 +28,12 @@ class JackBareSipAgentRunner(sip.SipUserAgent):
         self.controller().onIncomingCall(number)
 
 
-defaultSubclassCode = """
-class CustomDeviceType(DeviceType):
-    def onIncomingCall(self,number):
-        # Uncomment to accept all incoming calls
-        # self.accept()
-        pass
-"""
+
 
 
 class JackBareSipAgent(devices.Device):
     deviceTypeName = 'JackBareSipAgent'
     readme = os.path.join(os.path.dirname(__file__), "README.md")
-    defaultSubclassCode = defaultSubclassCode
 
     def close(self):
         devices.Device.close(self)
@@ -65,7 +58,8 @@ class JackBareSipAgent(devices.Device):
             self.handleException()
 
     def onIncomingCall(self, number):
-        pass
+        if self.data.get("device.accept_all_calls", "no").lower() in ('true', 'yes'):
+            self.accept()
 
     def call(self, number):
         self.print("Outgoing call to: "+str(number))

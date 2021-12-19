@@ -470,6 +470,7 @@ class Kaithem():
             return serial.tools.list_ports.comports()
 
     class web(object):
+        # TODO: Deprecate webresource stuff
         @staticmethod
         def resource(name):
             return pages.webResources[name].url

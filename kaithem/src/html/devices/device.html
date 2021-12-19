@@ -1,7 +1,8 @@
 <%include file="/pageheader.html"/>
 <%
 import traceback
-from src import unitsofmeasure
+import json
+from src import unitsofmeasure,tagpoints
 import urllib.parse
 
 def url(u):
@@ -16,6 +17,24 @@ specialKeys={
 }
 %>
 <script type="text/javascript" src="/static/widget.js"></script>
+
+<script type="text/javascript" src="/static/js/jquery3.js"></script>
+<script type="text/javascript" src="/static/js/editTable/editTable.min.js"></script>
+<link rel="stylesheet" href="/static/js/editTable/editTable.min.css">
+
+
+<datalist id="k_tags">
+        %for i in tagpoints.allTagsAtomic:
+        <option>${i|h}</option>
+        %endfor
+</datalist>
+
+<datalist id="k_tlocal">
+        %for i in obj.tagPoints:
+        <option>${i|h}</option>
+        %endfor
+</datalist>
+
 
 <h1>Device Inspector: ${name}</h1>
 <div class="sectionbox">
@@ -48,6 +67,26 @@ specialKeys={
 <li><a href="/docs/mdtemplate?page=devices.md">Generic Device API and Subclassing</a></li>
 </ul>
 <title>${name|h}</title>
+
+
+<h2>Bindings</h2>
+
+<p class="help">A binding lets you make a data point of a device mirror an external point.  Following a publish subscribe model, 
+        all of these devices are one way. The device will be updated when the tag point changes.  For the local point, 
+        use the short name.  For the external point, use the long name.
+</p>
+
+<p class="help">As per the usual tag features, the tag does not actually have to exist, and you can use an expression like
+"=tv("/some/tag/name") + 50" to create a virtual tag.
+</p>
+
+<p class="help">If either the external or device tag point exists, you can leave the type field blank.</p>
+
+
+<textarea name="temp.kaithem.inputbindings" id="bindings" style="display: none">
+${json.dumps(data.get('kaithem.input_bindings',[])) or '[]'|h}
+</textarea>
+
 <h2>Device Specific</h2>
 
 
@@ -69,7 +108,7 @@ ${manageForm}
 %else:
 
 <table>
-%for i in sorted([i for i in obj.config.keys() if not i in specialKeys] ):
+%for i in sorted([i for i in obj.config.keys() if not i in specialKeys and not i.startswith("kaithem.")] ):
 <tr>
         <td>${i|h}</td>
         <td><input name="${i|h}" value="${obj.config[i]|h}"></td>
@@ -136,18 +175,6 @@ ${manageForm}
 ${obj.logWindow.render()}
 
 
-%if not obj._noAllowSubclass:
-<h2>Customize Code(Only use this feature if needed! May disappear eventually!)</h2>
-<p class="help">Here you can use Python code to create a custom subclass of a device, useful for attaching handlers to callbacks.
-</p>
-<p class="help">The class must be named CustomDeviceType, and must inherit from DeviceType.  Only this instance of the device type is affected.  Clear this box and make it blank to reset to the example.</p>
-<div>
-<textarea data-editor="python" name="subclass" style="width:80%" rows=25>${data.get("subclass",'')|h}</textarea>
-</div>
-%endif
-
-
-
 
 
 <input type="submit" value="Save settings">
@@ -158,43 +185,44 @@ ${obj.logWindow.render()}
 
 </div>
 
-
-<script src="/static/js/src-min-noconflict/ace.js"></script>
-<script src="/static/js/jquery3.js"></script>
-
 <script>
-    // Hook up ACE editor to all textareas with data-editor attribute
-    $(function () {
-        $('textarea[data-editor]').each(function () {
-            var textarea = $(this);
-            var mode = textarea.data('editor');
-            var editDiv = $('<div>', {
-                position: 'absolute',
-                width: textarea.width(),
-                height: textarea.height(),
-                'class': textarea.attr('class')
-            }).insertBefore(textarea);
-            textarea.css('display', 'none');
-            var editor = ace.edit(editDiv[0]);
-            editor.renderer.setShowGutter(false);
-            editor.getSession().setValue(textarea.val());
-            editor.getSession().setMode("ace/mode/" + mode);
-            // editor.setTheme("ace/theme/idle_fingers");
-            editor.setOptions({
-             fontFamily: "Hack",
-            fontSize: "12pt"
-            });
-            editor.getSession().on('change', function() {
-                wasChanged=true;
-            })
-           // %if not pages.canUserDoThis("/admin/modules.edit"):
-            //editor.setReadOnly(true)
-            //%endif
-            // copy back to textarea on form submit...
-            textarea.closest('form').submit(function () {
-                textarea.val(editor.getSession().getValue());
-            })
-        });
-    });
+var mytable = $('#bindings').editTable({
+    data: [['']],           // Fill the table with a js array (this is overridden by the textarea content if not empty)
+    tableClass: 'inputtable',   // Table class, for styling
+    jsonData: false,        // Fill the table with json data (this will override data property)
+    headerCols: ['Device Point(dest)','Type(blank=auto)', 'External Point(source)'],      // Fix columns number and names (array of column names)
+    maxRows: 999,           // Max number of rows which can be added
+    first_row: true,        // First row should be highlighted?
+    row_template: false,    // An array of column types set in field_templates
+    field_templates: {
+        'tag' : {
+            html: '<input list="k_tags" style="width:25em"/>',
+            getValue: function (input) {
+                return $(input).val();
+            },
+            setValue: function (input, value) {
+                //I hate ths
+                return $('<input list="k_tags" value="'+value+'"style="width:25em"/>')
+            }
+        },
+        'local' : {
+            html: '<input list="k_tlocal"/>',
+            getValue: function (input) {
+                return $(input).val()
+            },
+            setValue: function (input, value) {
+                return $('<input list="k_tlocal" value="'+value+'"style="width:25em"/>')
+            }
+        }
+    },
+    row_template: ['local', 'text', 'tag'],
+
+    // Validate fields
+    validate_field: function (col_id, value, col_type, $element) {
+        return true;
+    }
+});
+
+mytable.loadData(${json.dumps(data.get('kaithem.input_bindings',[])) or '[]'})
 </script>
 <%include file="/pagefooter.html"/>
